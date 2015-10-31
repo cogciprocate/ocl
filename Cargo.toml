@@ -2,6 +2,16 @@
 name = "ocl"
 version = "0.0.1"
 authors = ["Nick Sanders <github.com/nsan1129>"]
+description = "OpenCL interfaces for Rust."
+documentation = "https://github.com/cogciprocate/ocl_rust"
+homepage = "https://github.com/cogciprocate/ocl_rust"
+repository = "https://github.com/cogciprocate/ocl_rust"
+readme = "README.md"
+keywords = ["opencl", "ocl", "envoy"]
+license = "GPL-2.0"
+exclude = [
+    "target/*",
+]
 
 [dependencies]
 #bitflags = "0.1.1"
