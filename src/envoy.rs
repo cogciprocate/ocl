@@ -249,7 +249,7 @@ pub fn shuffle_vec<T: OclNum>(vec: &mut Vec<T>) {
 
 
 
-#[cfg(test)]
+// #[cfg(test)]
 pub mod tests {
 	use super::{ Envoy };
 	use super::super::{ OclNum };
