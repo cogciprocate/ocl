@@ -85,8 +85,8 @@ impl Kernel {
 		self
 	}
 
-	pub fn arg_loc<T: Integer>(mut self, type_sample: T, length: usize) -> Kernel {
-		self.new_arg_local(type_sample, length);
+	pub fn arg_loc<T: Integer>(mut self, /*type_sample: T,*/ length: usize) -> Kernel {
+		self.new_arg_local::<T>(/*type_sample,*/ length);
 		self
 	}
 
@@ -121,7 +121,7 @@ impl Kernel {
 		}
 	}
 
-	pub fn new_arg_local<T: Integer>(&mut self, type_sample: T, length: usize) -> u32 {
+	pub fn new_arg_local<T: Integer>(&mut self, /*type_sample: T,*/ length: usize) -> u32 {
 
 		self.new_kernel_arg(
 			(mem::size_of::<T>() * length) as libc::size_t,
@@ -248,6 +248,13 @@ impl Kernel {
 		//event
 	}
 
+	pub fn arg_count(&self) -> u32 {
+		self.arg_count
+	}	
+}
+
+
+
 	/*pub fn enqueue_wait(&self, event_wait_list: Vec<super::cl_event>) -> super::cl_event {
 
 			// TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES
@@ -279,4 +286,3 @@ impl Kernel {
 		}
 		event
 	}*/
-}

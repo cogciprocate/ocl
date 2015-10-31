@@ -25,7 +25,6 @@ pub static C_BLU: &'static str = "\x1b[94m";
 pub static C_MAG: &'static str = "\x1b[95m";
 pub static C_LBL: &'static str = "\x1b[94m";
 
-
 pub static BGC_DEFAULT: &'static str = "\x1b[49m";
 pub static BGC_GRN: &'static str = "\x1b[42m";
 pub static BGC_PUR: &'static str = "\x1b[45m";
@@ -33,7 +32,7 @@ pub static BGC_LGR: &'static str = "\x1b[47m";
 pub static BGC_DGR: &'static str = "\x1b[100m";
 
 
-
+#[allow(unused_assignments, unused_variables)] 
 pub fn print_vec<T: OclNum>(
 			vec: &[T], 
 			every: usize, 

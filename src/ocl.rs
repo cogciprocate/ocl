@@ -71,15 +71,19 @@ impl OclContext {
 	}
 
 
-	fn context(&self) -> cl_context {
+	pub fn context(&self) -> cl_context {
 		self.context
 	}
 
-	fn devices(&self) -> &Vec<cl_device_id> {
+	pub fn devices(&self) -> &Vec<cl_device_id> {
 		&self.devices
 	}
 
-	fn valid_device(&self, selected_idx: usize) -> cl_device_id {
+	pub fn platform(&self) -> cl_platform_id {
+		self.platform
+	}
+
+	pub fn valid_device(&self, selected_idx: usize) -> cl_device_id {
 		let valid_idx = selected_idx % self.devices.len();
 		self.devices[valid_idx]
 	}

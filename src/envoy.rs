@@ -11,7 +11,8 @@ use num::{ /*Integer, NumCast,*/ FromPrimitive, ToPrimitive };
 // use std::default::{ Default };
 use std::ops::{ Range, Index, IndexMut };
 
-use super::{ self, OclProgQueue };
+use cl_h;
+use super::{ OclProgQueue };
 use super::{ fmt, OclNum };
 
 // use cmn;
@@ -33,8 +34,8 @@ pub type SynapseState = Envoy<u8>;
 
 pub struct Envoy<T> {
 	vec: Vec<T>,
-	buf: ocl::cl_mem,
-	padding: u32,
+	buf: cl_h::cl_mem,
+	// padding: u32,
 	ocl: OclProgQueue,
 }
 
@@ -43,15 +44,15 @@ impl<T: OclNum> Envoy<T> {
 		let len = dims.physical_len() as usize;
 		let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
-		Envoy::_new(0, dims, vec, ocl)
+		Envoy::_new(/*0, *//*dims,*/ vec, ocl)
 	}
 
-	pub fn with_padding<E: EnvoyDimensions>(dims: E, init_val: T, ocl: &OclProgQueue, padding: u32) -> Envoy<T> {
-		let len = (dims.physical_len() + padding) as usize;
-		let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
+	// pub fn with_padding<E: EnvoyDimensions>(dims: E, init_val: T, ocl: &OclProgQueue, /*padding: u32*/) -> Envoy<T> {
+	// 	let len = (dims.physical_len() /*+ padding*/) as usize;
+	// 	let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
-		Envoy::_new(padding, dims, vec, ocl)
-	}
+	// 	Envoy::_new(/*padding,*/ dims, vec, ocl)
+	// }
 
 	// SHUFFLED(): max_val is inclusive!
 	pub fn shuffled<E: EnvoyDimensions>(dims: E, min_val: T, max_val: T, ocl: &OclProgQueue) -> Envoy<T> {
@@ -60,18 +61,18 @@ impl<T: OclNum> Envoy<T> {
 		let vec: Vec<T> = shuffled_vec(len, min_val, max_val);
 		//println!("shuffled(): vec.len(): {}", vec.len());
 
-		Envoy::_new(0, dims, vec, ocl)
+		Envoy::_new(/*0, *//*dims,*/ vec, ocl)
 	}
 
-	fn _new<E: EnvoyDimensions>(padding: u32, dims: E, mut vec: Vec<T>, ocl: &OclProgQueue) -> Envoy<T> {
+	fn _new/*<E: EnvoyDimensions>*/(/*padding: u32,*/ /*dims: E,*/ mut vec: Vec<T>, ocl: &OclProgQueue) -> Envoy<T> {
 		//println!("New Envoy with depth: {}, width: {}, padding: {}", depth, width, padding);
 
-		let buf: ocl::cl_mem = ocl::new_buffer(&mut vec, ocl.context());
+		let buf: cl_h::cl_mem = super::new_buffer(&mut vec, ocl.context());
 
 		let mut envoy = Envoy {
 			vec: vec,
 			buf: buf,
-			padding: padding,
+			// padding: padding,
 			//width: width,
 			//depth: depth,
 			//dims: dims.clone(),
@@ -88,15 +89,15 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	pub fn write_direct(&self, sdr: &[T], offset: usize) {
-		ocl::enqueue_write_buffer(sdr, self.buf, self.ocl.queue(), offset);
+		super::enqueue_write_buffer(sdr, self.buf, self.ocl.queue(), offset);
 	}
 
 	pub fn read(&mut self) {
-		ocl::enqueue_read_buffer(&mut self.vec, self.buf, self.ocl.queue(), 0);
+		super::enqueue_read_buffer(&mut self.vec, self.buf, self.ocl.queue(), 0);
 	}
 
 	pub fn read_direct(&self, sdr: &mut [T], offset: usize) {
-		ocl::enqueue_read_buffer(sdr, self.buf, self.ocl.queue(), offset);
+		super::enqueue_read_buffer(sdr, self.buf, self.ocl.queue(), offset);
 	}
 
 	pub fn set_all_to(&mut self, val: T) {
@@ -138,13 +139,13 @@ impl<T: OclNum> Envoy<T> {
 		// RELEASES OLD BUFFER -- IF ANY KERNELS HAD REFERENCES TO IT THEY BREAK
 		self.release();
 		self.vec.resize(new_dims.physical_len() as usize, val);
-		self.buf = ocl::new_buffer(&mut self.vec, self.ocl.context());
+		self.buf = super::new_buffer(&mut self.vec, self.ocl.context());
 		// JUST TO VERIFY
 		self.write();
 	}
 
     pub fn release(&mut self) {
-		ocl::release_mem_object(self.buf);
+		super::release_mem_object(self.buf);
 	}
 
 	pub fn vec(&self) -> &Vec<T> {
@@ -155,7 +156,7 @@ impl<T: OclNum> Envoy<T> {
 		&mut self.vec
 	}
 
-	pub fn buf(&self) -> ocl::cl_mem {
+	pub fn buf(&self) -> cl_h::cl_mem {
 		self.buf
 	}
 }
@@ -201,23 +202,23 @@ impl<T> IndexMut<usize> for Envoy<T> {
 
 pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	//println!("min_val: {}, max_val: {}", min_val, max_val);
-	//let min: i64 = num::cast(min_val).expect("ocl::envoy::shuffled_vec(), min");
-	//let max: i64 = num::cast::<T, i64>(max_val).expect("ocl::envoy::shuffled_vec(), max") + 1is;
-	//let size: usize = num::cast(max_val - min_val).expect("ocl::envoy::shuffled_vec(), size");
-	//let size: usize = num::from_int(max - min).expect("ocl::envoy::shuffled_vec(), size");
+	//let min: i64 = num::cast(min_val).expect("cl_h::envoy::shuffled_vec(), min");
+	//let max: i64 = num::cast::<T, i64>(max_val).expect("cl_h::envoy::shuffled_vec(), max") + 1is;
+	//let size: usize = num::cast(max_val - min_val).expect("cl_h::envoy::shuffled_vec(), size");
+	//let size: usize = num::from_int(max - min).expect("cl_h::envoy::shuffled_vec(), size");
 	//assert!(max - min > 0, "Vector size must be greater than zero.");
 	let mut vec: Vec<T> = Vec::with_capacity(size);
 
-	assert!(size > 0, "\nocl::envoy::shuffled_vec(): Vector size must be greater than zero.");
-	assert!(min_val < max_val, "\nocl::envoy::shuffled_vec(): Minimum value must be less than maximum.");
+	assert!(size > 0, "\ncl_h::envoy::shuffled_vec(): Vector size must be greater than zero.");
+	assert!(min_val < max_val, "\ncl_h::envoy::shuffled_vec(): Minimum value must be less than maximum.");
 
-	let min = min_val.to_i64().expect("\nocl::envoy::shuffled_vec(), min");
-	let max = max_val.to_i64().expect("\nocl::envoy::shuffled_vec(), max") + 1;
+	let min = min_val.to_i64().expect("\ncl_h::envoy::shuffled_vec(), min");
+	let max = max_val.to_i64().expect("\ncl_h::envoy::shuffled_vec(), max") + 1;
 
 	let mut range = (min..max).cycle();
 
-	for i in 0..size {
-		vec.push(FromPrimitive::from_i64(range.next().expect("\nocl::envoy::shuffled_vec(), range")).expect("\nocl::envoy::shuffled_vec(), from_usize"));
+	for _ in 0..size {
+		vec.push(FromPrimitive::from_i64(range.next().expect("\ncl_h::envoy::shuffled_vec(), range")).expect("\ncl_h::envoy::shuffled_vec(), from_usize"));
 	}
 
 	//let mut vec: Vec<T> = (min..max).cycle().take(size).collect();
