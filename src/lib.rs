@@ -29,7 +29,7 @@ pub use self::work_size::{ WorkSize };
 pub use self::build_options::{ BuildOptions, BuildOption };
 pub use self::formatting as fmt;
 
-#[cfg(test)]
+// #[cfg(test)]
 pub use self::envoy::tests::{ EnvoyTest };
 
 #[macro_use] 
