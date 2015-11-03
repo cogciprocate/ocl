@@ -1,5 +1,5 @@
-#OCL_RUST
+#Ocl
 
 OpenCL interfaces for Rust.
 
-More detail coming soon!
+More detail and documentation coming soon!

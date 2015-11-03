@@ -45,7 +45,6 @@ impl BuildOptions {
 				self.string.push_str(&option.as_preprocessor_option_string());
 			}
 		}
-		//println!("\n\tBuildOptions::as_slc(): length: {}, \n \tstring: {}", self.string.len(), self.string);
 		self.string
 	}
 
@@ -68,10 +67,6 @@ impl BuildOptions {
 	pub fn kernel_file_names(&self) -> &Vec<String> {
 		&self.kernel_file_names
 	}
-
-	// pub fn as_str(&mut self) -> &str {
-	// 	&self.string
-	// }
 }
 
 
@@ -79,7 +74,6 @@ impl BuildOptions {
 pub struct BuildOption {
 	name: &'static str,
 	val: String,
-	//string: String,
 	val_is_string: bool,
 }
 
@@ -88,7 +82,6 @@ impl BuildOption {
 		BuildOption {
 			name: name,
 			val: val.to_string(),
-			//string: String::with_capacity(name.len()),
 			val_is_string: false,
 		}
 	}
@@ -97,21 +90,11 @@ impl BuildOption {
 		BuildOption {
 			name: name,
 			val: val,
-			//string: String::with_capacity(name.len()),
 			val_is_string: true,
 		}
 	}
 
 	pub fn as_preprocessor_option_string(&self) -> String {
-		//self.string = format!(" -D{}={}", self.name, self.val);
-
-		// if self.val_is_string {
-		// 	self.string = format!(" -D{}={}", self.name, self.val);
-		// } else {
-		// 	self.string = format!(" -D{}={}", self.name, self.val);
-		// }
-
-		//&self.string
 		format!(" -D{}={}", self.name, self.val)
 	}
 
@@ -119,3 +102,4 @@ impl BuildOption {
 		format!("#define {}  {}\n", self.name, self.val)
 	}
 }
+

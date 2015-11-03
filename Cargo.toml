@@ -7,11 +7,9 @@ documentation = "https://github.com/cogciprocate/ocl_rust"
 homepage = "https://github.com/cogciprocate/ocl_rust"
 repository = "https://github.com/cogciprocate/ocl_rust"
 readme = "README.md"
-keywords = ["opencl", "ocl", "envoy"]
+keywords = ["opencl", "ocl", "envoy", "gpu", "gpgpu", "amd", "nvidia"]
 license = "GPL-2.0"
-exclude = [
-    "target/*",
-]
+exclude = ["target/*"]
 
 [dependencies]
 #bitflags = "0.1.1"

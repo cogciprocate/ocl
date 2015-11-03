@@ -1,24 +1,15 @@
 #![feature(vec_push_all, zero_one)]
-// use std;
 use std::ptr;
 use std::mem;
 use std::io::{ Read };
-// use std::convert::{ From, Into };
-// use std::fs::{ File };
 use std::ffi;
 use std::iter;
-use std::fmt::{ Display, Debug, /*LowerHex,*/ UpperHex };
+use std::fmt::{ Display, Debug, UpperHex };
 use std::num::{ Zero };
-// use std::collections::{ HashMap, HashSet };
-// use std::fmt::{ Display };
-// use std::error::{ Error };
-// use num::{ self, Integer, FromPrimitive };
-// use libc;
 use num::{ Integer, NumCast, FromPrimitive, ToPrimitive };
 
-// use cmn;
-
-pub use self::ocl::{ OclContext, OclProgQueue };
+pub use self::context::{ Context };
+pub use self::queue::{ Queue };
 pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_context, cl_program, 
 	cl_kernel, cl_command_queue, cl_float, cl_mem, cl_event, cl_char, cl_uchar, 
 	cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_bitfield, CLStatus, 
@@ -38,7 +29,8 @@ extern crate libc;
 extern crate num;
 extern crate rand;
 
-mod ocl;
+mod context;
+mod queue;
 mod cl_h;
 pub mod envoy;
 mod kernel;
@@ -50,7 +42,6 @@ pub mod formatting;
 /*=============================================================================
 ================================== CONSTANTS ==================================
 =============================================================================*/
-
 
 // pub static CL_DEVICE_TYPE_DEFAULT:                       cl_bitfield = 1 << 0;
 // 		CL_DEVICE_TYPE_DEFAULT:	The default OpenCL device in the system.
@@ -130,16 +121,6 @@ pub fn get_device_ids(platform: cl_h::cl_platform_id) -> Vec<cl_h::cl_device_id>
 	devices
 }
 
-// NEW_DEVICE_2MAX(): DEPRICATE
-// pub fn new_device_2max(platform: cl_h::cl_platform_id) -> [cl_h::cl_device_id; 2] {
-// 	let mut device: [cl_h::cl_device_id; 2] = [0 as cl_h::cl_device_id; 2];
-
-// 	unsafe {
-// 		let err = cl_h::clGetDeviceIDs(platform, cl_h::CL_DEVICE_TYPE_GPU, 2, device.as_mut_ptr(), ptr::null_mut());
-// 		must_succ("clGetDeviceIDs()", err);
-// 	}
-// 	device
-// }
 
 pub fn create_context(devices: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
 	let mut err: cl_h::cl_int = 0;
@@ -159,11 +140,12 @@ pub fn create_context(devices: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
 }
 
 pub fn new_program(
-				src_str: *const i8,
-				build_opt: String,
-				context: cl_h::cl_context, 
-				device: cl_h::cl_device_id,
-) -> cl_h::cl_program {
+			src_str: *const i8,
+			build_opt: String,
+			context: cl_h::cl_context, 
+			device: cl_h::cl_device_id,
+		) -> cl_h::cl_program 
+{
 
 	let ocl_build_options_slc: &str = &build_opt;
 
@@ -207,9 +189,10 @@ pub fn new_kernel(program: cl_h::cl_program, kernel_name: &str) -> cl_h::cl_kern
 }
 
 pub fn new_command_queue(
-				context: cl_h::cl_context, 
-				device: cl_h::cl_device_id,
-) -> cl_h::cl_command_queue {
+			context: cl_h::cl_context, 
+			device: cl_h::cl_device_id,
+		) -> cl_h::cl_command_queue 
+{
 	let mut err: cl_h::cl_int = 0;
 
 	unsafe {
@@ -279,8 +262,8 @@ pub fn enqueue_write_buffer<T>(
 					data: &[T],
 					buffer: cl_h::cl_mem, 
 					command_queue: cl_h::cl_command_queue,
-					offset: usize,
-) {
+					offset: usize)
+{
 
 	unsafe {
 		let err = cl_h::clEnqueueWriteBuffer(
@@ -300,11 +283,11 @@ pub fn enqueue_write_buffer<T>(
 
 
 pub fn enqueue_read_buffer<T>(
-				data: &[T],
-				buffer: cl_h::cl_mem, 
-				command_queue: cl_h::cl_command_queue,
-				offset: usize,
-) {
+			data: &[T],
+			buffer: cl_h::cl_mem, 
+			command_queue: cl_h::cl_command_queue,
+			offset: usize)
+{
 	unsafe {
 		let err = cl_h::clEnqueueReadBuffer(
 					command_queue, 
@@ -337,8 +320,8 @@ pub fn set_kernel_arg<T>(arg_index: cl_h::cl_uint, buffer: T, kernel: cl_h::cl_k
 pub fn enqueue_kernel(
 				command_queue: cl_h::cl_command_queue, 
 				kernel: cl_h::cl_kernel, 
-				gws: usize,
-) {
+				gws: usize)
+{
 	unsafe {
 		let err = cl_h::clEnqueueNDRangeKernel(
 					command_queue,
@@ -355,72 +338,6 @@ pub fn enqueue_kernel(
 	}
 }
 
-/*pub fn enqueue_2d_kernel(
-				command_queue: cl_h::cl_command_queue,
-				kernel: cl_kernel, 
-				//dims: cl_uint,
-				gwo_o: Option<&(usize, usize)>,
-				gws: &(usize, usize),
-				lws: Option<&(usize, usize)>,
-) {
-	let gwo = match gwo_o {
-		Some(x) =>	(x as *const (usize, usize)) as *const libc::size_t,
-		None 	=>	ptr::null(),
-	};
-
-	let lws = match lws {
-		Some(x) =>	(x as *const (usize, usize)) as *const libc::size_t,
-		None 	=>	ptr::null(),
-	};
-
-	unsafe {
-		let err = cl_h::clEnqueueNDRangeKernel(
-					command_queue,
-					kernel,
-					2,				//	dims,
-					gwo,
-					(gws as *const (usize, usize)) as *const libc::size_t,
-					lws,
-					0,
-					ptr::null(),
-					ptr::null_mut(),
-		);
-		must_succ("clEnqueueNDRangeKernel()", err);
-	}
-}
-
-pub fn enqueue_3d_kernel(
-				command_queue: cl_h::cl_command_queue,
-				kernel: cl_kernel, 
-				gwo_o: Option<&(usize, usize, usize)>,
-				gws: &(usize, usize, usize),
-				lws: Option<&(usize, usize, usize)>,
-) {
-	let gwo = match gwo_o {
-		Some(x) =>	(x as *const (usize, usize, usize)) as *const libc::size_t,
-		None 	=>	ptr::null(),
-	};
-
-	let lws = match lws {
-		Some(x) =>	(x as *const (usize, usize, usize)) as *const libc::size_t,
-		None 	=>	ptr::null(),
-	};
-
-	unsafe {
-		let err = cl_h::clEnqueueNDRangeKernel(
-					command_queue,
-					kernel,
-					3,
-					gwo,
-					(gws as *const (usize, usize, usize)) as *const libc::size_t,
-					lws,
-					0,
-					ptr::null(),
-					ptr::null_mut(),
-		);
-		must_succ("clEnqueueNDRangeKernel()", err);
-	}
-}*/
 
 pub fn cl_finish(command_queue: cl_h::cl_command_queue) -> cl_h::cl_int {
 	unsafe{	cl_h::clFinish(command_queue) }
@@ -452,20 +369,18 @@ pub fn release_mem_object(obj: cl_h::cl_mem) {
 	}
 }
 
-pub fn release_kernel(
-	kernel: cl_h::cl_kernel, 
-			) {
+pub fn release_kernel(kernel: cl_h::cl_kernel) {
 	unsafe {
 		cl_h::clReleaseKernel(kernel);
 	}
 }
 
 pub fn release_components(
-				kernel: cl_h::cl_kernel, 
-				command_queue: cl_h::cl_command_queue, 
-				program: cl_h::cl_program, 
-				context: cl_h::cl_context,
-) {
+			kernel: cl_h::cl_kernel, 
+			command_queue: cl_h::cl_command_queue, 
+			program: cl_h::cl_program, 
+			context: cl_h::cl_context)
+{
 	unsafe {
 		cl_h::clReleaseKernel(kernel);
 		cl_h::clReleaseCommandQueue(command_queue);
@@ -541,11 +456,11 @@ pub fn program_build_info(program: cl_h::cl_program, device_id: cl_h::cl_device_
 }
 
 pub fn print_junk(
-				platform: cl_h::cl_platform_id, 
-				device: cl_h::cl_device_id, 
-				program: cl_h::cl_program, 
-				kernel: cl_h::cl_kernel,
-) {
+			platform: cl_h::cl_platform_id, 
+			device: cl_h::cl_device_id, 
+			program: cl_h::cl_program, 
+			kernel: cl_h::cl_kernel)
+{
 	println!("");
 	let mut size = 0 as libc::size_t;
 

@@ -1,24 +1,13 @@
-// use std::ptr;
-// use std::fmt::{ Display, Formatter, Result as FmtResult, Error as FmtError };
-// use std::io::{ self, Write };
 use std::iter::{ self };
 use rand::{ self };
 use rand::distributions::{ IndependentSample, Range as RandRange };
-//use std::num::{ NumCast, FromPrimitive, ToPrimitive };
-use num::{ /*Integer, NumCast,*/ FromPrimitive, ToPrimitive };
-//use std::fmt::{ Display };
-// use std::fmt::{ Display, Debug, /*LowerHex,*/ UpperHex };
-// use std::default::{ Default };
+use num::{ FromPrimitive, ToPrimitive };
 use std::ops::{ Range, Index, IndexMut };
 
 use cl_h;
-use super::{ OclProgQueue };
+use super::{ Queue };
 use super::{ fmt, OclNum };
 
-// use cmn;
-
-//pub trait NumCl: Integer + Copy + NumCast + Default + Display {}
-//impl <T: NumCl> NumCl for T {}
 
 pub trait EnvoyDimensions {
 	fn physical_len(&self) -> u32;
@@ -35,47 +24,31 @@ pub type SynapseState = Envoy<u8>;
 pub struct Envoy<T> {
 	vec: Vec<T>,
 	buf: cl_h::cl_mem,
-	// padding: u32,
-	ocl: OclProgQueue,
+	ocl: Queue,
 }
 
 impl<T: OclNum> Envoy<T> {
-	pub fn new<E: EnvoyDimensions>(dims: E, init_val: T, ocl: &OclProgQueue) -> Envoy<T> {
+	pub fn new<E: EnvoyDimensions>(dims: E, init_val: T, ocl: &Queue) -> Envoy<T> {
 		let len = dims.physical_len() as usize;
 		let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
-		Envoy::_new(/*0, *//*dims,*/ vec, ocl)
+		Envoy::_new(vec, ocl)
 	}
-
-	// pub fn with_padding<E: EnvoyDimensions>(dims: E, init_val: T, ocl: &OclProgQueue, /*padding: u32*/) -> Envoy<T> {
-	// 	let len = (dims.physical_len() /*+ padding*/) as usize;
-	// 	let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
-
-	// 	Envoy::_new(/*padding,*/ dims, vec, ocl)
-	// }
 
 	// SHUFFLED(): max_val is inclusive!
-	pub fn shuffled<E: EnvoyDimensions>(dims: E, min_val: T, max_val: T, ocl: &OclProgQueue) -> Envoy<T> {
+	pub fn shuffled<E: EnvoyDimensions>(dims: E, min_val: T, max_val: T, ocl: &Queue) -> Envoy<T> {
 		let len = dims.physical_len() as usize;
-		//println!("shuffled(): len: {}", len);
 		let vec: Vec<T> = shuffled_vec(len, min_val, max_val);
-		//println!("shuffled(): vec.len(): {}", vec.len());
 
-		Envoy::_new(/*0, *//*dims,*/ vec, ocl)
+		Envoy::_new(vec, ocl)
 	}
 
-	fn _new/*<E: EnvoyDimensions>*/(/*padding: u32,*/ /*dims: E,*/ mut vec: Vec<T>, ocl: &OclProgQueue) -> Envoy<T> {
-		//println!("New Envoy with depth: {}, width: {}, padding: {}", depth, width, padding);
-
+	fn _new(mut vec: Vec<T>, ocl: &Queue) -> Envoy<T> {
 		let buf: cl_h::cl_mem = super::new_buffer(&mut vec, ocl.context());
 
 		let mut envoy = Envoy {
 			vec: vec,
 			buf: buf,
-			// padding: padding,
-			//width: width,
-			//depth: depth,
-			//dims: dims.clone(),
 			ocl: ocl.clone(),
 		};
 
@@ -201,12 +174,6 @@ impl<T> IndexMut<usize> for Envoy<T> {
 
 
 pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
-	//println!("min_val: {}, max_val: {}", min_val, max_val);
-	//let min: i64 = num::cast(min_val).expect("cl_h::envoy::shuffled_vec(), min");
-	//let max: i64 = num::cast::<T, i64>(max_val).expect("cl_h::envoy::shuffled_vec(), max") + 1is;
-	//let size: usize = num::cast(max_val - min_val).expect("cl_h::envoy::shuffled_vec(), size");
-	//let size: usize = num::from_int(max - min).expect("cl_h::envoy::shuffled_vec(), size");
-	//assert!(max - min > 0, "Vector size must be greater than zero.");
 	let mut vec: Vec<T> = Vec::with_capacity(size);
 
 	assert!(size > 0, "\ncl_h::envoy::shuffled_vec(): Vector size must be greater than zero.");
@@ -221,9 +188,6 @@ pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 		vec.push(FromPrimitive::from_i64(range.next().expect("\ncl_h::envoy::shuffled_vec(), range")).expect("\ncl_h::envoy::shuffled_vec(), from_usize"));
 	}
 
-	//let mut vec: Vec<T> = (min..max).cycle().take(size).collect();
-	/*let mut vec: Vec<T> = iter::range_inclusive::<T>(min_val, max_val).cycle().take(size).collect();*/
-	
 	shuffle_vec(&mut vec);
 
 	vec

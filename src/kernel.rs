@@ -1,16 +1,8 @@
-// use std;
 use std::ptr;
 use std::mem;
-// use std::io::{ Read };
-// use std::fs::{ File };
-// use std::ffi;
-// use std::iter;
 use std::collections::{ HashMap };
-use num::{ /*self,*/ Integer, /*FromPrimitive,*/ Zero };
+use num::{ Integer, Zero };
 use libc;
-//use std::default::{ Default };
-
-// use cmn;
 use super::{ WorkSize, Envoy, OclNum };
 
 
@@ -27,10 +19,9 @@ pub struct Kernel {
 }
 
 impl Kernel {
-	pub fn new(kernel: super::cl_kernel, name: String, command_queue: super::cl_command_queue, gws: WorkSize
-	) -> Kernel {
-
-		//println!("                  KERNEL::NEW(): adding kernel: {}, gws: {:?}", name, gws);
+	pub fn new(kernel: super::cl_kernel, name: String, command_queue: super::cl_command_queue, 
+				gws: WorkSize ) -> Kernel 
+	{
 		Kernel {
 			kernel: kernel,
 			name: name,
@@ -85,8 +76,8 @@ impl Kernel {
 		self
 	}
 
-	pub fn arg_loc<T: Integer>(mut self, /*type_sample: T,*/ length: usize) -> Kernel {
-		self.new_arg_local::<T>(/*type_sample,*/ length);
+	pub fn arg_loc<T: Integer>(mut self, length: usize) -> Kernel {
+		self.new_arg_local::<T>(length);
 		self
 	}
 
@@ -104,21 +95,16 @@ impl Kernel {
 	}
 
 	pub fn new_arg_scalar<T: Integer>(&mut self, scalar_opt: Option<T>) -> u32 {
-		let val = match scalar_opt {
-			Some(scalar) => scalar,
+		let scalar = match scalar_opt {
+			Some(scl) => scl,
 			None => Zero::zero(),
 		};
 
-		unsafe {
-			//let scal = &scalar;
-
-			self.new_kernel_arg(
-				mem::size_of::<T>() as libc::size_t,
-				//(scal as *const super::cl_mem) as *const libc::c_void,
-				mem::transmute(&val),
-				//(scalar as *const super::cl_mem) as *const libc::c_void,
-			)
-		}
+		self.new_kernel_arg(
+			mem::size_of::<T>() as libc::size_t,
+			&scalar as *const _ as *const libc::c_void,
+			//(scalar as *const super::cl_mem) as *const libc::c_void,
+		)
 	}
 
 	pub fn new_arg_local<T: Integer>(&mut self, /*type_sample: T,*/ length: usize) -> u32 {
@@ -132,61 +118,26 @@ impl Kernel {
 
 	fn new_kernel_arg(&mut self, arg_size: libc::size_t, arg_value: *const libc::c_void) -> u32 {
 		let a_i = self.arg_index;
-
-		/*let err = unsafe {
-			super::clSetKernelArg(
-						self.kernel, 
-						self.arg_index, 
-						arg_size, 
-						arg_value,
-			)
-		};
-		let err_pre = format!("\nocl::Kernel::new_kernel_arg()[{}]: ", self.name);
-		super::must_succ(&err_pre, err);
-		*/
-		//println!("Adding Kernel Argument: {}", self.arg_index);
-
 		self.set_kernel_arg(a_i, arg_size, arg_value);
-
 		self.arg_index += 1;
 		a_i
 	}
 
-	// // <<<<< CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE >>>>>
+	// [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
 	pub fn set_arg_scl_named<T: Integer>(&mut self, name: &'static str, scalar: T) {
 		//	TODO: ADD A CHECK FOR A VALID NAME (KEY)
 		let arg_idx = self.named_args[name]; 
 
-		// let scalar_ptr: *const libc::c_void = &scalar as *const _ as *const libc::c_void;
-
 		self.set_kernel_arg(
 			arg_idx,
 			mem::size_of::<T>() as libc::size_t, 
-			// mem::transmute(val),
 			&scalar as *const _ as *const libc::c_void,
 		)
 	}
 
-	// <<<<< CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE >>>>>
-	// pub fn set_arg_scl_named(&mut self, name: &'static str, scalar: i32) {
-	// 	//	TODO: ADD A CHECK FOR A VALID NAME (KEY)
-	// 	let arg_idx = self.named_args[name]; 
-
-	// 	// let scalar_ptr: *const libc::c_void = &scalar as *const _ as *const libc::c_void;
-
-	// 	self.set_kernel_arg(
-	// 		arg_idx,
-	// 		mem::size_of::<i32>() as libc::size_t, 
-	// 		// mem::transmute(val),
-	// 		&scalar as *const _ as *const libc::c_void,
-	// 	)
-	// }
-
-	// <<<<< CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE >>>>>
+	// [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
 	pub fn set_arg_env_named<T: OclNum>(&mut self, name: &'static str, envoy: &Envoy<T>) {
-			//	TODO: ADD A CHECK FOR A VALID NAME (KEY)
-		
-		// println!("\nset_arg_env_named(): name: {}, named_args: {:?}", name, self.named_args);
+		//	TODO: ADD A CHECK FOR A VALID NAME (KEY)
 		let arg_idx = self.named_args[name];
 		let buf = envoy.buf();
 
@@ -195,8 +146,6 @@ impl Kernel {
 			mem::size_of::<super::cl_mem>() as libc::size_t, 
 			(&buf as *const super::cl_mem) as *const libc::c_void,
 		)
-
-		//self.set_kernel_arg(arg_idx, buf)
 	}
 
 	fn set_kernel_arg(&mut self, arg_index: super::cl_uint, arg_size: libc::size_t, arg_value: *const libc::c_void) {
@@ -206,8 +155,6 @@ impl Kernel {
 						arg_index,
 						arg_size, 
 						arg_value,
-						/*mem::size_of::<T>() as libc::size_t, 
-						mem::transmute(&val),*/
 			);
 
 			let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
@@ -216,17 +163,13 @@ impl Kernel {
 	}
 
 	pub fn enqueue(&self) {
-	//pub fn enqueue(&self) -> super::cl_event {
-
-			// TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES
+		// [FIXME] TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES
 
 		let c_gws = self.gws.complete_worksize();
 		let gws = (&c_gws as *const (usize, usize, usize)) as *const libc::size_t;
 
 		let c_lws = self.lws.complete_worksize();
 		let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
-
-		//let mut event: super::cl_event = ptr::null_mut();
 
 		unsafe {
 			let err = super::clEnqueueNDRangeKernel(
@@ -245,7 +188,6 @@ impl Kernel {
 			let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);
 			super::must_succ(&err_pre, err);
 		}
-		//event
 	}
 
 	pub fn arg_count(&self) -> u32 {

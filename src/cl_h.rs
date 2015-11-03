@@ -3,7 +3,6 @@
 extern crate libc;
 
 use std::fmt::{ Display, Formatter, Result };
-// use num::traits::{ FromPrimitive };
 use std;
 
 pub type cl_platform_id     = *mut libc::c_void;

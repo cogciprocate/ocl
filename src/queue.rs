@@ -4,102 +4,25 @@ use std::mem;
 use std::io::{ Read };
 use std::fs::{ File };
 use std::ffi;
-// use std::iter;
-// use std::collections::{ HashMap, HashSet };
 use std::collections::{ HashSet };
-// use std::fmt::{ Display };
 use std::error::{ Error };
-// use num::{ self, Integer, FromPrimitive };
 use libc;
 
-// use super::cl_h::{ self, cl_platform_id, cl_device_id, cl_context, cl_program, 
-// 	cl_kernel, cl_command_queue, cl_float, cl_mem, cl_event, cl_char, cl_uchar, 
-// 	cl_short, cl_ushort, cl_int, cl_uint, cl_long, CLStatus, 
-// 	clSetKernelArg, clEnqueueNDRangeKernel };
-use super::{ cl_h, cl_platform_id, cl_device_id, cl_context, cl_program, 
-	cl_kernel, cl_command_queue, cl_mem, cl_int, cl_uint, Kernel, Envoy, OclNum, WorkSize, BuildOptions };
+use formatting::MT;
+use super::{ cl_h, cl_device_id, cl_context, cl_program, cl_kernel, cl_command_queue, cl_mem, 
+	cl_int, cl_uint, Context, Kernel, Envoy, OclNum, WorkSize, BuildOptions };
 
-// use super::kernel::{ Kernel };
-// use super::envoy::{ Envoy, OclNum };
-// use super::work_size::{ WorkSize };
-// use super::build_options::{ BuildOptions, /*BuildOption*/ };
-//use super::cortical_dimensions::{ CorticalDimensions };
-
-pub static MT: &'static str = "    ";
-
-const DEFAULT_PLATFORM: usize = 0;
 const DEFAULT_DEVICE: usize = 0;
 
-pub struct OclContext {
-	//platforms: Vec<cl_platform_id>,
-	platform: cl_platform_id,
-	devices: Vec<cl_device_id>,
-	context: cl_context,
-}
-
-impl OclContext {
-	pub fn new(platform_idx: Option<usize>) -> OclContext {
-		let platforms = super::get_platform_ids();
-		if platforms.len() == 0 { panic!("\nNo OpenCL platforms found!\n"); }
-
-		let platform = match platform_idx {
-			Some(pf_idx) => platforms[pf_idx],
-			None => platforms[DEFAULT_PLATFORM],
-		};
-		
-		let devices: Vec<cl_device_id> = super::get_device_ids(platform);
-		if devices.len() == 0 { panic!("\nNo OpenCL devices found!\n"); }
-
-		println!("{}OCL::NEW(): device list: {:?}", MT, devices);
-
-		let context: cl_context = super::create_context(&devices);
-
-		OclContext {
-			//platforms: platforms,
-			platform: platform,
-			devices: devices,
-			context:  context,
-		}
-	}
-
-	pub fn release_components(&mut self) {
-		
-    	unsafe {
-			cl_h::clReleaseContext(self.context);
-		}
-		print!("[platform]");
-	}
-
-
-	pub fn context(&self) -> cl_context {
-		self.context
-	}
-
-	pub fn devices(&self) -> &Vec<cl_device_id> {
-		&self.devices
-	}
-
-	pub fn platform(&self) -> cl_platform_id {
-		self.platform
-	}
-
-	pub fn valid_device(&self, selected_idx: usize) -> cl_device_id {
-		let valid_idx = selected_idx % self.devices.len();
-		self.devices[valid_idx]
-	}
-}
-
-
-pub struct OclProgQueue {
-	//context: OclContext,
+pub struct Queue {
 	context: cl_context,
 	device: cl_device_id,
 	queue: cl_command_queue,
 	program: Option<cl_program>,
 }
 
-impl OclProgQueue {
-	pub fn new(context: &OclContext, device_idx: Option<usize>) -> OclProgQueue {
+impl Queue {
+	pub fn new(context: &Context, device_idx: Option<usize>) -> Queue {
 		let device: cl_device_id = match device_idx {
 			Some(dvc_idx) => context.valid_device(dvc_idx),
 			None => context.devices()[DEFAULT_DEVICE],
@@ -107,7 +30,7 @@ impl OclProgQueue {
 
 		let queue: cl_command_queue = super::new_command_queue(context.context(), device); 
 
-		OclProgQueue {
+		Queue {
 			context: context.context(),
 			device: device,
 			queue: queue,
@@ -115,7 +38,7 @@ impl OclProgQueue {
 		}
 	}
 
-	pub fn build(&mut self, build_options: BuildOptions) /*-> Ocl*/ {
+	pub fn build(&mut self, build_options: BuildOptions) {
 		if self.program.is_some() { panic!("\nOcl::build(): Pre-existing build detected. Use: \
 			'{your_Ocl_instance} = {your_Ocl_instance}.clear_build()' first.") }		
 
@@ -153,8 +76,8 @@ impl OclProgQueue {
 		Kernel::new(kernel, name, self.queue, gws)	
 	}
 
-	pub fn clone(&self) -> OclProgQueue {
-		OclProgQueue {
+	pub fn clone(&self) -> Queue {
+		Queue {
 			context:  self.context,
 			device:  self.device,
 			program:  self.program,
@@ -162,23 +85,10 @@ impl OclProgQueue {
 		}
 	}
 
-	// pub fn clone_with_device(&self) -> OclProgQueue {
-	// 	//let devices: Vec<device> = super::get_device_ids(self.cur_platform);
-
-	// 	OclProgQueue {
-	// 		devices: self.devices.clone(),
-	// 		device: self.device,
-	// 		context:  self.context.clone(),
-	// 		program:  self.program,
-	// 		queue: self.queue,
-	// 	}
-	// }
-
 	pub fn clear_build(mut self) {
 		self.release_program();
 		self.program = None;
 	}
-
 
 	pub fn new_write_buffer<T: OclNum>(&self, data: &[T]) -> cl_h::cl_mem {
 		super::new_write_buffer(data, self.context)
@@ -190,9 +100,8 @@ impl OclProgQueue {
 
 	pub fn enqueue_write_buffer<T: OclNum>(
 					&self,
-					src: &Envoy<T>,
-	) {
-
+					src: &Envoy<T>)
+	{
 		unsafe {
 			let err = cl_h::clEnqueueWriteBuffer(
 						self.queue,
@@ -213,8 +122,8 @@ impl OclProgQueue {
 	pub fn enqueue_read_buffer<T: OclNum>(
 					&self,
 					data: &[T],
-					buffer: cl_h::cl_mem, 
-	) {
+					buffer: cl_h::cl_mem) 
+	{
 		super::enqueue_read_buffer(data, buffer, self.queue, 0);
 	}
 
@@ -224,8 +133,8 @@ impl OclProgQueue {
 					dst: &Envoy<T>,		//	dst_buffer: cl_mem,
 					src_offset: usize,
 					dst_offset: usize,
-					len_copy_bytes: usize,
-	) {
+					len_copy_bytes: usize) 
+	{
 		unsafe {
 			let err = cl_h::clEnqueueCopyBuffer(
 				self.queue,
@@ -245,8 +154,8 @@ impl OclProgQueue {
 	pub fn enqueue_kernel(
 				&self,
 				kernel: cl_h::cl_kernel, 
-				gws: usize,
-	) { 
+				gws: usize) 
+	{ 
 		super::enqueue_kernel(kernel, self.queue, gws);
 	}
 
