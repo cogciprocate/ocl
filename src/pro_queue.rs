@@ -20,8 +20,8 @@ pub struct ProQueue {
 }
 
 impl ProQueue {
-	///
-	/// 	Note: Will wrap device_idx around.
+	///	Documentation coming.
+	/// 	Doc Note: Will wrap device_idx around.
 	///
 	pub fn new(context: &Context, device_idx: Option<usize>) -> ProQueue {
 		let device: cl_device_id = match device_idx {
