@@ -9,11 +9,12 @@ use std::num::{ Zero };
 use num::{ Integer, NumCast, FromPrimitive, ToPrimitive };
 
 pub use self::context::{ Context };
-pub use self::queue::{ Queue };
-pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_context, cl_program, 
+pub use self::pro_queue::{ ProQueue };
+pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, cl_program, 
 	cl_kernel, cl_command_queue, cl_float, cl_mem, cl_event, cl_char, cl_uchar, 
 	cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_bitfield, CLStatus, 
-	clSetKernelArg, clEnqueueNDRangeKernel };
+	clSetKernelArg, clEnqueueNDRangeKernel, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU,
+	CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL };
 pub use self::kernel::{ Kernel };
 pub use self::envoy::{ Envoy, EnvoyDimensions };
 pub use self::work_size::{ WorkSize };
@@ -30,7 +31,7 @@ extern crate num;
 extern crate rand;
 
 mod context;
-mod queue;
+mod pro_queue;
 mod cl_h;
 pub mod envoy;
 mod kernel;
@@ -43,22 +44,21 @@ pub mod formatting;
 ================================== CONSTANTS ==================================
 =============================================================================*/
 
-// pub static CL_DEVICE_TYPE_DEFAULT:                       cl_bitfield = 1 << 0;
+// pub static CL_DEVICE_TYPE_DEFAULT:                       cl_device_type = 1 << 0;
 // 		CL_DEVICE_TYPE_DEFAULT:	The default OpenCL device in the system.
-// pub static CL_DEVICE_TYPE_CPU:                           cl_bitfield = 1 << 1;
-// 		CL_DEVICE_TYPE_CPU:	An OpenCL device that is the host processor. 
-// 		The host processor runs the OpenCL implementations and is a single or multi-core CPU.
-// pub static CL_DEVICE_TYPE_GPU:                           cl_bitfield = 1 << 2;
-// 		CL_DEVICE_TYPE_GPU:	An OpenCL device that is a GPU. By this we mean that the device can 
-// 		also be used to accelerate a 3D API such as OpenGL or DirectX.
-// pub static CL_DEVICE_TYPE_ACCELERATOR:                   cl_bitfield = 1 << 3;
-// 		CL_DEVICE_TYPE_ACCELERATOR:	Dedicated OpenCL accelerators (for example the IBM CELL Blade). 
-// 		These devices communicate with the host processor using a peripheral interconnect such as PCIe.
-// pub static CL_DEVICE_TYPE_ALL:                           cl_bitfield = 0xFFFFFFFF;
+// pub static CL_DEVICE_TYPE_CPU:                           cl_device_type = 1 << 1;
+// 		CL_DEVICE_TYPE_CPU:	An OpenCL device that is the host processor. The host processor runs the OpenCL implementations and is a single or multi-core CPU.
+// pub static CL_DEVICE_TYPE_GPU:                           cl_device_type = 1 << 2;
+// 		CL_DEVICE_TYPE_GPU:	An OpenCL device that is a GPU. By this we mean that the device can also be used to accelerate a 3D API such as OpenGL or DirectX.
+// pub static CL_DEVICE_TYPE_ACCELERATOR:                   cl_device_type = 1 << 3;
+// 		CL_DEVICE_TYPE_ACCELERATOR:	Dedicated OpenCL accelerators (for example the IBM CELL Blade). These devices communicate with the host processor using a peripheral interconnect such as PCIe.
+// pub static CL_DEVICE_TYPE_ALL:                           cl_device_type = 0xFFFFFFFF;
 // 		CL_DEVICE_TYPE_ALL
-const DEFAULT_DEVICE_TYPE: cl_bitfield = 1 << 2; // CL_DEVICE_TYPE_GPU
+const DEFAULT_DEVICE_TYPE: cl_device_type = 1 << 2; // CL_DEVICE_TYPE_GPU
 
 const DEVICES_MAX: u32 = 16;
+const DEFAULT_PLATFORM: usize = 0;
+const DEFAULT_DEVICE: usize = 0;
 
 /*=============================================================================
 =================================== TRAITS ====================================
@@ -94,9 +94,19 @@ pub fn get_platform_ids() -> Vec<cl_h::cl_platform_id> {
 }
 
 // GET_DEVICE_IDS():
-pub fn get_device_ids(platform: cl_h::cl_platform_id) -> Vec<cl_h::cl_device_id> {
+/// # Panics
+/// 	- must_succ() (needs addressing)
+pub fn get_device_ids(
+			platform: cl_h::cl_platform_id, 
+			device_types_opt: Option<cl_device_type>,
+		) -> Vec<cl_h::cl_device_id> 
+{
+	// let device_type = match device_types_opt {
+	// 	Some(dts) => dts,
+	// 	None => DEFAULT_DEVICE_TYPE,
+	// };
 
-	let device_type = DEFAULT_DEVICE_TYPE;
+	let device_type = device_types_opt.unwrap_or(DEFAULT_DEVICE_TYPE);
 	
 	let mut devices_avaliable: cl_h::cl_uint = 0;
 	let mut devices_array: [cl_h::cl_device_id; DEVICES_MAX as usize] = [0 as cl_h::cl_device_id; DEVICES_MAX as usize];

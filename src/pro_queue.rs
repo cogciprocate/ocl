@@ -8,49 +8,52 @@ use std::collections::{ HashSet };
 use std::error::{ Error };
 use libc;
 
-use formatting::MT;
+// use formatting::MT;
 use super::{ cl_h, cl_device_id, cl_context, cl_program, cl_kernel, cl_command_queue, cl_mem, 
-	cl_int, cl_uint, Context, Kernel, Envoy, OclNum, WorkSize, BuildOptions };
+	cl_int, cl_uint, Context, Kernel, Envoy, OclNum, WorkSize, BuildOptions, DEFAULT_DEVICE };
 
-const DEFAULT_DEVICE: usize = 0;
-
-pub struct Queue {
+pub struct ProQueue {
 	context: cl_context,
 	device: cl_device_id,
-	queue: cl_command_queue,
+	cmd_queue: cl_command_queue,
 	program: Option<cl_program>,
 }
 
-impl Queue {
-	pub fn new(context: &Context, device_idx: Option<usize>) -> Queue {
+impl ProQueue {
+	///
+	/// 	Note: Will wrap device_idx around.
+	///
+	pub fn new(context: &Context, device_idx: Option<usize>) -> ProQueue {
 		let device: cl_device_id = match device_idx {
 			Some(dvc_idx) => context.valid_device(dvc_idx),
 			None => context.devices()[DEFAULT_DEVICE],
 		};
 
-		let queue: cl_command_queue = super::new_command_queue(context.context(), device); 
+		let cmd_queue: cl_command_queue = super::new_command_queue(context.context(), device); 
 
-		Queue {
+		ProQueue {
 			context: context.context(),
 			device: device,
-			queue: queue,
+			cmd_queue: cmd_queue,
 			program: None,
 		}
 	}
 
-	pub fn build(&mut self, build_options: BuildOptions) {
+	pub fn build(&mut self, build_options: BuildOptions) -> Result<(), String> {
 		if self.program.is_some() { panic!("\nOcl::build(): Pre-existing build detected. Use: \
 			'{your_Ocl_instance} = {your_Ocl_instance}.clear_build()' first.") }		
 
-		let kern_c_str = parse_kernel_files(&build_options);
+		let kern_c_str = try!(parse_kernel_files(&build_options));
 
-		println!("{}OCL::BUILD(): DEVICE: {:#?}", MT, self.device);
+		// println!("{}OCL::BUILD(): DEVICE: {:#?}", MT, self.device);
 
 		let prg = super::new_program(kern_c_str.as_ptr(), build_options.to_build_string(), self.context, self.device);
 
 		super::program_build_info(prg, self.device);
 
 		self.program = Some(prg);
+
+		Ok(())
 	}
 
 	pub fn new_kernel(&self, name: String, gws: WorkSize) -> Kernel {
@@ -65,7 +68,7 @@ impl Queue {
 		let kernel = unsafe {
 			cl_h::clCreateKernel(
 				program, 
-				ffi::CString::new(name.as_bytes()).ok().unwrap().as_ptr(), 
+				ffi::CString::new(name.as_bytes()).unwrap().as_ptr(), 
 				&mut err
 			)
 		};
@@ -73,15 +76,15 @@ impl Queue {
 		let err_pre = format!("Ocl::new_kernel({}):", &name);
 		super::must_succ(&err_pre, err);
 
-		Kernel::new(kernel, name, self.queue, gws)	
+		Kernel::new(kernel, name, self.cmd_queue, gws)	
 	}
 
-	pub fn clone(&self) -> Queue {
-		Queue {
+	pub fn clone(&self) -> ProQueue {
+		ProQueue {
 			context:  self.context,
 			device:  self.device,
 			program:  self.program,
-			queue: self.queue,
+			cmd_queue: self.cmd_queue,
 		}
 	}
 
@@ -104,7 +107,7 @@ impl Queue {
 	{
 		unsafe {
 			let err = cl_h::clEnqueueWriteBuffer(
-						self.queue,
+						self.cmd_queue,
 						src.buf(),
 						cl_h::CL_TRUE,
 						0,
@@ -124,7 +127,7 @@ impl Queue {
 					data: &[T],
 					buffer: cl_h::cl_mem) 
 	{
-		super::enqueue_read_buffer(data, buffer, self.queue, 0);
+		super::enqueue_read_buffer(data, buffer, self.cmd_queue, 0);
 	}
 
 	pub fn enqueue_copy_buffer<T: OclNum>(
@@ -137,7 +140,7 @@ impl Queue {
 	{
 		unsafe {
 			let err = cl_h::clEnqueueCopyBuffer(
-				self.queue,
+				self.cmd_queue,
 				src.buf(),				//	src_buffer,
 				dst.buf(),				//	dst_buffer,
 				src_offset as u64,
@@ -156,16 +159,14 @@ impl Queue {
 				kernel: cl_h::cl_kernel, 
 				gws: usize) 
 	{ 
-		super::enqueue_kernel(kernel, self.queue, gws);
+		super::enqueue_kernel(kernel, self.cmd_queue, gws);
 	}
 
 	pub fn release_components(&self) {
 		self.release_program();
-		print!("[program]");
 		unsafe {
-			cl_h::clReleaseCommandQueue(self.queue);
+			cl_h::clReleaseCommandQueue(self.cmd_queue);
 		}
-		print!("[queue]");
 	}
 
 	pub fn release_program(&self) {
@@ -193,8 +194,8 @@ impl Queue {
 		max_work_group_size as u32
 	}
 
-	pub fn queue(&self) -> cl_h::cl_command_queue {
-		self.queue
+	pub fn cmd_queue(&self) -> cl_h::cl_command_queue {
+		self.cmd_queue
 	}
 
 	pub fn context(&self) -> cl_h::cl_context {
@@ -203,7 +204,7 @@ impl Queue {
 }
 
 
-fn parse_kernel_files(build_options: &BuildOptions) -> ffi::CString {
+fn parse_kernel_files(build_options: &BuildOptions) -> Result<ffi::CString, String> {
 	let mut kern_str: Vec<u8> = Vec::with_capacity(10000);
 	let mut kern_history: HashSet<String> = HashSet::with_capacity(20);
 
@@ -220,18 +221,20 @@ fn parse_kernel_files(build_options: &BuildOptions) -> ffi::CString {
 			let kern_file_path = std::path::Path::new(&file_name);
 
 			let mut kern_file = match File::open(&kern_file_path) {
-				Err(why) => panic!("\nCouldn't open '{}': {}", &file_name, Error::description(&why)),
+				Err(why) => return Err(format!("\nCouldn't open '{}': {}", 
+					&file_name, Error::description(&why))),
 				Ok(file) => file,
 			};
 
 			match kern_file.read_to_end(&mut kern_str) {
-	    		Err(why) => panic!("\ncouldn't read '{}': {}", &file_name, Error::description(&why)),
-			    Ok(bytes) => println!("{}OCL::BUILD(): parsing {}: {} bytes read.", MT, &file_name, bytes),
+	    		Err(why) => return Err(format!("\ncouldn't read '{}': {}", 
+	    			&file_name, Error::description(&why))),
+			    Ok(_) => (), //println!("{}OCL::BUILD(): parsing {}: {} bytes read.", MT, &file_name, bytes),
 			}
 		}
 
 		kern_history.insert(file_name);
 	}
 
-	ffi::CString::new(kern_str).ok().expect("Ocl::new(): ocl::parse_kernel_files(): ffi::CString::new(): Error.")
+	Ok(ffi::CString::new(kern_str).expect("Ocl::new(): ocl::parse_kernel_files(): ffi::CString::new(): Error."))
 }
