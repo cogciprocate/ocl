@@ -4,7 +4,7 @@ OpenCL interfaces for Rust. Makes easy to use many of the most useful features o
 
 ##Installation
 
-Ensure that OpenCL is installed for your preferred platform. Remember that Intel and AMD both have OpenCL libraries for your CPU if you're having trouble getting your GPU to work. Make sure that `clinfo` or some other diagnostic command will run. You may want to check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case if it's not already.
+Ensure that OpenCL is installed for your preferred platform. Remember that Intel and AMD both have OpenCL libraries for your CPU if you're having trouble getting your GPU to work. Make sure that `clinfo` or some other diagnostic command will run. You may want to check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already.
 
 Add
 
@@ -29,8 +29,8 @@ extern crate ocl;
 to your crate main file (`main.rs` or `lib.rs`).
 
 
-##Usage
-
+##Usage (incomplete)
+Updates coming very soon!
 ```
 use ocl::{ BuildOptions, Envoy };
 
