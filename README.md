@@ -56,7 +56,7 @@ fn main() {
 	// Create a Program/Queue: 
 	let mut ocl_pq = ProQueue::new(&ocl_cxt, None);
 
-	// Create build options (compiler switch shown as an example):
+	// Create build options passing optional command line switches and other options:
 	let build_options = BuildOptions::new("-cl-unsafe-math-optimizations")
 		.kern_file("cl/kernel_file.cl".to_string());
 
@@ -74,17 +74,17 @@ fn main() {
 	// Our coefficient:
 	let coeff = 5f32;
 
-	// Create a kernel:
-	let kernel = ocl_pq.new_kernel("multiply_by_scalar".to_string(), env_dims.work_size())
+	// Create our kernel:
+	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), env_dims.work_size())
 		.arg_env(&src_env)
 		.arg_scl(coeff)
 		.arg_env(&mut dst_env)
 	;
 
-	// Enqueue our kernel:
-	kernel.enqueue();
+	// Enqueue kernel:
+	kernel.enqueue(None, None);
 
-	// Read results from device:
+	// Read results:
 	dst_env.read();
 
 	// Check results:
