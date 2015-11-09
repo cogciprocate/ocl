@@ -9,7 +9,7 @@ use std::collections::{ HashSet };
 use std::error::{ Error };
 use libc;
 
-use super::{ cl_h, cl_device_id, cl_context, cl_program, cl_kernel, cl_command_queue, cl_mem, 
+use super::{ cl_h, cl_device_id, cl_context, cl_program, cl_command_queue, cl_mem, 
 	cl_int, cl_uint, Context, Kernel, Envoy, OclNum, WorkSize, BuildOptions, DEFAULT_DEVICE };
 
 
@@ -31,7 +31,7 @@ impl ProQueue {
 			None => context.devices()[DEFAULT_DEVICE],
 		};
 
-		let cmd_queue: cl_command_queue = super::new_command_queue(context.context(), device); 
+		let cmd_queue: cl_command_queue = super::create_command_queue(context.context(), device); 
 
 		ProQueue {
 			context: context.context(),
@@ -59,10 +59,11 @@ impl ProQueue {
 		Ok(())
 	}
 
-	pub fn new_kernel(&self, name: String, gws: WorkSize) -> Kernel {
+	// [FIXME] TODO: Return result instead of panic.
+	pub fn create_kernel(&self, name: String, gws: WorkSize) -> Kernel {
 		let program = match self.program {
 			Some(prg) => prg,
-			None => panic!("\nOcl::new_kernel(): Cannot add new kernel until OpenCL program is built. \
+			None => panic!("\nOcl::create_kernel(): Cannot add new kernel until OpenCL program is built. \
 				Use: '{your_Ocl_instance}.build({your_BuildOptions_instance})'.\n"),
 		};
 
@@ -76,7 +77,7 @@ impl ProQueue {
 			)
 		};
 		
-		let err_pre = format!("Ocl::new_kernel({}):", &name);
+		let err_pre = format!("Ocl::create_kernel({}):", &name);
 		super::must_succ(&err_pre, err);
 
 		Kernel::new(kernel, name, self.cmd_queue, gws)	
@@ -96,12 +97,12 @@ impl ProQueue {
 		self.program = None;
 	}
 
-	pub fn new_write_buffer<T: OclNum>(&self, data: &[T]) -> cl_h::cl_mem {
-		super::new_write_buffer(data, self.context)
+	pub fn create_write_buffer<T: OclNum>(&self, data: &[T]) -> cl_h::cl_mem {
+		super::create_write_buffer(data, self.context)
 	}
 
-	pub fn new_read_buffer<T: OclNum>(&self, data: &[T]) -> cl_h::cl_mem {
-		super::new_read_buffer(data, self.context)
+	pub fn create_read_buffer<T: OclNum>(&self, data: &[T]) -> cl_h::cl_mem {
+		super::create_read_buffer(data, self.context)
 	}
 
 	pub fn enqueue_write_buffer<T: OclNum>(
@@ -146,9 +147,9 @@ impl ProQueue {
 				self.cmd_queue,
 				src.buf(),				//	src_buffer,
 				dst.buf(),				//	dst_buffer,
-				src_offset as u64,
-				dst_offset as u64,
-				len_copy_bytes as u64,
+				src_offset as usize,
+				dst_offset as usize,
+				len_copy_bytes as usize,
 				0,
 				ptr::null(),
 				ptr::null_mut(),
@@ -157,13 +158,13 @@ impl ProQueue {
 		}
 	}
 
-	pub fn enqueue_kernel(
-				&self,
-				kernel: cl_h::cl_kernel, 
-				gws: usize) 
-	{ 
-		super::enqueue_kernel(kernel, self.cmd_queue, gws);
-	}
+	// pub fn enqueue_kernel(
+	// 			&self,
+	// 			kernel: cl_h::cl_kernel, 
+	// 			gws: usize) 
+	// { 
+	// 	super::enqueue_kernel(kernel, self.cmd_queue, gws);
+	// }
 
 	pub fn release_components(&self) {
 		self.release_program();
@@ -179,14 +180,15 @@ impl ProQueue {
 		}
 	}
 
+	// [FIXME] TODO: Remove transmute()
 	pub fn get_max_work_group_size(&self) -> u32 {
-		let max_work_group_size: u64 = 0;
+		let max_work_group_size: usize = 0;
 
 		let err = unsafe { 
 			cl_h::clGetDeviceInfo(
 				self.device,
 				cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
-				mem::size_of::<u64>() as u64,
+				mem::size_of::<usize>() as usize,
 				mem::transmute(&max_work_group_size),
 				ptr::null_mut(),
 			) 

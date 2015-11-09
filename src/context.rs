@@ -20,17 +20,17 @@ impl Context {
 	/// 
 	/// The device types mask may be specified using a union of any or all of the 
 	/// following flags:
-	/// 	-`CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
-	/// 	-`CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor. 
+	/// 	- `CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
+	/// 	- `CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor. 
 	/// 	The host processor runs the OpenCL implementations and is a single or 
 	/// 	multi-core CPU.
-	/// 	-`CL_DEVICE_TYPE_GPU`: An OpenCL device that is a GPU. By this we mean 
+	/// 	- `CL_DEVICE_TYPE_GPU`: An OpenCL device that is a GPU. By this we mean 
 	/// 	that the device can also be used to accelerate a 3D API such as OpenGL or 
 	///		DirectX.
-	///		-`CL_DEVICE_TYPE_ACCELERATOR`: Dedicated OpenCL accelerators (for example 
+	///		- `CL_DEVICE_TYPE_ACCELERATOR`: Dedicated OpenCL accelerators (for example 
 	///		the IBM CELL Blade). These devices communicate with the host processor 
 	///		using a peripheral interconnect such as PCIe.
-	///		-`CL_DEVICE_TYPE_ALL`: A union of all flags.
+	///		- `CL_DEVICE_TYPE_ALL`: A union of all flags.
 	///
 	/// Passing `None` will use the flag: `CL_DEVICE_TYPE_GPU`.
 	///
@@ -64,19 +64,19 @@ impl Context {
 	/// ```	
 	///
 	/// # Panics
-	/// 	-`get_device_ids()` (work in progress)
+	/// 	- `get_device_ids()` (work in progress)
 	///
 	/// # Failures
-	/// 	-No platforms.
-	/// 	-Invalid platform index.
-	/// 	-No devices.
+	/// 	- No platforms.
+	/// 	- Invalid platform index.
+	/// 	- No devices.
 	///
 	/// # TODO:
-	/// 	-Add a more in-depth constructor which accepts an arbitrary list of 
+	/// 	- Add a more in-depth constructor which accepts an arbitrary list of 
 	///		devices (or sub-devices), a list of cl_context_properties, and no platform.
 	///
 	/// # Maybe Someday TODO:
-	///		-Handle context callbacks.
+	///		- Handle context callbacks.
 	///
 	pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<cl_device_type>) 
 			-> Result<Context, &'static str>

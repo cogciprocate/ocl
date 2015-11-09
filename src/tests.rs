@@ -29,14 +29,14 @@ fn test_basics() {
 	let coeff = 5f32;
 
 	// Create our kernel:
-	let kernel = ocl_pq.new_kernel("multiply_by_scalar".to_string(), env_dims.work_size())
+	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), env_dims.work_size())
 		.arg_env(&src_env)
 		.arg_scl(coeff)
 		.arg_env(&mut dst_env)
 	;
 
 	// Enqueue kernel:
-	kernel.enqueue();
+	kernel.enqueue(None, None);
 
 	// Read results:
 	dst_env.read();

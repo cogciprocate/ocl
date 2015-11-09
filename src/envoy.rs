@@ -40,7 +40,7 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	fn _new(mut vec: Vec<T>, pq: &ProQueue) -> Envoy<T> {
-		let buf: cl_h::cl_mem = super::new_buffer(&mut vec, pq.context());
+		let buf: cl_h::cl_mem = super::create_buffer(&mut vec, pq.context());
 
 		let mut envoy = Envoy {
 			vec: vec,
@@ -108,7 +108,7 @@ impl<T: OclNum> Envoy<T> {
 		// RELEASES OLD BUFFER -- IF ANY KERNELS HAD REFERENCES TO IT THEY BREAK
 		self.release();
 		self.vec.resize(new_dims.padded_envoy_len(&self.pq) as usize, val);
-		self.buf = super::new_buffer(&mut self.vec, self.pq.context());
+		self.buf = super::create_buffer(&mut self.vec, self.pq.context());
 		// JUST TO VERIFY
 		self.write();
 	}

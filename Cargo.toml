@@ -8,12 +8,11 @@ homepage = "https://github.com/cogciprocate/ocl_rust"
 repository = "https://github.com/cogciprocate/ocl_rust"
 readme = "README.md"
 keywords = ["opencl", "gpu", "gpgpu"]
-license = "GPL-2.0"
+license = "MIT"
 exclude = ["target/*"]
 
 [dependencies]
-#bitflags = "0.1.1"
-rand = "0.3.5"
-num = "0.1.19"
-libc = "0.1.5"
-enum_primitive = "0.0.2"
+rand = "0.3"
+num = "0.1"
+libc = "0.2"
+enum_primitive = "0.1"

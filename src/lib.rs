@@ -11,16 +11,17 @@ use num::{ NumCast, FromPrimitive, ToPrimitive };
 pub use self::context::{ Context };
 pub use self::pro_queue::{ ProQueue };
 pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, cl_program, 
-	cl_kernel, cl_command_queue, cl_float, cl_mem, cl_event, cl_float, cl_char, cl_uchar, 
+	cl_kernel, cl_command_queue, cl_mem, cl_event, cl_float, cl_char, cl_uchar, 
 	cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_bitfield, CLStatus, 
-	clSetKernelArg, clEnqueueNDRangeKernel, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU,
-	CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL };
+	CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR, 
+	CL_DEVICE_TYPE_ALL };
 pub use self::kernel::{ Kernel };
 pub use self::envoy::{ Envoy };
 pub use self::simple_dims::{ SimpleDims };
 pub use self::work_size::{ WorkSize };
 pub use self::build_options::{ BuildOptions, BuildOption };
 pub use self::errors::{ DimError };
+pub use self::event_list::{ EventList };
 pub use self::formatting as fmt;
 
 // #[cfg(test)] [FIXME]: TODO: Create an additional crate build configuration for tests
@@ -42,6 +43,7 @@ mod work_size;
 mod build_options;
 mod errors;
 pub mod formatting;
+mod event_list;
 #[cfg(test)]
 mod tests;
 
@@ -221,17 +223,29 @@ pub fn create_program(
 	}
 }
 
-pub fn new_kernel(program: cl_h::cl_program, kernel_name: &str) -> cl_h::cl_kernel {
+pub fn create_kernel(program: cl_h::cl_program, kernel_name: &str) -> cl_h::cl_kernel {
 	let mut err: cl_h::cl_int = 0;
 	unsafe {
-		let kernel = cl_h::clCreateKernel(program, ffi::CString::new(kernel_name.as_bytes()).ok().expect("ocl::new_kernel(): clCreateKernel").as_ptr(), &mut err);
+		let kernel = cl_h::clCreateKernel(program, ffi::CString::new(kernel_name.as_bytes()).ok().expect("ocl::create_kernel(): clCreateKernel").as_ptr(), &mut err);
 		let err_pre = format!("clCreateKernel({}):", kernel_name);
 		must_succ(&err_pre, err);
 		kernel
 	}
 }
 
-pub fn new_command_queue(
+pub fn set_kernel_arg<T>(arg_index: cl_h::cl_uint, buffer: T, kernel: cl_h::cl_kernel) {
+	unsafe {
+		let err = cl_h::clSetKernelArg(
+					kernel, 
+					arg_index, 
+					mem::size_of::<T>() as usize, 
+					mem::transmute(&buffer),
+		);
+		must_succ("clSetKernelArg()", err);
+	}
+}
+
+pub fn create_command_queue(
 			context: cl_h::cl_context, 
 			device: cl_h::cl_device_id,
 		) -> cl_h::cl_command_queue 
@@ -250,53 +264,52 @@ pub fn new_command_queue(
 	}
 }
 
-
 // <<<<< CONVERT FROM VEC TO SLICE >>>>>
-pub fn new_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
+pub fn create_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
 	let mut err: cl_h::cl_int = 0;
 	unsafe {
 		let buf = cl_h::clCreateBuffer(
 					context, 
 					cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, 
-					(data.len() * mem::size_of::<T>()) as u64,
+					(data.len() * mem::size_of::<T>()) as usize,
 					data.as_ptr() as *mut libc::c_void, 
 					//ptr::null_mut(),
 					&mut err,
 		);
-		must_succ("new_buffer", err);
+		must_succ("create_buffer", err);
 		buf
 	}
 }
 
 // <<<<< CONVERT FROM VEC TO SLICE >>>>>
-pub fn new_write_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
+pub fn create_write_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
 	let mut err: cl_h::cl_int = 0;
 	unsafe {
 		let buf = cl_h::clCreateBuffer(
 					context, 
 					cl_h::CL_MEM_READ_ONLY | cl_h::CL_MEM_COPY_HOST_PTR, 
-					(data.len() * mem::size_of::<T>()) as u64,
+					(data.len() * mem::size_of::<T>()) as usize,
 					data.as_ptr() as *mut libc::c_void, 
 					//ptr::null_mut(),
 					&mut err,
 		);
-		must_succ("new_write_buffer", err);
+		must_succ("create_write_buffer", err);
 		buf
 	}
 }
 
 // <<<<< CONVERT FROM VEC TO SLICE >>>>>
-pub fn new_read_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
+pub fn create_read_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
 	let mut err: cl_h::cl_int = 0;
 	unsafe {
 		let buf = cl_h::clCreateBuffer(
 					context, 
 					cl_h::CL_MEM_WRITE_ONLY, 
-					(data.len() * mem::size_of::<T>()) as u64, 
+					(data.len() * mem::size_of::<T>()) as usize, 
 					ptr::null_mut(), 
 					&mut err,
 		);
-		must_succ("new_read_buffer", err);
+		must_succ("create_read_buffer", err);
 		buf
 	}
 }
@@ -324,7 +337,6 @@ pub fn enqueue_write_buffer<T>(
 	}
 }
 
-
 pub fn enqueue_read_buffer<T>(
 			data: &[T],
 			buffer: cl_h::cl_mem, 
@@ -348,44 +360,9 @@ pub fn enqueue_read_buffer<T>(
 }
 
 
-pub fn set_kernel_arg<T>(arg_index: cl_h::cl_uint, buffer: T, kernel: cl_h::cl_kernel) {
-	unsafe {
-		let err = cl_h::clSetKernelArg(
-					kernel, 
-					arg_index, 
-					mem::size_of::<T>() as u64, 
-					mem::transmute(&buffer),
-		);
-		must_succ("clSetKernelArg()", err);
-	}
-}
-
-pub fn enqueue_kernel(
-				command_queue: cl_h::cl_command_queue, 
-				kernel: cl_h::cl_kernel, 
-				gws: usize)
-{
-	unsafe {
-		let err = cl_h::clEnqueueNDRangeKernel(
-					command_queue,
-					kernel,
-					1 as cl_uint,
-					ptr::null(),
-					mem::transmute(&gws),
-					ptr::null(),
-					0,
-					ptr::null(),
-					ptr::null_mut(),
-		);
-		must_succ("clEnqueueNDRangeKernel()", err);
-	}
-}
-
-
 pub fn cl_finish(command_queue: cl_h::cl_command_queue) -> cl_h::cl_int {
 	unsafe{	cl_h::clFinish(command_queue) }
 }
-
 
 pub fn mem_object_info_size(object: cl_h::cl_mem) -> libc::size_t {
 	unsafe {
@@ -394,7 +371,7 @@ pub fn mem_object_info_size(object: cl_h::cl_mem) -> libc::size_t {
 					object,
 					cl_h::CL_MEM_SIZE,
 					mem::size_of::<libc::size_t>() as libc::size_t,
-					(&mut size as *mut u64) as *mut libc::c_void,
+					(&mut size as *mut usize) as *mut libc::c_void,
 					ptr::null_mut()
 		);
 		must_succ("clGetMemObjectInfo", err);
@@ -430,8 +407,7 @@ pub fn release_components(
 		cl_h::clReleaseProgram(program);
 		cl_h::clReleaseContext(context);
 	}
-}
-	
+}	
 
 pub fn platform_info(platform: cl_h::cl_platform_id) {
 	let mut size = 0 as libc::size_t;
@@ -456,7 +432,7 @@ pub fn platform_info(platform: cl_h::cl_platform_id) {
 					ptr::null_mut(),
 		);
         must_succ("clGetPlatformInfo()", err);
-        println!("*** Platform Name ({}): {}", name, cstring_to_string(param_value));
+        println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
     }
 }
 
@@ -487,7 +463,8 @@ pub fn program_build_info(program: cl_h::cl_program, device_id: cl_h::cl_device_
 		);
         must_succ("clGetProgramBuildInfo()", err);
 
-        let pbi = cstring_to_string(program_build_info);
+        // let pbi = cstring_to_string(program_build_info);
+        let pbi = String::from_utf8(program_build_info).unwrap();
 
         if pbi.len() > 1 {
        		print!("\nOCL Program Build Info ({})[{}]: \n\n {}", name, pbi.len(), pbi);
@@ -500,16 +477,6 @@ pub fn program_build_info(program: cl_h::cl_program, device_id: cl_h::cl_device_
 		}
 	}
 }
-
-
-// fn empty_cstring(s: usize) -> ffi::CString {
-// 	ffi::CString::new(iter::repeat(32u8).take(s).collect()).ok().expect("ocl::empty_cstring()")
-// }
-
-fn cstring_to_string(cs: Vec<u8>) -> String {
-	String::from_utf8(cs).unwrap()
-}
-
 
 pub fn must_succ(message: &str, err_code: cl_h::cl_int) {
 	if err_code != cl_h::CLStatus::CL_SUCCESS as cl_h::cl_int {
@@ -525,6 +492,34 @@ fn err_string(err_code: cl_int) -> String {
 	}
 }
 
+
+
+// [FIXME] TODO: DEPRICATE
+// pub fn enqueue_kernel_simple(
+// 				command_queue: cl_h::cl_command_queue, 
+// 				kernel: cl_h::cl_kernel, 
+// 				gws: usize)
+// {
+// 	unsafe {
+// 		let err = cl_h::clEnqueueNDRangeKernel(
+// 					command_queue,
+// 					kernel,
+// 					1 as cl_uint,
+// 					ptr::null(),
+// 					mem::transmute(&gws),
+// 					ptr::null(),
+// 					0,
+// 					ptr::null(),
+// 					ptr::null_mut(),
+// 		);
+// 		must_succ("clEnqueueNDRangeKernel()", err);
+// 	}
+// }
+
+
+// fn cstring_to_string(cs: Vec<u8>) -> String {
+// 	String::from_utf8(cs).unwrap()
+// }
 
 
 // pub fn print_junk(

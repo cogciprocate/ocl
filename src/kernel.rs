@@ -3,23 +3,24 @@ use std::mem;
 use std::collections::{ HashMap };
 // use num::{ Integer, Zero };
 use libc;
-use super::{ WorkSize, Envoy, OclNum };
+
+use super::{ cl_h, WorkSize, Envoy, OclNum, EventList };
 
 
 pub struct Kernel {
-	kernel: super::cl_kernel,
+	kernel: cl_h::cl_kernel,
 	name: String,
 	arg_index: u32,
 	named_args: HashMap<&'static str, u32>,
 	arg_count: u32,
-	command_queue: super::cl_command_queue,
+	command_queue: cl_h::cl_command_queue,
 	gwo: WorkSize,
 	gws: WorkSize,
 	lws: WorkSize,
 }
 
 impl Kernel {
-	pub fn new(kernel: super::cl_kernel, name: String, command_queue: super::cl_command_queue, 
+	pub fn new(kernel: cl_h::cl_kernel, name: String, command_queue: cl_h::cl_command_queue, 
 				gws: WorkSize ) -> Kernel 
 	{
 		Kernel {
@@ -89,8 +90,8 @@ impl Kernel {
 		};
 
 		self.new_kernel_arg(
-			mem::size_of::<super::cl_mem>() as libc::size_t, 
-			(&buf as *const super::cl_mem) as *const libc::c_void,
+			mem::size_of::<cl_h::cl_mem>() as libc::size_t, 
+			(&buf as *const cl_h::cl_mem) as *const libc::c_void,
 		)
 	}
 
@@ -143,14 +144,14 @@ impl Kernel {
 
 		self.set_kernel_arg(
 			arg_idx,
-			mem::size_of::<super::cl_mem>() as libc::size_t, 
-			(&buf as *const super::cl_mem) as *const libc::c_void,
+			mem::size_of::<cl_h::cl_mem>() as libc::size_t, 
+			(&buf as *const cl_h::cl_mem) as *const libc::c_void,
 		)
 	}
 
-	fn set_kernel_arg(&mut self, arg_index: super::cl_uint, arg_size: libc::size_t, arg_value: *const libc::c_void) {
+	fn set_kernel_arg(&mut self, arg_index: cl_h::cl_uint, arg_size: libc::size_t, arg_value: *const libc::c_void) {
 		unsafe {
-			let err = super::clSetKernelArg(
+			let err = cl_h::clSetKernelArg(
 						self.kernel, 
 						arg_index,
 						arg_size, 
@@ -162,7 +163,7 @@ impl Kernel {
 		}
 	}
 
-	pub fn enqueue(&self) {
+	pub fn enqueue(&self, pre_events: Option<&EventList>, dst_events: Option<&mut EventList>) {
 		// [FIXME] TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES
 
 		let c_gws = self.gws.complete_worksize();
@@ -172,7 +173,7 @@ impl Kernel {
 		let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
 
 		unsafe {
-			let err = super::clEnqueueNDRangeKernel(
+			let err = cl_h::clEnqueueNDRangeKernel(
 						self.command_queue,
 						self.kernel,
 						self.gws.dim_count(),				//	dims,

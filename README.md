@@ -4,42 +4,50 @@ OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL
 
 Interfaces are still unstable. Probably won't eat your laundry but may break in non-subtle ways.
 
+
 ##Goals
 
 To provide a simple and intuitive way to interact with OpenCL devices with:
-
    - The full power of the C ABI
    - A minimum of boilerplate
    - Zero performance overhead
 
+
 ##Platforms
 
-Tested only on Linux so far. Please provide feedback about failures and successes on other platforms.
+Tested only on Linux. Please [provide feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and successes on other platforms.
+
 
 ##Installation
 
 Ensure that an OpenCL library is installed for your preferred platform. Remember that Intel and AMD both have OpenCL libraries for your CPU if you're having trouble getting your GPU to work. Make sure that `clinfo` or some other diagnostic command will run. You may want to check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already.
 
 Add
+
 ```
 [dependencies]
 ocl = "0.1"
 ```
+
 or (to be cutting edge)
+
 ```
 [dependencies.ocl]
 git = "https://github.com/cogciprocate/ocl_rust.git"
 ```
-to your project's `Cargo.toml` then, of course
+
+to your project's `Cargo.toml` then, of course,
+
 ```
 extern crate ocl;
 ```
+
 to your crate main file (`main.rs` or `lib.rs`).
 
 
 ##Usage
 ```
-use ocl::{ Context, BuildOptions, Envoy, SimpleDims, ProQueue };
+use ocl::{ Context, ProQueue, BuildOptions, SimpleDims, Envoy };
 
 fn main() {
 	// Create a context:
@@ -87,6 +95,7 @@ fn main() {
 ```
 
 `kernel_file.cl` contents:
+
 ```
 __kernel void multiply_by_scalar(
 			__global float const* const src,
@@ -103,6 +112,11 @@ __kernel void multiply_by_scalar(
 ##Help
 
 Please ask questions and provide any positive or negative feedback by opening an [issue](https://github.com/cogciprocate/ocl_rust/issues).
+
+
+##Upcoming
+Event queuing/waiting was temporarily removed for polishing and will be coming back for 0.2.0.
+
 
 
 More details and documentation to come.
