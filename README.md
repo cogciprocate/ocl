@@ -8,9 +8,9 @@ Interfaces are still unstable. Probably won't eat your laundry but may break in 
 
 To provide a simple and intuitive way to interact with OpenCL devices with:
 
-	-The full power of the C ABI
-	-A minimum of boilerplate
-	-Zero performance overhead
+   - The full power of the C ABI
+   - A minimum of boilerplate
+   - Zero performance overhead
 
 ##Platforms
 
