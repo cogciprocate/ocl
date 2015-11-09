@@ -1,7 +1,7 @@
 use std::ptr;
 use std::mem;
 use std::collections::{ HashMap };
-use num::{ Integer, Zero };
+// use num::{ Integer, Zero };
 use libc;
 use super::{ WorkSize, Envoy, OclNum };
 
@@ -36,7 +36,7 @@ impl Kernel {
 	}
 
 	pub fn gwo(mut self, gwo: WorkSize) -> Kernel {
-		if gwo.dims() == self.gws.dims() {
+		if gwo.dim_count() == self.gws.dim_count() {
 			self.gwo = gwo
 		} else {
 			panic!("ocl::Kernel::gwo(): Work size mismatch.");
@@ -45,7 +45,7 @@ impl Kernel {
 	}
 
 	pub fn lws(mut self, lws: WorkSize) -> Kernel {
-		if lws.dims() == self.gws.dims() {
+		if lws.dim_count() == self.gws.dim_count() {
 			self.lws = lws;
 		} else {
 			panic!("ocl::Kernel::lws(): Work size mismatch.");
@@ -58,12 +58,12 @@ impl Kernel {
 		self
 	}
 
-	pub fn arg_scl<T: Integer>(mut self, scalar: T) -> Kernel {
+	pub fn arg_scl<T: OclNum>(mut self, scalar: T) -> Kernel {
 		self.new_arg_scalar(Some(scalar));
 		self
 	}
 
-	pub fn arg_scl_named<T: Integer>(mut self, name: &'static str, scalar_opt: Option<T>) -> Kernel {
+	pub fn arg_scl_named<T: OclNum>(mut self, name: &'static str, scalar_opt: Option<T>) -> Kernel {
 		let arg_idx = self.new_arg_scalar(scalar_opt);
 		self.named_args.insert(name, arg_idx);
 		self
@@ -76,7 +76,7 @@ impl Kernel {
 		self
 	}
 
-	pub fn arg_loc<T: Integer>(mut self, length: usize) -> Kernel {
+	pub fn arg_loc<T: OclNum>(mut self, length: usize) -> Kernel {
 		self.new_arg_local::<T>(length);
 		self
 	}
@@ -94,10 +94,10 @@ impl Kernel {
 		)
 	}
 
-	pub fn new_arg_scalar<T: Integer>(&mut self, scalar_opt: Option<T>) -> u32 {
+	pub fn new_arg_scalar<T: OclNum>(&mut self, scalar_opt: Option<T>) -> u32 {
 		let scalar = match scalar_opt {
 			Some(scl) => scl,
-			None => Zero::zero(),
+			None => Default::default(),
 		};
 
 		self.new_kernel_arg(
@@ -107,7 +107,7 @@ impl Kernel {
 		)
 	}
 
-	pub fn new_arg_local<T: Integer>(&mut self, /*type_sample: T,*/ length: usize) -> u32 {
+	pub fn new_arg_local<T: OclNum>(&mut self, /*type_sample: T,*/ length: usize) -> u32 {
 
 		self.new_kernel_arg(
 			(mem::size_of::<T>() * length) as libc::size_t,
@@ -124,7 +124,7 @@ impl Kernel {
 	}
 
 	// [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-	pub fn set_arg_scl_named<T: Integer>(&mut self, name: &'static str, scalar: T) {
+	pub fn set_arg_scl_named<T: OclNum>(&mut self, name: &'static str, scalar: T) {
 		//	TODO: ADD A CHECK FOR A VALID NAME (KEY)
 		let arg_idx = self.named_args[name]; 
 
@@ -175,7 +175,7 @@ impl Kernel {
 			let err = super::clEnqueueNDRangeKernel(
 						self.command_queue,
 						self.kernel,
-						self.gws.dims(),				//	dims,
+						self.gws.dim_count(),				//	dims,
 						self.gwo.as_ptr(),
 						gws,
 						lws,
@@ -213,7 +213,7 @@ impl Kernel {
 			let err = super::clEnqueueNDRangeKernel(
 						self.command_queue,
 						self.kernel,
-						self.gws.dims(),				//	dims,
+						self.gws.dim_count(),				//	dims,
 						self.gwo.as_ptr(),
 						gws,
 						lws,

@@ -37,11 +37,11 @@ impl Context {
 	/// # Examples
 	///	
 	/// ```
-	///	use ocl::Context;
+	///	// use ocl;
 	///
 	///	fn main() {
 	///		// Create a context with the first platform and all GPUs in the system.
-	///		let ocl_context = Context::new(None, None);
+	///		let ocl_context = ocl::Context::new(None, None);
 	///		
 	///		// Do fun stuff...
 	/// }
@@ -49,16 +49,15 @@ impl Context {
 	///
 	///
 	/// ```
-	/// use ocl::{ self, Context };
+	/// // use ocl;
 	/// 
 	/// fn main() {
 	/// 	let platform_ids = ocl::get_platform_ids();
-	/// 	assert!(platform_ids.len() >= 2);
 	/// 
-	/// 	let device_types = CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU;
+	/// 	let device_types = ocl::CL_DEVICE_TYPE_GPU | ocl::CL_DEVICE_TYPE_CPU;
 	///
-	/// 	// Create a context using the 2nd platform and both CPU and GPU devices.
-	/// 	let ocl_context = Context::new(Some(1), Some(device_types));
+	/// 	// Create a context using the 1st platform and both CPU and GPU devices.
+	/// 	let ocl_context = ocl::Context::new(Some(0), Some(device_types));
 	/// 	
 	/// 	// ...
 	/// }

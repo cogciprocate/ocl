@@ -1,4 +1,5 @@
 use std::iter::{ self };
+use std::slice::{ Iter };
 use rand::{ self };
 use rand::distributions::{ IndependentSample, Range as RandRange };
 use num::{ FromPrimitive, ToPrimitive };
@@ -9,7 +10,7 @@ use super::{ fmt, OclNum, ProQueue, EnvoyDims };
 
 
 impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
-    fn padded_envoy_len(&self, pq: &ProQueue) -> u32 { (*self).padded_envoy_len(pq) }
+    fn padded_envoy_len(&self, pq: &ProQueue) -> usize { (*self).padded_envoy_len(pq) }
 }
 
 pub type AxonState = Envoy<u8>;
@@ -127,6 +128,10 @@ impl<T: OclNum> Envoy<T> {
 	pub fn buf(&self) -> cl_h::cl_mem {
 		self.buf
 	}
+
+	pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+		self.vec.iter()
+	}
 }
 
 impl<'b, T> Index<&'b usize> for Envoy<T> {
@@ -156,6 +161,8 @@ impl<T> IndexMut<usize> for Envoy<T> {
         &mut self.vec[..][index]
     }
 }
+
+// impl<'a, T> Iterator<
 
 
 // impl<T: OclNum> Display for Envoy<T> {

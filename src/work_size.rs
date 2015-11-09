@@ -2,20 +2,20 @@ use std::ptr;
 use libc;
 
 
-#[derive(PartialEq, Debug, Clone, Eq, Hash)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum WorkSize {
 	Unspecified,
 	OneDim		(usize),
-	TwoDim		(usize, usize),
-	ThreeDim 	(usize, usize, usize),
+	TwoDims		(usize, usize),
+	ThreeDims 	(usize, usize, usize),
 }
 
 impl WorkSize {
-	pub fn dims(&self) -> super::cl_uint {
+	pub fn dim_count(&self) -> super::cl_uint {
 		use self::WorkSize::*;
 		match self {
-			&ThreeDim(..) 		=> 3,
-			&TwoDim(..) 		=> 2,
+			&ThreeDims(..) 		=> 3,
+			&TwoDims(..) 		=> 2,
 			&OneDim(..) 		=> 1,
 			&Unspecified 		=> 0,
 		}
@@ -27,20 +27,16 @@ impl WorkSize {
 			&WorkSize::OneDim(x) => {
 				(x, 1, 1)
 			},
-			&WorkSize::TwoDim(x, y) => {
+			&WorkSize::TwoDims(x, y) => {
 				(x, y, 1)
 			},
-			&WorkSize::ThreeDim(x, y, z) => {
+			&WorkSize::ThreeDims(x, y, z) => {
 				(x, y, z)
 			},
 			_ => (1, 1, 1)
 		}
 	}
 
-	/* AS_PTR():
-		THIS COULD BE BUGGY SINCE THE POINTER TO 's' IS LEFT DANGLING
-		TODO: CHECK INTO IT
-	*/
 	pub fn as_ptr(&self) -> *const libc::size_t {
 
 		match self {
@@ -48,11 +44,11 @@ impl WorkSize {
 				let s: (usize, usize, usize) = (x, 1, 1);
 				(&s as *const (usize, usize, usize)) as *const libc::size_t
 			},
-			&WorkSize::TwoDim(x, y) => {
+			&WorkSize::TwoDims(x, y) => {
 				let s: (usize, usize, usize) = (x, y, 1);
 				(&s as *const (usize, usize, usize)) as *const libc::size_t
 			},
-			&WorkSize::ThreeDim(x, y, z) => {
+			&WorkSize::ThreeDims(x, y, z) => {
 				let s: (usize, usize, usize) = (x, y, z);
 				(&s as *const (usize, usize, usize)) as *const libc::size_t
 			},

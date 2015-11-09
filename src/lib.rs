@@ -4,9 +4,9 @@ use std::mem;
 use std::io::{ Read };
 use std::ffi;
 use std::iter;
-use std::fmt::{ Display, Debug, UpperHex };
+use std::fmt::{ Display, Debug, /*UpperHex*/ };
 use std::num::{ Zero };
-use num::{ Integer, NumCast, FromPrimitive, ToPrimitive };
+use num::{ NumCast, FromPrimitive, ToPrimitive };
 
 pub use self::context::{ Context };
 pub use self::pro_queue::{ ProQueue };
@@ -42,6 +42,9 @@ mod work_size;
 mod build_options;
 mod errors;
 pub mod formatting;
+#[cfg(test)]
+mod tests;
+
 
 
 //=============================================================================
@@ -68,14 +71,14 @@ const DEFAULT_DEVICE: usize = 0;
 //================================= TRAITS ====================================
 //=============================================================================
 
-pub trait OclNum: Integer + Copy + Clone + NumCast + Default + Zero + Display + Debug
-	+ FromPrimitive + ToPrimitive + UpperHex {}
+pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + Display + Debug
+	+ FromPrimitive + ToPrimitive {}
 
-impl<T> OclNum for T where T: Integer + Copy + Clone + NumCast + Default + Zero + Display + Debug
-	+ FromPrimitive + ToPrimitive + UpperHex {}
+impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + Display + Debug
+	+ FromPrimitive + ToPrimitive {}
 
 pub trait EnvoyDims {
-	fn padded_envoy_len(&self, &ProQueue) -> u32;
+	fn padded_envoy_len(&self, &ProQueue) -> usize;
 }
 
 // + From<u32> + From<i32> + From<usize> + From<i8> + From<u8> + Into<usize> + Into<i8>
@@ -85,7 +88,7 @@ pub trait EnvoyDims {
 //=============================================================================
 
 /// Pads `len` to make it evenly divisible by `incr`.
-pub fn padded_len(len: u32, incr: u32) -> u32 {
+pub fn padded_len(len: usize, incr: usize) -> usize {
 	let len_mod = len % incr;
 
 	if len_mod == 0 {
@@ -122,7 +125,7 @@ pub fn get_platform_ids() -> Vec<cl_h::cl_platform_id> {
 
 // GET_DEVICE_IDS():
 /// # Panics
-/// 	- must_succ() (needs addressing)
+/// 	//-must_succ (needs addressing)
 pub fn get_device_ids(
 			platform: cl_h::cl_platform_id, 
 			device_types_opt: Option<cl_device_type>,
@@ -176,12 +179,13 @@ pub fn create_context(devices: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
 
 }
 
-pub fn new_program(
+/// Create a new OpenCL program object reference.
+pub fn create_program(
 			src_str: *const i8,
 			build_opt: String,
 			context: cl_h::cl_context, 
 			device: cl_h::cl_device_id,
-		) -> cl_h::cl_program 
+		) -> Result<cl_h::cl_program, String>
 {
 
 	let ocl_build_options_slc: &str = &build_opt;
@@ -206,12 +210,14 @@ pub fn new_program(
 					mem::transmute(ptr::null::<fn()>()), 
 					ptr::null_mut(),
 		);
-		if err != 0i32 {
-			program_build_info(program, device);
-		}
-		must_succ("clBuildProgram()", err);
 
-		program
+		// [FIXME] Temporary: Re-wrap the error properly:
+		if err != 0i32 {
+			Err(program_build_info(program, device).err().unwrap())
+		} else {
+			must_succ("clBuildProgram()", err);
+			Ok(program)
+		}
 	}
 }
 
@@ -454,7 +460,7 @@ pub fn platform_info(platform: cl_h::cl_platform_id) {
     }
 }
 
-pub fn program_build_info(program: cl_h::cl_program, device_id: cl_h::cl_device_id) -> Box<String> {
+pub fn program_build_info(program: cl_h::cl_program, device_id: cl_h::cl_device_id) -> Result<(), String> {
 	let mut size = 0 as libc::size_t;
 
 	unsafe {
@@ -487,106 +493,13 @@ pub fn program_build_info(program: cl_h::cl_program, device_id: cl_h::cl_device_
        		print!("\nOCL Program Build Info ({})[{}]: \n\n {}", name, pbi.len(), pbi);
    		}
 
-        let rs: Box<String> = Box::new(pbi);
-        rs
+   		if pbi.len() > 1 {
+       		Err(pbi)
+   		} else {
+   			Ok(())
+		}
 	}
 }
-
-pub fn print_junk(
-			platform: cl_h::cl_platform_id, 
-			device: cl_h::cl_device_id, 
-			program: cl_h::cl_program, 
-			kernel: cl_h::cl_kernel)
-{
-	println!("");
-	let mut size = 0 as libc::size_t;
-
-	// Get Platform Name
-	platform_info(platform);
-	// Get Device Name
-	let name = cl_h::CL_DEVICE_NAME as cl_h::cl_device_info;
-
-	let mut err = unsafe { cl_h::clGetDeviceInfo(
-		device,
-		name,
-		0,
-		ptr::null_mut(),
-		&mut size,
-	) }; 
-
-	must_succ("clGetPlatformInfo(size)", err);
-
-	unsafe {
-        let mut device_info: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
-
-        err = cl_h::clGetDeviceInfo(
-			device,
-			name,
-			size,
-			device_info.as_mut_ptr() as *mut libc::c_void,
-			ptr::null_mut(),
-		);
-
-        must_succ("clGetDeviceInfo()", err);
-        println!("*** Device Name ({}): {}", name, cstring_to_string(device_info));
-	}
-
-	//Get Program Info
-	unsafe {
-		let name = cl_h::CL_PROGRAM_SOURCE as cl_h::cl_program_info;
-
-        err = cl_h::clGetProgramInfo(
-					program,
-					name,
-					0,
-					ptr::null_mut(),
-					&mut size,
-		);
-		must_succ("clGetProgramInfo(size)", err);
-			
-        let mut program_info: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
-
-        err = cl_h::clGetProgramInfo(
-					program,
-					name,
-					size,
-					program_info.as_mut_ptr() as *mut libc::c_void,
-					//program_info as *mut libc::c_void,
-					ptr::null_mut(),
-		);
-        must_succ("clGetProgramInfo()", err);
-        println!("*** Program Info ({}): \n {}", name, cstring_to_string(program_info));
-	}
-	println!("");
-	//Get Kernel Name
-	unsafe {
-		let name = cl_h::CL_KERNEL_NUM_ARGS as cl_h::cl_uint;
-
-        err = cl_h::clGetKernelInfo(
-					kernel,
-					name,
-					0,
-					ptr::null_mut(),
-					&mut size,
-		);
-		must_succ("clGetKernelInfo(size)", err);
-
-        let kernel_info = 5 as cl_h::cl_uint;
-
-        err = cl_h::clGetKernelInfo(
-					kernel,
-					name,
-					size,
-					mem::transmute(&kernel_info),
-					ptr::null_mut(),
-		);
-		
-        must_succ("clGetKernelInfo()", err);
-        println!("*** Kernel Info: ({})\n{}", name, kernel_info);
-	}
-	println!("");
-}
-
 
 
 // fn empty_cstring(s: usize) -> ffi::CString {
@@ -614,7 +527,97 @@ fn err_string(err_code: cl_int) -> String {
 
 
 
+// pub fn print_junk(
+// 			platform: cl_h::cl_platform_id, 
+// 			device: cl_h::cl_device_id, 
+// 			program: cl_h::cl_program, 
+// 			kernel: cl_h::cl_kernel)
+// {
+// 	println!("");
+// 	let mut size = 0 as libc::size_t;
 
-#[test]
-fn it_works() {
-}
+// 	// Get Platform Name
+// 	platform_info(platform);
+// 	// Get Device Name
+// 	let name = cl_h::CL_DEVICE_NAME as cl_h::cl_device_info;
+
+// 	let mut err = unsafe { cl_h::clGetDeviceInfo(
+// 		device,
+// 		name,
+// 		0,
+// 		ptr::null_mut(),
+// 		&mut size,
+// 	) }; 
+
+// 	must_succ("clGetPlatformInfo(size)", err);
+
+// 	unsafe {
+//         let mut device_info: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
+
+//         err = cl_h::clGetDeviceInfo(
+// 			device,
+// 			name,
+// 			size,
+// 			device_info.as_mut_ptr() as *mut libc::c_void,
+// 			ptr::null_mut(),
+// 		);
+
+//         must_succ("clGetDeviceInfo()", err);
+//         println!("*** Device Name ({}): {}", name, cstring_to_string(device_info));
+// 	}
+
+// 	//Get Program Info
+// 	unsafe {
+// 		let name = cl_h::CL_PROGRAM_SOURCE as cl_h::cl_program_info;
+
+//         err = cl_h::clGetProgramInfo(
+// 					program,
+// 					name,
+// 					0,
+// 					ptr::null_mut(),
+// 					&mut size,
+// 		);
+// 		must_succ("clGetProgramInfo(size)", err);
+			
+//         let mut program_info: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
+
+//         err = cl_h::clGetProgramInfo(
+// 					program,
+// 					name,
+// 					size,
+// 					program_info.as_mut_ptr() as *mut libc::c_void,
+// 					//program_info as *mut libc::c_void,
+// 					ptr::null_mut(),
+// 		);
+//         must_succ("clGetProgramInfo()", err);
+//         println!("*** Program Info ({}): \n {}", name, cstring_to_string(program_info));
+// 	}
+// 	println!("");
+// 	//Get Kernel Name
+// 	unsafe {
+// 		let name = cl_h::CL_KERNEL_NUM_ARGS as cl_h::cl_uint;
+
+//         err = cl_h::clGetKernelInfo(
+// 					kernel,
+// 					name,
+// 					0,
+// 					ptr::null_mut(),
+// 					&mut size,
+// 		);
+// 		must_succ("clGetKernelInfo(size)", err);
+
+//         let kernel_info = 5 as cl_h::cl_uint;
+
+//         err = cl_h::clGetKernelInfo(
+// 					kernel,
+// 					name,
+// 					size,
+// 					mem::transmute(&kernel_info),
+// 					ptr::null_mut(),
+// 		);
+		
+//         must_succ("clGetKernelInfo()", err);
+//         println!("*** Kernel Info: ({})\n{}", name, kernel_info);
+// 	}
+// 	println!("");
+// }
