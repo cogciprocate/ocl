@@ -11,7 +11,7 @@ use num::{ NumCast, FromPrimitive, ToPrimitive };
 pub use self::context::{ Context };
 pub use self::pro_queue::{ ProQueue };
 pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, cl_program, 
-	cl_kernel, cl_command_queue, cl_float, cl_mem, cl_event, cl_char, cl_uchar, 
+	cl_kernel, cl_command_queue, cl_float, cl_mem, cl_event, cl_float, cl_char, cl_uchar, 
 	cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_bitfield, CLStatus, 
 	clSetKernelArg, clEnqueueNDRangeKernel, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU,
 	CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL };

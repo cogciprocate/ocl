@@ -1,31 +1,35 @@
-#Ocl
+# ocl
 
-OpenCL interfaces for Rust. Makes easy to use many of the most useful features of OpenCL such as creating kernels and data containers. Advanced features are supported via direct rust wrapper function calls. All interfaces and wrappers are virtually zero-cost and will have runtime performance on a par with standard C++ libraries.
+OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and will have runtime performance on a par with standard C++ libraries.
 
-Interfaces will be unstable for a few more weeks. Probably won't eat your laundry but may break here and there for a while.
+Interfaces are still unstable. Probably won't eat your laundry but may break in non-subtle ways.
+
+##Goals
+
+To provide an interface with OpenCL which is as simple and intuitive as possible, yet provides all of the power of the full library with a minimum of boilerplate and zero performance overhead.
+
+##Platforms
+
+Tested only on Linux. Please provide feedback about failures and successes on other platforms.
 
 ##Installation
 
-Ensure that OpenCL is installed for your preferred platform. Remember that Intel and AMD both have OpenCL libraries for your CPU if you're having trouble getting your GPU to work. Make sure that `clinfo` or some other diagnostic command will run. You may want to check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already.
-
+Ensure that an OpenCL library is installed for your preferred platform. Remember that Intel and AMD both have OpenCL libraries for your CPU if you're having trouble getting your GPU to work. Make sure that `clinfo` or some other diagnostic command will run. You may want to check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already.
 
 Add
 ```
 [dependencies]
 ocl = "0.1"
 ```
-
 or (to be cutting edge)
 ```
 [dependencies.ocl]
 git = "https://github.com/cogciprocate/ocl_rust.git"
 ```
-
 to your project's `Cargo.toml` then, of course
 ```
 extern crate ocl;
 ```
-
 to your crate main file (`main.rs` or `lib.rs`).
 
 
@@ -91,6 +95,10 @@ __kernel void multiply_by_scalar(
 }
 
 ```
+
+##Help
+
+Please ask questions and provide any positive or negative feedback by opening an [issue](https://github.com/cogciprocate/ocl_rust/issues).
 
 
 More details and documentation to come.
