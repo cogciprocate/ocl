@@ -117,6 +117,4 @@ Please ask questions and provide any positive or negative feedback by opening an
 ##Upcoming
 Event queuing/waiting was temporarily removed for polishing and will be coming back for 0.2.0.
 
-
-
 More details and documentation to come.
