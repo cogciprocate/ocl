@@ -1,6 +1,6 @@
 #Ocl
 
-OpenCL interfaces for Rust. Makes easy to use many of the most useful features of OpenCL such as creating kernels and data containers. All advanced features are supported via direct rust wrapper function calls. All interfaces and wrappers are zero-cost and will have runtime performance on a par with standard C++ libraries.
+OpenCL interfaces for Rust. Makes easy to use many of the most useful features of OpenCL such as creating kernels and data containers. Advanced features are supported via direct rust wrapper function calls. All interfaces and wrappers are virtually zero-cost and will have runtime performance on a par with standard C++ libraries.
 
 ##Installation
 
@@ -75,5 +75,6 @@ fn main() {
 
 }
 ```
+
 
 More details, examples, and documentation coming soon!

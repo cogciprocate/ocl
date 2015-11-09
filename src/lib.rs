@@ -16,12 +16,14 @@ pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, 
 	clSetKernelArg, clEnqueueNDRangeKernel, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU,
 	CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL };
 pub use self::kernel::{ Kernel };
-pub use self::envoy::{ Envoy, EnvoyDimensions };
+pub use self::envoy::{ Envoy };
+pub use self::simple_dims::{ SimpleDims };
 pub use self::work_size::{ WorkSize };
 pub use self::build_options::{ BuildOptions, BuildOption };
+pub use self::errors::{ DimError };
 pub use self::formatting as fmt;
 
-// #[cfg(test)]
+// #[cfg(test)] [FIXME]: TODO: Create an additional crate build configuration for tests
 pub use self::envoy::tests::{ EnvoyTest };
 
 #[macro_use] 
@@ -32,17 +34,19 @@ extern crate rand;
 
 mod context;
 mod pro_queue;
-mod cl_h;
+pub mod cl_h;
 pub mod envoy;
+mod simple_dims;
 mod kernel;
 mod work_size;
 mod build_options;
+mod errors;
 pub mod formatting;
 
 
-/*=============================================================================
-================================== CONSTANTS ==================================
-=============================================================================*/
+//=============================================================================
+//================================ CONSTANTS ==================================
+//=============================================================================
 
 // pub static CL_DEVICE_TYPE_DEFAULT:                       cl_device_type = 1 << 0;
 // 		CL_DEVICE_TYPE_DEFAULT:	The default OpenCL device in the system.
@@ -60,9 +64,9 @@ const DEVICES_MAX: u32 = 16;
 const DEFAULT_PLATFORM: usize = 0;
 const DEFAULT_DEVICE: usize = 0;
 
-/*=============================================================================
-=================================== TRAITS ====================================
-=============================================================================*/
+//=============================================================================
+//================================= TRAITS ====================================
+//=============================================================================
 
 pub trait OclNum: Integer + Copy + Clone + NumCast + Default + Zero + Display + Debug
 	+ FromPrimitive + ToPrimitive + UpperHex {}
@@ -70,10 +74,33 @@ pub trait OclNum: Integer + Copy + Clone + NumCast + Default + Zero + Display + 
 impl<T> OclNum for T where T: Integer + Copy + Clone + NumCast + Default + Zero + Display + Debug
 	+ FromPrimitive + ToPrimitive + UpperHex {}
 
+pub trait EnvoyDims {
+	fn padded_envoy_len(&self, &ProQueue) -> u32;
+}
+
 // + From<u32> + From<i32> + From<usize> + From<i8> + From<u8> + Into<usize> + Into<i8>
-/*=============================================================================
-================================== FUNCTIONS ==================================
-=============================================================================*/
+
+//=============================================================================
+//=========================== UTILITY FUNCTIONS ===============================
+//=============================================================================
+
+/// Pads `len` to make it evenly divisible by `incr`.
+pub fn padded_len(len: u32, incr: u32) -> u32 {
+	let len_mod = len % incr;
+
+	if len_mod == 0 {
+		len
+	} else {
+		let pad = incr - len_mod;
+		let padded_len = len + pad;
+		debug_assert_eq!(padded_len % incr, 0);
+		padded_len
+	}
+}
+
+//=============================================================================
+//============================== OCL FUNCTIONS ================================
+//=============================================================================
 
 // Create Platform and get ID
 pub fn get_platform_ids() -> Vec<cl_h::cl_platform_id> {
@@ -562,9 +589,9 @@ pub fn print_junk(
 
 
 
-/*fn empty_cstring(s: usize) -> ffi::CString {
-	ffi::CString::new(iter::repeat(32u8).take(s).collect()).ok().expect("ocl::empty_cstring()")
-}*/
+// fn empty_cstring(s: usize) -> ffi::CString {
+// 	ffi::CString::new(iter::repeat(32u8).take(s).collect()).ok().expect("ocl::empty_cstring()")
+// }
 
 fn cstring_to_string(cs: Vec<u8>) -> String {
 	String::from_utf8(cs).unwrap()

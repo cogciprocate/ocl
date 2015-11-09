@@ -5,16 +5,11 @@ use num::{ FromPrimitive, ToPrimitive };
 use std::ops::{ Range, Index, IndexMut };
 
 use cl_h;
-use super::{ ProQueue };
-use super::{ fmt, OclNum };
+use super::{ fmt, OclNum, ProQueue, EnvoyDims };
 
 
-pub trait EnvoyDimensions {
-	fn physical_len(&self) -> u32;
-}
-
-impl<'a, T> EnvoyDimensions for &'a T where T: EnvoyDimensions {
-    fn physical_len(&self) -> u32 { (*self).physical_len() }
+impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
+    fn padded_envoy_len(&self, pq: &ProQueue) -> u32 { (*self).padded_envoy_len(pq) }
 }
 
 pub type AxonState = Envoy<u8>;
@@ -24,32 +19,32 @@ pub type SynapseState = Envoy<u8>;
 pub struct Envoy<T> {
 	vec: Vec<T>,
 	buf: cl_h::cl_mem,
-	oclq: ProQueue,
+	pq: ProQueue,
 }
 
 impl<T: OclNum> Envoy<T> {
-	pub fn new<E: EnvoyDimensions>(dims: E, init_val: T, oclq: &ProQueue) -> Envoy<T> {
-		let len = dims.physical_len() as usize;
+	pub fn new<E: EnvoyDims>(dims: E, init_val: T, pq: &ProQueue) -> Envoy<T> {
+		let len = dims.padded_envoy_len(pq) as usize;
 		let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
-		Envoy::_new(vec, oclq)
+		Envoy::_new(vec, pq)
 	}
 
 	// SHUFFLED(): max_val is inclusive!
-	pub fn shuffled<E: EnvoyDimensions>(dims: E, min_val: T, max_val: T, oclq: &ProQueue) -> Envoy<T> {
-		let len = dims.physical_len() as usize;
+	pub fn shuffled<E: EnvoyDims>(dims: E, min_val: T, max_val: T, pq: &ProQueue) -> Envoy<T> {
+		let len = dims.padded_envoy_len(pq) as usize;
 		let vec: Vec<T> = shuffled_vec(len, min_val, max_val);
 
-		Envoy::_new(vec, oclq)
+		Envoy::_new(vec, pq)
 	}
 
-	fn _new(mut vec: Vec<T>, oclq: &ProQueue) -> Envoy<T> {
-		let buf: cl_h::cl_mem = super::new_buffer(&mut vec, oclq.context());
+	fn _new(mut vec: Vec<T>, pq: &ProQueue) -> Envoy<T> {
+		let buf: cl_h::cl_mem = super::new_buffer(&mut vec, pq.context());
 
 		let mut envoy = Envoy {
 			vec: vec,
 			buf: buf,
-			oclq: oclq.clone(),
+			pq: pq.clone(),
 		};
 
 		envoy.write();
@@ -58,19 +53,19 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	pub fn write(&mut self) {
-		self.oclq.enqueue_write_buffer(self);
+		self.pq.enqueue_write_buffer(self);
 	}
 
 	pub fn write_direct(&self, sdr: &[T], offset: usize) {
-		super::enqueue_write_buffer(sdr, self.buf, self.oclq.cmd_queue(), offset);
+		super::enqueue_write_buffer(sdr, self.buf, self.pq.cmd_queue(), offset);
 	}
 
 	pub fn read(&mut self) {
-		super::enqueue_read_buffer(&mut self.vec, self.buf, self.oclq.cmd_queue(), 0);
+		super::enqueue_read_buffer(&mut self.vec, self.buf, self.pq.cmd_queue(), 0);
 	}
 
 	pub fn read_direct(&self, sdr: &mut [T], offset: usize) {
-		super::enqueue_read_buffer(sdr, self.buf, self.oclq.cmd_queue(), offset);
+		super::enqueue_read_buffer(sdr, self.buf, self.pq.cmd_queue(), offset);
 	}
 
 	pub fn set_all_to(&mut self, val: T) {
@@ -99,7 +94,7 @@ impl<T: OclNum> Envoy<T> {
 		self.print(every, val_range, None, true);
     }
 
-    // PRINT(): <<<<< TODO: only oclq.read() the idx_range (just slice self.vec to match and bypass .read()) >>>>>
+    // PRINT(): <<<<< TODO: only pq.read() the idx_range (just slice self.vec to match and bypass .read()) >>>>>
     pub fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
     			idx_range: Option<Range<usize>>, zeros: bool)
 	{
@@ -108,11 +103,11 @@ impl<T: OclNum> Envoy<T> {
 		fmt::print_vec(&self.vec[..], every, val_range, idx_range, zeros);
 	}
 
-	pub unsafe fn resize(&mut self, new_dims: &EnvoyDimensions, val: T) {
+	pub unsafe fn resize(&mut self, new_dims: &EnvoyDims, val: T) {
 		// RELEASES OLD BUFFER -- IF ANY KERNELS HAD REFERENCES TO IT THEY BREAK
 		self.release();
-		self.vec.resize(new_dims.physical_len() as usize, val);
-		self.buf = super::new_buffer(&mut self.vec, self.oclq.context());
+		self.vec.resize(new_dims.padded_envoy_len(&self.pq) as usize, val);
+		self.buf = super::new_buffer(&mut self.vec, self.pq.context());
 		// JUST TO VERIFY
 		self.write();
 	}

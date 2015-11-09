@@ -1,13 +1,13 @@
 [package]
 name = "ocl"
-version = "0.0.1"
+version = "0.0.3"
 authors = ["Nick Sanders <github.com/c0gent>"]
 description = "OpenCL interfaces for Rust."
 documentation = "https://github.com/cogciprocate/ocl_rust"
 homepage = "https://github.com/cogciprocate/ocl_rust"
 repository = "https://github.com/cogciprocate/ocl_rust"
 readme = "README.md"
-keywords = ["opencl", "ocl", "envoy", "gpu", "gpgpu", "amd", "nvidia"]
+keywords = ["opencl", "gpu", "gpgpu"]
 license = "GPL-2.0"
 exclude = ["target/*"]
 
