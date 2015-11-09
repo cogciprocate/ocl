@@ -6,11 +6,14 @@ Interfaces are still unstable. Probably won't eat your laundry but may break in 
 
 ##Goals
 
-To provide an interface with OpenCL which is as simple and intuitive as possible, yet provides all of the power of the full library with a minimum of boilerplate and zero performance overhead.
+To provide a simple and intuitive way to interact with OpenCL devices with:
+   -The full power of the C ABI
+   -A minimum of boilerplate
+   -Zero performance overhead
 
 ##Platforms
 
-Tested only on Linux. Please provide feedback about failures and successes on other platforms.
+Tested only on Linux so far. Please provide feedback about failures and successes on other platforms.
 
 ##Installation
 
