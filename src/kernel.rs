@@ -172,13 +172,12 @@ impl Kernel {
 		let c_lws = self.lws.complete_worksize();
 		let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
 
-		let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list 
-		{
+		let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list {
 			Some(wl) => (wl.count() as u32, wl.events().as_ptr()),
 			None => (0, ptr::null()),
 		};
 
-		let this_event: *mut cl_h::cl_event = match dest_list {
+		let new_event_ptr: *mut cl_h::cl_event = match dest_list {
 			Some(el) => el.allot().as_mut_ptr(),
 			None => ptr::null_mut(),
 		};
@@ -193,7 +192,7 @@ impl Kernel {
 						lws,
 						wait_list_len,
 						wait_list_ptr,
-						this_event,
+						new_event_ptr,
 			);
 
 			let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);

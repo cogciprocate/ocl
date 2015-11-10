@@ -7,10 +7,10 @@ use std::path::{ Path };
 use std::ffi;
 use std::collections::{ HashSet };
 use std::error::{ Error };
-use libc;
+// use libc;
 
 use super::{ cl_h, cl_device_id, cl_context, cl_program, cl_command_queue, cl_mem, 
-	cl_int, cl_uint, Context, Kernel, Envoy, OclNum, WorkSize, BuildOptions, DEFAULT_DEVICE };
+	cl_int, Context, Kernel, OclNum, WorkSize, BuildOptions, DEFAULT_DEVICE };
 
 
 // Name is tenative
@@ -104,67 +104,6 @@ impl ProQueue {
 	pub fn create_read_buffer<T: OclNum>(&self, data: &[T]) -> cl_h::cl_mem {
 		super::create_read_buffer(data, self.context)
 	}
-
-	pub fn enqueue_write_buffer<T: OclNum>(
-					&self,
-					src: &Envoy<T>)
-	{
-		unsafe {
-			let err = cl_h::clEnqueueWriteBuffer(
-						self.cmd_queue,
-						src.buf(),
-						cl_h::CL_TRUE,
-						0,
-						(src.vec().len() * mem::size_of::<T>()) as libc::size_t,
-						src.vec().as_ptr() as *const libc::c_void,
-						0 as cl_h::cl_uint,
-						ptr::null(),
-						ptr::null_mut(),
-			);
-			super::must_succ("clEnqueueWriteBuffer()", err);
-		}
-	}
-
-
-	pub fn enqueue_read_buffer<T: OclNum>(
-					&self,
-					data: &[T],
-					buffer: cl_h::cl_mem) 
-	{
-		super::enqueue_read_buffer(data, buffer, self.cmd_queue, 0);
-	}
-
-	pub fn enqueue_copy_buffer<T: OclNum>(
-					&self,
-					src: &Envoy<T>,		//	src_buffer: cl_mem,
-					dst: &Envoy<T>,		//	dst_buffer: cl_mem,
-					src_offset: usize,
-					dst_offset: usize,
-					len_copy_bytes: usize) 
-	{
-		unsafe {
-			let err = cl_h::clEnqueueCopyBuffer(
-				self.cmd_queue,
-				src.buf(),				//	src_buffer,
-				dst.buf(),				//	dst_buffer,
-				src_offset as usize,
-				dst_offset as usize,
-				len_copy_bytes as usize,
-				0,
-				ptr::null(),
-				ptr::null_mut(),
-			);
-			super::must_succ("clEnqueueCopyBuffer()", err);
-		}
-	}
-
-	// pub fn enqueue_kernel(
-	// 			&self,
-	// 			kernel: cl_h::cl_kernel, 
-	// 			gws: usize) 
-	// { 
-	// 	super::enqueue_kernel(kernel, self.cmd_queue, gws);
-	// }
 
 	pub fn release_components(&self) {
 		self.release_program();

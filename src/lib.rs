@@ -337,6 +337,7 @@ pub fn enqueue_write_buffer<T>(
 	}
 }
 
+
 pub fn enqueue_read_buffer<T>(
 			data: &[T],
 			buffer: cl_h::cl_mem, 
@@ -358,6 +359,30 @@ pub fn enqueue_read_buffer<T>(
 		must_succ("clEnqueueReadBuffer()", err);
 	}
 }
+
+pub fn enqueue_copy_buffer<T: OclNum>(
+					command_queue: cl_h::cl_command_queue,
+					src: &Envoy<T>,		//	src_buffer: cl_mem,
+					dst: &Envoy<T>,		//	dst_buffer: cl_mem,
+					src_offset: usize,
+					dst_offset: usize,
+					len_copy_bytes: usize) 
+	{
+		unsafe {
+			let err = cl_h::clEnqueueCopyBuffer(
+				command_queue,
+				src.buf(),				//	src_buffer,
+				dst.buf(),				//	dst_buffer,
+				src_offset as usize,
+				dst_offset as usize,
+				len_copy_bytes as usize,
+				0,
+				ptr::null(),
+				ptr::null_mut(),
+			);
+			must_succ("clEnqueueCopyBuffer()", err);
+		}
+	}
 
 
 pub fn cl_finish(command_queue: cl_h::cl_command_queue) -> cl_h::cl_int {

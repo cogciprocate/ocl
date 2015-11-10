@@ -54,7 +54,8 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	pub fn write(&mut self) {
-		self.pq.enqueue_write_buffer(self);
+		// self.pq.enqueue_write_buffer(self);
+		super::enqueue_write_buffer(&self.vec, self.buf, self.pq.cmd_queue(), 0);
 	}
 
 	pub fn write_direct(&self, sdr: &[T], offset: usize) {
