@@ -163,7 +163,7 @@ impl Kernel {
 		}
 	}
 
-	pub fn enqueue(&self, pre_events: Option<&EventList>, dst_events: Option<&mut EventList>) {
+	pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
 		// [FIXME] TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES
 
 		let c_gws = self.gws.complete_worksize();
@@ -171,6 +171,17 @@ impl Kernel {
 
 		let c_lws = self.lws.complete_worksize();
 		let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
+
+		let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list 
+		{
+			Some(wl) => (wl.count() as u32, wl.events().as_ptr()),
+			None => (0, ptr::null()),
+		};
+
+		let this_event: *mut cl_h::cl_event = match dest_list {
+			Some(el) => el.allot().as_mut_ptr(),
+			None => ptr::null_mut(),
+		};
 
 		unsafe {
 			let err = cl_h::clEnqueueNDRangeKernel(
@@ -180,10 +191,9 @@ impl Kernel {
 						self.gwo.as_ptr(),
 						gws,
 						lws,
-						0,
-						ptr::null(),
-						ptr::null_mut(),
-						//&mut event as *mut super::cl_event, // LEAKS!
+						wait_list_len,
+						wait_list_ptr,
+						this_event,
 			);
 
 			let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);

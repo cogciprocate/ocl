@@ -50,10 +50,10 @@ to your crate main file (`main.rs` or `lib.rs`).
 use ocl::{ Context, ProQueue, BuildOptions, SimpleDims, Envoy };
 
 fn main() {
-	// Create a context:
+	// Create a context with default platform and device types:
 	let ocl_cxt = Context::new(None, None).unwrap();
 
-	// Create a Program/Queue: 
+	// Create a Program/Queue with default device:
 	let mut ocl_pq = ProQueue::new(&ocl_cxt, None);
 
 	// Create build options passing optional command line switches and other options:
@@ -81,10 +81,10 @@ fn main() {
 		.arg_env(&mut dst_env)
 	;
 
-	// Enqueue kernel:
+	// Enqueue kernel without waiting on or creating events:
 	kernel.enqueue(None, None);
 
-	// Read results:
+	// Read results and block:
 	dst_env.read();
 
 	// Check results:

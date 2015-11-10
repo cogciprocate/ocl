@@ -104,8 +104,9 @@ impl<T: OclNum> Envoy<T> {
 		fmt::print_vec(&self.vec[..], every, val_range, idx_range, zeros);
 	}
 
-	pub unsafe fn resize(&mut self, new_dims: &EnvoyDims, val: T) {
-		// RELEASES OLD BUFFER -- IF ANY KERNELS HAD REFERENCES TO IT THEY BREAK
+	/// Resize Envoy. Dangles any references kernels may have had to the buffer. [REWORDME]
+	// RELEASES OLD BUFFER -- IF ANY KERNELS HAD REFERENCES TO IT THEY BREAK
+	pub unsafe fn resize(&mut self, new_dims: &EnvoyDims, val: T) {		
 		self.release();
 		self.vec.resize(new_dims.padded_envoy_len(&self.pq) as usize, val);
 		self.buf = super::create_buffer(&mut self.vec, self.pq.context());
