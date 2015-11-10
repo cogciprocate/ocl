@@ -40,7 +40,7 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	fn _new(mut vec: Vec<T>, pq: &ProQueue) -> Envoy<T> {
-		let buf: cl_h::cl_mem = super::create_buffer(&mut vec, pq.context());
+		let buf: cl_h::cl_mem = super::create_buf(&mut vec, pq.context());
 
 		let mut envoy = Envoy {
 			vec: vec,
@@ -54,7 +54,6 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	pub fn write(&mut self) {
-		// self.pq.enqueue_write_buffer(self);
 		super::enqueue_write_buffer(&self.vec, self.buf, self.pq.cmd_queue(), 0);
 	}
 
@@ -110,7 +109,7 @@ impl<T: OclNum> Envoy<T> {
 	pub unsafe fn resize(&mut self, new_dims: &EnvoyDims, val: T) {		
 		self.release();
 		self.vec.resize(new_dims.padded_envoy_len(&self.pq) as usize, val);
-		self.buf = super::create_buffer(&mut self.vec, self.pq.context());
+		self.buf = super::create_buf(&mut self.vec, self.pq.context());
 		// JUST TO VERIFY
 		self.write();
 	}
