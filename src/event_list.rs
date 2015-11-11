@@ -24,4 +24,8 @@ impl EventList {
 	pub fn count(&self) -> u32 {
 		self.events.len() as u32
 	}
+
+	pub fn clear(&mut self) {
+		self.events.clear();
+	}
 }

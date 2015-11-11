@@ -11,44 +11,44 @@ fn test_async_events() {
 
 	// Set up data set size and work dimensions:
 	let data_set_size = 100;
-	let env_dims = SimpleDims::OneDim(data_set_size);
+	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result envoys (our data containers):
-	let env_source = Envoy::shuffled(&env_dims, 0f32, 20f32, &ocl_pq);
-	let mut env_result = Envoy::new(&env_dims, 0f32, &ocl_pq);
+	// let source_envoy = Envoy::shuffled(&envoy_dims, 0f32, 20f32, &ocl_pq);
+	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq);
 
-	// Our coefficient:
-	let coeff = 5f32;
+	// Our scalar:
+	let scalar = 1f32;
 
 	// Create kernel:
-	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), env_dims.work_size())
-		.arg_env(&env_source)
-		.arg_scl(coeff)
-		.arg_env(&mut env_result)
+	let kernel = ocl_pq.create_kernel("add_scalar".to_string(), envoy_dims.work_size())
+		.arg_scl(scalar)
+		.arg_env(&mut result_envoy)
 	;
 
 	// Create event list:
 	let mut kernel_event = EventList::new();
 
-	// Enqueue kernel:
-	kernel.enqueue(None, Some(&mut kernel_event));
+	//#############################################################################################
 
-	// Read results:
-	env_result.read();
+	// Repeat the test. First iteration 
+	for i in 1..20 {
+		kernel.enqueue(None, Some(&mut kernel_event));
+		result_envoy.read();
 
-	// Check results:
-	for idx in 0..data_set_size {
-		assert_eq!(env_result[idx], env_source[idx] * coeff);
+		for idx in 0..data_set_size {
+			assert_eq!(result_envoy[idx], i as f32);
+		}
 	}
 }
 
 
 #[test]
 fn test_basics() {
-	// Create a context:
+	// Create a context with the default platform and device types:
 	let ocl_cxt = Context::new(None, None).unwrap();
 
-	// Create a program/queue: 
+	// Create a program/queue with the default device: 
 	let mut ocl_pq = ProQueue::new(&ocl_cxt, None);
 
 	// Create build options passing optional command line switches and other options:
@@ -60,30 +60,30 @@ fn test_basics() {
 
 	// Set up our data set size and work dimensions:
 	let data_set_size = 100;
-	let env_dims = SimpleDims::OneDim(data_set_size);
+	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result envoys (our data containers):
-	let env_source = Envoy::shuffled(&env_dims, 0f32, 20f32, &ocl_pq);
-	let mut env_result = Envoy::new(&env_dims, 0f32, &ocl_pq);
+	let source_envoy = Envoy::shuffled(&envoy_dims, 0f32, 20f32, &ocl_pq);
+	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq);
 
 	// Our coefficient:
 	let coeff = 5f32;
 
-	// Create our kernel:
-	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), env_dims.work_size())
-		.arg_env(&env_source)
+	// Create kernel:
+	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), envoy_dims.work_size())
+		.arg_env(&source_envoy)
 		.arg_scl(coeff)
-		.arg_env(&mut env_result)
+		.arg_env(&mut result_envoy)
 	;
 
 	// Enqueue kernel:
 	kernel.enqueue(None, None);
 
 	// Read results:
-	env_result.read();
+	result_envoy.read();
 
 	// Check results:
 	for idx in 0..data_set_size {
-		assert_eq!(env_result[idx], env_source[idx] * coeff);
+		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
 	}
 }

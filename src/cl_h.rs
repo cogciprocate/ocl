@@ -1,9 +1,7 @@
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
-extern crate libc;
-
 use std::fmt::{ Display, Formatter, Result };
-use std;
+use libc;
 
 pub type cl_platform_id     = *mut libc::c_void;
 pub type cl_device_id       = *mut libc::c_void;
@@ -368,9 +366,9 @@ pub static CL_PROGRAM_BUILD_LOG:                         cl_uint = 0x1183;
 
 // cl_build_status 
 pub static CL_BUILD_SUCCESS:                             cl_uint = 0;
-pub static CL_BUILD_NONE:                                cl_uint = std::u32::MAX - 1;
-pub static CL_BUILD_ERROR:                               cl_uint = std::u32::MAX - 2;
-pub static CL_BUILD_IN_PROGRESS:                         cl_uint = std::u32::MAX - 3;
+pub static CL_BUILD_NONE:                                cl_uint = !0 - 1;
+pub static CL_BUILD_ERROR:                               cl_uint = !0 - 2;
+pub static CL_BUILD_IN_PROGRESS:                         cl_uint = !0 - 3;
 
 // cl_kernel_info
 pub static CL_KERNEL_FUNCTION_NAME:                      cl_uint = 0x1190;

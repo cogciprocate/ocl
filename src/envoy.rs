@@ -73,6 +73,7 @@ impl<T: OclNum> Envoy<T> {
 		for ele in self.vec.iter_mut() {
 			*ele = val;
 		}
+
 		self.write();
 	}
 
