@@ -34,13 +34,15 @@ fn test_async_events() {
 	// Repeat the test. First iteration 
 	for i in 1..20 {
 		kernel.enqueue(None, Some(&mut kernel_event));
-		result_envoy.read();
+		result_envoy.read_wait();
 
 		for idx in 0..data_set_size {
 			assert_eq!(result_envoy[idx], i as f32);
 		}
 	}
 }
+
+
 
 
 #[test]
@@ -76,11 +78,11 @@ fn test_basics() {
 		.arg_env(&mut result_envoy)
 	;
 
-	// Enqueue kernel:
+	// Enqueue kernel with no events:
 	kernel.enqueue(None, None);
 
 	// Read results:
-	result_envoy.read();
+	result_envoy.read_wait();
 
 	// Check results:
 	for idx in 0..data_set_size {

@@ -108,7 +108,7 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 //=============================================================================
 
 // Create Platform and get ID
-pub fn get_platform_ids() -> Vec<cl_h::cl_platform_id> {
+fn get_platform_ids() -> Vec<cl_h::cl_platform_id> {
 	let mut num_platforms = 0 as cl_h::cl_uint;
 	
 	let mut err: cl_h::cl_int = unsafe { cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) };
@@ -293,50 +293,81 @@ fn create_read_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem 
 	}
 }
 
-pub fn enqueue_write_buffer<T>(
-					data: &[T],
-					buffer: cl_h::cl_mem, 
-					command_queue: cl_h::cl_command_queue,
-					offset: usize)
+fn enqueue_write_buffer<T>(
+			command_queue: cl_h::cl_command_queue,
+			buffer: cl_h::cl_mem, 
+			block: bool,
+			data: &[T],
+			offset: usize,
+			wait_list: Option<&EventList>, 
+			dest_list: Option<&mut EventList>,
+		)
 {
+	let (blocking_write, wait_list_len, wait_list_ptr, new_event_ptr) 
+		= resolve_queue_opts(block, wait_list, dest_list);
 
 	unsafe {
 		let err = cl_h::clEnqueueWriteBuffer(
 					command_queue,
 					buffer,
-					cl_h::CL_TRUE,
+					blocking_write,
 					mem::transmute(offset),
 					(data.len() * mem::size_of::<T>()) as libc::size_t,
 					data.as_ptr() as *const libc::c_void,
-					0 as cl_h::cl_uint,
-					ptr::null(),
-					ptr::null_mut(),
+					wait_list_len,
+					wait_list_ptr,
+					new_event_ptr,
 		);
 		must_succ("clEnqueueWriteBuffer()", err);
 	}
 }
 
 
-pub fn enqueue_read_buffer<T>(
-			data: &[T],
-			buffer: cl_h::cl_mem, 
+fn enqueue_read_buffer<T>(
 			command_queue: cl_h::cl_command_queue,
-			offset: usize)
+			buffer: cl_h::cl_mem, 
+			block: bool,
+			data: &[T],
+			offset: usize,
+			wait_list: Option<&EventList>, 
+			dest_list: Option<&mut EventList>,
+		)
 {
+	let (blocking_read, wait_list_len, wait_list_ptr, new_event_ptr) 
+		= resolve_queue_opts(block, wait_list, dest_list);
+
 	unsafe {
 		let err = cl_h::clEnqueueReadBuffer(
 					command_queue, 
 					buffer, 
-					cl_h::CL_TRUE, 
+					blocking_read, 
 					mem::transmute(offset), 
 					(data.len() * mem::size_of::<T>()) as libc::size_t, 
 					data.as_ptr() as *mut libc::c_void, 
-					0, 
-					ptr::null(), 
-					ptr::null_mut(),
+					wait_list_len,
+					wait_list_ptr,
+					new_event_ptr,
 		);
 		must_succ("clEnqueueReadBuffer()", err);
 	}
+}
+
+fn resolve_queue_opts(block: bool, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>)
+		-> (cl_h::cl_bool, cl_uint, *const cl_event, *mut cl_event)
+{
+	let blocking_operation = if block { cl_h::CL_TRUE } else { cl_h::CL_FALSE };
+
+	let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list {
+		Some(wl) => (wl.count() as u32, wl.events().as_ptr()),
+		None => (0, ptr::null()),
+	};
+
+	let new_event_ptr: *mut cl_h::cl_event = match dest_list {
+		Some(el) => el.allot().as_mut_ptr(),
+		None => ptr::null_mut(),
+	};
+
+	(blocking_operation, wait_list_len, wait_list_ptr, new_event_ptr)
 }
 
 

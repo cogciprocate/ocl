@@ -52,7 +52,7 @@ impl Context {
 	/// // use ocl;
 	/// 
 	/// fn main() {
-	/// 	let platform_ids = ocl::get_platform_ids();
+	/// 	//let platform_ids = ocl::get_platform_ids();
 	/// 
 	/// 	let device_types = ocl::CL_DEVICE_TYPE_GPU | ocl::CL_DEVICE_TYPE_CPU;
 	///

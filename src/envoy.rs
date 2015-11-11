@@ -6,7 +6,7 @@ use num::{ FromPrimitive, ToPrimitive };
 use std::ops::{ Range, Index, IndexMut };
 
 use cl_h;
-use super::{ fmt, OclNum, ProQueue, EnvoyDims };
+use super::{ fmt, OclNum, ProQueue, EnvoyDims, EventList };
 
 
 impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
@@ -48,40 +48,66 @@ impl<T: OclNum> Envoy<T> {
 			pq: pq.clone(),
 		};
 
-		envoy.write();
+		envoy.write_wait();
 
 		envoy
 	}
 
-	pub fn write(&mut self) {
-		super::enqueue_write_buffer(&self.vec, self.buf, self.pq.cmd_queue(), 0);
+	/// Write contents of `self.vec` to remote device, waiting on events in 
+	/// `wait_list` and adding a new event to `dest_list`.
+	pub fn write(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+		super::enqueue_write_buffer(self.pq.cmd_queue(), self.buf, false, &self.vec, 0, 
+			wait_list, dest_list);
 	}
 
-	pub fn write_direct(&self, sdr: &[T], offset: usize) {
-		super::enqueue_write_buffer(sdr, self.buf, self.pq.cmd_queue(), offset);
+	/// Write contents of `data` to remote device with remote offset of `offset`, 
+	/// waiting on events in `wait_list` and adding a new event to `dest_list`.
+	pub fn write_direct(&mut self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
+				dest_list: Option<&mut EventList>) 
+	{
+		super::enqueue_write_buffer(self.pq.cmd_queue(), self.buf, false, data, offset, 
+			wait_list, dest_list);
 	}
 
-	pub fn read(&mut self) {
-		super::enqueue_read_buffer(&mut self.vec, self.buf, self.pq.cmd_queue(), 0);
+	/// Write contents of `self.vec` to remote device and block until complete.
+	pub fn write_wait(&mut self) {
+		super::enqueue_write_buffer(self.pq.cmd_queue(), self.buf, true, &self.vec, 0, None, None);
 	}
 
-	pub fn read_direct(&self, sdr: &mut [T], offset: usize) {
-		super::enqueue_read_buffer(sdr, self.buf, self.pq.cmd_queue(), offset);
+	/// Read remote device contents into `self.vec`, waiting on events in `wait_list`
+	/// and adding a new event to `dest_list`.
+	pub fn read(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+		super::enqueue_read_buffer(self.pq.cmd_queue(), self.buf, false, &mut self.vec, 0, 
+			wait_list, dest_list);
 	}
+
+	/// Read remote device contents with remote offset of `offset` into `data`,
+	/// waiting on events in `wait_list` and adding a new event to `dest_list`.
+	pub fn read_direct(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
+				dest_list: Option<&mut EventList>) 
+	{
+		super::enqueue_read_buffer(self.pq.cmd_queue(), self.buf, false, data, offset, 
+			wait_list, dest_list);
+	}
+
+	/// Read remote device contents into `self.vec` and block until complete.
+	pub fn read_wait(&mut self) {
+		super::enqueue_read_buffer(self.pq.cmd_queue(), self.buf, true, &mut self.vec, 0, None, None);
+	}	
 
 	pub fn set_all_to(&mut self, val: T) {
 		for ele in self.vec.iter_mut() {
 			*ele = val;
 		}
 
-		self.write();
+		self.write_wait();
 	}
 
 	pub fn set_range_to(&mut self, val: T, range: Range<usize>) {
 		for idx in range {
 			self.vec[idx] = val;
 		}
-		self.write();
+		self.write_wait();
 	}
 
 	pub fn len(&self) -> usize {
@@ -96,11 +122,11 @@ impl<T: OclNum> Envoy<T> {
 		self.print(every, val_range, None, true);
     }
 
-    // PRINT(): <<<<< TODO: only pq.read() the idx_range (just slice self.vec to match and bypass .read()) >>>>>
+    // PRINT(): <<<<< TODO: only pq.read_wait() the idx_range (just slice self.vec to match and bypass .read_wait()) >>>>>
     pub fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
     			idx_range: Option<Range<usize>>, zeros: bool)
 	{
-    	self.read();
+    	self.read_wait();
 
 		fmt::print_vec(&self.vec[..], every, val_range, idx_range, zeros);
 	}
@@ -112,7 +138,7 @@ impl<T: OclNum> Envoy<T> {
 		self.vec.resize(new_dims.padded_envoy_len(&self.pq) as usize, val);
 		self.buf = super::create_buf(&mut self.vec, self.pq.context());
 		// JUST TO VERIFY
-		self.write();
+		self.write_wait();
 	}
 
     pub fn release(&mut self) {
@@ -230,7 +256,7 @@ pub mod tests {
 	impl<T: OclNum> EnvoyTest<T> for Envoy<T> {
 		fn read_idx_direct(&self, idx: usize) -> T {
 			let mut buffer = vec![Zero::zero()];
-			self.read_direct(&mut buffer[0..1], idx);
+			self.read_direct(&mut buffer[0..1], idx, None, None);
 			buffer[0]
 		}
 	}

@@ -172,15 +172,18 @@ impl Kernel {
 		let c_lws = self.lws.complete_worksize();
 		let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
 
-		let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list {
-			Some(wl) => (wl.count() as u32, wl.events().as_ptr()),
-			None => (0, ptr::null()),
-		};
+		let (_, wait_list_len, wait_list_ptr, new_event_ptr) 
+			= super::resolve_queue_opts(false, wait_list, dest_list);
 
-		let new_event_ptr: *mut cl_h::cl_event = match dest_list {
-			Some(el) => el.allot().as_mut_ptr(),
-			None => ptr::null_mut(),
-		};
+		// let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list {
+		// 	Some(wl) => (wl.count() as u32, wl.events().as_ptr()),
+		// 	None => (0, ptr::null()),
+		// };
+
+		// let new_event_ptr: *mut cl_h::cl_event = match dest_list {
+		// 	Some(el) => el.allot().as_mut_ptr(),
+		// 	None => ptr::null_mut(),
+		// };
 
 		unsafe {
 			let err = cl_h::clEnqueueNDRangeKernel(
