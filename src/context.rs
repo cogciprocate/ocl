@@ -8,7 +8,7 @@ use super::{ cl_h, cl_platform_id, cl_device_id, cl_device_type, cl_context, DEF
 pub struct Context {
 	platform_opt: Option<cl_platform_id>,
 	devices: Vec<cl_device_id>,
-	context: cl_context,
+	obj: cl_context,
 }
 
 impl Context {
@@ -101,25 +101,25 @@ impl Context {
 
 		// println!("{}OCL::NEW(): device list: {:?}", MT, devices);
 
-		let context: cl_context = super::create_context(&devices);
+		let obj: cl_context = super::create_context(&devices);
 
 		Ok(Context {
 			platform_opt: Some(platform),
 			devices: devices,
-			context:  context,
+			obj: obj,
 		})
 	}
 
-	/// Releases the current context.
-	pub fn release_components(&mut self) {		
-    	unsafe {
-			cl_h::clReleaseContext(self.context);
+	pub fn resolve_device_id(&self, device_idx: Option<usize>) -> cl_h::cl_device_id {
+		match device_idx {
+			Some(di) => self.valid_device(di),
+			None => self.devices()[super::DEFAULT_DEVICE],
 		}
 	}
 
 	/// Returns the current context as a `*mut libc::c_void`.
-	pub fn context(&self) -> cl_context {
-		self.context
+	pub fn obj(&self) -> cl_context {
+		self.obj
 	}
 
 	/// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
@@ -136,6 +136,13 @@ impl Context {
 	pub fn valid_device(&self, selected_idx: usize) -> cl_device_id {
 		let valid_idx = selected_idx % self.devices.len();
 		self.devices[valid_idx]
+	}
+
+	/// Releases the current context.
+	pub fn release(&mut self) {		
+    	unsafe {
+			cl_h::clReleaseContext(self.obj);
+		}
 	}
 }
 

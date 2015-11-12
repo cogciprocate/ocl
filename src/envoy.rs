@@ -6,11 +6,11 @@ use num::{ FromPrimitive, ToPrimitive };
 use std::ops::{ Range, Index, IndexMut };
 
 use cl_h;
-use super::{ fmt, OclNum, ProQueue, EnvoyDims, EventList };
+use super::{ fmt, OclNum, Queue, EnvoyDims, EventList };
 
 
 impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
-    fn padded_envoy_len(&self, pq: &ProQueue) -> usize { (*self).padded_envoy_len(pq) }
+    fn padded_envoy_len(&self, incr: usize) -> usize { (*self).padded_envoy_len(incr) }
 }
 
 pub type AxonState = Envoy<u8>;
@@ -20,80 +20,88 @@ pub type SynapseState = Envoy<u8>;
 pub struct Envoy<T> {
 	vec: Vec<T>,
 	buf: cl_h::cl_mem,
-	pq: ProQueue,
+	queue: Queue,
 }
 
 impl<T: OclNum> Envoy<T> {
-	pub fn new<E: EnvoyDims>(dims: E, init_val: T, pq: &ProQueue) -> Envoy<T> {
-		let len = dims.padded_envoy_len(pq) as usize;
+	/// Creates a new Envoy with dimensions: `dims` and inital value: `init_val` 
+	/// within the command queue associated with `pq`.
+	pub fn new<E: EnvoyDims>(dims: E, init_val: T, queue: &Queue) -> Envoy<T> {
+		let len = dims.padded_envoy_len(super::get_max_work_group_size(queue.device_id()));
 		let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
-		Envoy::_new(vec, pq)
+		Envoy::_new(vec, queue)
 	}
 
+	/// Creates a new Envoy with 
 	// SHUFFLED(): max_val is inclusive!
-	pub fn shuffled<E: EnvoyDims>(dims: E, min_val: T, max_val: T, pq: &ProQueue) -> Envoy<T> {
-		let len = dims.padded_envoy_len(pq) as usize;
+	pub fn shuffled<E: EnvoyDims>(dims: E, min_val: T, max_val: T, queue: &Queue) -> Envoy<T> {
+		let len = dims.padded_envoy_len(super::get_max_work_group_size(queue.device_id()));
 		let vec: Vec<T> = shuffled_vec(len, min_val, max_val);
 
-		Envoy::_new(vec, pq)
+		Envoy::_new(vec, queue)
 	}
 
-	fn _new(mut vec: Vec<T>, pq: &ProQueue) -> Envoy<T> {
-		let buf: cl_h::cl_mem = super::create_buf(&mut vec, pq.context());
+	fn _new(mut vec: Vec<T>, queue: &Queue) -> Envoy<T> {
+		let buf: cl_h::cl_mem = super::create_buffer(&mut vec, queue.context_obj(), 
+			cl_h::CL_MEM_READ_WRITE);
 
-		let mut envoy = Envoy {
+		Envoy {
 			vec: vec,
 			buf: buf,
-			pq: pq.clone(),
-		};
-
-		envoy.write_wait();
-
-		envoy
+			queue: queue.clone(),
+		}
 	}
 
-	/// Write contents of `self.vec` to remote device, waiting on events in 
-	/// `wait_list` and adding a new event to `dest_list`.
+	/// After waiting on events in `wait_list` to finish, writes the contents of
+	/// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`
 	pub fn write(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-		super::enqueue_write_buffer(self.pq.cmd_queue(), self.buf, false, &self.vec, 0, 
-			wait_list, dest_list);
+		super::enqueue_write_buffer(self.queue.obj(), self.buf, dest_list.is_none(), 
+			&self.vec, 0, wait_list, dest_list);
 	}
 
-	/// Write contents of `data` to remote device with remote offset of `offset`, 
-	/// waiting on events in `wait_list` and adding a new event to `dest_list`.
+	/// After waiting on events in `wait_list` to finish, writes the contents of
+	/// 'data' to the remote device data buffer with a remote offset of `offset`
+	/// and adds a new event to `dest_list`
 	pub fn write_direct(&mut self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
-		super::enqueue_write_buffer(self.pq.cmd_queue(), self.buf, false, data, offset, 
-			wait_list, dest_list);
+		super::enqueue_write_buffer(self.queue.obj(), self.buf, dest_list.is_none(), 
+			data, offset, wait_list, dest_list);
 	}
 
-	/// Write contents of `self.vec` to remote device and block until complete.
+	/// Writes the contents of `self.vec` to the remote device data buffer and 
+	/// blocks until completed.
 	pub fn write_wait(&mut self) {
-		super::enqueue_write_buffer(self.pq.cmd_queue(), self.buf, true, &self.vec, 0, None, None);
+		super::enqueue_write_buffer(self.queue.obj(), self.buf, true, &self.vec, 0, None, None);
 	}
 
-	/// Read remote device contents into `self.vec`, waiting on events in `wait_list`
-	/// and adding a new event to `dest_list`.
+	/// After waiting on events in `wait_list` to finish, reads the remote device 
+	/// data buffer into 'self.vec' and adds a new event to `dest_list`.
 	pub fn read(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-		super::enqueue_read_buffer(self.pq.cmd_queue(), self.buf, false, &mut self.vec, 0, 
-			wait_list, dest_list);
+		super::enqueue_read_buffer(self.queue.obj(), self.buf, dest_list.is_none(), 
+			&mut self.vec, 0, wait_list, dest_list);
 	}
 
-	/// Read remote device contents with remote offset of `offset` into `data`,
-	/// waiting on events in `wait_list` and adding a new event to `dest_list`.
+	/// After waiting on events in `wait_list` to finish, reads the remote device 
+	/// data buffer with a remote offset of `offset` into `data` and adds a new 
+	/// event to `dest_list`.
 	pub fn read_direct(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
-		super::enqueue_read_buffer(self.pq.cmd_queue(), self.buf, false, data, offset, 
-			wait_list, dest_list);
+		super::enqueue_read_buffer(self.queue.obj(), self.buf, dest_list.is_none(), 
+			data, offset, wait_list, dest_list);
 	}
 
-	/// Read remote device contents into `self.vec` and block until complete.
+	/// Reads the remote device data buffer into `self.vec` and blocks until completed.
 	pub fn read_wait(&mut self) {
-		super::enqueue_read_buffer(self.pq.cmd_queue(), self.buf, true, &mut self.vec, 0, None, None);
+		super::enqueue_read_buffer(self.queue.obj(), self.buf, true, &mut self.vec, 0, None, None);
 	}	
+
+	/// Blocks until the underlying command queue has completed all commands.
+	pub fn wait(&self) {
+		self.queue.finish();
+	}
 
 	pub fn set_all_to(&mut self, val: T) {
 		for ele in self.vec.iter_mut() {
@@ -131,30 +139,38 @@ impl<T: OclNum> Envoy<T> {
 		fmt::print_vec(&self.vec[..], every, val_range, idx_range, zeros);
 	}
 
-	/// Resize Envoy. Dangles any references kernels may have had to the buffer. [REWORDME]
+	/// Resizes Envoy. Dangles any references kernels may have had to the buffer. [REWORDME]
 	// RELEASES OLD BUFFER -- IF ANY KERNELS HAD REFERENCES TO IT THEY BREAK
 	pub unsafe fn resize(&mut self, new_dims: &EnvoyDims, val: T) {		
 		self.release();
-		self.vec.resize(new_dims.padded_envoy_len(&self.pq) as usize, val);
-		self.buf = super::create_buf(&mut self.vec, self.pq.context());
+		let new_len = new_dims.padded_envoy_len(super::get_max_work_group_size(self.queue.device_id()));
+		self.vec.resize(new_len, val);
+		self.buf = super::create_buffer(&mut self.vec, self.queue.context_obj(), cl_h::CL_MEM_READ_WRITE);
 		// JUST TO VERIFY
-		self.write_wait();
+		// self.write_wait();
 	}
 
     pub fn release(&mut self) {
 		super::release_mem_object(self.buf);
 	}
 
+	/// Returns a reference to the local vector associated with this envoy.
 	pub fn vec(&self) -> &Vec<T> {
 		&self.vec
 	}
 
+	/// Returns a mutable reference to the local vector associated with this envoy.
 	pub fn vec_mut(&mut self) -> &mut Vec<T> {
 		&mut self.vec
 	}
 
 	pub fn buf(&self) -> cl_h::cl_mem {
 		self.buf
+	}
+
+	/// Returns a reference to the program/command queue associated with this envoy.
+	pub fn queue(&self) -> &Queue {
+		&self.queue
 	}
 
 	pub fn iter<'a>(&'a self) -> Iter<'a, T> {

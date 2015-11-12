@@ -1,10 +1,11 @@
 use std::ptr;
 use std::mem;
+use std::ffi;
 use std::collections::{ HashMap };
 // use num::{ Integer, Zero };
 use libc;
 
-use super::{ cl_h, WorkSize, Envoy, OclNum, EventList };
+use super::{ cl_h, WorkSize, Envoy, OclNum, EventList, Program, Queue };
 
 
 pub struct Kernel {
@@ -20,16 +21,30 @@ pub struct Kernel {
 }
 
 impl Kernel {
-	pub fn new(kernel: cl_h::cl_kernel, name: String, command_queue: cl_h::cl_command_queue, 
+	// [FIXME] TODO: Implement proper error handling (return result etc.).
+	pub fn new(name: String, program: &Program, queue: &Queue, 
 				gws: WorkSize ) -> Kernel 
 	{
+		let mut err: cl_h::cl_int = 0;
+
+		let kernel = unsafe {
+			cl_h::clCreateKernel(
+				program.obj(), 
+				ffi::CString::new(name.as_bytes()).unwrap().as_ptr(), 
+				&mut err
+			)
+		};
+		
+		let err_pre = format!("Ocl::create_kernel({}):", &name);
+		super::must_succ(&err_pre, err);
+
 		Kernel {
 			kernel: kernel,
 			name: name,
 			arg_index: 0,
 			named_args: HashMap::with_capacity(5),
 			arg_count: 0u32,
-			command_queue: command_queue,
+			command_queue: queue.obj(),
 			gwo: WorkSize::Unspecified,
 			gws: gws,
 			lws: WorkSize::Unspecified,
@@ -163,9 +178,10 @@ impl Kernel {
 		}
 	}
 
-	pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+	pub fn enqueue_with_cmd_queue(&self, cmd_queue: cl_h::cl_command_queue, 
+				wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) 
+	{
 		// [FIXME] TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES
-
 		let c_gws = self.gws.complete_worksize();
 		let gws = (&c_gws as *const (usize, usize, usize)) as *const libc::size_t;
 
@@ -175,21 +191,11 @@ impl Kernel {
 		let (_, wait_list_len, wait_list_ptr, new_event_ptr) 
 			= super::resolve_queue_opts(false, wait_list, dest_list);
 
-		// let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list {
-		// 	Some(wl) => (wl.count() as u32, wl.events().as_ptr()),
-		// 	None => (0, ptr::null()),
-		// };
-
-		// let new_event_ptr: *mut cl_h::cl_event = match dest_list {
-		// 	Some(el) => el.allot().as_mut_ptr(),
-		// 	None => ptr::null_mut(),
-		// };
-
 		unsafe {
 			let err = cl_h::clEnqueueNDRangeKernel(
-						self.command_queue,
+						cmd_queue,
 						self.kernel,
-						self.gws.dim_count(),				//	dims,
+						self.gws.dim_count(),
 						self.gwo.as_ptr(),
 						gws,
 						lws,
@@ -201,6 +207,10 @@ impl Kernel {
 			let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);
 			super::must_succ(&err_pre, err);
 		}
+	}
+
+	pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+		self.enqueue_with_cmd_queue(self.command_queue, wait_list, dest_list);
 	}
 
 	pub fn arg_count(&self) -> u32 {

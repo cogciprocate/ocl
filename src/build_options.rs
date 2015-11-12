@@ -1,3 +1,10 @@
+use std::io::{ Read };
+use std::fs::{ File };
+use std::path::{ Path };
+use std::ffi;
+use std::collections::{ HashSet };
+use std::error::{ Error };
+
 pub struct BuildOptions {
 	options: Vec<BuildOption>,
 	string: String,
@@ -37,25 +44,29 @@ impl BuildOptions {
 
 	pub fn add_kern_file(&mut self, file_name: String) {
 		self.kernel_file_names.push(file_name);
+	}		
+
+	pub fn kernel_file_names(&self) -> &Vec<String> {
+		&self.kernel_file_names
 	}
 
-	pub fn to_build_string(mut self) -> String {
+	pub fn compiler_options(mut self) -> String {
 		for option in self.options.iter() {
-			if !option.val_is_string {
-				self.string.push_str(&option.as_preprocessor_option_string());
+			if !option.is_kern_header {
+				self.string.push_str(&option.to_preprocessor_option_string());
 			}
 		}
 		self.string
 	}
 
-	pub fn cl_file_header(&self) -> Vec<u8> {
+	pub fn kernel_str_header(&self) -> Vec<u8> {
 		let mut header = String::with_capacity(300);
 
 		header.push_str("\n");
 
 		for option in self.options.iter() {
-			if option.val_is_string {
-				header.push_str(&option.as_define_directive_string());
+			if option.is_kern_header {
+				header.push_str(&option.to_define_directive_string());
 			}
 		}
 
@@ -64,8 +75,41 @@ impl BuildOptions {
 		header.into_bytes()
 	}
 
-	pub fn kernel_file_names(&self) -> &Vec<String> {
-		&self.kernel_file_names
+	// [FIXME] TODO: Fix up error handling.
+	pub fn kernel_str(&self) -> Result<ffi::CString, String> {
+		let mut kern_str: Vec<u8> = Vec::with_capacity(10000);
+		let mut kern_history: HashSet<&String> = HashSet::with_capacity(20);
+
+		let dd_string = self.kernel_str_header();
+		kern_str.push_all(&dd_string);
+		// print!("OCL::PARSE_KERNEL_FILES(): KERNEL FILE DIRECTIVES HEADER: \n{}", 
+		// 	String::from_utf8(dd_string).ok().unwrap());
+
+		for kfn in self.kernel_file_names().iter().rev() {
+			// let file_name = format!("{}/{}/{}", env!("P"), "bismit/cl", f_n);
+			// let valid_kfp = try!(valid_kernel_file_path(&kfn));
+
+			// {
+				if kern_history.contains(kfn) { continue; }
+				let valid_kfp = Path::new(kfn);
+
+				let mut kern_file = match File::open(&valid_kfp) {
+					Err(why) => return Err(format!("Couldn't open '{}': {}", 
+						kfn, Error::description(&why))),
+					Ok(file) => file,
+				};
+
+				match kern_file.read_to_end(&mut kern_str) {
+		    		Err(why) => return Err(format!("Couldn't read '{}': {}", 
+		    			kfn, Error::description(&why))),
+				    Ok(_) => (), //println!("{}OCL::BUILD(): parsing {}: {} bytes read.", MT, &file_name, bytes),
+				}
+			// }
+
+			kern_history.insert(&kfn);
+		}
+
+		Ok(ffi::CString::new(kern_str).expect("Ocl::new(): ocl::parse_kernel_files(): ffi::CString::new(): Error."))
 	}
 }
 
@@ -74,7 +118,7 @@ impl BuildOptions {
 pub struct BuildOption {
 	name: &'static str,
 	val: String,
-	val_is_string: bool,
+	is_kern_header: bool,
 }
 
 impl BuildOption {
@@ -82,7 +126,7 @@ impl BuildOption {
 		BuildOption {
 			name: name,
 			val: val.to_string(),
-			val_is_string: false,
+			is_kern_header: false,
 		}
 	}
 
@@ -90,15 +134,15 @@ impl BuildOption {
 		BuildOption {
 			name: name,
 			val: val,
-			val_is_string: true,
+			is_kern_header: true,
 		}
 	}
 
-	pub fn as_preprocessor_option_string(&self) -> String {
+	pub fn to_preprocessor_option_string(&self) -> String {
 		format!(" -D{}={}", self.name, self.val)
 	}
 
-	pub fn as_define_directive_string(&self) -> String {
+	pub fn to_define_directive_string(&self) -> String {
 		format!("#define {}  {}\n", self.name, self.val)
 	}
 }

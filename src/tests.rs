@@ -15,7 +15,7 @@ fn test_async_events() {
 
 	// Create source and result envoys (our data containers):
 	// let source_envoy = Envoy::shuffled(&envoy_dims, 0f32, 20f32, &ocl_pq);
-	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq);
+	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq.queue());
 
 	// Our scalar:
 	let scalar = 1f32;
@@ -65,8 +65,8 @@ fn test_basics() {
 	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result envoys (our data containers):
-	let source_envoy = Envoy::shuffled(&envoy_dims, 0f32, 20f32, &ocl_pq);
-	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq);
+	let source_envoy = Envoy::shuffled(&envoy_dims, 0f32, 20f32, &ocl_pq.queue());
+	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq.queue());
 
 	// Our coefficient:
 	let coeff = 5f32;

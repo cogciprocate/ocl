@@ -1,4 +1,4 @@
-use super::{ ProQueue, EnvoyDims, DimError, WorkSize };
+use super::{ EnvoyDims, DimError, WorkSize };
 
 pub enum SimpleDims {
 	Unspecified,
@@ -42,7 +42,7 @@ impl SimpleDims {
 }
 
 impl EnvoyDims for SimpleDims {
-	fn padded_envoy_len(&self, pq: &ProQueue) -> usize {
+	fn padded_envoy_len(&self, incr: usize) -> usize {
 		let simple_len = match self {
 			&SimpleDims::ThreeDims(d0, d1, d2) => d0 * d1 * d2,
 			&SimpleDims::TwoDims(d0, d1) => d0 * d1,
@@ -50,6 +50,6 @@ impl EnvoyDims for SimpleDims {
 			_ => 0,
 		};
 
-		super::padded_len(simple_len, pq.get_max_work_group_size() as usize)
+		super::padded_len(simple_len, incr)
 	}
 }

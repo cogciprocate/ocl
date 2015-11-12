@@ -9,7 +9,8 @@ use std::num::{ Zero };
 use num::{ NumCast, FromPrimitive, ToPrimitive };
 
 pub use self::context::{ Context };
-pub use self::pro_queue::{ ProQueue };
+pub use self::program::{ Program };
+pub use self::queue::{ Queue };
 pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, cl_program, 
 	cl_kernel, cl_command_queue, cl_mem, cl_event, cl_float, cl_char, cl_uchar, 
 	cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_bitfield, CLStatus, 
@@ -17,6 +18,7 @@ pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, 
 	CL_DEVICE_TYPE_ALL };
 pub use self::kernel::{ Kernel };
 pub use self::envoy::{ Envoy };
+pub use self::pro_queue::{ ProQueue };
 pub use self::simple_dims::{ SimpleDims };
 pub use self::work_size::{ WorkSize };
 pub use self::build_options::{ BuildOptions, BuildOption };
@@ -34,9 +36,11 @@ extern crate num;
 extern crate rand;
 
 mod context;
-mod pro_queue;
+mod program;
+mod queue;
 pub mod cl_h;
 pub mod envoy;
+mod pro_queue;
 mod simple_dims;
 mod kernel;
 mod work_size;
@@ -80,7 +84,7 @@ impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Ze
 	+ FromPrimitive + ToPrimitive {}
 
 pub trait EnvoyDims {
-	fn padded_envoy_len(&self, &ProQueue) -> usize;
+	fn padded_envoy_len(&self, usize) -> usize;
 }
 
 // + From<u32> + From<i32> + From<usize> + From<i8> + From<u8> + Into<usize> + Into<i8>
@@ -238,57 +242,28 @@ fn create_command_queue(
 					cl_h::CL_QUEUE_PROFILING_ENABLE, 
 					&mut err
 		);
+
 		must_succ("clCreateCommandQueue()", err);
 		cq
 	}
 }
 
-// <<<<< CONVERT FROM VEC TO SLICE >>>>>
-fn create_buf<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
+
+fn create_buffer<T>(data: &[T], context: cl_h::cl_context, flags: cl_h::cl_bitfield
+		) -> cl_h::cl_mem 
+{
 	let mut err: cl_h::cl_int = 0;
+
 	unsafe {
 		let buf = cl_h::clCreateBuffer(
 					context, 
-					cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, 
+					flags | cl_h::CL_MEM_COPY_HOST_PTR | cl_h::CL_MEM_ALLOC_HOST_PTR, 
 					(data.len() * mem::size_of::<T>()) as usize,
 					data.as_ptr() as *mut libc::c_void, 
 					//ptr::null_mut(),
 					&mut err,
 		);
-		must_succ("create_buf", err);
-		buf
-	}
-}
-
-// <<<<< CONVERT FROM VEC TO SLICE >>>>>
-fn create_write_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
-	let mut err: cl_h::cl_int = 0;
-	unsafe {
-		let buf = cl_h::clCreateBuffer(
-					context, 
-					cl_h::CL_MEM_READ_ONLY | cl_h::CL_MEM_COPY_HOST_PTR, 
-					(data.len() * mem::size_of::<T>()) as usize,
-					data.as_ptr() as *mut libc::c_void, 
-					//ptr::null_mut(),
-					&mut err,
-		);
-		must_succ("create_write_buffer", err);
-		buf
-	}
-}
-
-// <<<<< CONVERT FROM VEC TO SLICE >>>>>
-fn create_read_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
-	let mut err: cl_h::cl_int = 0;
-	unsafe {
-		let buf = cl_h::clCreateBuffer(
-					context, 
-					cl_h::CL_MEM_WRITE_ONLY, 
-					(data.len() * mem::size_of::<T>()) as usize, 
-					ptr::null_mut(), 
-					&mut err,
-		);
-		must_succ("create_read_buffer", err);
+		must_succ("create_buffer", err);
 		buf
 	}
 }
@@ -296,7 +271,7 @@ fn create_read_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem 
 fn enqueue_write_buffer<T>(
 			command_queue: cl_h::cl_command_queue,
 			buffer: cl_h::cl_mem, 
-			block: bool,
+			wait: bool,
 			data: &[T],
 			offset: usize,
 			wait_list: Option<&EventList>, 
@@ -304,20 +279,21 @@ fn enqueue_write_buffer<T>(
 		)
 {
 	let (blocking_write, wait_list_len, wait_list_ptr, new_event_ptr) 
-		= resolve_queue_opts(block, wait_list, dest_list);
+		= resolve_queue_opts(wait, wait_list, dest_list);
 
 	unsafe {
 		let err = cl_h::clEnqueueWriteBuffer(
 					command_queue,
 					buffer,
 					blocking_write,
-					mem::transmute(offset),
+					offset,
 					(data.len() * mem::size_of::<T>()) as libc::size_t,
 					data.as_ptr() as *const libc::c_void,
 					wait_list_len,
 					wait_list_ptr,
 					new_event_ptr,
 		);
+
 		must_succ("clEnqueueWriteBuffer()", err);
 	}
 }
@@ -326,7 +302,7 @@ fn enqueue_write_buffer<T>(
 fn enqueue_read_buffer<T>(
 			command_queue: cl_h::cl_command_queue,
 			buffer: cl_h::cl_mem, 
-			block: bool,
+			wait: bool,
 			data: &[T],
 			offset: usize,
 			wait_list: Option<&EventList>, 
@@ -334,20 +310,21 @@ fn enqueue_read_buffer<T>(
 		)
 {
 	let (blocking_read, wait_list_len, wait_list_ptr, new_event_ptr) 
-		= resolve_queue_opts(block, wait_list, dest_list);
+		= resolve_queue_opts(wait, wait_list, dest_list);
 
 	unsafe {
 		let err = cl_h::clEnqueueReadBuffer(
 					command_queue, 
 					buffer, 
 					blocking_read, 
-					mem::transmute(offset), 
+					offset, 
 					(data.len() * mem::size_of::<T>()) as libc::size_t, 
 					data.as_ptr() as *mut libc::c_void, 
 					wait_list_len,
 					wait_list_ptr,
 					new_event_ptr,
 		);
+
 		must_succ("clEnqueueReadBuffer()", err);
 	}
 }
@@ -386,8 +363,8 @@ fn enqueue_copy_buffer<T: OclNum>(
 			command_queue,
 			src.buf(),				//	src_buffer,
 			dst.buf(),				//	dst_buffer,
-			src_offset as usize,
-			dst_offset as usize,
+			src_offset,
+			dst_offset,
 			len_copy_bytes as usize,
 			0,
 			ptr::null(),
@@ -395,6 +372,25 @@ fn enqueue_copy_buffer<T: OclNum>(
 		);
 		must_succ("clEnqueueCopyBuffer()", err);
 	}
+}
+
+fn get_max_work_group_size(device: cl_h::cl_device_id) -> usize {
+	let mut max_work_group_size: usize = 0;
+
+	let err = unsafe { 
+		cl_h::clGetDeviceInfo(
+			device,
+			cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
+			mem::size_of::<usize>() as usize,
+			// mem::transmute(&max_work_group_size),
+			&mut max_work_group_size as *mut _ as *mut libc::c_void,
+			ptr::null_mut(),
+		) 
+	}; 
+
+	must_succ("clGetDeviceInfo", err);
+
+	max_work_group_size
 }
 
 // [FIXME]: TODO: Evaluate usefulness
@@ -408,7 +404,6 @@ fn release_mem_object(obj: cl_h::cl_mem) {
 		cl_h::clReleaseMemObject(obj);
 	}
 }
-
 
 // [FIXME]: TODO: Evaluate usefulness
 #[allow(dead_code)]
@@ -496,6 +491,37 @@ fn err_string(err_code: cl_int) -> String {
 }
 
 
+
+// fn create_write_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
+// 	let mut err: cl_h::cl_int = 0;
+// 	unsafe {
+// 		let buf = cl_h::clCreateBuffer(
+// 					context, 
+// 					cl_h::CL_MEM_READ_ONLY | cl_h::CL_MEM_COPY_HOST_PTR, 
+// 					(data.len() * mem::size_of::<T>()) as usize,
+// 					data.as_ptr() as *mut libc::c_void, 
+// 					//ptr::null_mut(),
+// 					&mut err,
+// 		);
+// 		must_succ("create_write_buffer", err);
+// 		buf
+// 	}
+// }
+
+// fn create_read_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
+// 	let mut err: cl_h::cl_int = 0;
+// 	unsafe {
+// 		let buf = cl_h::clCreateBuffer(
+// 					context, 
+// 					cl_h::CL_MEM_WRITE_ONLY, 
+// 					(data.len() * mem::size_of::<T>()) as usize, 
+// 					ptr::null_mut(), 
+// 					&mut err,
+// 		);
+// 		must_succ("create_read_buffer", err);
+// 		buf
+// 	}
+// }
 
 
 
