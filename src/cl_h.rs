@@ -415,10 +415,10 @@ pub static CL_COMMAND_COPY_BUFFER_RECT:                  cl_uint = 0x1203;
 pub static CL_COMMAND_USER:                              cl_uint = 0x1204;
 
 // command execution status
-pub static CL_COMPLETE:                                  cl_uint = 0x0;
-pub static CL_RUNNING:                                   cl_uint = 0x1;
-pub static CL_SUBMITTED:                                 cl_uint = 0x2;
-pub static CL_QUEUED:                                    cl_uint = 0x3;
+pub static CL_COMPLETE:                                  cl_int = 0x0;
+pub static CL_RUNNING:                                   cl_int = 0x1;
+pub static CL_SUBMITTED:                                 cl_int = 0x2;
+pub static CL_QUEUED:                                    cl_int = 0x3;
 
 // cl_buffer_create_type
 pub static CL_BUFFER_CREATE_TYPE_REGION:                 cl_uint = 0x1220;
@@ -430,8 +430,8 @@ pub static CL_PROFILING_COMMAND_START:                   cl_uint = 0x1282;
 pub static CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 
 
-#[link(name = "OpenCL")]
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
+#[link(name = "OpenCL")]
 #[cfg(target_os = "linux")]
 extern {
     // Platform API

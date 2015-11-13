@@ -39,6 +39,7 @@ impl Queue {
 		self.device_id
 	}
 
+	// Note: Do not move this to a Drop impl in case this Queue has been cloned.
 	pub fn release(&mut self) {
 		unsafe {
 			cl_h::clReleaseCommandQueue(self.obj);

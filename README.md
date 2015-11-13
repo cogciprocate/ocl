@@ -8,9 +8,9 @@ Interfaces are still unstable. Probably won't eat your laundry but may break in 
 ##Goals
 
 To provide a simple and intuitive way to interact with OpenCL devices with:
-   - The full power of the C ABI
-   - A minimum of boilerplate
-   - Zero performance overhead
+- The full power of the C ABI
+- A minimum of boilerplate
+- Zero performance overhead
 
 
 ##Platforms
@@ -54,25 +54,24 @@ fn main() {
 	let ocl_cxt = Context::new(None, None).unwrap();
 
 	// Create a program/queue with the default device: 
-	let mut ocl_pq = ProQueue::new(&ocl_cxt, None);
+	let mut ocl_pq = ProQue::new(&ocl_cxt, None);
 
-	// Create build options passing optional command line switches and other options:
-	let build_options = BuildOptions::new("-cl-unsafe-math-optimizations")
-		.kern_file("cl/kernel_file.cl".to_string());
+	// Create build configuration:
+	let build_config = BuildConfig::new().kern_file("cl/kernel_file.cl");
 
-	// Build:
-	ocl_pq.build(build_options).unwrap();
+	// Build with our configuration and check for errors:
+	ocl_pq.build(build_config).expect("ocl program build");
 
 	// Set up our data set size and work dimensions:
-	let data_set_size = 100;
+	let data_set_size = 9000;
 	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
-	// Create source and result envoys (our data containers):
-	let source_envoy = Envoy::shuffled(&envoy_dims, 0f32, 20f32, &ocl_pq);
-	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq);
+	// Create a source envoy (array) with randomized values and an empty result envoy:
+	let source_envoy = Envoy::scrambled(&envoy_dims, 0f32, 20f32, &ocl_pq.queue());
+	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq.queue());
 
 	// Our coefficient:
-	let coeff = 5f32;
+	let coeff = 1000f32;
 
 	// Create kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), envoy_dims.work_size())
@@ -81,20 +80,25 @@ fn main() {
 		.arg_env(&mut result_envoy)
 	;
 
-	// Enqueue kernel:
+	// Enqueue kernel with no events:
 	kernel.enqueue(None, None);
 
 	// Read results:
-	result_envoy.read();
+	result_envoy.read_wait();
 
 	// Check results:
 	for idx in 0..data_set_size {
 		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
+
+		if idx < 20 { 
+			println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
+			source_envoy[idx], coeff, result_envoy[idx]); 
+		}
 	}
 }
 ```
 
-`kernel_file.cl` contents:
+`.\cl\kernel_file.cl` contents:
 
 ```
 __kernel void multiply_by_scalar(

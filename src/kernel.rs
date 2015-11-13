@@ -100,7 +100,7 @@ impl Kernel {
 
 	pub fn new_arg_envoy<T: OclNum>(&mut self, envoy_opt: Option<&Envoy<T>>) -> u32 {
 		let buf = match envoy_opt {
-			Some(envoy) => envoy.buf(),
+			Some(envoy) => envoy.buffer_obj(),
 			None => ptr::null_mut()
 		};
 
@@ -155,7 +155,7 @@ impl Kernel {
 	pub fn set_arg_env_named<T: OclNum>(&mut self, name: &'static str, envoy: &Envoy<T>) {
 		//	TODO: ADD A CHECK FOR A VALID NAME (KEY)
 		let arg_idx = self.named_args[name];
-		let buf = envoy.buf();
+		let buf = envoy.buffer_obj();
 
 		self.set_kernel_arg(
 			arg_idx,

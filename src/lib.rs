@@ -7,6 +7,7 @@ use std::iter;
 use std::fmt::{ Display, Debug, /*UpperHex*/ };
 use std::num::{ Zero };
 use num::{ NumCast, FromPrimitive, ToPrimitive };
+use rand::distributions::range::{ SampleRange };
 
 pub use self::context::{ Context };
 pub use self::program::{ Program };
@@ -21,7 +22,7 @@ pub use self::envoy::{ Envoy };
 pub use self::pro_que::{ ProQue };
 pub use self::simple_dims::{ SimpleDims };
 pub use self::work_size::{ WorkSize };
-pub use self::build_options::{ BuildConfig, BuildOpt };
+pub use self::build_config::{ BuildConfig, BuildOpt };
 pub use self::errors::{ DimError };
 pub use self::event_list::{ EventList };
 pub use self::formatting as fmt;
@@ -44,7 +45,7 @@ mod pro_que;
 mod simple_dims;
 mod kernel;
 mod work_size;
-mod build_options;
+mod build_config;
 mod errors;
 pub mod formatting;
 mod event_list;
@@ -78,10 +79,10 @@ const DEFAULT_DEVICE: usize = 0;
 //=============================================================================
 
 pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + Display + Debug
-	+ FromPrimitive + ToPrimitive {}
+	+ FromPrimitive + ToPrimitive + SampleRange {}
 
 impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + Display + Debug
-	+ FromPrimitive + ToPrimitive {}
+	+ FromPrimitive + ToPrimitive + SampleRange {}
 
 pub trait EnvoyDims {
 	fn padded_envoy_len(&self, usize) -> usize;
@@ -152,24 +153,24 @@ fn get_device_ids(
 
 	must_succ("clGetDeviceIDs()", err);
 
-	let mut devices: Vec<cl_h::cl_device_id> = Vec::with_capacity(devices_avaliable as usize);
+	let mut device_ids: Vec<cl_h::cl_device_id> = Vec::with_capacity(devices_avaliable as usize);
 
 	for i in 0..devices_avaliable as usize {
-		devices.push(devices_array[i]);
+		device_ids.push(devices_array[i]);
 	}
 
-	devices
+	device_ids
 }
 
 
-fn create_context(devices: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
+fn create_context(device_ids: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
 	let mut err: cl_h::cl_int = 0;
 
 	unsafe {
 		let context: cl_h::cl_context = cl_h::clCreateContext(
 						ptr::null(), 
-						devices.len() as cl_h::cl_uint, 
-						devices.as_ptr(),
+						device_ids.len() as cl_h::cl_uint, 
+						device_ids.as_ptr(),
 						mem::transmute(ptr::null::<fn()>()), 
 						ptr::null_mut(), 
 						&mut err);
@@ -179,11 +180,11 @@ fn create_context(devices: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
 }
 
 
-fn create_program(
+fn new_program(
 			kern_strings: Vec<CString>,
 			cmplr_opts: CString,
 			context: cl_h::cl_context, 
-			devices: &Vec<cl_h::cl_device_id>
+			device_ids: &Vec<cl_h::cl_device_id>
 		) -> Result<cl_h::cl_program, String>
 {
 	// Lengths (not including \0 terminator) of each string:
@@ -205,18 +206,19 @@ fn create_program(
 
 		err = cl_h::clBuildProgram(
 					program,
-					devices.len() as u32,
-					devices.as_ptr(), 
+					device_ids.len() as u32,
+					device_ids.as_ptr(), 
 					cmplr_opts.as_ptr() as *const i8,
 					mem::transmute(ptr::null::<fn()>()), 
 					ptr::null_mut(),
-		);
-		must_succ("clBuildProgram()", err);
+		);		
 
 		if err < 0 {
-			program_build_info(program, devices).map(|_| program)
+			program_build_info(program, device_ids).map(|_| program)
 		} else {
-			Ok(program)
+			must_succ("clBuildProgram()", err);
+			// Unreachable:
+			Ok(program) 
 		}
 	}
 }
@@ -329,7 +331,13 @@ fn resolve_queue_opts(block: bool, wait_list: Option<&EventList>, dest_list: Opt
 	let blocking_operation = if block { cl_h::CL_TRUE } else { cl_h::CL_FALSE };
 
 	let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list {
-		Some(wl) => (wl.count() as u32, wl.events().as_ptr()),
+		Some(wl) => {
+			if wl.count() > 0 {
+				(wl.count() as u32, wl.events().as_ptr())
+			} else {
+				(0, ptr::null())
+			}
+		},
 		None => (0, ptr::null()),
 	};
 
@@ -355,8 +363,8 @@ fn enqueue_copy_buffer<T: OclNum>(
 	unsafe {
 		let err = cl_h::clEnqueueCopyBuffer(
 			command_queue,
-			src.buf(),				//	src_buffer,
-			dst.buf(),				//	dst_buffer,
+			src.buffer_obj(),				//	src_buffer,
+			dst.buffer_obj(),				//	dst_buffer,
 			src_offset,
 			dst_offset,
 			len_copy_bytes as usize,
@@ -387,10 +395,50 @@ fn get_max_work_group_size(device: cl_h::cl_device_id) -> usize {
 	max_work_group_size
 }
 
+fn wait_for_events(wait_list: &EventList) {
+	let err = unsafe {
+		cl_h::clWaitForEvents(wait_list.count(), wait_list.as_ptr())
+	};
+
+	must_succ("clWaitForEvents", err);
+}
+
+
+fn set_event_callback(event: cl_h::cl_event) {
+	// pub fn clSetEventCallback_ex(event: cl_event,
+ //                          command_exec_callback_type: cl_int,
+ //                          pfn_notify: extern fn (cl_event, cl_int, *mut libc::c_void),
+ //                          user_data: *mut libc::c_void) -> cl_int;
+	let err = unsafe {
+		cl_h::clSetEventCallback(event, cl_h::CL_COMPLETE, callback_test, ptr::null_mut())
+	};
+
+	must_succ("clSetEventCallback", err);
+}
+
+
+extern fn callback_test(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
+    println!("Event: `{:?}` has completed with status: `{}` and data: `{:?}`", 
+    	event, status, user_data);
+}
+
+
+#[cfg(target_os = "linux")]
+#[link(name = "OpenCL")]
+extern {
+   pub fn clSetEventCallback_ex(event: cl_event,
+                          command_exec_callback_type: cl_int,
+                          pfn_notify: extern fn (cl_event, cl_int, *mut libc::c_void),
+                          user_data: *mut libc::c_void) -> cl_int;
+}
+
+
+
+
 // [FIXME]: TODO: Evaluate usefulness
 #[allow(dead_code)]
-fn cl_finish(command_queue: cl_h::cl_command_queue) -> cl_h::cl_int {
-	unsafe{	cl_h::clFinish(command_queue) }
+fn finish(command_queue: cl_h::cl_command_queue) -> cl_h::cl_int {
+	unsafe { cl_h::clFinish(command_queue) }
 }
 
 fn release_mem_object(obj: cl_h::cl_mem) {
@@ -428,10 +476,10 @@ fn platform_info(platform: cl_h::cl_platform_id) {
     }
 }
 
-fn program_build_info(program: cl_h::cl_program, devices: &Vec<cl_h::cl_device_id>) -> Result<(), String> {
+fn program_build_info(program: cl_h::cl_program, device_ids: &Vec<cl_h::cl_device_id>) -> Result<(), String> {
 	let mut size = 0 as libc::size_t;
 
-	for &device_id in devices.iter() {
+	for &device_id in device_ids.iter() {
 		unsafe {
 			let name = cl_h::CL_PROGRAM_BUILD_LOG as cl_h::cl_program_build_info;
 

@@ -10,16 +10,13 @@ pub struct BuildConfig {
 	kernel_file_names: Vec<String>,
 }
 
-// [FIXME] TODO: Rename composable argument functions.
 impl BuildConfig {
-	pub fn new(cl_options: &'static str) -> BuildConfig {
-		let bo = BuildConfig {
-			options: Vec::with_capacity(32),
-			kernel_file_names: Vec::with_capacity(20),
-		};
-
-		bo.cmplr_opt(cl_options)
-	}	
+	pub fn new() -> BuildConfig {
+		BuildConfig {
+			options: Vec::with_capacity(64),
+			kernel_file_names: Vec::with_capacity(32),
+		}
+	}
 
 	/// Command line define, i.e. '-D name=val'.
 	pub fn cmplr_def(mut self, name: &'static str, val: i32) -> BuildConfig {
@@ -37,8 +34,8 @@ impl BuildConfig {
 		self
 	}
 
-	pub fn kern_file(mut self, file_name: String) -> BuildConfig {
-		self.add_kern_file(file_name);
+	pub fn kern_file(mut self, file_name: &'static str) -> BuildConfig {
+		self.add_kern_file(file_name.to_string());
 		self
 	}
 

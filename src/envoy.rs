@@ -8,7 +8,6 @@ use std::ops::{ Range, Index, IndexMut };
 use cl_h;
 use super::{ fmt, OclNum, Queue, EnvoyDims, EventList };
 
-
 impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
     fn padded_envoy_len(&self, incr: usize) -> usize { (*self).padded_envoy_len(incr) }
 }
@@ -19,7 +18,7 @@ pub type SynapseState = Envoy<u8>;
 
 pub struct Envoy<T> {
 	vec: Vec<T>,
-	buf: cl_h::cl_mem,
+	buffer_obj: cl_h::cl_mem,
 	queue: Queue,
 }
 
@@ -33,8 +32,9 @@ impl<T: OclNum> Envoy<T> {
 		Envoy::_new(vec, queue)
 	}
 
-	/// Creates a new Envoy with 
-	// SHUFFLED(): max_val is inclusive!
+	/// Creates a new Envoy initialized with a series of integers ranging from `min_val`
+	/// to `max_val` which are shuffled randomly.
+	// Note: max_val is inclusive.
 	pub fn shuffled<E: EnvoyDims>(dims: E, min_val: T, max_val: T, queue: &Queue) -> Envoy<T> {
 		let len = dims.padded_envoy_len(super::get_max_work_group_size(queue.device_id()));
 		let vec: Vec<T> = shuffled_vec(len, min_val, max_val);
@@ -42,13 +42,23 @@ impl<T: OclNum> Envoy<T> {
 		Envoy::_new(vec, queue)
 	}
 
+	/// Creates a new Envoy initialized with random values within the range `min_val..max_val`
+	/// (exclusive).
+	// Note: max_val is exclusive.
+	pub fn scrambled<E: EnvoyDims>(dims: E, min_val: T, max_val: T, queue: &Queue) -> Envoy<T> {
+		let len = dims.padded_envoy_len(super::get_max_work_group_size(queue.device_id()));
+		let vec: Vec<T> = scrambled_vec(len, min_val, max_val);
+
+		Envoy::_new(vec, queue)
+	}
+
 	fn _new(mut vec: Vec<T>, queue: &Queue) -> Envoy<T> {
-		let buf: cl_h::cl_mem = super::create_buffer(&mut vec, queue.context_obj(), 
+		let buffer_obj: cl_h::cl_mem = super::create_buffer(&mut vec, queue.context_obj(), 
 			cl_h::CL_MEM_READ_WRITE);
 
 		Envoy {
 			vec: vec,
-			buf: buf,
+			buffer_obj: buffer_obj,
 			queue: queue.clone(),
 		}
 	}
@@ -56,7 +66,7 @@ impl<T: OclNum> Envoy<T> {
 	/// After waiting on events in `wait_list` to finish, writes the contents of
 	/// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`
 	pub fn write(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-		super::enqueue_write_buffer(self.queue.obj(), self.buf, dest_list.is_none(), 
+		super::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
 			&self.vec, 0, wait_list, dest_list);
 	}
 
@@ -66,20 +76,20 @@ impl<T: OclNum> Envoy<T> {
 	pub fn write_direct(&mut self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
-		super::enqueue_write_buffer(self.queue.obj(), self.buf, dest_list.is_none(), 
+		super::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
 			data, offset, wait_list, dest_list);
 	}
 
 	/// Writes the contents of `self.vec` to the remote device data buffer and 
 	/// blocks until completed.
 	pub fn write_wait(&mut self) {
-		super::enqueue_write_buffer(self.queue.obj(), self.buf, true, &self.vec, 0, None, None);
+		super::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, true, &self.vec, 0, None, None);
 	}
 
 	/// After waiting on events in `wait_list` to finish, reads the remote device 
 	/// data buffer into 'self.vec' and adds a new event to `dest_list`.
 	pub fn read(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-		super::enqueue_read_buffer(self.queue.obj(), self.buf, dest_list.is_none(), 
+		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
 			&mut self.vec, 0, wait_list, dest_list);
 	}
 
@@ -89,13 +99,13 @@ impl<T: OclNum> Envoy<T> {
 	pub fn read_direct(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
-		super::enqueue_read_buffer(self.queue.obj(), self.buf, dest_list.is_none(), 
+		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
 			data, offset, wait_list, dest_list);
 	}
 
 	/// Reads the remote device data buffer into `self.vec` and blocks until completed.
 	pub fn read_wait(&mut self) {
-		super::enqueue_read_buffer(self.queue.obj(), self.buf, true, &mut self.vec, 0, None, None);
+		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, true, &mut self.vec, 0, None, None);
 	}	
 
 	/// Blocks until the underlying command queue has completed all commands.
@@ -145,13 +155,13 @@ impl<T: OclNum> Envoy<T> {
 		self.release();
 		let new_len = new_dims.padded_envoy_len(super::get_max_work_group_size(self.queue.device_id()));
 		self.vec.resize(new_len, val);
-		self.buf = super::create_buffer(&mut self.vec, self.queue.context_obj(), cl_h::CL_MEM_READ_WRITE);
+		self.buffer_obj = super::create_buffer(&mut self.vec, self.queue.context_obj(), cl_h::CL_MEM_READ_WRITE);
 		// JUST TO VERIFY
 		// self.write_wait();
 	}
 
     pub fn release(&mut self) {
-		super::release_mem_object(self.buf);
+		super::release_mem_object(self.buffer_obj);
 	}
 
 	/// Returns a reference to the local vector associated with this envoy.
@@ -160,12 +170,15 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	/// Returns a mutable reference to the local vector associated with this envoy.
-	pub fn vec_mut(&mut self) -> &mut Vec<T> {
+	/// 
+	/// # Safety
+	/// - Could cause data collisions, etc.
+	pub unsafe fn vec_mut(&mut self) -> &mut Vec<T> {
 		&mut self.vec
 	}
 
-	pub fn buf(&self) -> cl_h::cl_mem {
-		self.buf
+	pub fn buffer_obj(&self) -> cl_h::cl_mem {
+		self.buffer_obj
 	}
 
 	/// Returns a reference to the program/command queue associated with this envoy.
@@ -219,6 +232,23 @@ impl<T> IndexMut<usize> for Envoy<T> {
 // }
 
 
+pub fn scrambled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
+	assert!(size > 0, "\ncl_h::envoy::shuffled_vec(): Vector size must be greater than zero.");
+	assert!(min_val < max_val, "\ncl_h::envoy::shuffled_vec(): Minimum value must be less than maximum.");
+	// let mut vec: Vec<T> = Vec::with_capacity(size);
+	let mut rng = rand::weak_rng();
+	let range = RandRange::new(min_val, max_val);
+
+	(0..size).map(|_| range.ind_sample(&mut rng)).take(size as usize).collect()
+
+	// for _ in 0..size {
+		
+	// }
+
+	// vec
+}
+
+
 pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	let mut vec: Vec<T> = Vec::with_capacity(size);
 
@@ -237,7 +267,6 @@ pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	shuffle_vec(&mut vec);
 
 	vec
-
 }
 
 
