@@ -1,6 +1,6 @@
 use std::ffi::{ CString };
 
-use super::{ cl_h, BuildOptions, Context };
+use super::{ cl_h, BuildConfig, Context };
 
 #[derive(Clone)]
 pub struct Program {
@@ -11,7 +11,7 @@ pub struct Program {
 
 // [FIXME] TODO: ERROR HANDLING
 impl Program {
-	pub fn new(build_options: BuildOptions, context: &Context, device_idx: Option<usize>
+	pub fn new(build_options: BuildConfig, context: &Context, device_idx: Option<usize>
 			) -> Result<Program, String> 
 	{
 		let device_id = context.resolve_device_id(device_idx);
@@ -21,24 +21,25 @@ impl Program {
 			try!(build_options.kernel_strings().map_err(|e| e.to_string())), 
 			try!(build_options.compiler_options().map_err(|e| e.to_string())), 
 			context.obj(), 
-			device_id)
+			&vec![device_id])
 	}
 
 	pub fn from_parts(
 				kernel_strings: Vec<CString>, 
 				cmplr_opts: CString, 
 				context_obj: cl_h::cl_context, 
-				device_id: cl_h::cl_device_id,
+				devices: &Vec<cl_h::cl_device_id>,
 			) -> Result<Program, String> 
 	{
 		// let kern_c_str = try!(parse_kernel_files(&build_options));
 
 		// [FIXME] TEMPORARY UNWRAP:
 		let obj = super::create_program(kernel_strings, cmplr_opts, 
-			context_obj, device_id).unwrap();
+			context_obj, devices).unwrap();
 
 		// [FIXME] TEMPORARY UNWRAP:
-		super::program_build_info(obj, device_id).unwrap();
+		// [FIXME] IS THIS A DUPLICATE CALL?
+		super::program_build_info(obj, devices).unwrap();
 
 		Ok(Program {
 			obj: obj,
@@ -59,7 +60,7 @@ impl Program {
 }
 
 
-// fn parse_kernel_files(build_options: &BuildOptions) -> Result<CString, String> {
+// fn parse_kernel_files(build_options: &BuildConfig) -> Result<CString, String> {
 // 	let mut kern_str: Vec<u8> = Vec::with_capacity(10000);
 // 	let mut kern_history: HashSet<&String> = HashSet::with_capacity(20);
 

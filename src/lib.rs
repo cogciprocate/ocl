@@ -21,7 +21,7 @@ pub use self::envoy::{ Envoy };
 pub use self::pro_que::{ ProQue };
 pub use self::simple_dims::{ SimpleDims };
 pub use self::work_size::{ WorkSize };
-pub use self::build_options::{ BuildOptions, BuildOpt };
+pub use self::build_options::{ BuildConfig, BuildOpt };
 pub use self::errors::{ DimError };
 pub use self::event_list::{ EventList };
 pub use self::formatting as fmt;
@@ -137,16 +137,10 @@ fn get_device_ids(
 			device_types_opt: Option<cl_device_type>,
 		) -> Vec<cl_h::cl_device_id> 
 {
-	// let device_type = match device_types_opt {
-	// 	Some(dts) => dts,
-	// 	None => DEFAULT_DEVICE_TYPE,
-	// };
-
 	let device_type = device_types_opt.unwrap_or(DEFAULT_DEVICE_TYPE);
 	
 	let mut devices_avaliable: cl_h::cl_uint = 0;
 	let mut devices_array: [cl_h::cl_device_id; DEVICES_MAX as usize] = [0 as cl_h::cl_device_id; DEVICES_MAX as usize];
-	// Find number of valid devices
 
 	let err = unsafe { cl_h::clGetDeviceIDs(
 		platform, 
@@ -182,31 +176,24 @@ fn create_context(devices: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
 		must_succ("clCreateContext()", err);
 		context
 	}
-
 }
 
-/// Create a new OpenCL program object reference.
+
 fn create_program(
-			// src_str: *const i8,
 			kern_strings: Vec<CString>,
 			cmplr_opts: CString,
 			context: cl_h::cl_context, 
-			device: cl_h::cl_device_id,
+			devices: &Vec<cl_h::cl_device_id>
 		) -> Result<cl_h::cl_program, String>
 {
 	// Lengths (not including \0 terminator) of each string:
 	let ks_lens: Vec<usize> = kern_strings.iter().map(|cs| cs.as_bytes().len()).collect();	
-
 	// Pointers to each string:
 	let kern_strs: Vec<*const i8> = kern_strings.iter().map(|cs| cs.as_ptr()).collect();
 
-	println!("# kern_strings: {:?}", kern_strings);
-	println!("# kern_strs: {:?}", kern_strings);
-
-	let mut err: cl_h::cl_int = 0;
+	let mut err = 0i32;
 
 	unsafe {
-		println!("# Creating Program...");
 		let program: cl_h::cl_program = cl_h::clCreateProgramWithSource(
 					context, 
 					kern_strs.len() as u32,
@@ -216,21 +203,19 @@ fn create_program(
 		);
 		must_succ("clCreateProgramWithSource()", err);
 
-		println!("# Building Program...");
 		err = cl_h::clBuildProgram(
 					program,
-					0,
-					ptr::null(), 
+					devices.len() as u32,
+					devices.as_ptr(), 
 					cmplr_opts.as_ptr() as *const i8,
 					mem::transmute(ptr::null::<fn()>()), 
 					ptr::null_mut(),
 		);
+		must_succ("clBuildProgram()", err);
 
-		// [FIXME] Temporary: Re-wrap the error properly:
-		if err != 0i32 {
-			Err(program_build_info(program, device).err().unwrap())
+		if err < 0 {
+			program_build_info(program, devices).map(|_| program)
 		} else {
-			must_succ("clBuildProgram()", err);
 			Ok(program)
 		}
 	}
@@ -443,46 +428,45 @@ fn platform_info(platform: cl_h::cl_platform_id) {
     }
 }
 
-fn program_build_info(program: cl_h::cl_program, device_id: cl_h::cl_device_id) -> Result<(), String> {
+fn program_build_info(program: cl_h::cl_program, devices: &Vec<cl_h::cl_device_id>) -> Result<(), String> {
 	let mut size = 0 as libc::size_t;
 
-	unsafe {
-		let name = cl_h::CL_PROGRAM_BUILD_LOG as cl_h::cl_program_build_info;
-        let mut err = cl_h::clGetProgramBuildInfo(
-					program,
-					device_id,
-					name,
-					0,
-					ptr::null_mut(),
-					&mut size,
-		);
-		must_succ("clGetProgramBuildInfo(size)", err);
-			
-        let mut program_build_info: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
+	for &device_id in devices.iter() {
+		unsafe {
+			let name = cl_h::CL_PROGRAM_BUILD_LOG as cl_h::cl_program_build_info;
 
-        err = cl_h::clGetProgramBuildInfo(
-					program,
-					device_id,
-					name,
-					size,
-					program_build_info.as_mut_ptr() as *mut libc::c_void,
-					ptr::null_mut(),
-		);
-        must_succ("clGetProgramBuildInfo()", err);
+			let mut err = cl_h::clGetProgramBuildInfo(
+				program,
+				device_id,
+				name,
+				0,
+				ptr::null_mut(),
+				&mut size,
+			);
+			must_succ("clGetProgramBuildInfo(size)", err);
 
-        // let pbi = cstring_to_string(program_build_info);
-        let pbi = String::from_utf8(program_build_info).unwrap();
+			let mut pbi: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
 
-        if pbi.len() > 1 {
-       		print!("\nOCL Program Build Info ({})[{}]: \n\n {}", name, pbi.len(), pbi);
-   		}
+			err = cl_h::clGetProgramBuildInfo(
+				program,
+				device_id,
+				name,
+				size,
+				pbi.as_mut_ptr() as *mut libc::c_void,
+				ptr::null_mut(),
+			);
+			must_succ("clGetProgramBuildInfo()", err);
 
-   		if pbi.len() > 1 {
-       		Err(pbi)
-   		} else {
-   			Ok(())
+			if size > 1 {
+				let pbi_nonull = try!(String::from_utf8(pbi).map_err(|e| e.to_string()));
+				let pbi_err_string = format!("OPENCL PROGRAM BUILD ERROR: \n\n {}", pbi_nonull);
+				println!("\n{}", pbi_err_string);
+				return Err(pbi_err_string);
+			}
 		}
 	}
+
+	Ok(())
 }
 
 fn must_succ(message: &str, err_code: cl_h::cl_int) {

@@ -1,4 +1,4 @@
-use super::{ Context, BuildOptions, Envoy, SimpleDims, ProQue, EventList };
+use super::{ Context, BuildConfig, Envoy, SimpleDims, ProQue, EventList };
 
 
 #[test]
@@ -7,7 +7,7 @@ fn test_async_events() {
 	let mut ocl_pq = ProQue::new(&Context::new(None, None).unwrap(), None);
 
 	// Build program:
-	ocl_pq.build(BuildOptions::new("").kern_file("cl/kernel_file.cl".to_string())).unwrap();
+	ocl_pq.build(BuildConfig::new("").kern_file("cl/kernel_file.cl".to_string())).unwrap();
 
 	// Set up data set size and work dimensions:
 	let data_set_size = 100;
@@ -54,7 +54,7 @@ fn test_basics() {
 	let mut ocl_pq = ProQue::new(&ocl_cxt, None);
 
 	// Create build options passing optional command line switches and other options:
-	let build_options = BuildOptions::new("-cl-unsafe-math-optimizations")
+	let build_options = BuildConfig::new("-cl-unsafe-math-optimizations")
 		.kern_file("cl/kernel_file.cl".to_string());
 
 	// Build:

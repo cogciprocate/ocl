@@ -3,6 +3,7 @@
 
 use super::{ cl_h, Context };
 
+// [FIXME] TODO: Implement a constructor which accepts a cl_device_id.
 #[derive(Clone)]
 pub struct Queue {
 	obj: cl_h::cl_command_queue,

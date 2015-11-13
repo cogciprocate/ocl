@@ -1,5 +1,5 @@
 
-use super::{ Context, Kernel, WorkSize, BuildOptions, Program, Queue };
+use super::{ Context, Kernel, WorkSize, BuildConfig, Program, Queue };
 
 
 /// A convenience wrapper chimera of `Program` and `Queue`.
@@ -21,7 +21,7 @@ impl ProQue {
 		}
 	}
 
-	pub fn build(&mut self, build_options: BuildOptions) -> Result<(), String> {
+	pub fn build(&mut self, build_options: BuildConfig) -> Result<(), String> {
 		if self.program_opt.is_some() { 
 			return Err(format!("Ocl::build(): Pre-existing build detected. Use: \
 				'{{your_Ocl_instance}} = {{your_Ocl_instance}}.clear_build()' first."))
@@ -32,7 +32,7 @@ impl ProQue {
 			try!(build_options.kernel_strings().map_err(|e| e.to_string())), 
 			try!(build_options.compiler_options().map_err(|e| e.to_string())), 
 			self.queue.context_obj(), 
-			self.queue.device_id()
+			&vec![self.queue.device_id()],
 		)));
 
 		Ok(())
@@ -43,7 +43,7 @@ impl ProQue {
 		let program = match self.program_opt {
 			Some(ref prg) => prg,
 			None => panic!("\nOcl::create_kernel(): Cannot add new kernel until OpenCL program is built. \
-				Use: '{your_Ocl_instance}.build({your_BuildOptions_instance})'.\n"),
+				Use: '{your_Ocl_instance}.build({your_BuildConfig_instance})'.\n"),
 		};
 
 		Kernel::new(name, &program, &self.queue, gws)	
