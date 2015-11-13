@@ -2,7 +2,7 @@
 use std::ptr;
 use std::mem;
 use std::io::{ Read };
-use std::ffi;
+use std::ffi::{ CString };
 use std::iter;
 use std::fmt::{ Display, Debug, /*UpperHex*/ };
 use std::num::{ Zero };
@@ -18,10 +18,10 @@ pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, 
 	CL_DEVICE_TYPE_ALL };
 pub use self::kernel::{ Kernel };
 pub use self::envoy::{ Envoy };
-pub use self::pro_queue::{ ProQueue };
+pub use self::pro_que::{ ProQue };
 pub use self::simple_dims::{ SimpleDims };
 pub use self::work_size::{ WorkSize };
-pub use self::build_options::{ BuildOptions, BuildOption };
+pub use self::build_options::{ BuildOptions, BuildOpt };
 pub use self::errors::{ DimError };
 pub use self::event_list::{ EventList };
 pub use self::formatting as fmt;
@@ -40,7 +40,7 @@ mod program;
 mod queue;
 pub mod cl_h;
 pub mod envoy;
-mod pro_queue;
+mod pro_que;
 mod simple_dims;
 mod kernel;
 mod work_size;
@@ -187,32 +187,41 @@ fn create_context(devices: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
 
 /// Create a new OpenCL program object reference.
 fn create_program(
-			src_str: *const i8,
-			build_opt: String,
+			// src_str: *const i8,
+			kern_strings: Vec<CString>,
+			cmplr_opts: CString,
 			context: cl_h::cl_context, 
 			device: cl_h::cl_device_id,
 		) -> Result<cl_h::cl_program, String>
 {
+	// Lengths (not including \0 terminator) of each string:
+	let ks_lens: Vec<usize> = kern_strings.iter().map(|cs| cs.as_bytes().len()).collect();	
 
-	let ocl_build_options_slc: &str = &build_opt;
+	// Pointers to each string:
+	let kern_strs: Vec<*const i8> = kern_strings.iter().map(|cs| cs.as_ptr()).collect();
+
+	println!("# kern_strings: {:?}", kern_strings);
+	println!("# kern_strs: {:?}", kern_strings);
 
 	let mut err: cl_h::cl_int = 0;
 
 	unsafe {
+		println!("# Creating Program...");
 		let program: cl_h::cl_program = cl_h::clCreateProgramWithSource(
 					context, 
-					1,
-					&src_str,
-					ptr::null(), 
+					kern_strs.len() as u32,
+					kern_strs.as_ptr() as *const *const i8,
+					ks_lens.as_ptr() as *const usize,
 					&mut err,
 		);
 		must_succ("clCreateProgramWithSource()", err);
 
+		println!("# Building Program...");
 		err = cl_h::clBuildProgram(
 					program,
-					0, 
+					0,
 					ptr::null(), 
-					ffi::CString::new(ocl_build_options_slc.as_bytes()).ok().expect("ocl::new_program(): clBuildProgram").as_ptr(), 
+					cmplr_opts.as_ptr() as *const i8,
 					mem::transmute(ptr::null::<fn()>()), 
 					ptr::null_mut(),
 		);
@@ -549,7 +558,7 @@ fn err_string(err_code: cl_int) -> String {
 // fn create_kernel(program: cl_h::cl_program, kernel_name: &str) -> cl_h::cl_kernel {
 // 	let mut err: cl_h::cl_int = 0;
 // 	unsafe {
-// 		let kernel = cl_h::clCreateKernel(program, ffi::CString::new(kernel_name.as_bytes()).ok().expect("ocl::create_kernel(): clCreateKernel").as_ptr(), &mut err);
+// 		let kernel = cl_h::clCreateKernel(program, CString::new(kernel_name.as_bytes()).ok().expect("ocl::create_kernel(): clCreateKernel").as_ptr(), &mut err);
 // 		let err_pre = format!("clCreateKernel({}):", kernel_name);
 // 		must_succ(&err_pre, err);
 // 		kernel

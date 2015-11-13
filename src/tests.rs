@@ -1,10 +1,10 @@
-use super::{ Context, BuildOptions, Envoy, SimpleDims, ProQueue, EventList };
+use super::{ Context, BuildOptions, Envoy, SimpleDims, ProQue, EventList };
 
 
 #[test]
 fn test_async_events() {
 	// Create a context & program/queue: 
-	let mut ocl_pq = ProQueue::new(&Context::new(None, None).unwrap(), None);
+	let mut ocl_pq = ProQue::new(&Context::new(None, None).unwrap(), None);
 
 	// Build program:
 	ocl_pq.build(BuildOptions::new("").kern_file("cl/kernel_file.cl".to_string())).unwrap();
@@ -51,7 +51,7 @@ fn test_basics() {
 	let ocl_cxt = Context::new(None, None).unwrap();
 
 	// Create a program/queue with the default device: 
-	let mut ocl_pq = ProQueue::new(&ocl_cxt, None);
+	let mut ocl_pq = ProQue::new(&ocl_cxt, None);
 
 	// Create build options passing optional command line switches and other options:
 	let build_options = BuildOptions::new("-cl-unsafe-math-optimizations")

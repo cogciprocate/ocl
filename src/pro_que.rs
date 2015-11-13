@@ -4,31 +4,36 @@ use super::{ Context, Kernel, WorkSize, BuildOptions, Program, Queue };
 
 /// A convenience wrapper chimera of `Program` and `Queue`.
 #[derive(Clone)]
-pub struct ProQueue {
+pub struct ProQue {
 	queue: Queue,
 	program_opt: Option<Program>,
 }
 
-impl ProQueue {
+impl ProQue {
 	///	Documentation coming.
 	/// 	Doc Note: Will wrap device_idx around.
-	///
-	pub fn new(context: &Context, device_idx: Option<usize>) -> ProQueue {
+	pub fn new(context: &Context, device_idx: Option<usize>) -> ProQue {
 		let queue = Queue::new(context, device_idx);
 
-		ProQueue {
+		ProQue {
 			queue: queue,
 			program_opt: None,
 		}
 	}
 
 	pub fn build(&mut self, build_options: BuildOptions) -> Result<(), String> {
-		if self.program_opt.is_some() { panic!("\nOcl::build(): Pre-existing build detected. Use: \
-			'{your_Ocl_instance} = {your_Ocl_instance}.clear_build()' first.") }		
+		if self.program_opt.is_some() { 
+			return Err(format!("Ocl::build(): Pre-existing build detected. Use: \
+				'{{your_Ocl_instance}} = {{your_Ocl_instance}}.clear_build()' first."))
+		}		
 
 		// [FIXME]: Unwrap
-		self.program_opt = Some(try!(Program::from_parts(build_options.kernel_str().unwrap(), 
-			build_options.compiler_options(), self.queue.context_obj(), self.queue.device_id())));
+		self.program_opt = Some(try!(Program::from_parts(
+			try!(build_options.kernel_strings().map_err(|e| e.to_string())), 
+			try!(build_options.compiler_options().map_err(|e| e.to_string())), 
+			self.queue.context_obj(), 
+			self.queue.device_id()
+		)));
 
 		Ok(())
 	}
@@ -68,7 +73,7 @@ impl ProQueue {
 	}
 
 	/// Release all components.
-	// Note: Do not move this to a Drop impl in case this ProQueue has been cloned.
+	// Note: Do not move this to a Drop impl in case this ProQue has been cloned.
 	pub fn release(&mut self) {		
 		self.queue.release();
 		self.clear_build();

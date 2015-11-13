@@ -1,4 +1,4 @@
-use std::ffi;
+use std::ffi::{ CString };
 
 use super::{ cl_h, BuildOptions, Context };
 
@@ -9,6 +9,7 @@ pub struct Program {
 	// device_id: cl_h::cl_device_id,
 }
 
+// [FIXME] TODO: ERROR HANDLING
 impl Program {
 	pub fn new(build_options: BuildOptions, context: &Context, device_idx: Option<usize>
 			) -> Result<Program, String> 
@@ -16,18 +17,24 @@ impl Program {
 		let device_id = context.resolve_device_id(device_idx);
 
 		// [FIXME]: Unwrap
-		Program::from_parts(build_options.kernel_str().unwrap(), 
-			build_options.compiler_options(), context.obj(), device_id)
+		Program::from_parts(
+			try!(build_options.kernel_strings().map_err(|e| e.to_string())), 
+			try!(build_options.compiler_options().map_err(|e| e.to_string())), 
+			context.obj(), 
+			device_id)
 	}
 
-	pub fn from_parts(kernel_str: ffi::CString, pre_opts: String, 
-				context_obj: cl_h::cl_context, device_id: cl_h::cl_device_id
+	pub fn from_parts(
+				kernel_strings: Vec<CString>, 
+				cmplr_opts: CString, 
+				context_obj: cl_h::cl_context, 
+				device_id: cl_h::cl_device_id,
 			) -> Result<Program, String> 
 	{
 		// let kern_c_str = try!(parse_kernel_files(&build_options));
 
 		// [FIXME] TEMPORARY UNWRAP:
-		let obj = super::create_program(kernel_str.as_ptr(), pre_opts, 
+		let obj = super::create_program(kernel_strings, cmplr_opts, 
 			context_obj, device_id).unwrap();
 
 		// [FIXME] TEMPORARY UNWRAP:
@@ -52,7 +59,7 @@ impl Program {
 }
 
 
-// fn parse_kernel_files(build_options: &BuildOptions) -> Result<ffi::CString, String> {
+// fn parse_kernel_files(build_options: &BuildOptions) -> Result<CString, String> {
 // 	let mut kern_str: Vec<u8> = Vec::with_capacity(10000);
 // 	let mut kern_history: HashSet<&String> = HashSet::with_capacity(20);
 
@@ -85,5 +92,5 @@ impl Program {
 // 		kern_history.insert(&kfn);
 // 	}
 
-// 	Ok(ffi::CString::new(kern_str).expect("Ocl::new(): ocl::parse_kernel_files(): ffi::CString::new(): Error."))
+// 	Ok(CString::new(kern_str).expect("Ocl::new(): ocl::parse_kernel_files(): CString::new(): Error."))
 // }
