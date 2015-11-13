@@ -1,6 +1,11 @@
+use libc;
+// use std::ptr;
+use super::cl_h;
+
 use super::{ Context, BuildConfig, Envoy, SimpleDims, ProQue, EventList };
 
-
+const SCL: f32 = 5.0;
+const DSS: usize = 100;
 #[test]
 fn test_async_events() {
 	// Create a context & program/queue: 
@@ -10,7 +15,7 @@ fn test_async_events() {
 	ocl_pq.build(BuildConfig::new().kern_file("cl/kernel_file.cl")).unwrap();
 
 	// Set up data set size and work dimensions:
-	let data_set_size = 100;
+	let data_set_size = DSS;
 	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result envoys (our data containers):
@@ -18,7 +23,7 @@ fn test_async_events() {
 	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq.queue());
 
 	// Our scalar:
-	let scalar = 5f32;
+	let scalar = SCL;
 
 	// Create kernel:
 	let kernel = ocl_pq.create_kernel("add_scalar".to_string(), envoy_dims.work_size())
@@ -34,41 +39,107 @@ fn test_async_events() {
 	// let fn_verify = | |
 
 	// Repeat the test. First iteration 
-	for i in 1..20 {
+	for itr in 1..11 {
+		println!("Enqueuing kernel [{}]...", itr);
 		kernel.enqueue(None, Some(&mut kernel_event));
 
 		let mut read_event = EventList::new();
 
 		unsafe {
-			// Altering `wait` bool will affect success if no wait list is used.
-			// Toggle passing an event list or not:
-			if false {
-				super::enqueue_read_buffer(ocl_pq.queue().obj(), result_envoy.buffer_obj(), false, 
-					result_envoy.vec_mut(), 0, None, None);
-			} else {
-				super::enqueue_read_buffer(ocl_pq.queue().obj(), result_envoy.buffer_obj(), false, 
+			// result_envoy.read(Some(&read_event), None);
+
+			println!("Enqueuing read buffer [{}]...", itr);
+			super::enqueue_read_buffer(ocl_pq.queue().obj(), result_envoy.buffer_obj(), false, 
 					result_envoy.vec_mut(), 0, None, Some(&mut read_event));
-			}
+
+			let mut buncha_stuff = BunchaStuff {
+				env: &result_envoy as *const Envoy<f32>, 
+				dss: data_set_size as usize, 
+				scl: scalar as f32, 
+				itr: itr as usize,
+			};
+
+			println!("Setting callback (verify_result, buncha_stuff) [{}]...", itr);
+			read_event.set_callback(verify_result, &mut buncha_stuff as *mut _ as *mut libc::c_void);
 		}
+
+		// println!("Waiting for read_event...");
+		// super::wait_for_event(read_event.events()[0]);
+		
+		// ocl_pq.queue().finish();
 
 		// read_event.wait();
-		read_event.set_callback();
-		read_event.wait();
+		//
 
-		// result_envoy.read(Some(&kernel_event), None);
+		// for idx in 0..data_set_size {
+		// 	assert_eq!(result_envoy[idx], (coeff as f32) * scalar);
+		// }
 
-		for idx in 0..data_set_size {
-			assert_eq!(result_envoy[idx], (i as f32) * scalar);
-		}
+		println!("Releasing read_event [{}]...", itr);
+		read_event.release();
 	}
 
-	panic!();
+	ocl_pq.queue().finish();
+
+	// panic!();
 }
 
-// fn verify_callback() {
+// #[repr(C)]
+struct BunchaStuff {
+	env: *const Envoy<f32>, 
+	dss: usize,
+	scl: f32, 
+	itr: usize,
+}
+
+
+// #[allow(dead_code)]
+extern /*"C"*/ fn verify_result(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
+	let buncha_stuff = user_data as *const BunchaStuff;
+
+	unsafe {
+		let result_envoy: *const Envoy<f32> = (*buncha_stuff).env as *const Envoy<f32>;
+		let data_set_size: usize = (*buncha_stuff).dss;
+		let scalar: f32 = (*buncha_stuff).scl;
+		let itr: usize = (*buncha_stuff).itr;
+		
+
+	    println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, scalar: {}, itr: `{}`.", 
+	    	event, status, data_set_size, scalar, itr);
+
+		// for idx in 0..data_set_size {
+		// 	assert_eq!((*result_envoy)[idx], (itr as f32) * scalar);
+		// }
+    }
+}
+
+#[allow(dead_code)]
+extern fn callback_test(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
+    println!("Event: `{:?}` has completed with status: `{}` and data: `{:?}`", 
+    	event, status, user_data);
+}
+
+#[allow(dead_code)]
+extern fn shithead_test(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
+    println!("Event: `{:?}` has completed with status: `{}` and data: `{:?}`. And you're a shithead.", 
+    	event, status, user_data);
+}
+
+
+// #[cfg(target_os = "linux")]
+// #[link(name = "OpenCL")]
+// extern fn verify_callback() {
 // 	for idx in 0..data_set_size {
 // 		assert_eq!(result_envoy[idx], (i as f32) * scalar);
 // 	}
+// }
+
+
+// #[cfg(target_os = "linux")]
+// #[link(name = "OpenCL")]
+// extern fn callback_test(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
+//     println!("Event: `{:?}` has completed with status: `{}` and data: `{:?}`", 
+//     	event, status, user_data);
 // }
 
 
@@ -116,9 +187,9 @@ fn test_basics() {
 	for idx in 0..data_set_size {
 		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
 
-		if idx < 20 { 
-			println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
-			source_envoy[idx], coeff, result_envoy[idx]); 
-		}
+		// if idx < 20 { 
+		// 	println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
+		// 	source_envoy[idx], coeff, result_envoy[idx]); 
+		// }
 	}
 }

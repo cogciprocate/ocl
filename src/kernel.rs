@@ -36,7 +36,7 @@ impl Kernel {
 		};
 		
 		let err_pre = format!("Ocl::create_kernel({}):", &name);
-		super::must_succ(&err_pre, err);
+		super::must_succeed(&err_pre, err);
 
 		Kernel {
 			kernel: kernel,
@@ -174,7 +174,7 @@ impl Kernel {
 			);
 
 			let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
-			super::must_succ(&err_pre, err);
+			super::must_succeed(&err_pre, err);
 		}
 	}
 
@@ -205,7 +205,7 @@ impl Kernel {
 			);
 
 			let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);
-			super::must_succ(&err_pre, err);
+			super::must_succeed(&err_pre, err);
 		}
 	}
 
@@ -247,7 +247,7 @@ impl Kernel {
 			);
 
 			let err_pre = format!("ocl::Kernel::enqueue_wait()[{}]: ", &self.name);
-			super::must_succ(&err_pre, err);
+			super::must_succeed(&err_pre, err);
 		}
 		event
 	}*/

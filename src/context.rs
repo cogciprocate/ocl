@@ -30,7 +30,7 @@ impl Context {
 	///
 	/// # Examples
 	///	
-	/// ```
+	/// ```notest
 	///	// use ocl;
 	///
 	///	fn main() {
@@ -42,7 +42,7 @@ impl Context {
 	/// ```
 	///
 	///
-	/// ```
+	/// ```notest
 	/// // use ocl;
 	/// 
 	/// fn main() {

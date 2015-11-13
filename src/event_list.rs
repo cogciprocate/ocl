@@ -1,4 +1,5 @@
 use std::ptr;
+use libc;
 
 use super::{ cl_h };
 
@@ -31,11 +32,35 @@ impl EventList {
 		}
 	}
 
-	pub fn set_callback(&self) {
+	pub fn set_callback(&self, 
+				callback_receiver: extern fn (cl_h::cl_event, cl_h::cl_int, *mut libc::c_void),
+				user_data: *mut libc::c_void,
+			)
+	{
 		if self.events.len() > 0 {
-			super::set_event_callback(self.events[(self.events.len() - 1)])
+			super::set_event_callback(
+				self.events[self.events.len() - 1], 
+				cl_h::CL_COMPLETE, 
+				callback_receiver,
+				user_data,
+			)
 		}
 	}
+
+	// pub fn set_callback_envoy(&self, 
+	// 			callback_receiver: extern fn (cl_h::cl_event, cl_h::cl_int, *mut libc::c_void),
+	// 			user_data: *mut libc::c_void,
+	// 		)
+	// {
+	// 	if self.events.len() > 0 {
+	// 		super::set_event_callback(
+	// 			self.events[self.events.len() - 1], 
+	// 			cl_h::CL_COMPLETE, 
+	// 			callback_receiver,
+	// 			user_data,
+	// 		)
+	// 	}
+	// }
 
 	pub fn count(&self) -> u32 {
 		self.events.len() as u32
@@ -43,6 +68,16 @@ impl EventList {
 
 	pub fn clear(&mut self) {
 		self.events.clear();
+	}
+
+	pub fn release(&mut self) {
+		for &mut event in &mut self.events {
+	    	let err = unsafe {
+				cl_h::clReleaseEvent(event)
+			};
+
+			super::must_succeed("clReleaseEvent", err);
+		}
 	}
 }
 

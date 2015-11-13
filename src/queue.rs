@@ -24,7 +24,7 @@ impl Queue {
 	}	
 
 	pub fn finish(&self) {
-		unsafe { cl_h::clFinish(self.obj); }
+		super::finish(self.obj);
 	}
 
 	pub fn obj(&self) -> cl_h::cl_command_queue {

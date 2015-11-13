@@ -117,14 +117,14 @@ fn get_platform_ids() -> Vec<cl_h::cl_platform_id> {
 	let mut num_platforms = 0 as cl_h::cl_uint;
 	
 	let mut err: cl_h::cl_int = unsafe { cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) };
-	must_succ("clGetPlatformIDs()", err);
+	must_succeed("clGetPlatformIDs()", err);
 
 	let mut platforms: Vec<cl_h::cl_platform_id> = Vec::with_capacity(num_platforms as usize);
 	for _ in 0..num_platforms as usize { platforms.push(0 as cl_platform_id); }
 
 	unsafe {
 		err = cl_h::clGetPlatformIDs(num_platforms, platforms.as_mut_ptr(), ptr::null_mut()); 
-		must_succ("clGetPlatformIDs()", err);
+		must_succeed("clGetPlatformIDs()", err);
 	}
 	
 	platforms
@@ -132,7 +132,7 @@ fn get_platform_ids() -> Vec<cl_h::cl_platform_id> {
 
 // GET_DEVICE_IDS():
 /// # Panics
-/// 	//-must_succ (needs addressing)
+/// 	//-must_succeed (needs addressing)
 fn get_device_ids(
 			platform: cl_h::cl_platform_id, 
 			device_types_opt: Option<cl_device_type>,
@@ -151,7 +151,7 @@ fn get_device_ids(
 		&mut devices_avaliable
 	) };
 
-	must_succ("clGetDeviceIDs()", err);
+	must_succeed("clGetDeviceIDs()", err);
 
 	let mut device_ids: Vec<cl_h::cl_device_id> = Vec::with_capacity(devices_avaliable as usize);
 
@@ -174,7 +174,7 @@ fn create_context(device_ids: &Vec<cl_h::cl_device_id>) -> cl_h::cl_context {
 						mem::transmute(ptr::null::<fn()>()), 
 						ptr::null_mut(), 
 						&mut err);
-		must_succ("clCreateContext()", err);
+		must_succeed("clCreateContext()", err);
 		context
 	}
 }
@@ -202,7 +202,7 @@ fn new_program(
 					ks_lens.as_ptr() as *const usize,
 					&mut err,
 		);
-		must_succ("clCreateProgramWithSource()", err);
+		must_succeed("clCreateProgramWithSource()", err);
 
 		err = cl_h::clBuildProgram(
 					program,
@@ -216,7 +216,7 @@ fn new_program(
 		if err < 0 {
 			program_build_info(program, device_ids).map(|_| program)
 		} else {
-			must_succ("clBuildProgram()", err);
+			must_succeed("clBuildProgram()", err);
 			// Unreachable:
 			Ok(program) 
 		}
@@ -239,7 +239,7 @@ fn create_command_queue(
 					&mut err
 		);
 
-		must_succ("clCreateCommandQueue()", err);
+		must_succeed("clCreateCommandQueue()", err);
 		cq
 	}
 }
@@ -259,7 +259,7 @@ fn create_buffer<T>(data: &[T], context: cl_h::cl_context, flags: cl_h::cl_bitfi
 					//ptr::null_mut(),
 					&mut err,
 		);
-		must_succ("create_buffer", err);
+		must_succeed("create_buffer", err);
 		buf
 	}
 }
@@ -290,7 +290,7 @@ fn enqueue_write_buffer<T>(
 					new_event_ptr,
 		);
 
-		must_succ("clEnqueueWriteBuffer()", err);
+		must_succeed("clEnqueueWriteBuffer()", err);
 	}
 }
 
@@ -321,7 +321,7 @@ fn enqueue_read_buffer<T>(
 					new_event_ptr,
 		);
 
-		must_succ("clEnqueueReadBuffer()", err);
+		must_succeed("clEnqueueReadBuffer()", err);
 	}
 }
 
@@ -372,7 +372,7 @@ fn enqueue_copy_buffer<T: OclNum>(
 			ptr::null(),
 			ptr::null_mut(),
 		);
-		must_succ("clEnqueueCopyBuffer()", err);
+		must_succeed("clEnqueueCopyBuffer()", err);
 	}
 }
 
@@ -390,56 +390,67 @@ fn get_max_work_group_size(device: cl_h::cl_device_id) -> usize {
 		) 
 	}; 
 
-	must_succ("clGetDeviceInfo", err);
+	must_succeed("clGetDeviceInfo", err);
 
 	max_work_group_size
 }
+
+
+
+fn finish(command_queue: cl_h::cl_command_queue) {
+	unsafe { 
+		let err = cl_h::clFinish(command_queue);
+		must_succeed("clFinish()", err);
+	}
+}
+
 
 fn wait_for_events(wait_list: &EventList) {
 	let err = unsafe {
 		cl_h::clWaitForEvents(wait_list.count(), wait_list.as_ptr())
 	};
 
-	must_succ("clWaitForEvents", err);
+	must_succeed("clWaitForEvents", err);
 }
 
 
-fn set_event_callback(event: cl_h::cl_event) {
-	// pub fn clSetEventCallback_ex(event: cl_event,
- //                          command_exec_callback_type: cl_int,
- //                          pfn_notify: extern fn (cl_event, cl_int, *mut libc::c_void),
- //                          user_data: *mut libc::c_void) -> cl_int;
+#[allow(dead_code)]
+fn wait_for_event(event: cl_h::cl_event) {
+	let event_array: [cl_h::cl_event; 1] = [event];
+
 	let err = unsafe {
-		cl_h::clSetEventCallback(event, cl_h::CL_COMPLETE, callback_test, ptr::null_mut())
+		cl_h::clWaitForEvents(1, event_array.as_ptr())
 	};
 
-	must_succ("clSetEventCallback", err);
+	must_succeed("clWaitForEvents", err);
 }
 
 
-extern fn callback_test(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
-    println!("Event: `{:?}` has completed with status: `{}` and data: `{:?}`", 
-    	event, status, user_data);
+fn set_event_callback(
+			event: cl_h::cl_event, 
+			callback_trigger: cl_int, 
+			callback_receiver: extern fn (cl_event, cl_int, *mut libc::c_void),
+			user_data: *mut libc::c_void,
+		)
+{
+	let err = unsafe {
+		cl_h::clSetEventCallback(event, callback_trigger, callback_receiver, user_data)
+	};
+
+	must_succeed("clSetEventCallback", err);
 }
 
 
-#[cfg(target_os = "linux")]
-#[link(name = "OpenCL")]
-extern {
-   pub fn clSetEventCallback_ex(event: cl_event,
-                          command_exec_callback_type: cl_int,
-                          pfn_notify: extern fn (cl_event, cl_int, *mut libc::c_void),
-                          user_data: *mut libc::c_void) -> cl_int;
-}
 
 
 
+// extern {
+//    pub fn clSetEventCallback_ex(event: cl_event,
+//                           command_exec_callback_type: cl_int,
+//                           pfn_notify: extern fn (cl_event, cl_int, *mut libc::c_void),
+//                           user_data: *mut libc::c_void) -> cl_int;
+// }
 
-// [FIXME]: TODO: Evaluate usefulness
-#[allow(dead_code)]
-fn finish(command_queue: cl_h::cl_command_queue) -> cl_h::cl_int {
-	unsafe { cl_h::clFinish(command_queue) }
-}
 
 fn release_mem_object(obj: cl_h::cl_mem) {
 	unsafe {
@@ -461,7 +472,7 @@ fn platform_info(platform: cl_h::cl_platform_id) {
 					ptr::null_mut(),
 					&mut size,
 		);
-		must_succ("clGetPlatformInfo(size)", err);
+		must_succeed("clGetPlatformInfo(size)", err);
 		
 		let mut param_value: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
         err = cl_h::clGetPlatformInfo(
@@ -471,7 +482,7 @@ fn platform_info(platform: cl_h::cl_platform_id) {
 					param_value.as_mut_ptr() as *mut libc::c_void,
 					ptr::null_mut(),
 		);
-        must_succ("clGetPlatformInfo()", err);
+        must_succeed("clGetPlatformInfo()", err);
         println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
     }
 }
@@ -491,7 +502,7 @@ fn program_build_info(program: cl_h::cl_program, device_ids: &Vec<cl_h::cl_devic
 				ptr::null_mut(),
 				&mut size,
 			);
-			must_succ("clGetProgramBuildInfo(size)", err);
+			must_succeed("clGetProgramBuildInfo(size)", err);
 
 			let mut pbi: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
 
@@ -503,7 +514,7 @@ fn program_build_info(program: cl_h::cl_program, device_ids: &Vec<cl_h::cl_devic
 				pbi.as_mut_ptr() as *mut libc::c_void,
 				ptr::null_mut(),
 			);
-			must_succ("clGetProgramBuildInfo()", err);
+			must_succeed("clGetProgramBuildInfo()", err);
 
 			if size > 1 {
 				let pbi_nonull = try!(String::from_utf8(pbi).map_err(|e| e.to_string()));
@@ -517,7 +528,7 @@ fn program_build_info(program: cl_h::cl_program, device_ids: &Vec<cl_h::cl_devic
 	Ok(())
 }
 
-fn must_succ(message: &str, err_code: cl_h::cl_int) {
+fn must_succeed(message: &str, err_code: cl_h::cl_int) {
 	if err_code != cl_h::CLStatus::CL_SUCCESS as cl_h::cl_int {
 		//format!("##### \n{} failed with code: {}\n\n #####", message, err_string(err_code));
 		panic!(format!("\n\n#####> {} failed with code: {}\n\n", message, err_string(err_code)));
@@ -532,7 +543,6 @@ fn err_string(err_code: cl_int) -> String {
 }
 
 
-
 // fn create_write_buffer<T>(data: &[T], context: cl_h::cl_context) -> cl_h::cl_mem {
 // 	let mut err: cl_h::cl_int = 0;
 // 	unsafe {
@@ -544,7 +554,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					//ptr::null_mut(),
 // 					&mut err,
 // 		);
-// 		must_succ("create_write_buffer", err);
+// 		must_succeed("create_write_buffer", err);
 // 		buf
 // 	}
 // }
@@ -559,7 +569,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					ptr::null_mut(), 
 // 					&mut err,
 // 		);
-// 		must_succ("create_read_buffer", err);
+// 		must_succeed("create_read_buffer", err);
 // 		buf
 // 	}
 // }
@@ -592,7 +602,7 @@ fn err_string(err_code: cl_int) -> String {
 // 	unsafe {
 // 		let kernel = cl_h::clCreateKernel(program, CString::new(kernel_name.as_bytes()).ok().expect("ocl::create_kernel(): clCreateKernel").as_ptr(), &mut err);
 // 		let err_pre = format!("clCreateKernel({}):", kernel_name);
-// 		must_succ(&err_pre, err);
+// 		must_succeed(&err_pre, err);
 // 		kernel
 // 	}
 // }
@@ -605,7 +615,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					mem::size_of::<T>() as usize, 
 // 					mem::transmute(&buffer),
 // 		);
-// 		must_succ("clSetKernelArg()", err);
+// 		must_succeed("clSetKernelArg()", err);
 // 	}
 // }
 
@@ -620,7 +630,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					(&mut size as *mut usize) as *mut libc::c_void,
 // 					ptr::null_mut()
 // 		);
-// 		must_succ("clGetMemObjectInfo", err);
+// 		must_succeed("clGetMemObjectInfo", err);
 // 		size
 // 	}
 // }
@@ -649,7 +659,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					ptr::null(),
 // 					ptr::null_mut(),
 // 		);
-// 		must_succ("clEnqueueNDRangeKernel()", err);
+// 		must_succeed("clEnqueueNDRangeKernel()", err);
 // 	}
 // }
 
@@ -681,7 +691,7 @@ fn err_string(err_code: cl_int) -> String {
 // 		&mut size,
 // 	) }; 
 
-// 	must_succ("clGetPlatformInfo(size)", err);
+// 	must_succeed("clGetPlatformInfo(size)", err);
 
 // 	unsafe {
 //         let mut device_info: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
@@ -694,7 +704,7 @@ fn err_string(err_code: cl_int) -> String {
 // 			ptr::null_mut(),
 // 		);
 
-//         must_succ("clGetDeviceInfo()", err);
+//         must_succeed("clGetDeviceInfo()", err);
 //         println!("*** Device Name ({}): {}", name, cstring_to_string(device_info));
 // 	}
 
@@ -709,7 +719,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					ptr::null_mut(),
 // 					&mut size,
 // 		);
-// 		must_succ("clGetProgramInfo(size)", err);
+// 		must_succeed("clGetProgramInfo(size)", err);
 			
 //         let mut program_info: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
 
@@ -721,7 +731,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					//program_info as *mut libc::c_void,
 // 					ptr::null_mut(),
 // 		);
-//         must_succ("clGetProgramInfo()", err);
+//         must_succeed("clGetProgramInfo()", err);
 //         println!("*** Program Info ({}): \n {}", name, cstring_to_string(program_info));
 // 	}
 // 	println!("");
@@ -736,7 +746,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					ptr::null_mut(),
 // 					&mut size,
 // 		);
-// 		must_succ("clGetKernelInfo(size)", err);
+// 		must_succeed("clGetKernelInfo(size)", err);
 
 //         let kernel_info = 5 as cl_h::cl_uint;
 
@@ -748,7 +758,7 @@ fn err_string(err_code: cl_int) -> String {
 // 					ptr::null_mut(),
 // 		);
 		
-//         must_succ("clGetKernelInfo()", err);
+//         must_succeed("clGetKernelInfo()", err);
 //         println!("*** Kernel Info: ({})\n{}", name, kernel_info);
 // 	}
 // 	println!("");
