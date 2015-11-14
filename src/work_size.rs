@@ -1,7 +1,10 @@
 use std::ptr;
-use libc;
+use libc::{ size_t };
 
+use cl_h::{ cl_uint };
 
+/// Defines the amount of work to be done by a kernel for each of up to three 
+/// dimensions.
 #[derive(PartialEq, Debug, Clone)]
 pub enum WorkSize {
 	Unspecified,
@@ -11,7 +14,8 @@ pub enum WorkSize {
 }
 
 impl WorkSize {
-	pub fn dim_count(&self) -> super::cl_uint {
+	/// Returns the number of dimensions defined by this `WorkSize`.
+	pub fn dim_count(&self) -> cl_uint {
 		use self::WorkSize::*;
 		match self {
 			&ThreeDims(..) 		=> 3,
@@ -22,6 +26,7 @@ impl WorkSize {
 
 	}
 
+	/// Returns the amount work to be done in three dimensional terms.
 	pub fn complete_worksize(&self) -> (usize, usize, usize) {
 		match self {
 			&WorkSize::OneDim(x) => {
@@ -37,20 +42,17 @@ impl WorkSize {
 		}
 	}
 
-	pub fn as_ptr(&self) -> *const libc::size_t {
-
+	/// Returns a raw pointer to the enum.
+	pub fn as_ptr(&self) -> *const size_t {
 		match self {
 			&WorkSize::OneDim(x) => {
-				let s: (usize, usize, usize) = (x, 1, 1);
-				(&s as *const (usize, usize, usize)) as *const libc::size_t
+				&x as *const usize as *const size_t
 			},
-			&WorkSize::TwoDims(x, y) => {
-				let s: (usize, usize, usize) = (x, y, 1);
-				(&s as *const (usize, usize, usize)) as *const libc::size_t
+			&WorkSize::TwoDims(x, _) => {
+				&x as *const usize as *const size_t
 			},
-			&WorkSize::ThreeDims(x, y, z) => {
-				let s: (usize, usize, usize) = (x, y, z);
-				(&s as *const (usize, usize, usize)) as *const libc::size_t
+			&WorkSize::ThreeDims(x, _, _) => {
+				&x as *const usize as *const size_t
 			},
 			_ => ptr::null(),
 		}

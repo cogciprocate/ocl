@@ -5,16 +5,17 @@ use std::collections::{ HashMap };
 // use num::{ Integer, Zero };
 use libc;
 
-use super::{ cl_h, WorkSize, Envoy, OclNum, EventList, Program, Queue };
+use cl_h::{ self, cl_mem, cl_kernel, cl_command_queue, cl_int, cl_uint };
+use super::{ WorkSize, Envoy, OclNum, EventList, Program, Queue };
 
 
 pub struct Kernel {
-	kernel: cl_h::cl_kernel,
+	kernel: cl_kernel,
 	name: String,
 	arg_index: u32,
 	named_args: HashMap<&'static str, u32>,
 	arg_count: u32,
-	command_queue: cl_h::cl_command_queue,
+	command_queue: cl_command_queue,
 	gwo: WorkSize,
 	gws: WorkSize,
 	lws: WorkSize,
@@ -25,7 +26,7 @@ impl Kernel {
 	pub fn new(name: String, program: &Program, queue: &Queue, 
 				gws: WorkSize ) -> Kernel 
 	{
-		let mut err: cl_h::cl_int = 0;
+		let mut err: cl_int = 0;
 
 		let kernel = unsafe {
 			cl_h::clCreateKernel(
@@ -105,8 +106,8 @@ impl Kernel {
 		};
 
 		self.new_kernel_arg(
-			mem::size_of::<cl_h::cl_mem>() as libc::size_t, 
-			(&buf as *const cl_h::cl_mem) as *const libc::c_void,
+			mem::size_of::<cl_mem>() as libc::size_t, 
+			(&buf as *const cl_mem) as *const libc::c_void,
 		)
 	}
 
@@ -159,12 +160,12 @@ impl Kernel {
 
 		self.set_kernel_arg(
 			arg_idx,
-			mem::size_of::<cl_h::cl_mem>() as libc::size_t, 
-			(&buf as *const cl_h::cl_mem) as *const libc::c_void,
+			mem::size_of::<cl_mem>() as libc::size_t, 
+			(&buf as *const cl_mem) as *const libc::c_void,
 		)
 	}
 
-	fn set_kernel_arg(&mut self, arg_index: cl_h::cl_uint, arg_size: libc::size_t, arg_value: *const libc::c_void) {
+	fn set_kernel_arg(&mut self, arg_index: cl_uint, arg_size: libc::size_t, arg_value: *const libc::c_void) {
 		unsafe {
 			let err = cl_h::clSetKernelArg(
 						self.kernel, 
@@ -178,7 +179,7 @@ impl Kernel {
 		}
 	}
 
-	pub fn enqueue_with_cmd_queue(&self, cmd_queue: cl_h::cl_command_queue, 
+	pub fn enqueue_with_cmd_queue(&self, cmd_queue: cl_command_queue, 
 				wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) 
 	{
 		// [FIXME] TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES

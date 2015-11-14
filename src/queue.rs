@@ -1,20 +1,21 @@
 // use std::mem;
 // use std::ptr;
 
-use super::{ cl_h, Context };
+use cl_h::{ self, cl_command_queue, cl_context, cl_device_id };
+use super::{ Context };
 
 // [FIXME] TODO: Implement a constructor which accepts a cl_device_id.
 #[derive(Clone)]
 pub struct Queue {
-	obj: cl_h::cl_command_queue,
-	context_obj: cl_h::cl_context,
-	device_id: cl_h::cl_device_id,
+	obj: cl_command_queue,
+	context_obj: cl_context,
+	device_id: cl_device_id,
 }
 
 impl Queue {
 	pub fn new(context: &Context, device_idx: Option<usize>) -> Queue {
 		let device_id = context.resolve_device_id(device_idx);
-		let obj: cl_h::cl_command_queue = super::create_command_queue(context.obj(), device_id); 
+		let obj: cl_command_queue = super::create_command_queue(context.obj(), device_id); 
 
 		Queue {
 			obj: obj,
@@ -27,15 +28,15 @@ impl Queue {
 		super::finish(self.obj);
 	}
 
-	pub fn obj(&self) -> cl_h::cl_command_queue {
+	pub fn obj(&self) -> cl_command_queue {
 		self.obj
 	}
 
-	pub fn context_obj(&self) -> cl_h::cl_context {
+	pub fn context_obj(&self) -> cl_context {
 		self.context_obj
 	}
 
-	pub fn device_id(&self) -> cl_h::cl_device_id {
+	pub fn device_id(&self) -> cl_device_id {
 		self.device_id
 	}
 

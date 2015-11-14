@@ -9,14 +9,15 @@ use std::num::{ Zero };
 use num::{ NumCast, FromPrimitive, ToPrimitive };
 use rand::distributions::range::{ SampleRange };
 
+use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, cl_program, 
+	cl_command_queue, cl_mem, cl_event };
+
 pub use self::context::{ Context };
 pub use self::program::{ Program };
 pub use self::queue::{ Queue };
-pub use self::cl_h::{ cl_platform_id, cl_device_id, cl_device_type, cl_context, cl_program, 
-	cl_kernel, cl_command_queue, cl_mem, cl_event, cl_float, cl_char, cl_uchar, 
-	cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_bitfield, CLStatus, 
-	CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, CL_DEVICE_TYPE_ACCELERATOR, 
-	CL_DEVICE_TYPE_ALL };
+pub use self::cl_h::{ cl_float, cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, 
+	cl_bitfield, CLStatus, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
+	CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL };
 pub use self::kernel::{ Kernel };
 pub use self::envoy::{ Envoy };
 pub use self::pro_que::{ ProQue };
@@ -27,7 +28,8 @@ pub use self::errors::{ DimError };
 pub use self::event_list::{ EventList };
 pub use self::formatting as fmt;
 
-// #[cfg(test)] [FIXME]: TODO: Create an additional crate build configuration for tests
+// [FIXME]: TODO: Create an additional crate build configuration for tests
+// #[cfg(test)]
 pub use self::envoy::tests::{ EnvoyTest };
 
 #[macro_use] 
@@ -333,7 +335,7 @@ fn resolve_queue_opts(block: bool, wait_list: Option<&EventList>, dest_list: Opt
 	let (wait_list_len, wait_list_ptr): (u32, *const cl_h::cl_event) = match wait_list {
 		Some(wl) => {
 			if wl.count() > 0 {
-				(wl.count() as u32, wl.events().as_ptr())
+				(wl.count() as u32, wl.as_ptr())
 			} else {
 				(0, ptr::null())
 			}
@@ -426,16 +428,14 @@ fn wait_for_event(event: cl_h::cl_event) {
 }
 
 
-fn set_event_callback(
+unsafe fn set_event_callback(
 			event: cl_h::cl_event, 
 			callback_trigger: cl_int, 
 			callback_receiver: extern fn (cl_event, cl_int, *mut libc::c_void),
 			user_data: *mut libc::c_void,
 		)
 {
-	let err = unsafe {
-		cl_h::clSetEventCallback(event, callback_trigger, callback_receiver, user_data)
-	};
+	let err = cl_h::clSetEventCallback(event, callback_trigger, callback_receiver, user_data);
 
 	must_succeed("clSetEventCallback", err);
 }

@@ -1,6 +1,6 @@
 
 // use formatting::MT;
-use super::{ cl_h, cl_platform_id, cl_device_id, cl_device_type, cl_context, DEFAULT_PLATFORM };
+use cl_h::{ self, cl_platform_id, cl_device_id, cl_device_type, cl_context };
 
 /// An OpenCL context for a particular platform and set of device types.
 ///
@@ -86,7 +86,7 @@ impl Context {
 				}				
 			},
 
-			None => platforms[DEFAULT_PLATFORM],
+			None => platforms[super::DEFAULT_PLATFORM],
 		};
 		
 		let device_ids: Vec<cl_device_id> = super::get_device_ids(platform, device_types_opt);
@@ -103,7 +103,7 @@ impl Context {
 		})
 	}
 
-	pub fn resolve_device_id(&self, device_idx: Option<usize>) -> cl_h::cl_device_id {
+	pub fn resolve_device_id(&self, device_idx: Option<usize>) -> cl_device_id {
 		match device_idx {
 			Some(di) => self.valid_device(di),
 			None => self.device_ids()[super::DEFAULT_DEVICE],

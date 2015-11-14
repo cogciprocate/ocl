@@ -1,11 +1,42 @@
-use libc;
+use libc::{ c_void };
 // use std::ptr;
-use super::cl_h;
+use cl_h::{ cl_event, cl_int };
 
 use super::{ Context, BuildConfig, Envoy, SimpleDims, ProQue, EventList };
 
-const SCL: f32 = 5.0;
-const DSS: usize = 100;
+
+struct TestStuff {
+	env: *const Envoy<f32>, 
+	dss: usize,
+	scl: f32, 
+	itr: usize,
+}
+
+#[allow(unused_variables, dead_code)]
+extern fn verify_result(event: cl_event, status: cl_int, user_data: *mut c_void) {
+	let buncha_stuff = user_data as *const TestStuff;
+
+	unsafe {
+		let result_envoy: *const Envoy<f32> = (*buncha_stuff).env as *const Envoy<f32>;
+		let data_set_size: usize = (*buncha_stuff).dss;
+		let scalar: f32 = (*buncha_stuff).scl;
+		let itr: usize = (*buncha_stuff).itr;
+		
+	    // println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
+	    // 	 scalar: {}, itr: `{}`.", event, status, data_set_size, scalar, itr);
+
+		for idx in 0..data_set_size {
+			assert_eq!((*result_envoy)[idx], ((itr + 1) as f32) * scalar);
+
+			// if idx < 20 {
+			// 	print!("[{}]", (*result_envoy)[idx]);
+			// }
+		}
+		// print!("\n\n");
+    }
+}
+
+
 #[test]
 fn test_async_events() {
 	// Create a context & program/queue: 
@@ -15,7 +46,7 @@ fn test_async_events() {
 	ocl_pq.build(BuildConfig::new().kern_file("cl/kernel_file.cl")).unwrap();
 
 	// Set up data set size and work dimensions:
-	let data_set_size = DSS;
+	let data_set_size = 900000;
 	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result envoys (our data containers):
@@ -23,7 +54,7 @@ fn test_async_events() {
 	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq.queue());
 
 	// Our scalar:
-	let scalar = SCL;
+	let scalar = 5.0f32;
 
 	// Create kernel:
 	let kernel = ocl_pq.create_kernel("add_scalar".to_string(), envoy_dims.work_size())
@@ -32,116 +63,52 @@ fn test_async_events() {
 	;
 
 	// Create event list:
-	let mut kernel_event = EventList::new();
+	let mut kernel_event = EventList::new();	
 
 	//#############################################################################################
 
-	// let fn_verify = | |
+	let iters = 20;
+
+	// Create storage for per-event data:
+	let mut buncha_stuffs = Vec::<TestStuff>::with_capacity(iters);
 
 	// Repeat the test. First iteration 
-	for itr in 1..11 {
-		println!("Enqueuing kernel [{}]...", itr);
+	for i in 0..iters {
+		println!("Enqueuing kernel [i:{}]...", i);
 		kernel.enqueue(None, Some(&mut kernel_event));
 
 		let mut read_event = EventList::new();
-
-		unsafe {
-			// result_envoy.read(Some(&read_event), None);
-
-			println!("Enqueuing read buffer [{}]...", itr);
-			super::enqueue_read_buffer(ocl_pq.queue().obj(), result_envoy.buffer_obj(), false, 
-					result_envoy.vec_mut(), 0, None, Some(&mut read_event));
-
-			let mut buncha_stuff = BunchaStuff {
-				env: &result_envoy as *const Envoy<f32>, 
-				dss: data_set_size as usize, 
-				scl: scalar as f32, 
-				itr: itr as usize,
-			};
-
-			println!("Setting callback (verify_result, buncha_stuff) [{}]...", itr);
-			read_event.set_callback(verify_result, &mut buncha_stuff as *mut _ as *mut libc::c_void);
-		}
-
-		// println!("Waiting for read_event...");
-		// super::wait_for_event(read_event.events()[0]);
 		
-		// ocl_pq.queue().finish();
+		println!("Enqueuing read buffer [i:{}]...", i);
+		result_envoy.read(None, Some(&mut read_event));
 
-		// read_event.wait();
-		//
-
-		// for idx in 0..data_set_size {
-		// 	assert_eq!(result_envoy[idx], (coeff as f32) * scalar);
+		// unsafe {			
+		// 	super::enqueue_read_buffer(ocl_pq.queue().obj(), result_envoy.buffer_obj(), false, 
+		// 			result_envoy.vec_mut(), 0, None, Some(&mut read_event));
 		// }
 
-		println!("Releasing read_event [{}]...", itr);
+		buncha_stuffs.push(TestStuff {
+			env: &result_envoy as *const Envoy<f32>, 
+			dss: data_set_size, 
+			scl: scalar, 
+			itr: i,
+		});
+
+		let last_idx = buncha_stuffs.len() - 1;		
+
+		unsafe {
+			println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...", last_idx, i);
+			read_event.set_callback(verify_result, 
+				&mut buncha_stuffs[last_idx] as *mut _ as *mut c_void);
+		}
+
+		println!("Releasing read_event [i:{}]...", i);
 		read_event.release();
 	}
 
+	// Wait for all queued tasks to finish so that verify_result() will be called:
 	ocl_pq.queue().finish();
-
-	// panic!();
 }
-
-// #[repr(C)]
-struct BunchaStuff {
-	env: *const Envoy<f32>, 
-	dss: usize,
-	scl: f32, 
-	itr: usize,
-}
-
-
-// #[allow(dead_code)]
-extern /*"C"*/ fn verify_result(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
-	let buncha_stuff = user_data as *const BunchaStuff;
-
-	unsafe {
-		let result_envoy: *const Envoy<f32> = (*buncha_stuff).env as *const Envoy<f32>;
-		let data_set_size: usize = (*buncha_stuff).dss;
-		let scalar: f32 = (*buncha_stuff).scl;
-		let itr: usize = (*buncha_stuff).itr;
-		
-
-	    println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, scalar: {}, itr: `{}`.", 
-	    	event, status, data_set_size, scalar, itr);
-
-		// for idx in 0..data_set_size {
-		// 	assert_eq!((*result_envoy)[idx], (itr as f32) * scalar);
-		// }
-    }
-}
-
-#[allow(dead_code)]
-extern fn callback_test(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
-    println!("Event: `{:?}` has completed with status: `{}` and data: `{:?}`", 
-    	event, status, user_data);
-}
-
-#[allow(dead_code)]
-extern fn shithead_test(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
-    println!("Event: `{:?}` has completed with status: `{}` and data: `{:?}`. And you're a shithead.", 
-    	event, status, user_data);
-}
-
-
-// #[cfg(target_os = "linux")]
-// #[link(name = "OpenCL")]
-// extern fn verify_callback() {
-// 	for idx in 0..data_set_size {
-// 		assert_eq!(result_envoy[idx], (i as f32) * scalar);
-// 	}
-// }
-
-
-// #[cfg(target_os = "linux")]
-// #[link(name = "OpenCL")]
-// extern fn callback_test(event: cl_h::cl_event, status: cl_h::cl_int, user_data: *mut libc::c_void) {
-//     println!("Event: `{:?}` has completed with status: `{}` and data: `{:?}`", 
-//     	event, status, user_data);
-// }
-
 
 
 
@@ -160,15 +127,15 @@ fn test_basics() {
 	ocl_pq.build(build_config).expect("ocl program build");
 
 	// Set up our data set size and work dimensions:
-	let data_set_size = 9000;
+	let data_set_size = 900000;
 	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create a source envoy (array) with randomized values and an empty result envoy:
-	let source_envoy = Envoy::scrambled(&envoy_dims, 0f32, 20.0, &ocl_pq.queue());
-	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq.queue());
+	let source_envoy = Envoy::scrambled(&envoy_dims, 0.0f32, 200.0, &ocl_pq.queue());
+	let mut result_envoy = Envoy::new(&envoy_dims, 0.0f32, &ocl_pq.queue());
 
 	// Our coefficient:
-	let coeff = 50.0;
+	let coeff = 432.1;
 
 	// Create kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), envoy_dims.work_size())
@@ -187,9 +154,9 @@ fn test_basics() {
 	for idx in 0..data_set_size {
 		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
 
-		// if idx < 20 { 
-		// 	println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
-		// 	source_envoy[idx], coeff, result_envoy[idx]); 
-		// }
+		if idx < 20 { 
+			println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
+			source_envoy[idx], coeff, result_envoy[idx]); 
+		}
 	}
 }

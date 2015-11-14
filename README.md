@@ -63,15 +63,15 @@ fn main() {
 	ocl_pq.build(build_config).expect("ocl program build");
 
 	// Set up our data set size and work dimensions:
-	let data_set_size = 9000;
+	let data_set_size = 900000;
 	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create a source envoy (array) with randomized values and an empty result envoy:
-	let source_envoy = Envoy::scrambled(&envoy_dims, 0f32, 20f32, &ocl_pq.queue());
+	let source_envoy = Envoy::scrambled(&envoy_dims, 0f32, 20.0, &ocl_pq.queue());
 	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq.queue());
 
 	// Our coefficient:
-	let coeff = 1000f32;
+	let coeff = 50.0;
 
 	// Create kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), envoy_dims.work_size())

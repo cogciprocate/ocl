@@ -1,12 +1,13 @@
 use std::ffi::{ CString };
 
-use super::{ cl_h, BuildConfig, Context };
+use cl_h::{ self, cl_program, cl_context, cl_device_id };
+use super::{ BuildConfig, Context };
 
 #[derive(Clone)]
 pub struct Program {
-	obj: cl_h::cl_program,
-	context_obj: cl_h::cl_context,
-	device_ids: Vec<cl_h::cl_device_id>,
+	obj: cl_program,
+	context_obj: cl_context,
+	device_ids: Vec<cl_device_id>,
 }
 
 // [FIXME] TODO: ERROR HANDLING
@@ -28,8 +29,8 @@ impl Program {
 	pub fn from_parts(
 				kernel_strings: Vec<CString>, 
 				cmplr_opts: CString, 
-				context_obj: cl_h::cl_context, 
-				device_ids: &Vec<cl_h::cl_device_id>,
+				context_obj: cl_context, 
+				device_ids: &Vec<cl_device_id>,
 			) -> Result<Program, String> 
 	{
 		// let kern_c_str = try!(parse_kernel_files(&build_config));
@@ -49,7 +50,7 @@ impl Program {
 		})
 	}
 
-	pub fn obj(&self) -> cl_h::cl_program {
+	pub fn obj(&self) -> cl_program {
 		self.obj
 	}
 

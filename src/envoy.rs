@@ -5,7 +5,7 @@ use rand::distributions::{ IndependentSample, Range as RandRange };
 use num::{ FromPrimitive, ToPrimitive };
 use std::ops::{ Range, Index, IndexMut };
 
-use cl_h;
+use cl_h::{ self, cl_mem };
 use super::{ fmt, OclNum, Queue, EnvoyDims, EventList };
 
 impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
@@ -16,9 +16,10 @@ pub type AxonState = Envoy<u8>;
 pub type DendriteState = Envoy<u8>;
 pub type SynapseState = Envoy<u8>;
 
+// [FIXME] TODO: Check that type size is <= the maximum supported by device.
 pub struct Envoy<T> {
 	vec: Vec<T>,
-	buffer_obj: cl_h::cl_mem,
+	buffer_obj: cl_mem,
 	queue: Queue,
 }
 
@@ -53,7 +54,7 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	fn _new(mut vec: Vec<T>, queue: &Queue) -> Envoy<T> {
-		let buffer_obj: cl_h::cl_mem = super::create_buffer(&mut vec, queue.context_obj(), 
+		let buffer_obj: cl_mem = super::create_buffer(&mut vec, queue.context_obj(), 
 			cl_h::CL_MEM_READ_WRITE);
 
 		Envoy {
@@ -177,7 +178,7 @@ impl<T: OclNum> Envoy<T> {
 		&mut self.vec
 	}
 
-	pub fn buffer_obj(&self) -> cl_h::cl_mem {
+	pub fn buffer_obj(&self) -> cl_mem {
 		self.buffer_obj
 	}
 
@@ -233,8 +234,8 @@ impl<T> IndexMut<usize> for Envoy<T> {
 
 
 pub fn scrambled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
-	assert!(size > 0, "\ncl_h::envoy::shuffled_vec(): Vector size must be greater than zero.");
-	assert!(min_val < max_val, "\ncl_h::envoy::shuffled_vec(): Minimum value must be less than maximum.");
+	assert!(size > 0, "\nenvoy::shuffled_vec(): Vector size must be greater than zero.");
+	assert!(min_val < max_val, "\nenvoy::shuffled_vec(): Minimum value must be less than maximum.");
 	// let mut vec: Vec<T> = Vec::with_capacity(size);
 	let mut rng = rand::weak_rng();
 	let range = RandRange::new(min_val, max_val);
@@ -252,16 +253,16 @@ pub fn scrambled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	let mut vec: Vec<T> = Vec::with_capacity(size);
 
-	assert!(size > 0, "\ncl_h::envoy::shuffled_vec(): Vector size must be greater than zero.");
-	assert!(min_val < max_val, "\ncl_h::envoy::shuffled_vec(): Minimum value must be less than maximum.");
+	assert!(size > 0, "\nenvoy::shuffled_vec(): Vector size must be greater than zero.");
+	assert!(min_val < max_val, "\nenvoy::shuffled_vec(): Minimum value must be less than maximum.");
 
-	let min = min_val.to_i64().expect("\ncl_h::envoy::shuffled_vec(), min");
-	let max = max_val.to_i64().expect("\ncl_h::envoy::shuffled_vec(), max") + 1;
+	let min = min_val.to_i64().expect("\nenvoy::shuffled_vec(), min");
+	let max = max_val.to_i64().expect("\nenvoy::shuffled_vec(), max") + 1;
 
 	let mut range = (min..max).cycle();
 
 	for _ in 0..size {
-		vec.push(FromPrimitive::from_i64(range.next().expect("\ncl_h::envoy::shuffled_vec(), range")).expect("\ncl_h::envoy::shuffled_vec(), from_usize"));
+		vec.push(FromPrimitive::from_i64(range.next().expect("\nenvoy::shuffled_vec(), range")).expect("\nenvoy::shuffled_vec(), from_usize"));
 	}
 
 	shuffle_vec(&mut vec);
