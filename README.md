@@ -67,11 +67,11 @@ fn main() {
 	let envoy_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create a source envoy (array) with randomized values and an empty result envoy:
-	let source_envoy = Envoy::scrambled(&envoy_dims, 0f32, 20.0, &ocl_pq.queue());
-	let mut result_envoy = Envoy::new(&envoy_dims, 0f32, &ocl_pq.queue());
+	let source_envoy = Envoy::scrambled(&envoy_dims, 0.0f32, 200.0, &ocl_pq.queue());
+	let mut result_envoy = Envoy::new(&envoy_dims, 0.0f32, &ocl_pq.queue());
 
 	// Our coefficient:
-	let coeff = 50.0;
+	let coeff = 432.1;
 
 	// Create kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar".to_string(), envoy_dims.work_size())
@@ -86,7 +86,7 @@ fn main() {
 	// Read results:
 	result_envoy.read_wait();
 
-	// Check results:
+	// Check results and print the first 20:
 	for idx in 0..data_set_size {
 		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
 

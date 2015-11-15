@@ -52,14 +52,14 @@ impl ProQue {
 	}
 
 	// [FIXME] TODO: Return result instead of panic.
-	pub fn create_kernel(&self, name: String, gws: WorkSize) -> Kernel {
+	pub fn create_kernel(&self, name: &str, gws: WorkSize) -> Kernel {
 		let program = match self.program_opt {
 			Some(ref prg) => prg,
 			None => panic!("\nOcl::create_kernel(): Cannot add new kernel until OpenCL program is built. \
 				Use: '{your_Ocl_instance}.build({your_BuildConfig_instance})'.\n"),
 		};
 
-		Kernel::new(name, &program, &self.queue, gws)	
+		Kernel::new(name.to_string(), &program, &self.queue, gws)	
 	}
 
 	pub fn get_max_work_group_size(&self) -> usize {

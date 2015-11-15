@@ -1,11 +1,12 @@
 
 __kernel void add_scalar(
-			__private float const coeff,
-			__global float* const dst)
+			__global uint const* const src,
+			__private uint const addend,
+			__global uint* const dst)
 {
 	uint const idx = get_global_id(0);
 
-	dst[idx] = dst[idx] + coeff;
+	dst[idx] = src[idx] + addend;
 }
 
 

@@ -20,12 +20,12 @@ impl BuildConfig {
 
 	/// Command line define, i.e. '-D name=val'.
 	pub fn cmplr_def(mut self, name: &'static str, val: i32) -> BuildConfig {
-		self.options.push(BuildOpt::c_def(name, val));
+		self.options.push(BuildOpt::cmplr_def(name, val));
 		self
 	}
 
 	pub fn cmplr_opt(mut self, st: &'static str) -> BuildConfig {
-		self.options.push(BuildOpt::c_other(st));
+		self.options.push(BuildOpt::cmplr_opt(st));
 		self
 	}
 
@@ -147,18 +147,18 @@ pub enum BuildOpt {
 }
 
 impl BuildOpt {
-	pub fn c_def(ident: &'static str, val: i32) -> BuildOpt {
+	pub fn cmplr_def(ident: &'static str, val: i32) -> BuildOpt {
 		BuildOpt::CmplrDefine {
 			ident: ident.to_string(),
 			val: val.to_string(),
 		}
 	}
 
-	pub fn c_other(val: &'static str) -> BuildOpt {
+	pub fn cmplr_opt(val: &'static str) -> BuildOpt {
 		BuildOpt::CmplrOther(val.to_string())
 	}
 
-	pub fn m_def(ident: &'static str, val: String) -> BuildOpt {
+	pub fn include_def(ident: &'static str, val: String) -> BuildOpt {
 		BuildOpt::IncludeDefine {
 			ident: ident.to_string(),
 			val: val,

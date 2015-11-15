@@ -1,5 +1,5 @@
 use std::ptr;
-use libc;
+use libc::{ c_void };
 
 use cl_h::{ self, cl_event, cl_int };
 
@@ -47,9 +47,10 @@ impl EventList {
 	/// #Safety
 	/// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
 	/// is ever called.
-	pub unsafe fn set_callback(&self, 
-				callback_receiver: extern fn (cl_event, cl_int, *mut libc::c_void),
-				user_data: *mut libc::c_void,
+	pub unsafe fn set_callback<T>(&self, 
+				callback_receiver: extern fn (cl_event, cl_int, *mut c_void),
+				// user_data: *mut c_void,
+				user_data: &mut T,
 			)
 	{
 		if self.events.len() > 0 {
@@ -57,7 +58,7 @@ impl EventList {
 				self.events[self.events.len() - 1], 
 				cl_h::CL_COMPLETE, 
 				callback_receiver,
-				user_data,
+				user_data as *mut _ as *mut c_void,
 			)
 		}
 	}
