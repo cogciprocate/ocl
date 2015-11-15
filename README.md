@@ -1,8 +1,8 @@
 # ocl
 
-OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and will have runtime performance on a par with standard C++ libraries.
+OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and perform on a par with any C++ libraries.
 
-Interfaces are still unstable. Probably won't eat your laundry but some of the interfaces may change (in hopefully obvious ways).
+Interfaces are still unstable. Won't eat your laundry but some of the conventions may change (in hopefully obvious ways).
 
 
 ##Goals
@@ -10,19 +10,19 @@ Interfaces are still unstable. Probably won't eat your laundry but some of the i
 To provide a simple and intuitive way to interact with OpenCL devices with:
 - The full functionality of the OpenCL C ABI
 - An absolute minimum of boilerplate
-- Zero performance overhead (or as close as possible)
+- Zero performance overhead (or as close as absolutely possible)
 
 
 ##Platforms
 
-Tested only on Linux. Please [provide feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and successes on other platforms.
+Tested so far only on Linux. Please [provide feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and successes on other platforms.
 
 
 ##Installation
 
-Ensure that an OpenCL library is installed for your preferred platform. Remember that Intel and AMD both have OpenCL libraries for your CPU if you're having trouble getting your GPU to work. Make sure that `clinfo` or some other diagnostic command will run. 
+Ensure that an OpenCL library is installed for your preferred platform and  that `clinfo` or some other diagnostic command will run. 
 
-*If/when troubleshooting your preferred OpenCL drivers: check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already.*
+If troubleshooting your OpenCL drivers: check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already (AMD drivers sometimes don't create this link).  Intel and AMD also have OpenCL libraries for your CPU (intel drivers: [windows](http://registrationcenter.intel.com/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationcenter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)) if you're having trouble getting your GPU to work. 
 
 
 Add:
@@ -33,19 +33,15 @@ ocl = "0.1"
 ```
 
 or (to live dangerously):
-
 ```
 [dependencies.ocl]
 git = "https://github.com/cogciprocate/ocl_rust.git"
 ```
 
 to your project's `Cargo.toml` then, of course:
-
 ```
 extern crate ocl;
 ```
-
-to your crate main file (`main.rs` or `lib.rs`).
 
 
 ##Usage
@@ -91,8 +87,10 @@ fn main() {
 
 	// Check results and print the first 20:
 	for idx in 0..data_set_size {
+		// Check:
 		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
 
+		// Print:
 		if idx < 20 { 
 			println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
 			source_envoy[idx], coeff, result_envoy[idx]); 

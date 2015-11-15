@@ -167,8 +167,10 @@ fn test_basics() {
 
 	// Check results and print the first 20:
 	for idx in 0..data_set_size {
+		// Check:
 		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
 
+		// Print:
 		if PRINT_DEBUG && (idx < 20) { 
 			println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
 			source_envoy[idx], coeff, result_envoy[idx]); 
