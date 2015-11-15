@@ -16,7 +16,7 @@ impl Context {
 	/// 
 	/// The desired platform may be specified by passing a valid index from a list 
 	/// obtainable from the ocl::get_platform_ids() function and wrapping it with a 
-	/// Some (ex. `Some(2)`). Pass `None` to use the first platform avaliable (0). 
+	/// Some (ex. `Some(2)`). Pass `None` to use the first platform available (0). 
 	/// 
 	/// The device types mask may be specified using a union of any or all of the 
 	/// following flags:

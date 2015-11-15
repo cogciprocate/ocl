@@ -142,7 +142,7 @@ fn get_device_ids(
 {
 	let device_type = device_types_opt.unwrap_or(DEFAULT_DEVICE_TYPE);
 	
-	let mut devices_avaliable: cl_h::cl_uint = 0;
+	let mut devices_available: cl_h::cl_uint = 0;
 	let mut devices_array: [cl_h::cl_device_id; DEVICES_MAX as usize] = [0 as cl_h::cl_device_id; DEVICES_MAX as usize];
 
 	let err = unsafe { cl_h::clGetDeviceIDs(
@@ -150,14 +150,14 @@ fn get_device_ids(
 		device_type, 
 		DEVICES_MAX, 
 		devices_array.as_mut_ptr(), 
-		&mut devices_avaliable
+		&mut devices_available
 	) };
 
 	must_succeed("clGetDeviceIDs()", err);
 
-	let mut device_ids: Vec<cl_h::cl_device_id> = Vec::with_capacity(devices_avaliable as usize);
+	let mut device_ids: Vec<cl_h::cl_device_id> = Vec::with_capacity(devices_available as usize);
 
-	for i in 0..devices_avaliable as usize {
+	for i in 0..devices_available as usize {
 		device_ids.push(devices_array[i]);
 	}
 

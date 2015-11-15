@@ -129,28 +129,31 @@ fn test_events() {
 
 #[test]
 fn test_basics() {
-	// Create a context with the default platform and device types:
+	// Set our data set size and coefficent to arbitrary values:
+	let data_set_size = 900000;
+	let coeff = 5432.1;
+
+	// Create a context with the default platform and device type (GPU):
+	// * Use: `Context::new(None, Some(ocl::CL_DEVICE_TYPE_CPU))` for CPU.
 	let ocl_cxt = Context::new(None, None).unwrap();
 
-	// Create a program/queue with the default device: 
+	// Create a program/queue with the first available device: 
 	let mut ocl_pq = ProQue::new(&ocl_cxt, None);
 
-	// Create build configuration:
+	// Create a basic build configuration:
 	let build_config = BuildConfig::new().kern_file("cl/kernel_file.cl");
 
 	// Build with our configuration and check for errors:
 	ocl_pq.build(build_config).expect("ocl program build");
 
-	// Set up our data set size and work dimensions:
-	let data_set_size = 900000;
+	// Set up our work dimensions / data set size:
 	let our_test_dims = SimpleDims::OneDim(data_set_size);
 
-	// Create a source envoy (array) with randomized values and an empty result envoy:
+	// Create an envoy (an array + an OpenCL buffer) as a data source:
 	let source_envoy = Envoy::scrambled(&our_test_dims, 0.0f32, 200.0, &ocl_pq.queue());
-	let mut result_envoy = Envoy::new(&our_test_dims, 0.0f32, &ocl_pq.queue());
 
-	// Our coefficient:
-	let coeff = 5432.1;
+	// Create another empty one for results:
+	let mut result_envoy = Envoy::new(&our_test_dims, 0.0f32, &ocl_pq.queue());
 
 	// Create kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", our_test_dims.work_size())
