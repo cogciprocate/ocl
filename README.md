@@ -29,7 +29,7 @@ Add:
 
 ```
 [dependencies]
-ocl = "0.1"
+ocl = "0.2"
 ```
 
 or (to live dangerously):
@@ -127,7 +127,5 @@ fn main() {
 Please ask questions and provide feedback by opening an [issue](https://github.com/cogciprocate/ocl_rust/issues).
 
 
-##Upcoming
-Event queuing/waiting was temporarily removed for polishing and will be coming back for 0.2.0. *[Update] Currently in on master branch. Cargo crate update coming soon.*
 
 Lots more details and documentation to come.
