@@ -22,7 +22,7 @@ Tested so far only on Linux. Please [provide feedback](https://github.com/cogcip
 
 Ensure that an OpenCL library is installed for your preferred platform and  that `clinfo` or some other diagnostic command will run. 
 
-If troubleshooting your OpenCL drivers: check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already (AMD drivers sometimes don't create this link).  Intel and AMD also have OpenCL libraries for your CPU (intel drivers: [windows](http://registrationcenter.intel.com/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationcenter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)) if you're having trouble getting your GPU to work. 
+*If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already (AMD drivers sometimes don't create this link).  Intel and AMD also have OpenCL libraries for your CPU if you're having trouble getting your GPU to work (intel: [windows](http://registrationcenter.intel.com/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationcenter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)). 
 
 
 Add:

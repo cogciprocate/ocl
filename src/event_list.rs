@@ -93,7 +93,7 @@ impl EventList {
 	///
 	/// Events will continue to exist until their creating commands have completed 
 	/// and no other commands are waiting for them to complete.
-	pub fn release(&mut self) {
+	pub fn release_all(&mut self) {
 		for &mut event in &mut self.events {
 	    	let err = unsafe {
 				cl_h::clReleaseEvent(event)
