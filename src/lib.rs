@@ -70,7 +70,7 @@ mod tests;
 // 		CL_DEVICE_TYPE_ACCELERATOR:	Dedicated OpenCL accelerators (for example the IBM CELL Blade). These devices communicate with the host processor using a peripheral interconnect such as PCIe.
 // pub static CL_DEVICE_TYPE_ALL:                           cl_device_type = 0xFFFFFFFF;
 // 		CL_DEVICE_TYPE_ALL
-const DEFAULT_DEVICE_TYPE: cl_device_type = 1 << 2; // CL_DEVICE_TYPE_GPU
+const DEFAULT_DEVICE_TYPE: cl_device_type = 1 << 0; // CL_DEVICE_TYPE_DEFAULT
 
 const DEVICES_MAX: u32 = 16;
 const DEFAULT_PLATFORM: usize = 0;

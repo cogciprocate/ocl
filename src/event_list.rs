@@ -5,6 +5,7 @@ use cl_h::{ self, cl_event, cl_int };
 
 /// A list of OpenCL events which contain status information about the command that
 /// created them. Used to coordinate the activity of multiple commands.
+// [FIXME] TODO: impl Index.
 pub struct EventList {
 	events: Vec<cl_event>,
 }
@@ -13,6 +14,16 @@ impl EventList {
 	/// Returns a new, empty, `EventList`.
 	pub fn new() -> EventList {
 		EventList { events: Vec::with_capacity(16) }
+	}
+
+	/// Merges the copied contents of this list and another into a new list and returns it.
+	pub fn union(&self, other_list: &EventList) -> EventList {
+		let mut new_list = EventList { events: Vec::with_capacity(other_list.events().len() 
+			+ self.events.len() + 8) };
+		new_list.events.extend(self.events().iter().cloned());
+		new_list.events.extend(other_list.events().iter().cloned());
+
+		new_list
 	}
 
 	/// Appends a new null element to the end of the list and returns a mutable slice

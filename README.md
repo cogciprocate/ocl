@@ -20,10 +20,7 @@ Tested so far only on Linux. Please [provide feedback](https://github.com/cogcip
 
 ##Installation
 
-Ensure that an OpenCL library is installed for your preferred platform and  that `clinfo` or some other diagnostic command will run. 
-
-*If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already (AMD drivers sometimes don't create this link).  Intel and AMD also have OpenCL libraries for your CPU if you're having trouble getting your GPU to work (intel: [windows](http://registrationcenter.intel.com/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationcenter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)). 
-
+Ensure that an OpenCL library is installed for your preferred platform and  that `clinfo` or some other diagnostic command will run.
 
 Add:
 
@@ -32,34 +29,27 @@ Add:
 ocl = "0.2"
 ```
 
-or (to live dangerously):
-
-```
-[dependencies.ocl]
-git = "https://github.com/cogciprocate/ocl_rust.git"
-```
-
 to your project's `Cargo.toml`.
 
 
-##Usage
+##Example
 
-Create a new cargo project (binary) and paste the following code to `{your_project_dir}\cl\kernel_file.cl`:
+Create `{your_project_dir}\cl\kernel_file.cl` with the following contents:
 
 ```
 __kernel void multiply_by_scalar(
 			__global float const* const src,
 			__private float const coeff,
-			__global float* const dst)
+			__global float* const res)
 {
 	uint const idx = get_global_id(0);
 
-	dst[idx] = src[idx] * coeff;
+	res[idx] = src[idx] * coeff;
 }
 
 ```
 
-Paste into main.rs:
+`main.rs`:
 
 ```
 use ocl::{ Context, ProQueue, BuildOptions, SimpleDims, Envoy };
@@ -123,6 +113,8 @@ fn main() {
 
 
 ##Help
+
+*If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already (AMD drivers sometimes don't create this link).  Intel and AMD also have OpenCL libraries for your CPU if you're having trouble getting your GPU to work (intel: [windows](http://registrationcenter.intel.com/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationcenter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)). 
 
 Please ask questions and provide feedback by opening an [issue](https://github.com/cogciprocate/ocl_rust/issues).
 

@@ -34,7 +34,7 @@ impl Context {
 	///	// use ocl;
 	///
 	///	fn main() {
-	///		// Create a context with the first platform and all GPUs in the system.
+	///		// Create a context with the first available platform and the default device type.
 	///		let ocl_context = ocl::Context::new(None, None);
 	///		
 	///		// Do fun stuff...
