@@ -6,6 +6,7 @@ use cl_h::{ self, cl_event, cl_int };
 /// A list of OpenCL events which contain status information about the command that
 /// created them. Used to coordinate the activity of multiple commands.
 // [FIXME] TODO: impl Index.
+#[derive(Debug)]
 pub struct EventList {
 	events: Vec<cl_event>,
 }
