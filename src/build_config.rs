@@ -8,6 +8,7 @@ use std::collections::{ HashSet };
 pub struct BuildConfig {
 	options: Vec<BuildOpt>,
 	kernel_file_names: Vec<String>,
+	embedded_kernel_source: Vec<String>,
 }
 
 impl BuildConfig {
@@ -15,6 +16,7 @@ impl BuildConfig {
 		BuildConfig {
 			options: Vec::with_capacity(64),
 			kernel_file_names: Vec::with_capacity(32),
+			embedded_kernel_source: Vec::with_capacity(32),
 		}
 	}
 
@@ -41,10 +43,19 @@ impl BuildConfig {
 
 	pub fn add_kern_file(&mut self, file_name: String) {
 		self.kernel_file_names.push(file_name);
-	}		
+	}
 
 	pub fn kernel_file_names(&self) -> &Vec<String> {
 		&self.kernel_file_names
+	}
+
+	pub fn kern_embed(mut self, source: &'static str) -> BuildConfig {
+		self.add_embedded_kern(source.to_string());
+		self
+	}
+
+	pub fn add_embedded_kern(&mut self, source: String){
+		self.embedded_kernel_source.push(source);
 	}
 
 	pub fn compiler_options(&self) -> Result<CString, NulError> {
@@ -131,6 +142,10 @@ impl BuildConfig {
 			kern_str.shrink_to_fit();
 
 			kernel_strings.push(try!(CString::new(kern_str).map_err(|e| e.to_string())));
+		}
+
+		for elem in self.embedded_kernel_source.iter() {
+			kernel_strings.push(try!(CString::new(elem.clone().into_bytes()).map_err(|e| e.to_string())));
 		}
 
 		Ok(kernel_strings)
