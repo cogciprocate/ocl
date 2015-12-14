@@ -100,6 +100,24 @@ impl EventList {
 		self.events.clear();
 	}
 
+	/// Clears all completed events from the list.
+	pub fn clear_completed(&mut self) {
+		let mut ce_idxs: Vec<usize> = Vec::with_capacity(8);
+
+		let mut idx = 0;
+		for event in self.events.iter() {
+			if super::get_event_status(*event) == cl_h::CL_COMPLETE {
+				ce_idxs.push(idx)
+			}
+
+			idx += 1;
+		}
+
+		for idx in ce_idxs.into_iter().rev() {
+			self.events.remove(idx);
+		}
+	}
+
 	/// Releases all events in the list by decrementing their reference counts by one
 	/// and empties the list.
 	///

@@ -427,6 +427,24 @@ fn wait_for_event(event: cl_h::cl_event) {
 	must_succeed("clWaitForEvents", err);
 }
 
+fn get_event_status(event: cl_h::cl_event) -> cl_int {
+	let mut status: cl_int = 0;
+
+	let err = unsafe { 
+		cl_h::clGetEventInfo(
+			event,
+			cl_h::CL_EVENT_COMMAND_EXECUTION_STATUS,
+			mem::size_of::<cl_int>(),
+			&mut status as *mut _ as *mut libc::c_void,
+			ptr::null_mut(),
+		)
+	};
+
+	must_succeed("clGetEventInfo", err);
+
+	status
+}
+
 
 unsafe fn set_event_callback(
 			event: cl_h::cl_event, 
