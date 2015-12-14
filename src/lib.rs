@@ -458,6 +458,13 @@ unsafe fn set_event_callback(
 	must_succeed("clSetEventCallback", err);
 }
 
+fn release_event(event: cl_h::cl_event) {
+	let err = unsafe {
+		cl_h::clReleaseEvent(event)
+	};
+
+	must_succeed("clReleaseEvent", err);
+}
 
 
 
