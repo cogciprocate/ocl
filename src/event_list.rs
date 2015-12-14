@@ -100,7 +100,7 @@ impl EventList {
 		self.events.clear();
 	}
 
-	/// Clears all completed events from the list.
+	/// Clears each completed event from the list.
 	pub fn clear_completed(&mut self) {
 		let mut ce_idxs: Vec<usize> = Vec::with_capacity(8);
 
@@ -115,6 +115,10 @@ impl EventList {
 
 		for idx in ce_idxs.into_iter().rev() {
 			self.events.remove(idx);
+			
+			// let ev = self.events.remove(idx);
+			// Release?
+			// super::release_event(ev);
 		}
 	}
 
@@ -125,11 +129,7 @@ impl EventList {
 	/// and no other commands are waiting for them to complete.
 	pub fn release_all(&mut self) {
 		for &mut event in &mut self.events {
-	    	let err = unsafe {
-				cl_h::clReleaseEvent(event)
-			};
-
-			super::must_succeed("clReleaseEvent", err);
+	    	super::release_event(event);
 		}
 
 		self.clear();
