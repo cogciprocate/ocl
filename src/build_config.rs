@@ -110,7 +110,7 @@ impl BuildConfig {
 		let mut kernel_strings: Vec<CString> = Vec::with_capacity(64);
 		let mut kern_file_history: HashSet<&String> = HashSet::with_capacity(64);
 
-		kernel_strings.push_all(&try!(self.kernel_includes().map_err(|e| e.to_string())));
+		kernel_strings.extend_from_slice(&try!(self.kernel_includes().map_err(|e| e.to_string())));
 
 		for kfn in self.kernel_file_names().iter().rev() {
 			let mut kern_str: Vec<u8> = Vec::with_capacity(100000);

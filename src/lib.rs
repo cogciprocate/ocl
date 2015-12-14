@@ -1,4 +1,4 @@
-#![feature(vec_push_all, zero_one)]
+#![feature(zero_one)]
 use std::ptr;
 use std::mem;
 use std::io::{ Read };
