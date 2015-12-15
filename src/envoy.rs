@@ -1,12 +1,12 @@
-use std::iter::{ self };
-use std::slice::{ Iter };
-use rand::{ self };
-use rand::distributions::{ IndependentSample, Range as RandRange };
-use num::{ FromPrimitive, ToPrimitive };
-use std::ops::{ Range, Index, IndexMut };
+use std::iter::{self};
+use std::slice::{Iter};
+use rand::{self};
+use rand::distributions::{IndependentSample, Range as RandRange};
+use num::{FromPrimitive, ToPrimitive};
+use std::ops::{Range, Index, IndexMut};
 
-use cl_h::{ self, cl_mem };
-use super::{ fmt, OclNum, Queue, EnvoyDims, EventList };
+use cl_h::{self, cl_mem};
+use super::{fmt, OclNum, Queue, EnvoyDims, EventList};
 
 impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
     fn padded_envoy_len(&self, incr: usize) -> usize { (*self).padded_envoy_len(incr) }

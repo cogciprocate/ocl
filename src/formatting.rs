@@ -1,6 +1,6 @@
-use std::ops::{ Range };
+use std::ops::{Range};
 
-use super::{ OclNum };
+use super::{OclNum};
 // MT: Mini-tab: 4 spaces ('mini' compared to the huge tab on certain terminals)
 pub static MT: &'static str = "    "; 
 

@@ -1,7 +1,7 @@
 use std::ptr;
-use libc::{ size_t };
+use libc::{size_t};
 
-use cl_h::{ cl_uint };
+use cl_h::{cl_uint};
 
 /// Defines the amount of work to be done by a kernel for each of up to three 
 /// dimensions.

@@ -1,4 +1,4 @@
-use super::{ EnvoyDims, DimError, WorkSize };
+use super::{EnvoyDims, DimError, WorkSize};
 
 pub enum SimpleDims {
 	Unspecified,

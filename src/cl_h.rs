@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
-use std::fmt::{ Display, Formatter, Result };
-use libc::{ c_void, size_t, c_char, c_uchar, intptr_t };
+use std::fmt::{Display, Formatter, Result};
+use libc::{c_void, size_t, c_char, c_uchar, intptr_t};
 
 pub type cl_platform_id     = *mut c_void;
 pub type cl_device_id       = *mut c_void;

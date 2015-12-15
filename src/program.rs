@@ -1,7 +1,7 @@
-use std::ffi::{ CString };
+use std::ffi::{CString};
 
-use cl_h::{ self, cl_program, cl_context, cl_device_id };
-use super::{ BuildConfig, Context };
+use cl_h::{self, cl_program, cl_context, cl_device_id};
+use super::{BuildConfig, Context};
 
 #[derive(Clone)]
 pub struct Program {

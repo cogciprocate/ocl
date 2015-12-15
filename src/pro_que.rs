@@ -1,5 +1,4 @@
-
-use super::{ Context, Kernel, WorkSize, BuildConfig, Program, Queue };
+use super::{Context, Kernel, WorkSize, BuildConfig, Program, Queue};
 
 
 /// A convenience wrapper chimera of `Program` and `Queue`.

@@ -1,7 +1,7 @@
 use std::ptr;
-use libc::{ c_void };
+use libc::{c_void};
 
-use cl_h::{ self, cl_event, cl_int };
+use cl_h::{self, cl_event, cl_int};
 
 /// A list of OpenCL events which contain status information about the command that
 /// created them. Used to coordinate the activity of multiple commands.

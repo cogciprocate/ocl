@@ -1,12 +1,12 @@
 use std::ptr;
 use std::mem;
 use std::ffi;
-use std::collections::{ HashMap };
+use std::collections::{HashMap};
 // use num::{ Integer, Zero };
 use libc;
 
-use cl_h::{ self, cl_mem, cl_kernel, cl_command_queue, cl_int, cl_uint };
-use super::{ WorkSize, Envoy, OclNum, EventList, Program, Queue };
+use cl_h::{self, cl_mem, cl_kernel, cl_command_queue, cl_int, cl_uint};
+use super::{WorkSize, Envoy, OclNum, EventList, Program, Queue};
 
 
 pub struct Kernel {

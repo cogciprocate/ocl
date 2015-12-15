@@ -1,8 +1,8 @@
-use libc::{ c_void };
+use libc::{c_void};
 // use std::ptr;
-use cl_h::{ cl_event, cl_int };
+use cl_h::{cl_event, cl_int};
 
-use super::{ Context, BuildConfig, Envoy, SimpleDims, ProQue, EventList };
+use super::{Context, BuildConfig, Envoy, SimpleDims, ProQue, EventList};
 
 const PRINT_DEBUG: bool = false;
 
