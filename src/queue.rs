@@ -2,7 +2,7 @@
 // use std::ptr;
 
 use cl_h::{self, cl_command_queue, cl_context, cl_device_id};
-use super::{Context};
+use super::Context;
 
 // [FIXME] TODO: Implement a constructor which accepts a cl_device_id.
 #[derive(Clone)]

@@ -1,36 +1,36 @@
 #![feature(zero_one)]
 use std::ptr;
 use std::mem;
-use std::io::{Read};
-use std::ffi::{CString};
+use std::io::Read;
+use std::ffi::CString;
 use std::iter;
-use std::fmt::{Display, Debug, /*UpperHex*/};
-use std::num::{Zero};
+use std::fmt::{Display, Debug};
+use std::num::Zero;
 use num::{NumCast, FromPrimitive, ToPrimitive};
-use rand::distributions::range::{SampleRange};
+use rand::distributions::range::SampleRange;
 
 use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_context, cl_program, 
 	cl_command_queue, cl_mem, cl_event};
 
-pub use self::context::{Context};
-pub use self::program::{Program};
-pub use self::queue::{Queue};
+pub use self::context::Context;
+pub use self::program::Program;
+pub use self::queue::Queue;
 pub use self::cl_h::{cl_float, cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, 
 	cl_bitfield, CLStatus, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
 	CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL};
-pub use self::kernel::{Kernel};
-pub use self::envoy::{Envoy};
-pub use self::pro_que::{ProQue};
-pub use self::simple_dims::{SimpleDims};
-pub use self::work_size::{WorkSize};
+pub use self::kernel::Kernel;
+pub use self::envoy::Envoy;
+pub use self::pro_que::ProQue;
+pub use self::simple_dims::SimpleDims;
+pub use self::work_size::WorkSize;
 pub use self::build_config::{BuildConfig, BuildOpt};
-pub use self::errors::{DimError};
-pub use self::event_list::{EventList};
+pub use self::errors::DimError;
+pub use self::event_list::EventList;
 pub use self::formatting as fmt;
 
 // [FIXME]: TODO: Create an additional crate build configuration for tests
 // #[cfg(test)]
-pub use self::envoy::tests::{EnvoyTest};
+pub use self::envoy::tests::EnvoyTest;
 
 #[macro_use] 
 extern crate enum_primitive;

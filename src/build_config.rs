@@ -1,8 +1,8 @@
-use std::io::{Read};
-use std::fs::{File};
-use std::path::{Path};
+use std::io::Read;
+use std::fs::File;
+use std::path::Path;
 use std::ffi::{CString, NulError};
-use std::collections::{HashSet};
+use std::collections::HashSet;
 // use std::error::{Error};
 
 pub struct BuildConfig {

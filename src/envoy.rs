@@ -1,6 +1,6 @@
-use std::iter::{self};
-use std::slice::{Iter};
-use rand::{self};
+use std::iter;
+use std::slice::Iter;
+use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use num::{FromPrimitive, ToPrimitive};
 use std::ops::{Range, Index, IndexMut};

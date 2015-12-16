@@ -1,5 +1,5 @@
 use std::ptr;
-use libc::{c_void};
+use libc::c_void;
 
 use cl_h::{self, cl_event, cl_int};
 

@@ -1,7 +1,7 @@
 use std::ptr;
 use std::mem;
 use std::ffi;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 // use num::{ Integer, Zero };
 use libc;
 

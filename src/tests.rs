@@ -1,4 +1,4 @@
-use libc::{c_void};
+use libc::c_void;
 // use std::ptr;
 use cl_h::{cl_event, cl_int};
 
