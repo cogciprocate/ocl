@@ -1,43 +1,3 @@
-# ocl
-
-[![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
-
-OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and perform on a par with any C++ libraries.
-
-Interfaces are still unstable. Won't eat your laundry but some of the conventions may change (in hopefully obvious ways).
-
-
-##Goals
-
-To provide a simple and intuitive way to interact with OpenCL devices with:
-- The full functionality of the OpenCL C ABI
-- An absolute minimum of boilerplate
-- Zero performance overhead (or as close as absolutely possible)
-
-
-##Platforms
-
-Tested so far only on Linux. Please [provide feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and successes on other platforms.
-
-
-##Installation
-
-Ensure that an OpenCL library is installed for your preferred platform and  that `clinfo` or some other diagnostic command will run.
-
-Add:
-
-```
-[dependencies]
-ocl = "0.2"
-```
-
-to your project's `Cargo.toml`.
-
-
-##Example 
-(taken from 'examples/basics.rs')
-
-```
 use ocl::{Context, BuildConfig, Envoy, SimpleDims, ProQue};
 extern crate ocl;
 
@@ -107,18 +67,3 @@ fn main() {
 		}
 	}
 }
-```
-
-##Upcoming Changes
-
-Envoy will be receiving a major rework and a possible rename. [Issue #4](https://github.com/cogciprocate/ocl/issues/4).
-
-##Help
-
-*If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already (AMD drivers sometimes don't create this link).  Intel and AMD also have OpenCL libraries for your CPU if you're having trouble getting your GPU to work (intel: [windows](http://registrationcenter.intel.com/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationcenter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)). 
-
-Please ask questions and provide feedback by opening an [issue](https://github.com/cogciprocate/ocl_rust/issues).
-
-
-
-Lots more details and documentation to come.

@@ -39,23 +39,23 @@ impl BuildConfig {
 	pub fn kern_file(mut self, file_name: &'static str) -> BuildConfig {
 		self.add_kern_file(file_name.to_string());
 		self
-	}
-
-	pub fn add_kern_file(&mut self, file_name: String) {
-		self.kernel_file_names.push(file_name);
-	}
-
-	pub fn kernel_file_names(&self) -> &Vec<String> {
-		&self.kernel_file_names
-	}
+	}	
 
 	pub fn kern_embed(mut self, source: &'static str) -> BuildConfig {
 		self.add_embedded_kern(source.to_string());
 		self
 	}
 
+	pub fn add_kern_file(&mut self, file_name: String) {
+		self.kernel_file_names.push(file_name);
+	}
+
 	pub fn add_embedded_kern(&mut self, source: String){
 		self.embedded_kernel_source.push(source);
+	}
+
+	pub fn kernel_file_names(&self) -> &Vec<String> {
+		&self.kernel_file_names
 	}
 
 	pub fn compiler_options(&self) -> Result<CString, NulError> {
