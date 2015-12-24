@@ -54,7 +54,7 @@ __kernel void multiply_by_scalar(
 `main.rs`:
 
 ```
-use ocl::{ Context, ProQueue, BuildOptions, SimpleDims, Envoy };
+use ocl::{ Context, BuildConfig, Envoy, SimpleDims, ProQue };
 extern crate ocl;
 
 const PRINT_DEBUG: bool = true;
