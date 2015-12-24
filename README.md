@@ -35,7 +35,7 @@ to your project's `Cargo.toml`.
 
 
 ##Example 
-(taken from 'examples/basics.rs')
+From 'examples/basics.rs':
 
 ```
 use ocl::{Context, BuildConfig, Envoy, SimpleDims, ProQue};

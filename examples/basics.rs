@@ -1,7 +1,7 @@
 use ocl::{Context, BuildConfig, Envoy, SimpleDims, ProQue};
 extern crate ocl;
 
-const PRINT_DEBUG: bool = true;
+const RESULTS_TO_PRINT: usize = 20;
 
 fn main() {
 	// Set our data set size and coefficent to arbitrary values:
@@ -61,7 +61,7 @@ fn main() {
 		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
 
 		// Print:
-		if PRINT_DEBUG && (idx < 20) { 
+		if idx < RESULTS_TO_PRINT { 
 			println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
 			source_envoy[idx], coeff, result_envoy[idx]); 
 		}
