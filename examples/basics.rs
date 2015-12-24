@@ -1,4 +1,4 @@
-use ocl::{Context, BuildConfig, Envoy, SimpleDims, ProQue};
+use ocl::{Context, ProQue, BuildConfig, SimpleDims, Envoy};
 extern crate ocl;
 
 const RESULTS_TO_PRINT: usize = 20;

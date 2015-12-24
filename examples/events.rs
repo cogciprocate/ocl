@@ -2,10 +2,15 @@ extern crate libc;
 extern crate ocl;
 
 use libc::c_void;
-use ocl::{Context, BuildConfig, Envoy, SimpleDims, ProQue, EventList};
+use ocl::{Context, ProQue, BuildConfig, SimpleDims, Envoy, EventList};
 use ocl::cl_h::{cl_event, cl_int};
 
-const PRINT_DEBUG: bool = false;
+// How many iterations we wish to run:
+const ITERATIONS: usize = 8;
+// Whether or not to print:
+const PRINT_DEBUG: bool = true;
+// How many results to print from each iteration:
+const RESULTS_TO_PRINT: usize = 20;
 
 struct TestEventsStuff {
 	seed_env: *const Envoy<u32>, 
@@ -32,7 +37,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 		for idx in 0..data_set_size {
 			assert_eq!((*result_envoy)[idx], ((*seed_envoy)[idx] + ((itr + 1) as u32) * addend));
 
-			if PRINT_DEBUG && (idx < 20) {
+			if PRINT_DEBUG && (idx < RESULTS_TO_PRINT) {
 				print!("[{}]", (*result_envoy)[idx]);
 			}
 		}
@@ -56,8 +61,8 @@ fn main() {
 	let seed_envoy = Envoy::scrambled(&our_test_dims, 0u32, 500u32, &ocl_pq.queue());
 	let mut result_envoy = Envoy::new(&our_test_dims, 0u32, &ocl_pq.queue());
 
-	// Our addend:
-	let addend = 10u32;
+	// Our arbitrary addend:
+	let addend = 11u32;
 
 	// Create kernel with the source initially set to our seed values.
 	let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_size())
@@ -71,14 +76,11 @@ fn main() {
 
 	//#############################################################################################
 
-	// Define how many iterations we wish to run:
-	let iters = 20;
-
 	// Create storage for per-event data:
-	let mut buncha_stuffs = Vec::<TestEventsStuff>::with_capacity(iters);
+	let mut buncha_stuffs = Vec::<TestEventsStuff>::with_capacity(ITERATIONS);
 
 	// Run our test:
-	for itr in 0..iters {
+	for itr in 0..ITERATIONS {
 		// Store information for use by the result callback function into a vector
 		// which will persist until all of the commands have completed (as long as
 		// we are sure to allow the queue to finish before returning).
@@ -117,6 +119,7 @@ fn main() {
 		}
 
 		if PRINT_DEBUG { println!("Releasing read_event [i:{}]...", itr); }
+		// Decrement reference count. Will still complete before releasing.
 		read_event.release_all();
 	}
 
