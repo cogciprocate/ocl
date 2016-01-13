@@ -97,6 +97,8 @@ impl<T: OclNum> Envoy<T> {
 	/// After waiting on events in `wait_list` to finish, reads the remote device 
 	/// data buffer with a remote offset of `offset` into `data` and adds a new 
 	/// event to `dest_list`.
+	///
+	/// If the `dest_list` event list is `None`, the read will be blocking.
 	pub fn read_direct(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{

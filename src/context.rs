@@ -92,7 +92,7 @@ impl Context {
 		let device_ids: Vec<cl_device_id> = super::get_device_ids(platform, device_types_opt);
 		if device_ids.len() == 0 { return Err("\nNo OpenCL devices found!\n"); }
 
-		// println!("{}OCL::NEW(): device list: {:?}", MT, device_ids);
+		// println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids);
 
 		let obj: cl_context = super::create_context(&device_ids);
 
