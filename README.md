@@ -10,14 +10,15 @@ Interfaces are still unstable. Won't eat your laundry but some of the convention
 ##Goals
 
 To provide a simple and intuitive way to interact with OpenCL devices with:
-- The full functionality of the OpenCL C ABI
+- The full functionality of the OpenCL C ABI 
+   - *This is a work in progress. Please [file an issue](https://github.com/cogciprocate/ocl_rust/issues) about any functionality you may want so it can be prioritized.*
 - An absolute minimum of boilerplate
-- Zero performance overhead (or as close as absolutely possible)
+- As close as possible to zero performance overhead
 
 
 ##Platforms
 
-Tested so far only on Linux. Please [provide feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and successes on other platforms.
+Tested so far only on Linux. Please [provide feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and successes on other platforms. *Note: Probably working in OS X, need confirmation.*
 
 
 ##Installation
@@ -114,12 +115,11 @@ fn main() {
 
 Envoy will be receiving a major rework and a possible rename. [Issue #4](https://github.com/cogciprocate/ocl/issues/4).
 
+Also near the top of the list are cleaning up and consolidating error handling [Issue #8](https://github.com/cogciprocate/ocl/issues/8) and finishing documentation (the new doc server is standing by).
+
 ##Help
 
 *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already (AMD drivers sometimes don't create this link).  Intel and AMD also have OpenCL libraries for your CPU if you're having trouble getting your GPU to work (intel: [windows](http://registrationcenter.intel.com/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationcenter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)). 
 
 Please ask questions and provide feedback by opening an [issue](https://github.com/cogciprocate/ocl_rust/issues).
 
-
-
-Lots more details and documentation to come.

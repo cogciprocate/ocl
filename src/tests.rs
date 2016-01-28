@@ -29,7 +29,8 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 		    	 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
 
 		for idx in 0..data_set_size {
-			assert_eq!((*result_envoy)[idx], ((*seed_envoy)[idx] + ((itr + 1) as u32) * addend));
+			assert_eq!((*result_envoy)[idx], 
+				((*seed_envoy)[idx] + ((itr + 1) as u32) * addend));
 
 			if PRINT_DEBUG && (idx < 20) {
 				print!("[{}]", (*result_envoy)[idx]);
@@ -54,8 +55,8 @@ fn test_events() {
 	let our_test_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result envoys (our data containers):
-	let seed_envoy = Envoy::scrambled(&our_test_dims, 0u32, 500u32, &ocl_pq.queue());
-	let mut result_envoy = Envoy::new(&our_test_dims, 0u32, &ocl_pq.queue());
+	let seed_envoy = Envoy::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
+	let mut result_envoy = Envoy::with_vec(&our_test_dims, &ocl_pq.queue());
 
 	// Our addend:
 	let addend = 10u32;
@@ -104,7 +105,7 @@ fn test_events() {
 		let mut read_event = EventList::new();
 		
 		if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
-		result_envoy.read(None, Some(&mut read_event));
+		result_envoy.fill_vec(None, Some(&mut read_event));
 	
 
 		let last_idx = buncha_stuffs.len() - 1;		
@@ -162,10 +163,10 @@ fn test_basics() {
 	let dims = SimpleDims::OneDim(data_set_size);
 
 	// Create an envoy (a local array + a remote buffer) as a data source:
-	let source_envoy = Envoy::scrambled(&dims, 0.0f32, 20.0f32, &ocl_pq.queue());
+	let source_envoy = Envoy::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
 
 	// Create another empty envoy for results:
-	let mut result_envoy = Envoy::new(&dims, 0.0f32, &ocl_pq.queue());
+	let mut result_envoy = Envoy::<f32>::with_vec(&dims, &ocl_pq.queue());
 
 	// Create a kernel with three arguments corresponding to those in the kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
@@ -178,7 +179,7 @@ fn test_basics() {
 	kernel.enqueue(None, None);
 
 	// Read results:
-	result_envoy.read_wait();
+	result_envoy.fill_vec_wait();
 
 	// Check results and print the first 20:
 	for idx in 0..data_set_size {

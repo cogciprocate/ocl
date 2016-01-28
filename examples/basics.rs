@@ -37,10 +37,11 @@ fn main() {
 	let dims = SimpleDims::OneDim(data_set_size);
 
 	// Create an envoy (a local array + a remote buffer) as a data source:
-	let source_envoy = Envoy::scrambled(&dims, 0.0f32, 20.0f32, &ocl_pq.queue());
+	let source_envoy: Envoy<f32> = 
+		Envoy::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
 
 	// Create another empty envoy for results:
-	let mut result_envoy = Envoy::new(&dims, 0.0f32, &ocl_pq.queue());
+	let mut result_envoy: Envoy<f32> = Envoy::with_vec(&dims, &ocl_pq.queue());
 
 	// Create a kernel with three arguments corresponding to those in the kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
@@ -53,7 +54,7 @@ fn main() {
 	kernel.enqueue(None, None);
 
 	// Read results:
-	result_envoy.read_wait();
+	result_envoy.fill_vec_wait();
 
 	// Check results and print the first 20:
 	for idx in 0..data_set_size {

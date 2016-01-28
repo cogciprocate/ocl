@@ -1,3 +1,4 @@
+// #![warn(missing_docs)]
 #![feature(zero_one)]
 pub use self::context::Context;
 pub use self::program::Program;
@@ -11,7 +12,7 @@ pub use self::pro_que::ProQue;
 pub use self::simple_dims::SimpleDims;
 pub use self::work_size::WorkSize;
 pub use self::build_config::{BuildConfig, BuildOpt};
-pub use self::errors::DimError;
+pub use self::error::{OclError, OclResult};
 pub use self::event_list::EventList;
 pub use self::formatting as fmt;
 
@@ -35,7 +36,7 @@ mod simple_dims;
 mod kernel;
 mod work_size;
 mod build_config;
-mod errors;
+mod error;
 pub mod formatting;
 mod event_list;
 #[cfg(test)]
@@ -53,7 +54,6 @@ use rand::distributions::range::SampleRange;
 
 use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context, 
 	cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, cl_bool};
-
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -87,6 +87,10 @@ impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Ze
 
 pub trait EnvoyDims {
 	fn padded_envoy_len(&self, usize) -> usize;
+}
+
+impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
+    fn padded_envoy_len(&self, incr: usize) -> usize { (*self).padded_envoy_len(incr) }
 }
 
 //=============================================================================
@@ -243,18 +247,42 @@ fn create_command_queue(
 	}
 }
 
-
-fn create_buffer<T>(data: &[T], context: cl_context, flags: cl_bitfield
+// Note: the dval_len.0 is not actually used. If buffer is created in this way it will be
+// uninitialized. Yes, this is janky.
+fn create_buffer<T>(
+			data: Option<&[T]>, 
+			type_and_len: Option<(T, usize)>,
+			context: cl_context, 
+			flags: cl_bitfield
 		) -> cl_mem 
 {
+	assert!(!(data.is_some() && type_and_len.is_some()));
 	let mut err: cl_int = 0;
+
+	let explicit_len_bytes = match type_and_len {
+		Some((_, len)) => Some(len * mem::size_of::<T>()),
+		None => None,
+	};
+
+	let (size, ptr) = match data {
+		Some(d) => (match explicit_len_bytes {
+				Some(size) => size,
+				None => d.len() * mem::size_of::<T>(),
+			}, 
+			d.as_ptr() as *mut libc::c_void),
+		None => (match explicit_len_bytes {
+				Some(size) => size,
+				None => panic!("ocl::create_buffer(): No data or type and size given."),
+			}, 
+			ptr::null_mut()),
+	};
 
 	unsafe {
 		let buf = cl_h::clCreateBuffer(
 					context, 
-					flags | cl_h::CL_MEM_COPY_HOST_PTR | cl_h::CL_MEM_ALLOC_HOST_PTR, 
-					(data.len() * mem::size_of::<T>()) as usize,
-					data.as_ptr() as *mut libc::c_void, 
+					flags,
+					size,
+					ptr, 
 					//ptr::null_mut(),
 					&mut err,
 		);

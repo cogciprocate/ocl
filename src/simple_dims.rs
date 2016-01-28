@@ -1,4 +1,4 @@
-use super::{EnvoyDims, DimError, WorkSize};
+use super::{EnvoyDims, OclError, WorkSize};
 
 pub enum SimpleDims {
 	Unspecified,
@@ -8,7 +8,7 @@ pub enum SimpleDims {
 }
 
 impl SimpleDims {
-	pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> Result<SimpleDims, DimError> {
+	pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> Result<SimpleDims, OclError> {
 		let std_err_msg = "Dimensions must be defined from left to right. If you define the 2nd \
 			dimension, you must also define the 1st, etc.";
 
@@ -16,13 +16,13 @@ impl SimpleDims {
 			if d1.is_some() && d0.is_some() {
 				Ok(SimpleDims::ThreeDims(d0.unwrap(), d1.unwrap(), d2.unwrap()))
 			} else {
-				Err(DimError::new(std_err_msg))
+				Err(OclError::new(std_err_msg))
 			}
 		} else if d1.is_some() {
 			if d0.is_some() {
 				Ok(SimpleDims::TwoDims(d1.unwrap(), d0.unwrap()))
 			} else {
-				Err(DimError::new(std_err_msg))
+				Err(OclError::new(std_err_msg))
 			}
 		} else if d0.is_some() {
 			Ok(SimpleDims::OneDim(d0.unwrap()))
