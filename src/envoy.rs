@@ -36,6 +36,10 @@ impl<T> VecOption<T> {
 			&mut VecOption::None => Err(OclError::new(VEC_OPT_ERR_MSG)),
 		}
 	}
+
+	fn is_some(&self) -> bool {
+		if let &VecOption::None = self { false } else { true }
+	}
 }
 
 /// [FIXME]: Properly comment.
@@ -343,11 +347,12 @@ impl<T: OclNum> Envoy<T> {
 	/// Returns the length of the Envoy.
 	///
 	/// This is the length of both the device side buffer and the host side vector,
-	/// if any.
+	/// if any. This may not agree with desired dataset size because it will have been
+	/// rounded up to the nearest maximum workgroup size of the device on which it was
+	/// created.
 	pub fn len(&self) -> usize {
 		debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
 			else { self.len }) == self.len);
-
 		self.len
 	}
 
@@ -401,14 +406,16 @@ impl<T: OclNum> Envoy<T> {
 
 	}
 
-	/// Resizes Envoy. Dangles any references kernels may have had to the old buffer.
+	/// Resizes Envoy. Recreates device side buffer and dangles any references 
+	/// kernels may have had to the old buffer.
 	///
 	/// # Safety
 	/// [IMPORTANT]: You must manually reassign any kernel arguments which may have 
 	/// had a reference to the (device side) buffer associated with this Envoy.
 	pub unsafe fn resize(&mut self, new_dims: &EnvoyDims/*, val: T*/) {
 		self.release();
-		let new_len = new_dims.padded_envoy_len(super::get_max_work_group_size(self.queue.device_id()));
+		let new_len = new_dims.padded_envoy_len(super::get_max_work_group_size(
+			self.queue.device_id()));
 
 		match self.vec {
 			VecOption::Some(ref mut vec) => {
@@ -439,13 +446,6 @@ impl<T: OclNum> Envoy<T> {
 	/// # Failures
 	/// Returns an error if this envoy contains no vector.
 	pub fn vec(&self) -> OclResult<&Vec<T>> {
-		// match self.vec {
-		// 	VecOption::Some(ref vec) => {
-		// 		vec
-		// 	},
-		// 	VecOption::None(_) => panic!("Envoy::vec(): {}", VEC_OPT_ERR_MSG),
-		// }
-
 		self.vec.as_ref()
 	}
 
@@ -455,9 +455,35 @@ impl<T: OclNum> Envoy<T> {
 	/// Returns an error if this envoy contains no vector.
 	///
 	/// # Safety
-	/// - Could cause data collisions, etc.
+	/// Could cause data collisions, etc. Probably not unsafe strictly speaking 
+	/// (is it?) but marked as such to alert the caller to any potential 
+	/// synchronization issues.
 	pub unsafe fn vec_mut(&mut self) -> OclResult<&mut Vec<T>> {
 		self.vec.as_ref_mut()
+	}
+
+	/// Returns an immutable reference to the value located at index `idx`, bypassing 
+	/// bounds and enum variant checks.
+	///
+	/// # Safety
+	/// Assumes `self.vec` is a `VecOption::Vec(_)` and that the index `idx` is within
+	/// the vector bounds.
+	pub unsafe fn get_unchecked(&self, idx: usize) -> &T {
+		debug_assert!(self.vec.is_some() && idx < self.len);
+		let vec_ptr: *const Vec<T> = &self.vec as *const VecOption<T> as *const Vec<T>;
+		(*vec_ptr).get_unchecked(idx) 
+	}
+
+	/// Returns a mutable reference to the value located at index `idx`, bypassing 
+	/// bounds and enum variant checks.
+	///
+	/// # Safety
+	/// Assumes `self.vec` is a `VecOption::Vec(_)` and that the index `idx` is within
+	/// bounds. Might eat all the laundry.
+	pub unsafe fn get_unchecked_mut(&mut self, idx: usize) -> &mut T {		
+		debug_assert!(self.vec.is_some() && idx < self.len);
+		let vec_ptr_mut: *mut Vec<T> = &mut self.vec as *mut VecOption<T> as *mut Vec<T>;
+		(*vec_ptr_mut).get_unchecked_mut(idx) 
 	}
 
 	/// Returns a copy of the device buffer object reference.
