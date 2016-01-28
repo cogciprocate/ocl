@@ -42,16 +42,20 @@ impl<T> VecOption<T> {
 	}
 }
 
-/// [FIXME]: Properly comment.
-/* An array with an optional local working copy of data. One copy of data is stored in a buffer on the device associated with `queue`. A second is optionally stored as a vector (`vec`) in host memory. 
-
- The host side vector must be manually synchronized with the device side buffer using the `.fill_vec()`, `.flush_vec()`, etc. Data within the contained vector should be considered stale except immediately after a fill/flush.
-
- Fill/flush functions are for convenience and are equivalent to the psuedocode: read_into(self.vec) and write_from(self.vec).
-
-*/
+/// An array with an optional local working copy of data. One copy of data is 
+/// stored in a buffer on the device associated with `queue`. A second is stored 
+/// as an optional vector (`vec`) in host memory. Basically just a buffer with an
+/// optional built-in vector for use as a workspace etc.
 ///
-// TODO: Check that type size is <= the maximum supported by device.
+/// The host side vector must be manually synchronized with the device side buffer 
+/// using the `.fill_vec()`, `.flush_vec()`, etc. Data within the contained vector 
+/// should generally be considered stale except immediately after a fill/flush 
+/// (exception: pinned memory).
+///
+/// Fill/flush functions are for convenience and are equivalent to the psuedocode: 
+/// read_into(self.vec) and write_from(self.vec).
+///
+// TODO: Check that type size (sizeof(T)) is <= the maximum supported by device.
 pub struct Envoy<T> {
 	// vec: Vec<T>,
 	buffer_obj: cl_mem,
@@ -63,8 +67,6 @@ pub struct Envoy<T> {
 ///
 /// # Panics
 /// All functions will panic upon any OpenCL error.
-// TODO: Add a (very unsafe) 'get_unchecked()' type of function which bypasses even making sure 
-// VecOption is Some.
 impl<T: OclNum> Envoy<T> {
 	/// Creates a new read/write Envoy with dimensions: `dims` which will use the 
 	/// command queue: `queue` (and its associated device and context) for all operations.
@@ -80,7 +82,6 @@ impl<T: OclNum> Envoy<T> {
 	/// one such as `.flush_vec()`, `fill_vec()`, etc. will panic.
 	pub fn new<E: EnvoyDims>(dims: E, queue: &Queue) -> Envoy<T> {
 		let len = dims.padded_envoy_len(super::get_max_work_group_size(queue.device_id()));
-		// let mut vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 		let init_val = T::default();
 		Envoy::_new((init_val, len), queue)
 	}
@@ -156,7 +157,6 @@ impl<T: OclNum> Envoy<T> {
 	/// outside of an unsafe block.*
 	///
 	/// **This is horribly un-idiomatic Rust. You have been warned.**
-	/// /end rant
 	///
 	/// NOTE: The above important warnings probably only apply to buffers created with 
 	/// the `CL_MEM_USE_HOST_PTR` flag because the memory is considered 'pinned' but 
@@ -166,7 +166,7 @@ impl<T: OclNum> Envoy<T> {
 	/// # Stability
 	/// The functionality of an Envoy used in this way may eventually be moved into a
 	/// separate type, potentially called just `Buffer` which can manage its inherent
-	/// unsafety without breaking promises.
+	/// unsafety without breaking promises. [update: probably not]
 	/// 
 	pub unsafe fn new_raw_unchecked(flags: cl_bitfield, len: usize, host_ptr: Option<&[T]>, 
 				queue: &Queue) -> Envoy<T> 
@@ -183,8 +183,6 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	fn _new(iv_len: (T, usize), queue: &Queue) -> Envoy<T> {
-		// let buffer_obj: cl_mem = super::create_buffer(Some(init_data), None, queue.context_obj(), 
-		// 	cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
 		let buffer_obj: cl_mem = super::create_buffer(None, Some(iv_len), 
 			queue.context_obj(), cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
 
@@ -275,13 +273,6 @@ impl<T: OclNum> Envoy<T> {
 	/// # Panics
 	/// Panics if this Envoy contains no vector.
 	pub fn fill_vec_wait(&mut self) {
-		// match self.vec {
-		// 	VecOption::Some(ref mut vec) => {
-		// 		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, 
-		// 			true, vec, 0, None, None);
-		// 	},
-		// 	VecOption::None(_) => panic!("Envoy::read_wait(): {}", VEC_OPT_ERR_MSG),
-		// }
 		let vec = self.vec.as_ref_mut().expect("Envoy::read_wait()");
 		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, 
 			true, vec, 0, None, None);
@@ -298,15 +289,6 @@ impl<T: OclNum> Envoy<T> {
 	/// Panics if this Envoy contains no vector.
 	/// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
 	pub fn set_all_to(&mut self, val: T) {
-		// match vec {
-		// 	&VecOption::Some(ref mut vec) => {
-		// 		for ele in vec.iter_mut() {
-		// 			*ele = val;
-		// 		}
-		// 		self.write_wait();
-		// 	},
-		// 	&VecOption::None(_) => panic!("No host vector."),
-		// }
 		{
 			let vec = self.vec.as_ref_mut().expect("Envoy::set_all_to()");
 			for ele in vec.iter_mut() {
@@ -323,15 +305,6 @@ impl<T: OclNum> Envoy<T> {
 	/// Panics if this Envoy contains no vector.
 	/// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
 	pub fn set_range_to(&mut self, val: T, range: Range<usize>) {		
-		// match self.vec {
-		// 	VecOption::Some(ref mut vec) => {
-		// 				for idx in range {
-		// 					self.vec[idx] = val;
-		// 				}
-		// 				self.write_wait();
-		// 	},
-		// 	VecOption::None(_) => panic!("No host vector."),
-		// }
 		{
 			let vec = self.vec.as_ref_mut().expect("Envoy::set_range_to()");
 			// for idx in range {
@@ -388,16 +361,6 @@ impl<T: OclNum> Envoy<T> {
 			None => 0..self.len(),
 		};
 
-		// match self.vec {
-		// 	VecOption::Some(ref mut vec) => {
-		// 		// self.read_wait();
-		// 		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, true, 
-		// 			&mut vec[idx_range.clone()], idx_range.start, None, None);
-
-		// 		fmt::print_vec(&vec[..], every, val_range, idx_range_opt, zeros);
-		// 	},
-		// 	VecOption::None(_) => panic!("Envoy::print(): {}", VEC_OPT_ERR_MSG),
-		// }
 		let vec = self.vec.as_ref_mut().expect("Envoy::print()");
 
 		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, true, 
@@ -430,9 +393,6 @@ impl<T: OclNum> Envoy<T> {
 					self.queue.context_obj(), cl_h::CL_MEM_READ_WRITE);
 			},
 		};
-			
-		// self.buffer_obj = super::create_buffer(Some(vec), None, self.queue.context_obj(), 
-		// 	cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR | cl_h::CL_MEM_ALLOC_HOST_PTR);
 	}
 
 	/// Decrements the reference count associated with the previous buffer object, 
@@ -609,29 +569,19 @@ impl<T> IndexMut<RangeFull> for Envoy<T> {
 pub fn scrambled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	assert!(size > 0, "\nenvoy::shuffled_vec(): Vector size must be greater than zero.");
 	assert!(min_val < max_val, "\nenvoy::shuffled_vec(): Minimum value must be less than maximum.");
-	// let mut vec: Vec<T> = Vec::with_capacity(size);
 	let mut rng = rand::weak_rng();
 	let range = RandRange::new(min_val, max_val);
 
 	(0..size).map(|_| range.ind_sample(&mut rng)).take(size as usize).collect()
-
-	// for _ in 0..size {
-		
-	// }
-
-	// vec
 }
 
 
 pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	let mut vec: Vec<T> = Vec::with_capacity(size);
-
 	assert!(size > 0, "\nenvoy::shuffled_vec(): Vector size must be greater than zero.");
 	assert!(min_val < max_val, "\nenvoy::shuffled_vec(): Minimum value must be less than maximum.");
-
 	let min = min_val.to_i64().expect("\nenvoy::shuffled_vec(), min");
 	let max = max_val.to_i64().expect("\nenvoy::shuffled_vec(), max") + 1;
-
 	let mut range = (min..max).cycle();
 
 	for _ in 0..size {
@@ -639,7 +589,6 @@ pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	}
 
 	shuffle_vec(&mut vec);
-
 	vec
 }
 
@@ -648,7 +597,6 @@ pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 pub fn shuffle_vec<T: OclNum>(vec: &mut Vec<T>) {
 	let len = vec.len();
 	let mut rng = rand::weak_rng();
-
 	let mut ridx: usize;
 	let mut tmp: T;
 
