@@ -4,7 +4,7 @@ use std::slice::{Iter, IterMut};
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use num::{FromPrimitive, ToPrimitive};
-use std::ops::{Range, Index, IndexMut};
+use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
 use cl_h::{self, cl_mem, cl_bitfield};
@@ -14,8 +14,8 @@ static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Env
 	You must create this Envoy using 'Envoy::with_vec()' (et al.) in order to call this function.";
 
 enum VecOption<T> {
+	None,
 	Some(Vec<T>),
-	None(usize),
 }
 
 impl<T> VecOption<T> {
@@ -24,7 +24,7 @@ impl<T> VecOption<T> {
 			&VecOption::Some(ref vec) => {
 				Ok(vec)
 			},
-			&VecOption::None(_) => Err(OclError::new(VEC_OPT_ERR_MSG)),
+			&VecOption::None => Err(OclError::new(VEC_OPT_ERR_MSG)),
 		}
 	}
 
@@ -33,7 +33,7 @@ impl<T> VecOption<T> {
 			&mut VecOption::Some(ref mut vec) => {
 				Ok(vec)
 			},
-			&mut VecOption::None(_) => Err(OclError::new(VEC_OPT_ERR_MSG)),
+			&mut VecOption::None => Err(OclError::new(VEC_OPT_ERR_MSG)),
 		}
 	}
 }
@@ -50,14 +50,17 @@ impl<T> VecOption<T> {
 // TODO: Check that type size is <= the maximum supported by device.
 pub struct Envoy<T> {
 	// vec: Vec<T>,
-	vec: VecOption<T>,
 	buffer_obj: cl_mem,
 	queue: Queue,
+	len: usize,
+	vec: VecOption<T>,
 }
 
 ///
 /// # Panics
 /// All functions will panic upon any OpenCL error.
+// TODO: Add a (very unsafe) 'get_unchecked()' type of function which bypasses even making sure 
+// VecOption is Some.
 impl<T: OclNum> Envoy<T> {
 	/// Creates a new read/write Envoy with dimensions: `dims` which will use the 
 	/// command queue: `queue` (and its associated device and context) for all operations.
@@ -168,9 +171,10 @@ impl<T: OclNum> Envoy<T> {
 			queue.context_obj(), flags);
 
 		Envoy {
-			vec: VecOption::None(len),
 			buffer_obj: buffer_obj,
 			queue: queue.clone(),
+			len: len,
+			vec: VecOption::None,
 		}
 	}
 
@@ -180,10 +184,11 @@ impl<T: OclNum> Envoy<T> {
 		let buffer_obj: cl_mem = super::create_buffer(None, Some(iv_len), 
 			queue.context_obj(), cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
 
-		Envoy {
-			vec: VecOption::None(iv_len.1),
+		Envoy {			
 			buffer_obj: buffer_obj,
 			queue: queue.clone(),
+			len: iv_len.1,
+			vec: VecOption::None,
 		}
 	}
 
@@ -191,10 +196,11 @@ impl<T: OclNum> Envoy<T> {
 		let buffer_obj: cl_mem = super::create_buffer(Some(&mut vec), None, queue.context_obj(), 
 			cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
 
-		Envoy {
-			vec: VecOption::Some(vec),
+		Envoy {		
 			buffer_obj: buffer_obj,
 			queue: queue.clone(),
+			len: vec.len(),	
+			vec: VecOption::Some(vec),
 		}
 	}
 
@@ -339,11 +345,10 @@ impl<T: OclNum> Envoy<T> {
 	/// This is the length of both the device side buffer and the host side vector,
 	/// if any.
 	pub fn len(&self) -> usize {
-		// self.vec.len()
-		match self.vec {
-			VecOption::Some(ref vec) => vec.len(),
-			VecOption::None(len) => len,
-		}
+		debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
+			else { self.len }) == self.len);
+
+		self.len
 	}
 
 	/// [MARKED FOR POSSIBLE REMOVAL]: Convenience function. (move to tests module?)
@@ -411,8 +416,8 @@ impl<T: OclNum> Envoy<T> {
 				self.buffer_obj = super::create_buffer(Some(vec), None, self.queue.context_obj(), 
 					cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
 			},
-			VecOption::None(ref mut old_len) => {
-				*old_len = new_len;
+			VecOption::None => {
+				self.len = new_len;
 				// let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
 				self.buffer_obj = super::create_buffer(None, Some((T::default(), new_len)), 
 					self.queue.context_obj(), cl_h::CL_MEM_READ_WRITE);
@@ -494,6 +499,23 @@ impl<T: OclNum> Envoy<T> {
 	}
 }
 
+impl<T> Index<usize> for Envoy<T> {
+    type Output = T;
+    /// # Panics
+	/// Panics if this Envoy contains no vector.
+    fn index<'a>(&'a self, index: usize) -> &'a T {
+        &self.vec.as_ref().expect("Envoy::index()")[..][index]
+    }
+}
+
+impl<T> IndexMut<usize> for Envoy<T> {
+	/// # Panics
+	/// Panics if this Envoy contains no vector.
+    fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut T {
+    	&mut self.vec.as_ref_mut().expect("Envoy::index_mut()")[..][index]
+    }
+}
+
 impl<'b, T> Index<&'b usize> for Envoy<T> {
     type Output = T;
     /// # Panics
@@ -511,20 +533,37 @@ impl<'b, T> IndexMut<&'b usize> for Envoy<T> {
     }
 }
 
-impl<T> Index<usize> for Envoy<T> {
-    type Output = T;
+impl<T> Index<Range<usize>> for Envoy<T> {
+    type Output = [T];
     /// # Panics
 	/// Panics if this Envoy contains no vector.
-    fn index<'a>(&'a self, index: usize) -> &'a T {
-        &self.vec.as_ref().expect("Envoy::index()")[..][index]
+    fn index<'a>(&'a self, range: Range<usize>) -> &'a [T] {
+        &self.vec.as_ref().expect("Envoy::index()")[range]
     }
 }
 
-impl<T> IndexMut<usize> for Envoy<T> {
+impl<T> IndexMut<Range<usize>> for Envoy<T> {
 	/// # Panics
 	/// Panics if this Envoy contains no vector.
-    fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut T {
-    	&mut self.vec.as_ref_mut().expect("Envoy::index_mut()")[..][index]
+    fn index_mut<'a>(&'a mut self, range: Range<usize>) -> &'a mut [T] {
+    	&mut self.vec.as_ref_mut().expect("Envoy::index_mut()")[range]
+    }
+}
+
+impl<T> Index<RangeFull> for Envoy<T> {
+    type Output = [T];
+    /// # Panics
+	/// Panics if this Envoy contains no vector.
+    fn index<'a>(&'a self, range: RangeFull) -> &'a [T] {
+        &self.vec.as_ref().expect("Envoy::index()")[range]
+    }
+}
+
+impl<T> IndexMut<RangeFull> for Envoy<T> {
+	/// # Panics
+	/// Panics if this Envoy contains no vector.
+    fn index_mut<'a>(&'a mut self, range: RangeFull) -> &'a mut [T] {
+    	&mut self.vec.as_ref_mut().expect("Envoy::index_mut()")[range]
     }
 }
 
