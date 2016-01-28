@@ -36,7 +36,7 @@ fn main() {
 	// Set up our work dimensions / data set size:
 	let dims = SimpleDims::OneDim(data_set_size);
 
-	// Create an envoy (a local array + a remote buffer) as a data source:
+	// Create an envoy (a local vector + a remote buffer) as a data source:
 	let source_envoy: Envoy<f32> = 
 		Envoy::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
 
@@ -53,7 +53,7 @@ fn main() {
 	// Enqueue kernel depending on and creating no events:
 	kernel.enqueue(None, None);
 
-	// Read results:
+	// Read results from the device into the envoy's vector:
 	result_envoy.fill_vec_wait();
 
 	// Check results and print the first 20:
