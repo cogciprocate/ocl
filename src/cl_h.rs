@@ -431,8 +431,8 @@ pub static CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 
 
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
-#[link(name = "OpenCL")]
-#[cfg(target_os = "linux")]
+#[cfg_attr(target_os = "macos", link(name = "OpenCL", kind = "framework"))]
+#[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
 extern {
     // Platform API
     pub fn clGetPlatformIDs(num_entries:   cl_uint,
