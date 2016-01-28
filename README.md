@@ -29,7 +29,7 @@ Add:
 
 ```
 [dependencies]
-ocl = "0.2"
+ocl = "0.3"
 ```
 
 to your project's `Cargo.toml`.
