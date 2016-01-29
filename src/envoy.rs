@@ -211,7 +211,7 @@ impl<T: OclNum> Envoy<T> {
 	/// and adds a new event to `dest_list`
 	///
 	/// If the `dest_list` event list is `None`, the write will be blocking.
-	pub fn write_direct(&mut self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
+	pub fn write(&mut self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
 		let block_after_write = dest_list.is_none();
@@ -247,7 +247,7 @@ impl<T: OclNum> Envoy<T> {
 	/// event to `dest_list`.
 	///
 	/// If the `dest_list` event list is `None`, the read will be blocking.
-	pub fn read_direct(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
+	pub fn read(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
 		let block_after_read = dest_list.is_none();
