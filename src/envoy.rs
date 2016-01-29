@@ -560,7 +560,7 @@ impl<T> IndexMut<RangeFull> for Envoy<T> {
 //     fn fmt(&self, fmtr: &mut Formatter) -> FmtResult {
 //     	// self.print(1, None, None, true)
 //     	let mut tmp_vec = Vec::with_capacity(self.vec.len());
-//     	self.read_direct(&mut tmp_vec[..], 0);
+//     	self.read(&mut tmp_vec[..], 0);
 //     	fmt::fmt_vec(fmtr.buf, &tmp_vec[..], 1, None, None, true)
 // 	}
 // }
@@ -623,7 +623,7 @@ pub mod tests {
 	impl<T: OclNum> EnvoyTest<T> for Envoy<T> {
 		fn read_idx_direct(&self, idx: usize) -> T {
 			let mut buffer = vec![Zero::zero()];
-			self.read_direct(&mut buffer[0..1], idx, None, None);
+			self.read(&mut buffer[0..1], idx, None, None);
 			buffer[0]
 		}
 	}
