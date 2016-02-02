@@ -1,3 +1,11 @@
+//! 'ocl' is a Rust implementation of OpenCL.
+//!
+//! This documentation is roughly 30% complete.
+//!
+//! Github Page: [https://github.com/cogciprocate/ocl](https://github.com/cogciprocate/ocl)
+//!
+
+
 // #![warn(missing_docs)]
 #![feature(zero_one)]
 pub use self::context::Context;
