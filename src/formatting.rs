@@ -1,3 +1,4 @@
+//! Tools for rendering objects to the screen or as text.
 use std::ops::Range;
 
 use super::OclNum;
@@ -30,7 +31,9 @@ pub static BGC_LGR: &'static str = "\x1b[47m";
 pub static BGC_DGR: &'static str = "\x1b[100m";
 
 
-#[allow(unused_assignments, unused_variables)] 
+#[allow(unused_assignments, unused_variables)]
+/// [UNSTABLE]: MAY BE REMOVED AT ANY TIME
+/// Prints a vector to stdout. Used for debugging.
 pub fn print_vec<T: OclNum>(
 			vec: &[T], 
 			every: usize, 
@@ -89,7 +92,7 @@ pub fn print_vec<T: OclNum>(
 		}
 
 		if idx_range.is_some() {
-			let ir = idx_range.as_ref().expect("ocl::envoy::print_vec()");
+			let ir = idx_range.as_ref().expect("ocl::buffer::print_vec()");
 
 			if i < ir_start || i >= ir_end {
 				prnt = false;
@@ -119,7 +122,7 @@ pub fn print_vec<T: OclNum>(
 		} 
 
 		if within_idx_range && within_val_range {
-			sum += vec[i].to_i64().expect("ocl::envoy::print_vec(): vec[i]");
+			sum += vec[i].to_i64().expect("ocl::buffer::print_vec(): vec[i]");
 
 			if vec[i] > hi { hi = vec[i] };
 

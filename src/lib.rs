@@ -1,24 +1,39 @@
+//! Rust implementation of OpenCL.
+//!
+//!
+//! This documentation is very much a work in progress and is roughly 60% complete.
+//! Please help by filing an [issue](https://github.com/cogciprocate/ocl/issues) about 
+//! unclear and/or incomplete documentation and it will be addressed (hopefully) 
+//! quickly.
+//!
+//! ## Links
+//!
+//! **GitHub:** [https://github.com/cogciprocate/ocl](https://github.com/cogciprocate/ocl)
+//!
+//! **crates.io:** [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
+
 // #![warn(missing_docs)]
 #![feature(zero_one)]
-pub use self::context::Context;
-pub use self::program::Program;
-pub use self::queue::Queue;
+
+
+
 pub use self::cl_h::{cl_float, cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, 
 	cl_bitfield, CLStatus, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
 	CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL};
+pub use self::formatting as fmt;
+pub use self::context::Context;
+pub use self::program::Program;
+pub use self::queue::Queue;
 pub use self::kernel::Kernel;
-pub use self::envoy::Envoy;
+pub use self::buffer::Buffer;
 pub use self::pro_que::ProQue;
 pub use self::simple_dims::SimpleDims;
 pub use self::work_size::WorkSize;
 pub use self::build_config::{BuildConfig, BuildOpt};
 pub use self::error::{OclError, OclResult};
 pub use self::event_list::EventList;
-pub use self::formatting as fmt;
-
 // [FIXME]: TODO: Create an additional crate build configuration for tests
-// #[cfg(test)]
-pub use self::envoy::tests::EnvoyTest;
+pub use self::buffer::tests::BufferTest;
 
 #[macro_use] 
 extern crate enum_primitive;
@@ -30,7 +45,7 @@ mod context;
 mod program;
 mod queue;
 pub mod cl_h;
-pub mod envoy;
+pub mod buffer;
 mod pro_que;
 mod simple_dims;
 mod kernel;
@@ -79,18 +94,21 @@ const DEFAULT_DEVICE: usize = 0;
 //================================= TRAITS ====================================
 //=============================================================================
 
+/// A number compatible with OpenCL.
 pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + Display + Debug
 	+ FromPrimitive + ToPrimitive + SampleRange {}
 
 impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + Display + Debug
 	+ FromPrimitive + ToPrimitive + SampleRange {}
 
-pub trait EnvoyDims {
-	fn padded_envoy_len(&self, usize) -> usize;
+/// A type which has dimensional properties allowing it to be used to define the size
+/// of buffers and work sizes.
+pub trait BufferDims {
+	fn padded_buffer_len(&self, usize) -> usize;
 }
 
-impl<'a, T> EnvoyDims for &'a T where T: EnvoyDims {
-    fn padded_envoy_len(&self, incr: usize) -> usize { (*self).padded_envoy_len(incr) }
+impl<'a, T> BufferDims for &'a T where T: BufferDims {
+    fn padded_buffer_len(&self, incr: usize) -> usize { (*self).padded_buffer_len(incr) }
 }
 
 //=============================================================================
@@ -381,8 +399,8 @@ fn resolve_queue_opts(block: bool, wait_list: Option<&EventList>, dest_list: Opt
 #[allow(dead_code)]
 fn enqueue_copy_buffer<T: OclNum>(
 				command_queue: cl_command_queue,
-				src: &Envoy<T>,		//	src_buffer: cl_mem,
-				dst: &Envoy<T>,		//	dst_buffer: cl_mem,
+				src: &Buffer<T>,		//	src_buffer: cl_mem,
+				dst: &Buffer<T>,		//	dst_buffer: cl_mem,
 				src_offset: usize,
 				dst_offset: usize,
 				len_copy_bytes: usize) 

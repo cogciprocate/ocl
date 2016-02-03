@@ -1,3 +1,4 @@
+//! An OpenCL context.
 
 // use formatting::MT;
 use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_context};

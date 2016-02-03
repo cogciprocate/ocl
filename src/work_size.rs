@@ -1,3 +1,5 @@
+//! Defines the amount of work to be done by a kernel for each of up to three 
+//! dimensions.
 use std::ptr;
 use libc::size_t;
 
@@ -5,6 +7,8 @@ use cl_h::cl_uint;
 
 /// Defines the amount of work to be done by a kernel for each of up to three 
 /// dimensions.
+///
+/// [UNSTABLE]: MAY BE CONSOLIDATED WITH `SimpleDims`.
 #[derive(PartialEq, Debug, Clone)]
 pub enum WorkSize {
 	Unspecified,

@@ -2,6 +2,9 @@
 
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
 
+
+**[Documentation](http://doc.cogciprocate.com/ocl/)**
+
 OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and perform on a par with any C++ libraries.
 
 Interfaces are still unstable. Won't eat your laundry but some of the conventions may change (in hopefully obvious ways).
@@ -39,7 +42,7 @@ to your project's `Cargo.toml`.
 From 'examples/basics.rs':
 
 ```
-use ocl::{Context, ProQue, BuildConfig, SimpleDims, Envoy};
+use ocl::{Context, ProQue, BuildConfig, SimpleDims, Buffer};
 extern crate ocl;
 
 const RESULTS_TO_PRINT: usize = 20;
@@ -77,35 +80,35 @@ fn main() {
 	// Set up our work dimensions / data set size:
 	let dims = SimpleDims::OneDim(data_set_size);
 
-	// Create an envoy (a local vector + a remote buffer) as a data source:
-	let source_envoy: Envoy<f32> = 
-		Envoy::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
+	// Create a 'Buffer' (a local vector + a remote buffer) as a data source:
+	let source_buffer: Buffer<f32> = 
+		Buffer::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
 
-	// Create another empty envoy for results:
-	let mut result_envoy: Envoy<f32> = Envoy::with_vec(&dims, &ocl_pq.queue());
+	// Create another empty buffer for results:
+	let mut result_buffer: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
 
 	// Create a kernel with three arguments corresponding to those in the kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
-		.arg_env(&source_envoy)
+		.arg_env(&source_buffer)
 		.arg_scl(coeff)
-		.arg_env(&mut result_envoy)
+		.arg_env(&mut result_buffer)
 	;
 
 	// Enqueue kernel depending on and creating no events:
 	kernel.enqueue(None, None);
 
-	// Read results from the device into the envoy's vector:
-	result_envoy.fill_vec_wait();
+	// Read results from the device into the buffer's vector:
+	result_buffer.fill_vec_wait();
 
 	// Check results and print the first 20:
 	for idx in 0..data_set_size {
 		// Check:
-		assert_eq!(result_envoy[idx], source_envoy[idx] * coeff);
+		assert_eq!(result_buffer[idx], source_buffer[idx] * coeff);
 
 		// Print:
 		if idx < RESULTS_TO_PRINT { 
-			println!("source_envoy[idx]: {}, coeff: {}, result_envoy[idx]: {}",
-			source_envoy[idx], coeff, result_envoy[idx]); 
+			println!("source_buffer[idx]: {}, coeff: {}, result_buffer[idx]: {}",
+			source_buffer[idx], coeff, result_buffer[idx]); 
 		}
 	}
 }
@@ -114,7 +117,7 @@ fn main() {
 
 ###Recent Changes
 
-Envoy has undergone a major redesign: [Issue #4](https://github.com/cogciprocate/ocl/issues/4).
+'Buffer' has undergone a major redesign: [Issue #4](https://github.com/cogciprocate/ocl/issues/4) and has been renamed to 'Buffer'.
 
 ###Upcoming Changes
 

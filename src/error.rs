@@ -1,7 +1,10 @@
+//! Standard error type for ocl.
+
 use std::error;
 use std::fmt;
 use std::convert::Into;
 
+/// `OclError` result type.
 pub type OclResult<T> = Result<T, OclError>;
 
 // #[derive(Debug)]
@@ -33,11 +36,13 @@ pub type OclResult<T> = Result<T, OclError>;
 // }
 
 
+/// Error type containing a string.
 pub struct OclError {
 	description: String,
 }
 
 impl OclError {
+    /// Returns a new `OclError` with the description string: `desc`.
 	pub fn new<S: Into<String>>(desc: S) -> OclError {
 		OclError { description: desc.into() }
 	}

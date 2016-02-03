@@ -1,3 +1,4 @@
+//! Event list for coordinating enqueued tasks.
 use std::ptr;
 use libc::c_void;
 
@@ -13,11 +14,13 @@ pub struct EventList {
 
 impl EventList {
 	/// Returns a new, empty, `EventList`.
+	#[inline]
 	pub fn new() -> EventList {
 		EventList { events: Vec::with_capacity(16) }
 	}
 
 	/// Merges the copied contents of this list and another into a new list and returns it.
+	#[inline]
 	pub fn union(&self, other_list: &EventList) -> EventList {
 		let mut new_list = EventList { events: Vec::with_capacity(other_list.events().len() 
 			+ self.events.len() + 8) };
@@ -29,6 +32,7 @@ impl EventList {
 
 	/// Appends a new null element to the end of the list and returns a mutable slice
 	/// containing only that element.
+	#[inline]
 	pub fn allot(&mut self) -> &mut [cl_event] {
 		self.events.push(ptr::null_mut());
 		let len = self.events.len();
@@ -36,11 +40,13 @@ impl EventList {
 	}
 
 	/// Returns an immutable slice to the events list.
+	#[inline]
 	pub fn events(&self) -> &[cl_event] {
 		&self.events[..]
 	}
 
 	/// Returns a const pointer to the list, useful for passing directly to the c ffi.
+	#[inline]
 	pub fn as_ptr(&self) -> *const cl_event {
 		self.events().as_ptr()
 	}
@@ -75,7 +81,7 @@ impl EventList {
 		}
 	}
 
-	// pub fn set_callback_envoy(&self, 
+	// pub fn set_callback_buffer(&self, 
 	// 			callback_receiver: extern fn (cl_event, cl_int, *mut libc::c_void),
 	// 			user_data: *mut libc::c_void,
 	// 		)
@@ -91,11 +97,13 @@ impl EventList {
 	// }
 
 	/// Returns the number of events in the list.
+	#[inline]
 	pub fn count(&self) -> u32 {
 		self.events.len() as u32
 	}
 
 	/// Clears this list regardless of whether or not its events have completed.
+	#[inline]
 	pub fn clear(&mut self) {
 		self.events.clear();
 	}
