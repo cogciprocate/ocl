@@ -1,6 +1,8 @@
 # ocl
 
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
+
+
 **[Documentation](http://doc.cogciprocate.com/ocl/)**
 
 OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and perform on a par with any C++ libraries.
@@ -115,7 +117,7 @@ fn main() {
 
 ###Recent Changes
 
-Envoy has undergone a major redesign: [Issue #4](https://github.com/cogciprocate/ocl/issues/4).
+'Envoy' has undergone a major redesign: [Issue #4](https://github.com/cogciprocate/ocl/issues/4) and has been renamed to 'Buffer'.
 
 ###Upcoming Changes
 

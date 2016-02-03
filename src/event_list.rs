@@ -81,7 +81,7 @@ impl EventList {
 		}
 	}
 
-	// pub fn set_callback_envoy(&self, 
+	// pub fn set_callback_buffer(&self, 
 	// 			callback_receiver: extern fn (cl_event, cl_int, *mut libc::c_void),
 	// 			user_data: *mut libc::c_void,
 	// 		)

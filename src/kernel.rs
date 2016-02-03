@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use libc;
 
 use cl_h::{self, cl_mem, cl_kernel, cl_command_queue, cl_int, cl_uint};
-use super::{WorkSize, Envoy, OclNum, EventList, Program, Queue};
+use super::{WorkSize, Buffer, OclNum, EventList, Program, Queue};
 
 /// An OpenCL kernel.
 ///
@@ -79,10 +79,10 @@ impl Kernel {
 	}
 
 	/// Adds a new argument to the kernel specifying the buffer object represented
-	/// by 'envoy' (builder-style). Argument is added to the bottom of the argument 
+	/// by 'buffer' (builder-style). Argument is added to the bottom of the argument 
 	/// order.
-	pub fn arg_env<T: OclNum>(mut self, envoy: &Envoy<T>) -> Kernel {
-		self.new_arg_envoy(Some(envoy));
+	pub fn arg_env<T: OclNum>(mut self, buffer: &Buffer<T>) -> Kernel {
+		self.new_arg_buffer(Some(buffer));
 		self
 	}
 
@@ -113,21 +113,21 @@ impl Kernel {
 		self
 	}
 
-	/// Adds a new named envoy argument specifying the buffer object represented by 
-	/// 'envoy' (builder-style). Argument is added to the bottom of the argument order.
+	/// Adds a new named buffer argument specifying the buffer object represented by 
+	/// 'buffer' (builder-style). Argument is added to the bottom of the argument order.
 	///
 	/// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-	pub fn arg_env_named<T: OclNum>(mut self, name: &'static str,  envoy_opt: Option<&Envoy<T>>) -> Kernel {
-		let arg_idx = self.new_arg_envoy(envoy_opt);
+	pub fn arg_env_named<T: OclNum>(mut self, name: &'static str,  buffer_opt: Option<&Buffer<T>>) -> Kernel {
+		let arg_idx = self.new_arg_buffer(buffer_opt);
 		self.named_args.insert(name, arg_idx);
 
 		self
 	}	
 
 	/// Non-builder-style version of `::arg_env()`.
-	pub fn new_arg_envoy<T: OclNum>(&mut self, envoy_opt: Option<&Envoy<T>>) -> u32 {
-		let buf = match envoy_opt {
-			Some(envoy) => envoy.buffer_obj(),
+	pub fn new_arg_buffer<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {
+		let buf = match buffer_opt {
+			Some(buffer) => buffer.buffer_obj(),
 			None => ptr::null_mut()
 		};
 
@@ -183,10 +183,10 @@ impl Kernel {
 
 	/// Modifies the kernel argument named: `name`.
 	// [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-	pub fn set_arg_env_named<T: OclNum>(&mut self, name: &'static str, envoy: &Envoy<T>) {
+	pub fn set_arg_env_named<T: OclNum>(&mut self, name: &'static str, buffer: &Buffer<T>) {
 		//	TODO: ADD A CHECK FOR A VALID NAME (KEY)
 		let arg_idx = self.named_args[name];
-		let buf = envoy.buffer_obj();
+		let buf = buffer.buffer_obj();
 
 		self.set_kernel_arg(
 			arg_idx,

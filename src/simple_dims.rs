@@ -1,11 +1,11 @@
 //! A simple way to specify the sizes of up to three dimensions.
-use super::{EnvoyDims, OclError, WorkSize};
+use super::{BufferDims, OclError, WorkSize};
 
 /// A simple implementation of a type specifying the sizes of up to three
 /// dimensions. 
 ///
-/// Custom types implementing `EnvoyDims` can and should be created
-/// to express more complex relationships between envoy and work size.
+/// Custom types implementing `BufferDims` can and should be created
+/// to express more complex relationships between buffer and work size.
 ///
 ///	[FIXME] TODO: Much more explaination needed as soon as conventions solidify.
 /// [UNSTABLE]: MAY BE CONSOLIDATED WITH `WorkSize`.
@@ -55,8 +55,8 @@ impl SimpleDims {
 	}
 }
 
-impl EnvoyDims for SimpleDims {
-	fn padded_envoy_len(&self, incr: usize) -> usize {
+impl BufferDims for SimpleDims {
+	fn padded_buffer_len(&self, incr: usize) -> usize {
 		let simple_len = match self {
 			&SimpleDims::ThreeDims(d0, d1, d2) => d0 * d1 * d2,
 			&SimpleDims::TwoDims(d0, d1) => d0 * d1,

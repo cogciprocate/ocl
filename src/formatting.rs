@@ -92,7 +92,7 @@ pub fn print_vec<T: OclNum>(
 		}
 
 		if idx_range.is_some() {
-			let ir = idx_range.as_ref().expect("ocl::envoy::print_vec()");
+			let ir = idx_range.as_ref().expect("ocl::buffer::print_vec()");
 
 			if i < ir_start || i >= ir_end {
 				prnt = false;
@@ -122,7 +122,7 @@ pub fn print_vec<T: OclNum>(
 		} 
 
 		if within_idx_range && within_val_range {
-			sum += vec[i].to_i64().expect("ocl::envoy::print_vec(): vec[i]");
+			sum += vec[i].to_i64().expect("ocl::buffer::print_vec(): vec[i]");
 
 			if vec[i] > hi { hi = vec[i] };
 

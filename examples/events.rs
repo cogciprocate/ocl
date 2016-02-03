@@ -2,7 +2,7 @@ extern crate libc;
 extern crate ocl;
 
 use libc::c_void;
-use ocl::{Context, ProQue, BuildConfig, SimpleDims, Envoy, EventList};
+use ocl::{Context, ProQue, BuildConfig, SimpleDims, Buffer, EventList};
 use ocl::cl_h::{cl_event, cl_int};
 
 // How many iterations we wish to run:
@@ -13,8 +13,8 @@ const PRINT_DEBUG: bool = true;
 const RESULTS_TO_PRINT: usize = 20;
 
 struct TestEventsStuff {
-	seed_env: *const Envoy<u32>, 
-	res_env: *const Envoy<u32>, 
+	seed_env: *const Buffer<u32>, 
+	res_env: *const Buffer<u32>, 
 	data_set_size: usize,
 	addend: u32, 
 	itr: usize,
@@ -25,8 +25,8 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 	let buncha_stuff = user_data as *const TestEventsStuff;
 
 	unsafe {
-		let seed_envoy: *const Envoy<u32> = (*buncha_stuff).seed_env as *const Envoy<u32>;
-		let result_envoy: *const Envoy<u32> = (*buncha_stuff).res_env as *const Envoy<u32>;
+		let seed_envoy: *const Buffer<u32> = (*buncha_stuff).seed_env as *const Buffer<u32>;
+		let result_envoy: *const Buffer<u32> = (*buncha_stuff).res_env as *const Buffer<u32>;
 		let data_set_size: usize = (*buncha_stuff).data_set_size;
 		let addend: u32 = (*buncha_stuff).addend;
 		let itr: usize = (*buncha_stuff).itr;
@@ -59,8 +59,8 @@ fn main() {
 	let our_test_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result envoys (our data containers):
-	let seed_envoy = Envoy::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
-	let mut result_envoy = Envoy::with_vec(&our_test_dims, &ocl_pq.queue());
+	let seed_envoy = Buffer::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
+	let mut result_envoy = Buffer::with_vec(&our_test_dims, &ocl_pq.queue());
 
 	// Our arbitrary addend:
 	let addend = 11u32;
@@ -86,8 +86,8 @@ fn main() {
 		// which will persist until all of the commands have completed (as long as
 		// we are sure to allow the queue to finish before returning).
 		buncha_stuffs.push(TestEventsStuff {
-			seed_env: &seed_envoy as *const Envoy<u32>,
-			res_env: &result_envoy as *const Envoy<u32>, 
+			seed_env: &seed_envoy as *const Buffer<u32>,
+			res_env: &result_envoy as *const Buffer<u32>, 
 			data_set_size: data_set_size, 
 			addend: addend, 
 			itr: itr,

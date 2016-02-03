@@ -1,4 +1,4 @@
-use ocl::{Context, ProQue, BuildConfig, SimpleDims, Envoy};
+use ocl::{Context, ProQue, BuildConfig, SimpleDims, Buffer};
 extern crate ocl;
 
 const RESULTS_TO_PRINT: usize = 20;
@@ -37,11 +37,11 @@ fn main() {
 	let dims = SimpleDims::OneDim(data_set_size);
 
 	// Create an envoy (a local vector + a remote buffer) as a data source:
-	let source_envoy: Envoy<f32> = 
-		Envoy::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
+	let source_envoy: Buffer<f32> = 
+		Buffer::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
 
 	// Create another empty envoy for results:
-	let mut result_envoy: Envoy<f32> = Envoy::with_vec(&dims, &ocl_pq.queue());
+	let mut result_envoy: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
 
 	// Create a kernel with three arguments corresponding to those in the kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
