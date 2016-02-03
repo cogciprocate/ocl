@@ -25,8 +25,8 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 	let buncha_stuff = user_data as *const TestEventsStuff;
 
 	unsafe {
-		let seed_envoy: *const Buffer<u32> = (*buncha_stuff).seed_env as *const Buffer<u32>;
-		let result_envoy: *const Buffer<u32> = (*buncha_stuff).res_env as *const Buffer<u32>;
+		let seed_buffer: *const Buffer<u32> = (*buncha_stuff).seed_env as *const Buffer<u32>;
+		let result_buffer: *const Buffer<u32> = (*buncha_stuff).res_env as *const Buffer<u32>;
 		let data_set_size: usize = (*buncha_stuff).data_set_size;
 		let addend: u32 = (*buncha_stuff).addend;
 		let itr: usize = (*buncha_stuff).itr;
@@ -35,11 +35,11 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 		    	 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
 
 		for idx in 0..data_set_size {
-			assert_eq!((*result_envoy)[idx], 
-				((*seed_envoy)[idx] + ((itr + 1) as u32) * addend));
+			assert_eq!((*result_buffer)[idx], 
+				((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
 
 			if PRINT_DEBUG && (idx < RESULTS_TO_PRINT) {
-				print!("[{}]", (*result_envoy)[idx]);
+				print!("[{}]", (*result_buffer)[idx]);
 			}
 		}
 
@@ -58,18 +58,18 @@ fn main() {
 	let data_set_size = 900000;
 	let our_test_dims = SimpleDims::OneDim(data_set_size);
 
-	// Create source and result envoys (our data containers):
-	let seed_envoy = Buffer::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
-	let mut result_envoy = Buffer::with_vec(&our_test_dims, &ocl_pq.queue());
+	// Create source and result buffers (our data containers):
+	let seed_buffer = Buffer::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
+	let mut result_buffer = Buffer::with_vec(&our_test_dims, &ocl_pq.queue());
 
 	// Our arbitrary addend:
 	let addend = 11u32;
 
 	// Create kernel with the source initially set to our seed values.
 	let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_size())
-		.arg_env_named("src", Some(&seed_envoy))
+		.arg_env_named("src", Some(&seed_buffer))
 		.arg_scl(addend)
-		.arg_env(&mut result_envoy)
+		.arg_env(&mut result_buffer)
 	;
 
 	// Create event list:
@@ -86,18 +86,18 @@ fn main() {
 		// which will persist until all of the commands have completed (as long as
 		// we are sure to allow the queue to finish before returning).
 		buncha_stuffs.push(TestEventsStuff {
-			seed_env: &seed_envoy as *const Buffer<u32>,
-			res_env: &result_envoy as *const Buffer<u32>, 
+			seed_env: &seed_buffer as *const Buffer<u32>,
+			res_env: &result_buffer as *const Buffer<u32>, 
 			data_set_size: data_set_size, 
 			addend: addend, 
 			itr: itr,
 		});
 
-		// Change the source envoy to the result after seed values have been copied.
+		// Change the source buffer to the result after seed values have been copied.
 		// Yes, this is far from optimal...
 		// Should just copy the values in the first place but oh well.
 		if itr != 0 {
-			kernel.set_arg_env_named("src", &result_envoy);
+			kernel.set_arg_env_named("src", &result_buffer);
 		}
 
 		if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
@@ -106,7 +106,7 @@ fn main() {
 		let mut read_event = EventList::new();
 		
 		if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
-		result_envoy.fill_vec(None, Some(&mut read_event));
+		result_buffer.fill_vec(None, Some(&mut read_event));
 	
 
 		let last_idx = buncha_stuffs.len() - 1;		
