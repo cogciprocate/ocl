@@ -1,9 +1,9 @@
 [package]
 name = "ocl"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL interfaces for Rust."
-documentation = "https://github.com/cogciprocate/ocl_rust"
+documentation = "http://doc.cogciprocate.com/ocl/index.html"
 homepage = "https://github.com/cogciprocate/ocl_rust"
 repository = "https://github.com/cogciprocate/ocl_rust"
 readme = "README.md"

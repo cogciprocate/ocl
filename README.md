@@ -32,7 +32,7 @@ Add:
 
 ```
 [dependencies]
-ocl = "0.3"
+ocl = "0.4"
 ```
 
 to your project's `Cargo.toml`.
