@@ -6,6 +6,9 @@
 //! unclear and/or incomplete documentation and it will be addressed (hopefully) 
 //! quickly.
 //!
+//! An explanation of how dimensions and sizes of buffers and work queues are handled
+//! and coordinated will be coming as soon as a few more things are ironed out.
+//!
 //! ## Links
 //!
 //! **GitHub:** [https://github.com/cogciprocate/ocl](https://github.com/cogciprocate/ocl)

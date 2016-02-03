@@ -117,11 +117,11 @@ fn main() {
 
 ###Recent Changes
 
-'Buffer' has undergone a major redesign: [Issue #4](https://github.com/cogciprocate/ocl/issues/4) and has been renamed to 'Buffer'.
+'Envoy' has undergone a major redesign: [Issue #4](https://github.com/cogciprocate/ocl/issues/4) and has been renamed to 'Buffer'.
 
 ###Upcoming Changes
 
-At the top of the list are cleaning up and consolidating error handling [Issue #8](https://github.com/cogciprocate/ocl/issues/8) and finishing documentation (the new doc server is standing at the ready).
+At the top of the list are cleaning up and consolidating error handling [Issue #8](https://github.com/cogciprocate/ocl/issues/8) and finishing [documentation](http://doc.cogciprocate.com/ocl/) (now about 60% complete).
 
 ##Help
 

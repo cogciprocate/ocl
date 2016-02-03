@@ -44,12 +44,11 @@ impl<T> VecOption<T> {
 }
 
 
-/// An OpenCL buffer with an optional vector. 
+/// An OpenCL buffer with an optional built-in vector. 
 ///
-/// One copy of data is 
-/// stored in a buffer on the device associated with `queue`. A second is stored 
-/// as an optional vector (`vec`) in host memory. Basically just a buffer with an
-/// optional built-in vector for use as a workspace etc.
+/// Data is stored both remotely in a memory buffer on the device associated with 
+/// `queue` and optionally in a vector (`self.vec`) in (local) host memory for 
+/// convenient use as a workspace etc.
 ///
 /// The host side vector must be manually synchronized with the device side buffer 
 /// using the `.fill_vec()`, `.flush_vec()`, etc. Data within the contained vector 
@@ -60,6 +59,7 @@ impl<T> VecOption<T> {
 /// read_into(self.vec) and write_from(self.vec).
 ///
 // TODO: Check that type size (sizeof(T)) is <= the maximum supported by device.
+// TODO: Consider integrating an event list to help coordinate pending reads/writes.
 pub struct Buffer<T> {
 	// vec: Vec<T>,
 	buffer_obj: cl_mem,
@@ -147,7 +147,6 @@ impl<T: OclNum> Buffer<T> {
 		Buffer::_with_vec(vec, queue)
 	}	
 
-	/// [UNSTABLE]
 	/// Creates a new Buffer with caller-managed buffer length, type, flags, and 
 	/// initialization.
 	///
@@ -180,11 +179,6 @@ impl<T: OclNum> Buffer<T> {
 	/// there may also be implementation specific issues which haven't been considered 
 	/// or are unknown.
 	///
-	/// # Stability
-	/// The functionality of an Buffer used in this way may eventually be moved into a
-	/// separate type, potentially called just `Buffer` which can manage its inherent
-	/// unsafety without breaking promises. [update: probably not]
-	/// 
 	pub unsafe fn new_raw_unchecked(flags: cl_bitfield, len: usize, host_ptr: Option<&[T]>, 
 				queue: &Queue) -> Buffer<T> 
 	{
@@ -227,11 +221,12 @@ impl<T: OclNum> Buffer<T> {
 		}
 	}
 
-	/// After waiting on events in `wait_list` to finish, writes the contents of
-	/// 'data' to the remote device data buffer with a remote offset of `offset`
-	/// and adds a new event to `dest_list`
+	/// Enqueues a writing `data` to the device buffer with a remote offset of `offset`
+	/// which will optionally wait for events in `wait_list` to finish beforehand 
+	/// also optionally adding a new event to `dest_list` associated with the write.
 	///
-	/// If the `dest_list` event list is `None`, the write will be blocking.
+	/// If the `dest_list` event list is `None`, the write will be blocking, otherwise
+	/// returns immediately.
 	pub fn write(&mut self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
@@ -240,8 +235,24 @@ impl<T: OclNum> Buffer<T> {
 			data, offset, wait_list, dest_list);
 	}
 
+
+	/// Enqueues a read from the device buffer into `data` with a remote offset of
+	/// `offset` which will optionally wait for events in `wait_list` to finish 
+	/// beforehand also optionally adding a new event to `dest_list` associated with
+	/// the write.
+	///
+	/// If the `dest_list` event list is `None`, the read will be blocking, otherwise
+	/// returns immediately.
+	pub fn read(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
+				dest_list: Option<&mut EventList>) 
+	{
+		let block_after_read = dest_list.is_none();
+		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, block_after_read, 
+			data, offset, wait_list, dest_list);
+	}
+
 	/// After waiting on events in `wait_list` to finish, writes the contents of
-	/// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`
+	/// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`.
 	///
 	/// # Panics
 	/// Panics if this Buffer contains no vector.
@@ -263,18 +274,6 @@ impl<T: OclNum> Buffer<T> {
 		super::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, true, vec, 0, None, None);
 	}
 
-	/// After waiting on events in `wait_list` to finish, reads the remote device 
-	/// data buffer with a remote offset of `offset` into `data` and adds a new 
-	/// event to `dest_list`.
-	///
-	/// If the `dest_list` event list is `None`, the read will be blocking.
-	pub fn read(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
-				dest_list: Option<&mut EventList>) 
-	{
-		let block_after_read = dest_list.is_none();
-		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, block_after_read, 
-			data, offset, wait_list, dest_list);
-	}
 
 	/// After waiting on events in `wait_list` to finish, reads the remote device 
 	/// data buffer into 'self.vec' and adds a new event to `dest_list`.
@@ -425,6 +424,9 @@ impl<T: OclNum> Buffer<T> {
 
 	/// Returns a reference to the local vector associated with this buffer.
 	///
+	///	Contents of this vector may change during use due to previously enqueued
+	/// reads. ([FIXME]: Is this a safety issue?)
+	///
 	/// # Failures
 	/// Returns an error if this buffer contains no vector.
 	#[inline]
@@ -433,14 +435,17 @@ impl<T: OclNum> Buffer<T> {
 	}
 
 	/// Returns a mutable reference to the local vector associated with this buffer.
+	///
+	///	Contents of this vector may change during use due to previously enqueued
+	/// read.
 	/// 
 	/// # Failures
 	/// Returns an error if this buffer contains no vector.
 	///
 	/// # Safety
-	/// Could cause data collisions, etc. Probably not unsafe strictly speaking 
+	/// Could cause data collisions, etc. May not be unsafe strictly speaking
 	/// (is it?) but marked as such to alert the caller to any potential 
-	/// synchronization issues.
+	/// synchronization issues from previously enqueued reads.
 	#[inline]
 	pub unsafe fn vec_mut(&mut self) -> OclResult<&mut Vec<T>> {
 		self.vec.as_ref_mut()
@@ -450,7 +455,7 @@ impl<T: OclNum> Buffer<T> {
 	/// bounds and enum variant checks.
 	///
 	/// # Safety
-	/// Assumes `self.vec` is a `VecOption::Vec(_)` and that the index `idx` is within
+	/// Assumes `self.vec` is a `VecOption::Vec` and that the index `idx` is within
 	/// the vector bounds.
 	#[inline]
 	pub unsafe fn get_unchecked(&self, idx: usize) -> &T {
@@ -463,7 +468,7 @@ impl<T: OclNum> Buffer<T> {
 	/// bounds and enum variant checks.
 	///
 	/// # Safety
-	/// Assumes `self.vec` is a `VecOption::Vec(_)` and that the index `idx` is within
+	/// Assumes `self.vec` is a `VecOption::Vec` and that the index `idx` is within
 	/// bounds. Might eat all the laundry.
 	#[inline]
 	pub unsafe fn get_unchecked_mut(&mut self, idx: usize) -> &mut T {		
