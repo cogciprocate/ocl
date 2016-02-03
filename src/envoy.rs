@@ -1,3 +1,4 @@
+//! Interfaces to an OpenCL buffer.
 
 use std::iter;
 use std::slice::{Iter, IterMut};
@@ -11,7 +12,7 @@ use cl_h::{self, cl_mem, cl_bitfield};
 use super::{fmt, OclNum, Queue, EnvoyDims, EventList, OclError, OclResult};
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Envoy. \
-	You must create this Envoy using 'Envoy::with_vec()' (et al.) in order to call this function.";
+		You must create this Envoy using 'Envoy::with_vec()' (et al.) in order to call this function.";
 
 enum VecOption<T> {
 	None,
@@ -42,7 +43,10 @@ impl<T> VecOption<T> {
 	}
 }
 
-/// An array with an optional local working copy of data. One copy of data is 
+
+/// An OpenCL buffer with an optional vector. 
+///
+/// One copy of data is 
 /// stored in a buffer on the device associated with `queue`. A second is stored 
 /// as an optional vector (`vec`) in host memory. Basically just a buffer with an
 /// optional built-in vector for use as a workspace etc.
@@ -95,7 +99,7 @@ impl<T: OclNum> Envoy<T> {
 		Envoy::_with_vec(vec, queue)
 	}
 
-	/// [MARKED FOR POSSIBLE REMOVAL]: Convenience function.
+	/// [UNSTABLE][MARKED FOR POSSIBLE REMOVAL]: Convenience function.
 	/// Creates a new read/write Envoy with a host side working copy of data.
 	/// Host vector and device buffer are initialized with the value, `init_val`.
 	pub fn with_vec_initialized_to<E: EnvoyDims>(init_val: T, dims: E, queue: &Queue) -> Envoy<T> {
@@ -105,9 +109,17 @@ impl<T: OclNum> Envoy<T> {
 		Envoy::_with_vec(vec, queue)
 	}
 
-	/// [MARKED FOR POSSIBLE REMOVAL]: Convenience function.
+	/// [UNSTABLE][MARKED FOR POSSIBLE REMOVAL]: Convenience function.
 	/// Creates a new read/write Envoy with a vector initialized with a series of 
-	/// integers ranging from `min_val` to `max_val` which are shuffled randomly.
+	/// integers ranging from `min_val` to `max_val` (closed) which are shuffled 
+	/// randomly.
+	///
+	/// Note: Even if the Envoy type is a floating point type, the values returned
+	/// will still be integral values (e.g.: 1.0, 2.0, 3.0, etc.).
+	///
+	/// # Security
+	///
+	/// Resulting values are not cryptographically secure.
 	// Note: max_val is inclusive.
 	pub fn with_vec_shuffled<E: EnvoyDims>(min_val: T, max_val: T, dims: E, queue: &Queue) 
 			-> Envoy<T> 
@@ -118,9 +130,13 @@ impl<T: OclNum> Envoy<T> {
 		Envoy::_with_vec(vec, queue)
 	}
 
-	/// [MARKED FOR POSSIBLE REMOVAL]: Convenience function.
+	/// [UNSTABLE][MARKED FOR POSSIBLE REMOVAL]: Convenience function.
 	/// Creates a new read/write Envoy with a vector initialized with random values 
-	/// within the range `min_val..max_val` (exclusive).
+	/// within the (half-open) range `min_val..max_val`.
+	///
+	/// # Security
+	///
+	/// Resulting values are not cryptographically secure.
 	// Note: max_val is exclusive.
 	pub fn with_vec_scrambled<E: EnvoyDims>(min_val: T, max_val: T, dims: E, queue: &Queue) 
 			-> Envoy<T> 
@@ -131,6 +147,7 @@ impl<T: OclNum> Envoy<T> {
 		Envoy::_with_vec(vec, queue)
 	}	
 
+	/// [UNSTABLE]
 	/// Creates a new Envoy with caller-managed buffer length, type, flags, and 
 	/// initialization.
 	///
@@ -182,6 +199,8 @@ impl<T: OclNum> Envoy<T> {
 		}
 	}
 
+	// Consolidated constructor for Envoys without vectors.
+	#[inline]
 	fn _new(iv_len: (T, usize), queue: &Queue) -> Envoy<T> {
 		let buffer_obj: cl_mem = super::create_buffer(None, Some(iv_len), 
 			queue.context_obj(), cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
@@ -194,6 +213,8 @@ impl<T: OclNum> Envoy<T> {
 		}
 	}
 
+	// Consolidated constructor for Envoys with vectors.
+	#[inline]
 	fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Envoy<T> {
 		let buffer_obj: cl_mem = super::create_buffer(Some(&mut vec), None, queue.context_obj(), 
 			cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
@@ -323,6 +344,7 @@ impl<T: OclNum> Envoy<T> {
 	/// if any. This may not agree with desired dataset size because it will have been
 	/// rounded up to the nearest maximum workgroup size of the device on which it was
 	/// created.
+	#[inline]
 	pub fn len(&self) -> usize {
 		debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
 			else { self.len }) == self.len);
@@ -405,6 +427,7 @@ impl<T: OclNum> Envoy<T> {
 	///
 	/// # Failures
 	/// Returns an error if this envoy contains no vector.
+	#[inline]
 	pub fn vec(&self) -> OclResult<&Vec<T>> {
 		self.vec.as_ref()
 	}
@@ -418,6 +441,7 @@ impl<T: OclNum> Envoy<T> {
 	/// Could cause data collisions, etc. Probably not unsafe strictly speaking 
 	/// (is it?) but marked as such to alert the caller to any potential 
 	/// synchronization issues.
+	#[inline]
 	pub unsafe fn vec_mut(&mut self) -> OclResult<&mut Vec<T>> {
 		self.vec.as_ref_mut()
 	}
@@ -428,6 +452,7 @@ impl<T: OclNum> Envoy<T> {
 	/// # Safety
 	/// Assumes `self.vec` is a `VecOption::Vec(_)` and that the index `idx` is within
 	/// the vector bounds.
+	#[inline]
 	pub unsafe fn get_unchecked(&self, idx: usize) -> &T {
 		debug_assert!(self.vec.is_some() && idx < self.len);
 		let vec_ptr: *const Vec<T> = &self.vec as *const VecOption<T> as *const Vec<T>;
@@ -440,6 +465,7 @@ impl<T: OclNum> Envoy<T> {
 	/// # Safety
 	/// Assumes `self.vec` is a `VecOption::Vec(_)` and that the index `idx` is within
 	/// bounds. Might eat all the laundry.
+	#[inline]
 	pub unsafe fn get_unchecked_mut(&mut self, idx: usize) -> &mut T {		
 		debug_assert!(self.vec.is_some() && idx < self.len);
 		let vec_ptr_mut: *mut Vec<T> = &mut self.vec as *mut VecOption<T> as *mut Vec<T>;
@@ -447,11 +473,13 @@ impl<T: OclNum> Envoy<T> {
 	}
 
 	/// Returns a copy of the device buffer object reference.
+	#[inline]
 	pub fn buffer_obj(&self) -> cl_mem {
 		self.buffer_obj
 	}
 
 	/// Returns a reference to the program/command queue associated with this envoy.
+	#[inline]
 	pub fn queue(&self) -> &Queue {
 		&self.queue
 	}
@@ -464,6 +492,7 @@ impl<T: OclNum> Envoy<T> {
 	/// have been considered or are dealt with. For now, considering these cases is
 	/// left to the caller. It's probably a good idea to at least call `.resize()`
 	/// after calling this function.
+	#[inline]
 	pub unsafe fn set_queue(&mut self, queue: Queue) {
 		self.queue = queue;
 	}
@@ -472,6 +501,7 @@ impl<T: OclNum> Envoy<T> {
 	///
 	/// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
 	pub fn iter<'a>(&'a self) -> Iter<'a, T> {
 		self.vec.as_ref().expect("Envoy::iter()").iter()
 	}
@@ -480,6 +510,7 @@ impl<T: OclNum> Envoy<T> {
 	///
 	/// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
 	pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
 		self.vec.as_ref_mut().expect("Envoy::iter()").iter_mut()
 	}
@@ -489,6 +520,7 @@ impl<T> Index<usize> for Envoy<T> {
     type Output = T;
     /// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
     fn index<'a>(&'a self, index: usize) -> &'a T {
         &self.vec.as_ref().expect("Envoy::index()")[..][index]
     }
@@ -497,6 +529,7 @@ impl<T> Index<usize> for Envoy<T> {
 impl<T> IndexMut<usize> for Envoy<T> {
 	/// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
     fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut T {
     	&mut self.vec.as_ref_mut().expect("Envoy::index_mut()")[..][index]
     }
@@ -506,6 +539,7 @@ impl<'b, T> Index<&'b usize> for Envoy<T> {
     type Output = T;
     /// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
     fn index<'a>(&'a self, index: &'b usize) -> &'a T {
         &self.vec.as_ref().expect("Envoy::index()")[..][*index]
     }
@@ -514,6 +548,7 @@ impl<'b, T> Index<&'b usize> for Envoy<T> {
 impl<'b, T> IndexMut<&'b usize> for Envoy<T> {
 	/// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
     fn index_mut<'a>(&'a mut self, index: &'b usize) -> &'a mut T {
         &mut self.vec.as_ref_mut().expect("Envoy::index_mut()")[..][*index]
     }
@@ -523,6 +558,7 @@ impl<T> Index<Range<usize>> for Envoy<T> {
     type Output = [T];
     /// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
     fn index<'a>(&'a self, range: Range<usize>) -> &'a [T] {
         &self.vec.as_ref().expect("Envoy::index()")[range]
     }
@@ -531,6 +567,7 @@ impl<T> Index<Range<usize>> for Envoy<T> {
 impl<T> IndexMut<Range<usize>> for Envoy<T> {
 	/// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
     fn index_mut<'a>(&'a mut self, range: Range<usize>) -> &'a mut [T] {
     	&mut self.vec.as_ref_mut().expect("Envoy::index_mut()")[range]
     }
@@ -540,6 +577,7 @@ impl<T> Index<RangeFull> for Envoy<T> {
     type Output = [T];
     /// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
     fn index<'a>(&'a self, range: RangeFull) -> &'a [T] {
         &self.vec.as_ref().expect("Envoy::index()")[range]
     }
@@ -548,6 +586,7 @@ impl<T> Index<RangeFull> for Envoy<T> {
 impl<T> IndexMut<RangeFull> for Envoy<T> {
 	/// # Panics
 	/// Panics if this Envoy contains no vector.
+	#[inline]
     fn index_mut<'a>(&'a mut self, range: RangeFull) -> &'a mut [T] {
     	&mut self.vec.as_ref_mut().expect("Envoy::index_mut()")[range]
     }
@@ -566,6 +605,8 @@ impl<T> IndexMut<RangeFull> for Envoy<T> {
 // }
 
 
+/// Returns a vector with length `size` containing random values in the (half-open)
+/// range `[min_val, max_val)`.
 pub fn scrambled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	assert!(size > 0, "\nenvoy::shuffled_vec(): Vector size must be greater than zero.");
 	assert!(min_val < max_val, "\nenvoy::shuffled_vec(): Minimum value must be less than maximum.");
@@ -575,7 +616,11 @@ pub fn scrambled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	(0..size).map(|_| range.ind_sample(&mut rng)).take(size as usize).collect()
 }
 
-
+/// Returns a vector with length `size` which is first filled with each integer value
+/// in the (inclusive) range `[min_val, max_val]`. If `size` is greater than the 
+/// number of integers in the aforementioned range, the integers will repeat. After
+/// being filled with `size` values, the vector is shuffled and the order of its
+/// values is randomized.
 pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 	let mut vec: Vec<T> = Vec::with_capacity(size);
 	assert!(size > 0, "\nenvoy::shuffled_vec(): Vector size must be greater than zero.");
@@ -593,7 +638,8 @@ pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
 }
 
 
-// Fisher-Yates
+/// Shuffles the values in a vector using a single pass of Fisher-Yates with a
+/// weak (not cryptographically secure) random number generator.
 pub fn shuffle_vec<T: OclNum>(vec: &mut Vec<T>) {
 	let len = vec.len();
 	let mut rng = rand::weak_rng();

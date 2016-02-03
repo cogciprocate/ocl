@@ -1,13 +1,11 @@
 # ocl
 
-[![](http://meritbadge.herokuapp.com/ocl)](https://cr
-ates.io/crates/ocl)
+[![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
+**[Documentation](http://doc.cogciprocate.com/ocl/)**
 
 OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and perform on a par with any C++ libraries.
 
 Interfaces are still unstable. Won't eat your laundry but some of the conventions may change (in hopefully obvious ways).
-
-**[Documentation](http://doc.cogciprocate.com/ocl/)**
 
 
 ##Goals

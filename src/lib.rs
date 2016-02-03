@@ -1,19 +1,29 @@
-//! 'ocl' is a Rust implementation of OpenCL.
+//! Rust implementation of OpenCL.
 //!
-//! This documentation is roughly 30% complete.
 //!
-//! Github Page: [https://github.com/cogciprocate/ocl](https://github.com/cogciprocate/ocl)
+//! This documentation is very much a work in progress and is roughly 60% complete.
+//! Please help by filing an [issue](https://github.com/cogciprocate/ocl/issues) about 
+//! unclear and/or incomplete documentation and it will be addressed (hopefully) 
+//! quickly.
 //!
-
+//! ## Links
+//!
+//! **GitHub:** [https://github.com/cogciprocate/ocl](https://github.com/cogciprocate/ocl)
+//!
+//! **crates.io:** [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
 
 // #![warn(missing_docs)]
 #![feature(zero_one)]
-pub use self::context::Context;
-pub use self::program::Program;
-pub use self::queue::Queue;
+
+
+
 pub use self::cl_h::{cl_float, cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, 
 	cl_bitfield, CLStatus, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
 	CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL};
+pub use self::formatting as fmt;
+pub use self::context::Context;
+pub use self::program::Program;
+pub use self::queue::Queue;
 pub use self::kernel::Kernel;
 pub use self::envoy::Envoy;
 pub use self::pro_que::ProQue;
@@ -22,10 +32,7 @@ pub use self::work_size::WorkSize;
 pub use self::build_config::{BuildConfig, BuildOpt};
 pub use self::error::{OclError, OclResult};
 pub use self::event_list::EventList;
-pub use self::formatting as fmt;
-
 // [FIXME]: TODO: Create an additional crate build configuration for tests
-// #[cfg(test)]
 pub use self::envoy::tests::EnvoyTest;
 
 #[macro_use] 
@@ -87,12 +94,15 @@ const DEFAULT_DEVICE: usize = 0;
 //================================= TRAITS ====================================
 //=============================================================================
 
+/// A number compatible with OpenCL.
 pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + Display + Debug
 	+ FromPrimitive + ToPrimitive + SampleRange {}
 
 impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + Display + Debug
 	+ FromPrimitive + ToPrimitive + SampleRange {}
 
+/// A type which has dimensional properties allowing it to be used to define the size
+/// of envoys and work sizes.
 pub trait EnvoyDims {
 	fn padded_envoy_len(&self, usize) -> usize;
 }
