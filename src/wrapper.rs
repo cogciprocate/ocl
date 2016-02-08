@@ -18,6 +18,7 @@ use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, EventList, OclNum, Buffer};
 //=============================================================================
 
 // Create Platform and get ID
+#[inline]
 pub fn get_platform_ids() -> Vec<cl_platform_id> {
 	let mut num_platforms = 0 as cl_uint;
 	
@@ -38,6 +39,7 @@ pub fn get_platform_ids() -> Vec<cl_platform_id> {
 // GET_DEVICE_IDS():
 /// # Panics
 ///  -must_succeed(): [FIXME]: Explaination needed (possibly at crate level?)
+#[inline]
 pub fn get_device_ids(
 			platform: cl_platform_id, 
 			device_types_opt: Option<cl_device_type>,
@@ -67,7 +69,7 @@ pub fn get_device_ids(
 	device_ids
 }
 
-
+#[inline]
 pub fn create_context(device_ids: &Vec<cl_device_id>) -> cl_context {
 	let mut err: cl_int = 0;
 
@@ -84,7 +86,7 @@ pub fn create_context(device_ids: &Vec<cl_device_id>) -> cl_context {
 	}
 }
 
-
+#[inline]
 pub fn new_program(
 			kern_strings: Vec<CString>,
 			cmplr_opts: CString,
@@ -128,7 +130,7 @@ pub fn new_program(
 	}
 }
 
-
+#[inline]
 pub fn create_command_queue(
 			context: cl_context, 
 			device: cl_device_id,
@@ -151,6 +153,7 @@ pub fn create_command_queue(
 
 // Note: the dval_len.0 is not actually used. If buffer is created in this way it will be
 // uninitialized. Yes, this is janky.
+#[inline]
 pub fn create_buffer<T>(
 			data: Option<&[T]>, 
 			type_and_len: Option<(T, usize)>,
@@ -193,6 +196,7 @@ pub fn create_buffer<T>(
 	}
 }
 
+#[inline]
 pub fn enqueue_write_buffer<T>(
 			command_queue: cl_command_queue,
 			buffer: cl_mem, 
@@ -223,7 +227,7 @@ pub fn enqueue_write_buffer<T>(
 	}
 }
 
-
+#[inline]
 pub fn enqueue_read_buffer<T>(
 			command_queue: cl_command_queue,
 			buffer: cl_mem, 
@@ -254,6 +258,7 @@ pub fn enqueue_read_buffer<T>(
 	}
 }
 
+#[inline]
 pub fn resolve_queue_opts(block: bool, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>)
 		-> (cl_bool, cl_uint, *const cl_event, *mut cl_event)
 {
@@ -281,6 +286,7 @@ pub fn resolve_queue_opts(block: bool, wait_list: Option<&EventList>, dest_list:
 
 // [FIXME]: TODO: Evaluate usefulness
 #[allow(dead_code)]
+#[inline]
 pub fn enqueue_copy_buffer<T: OclNum>(
 				command_queue: cl_command_queue,
 				src: &Buffer<T>,		//	src_buffer: cl_mem,
@@ -305,6 +311,7 @@ pub fn enqueue_copy_buffer<T: OclNum>(
 	}
 }
 
+#[inline]
 pub fn get_max_work_group_size(device: cl_device_id) -> usize {
 	let mut max_work_group_size: usize = 0;
 
@@ -324,8 +331,7 @@ pub fn get_max_work_group_size(device: cl_device_id) -> usize {
 	max_work_group_size
 }
 
-
-
+#[inline]
 pub fn finish(command_queue: cl_command_queue) {
 	unsafe { 
 		let err = cl_h::clFinish(command_queue);
@@ -333,7 +339,7 @@ pub fn finish(command_queue: cl_command_queue) {
 	}
 }
 
-
+#[inline]
 pub fn wait_for_events(wait_list: &EventList) {
 	let err = unsafe {
 		cl_h::clWaitForEvents(wait_list.count(), wait_list.as_ptr())
@@ -344,6 +350,7 @@ pub fn wait_for_events(wait_list: &EventList) {
 
 
 #[allow(dead_code)]
+#[inline]
 pub fn wait_for_event(event: cl_event) {
 	let event_array: [cl_event; 1] = [event];
 
@@ -354,6 +361,7 @@ pub fn wait_for_event(event: cl_event) {
 	must_succeed("clWaitForEvents", err);
 }
 
+#[inline]
 pub fn get_event_status(event: cl_h::cl_event) -> cl_int {
 	let mut status: cl_int = 0;
 
@@ -372,7 +380,7 @@ pub fn get_event_status(event: cl_h::cl_event) -> cl_int {
 	status
 }
 
-
+#[inline]
 pub unsafe fn set_event_callback(
 			event: cl_event, 
 			callback_trigger: cl_int, 
@@ -385,6 +393,7 @@ pub unsafe fn set_event_callback(
 	must_succeed("clSetEventCallback", err);
 }
 
+#[inline]
 pub fn release_event(event: cl_event) {
 	let err = unsafe {
 		cl_h::clReleaseEvent(event)
@@ -393,17 +402,7 @@ pub fn release_event(event: cl_event) {
 	must_succeed("clReleaseEvent", err);
 }
 
-
-
-
-// extern {
-//    pub fn clSetEventCallback_ex(event: cl_event,
-//                           command_exec_callback_type: cl_int,
-//                           pfn_notify: extern fn (cl_event, cl_int, *mut libc::c_void),
-//                           user_data: *mut libc::c_void) -> cl_int;
-// }
-
-
+#[inline]
 pub fn release_mem_object(obj: cl_mem) {
 	unsafe {
 		cl_h::clReleaseMemObject(obj);
@@ -412,6 +411,7 @@ pub fn release_mem_object(obj: cl_mem) {
 
 // [FIXME]: TODO: Evaluate usefulness
 #[allow(dead_code)]
+#[inline]
 pub fn platform_info(platform: cl_platform_id) {
 	let mut size = 0 as libc::size_t;
 
@@ -439,6 +439,7 @@ pub fn platform_info(platform: cl_platform_id) {
     }
 }
 
+#[inline]
 pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>) -> Result<(), String> {
 	let mut size = 0 as libc::size_t;
 
@@ -480,6 +481,7 @@ pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>) -
 	Ok(())
 }
 
+#[inline]
 pub fn must_succeed(message: &str, err_code: cl_int) {
 	if err_code != cl_h::CLStatus::CL_SUCCESS as cl_int {
 		//format!("##### \n{} failed with code: {}\n\n #####", message, err_string(err_code));
@@ -487,6 +489,7 @@ pub fn must_succeed(message: &str, err_code: cl_int) {
 	}
 }
 
+#[inline]
 fn err_string(err_code: cl_int) -> String {
 	match CLStatus::from_i32(err_code) {
 		Some(cls) => format!("{:?}", cls),
