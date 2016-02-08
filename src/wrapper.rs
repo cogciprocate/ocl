@@ -1,3 +1,11 @@
+//! Wrapper functions for the OpenCL C ABI.
+//! 
+//! Some functions *may* break Rust's usual safety promises and have not been
+//! comprehensively tested or evaluated.
+//! 
+//! Objects created should not generally be moved or shared between threads.
+//!
+
 use std::ptr;
 use std::mem;
 use std::io::Read;
@@ -195,6 +203,45 @@ pub fn create_buffer<T>(
 		buf
 	}
 }
+
+// [WORK IN PROGRESS]
+#[inline]
+pub fn create_image_2d() -> cl_mem {
+
+	// pub fn clCreateImage2D(context: cl_context,
+	// 					   flags: cl_mem_flags,
+	// 					   image_format: *mut cl_image_format,
+	// 					   image_width: size_t,
+	// 					   image_depth: size_t,
+	// 					   image_slc_pitch: size_t,
+	// 					   host_ptr: *mut c_void,
+	// 					   errcode_ret: *mut cl_int) -> cl_mem;
+
+	// TEMPORARY
+	0 as *mut libc::c_void
+}
+
+// [WORK IN PROGRESS]
+#[inline]
+pub fn create_image_3d() -> cl_mem {
+	
+	// pub fn clCreateImage3D(context: cl_context,
+	// 					   flags: cl_mem_flags,
+	// 					   image_format: *mut cl_image_format,
+	// 					   image_width: size_t,
+	// 					   image_depth: size_t,
+	// 					   image_depth: size_t,
+	// 					   image_slc_pitch: size_t,
+	// 					   image_depth: size_t,
+	// 					   image_slc_pitch: size_t,
+	// 					   image_slc_pitch: size_t,
+	// 					   host_ptr: *mut c_void,
+	// 					   errcode_ret: *mut cl_int) -> cl_mem;
+
+	// TEMPORARY
+	0 as *mut libc::c_void
+}
+
 
 #[inline]
 pub fn enqueue_write_buffer<T>(
@@ -417,7 +464,7 @@ pub fn platform_info(platform: cl_platform_id) {
 
 	unsafe {
 		let name = cl_h::CL_PLATFORM_NAME as cl_device_info;
-        let mut err = cl_h::clGetPlatformInfo(
+		let mut err = cl_h::clGetPlatformInfo(
 					platform,
 					name,
 					0,
@@ -427,16 +474,16 @@ pub fn platform_info(platform: cl_platform_id) {
 		must_succeed("clGetPlatformInfo(size)", err);
 		
 		let mut param_value: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
-        err = cl_h::clGetPlatformInfo(
+		err = cl_h::clGetPlatformInfo(
 					platform,
 					name,
 					size,
 					param_value.as_mut_ptr() as *mut libc::c_void,
 					ptr::null_mut(),
 		);
-        must_succeed("clGetPlatformInfo()", err);
-        println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
-    }
+		must_succeed("clGetPlatformInfo()", err);
+		println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
+	}
 }
 
 #[inline]

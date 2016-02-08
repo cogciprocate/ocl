@@ -61,79 +61,79 @@ pub type cl_command_type                = cl_uint;
 pub type cl_profiling_info              = cl_uint;
 
 pub struct cl_image_format {
-    image_channel_order:        cl_channel_order,
-    image_channel_data_type:    cl_channel_type,
+	image_channel_order:        cl_channel_order,
+	image_channel_data_type:    cl_channel_type,
 }
 
 pub struct cl_buffer_region {
-    origin:     size_t,
-    size:       size_t,
+	origin:     size_t,
+	size:       size_t,
 }
 
 
 // #[derive(PartialEq, Debug, FromPrimitive)]
 enum_from_primitive! {
-    #[repr()]
-    #[derive(Debug, PartialEq)]
-    pub enum CLStatus {
-        CL_SUCCESS                                      = 0,
-        CL_DEVICE_NOT_FOUND                             = -1,
-        CL_DEVICE_NOT_AVAILABLE                         = -2,
-        CL_COMPILER_NOT_AVAILABLE                       = -3,
-        CL_MEM_OBJECT_ALLOCATION_FAILURE                = -4,
-        CL_OUT_OF_RESOURCES                             = -5,
-        CL_OUT_OF_HOST_MEMORY                           = -6,
-        CL_PROFILING_INFO_NOT_AVAILABLE                 = -7,
-        CL_MEM_COPY_OVERLAP                             = -8,
-        CL_IMAGE_FORMAT_MISMATCH                        = -9,
-        CL_IMAGE_FORMAT_NOT_SUPPORTED                   = -10,
-        CL_BUILD_PROGRAM_FAILURE                        = -11,
-        CL_MAP_FAILURE                                  = -12,
-        CL_MISALIGNED_SUB_BUFFER_OFFSET                 = -13,
-        CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST    = -14,
-        CL_INVALID_VALUE                                = -30,
-        CL_INVALID_DEVICE_TYPE                          = -31,
-        CL_INVALID_PLATFORM                             = -32,
-        CL_INVALID_DEVICE                               = -33,
-        CL_INVALID_CONTEXT                              = -34,
-        CL_INVALID_QUEUE_PROPERTIES                     = -35,
-        CL_INVALID_COMMAND_QUEUE                        = -36,
-        CL_INVALID_HOST_PTR                             = -37,
-        CL_INVALID_MEM_OBJECT                           = -38,
-        CL_INVALID_IMAGE_FORMAT_DESCRIPTOR              = -39,
-        CL_INVALID_IMAGE_SIZE                           = -40,
-        CL_INVALID_SAMPLER                              = -41,
-        CL_INVALID_BINARY                               = -42,
-        CL_INVALID_BUILD_OPTIONS                        = -43,
-        CL_INVALID_PROGRAM                              = -44,
-        CL_INVALID_PROGRAM_EXECUTABLE                   = -45,
-        CL_INVALID_KERNEL_NAME                          = -46,
-        CL_INVALID_KERNEL_DEFINITION                    = -47,
-        CL_INVALID_KERNEL                               = -48,
-        CL_INVALID_ARG_INDEX                            = -49,
-        CL_INVALID_ARG_VALUE                            = -50,
-        CL_INVALID_ARG_SIZE                             = -51,
-        CL_INVALID_KERNEL_ARGS                          = -52,
-        CL_INVALID_WORK_DIMENSION                       = -53,
-        CL_INVALID_WORK_GROUP_SIZE                      = -54,
-        CL_INVALID_WORK_ITEM_SIZE                       = -55,
-        CL_INVALID_GLOBAL_OFFSET                        = -56,
-        CL_INVALID_EVENT_WAIT_LIST                      = -57,
-        CL_INVALID_EVENT                                = -58,
-        CL_INVALID_OPERATION                            = -59,
-        CL_INVALID_GL_OBJECT                            = -60,
-        CL_INVALID_BUFFER_SIZE                          = -61,
-        CL_INVALID_MIP_LEVEL                            = -62,
-        CL_INVALID_GLOBAL_WORK_SIZE                     = -63,
-        CL_INVALID_PROPERTY                             = -64,
-        CL_PLATFORM_NOT_FOUND_KHR                       = -1001,
-    }
+	#[repr()]
+	#[derive(Debug, PartialEq)]
+	pub enum CLStatus {
+		CL_SUCCESS                                      = 0,
+		CL_DEVICE_NOT_FOUND                             = -1,
+		CL_DEVICE_NOT_AVAILABLE                         = -2,
+		CL_COMPILER_NOT_AVAILABLE                       = -3,
+		CL_MEM_OBJECT_ALLOCATION_FAILURE                = -4,
+		CL_OUT_OF_RESOURCES                             = -5,
+		CL_OUT_OF_HOST_MEMORY                           = -6,
+		CL_PROFILING_INFO_NOT_AVAILABLE                 = -7,
+		CL_MEM_COPY_OVERLAP                             = -8,
+		CL_IMAGE_FORMAT_MISMATCH                        = -9,
+		CL_IMAGE_FORMAT_NOT_SUPPORTED                   = -10,
+		CL_BUILD_PROGRAM_FAILURE                        = -11,
+		CL_MAP_FAILURE                                  = -12,
+		CL_MISALIGNED_SUB_BUFFER_OFFSET                 = -13,
+		CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST    = -14,
+		CL_INVALID_VALUE                                = -30,
+		CL_INVALID_DEVICE_TYPE                          = -31,
+		CL_INVALID_PLATFORM                             = -32,
+		CL_INVALID_DEVICE                               = -33,
+		CL_INVALID_CONTEXT                              = -34,
+		CL_INVALID_QUEUE_PROPERTIES                     = -35,
+		CL_INVALID_COMMAND_QUEUE                        = -36,
+		CL_INVALID_HOST_PTR                             = -37,
+		CL_INVALID_MEM_OBJECT                           = -38,
+		CL_INVALID_IMAGE_FORMAT_DESCRIPTOR              = -39,
+		CL_INVALID_IMAGE_SIZE                           = -40,
+		CL_INVALID_SAMPLER                              = -41,
+		CL_INVALID_BINARY                               = -42,
+		CL_INVALID_BUILD_OPTIONS                        = -43,
+		CL_INVALID_PROGRAM                              = -44,
+		CL_INVALID_PROGRAM_EXECUTABLE                   = -45,
+		CL_INVALID_KERNEL_NAME                          = -46,
+		CL_INVALID_KERNEL_DEFINITION                    = -47,
+		CL_INVALID_KERNEL                               = -48,
+		CL_INVALID_ARG_INDEX                            = -49,
+		CL_INVALID_ARG_VALUE                            = -50,
+		CL_INVALID_ARG_SIZE                             = -51,
+		CL_INVALID_KERNEL_ARGS                          = -52,
+		CL_INVALID_WORK_DIMENSION                       = -53,
+		CL_INVALID_WORK_GROUP_SIZE                      = -54,
+		CL_INVALID_WORK_ITEM_SIZE                       = -55,
+		CL_INVALID_GLOBAL_OFFSET                        = -56,
+		CL_INVALID_EVENT_WAIT_LIST                      = -57,
+		CL_INVALID_EVENT                                = -58,
+		CL_INVALID_OPERATION                            = -59,
+		CL_INVALID_GL_OBJECT                            = -60,
+		CL_INVALID_BUFFER_SIZE                          = -61,
+		CL_INVALID_MIP_LEVEL                            = -62,
+		CL_INVALID_GLOBAL_WORK_SIZE                     = -63,
+		CL_INVALID_PROPERTY                             = -64,
+		CL_PLATFORM_NOT_FOUND_KHR                       = -1001,
+	}
 }
 
 impl Display for CLStatus {
-    fn fmt(&self, fmtr: &mut Formatter) -> Result {
-        write!(fmtr, "{:?}", self)
-    }
+	fn fmt(&self, fmtr: &mut Formatter) -> Result {
+		write!(fmtr, "{:?}", self)
+	}
 }
 
 
@@ -437,458 +437,458 @@ pub static CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 #[cfg_attr(target_os = "macos", link(name = "OpenCL", kind = "framework"))]
 #[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
 extern {
-    // Platform API
-    pub fn clGetPlatformIDs(num_entries:   cl_uint,
-                            platforms:     *mut cl_platform_id,
-                            num_platforms: *mut cl_uint) -> cl_int;
-
-    pub fn clGetPlatformInfo(platform: cl_platform_id,
-                             param_name: cl_platform_info,
-                             param_value_size: size_t,
-                             param_value: *mut c_void,
-                             param_value_size_ret: *mut size_t) -> cl_int;
-
-    // Device APIs 
-    pub fn clGetDeviceIDs(platform: cl_platform_id,
-                      device_type: cl_device_type,
-                      num_entries: cl_uint,
-                      devices: *mut cl_device_id,
-                      num_devices: *mut cl_uint) -> cl_int;
-
-    pub fn clGetDeviceInfo(device: cl_device_id,
-                       param_name: cl_device_info,
-                       param_value_size: size_t,
-                       param_value: *mut c_void,
-                       param_value_size_ret: *mut size_t) -> cl_int;
-
-    // Context APIs 
-    pub fn clCreateContext(properties: *const cl_context_properties,
-                       num_devices: cl_uint,
-                       devices: *const cl_device_id,
-                       pfn_notify: extern fn (*const c_char, *const c_void, size_t, *mut c_void),
-                       user_data: *mut c_void,
-                       errcode_ret: *mut cl_int) -> cl_context;
-
-    pub fn clCreateContextFromType(properties: *mut cl_context_properties,
-                               device_type: cl_device_type,
-                               pfn_notify: extern fn (*mut c_char, *mut c_void, size_t, *mut c_void),
-                               user_data: *mut c_void,
-                               errcode_ret: *mut cl_int) -> cl_context;
-
-    pub fn clRetainContext(context: cl_context) -> cl_int;
-
-    pub fn clReleaseContext(context: cl_context) -> cl_int;
-
-    pub fn clGetContextInfo(context: cl_context,
-                        param_name: cl_context_info,
-                        param_value_size: size_t,
-                        param_value: *mut c_void,
-                        param_value_size_ret: *mut size_t) -> cl_int;
-
-    // Command Queue APIs 
-    pub fn clCreateCommandQueue(context: cl_context,
-                            device: cl_device_id,
-                            properties: cl_command_queue_properties,
-                            errcode_ret: *mut cl_int) -> cl_command_queue;
-
-    pub fn clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
-
-    pub fn clReleaseCommandQueue(command_queue: cl_command_queue) -> cl_int;
-
-    pub fn clGetCommandQueueInfo(command_queue: cl_command_queue,
-                             param_name: cl_command_queue_info,
-                             param_value_size: size_t,
-                             param_value: *mut c_void,
-                             param_value_size_ret: *mut size_t) -> cl_int;
-
-    // Memory Object APIs 
-    pub fn clCreateBuffer(context: cl_context,
-                      flags: cl_mem_flags,
-                      size: size_t,
-                      host_ptr: *mut c_void,
-                      errcode_ret: *mut cl_int) -> cl_mem;
-
-    pub fn clCreateSubBuffer(buffer: cl_mem,
-                        flags: cl_mem_flags,
-                        buffer_create_type: cl_buffer_create_type,
-                        buffer_create_info: *mut c_void,
-                        errcode_ret: *mut cl_int) -> cl_mem;
-
-    pub fn clCreateImage2D(context: cl_context,
-                       flags: cl_mem_flags,
-                       image_format: *mut cl_image_format,
-                       image_width: size_t,
-                       image_depth: size_t,
-                       image_slc_pitch: size_t,
-                       host_ptr: *mut c_void,
-                       errcode_ret: *mut cl_int) -> cl_mem;
-
-    pub fn clCreateImage3D(context: cl_context,
-                       flags: cl_mem_flags,
-                       image_format: *mut cl_image_format,
-                       image_width: size_t,
-                       image_depth: size_t,
-                       image_depth: size_t,
-                       image_slc_pitch: size_t,
-                       image_depth: size_t,
-                       image_slc_pitch: size_t,
-                       image_slc_pitch: size_t,
-                       host_ptr: *mut c_void,
-                       errcode_ret: *mut cl_int) -> cl_mem;
-
-    pub fn clRetainMemObject(memobj: cl_mem) -> cl_int;
-
-    pub fn clReleaseMemObject(memobj: cl_mem) -> cl_int;
-
-    pub fn clGetSupportedImageFormats(context: cl_context,
-                                  flags: cl_mem_flags,
-                                  image_type: cl_mem_object_type,
-                                  num_entries: cl_uint,
-                                  image_formats: *mut cl_image_format,
-                                  num_image_formats: *mut cl_uint) -> cl_int;
-
-    pub fn clGetMemObjectInfo(memobj: cl_mem,
-                          param_name: cl_mem_info,
-                          param_value_size: size_t,
-                          param_value: *mut c_void,
-                          param_value_size_ret: *mut size_t) -> cl_int;
-
-    pub fn clGetImageInfo(image: cl_mem,
-                      param_name: cl_image_info,
-                      param_value_size: size_t,
-                      param_value: *mut c_void,
-                      param_value_size_ret: *mut size_t) -> cl_int;
-
-    pub fn clSetMemObjectDestructorCallback(memobj: cl_mem,
-                                        pfn_notify: extern fn (cl_mem, *mut c_void),
-                                        user_data: *mut c_void) -> cl_int;
-
-    // Sampler APIs 
-    pub fn clCreateSampler(context: cl_context,
-                       normalize_coords: cl_bool,
-                       addressing_mode: cl_addressing_mode,
-                       filter_mode: cl_filter_mode,
-                       errcode_ret: *mut cl_int) -> cl_sampler;
-
-    pub fn clRetainSampler(sampler: cl_sampler) -> cl_int;
-
-    pub fn clReleaseSampler(sampler: cl_sampler) ->cl_int;
-
-    pub fn clGetSamplerInfo(sampler: cl_sampler,
-                        param_name: cl_sampler_info,
-                        param_value_size: size_t,
-                        param_value: *mut c_void,
-                        param_value_size_ret: *mut size_t) -> cl_int;
-
-    // Program Object APIs 
-    pub fn clCreateProgramWithSource(context: cl_context,
-                                 count: cl_uint,
-                                 strings: *const *const c_char,
-                                 lengths: *const size_t,
-                                 errcode_ret: *mut cl_int) -> cl_program;
-
-    pub fn clCreateProgramWithBinary(context: cl_context,
-                                 num_devices: cl_uint,
-                                 device_list: *const cl_device_id,
-                                 lengths: *const size_t,
-                                 binaries: *const *const c_uchar,
-                                 binary_status: *mut cl_int,
-                                 errcode_ret: *mut cl_int) -> cl_program;
-
-    pub fn clRetainProgram(program: cl_program) -> cl_int;
-
-    pub fn clReleaseProgram(program: cl_program) -> cl_int;
-
-    pub fn clBuildProgram(program: cl_program,
-                      num_devices: cl_uint,
-                      device_list: *const cl_device_id,
-                      options: *const c_char,
-                      pfn_notify: extern fn (cl_program, *mut c_void),
-                      user_data: *mut c_void) -> cl_int;
-
-    pub fn clUnloadCompsaler() -> cl_int;
-
-    pub fn clGetProgramInfo(program: cl_program,
-                        param_name: cl_program_info,
-                        param_value_size: size_t,
-                        param_value: *mut c_void,
-                        param_value_size_ret: *mut size_t) -> cl_int;
-
-    pub fn clGetProgramBuildInfo(program: cl_program,
-                             device: cl_device_id,
-                             param_name: cl_program_info,
-                             param_value_size: size_t,
-                             param_value: *mut c_void,
-                             param_value_size_ret: *mut size_t) -> cl_int;
-
-    // Kernel Object APIs 
-    pub fn clCreateKernel(program: cl_program,
-                      kernel_name: *const c_char,
-                      errcode_ret: *mut cl_int) -> cl_kernel;
-
-    pub fn clCreateKernelsInProgram(program: cl_program,
-                                num_kernels: cl_uint,
-                                kernels: *mut cl_kernel,
-                                num_kernels_ret: *mut cl_uint) -> cl_int;
-
-    pub fn clRetainKernel(kernel: cl_kernel) -> cl_int;
-
-    pub fn clReleaseKernel(kernel: cl_kernel) -> cl_int;
-
-    pub fn clSetKernelArg(kernel: cl_kernel,
-                      arg_index: cl_uint,
-                      arg_size: size_t,
-                      arg_value: *const c_void) -> cl_int;
-
-    pub fn clGetKernelInfo(kernel: cl_kernel,
-                       param_name: cl_kernel_info,
-                       param_value_size: size_t,
-                       param_value: *mut c_void,
-                       param_value_size_ret: *mut size_t) -> cl_int;
-
-    pub fn clGetKernelWorkGroupInfo(kernel: cl_kernel,
-                                device: cl_device_id,
-                                param_name: cl_kernel_work_group_info,
-                                param_value_size: size_t,
-                                param_value: *mut c_void,
-                                param_value_size_ret: *mut size_t) -> cl_int;
-
-    // Event Object APIs 
-    pub fn clWaitForEvents(num_events: cl_uint,
-                       event_list: *const cl_event) -> cl_int;
-
-    pub fn clGetEventInfo(event: cl_event,
-                      param_name: cl_event_info,
-                      param_value_size: size_t,
-                      param_value: *mut c_void,
-                      param_value_size_ret: *mut size_t) -> cl_int;
-
-    pub fn clCreateUserEvent(context: cl_context,
-                         errcode_ret: *mut cl_int) -> cl_event;
-
-    pub fn clRetainEvent(event: cl_event) -> cl_int;
-
-    pub fn clReleaseEvent(event: cl_event) -> cl_int;
-
-    pub fn clSetUserEventStatus(event: cl_event,
-                            execution_status: cl_int) -> cl_int;
-
-    pub fn clSetEventCallback(event: cl_event,
-                          command_exec_callback_type: cl_int,
-                          pfn_notify: extern fn (cl_event, cl_int, *mut c_void),
-                          user_data: *mut c_void) -> cl_int;
-
-    // Profiling APIs 
-    pub fn clGetEventProfilingInfo(event: cl_event,
-                               param_name: cl_profiling_info,
-                               param_value_size: size_t,
-                               param_value: *mut c_void,
-                               param_value_size_ret: *mut size_t) -> cl_int;
-
-    // Flush and Finish APIs 
-    pub fn clFlush(command_queue: cl_command_queue) -> cl_int;
-
-    pub fn clFinish(command_queue: cl_command_queue) -> cl_int;
-
-    // Enqueued Commands APIs 
-    pub fn clEnqueueReadBuffer(command_queue: cl_command_queue,
-                           buffer: cl_mem,
-                           blocking_read: cl_bool,
-                           offset: size_t,
-                           cb: size_t,
-                           ptr: *mut c_void,
-                           num_events_in_wait_list: cl_uint,
-                           event_wait_list: *const cl_event,
-                           event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueReadBufferRect(command_queue: cl_command_queue,
-                               buffer: cl_mem,
-                               blocking_read: cl_bool,
-                               buffer_origin: *mut size_t,
-                               host_origin: *mut size_t,
-                               region: *mut size_t,
-                               buffer_slc_pitch: size_t,
-                               buffer_slc_pitch: size_t,
-                               host_slc_pitch: size_t,
-                               host_slc_pitch: size_t,
-                               ptr: *mut c_void,
-                               num_events_in_wait_list: cl_uint,
-                               event_wait_list: *const cl_event,
-                               event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueWriteBuffer(command_queue: cl_command_queue,
-                            buffer: cl_mem,
-                            blocking_write: cl_bool,
-                            offset: size_t,
-                            cb: size_t,
-                            ptr: *const c_void,
-                            num_events_in_wait_list: cl_uint,
-                            event_wait_list: *const cl_event,
-                            event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueWriteBufferRect(command_queue: cl_command_queue,
-                                blocking_write: cl_bool,
-                                buffer_origin: *mut size_t,
-                                host_origin: *mut size_t,
-                                region: *mut size_t,
-                                buffer_slc_pitch: size_t,
-                                buffer_slc_pitch: size_t,
-                                host_slc_pitch: size_t,
-                                host_slc_pitch: size_t,
-                                ptr: *mut c_void,
-                                num_events_in_wait_list: cl_uint,
-                                event_wait_list: *const cl_event,
-                                event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueCopyBuffer(command_queue: cl_command_queue,
-                           src_buffer: cl_mem,
-                           dst_buffer: cl_mem,
-                           src_offset: size_t,
-                           dst_offset: size_t,
-                           cb: size_t,
-                           num_events_in_wait_list: cl_uint,
-                           event_wait_list: *const cl_event,
-                           event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueCopyBufferRect(command_queue: cl_command_queue,
-                               src_buffer: cl_mem,
-                               dst_buffer: cl_mem,
-                               src_origin: *mut size_t,
-                               dst_origin: *mut size_t,
-                               region: *mut size_t,
-                               src_slc_pitch: size_t,
-                               src_slc_pitch: size_t,
-                               dst_slc_pitch: size_t,
-                               dst_slc_pitch: size_t,
-                               num_events_in_wait_list: cl_uint,
-                               event_wait_list: *const cl_event,
-                               event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueReadImage(command_queue: cl_command_queue,
-                          image: cl_mem,
-                          blocking_read: cl_bool,
-                          origin: *mut size_t,
-                          region: *mut size_t,
-                          slc_pitch: size_t,
-                          slc_pitch: size_t,
-                          ptr: *mut c_void,
-                          num_events_in_wait_list: cl_uint,
-                          event_wait_list: *const cl_event,
-                          event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueWriteImage(command_queue: cl_command_queue,
-                           image: cl_mem,
-                           blocking_write: cl_bool,
-                           origin: *mut size_t,
-                           region: *mut size_t,
-                           input_slc_pitch: size_t,
-                           input_slc_pitch: size_t,
-                           ptr: *mut c_void,
-                           num_events_in_wait_list: cl_uint,
-                           event_wait_list: *const cl_event,
-                           event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueCopyImage(command_queue: cl_command_queue,
-                          src_image: cl_mem,
-                          dst_image: cl_mem,
-                          src_origin: *mut size_t,
-                          dst_origin: *mut size_t,
-                          region: *mut size_t,
-                          num_events_in_wait_list: cl_uint,
-                          event_wait_list: *const cl_event,
-                          event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueCopyImageToBuffer(command_queue: cl_command_queue,
-                                  src_image: cl_mem,
-                                  dst_buffer: cl_mem,
-                                  src_origin: *mut size_t,
-                                  region: *mut size_t,
-                                  dst_offset: size_t,
-                                  num_events_in_wait_list: cl_uint,
-                                  event_wait_list: *const cl_event,
-                                  event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueCopyBufferToImage(command_queue: cl_command_queue,
-                                  src_buffer: cl_mem,
-                                  dst_image: cl_mem,
-                                  src_offset: size_t,
-                                  dst_origin: *mut size_t,
-                                  region: *mut size_t,
-                                  num_events_in_wait_list: cl_uint,
-                                  event_wait_list: *const cl_event,
-                                  event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueMapBuffer(command_queue: cl_command_queue,
-                          buffer: cl_mem,
-                          blocking_map: cl_bool,
-                          map_flags: cl_map_flags,
-                          offset: size_t,
-                          cb: size_t,
-                          num_events_in_wait_list: cl_uint,
-                          event_wait_list: *const cl_event,
-                          event: *mut cl_event,
-                          errorcode_ret: *mut cl_int);
-
-    pub fn clEnqueueMapImage(command_queue: cl_command_queue,
-                         image: cl_mem,
-                         blocking_map: cl_bool,
-                         map_flags: cl_map_flags,
-                         origin: *mut size_t,
-                         region: *mut size_t,
-                         image_slc_pitch: size_t,
-                         image_slc_pitch: size_t,
-                         num_events_in_wait_list: cl_uint,
-                         event_wait_list: *const cl_event,
-                         event: *mut cl_event,
-                         errorcode_ret: *mut cl_int);
-
-    pub fn clEnqueueUnmapMemObject(command_queue: cl_command_queue,
-                               memobj: cl_mem,
-                               mapped_ptr: *mut c_void,
-                               num_events_in_wait_list: cl_uint,
-                               event_wait_list: *const cl_event,
-                               event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueNDRangeKernel(command_queue: cl_command_queue,
-                              kernel: cl_kernel,
-                              work_dim: cl_uint,
-                              global_work_offset: *const size_t,
-                              global_work_size: *const size_t,
-                              local_work_size: *const size_t,
-                              num_events_in_wait_list: cl_uint,
-                              event_wait_list: *const cl_event,
-                              event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueTask(command_queue: cl_command_queue,
-                     kernel: cl_kernel,
-                     num_events_in_wait_list: cl_uint,
-                     event_wait_list: *const cl_event,
-                     event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueNativeKernel(command_queue: cl_command_queue,
-                             user_func: extern fn (*mut c_void),
-                             args: *mut c_void,
-                             cb_args: size_t,
-                             num_mem_objects: cl_uint,
-                             mem_list: *const cl_mem,
-                             args_mem_loc: *const *const c_void,
-                             num_events_in_wait_list: cl_uint,
-                             event_wait_list: *const cl_event,
-                             event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueMarker(command_queue: cl_command_queue,
-                       event: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueWaitForEvents(command_queue: cl_command_queue,
-                              num_events: cl_uint,
-                              event_list: *mut cl_event) -> cl_int;
-
-    pub fn clEnqueueBarrier(command_queue: cl_command_queue) -> cl_int;
-
-    // Extension function access
-    // Returns the extension function address for the given function name,
-    // or NULL if a valid function can not be found. The client must
-    // check to make sure the address is not NULL, before using or
-    // or calling the returned function address.     
-    pub fn clGetExtensionFunctionAddress(func_name: *mut c_char);
+	// Platform API
+	pub fn clGetPlatformIDs(num_entries:   cl_uint,
+							platforms:     *mut cl_platform_id,
+							num_platforms: *mut cl_uint) -> cl_int;
+
+	pub fn clGetPlatformInfo(platform: cl_platform_id,
+							 param_name: cl_platform_info,
+							 param_value_size: size_t,
+							 param_value: *mut c_void,
+							 param_value_size_ret: *mut size_t) -> cl_int;
+
+	// Device APIs 
+	pub fn clGetDeviceIDs(platform: cl_platform_id,
+					  device_type: cl_device_type,
+					  num_entries: cl_uint,
+					  devices: *mut cl_device_id,
+					  num_devices: *mut cl_uint) -> cl_int;
+
+	pub fn clGetDeviceInfo(device: cl_device_id,
+					   param_name: cl_device_info,
+					   param_value_size: size_t,
+					   param_value: *mut c_void,
+					   param_value_size_ret: *mut size_t) -> cl_int;
+
+	// Context APIs 
+	pub fn clCreateContext(properties: *const cl_context_properties,
+					   num_devices: cl_uint,
+					   devices: *const cl_device_id,
+					   pfn_notify: extern fn (*const c_char, *const c_void, size_t, *mut c_void),
+					   user_data: *mut c_void,
+					   errcode_ret: *mut cl_int) -> cl_context;
+
+	pub fn clCreateContextFromType(properties: *mut cl_context_properties,
+							   device_type: cl_device_type,
+							   pfn_notify: extern fn (*mut c_char, *mut c_void, size_t, *mut c_void),
+							   user_data: *mut c_void,
+							   errcode_ret: *mut cl_int) -> cl_context;
+
+	pub fn clRetainContext(context: cl_context) -> cl_int;
+
+	pub fn clReleaseContext(context: cl_context) -> cl_int;
+
+	pub fn clGetContextInfo(context: cl_context,
+						param_name: cl_context_info,
+						param_value_size: size_t,
+						param_value: *mut c_void,
+						param_value_size_ret: *mut size_t) -> cl_int;
+
+	// Command Queue APIs 
+	pub fn clCreateCommandQueue(context: cl_context,
+							device: cl_device_id,
+							properties: cl_command_queue_properties,
+							errcode_ret: *mut cl_int) -> cl_command_queue;
+
+	pub fn clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
+
+	pub fn clReleaseCommandQueue(command_queue: cl_command_queue) -> cl_int;
+
+	pub fn clGetCommandQueueInfo(command_queue: cl_command_queue,
+							 param_name: cl_command_queue_info,
+							 param_value_size: size_t,
+							 param_value: *mut c_void,
+							 param_value_size_ret: *mut size_t) -> cl_int;
+
+	// Memory Object APIs 
+	pub fn clCreateBuffer(context: cl_context,
+					  flags: cl_mem_flags,
+					  size: size_t,
+					  host_ptr: *mut c_void,
+					  errcode_ret: *mut cl_int) -> cl_mem;
+
+	pub fn clCreateSubBuffer(buffer: cl_mem,
+						flags: cl_mem_flags,
+						buffer_create_type: cl_buffer_create_type,
+						buffer_create_info: *mut c_void,
+						errcode_ret: *mut cl_int) -> cl_mem;
+
+	pub fn clCreateImage2D(context: cl_context,
+					   flags: cl_mem_flags,
+					   image_format: *mut cl_image_format,
+					   image_width: size_t,
+					   image_depth: size_t,
+					   image_slc_pitch: size_t,
+					   host_ptr: *mut c_void,
+					   errcode_ret: *mut cl_int) -> cl_mem;
+
+	pub fn clCreateImage3D(context: cl_context,
+					   flags: cl_mem_flags,
+					   image_format: *mut cl_image_format,
+					   image_width: size_t,
+					   image_depth: size_t,
+					   image_depth: size_t,
+					   image_slc_pitch: size_t,
+					   image_depth: size_t,
+					   image_slc_pitch: size_t,
+					   image_slc_pitch: size_t,
+					   host_ptr: *mut c_void,
+					   errcode_ret: *mut cl_int) -> cl_mem;
+
+	pub fn clRetainMemObject(memobj: cl_mem) -> cl_int;
+
+	pub fn clReleaseMemObject(memobj: cl_mem) -> cl_int;
+
+	pub fn clGetSupportedImageFormats(context: cl_context,
+								  flags: cl_mem_flags,
+								  image_type: cl_mem_object_type,
+								  num_entries: cl_uint,
+								  image_formats: *mut cl_image_format,
+								  num_image_formats: *mut cl_uint) -> cl_int;
+
+	pub fn clGetMemObjectInfo(memobj: cl_mem,
+						  param_name: cl_mem_info,
+						  param_value_size: size_t,
+						  param_value: *mut c_void,
+						  param_value_size_ret: *mut size_t) -> cl_int;
+
+	pub fn clGetImageInfo(image: cl_mem,
+					  param_name: cl_image_info,
+					  param_value_size: size_t,
+					  param_value: *mut c_void,
+					  param_value_size_ret: *mut size_t) -> cl_int;
+
+	pub fn clSetMemObjectDestructorCallback(memobj: cl_mem,
+										pfn_notify: extern fn (cl_mem, *mut c_void),
+										user_data: *mut c_void) -> cl_int;
+
+	// Sampler APIs 
+	pub fn clCreateSampler(context: cl_context,
+					   normalize_coords: cl_bool,
+					   addressing_mode: cl_addressing_mode,
+					   filter_mode: cl_filter_mode,
+					   errcode_ret: *mut cl_int) -> cl_sampler;
+
+	pub fn clRetainSampler(sampler: cl_sampler) -> cl_int;
+
+	pub fn clReleaseSampler(sampler: cl_sampler) ->cl_int;
+
+	pub fn clGetSamplerInfo(sampler: cl_sampler,
+						param_name: cl_sampler_info,
+						param_value_size: size_t,
+						param_value: *mut c_void,
+						param_value_size_ret: *mut size_t) -> cl_int;
+
+	// Program Object APIs 
+	pub fn clCreateProgramWithSource(context: cl_context,
+								 count: cl_uint,
+								 strings: *const *const c_char,
+								 lengths: *const size_t,
+								 errcode_ret: *mut cl_int) -> cl_program;
+
+	pub fn clCreateProgramWithBinary(context: cl_context,
+								 num_devices: cl_uint,
+								 device_list: *const cl_device_id,
+								 lengths: *const size_t,
+								 binaries: *const *const c_uchar,
+								 binary_status: *mut cl_int,
+								 errcode_ret: *mut cl_int) -> cl_program;
+
+	pub fn clRetainProgram(program: cl_program) -> cl_int;
+
+	pub fn clReleaseProgram(program: cl_program) -> cl_int;
+
+	pub fn clBuildProgram(program: cl_program,
+					  num_devices: cl_uint,
+					  device_list: *const cl_device_id,
+					  options: *const c_char,
+					  pfn_notify: extern fn (cl_program, *mut c_void),
+					  user_data: *mut c_void) -> cl_int;
+
+	pub fn clUnloadCompsaler() -> cl_int;
+
+	pub fn clGetProgramInfo(program: cl_program,
+						param_name: cl_program_info,
+						param_value_size: size_t,
+						param_value: *mut c_void,
+						param_value_size_ret: *mut size_t) -> cl_int;
+
+	pub fn clGetProgramBuildInfo(program: cl_program,
+							 device: cl_device_id,
+							 param_name: cl_program_info,
+							 param_value_size: size_t,
+							 param_value: *mut c_void,
+							 param_value_size_ret: *mut size_t) -> cl_int;
+
+	// Kernel Object APIs 
+	pub fn clCreateKernel(program: cl_program,
+					  kernel_name: *const c_char,
+					  errcode_ret: *mut cl_int) -> cl_kernel;
+
+	pub fn clCreateKernelsInProgram(program: cl_program,
+								num_kernels: cl_uint,
+								kernels: *mut cl_kernel,
+								num_kernels_ret: *mut cl_uint) -> cl_int;
+
+	pub fn clRetainKernel(kernel: cl_kernel) -> cl_int;
+
+	pub fn clReleaseKernel(kernel: cl_kernel) -> cl_int;
+
+	pub fn clSetKernelArg(kernel: cl_kernel,
+					  arg_index: cl_uint,
+					  arg_size: size_t,
+					  arg_value: *const c_void) -> cl_int;
+
+	pub fn clGetKernelInfo(kernel: cl_kernel,
+					   param_name: cl_kernel_info,
+					   param_value_size: size_t,
+					   param_value: *mut c_void,
+					   param_value_size_ret: *mut size_t) -> cl_int;
+
+	pub fn clGetKernelWorkGroupInfo(kernel: cl_kernel,
+								device: cl_device_id,
+								param_name: cl_kernel_work_group_info,
+								param_value_size: size_t,
+								param_value: *mut c_void,
+								param_value_size_ret: *mut size_t) -> cl_int;
+
+	// Event Object APIs 
+	pub fn clWaitForEvents(num_events: cl_uint,
+					   event_list: *const cl_event) -> cl_int;
+
+	pub fn clGetEventInfo(event: cl_event,
+					  param_name: cl_event_info,
+					  param_value_size: size_t,
+					  param_value: *mut c_void,
+					  param_value_size_ret: *mut size_t) -> cl_int;
+
+	pub fn clCreateUserEvent(context: cl_context,
+						 errcode_ret: *mut cl_int) -> cl_event;
+
+	pub fn clRetainEvent(event: cl_event) -> cl_int;
+
+	pub fn clReleaseEvent(event: cl_event) -> cl_int;
+
+	pub fn clSetUserEventStatus(event: cl_event,
+							execution_status: cl_int) -> cl_int;
+
+	pub fn clSetEventCallback(event: cl_event,
+						  command_exec_callback_type: cl_int,
+						  pfn_notify: extern fn (cl_event, cl_int, *mut c_void),
+						  user_data: *mut c_void) -> cl_int;
+
+	// Profiling APIs 
+	pub fn clGetEventProfilingInfo(event: cl_event,
+							   param_name: cl_profiling_info,
+							   param_value_size: size_t,
+							   param_value: *mut c_void,
+							   param_value_size_ret: *mut size_t) -> cl_int;
+
+	// Flush and Finish APIs 
+	pub fn clFlush(command_queue: cl_command_queue) -> cl_int;
+
+	pub fn clFinish(command_queue: cl_command_queue) -> cl_int;
+
+	// Enqueued Commands APIs 
+	pub fn clEnqueueReadBuffer(command_queue: cl_command_queue,
+						   buffer: cl_mem,
+						   blocking_read: cl_bool,
+						   offset: size_t,
+						   cb: size_t,
+						   ptr: *mut c_void,
+						   num_events_in_wait_list: cl_uint,
+						   event_wait_list: *const cl_event,
+						   event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueReadBufferRect(command_queue: cl_command_queue,
+							   buffer: cl_mem,
+							   blocking_read: cl_bool,
+							   buffer_origin: *mut size_t,
+							   host_origin: *mut size_t,
+							   region: *mut size_t,
+							   buffer_slc_pitch: size_t,
+							   buffer_slc_pitch: size_t,
+							   host_slc_pitch: size_t,
+							   host_slc_pitch: size_t,
+							   ptr: *mut c_void,
+							   num_events_in_wait_list: cl_uint,
+							   event_wait_list: *const cl_event,
+							   event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueWriteBuffer(command_queue: cl_command_queue,
+							buffer: cl_mem,
+							blocking_write: cl_bool,
+							offset: size_t,
+							cb: size_t,
+							ptr: *const c_void,
+							num_events_in_wait_list: cl_uint,
+							event_wait_list: *const cl_event,
+							event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueWriteBufferRect(command_queue: cl_command_queue,
+								blocking_write: cl_bool,
+								buffer_origin: *mut size_t,
+								host_origin: *mut size_t,
+								region: *mut size_t,
+								buffer_slc_pitch: size_t,
+								buffer_slc_pitch: size_t,
+								host_slc_pitch: size_t,
+								host_slc_pitch: size_t,
+								ptr: *mut c_void,
+								num_events_in_wait_list: cl_uint,
+								event_wait_list: *const cl_event,
+								event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueCopyBuffer(command_queue: cl_command_queue,
+						   src_buffer: cl_mem,
+						   dst_buffer: cl_mem,
+						   src_offset: size_t,
+						   dst_offset: size_t,
+						   cb: size_t,
+						   num_events_in_wait_list: cl_uint,
+						   event_wait_list: *const cl_event,
+						   event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueCopyBufferRect(command_queue: cl_command_queue,
+							   src_buffer: cl_mem,
+							   dst_buffer: cl_mem,
+							   src_origin: *mut size_t,
+							   dst_origin: *mut size_t,
+							   region: *mut size_t,
+							   src_slc_pitch: size_t,
+							   src_slc_pitch: size_t,
+							   dst_slc_pitch: size_t,
+							   dst_slc_pitch: size_t,
+							   num_events_in_wait_list: cl_uint,
+							   event_wait_list: *const cl_event,
+							   event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueReadImage(command_queue: cl_command_queue,
+						  image: cl_mem,
+						  blocking_read: cl_bool,
+						  origin: *mut size_t,
+						  region: *mut size_t,
+						  slc_pitch: size_t,
+						  slc_pitch: size_t,
+						  ptr: *mut c_void,
+						  num_events_in_wait_list: cl_uint,
+						  event_wait_list: *const cl_event,
+						  event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueWriteImage(command_queue: cl_command_queue,
+						   image: cl_mem,
+						   blocking_write: cl_bool,
+						   origin: *mut size_t,
+						   region: *mut size_t,
+						   input_slc_pitch: size_t,
+						   input_slc_pitch: size_t,
+						   ptr: *mut c_void,
+						   num_events_in_wait_list: cl_uint,
+						   event_wait_list: *const cl_event,
+						   event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueCopyImage(command_queue: cl_command_queue,
+						  src_image: cl_mem,
+						  dst_image: cl_mem,
+						  src_origin: *mut size_t,
+						  dst_origin: *mut size_t,
+						  region: *mut size_t,
+						  num_events_in_wait_list: cl_uint,
+						  event_wait_list: *const cl_event,
+						  event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueCopyImageToBuffer(command_queue: cl_command_queue,
+								  src_image: cl_mem,
+								  dst_buffer: cl_mem,
+								  src_origin: *mut size_t,
+								  region: *mut size_t,
+								  dst_offset: size_t,
+								  num_events_in_wait_list: cl_uint,
+								  event_wait_list: *const cl_event,
+								  event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueCopyBufferToImage(command_queue: cl_command_queue,
+								  src_buffer: cl_mem,
+								  dst_image: cl_mem,
+								  src_offset: size_t,
+								  dst_origin: *mut size_t,
+								  region: *mut size_t,
+								  num_events_in_wait_list: cl_uint,
+								  event_wait_list: *const cl_event,
+								  event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueMapBuffer(command_queue: cl_command_queue,
+						  buffer: cl_mem,
+						  blocking_map: cl_bool,
+						  map_flags: cl_map_flags,
+						  offset: size_t,
+						  cb: size_t,
+						  num_events_in_wait_list: cl_uint,
+						  event_wait_list: *const cl_event,
+						  event: *mut cl_event,
+						  errorcode_ret: *mut cl_int);
+
+	pub fn clEnqueueMapImage(command_queue: cl_command_queue,
+						 image: cl_mem,
+						 blocking_map: cl_bool,
+						 map_flags: cl_map_flags,
+						 origin: *mut size_t,
+						 region: *mut size_t,
+						 image_slc_pitch: size_t,
+						 image_slc_pitch: size_t,
+						 num_events_in_wait_list: cl_uint,
+						 event_wait_list: *const cl_event,
+						 event: *mut cl_event,
+						 errorcode_ret: *mut cl_int);
+
+	pub fn clEnqueueUnmapMemObject(command_queue: cl_command_queue,
+							   memobj: cl_mem,
+							   mapped_ptr: *mut c_void,
+							   num_events_in_wait_list: cl_uint,
+							   event_wait_list: *const cl_event,
+							   event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueNDRangeKernel(command_queue: cl_command_queue,
+							  kernel: cl_kernel,
+							  work_dim: cl_uint,
+							  global_work_offset: *const size_t,
+							  global_work_size: *const size_t,
+							  local_work_size: *const size_t,
+							  num_events_in_wait_list: cl_uint,
+							  event_wait_list: *const cl_event,
+							  event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueTask(command_queue: cl_command_queue,
+					 kernel: cl_kernel,
+					 num_events_in_wait_list: cl_uint,
+					 event_wait_list: *const cl_event,
+					 event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueNativeKernel(command_queue: cl_command_queue,
+							 user_func: extern fn (*mut c_void),
+							 args: *mut c_void,
+							 cb_args: size_t,
+							 num_mem_objects: cl_uint,
+							 mem_list: *const cl_mem,
+							 args_mem_loc: *const *const c_void,
+							 num_events_in_wait_list: cl_uint,
+							 event_wait_list: *const cl_event,
+							 event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueMarker(command_queue: cl_command_queue,
+					   event: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueWaitForEvents(command_queue: cl_command_queue,
+							  num_events: cl_uint,
+							  event_list: *mut cl_event) -> cl_int;
+
+	pub fn clEnqueueBarrier(command_queue: cl_command_queue) -> cl_int;
+
+	// Extension function access
+	// Returns the extension function address for the given function name,
+	// or NULL if a valid function can not be found. The client must
+	// check to make sure the address is not NULL, before using or
+	// or calling the returned function address.     
+	pub fn clGetExtensionFunctionAddress(func_name: *mut c_char);
 }

@@ -478,7 +478,7 @@ impl<T: OclNum> Buffer<T> {
 		(*vec_ptr_mut).get_unchecked_mut(idx) 
 	}
 
-	/// Returns a copy of the device buffer object reference.
+	/// Returns a copy of the raw buffer object reference.
 	#[inline]
 	pub fn buffer_obj(&self) -> cl_mem {
 		self.buffer_obj
@@ -663,6 +663,7 @@ pub fn shuffle_vec<T: OclNum>(vec: &mut Vec<T>) {
 
 
 // #[cfg(test)]
+#[cfg(not(release))]
 pub mod tests {
 	use super::{ Buffer };
 	use super::super::{ OclNum };

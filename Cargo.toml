@@ -1,6 +1,6 @@
 [package]
 name = "ocl"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL interfaces for Rust."
 documentation = "http://doc.cogciprocate.com/ocl/index.html"
@@ -17,3 +17,13 @@ rand = "0.3"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
+
+[profile.test]
+opt-level = 0
+debug = true
+rpath = false
+lto = false
+# Set false to make sure we're not relying overly on any debug assertions.
+debug-assertions = false
+codegen-units = 1
+
