@@ -4,9 +4,9 @@ use std::ptr;
 use std::mem;
 use std::ffi;
 use std::collections::HashMap;
-// use num::{ Integer, Zero };
 use libc;
 
+use wrapper;
 use cl_h::{self, cl_mem, cl_kernel, cl_command_queue, cl_int, cl_uint};
 use super::{WorkSize, Buffer, OclNum, EventList, Program, Queue};
 
@@ -43,7 +43,7 @@ impl Kernel {
 		};
 		
 		let err_pre = format!("Ocl::create_kernel({}):", &name);
-		super::must_succeed(&err_pre, err);
+		wrapper::must_succeed(&err_pre, err);
 
 		Kernel {
 			kernel: kernel,
@@ -208,7 +208,7 @@ impl Kernel {
 			);
 
 			let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
-			super::must_succeed(&err_pre, err);
+			wrapper::must_succeed(&err_pre, err);
 		}
 	}
 
@@ -228,7 +228,7 @@ impl Kernel {
 		let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
 
 		let (_, wait_list_len, wait_list_ptr, new_event_ptr) 
-			= super::resolve_queue_opts(false, wait_list, dest_list);
+			= wrapper::resolve_queue_opts(false, wait_list, dest_list);
 
 		unsafe {
 			let err = cl_h::clEnqueueNDRangeKernel(
@@ -244,7 +244,7 @@ impl Kernel {
 			);
 
 			let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);
-			super::must_succeed(&err_pre, err);
+			wrapper::must_succeed(&err_pre, err);
 		}
 	}
 

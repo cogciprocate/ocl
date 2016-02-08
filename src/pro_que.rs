@@ -1,4 +1,5 @@
 //! A convenience wrapper chimera of `Program` and `Queue`.
+use wrapper;
 use super::{Context, Kernel, WorkSize, BuildConfig, Program, Queue};
 
 
@@ -76,7 +77,7 @@ impl ProQue {
 	/// Returns the maximum workgroup size supported by the device on which the
 	/// contained queue exists.
 	pub fn get_max_work_group_size(&self) -> usize {
-		super::get_max_work_group_size(self.queue.device_id())
+		wrapper::get_max_work_group_size(self.queue.device_id())
 	}
 
 	/// Returns the queue created when constructing this ProQue.

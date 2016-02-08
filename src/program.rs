@@ -2,6 +2,7 @@
 
 use std::ffi::CString;
 
+use wrapper;
 use cl_h::{self, cl_program, cl_context, cl_device_id};
 use super::{BuildConfig, Context};
 
@@ -43,13 +44,13 @@ impl Program {
 	{
 		// let kern_c_str = try!(parse_kernel_files(&build_config));
 
-		let obj = try!(super::new_program(kernel_strings, cmplr_opts, 
+		let obj = try!(wrapper::new_program(kernel_strings, cmplr_opts, 
 			context_obj, device_ids).map_err(|e| e.to_string()));
 
 		// [FIXME] TEMPORARY UNWRAP:
 		// [FIXME] IS THIS A DUPLICATE CALL -- YES?
 		// Temporarily disabling (maybe permanent).
-		// super::program_build_info(obj, device_ids).unwrap();
+		// wrapper::program_build_info(obj, device_ids).unwrap();
 
 		Ok(Program {
 			obj: obj,

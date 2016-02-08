@@ -8,6 +8,7 @@ use num::{FromPrimitive, ToPrimitive};
 use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
+use wrapper;
 use cl_h::{self, cl_mem, cl_bitfield};
 use super::{fmt, OclNum, Queue, BufferDims, EventList, OclError, OclResult};
 
@@ -85,7 +86,7 @@ impl<T: OclNum> Buffer<T> {
 	/// The returned Buffer contains no host side vector. Functions associated with
 	/// one such as `.flush_vec()`, `fill_vec()`, etc. will panic.
 	pub fn new<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
-		let len = dims.padded_buffer_len(super::get_max_work_group_size(queue.device_id()));
+		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
 		let init_val = T::default();
 		Buffer::_new((init_val, len), queue)
 	}
@@ -93,7 +94,7 @@ impl<T: OclNum> Buffer<T> {
 	/// Creates a new read/write Buffer with a host side working copy of data.
 	/// Host vector and device buffer are initialized with a sensible default value.
 	pub fn with_vec<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
-		let len = dims.padded_buffer_len(super::get_max_work_group_size(queue.device_id()));
+		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
 		let vec: Vec<T> = iter::repeat(T::default()).take(len).collect();
 
 		Buffer::_with_vec(vec, queue)
@@ -103,7 +104,7 @@ impl<T: OclNum> Buffer<T> {
 	/// Creates a new read/write Buffer with a host side working copy of data.
 	/// Host vector and device buffer are initialized with the value, `init_val`.
 	pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: E, queue: &Queue) -> Buffer<T> {
-		let len = dims.padded_buffer_len(super::get_max_work_group_size(queue.device_id()));
+		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
 		let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
 		Buffer::_with_vec(vec, queue)
@@ -124,7 +125,7 @@ impl<T: OclNum> Buffer<T> {
 	pub fn with_vec_shuffled<E: BufferDims>(min_val: T, max_val: T, dims: E, queue: &Queue) 
 			-> Buffer<T> 
 	{
-		let len = dims.padded_buffer_len(super::get_max_work_group_size(queue.device_id()));
+		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
 		let vec: Vec<T> = shuffled_vec(len, min_val, max_val);
 
 		Buffer::_with_vec(vec, queue)
@@ -141,7 +142,7 @@ impl<T: OclNum> Buffer<T> {
 	pub fn with_vec_scrambled<E: BufferDims>(min_val: T, max_val: T, dims: E, queue: &Queue) 
 			-> Buffer<T> 
 	{
-		let len = dims.padded_buffer_len(super::get_max_work_group_size(queue.device_id()));
+		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
 		let vec: Vec<T> = scrambled_vec(len, min_val, max_val);
 
 		Buffer::_with_vec(vec, queue)
@@ -182,7 +183,7 @@ impl<T: OclNum> Buffer<T> {
 	pub unsafe fn new_raw_unchecked(flags: cl_bitfield, len: usize, host_ptr: Option<&[T]>, 
 				queue: &Queue) -> Buffer<T> 
 	{
-		let buffer_obj: cl_mem = super::create_buffer(host_ptr, Some((T::default(), len)), 
+		let buffer_obj: cl_mem = wrapper::create_buffer(host_ptr, Some((T::default(), len)), 
 			queue.context_obj(), flags);
 
 		Buffer {
@@ -196,7 +197,7 @@ impl<T: OclNum> Buffer<T> {
 	// Consolidated constructor for Buffers without vectors.
 	#[inline]
 	fn _new(iv_len: (T, usize), queue: &Queue) -> Buffer<T> {
-		let buffer_obj: cl_mem = super::create_buffer(None, Some(iv_len), 
+		let buffer_obj: cl_mem = wrapper::create_buffer(None, Some(iv_len), 
 			queue.context_obj(), cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
 
 		Buffer {			
@@ -210,7 +211,7 @@ impl<T: OclNum> Buffer<T> {
 	// Consolidated constructor for Buffers with vectors.
 	#[inline]
 	fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-		let buffer_obj: cl_mem = super::create_buffer(Some(&mut vec), None, queue.context_obj(), 
+		let buffer_obj: cl_mem = wrapper::create_buffer(Some(&mut vec), None, queue.context_obj(), 
 			cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
 
 		Buffer {		
@@ -231,7 +232,7 @@ impl<T: OclNum> Buffer<T> {
 				dest_list: Option<&mut EventList>) 
 	{
 		let block_after_write = dest_list.is_none();
-		super::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, block_after_write, 
+		wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, block_after_write, 
 			data, offset, wait_list, dest_list);
 	}
 
@@ -247,7 +248,7 @@ impl<T: OclNum> Buffer<T> {
 				dest_list: Option<&mut EventList>) 
 	{
 		let block_after_read = dest_list.is_none();
-		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, block_after_read, 
+		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, block_after_read, 
 			data, offset, wait_list, dest_list);
 	}
 
@@ -258,7 +259,7 @@ impl<T: OclNum> Buffer<T> {
 	/// Panics if this Buffer contains no vector.
 	pub fn flush_vec(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
 		let vec = self.vec.as_ref_mut().expect("Buffer::flush_vec()");
-		super::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
+		wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
 			vec, 0, wait_list, dest_list);
 	}
 
@@ -271,7 +272,7 @@ impl<T: OclNum> Buffer<T> {
 	/// Panics if this Buffer contains no vector.
 	pub fn flush_vec_wait(&mut self) {
 		let vec = self.vec.as_ref_mut().expect("Buffer::flush_vec_wait()");
-		super::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, true, vec, 0, None, None);
+		wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, true, vec, 0, None, None);
 	}
 
 
@@ -282,7 +283,7 @@ impl<T: OclNum> Buffer<T> {
 	/// Panics if this Buffer contains no vector.
 	pub fn fill_vec(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
 		let vec = self.vec.as_ref_mut().expect("Buffer::fill_vec()");
-		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
+		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
 			vec, 0, wait_list, dest_list);
 	}	
 
@@ -294,7 +295,7 @@ impl<T: OclNum> Buffer<T> {
 	/// Panics if this Buffer contains no vector.
 	pub fn fill_vec_wait(&mut self) {
 		let vec = self.vec.as_ref_mut().expect("Buffer::read_wait()");
-		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, 
+		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, 
 			true, vec, 0, None, None);
 	}	
 
@@ -384,7 +385,7 @@ impl<T: OclNum> Buffer<T> {
 
 		let vec = self.vec.as_ref_mut().expect("Buffer::print()");
 
-		super::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, true, 
+		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, true, 
 			&mut vec[idx_range.clone()], idx_range.start, None, None);
 		fmt::print_vec(&vec[..], every, val_range, idx_range_opt, zeros);
 
@@ -398,19 +399,19 @@ impl<T: OclNum> Buffer<T> {
 	/// had a reference to the (device side) buffer associated with this Buffer.
 	pub unsafe fn resize(&mut self, new_dims: &BufferDims/*, val: T*/) {
 		self.release();
-		let new_len = new_dims.padded_buffer_len(super::get_max_work_group_size(
+		let new_len = new_dims.padded_buffer_len(wrapper::get_max_work_group_size(
 			self.queue.device_id()));
 
 		match self.vec {
 			VecOption::Some(ref mut vec) => {
 				vec.resize(new_len, T::default());
-				self.buffer_obj = super::create_buffer(Some(vec), None, self.queue.context_obj(), 
+				self.buffer_obj = wrapper::create_buffer(Some(vec), None, self.queue.context_obj(), 
 					cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
 			},
 			VecOption::None => {
 				self.len = new_len;
 				// let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
-				self.buffer_obj = super::create_buffer(None, Some((T::default(), new_len)), 
+				self.buffer_obj = wrapper::create_buffer(None, Some((T::default(), new_len)), 
 					self.queue.context_obj(), cl_h::CL_MEM_READ_WRITE);
 			},
 		};
@@ -419,7 +420,7 @@ impl<T: OclNum> Buffer<T> {
 	/// Decrements the reference count associated with the previous buffer object, 
 	/// `self.buffer_obj`.
     pub fn release(&mut self) {
-		super::release_mem_object(self.buffer_obj);
+		wrapper::release_mem_object(self.buffer_obj);
 	}
 
 	/// Returns a reference to the local vector associated with this buffer.
