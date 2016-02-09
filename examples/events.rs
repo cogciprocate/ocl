@@ -10,7 +10,7 @@ const ITERATIONS: usize = 8;
 // Whether or not to print:
 const PRINT_DEBUG: bool = true;
 // How many results to print from each iteration:
-const RESULTS_TO_PRINT: usize = 20;
+const RESULTS_TO_PRINT: usize = 5;
 
 struct TestEventsStuff {
 	seed_env: *const Buffer<u32>, 
@@ -31,7 +31,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 		let addend: u32 = (*buncha_stuff).addend;
 		let itr: usize = (*buncha_stuff).itr;
 		
-		if PRINT_DEBUG { println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
+		if PRINT_DEBUG { println!("\nEvent: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
 		    	 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
 
 		for idx in 0..data_set_size {
@@ -64,7 +64,9 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 			}
 		}
 
-		if PRINT_DEBUG && errors_found > 0 { print!("TOTAL ERRORS FOUND: {}\n\n", errors_found); }
+		if PRINT_DEBUG { 
+			if errors_found > 0 { print!("TOTAL ERRORS FOUND: {}\n", errors_found); }
+		}
     }
 }
 

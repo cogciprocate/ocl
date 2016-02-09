@@ -18,13 +18,16 @@ Breaking Changes
 
 Builders
 --------
-- ProQue now has a builder type: [`ProQueBuilder`] created by calling 
-  [`ProQue::builder()`].
+- [`ProQueBuilder`] is now the most boilerplate-free way to create an OpenCL
+  context, program, and queue. Create one by calling ['ProQue::builder()'].
+  See [`basics.rs`] for an example and [documentation][0.5doc] for more info.
 
 
-[`ProQue::build_program`]: 
-[`Buffer::with_vec_shuffled`]:
-[`Buffer::with_vec_scrambled`]:
-[`ProQueBuilder`]:
-[`ProQue::builder()`]:
-[`ProgramBuilder`]:
+[0.5doc]: http://doc.cogciprocate.com/ocl/
+[`ProQue::build_program`]: http://doc.cogciprocate.com/ocl/
+[`Buffer::with_vec_shuffled`]: http://doc.cogciprocate.com/ocl/
+[`Buffer::with_vec_scrambled`]: http://doc.cogciprocate.com/ocl/
+[`ProQueBuilder`]: http://doc.cogciprocate.com/ocl/
+[`ProQue::builder()`]: http://doc.cogciprocate.com/ocl/
+[`ProgramBuilder`]: http://doc.cogciprocate.com/ocl/
+[`basics.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/basics.rs

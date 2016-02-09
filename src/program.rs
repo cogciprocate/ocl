@@ -1,4 +1,4 @@
-//! An OpenCL program, sometimes referred to as a build.
+//! An OpenCL program.
 
 use std::ffi::CString;
 
@@ -20,7 +20,7 @@ pub struct Program {
 	device_ids: Vec<cl_device_id>,
 }
 
-// [FIXME] TODO: ERROR HANDLING
+// [TODO]: ERROR HANDLING
 impl Program {
 	/// Returns a new `ProgramBuilder`.
 	pub fn builder() -> ProgramBuilder {
@@ -42,7 +42,7 @@ impl Program {
 
 	/// Returns a new program built from pre-created build components and device
 	/// list.
-	// SOMEDAY TODO: Keep track of line number range for each kernel string and print 
+	// [SOMEDAY TODO]: Keep track of line number range for each kernel string and print 
 	// out during build failure.
 	pub fn from_parts(
 				src_strings: Vec<CString>, 
@@ -51,15 +51,8 @@ impl Program {
 				device_ids: &Vec<cl_device_id>,
 			) -> OclResult<Program> 
 	{
-		// let kern_c_str = try!(parse_kernel_files(&program_builder));
-
 		let obj = try!(wrapper::new_program(src_strings, cmplr_opts, 
 			context_obj, device_ids).map_err(|e| e.to_string()));
-
-		// [FIXME] TEMPORARY UNWRAP:
-		// [FIXME] IS THIS A DUPLICATE CALL -- YES?
-		// Temporarily disabling (maybe permanent).
-		// wrapper::program_build_info(obj, device_ids).unwrap();
 
 		Ok(Program {
 			obj: obj,
@@ -74,7 +67,7 @@ impl Program {
 	}
 
 	/// Decrements the associated OpenCL program object's reference count.
-	// Note: Do not move this to a Drop impl in case this Program has been cloned.
+	// [NOTE]: Do not move this to a Drop impl in case this Program has been cloned.
 	pub fn release(&mut self) {
 		unsafe { 
 			cl_h::clReleaseProgram(self.obj);

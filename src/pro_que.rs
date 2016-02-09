@@ -65,9 +65,9 @@ impl ProQue {
 	/// # Panics
 	/// This `ProQue` must not already contain a program.
 	///
-	/// `program_builder` must not have any device indexes configured (via
-	/// `::device_idxs`) as `ProQue` will only build programs on the device that
-	/// the built-in queue is associated with.
+	/// `program_builder` must not have any device indexes configured (via its
+	/// `::device_idxs` method). `ProQue` will only build programs for the device
+	/// previously configured or the default device if none had been specified.
 	pub fn build_program(&mut self, program_builder: ProgramBuilder) -> OclResult<()> {
 		if self.program.is_some() { 
 			return OclError::err("ProQue::build_program(): Pre-existing build detected. Use \
