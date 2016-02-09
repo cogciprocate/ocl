@@ -112,7 +112,7 @@ impl<T: OclNum> Buffer<T> {
 
 	/// [UNSTABLE][MARKED FOR POSSIBLE REMOVAL]: Convenience function.
 	/// Creates a new read/write Buffer with a vector initialized with a series of 
-	/// integers ranging from `min_val` to `max_val` (closed) which are shuffled 
+	/// integers ranging from `vals.0` to `vals.1` (closed) which are shuffled 
 	/// randomly.
 	///
 	/// Note: Even if the Buffer type is a floating point type, the values returned
@@ -121,29 +121,29 @@ impl<T: OclNum> Buffer<T> {
 	/// # Security
 	///
 	/// Resulting values are not cryptographically secure.
-	// Note: max_val is inclusive.
-	pub fn with_vec_shuffled<E: BufferDims>(min_val: T, max_val: T, dims: E, queue: &Queue) 
+	// Note: vals.1 is inclusive.
+	pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
 			-> Buffer<T> 
 	{
 		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
-		let vec: Vec<T> = shuffled_vec(len, min_val, max_val);
+		let vec: Vec<T> = shuffled_vec(len, vals);
 
 		Buffer::_with_vec(vec, queue)
 	}
 
 	/// [UNSTABLE][MARKED FOR POSSIBLE REMOVAL]: Convenience function.
 	/// Creates a new read/write Buffer with a vector initialized with random values 
-	/// within the (half-open) range `min_val..max_val`.
+	/// within the (half-open) range `vals.0..vals.1`.
 	///
 	/// # Security
 	///
 	/// Resulting values are not cryptographically secure.
-	// Note: max_val is exclusive.
-	pub fn with_vec_scrambled<E: BufferDims>(min_val: T, max_val: T, dims: E, queue: &Queue) 
+	// Note: vals.1 is exclusive.
+	pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
 			-> Buffer<T> 
 	{
 		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
-		let vec: Vec<T> = scrambled_vec(len, min_val, max_val);
+		let vec: Vec<T> = scrambled_vec(len, vals);
 
 		Buffer::_with_vec(vec, queue)
 	}	
@@ -195,7 +195,6 @@ impl<T: OclNum> Buffer<T> {
 	}
 
 	// Consolidated constructor for Buffers without vectors.
-	#[inline]
 	fn _new(iv_len: (T, usize), queue: &Queue) -> Buffer<T> {
 		let buffer_obj: cl_mem = wrapper::create_buffer(None, Some(iv_len), 
 			queue.context_obj(), cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
@@ -209,7 +208,6 @@ impl<T: OclNum> Buffer<T> {
 	}
 
 	// Consolidated constructor for Buffers with vectors.
-	#[inline]
 	fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
 		let buffer_obj: cl_mem = wrapper::create_buffer(Some(&mut vec), None, queue.context_obj(), 
 			cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
@@ -344,7 +342,6 @@ impl<T: OclNum> Buffer<T> {
 	/// if any. This may not agree with desired dataset size because it will have been
 	/// rounded up to the nearest maximum workgroup size of the device on which it was
 	/// created.
-	#[inline]
 	pub fn len(&self) -> usize {
 		debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
 			else { self.len }) == self.len);
@@ -479,13 +476,11 @@ impl<T: OclNum> Buffer<T> {
 	}
 
 	/// Returns a copy of the raw buffer object reference.
-	#[inline]
 	pub fn buffer_obj(&self) -> cl_mem {
 		self.buffer_obj
 	}
 
 	/// Returns a reference to the program/command queue associated with this buffer.
-	#[inline]
 	pub fn queue(&self) -> &Queue {
 		&self.queue
 	}
@@ -498,7 +493,6 @@ impl<T: OclNum> Buffer<T> {
 	/// have been considered or are dealt with. For now, considering these cases is
 	/// left to the caller. It's probably a good idea to at least call `.resize()`
 	/// after calling this function.
-	#[inline]
 	pub unsafe fn set_queue(&mut self, queue: Queue) {
 		self.queue = queue;
 	}
@@ -507,7 +501,6 @@ impl<T: OclNum> Buffer<T> {
 	///
 	/// # Panics
 	/// Panics if this Buffer contains no vector.
-	#[inline]
 	pub fn iter<'a>(&'a self) -> Iter<'a, T> {
 		self.vec.as_ref().expect("Buffer::iter()").iter()
 	}
@@ -516,7 +509,6 @@ impl<T: OclNum> Buffer<T> {
 	///
 	/// # Panics
 	/// Panics if this Buffer contains no vector.
-	#[inline]
 	pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
 		self.vec.as_ref_mut().expect("Buffer::iter()").iter_mut()
 	}
@@ -612,27 +604,27 @@ impl<T> IndexMut<RangeFull> for Buffer<T> {
 
 
 /// Returns a vector with length `size` containing random values in the (half-open)
-/// range `[min_val, max_val)`.
-pub fn scrambled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
+/// range `[vals.0, vals.1)`.
+pub fn scrambled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
 	assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
-	assert!(min_val < max_val, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
+	assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
 	let mut rng = rand::weak_rng();
-	let range = RandRange::new(min_val, max_val);
+	let range = RandRange::new(vals.0, vals.1);
 
 	(0..size).map(|_| range.ind_sample(&mut rng)).take(size as usize).collect()
 }
 
 /// Returns a vector with length `size` which is first filled with each integer value
-/// in the (inclusive) range `[min_val, max_val]`. If `size` is greater than the 
+/// in the (inclusive) range `[vals.0, vals.1]`. If `size` is greater than the 
 /// number of integers in the aforementioned range, the integers will repeat. After
 /// being filled with `size` values, the vector is shuffled and the order of its
 /// values is randomized.
-pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
+pub fn shuffled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
 	let mut vec: Vec<T> = Vec::with_capacity(size);
 	assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
-	assert!(min_val < max_val, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
-	let min = min_val.to_i64().expect("\nbuffer::shuffled_vec(), min");
-	let max = max_val.to_i64().expect("\nbuffer::shuffled_vec(), max") + 1;
+	assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
+	let min = vals.0.to_i64().expect("\nbuffer::shuffled_vec(), min");
+	let max = vals.1.to_i64().expect("\nbuffer::shuffled_vec(), max") + 1;
 	let mut range = (min..max).cycle();
 
 	for _ in 0..size {

@@ -26,15 +26,16 @@ pub use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_device_inf
 
 pub use self::formatting as fmt;
 pub use self::context::Context;
+pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;
 pub use self::queue::Queue;
 pub use self::kernel::Kernel;
 pub use self::buffer::Buffer;
 pub use self::image::Image;
+pub use self::pro_que_builder::ProQueBuilder;
 pub use self::pro_que::ProQue;
 pub use self::simple_dims::SimpleDims;
 pub use self::work_size::WorkSize;
-pub use self::build_config::{BuildConfig, BuildOpt};
 pub use self::error::{OclError, OclResult};
 pub use self::event_list::EventList;
 // [FIXME]: TODO: Create an additional crate build configuration for tests
@@ -47,16 +48,17 @@ extern crate num;
 extern crate rand;
 
 mod context;
+mod program_builder;
 mod program;
 mod queue;
 pub mod cl_h;
 mod buffer;
 mod image;
+mod pro_que_builder;
 mod pro_que;
 mod simple_dims;
 mod kernel;
 mod work_size;
-mod build_config;
 mod error;
 pub mod formatting;
 mod event_list;

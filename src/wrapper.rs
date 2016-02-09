@@ -14,11 +14,12 @@ use std::iter;
 use libc;
 use num::{FromPrimitive};
 
-use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context, 
+use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context,
+	cl_platform_info,
 	cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, cl_bool,
 	cl_int, cl_uint, cl_bitfield, CLStatus};
 
-use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, EventList, OclNum, Buffer};
+use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, EventList, OclNum, Buffer, OclError, OclResult};
 
 
 //=============================================================================
@@ -100,7 +101,7 @@ pub fn new_program(
 			cmplr_opts: CString,
 			context: cl_context, 
 			device_ids: &Vec<cl_device_id>
-		) -> Result<cl_program, String>
+		) -> OclResult<cl_program>
 {
 	// Lengths (not including \0 terminator) of each string:
 	let ks_lens: Vec<usize> = kern_strings.iter().map(|cs| cs.as_bytes().len()).collect();	
@@ -129,7 +130,7 @@ pub fn new_program(
 		);		
 
 		if err < 0 {
-			program_build_info(program, device_ids).map(|_| program)
+			program_build_info(program, device_ids, true).map(|_| program)
 		} else {
 			must_succeed("clBuildProgram()", err);
 			// Unreachable:
@@ -463,7 +464,7 @@ pub fn platform_info(platform: cl_platform_id) {
 	let mut size = 0 as libc::size_t;
 
 	unsafe {
-		let name = cl_h::CL_PLATFORM_NAME as cl_device_info;
+		let name = cl_h::CL_PLATFORM_NAME as cl_platform_info;
 		let mut err = cl_h::clGetPlatformInfo(
 					platform,
 					name,
@@ -487,7 +488,9 @@ pub fn platform_info(platform: cl_platform_id) {
 }
 
 #[inline]
-pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>) -> Result<(), String> {
+pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>, 
+			print_output: bool) -> OclResult<()> 
+{
 	let mut size = 0 as libc::size_t;
 
 	for &device_id in device_ids.iter() {
@@ -518,14 +521,55 @@ pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>) -
 
 			if size > 1 {
 				let pbi_nonull = try!(String::from_utf8(pbi).map_err(|e| e.to_string()));
-				let pbi_err_string = format!("OPENCL PROGRAM BUILD ERROR: \n\n {}", pbi_nonull);
-				println!("\n{}", pbi_err_string);
-				return Err(pbi_err_string);
+				let pbi_err_string = format!("OpenCL Program Build Info for '{:?}':\
+				\n\n{}\n", device_id, pbi_nonull);
+
+				if print_output {
+					println!(
+
+"\n\n\
+###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\n\n\
+{}\
+###############################################################################\
+\n\n"
+
+					, pbi_err_string);
+				}
+
+				return OclError::err(pbi_err_string);
 			}
 		}
 	}
 
 	Ok(())
+}
+
+/// Returns a string containing requested information.
+///
+/// Currently lazily assumes everything is a char[] then into a String. Non-string
+/// info types need to be manually reconstructed from that. Yes this is retarded.
+///
+/// [TODO (low priority)]: Needs to eventually be made more flexible and should return 
+/// an enum with a variant corresponding to the type of info requested. Could 
+/// alternatively return a generic type and just blindly cast to it.
+#[allow(dead_code, unused_variables)] 
+pub fn device_info(device: cl_device_id, info_type: cl_device_info) -> String {
+	let mut info_value_size: usize = 0;
+
+	let err = unsafe { 
+		cl_h::clGetDeviceInfo(
+			device,
+			cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
+			mem::size_of::<usize>() as usize,
+			// mem::transmute(&max_work_group_size),
+			0 as *mut libc::c_void,
+			&mut info_value_size as *mut usize,
+		) 
+	}; 
+
+	must_succeed("clGetDeviceInfo", err);
+
+	String::new()
 }
 
 #[inline]

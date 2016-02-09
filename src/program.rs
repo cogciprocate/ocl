@@ -4,11 +4,15 @@ use std::ffi::CString;
 
 use wrapper;
 use cl_h::{self, cl_program, cl_context, cl_device_id};
-use super::{BuildConfig, Context};
+use super::{ProgramBuilder, Context, OclResult};
 
 /// An OpenCL program, sometimes referred to as a build.
 ///
 /// To use with multiple devices, create manually with `::from_parts()`.
+///
+/// # Destruction
+/// `::release` must be manually called by consumer.
+///
 #[derive(Clone)]
 pub struct Program {
 	obj: cl_program,
@@ -18,17 +22,22 @@ pub struct Program {
 
 // [FIXME] TODO: ERROR HANDLING
 impl Program {
+	/// Returns a new `ProgramBuilder`.
+	pub fn builder() -> ProgramBuilder {
+		ProgramBuilder::new()
+	}
+
 	/// Returns a new program.
-	pub fn new(build_config: BuildConfig, context: &Context, device_idx: Option<usize>
-			) -> Result<Program, String> 
+	pub fn new(program_builder: ProgramBuilder, context: &Context, device_idxs: Vec<usize>
+			) -> OclResult<Program> 
 	{
-		let device_id = context.resolve_device_id(device_idx);
+		let device_ids = context.resolve_device_idxs(device_idxs);
 
 		Program::from_parts(
-			try!(build_config.kernel_strings().map_err(|e| e.to_string())), 
-			try!(build_config.compiler_options().map_err(|e| e.to_string())), 
-			context.obj(), 
-			&vec![device_id])
+			try!(program_builder.src_strings().map_err(|e| e.to_string())), 
+			try!(program_builder.compiler_options().map_err(|e| e.to_string())), 
+			context.context_obj(), 
+			&device_ids)
 	}
 
 	/// Returns a new program built from pre-created build components and device
@@ -36,15 +45,15 @@ impl Program {
 	// SOMEDAY TODO: Keep track of line number range for each kernel string and print 
 	// out during build failure.
 	pub fn from_parts(
-				kernel_strings: Vec<CString>, 
+				src_strings: Vec<CString>, 
 				cmplr_opts: CString, 
 				context_obj: cl_context, 
 				device_ids: &Vec<cl_device_id>,
-			) -> Result<Program, String> 
+			) -> OclResult<Program> 
 	{
-		// let kern_c_str = try!(parse_kernel_files(&build_config));
+		// let kern_c_str = try!(parse_kernel_files(&program_builder));
 
-		let obj = try!(wrapper::new_program(kernel_strings, cmplr_opts, 
+		let obj = try!(wrapper::new_program(src_strings, cmplr_opts, 
 			context_obj, device_ids).map_err(|e| e.to_string()));
 
 		// [FIXME] TEMPORARY UNWRAP:

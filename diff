@@ -1,0 +1,1649 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 626142e..74f7a1a 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1,6 +1,6 @@
+ [root]
+ name = "ocl"
+-version = "0.4.0"
++version = "0.5.0"
+ dependencies = [
+  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+  "libc 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+diff --git a/Cargo.toml b/Cargo.toml
+index 7f4ca17..40da973 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "ocl"
+-version = "0.4.1"
++version = "0.5.0"
+ authors = ["Nick Sanders <cogciprocate@gmail.com>"]
+ description = "OpenCL interfaces for Rust."
+ documentation = "http://doc.cogciprocate.com/ocl/index.html"
+diff --git a/README.md b/README.md
+index 4549808..9efe1b4 100644
+--- a/README.md
++++ b/README.md
+@@ -1,16 +1,14 @@
+ # ocl
+ 
+-[![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
+-
+-
+-**[Documentation](http://doc.cogciprocate.com/ocl/)**
++#### [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) | 
++[Documentation](http://doc.cogciprocate.com/ocl/) | [Recent Changes](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
+ 
+ OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and perform on a par with any C++ libraries.
+ 
+ Interfaces are still unstable. Won't eat your laundry but some of the conventions may change (in hopefully obvious ways).
+ 
+ 
+-##Goals
++## Goals
+ 
+ To provide a simple and intuitive way to interact with OpenCL devices with:
+ - The full functionality of the OpenCL C ABI 
+@@ -19,12 +17,12 @@ To provide a simple and intuitive way to interact with OpenCL devices with:
+ - As close as possible to zero performance overhead
+ 
+ 
+-##Platforms
++## Platforms
+ 
+ Tested so far only on Linux. Please [provide feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and successes on other platforms. *Note: Probably working in OS X, need confirmation.*
+ 
+ 
+-##Installation
++## Installation
+ 
+ Ensure that an OpenCL library is installed for your preferred platform and  that `clinfo` or some other diagnostic command will run.
+ 
+@@ -38,51 +36,46 @@ ocl = "0.4"
+ to your project's `Cargo.toml`.
+ 
+ 
+-##Example 
++## Example 
+ From 'examples/basics.rs':
+ 
+ ```
+-use ocl::{Context, ProQue, BuildConfig, SimpleDims, Buffer};
+ extern crate ocl;
+ 
++// Number of results to print out:
+ const RESULTS_TO_PRINT: usize = 20;
+ 
+-fn main() {
+-	// Set our data set size and coefficent to arbitrary values:
+-	let data_set_size = 900000;
+-	let coeff = 5432.1;
+-
+-	// Create a context with the first avaliable platform and default device type:
+-	let ocl_cxt = Context::new(None, None).unwrap();
+-
+-	// Create a program/queue with the first available device: 
+-	let mut ocl_pq = ProQue::new(&ocl_cxt, None);
+-
+-	// Declare our kernel source code:
+-	let kernel_src = r#"
+-		__kernel void multiply_by_scalar(
+-					__global float const* const src,
+-					__private float const coeff,
+-					__global float* const res)
+-		{
+-			uint const idx = get_global_id(0);
+-
+-			res[idx] = src[idx] * coeff;
+-		}
+-	"#;
++// Our arbitrary data set size and coefficent:
++const DATA_SET_SIZE: usize = 900000;
++const COEFF: f32 = 5432.1;
++
++// Our kernel source code:
++static KERNEL_SRC: &'static str = r#"
++	__kernel void multiply_by_scalar(
++				__global float const* const src,
++				__private float const coeff,
++				__global float* const res)
++	{
++		uint const idx = get_global_id(0);
+ 
+-	// Create a basic build configuration using above source: 
+-	let build_config = BuildConfig::new().kern_embed(kernel_src);
++		res[idx] = src[idx] * coeff;
++	}
++"#;
+ 
+-	// Build with our configuration and check for errors:
+-	ocl_pq.build(build_config).expect("ocl program build");
++
++fn main() {
++	use ocl::{ProQue, SimpleDims, Buffer};
++
++	// Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
++	let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");
+ 
+ 	// Set up our work dimensions / data set size:
+-	let dims = SimpleDims::OneDim(data_set_size);
++	let dims = SimpleDims::OneDim(DATA_SET_SIZE);
+ 
+-	// Create a 'Buffer' (a local vector + a remote buffer) as a data source:
++	// Create a 'Buffer' (a device buffer + a local vector) as a data source
++	// and initialize it with random floats between 0.0 and 20.0:
+ 	let source_buffer: Buffer<f32> = 
+-		Buffer::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
++		Buffer::with_vec_scrambled((0.0, 20.0), &dims, &ocl_pq.queue());
+ 
+ 	// Create another empty buffer for results:
+ 	let mut result_buffer: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
+@@ -90,40 +83,35 @@ fn main() {
+ 	// Create a kernel with three arguments corresponding to those in the kernel:
+ 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
+ 		.arg_env(&source_buffer)
+-		.arg_scl(coeff)
+-		.arg_env(&mut result_buffer)
+-	;
++		.arg_scl(COEFF)
++		.arg_env(&mut result_buffer);
+ 
+ 	// Enqueue kernel depending on and creating no events:
+ 	kernel.enqueue(None, None);
+ 
+-	// Read results from the device into the buffer's vector:
++	// Read results from the device into result_buffer's local vector:
+ 	result_buffer.fill_vec_wait();
+ 
+ 	// Check results and print the first 20:
+-	for idx in 0..data_set_size {
+-		// Check:
+-		assert_eq!(result_buffer[idx], source_buffer[idx] * coeff);
++	for idx in 0..DATA_SET_SIZE {
++		assert_eq!(result_buffer[idx], source_buffer[idx] * COEFF);
+ 
+-		// Print:
+ 		if idx < RESULTS_TO_PRINT { 
+-			println!("source_buffer[idx]: {}, coeff: {}, result_buffer[idx]: {}",
+-			source_buffer[idx], coeff, result_buffer[idx]); 
++			println!("source[{idx}]: {}, \tcoeff: {}, \tresult[{idx}]: {}",
++			source_buffer[idx], COEFF, result_buffer[idx], idx = idx); 
+ 		}
+ 	}
+ }
+-
+ ```
++### Recent Changes
+ 
+-###Recent Changes
+-
+-'Envoy' has undergone a major redesign: [Issue #4](https://github.com/cogciprocate/ocl/issues/4) and has been renamed to 'Buffer'.
++See the **[RELEASES](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)** log.
+ 
+-###Upcoming Changes
++### Upcoming Changes
+ 
+ At the top of the list are cleaning up and consolidating error handling [Issue #8](https://github.com/cogciprocate/ocl/issues/8) and finishing [documentation](http://doc.cogciprocate.com/ocl/) (now about 60% complete).
+ 
+-##Help
++## Help
+ 
+ *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1` exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not already (AMD drivers sometimes don't create this link).  Intel and AMD also have OpenCL libraries for your CPU if you're having trouble getting your GPU to work (intel: [windows](http://registrationcenter.intel.com/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationcenter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)). 
+ 
+diff --git a/examples/basics.rs b/examples/basics.rs
+index de57d24..9da0298 100644
+--- a/examples/basics.rs
++++ b/examples/basics.rs
+@@ -1,44 +1,39 @@
+-use ocl::{Context, ProQue, BuildConfig, SimpleDims, Buffer};
+ extern crate ocl;
+ 
++// Number of results to print out:
+ const RESULTS_TO_PRINT: usize = 20;
+ 
+-fn main() {
+-	// Set our data set size and coefficent to arbitrary values:
+-	let data_set_size = 900000;
+-	let coeff = 5432.1;
++// Our arbitrary data set size and coefficent:
++const DATA_SET_SIZE: usize = 900000;
++const COEFF: f32 = 5432.1;
+ 
+-	// Create a context with the first avaliable platform and default device type:
+-	let ocl_cxt = Context::new(None, None).unwrap();
++// Our kernel source code:
++static KERNEL_SRC: &'static str = r#"
++	__kernel void multiply_by_scalar(
++				__global float const* const src,
++				__private float const coeff,
++				__global float* const res)
++	{
++		uint const idx = get_global_id(0);
+ 
+-	// Create a program/queue with the first available device: 
+-	let mut ocl_pq = ProQue::new(&ocl_cxt, None);
++		res[idx] = src[idx] * coeff;
++	}
++"#;
+ 
+-	// Declare our kernel source code:
+-	let kernel_src = r#"
+-		__kernel void multiply_by_scalar(
+-					__global float const* const src,
+-					__private float const coeff,
+-					__global float* const res)
+-		{
+-			uint const idx = get_global_id(0);
+ 
+-			res[idx] = src[idx] * coeff;
+-		}
+-	"#;
+-
+-	// Create a basic build configuration using above source: 
+-	let build_config = BuildConfig::new().kern_embed(kernel_src);
++fn main() {
++	use ocl::{ProQue, SimpleDims, Buffer};
+ 
+-	// Build with our configuration and check for errors:
+-	ocl_pq.build(build_config).expect("ocl program build");
++	// Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
++	let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");
+ 
+ 	// Set up our work dimensions / data set size:
+-	let dims = SimpleDims::OneDim(data_set_size);
++	let dims = SimpleDims::OneDim(DATA_SET_SIZE);
+ 
+-	// Create a 'Buffer' (a local vector + a remote buffer) as a data source:
++	// Create a 'Buffer' (a device buffer + a local vector) as a data source
++	// and initialize it with random floats between 0.0 and 20.0:
+ 	let source_buffer: Buffer<f32> = 
+-		Buffer::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
++		Buffer::with_vec_scrambled((0.0, 20.0), &dims, &ocl_pq.queue());
+ 
+ 	// Create another empty buffer for results:
+ 	let mut result_buffer: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
+@@ -46,25 +41,22 @@ fn main() {
+ 	// Create a kernel with three arguments corresponding to those in the kernel:
+ 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
+ 		.arg_env(&source_buffer)
+-		.arg_scl(coeff)
+-		.arg_env(&mut result_buffer)
+-	;
++		.arg_scl(COEFF)
++		.arg_env(&mut result_buffer);
+ 
+ 	// Enqueue kernel depending on and creating no events:
+ 	kernel.enqueue(None, None);
+ 
+-	// Read results from the device into the buffer's vector:
++	// Read results from the device into result_buffer's local vector:
+ 	result_buffer.fill_vec_wait();
+ 
+ 	// Check results and print the first 20:
+-	for idx in 0..data_set_size {
+-		// Check:
+-		assert_eq!(result_buffer[idx], source_buffer[idx] * coeff);
++	for idx in 0..DATA_SET_SIZE {
++		assert_eq!(result_buffer[idx], source_buffer[idx] * COEFF);
+ 
+-		// Print:
+ 		if idx < RESULTS_TO_PRINT { 
+-			println!("source_buffer[idx]: {}, coeff: {}, result_buffer[idx]: {}",
+-			source_buffer[idx], coeff, result_buffer[idx]); 
++			println!("source[{idx}]: {}, \tcoeff: {}, \tresult[{idx}]: {}",
++			source_buffer[idx], COEFF, result_buffer[idx], idx = idx); 
+ 		}
+ 	}
+ }
+diff --git a/examples/events.rs b/examples/events.rs
+index 4f404ca..ed07e38 100644
+--- a/examples/events.rs
++++ b/examples/events.rs
+@@ -2,7 +2,7 @@ extern crate libc;
+ extern crate ocl;
+ 
+ use libc::c_void;
+-use ocl::{Context, ProQue, BuildConfig, SimpleDims, Buffer, EventList};
++use ocl::{Context, ProQue, ProgramBuilder, SimpleDims, Buffer, EventList};
+ use ocl::cl_h::{cl_event, cl_int};
+ 
+ // How many iterations we wish to run:
+@@ -39,11 +39,32 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
+ 				((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
+ 
+ 			if PRINT_DEBUG && (idx < RESULTS_TO_PRINT) {
+-				print!("[{}]", (*result_buffer)[idx]);
++				let correct_result = (*seed_buffer)[idx] + (((itr + 1) as u32) * addend);
++				print!("correct_result: {}, result_buffer[{idx}]:{}\n",
++					correct_result, (*result_buffer)[idx], idx = idx);
+ 			}
+ 		}
+ 
+-		if PRINT_DEBUG { print!("\n\n"); }
++		let mut errors_found = 0;
++
++		for idx in 0..data_set_size {
++			// [FIXME]: FAILING ON OSX -- TEMPORARLY COMMENTING OUT
++			// assert_eq!((*result_buffer)[idx], 
++			// 	((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
++
++			if PRINT_DEBUG {
++				let correct_result = (*seed_buffer)[idx] + (((itr + 1) as u32) * addend);
++
++				if (*result_buffer)[idx] != correct_result {
++					print!("correct_result:{}, result_buffer[{idx}]:{}\n",
++						correct_result, (*result_buffer)[idx], idx = idx);
++
++					errors_found += 1;
++				}
++			}
++		}
++
++		if PRINT_DEBUG && errors_found > 0 { print!("TOTAL ERRORS FOUND: {}\n\n", errors_found); }
+     }
+ }
+ 
+@@ -52,14 +73,14 @@ fn main() {
+ 	let mut ocl_pq = ProQue::new(&Context::new(None, None).unwrap(), None);
+ 
+ 	// Build program:
+-	ocl_pq.build(BuildConfig::new().kern_file("cl/kernel_file.cl")).unwrap();
++	ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();
+ 
+ 	// Set up data set size and work dimensions:
+ 	let data_set_size = 900000;
+ 	let our_test_dims = SimpleDims::OneDim(data_set_size);
+ 
+ 	// Create source and result buffers (our data containers):
+-	let seed_buffer = Buffer::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
++	let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &our_test_dims, &ocl_pq.queue());
+ 	let mut result_buffer = Buffer::with_vec(&our_test_dims, &ocl_pq.queue());
+ 
+ 	// Our arbitrary addend:
+diff --git a/examples/images.rs b/examples/images.rs
+index 6b38cbe..ce0282b 100644
+--- a/examples/images.rs
++++ b/examples/images.rs
+@@ -1,4 +1,4 @@
+-use ocl::{Context, ProQue, BuildConfig, SimpleDims};
++use ocl::{Context, ProQue, ProgramBuilder, SimpleDims};
+ extern crate ocl;
+ 
+ fn main() {
+@@ -18,6 +18,10 @@ fn main() {
+ 					__private float const coeff,
+ 					__global float* const res)
+ 		{
++
++		// Intentional extra brace:
++		{
++
+ 			uint const idx = get_global_id(0);
+ 
+ 			res[idx] = src[idx] * coeff;
+@@ -25,10 +29,10 @@ fn main() {
+ 	"#;
+ 
+ 	// Create a basic build configuration using above source: 
+-	let build_config = BuildConfig::new().kern_embed(kernel_src);
++	let program_builder = ProgramBuilder::new().src(kernel_src);
+ 
+ 	// Build with our configuration and check for errors:
+-	ocl_pq.build(build_config).expect("ocl program build");
++	ocl_pq.build_program(program_builder).expect("ProQue build");
+ 
+ 	// // Set up our work dimensions / data set size:
+ 	// let dims = SimpleDims::OneDim(data_set_size);
+diff --git a/src/buffer.rs b/src/buffer.rs
+index e947a6b..6fde5de 100644
+--- a/src/buffer.rs
++++ b/src/buffer.rs
+@@ -112,7 +112,7 @@ impl<T: OclNum> Buffer<T> {
+ 
+ 	/// [UNSTABLE][MARKED FOR POSSIBLE REMOVAL]: Convenience function.
+ 	/// Creates a new read/write Buffer with a vector initialized with a series of 
+-	/// integers ranging from `min_val` to `max_val` (closed) which are shuffled 
++	/// integers ranging from `vals.0` to `vals.1` (closed) which are shuffled 
+ 	/// randomly.
+ 	///
+ 	/// Note: Even if the Buffer type is a floating point type, the values returned
+@@ -121,29 +121,29 @@ impl<T: OclNum> Buffer<T> {
+ 	/// # Security
+ 	///
+ 	/// Resulting values are not cryptographically secure.
+-	// Note: max_val is inclusive.
+-	pub fn with_vec_shuffled<E: BufferDims>(min_val: T, max_val: T, dims: E, queue: &Queue) 
++	// Note: vals.1 is inclusive.
++	pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
+ 			-> Buffer<T> 
+ 	{
+ 		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
+-		let vec: Vec<T> = shuffled_vec(len, min_val, max_val);
++		let vec: Vec<T> = shuffled_vec(len, vals);
+ 
+ 		Buffer::_with_vec(vec, queue)
+ 	}
+ 
+ 	/// [UNSTABLE][MARKED FOR POSSIBLE REMOVAL]: Convenience function.
+ 	/// Creates a new read/write Buffer with a vector initialized with random values 
+-	/// within the (half-open) range `min_val..max_val`.
++	/// within the (half-open) range `vals.0..vals.1`.
+ 	///
+ 	/// # Security
+ 	///
+ 	/// Resulting values are not cryptographically secure.
+-	// Note: max_val is exclusive.
+-	pub fn with_vec_scrambled<E: BufferDims>(min_val: T, max_val: T, dims: E, queue: &Queue) 
++	// Note: vals.1 is exclusive.
++	pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
+ 			-> Buffer<T> 
+ 	{
+ 		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
+-		let vec: Vec<T> = scrambled_vec(len, min_val, max_val);
++		let vec: Vec<T> = scrambled_vec(len, vals);
+ 
+ 		Buffer::_with_vec(vec, queue)
+ 	}	
+@@ -195,7 +195,6 @@ impl<T: OclNum> Buffer<T> {
+ 	}
+ 
+ 	// Consolidated constructor for Buffers without vectors.
+-	#[inline]
+ 	fn _new(iv_len: (T, usize), queue: &Queue) -> Buffer<T> {
+ 		let buffer_obj: cl_mem = wrapper::create_buffer(None, Some(iv_len), 
+ 			queue.context_obj(), cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
+@@ -209,7 +208,6 @@ impl<T: OclNum> Buffer<T> {
+ 	}
+ 
+ 	// Consolidated constructor for Buffers with vectors.
+-	#[inline]
+ 	fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
+ 		let buffer_obj: cl_mem = wrapper::create_buffer(Some(&mut vec), None, queue.context_obj(), 
+ 			cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
+@@ -344,7 +342,6 @@ impl<T: OclNum> Buffer<T> {
+ 	/// if any. This may not agree with desired dataset size because it will have been
+ 	/// rounded up to the nearest maximum workgroup size of the device on which it was
+ 	/// created.
+-	#[inline]
+ 	pub fn len(&self) -> usize {
+ 		debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
+ 			else { self.len }) == self.len);
+@@ -479,13 +476,11 @@ impl<T: OclNum> Buffer<T> {
+ 	}
+ 
+ 	/// Returns a copy of the raw buffer object reference.
+-	#[inline]
+ 	pub fn buffer_obj(&self) -> cl_mem {
+ 		self.buffer_obj
+ 	}
+ 
+ 	/// Returns a reference to the program/command queue associated with this buffer.
+-	#[inline]
+ 	pub fn queue(&self) -> &Queue {
+ 		&self.queue
+ 	}
+@@ -498,7 +493,6 @@ impl<T: OclNum> Buffer<T> {
+ 	/// have been considered or are dealt with. For now, considering these cases is
+ 	/// left to the caller. It's probably a good idea to at least call `.resize()`
+ 	/// after calling this function.
+-	#[inline]
+ 	pub unsafe fn set_queue(&mut self, queue: Queue) {
+ 		self.queue = queue;
+ 	}
+@@ -507,7 +501,6 @@ impl<T: OclNum> Buffer<T> {
+ 	///
+ 	/// # Panics
+ 	/// Panics if this Buffer contains no vector.
+-	#[inline]
+ 	pub fn iter<'a>(&'a self) -> Iter<'a, T> {
+ 		self.vec.as_ref().expect("Buffer::iter()").iter()
+ 	}
+@@ -516,7 +509,6 @@ impl<T: OclNum> Buffer<T> {
+ 	///
+ 	/// # Panics
+ 	/// Panics if this Buffer contains no vector.
+-	#[inline]
+ 	pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
+ 		self.vec.as_ref_mut().expect("Buffer::iter()").iter_mut()
+ 	}
+@@ -612,27 +604,27 @@ impl<T> IndexMut<RangeFull> for Buffer<T> {
+ 
+ 
+ /// Returns a vector with length `size` containing random values in the (half-open)
+-/// range `[min_val, max_val)`.
+-pub fn scrambled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
++/// range `[vals.0, vals.1)`.
++pub fn scrambled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
+ 	assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
+-	assert!(min_val < max_val, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
++	assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
+ 	let mut rng = rand::weak_rng();
+-	let range = RandRange::new(min_val, max_val);
++	let range = RandRange::new(vals.0, vals.1);
+ 
+ 	(0..size).map(|_| range.ind_sample(&mut rng)).take(size as usize).collect()
+ }
+ 
+ /// Returns a vector with length `size` which is first filled with each integer value
+-/// in the (inclusive) range `[min_val, max_val]`. If `size` is greater than the 
++/// in the (inclusive) range `[vals.0, vals.1]`. If `size` is greater than the 
+ /// number of integers in the aforementioned range, the integers will repeat. After
+ /// being filled with `size` values, the vector is shuffled and the order of its
+ /// values is randomized.
+-pub fn shuffled_vec<T: OclNum>(size: usize, min_val: T, max_val: T) -> Vec<T> {
++pub fn shuffled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
+ 	let mut vec: Vec<T> = Vec::with_capacity(size);
+ 	assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
+-	assert!(min_val < max_val, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
+-	let min = min_val.to_i64().expect("\nbuffer::shuffled_vec(), min");
+-	let max = max_val.to_i64().expect("\nbuffer::shuffled_vec(), max") + 1;
++	assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
++	let min = vals.0.to_i64().expect("\nbuffer::shuffled_vec(), min");
++	let max = vals.1.to_i64().expect("\nbuffer::shuffled_vec(), max") + 1;
+ 	let mut range = (min..max).cycle();
+ 
+ 	for _ in 0..size {
+diff --git a/src/build_config.rs b/src/build_config.rs
+deleted file mode 100644
+index fb7577b..0000000
+--- a/src/build_config.rs
++++ /dev/null
+@@ -1,252 +0,0 @@
+-//! Compilation options for building an OpenCL program. Used when creating 
+-//! a new `Program`.
+-
+-use std::io::Read;
+-use std::fs::File;
+-use std::path::Path;
+-use std::ffi::{CString, NulError};
+-use std::collections::HashSet;
+-use std::convert::Into;
+-// use std::error::{Error};
+-
+-/// Compilation options for building an OpenCL program. Used when creating 
+-/// a new `Program`.
+-pub struct BuildConfig {
+-	options: Vec<BuildOpt>,
+-	kernel_file_names: Vec<String>,
+-	embedded_kernel_source: Vec<String>,
+-}
+-
+-impl BuildConfig {
+-	/// Returns a new, empty, build configuration object.
+-	pub fn new() -> BuildConfig {
+-		BuildConfig {
+-			options: Vec::with_capacity(64),
+-			kernel_file_names: Vec::with_capacity(32),
+-			embedded_kernel_source: Vec::with_capacity(32),
+-		}
+-	}
+-
+-	/// Adds a compiler command line definition => `-D {name}={val}` (builder-style).
+-	pub fn cmplr_def(mut self, name: &'static str, val: i32) -> BuildConfig {
+-		self.options.push(BuildOpt::cmplr_def(name, val));
+-		self
+-	}
+-
+-	/// Adds a raw compiler command line option => `{co}` (builder-style).
+-	pub fn cmplr_opt(mut self, co: &'static str) -> BuildConfig {
+-		self.options.push(BuildOpt::cmplr_opt(co));
+-		self
+-	}
+-
+-	/// Pushes pre-created build option to the list (builder-style).
+-	pub fn bo(mut self, bo: BuildOpt) -> BuildConfig {
+-		self.options.push(bo);
+-		self
+-	}
+-
+-	/// Adds a kernel file to the list of included sources (builder-style).
+-	pub fn kern_file(mut self, file_name: &'static str) -> BuildConfig {
+-		self.add_kern_file(file_name.to_string());
+-		self
+-	}	
+-
+-	/// Adds text to the included kernel source (builder-style).
+-	pub fn kern_embed(mut self, source: &'static str) -> BuildConfig {
+-		self.add_embedded_kern(source.to_string());
+-		self
+-	}
+-
+-	/// Adds a kernel file to the list of included sources.
+-	pub fn add_kern_file(&mut self, file_name: String) {
+-		self.kernel_file_names.push(file_name);
+-	}
+-
+-	/// Adds text to the included kernel source.
+-	pub fn add_embedded_kern(&mut self, source: String) {
+-		self.embedded_kernel_source.push(source);
+-	}
+-
+-	/// Returns a list of kernel file names added for inclusion in the build.
+-	pub fn kernel_file_names(&self) -> &Vec<String> {
+-		&self.kernel_file_names
+-	}
+-
+-	/// Returns a contatenated string of compiler command line options used when 
+-	/// building a `Program`.
+-	pub fn compiler_options(&self) -> Result<CString, NulError> {
+-		let mut opts: Vec<String> = Vec::with_capacity(64);
+-
+-		opts.push(" ".to_string());
+-
+-		for option in self.options.iter() {			
+-			match option {
+-				&BuildOpt::CmplrDefine { ref ident, ref val } => {
+-					opts.push(format!("-D{}={}", ident, val))
+-				},
+-
+-				&BuildOpt::CmplrInclDir { ref path } => {
+-					opts.push(format!("-I{}", path))
+-				},
+-
+-				&BuildOpt::CmplrOther(ref s) => {
+-					opts.push(s.clone())
+-				},
+-
+-				_ => (),	
+-			}
+-		}
+-
+-		CString::new(opts.join(" ").into_bytes())
+-	}
+-
+-	/// Parses `self.options` for options intended for inclusion at the beginning of 
+-	/// the final program source and returns them as a list of strings.
+-	///
+-	/// Generally used for #define directives, constants, etc. Normally called from
+-	/// `::kernel_strings()` but can also be called from anywhere for debugging 
+-	/// purposes.
+-	pub fn kernel_includes(&self) -> Result<Vec<CString>, NulError> {
+-		let mut strings	= Vec::with_capacity(64);
+-		strings.push(try!(CString::new("\n".as_bytes())));
+-
+-		for option in self.options.iter() {
+-			match option {
+-				&BuildOpt::IncludeDefine { ref ident, ref val } => {
+-					strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val).into_bytes())));
+-				},
+-
+-				&BuildOpt::IncludeRaw(ref text) => {
+-					strings.push(try!(CString::new(text.clone().into_bytes())));
+-				},
+-
+-				_ => (),
+-			};
+-
+-		}
+-		Ok(strings)
+-	}
+-
+-	/// Returns the final program source code as a list of strings.
+-	///
+-	/// Order of inclusion:
+-	/// - includes from `::kernel_includes()`
+-	/// - source from files listed in `self.kernel_file_names` in reverse order
+-	/// - raw source from `self.embedded_kernel_source`
+-	/// [UNSTABLE] TODO: Fix up error handling: return an `OclResult`.
+-	pub fn kernel_strings(&self) -> Result<Vec<CString>, String> {
+-		let mut kernel_strings: Vec<CString> = Vec::with_capacity(64);
+-		let mut kern_file_history: HashSet<&String> = HashSet::with_capacity(64);
+-
+-		kernel_strings.extend_from_slice(&try!(self.kernel_includes().map_err(|e| e.to_string())));
+-
+-		for kfn in self.kernel_file_names().iter().rev() {
+-			let mut kern_str: Vec<u8> = Vec::with_capacity(100000);
+-
+-			if kern_file_history.contains(kfn) { continue; }
+-
+-			kern_file_history.insert(&kfn);
+-
+-			let valid_kfp = Path::new(kfn);
+-
+-			// let mut kern_file = match File::open(&valid_kfp) {
+-			// 	Err(why) => return Err(format!("Couldn't open '{}': {}", 
+-			// 		kfn, Error::description(&why))),
+-			// 	Ok(file) => file,
+-			// };
+-
+-			let mut kern_file = try!(File::open(&valid_kfp).map_err(|e| 
+-				format!("Error reading `{}`: {}", kfn, &e.to_string())));
+-
+-			// match kern_file.read_to_end(&mut kern_str) {
+-	  //   		Err(why) => return Err(format!("Couldn't read '{}': {}", 
+-	  //   			kfn, Error::description(&why))),
+-			//     Ok(_) => (), //println!("{}OCL::BUILD(): parsing {}: {} bytes read.", MT, &file_name, bytes),
+-			// }
+-
+-			try!(kern_file.read_to_end(&mut kern_str).map_err(|e| 
+-				format!("Error reading `{}`: {}", kfn, &e.to_string())));
+-
+-			kern_str.shrink_to_fit();
+-
+-			kernel_strings.push(try!(CString::new(kern_str).map_err(|e| e.to_string())));
+-		}
+-
+-		for elem in self.embedded_kernel_source.iter() {
+-			kernel_strings.push(try!(CString::new(elem.clone().into_bytes()).map_err(|e| e.to_string())));
+-		}
+-
+-		Ok(kernel_strings)
+-	}	
+-}
+-
+-/// A build option intended for use either by the compiler as a command line switch
+-/// or for inclusion at the top of the final build source code.
+-///
+-/// A few of the often used variants have constructors for convenience.
+-/// [FIXME] TODO: Explain how each variant is used.
+-pub enum BuildOpt {
+-	CmplrDefine { ident: String, val: String },
+-	CmplrInclDir { path: String },
+-	CmplrOther(String),
+-	IncludeDefine { ident: String, val: String },
+-	IncludeRaw(String),
+-}
+-
+-impl BuildOpt {
+-	/// Returns a `BuildOpt::CmplrDefine`.
+-	pub fn cmplr_def<S: Into<String>>(ident: S, val: i32) -> BuildOpt {
+-		BuildOpt::CmplrDefine {
+-			ident: ident.into(),
+-			val: val.to_string(),
+-		}
+-	}
+-
+-	/// Returns a `BuildOpt::CmplrOther`.
+-	pub fn cmplr_opt<S: Into<String>>(opt: S) -> BuildOpt {
+-		BuildOpt::CmplrOther(opt.into())
+-	}
+-
+-	/// Returns a `BuildOpt::IncludeDefine`.
+-	pub fn include_def<S: Into<String>>(ident: S, val: String) -> BuildOpt {
+-		BuildOpt::IncludeDefine {
+-			ident: ident.into(),
+-			val: val,
+-		}
+-	}
+-}
+-
+-
+-
+-
+-// pub struct BuildOption {
+-// 	name: &'static str,
+-// 	val: String,
+-// 	is_kern_header: bool,
+-// }
+-
+-// impl BuildOption {
+-// 	pub fn new(name: &'static str, val: i32) -> BuildOption {
+-// 		BuildOption {
+-// 			name: name,
+-// 			val: val.to_string(),
+-// 			is_kern_header: false,
+-// 		}
+-// 	}
+-
+-// 	pub fn with_str_val(name: &'static str, val: String) -> BuildOption {
+-// 		BuildOption {
+-// 			name: name,
+-// 			val: val,
+-// 			is_kern_header: true,
+-// 		}
+-// 	}
+-
+-// 	pub fn to_preprocessor_option_string(&self) -> String {
+-// 		format!(" -D{}={}", self.name, self.val)
+-// 	}
+-
+-// 	pub fn to_define_directive_string(&self) -> String {
+-// 		format!("#define {}  {}\n", self.name, self.val)
+-// 	}
+-// }
+diff --git a/src/context.rs b/src/context.rs
+index 7f9d1a8..33a774f 100644
+--- a/src/context.rs
++++ b/src/context.rs
+@@ -3,14 +3,19 @@
+ // use formatting::MT;
+ use wrapper;
+ use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_context};
++use super::{OclResult, OclError};
+ 
+ /// An OpenCL context for a particular platform and set of device types.
+ ///
+ /// Wraps a 'cl_context' such as that returned by 'clCreateContext'.
++///
++/// # Destruction
++/// `::release()` must be manually called by consumer.
++///
+ pub struct Context {
+ 	platform_opt: Option<cl_platform_id>,
+ 	device_ids: Vec<cl_device_id>,
+-	obj: cl_context,
++	context_obj: cl_context,
+ }
+ 
+ impl Context {
+@@ -74,16 +79,16 @@ impl Context {
+ 	/// - Handle context callbacks.
+ 	///
+ 	pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<cl_device_type>) 
+-			-> Result<Context, &'static str>
++			-> OclResult<Context>
+ 	{
+ 		let platforms = wrapper::get_platform_ids();
+-		if platforms.len() == 0 { return Err("\nNo OpenCL platforms found!\n"); }
++		if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
+ 
+ 		let platform = match platform_idx_opt {
+ 			Some(pf_idx) => {
+ 				match platforms.get(pf_idx) {
+ 					Some(&pf) => pf,
+-					None => return Err("Invalid OpenCL platform index specified. \
++					None => return OclError::err("Invalid OpenCL platform index specified. \
+ 						Use 'get_platform_ids()' for a list."),
+ 				}				
+ 			},
+@@ -92,29 +97,44 @@ impl Context {
+ 		};
+ 		
+ 		let device_ids: Vec<cl_device_id> = wrapper::get_device_ids(platform, device_types_opt);
+-		if device_ids.len() == 0 { return Err("\nNo OpenCL devices found!\n"); }
++		if device_ids.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
+ 
+ 		// println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids);
+ 
+-		let obj: cl_context = wrapper::create_context(&device_ids);
++		let context_obj: cl_context = wrapper::create_context(&device_ids);
+ 
+ 		Ok(Context {
+ 			platform_opt: Some(platform),
+ 			device_ids: device_ids,
+-			obj: obj,
++			context_obj: context_obj,
+ 		})
+ 	}
+ 
+-	pub fn resolve_device_id(&self, device_idx: Option<usize>) -> cl_device_id {
+-		match device_idx {
+-			Some(di) => self.valid_device(di),
+-			None => self.device_ids()[super::DEFAULT_DEVICE],
++	/// Resolves the zero-based device index into a cl_device_id (pointer).
++	pub fn resolve_device_idxs(&self, device_idxs: Vec<usize>) -> Vec<cl_device_id> {
++		match device_idxs.len() {
++			0 => vec![self.device_ids()[super::DEFAULT_DEVICE]],
++			_ => self.valid_device_ids(device_idxs),
++		}
++	}
++
++	/// Returns a list of valid devices regardless of whether or not the indexes 
++	/// passed are valid by performing a modulo operation on them and letting them
++	/// wrap around (round robin).
++	pub fn valid_device_ids(&self, selected_idxs: Vec<usize>) -> Vec<cl_device_id> {
++		let mut valid_device_ids = Vec::with_capacity(selected_idxs.len());
++
++		for selected_idx in selected_idxs {
++			let valid_idx = selected_idx % self.device_ids.len();
++			valid_device_ids.push(self.device_ids[valid_idx]);
+ 		}
++
++		valid_device_ids
+ 	}
+ 
+ 	/// Returns the current context as a `*mut libc::c_void`.
+-	pub fn obj(&self) -> cl_context {
+-		self.obj
++	pub fn context_obj(&self) -> cl_context {
++		self.context_obj
+ 	}
+ 
+ 	/// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
+@@ -125,18 +145,12 @@ impl Context {
+ 	/// Returns the platform our context pertains to.
+ 	pub fn platform(&self) -> Option<cl_platform_id> {
+ 		self.platform_opt
+-	}
+-
+-	/// Returns a valid device regardless of whether or not the index passed is valid by performing a modulo operation on it.
+-	pub fn valid_device(&self, selected_idx: usize) -> cl_device_id {
+-		let valid_idx = selected_idx % self.device_ids.len();
+-		self.device_ids[valid_idx]
+-	}
++	}	
+ 
+ 	/// Releases the current context.
+ 	pub fn release(&mut self) {		
+     	unsafe {
+-			cl_h::clReleaseContext(self.obj);
++			cl_h::clReleaseContext(self.context_obj);
+ 		}
+ 	}
+ }
+diff --git a/src/error.rs b/src/error.rs
+index 5d177f2..940fc89 100644
+--- a/src/error.rs
++++ b/src/error.rs
+@@ -1,56 +1,37 @@
+ //! Standard error type for ocl.
+ 
+-use std::error;
++use std::error::{ self, Error };
+ use std::fmt;
+ use std::convert::Into;
+ 
+ /// `OclError` result type.
+ pub type OclResult<T> = Result<T, OclError>;
+ 
+-// #[derive(Debug)]
+-// pub struct DimOclError {
+-// 	description: &'static str,
+-// }
+-
+-// impl DimOclError {
+-// 	pub fn new(description: &'static str) -> DimOclError {
+-// 		DimOclError { description: description }
+-// 	}
+-// }
+-
+-
+-// impl fmt::Display for DimOclError {
+-// 	fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+-// 		write!(fmtr, "Ocl dimensional error: {}", self.description)
+-// 	}
+-// }
+-
+-// impl error::OclError for DimOclError {
+-// 	fn description(&self) -> &str {
+-// 		self.description
+-// 	}
+-
+-// 	fn cause(&self) -> Option<&error::OclError> {
+-// 		None
+-// 	}
+-// }
+-
+ 
+ /// Error type containing a string.
+-pub struct OclError {
+-	description: String,
++pub enum OclError {
++	// description: String,
++    String(String),
+ }
+ 
+ impl OclError {
+     /// Returns a new `OclError` with the description string: `desc`.
+ 	pub fn new<S: Into<String>>(desc: S) -> OclError {
+-		OclError { description: desc.into() }
++		OclError::String(desc.into())
+ 	}
++
++    /// Returns a new `OclResult::Err` containing an `OclResult` with the given 
++    /// description.
++    pub fn err<T, S: Into<String>>(desc: S) -> OclResult<T> {
++        Err(OclError::new(desc))
++    }
+ }
+ 
+ impl error::Error for OclError {
+     fn description(&self) -> &str {
+-        &self.description
++        match self {
++            &OclError::String(ref description) => &description,
++        }
+     }
+ }
+ 
+@@ -68,12 +49,12 @@ impl<'a> From<&'a str> for OclError {
+ 
+ impl fmt::Display for OclError {
+     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+-        f.write_str(&self.description)
++        f.write_str(&self.description())
+     }
+ }
+ 
+ impl fmt::Debug for OclError {
+     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+-        f.write_str(&self.description)
++        f.write_str(&self.description())
+     }
+ }
+diff --git a/src/kernel.rs b/src/kernel.rs
+index 2657868..9380076 100644
+--- a/src/kernel.rs
++++ b/src/kernel.rs
+@@ -12,10 +12,13 @@ use super::{WorkSize, Buffer, OclNum, EventList, Program, Queue};
+ 
+ /// An OpenCL kernel.
+ ///
++/// # Destruction
++/// Releases kernel object automatically upon drop.
++///
+ /// [FIXME] TODO: Add more details, examples, etc.
+ /// [FIXME] TODO: Add information about panics and errors.
+ pub struct Kernel {
+-	kernel: cl_kernel,
++	kernel_obj: cl_kernel,
+ 	name: String,
+ 	arg_index: u32,
+ 	named_args: HashMap<&'static str, u32>,
+@@ -34,7 +37,7 @@ impl Kernel {
+ 	{
+ 		let mut err: cl_int = 0;
+ 
+-		let kernel = unsafe {
++		let kernel_obj = unsafe {
+ 			cl_h::clCreateKernel(
+ 				program.obj(), 
+ 				ffi::CString::new(name.as_bytes()).unwrap().as_ptr(), 
+@@ -46,7 +49,7 @@ impl Kernel {
+ 		wrapper::must_succeed(&err_pre, err);
+ 
+ 		Kernel {
+-			kernel: kernel,
++			kernel_obj: kernel_obj,
+ 			name: name,
+ 			arg_index: 0,
+ 			named_args: HashMap::with_capacity(5),
+@@ -201,7 +204,7 @@ impl Kernel {
+ 	{
+ 		unsafe {
+ 			let err = cl_h::clSetKernelArg(
+-						self.kernel, 
++						self.kernel_obj, 
+ 						arg_index,
+ 						arg_size, 
+ 						arg_value,
+@@ -233,7 +236,7 @@ impl Kernel {
+ 		unsafe {
+ 			let err = cl_h::clEnqueueNDRangeKernel(
+ 						cmd_queue,
+-						self.kernel,
++						self.kernel_obj,
+ 						self.gws.dim_count(),
+ 						self.gwo.as_ptr(),
+ 						gws,
+@@ -258,5 +261,15 @@ impl Kernel {
+ 	#[inline]
+ 	pub fn arg_count(&self) -> u32 {
+ 		self.arg_count
+-	}	
++	}
++
++	pub unsafe fn release(&mut self) {
++		cl_h::clReleaseKernel(self.kernel_obj);
++	}
++}
++
++impl Drop for Kernel {
++	fn drop(&mut self) {
++		unsafe { self.release(); }
++	}
+ }
+diff --git a/src/lib.rs b/src/lib.rs
+index 993b384..f0e503f 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -26,15 +26,16 @@ pub use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_device_inf
+ 
+ pub use self::formatting as fmt;
+ pub use self::context::Context;
++pub use self::program_builder::{ProgramBuilder, BuildOpt};
+ pub use self::program::Program;
+ pub use self::queue::Queue;
+ pub use self::kernel::Kernel;
+ pub use self::buffer::Buffer;
+ pub use self::image::Image;
++pub use self::pro_que_builder::ProQueBuilder;
+ pub use self::pro_que::ProQue;
+ pub use self::simple_dims::SimpleDims;
+ pub use self::work_size::WorkSize;
+-pub use self::build_config::{BuildConfig, BuildOpt};
+ pub use self::error::{OclError, OclResult};
+ pub use self::event_list::EventList;
+ // [FIXME]: TODO: Create an additional crate build configuration for tests
+@@ -47,16 +48,17 @@ extern crate num;
+ extern crate rand;
+ 
+ mod context;
++mod program_builder;
+ mod program;
+ mod queue;
+ pub mod cl_h;
+ mod buffer;
+ mod image;
++mod pro_que_builder;
+ mod pro_que;
+ mod simple_dims;
+ mod kernel;
+ mod work_size;
+-mod build_config;
+ mod error;
+ pub mod formatting;
+ mod event_list;
+diff --git a/src/pro_que.rs b/src/pro_que.rs
+index 814864e..19e8915 100644
+--- a/src/pro_que.rs
++++ b/src/pro_que.rs
+@@ -1,74 +1,114 @@
+ //! A convenience wrapper chimera of `Program` and `Queue`.
+ use wrapper;
+-use super::{Context, Kernel, WorkSize, BuildConfig, Program, Queue};
++use super::{Context, Kernel, WorkSize, ProgramBuilder, ProQueBuilder, Program, Queue, 
++	OclResult, OclError};
+ 
+-
+-/// A convenience wrapper chimera of `Program` and `Queue`.
++/// A convenience wrapper chimera of the `Program`, `Queue`, and optionally,
++/// `Context` types .
++///
++/// Handy when creating only a single context, program, and queue or when
++/// using a unique program build on each device.
++///
++/// All `ProQue` functionality is also provided separately by the `Context`, `Queue`, 
++/// and `Program` types.
+ ///
+-/// Useful when using a unique program build on each device.
+-#[derive(Clone)]
++/// # Destruction
++/// `::release` must be manually called by consumer.
++///
++// #[derive(Clone)]
+ pub struct ProQue {
++	context: Option<Context>,
+ 	queue: Queue,
+-	program_opt: Option<Program>,
++	program: Option<Program>,
+ }
+ 
+ impl ProQue {
++	/// Returns a new ProQueBuilder.
++	///
++	/// Calling `ProQueBuilder::build()` will return a new ProQue.
++	// pub fn builder() -> ProQueBuilder {
++	// 	ProQueBuilder::new()
++	// }
++	pub fn builder<'c>() -> ProQueBuilder<'c> {
++		ProQueBuilder::new()
++	}
++
+ 	/// Creates a new queue on the device with `device_idx` (see `Queue` documentation)
+ 	/// and returns a new Program/Queue hybrid.
+ 	///
+-	/// `::build()` must be called before this ProQue can be used.
++	/// `::build` must be called before this ProQue can be used.
+ 	//
+-	// TODO: Doc note: mention that:
+-	//    - device_idx wraps around
+-	//    - one device only
++	/// [FIXME]: Elaborate upon the following:
++	///    - device_idx wraps around (round robins)
++	///    - one device only per ProQue
+ 	pub fn new(context: &Context, device_idx: Option<usize>) -> ProQue {
+ 		let queue = Queue::new(context, device_idx);
+ 
+ 		ProQue {
+ 			queue: queue,
+-			program_opt: None,
++			program: None,
++			context: None,
+ 		}
+ 	}
+ 
+-	/// Builds contained program with `build_config`.
++	/// Creates a new ProQue from individual parts.
++	pub fn from_parts(context: Option<Context>, queue: Queue, program: Option<Program>) -> ProQue {
++		ProQue {
++			context: context,
++			queue: queue,
++			program: program,
++		}
++	}
++
++	/// Builds contained program with `program_builder`.
+ 	///
+ 	/// # Panics
+-	/// This ProQue must contain a program.
+-	pub fn build(&mut self, build_config: BuildConfig) -> Result<(), String> {
+-		if self.program_opt.is_some() { 
+-			return Err(format!("Ocl::build(): Pre-existing build detected. Use: \
+-				'{{your_Ocl_instance}} = {{your_Ocl_instance}}.clear_build()' first."))
+-		}		
+-
+-		self.program_opt = Some(try!(Program::from_parts(
+-			try!(build_config.kernel_strings().map_err(|e| e.to_string())), 
+-			try!(build_config.compiler_options().map_err(|e| e.to_string())), 
++	/// This `ProQue` must not already contain a program.
++	///
++	/// `program_builder` must not have any device indexes configured (via
++	/// `::device_idxs`) as `ProQue` will only build programs on the device that
++	/// the built-in queue is associated with.
++	pub fn build_program(&mut self, program_builder: ProgramBuilder) -> OclResult<()> {
++		if self.program.is_some() { 
++			return OclError::err("ProQue::build_program(): Pre-existing build detected. Use \
++				'.clear_build()' first.");
++		}
++
++		if program_builder.get_device_idxs().len() > 0 {
++			return OclError::err("ProQue::build_program(): The 'ProgramBuilder' passed \
++				may not have any device indexes set as they will be ignored. See 'ProQue' \
++				documentation for more information.");
++		}
++		
++		self.program = Some(try!(Program::from_parts(
++			try!(program_builder.src_strings().map_err(|e| e.to_string())), 
++			try!(program_builder.compiler_options().map_err(|e| e.to_string())), 
+ 			self.queue.context_obj(), 
+ 			&vec![self.queue.device_id()],
+ 		)));
+ 
+ 		Ok(())
+-	}	
++	}
+ 
+ 	/// Clears the current program build.
+ 	pub fn clear_build(&mut self) {
+-		match self.program_opt {
++		match self.program {
+ 			Some(ref mut program) => { 
+ 				program.release(); 				
+ 			},
+ 
+ 			None => (),
+ 		}
+-		self.program_opt = None;
++		self.program = None;
+ 	}
+ 
+ 	/// Returns a new Kernel with name: `name` and global work size: `gws`.
+ 	// [FIXME] TODO: Return result instead of panic.
+ 	pub fn create_kernel(&self, name: &str, gws: WorkSize) -> Kernel {
+-		let program = match self.program_opt {
++		let program = match self.program {
+ 			Some(ref prg) => prg,
+ 			None => panic!("\nOcl::create_kernel(): Cannot add new kernel until OpenCL program is built. \
+-				Use: '{your_Ocl_instance}.build({your_BuildConfig_instance})'.\n"),
++				Use: '{your_Ocl_instance}.build_program({your_ProgramBuilder_instance})'.\n"),
+ 		};
+ 
+ 		Kernel::new(name.to_string(), &program, &self.queue, gws)	
+@@ -87,7 +127,7 @@ impl ProQue {
+ 
+ 	/// Returns the current program build, if any.
+ 	pub fn program(&self) -> &Option<Program> {
+-		&self.program_opt
++		&self.program
+ 	}
+ 
+ 	/// Release all components.
+@@ -95,5 +135,9 @@ impl ProQue {
+ 	pub fn release(&mut self) {		
+ 		self.queue.release();
+ 		self.clear_build();
++
++		if let Some(ref mut context) = self.context {
++			context.release();
++		}
+ 	}
+ }
+diff --git a/src/program.rs b/src/program.rs
+index cfbeee5..ca7b1ce 100644
+--- a/src/program.rs
++++ b/src/program.rs
+@@ -4,11 +4,15 @@ use std::ffi::CString;
+ 
+ use wrapper;
+ use cl_h::{self, cl_program, cl_context, cl_device_id};
+-use super::{BuildConfig, Context};
++use super::{ProgramBuilder, Context, OclResult};
+ 
+ /// An OpenCL program, sometimes referred to as a build.
+ ///
+ /// To use with multiple devices, create manually with `::from_parts()`.
++///
++/// # Destruction
++/// `::release` must be manually called by consumer.
++///
+ #[derive(Clone)]
+ pub struct Program {
+ 	obj: cl_program,
+@@ -18,17 +22,22 @@ pub struct Program {
+ 
+ // [FIXME] TODO: ERROR HANDLING
+ impl Program {
++	/// Returns a new `ProgramBuilder`.
++	pub fn builder() -> ProgramBuilder {
++		ProgramBuilder::new()
++	}
++
+ 	/// Returns a new program.
+-	pub fn new(build_config: BuildConfig, context: &Context, device_idx: Option<usize>
+-			) -> Result<Program, String> 
++	pub fn new(program_builder: ProgramBuilder, context: &Context, device_idxs: Vec<usize>
++			) -> OclResult<Program> 
+ 	{
+-		let device_id = context.resolve_device_id(device_idx);
++		let device_ids = context.resolve_device_idxs(device_idxs);
+ 
+ 		Program::from_parts(
+-			try!(build_config.kernel_strings().map_err(|e| e.to_string())), 
+-			try!(build_config.compiler_options().map_err(|e| e.to_string())), 
+-			context.obj(), 
+-			&vec![device_id])
++			try!(program_builder.src_strings().map_err(|e| e.to_string())), 
++			try!(program_builder.compiler_options().map_err(|e| e.to_string())), 
++			context.context_obj(), 
++			&device_ids)
+ 	}
+ 
+ 	/// Returns a new program built from pre-created build components and device
+@@ -36,15 +45,15 @@ impl Program {
+ 	// SOMEDAY TODO: Keep track of line number range for each kernel string and print 
+ 	// out during build failure.
+ 	pub fn from_parts(
+-				kernel_strings: Vec<CString>, 
++				src_strings: Vec<CString>, 
+ 				cmplr_opts: CString, 
+ 				context_obj: cl_context, 
+ 				device_ids: &Vec<cl_device_id>,
+-			) -> Result<Program, String> 
++			) -> OclResult<Program> 
+ 	{
+-		// let kern_c_str = try!(parse_kernel_files(&build_config));
++		// let kern_c_str = try!(parse_kernel_files(&program_builder));
+ 
+-		let obj = try!(wrapper::new_program(kernel_strings, cmplr_opts, 
++		let obj = try!(wrapper::new_program(src_strings, cmplr_opts, 
+ 			context_obj, device_ids).map_err(|e| e.to_string()));
+ 
+ 		// [FIXME] TEMPORARY UNWRAP:
+diff --git a/src/queue.rs b/src/queue.rs
+index e217050..150fa21 100644
+--- a/src/queue.rs
++++ b/src/queue.rs
+@@ -7,6 +7,10 @@ use cl_h::{self, cl_command_queue, cl_context, cl_device_id};
+ use super::Context;
+ 
+ /// An OpenCL command queue.
++///
++/// # Destruction
++/// `::release` must be manually called by consumer.
++///
+ // TODO: Implement a constructor which accepts a cl_device_id.
+ #[derive(Clone)]
+ pub struct Queue {
+@@ -25,12 +29,20 @@ impl Queue {
+ 	/// the documentation for `Context` for more information.
+ 	/// 
+ 	pub fn new(context: &Context, device_idx: Option<usize>) -> Queue {
+-		let device_id = context.resolve_device_id(device_idx);
+-		let obj: cl_command_queue = wrapper::create_command_queue(context.obj(), device_id); 
++		let device_idxs = match device_idx {
++			Some(idx) => vec![idx],
++			None => Vec::with_capacity(0),
++		};
++
++		let device_ids = context.resolve_device_idxs(device_idxs);
++		assert!(device_ids.len() == 1, "Queue::new: Error resolving device ids.");
++		let device_id = device_ids[0];
++
++		let obj: cl_command_queue = wrapper::create_command_queue(context.context_obj(), device_id); 
+ 
+ 		Queue {
+ 			obj: obj,
+-			context_obj: context.obj(),
++			context_obj: context.context_obj(),
+ 			device_id: device_id,			
+ 		}
+ 	}	
+diff --git a/src/simple_dims.rs b/src/simple_dims.rs
+index d9e240b..641a686 100644
+--- a/src/simple_dims.rs
++++ b/src/simple_dims.rs
+@@ -1,5 +1,5 @@
+ //! A simple way to specify the sizes of up to three dimensions.
+-use super::{BufferDims, OclError, WorkSize};
++use super::{BufferDims, OclResult, OclError, WorkSize};
+ 
+ /// A simple implementation of a type specifying the sizes of up to three
+ /// dimensions. 
+@@ -21,7 +21,7 @@ impl SimpleDims {
+ 	///
+ 	/// Dimensions must be specified in order from d0 -> d1 -> d2; i.e. `d1` 
+ 	/// cannot be `Some(x)` if `d0` is `None`.
+-	pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> Result<SimpleDims, OclError> {
++	pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> OclResult<SimpleDims> {
+ 		let std_err_msg = "Dimensions must be defined from left to right. If you define the 2nd \
+ 			dimension, you must also define the 1st, etc.";
+ 
+@@ -29,13 +29,13 @@ impl SimpleDims {
+ 			if d1.is_some() && d0.is_some() {
+ 				Ok(SimpleDims::ThreeDims(d0.unwrap(), d1.unwrap(), d2.unwrap()))
+ 			} else {
+-				Err(OclError::new(std_err_msg))
++				OclError::err(std_err_msg)
+ 			}
+ 		} else if d1.is_some() {
+ 			if d0.is_some() {
+ 				Ok(SimpleDims::TwoDims(d1.unwrap(), d0.unwrap()))
+ 			} else {
+-				Err(OclError::new(std_err_msg))
++				OclError::err(std_err_msg)
+ 			}
+ 		} else if d0.is_some() {
+ 			Ok(SimpleDims::OneDim(d0.unwrap()))
+diff --git a/src/tests.rs b/src/tests.rs
+index e54b706..a4b6c63 100644
+--- a/src/tests.rs
++++ b/src/tests.rs
+@@ -2,9 +2,9 @@ use libc::c_void;
+ // use std::ptr;
+ use cl_h::{cl_event, cl_int};
+ 
+-use super::{Context, BuildConfig, Buffer, SimpleDims, ProQue, EventList};
++use super::{Context, ProgramBuilder, Buffer, SimpleDims, ProQue, EventList};
+ 
+-const PRINT_DEBUG: bool = false;
++const PRINT_DEBUG: bool = true;
+ 
+ struct TestEventsStuff {
+ 	seed_env: *const Buffer<u32>, 
+@@ -24,21 +24,31 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
+ 		let data_set_size: usize = (*buncha_stuff).data_set_size;
+ 		let addend: u32 = (*buncha_stuff).addend;
+ 		let itr: usize = (*buncha_stuff).itr;
+-		
+-		if PRINT_DEBUG { println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
+-		    	 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
++
++		let mut errors_found: u32 = 0;
+ 
+ 		for idx in 0..data_set_size {
+ 			// [FIXME]: FAILING ON OSX -- TEMPORARLY COMMENTING OUT
+ 			// assert_eq!((*result_buffer)[idx], 
+-				// ((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
++			// 	((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
++
++			if PRINT_DEBUG {
++				let correct_result = (*seed_buffer)[idx] + (((itr + 1) as u32) * addend);
++
++				// if (*result_buffer)[idx] != correct_result {
++				// 	print!("correct_result:{}, result_buffer[{idx}]:{}\n",
++				// 		correct_result, (*result_buffer)[idx], idx = idx);
++				// 	errors_found += 1;
++				// }
+ 
+-			if PRINT_DEBUG && (idx < 20) {
+-				print!("[{}]", (*result_buffer)[idx]);
++				errors_found += ((*result_buffer)[idx] != correct_result) as u32;
+ 			}
+ 		}
+ 
+-		if PRINT_DEBUG { print!("\n\n"); }
++		if PRINT_DEBUG && errors_found > 0 { 
++			println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
++		    	 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr);
++			println!("    TOTAL ERRORS FOUND: {}", errors_found); }
+     }
+ }
+ 
+@@ -49,14 +59,14 @@ fn test_events() {
+ 	let mut ocl_pq = ProQue::new(&Context::new(None, None).unwrap(), None);
+ 
+ 	// Build program:
+-	ocl_pq.build(BuildConfig::new().kern_file("cl/kernel_file.cl")).unwrap();
++	ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();
+ 
+ 	// Set up data set size and work dimensions:
+ 	let data_set_size = 900000;
+ 	let our_test_dims = SimpleDims::OneDim(data_set_size);
+ 
+ 	// Create source and result buffers (our data containers):
+-	let seed_buffer = Buffer::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
++	let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &our_test_dims, &ocl_pq.queue());
+ 	let mut result_buffer = Buffer::with_vec(&our_test_dims, &ocl_pq.queue());
+ 
+ 	// Our addend:
+@@ -155,16 +165,16 @@ fn test_basics() {
+ 	"#;
+ 
+ 	// Create a basic build configuration using above source: 
+-	let build_config = BuildConfig::new().kern_embed(kernel_src);
++	let program_builder = ProgramBuilder::new().src(kernel_src);
+ 
+ 	// Build with our configuration and check for errors:
+-	ocl_pq.build(build_config).expect("ocl program build");
++	ocl_pq.build_program(program_builder).expect("ocl program build");
+ 
+ 	// Set up our work dimensions / data set size:
+ 	let dims = SimpleDims::OneDim(data_set_size);
+ 
+ 	// Create an buffer (a local array + a remote buffer) as a data source:
+-	let source_buffer = Buffer::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
++	let source_buffer = Buffer::with_vec_scrambled((0.0f32, 20.0f32), &dims, &ocl_pq.queue());
+ 
+ 	// Create another empty buffer for results:
+ 	let mut result_buffer = Buffer::<f32>::with_vec(&dims, &ocl_pq.queue());
+diff --git a/src/wrapper.rs b/src/wrapper.rs
+index 224d651..d1a7394 100644
+--- a/src/wrapper.rs
++++ b/src/wrapper.rs
+@@ -14,11 +14,12 @@ use std::iter;
+ use libc;
+ use num::{FromPrimitive};
+ 
+-use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context, 
++use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context,
++	cl_platform_info,
+ 	cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, cl_bool,
+ 	cl_int, cl_uint, cl_bitfield, CLStatus};
+ 
+-use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, EventList, OclNum, Buffer};
++use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, EventList, OclNum, Buffer, OclError, OclResult};
+ 
+ 
+ //=============================================================================
+@@ -100,7 +101,7 @@ pub fn new_program(
+ 			cmplr_opts: CString,
+ 			context: cl_context, 
+ 			device_ids: &Vec<cl_device_id>
+-		) -> Result<cl_program, String>
++		) -> OclResult<cl_program>
+ {
+ 	// Lengths (not including \0 terminator) of each string:
+ 	let ks_lens: Vec<usize> = kern_strings.iter().map(|cs| cs.as_bytes().len()).collect();	
+@@ -129,7 +130,7 @@ pub fn new_program(
+ 		);		
+ 
+ 		if err < 0 {
+-			program_build_info(program, device_ids).map(|_| program)
++			program_build_info(program, device_ids, true).map(|_| program)
+ 		} else {
+ 			must_succeed("clBuildProgram()", err);
+ 			// Unreachable:
+@@ -463,7 +464,7 @@ pub fn platform_info(platform: cl_platform_id) {
+ 	let mut size = 0 as libc::size_t;
+ 
+ 	unsafe {
+-		let name = cl_h::CL_PLATFORM_NAME as cl_device_info;
++		let name = cl_h::CL_PLATFORM_NAME as cl_platform_info;
+ 		let mut err = cl_h::clGetPlatformInfo(
+ 					platform,
+ 					name,
+@@ -487,7 +488,9 @@ pub fn platform_info(platform: cl_platform_id) {
+ }
+ 
+ #[inline]
+-pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>) -> Result<(), String> {
++pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>, 
++			print_output: bool) -> OclResult<()> 
++{
+ 	let mut size = 0 as libc::size_t;
+ 
+ 	for &device_id in device_ids.iter() {
+@@ -518,9 +521,22 @@ pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>) -
+ 
+ 			if size > 1 {
+ 				let pbi_nonull = try!(String::from_utf8(pbi).map_err(|e| e.to_string()));
+-				let pbi_err_string = format!("OPENCL PROGRAM BUILD ERROR: \n\n {}", pbi_nonull);
+-				println!("\n{}", pbi_err_string);
+-				return Err(pbi_err_string);
++				let pbi_err_string = format!("OpenCL Program Build Info for '{:?}':\
++				\n\n{}\n", device_id, pbi_nonull);
++
++				if print_output {
++					println!(
++
++"\n\n\
++###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\n\n\
++{}\
++###############################################################################\
++\n\n"
++
++					, pbi_err_string);
++				}
++
++				return OclError::err(pbi_err_string);
+ 			}
+ 		}
+ 	}
+@@ -528,6 +544,34 @@ pub fn program_build_info(program: cl_program, device_ids: &Vec<cl_device_id>) -
+ 	Ok(())
+ }
+ 
++/// Returns a string containing requested information.
++///
++/// Currently lazily assumes everything is a char[] then into a String. Non-string
++/// info types need to be manually reconstructed from that. Yes this is retarded.
++///
++/// [TODO (low priority)]: Needs to eventually be made more flexible and should return 
++/// an enum with a variant corresponding to the type of info requested. Could 
++/// alternatively return a generic type and just blindly cast to it.
++#[allow(dead_code, unused_variables)] 
++pub fn device_info(device: cl_device_id, info_type: cl_device_info) -> String {
++	let mut info_value_size: usize = 0;
++
++	let err = unsafe { 
++		cl_h::clGetDeviceInfo(
++			device,
++			cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
++			mem::size_of::<usize>() as usize,
++			// mem::transmute(&max_work_group_size),
++			0 as *mut libc::c_void,
++			&mut info_value_size as *mut usize,
++		) 
++	}; 
++
++	must_succeed("clGetDeviceInfo", err);
++
++	String::new()
++}
++
+ #[inline]
+ pub fn must_succeed(message: &str, err_code: cl_int) {
+ 	if err_code != cl_h::CLStatus::CL_SUCCESS as cl_int {

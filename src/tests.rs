@@ -2,9 +2,9 @@ use libc::c_void;
 // use std::ptr;
 use cl_h::{cl_event, cl_int};
 
-use super::{Context, BuildConfig, Buffer, SimpleDims, ProQue, EventList};
+use super::{Context, ProgramBuilder, Buffer, SimpleDims, ProQue, EventList};
 
-const PRINT_DEBUG: bool = false;
+const PRINT_DEBUG: bool = true;
 
 struct TestEventsStuff {
 	seed_env: *const Buffer<u32>, 
@@ -24,21 +24,31 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 		let data_set_size: usize = (*buncha_stuff).data_set_size;
 		let addend: u32 = (*buncha_stuff).addend;
 		let itr: usize = (*buncha_stuff).itr;
-		
-		if PRINT_DEBUG { println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
-		    	 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
+
+		let mut errors_found: u32 = 0;
 
 		for idx in 0..data_set_size {
 			// [FIXME]: FAILING ON OSX -- TEMPORARLY COMMENTING OUT
 			// assert_eq!((*result_buffer)[idx], 
-				// ((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
+			// 	((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
 
-			if PRINT_DEBUG && (idx < 20) {
-				print!("[{}]", (*result_buffer)[idx]);
+			if PRINT_DEBUG {
+				let correct_result = (*seed_buffer)[idx] + (((itr + 1) as u32) * addend);
+
+				// if (*result_buffer)[idx] != correct_result {
+				// 	print!("correct_result:{}, result_buffer[{idx}]:{}\n",
+				// 		correct_result, (*result_buffer)[idx], idx = idx);
+				// 	errors_found += 1;
+				// }
+
+				errors_found += ((*result_buffer)[idx] != correct_result) as u32;
 			}
 		}
 
-		if PRINT_DEBUG { print!("\n\n"); }
+		if PRINT_DEBUG && errors_found > 0 { 
+			println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
+		    	 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr);
+			println!("    TOTAL ERRORS FOUND: {}", errors_found); }
     }
 }
 
@@ -49,14 +59,14 @@ fn test_events() {
 	let mut ocl_pq = ProQue::new(&Context::new(None, None).unwrap(), None);
 
 	// Build program:
-	ocl_pq.build(BuildConfig::new().kern_file("cl/kernel_file.cl")).unwrap();
+	ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();
 
 	// Set up data set size and work dimensions:
 	let data_set_size = 900000;
 	let our_test_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result buffers (our data containers):
-	let seed_buffer = Buffer::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
+	let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &our_test_dims, &ocl_pq.queue());
 	let mut result_buffer = Buffer::with_vec(&our_test_dims, &ocl_pq.queue());
 
 	// Our addend:
@@ -155,16 +165,16 @@ fn test_basics() {
 	"#;
 
 	// Create a basic build configuration using above source: 
-	let build_config = BuildConfig::new().kern_embed(kernel_src);
+	let program_builder = ProgramBuilder::new().src(kernel_src);
 
 	// Build with our configuration and check for errors:
-	ocl_pq.build(build_config).expect("ocl program build");
+	ocl_pq.build_program(program_builder).expect("ocl program build");
 
 	// Set up our work dimensions / data set size:
 	let dims = SimpleDims::OneDim(data_set_size);
 
 	// Create an buffer (a local array + a remote buffer) as a data source:
-	let source_buffer = Buffer::with_vec_scrambled(0.0f32, 20.0f32, &dims, &ocl_pq.queue());
+	let source_buffer = Buffer::with_vec_scrambled((0.0f32, 20.0f32), &dims, &ocl_pq.queue());
 
 	// Create another empty buffer for results:
 	let mut result_buffer = Buffer::<f32>::with_vec(&dims, &ocl_pq.queue());

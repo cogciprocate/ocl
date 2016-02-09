@@ -8,68 +8,109 @@ use std::ffi::{CString, NulError};
 use std::collections::HashSet;
 use std::convert::Into;
 // use std::error::{Error};
+use super::{Context, Program, OclResult};
 
 /// Compilation options for building an OpenCL program. Used when creating 
 /// a new `Program`.
-pub struct BuildConfig {
+pub struct ProgramBuilder {
 	options: Vec<BuildOpt>,
-	kernel_file_names: Vec<String>,
-	embedded_kernel_source: Vec<String>,
+	src_file_names: Vec<String>,
+	device_idxs: Vec<usize>,
+	// embedded_kernel_source: Vec<String>,
 }
 
-impl BuildConfig {
+impl ProgramBuilder {
 	/// Returns a new, empty, build configuration object.
-	pub fn new() -> BuildConfig {
-		BuildConfig {
+	pub fn new() -> ProgramBuilder {
+		ProgramBuilder {
 			options: Vec::with_capacity(64),
-			kernel_file_names: Vec::with_capacity(32),
-			embedded_kernel_source: Vec::with_capacity(32),
+			src_file_names: Vec::with_capacity(32),
+			device_idxs: Vec::with_capacity(8),
+			// embedded_kernel_source: Vec::with_capacity(32),
 		}
 	}
 
+	/// Returns a newly built Program.
+	// [FIXME]: Don't map errors to strings, feed directly to OclError:
+	pub fn build(self, context: &Context) -> OclResult<Program> {
+		Program::from_parts(
+			try!(self.src_strings().map_err(|e| e.to_string())), 
+			try!(self.compiler_options().map_err(|e| e.to_string())), 
+			context.context_obj(), 
+			&context.resolve_device_idxs(self.device_idxs))
+	}
+
 	/// Adds a compiler command line definition => `-D {name}={val}` (builder-style).
-	pub fn cmplr_def(mut self, name: &'static str, val: i32) -> BuildConfig {
+	pub fn cmplr_def(mut self, name: &'static str, val: i32) -> ProgramBuilder {
 		self.options.push(BuildOpt::cmplr_def(name, val));
 		self
 	}
 
 	/// Adds a raw compiler command line option => `{co}` (builder-style).
-	pub fn cmplr_opt(mut self, co: &'static str) -> BuildConfig {
+	pub fn cmplr_opt(mut self, co: &'static str) -> ProgramBuilder {
 		self.options.push(BuildOpt::cmplr_opt(co));
 		self
 	}
 
 	/// Pushes pre-created build option to the list (builder-style).
-	pub fn bo(mut self, bo: BuildOpt) -> BuildConfig {
-		self.options.push(bo);
+	pub fn bo(mut self, bo: BuildOpt) -> ProgramBuilder {
+		self.add_bo(bo);
 		self
 	}
 
 	/// Adds a kernel file to the list of included sources (builder-style).
-	pub fn kern_file(mut self, file_name: &'static str) -> BuildConfig {
-		self.add_kern_file(file_name.to_string());
+	pub fn src_file(mut self, file_name: &'static str) -> ProgramBuilder {
+		self.add_src_file(file_name.to_string());
 		self
 	}	
 
 	/// Adds text to the included kernel source (builder-style).
-	pub fn kern_embed(mut self, source: &'static str) -> BuildConfig {
-		self.add_embedded_kern(source.to_string());
+	pub fn src<S: Into<String>>(mut self, src: S) -> ProgramBuilder {
+		self.add_src(src);
 		self
 	}
 
-	/// Adds a kernel file to the list of included sources.
-	pub fn add_kern_file(&mut self, file_name: String) {
-		self.kernel_file_names.push(file_name);
+	/// Specify which devices this program should be built on using a vector of 
+	/// zero-based device indexes (builder-style).
+	///
+	/// # Example
+	/// If your system has 4 OpenGL devices and you want to include them all:
+	/// ```
+	/// let program = program::builder()
+	///     .src(source_str)
+	///     .device_idxs(vec![0, 1, 2, 3])
+	///     .build(context);
+	/// ```
+	pub fn device_idxs(mut self, device_idxs: Vec<usize>) -> ProgramBuilder {
+		self.device_idxs.extend_from_slice(&device_idxs);
+		self
 	}
 
-	/// Adds text to the included kernel source.
-	pub fn add_embedded_kern(&mut self, source: String) {
-		self.embedded_kernel_source.push(source);
+	/// Adds a kernel file to the list of included sources (in place).
+	pub fn add_src_file(&mut self, file_name: String) {
+		self.src_file_names.push(file_name);
+	}
+
+	/// Adds text to the included kernel source (in place).
+	pub fn add_src<S: Into<String>>(&mut self, src: S) {
+		// self.embedded_kernel_source.push(source.into());
+		self.options.push(BuildOpt::IncludeRawEof(src.into()));
+	}
+
+	/// Adds a pre-created build option to the list (in place).
+	pub fn add_bo(&mut self, bo: BuildOpt) {
+		self.options.push(bo);
 	}
 
 	/// Returns a list of kernel file names added for inclusion in the build.
-	pub fn kernel_file_names(&self) -> &Vec<String> {
-		&self.kernel_file_names
+	pub fn src_file_names(&self) -> &Vec<String> {
+		&self.src_file_names
+	}
+
+	// Returns the list of devices indexes with which this `ProgramBuilder` is
+	// configured to build on.
+	pub fn get_device_idxs(&self) -> &Vec<usize> {
+		&self.device_idxs
 	}
 
 	/// Returns a contatenated string of compiler command line options used when 
@@ -104,7 +145,7 @@ impl BuildConfig {
 	/// the final program source and returns them as a list of strings.
 	///
 	/// Generally used for #define directives, constants, etc. Normally called from
-	/// `::kernel_strings()` but can also be called from anywhere for debugging 
+	/// `::src_strings()` but can also be called from anywhere for debugging 
 	/// purposes.
 	pub fn kernel_includes(&self) -> Result<Vec<CString>, NulError> {
 		let mut strings	= Vec::with_capacity(64);
@@ -115,69 +156,89 @@ impl BuildConfig {
 				&BuildOpt::IncludeDefine { ref ident, ref val } => {
 					strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val).into_bytes())));
 				},
-
 				&BuildOpt::IncludeRaw(ref text) => {
 					strings.push(try!(CString::new(text.clone().into_bytes())));
 				},
-
 				_ => (),
 			};
 
 		}
+
 		Ok(strings)
+	}
+
+	/// Parses `self.options` for options intended for inclusion at the end of 
+	/// the final program source and returns them as a list of strings.
+	pub fn kernel_includes_eof(&self) -> Result<Vec<CString>, NulError> {
+		let mut strings	= Vec::with_capacity(64);
+		strings.push(try!(CString::new("\n".as_bytes())));
+
+		for option in self.options.iter() {
+			match option {
+				&BuildOpt::IncludeRawEof(ref text) => {
+					strings.push(try!(CString::new(text.clone().into_bytes())));
+				},
+				_ => (),
+			};
+		}
+
+		Ok(strings)		
 	}
 
 	/// Returns the final program source code as a list of strings.
 	///
 	/// Order of inclusion:
 	/// - includes from `::kernel_includes()`
-	/// - source from files listed in `self.kernel_file_names` in reverse order
+	/// - source from files listed in `self.src_file_names` in reverse order
 	/// - raw source from `self.embedded_kernel_source`
 	/// [UNSTABLE] TODO: Fix up error handling: return an `OclResult`.
-	pub fn kernel_strings(&self) -> Result<Vec<CString>, String> {
-		let mut kernel_strings: Vec<CString> = Vec::with_capacity(64);
-		let mut kern_file_history: HashSet<&String> = HashSet::with_capacity(64);
+	pub fn src_strings(&self) -> Result<Vec<CString>, String> {
+	// pub fn src_strings(&self) -> OclResult<Vec<CString>> {
+		let mut src_strings: Vec<CString> = Vec::with_capacity(64);
+		let mut src_file_history: HashSet<&String> = HashSet::with_capacity(64);
 
-		kernel_strings.extend_from_slice(&try!(self.kernel_includes().map_err(|e| e.to_string())));
+		src_strings.extend_from_slice(&try!(self.kernel_includes().map_err(|e| e.to_string())));
 
-		for kfn in self.kernel_file_names().iter().rev() {
-			let mut kern_str: Vec<u8> = Vec::with_capacity(100000);
+		for kfn in self.src_file_names().iter().rev() {
+			let mut src_str: Vec<u8> = Vec::with_capacity(100000);
 
-			if kern_file_history.contains(kfn) { continue; }
+			if src_file_history.contains(kfn) { continue; }
 
-			kern_file_history.insert(&kfn);
+			src_file_history.insert(&kfn);
 
 			let valid_kfp = Path::new(kfn);
 
-			// let mut kern_file = match File::open(&valid_kfp) {
+			// let mut src_file = match File::open(&valid_kfp) {
 			// 	Err(why) => return Err(format!("Couldn't open '{}': {}", 
 			// 		kfn, Error::description(&why))),
 			// 	Ok(file) => file,
 			// };
 
-			let mut kern_file = try!(File::open(&valid_kfp).map_err(|e| 
+			let mut src_file = try!(File::open(&valid_kfp).map_err(|e| 
 				format!("Error reading `{}`: {}", kfn, &e.to_string())));
 
-			// match kern_file.read_to_end(&mut kern_str) {
+			// match src_file.read_to_end(&mut src_str) {
 	  //   		Err(why) => return Err(format!("Couldn't read '{}': {}", 
 	  //   			kfn, Error::description(&why))),
 			//     Ok(_) => (), //println!("{}OCL::BUILD(): parsing {}: {} bytes read.", MT, &file_name, bytes),
 			// }
 
-			try!(kern_file.read_to_end(&mut kern_str).map_err(|e| 
+			try!(src_file.read_to_end(&mut src_str).map_err(|e| 
 				format!("Error reading `{}`: {}", kfn, &e.to_string())));
 
-			kern_str.shrink_to_fit();
+			src_str.shrink_to_fit();
 
-			kernel_strings.push(try!(CString::new(kern_str).map_err(|e| e.to_string())));
+			src_strings.push(try!(CString::new(src_str).map_err(|e| e.to_string())));
 		}
 
-		for elem in self.embedded_kernel_source.iter() {
-			kernel_strings.push(try!(CString::new(elem.clone().into_bytes()).map_err(|e| e.to_string())));
-		}
+		// for elem in self.embedded_kernel_source.iter() {
+		// 	src_strings.push(try!(CString::new(elem.clone().into_bytes()).map_err(|e| e.to_string())));
+		// }
+		src_strings.extend_from_slice(&try!(self.kernel_includes_eof()
+			.map_err(|e| e.to_string())));
 
-		Ok(kernel_strings)
-	}	
+		Ok(src_strings)
+	}
 }
 
 /// A build option intended for use either by the compiler as a command line switch
@@ -191,6 +252,7 @@ pub enum BuildOpt {
 	CmplrOther(String),
 	IncludeDefine { ident: String, val: String },
 	IncludeRaw(String),
+	IncludeRawEof(String),
 }
 
 impl BuildOpt {

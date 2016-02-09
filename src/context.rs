@@ -3,14 +3,19 @@
 // use formatting::MT;
 use wrapper;
 use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_context};
+use super::{OclResult, OclError};
 
 /// An OpenCL context for a particular platform and set of device types.
 ///
 /// Wraps a 'cl_context' such as that returned by 'clCreateContext'.
+///
+/// # Destruction
+/// `::release()` must be manually called by consumer.
+///
 pub struct Context {
 	platform_opt: Option<cl_platform_id>,
 	device_ids: Vec<cl_device_id>,
-	obj: cl_context,
+	context_obj: cl_context,
 }
 
 impl Context {
@@ -74,16 +79,16 @@ impl Context {
 	/// - Handle context callbacks.
 	///
 	pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<cl_device_type>) 
-			-> Result<Context, &'static str>
+			-> OclResult<Context>
 	{
 		let platforms = wrapper::get_platform_ids();
-		if platforms.len() == 0 { return Err("\nNo OpenCL platforms found!\n"); }
+		if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
 		let platform = match platform_idx_opt {
 			Some(pf_idx) => {
 				match platforms.get(pf_idx) {
 					Some(&pf) => pf,
-					None => return Err("Invalid OpenCL platform index specified. \
+					None => return OclError::err("Invalid OpenCL platform index specified. \
 						Use 'get_platform_ids()' for a list."),
 				}				
 			},
@@ -92,29 +97,44 @@ impl Context {
 		};
 		
 		let device_ids: Vec<cl_device_id> = wrapper::get_device_ids(platform, device_types_opt);
-		if device_ids.len() == 0 { return Err("\nNo OpenCL devices found!\n"); }
+		if device_ids.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
 		// println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids);
 
-		let obj: cl_context = wrapper::create_context(&device_ids);
+		let context_obj: cl_context = wrapper::create_context(&device_ids);
 
 		Ok(Context {
 			platform_opt: Some(platform),
 			device_ids: device_ids,
-			obj: obj,
+			context_obj: context_obj,
 		})
 	}
 
-	pub fn resolve_device_id(&self, device_idx: Option<usize>) -> cl_device_id {
-		match device_idx {
-			Some(di) => self.valid_device(di),
-			None => self.device_ids()[super::DEFAULT_DEVICE],
+	/// Resolves the zero-based device index into a cl_device_id (pointer).
+	pub fn resolve_device_idxs(&self, device_idxs: Vec<usize>) -> Vec<cl_device_id> {
+		match device_idxs.len() {
+			0 => vec![self.device_ids()[super::DEFAULT_DEVICE]],
+			_ => self.valid_device_ids(device_idxs),
 		}
 	}
 
+	/// Returns a list of valid devices regardless of whether or not the indexes 
+	/// passed are valid by performing a modulo operation on them and letting them
+	/// wrap around (round robin).
+	pub fn valid_device_ids(&self, selected_idxs: Vec<usize>) -> Vec<cl_device_id> {
+		let mut valid_device_ids = Vec::with_capacity(selected_idxs.len());
+
+		for selected_idx in selected_idxs {
+			let valid_idx = selected_idx % self.device_ids.len();
+			valid_device_ids.push(self.device_ids[valid_idx]);
+		}
+
+		valid_device_ids
+	}
+
 	/// Returns the current context as a `*mut libc::c_void`.
-	pub fn obj(&self) -> cl_context {
-		self.obj
+	pub fn context_obj(&self) -> cl_context {
+		self.context_obj
 	}
 
 	/// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
@@ -125,18 +145,12 @@ impl Context {
 	/// Returns the platform our context pertains to.
 	pub fn platform(&self) -> Option<cl_platform_id> {
 		self.platform_opt
-	}
-
-	/// Returns a valid device regardless of whether or not the index passed is valid by performing a modulo operation on it.
-	pub fn valid_device(&self, selected_idx: usize) -> cl_device_id {
-		let valid_idx = selected_idx % self.device_ids.len();
-		self.device_ids[valid_idx]
-	}
+	}	
 
 	/// Releases the current context.
 	pub fn release(&mut self) {		
     	unsafe {
-			cl_h::clReleaseContext(self.obj);
+			cl_h::clReleaseContext(self.context_obj);
 		}
 	}
 }

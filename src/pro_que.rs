@@ -1,74 +1,114 @@
 //! A convenience wrapper chimera of `Program` and `Queue`.
 use wrapper;
-use super::{Context, Kernel, WorkSize, BuildConfig, Program, Queue};
+use super::{Context, Kernel, WorkSize, ProgramBuilder, ProQueBuilder, Program, Queue, 
+	OclResult, OclError};
 
-
-/// A convenience wrapper chimera of `Program` and `Queue`.
+/// A convenience wrapper chimera of the `Program`, `Queue`, and optionally,
+/// `Context` types .
 ///
-/// Useful when using a unique program build on each device.
-#[derive(Clone)]
+/// Handy when creating only a single context, program, and queue or when
+/// using a unique program build on each device.
+///
+/// All `ProQue` functionality is also provided separately by the `Context`, `Queue`, 
+/// and `Program` types.
+///
+/// # Destruction
+/// `::release` must be manually called by consumer.
+///
+// #[derive(Clone)]
 pub struct ProQue {
+	context: Option<Context>,
 	queue: Queue,
-	program_opt: Option<Program>,
+	program: Option<Program>,
 }
 
 impl ProQue {
+	/// Returns a new ProQueBuilder.
+	///
+	/// Calling `ProQueBuilder::build()` will return a new ProQue.
+	// pub fn builder() -> ProQueBuilder {
+	// 	ProQueBuilder::new()
+	// }
+	pub fn builder<'c>() -> ProQueBuilder<'c> {
+		ProQueBuilder::new()
+	}
+
 	/// Creates a new queue on the device with `device_idx` (see `Queue` documentation)
 	/// and returns a new Program/Queue hybrid.
 	///
-	/// `::build()` must be called before this ProQue can be used.
+	/// `::build` must be called before this ProQue can be used.
 	//
-	// TODO: Doc note: mention that:
-	//    - device_idx wraps around
-	//    - one device only
+	/// [FIXME]: Elaborate upon the following:
+	///    - device_idx wraps around (round robins)
+	///    - one device only per ProQue
 	pub fn new(context: &Context, device_idx: Option<usize>) -> ProQue {
 		let queue = Queue::new(context, device_idx);
 
 		ProQue {
 			queue: queue,
-			program_opt: None,
+			program: None,
+			context: None,
 		}
 	}
 
-	/// Builds contained program with `build_config`.
+	/// Creates a new ProQue from individual parts.
+	pub fn from_parts(context: Option<Context>, queue: Queue, program: Option<Program>) -> ProQue {
+		ProQue {
+			context: context,
+			queue: queue,
+			program: program,
+		}
+	}
+
+	/// Builds contained program with `program_builder`.
 	///
 	/// # Panics
-	/// This ProQue must contain a program.
-	pub fn build(&mut self, build_config: BuildConfig) -> Result<(), String> {
-		if self.program_opt.is_some() { 
-			return Err(format!("Ocl::build(): Pre-existing build detected. Use: \
-				'{{your_Ocl_instance}} = {{your_Ocl_instance}}.clear_build()' first."))
-		}		
+	/// This `ProQue` must not already contain a program.
+	///
+	/// `program_builder` must not have any device indexes configured (via
+	/// `::device_idxs`) as `ProQue` will only build programs on the device that
+	/// the built-in queue is associated with.
+	pub fn build_program(&mut self, program_builder: ProgramBuilder) -> OclResult<()> {
+		if self.program.is_some() { 
+			return OclError::err("ProQue::build_program(): Pre-existing build detected. Use \
+				'.clear_build()' first.");
+		}
 
-		self.program_opt = Some(try!(Program::from_parts(
-			try!(build_config.kernel_strings().map_err(|e| e.to_string())), 
-			try!(build_config.compiler_options().map_err(|e| e.to_string())), 
+		if program_builder.get_device_idxs().len() > 0 {
+			return OclError::err("ProQue::build_program(): The 'ProgramBuilder' passed \
+				may not have any device indexes set as they will be ignored. See 'ProQue' \
+				documentation for more information.");
+		}
+		
+		self.program = Some(try!(Program::from_parts(
+			try!(program_builder.src_strings().map_err(|e| e.to_string())), 
+			try!(program_builder.compiler_options().map_err(|e| e.to_string())), 
 			self.queue.context_obj(), 
 			&vec![self.queue.device_id()],
 		)));
 
 		Ok(())
-	}	
+	}
 
 	/// Clears the current program build.
 	pub fn clear_build(&mut self) {
-		match self.program_opt {
+		match self.program {
 			Some(ref mut program) => { 
 				program.release(); 				
 			},
 
 			None => (),
 		}
-		self.program_opt = None;
+		self.program = None;
 	}
 
 	/// Returns a new Kernel with name: `name` and global work size: `gws`.
 	// [FIXME] TODO: Return result instead of panic.
 	pub fn create_kernel(&self, name: &str, gws: WorkSize) -> Kernel {
-		let program = match self.program_opt {
+		let program = match self.program {
 			Some(ref prg) => prg,
 			None => panic!("\nOcl::create_kernel(): Cannot add new kernel until OpenCL program is built. \
-				Use: '{your_Ocl_instance}.build({your_BuildConfig_instance})'.\n"),
+				Use: '{your_Ocl_instance}.build_program({your_ProgramBuilder_instance})'.\n"),
 		};
 
 		Kernel::new(name.to_string(), &program, &self.queue, gws)	
@@ -87,7 +127,7 @@ impl ProQue {
 
 	/// Returns the current program build, if any.
 	pub fn program(&self) -> &Option<Program> {
-		&self.program_opt
+		&self.program
 	}
 
 	/// Release all components.
@@ -95,5 +135,9 @@ impl ProQue {
 	pub fn release(&mut self) {		
 		self.queue.release();
 		self.clear_build();
+
+		if let Some(ref mut context) = self.context {
+			context.release();
+		}
 	}
 }

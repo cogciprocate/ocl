@@ -7,6 +7,10 @@ use cl_h::{self, cl_command_queue, cl_context, cl_device_id};
 use super::Context;
 
 /// An OpenCL command queue.
+///
+/// # Destruction
+/// `::release` must be manually called by consumer.
+///
 // TODO: Implement a constructor which accepts a cl_device_id.
 #[derive(Clone)]
 pub struct Queue {
@@ -25,12 +29,20 @@ impl Queue {
 	/// the documentation for `Context` for more information.
 	/// 
 	pub fn new(context: &Context, device_idx: Option<usize>) -> Queue {
-		let device_id = context.resolve_device_id(device_idx);
-		let obj: cl_command_queue = wrapper::create_command_queue(context.obj(), device_id); 
+		let device_idxs = match device_idx {
+			Some(idx) => vec![idx],
+			None => Vec::with_capacity(0),
+		};
+
+		let device_ids = context.resolve_device_idxs(device_idxs);
+		assert!(device_ids.len() == 1, "Queue::new: Error resolving device ids.");
+		let device_id = device_ids[0];
+
+		let obj: cl_command_queue = wrapper::create_command_queue(context.context_obj(), device_id); 
 
 		Queue {
 			obj: obj,
-			context_obj: context.obj(),
+			context_obj: context.context_obj(),
 			device_id: device_id,			
 		}
 	}	

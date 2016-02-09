@@ -12,10 +12,13 @@ use super::{WorkSize, Buffer, OclNum, EventList, Program, Queue};
 
 /// An OpenCL kernel.
 ///
+/// # Destruction
+/// Releases kernel object automatically upon drop.
+///
 /// [FIXME] TODO: Add more details, examples, etc.
 /// [FIXME] TODO: Add information about panics and errors.
 pub struct Kernel {
-	kernel: cl_kernel,
+	kernel_obj: cl_kernel,
 	name: String,
 	arg_index: u32,
 	named_args: HashMap<&'static str, u32>,
@@ -34,7 +37,7 @@ impl Kernel {
 	{
 		let mut err: cl_int = 0;
 
-		let kernel = unsafe {
+		let kernel_obj = unsafe {
 			cl_h::clCreateKernel(
 				program.obj(), 
 				ffi::CString::new(name.as_bytes()).unwrap().as_ptr(), 
@@ -46,7 +49,7 @@ impl Kernel {
 		wrapper::must_succeed(&err_pre, err);
 
 		Kernel {
-			kernel: kernel,
+			kernel_obj: kernel_obj,
 			name: name,
 			arg_index: 0,
 			named_args: HashMap::with_capacity(5),
@@ -201,7 +204,7 @@ impl Kernel {
 	{
 		unsafe {
 			let err = cl_h::clSetKernelArg(
-						self.kernel, 
+						self.kernel_obj, 
 						arg_index,
 						arg_size, 
 						arg_value,
@@ -233,7 +236,7 @@ impl Kernel {
 		unsafe {
 			let err = cl_h::clEnqueueNDRangeKernel(
 						cmd_queue,
-						self.kernel,
+						self.kernel_obj,
 						self.gws.dim_count(),
 						self.gwo.as_ptr(),
 						gws,
@@ -258,5 +261,15 @@ impl Kernel {
 	#[inline]
 	pub fn arg_count(&self) -> u32 {
 		self.arg_count
-	}	
+	}
+
+	pub unsafe fn release(&mut self) {
+		cl_h::clReleaseKernel(self.kernel_obj);
+	}
+}
+
+impl Drop for Kernel {
+	fn drop(&mut self) {
+		unsafe { self.release(); }
+	}
 }

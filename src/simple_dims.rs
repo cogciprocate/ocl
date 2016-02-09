@@ -1,5 +1,5 @@
 //! A simple way to specify the sizes of up to three dimensions.
-use super::{BufferDims, OclError, WorkSize};
+use super::{BufferDims, OclResult, OclError, WorkSize};
 
 /// A simple implementation of a type specifying the sizes of up to three
 /// dimensions. 
@@ -21,7 +21,7 @@ impl SimpleDims {
 	///
 	/// Dimensions must be specified in order from d0 -> d1 -> d2; i.e. `d1` 
 	/// cannot be `Some(x)` if `d0` is `None`.
-	pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> Result<SimpleDims, OclError> {
+	pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> OclResult<SimpleDims> {
 		let std_err_msg = "Dimensions must be defined from left to right. If you define the 2nd \
 			dimension, you must also define the 1st, etc.";
 
@@ -29,13 +29,13 @@ impl SimpleDims {
 			if d1.is_some() && d0.is_some() {
 				Ok(SimpleDims::ThreeDims(d0.unwrap(), d1.unwrap(), d2.unwrap()))
 			} else {
-				Err(OclError::new(std_err_msg))
+				OclError::err(std_err_msg)
 			}
 		} else if d1.is_some() {
 			if d0.is_some() {
 				Ok(SimpleDims::TwoDims(d1.unwrap(), d0.unwrap()))
 			} else {
-				Err(OclError::new(std_err_msg))
+				OclError::err(std_err_msg)
 			}
 		} else if d0.is_some() {
 			Ok(SimpleDims::OneDim(d0.unwrap()))

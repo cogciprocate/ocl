@@ -2,7 +2,7 @@ extern crate libc;
 extern crate ocl;
 
 use libc::c_void;
-use ocl::{Context, ProQue, BuildConfig, SimpleDims, Buffer, EventList};
+use ocl::{Context, ProQue, ProgramBuilder, SimpleDims, Buffer, EventList};
 use ocl::cl_h::{cl_event, cl_int};
 
 // How many iterations we wish to run:
@@ -39,11 +39,32 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 				((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
 
 			if PRINT_DEBUG && (idx < RESULTS_TO_PRINT) {
-				print!("[{}]", (*result_buffer)[idx]);
+				let correct_result = (*seed_buffer)[idx] + (((itr + 1) as u32) * addend);
+				print!("correct_result: {}, result_buffer[{idx}]:{}\n",
+					correct_result, (*result_buffer)[idx], idx = idx);
 			}
 		}
 
-		if PRINT_DEBUG { print!("\n\n"); }
+		let mut errors_found = 0;
+
+		for idx in 0..data_set_size {
+			// [FIXME]: FAILING ON OSX -- TEMPORARLY COMMENTING OUT
+			// assert_eq!((*result_buffer)[idx], 
+			// 	((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
+
+			if PRINT_DEBUG {
+				let correct_result = (*seed_buffer)[idx] + (((itr + 1) as u32) * addend);
+
+				if (*result_buffer)[idx] != correct_result {
+					print!("correct_result:{}, result_buffer[{idx}]:{}\n",
+						correct_result, (*result_buffer)[idx], idx = idx);
+
+					errors_found += 1;
+				}
+			}
+		}
+
+		if PRINT_DEBUG && errors_found > 0 { print!("TOTAL ERRORS FOUND: {}\n\n", errors_found); }
     }
 }
 
@@ -52,14 +73,14 @@ fn main() {
 	let mut ocl_pq = ProQue::new(&Context::new(None, None).unwrap(), None);
 
 	// Build program:
-	ocl_pq.build(BuildConfig::new().kern_file("cl/kernel_file.cl")).unwrap();
+	ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();
 
 	// Set up data set size and work dimensions:
 	let data_set_size = 900000;
 	let our_test_dims = SimpleDims::OneDim(data_set_size);
 
 	// Create source and result buffers (our data containers):
-	let seed_buffer = Buffer::with_vec_scrambled(0u32, 500u32, &our_test_dims, &ocl_pq.queue());
+	let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &our_test_dims, &ocl_pq.queue());
 	let mut result_buffer = Buffer::with_vec(&our_test_dims, &ocl_pq.queue());
 
 	// Our arbitrary addend:

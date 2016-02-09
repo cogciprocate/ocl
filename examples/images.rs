@@ -1,4 +1,4 @@
-use ocl::{Context, ProQue, BuildConfig, SimpleDims};
+use ocl::{Context, ProQue, ProgramBuilder, SimpleDims};
 extern crate ocl;
 
 fn main() {
@@ -18,6 +18,10 @@ fn main() {
 					__private float const coeff,
 					__global float* const res)
 		{
+
+		// Intentional extra brace:
+		{
+
 			uint const idx = get_global_id(0);
 
 			res[idx] = src[idx] * coeff;
@@ -25,10 +29,10 @@ fn main() {
 	"#;
 
 	// Create a basic build configuration using above source: 
-	let build_config = BuildConfig::new().kern_embed(kernel_src);
+	let program_builder = ProgramBuilder::new().src(kernel_src);
 
 	// Build with our configuration and check for errors:
-	ocl_pq.build(build_config).expect("ocl program build");
+	ocl_pq.build_program(program_builder).expect("ProQue build");
 
 	// // Set up our work dimensions / data set size:
 	// let dims = SimpleDims::OneDim(data_set_size);
