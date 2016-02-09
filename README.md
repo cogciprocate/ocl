@@ -1,18 +1,17 @@
 # ocl
 
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
-** [Documentation](http://doc.cogciprocate.com/ocl/) | [Recent Changes](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md) **
+#### [Documentation](http://doc.cogciprocate.com/ocl/) | [Recent Changes](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
 
 OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and perform on a par with any C++ libraries.
 
-Interfaces are still unstable. Won't eat your laundry but some of the conventions may change (in hopefully obvious ways).
+Interfaces are still mildly unstable. Changes are now being documented in [RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md).
 
 
 ## Goals
 
 To provide a simple and intuitive way to interact with OpenCL devices with:
 - The full functionality of the OpenCL C ABI 
-   - *This is a work in progress. Please [file an issue](https://github.com/cogciprocate/ocl_rust/issues) about any functionality you might want so it can be prioritized.*
 - An absolute minimum of boilerplate
 - As close as possible to zero performance overhead
 
@@ -24,7 +23,7 @@ Tested so far only on Linux. Please [provide feedback](https://github.com/cogcip
 
 ## Installation
 
-Ensure that an OpenCL library is installed for your preferred platform and  that `clinfo` or some other diagnostic command will run.
+Ensure that an OpenCL library is installed for your preferred platform and that `clinfo` or some other diagnostic command will run.
 
 Add:
 
@@ -105,7 +104,7 @@ fn main() {
 ```
 ### Recent Changes
 
-See the **[RELEASES](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)** log.
+See **[RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)**.
 
 ### Upcoming Changes
 

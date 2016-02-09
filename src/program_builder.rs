@@ -4,11 +4,11 @@
 use std::io::Read;
 use std::fs::File;
 use std::path::Path;
-use std::ffi::{CString, NulError};
+use std::ffi::{CString};
 use std::collections::HashSet;
 use std::convert::Into;
 // use std::error::{Error};
-use super::{Context, Program, OclResult};
+use super::{Context, Program, OclResult, OclError};
 
 /// Compilation options for building an OpenCL program. Used when creating 
 /// a new `Program`.
@@ -115,7 +115,7 @@ impl ProgramBuilder {
 
 	/// Returns a contatenated string of compiler command line options used when 
 	/// building a `Program`.
-	pub fn compiler_options(&self) -> Result<CString, NulError> {
+	pub fn compiler_options(&self) -> OclResult<CString> {
 		let mut opts: Vec<String> = Vec::with_capacity(64);
 
 		opts.push(" ".to_string());
@@ -138,7 +138,7 @@ impl ProgramBuilder {
 			}
 		}
 
-		CString::new(opts.join(" ").into_bytes())
+		CString::new(opts.join(" ").into_bytes()).map_err(|err| OclError::from(err))
 	}
 
 	/// Parses `self.options` for options intended for inclusion at the beginning of 
@@ -147,7 +147,7 @@ impl ProgramBuilder {
 	/// Generally used for #define directives, constants, etc. Normally called from
 	/// `::src_strings()` but can also be called from anywhere for debugging 
 	/// purposes.
-	pub fn kernel_includes(&self) -> Result<Vec<CString>, NulError> {
+	pub fn kernel_includes(&self) -> OclResult<Vec<CString>> {
 		let mut strings	= Vec::with_capacity(64);
 		strings.push(try!(CString::new("\n".as_bytes())));
 
@@ -169,7 +169,7 @@ impl ProgramBuilder {
 
 	/// Parses `self.options` for options intended for inclusion at the end of 
 	/// the final program source and returns them as a list of strings.
-	pub fn kernel_includes_eof(&self) -> Result<Vec<CString>, NulError> {
+	pub fn kernel_includes_eof(&self) -> OclResult<Vec<CString>> {
 		let mut strings	= Vec::with_capacity(64);
 		strings.push(try!(CString::new("\n".as_bytes())));
 
@@ -191,13 +191,11 @@ impl ProgramBuilder {
 	/// - includes from `::kernel_includes()`
 	/// - source from files listed in `self.src_file_names` in reverse order
 	/// - raw source from `self.embedded_kernel_source`
-	/// [UNSTABLE] TODO: Fix up error handling: return an `OclResult`.
-	pub fn src_strings(&self) -> Result<Vec<CString>, String> {
-	// pub fn src_strings(&self) -> OclResult<Vec<CString>> {
+	pub fn src_strings(&self) -> OclResult<Vec<CString>> {
 		let mut src_strings: Vec<CString> = Vec::with_capacity(64);
 		let mut src_file_history: HashSet<&String> = HashSet::with_capacity(64);
 
-		src_strings.extend_from_slice(&try!(self.kernel_includes().map_err(|e| e.to_string())));
+		src_strings.extend_from_slice(&try!(self.kernel_includes()));
 
 		for kfn in self.src_file_names().iter().rev() {
 			let mut src_str: Vec<u8> = Vec::with_capacity(100000);
@@ -214,8 +212,7 @@ impl ProgramBuilder {
 			// 	Ok(file) => file,
 			// };
 
-			let mut src_file = try!(File::open(&valid_kfp).map_err(|e| 
-				format!("Error reading `{}`: {}", kfn, &e.to_string())));
+			let mut src_file = try!(File::open(&valid_kfp));
 
 			// match src_file.read_to_end(&mut src_str) {
 	  //   		Err(why) => return Err(format!("Couldn't read '{}': {}", 
@@ -223,19 +220,17 @@ impl ProgramBuilder {
 			//     Ok(_) => (), //println!("{}OCL::BUILD(): parsing {}: {} bytes read.", MT, &file_name, bytes),
 			// }
 
-			try!(src_file.read_to_end(&mut src_str).map_err(|e| 
-				format!("Error reading `{}`: {}", kfn, &e.to_string())));
+			try!(src_file.read_to_end(&mut src_str));
 
 			src_str.shrink_to_fit();
 
-			src_strings.push(try!(CString::new(src_str).map_err(|e| e.to_string())));
+			src_strings.push(try!(CString::new(src_str)));
 		}
 
 		// for elem in self.embedded_kernel_source.iter() {
 		// 	src_strings.push(try!(CString::new(elem.clone().into_bytes()).map_err(|e| e.to_string())));
 		// }
-		src_strings.extend_from_slice(&try!(self.kernel_includes_eof()
-			.map_err(|e| e.to_string())));
+		src_strings.extend_from_slice(&try!(self.kernel_includes_eof()));
 
 		Ok(src_strings)
 	}
