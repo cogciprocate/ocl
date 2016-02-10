@@ -207,12 +207,19 @@ pub fn create_buffer<T>(
 
 // [WORK IN PROGRESS]
 #[inline]
-pub fn create_image_2d(/*context: cl_mem*/) -> cl_mem {
-
+pub fn create_image_2d(
+						
+		) -> cl_mem 
+{
 	// let mut err: cl_int = 0;
+
+	// let flags: cl_mem_flags = 0;
+	// let image_format: cl_image_format = 
 
 	// let image_obj = unsafe {
 	// 	cl_h::clCreateImage2D(
+	// 		context,
+
 
 
 	// }

@@ -36,79 +36,57 @@ to your project's `Cargo.toml`.
 
 
 ## Example 
-From 'examples/basics.rs':
-
+From 'examples/trivial.rs':
 ```
 extern crate ocl;
-
-// Number of results to print out:
-const RESULTS_TO_PRINT: usize = 20;
-
-// Our arbitrary data set size and coefficent:
-const DATA_SET_SIZE: usize = 900000;
-const COEFF: f32 = 5432.1;
-
-// Our kernel source code:
-static KERNEL_SRC: &'static str = r#"
-	__kernel void multiply_by_scalar(
-				__global float const* const src,
-				__private float const coeff,
-				__global float* const res)
-	{
-		uint const idx = get_global_id(0);
-
-		res[idx] = src[idx] * coeff;
-	}
-"#;
-
 
 fn main() {
 	use ocl::{ProQue, SimpleDims, Buffer};
 
-	// Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
-	let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");
+	// Define a kernel:
+	let kernel = r#"
+		kernel void multiply(global float* buffer, private float coeff) {
+			buffer[get_global_id(0)] *= coeff;
+		}
+	"#;
 
-	// Set up our work dimensions / data set size:
-	let dims = SimpleDims::OneDim(DATA_SET_SIZE);
+	// Create a big ball of OpenCL-ness:
+	let ocl_pq = ProQue::builder().src(kernel).build().unwrap();
 
-	// Create a 'Buffer' (a device buffer + a local vector) as a data source
-	// and initialize it with random floats between 0.0 and 20.0:
-	let source_buffer: Buffer<f32> = 
-		Buffer::with_vec_scrambled((0.0, 20.0), &dims, &ocl_pq.queue());
+	// Set our work dimensions / data set size to something arbitrary:
+	let dims = SimpleDims::OneDim(500000);
 
-	// Create another empty buffer for results:
-	let mut result_buffer: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
+	// Create a 'Buffer' with a built-in vector and initialize it with random 
+	// floats between 0.0 and 20.0:
+	let mut buffer: Buffer<f32> = Buffer::with_vec_scrambled((0.0, 20.0), &dims, 
+		&ocl_pq.queue());
 
-	// Create a kernel with three arguments corresponding to those in the kernel:
-	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
-		.arg_buf(&source_buffer)
-		.arg_scl(COEFF)
-		.arg_buf(&mut result_buffer);
+	// Create a kernel with arguments matching those in the kernel:
+	let kernel = ocl_pq.create_kernel("multiply", dims.work_size())
+		.arg_buf(&buffer)
+		.arg_scl(5.0f32);
 
-	// Enqueue kernel depending on and creating no events:
+	// Enqueue kernel:
 	kernel.enqueue(None, None);
 
 	// Read results from the device into result_buffer's local vector:
-	result_buffer.fill_vec();
+	buffer.fill_vec();
 
-	// Check results and print the first 20:
-	for idx in 0..DATA_SET_SIZE {
-		assert_eq!(result_buffer[idx], source_buffer[idx] * COEFF);
-
-		if idx < RESULTS_TO_PRINT { 
-			println!("source[{idx}]: {}, \tcoeff: {}, \tresult[{idx}]: {}",
-			source_buffer[idx], COEFF, result_buffer[idx], idx = idx); 
-		}
-	}
+	// Print a result:
+	println!("The value at index [{}] is '{}'!", 90007, buffer[90007]);
 }
 ```
+
 ### Recent Changes
 
 See **[RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)**.
 
+
 ### Upcoming Changes
 
-At the top of the list are cleaning up and consolidating error handling [Issue #8](https://github.com/cogciprocate/ocl/issues/8) and finishing [documentation](http://doc.cogciprocate.com/ocl/) (now about 60% complete).
+* Addition of the `Image` type for dealing with images.
+* Cleaning up and consolidating error handling [Issue #8](https://github.com/cogciprocate/ocl/issues/8) 
+* Finishing [documentation](http://doc.cogciprocate.com/ocl/) (now about 60% complete).
 
 ## Help
 
@@ -116,3 +94,5 @@ At the top of the list are cleaning up and consolidating error handling [Issue #
 
 Please ask questions and provide feedback by opening an [issue](https://github.com/cogciprocate/ocl_rust/issues).
 
+## Taking Requests
+Want to bring your OpenCL-ness to Rust but can't find the functionality you need? File an [issue](https://github.com/cogciprocate/ocl_rust/issues) and prefix the title with `Feature Request:`.

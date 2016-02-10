@@ -613,7 +613,18 @@ impl<T> IndexMut<RangeFull> for Buffer<T> {
     }
 }
 
-// impl<'a, T> Iterator<
+// impl<T> IntoIterator for Buffer<T> {
+//     type Item = T;
+//     type IntoIter = ::std::vec::IntoIter<T>;
+
+//     fn into_iter(self) -> Self::IntoIter {
+//     	match self.vec {
+//     		VecOption::Some(vec) => vec.into_iter(),
+//     		VecOption::None => panic!("Buffer::into_iter(): Cannot iterate over a Buffer that
+//     			does not contain a built-in vector. Try creating your Buffer with ::with_vec()."),
+// 		}
+//     }
+// }
 
 
 // impl<T: OclNum> Display for Buffer<T> {

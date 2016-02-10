@@ -30,7 +30,7 @@ pub use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_device_inf
 	cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, cl_bool,
 	cl_float, cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, 
 	cl_bitfield, CLStatus, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
-	CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_ALL};
+	CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_CUSTOM, CL_DEVICE_TYPE_ALL};
 
 pub use self::formatting as fmt;
 pub use self::context::Context;
@@ -79,17 +79,7 @@ mod tests;
 //================================ CONSTANTS ==================================
 //=============================================================================
 
-// pub static CL_DEVICE_TYPE_DEFAULT:                       cl_device_type = 1 << 0;
-// 		CL_DEVICE_TYPE_DEFAULT:	The default OpenCL device in the system.
-// pub static CL_DEVICE_TYPE_CPU:                           cl_device_type = 1 << 1;
-// 		CL_DEVICE_TYPE_CPU:	An OpenCL device that is the host processor. The host processor runs the OpenCL implementations and is a single or multi-core CPU.
-// pub static CL_DEVICE_TYPE_GPU:                           cl_device_type = 1 << 2;
-// 		CL_DEVICE_TYPE_GPU:	An OpenCL device that is a GPU. By this we mean that the device can also be used to accelerate a 3D API such as OpenGL or DirectX.
-// pub static CL_DEVICE_TYPE_ACCELERATOR:                   cl_device_type = 1 << 3;
-// 		CL_DEVICE_TYPE_ACCELERATOR:	Dedicated OpenCL accelerators (for example the IBM CELL Blade). These devices communicate with the host processor using a peripheral interconnect such as PCIe.
-// pub static CL_DEVICE_TYPE_ALL:                           cl_device_type = 0xFFFFFFFF;
-// 		CL_DEVICE_TYPE_ALL
-const DEFAULT_DEVICE_TYPE: cl_device_type = 1 << 0; // CL_DEVICE_TYPE_DEFAULT
+const DEFAULT_DEVICE_TYPE: cl_device_type = CL_DEVICE_TYPE_DEFAULT;
 
 const DEVICES_MAX: u32 = 16;
 const DEFAULT_PLATFORM: usize = 0;

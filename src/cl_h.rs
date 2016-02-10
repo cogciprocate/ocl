@@ -16,53 +16,74 @@ pub type cl_kernel          = *mut c_void;
 pub type cl_event           = *mut c_void;
 pub type cl_sampler         = *mut c_void;
 
-pub type cl_char                        = i8;
-pub type cl_uchar                       = u8;
-pub type cl_short                       = i16;
-pub type cl_ushort                      = u16;
-pub type cl_int                         = i32;
-pub type cl_uint                        = u32;
-pub type cl_long                        = i64;
-pub type cl_ulong                       = u64;
-pub type cl_half                        = u16;
-pub type cl_float                       = f32;
-pub type cl_double                      = f64;
-pub type cl_bool                        = cl_uint;
-pub type cl_bitfield                    = cl_ulong;
-pub type cl_device_type                 = cl_bitfield;
-pub type cl_platform_info               = cl_uint;
-pub type cl_device_info                 = cl_uint;
-pub type cl_device_fp_config            = cl_bitfield;
-pub type cl_device_mem_cache_type       = cl_uint;
-pub type cl_device_local_mem_type       = cl_uint;
-pub type cl_device_exec_capabilities    = cl_bitfield;
-pub type cl_command_queue_properties    = cl_bitfield;
-pub type cl_context_properties          = intptr_t;
-pub type cl_context_info                = cl_uint;
-pub type cl_command_queue_info          = cl_uint;
-pub type cl_channel_order               = cl_uint;
-pub type cl_channel_type                = cl_uint;
-pub type cl_mem_flags                   = cl_bitfield;
-pub type cl_mem_object_type             = cl_uint;
-pub type cl_mem_info                    = cl_uint;
-pub type cl_image_info                  = cl_uint;
-pub type cl_buffer_create_type          = cl_uint;
-pub type cl_addressing_mode             = cl_uint;
-pub type cl_filter_mode                 = cl_uint;
-pub type cl_sampler_info                = cl_uint;
-pub type cl_map_flags                   = cl_bitfield;
-pub type cl_program_info                = cl_uint;
-pub type cl_program_build_info          = cl_uint;
-pub type cl_build_status                = cl_int;
-pub type cl_kernel_info                 = cl_uint;
-pub type cl_kernel_work_group_info      = cl_uint;
-pub type cl_event_info                  = cl_uint;
-pub type cl_command_type                = cl_uint;
-pub type cl_profiling_info              = cl_uint;
+pub type cl_char                        	= i8;
+pub type cl_uchar                       	= u8;
+pub type cl_short                       	= i16;
+pub type cl_ushort                      	= u16;
+pub type cl_int                         	= i32;
+pub type cl_uint                        	= u32;
+pub type cl_long                        	= i64;
+pub type cl_ulong                       	= u64;
+pub type cl_half                        	= u16;
+pub type cl_float                       	= f32;
+pub type cl_double                      	= f64;
+pub type cl_bool                        	= cl_uint;
+pub type cl_bitfield                    	= cl_ulong;
+pub type cl_device_type                 	= cl_bitfield;
+pub type cl_platform_info               	= cl_uint;
+pub type cl_device_info                 	= cl_uint;
+pub type cl_device_fp_config            	= cl_bitfield;
+pub type cl_device_mem_cache_type       	= cl_uint;
+pub type cl_device_local_mem_type       	= cl_uint;
+pub type cl_device_exec_capabilities    	= cl_bitfield;
+pub type cl_command_queue_properties   		= cl_bitfield;
+pub type cl_device_partition_property		= intptr_t;
+pub type cl_device_affinity_domain			= cl_bitfield;
+pub type cl_context_properties          	= intptr_t;
+pub type cl_context_info                	= cl_uint;
+pub type cl_command_queue_info          	= cl_uint;
+pub type cl_channel_order               	= cl_uint;
+pub type cl_channel_type                	= cl_uint;
+pub type cl_mem_flags                   	= cl_bitfield;
+pub type cl_mem_object_type             	= cl_uint;
+pub type cl_mem_info                    	= cl_uint;
+pub type cl_mem_migration_flags				= cl_bitfield;
+pub type cl_image_info                  	= cl_uint;
+pub type cl_buffer_create_type          	= cl_uint;
+pub type cl_addressing_mode             	= cl_uint;
+pub type cl_filter_mode                 	= cl_uint;
+pub type cl_sampler_info                	= cl_uint;
+pub type cl_map_flags                   	= cl_bitfield;
+pub type cl_program_info                	= cl_uint;
+pub type cl_program_build_info          	= cl_uint;
+pub type cl_program_binary_type				= cl_uint;
+pub type cl_build_status                	= cl_int;
+pub type cl_kernel_info                 	= cl_uint;
+pub type cl_kernel_arg_info 				= cl_uint;
+pub type cl_kernel_arg_address_qualifier	= cl_uint;
+pub type cl_kernel_arg_access_qualifier		= cl_uint;
+pub type cl_kernel_arg_type_qualifier		= cl_uint;
+pub type cl_kernel_work_group_info      	= cl_uint;
+pub type cl_event_info                  	= cl_uint;
+pub type cl_command_type                	= cl_uint;
+pub type cl_profiling_info              	= cl_uint;
 
 pub struct cl_image_format {
 	image_channel_order:        cl_channel_order,
 	image_channel_data_type:    cl_channel_type,
+}
+
+pub struct cl_image_desc {
+	image_type: cl_mem_object_type,
+	image_width: size_t,
+	image_height: size_t,
+	image_depth: size_t,
+	image_array_size: size_t,
+	image_row_pitch: size_t,
+	image_slice_pitch: size_t,
+	num_mip_levels: cl_uint,
+	num_samples: cl_uint,
+	buffer: cl_mem,
 }
 
 pub struct cl_buffer_region {
@@ -91,6 +112,11 @@ enum_from_primitive! {
 		CL_MAP_FAILURE                                  = -12,
 		CL_MISALIGNED_SUB_BUFFER_OFFSET                 = -13,
 		CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST    = -14,
+		CL_COMPILE_PROGRAM_FAILURE                  	= -15,
+		CL_LINKER_NOT_AVAILABLE                     	= -16,
+		CL_LINK_PROGRAM_FAILURE                    		= -17,
+		CL_DEVICE_PARTITION_FAILED                  	= -18,
+		CL_KERNEL_ARG_INFO_NOT_AVAILABLE            	= -19,
 		CL_INVALID_VALUE                                = -30,
 		CL_INVALID_DEVICE_TYPE                          = -31,
 		CL_INVALID_PLATFORM                             = -32,
@@ -126,6 +152,10 @@ enum_from_primitive! {
 		CL_INVALID_MIP_LEVEL                            = -62,
 		CL_INVALID_GLOBAL_WORK_SIZE                     = -63,
 		CL_INVALID_PROPERTY                             = -64,
+		CL_INVALID_IMAGE_DESCRIPTOR                 	= -65,
+		CL_INVALID_COMPILER_OPTIONS                 	= -66,
+		CL_INVALID_LINKER_OPTIONS                   	= -67,
+		CL_INVALID_DEVICE_PARTITION_COUNT           	= -68,
 		CL_PLATFORM_NOT_FOUND_KHR                       = -1001,
 	}
 }
@@ -138,299 +168,392 @@ impl Display for CLStatus {
 
 
 // Version
-pub static CL_VERSION_1_0:                               cl_bool = 1;
-pub static CL_VERSION_1_1:                               cl_bool = 1;
-pub static CL_VERSION_1_2:                               cl_bool = 1;
-//pub static CL_VERSION_2_0:                               cl_bool = 1;
+pub const CL_VERSION_1_0:                               cl_bool = 1;
+pub const CL_VERSION_1_1:                               cl_bool = 1;
+pub const CL_VERSION_1_2:                               cl_bool = 1;
+//pub const CL_VERSION_2_0:                               cl_bool = 1;
 
 // cl_bool
-pub static CL_FALSE:                                     cl_bool = 0;
-pub static CL_TRUE:                                      cl_bool = 1;
+pub const CL_FALSE:                                     cl_bool = 0;
+pub const CL_TRUE:                                      cl_bool = 1;
+pub const CL_BLOCKING:                                  cl_bool = CL_TRUE;
+pub const CL_NON_BLOCKING:                              cl_bool = CL_FALSE;
+
 
 // cl_platform_info 
-pub static CL_PLATFORM_PROFILE:                          cl_uint = 0x0900;
-pub static CL_PLATFORM_VERSION:                          cl_uint = 0x0901;
-pub static CL_PLATFORM_NAME:                             cl_uint = 0x0902;
-pub static CL_PLATFORM_VENDOR:                           cl_uint = 0x0903;
-pub static CL_PLATFORM_EXTENSIONS:                       cl_uint = 0x0904;
+pub const CL_PLATFORM_PROFILE:                          cl_uint = 0x0900;
+pub const CL_PLATFORM_VERSION:                          cl_uint = 0x0901;
+pub const CL_PLATFORM_NAME:                             cl_uint = 0x0902;
+pub const CL_PLATFORM_VENDOR:                           cl_uint = 0x0903;
+pub const CL_PLATFORM_EXTENSIONS:                       cl_uint = 0x0904;
 
 // cl_device_type - bitfield 
-pub static CL_DEVICE_TYPE_DEFAULT:                       cl_bitfield = 1 << 0;
-pub static CL_DEVICE_TYPE_CPU:                           cl_bitfield = 1 << 1;
-pub static CL_DEVICE_TYPE_GPU:                           cl_bitfield = 1 << 2;
-pub static CL_DEVICE_TYPE_ACCELERATOR:                   cl_bitfield = 1 << 3;
-pub static CL_DEVICE_TYPE_ALL:                           cl_bitfield = 0xFFFFFFFF;
+pub const CL_DEVICE_TYPE_DEFAULT:                       cl_bitfield = 1 << 0;
+pub const CL_DEVICE_TYPE_CPU:                           cl_bitfield = 1 << 1;
+pub const CL_DEVICE_TYPE_GPU:                           cl_bitfield = 1 << 2;
+pub const CL_DEVICE_TYPE_ACCELERATOR:                   cl_bitfield = 1 << 3;
+pub const CL_DEVICE_TYPE_CUSTOM:                   		cl_bitfield = 1 << 4;
+pub const CL_DEVICE_TYPE_ALL:                           cl_bitfield = 0xFFFFFFFF;
 
 // cl_device_info 
-pub static CL_DEVICE_TYPE:                               cl_uint = 0x1000;
-pub static CL_DEVICE_VENDOR_ID:                          cl_uint = 0x1001;
-pub static CL_DEVICE_MAX_COMPUTE_UNITS:                  cl_uint = 0x1002;
-pub static CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:           cl_uint = 0x1003;
-pub static CL_DEVICE_MAX_WORK_GROUP_SIZE:                cl_uint = 0x1004;
-pub static CL_DEVICE_MAX_WORK_ITEM_SIZES:                cl_uint = 0x1005;
-pub static CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:        cl_uint = 0x1006;
-pub static CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT:       cl_uint = 0x1007;
-pub static CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT:         cl_uint = 0x1008;
-pub static CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG:        cl_uint = 0x1009;
-pub static CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:       cl_uint = 0x100A;
-pub static CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:      cl_uint = 0x100B;
-pub static CL_DEVICE_MAX_CLOCK_FREQUENCY:                cl_uint = 0x100C;
-pub static CL_DEVICE_ADDRESS_BITS:                       cl_uint = 0x100D;
-pub static CL_DEVICE_MAX_READ_IMAGE_ARGS:                cl_uint = 0x100E;
-pub static CL_DEVICE_MAX_WRITE_IMAGE_ARGS:               cl_uint = 0x100F;
-pub static CL_DEVICE_MAX_MEM_ALLOC_SIZE:                 cl_uint = 0x1010;
-pub static CL_DEVICE_IMAGE2D_MAX_WIDTH:                  cl_uint = 0x1011;
-pub static CL_DEVICE_IMAGE2D_MAX_HEIGHT:                 cl_uint = 0x1012;
-pub static CL_DEVICE_IMAGE3D_MAX_WIDTH:                  cl_uint = 0x1013;
-pub static CL_DEVICE_IMAGE3D_MAX_HEIGHT:                 cl_uint = 0x1014;
-pub static CL_DEVICE_IMAGE3D_MAX_DEPTH:                  cl_uint = 0x1015;
-pub static CL_DEVICE_IMAGE_SUPPORT:                      cl_uint = 0x1016;
-pub static CL_DEVICE_MAX_PARAMETER_SIZE:                 cl_uint = 0x1017;
-pub static CL_DEVICE_MAX_SAMPLERS:                       cl_uint = 0x1018;
-pub static CL_DEVICE_MEM_BASE_ADDR_ALIGN:                cl_uint = 0x1019;
-pub static CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:           cl_uint = 0x101A;
-pub static CL_DEVICE_SINGLE_FP_CONFIG:                   cl_uint = 0x101B;
-pub static CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:              cl_uint = 0x101C;
-pub static CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE:          cl_uint = 0x101D;
-pub static CL_DEVICE_GLOBAL_MEM_CACHE_SIZE:              cl_uint = 0x101E;
-pub static CL_DEVICE_GLOBAL_MEM_SIZE:                    cl_uint = 0x101F;
-pub static CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:           cl_uint = 0x1020;
-pub static CL_DEVICE_MAX_CONSTANT_ARGS:                  cl_uint = 0x1021;
-pub static CL_DEVICE_LOCAL_MEM_TYPE:                     cl_uint = 0x1022;
-pub static CL_DEVICE_LOCAL_MEM_SIZE:                     cl_uint = 0x1023;
-pub static CL_DEVICE_ERROR_CORRECTION_SUPPORT:           cl_uint = 0x1024;
-pub static CL_DEVICE_PROFILING_TIMER_RESOLUTION:         cl_uint = 0x1025;
-pub static CL_DEVICE_ENDIAN_LITTLE:                      cl_uint = 0x1026;
-pub static CL_DEVICE_AVAILABLE:                          cl_uint = 0x1027;
-pub static CL_DEVICE_COMPILER_AVAILABLE:                 cl_uint = 0x1028;
-pub static CL_DEVICE_EXECUTION_CAPABILITIES:             cl_uint = 0x1029;
-pub static CL_DEVICE_QUEUE_PROPERTIES:                   cl_uint = 0x102A;
-pub static CL_DEVICE_NAME:                               cl_uint = 0x102B;
-pub static CL_DEVICE_VENDOR:                             cl_uint = 0x102C;
-pub static CL_DRIVER_VERSION:                            cl_uint = 0x102D;
-pub static CL_DEVICE_PROFILE:                            cl_uint = 0x102E;
-pub static CL_DEVICE_VERSION:                            cl_uint = 0x102F;
-pub static CL_DEVICE_EXTENSIONS:                         cl_uint = 0x1030;
-pub static CL_DEVICE_PLATFORM:                           cl_uint = 0x1031;
-pub static CL_DEVICE_DOUBLE_FP_CONFIG:                   cl_uint = 0x1032;
-pub static CL_DEVICE_HALF_FP_CONFIG:                     cl_uint = 0x1033;
-pub static CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:        cl_uint = 0x1034;
-pub static CL_DEVICE_HOST_UNIFIED_MEMORY:                cl_uint = 0x1035;
-pub static CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR:           cl_uint = 0x1036;
-pub static CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT:          cl_uint = 0x1037;
-pub static CL_DEVICE_NATIVE_VECTOR_WIDTH_INT:            cl_uint = 0x1038;
-pub static CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG:           cl_uint = 0x1039;
-pub static CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT:          cl_uint = 0x103A;
-pub static CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE:         cl_uint = 0x103B;
-pub static CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:           cl_uint = 0x103C;
-pub static CL_DEVICE_OPENCL_C_VERSION:                   cl_uint = 0x103D;
+pub const CL_DEVICE_TYPE:                               cl_uint = 0x1000;
+pub const CL_DEVICE_VENDOR_ID:                          cl_uint = 0x1001;
+pub const CL_DEVICE_MAX_COMPUTE_UNITS:                  cl_uint = 0x1002;
+pub const CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS:           cl_uint = 0x1003;
+pub const CL_DEVICE_MAX_WORK_GROUP_SIZE:                cl_uint = 0x1004;
+pub const CL_DEVICE_MAX_WORK_ITEM_SIZES:                cl_uint = 0x1005;
+pub const CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR:        cl_uint = 0x1006;
+pub const CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT:       cl_uint = 0x1007;
+pub const CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT:         cl_uint = 0x1008;
+pub const CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG:        cl_uint = 0x1009;
+pub const CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT:       cl_uint = 0x100A;
+pub const CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE:      cl_uint = 0x100B;
+pub const CL_DEVICE_MAX_CLOCK_FREQUENCY:                cl_uint = 0x100C;
+pub const CL_DEVICE_ADDRESS_BITS:                       cl_uint = 0x100D;
+pub const CL_DEVICE_MAX_READ_IMAGE_ARGS:                cl_uint = 0x100E;
+pub const CL_DEVICE_MAX_WRITE_IMAGE_ARGS:               cl_uint = 0x100F;
+pub const CL_DEVICE_MAX_MEM_ALLOC_SIZE:                 cl_uint = 0x1010;
+pub const CL_DEVICE_IMAGE2D_MAX_WIDTH:                  cl_uint = 0x1011;
+pub const CL_DEVICE_IMAGE2D_MAX_HEIGHT:                 cl_uint = 0x1012;
+pub const CL_DEVICE_IMAGE3D_MAX_WIDTH:                  cl_uint = 0x1013;
+pub const CL_DEVICE_IMAGE3D_MAX_HEIGHT:                 cl_uint = 0x1014;
+pub const CL_DEVICE_IMAGE3D_MAX_DEPTH:                  cl_uint = 0x1015;
+pub const CL_DEVICE_IMAGE_SUPPORT:                      cl_uint = 0x1016;
+pub const CL_DEVICE_MAX_PARAMETER_SIZE:                 cl_uint = 0x1017;
+pub const CL_DEVICE_MAX_SAMPLERS:                       cl_uint = 0x1018;
+pub const CL_DEVICE_MEM_BASE_ADDR_ALIGN:                cl_uint = 0x1019;
+pub const CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE:           cl_uint = 0x101A;
+pub const CL_DEVICE_SINGLE_FP_CONFIG:                   cl_uint = 0x101B;
+pub const CL_DEVICE_GLOBAL_MEM_CACHE_TYPE:              cl_uint = 0x101C;
+pub const CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE:          cl_uint = 0x101D;
+pub const CL_DEVICE_GLOBAL_MEM_CACHE_SIZE:              cl_uint = 0x101E;
+pub const CL_DEVICE_GLOBAL_MEM_SIZE:                    cl_uint = 0x101F;
+pub const CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE:           cl_uint = 0x1020;
+pub const CL_DEVICE_MAX_CONSTANT_ARGS:                  cl_uint = 0x1021;
+pub const CL_DEVICE_LOCAL_MEM_TYPE:                     cl_uint = 0x1022;
+pub const CL_DEVICE_LOCAL_MEM_SIZE:                     cl_uint = 0x1023;
+pub const CL_DEVICE_ERROR_CORRECTION_SUPPORT:           cl_uint = 0x1024;
+pub const CL_DEVICE_PROFILING_TIMER_RESOLUTION:         cl_uint = 0x1025;
+pub const CL_DEVICE_ENDIAN_LITTLE:                      cl_uint = 0x1026;
+pub const CL_DEVICE_AVAILABLE:                          cl_uint = 0x1027;
+pub const CL_DEVICE_COMPILER_AVAILABLE:                 cl_uint = 0x1028;
+pub const CL_DEVICE_EXECUTION_CAPABILITIES:             cl_uint = 0x1029;
+pub const CL_DEVICE_QUEUE_PROPERTIES:                   cl_uint = 0x102A;
+pub const CL_DEVICE_NAME:                               cl_uint = 0x102B;
+pub const CL_DEVICE_VENDOR:                             cl_uint = 0x102C;
+pub const CL_DRIVER_VERSION:                            cl_uint = 0x102D;
+pub const CL_DEVICE_PROFILE:                            cl_uint = 0x102E;
+pub const CL_DEVICE_VERSION:                            cl_uint = 0x102F;
+pub const CL_DEVICE_EXTENSIONS:                         cl_uint = 0x1030;
+pub const CL_DEVICE_PLATFORM:                           cl_uint = 0x1031;
+pub const CL_DEVICE_DOUBLE_FP_CONFIG:                   cl_uint = 0x1032;
+pub const CL_DEVICE_HALF_FP_CONFIG:                     cl_uint = 0x1033;
+pub const CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:        cl_uint = 0x1034;
+pub const CL_DEVICE_HOST_UNIFIED_MEMORY:                cl_uint = 0x1035;
+pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR:           cl_uint = 0x1036;
+pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT:          cl_uint = 0x1037;
+pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_INT:            cl_uint = 0x1038;
+pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG:           cl_uint = 0x1039;
+pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT:          cl_uint = 0x103A;
+pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE:         cl_uint = 0x103B;
+pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF:           cl_uint = 0x103C;
+pub const CL_DEVICE_OPENCL_C_VERSION:                   cl_uint = 0x103D;
+pub const CL_DEVICE_LINKER_AVAILABLE:                  	cl_uint = 0x103E;
+pub const CL_DEVICE_BUILT_IN_KERNELS:                  	cl_uint = 0x103F;
+pub const CL_DEVICE_IMAGE_MAX_BUFFER_SIZE:             	cl_uint = 0x1040;
+pub const CL_DEVICE_IMAGE_MAX_ARRAY_SIZE:              	cl_uint = 0x1041;
+pub const CL_DEVICE_PARENT_DEVICE:                     	cl_uint = 0x1042;
+pub const CL_DEVICE_PARTITION_MAX_SUB_DEVICES:         	cl_uint = 0x1043;
+pub const CL_DEVICE_PARTITION_PROPERTIES:              	cl_uint = 0x1044;
+pub const CL_DEVICE_PARTITION_AFFINITY_DOMAIN:         	cl_uint = 0x1045;
+pub const CL_DEVICE_PARTITION_TYPE:                    	cl_uint = 0x1046;
+pub const CL_DEVICE_REFERENCE_COUNT:                   	cl_uint = 0x1047;
+pub const CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:       	cl_uint = 0x1048;
+pub const CL_DEVICE_PRINTF_BUFFER_SIZE:                	cl_uint = 0x1049;
+pub const CL_DEVICE_IMAGE_PITCH_ALIGNMENT:             	cl_uint = 0x104A;
+pub const CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT:      	cl_uint = 0x104B;
 
 // cl_device_fp_config - bitfield
-pub static CL_FP_DENORM:                                 cl_bitfield = 1 << 0;
-pub static CL_FP_INF_NAN:                                cl_bitfield = 1 << 1;
-pub static CL_FP_ROUND_TO_NEAREST:                       cl_bitfield = 1 << 2;
-pub static CL_FP_ROUND_TO_ZERO:                          cl_bitfield = 1 << 3;
-pub static CL_FP_ROUND_TO_INF:                           cl_bitfield = 1 << 4;
-pub static CL_FP_FMA:                                    cl_bitfield = 1 << 5;
-pub static CL_FP_SOFT_FLOAT:                             cl_bitfield = 1 << 6;
+pub const CL_FP_DENORM:                                 cl_bitfield = 1 << 0;
+pub const CL_FP_INF_NAN:                                cl_bitfield = 1 << 1;
+pub const CL_FP_ROUND_TO_NEAREST:                       cl_bitfield = 1 << 2;
+pub const CL_FP_ROUND_TO_ZERO:                          cl_bitfield = 1 << 3;
+pub const CL_FP_ROUND_TO_INF:                           cl_bitfield = 1 << 4;
+pub const CL_FP_FMA:                                    cl_bitfield = 1 << 5;
+pub const CL_FP_SOFT_FLOAT:                             cl_bitfield = 1 << 6;
+pub const CL_FP_CORRECTLY_ROUNDED_DIVIDE_SQRT:         	cl_bitfield = 1 << 7;
 
 // cl_device_mem_cache_type
-pub static CL_NONE:                                      cl_uint = 0x0;
-pub static CL_READ_ONLY_CACHE:                           cl_uint = 0x1;
-pub static CL_READ_WRITE_CACHE:                          cl_uint = 0x2;
+pub const CL_NONE:                                      cl_uint = 0x0;
+pub const CL_READ_ONLY_CACHE:                           cl_uint = 0x1;
+pub const CL_READ_WRITE_CACHE:                          cl_uint = 0x2;
 
 // cl_device_local_mem_type 
-pub static CL_LOCAL:                                     cl_uint = 0x1;
-pub static CL_GLOBAL:                                    cl_uint = 0x2;
+pub const CL_LOCAL:                                     cl_uint = 0x1;
+pub const CL_GLOBAL:                                    cl_uint = 0x2;
 
 // cl_device_exec_capabilities - bitfield
-pub static CL_EXEC_KERNEL:                               cl_bitfield = 1 << 0;
-pub static CL_EXEC_NATIVE_KERNEL:                        cl_bitfield = 1 << 1;
+pub const CL_EXEC_KERNEL:                               cl_bitfield = 1 << 0;
+pub const CL_EXEC_NATIVE_KERNEL:                        cl_bitfield = 1 << 1;
 
 // cl_command_queue_properties - bitfield
-pub static CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE:       cl_bitfield = 1 << 0;
-pub static CL_QUEUE_PROFILING_ENABLE:                    cl_bitfield = 1 << 1;
+pub const CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE:       cl_bitfield = 1 << 0;
+pub const CL_QUEUE_PROFILING_ENABLE:                    cl_bitfield = 1 << 1;
 
 // cl_context_info 
-pub static CL_CONTEXT_REFERENCE_COUNT:                   cl_uint = 0x1080;
-pub static CL_CONTEXT_DEVICES:                           cl_uint = 0x1081;
-pub static CL_CONTEXT_PROPERTIES:                        cl_uint = 0x1082;
-pub static CL_CONTEXT_NUM_DEVICES:                       cl_uint = 0x1083;
+pub const CL_CONTEXT_REFERENCE_COUNT:                   cl_uint = 0x1080;
+pub const CL_CONTEXT_DEVICES:                           cl_uint = 0x1081;
+pub const CL_CONTEXT_PROPERTIES:                        cl_uint = 0x1082;
+pub const CL_CONTEXT_NUM_DEVICES:                       cl_uint = 0x1083;
 
 // cl_context_info + cl_context_properties
-pub static CL_CONTEXT_PLATFORM:                          intptr_t = 0x1084;
+pub const CL_CONTEXT_PLATFORM:                          cl_uint = 0x1084;
+pub const CL_CONTEXT_INTEROP_USER_SYNC:                	cl_uint = 0x1085;
+    
+// cl_device_partition_property
+pub const CL_DEVICE_PARTITION_EQUALLY:                 	cl_uint = 0x1086;
+pub const CL_DEVICE_PARTITION_BY_COUNTS:               	cl_uint = 0x1087;
+pub const CL_DEVICE_PARTITION_BY_COUNTS_LIST_END:      	cl_uint = 0x0;
+pub const CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN:      	cl_uint = 0x1088;
+    
+// cl_device_affinity_domain
+pub const CL_DEVICE_AFFINITY_DOMAIN_NUMA:               cl_bitfield = 1 << 0;
+pub const CL_DEVICE_AFFINITY_DOMAIN_L4_CACHE:           cl_bitfield = 1 << 1;
+pub const CL_DEVICE_AFFINITY_DOMAIN_L3_CACHE:           cl_bitfield = 1 << 2;
+pub const CL_DEVICE_AFFINITY_DOMAIN_L2_CACHE:          	cl_bitfield = 1 << 3;
+pub const CL_DEVICE_AFFINITY_DOMAIN_L1_CACHE:           cl_bitfield = 1 << 4;
+pub const CL_DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE: cl_bitfield = 1 << 5;
 
 // cl_command_queue_info 
-pub static CL_QUEUE_CONTEXT:                             cl_uint = 0x1090;
-pub static CL_QUEUE_DEVICE:                              cl_uint = 0x1091;
-pub static CL_QUEUE_REFERENCE_COUNT:                     cl_uint = 0x1092;
-pub static CL_QUEUE_PROPERTIES:                          cl_uint = 0x1093;
+pub const CL_QUEUE_CONTEXT:                             cl_uint = 0x1090;
+pub const CL_QUEUE_DEVICE:                              cl_uint = 0x1091;
+pub const CL_QUEUE_REFERENCE_COUNT:                     cl_uint = 0x1092;
+pub const CL_QUEUE_PROPERTIES:                          cl_uint = 0x1093;
 
 // cl_mem_flags - bitfield
-pub static CL_MEM_READ_WRITE:                            cl_bitfield = 1 << 0;
-pub static CL_MEM_WRITE_ONLY:                            cl_bitfield = 1 << 1;
-pub static CL_MEM_READ_ONLY:                             cl_bitfield = 1 << 2;
-pub static CL_MEM_USE_HOST_PTR:                          cl_bitfield = 1 << 3;
-pub static CL_MEM_ALLOC_HOST_PTR:                        cl_bitfield = 1 << 4;
-pub static CL_MEM_COPY_HOST_PTR:                         cl_bitfield = 1 << 5;
+pub const CL_MEM_READ_WRITE:                            cl_bitfield = 1 << 0;
+pub const CL_MEM_WRITE_ONLY:                            cl_bitfield = 1 << 1;
+pub const CL_MEM_READ_ONLY:                             cl_bitfield = 1 << 2;
+pub const CL_MEM_USE_HOST_PTR:                          cl_bitfield = 1 << 3;
+pub const CL_MEM_ALLOC_HOST_PTR:                        cl_bitfield = 1 << 4;
+pub const CL_MEM_COPY_HOST_PTR:                         cl_bitfield = 1 << 5;
+// RESERVED                                       		cl_bitfield = 1 << 6;
+pub const CL_MEM_HOST_WRITE_ONLY:                      	cl_bitfield = 1 << 7;
+pub const CL_MEM_HOST_READ_ONLY:                       	cl_bitfield = 1 << 8;
+pub const CL_MEM_HOST_NO_ACCESS:                       	cl_bitfield = 1 << 9;
+// cl_mem_migration_flags - bitfield
+pub const CL_MIGRATE_MEM_OBJECT_HOST:                  	cl_bitfield = 1 << 0;
+pub const CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED:     	cl_bitfield = 1 << 1;
 
 // cl_channel_order
-pub static CL_R:                                         cl_uint = 0x10B0;
-pub static CL_A:                                         cl_uint = 0x10B1;
-pub static CL_RG:                                        cl_uint = 0x10B2;
-pub static CL_RA:                                        cl_uint = 0x10B3;
-pub static CL_RGB:                                       cl_uint = 0x10B4;
-pub static CL_RGBA:                                      cl_uint = 0x10B5;
-pub static CL_BGRA:                                      cl_uint = 0x10B6;
-pub static CL_ARGB:                                      cl_uint = 0x10B7;
-pub static CL_INTENSITY:                                 cl_uint = 0x10B8;
-pub static CL_LUMINANCE:                                 cl_uint = 0x10B9;
-pub static CL_Rx:                                        cl_uint = 0x10BA;
-pub static CL_RGx:                                       cl_uint = 0x10BB;
-pub static CL_RGBx:                                      cl_uint = 0x10BC;
+pub const CL_R:                                         cl_uint = 0x10B0;
+pub const CL_A:                                         cl_uint = 0x10B1;
+pub const CL_RG:                                        cl_uint = 0x10B2;
+pub const CL_RA:                                        cl_uint = 0x10B3;
+pub const CL_RGB:                                       cl_uint = 0x10B4;
+pub const CL_RGBA:                                      cl_uint = 0x10B5;
+pub const CL_BGRA:                                      cl_uint = 0x10B6;
+pub const CL_ARGB:                                      cl_uint = 0x10B7;
+pub const CL_INTENSITY:                                 cl_uint = 0x10B8;
+pub const CL_LUMINANCE:                                 cl_uint = 0x10B9;
+pub const CL_Rx:                                        cl_uint = 0x10BA;
+pub const CL_RGx:                                       cl_uint = 0x10BB;
+pub const CL_RGBx:                                      cl_uint = 0x10BC;
+pub const CL_DEPTH:                                    	cl_uint = 0x10BD;
+pub const CL_DEPTH_STENCIL:                            	cl_uint = 0x10BE;
 
 // cl_channel_type 
-pub static CL_SNORM_INT8:                                cl_uint = 0x10D0;
-pub static CL_SNORM_INT16:                               cl_uint = 0x10D1;
-pub static CL_UNORM_INT8:                                cl_uint = 0x10D2;
-pub static CL_UNORM_INT16:                               cl_uint = 0x10D3;
-pub static CL_UNORM_SHORT_565:                           cl_uint = 0x10D4;
-pub static CL_UNORM_SHORT_555:                           cl_uint = 0x10D5;
-pub static CL_UNORM_INT_101010:                          cl_uint = 0x10D6;
-pub static CL_SIGNED_INT8:                               cl_uint = 0x10D7;
-pub static CL_SIGNED_INT16:                              cl_uint = 0x10D8;
-pub static CL_SIGNED_INT32:                              cl_uint = 0x10D9;
-pub static CL_UNSIGNED_INT8:                             cl_uint = 0x10DA;
-pub static CL_UNSIGNED_INT16:                            cl_uint = 0x10DB;
-pub static CL_UNSIGNED_INT32:                            cl_uint = 0x10DC;
-pub static CL_HALF_FLOAT:                                cl_uint = 0x10DD;
-pub static CL_FLOAT:                                     cl_uint = 0x10DE;
+pub const CL_SNORM_INT8:                                cl_uint = 0x10D0;
+pub const CL_SNORM_INT16:                               cl_uint = 0x10D1;
+pub const CL_UNORM_INT8:                                cl_uint = 0x10D2;
+pub const CL_UNORM_INT16:                               cl_uint = 0x10D3;
+pub const CL_UNORM_SHORT_565:                           cl_uint = 0x10D4;
+pub const CL_UNORM_SHORT_555:                           cl_uint = 0x10D5;
+pub const CL_UNORM_INT_101010:                          cl_uint = 0x10D6;
+pub const CL_SIGNED_INT8:                               cl_uint = 0x10D7;
+pub const CL_SIGNED_INT16:                              cl_uint = 0x10D8;
+pub const CL_SIGNED_INT32:                              cl_uint = 0x10D9;
+pub const CL_UNSIGNED_INT8:                             cl_uint = 0x10DA;
+pub const CL_UNSIGNED_INT16:                            cl_uint = 0x10DB;
+pub const CL_UNSIGNED_INT32:                            cl_uint = 0x10DC;
+pub const CL_HALF_FLOAT:                                cl_uint = 0x10DD;
+pub const CL_FLOAT:                                     cl_uint = 0x10DE;
+pub const CL_UNORM_INT24:                              	cl_uint = 0x10DF;
 
 // cl_mem_object_type
-pub static CL_MEM_OBJECT_BUFFER:                         cl_uint = 0x10F0;
-pub static CL_MEM_OBJECT_IMAGE2D:                        cl_uint = 0x10F1;
-pub static CL_MEM_OBJECT_IMAGE3D:                        cl_uint = 0x10F2;
+pub const CL_MEM_OBJECT_BUFFER:                         cl_uint = 0x10F0;
+pub const CL_MEM_OBJECT_IMAGE2D:                        cl_uint = 0x10F1;
+pub const CL_MEM_OBJECT_IMAGE3D:                        cl_uint = 0x10F2;
+pub const CL_MEM_OBJECT_IMAGE2D_ARRAY:                  cl_uint = 0x10F3;
+pub const CL_MEM_OBJECT_IMAGE1D:                        cl_uint = 0x10F4;
+pub const CL_MEM_OBJECT_IMAGE1D_ARRAY:                  cl_uint = 0x10F5;
+pub const CL_MEM_OBJECT_IMAGE1D_BUFFER:                 cl_uint = 0x10F6;
 
 // cl_mem_info
-pub static CL_MEM_TYPE:                                  cl_uint = 0x1100;
-pub static CL_MEM_FLAGS:                                 cl_uint = 0x1101;
-pub static CL_MEM_SIZE:                                  cl_uint = 0x1102;
-pub static CL_MEM_HOST_PTR:                              cl_uint = 0x1103;
-pub static CL_MEM_MAP_COUNT:                             cl_uint = 0x1104;
-pub static CL_MEM_REFERENCE_COUNT:                       cl_uint = 0x1105;
-pub static CL_MEM_CONTEXT:                               cl_uint = 0x1106;
-pub static CL_MEM_ASSOCIATED_MEMOBJECT:                  cl_uint = 0x1107;
-pub static CL_MEM_OFFSET:                                cl_uint = 0x1108;
+pub const CL_MEM_TYPE:                                  cl_uint = 0x1100;
+pub const CL_MEM_FLAGS:                                 cl_uint = 0x1101;
+pub const CL_MEM_SIZE:                                  cl_uint = 0x1102;
+pub const CL_MEM_HOST_PTR:                              cl_uint = 0x1103;
+pub const CL_MEM_MAP_COUNT:                             cl_uint = 0x1104;
+pub const CL_MEM_REFERENCE_COUNT:                       cl_uint = 0x1105;
+pub const CL_MEM_CONTEXT:                               cl_uint = 0x1106;
+pub const CL_MEM_ASSOCIATED_MEMOBJECT:                  cl_uint = 0x1107;
+pub const CL_MEM_OFFSET:                                cl_uint = 0x1108;
 
 // cl_image_info
-pub static CL_IMAGE_FORMAT:                              cl_uint = 0x1110;
-pub static CL_IMAGE_ELEMENT_SIZE:                        cl_uint = 0x1111;
-pub static CL_IMAGE_ROW_PITCH:                           cl_uint = 0x1112;
-pub static CL_IMAGE_SLICE_PITCH:                         cl_uint = 0x1113;
-pub static CL_IMAGE_WIDTH:                               cl_uint = 0x1114;
-pub static CL_IMAGE_HEIGHT:                              cl_uint = 0x1115;
-pub static CL_IMAGE_DEPTH:                               cl_uint = 0x1116;
+pub const CL_IMAGE_FORMAT:                              cl_uint = 0x1110;
+pub const CL_IMAGE_ELEMENT_SIZE:                        cl_uint = 0x1111;
+pub const CL_IMAGE_ROW_PITCH:                           cl_uint = 0x1112;
+pub const CL_IMAGE_SLICE_PITCH:                         cl_uint = 0x1113;
+pub const CL_IMAGE_WIDTH:                               cl_uint = 0x1114;
+pub const CL_IMAGE_HEIGHT:                              cl_uint = 0x1115;
+pub const CL_IMAGE_DEPTH:                               cl_uint = 0x1116;
+pub const CL_IMAGE_ARRAY_SIZE:                        	cl_uint = 0x1117;
+pub const CL_IMAGE_BUFFER:                        		cl_uint = 0x1118;
+pub const CL_IMAGE_NUM_MIP_LEVELS:                      cl_uint = 0x1119;
+pub const CL_IMAGE_NUM_SAMPLES:                        	cl_uint = 0x111A;
 
 // cl_addressing_mode
-pub static CL_ADDRESS_NONE:                              cl_uint = 0x1130;
-pub static CL_ADDRESS_CLAMP_TO_EDGE:                     cl_uint = 0x1131;
-pub static CL_ADDRESS_CLAMP:                             cl_uint = 0x1132;
-pub static CL_ADDRESS_REPEAT:                            cl_uint = 0x1133;
-pub static CL_ADDRESS_MIRRORED_REPEAT:                   cl_uint = 0x1134;
+pub const CL_ADDRESS_NONE:                              cl_uint = 0x1130;
+pub const CL_ADDRESS_CLAMP_TO_EDGE:                     cl_uint = 0x1131;
+pub const CL_ADDRESS_CLAMP:                             cl_uint = 0x1132;
+pub const CL_ADDRESS_REPEAT:                            cl_uint = 0x1133;
+pub const CL_ADDRESS_MIRRORED_REPEAT:                   cl_uint = 0x1134;
 
 // cl_filter_mode
-pub static CL_FILTER_NEAREST:                            cl_uint = 0x1140;
-pub static CL_FILTER_LINEAR:                             cl_uint = 0x1141;
+pub const CL_FILTER_NEAREST:                            cl_uint = 0x1140;
+pub const CL_FILTER_LINEAR:                             cl_uint = 0x1141;
 
 // cl_sampler_info
-pub static CL_SAMPLER_REFERENCE_COUNT:                   cl_uint = 0x1150;
-pub static CL_SAMPLER_CONTEXT:                           cl_uint = 0x1151;
-pub static CL_SAMPLER_NORMALIZED_COORDS:                 cl_uint = 0x1152;
-pub static CL_SAMPLER_ADDRESSING_MODE:                   cl_uint = 0x1153;
-pub static CL_SAMPLER_FILTER_MODE:                       cl_uint = 0x1154;
+pub const CL_SAMPLER_REFERENCE_COUNT:                   cl_uint = 0x1150;
+pub const CL_SAMPLER_CONTEXT:                           cl_uint = 0x1151;
+pub const CL_SAMPLER_NORMALIZED_COORDS:                 cl_uint = 0x1152;
+pub const CL_SAMPLER_ADDRESSING_MODE:                   cl_uint = 0x1153;
+pub const CL_SAMPLER_FILTER_MODE:                       cl_uint = 0x1154;
 
 // cl_map_flags - bitfield
-pub static CL_MAP_READ:                                  cl_bitfield = 1 << 0;
-pub static CL_MAP_WRITE:                                 cl_bitfield = 1 << 1;
+pub const CL_MAP_READ:                                  cl_bitfield = 1 << 0;
+pub const CL_MAP_WRITE:                                 cl_bitfield = 1 << 1;
+pub const CL_MAP_WRITE_INVALIDATE_REGION:               cl_bitfield = 1 << 2;
 
 // cl_program_info
-pub static CL_PROGRAM_REFERENCE_COUNT:                   cl_uint = 0x1160;
-pub static CL_PROGRAM_CONTEXT:                           cl_uint = 0x1161;
-pub static CL_PROGRAM_NUM_DEVICES:                       cl_uint = 0x1162;
-pub static CL_PROGRAM_DEVICES:                           cl_uint = 0x1163;
-pub static CL_PROGRAM_SOURCE:                            cl_uint = 0x1164;
-pub static CL_PROGRAM_BINARY_SIZES:                      cl_uint = 0x1165;
-pub static CL_PROGRAM_BINARIES:                          cl_uint = 0x1166;
+pub const CL_PROGRAM_REFERENCE_COUNT:                   cl_uint = 0x1160;
+pub const CL_PROGRAM_CONTEXT:                           cl_uint = 0x1161;
+pub const CL_PROGRAM_NUM_DEVICES:                       cl_uint = 0x1162;
+pub const CL_PROGRAM_DEVICES:                           cl_uint = 0x1163;
+pub const CL_PROGRAM_SOURCE:                            cl_uint = 0x1164;
+pub const CL_PROGRAM_BINARY_SIZES:                      cl_uint = 0x1165;
+pub const CL_PROGRAM_BINARIES:                          cl_uint = 0x1166;
+pub const CL_PROGRAM_NUM_KERNELS:                       cl_uint = 0x1167;
+pub const CL_PROGRAM_KERNEL_NAMES:                      cl_uint = 0x1168;
 
 // cl_program_build_info
-pub static CL_PROGRAM_BUILD_STATUS:                      cl_uint = 0x1181;
-pub static CL_PROGRAM_BUILD_OPTIONS:                     cl_uint = 0x1182;
-pub static CL_PROGRAM_BUILD_LOG:                         cl_uint = 0x1183;
+pub const CL_PROGRAM_BUILD_STATUS:                      cl_uint = 0x1181;
+pub const CL_PROGRAM_BUILD_OPTIONS:                     cl_uint = 0x1182;
+pub const CL_PROGRAM_BUILD_LOG:                         cl_uint = 0x1183;
+pub const CL_PROGRAM_BINARY_TYPE:                       cl_uint = 0x1184;
+
+// cl_program_binary_type
+pub const CL_PROGRAM_BINARY_TYPE_NONE:               	cl_bitfield = 0x0;
+pub const CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT:       cl_bitfield = 0x1;
+pub const CL_PROGRAM_BINARY_TYPE_LIBRARY:               cl_bitfield = 0x2;
+pub const CL_PROGRAM_BINARY_TYPE_EXECUTABLE:            cl_bitfield = 0x4;
 
 // cl_build_status 
-pub static CL_BUILD_SUCCESS:                             cl_uint = 0;
-pub static CL_BUILD_NONE:                                cl_uint = !0 - 1;
-pub static CL_BUILD_ERROR:                               cl_uint = !0 - 2;
-pub static CL_BUILD_IN_PROGRESS:                         cl_uint = !0 - 3;
+pub const CL_BUILD_SUCCESS:                             cl_uint = 0;
+pub const CL_BUILD_NONE:                                cl_uint = !0 - 1;
+pub const CL_BUILD_ERROR:                               cl_uint = !0 - 2;
+pub const CL_BUILD_IN_PROGRESS:                         cl_uint = !0 - 3;
 
 // cl_kernel_info
-pub static CL_KERNEL_FUNCTION_NAME:                      cl_uint = 0x1190;
-pub static CL_KERNEL_NUM_ARGS:                           cl_uint = 0x1191;
-pub static CL_KERNEL_REFERENCE_COUNT:                    cl_uint = 0x1192;
-pub static CL_KERNEL_CONTEXT:                            cl_uint = 0x1193;
-pub static CL_KERNEL_PROGRAM:                            cl_uint = 0x1194;
+pub const CL_KERNEL_FUNCTION_NAME:                      cl_uint = 0x1190;
+pub const CL_KERNEL_NUM_ARGS:                           cl_uint = 0x1191;
+pub const CL_KERNEL_REFERENCE_COUNT:                    cl_uint = 0x1192;
+pub const CL_KERNEL_CONTEXT:                            cl_uint = 0x1193;
+pub const CL_KERNEL_PROGRAM:                            cl_uint = 0x1194;
+pub const CL_KERNEL_ATTRIBUTES:                        	cl_uint = 0x1195;
+
+// cl_kernel_arg_info 
+pub const CL_KERNEL_ARG_ADDRESS_QUALIFIER:              cl_uint = 0x1196;
+pub const CL_KERNEL_ARG_ACCESS_QUALIFIER:               cl_uint = 0x1197;
+pub const CL_KERNEL_ARG_TYPE_NAME:                      cl_uint = 0x1198;
+pub const CL_KERNEL_ARG_TYPE_QUALIFIER:                 cl_uint = 0x1199;
+pub const CL_KERNEL_ARG_NAME:                       	cl_uint = 0x119A;
+
+// cl_kernel_arg_address_qualifier 
+pub const CL_KERNEL_ARG_ADDRESS_GLOBAL:                 cl_uint = 0x119B;
+pub const CL_KERNEL_ARG_ADDRESS_LOCAL:                  cl_uint = 0x119C;
+pub const CL_KERNEL_ARG_ADDRESS_CONSTANT:               cl_uint = 0x119D;
+pub const CL_KERNEL_ARG_ADDRESS_PRIVATE:                cl_uint = 0x119E;
+
+// cl_kernel_arg_access_qualifier 
+pub const CL_KERNEL_ARG_ACCESS_READ_ONLY:               cl_uint = 0x11A0;
+pub const CL_KERNEL_ARG_ACCESS_WRITE_ONLY:              cl_uint = 0x11A1;
+pub const CL_KERNEL_ARG_ACCESS_READ_WRITE:              cl_uint = 0x11A2;
+pub const CL_KERNEL_ARG_ACCESS_NONE:                    cl_uint = 0x11A3;
+    
+// cl_kernel_arg_type_qualifer 
+pub const CL_KERNEL_ARG_TYPE_NONE:               		cl_bitfield = 0;
+pub const CL_KERNEL_ARG_TYPE_CONST:               		cl_bitfield = 1 << 0;
+pub const CL_KERNEL_ARG_TYPE_RESTRICT:               	cl_bitfield = 1 << 1;
+pub const CL_KERNEL_ARG_TYPE_VOLATILE:               	cl_bitfield = 1 << 2;
 
 // cl_kernel_work_group_info 
-pub static CL_KERNEL_WORK_GROUP_SIZE:                    cl_uint = 0x11B0;
-pub static CL_KERNEL_COMPILE_WORK_GROUP_SIZE:            cl_uint = 0x11B1;
-pub static CL_KERNEL_LOCAL_MEM_SIZE:                     cl_uint = 0x11B2;
-pub static CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE: cl_uint = 0x11B3;
-pub static CL_KERNEL_PRIVATE_MEM_SIZE:                   cl_uint = 0x11B4;
+pub const CL_KERNEL_WORK_GROUP_SIZE:                    cl_uint = 0x11B0;
+pub const CL_KERNEL_COMPILE_WORK_GROUP_SIZE:            cl_uint = 0x11B1;
+pub const CL_KERNEL_LOCAL_MEM_SIZE:                     cl_uint = 0x11B2;
+pub const CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE: cl_uint = 0x11B3;
+pub const CL_KERNEL_PRIVATE_MEM_SIZE:                   cl_uint = 0x11B4;
+pub const CL_KERNEL_GLOBAL_WORK_SIZE:                   cl_uint = 0x11B5;
 
 // cl_event_info 
-pub static CL_EVENT_COMMAND_QUEUE:                       cl_uint = 0x11D0;
-pub static CL_EVENT_COMMAND_TYPE:                        cl_uint = 0x11D1;
-pub static CL_EVENT_REFERENCE_COUNT:                     cl_uint = 0x11D2;
-pub static CL_EVENT_COMMAND_EXECUTION_STATUS:            cl_uint = 0x11D3;
-pub static CL_EVENT_CONTEXT:                             cl_uint = 0x11D4;
+pub const CL_EVENT_COMMAND_QUEUE:                       cl_uint = 0x11D0;
+pub const CL_EVENT_COMMAND_TYPE:                        cl_uint = 0x11D1;
+pub const CL_EVENT_REFERENCE_COUNT:                     cl_uint = 0x11D2;
+pub const CL_EVENT_COMMAND_EXECUTION_STATUS:            cl_uint = 0x11D3;
+pub const CL_EVENT_CONTEXT:                             cl_uint = 0x11D4;
 
 // cl_command_type
-pub static CL_COMMAND_NDRANGE_KERNEL:                    cl_uint = 0x11F0;
-pub static CL_COMMAND_TASK:                              cl_uint = 0x11F1;
-pub static CL_COMMAND_NATIVE_KERNEL:                     cl_uint = 0x11F2;
-pub static CL_COMMAND_READ_BUFFER:                       cl_uint = 0x11F3;
-pub static CL_COMMAND_WRITE_BUFFER:                      cl_uint = 0x11F4;
-pub static CL_COMMAND_COPY_BUFFER:                       cl_uint = 0x11F5;
-pub static CL_COMMAND_READ_IMAGE:                        cl_uint = 0x11F6;
-pub static CL_COMMAND_WRITE_IMAGE:                       cl_uint = 0x11F7;
-pub static CL_COMMAND_COPY_IMAGE:                        cl_uint = 0x11F8;
-pub static CL_COMMAND_COPY_IMAGE_TO_BUFFER:              cl_uint = 0x11F9;
-pub static CL_COMMAND_COPY_BUFFER_TO_IMAGE:              cl_uint = 0x11FA;
-pub static CL_COMMAND_MAP_BUFFER:                        cl_uint = 0x11FB;
-pub static CL_COMMAND_MAP_IMAGE:                         cl_uint = 0x11FC;
-pub static CL_COMMAND_UNMAP_MEM_OBJECT:                  cl_uint = 0x11FD;
-pub static CL_COMMAND_MARKER:                            cl_uint = 0x11FE;
-pub static CL_COMMAND_ACQUIRE_GL_OBJECTS:                cl_uint = 0x11FF;
-pub static CL_COMMAND_RELEASE_GL_OBJECTS:                cl_uint = 0x1200;
-pub static CL_COMMAND_READ_BUFFER_RECT:                  cl_uint = 0x1201;
-pub static CL_COMMAND_WRITE_BUFFER_RECT:                 cl_uint = 0x1202;
-pub static CL_COMMAND_COPY_BUFFER_RECT:                  cl_uint = 0x1203;
-pub static CL_COMMAND_USER:                              cl_uint = 0x1204;
+pub const CL_COMMAND_NDRANGE_KERNEL:                    cl_uint = 0x11F0;
+pub const CL_COMMAND_TASK:                              cl_uint = 0x11F1;
+pub const CL_COMMAND_NATIVE_KERNEL:                     cl_uint = 0x11F2;
+pub const CL_COMMAND_READ_BUFFER:                       cl_uint = 0x11F3;
+pub const CL_COMMAND_WRITE_BUFFER:                      cl_uint = 0x11F4;
+pub const CL_COMMAND_COPY_BUFFER:                       cl_uint = 0x11F5;
+pub const CL_COMMAND_READ_IMAGE:                        cl_uint = 0x11F6;
+pub const CL_COMMAND_WRITE_IMAGE:                       cl_uint = 0x11F7;
+pub const CL_COMMAND_COPY_IMAGE:                        cl_uint = 0x11F8;
+pub const CL_COMMAND_COPY_IMAGE_TO_BUFFER:              cl_uint = 0x11F9;
+pub const CL_COMMAND_COPY_BUFFER_TO_IMAGE:              cl_uint = 0x11FA;
+pub const CL_COMMAND_MAP_BUFFER:                        cl_uint = 0x11FB;
+pub const CL_COMMAND_MAP_IMAGE:                         cl_uint = 0x11FC;
+pub const CL_COMMAND_UNMAP_MEM_OBJECT:                  cl_uint = 0x11FD;
+pub const CL_COMMAND_MARKER:                            cl_uint = 0x11FE;
+pub const CL_COMMAND_ACQUIRE_GL_OBJECTS:                cl_uint = 0x11FF;
+pub const CL_COMMAND_RELEASE_GL_OBJECTS:                cl_uint = 0x1200;
+pub const CL_COMMAND_READ_BUFFER_RECT:                  cl_uint = 0x1201;
+pub const CL_COMMAND_WRITE_BUFFER_RECT:                 cl_uint = 0x1202;
+pub const CL_COMMAND_COPY_BUFFER_RECT:                  cl_uint = 0x1203;
+pub const CL_COMMAND_USER:                              cl_uint = 0x1204;
+pub const CL_COMMAND_BARRIER:                           cl_uint = 0x1205;
+pub const CL_COMMAND_MIGRATE_MEM_OBJECTS:               cl_uint = 0x1206;
+pub const CL_COMMAND_FILL_BUFFER:                       cl_uint = 0x1207;
+pub const CL_COMMAND_FILL_IMAGE:                        cl_uint = 0x1208;
 
 // command execution status
-pub static CL_COMPLETE:                                  cl_int = 0x0;
-pub static CL_RUNNING:                                   cl_int = 0x1;
-pub static CL_SUBMITTED:                                 cl_int = 0x2;
-pub static CL_QUEUED:                                    cl_int = 0x3;
+pub const CL_COMPLETE:                                  cl_int = 0x0;
+pub const CL_RUNNING:                                   cl_int = 0x1;
+pub const CL_SUBMITTED:                                 cl_int = 0x2;
+pub const CL_QUEUED:                                    cl_int = 0x3;
 
 // cl_buffer_create_type
-pub static CL_BUFFER_CREATE_TYPE_REGION:                 cl_uint = 0x1220;
+pub const CL_BUFFER_CREATE_TYPE_REGION:                 cl_uint = 0x1220;
 
 // cl_profiling_info 
-pub static CL_PROFILING_COMMAND_QUEUED:                  cl_uint = 0x1280;
-pub static CL_PROFILING_COMMAND_SUBMIT:                  cl_uint = 0x1281;
-pub static CL_PROFILING_COMMAND_START:                   cl_uint = 0x1282;
-pub static CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
+pub const CL_PROFILING_COMMAND_QUEUED:                  cl_uint = 0x1280;
+pub const CL_PROFILING_COMMAND_SUBMIT:                  cl_uint = 0x1281;
+pub const CL_PROFILING_COMMAND_START:                   cl_uint = 0x1282;
+pub const CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 
 
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
@@ -460,6 +583,23 @@ extern {
 					   param_value_size: size_t,
 					   param_value: *mut c_void,
 					   param_value_size_ret: *mut size_t) -> cl_int;
+
+
+	//################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clCreateSubDevices(cl_device_id                         /* in_device */,
+	//                    const cl_device_partition_property * /* properties */,
+	//                    cl_uint                              /* num_devices */,
+	//                    cl_device_id *                       /* out_devices */,
+	//                    cl_uint *                            /* num_devices_ret */) CL_API_SUFFIX__VERSION_1_2;
+
+	//################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clRetainDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
+	
+	//################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clReleaseDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
 
 	// Context APIs 
 	pub fn clCreateContext(properties: *const cl_context_properties,
@@ -514,27 +654,37 @@ extern {
 						buffer_create_info: *mut c_void,
 						errcode_ret: *mut cl_int) -> cl_mem;
 
-	pub fn clCreateImage2D(context: cl_context,
-					   flags: cl_mem_flags,
-					   image_format: *mut cl_image_format,
-					   image_width: size_t,
-					   image_depth: size_t,
-					   image_slc_pitch: size_t,
-					   host_ptr: *mut c_void,
-					   errcode_ret: *mut cl_int) -> cl_mem;
+	//##### DEPRICATED 1.1 #####
+	// pub fn clCreateImage2D(context: cl_context,
+	// 				   flags: cl_mem_flags,
+	// 				   image_format: *mut cl_image_format,
+	// 				   image_width: size_t,
+	// 				   image_depth: size_t,
+	// 				   image_slc_pitch: size_t,
+	// 				   host_ptr: *mut c_void,
+	// 				   errcode_ret: *mut cl_int) -> cl_mem;
 
-	pub fn clCreateImage3D(context: cl_context,
-					   flags: cl_mem_flags,
-					   image_format: *mut cl_image_format,
-					   image_width: size_t,
-					   image_depth: size_t,
-					   image_depth: size_t,
-					   image_slc_pitch: size_t,
-					   image_depth: size_t,
-					   image_slc_pitch: size_t,
-					   image_slc_pitch: size_t,
-					   host_ptr: *mut c_void,
-					   errcode_ret: *mut cl_int) -> cl_mem;
+	//##### DEPRICATED 1.1 #####
+	// pub fn clCreateImage3D(context: cl_context,
+	// 				   flags: cl_mem_flags,
+	// 				   image_format: *mut cl_image_format,
+	// 				   image_width: size_t,
+	// 				   image_depth: size_t,
+	// 				   image_depth: size_t,
+	// 				   image_slc_pitch: size_t,
+	// 				   image_depth: size_t,
+	// 				   image_slc_pitch: size_t,
+	// 				   image_slc_pitch: size_t,
+	// 				   host_ptr: *mut c_void,
+	// 				   errcode_ret: *mut cl_int) -> cl_mem;
+
+	//################## NEW 1.2 ###################
+	pub fn clCreateImage(context: cl_context,
+						flags: cl_mem_flags,
+						image_format: *mut cl_image_format,
+						image_desc: *mut cl_image_desc,
+						host_ptr: *mut c_void,
+						errcode_ret: *mut cl_int) -> cl_mem;
 
 	pub fn clRetainMemObject(memobj: cl_mem) -> cl_int;
 
@@ -595,6 +745,14 @@ extern {
 								 binary_status: *mut cl_int,
 								 errcode_ret: *mut cl_int) -> cl_program;
 
+	//################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_program CL_API_CALL
+	// clCreateProgramWithBuiltInKernels(cl_context            /* context */,
+	//                                  cl_uint               /* num_devices */,
+	//                                  const cl_device_id *  /* device_list */,
+	//                                  const char *          /* kernel_names */,
+	//                                  cl_int *              /* errcode_ret */) CL_API_SUFFIX__VERSION_1_2;
+
 	pub fn clRetainProgram(program: cl_program) -> cl_int;
 
 	pub fn clReleaseProgram(program: cl_program) -> cl_int;
@@ -606,7 +764,36 @@ extern {
 					  pfn_notify: extern fn (cl_program, *mut c_void),
 					  user_data: *mut c_void) -> cl_int;
 
-	pub fn clUnloadCompsaler() -> cl_int;
+	//##### DEPRICATED 1.1 #####
+	// pub fn clUnloadCompsaler() -> cl_int;
+
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clCompileProgram(cl_program           /* program */,
+	//                 cl_uint              /* num_devices */,
+	//                 const cl_device_id * /* device_list */,
+	//                 const char *         /* options */, 
+	//                 cl_uint              /* num_input_headers */,
+	//                 const cl_program *   /* input_headers */,
+	//                 const char **        /* header_include_names */,
+	//                 void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
+	//                 void *               /* user_data */) CL_API_SUFFIX__VERSION_1_2;
+
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_program CL_API_CALL
+	// clLinkProgram(cl_context           /* context */,
+	//               cl_uint              /* num_devices */,
+	//               const cl_device_id * /* device_list */,
+	//               const char *         /* options */, 
+	//               cl_uint              /* num_input_programs */,
+	//               const cl_program *   /* input_programs */,
+	//               void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
+	//               void *               /* user_data */,
+	//               cl_int *             /* errcode_ret */ ) CL_API_SUFFIX__VERSION_1_2;
+
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clUnloadPlatformCompiler(cl_platform_id /* platform */) CL_API_SUFFIX__VERSION_1_2;
 
 	pub fn clGetProgramInfo(program: cl_program,
 						param_name: cl_program_info,
@@ -645,6 +832,15 @@ extern {
 					   param_value_size: size_t,
 					   param_value: *mut c_void,
 					   param_value_size_ret: *mut size_t) -> cl_int;
+
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clGetKernelArgInfo(cl_kernel       /* kernel */,
+	//                   cl_uint         /* arg_indx */,
+	//                   cl_kernel_arg_info  /* param_name */,
+	//                   size_t          /* param_value_size */,
+	//                   void *          /* param_value */,
+	//                   size_t *        /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_2;
 
 	pub fn clGetKernelWorkGroupInfo(kernel: cl_kernel,
 								device: cl_device_id,
@@ -750,6 +946,18 @@ extern {
 						   event_wait_list: *const cl_event,
 						   event: *mut cl_event) -> cl_int;
 
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clEnqueueFillBuffer(cl_command_queue   /* command_queue */,
+	//                 cl_mem             /* buffer */, 
+	//                 const void *       /* pattern */, 
+	//                 size_t             /* pattern_size */, 
+	//                 size_t             /* offset */, 
+	//                 size_t             /* size */, 
+	//                 cl_uint            /* num_events_in_wait_list */, 
+	//                 const cl_event *   /* event_wait_list */, 
+	//                 cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
+
 	pub fn clEnqueueCopyBufferRect(command_queue: cl_command_queue,
 							   src_buffer: cl_mem,
 							   dst_buffer: cl_mem,
@@ -787,6 +995,17 @@ extern {
 						   num_events_in_wait_list: cl_uint,
 						   event_wait_list: *const cl_event,
 						   event: *mut cl_event) -> cl_int;
+
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clEnqueueFillImage(cl_command_queue   /* command_queue */,
+	//                   cl_mem             /* image */, 
+	//                   const void *       /* fill_color */, 
+	//                   const size_t *     /* origin[3] */, 
+	//                   const size_t *     /* region[3] */, 
+	//                   cl_uint            /* num_events_in_wait_list */, 
+	//                   const cl_event *   /* event_wait_list */, 
+	//                   cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
 
 	pub fn clEnqueueCopyImage(command_queue: cl_command_queue,
 						  src_image: cl_mem,
@@ -849,6 +1068,16 @@ extern {
 							   event_wait_list: *const cl_event,
 							   event: *mut cl_event) -> cl_int;
 
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clEnqueueMigrateMemObjects(cl_command_queue       /* command_queue */,
+	//                           cl_uint                /* num_mem_objects */,
+	//                           const cl_mem *         /* mem_objects */,
+	//                           cl_mem_migration_flags /* flags */,
+	//                           cl_uint                /* num_events_in_wait_list */,
+	//                           const cl_event *       /* event_wait_list */,
+	//                           cl_event *             /* event */) CL_API_SUFFIX__VERSION_1_2;
+
 	pub fn clEnqueueNDRangeKernel(command_queue: cl_command_queue,
 							  kernel: cl_kernel,
 							  work_dim: cl_uint,
@@ -876,19 +1105,54 @@ extern {
 							 event_wait_list: *const cl_event,
 							 event: *mut cl_event) -> cl_int;
 
-	pub fn clEnqueueMarker(command_queue: cl_command_queue,
-					   event: *mut cl_event) -> cl_int;
+	//##### DEPRICATED 1.1 #####
+	// pub fn clEnqueueMarker(command_queue: cl_command_queue,
+	// 				   event: *mut cl_event) -> cl_int;
 
-	pub fn clEnqueueWaitForEvents(command_queue: cl_command_queue,
-							  num_events: cl_uint,
-							  event_list: *mut cl_event) -> cl_int;
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clEnqueueMarkerWithWaitList(cl_command_queue /* command_queue */,
+	// 			cl_uint           /* num_events_in_wait_list */,
+	// 			const cl_event *  /* event_wait_list */,
+	// 			cl_event *        /* event */) CL_API_SUFFIX__VERSION_1_2;
 
-	pub fn clEnqueueBarrier(command_queue: cl_command_queue) -> cl_int;
+	//##### DEPRICATED 1.1 #####
+	// pub fn clEnqueueWaitForEvents(command_queue: cl_command_queue,
+	// 						  num_events: cl_uint,
+	// 						  event_list: *mut cl_event) -> cl_int;
+
+	// //################## NEW 1.2 ###################
+	// extern CL_API_ENTRY cl_int CL_API_CALL
+	// clEnqueueBarrierWithWaitList(
+	// 			cl_command_queue 
+	// 			 // command_queue 
+	// 			,	                             
+	// 	        cl_uint           
+	// 	         // num_events_in_wait_list 
+	// 	        ,
+	// 	        const cl_event *  
+	// 	         // event_wait_list 
+	// 	        ,
+	// 			cl_event *        
+	// 			 // event
+	// 		) CL_API_SUFFIX__VERSION_1_2;
+
+
+	//##### DEPRICATED 1.1 #####
+	// pub fn clEnqueueBarrier(command_queue: cl_command_queue) -> cl_int;
 
 	// Extension function access
 	// Returns the extension function address for the given function name,
 	// or NULL if a valid function can not be found. The client must
 	// check to make sure the address is not NULL, before using or
-	// or calling the returned function address.     
-	pub fn clGetExtensionFunctionAddress(func_name: *mut c_char);
+	// or calling the returned function address.
+	//##### DEPRICATED 1.1 #####
+	// pub fn clGetExtensionFunctionAddress(func_name: *mut c_char);
+
+	// extern CL_API_ENTRY void * CL_API_CALL 
+	// clGetExtensionFunctionAddressForPlatform(cl_platform_id /* platform */,
+	//                    const char *   
+	//                     // func_name 
+	//                    ) CL_API_SUFFIX__VERSION_1_2;
+    
 }
