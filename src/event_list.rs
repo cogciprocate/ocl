@@ -67,7 +67,7 @@ impl EventList {
 	/// Waits for all events in list to complete.
 	pub fn wait(&self) {
 		if self.events.len() > 0 {
-			wrapper::wait_for_events(self);
+			wrapper::wait_for_events(self.count(), self.events());
 		}
 	}
 

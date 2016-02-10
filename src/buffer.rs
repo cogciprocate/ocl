@@ -1,5 +1,6 @@
 //! Interfaces to an OpenCL buffer.
 
+
 use std::iter;
 use std::slice::{Iter, IterMut};
 use rand;
@@ -247,11 +248,7 @@ impl<T: OclNum> Buffer<T> {
 	{
 		let block_after_write = dest_list.is_none();
 		wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, block_after_write, 
-			data, offset, 
-			wait_list.map(|el| el.events()), 
-			dest_list.map(|el| el.allot())
-			// wait_list, dest_list
-			);
+			data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
 	}
 
 
@@ -268,11 +265,7 @@ impl<T: OclNum> Buffer<T> {
 	{
 		let block_after_read = dest_list.is_none();
 		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, block_after_read, 
-			data, offset, 
-			wait_list.map(|el| el.events()), 
-			dest_list.map(|el| el.allot())
-			// wait_list, dest_list
-			);
+			data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
 	}
 
 	/// After waiting on events in `wait_list` to finish, writes the contents of
@@ -285,11 +278,7 @@ impl<T: OclNum> Buffer<T> {
 	pub fn flush_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
 		let vec = self.vec.as_ref_mut().expect("Buffer::flush_vec_async()");
 		wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
-			vec, 0, 
-			wait_list.map(|el| el.events()), 
-			dest_list.map(|el| el.allot())
-			// wait_list, dest_list
-			);
+			vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
 	}
 
 	/// Writes the contents of `self.vec` to the remote device data buffer and 
@@ -316,10 +305,7 @@ impl<T: OclNum> Buffer<T> {
 	pub fn fill_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
 		let vec = self.vec.as_ref_mut().expect("Buffer::fill_vec_async()");
 		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
-			vec, 0, 
-			wait_list.map(|el| el.events()), 
-			dest_list.map(|el| el.allot())
-		);
+			vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
 	}	
 
 	/// Reads the remote device data buffer into `self.vec` and blocks until completed.

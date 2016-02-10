@@ -19,7 +19,7 @@ use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, c
 	cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, cl_bool,
 	cl_int, cl_uint, cl_bitfield, CLStatus};
 
-use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, EventList, OclError, OclResult};
+use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, OclError, OclResult};
 
 
 //=============================================================================
@@ -400,9 +400,9 @@ pub fn finish(command_queue: cl_command_queue) {
 }
 
 #[inline]
-pub fn wait_for_events(wait_list: &EventList) {
+pub fn wait_for_events(count: cl_uint, event_list: &[cl_event]) {
 	let err = unsafe {
-		cl_h::clWaitForEvents(wait_list.count(), wait_list.as_ptr())
+		cl_h::clWaitForEvents(count, event_list.as_ptr())
 	};
 
 	must_succeed("clWaitForEvents", err);
@@ -422,7 +422,7 @@ pub fn wait_for_event(event: cl_event) {
 }
 
 #[inline]
-pub fn get_event_status(event: cl_h::cl_event) -> cl_int {
+pub fn get_event_status(event: cl_event) -> cl_int {
 	let mut status: cl_int = 0;
 
 	let err = unsafe { 

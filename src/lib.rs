@@ -14,6 +14,14 @@
 //! **GitHub:** [https://github.com/cogciprocate/ocl](https://github.com/cogciprocate/ocl)
 //!
 //! **crates.io:** [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
+//!
+//! # Library Wide Panics
+//!
+//! All operations will panic upon any OpenCL error. Some work needs to be done
+//! evaluating which errors are easily uncovered during development
+//! and are therefore better off 
+//! continuing to panic such as invalid kernel code, and which errors are 
+//! more run-timeish and should be returned in a `Result`.
 
 // #![warn(missing_docs)]
 #![feature(zero_one)]
