@@ -40,9 +40,9 @@ fn main() {
 
 	// Create a kernel with three arguments corresponding to those in the kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
-		.arg_env(&source_buffer)
+		.arg_buf(&source_buffer)
 		.arg_scl(COEFF)
-		.arg_env(&mut result_buffer);
+		.arg_buf(&mut result_buffer);
 
 	// Enqueue kernel depending on and creating no events:
 	kernel.enqueue(None, None);

@@ -74,9 +74,9 @@ fn test_events() {
 
 	// Create kernel with the source initially set to our seed values.
 	let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_size())
-		.arg_env_named("src", Some(&seed_buffer))
+		.arg_buf_named("src", Some(&seed_buffer))
 		.arg_scl(addend)
-		.arg_env(&mut result_buffer)
+		.arg_buf(&mut result_buffer)
 	;
 
 	// Create event list:
@@ -107,7 +107,7 @@ fn test_events() {
 		// Yes, this is far from optimal...
 		// Should just copy the values in the first place but oh well.
 		if itr != 0 {
-			kernel.set_arg_env_named("src", &result_buffer);
+			kernel.set_arg_buf_named("src", &result_buffer);
 		}
 
 		if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
@@ -181,9 +181,9 @@ fn test_basics() {
 
 	// Create a kernel with three arguments corresponding to those in the kernel:
 	let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
-		.arg_env(&source_buffer)
+		.arg_buf(&source_buffer)
 		.arg_scl(coeff)
-		.arg_env(&mut result_buffer)
+		.arg_buf(&mut result_buffer)
 	;
 
 	// Enqueue kernel depending on and creating no events:

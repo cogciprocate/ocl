@@ -28,6 +28,12 @@ Breaking Changes
      a new [`Program`].
    * Methods dealing with kernel source code renamed from `kern` to `src` 
      for clarity and simplicity.
+* The following methods on `Kernel` have been renamed reflecting `Envoy` having 
+  been recently renamed to `Buffer':
+  * `::arg_env` to `::arg_buf`
+  * `::arg_env_named` to `::arg_buf_named`
+  * `::set_arg_env_named` to `::set_arg_buf_named`
+
 
 New Types
 ---------

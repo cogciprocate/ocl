@@ -84,7 +84,7 @@ impl Kernel {
 	/// Adds a new argument to the kernel specifying the buffer object represented
 	/// by 'buffer' (builder-style). Argument is added to the bottom of the argument 
 	/// order.
-	pub fn arg_env<T: OclNum>(mut self, buffer: &Buffer<T>) -> Kernel {
+	pub fn arg_buf<T: OclNum>(mut self, buffer: &Buffer<T>) -> Kernel {
 		self.new_arg_buffer(Some(buffer));
 		self
 	}
@@ -120,14 +120,14 @@ impl Kernel {
 	/// 'buffer' (builder-style). Argument is added to the bottom of the argument order.
 	///
 	/// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-	pub fn arg_env_named<T: OclNum>(mut self, name: &'static str,  buffer_opt: Option<&Buffer<T>>) -> Kernel {
+	pub fn arg_buf_named<T: OclNum>(mut self, name: &'static str,  buffer_opt: Option<&Buffer<T>>) -> Kernel {
 		let arg_idx = self.new_arg_buffer(buffer_opt);
 		self.named_args.insert(name, arg_idx);
 
 		self
 	}	
 
-	/// Non-builder-style version of `::arg_env()`.
+	/// Non-builder-style version of `::arg_buf()`.
 	pub fn new_arg_buffer<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {
 		let buf = match buffer_opt {
 			Some(buffer) => buffer.buffer_obj(),
@@ -186,7 +186,7 @@ impl Kernel {
 
 	/// Modifies the kernel argument named: `name`.
 	// [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-	pub fn set_arg_env_named<T: OclNum>(&mut self, name: &'static str, buffer: &Buffer<T>) {
+	pub fn set_arg_buf_named<T: OclNum>(&mut self, name: &'static str, buffer: &Buffer<T>) {
 		//	TODO: ADD A CHECK FOR A VALID NAME (KEY)
 		let arg_idx = self.named_args[name];
 		let buf = buffer.buffer_obj();
