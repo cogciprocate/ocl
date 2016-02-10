@@ -3,22 +3,35 @@ Version 0.5.0 (2016-02-08)
 
 Breaking Changes
 ----------------
-- `ProQue::build` has been renamed [`ProQue::build_program`].
-- The [`Buffer::with_vec_shuffled`] and [`Buffer::with_vec_scrambled`] methods 
+* `Buffer` has had several methods dealing with reading and writing renamed
+  and two new ones created. 
+   * `::flush_vec` and `::fill_vec` have been renamed to `::flush_vec_async` 
+     and `::fill_vec_async`. 
+   * `::flush_vec_wait` and `::fill_vec_wait` have been renamed to 
+     `::flush_vec` and `::fill_vec`. 
+   * `::read` and `::write` have been renamed `::read_async` and 
+     `::write_async`.
+   * Blocking versions of read and write have been created called, you guessed
+     it, `::read` and `::write`.
+  The more straightforward, blocking versions of these methods now have the 
+  simplest names wheras the more complicated, non-blocking versions have the 
+  `_async` suffix.
+* `ProQue::build` has been renamed [`ProQue::build_program`].
+* The [`Buffer::with_vec_shuffled`] and [`Buffer::with_vec_scrambled`] methods 
   now accept a 2-tuple as the first argument instead of two separate values for 
   the first two arguments.
-- `BuildOptions` has been renamed to [`ProgramBuilder`] and has been 
+* `BuildOptions` has been renamed to [`ProgramBuilder`] and has been 
   redesigned:
-   - A new `ProgramBuilder` can be created with `ProgramBuilder::new` or 
+   * A new `ProgramBuilder` can be created with `ProgramBuilder::new` or 
      `Program::builder`.
-   - The `::build` method has been added, consuming the builder and returning
+   * The `::build` method has been added, consuming the builder and returning
      a new [`Program`].
-   - Methods dealing with kernel source code renamed from `kern` to `src` 
+   * Methods dealing with kernel source code renamed from `kern` to `src` 
      for clarity and simplicity.
 
 New Types
 ---------
-- [`ProQueBuilder`] is now the most boilerplate-free way to create an OpenCL
+* [`ProQueBuilder`] is now the most boilerplate-free way to create an OpenCL
   context, program, and queue. Create one by calling ['ProQue::builder'].
   See [`basics.rs` for an example][0.5ba] and [documentation][0.5doc] for more info.
 

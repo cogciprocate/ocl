@@ -48,11 +48,11 @@ impl<T> VecOption<T> {
 /// An OpenCL buffer with an optional built-in vector. 
 ///
 /// Data is stored both remotely in a memory buffer on the device associated with 
-/// `queue` and optionally in a vector (`self.vec`) in (local) host memory for 
+/// `queue` and optionally in a vector (`self.vec`) in host (local) memory for 
 /// convenient use as a workspace etc.
 ///
 /// The host side vector must be manually synchronized with the device side buffer 
-/// using the `.fill_vec()`, `.flush_vec()`, etc. Data within the contained vector 
+/// using `::fill_vec`, `::flush_vec`, etc. Data within the contained vector 
 /// should generally be considered stale except immediately after a fill/flush 
 /// (exception: pinned memory).
 ///
@@ -84,7 +84,7 @@ impl<T: OclNum> Buffer<T> {
 	///
 	/// # Panics 
 	/// The returned Buffer contains no host side vector. Functions associated with
-	/// one such as `.flush_vec()`, `fill_vec()`, etc. will panic.
+	/// one such as `.flush_vec_async()`, `fill_vec_async()`, etc. will panic.
 	pub fn new<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
 		let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
 		let init_val = T::default();
@@ -166,7 +166,7 @@ impl<T: OclNum> Buffer<T> {
 	/// risk if used with `CL_MEM_USE_HOST_PTR` (see below).
 	///
 	/// [IMPORTANT] Practically every read and write to an Buffer created in this way is
-	/// potentially unsafe. Because `.read()` and `.write()` do not require an 
+	/// potentially unsafe. Because `.read_async()` and `.write_async()` do not require an 
 	/// unsafe block, their implied promises about safety may be broken at any time.
 	///
 	/// *You need to know what you're doing and be extra careful using an Buffer created 
@@ -220,56 +220,87 @@ impl<T: OclNum> Buffer<T> {
 		}
 	}
 
-	/// Enqueues a writing `data` to the device buffer with a remote offset of `offset`
+	/// Writes `data.len() * mem::size_of::<T>()` bytes from `data` to the (remote) 
+	/// device buffer with a remote offset of `offset` and blocks until complete.
+	pub fn write(&mut self, data: &[T], offset: usize) 
+	{
+		self.write_async(data, offset, None, None);
+	}
+
+
+	/// Reads `data.len() * mem::size_of::<T>()` bytes from the (remote) device buffer 
+	/// into `data` with a remote offset of `offset` and blocks until complete.
+	pub fn read(&self, data: &mut [T], offset: usize) 
+	{
+		self.read_async(data, offset, None, None);
+	}
+
+	/// Enqueues writing `data.len() * mem::size_of::<T>()` bytes from `data` to the 
+	/// device buffer with a remote offset of `offset`
 	/// which will optionally wait for events in `wait_list` to finish beforehand 
 	/// also optionally adding a new event to `dest_list` associated with the write.
 	///
 	/// If the `dest_list` event list is `None`, the write will be blocking, otherwise
 	/// returns immediately.
-	pub fn write(&mut self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
+	pub fn write_async(&mut self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
 		let block_after_write = dest_list.is_none();
 		wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, block_after_write, 
-			data, offset, wait_list, dest_list);
+			data, offset, 
+			wait_list.map(|el| el.events()), 
+			dest_list.map(|el| el.allot())
+			// wait_list, dest_list
+			);
 	}
 
 
-	/// Enqueues a read from the device buffer into `data` with a remote offset of
+	/// Enqueues reading `data.len() * mem::size_of::<T>()` bytes from the device 
+	/// buffer into `data` with a remote offset of
 	/// `offset` which will optionally wait for events in `wait_list` to finish 
 	/// beforehand also optionally adding a new event to `dest_list` associated with
 	/// the write.
 	///
 	/// If the `dest_list` event list is `None`, the read will be blocking, otherwise
 	/// returns immediately.
-	pub fn read(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
+	pub fn read_async(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
 				dest_list: Option<&mut EventList>) 
 	{
 		let block_after_read = dest_list.is_none();
 		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, block_after_read, 
-			data, offset, wait_list, dest_list);
+			data, offset, 
+			wait_list.map(|el| el.events()), 
+			dest_list.map(|el| el.allot())
+			// wait_list, dest_list
+			);
 	}
 
 	/// After waiting on events in `wait_list` to finish, writes the contents of
 	/// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`.
 	///
+	/// Will block until the write is complete if `dest_list` is None.
+	///
 	/// # Panics
 	/// Panics if this Buffer contains no vector.
-	pub fn flush_vec(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-		let vec = self.vec.as_ref_mut().expect("Buffer::flush_vec()");
+	pub fn flush_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+		let vec = self.vec.as_ref_mut().expect("Buffer::flush_vec_async()");
 		wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
-			vec, 0, wait_list, dest_list);
+			vec, 0, 
+			wait_list.map(|el| el.events()), 
+			dest_list.map(|el| el.allot())
+			// wait_list, dest_list
+			);
 	}
 
 	/// Writes the contents of `self.vec` to the remote device data buffer and 
 	/// blocks until completed. 
 	///
-	/// Equivalent to `.flush_vec(None, None)`.
+	/// Equivalent to `.flush_vec_async(None, None)`.
 	///
 	/// # Panics
 	/// Panics if this Buffer contains no vector.
-	pub fn flush_vec_wait(&mut self) {
-		let vec = self.vec.as_ref_mut().expect("Buffer::flush_vec_wait()");
+	pub fn flush_vec(&mut self) {
+		let vec = self.vec.as_ref_mut().expect("Buffer::flush_vec()");
 		wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, true, vec, 0, None, None);
 	}
 
@@ -277,21 +308,27 @@ impl<T: OclNum> Buffer<T> {
 	/// After waiting on events in `wait_list` to finish, reads the remote device 
 	/// data buffer into 'self.vec' and adds a new event to `dest_list`.
 	///
+	/// Will block until the read is complete and the internal vector is filled if 
+	/// `dest_list` is `None`.
+	///
 	/// # Panics
 	/// Panics if this Buffer contains no vector.
-	pub fn fill_vec(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-		let vec = self.vec.as_ref_mut().expect("Buffer::fill_vec()");
+	pub fn fill_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+		let vec = self.vec.as_ref_mut().expect("Buffer::fill_vec_async()");
 		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
-			vec, 0, wait_list, dest_list);
+			vec, 0, 
+			wait_list.map(|el| el.events()), 
+			dest_list.map(|el| el.allot())
+		);
 	}	
 
 	/// Reads the remote device data buffer into `self.vec` and blocks until completed.
 	///
-	/// Equivalent to `.fill_vec(None, None)`.
+	/// Equivalent to `.fill_vec_async(None, None)`.
 	///
 	/// # Panics
 	/// Panics if this Buffer contains no vector.
-	pub fn fill_vec_wait(&mut self) {
+	pub fn fill_vec(&mut self) {
 		let vec = self.vec.as_ref_mut().expect("Buffer::read_wait()");
 		wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, 
 			true, vec, 0, None, None);
@@ -315,7 +352,7 @@ impl<T: OclNum> Buffer<T> {
 			}
 		}
 
-		self.flush_vec_wait();
+		self.flush_vec();
 	}
 
 	/// [MARKED FOR POSSIBLE REMOVAL]: Convenience function.
@@ -333,7 +370,7 @@ impl<T: OclNum> Buffer<T> {
 			}
 		}
 
-		self.flush_vec_wait();
+		self.flush_vec();
 	}
 
 	/// Returns the length of the Buffer.
@@ -597,7 +634,7 @@ impl<T> IndexMut<RangeFull> for Buffer<T> {
 //     fn fmt(&self, fmtr: &mut Formatter) -> FmtResult {
 //     	// self.print(1, None, None, true)
 //     	let mut tmp_vec = Vec::with_capacity(self.vec.len());
-//     	self.read(&mut tmp_vec[..], 0);
+//     	self.read_async(&mut tmp_vec[..], 0);
 //     	fmt::fmt_vec(fmtr.buf, &tmp_vec[..], 1, None, None, true)
 // 	}
 // }
@@ -668,7 +705,7 @@ pub mod tests {
 	impl<T: OclNum> BufferTest<T> for Buffer<T> {
 		fn read_idx_direct(&self, idx: usize) -> T {
 			let mut buffer = vec![Zero::zero()];
-			self.read(&mut buffer[0..1], idx, None, None);
+			self.read_async(&mut buffer[0..1], idx, None, None);
 			buffer[0]
 		}
 	}

@@ -1,4 +1,4 @@
-//! Rust definitions for the OpenCL ABI
+//! Rust bindings for the OpenCL ABI
 //!
 
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]

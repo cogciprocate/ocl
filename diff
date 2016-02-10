@@ -155,7 +155,7 @@ index 4549808..9efe1b4 100644
  
 -	// Read results from the device into the buffer's vector:
 +	// Read results from the device into result_buffer's local vector:
- 	result_buffer.fill_vec_wait();
+ 	result_buffer.fill_vec();
  
  	// Check results and print the first 20:
 -	for idx in 0..data_set_size {
@@ -279,7 +279,7 @@ index de57d24..9da0298 100644
  
 -	// Read results from the device into the buffer's vector:
 +	// Read results from the device into result_buffer's local vector:
- 	result_buffer.fill_vec_wait();
+ 	result_buffer.fill_vec();
  
  	// Check results and print the first 20:
 -	for idx in 0..data_set_size {

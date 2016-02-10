@@ -46,10 +46,22 @@ impl EventList {
 		&self.events[..]
 	}
 
+	/// Returns a mutable slice to the events list.
+	#[inline]
+	pub fn events_mut(&mut self) -> &mut [cl_event] {
+		&mut self.events[..]
+	}
+
 	/// Returns a const pointer to the list, useful for passing directly to the c ffi.
 	#[inline]
 	pub fn as_ptr(&self) -> *const cl_event {
 		self.events().as_ptr()
+	}
+
+	/// Returns a mut pointer to the list, useful for passing directly to the c ffi.
+	#[inline]
+	pub fn as_mut_ptr(&mut self) -> *mut cl_event {
+		self.events_mut().as_mut_ptr()
 	}
 
 	/// Waits for all events in list to complete.

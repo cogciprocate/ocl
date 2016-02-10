@@ -11,6 +11,12 @@ use super::{Context, Kernel, WorkSize, ProgramBuilder, ProQueBuilder, Program, Q
 ///
 /// All `ProQue` functionality is also provided separately by the `Context`, `Queue`, 
 /// and `Program` types.
+/// 
+/// # Creation
+/// There are two ways to create a `ProQue`:
+/// 1. First call `::new` and pass a `Context` and device index. Next call 
+///    `::build` and pass a `ProgramBuilder`. This method allows you to create
+/// 2. 
 ///
 /// # Destruction
 /// `::release` must be manually called by consumer.
@@ -90,7 +96,11 @@ impl ProQue {
 		Ok(())
 	}
 
-	/// Clears the current program build.
+	/// Clears the current program build. Any kernels created with the pre-existing
+	/* 
+	program will continue to work but new kernels will require a new program to be built. This can occasionally be useful for creating different programs based on the same source but with different constants.
+
+	 */
 	pub fn clear_build(&mut self) {
 		match self.program {
 			Some(ref mut program) => { 

@@ -1,5 +1,4 @@
-//! Compilation options for building an OpenCL program. Used when creating 
-//! a new `Program`.
+//! The builder for `Program`.
 
 use std::io::Read;
 use std::fs::File;

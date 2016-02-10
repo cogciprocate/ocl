@@ -54,7 +54,7 @@ fn main() {
 	// kernel.enqueue(None, None);
 
 	// // Read results from the device into the buffer's vector:
-	// result_buffer.fill_vec_wait();
+	// result_buffer.fill_vec();
 
 	// // Check results and print the first 20:
 	// for idx in 0..data_set_size {

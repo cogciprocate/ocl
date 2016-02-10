@@ -1,4 +1,4 @@
-//! A builder for `ProQue`.
+//! The builder for `ProQue`.
 
 use std::convert::Into;
 use super::{Context, ProgramBuilder, Program, Queue, ProQue, OclResult, OclError};

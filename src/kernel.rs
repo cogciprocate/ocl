@@ -230,8 +230,11 @@ impl Kernel {
 		let c_lws = self.lws.complete_worksize();
 		let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
 
-		let (_, wait_list_len, wait_list_ptr, new_event_ptr) 
-			= wrapper::resolve_queue_opts(false, wait_list, dest_list);
+		let (wait_list_len, wait_list_ptr, new_event_ptr) 
+			= wrapper::resolve_queue_opts(
+				wait_list.map(|el| el.events()), 
+				dest_list.map(|el| el.allot())
+				);
 
 		unsafe {
 			let err = cl_h::clEnqueueNDRangeKernel(

@@ -1,4 +1,4 @@
-//! Wrapper functions for the OpenCL C ABI.
+//! Wrapper functions for the OpenCL C FFI.
 //! 
 //! Some functions *may* break Rust's usual safety promises and have not been
 //! comprehensively tested or evaluated.
@@ -19,7 +19,7 @@ use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, c
 	cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, cl_bool,
 	cl_int, cl_uint, cl_bitfield, CLStatus};
 
-use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, EventList, OclNum, Buffer, OclError, OclResult};
+use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, EventList, OclError, OclResult};
 
 
 //=============================================================================
@@ -207,7 +207,15 @@ pub fn create_buffer<T>(
 
 // [WORK IN PROGRESS]
 #[inline]
-pub fn create_image_2d() -> cl_mem {
+pub fn create_image_2d(/*context: cl_mem*/) -> cl_mem {
+
+	// let mut err: cl_int = 0;
+
+	// let image_obj = unsafe {
+	// 	cl_h::clCreateImage2D(
+
+
+	// }
 
 	// pub fn clCreateImage2D(context: cl_context,
 	// 					   flags: cl_mem_flags,
@@ -248,21 +256,21 @@ pub fn create_image_3d() -> cl_mem {
 pub fn enqueue_write_buffer<T>(
 			command_queue: cl_command_queue,
 			buffer: cl_mem, 
-			wait: bool,
+			block: bool,
 			data: &[T],
 			offset: usize,
-			wait_list: Option<&EventList>, 
-			dest_list: Option<&mut EventList>,
+			wait_list: Option<&[cl_event]>, 
+			dest_event: Option<&mut [cl_event]>
 		)
 {
-	let (blocking_write, wait_list_len, wait_list_ptr, new_event_ptr) 
-		= resolve_queue_opts(wait, wait_list, dest_list);
+	let (wait_list_len, wait_list_ptr, new_event_ptr) 
+		= resolve_queue_opts(wait_list, dest_event);
 
 	unsafe {
 		let err = cl_h::clEnqueueWriteBuffer(
 					command_queue,
 					buffer,
-					blocking_write,
+					block as cl_bool,
 					offset,
 					(data.len() * mem::size_of::<T>()) as libc::size_t,
 					data.as_ptr() as *const libc::c_void,
@@ -279,21 +287,20 @@ pub fn enqueue_write_buffer<T>(
 pub fn enqueue_read_buffer<T>(
 			command_queue: cl_command_queue,
 			buffer: cl_mem, 
-			wait: bool,
+			block: bool,
 			data: &[T],
 			offset: usize,
-			wait_list: Option<&EventList>, 
-			dest_list: Option<&mut EventList>,
+			wait_list: Option<&[cl_event]>, 
+			dest_event: Option<&mut [cl_event]>
 		)
 {
-	let (blocking_read, wait_list_len, wait_list_ptr, new_event_ptr) 
-		= resolve_queue_opts(wait, wait_list, dest_list);
+	let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_queue_opts(wait_list, dest_event);
 
 	unsafe {
 		let err = cl_h::clEnqueueReadBuffer(
 					command_queue, 
 					buffer, 
-					blocking_read, 
+					block as cl_bool, 
 					offset, 
 					(data.len() * mem::size_of::<T>()) as libc::size_t, 
 					data.as_ptr() as *mut libc::c_void, 
@@ -306,16 +313,17 @@ pub fn enqueue_read_buffer<T>(
 	}
 }
 
+/// Maps options of slices to pointers and a length.
 #[inline]
-pub fn resolve_queue_opts(block: bool, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>)
-		-> (cl_bool, cl_uint, *const cl_event, *mut cl_event)
+pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mut [cl_event]>)
+		-> (cl_uint, *const cl_event, *mut cl_event)
 {
-	let blocking_operation = if block { cl_h::CL_TRUE } else { cl_h::CL_FALSE };
-
+	// If the wait list is empty or if its containing option is none, map to (0, null),
+	// otherwise map to the length and pointer:
 	let (wait_list_len, wait_list_ptr): (u32, *const cl_event) = match wait_list {
 		Some(wl) => {
-			if wl.count() > 0 {
-				(wl.count() as u32, wl.as_ptr())
+			if wl.len() > 0 {
+				(wl.len() as u32, wl.as_ptr())
 			} else {
 				(0, ptr::null())
 			}
@@ -323,22 +331,26 @@ pub fn resolve_queue_opts(block: bool, wait_list: Option<&EventList>, dest_list:
 		None => (0, ptr::null()),
 	};
 
-	let new_event_ptr: *mut cl_event = match dest_list {
-		Some(el) => el.allot().as_mut_ptr(),
+	// If the new event 
+	let new_event_ptr: *mut cl_event = match dest_event {
+		Some(de) => {
+			assert_eq!(de.len(), 1);
+			de.as_mut_ptr()
+		},
 		None => ptr::null_mut(),
 	};
 
-	(blocking_operation, wait_list_len, wait_list_ptr, new_event_ptr)
+	(wait_list_len, wait_list_ptr, new_event_ptr)
 }
 
 
 // [FIXME]: TODO: Evaluate usefulness
 #[allow(dead_code)]
 #[inline]
-pub fn enqueue_copy_buffer<T: OclNum>(
+pub fn enqueue_copy_buffer(
 				command_queue: cl_command_queue,
-				src: &Buffer<T>,		//	src_buffer: cl_mem,
-				dst: &Buffer<T>,		//	dst_buffer: cl_mem,
+				src: cl_mem,		//	src_buffer: cl_mem,
+				dst: cl_mem,		//	dst_buffer: cl_mem,
 				src_offset: usize,
 				dst_offset: usize,
 				len_copy_bytes: usize) 
@@ -346,8 +358,8 @@ pub fn enqueue_copy_buffer<T: OclNum>(
 	unsafe {
 		let err = cl_h::clEnqueueCopyBuffer(
 			command_queue,
-			src.buffer_obj(),				//	src_buffer,
-			dst.buffer_obj(),				//	dst_buffer,
+			src,				//	src_buffer,
+			dst,				//	dst_buffer,
 			src_offset,
 			dst_offset,
 			len_copy_bytes as usize,
