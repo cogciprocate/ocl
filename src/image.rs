@@ -1,6 +1,6 @@
 //! [WORK IN PROGRESS] An OpenCL Image. 
 use super::{Context, SimpleDims, ImageFormat, ImageDescriptor, ChannelOrder, ChannelType};
-use cl_h::cl_mem;
+use cl_h::{self, cl_mem, cl_mem_flags};
 use wrapper;
 
 
@@ -12,11 +12,19 @@ pub struct Image {
 impl Image {    
     /// Returns a new `Image`.
     pub fn new(context: &Context, image_format: &ImageFormat, 
-            image_desc: ImageDescriptor) -> Image 
+            image_desc: &ImageDescriptor) -> Image 
     {
+        let flags: cl_mem_flags = cl_h::CL_MEM_READ_WRITE;
+        let host_ptr: cl_mem = 0 as cl_mem;
+
         Image {
-            image_obj: wrapper::create_image(context.context_obj(), &image_format.as_raw(), 
-                &image_desc.as_raw()),
+            image_obj: wrapper::create_image(
+                context.context_obj(),
+                flags,
+                &image_format.as_raw(), 
+                &image_desc.as_raw(),
+                host_ptr,
+            ),                
         }
     }   
 

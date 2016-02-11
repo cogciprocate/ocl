@@ -88,13 +88,13 @@ impl<T: OclNum> Buffer<T> {
     /// documentation for more details about how dimensions are used). The buffer
     /// will be initialized with a sensible default value (probably `0`).
     ///
-    /// # Panics 
+    /// # Other Method Panics
     /// The returned Buffer contains no host side vector. Functions associated with
     /// one such as `.flush_vec_async()`, `fill_vec_async()`, etc. will panic.
     pub fn new<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
         let init_val = T::default();
-        Buffer::_new((init_val, len), queue)
+        Buffer::_new(len, queue)
     }
 
     /// Creates a new read/write Buffer with a host side working copy of data.
@@ -189,8 +189,8 @@ impl<T: OclNum> Buffer<T> {
     pub unsafe fn new_raw_unchecked(flags: cl_bitfield, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
-        let buffer_obj: cl_mem = wrapper::create_buffer(host_ptr, Some((T::default(), len)), 
-            queue.context_obj(), flags);
+        let buffer_obj: cl_mem = wrapper::create_buffer(queue.context_obj(), flags, len,
+            host_ptr);
 
         Buffer {
             buffer_obj: buffer_obj,
@@ -201,22 +201,22 @@ impl<T: OclNum> Buffer<T> {
     }
 
     // Consolidated constructor for Buffers without vectors.
-    fn _new(iv_len: (T, usize), queue: &Queue) -> Buffer<T> {
-        let buffer_obj: cl_mem = wrapper::create_buffer(None, Some(iv_len), 
-            queue.context_obj(), cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
+    fn _new(len: usize, queue: &Queue) -> Buffer<T> {
+        let buffer_obj: cl_mem = wrapper::create_buffer::<T>(queue.context_obj(),
+            cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, len, None);
 
         Buffer {            
             buffer_obj: buffer_obj,
             queue: queue.clone(),
-            len: iv_len.1,
+            len: len,
             vec: VecOption::None,
         }
     }
 
     // Consolidated constructor for Buffers with vectors.
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let buffer_obj: cl_mem = wrapper::create_buffer(Some(&mut vec), None, queue.context_obj(), 
-            cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
+        let buffer_obj: cl_mem = wrapper::create_buffer(queue.context_obj(), 
+            cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec));
 
         Buffer {        
             buffer_obj: buffer_obj,
@@ -466,14 +466,14 @@ impl<T: OclNum> Buffer<T> {
         match self.vec {
             VecOption::Some(ref mut vec) => {
                 vec.resize(new_len, T::default());
-                self.buffer_obj = wrapper::create_buffer(Some(vec), None, self.queue.context_obj(), 
-                    cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR);
+                self.buffer_obj = wrapper::create_buffer(self.queue.context_obj(), 
+                    cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, self.len, Some(vec));
             },
             VecOption::None => {
                 self.len = new_len;
                 // let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
-                self.buffer_obj = wrapper::create_buffer(None, Some((T::default(), new_len)), 
-                    self.queue.context_obj(), cl_h::CL_MEM_READ_WRITE);
+                self.buffer_obj = wrapper::create_buffer::<T>(self.queue.context_obj(), 
+                    cl_h::CL_MEM_READ_WRITE, self.len, None);
             },
         };
     }

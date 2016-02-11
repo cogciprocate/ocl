@@ -164,40 +164,28 @@ pub fn create_command_queue(
 // uninitialized. Yes, this is janky.
 #[inline]
 pub fn create_buffer<T>(
-            data: Option<&[T]>, 
-            type_and_len: Option<(T, usize)>,
-            context: cl_context, 
-            flags: cl_bitfield
+            context: cl_context,
+            flags: cl_mem_flags,
+            len: usize,
+            data: Option<&[T]>,
         ) -> cl_mem 
 {
-    assert!(!(data.is_some() && type_and_len.is_some()));
     let mut err: cl_int = 0;
 
-    let explicit_len_bytes = match type_and_len {
-        Some((_, len)) => Some(len * mem::size_of::<T>()),
-        None => None,
-    };
-
-    let (size, ptr) = match data {
-        Some(d) => (match explicit_len_bytes {
-                Some(size) => size,
-                None => d.len() * mem::size_of::<T>(),
-            }, 
-            d.as_ptr() as *mut c_void),
-        None => (match explicit_len_bytes {
-                Some(size) => size,
-                None => panic!("ocl::create_buffer(): No data or type and size given."),
-            }, 
-            ptr::null_mut()),
+    let ptr = match data {
+        Some(d) => {
+            assert!(d.len() == len, "ocl::create_buffer(): Data length mismatch.");
+            d.as_ptr() as *mut c_void
+        },
+        None => ptr::null_mut(),
     };
 
     unsafe {
         let buf = cl_h::clCreateBuffer(
                     context, 
                     flags,
-                    size,
+                    len * mem::size_of::<T>(),
                     ptr, 
-                    //ptr::null_mut(),
                     &mut err,
         );
         must_succeed("create_buffer", err);
@@ -216,14 +204,15 @@ pub fn create_buffer<T>(
 // [WORK IN PROGRESS]
 #[inline]
 pub fn create_image(
-            context: cl_mem,
+            context: cl_context,
+            flags: cl_mem_flags,
             image_format: &cl_image_format,
             image_desc: &cl_image_desc,
+            host_ptr: cl_mem,
         ) -> cl_mem 
 {
     let mut err: cl_int = 0;
-
-    let flags: cl_mem_flags = cl_h::CL_MEM_READ_WRITE;
+    // let flags: cl_mem_flags = cl_h::CL_MEM_READ_WRITE;
 
     let image_obj = unsafe {
         cl_h::clCreateImage(
@@ -231,7 +220,7 @@ pub fn create_image(
             flags,
             image_format as *const cl_image_format,
             image_desc as *const cl_image_desc,
-            0 as *mut c_void,
+            host_ptr,
             &mut err as *mut cl_int)
     }; 
     must_succeed("create_image", err);
