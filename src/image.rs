@@ -1,30 +1,33 @@
-//! [WORK IN PROGRESS] An OpenCL Image. 
-use super::{Context, SimpleDims, ImageFormat, ImageDescriptor, ChannelOrder, ChannelType};
+//! [WORK IN PROGRESS] An OpenCL Image.
+use std::default::Default;
+use super::{Context, ImageFormat, ImageDescriptor};
 use cl_h::{self, cl_mem, cl_mem_flags};
-use wrapper;
+use raw;
 
 
 /// [WORK IN PROGRESS] An OpenCL Image. 
-pub struct Image {
+#[allow(dead_code)]
+pub struct Image<T> {
+    default_val: T,
     image_obj: cl_mem,
 }
 
-impl Image {    
+impl<T: Default> Image<T> {    
     /// Returns a new `Image`.
     pub fn new(context: &Context, image_format: &ImageFormat, 
-            image_desc: &ImageDescriptor) -> Image 
+            image_desc: &ImageDescriptor, image_data: Option<&[T]>) -> Image<T>
     {
         let flags: cl_mem_flags = cl_h::CL_MEM_READ_WRITE;
-        let host_ptr: cl_mem = 0 as cl_mem;
+        // let host_ptr: cl_mem = 0 as cl_mem;
 
         Image {
-            image_obj: wrapper::create_image(
+            default_val: T::default(),
+            image_obj: raw::create_image(
                 context.context_obj(),
                 flags,
                 &image_format.as_raw(), 
                 &image_desc.as_raw(),
-                host_ptr,
-            ),                
+                image_data,),               
         }
     }   
 

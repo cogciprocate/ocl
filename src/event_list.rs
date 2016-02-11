@@ -2,7 +2,7 @@
 use std::ptr;
 use libc::c_void;
 
-use wrapper;
+use raw;
 use cl_h::{self, cl_event, cl_int};
 
 /// A list of OpenCL events which contain status information about the command that
@@ -67,7 +67,7 @@ impl EventList {
     /// Waits for all events in list to complete.
     pub fn wait(&self) {
         if self.events.len() > 0 {
-            wrapper::wait_for_events(self.count(), self.events());
+            raw::wait_for_events(self.count(), self.events());
         }
     }
 
@@ -85,7 +85,7 @@ impl EventList {
             )
     {
         if self.events.len() > 0 {
-            wrapper::set_event_callback(
+            raw::set_event_callback(
                 self.events[self.events.len() - 1], 
                 cl_h::CL_COMPLETE, 
                 callback_receiver,
@@ -100,7 +100,7 @@ impl EventList {
     //      )
     // {
     //  if self.events.len() > 0 {
-    //      wrapper::set_event_callback(
+    //      raw::set_event_callback(
     //          self.events[self.events.len() - 1], 
     //          CL_COMPLETE, 
     //          callback_receiver,
@@ -127,7 +127,7 @@ impl EventList {
 
         let mut idx = 0;
         for event in self.events.iter() {
-            if wrapper::get_event_status(*event) == cl_h::CL_COMPLETE {
+            if raw::get_event_status(*event) == cl_h::CL_COMPLETE {
                 ce_idxs.push(idx)
             }
 
@@ -139,7 +139,7 @@ impl EventList {
             
             // let ev = self.events.remove(idx);
             // Release?
-            // wrapper::release_event(ev);
+            // raw::release_event(ev);
         }
     }
 
@@ -150,7 +150,7 @@ impl EventList {
     /// and no other commands are waiting for them to complete.
     pub fn release_all(&mut self) {
         for &mut event in &mut self.events {
-            wrapper::release_event(event);
+            raw::release_event(event);
         }
 
         self.clear();

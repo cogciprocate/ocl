@@ -1,9 +1,9 @@
-//! A convenience wrapper chimera of `Program` and `Queue`.
-use wrapper;
+//! A convenience raw chimera of `Program` and `Queue`.
+use raw;
 use super::{Context, Kernel, WorkSize, ProgramBuilder, ProQueBuilder, Program, Queue, 
     Result as OclResult, Error as OclError};
 
-/// A convenience wrapper chimera of the `Program`, `Queue`, and optionally,
+/// A convenience raw chimera of the `Program`, `Queue`, and optionally,
 /// `Context` types .
 ///
 /// Handy when creating only a single context, program, and queue or when
@@ -134,7 +134,7 @@ impl ProQue {
     /// Returns the maximum workgroup size supported by the device on which the
     /// contained queue exists.
     pub fn max_work_group_size(&self) -> usize {
-        wrapper::get_max_work_group_size(self.queue.device_id())
+        raw::get_max_work_group_size(self.queue.device_id())
     }
 
     /// Returns the queue created when constructing this ProQue.

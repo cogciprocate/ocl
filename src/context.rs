@@ -1,7 +1,7 @@
 //! An OpenCL context.
 
 // use formatting::MT;
-use wrapper;
+use raw;
 use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_context};
 use super::{Result as OclResult, Error as OclError};
 
@@ -81,7 +81,7 @@ impl Context {
     pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<cl_device_type>) 
             -> OclResult<Context>
     {
-        let platforms = wrapper::get_platform_ids();
+        let platforms = raw::get_platform_ids();
         if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
         let platform = match platform_idx_opt {
@@ -96,12 +96,12 @@ impl Context {
             None => platforms[super::DEFAULT_PLATFORM],
         };
         
-        let device_ids: Vec<cl_device_id> = wrapper::get_device_ids(platform, device_types_opt);
+        let device_ids: Vec<cl_device_id> = raw::get_device_ids(platform, device_types_opt);
         if device_ids.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
         // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids);
 
-        let context_obj: cl_context = wrapper::create_context(&device_ids);
+        let context_obj: cl_context = raw::create_context(&device_ids);
 
         Ok(Context {
             platform_opt: Some(platform),

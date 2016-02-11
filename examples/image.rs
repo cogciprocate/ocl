@@ -1,5 +1,5 @@
 extern crate ocl;
-use ocl::{Context, ProQue, ProgramBuilder, SimpleDims};
+use ocl::{Context, ProQue, SimpleDims};
 
 static KERNEL_SRC: &'static str = r#"
         __kernel void multiply_by_scalar(
@@ -13,6 +13,7 @@ static KERNEL_SRC: &'static str = r#"
         }
     "#;
 
+#[allow(unused_variables)]
 fn main() {
     let image_dims = SimpleDims::Two(200, 100);
 

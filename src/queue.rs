@@ -2,7 +2,7 @@
 // use std::mem;
 // use std::ptr;
 
-use wrapper;
+use raw;
 use cl_h::{self, cl_command_queue, cl_context, cl_device_id};
 use super::Context;
 
@@ -38,7 +38,7 @@ impl Queue {
         assert!(device_ids.len() == 1, "Queue::new: Error resolving device ids.");
         let device_id = device_ids[0];
 
-        let obj: cl_command_queue = wrapper::create_command_queue(context.context_obj(), device_id); 
+        let obj: cl_command_queue = raw::create_command_queue(context.context_obj(), device_id); 
 
         Queue {
             obj: obj,
@@ -49,7 +49,7 @@ impl Queue {
 
     /// Blocks until all commands in this queue have completed.
     pub fn finish(&self) {
-        wrapper::finish(self.obj);
+        raw::finish(self.obj);
     }
 
     /// Returns the OpenCL command queue object associated with this queue.

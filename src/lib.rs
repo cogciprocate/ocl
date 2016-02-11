@@ -48,7 +48,7 @@ mod kernel;
 mod work_size;
 mod error;
 mod event_list;
-mod wrapper;
+mod raw;
 #[cfg(test)] mod tests;
 pub mod formatting;
 pub mod cl_h;

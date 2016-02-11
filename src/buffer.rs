@@ -8,7 +8,7 @@ use num::{FromPrimitive, ToPrimitive};
 use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
-use wrapper;
+use raw;
 use cl_h::{self, cl_mem, cl_bitfield};
 use super::{fmt, OclNum, Queue, BufferDims, EventList, Error as OclError, Result as OclResult};
 
@@ -92,15 +92,14 @@ impl<T: OclNum> Buffer<T> {
     /// The returned Buffer contains no host side vector. Functions associated with
     /// one such as `.flush_vec_async()`, `fill_vec_async()`, etc. will panic.
     pub fn new<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
-        let init_val = T::default();
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
         Buffer::_new(len, queue)
     }
 
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with a sensible default value.
     pub fn with_vec<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
         let vec: Vec<T> = iter::repeat(T::default()).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -110,7 +109,7 @@ impl<T: OclNum> Buffer<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with the value, `init_val`.
     pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
         let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -131,7 +130,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
         let vec: Vec<T> = shuffled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -148,7 +147,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(wrapper::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
         let vec: Vec<T> = scrambled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -189,7 +188,7 @@ impl<T: OclNum> Buffer<T> {
     pub unsafe fn new_raw_unchecked(flags: cl_bitfield, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
-        let buffer_obj: cl_mem = wrapper::create_buffer(queue.context_obj(), flags, len,
+        let buffer_obj: cl_mem = raw::create_buffer(queue.context_obj(), flags, len,
             host_ptr);
 
         Buffer {
@@ -202,7 +201,7 @@ impl<T: OclNum> Buffer<T> {
 
     // Consolidated constructor for Buffers without vectors.
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
-        let buffer_obj: cl_mem = wrapper::create_buffer::<T>(queue.context_obj(),
+        let buffer_obj: cl_mem = raw::create_buffer::<T>(queue.context_obj(),
             cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, len, None);
 
         Buffer {            
@@ -215,7 +214,7 @@ impl<T: OclNum> Buffer<T> {
 
     // Consolidated constructor for Buffers with vectors.
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let buffer_obj: cl_mem = wrapper::create_buffer(queue.context_obj(), 
+        let buffer_obj: cl_mem = raw::create_buffer(queue.context_obj(), 
             cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec));
 
         Buffer {        
@@ -274,7 +273,7 @@ impl<T: OclNum> Buffer<T> {
         assert!(data.len() <= self.len() - offset, 
             "Buffer::write{{_async}}(): Data length out of range.");
         let blocking_write = dest_list.is_none();
-        wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, blocking_write, 
+        raw::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, blocking_write, 
             data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
     }
 
@@ -301,7 +300,7 @@ impl<T: OclNum> Buffer<T> {
         assert!(data.len() <= self.len() - offset, 
             "Buffer::read{{_async}}(): Data length out of range.");
         let blocking_read = dest_list.is_none();
-        wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, blocking_read, 
+        raw::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, blocking_read, 
             data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
     }
 
@@ -315,7 +314,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn flush_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = self.vec.as_mut().expect("Buffer::flush_vec_async()");
-        wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
+        raw::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
             vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
     }
 
@@ -330,7 +329,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn fill_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = self.vec.as_mut().expect("Buffer::fill_vec_async()");
-        wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
+        raw::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, dest_list.is_none(), 
             vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
     }
 
@@ -343,7 +342,7 @@ impl<T: OclNum> Buffer<T> {
     /// Panics if this Buffer contains no vector.
     pub fn flush_vec(&mut self) {       
         // let vec = self.vec.as_mut().expect("Buffer::flush_vec()");
-        // wrapper::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, true, vec, 0, None, None);
+        // raw::enqueue_write_buffer(self.queue.obj(), self.buffer_obj, true, vec, 0, None, None);
         self.flush_vec_async(None, None);
     }
 
@@ -355,7 +354,7 @@ impl<T: OclNum> Buffer<T> {
     /// Panics if this Buffer contains no vector.
     pub fn fill_vec(&mut self) {
         // let vec = self.vec.as_mut().expect("Buffer::read_wait()");
-        // wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, 
+        // raw::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, 
         //  true, vec, 0, None, None);
         self.fill_vec_async(None, None);
     }   
@@ -446,7 +445,7 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        wrapper::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, true, 
+        raw::enqueue_read_buffer(self.queue.obj(), self.buffer_obj, true, 
             &mut vec[idx_range.clone()], idx_range.start, None, None);
         fmt::print_vec(&vec[..], every, val_range, idx_range_opt, zeros);
 
@@ -460,19 +459,19 @@ impl<T: OclNum> Buffer<T> {
     /// had a reference to the (device side) buffer associated with this Buffer.
     pub unsafe fn resize(&mut self, new_dims: &BufferDims/*, val: T*/) {
         self.release();
-        let new_len = new_dims.padded_buffer_len(wrapper::get_max_work_group_size(
+        let new_len = new_dims.padded_buffer_len(raw::get_max_work_group_size(
             self.queue.device_id()));
 
         match self.vec {
             VecOption::Some(ref mut vec) => {
                 vec.resize(new_len, T::default());
-                self.buffer_obj = wrapper::create_buffer(self.queue.context_obj(), 
+                self.buffer_obj = raw::create_buffer(self.queue.context_obj(), 
                     cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, self.len, Some(vec));
             },
             VecOption::None => {
                 self.len = new_len;
                 // let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
-                self.buffer_obj = wrapper::create_buffer::<T>(self.queue.context_obj(), 
+                self.buffer_obj = raw::create_buffer::<T>(self.queue.context_obj(), 
                     cl_h::CL_MEM_READ_WRITE, self.len, None);
             },
         };
@@ -481,7 +480,7 @@ impl<T: OclNum> Buffer<T> {
     /// Decrements the reference count associated with the previous buffer object, 
     /// `self.buffer_obj`.
     pub fn release(&mut self) {
-        wrapper::release_mem_object(self.buffer_obj);
+        raw::release_mem_object(self.buffer_obj);
     }
 
     /// Returns a reference to the local vector associated with this buffer.

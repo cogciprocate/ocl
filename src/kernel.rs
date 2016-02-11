@@ -6,7 +6,7 @@ use std::ffi;
 use std::collections::HashMap;
 use libc;
 
-use wrapper;
+use raw;
 use cl_h::{self, cl_mem, cl_kernel, cl_command_queue, cl_int, cl_uint};
 use super::{WorkSize, Buffer, OclNum, EventList, Program, Queue};
 
@@ -46,7 +46,7 @@ impl Kernel {
         };
         
         let err_pre = format!("Ocl::create_kernel({}):", &name);
-        wrapper::must_succeed(&err_pre, err);
+        raw::must_succeed(&err_pre, err);
 
         Kernel {
             kernel_obj: kernel_obj,
@@ -211,7 +211,7 @@ impl Kernel {
             );
 
             let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
-            wrapper::must_succeed(&err_pre, err);
+            raw::must_succeed(&err_pre, err);
         }
     }
 
@@ -231,7 +231,7 @@ impl Kernel {
         let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
 
         let (wait_list_len, wait_list_ptr, new_event_ptr) 
-            = wrapper::resolve_queue_opts(
+            = raw::resolve_queue_opts(
                 wait_list.map(|el| el.events()), 
                 dest_list.map(|el| el.allot())
                 );
@@ -250,7 +250,7 @@ impl Kernel {
             );
 
             let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);
-            wrapper::must_succeed(&err_pre, err);
+            raw::must_succeed(&err_pre, err);
         }
     }
 

@@ -1,7 +1,7 @@
 //! The builder type for `Image`.
 
 use cl_h::{cl_mem, cl_mem_flags};
-use wrapper;
+use raw;
 use super::{Image};
 
 pub enum 

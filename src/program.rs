@@ -2,7 +2,7 @@
 
 use std::ffi::CString;
 
-use wrapper;
+use raw;
 use cl_h::{self, cl_program, cl_context, cl_device_id};
 use super::{ProgramBuilder, Context, Result as OclResult};
 
@@ -51,7 +51,7 @@ impl Program {
                 device_ids: &Vec<cl_device_id>,
             ) -> OclResult<Program> 
     {
-        let obj = try!(wrapper::new_program(src_strings, cmplr_opts, 
+        let obj = try!(raw::new_program(src_strings, cmplr_opts, 
             context_obj, device_ids).map_err(|e| e.to_string()));
 
         Ok(Program {

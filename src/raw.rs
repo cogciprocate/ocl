@@ -1,4 +1,4 @@
-//! Wrapper functions for the OpenCL C FFI.
+//! raw functions for the OpenCL C FFI.
 //! 
 //! Some functions *may* break Rust's usual safety promises and have not been
 //! comprehensively tested or evaluated.
@@ -17,7 +17,7 @@ use num::{FromPrimitive};
 use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context,
     cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags,
     cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, cl_bool,
-    cl_int, cl_uint, cl_bitfield, ClStatus};
+    cl_int, cl_uint, ClStatus};
 
 use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclResult};
 
@@ -84,12 +84,12 @@ pub fn create_context(device_ids: &Vec<cl_device_id>) -> cl_context {
 
     unsafe {
         let context: cl_context = cl_h::clCreateContext(
-                        ptr::null(), 
-                        device_ids.len() as cl_uint, 
-                        device_ids.as_ptr(),
-                        mem::transmute(ptr::null::<fn()>()), 
-                        ptr::null_mut(), 
-                        &mut err);
+            ptr::null(), 
+            device_ids.len() as cl_uint, 
+            device_ids.as_ptr(),
+            mem::transmute(ptr::null::<fn()>()), 
+            ptr::null_mut(), 
+            &mut err);
         must_succeed("clCreateContext()", err);
         context
     }
@@ -160,8 +160,7 @@ pub fn create_command_queue(
     }
 }
 
-// Note: the dval_len.0 is not actually used. If buffer is created in this way it will be
-// uninitialized. Yes, this is janky.
+
 #[inline]
 pub fn create_buffer<T>(
             context: cl_context,
@@ -172,7 +171,7 @@ pub fn create_buffer<T>(
 {
     let mut err: cl_int = 0;
 
-    let ptr = match data {
+    let host_ptr = match data {
         Some(d) => {
             assert!(d.len() == len, "ocl::create_buffer(): Data length mismatch.");
             d.as_ptr() as *mut c_void
@@ -185,7 +184,7 @@ pub fn create_buffer<T>(
                     context, 
                     flags,
                     len * mem::size_of::<T>(),
-                    ptr, 
+                    host_ptr, 
                     &mut err,
         );
         must_succeed("create_buffer", err);
@@ -203,24 +202,33 @@ pub fn create_buffer<T>(
 //                      errcode_ret: *mut cl_int) -> cl_mem;
 // [WORK IN PROGRESS]
 #[inline]
-pub fn create_image(
+pub fn create_image<T>(
             context: cl_context,
             flags: cl_mem_flags,
-            image_format: &cl_image_format,
-            image_desc: &cl_image_desc,
-            host_ptr: cl_mem,
+            format: &cl_image_format,
+            desc: &cl_image_desc,
+            // host_ptr: cl_mem,
+            data: Option<&[T]>,
         ) -> cl_mem 
 {
     let mut err: cl_int = 0;
-    // let flags: cl_mem_flags = cl_h::CL_MEM_READ_WRITE;
+    
+    let data_ptr = match data {
+        Some(d) => {
+            // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE
+            // assert!(d.len() == len, "ocl::create_image(): Data length mismatch.");
+            d.as_ptr() as *mut c_void
+        },
+        None => ptr::null_mut(),
+    };
 
     let image_obj = unsafe {
         cl_h::clCreateImage(
             context,
             flags,
-            image_format as *const cl_image_format,
-            image_desc as *const cl_image_desc,
-            host_ptr,
+            format as *const cl_image_format,
+            desc as *const cl_image_desc,
+            data_ptr,
             &mut err as *mut cl_int)
     }; 
     must_succeed("create_image", err);

@@ -12,6 +12,7 @@ pub enum MemObjectType {
 	Image1dBuffer = cl_h::CL_MEM_OBJECT_IMAGE1D_BUFFER as isize,
 }
 
+#[allow(dead_code)]
 pub struct ImageDescriptor {
 	pub image_type: MemObjectType,
     pub image_width: usize,
