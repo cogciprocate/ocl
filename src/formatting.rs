@@ -35,138 +35,138 @@ pub static BGC_DGR: &'static str = "\x1b[100m";
 /// [UNSTABLE]: MAY BE REMOVED AT ANY TIME
 /// Prints a vector to stdout. Used for debugging.
 pub fn print_vec<T: OclNum>(
-			vec: &[T], 
-			every: usize, 
-			val_range: Option<(T, T)>, 
-			idx_range: Option<Range<usize>>,
-			show_zeros: bool, 
-	)
+            vec: &[T], 
+            every: usize, 
+            val_range: Option<(T, T)>, 
+            idx_range: Option<Range<usize>>,
+            show_zeros: bool, 
+    )
 {
-	print!( "{cdgr}[{cg}{}{cdgr}/{}", vec.len(), every, cg = C_GRN, cdgr = C_DGR);
+    print!( "{cdgr}[{cg}{}{cdgr}/{}", vec.len(), every, cg = C_GRN, cdgr = C_DGR);
 
-	let (vr_start, vr_end) = match val_range {
-		Some(vr) => {
-			print!( ";({}-{})", vr.0, vr.1);
-			vr
-		},
+    let (vr_start, vr_end) = match val_range {
+        Some(vr) => {
+            print!( ";({}-{})", vr.0, vr.1);
+            vr
+        },
 
-		None => (Default::default(), Default::default()),
-	};
+        None => (Default::default(), Default::default()),
+    };
 
-	let (ir_start, ir_end) = match idx_range {
-		Some(ref ir) => {
-			print!( ";[{}..{}]", ir.start, ir.end);
-			(ir.start, ir.end)
-		},
+    let (ir_start, ir_end) = match idx_range {
+        Some(ref ir) => {
+            print!( ";[{}..{}]", ir.start, ir.end);
+            (ir.start, ir.end)
+        },
 
-		None => (0usize, 0usize),
-	};
+        None => (0usize, 0usize),
+    };
 
-	print!( "]:{cd} ", cd = C_DEFAULT,);
+    print!( "]:{cd} ", cd = C_DEFAULT,);
 
-	let mut ttl_nz = 0usize;
-	let mut ttl_ir = 0usize;
-	let mut within_idx_range = true;
-	let mut within_val_range = true;
-	let mut hi: T = vr_start;
-	let mut lo: T = vr_end;
-	let mut sum: i64 = 0;
-	let mut ttl_prntd: usize = 0;
-	let len = vec.len();
-
-
-	let mut color: &'static str = C_DEFAULT;
-	let mut prnt: bool = false;
-
-	// Yes, this clusterfuck needs rewriting someday
-	for i in 0..vec.len() {
-
-		prnt = false;
-
-		if every != 0 {
-			if i % every == 0 {
-				prnt = true;
-			} else {
-				prnt = false;
-			}
-		}
-
-		if idx_range.is_some() {
-			let ir = idx_range.as_ref().expect("ocl::buffer::print_vec()");
-
-			if i < ir_start || i >= ir_end {
-				prnt = false;
-				within_idx_range = false;
-			} else {
-				within_idx_range = true;
-			}
-		} else {
-			within_idx_range = true;
-		}
-
-		if val_range.is_some() {
-			if vec[i] < vr_start || vec[i] > vr_end {
-				prnt = false;
-				within_val_range = false;
-			} else {
-				if within_idx_range {
-					if vec[i] == Default::default() {
-						ttl_ir += 1;
-					} else {
-						ttl_ir += 1;
-					}
-				}
-
-				within_val_range = true;
-			}
-		} 
-
-		if within_idx_range && within_val_range {
-			sum += vec[i].to_i64().expect("ocl::buffer::print_vec(): vec[i]");
-
-			if vec[i] > hi { hi = vec[i] };
-
-			if vec[i] < lo { lo = vec[i] };
-
-			if vec[i] != Default::default() {
-				ttl_nz += 1usize;
-				color = C_ORA;
-			} else {
-				if show_zeros {
-					color = C_DEFAULT;
-				} else {
-					prnt = false;
-				}
-			}
-		}
-
-		if prnt {
-			print!( "{cg}[{cd}{}{cg}:{cc}{}{cg}]{cd}", i, vec[i], cc = color, cd = C_DEFAULT, cg = C_DGR);
-			ttl_prntd += 1;
-		}
-	}
-
-	let mut anz: f32 = 0f32;
-	let mut nz_pct: f32 = 0f32;
-
-	let mut ir_pct: f32 = 0f32;
-	let mut avg_ir: f32 = 0f32;
-
-	if ttl_nz > 0 {
-		anz = sum as f32 / ttl_nz as f32;
-		nz_pct = (ttl_nz as f32 / len as f32) * 100f32;
-		//print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
-	}
-
-	if ttl_ir > 0 {
-		avg_ir = sum as f32 / ttl_ir as f32;
-		ir_pct = (ttl_ir as f32 / len as f32) * 100f32;
-		//print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
-	}
+    let mut ttl_nz = 0usize;
+    let mut ttl_ir = 0usize;
+    let mut within_idx_range = true;
+    let mut within_val_range = true;
+    let mut hi: T = vr_start;
+    let mut lo: T = vr_end;
+    let mut sum: i64 = 0;
+    let mut ttl_prntd: usize = 0;
+    let len = vec.len();
 
 
-	println!("{cdgr} ;(nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
-		ir:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),hi:{},lo:{},anz:{:.2},prntd:{}){cd} ", 
-		ttl_nz, nz_pct, ttl_ir, ir_pct, hi, lo, anz, ttl_prntd, cd = C_DEFAULT, clbl = C_LBL, cdgr = C_DGR);
+    let mut color: &'static str = C_DEFAULT;
+    let mut prnt: bool = false;
+
+    // Yes, this clusterfuck needs rewriting someday
+    for i in 0..vec.len() {
+
+        prnt = false;
+
+        if every != 0 {
+            if i % every == 0 {
+                prnt = true;
+            } else {
+                prnt = false;
+            }
+        }
+
+        if idx_range.is_some() {
+            let ir = idx_range.as_ref().expect("ocl::buffer::print_vec()");
+
+            if i < ir_start || i >= ir_end {
+                prnt = false;
+                within_idx_range = false;
+            } else {
+                within_idx_range = true;
+            }
+        } else {
+            within_idx_range = true;
+        }
+
+        if val_range.is_some() {
+            if vec[i] < vr_start || vec[i] > vr_end {
+                prnt = false;
+                within_val_range = false;
+            } else {
+                if within_idx_range {
+                    if vec[i] == Default::default() {
+                        ttl_ir += 1;
+                    } else {
+                        ttl_ir += 1;
+                    }
+                }
+
+                within_val_range = true;
+            }
+        } 
+
+        if within_idx_range && within_val_range {
+            sum += vec[i].to_i64().expect("ocl::buffer::print_vec(): vec[i]");
+
+            if vec[i] > hi { hi = vec[i] };
+
+            if vec[i] < lo { lo = vec[i] };
+
+            if vec[i] != Default::default() {
+                ttl_nz += 1usize;
+                color = C_ORA;
+            } else {
+                if show_zeros {
+                    color = C_DEFAULT;
+                } else {
+                    prnt = false;
+                }
+            }
+        }
+
+        if prnt {
+            print!( "{cg}[{cd}{}{cg}:{cc}{}{cg}]{cd}", i, vec[i], cc = color, cd = C_DEFAULT, cg = C_DGR);
+            ttl_prntd += 1;
+        }
+    }
+
+    let mut anz: f32 = 0f32;
+    let mut nz_pct: f32 = 0f32;
+
+    let mut ir_pct: f32 = 0f32;
+    let mut avg_ir: f32 = 0f32;
+
+    if ttl_nz > 0 {
+        anz = sum as f32 / ttl_nz as f32;
+        nz_pct = (ttl_nz as f32 / len as f32) * 100f32;
+        //print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
+    }
+
+    if ttl_ir > 0 {
+        avg_ir = sum as f32 / ttl_ir as f32;
+        ir_pct = (ttl_ir as f32 / len as f32) * 100f32;
+        //print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
+    }
+
+
+    println!("{cdgr} ;(nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
+        ir:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),hi:{},lo:{},anz:{:.2},prntd:{}){cd} ", 
+        ttl_nz, nz_pct, ttl_ir, ir_pct, hi, lo, anz, ttl_prntd, cd = C_DEFAULT, clbl = C_LBL, cdgr = C_DGR);
 }
 

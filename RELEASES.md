@@ -33,6 +33,7 @@ Breaking Changes
   * `::arg_env` to `::arg_buf`
   * `::arg_env_named` to `::arg_buf_named`
   * `::set_arg_env_named` to `::set_arg_buf_named`
+* `SimpleDims` has had its variants renamed.
 
 
 New Types

@@ -1,78 +1,81 @@
 //! Standard error type for ocl.
 
-use std::error::{ self, Error };
-use std::io;
-use std::fmt;
+use std;
+// use std::error::Error;
+// use std::io;
+// use std::fmt;
 use std::convert::Into;
-use std::ffi;
+// use std::ffi;
 
-/// `OclError` result type.
-pub type OclResult<T> = Result<T, OclError>;
+/// `ocl::Error` result type.
+pub type Result<T> = std::result::Result<T, Error>;
 
 
 /// Error type containing a string.
-pub enum OclError {
-	// description: String,
-	String(String),
-	Nul(ffi::NulError),
-	Io(io::Error),
+pub enum Error {
+    // description: String,
+    String(String),
+    Nul(std::ffi::NulError),
+    Io(std::io::Error),
 }
 
-impl OclError {
-	/// Returns a new `OclError` with the description string: `desc`.
-	pub fn new<S: Into<String>>(desc: S) -> OclError {
-		OclError::String(desc.into())
-	}
+impl Error {
+    /// Returns a new `Error` with the description string: `desc`.
+    pub fn new<S: Into<String>>(desc: S) -> Error {
+        Error::String(desc.into())
+    }
 
-	/// Returns a new `OclResult::Err` containing an `OclResult` with the given 
-	/// description.
-	pub fn err<T, S: Into<String>>(desc: S) -> OclResult<T> {
-		Err(OclError::new(desc))
-	}
+    /// Returns a new `OclResult::Err` containing an `OclResult` with the given 
+    /// description.
+    pub fn err<T, S: Into<String>>(desc: S) -> self::Result<T> {
+        Err(Error::new(desc))
+    }
 }
 
-impl error::Error for OclError {
-	fn description(&self) -> &str {
-		match self {
-			&OclError::String(ref desc) => &desc,
-			&OclError::Nul(ref err) => err.description(),
-			&OclError::Io(ref err) => err.description(),
-		}
-	}
+impl std::error::Error for Error {
+    fn description(&self) -> &str {
+        match self {
+            &Error::String(ref desc) => &desc,
+            &Error::Nul(ref err) => err.description(),
+            &Error::Io(ref err) => err.description(),
+        }
+    }
 }
 
-impl From<String> for OclError {
-	fn from(desc: String) -> OclError {
-		OclError::new(desc)
-	}
+impl From<String> for Error {
+    fn from(desc: String) -> Error {
+        Error::new(desc)
+    }
 }
 
-impl<'a> From<&'a str> for OclError {
-	fn from(desc: &'a str) -> OclError {
-		OclError::new(String::from(desc))
-	}
+impl<'a> From<&'a str> for Error {
+    fn from(desc: &'a str) -> Error {
+        Error::new(String::from(desc))
+    }
 }
 
-impl From<ffi::NulError> for OclError {
-	fn from(err: ffi::NulError) -> OclError {
-		OclError::Nul(err)
-	}
+impl From<std::ffi::NulError> for Error {
+    fn from(err: std::ffi::NulError) -> Error {
+        Error::Nul(err)
+    }
 }
 
-impl From<io::Error> for OclError {
-	fn from(err: io::Error) -> OclError {
-		OclError::Io(err)
-	}
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Error {
+        Error::Io(err)
+    }
 }
 
-impl fmt::Display for OclError {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		f.write_str(&self.description())
-	}
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use std::error::Error;
+        f.write_str(&self.description())
+    }
 }
 
-impl fmt::Debug for OclError {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		f.write_str(&self.description())
-	}
+impl std::fmt::Debug for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use std::error::Error;
+        f.write_str(&self.description())
+    }
 }
