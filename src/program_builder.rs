@@ -39,38 +39,43 @@ impl ProgramBuilder {
             &context.resolve_device_idxs(&self.device_idxs))
     }
 
-    /// Adds a compiler command line definition => `-D {name}={val}` (builder-style).
+    /// Adds a build option containing a compiler command line definition.
+    /// Formatted as `-D {name}={val}`.
     pub fn cmplr_def<'p>(&'p mut self, name: &'static str, val: i32) -> &'p mut ProgramBuilder {
         self.options.push(BuildOpt::cmplr_def(name, val));
         self
     }
 
-    /// Adds a raw compiler command line option => `{co}` (builder-style).
+    /// Adds a build option containing a raw compiler command line parameter. 
+    /// Formatted as `{co}` (exact text).
     pub fn cmplr_opt<'p>(&'p mut self, co: &'static str) -> &'p mut ProgramBuilder {
         self.options.push(BuildOpt::cmplr_opt(co));
         self
     }
 
-    /// Pushes pre-created build option to the list (builder-style).
+    /// Pushes pre-created build option to the list.
     pub fn bo<'p>(&'p mut self, bo: BuildOpt) -> &'p mut ProgramBuilder {
-        self.add_bo(bo);
+        // self.add_bo(bo);
+        self.options.push(bo);
         self
     }
 
-    /// Adds a kernel file to the list of included sources (builder-style).
-    pub fn src_file<'p>(&'p mut self, file_name: &'static str) -> &'p mut ProgramBuilder {
-        self.add_src_file(file_name.to_string());
+    /// Adds a kernel file to the list of included sources.
+    pub fn src_file<'p, S: Into<String>>(&'p mut self, file_name: S) -> &'p mut ProgramBuilder {
+        // self.add_src_file(file_name.to_string());
+        self.src_file_names.push(file_name.into());
         self
     }   
 
-    /// Adds text to the included kernel source (builder-style).
+    /// Adds text to the included kernel source.
     pub fn src<'p, S: Into<String>>(&'p mut self, src: S) -> &'p mut ProgramBuilder {
-        self.add_src(src);
+        // self.add_src(src);
+        self.options.push(BuildOpt::IncludeRawEof(src.into()));
         self
     }
 
     /// Specify which devices this program should be built on using a vector of 
-    /// zero-based device indexes (builder-style).
+    /// zero-based device indexes.
     ///
     /// # Example
     /// If your system has 4 OpenGL devices and you want to include them all:
@@ -85,21 +90,21 @@ impl ProgramBuilder {
         self
     }
 
-    /// Adds a kernel file to the list of included sources (in place).
-    pub fn add_src_file(&mut self, file_name: String) {
-        self.src_file_names.push(file_name);
-    }
+    // /// Adds a kernel file to the list of included sources (in place).
+    // pub fn add_src_file(&mut self, file_name: String) {
+    //     self.src_file_names.push(file_name);
+    // }
 
-    /// Adds text to the included kernel source (in place).
-    pub fn add_src<S: Into<String>>(&mut self, src: S) {
-        // self.embedded_kernel_source.push(source.into());
-        self.options.push(BuildOpt::IncludeRawEof(src.into()));
-    }
+    // /// Adds text to the included kernel source (in place).
+    // pub fn add_src<S: Into<String>>(&mut self, src: S) {
+    //     // self.embedded_kernel_source.push(source.into());
+    //     self.options.push(BuildOpt::IncludeRawEof(src.into()));
+    // }
 
-    /// Adds a pre-created build option to the list (in place).
-    pub fn add_bo(&mut self, bo: BuildOpt) {
-        self.options.push(bo);
-    }
+    // /// Adds a pre-created build option to the list (in place).
+    // pub fn add_bo(&mut self, bo: BuildOpt) {
+    //     self.options.push(bo);
+    // }
 
     /// Returns a list of kernel file names added for inclusion in the build.
     pub fn get_src_file_names(&self) -> &Vec<String> {
@@ -110,6 +115,51 @@ impl ProgramBuilder {
     // configured to build on.
     pub fn get_device_idxs(&self) -> &Vec<usize> {
         &self.device_idxs
+    }
+
+
+    /// Parses `self.options` for options intended for inclusion at the beginning of 
+    /// the final program source and returns them as a list of strings.
+    ///
+    /// Generally used for #define directives, constants, etc. Normally called from
+    /// `::get_src_strings()` but can also be called from anywhere for debugging 
+    /// purposes.
+    fn get_kernel_includes(&self) -> OclResult<Vec<CString>> {
+        let mut strings = Vec::with_capacity(64);
+        strings.push(try!(CString::new("\n".as_bytes())));
+
+        for option in self.options.iter() {
+            match option {
+                &BuildOpt::IncludeDefine { ref ident, ref val } => {
+                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val).into_bytes())));
+                },
+                &BuildOpt::IncludeRaw(ref text) => {
+                    strings.push(try!(CString::new(text.clone().into_bytes())));
+                },
+                _ => (),
+            };
+
+        }
+
+        Ok(strings)
+    }
+
+    /// Parses `self.options` for options intended for inclusion at the end of 
+    /// the final program source and returns them as a list of strings.
+    fn get_kernel_includes_eof(&self) -> OclResult<Vec<CString>> {
+        let mut strings = Vec::with_capacity(64);
+        strings.push(try!(CString::new("\n".as_bytes())));
+
+        for option in self.options.iter() {
+            match option {
+                &BuildOpt::IncludeRawEof(ref text) => {
+                    strings.push(try!(CString::new(text.clone().into_bytes())));
+                },
+                _ => (),
+            };
+        }
+
+        Ok(strings)     
     }
 
     /// Returns a contatenated string of compiler command line options used when 
@@ -138,50 +188,6 @@ impl ProgramBuilder {
         }
 
         CString::new(opts.join(" ").into_bytes()).map_err(|err| OclError::from(err))
-    }
-
-    /// Parses `self.options` for options intended for inclusion at the beginning of 
-    /// the final program source and returns them as a list of strings.
-    ///
-    /// Generally used for #define directives, constants, etc. Normally called from
-    /// `::get_src_strings()` but can also be called from anywhere for debugging 
-    /// purposes.
-    pub fn get_kernel_includes(&self) -> OclResult<Vec<CString>> {
-        let mut strings = Vec::with_capacity(64);
-        strings.push(try!(CString::new("\n".as_bytes())));
-
-        for option in self.options.iter() {
-            match option {
-                &BuildOpt::IncludeDefine { ref ident, ref val } => {
-                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val).into_bytes())));
-                },
-                &BuildOpt::IncludeRaw(ref text) => {
-                    strings.push(try!(CString::new(text.clone().into_bytes())));
-                },
-                _ => (),
-            };
-
-        }
-
-        Ok(strings)
-    }
-
-    /// Parses `self.options` for options intended for inclusion at the end of 
-    /// the final program source and returns them as a list of strings.
-    pub fn get_kernel_includes_eof(&self) -> OclResult<Vec<CString>> {
-        let mut strings = Vec::with_capacity(64);
-        strings.push(try!(CString::new("\n".as_bytes())));
-
-        for option in self.options.iter() {
-            match option {
-                &BuildOpt::IncludeRawEof(ref text) => {
-                    strings.push(try!(CString::new(text.clone().into_bytes())));
-                },
-                _ => (),
-            };
-        }
-
-        Ok(strings)     
     }
 
     /// Returns the final program source code as a list of strings.

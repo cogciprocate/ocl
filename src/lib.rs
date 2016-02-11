@@ -28,6 +28,7 @@
 #![feature(zero_one)]
 
 #[macro_use] extern crate enum_primitive;
+#[macro_use] extern crate bitflags;
 extern crate libc;
 extern crate num;
 extern crate rand;
@@ -38,6 +39,8 @@ mod program;
 mod queue;
 mod buffer;
 mod image;
+mod image_format;
+mod image_descriptor;
 mod pro_que_builder;
 mod pro_que;
 mod simple_dims;
@@ -52,10 +55,8 @@ pub mod cl_h;
 
 pub use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context, 
     cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, 
-    cl_image_format, cl_image_desc,
-
     cl_bool, cl_float, cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, 
-    cl_bitfield, CLStatus, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
+    cl_bitfield, ClStatus, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
     CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_CUSTOM, CL_DEVICE_TYPE_ALL};
 
 pub use self::formatting as fmt;
@@ -66,6 +67,8 @@ pub use self::queue::Queue;
 pub use self::kernel::Kernel;
 pub use self::buffer::Buffer;
 pub use self::image::Image;
+pub use self::image_format::{ImageFormat, ChannelOrder, ChannelType};
+pub use self::image_descriptor::{ImageDescriptor, MemObjectType};
 pub use self::pro_que_builder::ProQueBuilder;
 pub use self::pro_que::ProQue;
 pub use self::simple_dims::SimpleDims;

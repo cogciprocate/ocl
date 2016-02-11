@@ -17,7 +17,7 @@ use num::{FromPrimitive};
 use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context,
     cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags,
     cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, cl_bool,
-    cl_int, cl_uint, cl_bitfield, CLStatus};
+    cl_int, cl_uint, cl_bitfield, ClStatus};
 
 use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclResult};
 
@@ -579,7 +579,7 @@ pub fn device_info(device: cl_device_id, info_type: cl_device_info) -> String {
 
 #[inline]
 pub fn must_succeed(message: &str, err_code: cl_int) {
-    if err_code != cl_h::CLStatus::CL_SUCCESS as cl_int {
+    if err_code != cl_h::ClStatus::CL_SUCCESS as cl_int {
         //format!("##### \n{} failed with code: {}\n\n #####", message, err_string(err_code));
         panic!(format!("\n\n#####> {} failed with code: {}\n\n", message, err_string(err_code)));
     }
@@ -587,7 +587,7 @@ pub fn must_succeed(message: &str, err_code: cl_int) {
 
 #[inline]
 fn err_string(err_code: cl_int) -> String {
-    match CLStatus::from_i32(err_code) {
+    match ClStatus::from_i32(err_code) {
         Some(cls) => format!("{:?}", cls),
         None => format!("[Unknown Error Code: {}]", err_code as i64),
     }

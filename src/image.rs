@@ -1,7 +1,8 @@
 //! [WORK IN PROGRESS] An OpenCL Image. 
-use super::{Context, SimpleDims};
-use cl_h::{self, cl_mem, cl_image_desc, cl_image_format};
+use super::{Context, SimpleDims, ImageFormat, ImageDescriptor, ChannelOrder, ChannelType};
+use cl_h::cl_mem;
 use wrapper;
+
 
 /// [WORK IN PROGRESS] An OpenCL Image. 
 pub struct Image {
@@ -9,60 +10,17 @@ pub struct Image {
 }
 
 impl Image {    
-    /// Returns a new two dimensional image.
-    pub fn new(context: &Context, dims: &SimpleDims) -> Image {
-
-        let (dim_count, dims) = match dims {
-            &SimpleDims::Three(d0, d1, d2) => (3, (d0, d1, d2)),
-            &SimpleDims::Two(d0, d1) => (2, (d0, d1, 1)),
-            &SimpleDims::One(d0) => (1, (d0, 1, 1)),
-            _ => (0, (0, 0, 0)),
-        };
-
-        let image_type = match dim_count {
-            1 => cl_h::CL_MEM_OBJECT_IMAGE1D,
-            2 => cl_h::CL_MEM_OBJECT_IMAGE2D,
-            3 => cl_h::CL_MEM_OBJECT_IMAGE3D,
-            _ => panic!("Image::new(): Invalid dimension count."),
-        };
-
-        let image_format = cl_image_format {
-            image_channel_order:        cl_h::CL_RGBA,
-            image_channel_data_type:    cl_h::CL_UNORM_INT8,
-        };
-
-        let image_desc = cl_image_desc {
-            image_type:         image_type,
-            image_width:        dims.0,
-            image_height:       dims.1,
-            image_depth:        dims.2,
-            image_array_size:   0,
-            image_row_pitch:    0,
-            image_slice_pitch:  0,
-            num_mip_levels:     0,
-            num_samples:        0,
-            buffer:             0 as cl_mem,
-        };
-
+    /// Returns a new `Image`.
+    pub fn new(context: &Context, image_format: &ImageFormat, 
+            image_desc: ImageDescriptor) -> Image 
+    {
         Image {
-            image_obj: wrapper::create_image(context.context_obj(), &image_format, &image_desc),
+            image_obj: wrapper::create_image(context.context_obj(), &image_format.as_raw(), 
+                &image_desc.as_raw()),
         }
     }   
 
-    // /// Returns a new two dimensional image.
-    // pub fn new_2d() -> Image {
-    //  Image {
-    //      image_obj: wrapper::create_image_2d(),
-    //  }
-    // }
-
-    // /// Returns a new three dimensional image.
-    // pub fn new_3d() -> Image {
-    //  Image {
-    //      image_obj: wrapper::create_image_3d(),
-    //  }
-    // }
-
+    /// Returns the raw image object pointer.
     pub fn image_obj(&self) -> cl_mem {
         self.image_obj
     }
@@ -138,45 +96,6 @@ CL_MEM_HOST_NO_ACCESS
 
     CL_MEM_HOST_WRITE_ONLY or CL_MEM_HOST_READ_ONLY and CL_MEM_HOST_NO_ACCESS are mutually exclusive.
 
-
-############### image_format ################
-    ###### image_channel_order ######
-    Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below.
-    Format  Description
-    CL_R, CL_Rx, or CL_A:
-    CL_INTENSITY:           This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT.
-    CL_LUMINANCE:           This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT.
-    CL_RG, CL_RGx, or CL_RA: 
-    CL_RGB or CL_RGBx:      This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010.
-    CL_RGBA:    
-    CL_ARGB, CL_BGRA:       This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8.
-
-    ###### image_channel_data_type ######
-    Describes the size of the channel data type. The number of bits per element determined by the image_channel_data_type and image_channel_order must be a power of two. The list of supported values is described in the table below.
-    Image Channel Data Type Description
-    CL_SNORM_INT8:          Each channel component is a normalized signed 8-bit integer value.
-    CL_SNORM_INT16:         Each channel component is a normalized signed 16-bit integer value.
-    CL_UNORM_INT8:          Each channel component is a normalized unsigned 8-bit integer value.
-    CL_UNORM_INT16:         Each channel component is a normalized unsigned 16-bit integer value.
-    CL_UNORM_SHORT_565:     Represents a normalized 5-6-5 3-channel RGB image. The channel order must be CL_RGB or CL_RGBx.
-    CL_UNORM_SHORT_555:     Represents a normalized x-5-5-5 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx.
-    CL_UNORM_INT_101010:    Represents a normalized x-10-10-10 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx.
-    CL_SIGNED_INT8:         Each channel component is an unnormalized signed 8-bit integer value.
-    CL_SIGNED_INT16:        Each channel component is an unnormalized signed 16-bit integer value.
-    CL_SIGNED_INT32:        Each channel component is an unnormalized signed 32-bit integer value.
-    CL_UNSIGNED_INT8:       Each channel component is an unnormalized unsigned 8-bit integer value.
-    CL_UNSIGNED_INT16:      Each channel component is an unnormalized unsigned 16-bit integer value.
-    CL_UNSIGNED_INT32:      Each channel component is an unnormalized unsigned 32-bit integer value.
-    CL_HALF_FLOAT:          Each channel component is a 16-bit half-float value.
-    CL_FLOAT:               Each channel component is a single precision floating-point value.
-
-    ###### Description ######
-    For example, to specify a normalized unsigned 8-bit / channel RGBA image:
-              image_channel_order = CL_RGBA
-              image_channel_data_type = CL_UNORM_INT8
-    image_channel_data_type values of CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 and CL_UNORM_INT_101010 are special cases of packed image formats where the channels of each element are packed into a single unsigned short or unsigned int. For these special packed image formats, the channels are normally packed with the first channel in the most significant bits of the bitfield, and successive channels occupying progressively less significant locations. For CL_UNORM_SHORT_565, R is in bits 15:11, G is in bits 10:5 and B is in bits 4:0. For CL_UNORM_SHORT_555, bit 15 is undefined, R is in bits 14:10, G in bits 9:5 and B in bits 4:0. For CL_UNORM_INT_101010, bits 31:30 are undefined, R is in bits 29:20, G in bits 19:10 and B in bits 9:0.
-
-    OpenCL implementations must maintain the minimum precision specified by the number of bits in image_channel_data_type. If the image format specified by image_channel_order, and image_channel_data_type cannot be supported by the OpenCL implementation, then the call to clCreateImage will return a NULL memory object.
 
 
 ############ Image Descriptor #############

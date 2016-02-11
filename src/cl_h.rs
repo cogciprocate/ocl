@@ -99,7 +99,7 @@ pub struct cl_buffer_region {
 enum_from_primitive! {
     #[repr()]
     #[derive(Debug, PartialEq)]
-    pub enum CLStatus {
+    pub enum ClStatus {
         CL_SUCCESS                                      = 0,
         CL_DEVICE_NOT_FOUND                             = -1,
         CL_DEVICE_NOT_AVAILABLE                         = -2,
@@ -163,7 +163,7 @@ enum_from_primitive! {
     }
 }
 
-impl Display for CLStatus {
+impl Display for ClStatus {
     fn fmt(&self, fmtr: &mut Formatter) -> Result {
         write!(fmtr, "{:?}", self)
     }
@@ -191,12 +191,12 @@ pub const CL_PLATFORM_VENDOR:                           cl_uint = 0x0903;
 pub const CL_PLATFORM_EXTENSIONS:                       cl_uint = 0x0904;
 
 // cl_device_type - bitfield 
-pub const CL_DEVICE_TYPE_DEFAULT:                       cl_bitfield = 1 << 0;
-pub const CL_DEVICE_TYPE_CPU:                           cl_bitfield = 1 << 1;
-pub const CL_DEVICE_TYPE_GPU:                           cl_bitfield = 1 << 2;
-pub const CL_DEVICE_TYPE_ACCELERATOR:                   cl_bitfield = 1 << 3;
-pub const CL_DEVICE_TYPE_CUSTOM:                        cl_bitfield = 1 << 4;
-pub const CL_DEVICE_TYPE_ALL:                           cl_bitfield = 0xFFFFFFFF;
+pub const CL_DEVICE_TYPE_DEFAULT:                      cl_bitfield = 1 << 0;
+pub const CL_DEVICE_TYPE_CPU:                          cl_bitfield = 1 << 1;
+pub const CL_DEVICE_TYPE_GPU:                          cl_bitfield = 1 << 2;
+pub const CL_DEVICE_TYPE_ACCELERATOR:                  cl_bitfield = 1 << 3;
+pub const CL_DEVICE_TYPE_CUSTOM:                       cl_bitfield = 1 << 4;
+pub const CL_DEVICE_TYPE_ALL:                          cl_bitfield = 0xFFFFFFFF;
 
 // cl_device_info 
 pub const CL_DEVICE_TYPE:                               cl_uint = 0x1000;
