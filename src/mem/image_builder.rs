@@ -2,7 +2,7 @@
 
 use cl_h::{cl_mem, cl_mem_flags};
 use raw;
-use super::{Image};
+use super::super::{Image};
 
 pub enum 
 

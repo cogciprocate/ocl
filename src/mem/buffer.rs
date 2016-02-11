@@ -10,7 +10,7 @@ use std::default::Default;
 
 use raw;
 use cl_h::{self, cl_mem, cl_bitfield};
-use super::{fmt, OclNum, Queue, BufferDims, EventList, Error as OclError, Result as OclResult};
+use super::super::{fmt, OclNum, Queue, BufferDims, EventList, Error as OclError, Result as OclResult};
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
         You must create this Buffer using 'Buffer::with_vec()' (et al.) in order to call this method.";
@@ -731,8 +731,8 @@ pub fn shuffle_vec<T: OclNum>(vec: &mut Vec<T>) {
 // #[cfg(test)]
 #[cfg(not(release))]
 pub mod tests {
-    use super::{ Buffer };
-    use super::super::{ OclNum };
+    use super::Buffer;
+    use super::super::super::OclNum;
     use std::num::Zero;
 
     pub trait BufferTest<T> {
