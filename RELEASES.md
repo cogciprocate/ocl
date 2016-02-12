@@ -1,7 +1,7 @@
 Version 0.5.0 (2016-02-09)
 ==========================
 
-Massive list of changes, breaking and otherwise. 
+Lots of changes, breaking and otherwise:
 
 A new type, [`Image`] has been added for processing images. It is still very 
 much a work in progress.

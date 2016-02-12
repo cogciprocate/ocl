@@ -1,8 +1,7 @@
 extern crate ocl;
+use ocl::{ProQue, SimpleDims, Buffer};
 
 fn main() {
-    use ocl::{ProQue, SimpleDims, Buffer};
-
     // Define a kernel:
     let kernel = r#"
         kernel void multiply(global float* buffer, float coeff) {
@@ -22,7 +21,7 @@ fn main() {
         &ocl_pq.queue());
 
     // Create a kernel with arguments matching those in the kernel:
-    let kernel = ocl_pq.create_kernel("multiply", dims.work_size())
+    let kernel = ocl_pq.create_kernel("multiply", dims.work_dims())
         .arg_buf(&buffer)
         .arg_scl(5.0f32);
 

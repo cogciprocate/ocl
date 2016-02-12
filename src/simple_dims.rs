@@ -1,5 +1,5 @@
 //! A simple way to specify the sizes of up to three dimensions.
-use super::{BufferDims, Result as OclResult, Error as OclError, WorkSize};
+use super::{BufferDims, Result as OclResult, Error as OclError, WorkDims};
 
 /// A simple implementation of a type specifying the sizes of up to three
 /// dimensions. 
@@ -8,7 +8,7 @@ use super::{BufferDims, Result as OclResult, Error as OclError, WorkSize};
 /// to express more complex relationships between buffer and work size.
 ///
 /// [FIXME] TODO: Much more explaination needed as soon as conventions solidify.
-/// [UNSTABLE]: MAY BE CONSOLIDATED WITH `WorkSize`.
+/// [UNSTABLE]: MAY BE CONSOLIDATED WITH `WorkDims`.
 pub enum SimpleDims {
     Unspecified,
     One     (usize),
@@ -44,13 +44,13 @@ impl SimpleDims {
         }
     }
 
-    /// Returns a `WorkSize` corresponding to the dimensions of this `SimpleDims`.
-    pub fn work_size(&self) -> WorkSize {
+    /// Returns a `WorkDims` corresponding to the dimensions of this `SimpleDims`.
+    pub fn work_dims(&self) -> WorkDims {
         match self {
-            &SimpleDims::Three(d0, d1, d2) => WorkSize::ThreeDims(d0, d1, d2),
-            &SimpleDims::Two(d0, d1) => WorkSize::TwoDims(d0, d1),
-            &SimpleDims::One(d0) => WorkSize::OneDim(d0),
-            _ => WorkSize::Unspecified,
+            &SimpleDims::Three(d0, d1, d2) => WorkDims::ThreeDims(d0, d1, d2),
+            &SimpleDims::Two(d0, d1) => WorkDims::TwoDims(d0, d1),
+            &SimpleDims::One(d0) => WorkDims::OneDim(d0),
+            _ => WorkDims::Unspecified,
         }
     }
 }

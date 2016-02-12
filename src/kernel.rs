@@ -8,7 +8,7 @@ use libc;
 
 use raw;
 use cl_h::{self, cl_mem, cl_kernel, cl_command_queue};
-use super::{WorkSize, Buffer, OclNum, EventList, Program, Queue};
+use super::{WorkDims, Buffer, OclNum, EventList, Program, Queue};
 
 /// An OpenCL kernel.
 ///
@@ -24,16 +24,16 @@ pub struct Kernel {
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
     command_queue: cl_command_queue,
-    gwo: WorkSize,
-    gws: WorkSize,
-    lws: WorkSize,
+    gwo: WorkDims,
+    gws: WorkDims,
+    lws: WorkDims,
 }
 
 impl Kernel {
     /// Returns a new kernel.
     // [FIXME] TODO: Implement proper error handling (return result etc.).
     pub fn new(name: String, program: &Program, queue: &Queue, 
-                gws: WorkSize ) -> Kernel 
+                gws: WorkDims ) -> Kernel 
     {
         let mut err: i32 = 0;
 
@@ -55,14 +55,14 @@ impl Kernel {
             named_args: HashMap::with_capacity(5),
             arg_count: 0u32,
             command_queue: queue.obj(),
-            gwo: WorkSize::Unspecified,
+            gwo: WorkDims::Unspecified,
             gws: gws,
-            lws: WorkSize::Unspecified,
+            lws: WorkDims::Unspecified,
         }
     }
 
     /// Sets the global work offset (builder-style).
-    pub fn gwo(mut self, gwo: WorkSize) -> Kernel {
+    pub fn gwo(mut self, gwo: WorkDims) -> Kernel {
         if gwo.dim_count() == self.gws.dim_count() {
             self.gwo = gwo
         } else {
@@ -72,7 +72,7 @@ impl Kernel {
     }
 
     /// Sets the local work size (builder-style).
-    pub fn lws(mut self, lws: WorkSize) -> Kernel {
+    pub fn lws(mut self, lws: WorkDims) -> Kernel {
         if lws.dim_count() == self.gws.dim_count() {
             self.lws = lws;
         } else {
@@ -240,8 +240,8 @@ impl Kernel {
 // //     kernel: {:?}
 // //     work_dims: {}
 // //     global_work_offset: '{:?}'
-// //     global_work_size: '{:?}'
-// //     local_work_size: '{:?}'
+// //     global_work_dims: '{:?}'
+// //     local_work_dims: '{:?}'
 // //     wait_list_len: {:?}
 // //     wait_list_ptr: {:?}
 // //     new_event_ptr: {:?}
@@ -275,8 +275,8 @@ impl Kernel {
 // //             raw::errcode_assert(&err_pre, err);
 // //         }
 
-//         raw::enqueue_kernel(queue, self.kernel_obj, self.gws.dim_count(), self.gwo.as_work_offset(),
-//             self.gws.as_work_size(), self.lws.as_work_size(), wait_list.map(|el| el.events()),
+//         raw::enqueue_kernel(queue, self.kernel_obj, self.gws.dim_count(), self.gwo.as_raw(),
+//             self.gws.as_work_dims(), self.lws.as_work_dims(), wait_list.map(|el| el.events()),
 //             dest_list.map(|el| el.allot()), Some(&self.name));
 //     }
 
@@ -285,7 +285,7 @@ impl Kernel {
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         // self.enqueue_with_cmd_queue(self.command_queue, wait_list, dest_list);
         raw::enqueue_kernel(self.command_queue, self.kernel_obj, self.gws.dim_count(), 
-            self.gwo.as_work_offset(), self.gws.as_work_size().unwrap(), self.lws.as_work_size(), 
+            self.gwo.as_raw(), self.gws.as_raw().unwrap(), self.lws.as_raw(), 
             wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()), Some(&self.name));
     }
 

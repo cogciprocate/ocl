@@ -1085,8 +1085,8 @@ extern {
                               kernel: cl_kernel,
                               work_dim: cl_uint,
                               global_work_offset: *const size_t,
-                              global_work_size: *const size_t,
-                              local_work_size: *const size_t,
+                              global_work_dims: *const size_t,
+                              local_work_dims: *const size_t,
                               num_events_in_wait_list: cl_uint,
                               event_wait_list: *const cl_event,
                               event: *mut cl_event) -> cl_int;

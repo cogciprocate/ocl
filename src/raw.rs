@@ -39,28 +39,37 @@ use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclRe
 //============================ SUPPORT FUNCTIONS ==============================
 //=============================================================================
 
-
 #[inline]
-/// Evaluates `errcode_code` and panics with a failure message if it is not 0.
-pub fn errcode_assert(message: &str, errcode_code: i32) {
-    if errcode_code != cl_h::ClStatus::CL_SUCCESS as i32 {
-        //format!("##### \n{} failed with code: {}\n\n #####", message, errcode_string(errcode_code));
-        panic!(format!("\n\nOPENCL ERROR: {} failed with code: {}\n\n", message, errcode_string(errcode_code)));
+fn errcode_string(errcode: i32) -> String {
+    match ClStatus::from_i32(errcode) {
+        Some(cls) => format!("{:?}", cls),
+        None => format!("[Unknown Error Code: {}]", errcode as i64),
+    }
+}
+
+/// Evaluates `errcode` and returns an `Err` if it is not 0.
+pub fn errcode_try(message: &str, errcode: i32) -> OclResult<()> {
+    if errcode != cl_h::ClStatus::CL_SUCCESS as i32 {
+        OclError::err(format!("\n\nOPENCL ERROR: {} failed with code: {}\n\n", 
+            message, errcode_string(errcode)))
+    } else {
+        Ok(())
     }
 }
 
 #[inline]
-fn errcode_string(errcode_code: i32) -> String {
-    match ClStatus::from_i32(errcode_code) {
-        Some(cls) => format!("{:?}", cls),
-        None => format!("[Unknown Error Code: {}]", errcode_code as i64),
-    }
+/// Evaluates `errcode` and panics with a failure message if it is not 0.
+pub fn errcode_assert(message: &str, errcode: i32) {    
+    // if errcode != cl_h::ClStatus::CL_SUCCESS as i32 {
+    //     panic!(format!("\n\nOPENCL ERROR: {} failed with code: {}\n\n", message, errcode_string(errcode)));
+    // }
+    errcode_try(message, errcode).unwrap();
 }
 
 /// Maps options of slices to pointers and a length.
 #[inline]
 pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mut [cl_event]>)
-        -> (u32, *const cl_event, *mut cl_event)
+        -> OclResult<(u32, *const cl_event, *mut cl_event)>
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer:
@@ -78,13 +87,15 @@ pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mu
     // If the new event 
     let new_event_ptr: *mut cl_event = match dest_event {
         Some(de) => {
-            assert_eq!(de.len(), 1);
+            if de.len() != 1 {
+                return OclError::err("Destination event slice must have a length of 1.");
+            }
             de.as_mut_ptr()
         },
         None => ptr::null_mut(),
     };
 
-    (wait_list_len, wait_list_ptr, new_event_ptr)
+    Ok((wait_list_len, wait_list_ptr, new_event_ptr))
 }
 
 #[inline]
@@ -205,12 +216,12 @@ pub fn create_build_program(
                 cmplr_opts.as_ptr() as *const i8,
                 mem::transmute(ptr::null::<fn()>()), 
                 ptr::null_mut(),
-    )};
-    errcode_assert("clBuildProgram()", errcode);  
+    )};     
 
     if errcode < 0 {
-        program_build_errcode(program, device_ids).map(|_| program)
+        program_build_err(program, device_ids).map(|_| program)         
     } else {
+        try!(errcode_try("clBuildProgram()", errcode));
         Ok(program) 
     }
 }
@@ -323,7 +334,7 @@ pub fn enqueue_write_buffer<T>(
         )
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
-        = resolve_queue_opts(wait_list, dest_event);
+        = resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_write_buffer()");
 
     unsafe {
         let errcode = cl_h::clEnqueueWriteBuffer(
@@ -353,7 +364,8 @@ pub fn enqueue_read_buffer<T>(
             dest_event: Option<&mut [cl_event]>
         )
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_queue_opts(wait_list, dest_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = 
+        resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_read_buffer()");
 
     unsafe {
         let errcode = cl_h::clEnqueueReadBuffer(
@@ -378,11 +390,11 @@ pub fn enqueue_kernel(
             kernel: cl_kernel,
             work_dims: u32,
             // global_work_offset: [usize; 3],
-            // global_work_size: [usize; 3],
-            // local_work_size: [usize; 3],
+            // global_work_dims: [usize; 3],
+            // local_work_dims: [usize; 3],
             global_work_offset: Option<[usize; 3]>,
-            global_work_size: [usize; 3],
-            local_work_size: Option<[usize; 3]>,
+            global_work_dims: [usize; 3],
+            local_work_dims: Option<[usize; 3]>,
             wait_list: Option<&[cl_event]>, 
             dest_event: Option<&mut [cl_event]>,
             kernel_name: Option<&str>,
@@ -392,10 +404,11 @@ pub fn enqueue_kernel(
     // let gws_ptr = (&gws as *const (usize, usize, usize)) as *const libc::size_t;
     // let lws_ptr = (&lws as *const (usize, usize, usize)) as *const libc::size_t;
 
-    let (wait_list_len, wait_list_ptr, new_event_ptr) = resolve_queue_opts(wait_list, dest_event);
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = 
+        resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_kernel()");
     let gwo = resolve_work_dims(&global_work_offset);
-    let gws = &global_work_size /*as *const [usize; 3]*/ as *const size_t;
-    let lws = resolve_work_dims(&local_work_size);
+    let gws = &global_work_dims /*as *const [usize; 3]*/ as *const size_t;
+    let lws = resolve_work_dims(&local_work_dims);
 
 //     println!(
 //         r#"
@@ -404,8 +417,8 @@ pub fn enqueue_kernel(
 //     kernel: {:?}
 //     work_dims: {}
 //     global_work_offset: '{:?}'
-//     global_work_size: '{:?}'
-//     local_work_size: '{:?}'
+//     global_work_dims: '{:?}'
+//     local_work_dims: '{:?}'
 //     wait_list_len: {:?}
 //     wait_list_ptr: {:?}
 //     new_event_ptr: {:?}
@@ -599,7 +612,7 @@ pub fn platform_info(platform: cl_platform_id) {
 /// If the program pointed to by `cl_program` for any of the devices listed in `device_ids` has a build log of any length, it will be returned as an errcode result.
 ///
 #[inline]
-pub fn program_build_errcode(program: cl_program, device_ids: &Vec<cl_device_id>) -> OclResult<()> 
+pub fn program_build_err(program: cl_program, device_ids: &Vec<cl_device_id>) -> OclResult<()> 
 {
     let mut size = 0 as size_t;
 

@@ -1,5 +1,6 @@
 # ocl
-### [Documentation](http://doc.cogciprocate.com/ocl/) | [Recent Changes](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md) | [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
+#### [Documentation](http://doc.cogciprocate.com/ocl/) | [Changes](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md) | [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
+
 
 OpenCL interfaces for Rust. Makes easy to use the most common features of OpenCL. All interfaces are virtually zero-cost and perform on a par with any C++ libraries.
 
@@ -61,7 +62,7 @@ fn main() {
         &ocl_pq.queue());
 
     // Create a kernel with arguments matching those in the kernel:
-    let kernel = ocl_pq.create_kernel("multiply", dims.work_size())
+    let kernel = ocl_pq.create_kernel("multiply", dims.work_dims())
         .arg_buf(&buffer)
         .arg_scl(5.0f32);
 

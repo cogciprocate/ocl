@@ -34,7 +34,7 @@ fn main() {
     // let mut result_buffer: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
 
     // // Create a kernel with three arguments corresponding to those in the kernel:
-    // let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_size())
+    // let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_dims())
     //  .arg_buf(&source_buffer)
     //  .arg_buf(&mut result_buffer)
     // ;

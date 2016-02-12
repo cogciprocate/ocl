@@ -1,6 +1,6 @@
 //! A convenience raw chimera of `Program` and `Queue`.
 use raw;
-use super::{Context, Kernel, WorkSize, ProgramBuilder, ProQueBuilder, Program, Queue, 
+use super::{Context, Kernel, WorkDims, ProgramBuilder, ProQueBuilder, Program, Queue, 
     Result as OclResult, Error as OclError};
 
 /// A convenience raw chimera of the `Program`, `Queue`, and optionally,
@@ -121,7 +121,7 @@ impl ProQue {
 
     /// Returns a new Kernel with name: `name` and global work size: `gws`.
     // [FIXME] TODO: Return result instead of panic.
-    pub fn create_kernel(&self, name: &str, gws: WorkSize) -> Kernel {
+    pub fn create_kernel(&self, name: &str, gws: WorkDims) -> Kernel {
         let program = match self.program {
             Some(ref prg) => prg,
             None => panic!("\nOcl::create_kernel(): Cannot add new kernel until OpenCL program is built. \
