@@ -1,6 +1,17 @@
 Version 0.5.0 (2016-02-09)
 ==========================
 
+Massive list of changes, breaking and otherwise. 
+
+A new type, [`Image`] has been added for processing images. It is still very 
+much a work in progress.
+
+The 'raw' api now located in the new [`raw`] module allows access to OpenCL 
+FFI functions with only a thin layer of abstraction providing safety and 
+convenience. Using functions in this module is only recommended for use when
+functionality has not yet been implemented on the 'standard' ocl interfaces
+although the 'raw' and 'standard' interfaces are all completely interoperable.
+
 Breaking Changes
 ----------------
 * `Buffer` has had several methods dealing with reading and writing renamed
@@ -34,7 +45,10 @@ Breaking Changes
   * `::arg_env` to `::arg_buf`
   * `::arg_env_named` to `::arg_buf_named`
   * `::set_arg_env_named` to `::set_arg_buf_named`
+* Several non-essential methods on `Kernel` have been depricated (see 
+  [documentation][0.5doc] to see what survived).
 * `SimpleDims` has had its variants renamed.
+* `Context::new` now takes a `DeviceType` instead of a u32.
 
 
 New Types
@@ -46,6 +60,8 @@ New Types
 
 [0.5doc]: http://doc.cogciprocate.com/ocl/
 [0.5ba]: https://github.com/cogciprocate/ocl/blob/master/examples/basics.rs
+[`Image`]: http://doc.cogciprocate.com/ocl/
+[`raw`]: http://doc.cogciprocate.com/ocl/
 [`ProQue::build_program`]: http://doc.cogciprocate.com/ocl/
 [`Buffer::with_vec_shuffled`]: http://doc.cogciprocate.com/ocl/
 [`Buffer::with_vec_scrambled`]: http://doc.cogciprocate.com/ocl/

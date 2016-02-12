@@ -1,6 +1,6 @@
 //! The builder type for `Image`.
 
-use cl_h::{cl_mem, cl_mem_flags};
+use cl_h::{cl_mem, u64};
 use raw;
 use super::super::{Image};
 
@@ -8,7 +8,7 @@ pub enum
 
 /// [WORK IN PROGRESS] An OpenCL Image. 
 pub struct ImageBuilder {
-    flags: cl_mem_flags,
+    flags: u64,
 }
 
 impl ImageBuilder {
@@ -28,7 +28,7 @@ impl ImageBuilder {
 
 
 // pub fn clCreateImage2D(context: cl_context,
-//                     flags: cl_mem_flags,
+//                     flags: u64,
 //                     image_format: *mut cl_image_format,
 //                     image_width: size_t,
 //                     image_depth: size_t,
@@ -38,7 +38,7 @@ impl ImageBuilder {
 
 
 // pub fn clCreateImage3D(context: cl_context,
-//                     flags: cl_mem_flags,
+//                     flags: u64,
 //                     image_format: *mut cl_image_format,
 //                     image_width: size_t,
 //                     image_depth: size_t,

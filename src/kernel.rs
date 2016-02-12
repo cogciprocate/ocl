@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use libc;
 
 use raw;
-use cl_h::{self, cl_mem, cl_kernel, cl_command_queue, cl_int, cl_uint};
+use cl_h::{self, cl_mem, cl_kernel, cl_command_queue};
 use super::{WorkSize, Buffer, OclNum, EventList, Program, Queue};
 
 /// An OpenCL kernel.
@@ -35,7 +35,7 @@ impl Kernel {
     pub fn new(name: String, program: &Program, queue: &Queue, 
                 gws: WorkSize ) -> Kernel 
     {
-        let mut err: cl_int = 0;
+        let mut err: i32 = 0;
 
         let kernel_obj = unsafe {
             cl_h::clCreateKernel(
@@ -46,7 +46,7 @@ impl Kernel {
         };
         
         let err_pre = format!("Ocl::create_kernel({}):", &name);
-        raw::must_succeed(&err_pre, err);
+        raw::errcode_assert(&err_pre, err);
 
         Kernel {
             kernel_obj: kernel_obj,
@@ -199,7 +199,7 @@ impl Kernel {
     }
 
     // Modifies a kernel argument.
-    fn set_kernel_arg(&mut self, arg_index: cl_uint, arg_size: libc::size_t, 
+    fn set_kernel_arg(&mut self, arg_index: u32, arg_size: libc::size_t, 
                 arg_value: *const libc::c_void) 
     {
         unsafe {
@@ -211,53 +211,82 @@ impl Kernel {
             );
 
             let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
-            raw::must_succeed(&err_pre, err);
+            raw::errcode_assert(&err_pre, err);
         }
     }
 
-    /// Enqueues kernel using a non-default command queue.
-    ///
-    /// The command queue, `cmd_queue`, must have the same context and device as the
-    /// default command queue passed when creating kernel.
-    #[inline]
-    pub fn enqueue_with_cmd_queue(&self, cmd_queue: cl_command_queue, 
-                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) 
-    {
-        // [FIXME] TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES
-        let c_gws = self.gws.complete_worksize();
-        let gws = (&c_gws as *const (usize, usize, usize)) as *const libc::size_t;
+//     /// Enqueues kernel using a non-default command queue.
+//     ///
+//     /// `cmd_queue` must have the same context and device as the
+//     /// default command queue passed when creating kernel.
+//     #[inline]
+//     pub fn enqueue_with_cmd_queue(&self, queue: cl_command_queue, 
+//                 wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) 
+//     {
+// //         // [FIXME] TODO: VERIFY THE DIMENSIONS OF ALL THE WORKSIZES
+// //         let c_gws = self.gws.complete_worksize();
+// //         let c_lws = self.lws.complete_worksize();
+        
+// //         let (wait_list_len, wait_list_ptr, new_event_ptr) = raw::resolve_queue_opts(
+// //             wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
 
-        let c_lws = self.lws.complete_worksize();
-        let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
+// //         let gws = (&c_gws as *const (usize, usize, usize)) as *const libc::size_t;
+// //         let lws = (&c_lws as *const (usize, usize, usize)) as *const libc::size_t;
 
-        let (wait_list_len, wait_list_ptr, new_event_ptr) 
-            = raw::resolve_queue_opts(
-                wait_list.map(|el| el.events()), 
-                dest_list.map(|el| el.allot())
-                );
+// //         println!(
+// //         r#"
+// // ENQUEUING KERNEL: '{}'
+// //     command_queue: {:?}
+// //     kernel: {:?}
+// //     work_dims: {}
+// //     global_work_offset: '{:?}'
+// //     global_work_size: '{:?}'
+// //     local_work_size: '{:?}'
+// //     wait_list_len: {:?}
+// //     wait_list_ptr: {:?}
+// //     new_event_ptr: {:?}
+// //         "#, 
+// //         &self.name,
+// //         queue,
+// //         self.kernel_obj,
+// //         self.gws.dim_count(),
+// //         self.gwo.as_ptr(),
+// //         gws,
+// //         lws,
+// //         wait_list_len,
+// //         wait_list_ptr,
+// //         new_event_ptr,
+// //         );
 
-        unsafe {
-            let err = cl_h::clEnqueueNDRangeKernel(
-                        cmd_queue,
-                        self.kernel_obj,
-                        self.gws.dim_count(),
-                        self.gwo.as_ptr(),
-                        gws,
-                        lws,
-                        wait_list_len,
-                        wait_list_ptr,
-                        new_event_ptr,
-            );
+// //         unsafe {
+// //             let err = cl_h::clEnqueueNDRangeKernel(
+// //                         queue,
+// //                         self.kernel_obj,
+// //                         self.gws.dim_count(),
+// //                         self.gwo.as_ptr(),
+// //                         gws,
+// //                         lws,
+// //                         wait_list_len,
+// //                         wait_list_ptr,
+// //                         new_event_ptr,
+// //             );
 
-            let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);
-            raw::must_succeed(&err_pre, err);
-        }
-    }
+// //             let err_pre = format!("ocl::Kernel::enqueue()[{}]:", &self.name);
+// //             raw::errcode_assert(&err_pre, err);
+// //         }
+
+//         raw::enqueue_kernel(queue, self.kernel_obj, self.gws.dim_count(), self.gwo.as_work_offset(),
+//             self.gws.as_work_size(), self.lws.as_work_size(), wait_list.map(|el| el.events()),
+//             dest_list.map(|el| el.allot()), Some(&self.name));
+//     }
 
     /// Enqueues kernel on the default command queue.
     #[inline]
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-        self.enqueue_with_cmd_queue(self.command_queue, wait_list, dest_list);
+        // self.enqueue_with_cmd_queue(self.command_queue, wait_list, dest_list);
+        raw::enqueue_kernel(self.command_queue, self.kernel_obj, self.gws.dim_count(), 
+            self.gwo.as_work_offset(), self.gws.as_work_size().unwrap(), self.lws.as_work_size(), 
+            wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()), Some(&self.name));
     }
 
     /// Returns the number of arguments specified for this kernel.

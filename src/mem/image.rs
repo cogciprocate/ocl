@@ -1,7 +1,7 @@
 //! [WORK IN PROGRESS] An OpenCL Image.
 use std::default::Default;
 use super::super::{Context, ImageFormat, ImageDescriptor};
-use cl_h::{self, cl_mem, cl_mem_flags};
+use cl_h::{self, cl_mem};
 use raw;
 
 
@@ -17,7 +17,7 @@ impl<T: Default> Image<T> {
     pub fn new(context: &Context, image_format: &ImageFormat, 
             image_desc: &ImageDescriptor, image_data: Option<&[T]>) -> Image<T>
     {
-        let flags: cl_mem_flags = cl_h::CL_MEM_READ_WRITE;
+        let flags: u64 = cl_h::CL_MEM_READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
 
         Image {

@@ -17,7 +17,7 @@ static KERNEL_SRC: &'static str = r#"
 fn main() {
     let image_dims = SimpleDims::Two(200, 100);
 
-    // Create a context with the first avaliable platform and default device type:
+    // Create a context with the first available platform and default device type:
     let ocl_cxt = Context::new(None, None).unwrap();
 
     // Create a program/queue with the first available device: 

@@ -1,15 +1,14 @@
+//! # [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) | [GitHub](https://github.com/cogciprocate/ocl)
+//!
 //! Rust implementation of OpenCL.
 //!
 //!
-//! This documentation is very much a work in progress and is roughly 60% complete.
-//! Please help by filing an [issue](https://github.com/cogciprocate/ocl/issues) about 
-//! unclear and/or incomplete documentation and it will be addressed (hopefully) 
-//! quickly.
+//! This documentation is very much a work in progress, as is the library itself. Please help by filing an [issue](https://github.com/cogciprocate/ocl/issues) about unclear and/or incomplete documentation and it will be addressed.
 //!
 //! An explanation of how dimensions and sizes of buffers and work queues are intended 
 //! to be used will be coming as soon as a few more things are ironed out.
 //!
-//! # Library Wide Panics
+//! ## Library Wide Panics
 //!
 //! All operations will panic upon any OpenCL error. Some work needs to be done
 //! evaluating which errors are easily uncovered during development
@@ -17,12 +16,13 @@
 //! continuing to panic such as invalid kernel code, and which errors are 
 //! more run-timeish and should be returned in a `Result`.
 //!
-//! ## Links
+//! ## Help Wanted
 //!
-//! **GitHub:** [https://github.com/cogciprocate/ocl](https://github.com/cogciprocate/ocl)
+//! Please help complete any functionality you may need by filing an 
+//! [issue] or creating a
+//! [pull request](https://github.com/cogciprocate/ocl/pulls).
 //!
-//! **crates.io:** [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
-//!
+//! [issue]: https://github.com/cogciprocate/ocl/issues
 
 // #![warn(missing_docs)]
 #![feature(zero_one)]
@@ -47,17 +47,15 @@ mod event_list;
 mod raw;
 mod mem;
 #[cfg(test)] mod tests;
-pub mod formatting;
+pub mod fmt;
 pub mod cl_h;
 
 pub use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context, 
-    cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, 
-    cl_bool, cl_float, cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, 
-    cl_bitfield, ClStatus, CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
+    cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, ClStatus, 
+    CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
     CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_CUSTOM, CL_DEVICE_TYPE_ALL};
 
-pub use self::formatting as fmt;
-pub use self::context::Context;
+pub use self::context::{Context, DeviceType};
 pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;
 pub use self::queue::Queue;

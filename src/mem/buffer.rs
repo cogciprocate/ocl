@@ -9,7 +9,7 @@ use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
 use raw;
-use cl_h::{self, cl_mem, cl_bitfield};
+use cl_h::{self, cl_mem};
 use super::super::{fmt, OclNum, Queue, BufferDims, EventList, Error as OclError, Result as OclResult};
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
@@ -185,7 +185,7 @@ impl<T: OclNum> Buffer<T> {
     /// there may also be implementation specific issues which haven't been considered 
     /// or are unknown.
     ///
-    pub unsafe fn new_raw_unchecked(flags: cl_bitfield, len: usize, host_ptr: Option<&[T]>, 
+    pub unsafe fn new_raw_unchecked(flags: u64, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
         let buffer_obj: cl_mem = raw::create_buffer(queue.context_obj(), flags, len,

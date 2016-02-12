@@ -3,7 +3,7 @@ use std::ptr;
 use libc::c_void;
 
 use raw;
-use cl_h::{self, cl_event, cl_int};
+use cl_h::{self, cl_event};
 
 /// A list of OpenCL events which contain status information about the command that
 /// created them. Used to coordinate the activity of multiple commands.
@@ -79,7 +79,7 @@ impl EventList {
     /// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
     /// is ever called.
     pub unsafe fn set_callback<T>(&self, 
-                callback_receiver: extern fn (cl_event, cl_int, *mut c_void),
+                callback_receiver: extern fn (cl_event, i32, *mut c_void),
                 // user_data: *mut c_void,
                 user_data: &mut T,
             )
@@ -95,7 +95,7 @@ impl EventList {
     }
 
     // pub fn set_callback_buffer(&self, 
-    //          callback_receiver: extern fn (cl_event, cl_int, *mut libc::c_void),
+    //          callback_receiver: extern fn (cl_event, i32, *mut libc::c_void),
     //          user_data: *mut libc::c_void,
     //      )
     // {
