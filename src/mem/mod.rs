@@ -1,4 +1,4 @@
-//! Structures that live in device memory: `Buffer` and `Image`
+//! Structures that live in device memory: buffers, images, and image arrays.
 
 pub mod buffer;
 pub mod image;

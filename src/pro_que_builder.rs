@@ -48,12 +48,16 @@ impl<'c> ProQueBuilder<'c> {
             },
         };
 
+        println!("##### 0 #####");
+
         let program_opt = Some(try!(Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
             queue.context_obj(), 
             &vec![queue.device_id()],
         )));
+
+        println!("##### 1 - XXX #####");
 
         Ok(ProQue::from_parts(context_opt, queue, program_opt))
     }

@@ -82,7 +82,7 @@ fn test_events() {
     let addend = 10u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_dims())
+    let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_dims()).unwrap()
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)
         .arg_buf(&mut result_buffer)
@@ -167,7 +167,7 @@ fn test_basics() {
     "#;
 
 
-    let ocl_pq = ProQue::builder().src(kernel_src).build().expect("ProQue build");
+    let mut ocl_pq = ProQue::builder().src(kernel_src).build().expect("ProQue build");
 
     // Set up our work dimensions / data set size:
     let dims = SimpleDims::One(data_set_size);
@@ -179,7 +179,7 @@ fn test_basics() {
     let mut result_buffer = Buffer::<f32>::with_vec(&dims, &ocl_pq.queue());
 
     // Create a kernel with three arguments corresponding to those in the kernel:
-    let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_dims())
+    let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_dims()).unwrap()
         .arg_buf(&source_buffer)
         .arg_scl(coeff)
         .arg_buf(&mut result_buffer)
@@ -202,4 +202,5 @@ fn test_basics() {
             source_buffer[idx], coeff, result_buffer[idx]); 
         }
     }
+    ocl_pq.release();
 }

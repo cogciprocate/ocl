@@ -25,7 +25,7 @@ fn main() {
     use ocl::{ProQue, SimpleDims, Buffer};
 
     // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
-    let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");
+    let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("Build ProQue");
 
     // Set up our work dimensions / data set size:
     let dims = SimpleDims::One(DATA_SET_SIZE);
@@ -39,13 +39,14 @@ fn main() {
     let mut result_buffer: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
 
     // Create a kernel with three arguments corresponding to those in the kernel:
-    let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_dims())
+    let kern = ocl_pq.create_kernel("multiply_by_scalar", dims.work_dims())
+        .expect("Create Kernel")
         .arg_buf(&source_buffer)
         .arg_scl(COEFF)
         .arg_buf(&mut result_buffer);
 
     // Enqueue kernel depending on and creating no events:
-    kernel.enqueue(None, None);
+    kern.enqueue(None, None);
 
     // Read results from the device into result_buffer's local vector:
     result_buffer.fill_vec();

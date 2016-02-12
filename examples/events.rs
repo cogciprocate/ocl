@@ -89,11 +89,10 @@ fn main() {
     let addend = 11u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_dims())
+    let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_dims()).unwrap()
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)
-        .arg_buf(&mut result_buffer)
-    ;
+        .arg_buf(&mut result_buffer);
 
     // Create event list:
     let mut kernel_event = EventList::new();    

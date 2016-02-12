@@ -38,7 +38,7 @@ impl DeviceType {
 pub struct Context {
     platform_opt: Option<cl_platform_id>,
     device_ids: Vec<cl_device_id>,
-    context_obj: cl_context,
+    obj: cl_context,
 }
 
 impl Context {
@@ -124,12 +124,12 @@ impl Context {
 
         // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids);
 
-        let context_obj: cl_context = raw::create_context(&device_ids);
+        let obj: cl_context = raw::create_context(&device_ids);
 
         Ok(Context {
             platform_opt: Some(platform),
             device_ids: device_ids,
-            context_obj: context_obj,
+            obj: obj,
         })
     }
 
@@ -156,8 +156,8 @@ impl Context {
     }
 
     /// Returns the current context as a `*mut libc::c_void`.
-    pub fn context_obj(&self) -> cl_context {
-        self.context_obj
+    pub fn obj(&self) -> cl_context {
+        self.obj
     }
 
     /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
@@ -173,7 +173,7 @@ impl Context {
     /// Releases the current context.
     pub fn release(&mut self) {     
         unsafe {
-            cl_h::clReleaseContext(self.context_obj);
+            cl_h::clReleaseContext(self.obj);
         }
     }
 }

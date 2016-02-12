@@ -14,7 +14,7 @@ although the 'raw' and 'standard' interfaces are all completely interoperable.
 
 Breaking Changes
 ----------------
-* `Buffer` has had several methods dealing with reading and writing renamed
+* [`Buffer`] has had several methods dealing with reading and writing renamed
   and two new ones created. 
    * `::flush_vec` and `::fill_vec` have been renamed to `::flush_vec_async` 
      and `::fill_vec_async`. 
@@ -27,8 +27,8 @@ Breaking Changes
   The more straightforward, blocking versions of these methods now have the 
   simplest names wheras the more complicated, non-blocking versions have the 
   `_async` suffix.
-* `ProQue::build` has been renamed [`ProQue::build_program`].
-* The [`Buffer::with_vec_shuffled`] and [`Buffer::with_vec_scrambled`] methods 
+* `ProQue::build` has been renamed `ProQue::build_program`.
+* The `Buffer::with_vec_shuffled` and `Buffer::with_vec_scrambled` methods 
   now accept a 2-tuple as the first argument instead of two separate values for 
   the first two arguments.
 * `BuildOptions` has been renamed to [`ProgramBuilder`] and has been 
@@ -40,14 +40,16 @@ Breaking Changes
    * Methods dealing with kernel source code renamed from `kern` to `src` 
      for clarity and simplicity.
    * Extraneous methods have been removed.
-* The following methods on `Kernel` have been renamed reflecting `Envoy` having 
+* The following methods on [`Kernel`] have been renamed reflecting `Envoy` having 
   been recently renamed to `Buffer' in v0.4.0:
   * `::arg_env` to `::arg_buf`
   * `::arg_env_named` to `::arg_buf_named`
   * `::set_arg_env_named` to `::set_arg_buf_named`
-* Several non-essential methods on `Kernel` have been depricated (see 
-  [documentation][0.5doc] to see what survived).
+* Several non-essential methods on [`Kernel`] have been depricated.
+* `Kernel::new` and its equivalent, `ProQue::create_kernel`, now return a
+  `Result<Kernel>` instead of just `Kernel`.
 * `SimpleDims` has had its variants renamed.
+* `WorkSize` has been renamed to `WorkDims` and has had its variants renamed.
 * `Context::new` now takes a `DeviceType` instead of a u32.
 
 
@@ -60,12 +62,11 @@ New Types
 
 [0.5doc]: http://doc.cogciprocate.com/ocl/
 [0.5ba]: https://github.com/cogciprocate/ocl/blob/master/examples/basics.rs
+[`Buffer`]: http://doc.cogciprocate.com/ocl/
 [`Image`]: http://doc.cogciprocate.com/ocl/
 [`raw`]: http://doc.cogciprocate.com/ocl/
-[`ProQue::build_program`]: http://doc.cogciprocate.com/ocl/
-[`Buffer::with_vec_shuffled`]: http://doc.cogciprocate.com/ocl/
-[`Buffer::with_vec_scrambled`]: http://doc.cogciprocate.com/ocl/
 [`ProQueBuilder`]: http://doc.cogciprocate.com/ocl/
-[`ProQue::builder`]: http://doc.cogciprocate.com/ocl/
+[`ProQue`]: http://doc.cogciprocate.com/ocl/
 [`ProgramBuilder`]: http://doc.cogciprocate.com/ocl/
 [`Program`]: http://doc.cogciprocate.com/ocl/
+[`Kernel`]: http://doc.cogciprocate.com/ocl/

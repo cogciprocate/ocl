@@ -38,11 +38,11 @@ impl Queue {
         assert!(device_ids.len() == 1, "Queue::new: Error resolving device ids.");
         let device_id = device_ids[0];
 
-        let obj: cl_command_queue = raw::create_command_queue(context.context_obj(), device_id); 
+        let obj: cl_command_queue = raw::create_command_queue(context.obj(), device_id); 
 
         Queue {
             obj: obj,
-            context_obj: context.context_obj(),
+            context_obj: context.obj(),
             device_id: device_id,           
         }
     }   

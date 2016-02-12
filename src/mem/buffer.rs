@@ -188,7 +188,7 @@ impl<T: OclNum> Buffer<T> {
     pub unsafe fn new_raw_unchecked(flags: u64, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
-        let buffer_obj: cl_mem = raw::create_buffer(queue.context_obj(), flags, len,
+        let buffer_obj: cl_mem = raw::create_buffer(queue.obj(), flags, len,
             host_ptr);
 
         Buffer {
@@ -201,7 +201,7 @@ impl<T: OclNum> Buffer<T> {
 
     // Consolidated constructor for Buffers without vectors.
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
-        let buffer_obj: cl_mem = raw::create_buffer::<T>(queue.context_obj(),
+        let buffer_obj: cl_mem = raw::create_buffer::<T>(queue.obj(),
             cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, len, None);
 
         Buffer {            
@@ -214,7 +214,7 @@ impl<T: OclNum> Buffer<T> {
 
     // Consolidated constructor for Buffers with vectors.
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let buffer_obj: cl_mem = raw::create_buffer(queue.context_obj(), 
+        let buffer_obj: cl_mem = raw::create_buffer(queue.obj(), 
             cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec));
 
         Buffer {        
@@ -465,13 +465,13 @@ impl<T: OclNum> Buffer<T> {
         match self.vec {
             VecOption::Some(ref mut vec) => {
                 vec.resize(new_len, T::default());
-                self.buffer_obj = raw::create_buffer(self.queue.context_obj(), 
+                self.buffer_obj = raw::create_buffer(self.queue.obj(), 
                     cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, self.len, Some(vec));
             },
             VecOption::None => {
                 self.len = new_len;
                 // let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
-                self.buffer_obj = raw::create_buffer::<T>(self.queue.context_obj(), 
+                self.buffer_obj = raw::create_buffer::<T>(self.queue.obj(), 
                     cl_h::CL_MEM_READ_WRITE, self.len, None);
             },
         };

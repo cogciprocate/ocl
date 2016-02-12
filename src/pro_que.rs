@@ -16,12 +16,11 @@ use super::{Context, Kernel, WorkDims, ProgramBuilder, ProQueBuilder, Program, Q
 /// There are two ways to create a `ProQue`:
 /// 1. First call `::new` and pass a `Context` and device index. Next call 
 ///    `::build` and pass a `ProgramBuilder`.
-/// 2. 
+/// 2. [FIXME]: UPDATE THIS
 ///
 /// # Destruction
 /// `::release` must be manually called by consumer.
 ///
-// #[derive(Clone)]
 pub struct ProQue {
     context: Option<Context>,
     queue: Queue,
@@ -59,6 +58,7 @@ impl ProQue {
 
     /// Creates a new ProQue from individual parts.
     pub fn from_parts(context: Option<Context>, queue: Queue, program: Option<Program>) -> ProQue {
+
         ProQue {
             context: context,
             queue: queue,
@@ -121,11 +121,14 @@ impl ProQue {
 
     /// Returns a new Kernel with name: `name` and global work size: `gws`.
     // [FIXME] TODO: Return result instead of panic.
-    pub fn create_kernel(&self, name: &str, gws: WorkDims) -> Kernel {
+    pub fn create_kernel(&self, name: &str, gws: WorkDims) -> OclResult<Kernel> {
         let program = match self.program {
             Some(ref prg) => prg,
-            None => panic!("\nOcl::create_kernel(): Cannot add new kernel until OpenCL program is built. \
-                Use: '{your_Ocl_instance}.build_program({your_ProgramBuilder_instance})'.\n"),
+            None => {
+                return OclError::err("\nProQue::create_kernel(): Cannot add new kernel until \
+                OpenCL program is built. Use: \
+                '{{your_proque}}.build_program({{your_program_builder}});'.\n")
+            },
         };
 
         Kernel::new(name.to_string(), &program, &self.queue, gws)   
@@ -148,7 +151,6 @@ impl ProQue {
     }
 
     /// Release all components.
-    // Note: Do not move this to a Drop impl in case this ProQue has been cloned.
     pub fn release(&mut self) {     
         self.queue.release();
         self.clear_build();

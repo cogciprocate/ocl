@@ -23,7 +23,7 @@ impl<T: Default> Image<T> {
         Image {
             default_val: T::default(),
             image_obj: raw::create_image(
-                context.context_obj(),
+                context.obj(),
                 flags,
                 &image_format.as_raw(), 
                 &image_desc.as_raw(),

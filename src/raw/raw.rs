@@ -2,7 +2,8 @@
 //!
 //! Allows access to OpenCL FFI functions with only a thin layer of abstraction providing safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces although the 'raw' and 'standard' interfaces are all completely interoperable.
 //! 
-//! Object pointers created generally should not be shared between threads unless you are sure the object is thread safe. In my personal experience it's always best to consolidate all OpenCL activity on to one thread and use channels (enum channels can be extremely powerful), Arc<Mut<>>, etc. to give access from other threads. Consult the SDK linked below or just google the FFI function name as listed in the `cl_h` module for more information.
+//! Object pointers can generally be shared between threads except for kernel. 
+//! See [clSetKernelArg documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html)
 //!
 //! ## Safety
 //!
@@ -10,7 +11,7 @@
 //!
 //! ## Panics
 //!
-//! All functions will panic upon OpenCL errcodeor. This will be changing over time. Certain errcodeors will eventually be returned as an `Error` type instead.
+//! All functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an `Error` type instead.
 //!
 //! ### Links
 //!
@@ -32,14 +33,14 @@ use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, c
     cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel,
     cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, ClStatus};
 
-use super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclResult};
+use super::super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclResult};
+
 
 
 //=============================================================================
 //============================ SUPPORT FUNCTIONS ==============================
 //=============================================================================
 
-#[inline]
 fn errcode_string(errcode: i32) -> String {
     match ClStatus::from_i32(errcode) {
         Some(cls) => format!("{:?}", cls),
@@ -57,17 +58,12 @@ pub fn errcode_try(message: &str, errcode: i32) -> OclResult<()> {
     }
 }
 
-#[inline]
 /// Evaluates `errcode` and panics with a failure message if it is not 0.
-pub fn errcode_assert(message: &str, errcode: i32) {    
-    // if errcode != cl_h::ClStatus::CL_SUCCESS as i32 {
-    //     panic!(format!("\n\nOPENCL ERROR: {} failed with code: {}\n\n", message, errcode_string(errcode)));
-    // }
+pub fn errcode_assert(message: &str, errcode: i32) {
     errcode_try(message, errcode).unwrap();
 }
 
 /// Maps options of slices to pointers and a length.
-#[inline]
 pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mut [cl_event]>)
         -> OclResult<(u32, *const cl_event, *mut cl_event)>
 {
@@ -88,7 +84,7 @@ pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mu
     let new_event_ptr: *mut cl_event = match dest_event {
         Some(de) => {
             if de.len() != 1 {
-                return OclError::err("Destination event slice must have a length of 1.");
+                return OclError::err("Destination event slice must have a length of 1");
             }
             de.as_mut_ptr()
         },
@@ -98,7 +94,6 @@ pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mu
     Ok((wait_list_len, wait_list_ptr, new_event_ptr))
 }
 
-#[inline]
 pub fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
     match work_dims {
         &Some(ref w) => w as *const [usize; 3] as *const size_t,
@@ -112,7 +107,6 @@ pub fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 //=============================================================================
 
 /// Returns a list of available platforms by id.
-#[inline]
 pub fn get_platform_ids() -> Vec<cl_platform_id> {
     let mut num_platforms = 0 as u32;
     
@@ -137,12 +131,12 @@ pub fn get_platform_ids() -> Vec<cl_platform_id> {
 /// Returns a list of available devices for a particular platform by id.
 ///
 /// # Panics
+///
 ///  -errcode_assert(): [FIXME]: Explaination needed (possibly at crate level?)
-#[inline]
 pub fn get_device_ids(
-            platform: cl_platform_id, 
-            device_types_opt: Option<cl_device_type>,
-        ) -> Vec<cl_device_id> 
+        platform: cl_platform_id, 
+        device_types_opt: Option<cl_device_type>)
+        -> Vec<cl_device_id> 
 {
     let device_type = device_types_opt.unwrap_or(DEFAULT_DEVICE_TYPE);
     
@@ -168,7 +162,6 @@ pub fn get_device_ids(
     device_ids
 }
 
-#[inline]
 pub fn create_context(device_ids: &Vec<cl_device_id>) -> cl_context {
     let mut errcode: i32 = 0;
 
@@ -185,29 +178,54 @@ pub fn create_context(device_ids: &Vec<cl_device_id>) -> cl_context {
     }
 }
 
-#[inline]
 pub fn create_build_program(
             kern_strings: Vec<CString>,
             cmplr_opts: CString,
             context: cl_context, 
-            device_ids: &Vec<cl_device_id>
-        ) -> OclResult<cl_program>
+            device_ids: &Vec<cl_device_id>)
+            -> OclResult<cl_program>
 {
+
+    println!("##### 0.1 #####");
+
+    let mut kern_strings: Vec<CString> = Vec::with_capacity(5);
+    kern_strings.push(CString::new("__kernel").unwrap());
+
     // Lengths (not including \0 terminator) of each string:
     let ks_lens: Vec<usize> = kern_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
     // Pointers to each string:
-    let kern_strs: Vec<*const i8> = kern_strings.iter().map(|cs| cs.as_ptr()).collect();
+    let kern_string_ptrs: Vec<*const i8> = kern_strings.iter().map(|cs| cs.as_ptr()).collect();
 
     let mut errcode = 0i32;
     
+    println!("##### 0.2 #####");
+
+    println!("kern_strings: {:?}\n\
+        ks_lens: {:?}\n\
+        kern_string_ptrs: {:?}\n\
+        cmplr_opts: {:?}\n\
+        context: {:?}\n\
+        device_ids: {:?}",
+        kern_strings,
+        ks_lens,
+        kern_string_ptrs,
+        cmplr_opts,
+        context,
+        device_ids);
+
     let program: cl_program = unsafe { cl_h::clCreateProgramWithSource(
                 context, 
-                kern_strs.len() as u32,
-                kern_strs.as_ptr() as *const *const i8,
+                kern_string_ptrs.len() as u32,
+                kern_string_ptrs.as_ptr() as *const *const i8,
                 ks_lens.as_ptr() as *const usize,
                 &mut errcode,
     )};
+
+    println!("##### 0.3 #####");
+
     errcode_assert("clCreateProgramWithSource()", errcode);
+
+    println!("##### 0.4 #####");
 
     errcode = unsafe { cl_h::clBuildProgram(
                 program,
@@ -216,7 +234,9 @@ pub fn create_build_program(
                 cmplr_opts.as_ptr() as *const i8,
                 mem::transmute(ptr::null::<fn()>()), 
                 ptr::null_mut(),
-    )};     
+    )};  
+
+    println!("##### 0.5 #####"); 
 
     if errcode < 0 {
         program_build_err(program, device_ids).map(|_| program)         
@@ -227,11 +247,48 @@ pub fn create_build_program(
 }
 
 
-#[inline]
+pub fn create_kernel(
+            program: cl_program, 
+            name: &str)
+            -> OclResult<cl_kernel>
+{
+    let mut err: i32 = 0;
+
+    let kernel_obj = unsafe {
+        cl_h::clCreateKernel(
+            program, 
+            try!(CString::new(name.as_bytes())).as_ptr(), 
+            &mut err,
+        )
+    };    
+    let err_pre = format!("clCreateKernel('{}'):", &name);
+    try!(errcode_try(&err_pre, err));
+    Ok(kernel_obj)
+}
+
+
+    // // Modifies a kernel argument.
+    // fn set_kernel_arg(&mut self, arg_index: u32, arg_size: libc::size_t, 
+    //             arg_value: *const libc::c_void) 
+    // {
+    //     unsafe {
+    //         let err = cl_h::clSetKernelArg(
+    //                     self.kernel_obj, 
+    //                     arg_index,
+    //                     arg_size, 
+    //                     arg_value,
+    //         );
+
+    //         let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
+    //         raw::errcode_assert(&err_pre, err);
+    //     }
+    // } 
+
+
 pub fn create_command_queue(
             context: cl_context, 
-            device: cl_device_id,
-        ) -> cl_command_queue 
+            device: cl_device_id)
+            -> cl_command_queue 
 {
     let mut errcode: i32 = 0;
 
@@ -248,14 +305,12 @@ pub fn create_command_queue(
     }
 }
 
-
-#[inline]
 pub fn create_buffer<T>(
             context: cl_context,
             flags: cl_mem_flags,
             len: usize,
-            data: Option<&[T]>,
-        ) -> cl_mem 
+            data: Option<&[T]>)
+            -> cl_mem 
 {
     let mut errcode: i32 = 0;
 
@@ -282,15 +337,13 @@ pub fn create_buffer<T>(
 
 
 // [WORK IN PROGRESS]
-#[inline]
 pub fn create_image<T>(
             context: cl_context,
             flags: cl_mem_flags,
             format: &cl_image_format,
             desc: &cl_image_desc,
-            // host_ptr: cl_mem,
-            data: Option<&[T]>,
-        ) -> cl_mem 
+            data: Option<&[T]>)
+            -> cl_mem 
 {
     let mut errcode: i32 = 0;
     
@@ -316,13 +369,9 @@ pub fn create_image<T>(
 
     assert!(!image_obj.is_null());
 
-    // // TEMPORARY
-    // 0 as *mut c_void
-
     image_obj
 }
 
-#[inline]
 pub fn enqueue_write_buffer<T>(
             command_queue: cl_command_queue,
             buffer: cl_mem, 
@@ -330,8 +379,7 @@ pub fn enqueue_write_buffer<T>(
             data: &[T],
             offset: usize,
             wait_list: Option<&[cl_event]>, 
-            dest_event: Option<&mut [cl_event]>
-        )
+            dest_event: Option<&mut [cl_event]>)
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_write_buffer()");
@@ -353,7 +401,6 @@ pub fn enqueue_write_buffer<T>(
     }
 }
 
-#[inline]
 pub fn enqueue_read_buffer<T>(
             command_queue: cl_command_queue,
             buffer: cl_mem, 
@@ -361,8 +408,7 @@ pub fn enqueue_read_buffer<T>(
             data: &[T],
             offset: usize,
             wait_list: Option<&[cl_event]>, 
-            dest_event: Option<&mut [cl_event]>
-        )
+            dest_event: Option<&mut [cl_event]>)
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_read_buffer()");
@@ -389,51 +435,18 @@ pub fn enqueue_kernel(
             command_queue: cl_command_queue,
             kernel: cl_kernel,
             work_dims: u32,
-            // global_work_offset: [usize; 3],
-            // global_work_dims: [usize; 3],
-            // local_work_dims: [usize; 3],
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: [usize; 3],
             local_work_dims: Option<[usize; 3]>,
             wait_list: Option<&[cl_event]>, 
             dest_event: Option<&mut [cl_event]>,
-            kernel_name: Option<&str>,
-        )
+            kernel_name: Option<&str>)
 {
-    // let gwo_ptr = (&gws as *const (usize, usize, usize)) as *const libc::size_t;
-    // let gws_ptr = (&gws as *const (usize, usize, usize)) as *const libc::size_t;
-    // let lws_ptr = (&lws as *const (usize, usize, usize)) as *const libc::size_t;
-
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_kernel()");
     let gwo = resolve_work_dims(&global_work_offset);
-    let gws = &global_work_dims /*as *const [usize; 3]*/ as *const size_t;
+    let gws = &global_work_dims as *const size_t;
     let lws = resolve_work_dims(&local_work_dims);
-
-//     println!(
-//         r#"
-// ENQUEUING KERNEL: '{}'
-//     command_queue: {:?}
-//     kernel: {:?}
-//     work_dims: {}
-//     global_work_offset: '{:?}'
-//     global_work_dims: '{:?}'
-//     local_work_dims: '{:?}'
-//     wait_list_len: {:?}
-//     wait_list_ptr: {:?}
-//     new_event_ptr: {:?}
-//         "#, 
-//         kernel_name.unwrap_or(""),
-//         command_queue,
-//         kernel,
-//         work_dims, 
-//         gwo,
-//         gws,
-//         lws,
-//         wait_list_len,
-//         wait_list_ptr,
-//         new_event_ptr,
-//         );
 
     unsafe {
         let errcode = cl_h::clEnqueueNDRangeKernel(
@@ -454,22 +467,21 @@ pub fn enqueue_kernel(
 }
 
 
-// [FIXME]: TODO: Evaluate usefulness
+/// [UNTESTED][UNUSED]
 #[allow(dead_code)]
-#[inline]
 pub fn enqueue_copy_buffer(
                 command_queue: cl_command_queue,
-                src: cl_mem,        //  src_buffer: cl_mem,
-                dst: cl_mem,        //  dst_buffer: cl_mem,
+                src_buffer: cl_mem,
+                dst_buffer: cl_mem,
                 src_offset: usize,
                 dst_offset: usize,
-                len_copy_bytes: usize) 
+                len_copy_bytes: usize)
 {
     unsafe {
         let errcode = cl_h::clEnqueueCopyBuffer(
             command_queue,
-            src,                //  src_buffer,
-            dst,                //  dst_buffer,
+            src_buffer,
+            dst_buffer,
             src_offset,
             dst_offset,
             len_copy_bytes as usize,
@@ -481,7 +493,6 @@ pub fn enqueue_copy_buffer(
     }
 }
 
-#[inline]
 pub fn get_max_work_group_size(device: cl_device_id) -> usize {
     let mut max_work_group_size: usize = 0;
 
@@ -490,7 +501,6 @@ pub fn get_max_work_group_size(device: cl_device_id) -> usize {
             device,
             cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
             mem::size_of::<usize>() as usize,
-            // mem::transmute(&max_work_group_size),
             &mut max_work_group_size as *mut _ as *mut c_void,
             ptr::null_mut(),
         ) 
@@ -501,7 +511,6 @@ pub fn get_max_work_group_size(device: cl_device_id) -> usize {
     max_work_group_size
 }
 
-#[inline]
 pub fn finish(command_queue: cl_command_queue) {
     unsafe { 
         let errcode = cl_h::clFinish(command_queue);
@@ -509,7 +518,6 @@ pub fn finish(command_queue: cl_command_queue) {
     }
 }
 
-#[inline]
 pub fn wait_for_events(count: u32, event_list: &[cl_event]) {
     let errcode = unsafe {
         cl_h::clWaitForEvents(count, event_list.as_ptr())
@@ -520,7 +528,6 @@ pub fn wait_for_events(count: u32, event_list: &[cl_event]) {
 
 
 #[allow(dead_code)]
-#[inline]
 pub fn wait_for_event(event: cl_event) {
     let event_array: [cl_event; 1] = [event];
 
@@ -531,7 +538,6 @@ pub fn wait_for_event(event: cl_event) {
     errcode_assert("clWaitForEvents", errcode);
 }
 
-#[inline]
 pub fn get_event_status(event: cl_event) -> i32 {
     let mut status: i32 = 0;
 
@@ -550,20 +556,17 @@ pub fn get_event_status(event: cl_event) -> i32 {
     status
 }
 
-#[inline]
 pub unsafe fn set_event_callback(
             event: cl_event, 
             callback_trigger: i32, 
             callback_receiver: extern fn (cl_event, i32, *mut c_void),
-            user_data: *mut c_void,
-        )
+            user_data: *mut c_void)
 {
     let errcode = cl_h::clSetEventCallback(event, callback_trigger, callback_receiver, user_data);
 
     errcode_assert("clSetEventCallback", errcode);
 }
 
-#[inline]
 pub fn release_event(event: cl_event) {
     let errcode = unsafe {
         cl_h::clReleaseEvent(event)
@@ -572,16 +575,14 @@ pub fn release_event(event: cl_event) {
     errcode_assert("clReleaseEvent", errcode);
 }
 
-#[inline]
 pub fn release_mem_object(obj: cl_mem) {
     unsafe {
         cl_h::clReleaseMemObject(obj);
     }
 }
 
-// [FIXME]: TODO: Evaluate usefulness
+/// TODO: Evaluate usefulness
 #[allow(dead_code)]
-#[inline]
 pub fn platform_info(platform: cl_platform_id) {
     let mut size = 0 as size_t;
 
@@ -611,7 +612,6 @@ pub fn platform_info(platform: cl_platform_id) {
 
 /// If the program pointed to by `cl_program` for any of the devices listed in `device_ids` has a build log of any length, it will be returned as an errcode result.
 ///
-#[inline]
 pub fn program_build_err(program: cl_program, device_ids: &Vec<cl_device_id>) -> OclResult<()> 
 {
     let mut size = 0 as size_t;
@@ -662,8 +662,9 @@ pub fn program_build_err(program: cl_program, device_ids: &Vec<cl_device_id>) ->
 
 /// Returns a string containing requested information.
 ///
-/// Currently lazily assumes everything is a char[] then into a String. Non-string
-/// info types need to be manually reconstructed from that. Yes this is retarded.
+/// Currently lazily assumes everything is a char[] and converts to a String. 
+/// Non-string info types need to be manually reconstructed from that. Yes this
+/// is retarded.
 ///
 /// [TODO (low priority)]: Needs to eventually be made more flexible and should return 
 /// an enum with a variant corresponding to the type of info requested. Could 
@@ -677,7 +678,6 @@ pub fn device_info(device: cl_device_id, info_type: cl_device_info) -> String {
             device,
             cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
             mem::size_of::<usize>() as usize,
-            // mem::transmute(&max_work_group_size),
             0 as *mut c_void,
             &mut info_value_size as *mut usize,
         ) 
@@ -687,3 +687,15 @@ pub fn device_info(device: cl_device_id, info_type: cl_device_info) -> String {
 
     String::new()
 }
+
+
+// pub fn context_info(context: cl_context, ) {
+
+//     let errcode = unsafe { cl_h::clGetContextInfo(   
+//         cl_context context,
+//         cl_context_info param_name,
+//         size_t param_value_size,
+//         void *param_value,
+//         size_t param_value_size_ret)
+//     };
+// }
