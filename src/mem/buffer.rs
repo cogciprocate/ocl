@@ -91,6 +91,7 @@ impl<T: OclNum> Buffer<T> {
     /// # Other Method Panics
     /// The returned Buffer contains no host side vector. Functions associated with
     /// one such as `.flush_vec_async()`, `fill_vec_async()`, etc. will panic.
+    /// [FIXME]: Return result.
     pub fn new<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
         Buffer::_new(len, queue)
@@ -98,6 +99,7 @@ impl<T: OclNum> Buffer<T> {
 
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with a sensible default value.
+    /// [FIXME]: Return result.
     pub fn with_vec<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
         let vec: Vec<T> = iter::repeat(T::default()).take(len).collect();
@@ -108,6 +110,7 @@ impl<T: OclNum> Buffer<T> {
     /// [UNSTABLE]: Convenience method.
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with the value, `init_val`.
+    /// [FIXME]: Return result.
     pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
         let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
@@ -126,6 +129,7 @@ impl<T: OclNum> Buffer<T> {
     /// # Security
     ///
     /// Resulting values are not cryptographically secure.
+    /// [FIXME]: Return result.
     // Note: vals.1 is inclusive.
     pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
             -> Buffer<T> 
@@ -143,6 +147,7 @@ impl<T: OclNum> Buffer<T> {
     /// # Security
     ///
     /// Resulting values are not cryptographically secure.
+    /// [FIXME]: Return result.
     // Note: vals.1 is exclusive.
     pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
             -> Buffer<T> 
@@ -185,11 +190,13 @@ impl<T: OclNum> Buffer<T> {
     /// there may also be implementation specific issues which haven't been considered 
     /// or are unknown.
     ///
+    /// [FIXME]: Return result.
     pub unsafe fn new_raw_unchecked(flags: u64, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
-        let buffer_obj: cl_mem = raw::create_buffer(queue.obj(), flags, len,
-            host_ptr);
+        let buffer_obj: cl_mem = raw::create_buffer(queue.context_obj(), flags, len,
+            host_ptr)
+            .expect("[FIXME: TEMPORARY]: Buffer::_new():");;
 
         Buffer {
             buffer_obj: buffer_obj,
@@ -200,9 +207,11 @@ impl<T: OclNum> Buffer<T> {
     }
 
     // Consolidated constructor for Buffers without vectors.
+    /// [FIXME]: Return result.
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
-        let buffer_obj: cl_mem = raw::create_buffer::<T>(queue.obj(),
-            cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, len, None);
+        let buffer_obj: cl_mem = raw::create_buffer::<T>(queue.context_obj(),
+            cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, len, None)
+            .expect("[FIXME: TEMPORARY]: Buffer::_new():");
 
         Buffer {            
             buffer_obj: buffer_obj,
@@ -213,9 +222,11 @@ impl<T: OclNum> Buffer<T> {
     }
 
     // Consolidated constructor for Buffers with vectors.
+    /// [FIXME]: Return result.
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let buffer_obj: cl_mem = raw::create_buffer(queue.obj(), 
-            cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec));
+        let buffer_obj: cl_mem = raw::create_buffer(queue.context_obj(), 
+            cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec))
+            .expect("[FIXME: TEMPORARY]: Buffer::_with_vec():");
 
         Buffer {        
             buffer_obj: buffer_obj,
@@ -457,6 +468,7 @@ impl<T: OclNum> Buffer<T> {
     /// # Safety
     /// [IMPORTANT]: You must manually reassign any kernel arguments which may have 
     /// had a reference to the (device side) buffer associated with this Buffer.
+    /// [FIXME]: Return result.
     pub unsafe fn resize(&mut self, new_dims: &BufferDims/*, val: T*/) {
         self.release();
         let new_len = new_dims.padded_buffer_len(raw::get_max_work_group_size(
@@ -465,14 +477,16 @@ impl<T: OclNum> Buffer<T> {
         match self.vec {
             VecOption::Some(ref mut vec) => {
                 vec.resize(new_len, T::default());
-                self.buffer_obj = raw::create_buffer(self.queue.obj(), 
-                    cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, self.len, Some(vec));
+                self.buffer_obj = raw::create_buffer(self.queue.context_obj(), 
+                    cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, self.len, Some(vec))
+                    .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
             },
             VecOption::None => {
                 self.len = new_len;
                 // let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
-                self.buffer_obj = raw::create_buffer::<T>(self.queue.obj(), 
-                    cl_h::CL_MEM_READ_WRITE, self.len, None);
+                self.buffer_obj = raw::create_buffer::<T>(self.queue.context_obj(), 
+                    cl_h::CL_MEM_READ_WRITE, self.len, None)
+                    .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
             },
         };
     }

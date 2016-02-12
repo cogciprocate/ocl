@@ -62,7 +62,7 @@ pub use self::queue::Queue;
 pub use self::kernel::Kernel;
 pub use self::mem::buffer::Buffer;
 pub use self::mem::image::Image;
-pub use self::mem::image_format::{ImageFormat, ChannelOrder, ChannelType};
+pub use self::mem::image_format::{ImageFormat, ImageChannelOrder, ImageChannelDataType};
 pub use self::mem::image_descriptor::{ImageDescriptor, MemObjectType};
 pub use self::pro_que_builder::ProQueBuilder;
 pub use self::pro_que::ProQue;

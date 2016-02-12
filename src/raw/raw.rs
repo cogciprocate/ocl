@@ -30,7 +30,7 @@ use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
 use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context,
-    cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel,
+    cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel,
     cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, ClStatus};
 
 use super::super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclResult};
@@ -185,11 +185,8 @@ pub fn create_build_program(
             device_ids: &Vec<cl_device_id>)
             -> OclResult<cl_program>
 {
-
-    println!("##### 0.1 #####");
-
-    let mut kern_strings: Vec<CString> = Vec::with_capacity(5);
-    kern_strings.push(CString::new("__kernel").unwrap());
+    // Verify that the context is valid:
+    try!(verify_context(context));
 
     // Lengths (not including \0 terminator) of each string:
     let ks_lens: Vec<usize> = kern_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
@@ -198,21 +195,6 @@ pub fn create_build_program(
 
     let mut errcode = 0i32;
     
-    println!("##### 0.2 #####");
-
-    println!("kern_strings: {:?}\n\
-        ks_lens: {:?}\n\
-        kern_string_ptrs: {:?}\n\
-        cmplr_opts: {:?}\n\
-        context: {:?}\n\
-        device_ids: {:?}",
-        kern_strings,
-        ks_lens,
-        kern_string_ptrs,
-        cmplr_opts,
-        context,
-        device_ids);
-
     let program: cl_program = unsafe { cl_h::clCreateProgramWithSource(
                 context, 
                 kern_string_ptrs.len() as u32,
@@ -220,12 +202,7 @@ pub fn create_build_program(
                 ks_lens.as_ptr() as *const usize,
                 &mut errcode,
     )};
-
-    println!("##### 0.3 #####");
-
     errcode_assert("clCreateProgramWithSource()", errcode);
-
-    println!("##### 0.4 #####");
 
     errcode = unsafe { cl_h::clBuildProgram(
                 program,
@@ -235,8 +212,6 @@ pub fn create_build_program(
                 mem::transmute(ptr::null::<fn()>()), 
                 ptr::null_mut(),
     )};  
-
-    println!("##### 0.5 #####"); 
 
     if errcode < 0 {
         program_build_err(program, device_ids).map(|_| program)         
@@ -288,8 +263,11 @@ pub fn create_kernel(
 pub fn create_command_queue(
             context: cl_context, 
             device: cl_device_id)
-            -> cl_command_queue 
+            -> OclResult<cl_command_queue>
 {
+    // Verify that the context is valid:
+    try!(verify_context(context));
+
     let mut errcode: i32 = 0;
 
     unsafe {
@@ -301,7 +279,7 @@ pub fn create_command_queue(
         );
 
         errcode_assert("clCreateCommandQueue()", errcode);
-        cq
+        Ok(cq)
     }
 }
 
@@ -310,8 +288,11 @@ pub fn create_buffer<T>(
             flags: cl_mem_flags,
             len: usize,
             data: Option<&[T]>)
-            -> cl_mem 
+            -> OclResult<cl_mem>
 {
+    // Verify that the context is valid:
+    try!(verify_context(context));
+
     let mut errcode: i32 = 0;
 
     let host_ptr = match data {
@@ -322,17 +303,16 @@ pub fn create_buffer<T>(
         None => ptr::null_mut(),
     };
 
-    unsafe {
-        let buf = cl_h::clCreateBuffer(
-                    context, 
-                    flags,
-                    len * mem::size_of::<T>(),
-                    host_ptr, 
-                    &mut errcode,
-        );
-        errcode_assert("create_buffer", errcode);
-        buf
-    }
+    let buf = unsafe { cl_h::clCreateBuffer(
+            context, 
+            flags,
+            len * mem::size_of::<T>(),
+            host_ptr, 
+            &mut errcode,
+    )};
+    errcode_assert("create_buffer", errcode);
+
+    Ok(buf)
 }
 
 
@@ -343,8 +323,11 @@ pub fn create_image<T>(
             format: &cl_image_format,
             desc: &cl_image_desc,
             data: Option<&[T]>)
-            -> cl_mem 
+            -> OclResult<cl_mem>
 {
+    // Verify that the context is valid:
+    try!(verify_context(context));
+
     let mut errcode: i32 = 0;
     
     let data_ptr = match data {
@@ -356,8 +339,7 @@ pub fn create_image<T>(
         None => ptr::null_mut(),
     };
 
-    let image_obj = unsafe {
-        cl_h::clCreateImage(
+    let image_obj = unsafe { cl_h::clCreateImage(
             context,
             flags,
             format as *const cl_image_format,
@@ -369,7 +351,7 @@ pub fn create_image<T>(
 
     assert!(!image_obj.is_null());
 
-    image_obj
+    Ok(image_obj)
 }
 
 pub fn enqueue_write_buffer<T>(
@@ -688,14 +670,63 @@ pub fn device_info(device: cl_device_id, info_type: cl_device_info) -> String {
     String::new()
 }
 
+/// Returns context information.
+///
+/// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
+///
+/// # Errors
+///
+/// Returns an error result for all the reasons listed in the SDK in addition 
+/// to an additional error when called with `CL_CONTEXT_DEVICES` as described
+/// in in the `verify_context()` documentation below.
+///
+/// TODO: Finish wiring up full functionality. Return a 'ContextInfo' enum result.
+pub fn context_info(context: cl_context, info_kind: cl_context_info) 
+        -> OclResult<()>
+{
+    let mut result_size = 0;
 
-// pub fn context_info(context: cl_context, ) {
+    // let info_kind: cl_context_info = cl_h::CL_CONTEXT_PROPERTIES;
+    let errcode = unsafe { cl_h::clGetContextInfo(   
+        context,
+        info_kind,
+        0,
+        0 as *mut c_void,
+        &mut result_size as *mut usize,
+    )};
+    try!(errcode_try("clGetContextInfo", errcode));
+    // println!("context_info(): errcode: {}, result_size: {}", errcode, result_size);
 
-//     let errcode = unsafe { cl_h::clGetContextInfo(   
-//         cl_context context,
-//         cl_context_info param_name,
-//         size_t param_value_size,
-//         void *param_value,
-//         size_t param_value_size_ret)
-//     };
-// }
+    let err_if_zero_result_size = info_kind == cl_h::CL_CONTEXT_DEVICES;
+
+    if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
+        return OclError::err("\n\nocl::raw::context_info(): Possible invalid context detected. \n\
+            Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
+            invalid context object. If not, please file an issue at: \n\
+            https://github.com/cogciprocate/ocl/issues.\n\n");
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
+
+    let errcode = unsafe { cl_h::clGetContextInfo(   
+        context,
+        info_kind,
+        result_size,
+        result.as_mut_ptr() as *mut c_void,
+        0 as *mut usize,
+    )};
+    try!(errcode_try("clGetContextInfo", errcode));
+    // println!("context_info(): errcode: {}, result: {:?}", errcode, result);
+
+    Ok(())
+}
+
+/// Verifies that the `context` is in fact a context object pointer.
+///
+/// # Assumptions
+///
+/// Some (most?) OpenCL implementations do not correctly error if non-context pointers are passed. This function relies on the fact that passing the `CL_CONTEXT_DEVICES` as the `param_name` to `clGetContextInfo` will (on my AMD implementation at least) often return a huge result size if `context` is not actually a `cl_context` pointer due to the fact that it's reading from some random memory location on non-context objects. Also checks for zero because a context must have at least one device (true?).
+pub fn verify_context(context: cl_context) -> OclResult<()> {
+    // context_info(context, cl_h::CL_CONTEXT_REFERENCE_COUNT)
+    context_info(context, cl_h::CL_CONTEXT_DEVICES)
+}

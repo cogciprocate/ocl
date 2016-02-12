@@ -1,6 +1,7 @@
 // use libc::c_void;
 use cl_h::{self, cl_mem};
 
+/// [FIXME]: Move to raw/enums
 #[derive(Clone, Copy)]
 pub enum MemObjectType {
     Buffer = cl_h::CL_MEM_OBJECT_BUFFER as isize,

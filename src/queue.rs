@@ -28,6 +28,7 @@ impl Queue {
     /// modulo operation and therefore is valid up to the limit of `usize`. See
     /// the documentation for `Context` for more information.
     /// 
+    /// [FIXME]: Return result.
     pub fn new(context: &Context, device_idx: Option<usize>) -> Queue {
         let device_idxs = match device_idx {
             Some(idx) => vec![idx],
@@ -38,7 +39,8 @@ impl Queue {
         assert!(device_ids.len() == 1, "Queue::new: Error resolving device ids.");
         let device_id = device_ids[0];
 
-        let obj: cl_command_queue = raw::create_command_queue(context.obj(), device_id); 
+        let obj: cl_command_queue = raw::create_command_queue(context.obj(), device_id)
+            .expect("[FIXME: TEMPORARY]: Queue::new():"); 
 
         Queue {
             obj: obj,

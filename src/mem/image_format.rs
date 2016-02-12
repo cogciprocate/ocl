@@ -12,8 +12,9 @@
 use cl_h;
 
 /// Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below. (from SDK)
+/// [FIXME]: Move to raw/enums
 #[derive(Clone, Copy)]
-pub enum ChannelOrder {
+pub enum ImageChannelOrder {
     R = cl_h::CL_R as isize,
     A = cl_h::CL_A as isize,
     Rg = cl_h::CL_RG as isize,
@@ -38,8 +39,9 @@ pub enum ChannelOrder {
 }
 
 /// Describes the size of the channel data type. The number of bits per element determined by the image_channel_data_type and image_channel_order must be a power of two. The list of supported values is described in the table below. (from SDK)
+/// [FIXME]: Move to raw/enums
 #[derive(Clone, Copy)]
-pub enum ChannelType {
+pub enum ImageChannelDataType {
     // CL_SNORM_INT8:          
     // CL_SNORM_INT16:         
     // CL_UNORM_INT8:          
@@ -92,15 +94,15 @@ pub enum ChannelType {
 
 /// A structure that describes format properties of the image to be allocated. (from SDK)
 pub struct ImageFormat {
-    pub channel_order: ChannelOrder,
-    pub channel_data_type: ChannelType,
+    pub channel_order: ImageChannelOrder,
+    pub channel_data_type: ImageChannelDataType,
 }
 
 impl ImageFormat {
     pub fn new_rgba() -> ImageFormat {
         ImageFormat {
-            channel_order: ChannelOrder::Rgba,
-            channel_data_type: ChannelType::SnormInt8,
+            channel_order: ImageChannelOrder::Rgba,
+            channel_data_type: ImageChannelDataType::SnormInt8,
         }
     }
 

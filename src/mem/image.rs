@@ -14,6 +14,7 @@ pub struct Image<T> {
 
 impl<T: Default> Image<T> {    
     /// Returns a new `Image`.
+    /// [FIXME]: Return result.
     pub fn new(context: &Context, image_format: &ImageFormat, 
             image_desc: &ImageDescriptor, image_data: Option<&[T]>) -> Image<T>
     {
@@ -27,7 +28,7 @@ impl<T: Default> Image<T> {
                 flags,
                 &image_format.as_raw(), 
                 &image_desc.as_raw(),
-                image_data,),               
+                image_data,).expect("[FIXME: TEMPORARY]: Image::new():"),               
         }
     }   
 
