@@ -13,7 +13,7 @@ use cl_h::{cl_event, cl_int};
 use super::{Context, ProgramBuilder, Buffer, SimpleDims, ProQue, EventList};
 
 
-const PRINT_DEBUG: bool = true;
+const PRINT_DEBUG: bool = false;
 
 struct TestEventsStuff {
     seed_env: *const Buffer<u32>, 
@@ -37,18 +37,16 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
         let mut errors_found: u32 = 0;
 
         for idx in 0..data_set_size {
-            // [FIXME]: FAILING ON OSX -- TEMPORARLY COMMENTING OUT
-            // assert_eq!((*result_buffer)[idx], 
-            //  ((*seed_buffer)[idx] + ((itr + 1) as u32) * addend));
+            let correct_result = ((*seed_buffer)[idx] + ((itr + 1) as u32) * addend);
+            let actual_result = (*result_buffer)[idx];
+            assert_eq!(correct_result, actual_result);
 
             if PRINT_DEBUG {
-                let correct_result = (*seed_buffer)[idx] + (((itr + 1) as u32) * addend);
-
-                // if (*result_buffer)[idx] != correct_result {
-                //  print!("correct_result:{}, result_buffer[{idx}]:{}\n",
-                //      correct_result, (*result_buffer)[idx], idx = idx);
-                //  errors_found += 1;
-                // }
+                if (*result_buffer)[idx] != correct_result {
+                 print!("correct_result:{}, result_buffer[{idx}]:{}\n",
+                     correct_result, (*result_buffer)[idx], idx = idx);
+                 errors_found += 1;
+                }
 
                 errors_found += ((*result_buffer)[idx] != correct_result) as u32;
             }
