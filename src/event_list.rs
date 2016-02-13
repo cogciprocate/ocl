@@ -34,11 +34,18 @@ impl EventList {
     /// Appends a new null element to the end of the list and returns a mutable slice
     /// containing only that element.
     #[inline]
-    pub fn allot(&mut self) -> &mut [cl_event] {
+    pub fn allot(&mut self) -> &mut cl_event {
         self.events.push(ptr::null_mut());
-        let len = self.events.len();
-        &mut self.events[(len - 1)..len]
+        // let len = self.events.len();
+        // &mut self.events[(len - 1)..len]
+        self.events.last_mut().unwrap()
     }
+
+
+    // #[inline]
+    // pub fn last(&self) -> &[cl_event] {
+
+    // }
 
     /// Returns an immutable slice to the events list.
     #[inline]

@@ -1,26 +1,3 @@
-//! Raw functions for the OpenCL C FFI.
-//!
-//! Allows access to OpenCL FFI functions with only a thin layer of abstraction providing safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces although the 'raw' and 'standard' interfaces are all completely interoperable.
-//! 
-//! Object pointers can generally be shared between threads except for kernel. 
-//! See [clSetKernelArg documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html)
-//!
-//! ## Safety
-//!
-//! Some functions still *may* break Rust's usual safety promises and have not been comprehensively tested or evaluated. Please file an [issue](https://github.com/cogciprocate/ocl/issues) if you discover something!
-//!
-//! ## Panics
-//!
-//! All functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an `Error` type instead.
-//!
-//! ### Links
-//!
-//! [OpenCL 1.2 SDK: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/)
-//!
-//! ### Help Wanted
-//!
-//! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls).
-
 use std::ptr;
 use std::mem;
 use std::io::Read;
@@ -64,7 +41,7 @@ pub fn errcode_assert(message: &str, errcode: i32) {
 }
 
 /// Maps options of slices to pointers and a length.
-pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mut [cl_event]>)
+pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mut cl_event>)
         -> OclResult<(u32, *const cl_event, *mut cl_event)>
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
@@ -83,10 +60,7 @@ pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mu
     // If the new event 
     let new_event_ptr: *mut cl_event = match dest_event {
         Some(de) => {
-            if de.len() != 1 {
-                return OclError::err("Destination event slice must have a length of 1");
-            }
-            de.as_mut_ptr()
+            de
         },
         None => ptr::null_mut(),
     };
@@ -361,7 +335,7 @@ pub fn enqueue_write_buffer<T>(
             data: &[T],
             offset: usize,
             wait_list: Option<&[cl_event]>, 
-            dest_event: Option<&mut [cl_event]>)
+            dest_event: Option<&mut cl_event>)
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_write_buffer()");
@@ -390,7 +364,7 @@ pub fn enqueue_read_buffer<T>(
             data: &[T],
             offset: usize,
             wait_list: Option<&[cl_event]>, 
-            dest_event: Option<&mut [cl_event]>)
+            dest_event: Option<&mut cl_event>)
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_read_buffer()");
@@ -421,7 +395,7 @@ pub fn enqueue_kernel(
             global_work_dims: [usize; 3],
             local_work_dims: Option<[usize; 3]>,
             wait_list: Option<&[cl_event]>, 
-            dest_event: Option<&mut [cl_event]>,
+            dest_event: Option<&mut cl_event>,
             kernel_name: Option<&str>)
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 

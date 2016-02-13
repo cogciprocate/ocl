@@ -1,8 +1,12 @@
 //! Rust bindings for the OpenCL ABI
 //!
-//! Adapted from [https://www.khronos.org/registry/cl/api/1.2/cl.h](https://www.khronos.org/registry/cl/api/1.2/cl.h)
+//! For low level access still within the confines of Rust's safety and convenience, use the extremely lightweight functions and types in the `raw` module.
 //!
-//! Supports OpenCL version 1.2. Version 1.1 support is disabled but could be brought back without too much trouble if needed.
+//! This file was adapted from [https://www.khronos.org/registry/cl/api/1.2/cl.h](https://www.khronos.org/registry/cl/api/1.2/cl.h).
+//!
+//! Supports OpenCL version 1.2. Version 1.0 and 1.1 support is currently disabled. If there is a need for the old versions right away please file an [issue](https://github.com/cogciprocate/ocl/issues) and ask to bring it back (it's trivial). Eventually there will be support for every version (including 2.0+) and some sort of auto-detection system.
+//! 
+//!
 
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 

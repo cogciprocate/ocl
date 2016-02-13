@@ -37,7 +37,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
         let mut errors_found: u32 = 0;
 
         for idx in 0..data_set_size {
-            let correct_result = ((*seed_buffer)[idx] + ((itr + 1) as u32) * addend);
+            let correct_result = (*seed_buffer)[idx] + ((itr + 1) as u32) * addend;
             let actual_result = (*result_buffer)[idx];
             assert_eq!(correct_result, actual_result);
 

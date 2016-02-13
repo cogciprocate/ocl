@@ -2,12 +2,13 @@
 extern crate ocl;
 use std::time::Instant;
 
-use ocl::{ProQue, SimpleDims, Buffer};
+use ocl::{ProQue, SimpleDims, Buffer, EventList};
 
 const DATASET_SIZE: usize = 5000000;
 const SCALAR: f32 = 1.0;
-const KERNEL_ITERS: i32 = 80000;
-const BUFFER_READ_ITERS: i32 = 2000;
+const KERNEL_RUN_ITERS: i32 = 8000;
+const BUFFER_READ_ITERS: i32 = 200;
+const KERNEL_AND_BUFFER_ITERS: i32 = 1000;
 const PRINT_SOME_RESULTS: bool = true;
 const RESULTS_TO_PRINT: usize = 5;
 const INIT_VAL_RANGE: (f32, f32) = (100.0, 200.0);
@@ -44,9 +45,12 @@ fn main() {
         .arg_buf(&buffer_result);
 
 
-    // #################################
-    // ############ KERNEL #############
-    // #################################
+    // ##################################################
+    // ##################### KERNEL #####################
+    // ##################################################
+
+    print!("\n");
+    println!("Enqueuing {} kernel runs... ", KERNEL_RUN_ITERS);
 
     // Start kernel timer
     let kern_start = Instant::now();
@@ -58,7 +62,7 @@ fn main() {
     kern.set_arg_buf_named("source", Some(&buffer_result));
 
     // Enqueue kernel for additional iterations:
-    for i in 0..(KERNEL_ITERS - 1) {
+    for _ in 0..(KERNEL_RUN_ITERS - 1) {
         kern.enqueue(None, None);
     }
 
@@ -66,12 +70,14 @@ fn main() {
     ocl_pq.queue().finish();
     
     // Print elapsed time for kernels:
-    print!("\n");
-    print_elapsed("Kernel:     ", kern_start);
+    print_elapsed("", kern_start);
 
-    // #################################
-    // ############ BUFFER #############
-    // #################################
+    // ##################################################
+    // ##################### BUFFER #####################
+    // ##################################################
+
+    print!("\n");
+    println!("Enqueuing {} buffer reads... ", BUFFER_READ_ITERS);
 
     // Start kernel timer
     let buffer_start = Instant::now();
@@ -82,17 +88,55 @@ fn main() {
     }
 
     // Print elapsed time for buffer reads:
-    print_elapsed("Buffer Read:", buffer_start);
+    print_elapsed("", buffer_start);
 
-    // #################################
-    // ############ VERIFY #############
-    // ################################# 
+    // ##################################################
+    // ########### KERNEL & BUFFER BLOCKING #############
+    // ##################################################
+
+    print!("\n");
+    println!("Enqueuing {} blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
+
+    let kern_buf_start = Instant::now();
+
+    for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
+        kern.enqueue(None, None);
+        buffer_result.fill_vec();
+    }
+
+    ocl_pq.queue().finish();
+    
+    print_elapsed("", kern_buf_start);
+
+    // ##################################################
+    // ######### KERNEL & BUFFER NON-BLOCKING ###########
+    // ##################################################
+
+    print!("\n");
+    println!("Enqueuing {} non-blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
+
+    let kern_buf_start = Instant::now();
+
+    let el = EventList::new();
+
+    for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
+        kern.enqueue(None, None);
+        buffer_result.fill_vec_async();
+    }
+
+    ocl_pq.queue().finish();
+    
+    print_elapsed("", kern_buf_start);
+
+    // ##################################################
+    // ##################### VERIFY #####################
+    // ################################################## 
 
     print!("\nVerifying result values... ");
     if PRINT_SOME_RESULTS { print!("(printing {})\n\n", RESULTS_TO_PRINT); }
 
     for idx in 0..DATASET_SIZE {
-        let correct = buffer_init[idx] + (KERNEL_ITERS as f32 * SCALAR);
+        let correct = buffer_init[idx] + (KERNEL_RUN_ITERS as f32 * SCALAR);
         // let correct = buffer_init[i] + SCALAR;
         assert!((correct - buffer_result[idx]) < 0.1, 
             "    init: {}, correct: {}, result: {}", buffer_init[idx], correct, buffer_result[idx]);
@@ -113,5 +157,5 @@ fn main() {
 fn print_elapsed(title: &str, start: Instant) {
     let time_elapsed = Instant::now().duration_from_earlier(start);
     let elapsed_ms = time_elapsed.subsec_nanos() / 1000000;
-    println!("{} elapsed: {}.{:03}", title, time_elapsed.as_secs(), elapsed_ms);
+    println!("{}elapsed: {}.{:03}", title, time_elapsed.as_secs(), elapsed_ms);
 }

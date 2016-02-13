@@ -8,6 +8,10 @@
 //! An explanation of how dimensions and sizes of buffers and work queues are intended 
 //! to be used will be coming as soon as a few more things are ironed out.
 //!
+//! ## Low Level Interfaces
+//!
+//! For even lower level interfaces see the `raw` and `cl_h` modules.
+//!
 //! ## Library Wide Panics
 //!
 //! All operations will panic upon any OpenCL error. Some work needs to be done
