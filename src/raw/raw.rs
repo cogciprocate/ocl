@@ -134,7 +134,7 @@ pub fn get_device_ids(
             platform.as_ptr(), 
             device_type, 
             DEVICES_MAX, 
-            device_ids.as_mut_ptr() as *mut *mut c_void,
+            device_ids.as_mut_ptr() as *mut cl_device_id,
             &mut devices_available,
     )};
     errcode_assert("clGetDeviceIDs()", errcode);
@@ -151,7 +151,7 @@ pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
     let context = ContextRaw::new( unsafe { cl_h::clCreateContext(
             ptr::null(), 
             device_ids.len() as u32, 
-            device_ids.as_ptr()  as *const *mut c_void,
+            device_ids.as_ptr()  as *const cl_device_id,
             mem::transmute(ptr::null::<fn()>()), 
             ptr::null_mut(), 
             &mut errcode)
@@ -189,7 +189,7 @@ pub fn create_build_program(
     errcode = unsafe { cl_h::clBuildProgram(
                 program.as_ptr(),
                 device_ids.len() as u32,
-                device_ids.as_ptr() as *const *mut c_void, 
+                device_ids.as_ptr() as *const cl_device_id, 
                 cmplr_opts.as_ptr() as *const i8,
                 mem::transmute(ptr::null::<fn()>()), 
                 ptr::null_mut(),
@@ -224,22 +224,76 @@ pub fn create_kernel(
 }
 
 
-    // // Modifies or creates a kernel argument.
-    // fn set_kernel_arg(&mut self, arg_index: u32, arg_size: libc::size_t, 
-    //             arg_value: *const libc::c_void) 
-    // {
-    //     unsafe {
-    //         let err = cl_h::clSetKernelArg(
-    //                     self.kernel_obj, 
-    //                     arg_index,
-    //                     arg_size, 
-    //                     arg_value,
-    //         );
+/// Kernel argument option type.
+///
+/// The type argument `T` is ignored for `Mem`, `Sampler`, and `Other` 
+/// (just put `usize` or anything).
+pub enum KernelArg<'a, T: 'a> {
+    /// Type `T` is ignored.
+    Mem(MemRaw),
+    /// Type `T` is ignored.
+    Sampler(SamplerRaw),
+    Scalar(&'a T),
+    Vector(&'a [T]),
+    /// Length in multiples of T (not bytes).
+    Local(usize),
+    /// `size`: size in bytes. Type `T` is ignored.
+    Other { size: size_t, value: *const c_void },
+}
 
-    //         let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
-    //         raw::errcode_assert(&err_pre, err);
-    //     }
-    // } 
+/// Modifies or creates a kernel argument.
+///
+/// `kernel_name` is for error reporting and is optional.
+pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
+            kernel_name: Option<&str>) -> OclResult<()>
+{
+    let (arg_size, arg_value) = match arg {
+        KernelArg::Mem(mem_obj) => {
+            (mem::size_of::<MemRaw>() as size_t, 
+            (&mem_obj.as_ptr() as *const *mut c_void) as *const c_void)
+        },
+        KernelArg::Sampler(smplr) => {
+            (mem::size_of::<SamplerRaw>() as size_t, 
+            (&smplr.as_ptr() as *const *mut c_void) as *const c_void)
+        },
+        KernelArg::Scalar(scalar) => {
+            (mem::size_of::<T>() as size_t, 
+            scalar as *const _ as *const c_void)
+        },
+        KernelArg::Vector(vector)=> {
+            ((mem::size_of::<T>() * vector.len()) as size_t,
+            vector as *const _ as *const c_void)
+        },
+        KernelArg::Local(length) => {
+            ((mem::size_of::<T>() * length) as size_t,
+            ptr::null())
+        },
+        KernelArg::Other { size, value } => (size, value),
+    };
+
+    let err = unsafe { cl_h::clSetKernelArg(
+            kernel.as_ptr(), 
+            arg_index,
+            arg_size, 
+            arg_value,
+    )};
+    let err_pre = format!("clSetKernelArg('{}'):", kernel_name.unwrap_or(""));
+    errcode_try(&err_pre, err)
+} 
+
+// // Modifies or creates a kernel argument.
+// pub fn set_kernel_arg(kernel: KernelRaw, arg_index: u32, arg_size: size_t, 
+//             arg_value: *const c_void, name: Option<&str>)
+// {
+//     let err = unsafe { cl_h::clSetKernelArg(
+//             kernel.as_ptr(), 
+//             arg_index,
+//             arg_size, 
+//             arg_value,
+//     )};
+//     let err_pre = format!("clSetKernelArg('{}'):", name.unwrap_or(""));
+//     errcode_assert(&err_pre, err);
+// } 
 
 
 pub fn create_command_queue(
@@ -277,7 +331,7 @@ pub fn create_buffer<T>(
     let host_ptr = match data {
         Some(d) => {
             assert!(d.len() == len, "ocl::create_buffer(): Data length mismatch.");
-            d.as_ptr() as *mut c_void
+            d.as_ptr() as cl_mem
         },
         None => ptr::null_mut(),
     };
@@ -313,7 +367,7 @@ pub fn create_image<T>(
         Some(d) => {
             // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE
             // assert!(d.len() == len, "ocl::create_image(): Data length mismatch.");
-            d.as_ptr() as *mut c_void
+            d.as_ptr() as cl_mem
         },
         None => ptr::null_mut(),
     };
@@ -352,7 +406,7 @@ pub fn enqueue_write_buffer<T>(
                     block as u32,
                     offset,
                     (data.len() * mem::size_of::<T>()) as size_t,
-                    data.as_ptr() as *const c_void,
+                    data.as_ptr() as cl_mem,
                     wait_list_len,
                     wait_list_ptr,
                     new_event_ptr,
@@ -381,7 +435,7 @@ pub fn enqueue_read_buffer<T>(
                     block as u32, 
                     offset, 
                     (data.len() * mem::size_of::<T>()) as size_t, 
-                    data.as_ptr() as *mut c_void, 
+                    data.as_ptr() as cl_mem, 
                     wait_list_len,
                     wait_list_ptr,
                     new_event_ptr,
@@ -544,13 +598,13 @@ pub fn release_mem_object(obj: cl_mem) {
 
 /// TODO: Evaluate usefulness
 #[allow(dead_code)]
-pub fn platform_info(platform: cl_platform_id) {
+pub fn platform_info(platform: PlatformIdRaw) {
     let mut size = 0 as size_t;
 
     unsafe {
         let name = cl_h::CL_PLATFORM_NAME as cl_platform_info;
         let mut errcode = cl_h::clGetPlatformInfo(
-                    platform,
+                    platform.as_ptr(),
                     name,
                     0,
                     ptr::null_mut(),
@@ -560,7 +614,7 @@ pub fn platform_info(platform: cl_platform_id) {
         
         let mut param_value: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
         errcode = cl_h::clGetPlatformInfo(
-                    platform,
+                    platform.as_ptr(),
                     name,
                     size,
                     param_value.as_mut_ptr() as *mut c_void,
@@ -639,7 +693,7 @@ pub fn device_info(device_id: DeviceIdRaw, info_type: cl_device_info) -> String 
             device_id.as_ptr(),
             cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
             mem::size_of::<usize>() as usize,
-            0 as *mut c_void,
+            0 as cl_device_id,
             &mut info_value_size as *mut usize,
         ) 
     }; 
@@ -725,5 +779,11 @@ pub fn release_command_queue(queue: CommandQueueRaw) {
 pub fn release_program(program: ProgramRaw) {
     unsafe { 
         cl_h::clReleaseProgram(program.as_ptr());
+    }
+}
+
+pub fn release_kernel(kernel: KernelRaw) {
+    unsafe {
+        cl_h::clReleaseKernel(kernel.as_ptr());
     }
 }

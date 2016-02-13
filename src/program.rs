@@ -3,7 +3,6 @@
 use std::ffi::CString;
 
 use raw::{self, ProgramRaw, DeviceIdRaw, ContextRaw};
-use cl_h;
 use super::{ProgramBuilder, Context, Result as OclResult};
 
 /// An OpenCL program, sometimes referred to as a build.

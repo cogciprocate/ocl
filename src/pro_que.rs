@@ -80,21 +80,21 @@ impl ProQue {
     ///
     /// The usefulness of this method is questionable now that we have a builder. 
     /// It may be depricated.
-    pub fn build_program(&mut self, program_builder: &ProgramBuilder) -> OclResult<()> {
+    pub fn build_program(&mut self, builder: &ProgramBuilder) -> OclResult<()> {
         if self.program.is_some() { 
             return OclError::err("ProQue::build_program(): Pre-existing build detected. Use \
                 '.clear_build()' first.");
         }
 
-        if program_builder.get_device_idxs().len() > 0 {
+        if builder.get_device_idxs().len() > 0 {
             return OclError::err("ProQue::build_program(): The 'ProgramBuilder' passed \
                 may not have any device indexes set as they will be ignored. See 'ProQue' \
                 documentation for more information.");
         }
         
         self.program = Some(try!(Program::from_parts(
-            try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
-            try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
+            try!(builder.get_src_strings().map_err(|e| e.to_string())), 
+            try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
             self.queue.context_obj_raw(), 
             &vec![self.queue.device_id_obj_raw()],
         )));

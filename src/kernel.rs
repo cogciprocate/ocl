@@ -1,13 +1,12 @@
 //! An OpenCL kernel.
 
-use std::ptr;
-use std::mem;
+// use std::ptr;
+// use std::mem;
 // use std::ffi;
 use std::collections::HashMap;
-use libc;
+// use libc::{size_t, c_void};
 
-use raw::{self, KernelRaw, MemRaw, CommandQueueRaw};
-use cl_h::{self, cl_mem};
+use raw::{self, KernelRaw, MemRaw, CommandQueueRaw, KernelArg};
 use super::{Result as OclResult, WorkDims, Buffer, OclNum, EventList, Program, Queue};
 
 /// An OpenCL kernel.
@@ -140,11 +139,16 @@ impl Kernel {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = self.named_args[name]; 
 
-        self.set_kernel_arg(
-            arg_idx,
-            mem::size_of::<T>() as libc::size_t, 
-            &scalar as *const _ as *const libc::c_void,
-        )
+        // raw::set_kernel_arg(
+        //     self.obj_raw,
+        //     arg_idx,
+        //     // mem::size_of::<T>() as size_t, 
+        //     // &scalar as *const _ as *const c_void,
+        //     KernelArg::Scalar(&scalar),
+        //     Some(&self.name),
+        // ).unwrap();
+
+        self.set_arg::<T>(arg_idx, KernelArg::Scalar(&scalar)).unwrap();
     }
 
     /// Modifies the kernel argument named: `name`.
@@ -155,16 +159,21 @@ impl Kernel {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = self.named_args[name];
 
-        let buf = match buffer_opt {
-            Some(buffer) => buffer.obj_raw().as_ptr(),
-            None => MemRaw::null().as_ptr(),
+        let buf_obj_raw = match buffer_opt {
+            Some(buffer) => buffer.obj_raw(),
+            None => MemRaw::null(),
         };
 
-        self.set_kernel_arg(
-            arg_idx,
-            mem::size_of::<cl_mem>() as libc::size_t, 
-            (&buf as *const cl_mem) as *const libc::c_void,
-        )
+        self.set_arg::<T>(arg_idx, KernelArg::Mem(buf_obj_raw)).unwrap();
+
+        // raw::set_kernel_arg::<T>(
+        //     self.obj_raw,
+        //     arg_idx,
+        //     // mem::size_of::<MemRaw>() as size_t, 
+        //     // (&buf_obj_raw.as_ptr() as *const *mut c_void) as *const c_void,
+        //     KernelArg::Mem(buf_obj_raw),
+        //     Some(&self.name),
+        // ).unwrap();
     }
 
     /// Enqueues kernel on the default command queue.
@@ -180,23 +189,21 @@ impl Kernel {
     #[inline]
     pub fn arg_count(&self) -> u32 {
         self.arg_count
-    }
-
-    pub unsafe fn release(&mut self) {
-        cl_h::clReleaseKernel(self.obj_raw.as_ptr());
-    }
+    }    
 
      // Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {
-        let buf = match buffer_opt {
-            Some(buffer) => buffer.obj_raw().as_ptr(),
-            None => MemRaw::null().as_ptr(),
+        let buf_obj = match buffer_opt {
+            Some(buffer) => buffer.obj_raw(),
+            None => MemRaw::null(),
         };
 
-        self.new_kernel_arg(
-            mem::size_of::<cl_mem>() as libc::size_t, 
-            (&buf as *const cl_mem) as *const libc::c_void,
-        )
+        // self.new_kernel_arg(
+        //     mem::size_of::<MemRaw>() as size_t, 
+        //     (&buf.as_ptr() as *const *mut c_void) as *const c_void,
+        // )
+
+        self.new_arg::<T>(KernelArg::Mem(buf_obj))
     }
 
     // Non-builder-style version of `::arg_scl()`.
@@ -206,51 +213,64 @@ impl Kernel {
             None => Default::default(),
         };
 
-        self.new_kernel_arg(
-            mem::size_of::<T>() as libc::size_t,
-            &scalar as *const _ as *const libc::c_void,
-            //(scalar as *const super::cl_mem) as *const libc::c_void,
-        )
+        // self.new_arg::<T>(
+        //     mem::size_of::<T>() as size_t,
+        //     &scalar as *const _ as *const c_void,
+        //     //(scalar as *const super::cl_mem) as *const c_void,
+        // )
+
+        self.new_arg::<T>(KernelArg::Scalar(&scalar))
     }
 
     // Non-builder-style version of `::arg_loc()`.
-    fn new_arg_loc<T: OclNum>(&mut self, /*type_sample: T,*/ length: usize) -> u32 {
+    fn new_arg_loc<T: OclNum>(&mut self, length: usize) -> u32 {
+        // self.new_kernel_arg(
+        //     (mem::size_of::<T>() * length) as size_t,
+        //     ptr::null(),
+        // )
 
-        self.new_kernel_arg(
-            (mem::size_of::<T>() * length) as libc::size_t,
-            ptr::null(),
-        )
+        self.new_arg::<T>(KernelArg::Local(length))
     } 
 
     // Adds a new argument to the kernel and returns the index.
-    fn new_kernel_arg(&mut self, arg_size: libc::size_t, arg_value: *const libc::c_void) -> u32 {
-        let a_i = self.arg_index;
-        self.set_kernel_arg(a_i, arg_size, arg_value);
+    fn new_arg<T>(&mut self, arg: KernelArg<T> /*arg_size: size_t, arg_value: *const c_void*/) -> u32 {
+        let arg_idx = self.arg_index;
+
+        raw::set_kernel_arg::<T>(self.obj_raw, arg_idx, 
+                // KernelArg::Other { size: arg_size, value: arg_value }, 
+                arg,
+                Some(&self.name)
+            ).unwrap();
+
         self.arg_index += 1;
-        a_i
+        arg_idx
+    } 
+
+    fn set_arg<T>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
+        raw::set_kernel_arg::<T>(self.obj_raw, arg_idx, arg, Some(&self.name))
     }
 
-    // Modifies a kernel argument.
-    // NOTE: Maintain mutability requirement to completely prevent simultaneous calls.
-    fn set_kernel_arg(&mut self, arg_index: u32, arg_size: libc::size_t, 
-                arg_value: *const libc::c_void) 
-    {
-        unsafe {
-            let err = cl_h::clSetKernelArg(
-                        self.obj_raw.as_ptr(), 
-                        arg_index,
-                        arg_size, 
-                        arg_value,
-            );
+    // // Modifies a kernel argument.
+    // // NOTE: Maintain mutability requirement to completely prevent simultaneous calls.
+    // fn set_kernel_arg(&mut self, arg_index: u32, arg_size: size_t, 
+    //             arg_value: *const c_void) 
+    // {
+    //     unsafe {
+    //         let err = cl_h::clSetKernelArg(
+    //                     self.obj_raw.as_ptr(), 
+    //                     arg_index,
+    //                     arg_size, 
+    //                     arg_value,
+    //         );
 
-            let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
-            raw::errcode_assert(&err_pre, err);
-        }
-    }    
+    //         let err_pre = format!("ocl::Kernel::set_kernel_arg('{}'):", &self.name);
+    //         raw::errcode_assert(&err_pre, err);
+    //     }
+    // }    
 }
 
 impl Drop for Kernel {
     fn drop(&mut self) {
-        unsafe { self.release(); }
+        raw::release_kernel(self.obj_raw);
     }
 }

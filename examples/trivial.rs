@@ -25,12 +25,12 @@ fn main() {
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    // Enqueue kernel:
+    // // Enqueue kernel:
     kern.enqueue(None, None);
 
-    // Read results from the device into buffer's local vector:
+    // // Read results from the device into buffer's local vector:
     buffer.fill_vec();
 
-    // Print a result:
+    // // Print a result:
     println!("The value at index [{}] is '{}'!", 200007, buffer[200007]);
 }

@@ -70,8 +70,8 @@ impl<T> VecOption<T> {
 pub struct Buffer<T> {
     // vec: Vec<T>,
     obj_raw: MemRaw,
-    queue: Queue,
-    // queue_obj_raw: CommandQueueRaw,
+    // queue: Queue,
+    queue_obj_raw: CommandQueueRaw,
     len: usize,
     vec: VecOption<T>,
 }
@@ -201,7 +201,7 @@ impl<T: OclNum> Buffer<T> {
 
         Buffer {
             obj_raw: obj_raw,
-            queue: queue.clone(),
+            queue_obj_raw: queue.obj_raw(),
             len: len,
             vec: VecOption::None,
         }
@@ -216,7 +216,7 @@ impl<T: OclNum> Buffer<T> {
 
         Buffer {            
             obj_raw: obj_raw,
-            queue: queue.clone(),
+            queue_obj_raw: queue.obj_raw(),
             len: len,
             vec: VecOption::None,
         }
@@ -231,7 +231,7 @@ impl<T: OclNum> Buffer<T> {
 
         Buffer {        
             obj_raw: obj_raw,
-            queue: queue.clone(),
+            queue_obj_raw: queue.obj_raw(),
             len: vec.len(), 
             vec: VecOption::Some(vec),
         }
@@ -285,7 +285,7 @@ impl<T: OclNum> Buffer<T> {
         assert!(data.len() <= self.len() - offset, 
             "Buffer::write{{_async}}(): Data length out of range.");
         let blocking_write = dest_list.is_none();
-        raw::enqueue_write_buffer(self.queue.obj_raw(), &self.obj_raw, blocking_write, 
+        raw::enqueue_write_buffer(self.queue_obj_raw, &self.obj_raw, blocking_write, 
             data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
     }
 
@@ -312,7 +312,7 @@ impl<T: OclNum> Buffer<T> {
         assert!(data.len() <= self.len() - offset, 
             "Buffer::read{{_async}}(): Data length out of range.");
         let blocking_read = dest_list.is_none();
-        raw::enqueue_read_buffer(self.queue.obj_raw(), &self.obj_raw, blocking_read, 
+        raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, blocking_read, 
             data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
     }
 
@@ -326,7 +326,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn flush_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = self.vec.as_mut().expect("Buffer::flush_vec_async()");
-        raw::enqueue_write_buffer(self.queue.obj_raw(), &self.obj_raw, dest_list.is_none(), 
+        raw::enqueue_write_buffer(self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
             vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
     }
 
@@ -341,7 +341,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn fill_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = self.vec.as_mut().expect("Buffer::fill_vec_async()");
-        raw::enqueue_read_buffer(self.queue.obj_raw(), &self.obj_raw, dest_list.is_none(), 
+        raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
             vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
     }
 
@@ -354,7 +354,7 @@ impl<T: OclNum> Buffer<T> {
     /// Panics if this Buffer contains no vector.
     pub fn flush_vec(&mut self) {       
         // let vec = self.vec.as_mut().expect("Buffer::flush_vec()");
-        // raw::enqueue_write_buffer(self.queue.obj_raw(), self.obj_raw, true, vec, 0, None, None);
+        // raw::enqueue_write_buffer(self.queue_obj_raw, self.obj_raw, true, vec, 0, None, None);
         self.flush_vec_async(None, None);
     }
 
@@ -366,14 +366,14 @@ impl<T: OclNum> Buffer<T> {
     /// Panics if this Buffer contains no vector.
     pub fn fill_vec(&mut self) {
         // let vec = self.vec.as_mut().expect("Buffer::read_wait()");
-        // raw::enqueue_read_buffer(self.queue.obj_raw(), self.obj_raw, 
+        // raw::enqueue_read_buffer(self.queue_obj_raw, self.obj_raw, 
         //  true, vec, 0, None, None);
         self.fill_vec_async(None, None);
     }   
 
     /// Blocks until the underlying command queue has completed all commands.
     pub fn wait(&self) {
-        self.queue.finish();
+        raw::finish(self.queue_obj_raw);
     }
 
     /// [UNSTABLE]: Convenience method.
@@ -457,7 +457,7 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        raw::enqueue_read_buffer(self.queue.obj_raw(), &self.obj_raw, true, 
+        raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
             &mut vec[idx_range.clone()], idx_range.start, None, None);
         fmt::print_vec(&vec[..], every, val_range, idx_range_opt, zeros);
 
@@ -473,7 +473,7 @@ impl<T: OclNum> Buffer<T> {
     pub unsafe fn resize(&mut self, new_dims: &BufferDims, queue: &Queue) {
         self.release();
         let new_len = new_dims.padded_buffer_len(raw::get_max_work_group_size(
-            self.queue.device_id_obj_raw()));
+            queue.device_id_obj_raw()));
 
         match self.vec {
             VecOption::Some(ref mut vec) => {
@@ -554,8 +554,8 @@ impl<T: OclNum> Buffer<T> {
     }
 
     /// Returns a copy of the raw buffer object reference.
-    pub fn obj_raw(&self) -> &MemRaw {
-        &self.obj_raw
+    pub fn obj_raw(&self) -> MemRaw {
+        self.obj_raw
     }
 
     // /// Returns a reference to the program/command queue associated with this buffer.
@@ -572,7 +572,7 @@ impl<T: OclNum> Buffer<T> {
     /// left to the caller. It's probably a good idea to at least call `.resize()`
     /// after calling this method.
     pub unsafe fn set_queue(&mut self, queue: Queue) {
-        self.queue = queue;
+        self.queue_obj_raw = queue.obj_raw();
     }
 
     /// Returns an iterator to a contained vector.

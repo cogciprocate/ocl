@@ -2,7 +2,7 @@
 
 // use formatting::MT;
 use raw::{self, ContextRaw, PlatformIdRaw, DeviceIdRaw};
-use cl_h::{self, cl_device_type};
+use cl_h::cl_device_type;
 use super::{DEFAULT_PLATFORM_IDX, Result as OclResult, Error as OclError};
 
 

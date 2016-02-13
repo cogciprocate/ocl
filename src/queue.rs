@@ -3,7 +3,6 @@
 // use std::ptr;
 
 use raw::{self, CommandQueueRaw, DeviceIdRaw, ContextRaw};
-use cl_h;
 use super::Context;
 
 /// An OpenCL command queue.
@@ -12,7 +11,6 @@ use super::Context;
 /// [FIXME]: `::release` must be manually called by consumer.
 ///
 // TODO: Implement a constructor which accepts a DeviceIdRaw.
-#[derive(Clone)]
 pub struct Queue {
     obj_raw: CommandQueueRaw,
     context_obj_raw: ContextRaw,
