@@ -195,7 +195,7 @@ impl<T: OclNum> Buffer<T> {
     pub unsafe fn new_raw_unchecked(flags: u64, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
-        let obj_raw = MemRaw::new(raw::create_buffer(queue.context_obj(), flags, len,
+        let obj_raw = MemRaw::new(raw::create_buffer(queue.context_obj_raw(), flags, len,
             host_ptr)
             .expect("[FIXME: TEMPORARY]: Buffer::_new():"));
 
@@ -210,7 +210,7 @@ impl<T: OclNum> Buffer<T> {
     // Consolidated constructor for Buffers without vectors.
     /// [FIXME]: Return result.
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
-        let obj_raw = MemRaw::new(raw::create_buffer::<T>(queue.context_obj(),
+        let obj_raw = MemRaw::new(raw::create_buffer::<T>(queue.context_obj_raw(),
             cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, len, None)
             .expect("[FIXME: TEMPORARY]: Buffer::_new():"));
 
@@ -225,7 +225,7 @@ impl<T: OclNum> Buffer<T> {
     // Consolidated constructor for Buffers with vectors.
     /// [FIXME]: Return result.
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let obj_raw = MemRaw::new(raw::create_buffer(queue.context_obj(), 
+        let obj_raw = MemRaw::new(raw::create_buffer(queue.context_obj_raw(), 
             cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec))
             .expect("[FIXME: TEMPORARY]: Buffer::_with_vec():"));
 
@@ -470,7 +470,7 @@ impl<T: OclNum> Buffer<T> {
     /// [IMPORTANT]: You must manually reassign any kernel arguments which may have 
     /// had a reference to the (device side) buffer associated with this Buffer.
     /// [FIXME]: Return result.
-    pub unsafe fn resize(&mut self, new_dims: &BufferDims/*, val: T*/) {
+    pub unsafe fn resize(&mut self, new_dims: &BufferDims, queue: &Queue) {
         self.release();
         let new_len = new_dims.padded_buffer_len(raw::get_max_work_group_size(
             self.queue.device_id_obj_raw()));
@@ -478,14 +478,14 @@ impl<T: OclNum> Buffer<T> {
         match self.vec {
             VecOption::Some(ref mut vec) => {
                 vec.resize(new_len, T::default());
-                self.obj_raw = MemRaw::new(raw::create_buffer(self.queue.context_obj(), 
+                self.obj_raw = MemRaw::new(raw::create_buffer(queue.context_obj_raw(), 
                     cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, self.len, Some(vec))
                     .expect("[FIXME: TEMPORARY]: Buffer::_resize():"));
             },
             VecOption::None => {
                 self.len = new_len;
                 // let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
-                self.obj_raw = MemRaw::new(raw::create_buffer::<T>(self.queue.context_obj(), 
+                self.obj_raw = MemRaw::new(raw::create_buffer::<T>(queue.context_obj_raw(), 
                     cl_h::CL_MEM_READ_WRITE, self.len, None)
                     .expect("[FIXME: TEMPORARY]: Buffer::_resize():"));
             },

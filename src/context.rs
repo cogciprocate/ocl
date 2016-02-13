@@ -1,14 +1,14 @@
 //! An OpenCL context.
 
 // use formatting::MT;
-use raw::{self, PlatformIdRaw, DeviceIdRaw};
-use cl_h::{self, cl_platform_id, cl_device_type, cl_context};
+use raw::{self, ContextRaw, PlatformIdRaw, DeviceIdRaw};
+use cl_h::{self, cl_device_type};
 use super::{DEFAULT_PLATFORM_IDX, Result as OclResult, Error as OclError};
 
 
 /// An OpenCL context for a particular platform and set of device types.
 ///
-/// Wraps a 'cl_context' such as that returned by 'clCreateContext'.
+/// Wraps a `ContextRaw` such as that returned by `raw::create_context`.
 ///
 /// # Destruction
 /// `::release()` must be manually called by consumer.
@@ -16,7 +16,7 @@ use super::{DEFAULT_PLATFORM_IDX, Result as OclResult, Error as OclError};
 pub struct Context {
     platform_obj_raw: PlatformIdRaw,
     device_ids: Vec<DeviceIdRaw>,
-    obj_raw: cl_context,
+    obj_raw: ContextRaw,
 }
 
 impl Context {
@@ -153,7 +153,7 @@ impl Context {
     }
 
     /// Returns the current context as a `*mut libc::c_void`.
-    pub fn obj_raw(&self) -> cl_context {
+    pub fn obj_raw(&self) -> ContextRaw {
         self.obj_raw
     }
 
@@ -169,9 +169,7 @@ impl Context {
 
     /// Releases the current context.
     pub fn release(&mut self) {     
-        unsafe {
-            cl_h::clReleaseContext(self.obj_raw);
-        }
+        raw::release_context(self.obj_raw);
     }
 }
 

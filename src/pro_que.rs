@@ -95,7 +95,7 @@ impl ProQue {
         self.program = Some(try!(Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
-            self.queue.context_obj(), 
+            self.queue.context_obj_raw(), 
             &vec![self.queue.device_id_obj_raw()],
         )));
 

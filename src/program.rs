@@ -2,8 +2,8 @@
 
 use std::ffi::CString;
 
-use raw::{self, ProgramRaw, DeviceIdRaw};
-use cl_h::{self, cl_program, cl_context, cl_device_id};
+use raw::{self, ProgramRaw, DeviceIdRaw, ContextRaw};
+use cl_h;
 use super::{ProgramBuilder, Context, Result as OclResult};
 
 /// An OpenCL program, sometimes referred to as a build.
@@ -16,7 +16,7 @@ use super::{ProgramBuilder, Context, Result as OclResult};
 #[derive(Clone)]
 pub struct Program {
     obj_raw: ProgramRaw,
-    context_obj: cl_context,
+    context_obj_raw: ContextRaw,
     device_ids: Vec<DeviceIdRaw>,
 }
 
@@ -47,16 +47,16 @@ impl Program {
     pub fn from_parts(
                 src_strings: Vec<CString>, 
                 cmplr_opts: CString, 
-                context_obj: cl_context, 
+                context_obj_raw: ContextRaw, 
                 device_ids: &Vec<DeviceIdRaw>,
             ) -> OclResult<Program> 
     {
         let obj_raw = try!(raw::create_build_program(src_strings, cmplr_opts, 
-            context_obj, device_ids).map_err(|e| e.to_string()));
+            context_obj_raw, device_ids).map_err(|e| e.to_string()));
 
         Ok(Program {
             obj_raw: obj_raw,
-            context_obj: context_obj,
+            context_obj_raw: context_obj_raw,
             device_ids: device_ids.clone(),
         })
     }

@@ -6,7 +6,7 @@ use std::iter;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
-use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context,
+use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, 
     cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel,
     cl_program_build_info, cl_mem, cl_event, ClStatus};
 
@@ -81,7 +81,7 @@ pub fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 //============================== OCL FUNCTIONS ================================
 //=============================================================================
 
-/// Returns a list of available platforms by id.
+/// Returns a list of available platforms as 'raw' objects.
 // TODO: Get rid of manual vec allocation now that PlatformIdRaw implements Clone.
 pub fn get_platform_ids() -> Vec<PlatformIdRaw> {
     let mut num_platforms = 0 as u32;
@@ -125,18 +125,7 @@ pub fn get_device_ids(
         -> Vec<DeviceIdRaw> 
 {
     let device_type = device_types_opt.unwrap_or(DEFAULT_DEVICE_TYPE);
-    
     let mut devices_available: u32 = 0;
-    // let mut devices_array: [cl_device_id; DEVICES_MAX as usize] = [0 as cl_device_id; DEVICES_MAX as usize];
-
-    // let errcode = unsafe { cl_h::clGetDeviceIDs(
-    //         platform.as_ptr(), 
-    //         device_type, 
-    //         0,
-    //         &mut ptr::null_mut() as *mut *mut c_void, 
-    //         &mut devices_available,
-    // )};
-    // errcode_assert("clGetDeviceIDs()", errcode);
 
     let mut device_ids: Vec<DeviceIdRaw> = iter::repeat(DeviceIdRaw::null())
         .take(DEVICES_MAX as usize).collect();
@@ -153,35 +142,28 @@ pub fn get_device_ids(
     // Trim vec len:
     unsafe { device_ids.set_len(devices_available as usize); }
 
-    // let mut device_ids: Vec<cl_device_id> = Vec::with_capacity(devices_available as usize);
-
-    // for i in 0..devices_available as usize {
-    //     device_ids.push(devices_array[i]);
-    // }
-
     device_ids
 }
 
-pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> cl_context {
+pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
     let mut errcode: i32 = 0;
 
-    unsafe {
-        let context: cl_context = cl_h::clCreateContext(
+    let context = ContextRaw::new( unsafe { cl_h::clCreateContext(
             ptr::null(), 
             device_ids.len() as u32, 
             device_ids.as_ptr()  as *const *mut c_void,
             mem::transmute(ptr::null::<fn()>()), 
             ptr::null_mut(), 
-            &mut errcode);
-        errcode_assert("clCreateContext()", errcode);
-        context
-    }
+            &mut errcode)
+    });
+    errcode_assert("clCreateContext()", errcode);
+    context
 }
 
 pub fn create_build_program(
             kern_strings: Vec<CString>,
             cmplr_opts: CString,
-            context: cl_context, 
+            context: ContextRaw, 
             device_ids: &Vec<DeviceIdRaw>)
             -> OclResult<ProgramRaw>
 {
@@ -196,7 +178,7 @@ pub fn create_build_program(
     let mut errcode = 0i32;
     
     let program = ProgramRaw::new(unsafe { cl_h::clCreateProgramWithSource(
-                context, 
+                context.as_ptr(), 
                 kern_string_ptrs.len() as u32,
                 kern_string_ptrs.as_ptr() as *const *const i8,
                 ks_lens.as_ptr() as *const usize,
@@ -261,7 +243,7 @@ pub fn create_kernel(
 
 
 pub fn create_command_queue(
-            context: cl_context, 
+            context: ContextRaw, 
             device: DeviceIdRaw)
             -> OclResult<CommandQueueRaw>
 {
@@ -271,7 +253,7 @@ pub fn create_command_queue(
     let mut errcode: i32 = 0;
 
     let cq = CommandQueueRaw::new(unsafe { cl_h::clCreateCommandQueue(
-            context, 
+            context.as_ptr(), 
             device.as_ptr(),
             cl_h::CL_QUEUE_PROFILING_ENABLE, 
             &mut errcode
@@ -281,7 +263,7 @@ pub fn create_command_queue(
 }
 
 pub fn create_buffer<T>(
-            context: cl_context,
+            context: ContextRaw,
             flags: cl_mem_flags,
             len: usize,
             data: Option<&[T]>)
@@ -301,7 +283,7 @@ pub fn create_buffer<T>(
     };
 
     let buf = unsafe { cl_h::clCreateBuffer(
-            context, 
+            context.as_ptr(), 
             flags,
             len * mem::size_of::<T>(),
             host_ptr, 
@@ -315,7 +297,7 @@ pub fn create_buffer<T>(
 
 // [WORK IN PROGRESS]
 pub fn create_image<T>(
-            context: cl_context,
+            context: ContextRaw,
             flags: cl_mem_flags,
             format: &cl_image_format,
             desc: &cl_image_desc,
@@ -337,7 +319,7 @@ pub fn create_image<T>(
     };
 
     let image_ptr = unsafe { cl_h::clCreateImage(
-            context,
+            context.as_ptr(),
             flags,
             format as *const cl_image_format,
             desc as *const cl_image_desc,
@@ -678,14 +660,14 @@ pub fn device_info(device_id: DeviceIdRaw, info_type: cl_device_info) -> String 
 /// in in the `verify_context()` documentation below.
 ///
 /// TODO: Finish wiring up full functionality. Return a 'ContextInfo' enum result.
-pub fn context_info(context: cl_context, info_kind: cl_context_info) 
+pub fn context_info(context: ContextRaw, info_kind: cl_context_info) 
         -> OclResult<()>
 {
     let mut result_size = 0;
 
     // let info_kind: cl_context_info = cl_h::CL_CONTEXT_PROPERTIES;
     let errcode = unsafe { cl_h::clGetContextInfo(   
-        context,
+        context.as_ptr(),
         info_kind,
         0,
         0 as *mut c_void,
@@ -706,7 +688,7 @@ pub fn context_info(context: cl_context, info_kind: cl_context_info)
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetContextInfo(   
-        context,
+        context.as_ptr(),
         info_kind,
         result_size,
         result.as_mut_ptr() as *mut c_void,
@@ -723,9 +705,15 @@ pub fn context_info(context: cl_context, info_kind: cl_context_info)
 /// # Assumptions
 ///
 /// Some (most?) OpenCL implementations do not correctly error if non-context pointers are passed. This function relies on the fact that passing the `CL_CONTEXT_DEVICES` as the `param_name` to `clGetContextInfo` will (on my AMD implementation at least) often return a huge result size if `context` is not actually a `cl_context` pointer due to the fact that it's reading from some random memory location on non-context objects. Also checks for zero because a context must have at least one device (true?).
-pub fn verify_context(context: cl_context) -> OclResult<()> {
+pub fn verify_context(context: ContextRaw) -> OclResult<()> {
     // context_info(context, cl_h::CL_CONTEXT_REFERENCE_COUNT)
     context_info(context, cl_h::CL_CONTEXT_DEVICES)
+}
+
+pub fn release_context(context: ContextRaw) {
+    unsafe {
+        cl_h::clReleaseContext(context.as_ptr());
+    }
 }
  
 pub fn release_command_queue(queue: CommandQueueRaw) {

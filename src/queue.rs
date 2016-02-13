@@ -2,8 +2,8 @@
 // use std::mem;
 // use std::ptr;
 
-use raw::{self, CommandQueueRaw, DeviceIdRaw};
-use cl_h::{self, cl_command_queue, cl_context};
+use raw::{self, CommandQueueRaw, DeviceIdRaw, ContextRaw};
+use cl_h;
 use super::Context;
 
 /// An OpenCL command queue.
@@ -15,7 +15,7 @@ use super::Context;
 #[derive(Clone)]
 pub struct Queue {
     obj_raw: CommandQueueRaw,
-    context_obj: cl_context,
+    context_obj_raw: ContextRaw,
     device_id_obj_raw: DeviceIdRaw,
 }
 
@@ -44,7 +44,7 @@ impl Queue {
 
         Queue {
             obj_raw: obj_raw,
-            context_obj: context.obj_raw(),
+            context_obj_raw: context.obj_raw(),
             device_id_obj_raw: device_id_obj_raw, 
         }
     }   
@@ -60,8 +60,8 @@ impl Queue {
     }
 
     /// Returns the OpenCL context object associated with this queue.
-    pub fn context_obj(&self) -> cl_context {
-        self.context_obj
+    pub fn context_obj_raw(&self) -> ContextRaw {
+        self.context_obj_raw
     }
 
     /// Returns the OpenCL device id associated with this queue.
