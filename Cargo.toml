@@ -19,6 +19,9 @@ libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.4"
 
+#[dev-dependencies]
+#time = "*"
+
 [profile.test]
 opt-level = 0
 debug = true
