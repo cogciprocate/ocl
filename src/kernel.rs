@@ -149,10 +149,16 @@ impl Kernel {
 
     /// Modifies the kernel argument named: `name`.
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_buf_named<T: OclNum>(&mut self, name: &'static str, buffer: &Buffer<T>) {
+    pub fn set_arg_buf_named<T: OclNum>(&mut self, name: &'static str, 
+                buffer_opt: Option<&Buffer<T>>) 
+    {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = self.named_args[name];
-        let buf = buffer.buffer_obj();
+
+        let buf = match buffer_opt {
+            Some(buffer) => buffer.buffer_obj(),
+            None => ptr::null_mut()
+        };
 
         self.set_kernel_arg(
             arg_idx,
@@ -225,6 +231,7 @@ impl Kernel {
     }
 
     // Modifies a kernel argument.
+    // NOTE: Maintain mutability requirement to completely prevent simultaneous calls.
     fn set_kernel_arg(&mut self, arg_index: u32, arg_size: libc::size_t, 
                 arg_value: *const libc::c_void) 
     {

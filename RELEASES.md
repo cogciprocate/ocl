@@ -48,6 +48,8 @@ Breaking Changes
 * Several non-essential methods on [`Kernel`] have been depricated.
 * `Kernel::new` and its equivalent, `ProQue::create_kernel`, now return a
   `Result<Kernel>` instead of just `Kernel`.
+* `Kernel::set_arg_buf_named` and `Kernel::set_arg_buf_named` now require an
+  `Option` wrapper.
 * `SimpleDims` has had its variants renamed.
 * `WorkSize` has been renamed to `WorkDims` and has had its variants renamed.
 * `Context::new` now takes a `DeviceType` instead of a u32.

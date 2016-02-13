@@ -116,7 +116,7 @@ fn test_events() {
         // Yes, this is far from optimal...
         // Should just copy the values in the first place but oh well.
         if itr != 0 {
-            kernel.set_arg_buf_named("src", &result_buffer);
+            kernel.set_arg_buf_named("src", Some(&result_buffer));
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
