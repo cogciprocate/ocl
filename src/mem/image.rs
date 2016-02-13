@@ -1,7 +1,7 @@
 //! [WORK IN PROGRESS] An OpenCL Image.
 use std::default::Default;
 use super::super::{Context, ImageFormat, ImageDescriptor};
-use cl_h::{self, cl_mem};
+use cl_h;
 use raw::{self, MemRaw};
 
 

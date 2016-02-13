@@ -2,7 +2,7 @@
 
 use std::ffi::CString;
 
-use raw;
+use raw::{self, ProgramRaw, DeviceIdRaw};
 use cl_h::{self, cl_program, cl_context, cl_device_id};
 use super::{ProgramBuilder, Context, Result as OclResult};
 
@@ -11,13 +11,13 @@ use super::{ProgramBuilder, Context, Result as OclResult};
 /// To use with multiple devices, create manually with `::from_parts()`.
 ///
 /// # Destruction
-/// `::release` must be manually called by consumer.
+/// [FIXME]: `::release` must be manually called by consumer.
 ///
 #[derive(Clone)]
 pub struct Program {
-    obj: cl_program,
+    obj_raw: ProgramRaw,
     context_obj: cl_context,
-    device_ids: Vec<cl_device_id>,
+    device_ids: Vec<DeviceIdRaw>,
 }
 
 // [TODO]: ERROR HANDLING
@@ -48,29 +48,27 @@ impl Program {
                 src_strings: Vec<CString>, 
                 cmplr_opts: CString, 
                 context_obj: cl_context, 
-                device_ids: &Vec<cl_device_id>,
+                device_ids: &Vec<DeviceIdRaw>,
             ) -> OclResult<Program> 
     {
-        let obj = try!(raw::create_build_program(src_strings, cmplr_opts, 
+        let obj_raw = try!(raw::create_build_program(src_strings, cmplr_opts, 
             context_obj, device_ids).map_err(|e| e.to_string()));
 
         Ok(Program {
-            obj: obj,
+            obj_raw: obj_raw,
             context_obj: context_obj,
             device_ids: device_ids.clone(),
         })
     }
 
     /// Returns the associated OpenCL program object.
-    pub fn obj(&self) -> cl_program {
-        self.obj
+    pub fn obj_raw(&self) -> ProgramRaw {
+        self.obj_raw
     }
 
     /// Decrements the associated OpenCL program object's reference count.
     // [NOTE]: Do not move this to a Drop impl in case this Program has been cloned.
     pub fn release(&mut self) {
-        unsafe { 
-            cl_h::clReleaseProgram(self.obj);
-        }
+        raw::release_program(self.obj_raw);
     }
 }

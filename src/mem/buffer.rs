@@ -9,7 +9,7 @@ use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
 use raw::{self, MemRaw, CommandQueueRaw};
-use cl_h::{self, cl_mem};
+use cl_h;
 use super::super::{fmt, OclNum, Queue, BufferDims, EventList, Error as OclError, Result as OclResult};
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
@@ -94,7 +94,7 @@ impl<T: OclNum> Buffer<T> {
     /// one such as `.flush_vec_async()`, `fill_vec_async()`, etc. will panic.
     /// [FIXME]: Return result.
     pub fn new<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
         Buffer::_new(len, queue)
     }
 
@@ -102,7 +102,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
     pub fn with_vec<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
         let vec: Vec<T> = iter::repeat(T::default()).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -113,7 +113,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
     pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
         let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -135,7 +135,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
         let vec: Vec<T> = shuffled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -153,7 +153,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id()));
+        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
         let vec: Vec<T> = scrambled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -473,7 +473,7 @@ impl<T: OclNum> Buffer<T> {
     pub unsafe fn resize(&mut self, new_dims: &BufferDims/*, val: T*/) {
         self.release();
         let new_len = new_dims.padded_buffer_len(raw::get_max_work_group_size(
-            self.queue.device_id()));
+            self.queue.device_id_obj_raw()));
 
         match self.vec {
             VecOption::Some(ref mut vec) => {
@@ -495,7 +495,7 @@ impl<T: OclNum> Buffer<T> {
     /// Decrements the reference count associated with the previous buffer object, 
     /// `self.obj_raw`.
     pub fn release(&mut self) {
-        raw::release_mem_object(self.obj_raw.ptr());
+        raw::release_mem_object(self.obj_raw.as_ptr());
     }
 
     /// Returns a reference to the local vector associated with this buffer.

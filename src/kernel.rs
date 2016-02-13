@@ -6,8 +6,8 @@ use std::mem;
 use std::collections::HashMap;
 use libc;
 
-use raw::{self, KernelRaw, MemRaw};
-use cl_h::{self, cl_mem, cl_kernel, cl_command_queue};
+use raw::{self, KernelRaw, MemRaw, CommandQueueRaw};
+use cl_h::{self, cl_mem};
 use super::{Result as OclResult, WorkDims, Buffer, OclNum, EventList, Program, Queue};
 
 /// An OpenCL kernel.
@@ -29,7 +29,7 @@ pub struct Kernel {
     arg_index: u32,
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
-    command_queue: cl_command_queue,
+    command_queue: CommandQueueRaw,
     gwo: WorkDims,
     gws: WorkDims,
     lws: WorkDims,
@@ -53,7 +53,7 @@ impl Kernel {
         
         // let err_pre = format!("Ocl::create_kernel({}):", &name);
         // raw::errcode_assert(&err_pre, err);
-        let obj_raw = try!(raw::create_kernel(program.obj(), &name));
+        let obj_raw = try!(raw::create_kernel(program.obj_raw(), &name));
 
         Ok(Kernel {
             obj_raw: obj_raw,
@@ -156,8 +156,8 @@ impl Kernel {
         let arg_idx = self.named_args[name];
 
         let buf = match buffer_opt {
-            Some(buffer) => buffer.obj_raw().ptr(),
-            None => MemRaw::null().ptr(),
+            Some(buffer) => buffer.obj_raw().as_ptr(),
+            None => MemRaw::null().as_ptr(),
         };
 
         self.set_kernel_arg(
@@ -171,7 +171,7 @@ impl Kernel {
     #[inline]
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         // self.enqueue_with_cmd_queue(self.command_queue, wait_list, dest_list);
-        raw::enqueue_kernel(self.command_queue, self.obj_raw.ptr(), self.gws.dim_count(), 
+        raw::enqueue_kernel(self.command_queue, self.obj_raw.as_ptr(), self.gws.dim_count(), 
             self.gwo.as_raw(), self.gws.as_raw().unwrap(), self.lws.as_raw(), 
             wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()), Some(&self.name));
     }
@@ -183,14 +183,14 @@ impl Kernel {
     }
 
     pub unsafe fn release(&mut self) {
-        cl_h::clReleaseKernel(self.obj_raw.ptr());
+        cl_h::clReleaseKernel(self.obj_raw.as_ptr());
     }
 
      // Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {
         let buf = match buffer_opt {
-            Some(buffer) => buffer.obj_raw().ptr(),
-            None => MemRaw::null().ptr(),
+            Some(buffer) => buffer.obj_raw().as_ptr(),
+            None => MemRaw::null().as_ptr(),
         };
 
         self.new_kernel_arg(
@@ -237,7 +237,7 @@ impl Kernel {
     {
         unsafe {
             let err = cl_h::clSetKernelArg(
-                        self.obj_raw.ptr(), 
+                        self.obj_raw.as_ptr(), 
                         arg_index,
                         arg_size, 
                         arg_value,

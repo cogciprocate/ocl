@@ -96,7 +96,7 @@ impl ProQue {
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
             self.queue.context_obj(), 
-            &vec![self.queue.device_id()],
+            &vec![self.queue.device_id_obj_raw()],
         )));
 
         Ok(())
@@ -137,7 +137,7 @@ impl ProQue {
     /// Returns the maximum workgroup size supported by the device on which the
     /// contained queue exists.
     pub fn max_work_group_size(&self) -> usize {
-        raw::get_max_work_group_size(self.queue.device_id())
+        raw::get_max_work_group_size(self.queue.device_id_obj_raw())
     }
 
     /// Returns the queue created when constructing this ProQue.

@@ -8,7 +8,7 @@ use num::{FromPrimitive};
 
 use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context,
     cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel,
-    cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, ClStatus};
+    cl_program_build_info, cl_mem, cl_event, ClStatus};
 
 use super::super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclResult};
 use super::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw,
@@ -122,40 +122,54 @@ pub fn get_platform_ids() -> Vec<PlatformIdRaw> {
 pub fn get_device_ids(
         platform: PlatformIdRaw, 
         device_types_opt: Option<cl_device_type>)
-        -> Vec<cl_device_id> 
+        -> Vec<DeviceIdRaw> 
 {
     let device_type = device_types_opt.unwrap_or(DEFAULT_DEVICE_TYPE);
     
     let mut devices_available: u32 = 0;
-    let mut devices_array: [cl_device_id; DEVICES_MAX as usize] = [0 as cl_device_id; DEVICES_MAX as usize];
+    // let mut devices_array: [cl_device_id; DEVICES_MAX as usize] = [0 as cl_device_id; DEVICES_MAX as usize];
+
+    // let errcode = unsafe { cl_h::clGetDeviceIDs(
+    //         platform.as_ptr(), 
+    //         device_type, 
+    //         0,
+    //         &mut ptr::null_mut() as *mut *mut c_void, 
+    //         &mut devices_available,
+    // )};
+    // errcode_assert("clGetDeviceIDs()", errcode);
+
+    let mut device_ids: Vec<DeviceIdRaw> = iter::repeat(DeviceIdRaw::null())
+        .take(DEVICES_MAX as usize).collect();
 
     let errcode = unsafe { cl_h::clGetDeviceIDs(
-        platform.ptr(), 
-        device_type, 
-        DEVICES_MAX, 
-        devices_array.as_mut_ptr(), 
-        &mut devices_available
-    ) };
-
+            platform.as_ptr(), 
+            device_type, 
+            DEVICES_MAX, 
+            device_ids.as_mut_ptr() as *mut *mut c_void,
+            &mut devices_available,
+    )};
     errcode_assert("clGetDeviceIDs()", errcode);
 
-    let mut device_ids: Vec<cl_device_id> = Vec::with_capacity(devices_available as usize);
+    // Trim vec len:
+    unsafe { device_ids.set_len(devices_available as usize); }
 
-    for i in 0..devices_available as usize {
-        device_ids.push(devices_array[i]);
-    }
+    // let mut device_ids: Vec<cl_device_id> = Vec::with_capacity(devices_available as usize);
+
+    // for i in 0..devices_available as usize {
+    //     device_ids.push(devices_array[i]);
+    // }
 
     device_ids
 }
 
-pub fn create_context(device_ids: &Vec<cl_device_id>) -> cl_context {
+pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> cl_context {
     let mut errcode: i32 = 0;
 
     unsafe {
         let context: cl_context = cl_h::clCreateContext(
             ptr::null(), 
             device_ids.len() as u32, 
-            device_ids.as_ptr(),
+            device_ids.as_ptr()  as *const *mut c_void,
             mem::transmute(ptr::null::<fn()>()), 
             ptr::null_mut(), 
             &mut errcode);
@@ -168,8 +182,8 @@ pub fn create_build_program(
             kern_strings: Vec<CString>,
             cmplr_opts: CString,
             context: cl_context, 
-            device_ids: &Vec<cl_device_id>)
-            -> OclResult<cl_program>
+            device_ids: &Vec<DeviceIdRaw>)
+            -> OclResult<ProgramRaw>
 {
     // Verify that the context is valid:
     try!(verify_context(context));
@@ -181,26 +195,26 @@ pub fn create_build_program(
 
     let mut errcode = 0i32;
     
-    let program: cl_program = unsafe { cl_h::clCreateProgramWithSource(
+    let program = ProgramRaw::new(unsafe { cl_h::clCreateProgramWithSource(
                 context, 
                 kern_string_ptrs.len() as u32,
                 kern_string_ptrs.as_ptr() as *const *const i8,
                 ks_lens.as_ptr() as *const usize,
                 &mut errcode,
-    )};
+    )});
     errcode_assert("clCreateProgramWithSource()", errcode);
 
     errcode = unsafe { cl_h::clBuildProgram(
-                program,
+                program.as_ptr(),
                 device_ids.len() as u32,
-                device_ids.as_ptr(), 
+                device_ids.as_ptr() as *const *mut c_void, 
                 cmplr_opts.as_ptr() as *const i8,
                 mem::transmute(ptr::null::<fn()>()), 
                 ptr::null_mut(),
     )};  
 
     if errcode < 0 {
-        program_build_err(program, device_ids).map(|_| program)         
+        program_build_err(program, device_ids).map(|_| program)
     } else {
         try!(errcode_try("clBuildProgram()", errcode));
         Ok(program) 
@@ -209,7 +223,7 @@ pub fn create_build_program(
 
 
 pub fn create_kernel(
-            program: cl_program, 
+            program: ProgramRaw, 
             name: &str)
             -> OclResult<KernelRaw>
 {
@@ -217,7 +231,7 @@ pub fn create_kernel(
 
     let kernel_ptr = unsafe {
         cl_h::clCreateKernel(
-            program, 
+            program.as_ptr(), 
             try!(CString::new(name.as_bytes())).as_ptr(), 
             &mut err,
         )
@@ -248,25 +262,22 @@ pub fn create_kernel(
 
 pub fn create_command_queue(
             context: cl_context, 
-            device: cl_device_id)
-            -> OclResult<cl_command_queue>
+            device: DeviceIdRaw)
+            -> OclResult<CommandQueueRaw>
 {
     // Verify that the context is valid:
     try!(verify_context(context));
 
     let mut errcode: i32 = 0;
 
-    unsafe {
-        let cq: cl_command_queue = cl_h::clCreateCommandQueue(
-                    context, 
-                    device, 
-                    cl_h::CL_QUEUE_PROFILING_ENABLE, 
-                    &mut errcode
-        );
-
-        errcode_assert("clCreateCommandQueue()", errcode);
-        Ok(cq)
-    }
+    let cq = CommandQueueRaw::new(unsafe { cl_h::clCreateCommandQueue(
+            context, 
+            device.as_ptr(),
+            cl_h::CL_QUEUE_PROFILING_ENABLE, 
+            &mut errcode
+    )});
+    errcode_assert("clCreateCommandQueue()", errcode);
+    Ok(cq)
 }
 
 pub fn create_buffer<T>(
@@ -341,7 +352,7 @@ pub fn create_image<T>(
 }
 
 pub fn enqueue_write_buffer<T>(
-            command_queue: cl_command_queue,
+            command_queue: CommandQueueRaw,
             buffer: &MemRaw, 
             block: bool,
             data: &[T],
@@ -354,8 +365,8 @@ pub fn enqueue_write_buffer<T>(
 
     unsafe {
         let errcode = cl_h::clEnqueueWriteBuffer(
-                    command_queue,
-                    buffer.ptr(),
+                    command_queue.as_ptr(),
+                    buffer.as_ptr(),
                     block as u32,
                     offset,
                     (data.len() * mem::size_of::<T>()) as size_t,
@@ -370,7 +381,7 @@ pub fn enqueue_write_buffer<T>(
 }
 
 pub fn enqueue_read_buffer<T>(
-            command_queue: cl_command_queue,
+            command_queue: CommandQueueRaw,
             buffer: &MemRaw, 
             block: bool,
             data: &[T],
@@ -383,8 +394,8 @@ pub fn enqueue_read_buffer<T>(
 
     unsafe {
         let errcode = cl_h::clEnqueueReadBuffer(
-                    command_queue, 
-                    buffer.ptr(), 
+                    command_queue.as_ptr(), 
+                    buffer.as_ptr(), 
                     block as u32, 
                     offset, 
                     (data.len() * mem::size_of::<T>()) as size_t, 
@@ -400,7 +411,7 @@ pub fn enqueue_read_buffer<T>(
 
 
 pub fn enqueue_kernel(
-            command_queue: cl_command_queue,
+            command_queue: CommandQueueRaw,
             kernel: cl_kernel,
             work_dims: u32,
             global_work_offset: Option<[usize; 3]>,
@@ -418,7 +429,7 @@ pub fn enqueue_kernel(
 
     unsafe {
         let errcode = cl_h::clEnqueueNDRangeKernel(
-            command_queue,
+            command_queue.as_ptr(),
             kernel,
             work_dims,
             gwo,
@@ -438,7 +449,7 @@ pub fn enqueue_kernel(
 /// [UNTESTED][UNUSED]
 #[allow(dead_code)]
 pub fn enqueue_copy_buffer(
-                command_queue: cl_command_queue,
+                command_queue: CommandQueueRaw,
                 src_buffer: cl_mem,
                 dst_buffer: cl_mem,
                 src_offset: usize,
@@ -447,7 +458,7 @@ pub fn enqueue_copy_buffer(
 {
     unsafe {
         let errcode = cl_h::clEnqueueCopyBuffer(
-            command_queue,
+            command_queue.as_ptr(),
             src_buffer,
             dst_buffer,
             src_offset,
@@ -461,12 +472,12 @@ pub fn enqueue_copy_buffer(
     }
 }
 
-pub fn get_max_work_group_size(device: cl_device_id) -> usize {
+pub fn get_max_work_group_size(device: DeviceIdRaw) -> usize {
     let mut max_work_group_size: usize = 0;
 
     let errcode = unsafe { 
         cl_h::clGetDeviceInfo(
-            device,
+            device.as_ptr(),
             cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
             mem::size_of::<usize>() as usize,
             &mut max_work_group_size as *mut _ as *mut c_void,
@@ -479,9 +490,9 @@ pub fn get_max_work_group_size(device: cl_device_id) -> usize {
     max_work_group_size
 }
 
-pub fn finish(command_queue: cl_command_queue) {
+pub fn finish(command_queue: CommandQueueRaw) {
     unsafe { 
-        let errcode = cl_h::clFinish(command_queue);
+        let errcode = cl_h::clFinish(command_queue.as_ptr());
         errcode_assert("clFinish()", errcode);
     }
 }
@@ -580,7 +591,7 @@ pub fn platform_info(platform: cl_platform_id) {
 
 /// If the program pointed to by `cl_program` for any of the devices listed in `device_ids` has a build log of any length, it will be returned as an errcode result.
 ///
-pub fn program_build_err(program: cl_program, device_ids: &Vec<cl_device_id>) -> OclResult<()> 
+pub fn program_build_err(program: ProgramRaw, device_ids: &Vec<DeviceIdRaw>) -> OclResult<()> 
 {
     let mut size = 0 as size_t;
 
@@ -589,8 +600,8 @@ pub fn program_build_err(program: cl_program, device_ids: &Vec<cl_device_id>) ->
             let name = cl_h::CL_PROGRAM_BUILD_LOG as cl_program_build_info;
 
             let mut errcode = cl_h::clGetProgramBuildInfo(
-                program,
-                device_id,
+                program.as_ptr(),
+                device_id.as_ptr(),
                 name,
                 0,
                 ptr::null_mut(),
@@ -601,8 +612,8 @@ pub fn program_build_err(program: cl_program, device_ids: &Vec<cl_device_id>) ->
             let mut pbi: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
 
             errcode = cl_h::clGetProgramBuildInfo(
-                program,
-                device_id,
+                program.as_ptr(),
+                device_id.as_ptr(),
                 name,
                 size,
                 pbi.as_mut_ptr() as *mut c_void,
@@ -638,12 +649,12 @@ pub fn program_build_err(program: cl_program, device_ids: &Vec<cl_device_id>) ->
 /// an enum with a variant corresponding to the type of info requested. Could 
 /// alternatively return a generic type and just blindly cast to it.
 #[allow(dead_code, unused_variables)] 
-pub fn device_info(device: cl_device_id, info_type: cl_device_info) -> String {
+pub fn device_info(device_id: DeviceIdRaw, info_type: cl_device_info) -> String {
     let mut info_value_size: usize = 0;
 
     let errcode = unsafe { 
         cl_h::clGetDeviceInfo(
-            device,
+            device_id.as_ptr(),
             cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
             mem::size_of::<usize>() as usize,
             0 as *mut c_void,
@@ -715,4 +726,16 @@ pub fn context_info(context: cl_context, info_kind: cl_context_info)
 pub fn verify_context(context: cl_context) -> OclResult<()> {
     // context_info(context, cl_h::CL_CONTEXT_REFERENCE_COUNT)
     context_info(context, cl_h::CL_CONTEXT_DEVICES)
+}
+ 
+pub fn release_command_queue(queue: CommandQueueRaw) {
+    unsafe {
+        cl_h::clReleaseCommandQueue(queue.as_ptr());
+    }
+}
+
+pub fn release_program(program: ProgramRaw) {
+    unsafe { 
+        cl_h::clReleaseProgram(program.as_ptr());
+    }
 }

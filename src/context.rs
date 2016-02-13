@@ -1,8 +1,8 @@
 //! An OpenCL context.
 
 // use formatting::MT;
-use raw::{self, PlatformIdRaw};
-use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_context};
+use raw::{self, PlatformIdRaw, DeviceIdRaw};
+use cl_h::{self, cl_platform_id, cl_device_type, cl_context};
 use super::{DEFAULT_PLATFORM_IDX, Result as OclResult, Error as OclError};
 
 
@@ -15,7 +15,7 @@ use super::{DEFAULT_PLATFORM_IDX, Result as OclResult, Error as OclError};
 ///
 pub struct Context {
     platform_obj_raw: PlatformIdRaw,
-    device_ids: Vec<cl_device_id>,
+    device_ids: Vec<DeviceIdRaw>,
     obj_raw: cl_context,
 }
 
@@ -115,7 +115,7 @@ impl Context {
         
 
         
-        let device_ids: Vec<cl_device_id> = raw::get_device_ids(platform_obj_raw.clone(), 
+        let device_ids: Vec<DeviceIdRaw> = raw::get_device_ids(platform_obj_raw.clone(), 
             device_types_opt);
         if device_ids.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
@@ -130,8 +130,8 @@ impl Context {
         })
     }
 
-    /// Resolves the zero-based device index into a cl_device_id (pointer).
-    pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<cl_device_id> {
+    /// Resolves the zero-based device index into a DeviceIdRaw (pointer).
+    pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdRaw> {
         match device_idxs.len() {
             0 => vec![self.device_ids()[super::DEFAULT_DEVICE_IDX]],
             _ => self.valid_device_ids(&device_idxs),
@@ -141,7 +141,7 @@ impl Context {
     /// Returns a list of valid devices regardless of whether or not the indexes 
     /// passed are valid by performing a modulo operation on them and letting them
     /// wrap around (round robin).
-    pub fn valid_device_ids(&self, selected_idxs: &[usize]) -> Vec<cl_device_id> {
+    pub fn valid_device_ids(&self, selected_idxs: &[usize]) -> Vec<DeviceIdRaw> {
         let mut valid_device_ids = Vec::with_capacity(selected_idxs.len());
 
         for selected_idx in selected_idxs {
@@ -158,7 +158,7 @@ impl Context {
     }
 
     /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
-    pub fn device_ids(&self) -> &Vec<cl_device_id> {
+    pub fn device_ids(&self) -> &Vec<DeviceIdRaw> {
         &self.device_ids
     }
 

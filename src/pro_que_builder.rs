@@ -52,7 +52,7 @@ impl<'c> ProQueBuilder<'c> {
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
             queue.context_obj(), 
-            &vec![queue.device_id()],
+            &vec![queue.device_id_obj_raw()],
         )));
 
         Ok(ProQue::from_parts(context_opt, queue, program_opt))
