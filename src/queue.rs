@@ -14,7 +14,7 @@ use super::Context;
 // TODO: Implement a constructor which accepts a cl_device_id.
 #[derive(Clone)]
 pub struct Queue {
-    raw_obj: cl_command_queue,
+    obj_raw: cl_command_queue,
     context_obj: cl_context,
     device_id: cl_device_id,
 }
@@ -39,24 +39,24 @@ impl Queue {
         assert!(device_ids.len() == 1, "Queue::new: Error resolving device ids.");
         let device_id = device_ids[0];
 
-        let raw_obj: cl_command_queue = raw::create_command_queue(context.obj(), device_id)
+        let obj_raw: cl_command_queue = raw::create_command_queue(context.obj_raw(), device_id)
             .expect("[FIXME: TEMPORARY]: Queue::new():"); 
 
         Queue {
-            raw_obj: raw_obj,
-            context_obj: context.obj(),
+            obj_raw: obj_raw,
+            context_obj: context.obj_raw(),
             device_id: device_id,           
         }
     }   
 
     /// Blocks until all commands in this queue have completed.
     pub fn finish(&self) {
-        raw::finish(self.raw_obj);
+        raw::finish(self.obj_raw);
     }
 
     /// Returns the OpenCL command queue object associated with this queue.
-    pub fn raw_obj(&self) -> cl_command_queue {
-        self.raw_obj
+    pub fn obj_raw(&self) -> cl_command_queue {
+        self.obj_raw
     }
 
     /// Returns the OpenCL context object associated with this queue.
@@ -76,7 +76,7 @@ impl Queue {
     // Note: Do not move this to a Drop impl in case this Queue has been cloned.
     pub fn release(&mut self) {
         unsafe {
-            cl_h::clReleaseCommandQueue(self.raw_obj);
+            cl_h::clReleaseCommandQueue(self.obj_raw);
         }
     }
 }

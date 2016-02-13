@@ -18,11 +18,16 @@ use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
 	cl_kernel, cl_event, cl_sampler};
 
+#[derive(Clone)]
 pub struct PlatformIdRaw(cl_platform_id);
 
 impl PlatformIdRaw {
 	pub fn new(ptr: cl_kernel) -> PlatformIdRaw {
 		PlatformIdRaw(ptr)
+	}
+
+	pub fn null() -> PlatformIdRaw {
+		PlatformIdRaw(0 as *mut libc::c_void)
 	}
 
 	pub fn ptr(&self) -> cl_kernel {
@@ -73,9 +78,9 @@ impl MemRaw {
 		MemRaw(ptr)
 	}
 
-	pub fn null() -> cl_mem {
-		0 as *mut libc::c_void
-	}	
+	pub fn null() -> MemRaw {
+		MemRaw(0 as *mut libc::c_void)
+	}
 
 	pub fn ptr(&self) -> cl_kernel {
 		self.0

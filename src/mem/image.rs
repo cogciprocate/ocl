@@ -9,7 +9,7 @@ use raw::{self, MemRaw};
 #[allow(dead_code)]
 pub struct Image<T> {
     default_val: T,
-    raw_obj: MemRaw,
+    obj_raw: MemRaw,
 }
 
 impl<T: Default> Image<T> {    
@@ -21,8 +21,8 @@ impl<T: Default> Image<T> {
         let flags: u64 = cl_h::CL_MEM_READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
 
-        let raw_obj = raw::create_image(
-            context.obj(),
+        let obj_raw = raw::create_image(
+            context.obj_raw(),
             flags,
             &image_format.as_raw(), 
             &image_desc.as_raw(),
@@ -30,13 +30,13 @@ impl<T: Default> Image<T> {
 
         Image {
             default_val: T::default(),
-            raw_obj: raw_obj          
+            obj_raw: obj_raw          
         }
     }   
 
     /// Returns the raw image object pointer.
-    pub fn raw_obj(&self) -> &MemRaw {
-        &self.raw_obj
+    pub fn obj_raw(&self) -> &MemRaw {
+        &self.obj_raw
     }
 }
 

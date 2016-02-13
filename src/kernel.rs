@@ -24,7 +24,7 @@ use super::{Result as OclResult, WorkDims, Buffer, OclNum, EventList, Program, Q
 /// TODO: Add more details, examples, etc.
 /// TODO: Add information about panics and errors.
 pub struct Kernel {
-    raw_obj: KernelRaw,
+    obj_raw: KernelRaw,
     name: String,
     arg_index: u32,
     named_args: HashMap<&'static str, u32>,
@@ -53,15 +53,15 @@ impl Kernel {
         
         // let err_pre = format!("Ocl::create_kernel({}):", &name);
         // raw::errcode_assert(&err_pre, err);
-        let raw_obj = try!(raw::create_kernel(program.obj(), &name));
+        let obj_raw = try!(raw::create_kernel(program.obj(), &name));
 
         Ok(Kernel {
-            raw_obj: raw_obj,
+            obj_raw: obj_raw,
             name: name,
             arg_index: 0,
             named_args: HashMap::with_capacity(5),
             arg_count: 0u32,
-            command_queue: queue.raw_obj(),
+            command_queue: queue.obj_raw(),
             gwo: WorkDims::Unspecified,
             gws: gws,
             lws: WorkDims::Unspecified,
@@ -156,8 +156,8 @@ impl Kernel {
         let arg_idx = self.named_args[name];
 
         let buf = match buffer_opt {
-            Some(buffer) => buffer.raw_obj().ptr(),
-            None => MemRaw::null(),
+            Some(buffer) => buffer.obj_raw().ptr(),
+            None => MemRaw::null().ptr(),
         };
 
         self.set_kernel_arg(
@@ -171,7 +171,7 @@ impl Kernel {
     #[inline]
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         // self.enqueue_with_cmd_queue(self.command_queue, wait_list, dest_list);
-        raw::enqueue_kernel(self.command_queue, self.raw_obj.ptr(), self.gws.dim_count(), 
+        raw::enqueue_kernel(self.command_queue, self.obj_raw.ptr(), self.gws.dim_count(), 
             self.gwo.as_raw(), self.gws.as_raw().unwrap(), self.lws.as_raw(), 
             wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()), Some(&self.name));
     }
@@ -183,14 +183,14 @@ impl Kernel {
     }
 
     pub unsafe fn release(&mut self) {
-        cl_h::clReleaseKernel(self.raw_obj.ptr());
+        cl_h::clReleaseKernel(self.obj_raw.ptr());
     }
 
      // Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {
         let buf = match buffer_opt {
-            Some(buffer) => buffer.raw_obj().ptr(),
-            None => MemRaw::null(),
+            Some(buffer) => buffer.obj_raw().ptr(),
+            None => MemRaw::null().ptr(),
         };
 
         self.new_kernel_arg(
@@ -237,7 +237,7 @@ impl Kernel {
     {
         unsafe {
             let err = cl_h::clSetKernelArg(
-                        self.raw_obj.ptr(), 
+                        self.obj_raw.ptr(), 
                         arg_index,
                         arg_size, 
                         arg_value,

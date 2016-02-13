@@ -90,8 +90,8 @@ pub use self::event_list::EventList;
 const DEFAULT_DEVICE_TYPE: cl_device_type = CL_DEVICE_TYPE_DEFAULT;
 
 const DEVICES_MAX: u32 = 16;
-const DEFAULT_PLATFORM: usize = 0;
-const DEFAULT_DEVICE: usize = 0;
+const DEFAULT_PLATFORM_IDX: usize = 0;
+const DEFAULT_DEVICE_IDX: usize = 0;
 
 //=============================================================================
 //================================= TRAITS ====================================

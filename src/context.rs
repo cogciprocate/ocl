@@ -1,9 +1,9 @@
 //! An OpenCL context.
 
 // use formatting::MT;
-use raw;
+use raw::{self, PlatformIdRaw};
 use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_context};
-use super::{Result as OclResult, Error as OclError};
+use super::{DEFAULT_PLATFORM_IDX, Result as OclResult, Error as OclError};
 
 
 /// An OpenCL context for a particular platform and set of device types.
@@ -14,9 +14,9 @@ use super::{Result as OclResult, Error as OclError};
 /// `::release()` must be manually called by consumer.
 ///
 pub struct Context {
-    platform_opt: Option<cl_platform_id>,
+    platform_obj_raw: PlatformIdRaw,
     device_ids: Vec<cl_device_id>,
-    obj: cl_context,
+    obj_raw: cl_context,
 }
 
 impl Context {
@@ -82,39 +82,58 @@ impl Context {
     pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<cl_device_type>) 
             -> OclResult<Context>
     {
-        let platforms = raw::get_platform_ids();
+        let platforms: Vec<PlatformIdRaw> = raw::get_platform_ids();
         if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
-        let platform = match platform_idx_opt {
+        // let platform = match platform_idx_opt {
+        //     Some(pf_idx) => {
+        //         match platforms.get(pf_idx) {
+        //             Some(pf) => pf.clone(),
+        //             None => return OclError::err("Invalid OpenCL platform index specified. \
+        //                 Use 'get_platform_ids()' for a list."),
+        //         }               
+        //     },
+
+        //     None => PlatformIdRaw::null(),
+        // };
+
+        let platform_obj_raw = match platform_idx_opt {
             Some(pf_idx) => {
                 match platforms.get(pf_idx) {
-                    Some(&pf) => pf,
-                    None => return OclError::err("Invalid OpenCL platform index specified. \
-                        Use 'get_platform_ids()' for a list."),
-                }               
+                    Some(pf) => pf.clone(),
+                    None => {
+                        return OclError::err("Invalid OpenCL platform index specified. \
+                            Use 'get_platform_ids()' for a list.")
+                    },
+                }
             },
-
-            None => platforms[super::DEFAULT_PLATFORM],
+            None => {
+                debug_assert!(platforms.len() > 0, "Context::new(): Internal indexing error.");
+                platforms[DEFAULT_PLATFORM_IDX].clone()
+            },
         };
         
-        let device_ids: Vec<cl_device_id> = raw::get_device_ids(platform, device_types_opt);
+
+        
+        let device_ids: Vec<cl_device_id> = raw::get_device_ids(platform_obj_raw.clone(), 
+            device_types_opt);
         if device_ids.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
         // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids);
 
-        let obj: cl_context = raw::create_context(&device_ids);
+        let obj_raw = raw::create_context(&device_ids);
 
         Ok(Context {
-            platform_opt: Some(platform),
+            platform_obj_raw: platform_obj_raw,
             device_ids: device_ids,
-            obj: obj,
+            obj_raw: obj_raw,
         })
     }
 
     /// Resolves the zero-based device index into a cl_device_id (pointer).
     pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<cl_device_id> {
         match device_idxs.len() {
-            0 => vec![self.device_ids()[super::DEFAULT_DEVICE]],
+            0 => vec![self.device_ids()[super::DEFAULT_DEVICE_IDX]],
             _ => self.valid_device_ids(&device_idxs),
         }
     }
@@ -134,8 +153,8 @@ impl Context {
     }
 
     /// Returns the current context as a `*mut libc::c_void`.
-    pub fn obj(&self) -> cl_context {
-        self.obj
+    pub fn obj_raw(&self) -> cl_context {
+        self.obj_raw
     }
 
     /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
@@ -144,14 +163,14 @@ impl Context {
     }
 
     /// Returns the platform our context pertains to.
-    pub fn platform(&self) -> Option<cl_platform_id> {
-        self.platform_opt
+    pub fn platform_obj_raw(&self) -> PlatformIdRaw {
+        self.platform_obj_raw.clone()
     }   
 
     /// Releases the current context.
     pub fn release(&mut self) {     
         unsafe {
-            cl_h::clReleaseContext(self.obj);
+            cl_h::clReleaseContext(self.obj_raw);
         }
     }
 }

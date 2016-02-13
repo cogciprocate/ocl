@@ -36,7 +36,7 @@ impl Program {
         Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
-            context.obj(), 
+            context.obj_raw(), 
             &device_ids)
     }
 

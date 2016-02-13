@@ -82,7 +82,8 @@ pub fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 //=============================================================================
 
 /// Returns a list of available platforms by id.
-pub fn get_platform_ids() -> Vec<cl_platform_id> {
+// TODO: Get rid of manual vec allocation now that PlatformIdRaw implements Clone.
+pub fn get_platform_ids() -> Vec<PlatformIdRaw> {
     let mut num_platforms = 0 as u32;
     
     // Get a count of available platforms:
@@ -92,11 +93,21 @@ pub fn get_platform_ids() -> Vec<cl_platform_id> {
     errcode_assert("clGetPlatformIDs()", errcode);
 
     // Create a vec with the appropriate size:
-    let mut platforms: Vec<cl_platform_id> = iter::repeat(0 as cl_platform_id)
-        .take(num_platforms as usize).collect();
+    let mut null_vec: Vec<usize> = iter::repeat(0).take(num_platforms as usize).collect();
+    let (ptr, cap, len) = (null_vec.as_mut_ptr(), null_vec.len(), null_vec.capacity());
+
+    // Steal the vec's soul:
+    let mut platforms: Vec<PlatformIdRaw> = unsafe {
+        mem::forget(null_vec);
+        Vec::from_raw_parts(ptr as *mut PlatformIdRaw, len, cap)
+    };
 
     errcode = unsafe {
-        cl_h::clGetPlatformIDs(num_platforms, platforms.as_mut_ptr(), ptr::null_mut())
+        cl_h::clGetPlatformIDs(
+            num_platforms, 
+            platforms.as_mut_ptr() as *mut cl_platform_id, 
+            ptr::null_mut()
+        )
     };
     errcode_assert("clGetPlatformIDs()", errcode);
     
@@ -109,7 +120,7 @@ pub fn get_platform_ids() -> Vec<cl_platform_id> {
 ///
 ///  -errcode_assert(): [FIXME]: Explaination needed (possibly at crate level?)
 pub fn get_device_ids(
-        platform: cl_platform_id, 
+        platform: PlatformIdRaw, 
         device_types_opt: Option<cl_device_type>)
         -> Vec<cl_device_id> 
 {
@@ -119,7 +130,7 @@ pub fn get_device_ids(
     let mut devices_array: [cl_device_id; DEVICES_MAX as usize] = [0 as cl_device_id; DEVICES_MAX as usize];
 
     let errcode = unsafe { cl_h::clGetDeviceIDs(
-        platform, 
+        platform.ptr(), 
         device_type, 
         DEVICES_MAX, 
         devices_array.as_mut_ptr(), 
