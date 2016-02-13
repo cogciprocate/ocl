@@ -2,7 +2,7 @@
 use std::ptr;
 use libc::c_void;
 
-use raw;
+use raw::{self, EventRaw};
 use cl_h::{self, cl_event};
 
 /// A list of OpenCL events which contain status information about the command that
@@ -36,16 +36,19 @@ impl EventList {
     #[inline]
     pub fn allot(&mut self) -> &mut cl_event {
         self.events.push(ptr::null_mut());
-        // let len = self.events.len();
-        // &mut self.events[(len - 1)..len]
         self.events.last_mut().unwrap()
+    }
+
+    // #[inline]
+    pub fn last(&self) -> Option<&cl_event> {
+        self.events.last()
     }
 
 
     // #[inline]
-    // pub fn last(&self) -> &[cl_event] {
-
-    // }
+    pub fn last_mut(&mut self) -> Option<&mut cl_event> {
+        self.events.last_mut()
+    }
 
     /// Returns an immutable slice to the events list.
     #[inline]

@@ -2,14 +2,14 @@
 use std::default::Default;
 use super::super::{Context, ImageFormat, ImageDescriptor};
 use cl_h::{self, cl_mem};
-use raw;
+use raw::{self, MemRaw};
 
 
 /// [WORK IN PROGRESS] An OpenCL Image. 
 #[allow(dead_code)]
 pub struct Image<T> {
     default_val: T,
-    image_obj: cl_mem,
+    raw_obj: MemRaw,
 }
 
 impl<T: Default> Image<T> {    
@@ -21,20 +21,22 @@ impl<T: Default> Image<T> {
         let flags: u64 = cl_h::CL_MEM_READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
 
+        let raw_obj = raw::create_image(
+            context.obj(),
+            flags,
+            &image_format.as_raw(), 
+            &image_desc.as_raw(),
+            image_data,).expect("[FIXME: TEMPORARY]: Image::new():");
+
         Image {
             default_val: T::default(),
-            image_obj: raw::create_image(
-                context.obj(),
-                flags,
-                &image_format.as_raw(), 
-                &image_desc.as_raw(),
-                image_data,).expect("[FIXME: TEMPORARY]: Image::new():"),               
+            raw_obj: raw_obj          
         }
     }   
 
     /// Returns the raw image object pointer.
-    pub fn image_obj(&self) -> cl_mem {
-        self.image_obj
+    pub fn raw_obj(&self) -> &MemRaw {
+        &self.raw_obj
     }
 }
 

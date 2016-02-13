@@ -9,6 +9,8 @@
 //!
 //! ## Even Lower Level: `cl_h`
 //!
+//! *Not as raw as...*
+//!
 //! If there's still something missing, or for some reason you need direct FFI access, use the functions in the `cl_h` module.
 //!
 //! # Performance
@@ -31,8 +33,13 @@
 //!
 //! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls).
 
-mod functions;
+mod raw;
+mod abstracts;
 pub mod enums;
 
 // [FIXME]: Import everything individually.
-pub use self::functions::*;
+pub use self::raw::*;
+
+pub use self::abstracts::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, 
+	ProgramRaw, KernelRaw,EventRaw, SamplerRaw};
+

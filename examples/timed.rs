@@ -117,11 +117,11 @@ fn main() {
 
     let kern_buf_start = Instant::now();
 
-    let el = EventList::new();
+    let mut el = EventList::new();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enqueue(None, None);
-        buffer_result.fill_vec_async();
+        // kern.enqueue(Some(&el), Some(&mut el));
+        // buffer_result.fill_vec_async(Some(&el), Some(&mut el));
     }
 
     ocl_pq.queue().finish();

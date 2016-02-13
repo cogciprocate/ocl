@@ -1,0 +1,133 @@
+//! Abstract data type wrappers.
+//!
+//! ### Reference: (from [SDK](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html))
+//! 
+//! The following table describes abstract data types supported by OpenCL:
+//! Type	Description	API Type
+//! _cl_platform_id *	The ID for a platform.	cl_platform_id
+//! _cl_device_id *	The ID for a device.	cl_device_id
+//! _cl_context *	A context.	cl_context
+//! _cl_command_queue *	A command queue.	cl_command_queue
+//! _cl_mem *	A memory object.	cl_mem
+//! _cl_program *	A program.	cl_program
+//! _cl_kernel *	A kernel.	cl_kernel
+//! _cl_event *	An event. Also see event_t.	cl_event
+//! _cl_sampler *	A sampler. Also see sampler_t.	cl_sampler
+
+use libc;
+use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
+	cl_kernel, cl_event, cl_sampler};
+
+pub struct PlatformIdRaw(cl_platform_id);
+
+impl PlatformIdRaw {
+	pub fn new(ptr: cl_kernel) -> PlatformIdRaw {
+		PlatformIdRaw(ptr)
+	}
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}
+
+pub struct DeviceIdRaw(cl_device_id);
+
+impl DeviceIdRaw {
+	pub fn new(ptr: cl_kernel) -> DeviceIdRaw {
+		DeviceIdRaw(ptr)
+	}
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}
+
+pub struct ContextRaw(cl_context);
+
+impl ContextRaw {
+	pub fn new(ptr: cl_kernel) -> ContextRaw {
+		ContextRaw(ptr)
+	}
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}
+
+pub struct CommandQueueRaw(cl_command_queue);
+
+impl CommandQueueRaw {
+	pub fn new(ptr: cl_kernel) -> CommandQueueRaw {
+		CommandQueueRaw(ptr)
+	}
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}
+
+pub struct MemRaw(cl_mem);
+
+impl MemRaw {
+	pub fn new(ptr: cl_kernel) -> MemRaw {
+		MemRaw(ptr)
+	}
+
+	pub fn null() -> cl_mem {
+		0 as *mut libc::c_void
+	}	
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}
+
+
+pub struct ProgramRaw(cl_program);
+
+impl ProgramRaw {
+	pub fn new(ptr: cl_kernel) -> ProgramRaw {
+		ProgramRaw(ptr)
+	}
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}
+
+pub struct KernelRaw(cl_kernel);
+
+impl KernelRaw {
+	pub fn new(ptr: cl_kernel) -> KernelRaw {
+		KernelRaw(ptr)
+	}
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}
+
+
+pub struct EventRaw(cl_event);
+
+impl EventRaw {
+	pub fn new(ptr: cl_kernel) -> EventRaw {
+		EventRaw(ptr)
+	}
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}
+
+pub struct SamplerRaw(cl_sampler);
+
+impl SamplerRaw {
+	pub fn new(ptr: cl_kernel) -> SamplerRaw {
+		SamplerRaw(ptr)
+	}
+
+	pub fn ptr(&self) -> cl_kernel {
+		self.0
+	}
+}

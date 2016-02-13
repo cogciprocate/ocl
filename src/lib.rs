@@ -48,9 +48,9 @@ mod kernel;
 mod work_dims;
 mod error;
 mod event_list;
-mod raw;
 mod mem;
 #[cfg(test)] mod tests;
+pub mod raw;
 pub mod fmt;
 pub mod cl_h;
 
@@ -59,7 +59,7 @@ pub use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_device_inf
     CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
     CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_CUSTOM, CL_DEVICE_TYPE_ALL};
 
-pub use self::context::{Context, DeviceType};
+pub use self::context::Context;
 pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;
 pub use self::queue::Queue;

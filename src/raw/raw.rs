@@ -11,6 +11,8 @@ use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, c
     cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, ClStatus};
 
 use super::super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclResult};
+use super::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw,
+    EventRaw, SamplerRaw};
 
 
 
@@ -57,13 +59,12 @@ pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mu
         None => (0, ptr::null()),
     };
 
-    // If the new event 
-    let new_event_ptr: *mut cl_event = match dest_event {
-        Some(de) => {
-            de
-        },
-        None => ptr::null_mut(),
-    };
+    // let new_event_ptr: *mut cl_event = match dest_event {
+    //     Some(de) => de,
+    //     None => ptr::null_mut(),
+    // };
+
+    let new_event_ptr: *mut cl_event = dest_event.unwrap_or(&mut ptr::null_mut() as &mut cl_event);
 
     Ok((wait_list_len, wait_list_ptr, new_event_ptr))
 }
@@ -199,11 +200,11 @@ pub fn create_build_program(
 pub fn create_kernel(
             program: cl_program, 
             name: &str)
-            -> OclResult<cl_kernel>
+            -> OclResult<KernelRaw>
 {
     let mut err: i32 = 0;
 
-    let kernel_obj = unsafe {
+    let kernel_ptr = unsafe {
         cl_h::clCreateKernel(
             program, 
             try!(CString::new(name.as_bytes())).as_ptr(), 
@@ -212,11 +213,11 @@ pub fn create_kernel(
     };    
     let err_pre = format!("clCreateKernel('{}'):", &name);
     try!(errcode_try(&err_pre, err));
-    Ok(kernel_obj)
+    Ok(KernelRaw::new(kernel_ptr))
 }
 
 
-    // // Modifies a kernel argument.
+    // // Modifies or creates a kernel argument.
     // fn set_kernel_arg(&mut self, arg_index: u32, arg_size: libc::size_t, 
     //             arg_value: *const libc::c_void) 
     // {
@@ -297,7 +298,7 @@ pub fn create_image<T>(
             format: &cl_image_format,
             desc: &cl_image_desc,
             data: Option<&[T]>)
-            -> OclResult<cl_mem>
+            -> OclResult<MemRaw>
 {
     // Verify that the context is valid:
     try!(verify_context(context));
@@ -313,7 +314,7 @@ pub fn create_image<T>(
         None => ptr::null_mut(),
     };
 
-    let image_obj = unsafe { cl_h::clCreateImage(
+    let image_ptr = unsafe { cl_h::clCreateImage(
             context,
             flags,
             format as *const cl_image_format,
@@ -323,14 +324,14 @@ pub fn create_image<T>(
     }; 
     errcode_assert("create_image", errcode);
 
-    assert!(!image_obj.is_null());
+    assert!(!image_ptr.is_null());
 
-    Ok(image_obj)
+    Ok(MemRaw::new(image_ptr))
 }
 
 pub fn enqueue_write_buffer<T>(
             command_queue: cl_command_queue,
-            buffer: cl_mem, 
+            buffer: &MemRaw, 
             block: bool,
             data: &[T],
             offset: usize,
@@ -343,7 +344,7 @@ pub fn enqueue_write_buffer<T>(
     unsafe {
         let errcode = cl_h::clEnqueueWriteBuffer(
                     command_queue,
-                    buffer,
+                    buffer.ptr(),
                     block as u32,
                     offset,
                     (data.len() * mem::size_of::<T>()) as size_t,
@@ -359,7 +360,7 @@ pub fn enqueue_write_buffer<T>(
 
 pub fn enqueue_read_buffer<T>(
             command_queue: cl_command_queue,
-            buffer: cl_mem, 
+            buffer: &MemRaw, 
             block: bool,
             data: &[T],
             offset: usize,
@@ -372,7 +373,7 @@ pub fn enqueue_read_buffer<T>(
     unsafe {
         let errcode = cl_h::clEnqueueReadBuffer(
                     command_queue, 
-                    buffer, 
+                    buffer.ptr(), 
                     block as u32, 
                     offset, 
                     (data.len() * mem::size_of::<T>()) as size_t, 
