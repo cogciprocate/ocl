@@ -1,7 +1,7 @@
 //! An OpenCL context.
 
 // use formatting::MT;
-use raw::{self, ContextRaw, PlatformIdRaw, DeviceIdRaw};
+use raw::{self, ContextRaw, PlatformIdRaw, DeviceIdRaw, DeviceType};
 use cl_h::cl_device_type;
 use error::{Result as OclResult, Error as OclError};
 
@@ -79,7 +79,7 @@ impl Context {
     /// # Maybe Someday TODO:
     /// - Handle context callbacks.
     ///
-    pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<cl_device_type>) 
+    pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<DeviceType>) 
             -> OclResult<Context>
     {
         let platforms: Vec<PlatformIdRaw> = raw::get_platform_ids();

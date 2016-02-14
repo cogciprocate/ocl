@@ -2,22 +2,23 @@
 //!
 //! Rust implementation of OpenCL.
 //!
+//! This documentation is generally built from the [`dev` branch](https://github.com/cogciprocate/ocl/tree/dev) and may be newer than what is on crates.io and the master branch. 
 //!
-//! This documentation is very much a work in progress, as is the library itself. Please help by filing an [issue](https://github.com/cogciprocate/ocl/issues) about unclear and/or incomplete documentation and it will be addressed.
+//! Documentation is very much a work in progress, as is the library itself. Please help by filing an [issue](https://github.com/cogciprocate/ocl/issues) about unclear and/or incomplete documentation and it will be addressed.
 //!
 //! An explanation of how dimensions and sizes of buffers and work queues are intended 
 //! to be used will be coming as soon as a few more things are ironed out.
 //!
 //! ## Low Level Interfaces
 //!
-//! For even lower level interfaces see the `raw` and `cl_h` modules.
+//! For lower level interfaces and to use OpenCL features that have not yet been implemented, see the `raw` and `cl_h` modules (still poorly documented... use the source, Luke).
 //!
 //! ## Library Wide Panics
 //!
-//! All operations will panic upon any OpenCL error. Some work needs to be done
+//! Many operations will panic upon any OpenCL error [UPDATE: Error handling is in a state of transition, some things panic, some return results]. More work needs to be done
 //! evaluating which errors are easily uncovered during development
 //! and are therefore better off 
-//! continuing to panic such as invalid kernel code, and which errors are 
+//! continuing to panic such as invalid kernel code or invalid sizes of things, and which errors are 
 //! more run-timeish and should be returned in a `Result`.
 //!
 //! ## Help Wanted

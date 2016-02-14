@@ -6,19 +6,20 @@ use std::iter;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
-use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, 
+use cl_h::{self, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, 
     cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel,
     cl_program_build_info, cl_mem, cl_event, ClStatus};
 
 use error::{Error as OclError, Result as OclResult};
-use raw::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg};
+use raw::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, 
+    CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType};
 
 
 //=============================================================================
 //============================ SUPPORT FUNCTIONS ==============================
 //=============================================================================
 
-fn errcode_string(errcode: i32) -> String {
+fn errcode_string(errcode: cl_int) -> String {
     match ClStatus::from_i32(errcode) {
         Some(cls) => format!("{:?}", cls),
         None => format!("[Unknown Error Code: {}]", errcode as i64),
@@ -26,8 +27,8 @@ fn errcode_string(errcode: i32) -> String {
 }
 
 /// Evaluates `errcode` and returns an `Err` if it is not 0.
-pub fn errcode_try(message: &str, errcode: i32) -> OclResult<()> {
-    if errcode != cl_h::ClStatus::CL_SUCCESS as i32 {
+fn errcode_try(message: &str, errcode: cl_int) -> OclResult<()> {
+    if errcode != cl_h::ClStatus::CL_SUCCESS as cl_int {
         OclError::err(format!("\n\nOPENCL ERROR: {} failed with code: {}\n\n", 
             message, errcode_string(errcode)))
     } else {
@@ -36,20 +37,20 @@ pub fn errcode_try(message: &str, errcode: i32) -> OclResult<()> {
 }
 
 /// Evaluates `errcode` and panics with a failure message if it is not 0.
-pub fn errcode_assert(message: &str, errcode: i32) {
+fn errcode_assert(message: &str, errcode: cl_int) {
     errcode_try(message, errcode).unwrap();
 }
 
 /// Maps options of slices to pointers and a length.
 pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mut cl_event>)
-        -> OclResult<(u32, *const cl_event, *mut cl_event)>
+        -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer:
-    let (wait_list_len, wait_list_ptr): (u32, *const cl_event) = match wait_list {
+    let (wait_list_len, wait_list_ptr): (cl_uint, *const cl_event) = match wait_list {
         Some(wl) => {
             if wl.len() > 0 {
-                (wl.len() as u32, wl.as_ptr())
+                (wl.len() as cl_uint, wl.as_ptr())
             } else {
                 (0, ptr::null())
             }
@@ -82,10 +83,10 @@ pub fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 /// Returns a list of available platforms as 'raw' objects.
 // TODO: Get rid of manual vec allocation now that PlatformIdRaw implements Clone.
 pub fn get_platform_ids() -> Vec<PlatformIdRaw> {
-    let mut num_platforms = 0 as u32;
+    let mut num_platforms = 0 as cl_uint;
     
     // Get a count of available platforms:
-    let mut errcode: i32 = unsafe { 
+    let mut errcode: cl_int = unsafe { 
         cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) 
     };
     errcode_assert("clGetPlatformIDs()", errcode);
@@ -119,18 +120,19 @@ pub fn get_platform_ids() -> Vec<PlatformIdRaw> {
 ///  -errcode_assert(): [FIXME]: Explaination needed (possibly at crate level?)
 pub fn get_device_ids(
         platform: PlatformIdRaw, 
-        device_types_opt: Option<cl_device_type>)
+        // device_types_opt: Option<cl_device_type>)
+        device_types_opt: Option<DeviceType>)
         -> Vec<DeviceIdRaw> 
 {
-    let device_type = device_types_opt.unwrap_or(DEFAULT_DEVICE_TYPE);
-    let mut devices_available: u32 = 0;
+    let device_type = device_types_opt.unwrap_or(DeviceType::Default);
+    let mut devices_available: cl_uint = 0;
 
     let mut device_ids: Vec<DeviceIdRaw> = iter::repeat(DeviceIdRaw::null())
         .take(DEVICES_MAX as usize).collect();
 
     let errcode = unsafe { cl_h::clGetDeviceIDs(
             platform.as_ptr(), 
-            device_type, 
+            device_type as cl_device_type,
             DEVICES_MAX, 
             device_ids.as_mut_ptr() as *mut cl_device_id,
             &mut devices_available,
@@ -144,11 +146,11 @@ pub fn get_device_ids(
 }
 
 pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
-    let mut errcode: i32 = 0;
+    let mut errcode: cl_int = 0;
 
     let context = ContextRaw::new( unsafe { cl_h::clCreateContext(
             ptr::null(), 
-            device_ids.len() as u32, 
+            device_ids.len() as cl_uint, 
             device_ids.as_ptr()  as *const cl_device_id,
             mem::transmute(ptr::null::<fn()>()), 
             ptr::null_mut(), 
@@ -173,11 +175,11 @@ pub fn create_build_program(
     // Pointers to each string:
     let kern_string_ptrs: Vec<*const i8> = kern_strings.iter().map(|cs| cs.as_ptr()).collect();
 
-    let mut errcode = 0i32;
+    let mut errcode: cl_int = 0;
     
     let program = ProgramRaw::new(unsafe { cl_h::clCreateProgramWithSource(
                 context.as_ptr(), 
-                kern_string_ptrs.len() as u32,
+                kern_string_ptrs.len() as cl_uint,
                 kern_string_ptrs.as_ptr() as *const *const i8,
                 ks_lens.as_ptr() as *const usize,
                 &mut errcode,
@@ -186,7 +188,7 @@ pub fn create_build_program(
 
     errcode = unsafe { cl_h::clBuildProgram(
                 program.as_ptr(),
-                device_ids.len() as u32,
+                device_ids.len() as cl_uint,
                 device_ids.as_ptr() as *const cl_device_id, 
                 cmplr_opts.as_ptr() as *const i8,
                 mem::transmute(ptr::null::<fn()>()), 
@@ -207,7 +209,7 @@ pub fn create_kernel(
             name: &str)
             -> OclResult<KernelRaw>
 {
-    let mut err: i32 = 0;
+    let mut err: cl_int = 0;
 
     let kernel_ptr = unsafe {
         cl_h::clCreateKernel(
@@ -225,7 +227,7 @@ pub fn create_kernel(
 ///
 /// `kernel_name` is for error reporting and is optional.
 ///
-pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
+pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: cl_uint, arg: KernelArg<T>,
             kernel_name: Option<&str>) -> OclResult<()>
 {
     let (arg_size, arg_value) = match arg {
@@ -262,21 +264,6 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
     errcode_try(&err_pre, err)
 } 
 
-// // Modifies or creates a kernel argument.
-// pub fn set_kernel_arg(kernel: KernelRaw, arg_index: u32, arg_size: size_t, 
-//             arg_value: *const c_void, name: Option<&str>)
-// {
-//     let err = unsafe { cl_h::clSetKernelArg(
-//             kernel.as_ptr(), 
-//             arg_index,
-//             arg_size, 
-//             arg_value,
-//     )};
-//     let err_pre = format!("clSetKernelArg('{}'):", name.unwrap_or(""));
-//     errcode_assert(&err_pre, err);
-// } 
-
-
 pub fn create_command_queue(
             context: ContextRaw, 
             device: DeviceIdRaw)
@@ -285,7 +272,7 @@ pub fn create_command_queue(
     // Verify that the context is valid:
     try!(verify_context(context));
 
-    let mut errcode: i32 = 0;
+    let mut errcode: cl_int = 0;
 
     let cq = CommandQueueRaw::new(unsafe { cl_h::clCreateCommandQueue(
             context.as_ptr(), 
@@ -307,7 +294,7 @@ pub fn create_buffer<T>(
     // Verify that the context is valid:
     try!(verify_context(context));
 
-    let mut errcode: i32 = 0;
+    let mut errcode: cl_int = 0;
 
     let host_ptr = match data {
         Some(d) => {
@@ -342,7 +329,7 @@ pub fn create_image<T>(
     // Verify that the context is valid:
     try!(verify_context(context));
 
-    let mut errcode: i32 = 0;
+    let mut errcode: cl_int = 0;
     
     let data_ptr = match data {
         Some(d) => {
@@ -359,7 +346,7 @@ pub fn create_image<T>(
             format as *const cl_image_format,
             desc as *const cl_image_desc,
             data_ptr,
-            &mut errcode as *mut i32)
+            &mut errcode as *mut cl_int)
     }; 
     errcode_assert("create_image", errcode);
 
@@ -384,7 +371,7 @@ pub fn enqueue_write_buffer<T>(
         let errcode = cl_h::clEnqueueWriteBuffer(
                     command_queue.as_ptr(),
                     buffer.as_ptr(),
-                    block as u32,
+                    block as cl_uint,
                     offset,
                     (data.len() * mem::size_of::<T>()) as size_t,
                     data.as_ptr() as cl_mem,
@@ -413,7 +400,7 @@ pub fn enqueue_read_buffer<T>(
         let errcode = cl_h::clEnqueueReadBuffer(
                     command_queue.as_ptr(), 
                     buffer.as_ptr(), 
-                    block as u32, 
+                    block as cl_uint, 
                     offset, 
                     (data.len() * mem::size_of::<T>()) as size_t, 
                     data.as_ptr() as cl_mem, 
@@ -426,11 +413,10 @@ pub fn enqueue_read_buffer<T>(
     }
 }
 
-
 pub fn enqueue_kernel(
             command_queue: CommandQueueRaw,
             kernel: cl_kernel,
-            work_dims: u32,
+            work_dims: cl_uint,
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: [usize; 3],
             local_work_dims: Option<[usize; 3]>,
@@ -461,7 +447,6 @@ pub fn enqueue_kernel(
         errcode_assert(&errcode_pre, errcode);
     }
 }
-
 
 /// [UNTESTED][UNUSED]
 #[allow(dead_code)]
@@ -514,7 +499,7 @@ pub fn finish(command_queue: CommandQueueRaw) {
     }
 }
 
-pub fn wait_for_events(count: u32, event_list: &[cl_event]) {
+pub fn wait_for_events(count: cl_uint, event_list: &[cl_event]) {
     let errcode = unsafe {
         cl_h::clWaitForEvents(count, event_list.as_ptr())
     };
@@ -534,14 +519,14 @@ pub fn wait_for_event(event: cl_event) {
     errcode_assert("clWaitForEvents", errcode);
 }
 
-pub fn get_event_status(event: cl_event) -> i32 {
-    let mut status: i32 = 0;
+pub fn get_event_status(event: cl_event) -> cl_int {
+    let mut status: cl_int = 0;
 
     let errcode = unsafe { 
         cl_h::clGetEventInfo(
             event,
             cl_h::CL_EVENT_COMMAND_EXECUTION_STATUS,
-            mem::size_of::<i32>(),
+            mem::size_of::<cl_int>(),
             &mut status as *mut _ as *mut c_void,
             ptr::null_mut(),
         )
@@ -554,8 +539,8 @@ pub fn get_event_status(event: cl_event) -> i32 {
 
 pub unsafe fn set_event_callback(
             event: cl_event, 
-            callback_trigger: i32, 
-            callback_receiver: extern fn (cl_event, i32, *mut c_void),
+            callback_trigger: cl_int, 
+            callback_receiver: extern fn (cl_event, cl_int, *mut c_void),
             user_data: *mut c_void)
 {
     let errcode = cl_h::clSetEventCallback(event, callback_trigger, callback_receiver, user_data);
@@ -744,6 +729,10 @@ pub fn verify_context(context: ContextRaw) -> OclResult<()> {
     // context_info(context, cl_h::CL_CONTEXT_REFERENCE_COUNT)
     context_info(context, cl_h::CL_CONTEXT_DEVICES)
 }
+
+//=============================================================================
+//========================== DESTRUCTOR FUNCTIONS =============================
+//=============================================================================
 
 pub fn release_context(context: ContextRaw) {
     unsafe {

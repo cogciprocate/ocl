@@ -1,4 +1,4 @@
-//! Utility and printing functions.
+//! Utility and debugging functions.
 //! 
 //! ## Stability
 //!
