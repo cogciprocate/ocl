@@ -348,6 +348,7 @@ pub const CL_MEM_COPY_HOST_PTR:                         cl_bitfield = 1 << 5;
 pub const CL_MEM_HOST_WRITE_ONLY:                       cl_bitfield = 1 << 7;
 pub const CL_MEM_HOST_READ_ONLY:                        cl_bitfield = 1 << 8;
 pub const CL_MEM_HOST_NO_ACCESS:                        cl_bitfield = 1 << 9;
+
 // cl_mem_migration_flags - bitfield
 pub const CL_MIGRATE_MEM_OBJECT_HOST:                   cl_bitfield = 1 << 0;
 pub const CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED:      cl_bitfield = 1 << 1;

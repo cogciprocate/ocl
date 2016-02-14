@@ -1,8 +1,9 @@
 //! [WORK IN PROGRESS] An OpenCL Image.
+//!
+//! TODO: Implement types for each pixel format.
 use std::default::Default;
 use standard::Context;
-use cl_h;
-use raw::{self, MemRaw, ImageFormat, ImageDescriptor};
+use raw::{self, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
 
 
 /// [WORK IN PROGRESS] An OpenCL Image. 
@@ -15,10 +16,10 @@ pub struct Image<T> {
 impl<T: Default> Image<T> {    
     /// Returns a new `Image`.
     /// [FIXME]: Return result.
-    pub fn new(context: &Context, image_format: &ImageFormat, 
+    pub fn new(context: &Context, flags: MemFlags, image_format: &ImageFormat,
             image_desc: &ImageDescriptor, image_data: Option<&[T]>) -> Image<T>
     {
-        let flags: u64 = cl_h::CL_MEM_READ_WRITE;
+        // let flags = raw::flag::READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
 
         let obj_raw = raw::create_image(

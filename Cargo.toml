@@ -11,16 +11,19 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT"
 exclude = ["target/*"]
 
+[dependencies.bitflags]
+git = "https://github.com/rust-lang-nursery/bitflags.git"
+
 [dependencies]
-#find_folder = "*"
+# find_folder = "*"
 rand = "0.3"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
-bitflags = "0.4"
+# bitflags = "0.4"
 
-#[dev-dependencies]
-#time = "*"
+# [dev-dependencies]
+# time = "*"
 
 [profile.test]
 opt-level = 0

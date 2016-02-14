@@ -11,9 +11,8 @@ use cl_h::{self, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, 
     cl_program_build_info, cl_mem, cl_event, ClStatus};
 
 use error::{Error as OclError, Result as OclResult};
-use raw::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, 
+use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, 
     CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType};
-
 
 //=============================================================================
 //============================ SUPPORT FUNCTIONS ==============================
@@ -124,7 +123,7 @@ pub fn get_device_ids(
         device_types_opt: Option<DeviceType>)
         -> Vec<DeviceIdRaw> 
 {
-    let device_type = device_types_opt.unwrap_or(DeviceType::Default);
+    let device_type = device_types_opt.unwrap_or(raw::DEVICE_TYPE_DEFAULT);
     let mut devices_available: cl_uint = 0;
 
     let mut device_ids: Vec<DeviceIdRaw> = iter::repeat(DeviceIdRaw::null())
@@ -132,7 +131,7 @@ pub fn get_device_ids(
 
     let errcode = unsafe { cl_h::clGetDeviceIDs(
             platform.as_ptr(), 
-            device_type as cl_device_type,
+            device_type.bits() as cl_device_type,
             DEVICES_MAX, 
             device_ids.as_mut_ptr() as *mut cl_device_id,
             &mut devices_available,
@@ -227,7 +226,7 @@ pub fn create_kernel(
 ///
 /// `kernel_name` is for error reporting and is optional.
 ///
-pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: cl_uint, arg: KernelArg<T>,
+pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
             kernel_name: Option<&str>) -> OclResult<()>
 {
     let (arg_size, arg_value) = match arg {
@@ -286,7 +285,7 @@ pub fn create_command_queue(
 
 pub fn create_buffer<T>(
             context: ContextRaw,
-            flags: cl_mem_flags,
+            flags: MemFlags,
             len: usize,
             data: Option<&[T]>)
             -> OclResult<cl_mem>
@@ -306,7 +305,7 @@ pub fn create_buffer<T>(
 
     let buf = unsafe { cl_h::clCreateBuffer(
             context.as_ptr(), 
-            flags,
+            flags.bits() as cl_mem_flags,
             len * mem::size_of::<T>(),
             host_ptr, 
             &mut errcode,
@@ -320,7 +319,7 @@ pub fn create_buffer<T>(
 // [WORK IN PROGRESS]
 pub fn create_image<T>(
             context: ContextRaw,
-            flags: cl_mem_flags,
+            flags: MemFlags,
             format: &cl_image_format,
             desc: &cl_image_desc,
             data: Option<&[T]>)
@@ -342,7 +341,7 @@ pub fn create_image<T>(
 
     let image_ptr = unsafe { cl_h::clCreateImage(
             context.as_ptr(),
-            flags,
+            flags.bits() as cl_mem_flags,
             format as *const cl_image_format,
             desc as *const cl_image_desc,
             data_ptr,
