@@ -101,7 +101,7 @@ pub struct cl_buffer_region {
 
 // #[derive(PartialEq, Debug, FromPrimitive)]
 enum_from_primitive! {
-    #[repr()]
+    #[repr(C)]
     #[derive(Debug, PartialEq)]
     pub enum ClStatus {
         CL_SUCCESS                                      = 0,
