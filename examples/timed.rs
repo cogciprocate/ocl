@@ -84,7 +84,7 @@ fn main() {
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
-        buffer_result.fill_vec();
+        buffer_result.fill_vec().ok();
     }
 
     // Print elapsed time for buffer reads:
@@ -101,7 +101,7 @@ fn main() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enqueue(None, None);
-        buffer_result.fill_vec();
+        buffer_result.fill_vec().ok();
     }
 
     ocl_pq.queue().finish();
@@ -117,7 +117,7 @@ fn main() {
 
     let kern_buf_start = Instant::now();
 
-    let mut el = EventList::new();
+    // let mut el = EventList::new();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         // kern.enqueue(Some(&el), Some(&mut el));

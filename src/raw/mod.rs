@@ -38,22 +38,11 @@ mod cl;
 mod custom;
 
 use cl_h;
-// [FIXME]: Import things from `raw::function` individually (bleh).
-pub use self::function::{resolve_queue_opts, resolve_work_dims, get_platform_ids, get_device_ids, 
-	create_context, create_build_program, create_kernel, set_kernel_arg, create_command_queue, 
-	create_buffer, create_image, enqueue_write_buffer, enqueue_read_buffer, enqueue_kernel, 
-	enqueue_copy_buffer, get_max_work_group_size, finish, wait_for_events, wait_for_event, 
-	get_event_status, set_event_callback, release_event, release_mem_object, platform_info, 
-	program_build_err, device_info, context_info, verify_context, release_context, 
-	release_command_queue, release_program, release_kernel};
+pub use self::function::{get_platform_ids, get_device_ids, create_context, create_build_program, create_kernel, set_kernel_arg, create_command_queue, create_buffer, create_image, enqueue_write_buffer, enqueue_read_buffer, enqueue_kernel, enqueue_copy_buffer, get_max_work_group_size, finish, wait_for_events, wait_for_event, get_event_status, set_event_callback, release_event, release_mem_object, platform_info, program_build_err, device_info, context_info, verify_context, release_context, release_command_queue, release_program, release_kernel};
 pub use self::cl::abs::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, 
 	ProgramRaw, KernelRaw, EventRaw, SamplerRaw};
-// pub use self::cl::enum_orgy::{MemObjectType, ContextInfo};
-pub use self::cl::image::{ImageFormat, ImageChannelOrder, ImageChannelDataType, ImageDescriptor};
+pub use self::cl::image_st::{ImageFormat, ImageDescriptor};
 pub use self::custom::enums::{KernelArg};
-
-
-// ,errcode_string, errcode_try, errcode_assert, resolve_queue_opts, resolve_work_dims, get_platform_ids, get_device_ids, create_context, create_build_program, create_kernel, set_kernel_arg, create_command_queue, create_buffer, create_image, enqueue_write_buffer, enqueue_read_buffer, enqueue_kernel, enqueue_copy_buffer, get_max_work_group_size, finish, wait_for_events, wait_for_event, get_event_status, set_event_callback, release_event, release_mem_object, platform_info, program_build_err, device_info, context_info, verify_context, release_context, release_command_queue, release_program, release_kernel
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -178,6 +167,71 @@ bitflags! {
 //=============================================================================
 //=============================== ENUMERATORS =================================
 //=============================================================================
+
+
+/// Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below. (from SDK)
+#[derive(Clone, Copy)]
+pub enum ImageChannelOrder {
+    R = cl_h::CL_R as isize,
+    A = cl_h::CL_A as isize,
+    Rg = cl_h::CL_RG as isize,
+    Ra = cl_h::CL_RA as isize,
+    /// This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
+    Rgb = cl_h::CL_RGB as isize,
+    Rgba = cl_h::CL_RGBA as isize,
+    /// This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
+    Bgra = cl_h::CL_BGRA as isize,
+    /// This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
+    Argb = cl_h::CL_ARGB as isize,
+    /// This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
+    Intensity = cl_h::CL_INTENSITY as isize,
+    /// This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
+    Luminance = cl_h::CL_LUMINANCE as isize,
+    Rx = cl_h::CL_Rx as isize,
+    Rgx = cl_h::CL_RGx as isize,
+    /// This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
+    Rgbx = cl_h::CL_RGBx as isize,
+    Depth = cl_h::CL_DEPTH as isize,
+    DepthStencil = cl_h::CL_DEPTH_STENCIL as isize,
+}
+
+/// Describes the size of the channel data type. The number of bits per element determined by the image_channel_data_type and image_channel_order must be a power of two. The list of supported values is described in the table below. (from SDK)
+#[derive(Clone, Copy)]
+pub enum ImageChannelDataType {
+    /// Each channel component is a normalized signed 8-bit integer value:
+    SnormInt8 = cl_h::CL_SNORM_INT8 as isize,
+    /// Each channel component is a normalized signed 16-bit integer value:
+    SnormInt16 = cl_h::CL_SNORM_INT16 as isize,
+    /// Each channel component is a normalized unsigned 8-bit integer value:
+    UnormInt8 = cl_h::CL_UNORM_INT8 as isize,
+    /// Each channel component is a normalized unsigned 16-bit integer value:
+    UnormInt16 = cl_h::CL_UNORM_INT16 as isize,
+    /// Represents a normalized 5-6-5 3-channel RGB image. The channel order must be CL_RGB or CL_RGBx:
+    UnormShort565 = cl_h::CL_UNORM_SHORT_565 as isize,
+    /// Represents a normalized x-5-5-5 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
+    UnormShort555 = cl_h::CL_UNORM_SHORT_555 as isize,
+    /// Represents a normalized x-10-10-10 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
+    UnormInt101010 = cl_h::CL_UNORM_INT_101010 as isize,
+    /// Each channel component is an unnormalized signed 8-bit integer value:
+    SignedInt8 = cl_h::CL_SIGNED_INT8 as isize,
+    /// Each channel component is an unnormalized signed 16-bit integer value:
+    SignedInt16 = cl_h::CL_SIGNED_INT16 as isize,
+    /// Each channel component is an unnormalized signed 32-bit integer value:
+    SignedInt32 = cl_h::CL_SIGNED_INT32 as isize,
+    /// Each channel component is an unnormalized unsigned 8-bit integer value:
+    UnsignedInt8 = cl_h::CL_UNSIGNED_INT8 as isize,
+    /// Each channel component is an unnormalized unsigned 16-bit integer value:
+    UnsignedInt16 = cl_h::CL_UNSIGNED_INT16 as isize,
+    /// Each channel component is an unnormalized unsigned 32-bit integer value:
+    UnsignedInt32 = cl_h::CL_UNSIGNED_INT32 as isize,
+    /// Each channel component is a 16-bit half-float value:
+    HalfFloat = cl_h::CL_HALF_FLOAT as isize,
+    /// Each channel component is a single precision floating-point value:
+    Float = cl_h::CL_FLOAT as isize,
+    /// Each channel component is a normalized unsigned 24-bit integer value:
+    UnormInt24 = cl_h::CL_UNORM_INT24 as isize,
+}
+
 
 /// cl_bool
 enum_from_primitive! {

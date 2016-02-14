@@ -29,7 +29,7 @@ fn main() {
     kern.enqueue(None, None);
 
     // // Read results from the device into buffer's local vector:
-    buffer.fill_vec();
+    buffer.fill_vec().ok();
 
     // // Print a result:
     println!("The value at index [{}] is '{}'!", 200007, buffer[200007]);

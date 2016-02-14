@@ -12,7 +12,8 @@ use cl_h::{self, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, 
 
 use error::{Error as OclError, Result as OclResult};
 use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, 
-    CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType};
+    CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType,
+    ImageFormat, ImageDescriptor};
 
 //=============================================================================
 //============================ SUPPORT FUNCTIONS ==============================
@@ -41,33 +42,58 @@ fn errcode_assert(message: &str, errcode: cl_int) {
 }
 
 /// Maps options of slices to pointers and a length.
-pub fn resolve_queue_opts(wait_list: Option<&[cl_event]>, dest_event: Option<&mut cl_event>)
+fn resolve_queue_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>)
         -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
-    // otherwise map to the length and pointer:
-    let (wait_list_len, wait_list_ptr): (cl_uint, *const cl_event) = match wait_list {
-        Some(wl) => {
-            if wl.len() > 0 {
-                (wl.len() as cl_uint, wl.as_ptr())
-            } else {
-                (0, ptr::null())
-            }
-        },
-        None => (0, ptr::null()),
-    };
+    // otherwise map to the length and pointer:    
 
-    // let new_event_ptr: *mut cl_event = match dest_event {
-    //     Some(de) => de,
-    //     None => ptr::null_mut(),
+    // let (wait_list_len, wait_list_ptr) = match wait_list {
+    //     Some(wl) => {
+    //         if wl.len() > 0 {
+    //             (wl.len() as cl_uint, wl.as_ptr() as *const cl_event)
+    //         } else {
+    //             (0, ptr::null_mut() as *const cl_event)
+    //         }
+    //     },
+    //     None => (0, ptr::null_mut() as *const cl_event),
     // };
 
-    let new_event_ptr: *mut cl_event = dest_event.unwrap_or(&mut ptr::null_mut() as &mut cl_event);
+    // let wait_list_ptr = match wait_list {
+    //     Some(wl) => wl.as_ptr() as *const cl_event,
+    //     None => ptr::null() as *const cl_event,
+    // };
+    // let wait_list_len = match &wait_list {
+    //     &Some(ref wl) => wl.len() as u32,
+    //     &None => 0,
+    // };
+
+    // let new_event_ptr = new_event.map(|ref mut e| e as *mut _ as *mut cl_event)
+    //     .unwrap_or(ptr::null_mut() as *mut cl_event);
+
+
+    // If the wait list is empty or if its containing option is none, map to (0, null),
+    // otherwise map to the length and pointer:    
+    let (wait_list_len, wait_list_ptr) = match wait_list {
+        Some(wl) => {
+            if wl.len() > 0 {
+                (wl.len() as cl_uint, wl.as_ptr() as *const cl_event)
+            } else {
+                (0, ptr::null_mut() as *const cl_event)
+            }
+        },
+        None => (0, ptr::null_mut() as *const cl_event),
+    };
+
+    let new_event_ptr = match new_event {
+        Some(ne) => ne as *mut _ as *mut cl_event,
+        None => ptr::null_mut() as *mut cl_event,
+    };
 
     Ok((wait_list_len, wait_list_ptr, new_event_ptr))
 }
 
-pub fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
+fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
     match work_dims {
         &Some(ref w) => w as *const [usize; 3] as *const size_t,
         &None => 0 as *const size_t,
@@ -144,6 +170,7 @@ pub fn get_device_ids(
     device_ids
 }
 
+/// Returns a new context pointer valid for all devices in `device_ids`.
 pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
     let mut errcode: cl_int = 0;
 
@@ -159,8 +186,9 @@ pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
     context
 }
 
+/// Creates, builds, and returns a new program pointer from `src_strings`.
 pub fn create_build_program(
-            kern_strings: Vec<CString>,
+            src_strings: Vec<CString>,
             cmplr_opts: CString,
             context: ContextRaw, 
             device_ids: &Vec<DeviceIdRaw>)
@@ -170,9 +198,9 @@ pub fn create_build_program(
     try!(verify_context(context));
 
     // Lengths (not including \0 terminator) of each string:
-    let ks_lens: Vec<usize> = kern_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
+    let ks_lens: Vec<usize> = src_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
     // Pointers to each string:
-    let kern_string_ptrs: Vec<*const i8> = kern_strings.iter().map(|cs| cs.as_ptr()).collect();
+    let kern_string_ptrs: Vec<*const i8> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
 
     let mut errcode: cl_int = 0;
     
@@ -202,7 +230,7 @@ pub fn create_build_program(
     }
 }
 
-
+/// Returns a new kernel pointer.
 pub fn create_kernel(
             program: ProgramRaw, 
             name: &str)
@@ -263,6 +291,7 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
     errcode_try(&err_pre, err)
 } 
 
+/// Returns a new command queue pointer.
 pub fn create_command_queue(
             context: ContextRaw, 
             device: DeviceIdRaw)
@@ -283,12 +312,14 @@ pub fn create_command_queue(
     Ok(cq)
 }
 
+/// Returns a new buffer (mem) pointer with size (bytes): 
+/// `len` * mem::size_of::<T>.
 pub fn create_buffer<T>(
             context: ContextRaw,
             flags: MemFlags,
             len: usize,
             data: Option<&[T]>)
-            -> OclResult<cl_mem>
+            -> OclResult<MemRaw>
 {
     // Verify that the context is valid:
     try!(verify_context(context));
@@ -303,25 +334,27 @@ pub fn create_buffer<T>(
         None => ptr::null_mut(),
     };
 
-    let buf = unsafe { cl_h::clCreateBuffer(
+    let buf = MemRaw::new(unsafe { cl_h::clCreateBuffer(
             context.as_ptr(), 
             flags.bits() as cl_mem_flags,
             len * mem::size_of::<T>(),
             host_ptr, 
             &mut errcode,
-    )};
+    )});
     errcode_assert("create_buffer", errcode);
 
     Ok(buf)
 }
 
-
+/// Returns a new image (mem) pointer.
 // [WORK IN PROGRESS]
 pub fn create_image<T>(
             context: ContextRaw,
             flags: MemFlags,
-            format: &cl_image_format,
-            desc: &cl_image_desc,
+            // format: &cl_image_format,
+            // desc: &cl_image_desc,
+            format: ImageFormat,
+            desc: ImageDescriptor,
             data: Option<&[T]>)
             -> OclResult<MemRaw>
 {
@@ -342,8 +375,8 @@ pub fn create_image<T>(
     let image_ptr = unsafe { cl_h::clCreateImage(
             context.as_ptr(),
             flags.bits() as cl_mem_flags,
-            format as *const cl_image_format,
-            desc as *const cl_image_desc,
+            &format.as_raw() as *const cl_image_format,
+            &desc.as_raw() as *const cl_image_desc,
             data_ptr,
             &mut errcode as *mut cl_int)
     }; 
@@ -354,19 +387,33 @@ pub fn create_image<T>(
     Ok(MemRaw::new(image_ptr))
 }
 
+/// Enqueues a write from host memory, `data`, to device memory referred to by
+/// `buffer`.
+///
+/// [FIXME]: Return result
 pub fn enqueue_write_buffer<T>(
             command_queue: CommandQueueRaw,
             buffer: &MemRaw, 
             block: bool,
             data: &[T],
             offset: usize,
-            wait_list: Option<&[cl_event]>, 
-            dest_event: Option<&mut cl_event>)
+            wait_list: Option<&[EventRaw]>, 
+            new_event: Option<&mut EventRaw>,
+        ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
-        = resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_write_buffer()");
+        = resolve_queue_opts(wait_list, new_event)
+            .expect("[FIXME: Return result]: enqueue_write_buffer()");
+
+    // let wait_list_len = match &wait_list {
+    //     &Some(ref wl) => wl.len() as u32,
+    //     &None => 0,
+    // };
 
     unsafe {
+        // let wait_list_ptr = wait_list as *const *mut c_void;
+        // let new_event_ptr = new_event as *mut *mut c_void;
+
         let errcode = cl_h::clEnqueueWriteBuffer(
                     command_queue.as_ptr(),
                     buffer.as_ptr(),
@@ -379,37 +426,47 @@ pub fn enqueue_write_buffer<T>(
                     new_event_ptr,
         );
 
-        errcode_assert("clEnqueueWriteBuffer()", errcode);
+        errcode_try("clEnqueueWriteBuffer()", errcode)
     }
 }
 
-pub fn enqueue_read_buffer<T>(
+/// Enqueues a read from device memory referred to by `buffer` to device memory,
+/// `data`.
+///
+/// # Safety
+///
+/// It's complicated. Short version: make sure the memory pointed to by the 
+/// slice, `data`, doesn't get reallocated before `new_event` is complete.
+///
+/// [FIXME]: Add a proper explanation of all the ins and outs. 
+///
+/// [FIXME]: Return result
+pub unsafe fn enqueue_read_buffer<T>(
             command_queue: CommandQueueRaw,
             buffer: &MemRaw, 
             block: bool,
             data: &[T],
             offset: usize,
-            wait_list: Option<&[cl_event]>, 
-            dest_event: Option<&mut cl_event>)
+            wait_list: Option<&[EventRaw]>, 
+            new_event: Option<&mut EventRaw>,
+        ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_read_buffer()");
+        resolve_queue_opts(wait_list, new_event).expect("[FIXME]: enqueue_read_buffer()");
 
-    unsafe {
-        let errcode = cl_h::clEnqueueReadBuffer(
-                    command_queue.as_ptr(), 
-                    buffer.as_ptr(), 
-                    block as cl_uint, 
-                    offset, 
-                    (data.len() * mem::size_of::<T>()) as size_t, 
-                    data.as_ptr() as cl_mem, 
-                    wait_list_len,
-                    wait_list_ptr,
-                    new_event_ptr,
-        );
+    let errcode = cl_h::clEnqueueReadBuffer(
+            command_queue.as_ptr(), 
+            buffer.as_ptr(), 
+            block as cl_uint, 
+            offset, 
+            (data.len() * mem::size_of::<T>()) as size_t, 
+            data.as_ptr() as cl_mem, 
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+    );
 
-        errcode_assert("clEnqueueReadBuffer()", errcode);
-    }
+    errcode_try("clEnqueueReadBuffer()", errcode)
 }
 
 pub fn enqueue_kernel(
@@ -419,12 +476,12 @@ pub fn enqueue_kernel(
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: [usize; 3],
             local_work_dims: Option<[usize; 3]>,
-            wait_list: Option<&[cl_event]>, 
-            dest_event: Option<&mut cl_event>,
+            wait_list: Option<&[EventRaw]>, 
+            new_event: Option<&mut EventRaw>,
             kernel_name: Option<&str>)
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        resolve_queue_opts(wait_list, dest_event).expect("[FIXME]: enqueue_kernel()");
+        resolve_queue_opts(wait_list, new_event).expect("[FIXME]: enqueue_kernel()");
     let gwo = resolve_work_dims(&global_work_offset);
     let gws = &global_work_dims as *const size_t;
     let lws = resolve_work_dims(&local_work_dims);
@@ -498,9 +555,9 @@ pub fn finish(command_queue: CommandQueueRaw) {
     }
 }
 
-pub fn wait_for_events(count: cl_uint, event_list: &[cl_event]) {
+pub fn wait_for_events(count: cl_uint, event_list: &[EventRaw]) {
     let errcode = unsafe {
-        cl_h::clWaitForEvents(count, event_list.as_ptr())
+        cl_h::clWaitForEvents(count, &(*event_list.as_ptr()).as_ptr())
     };
 
     errcode_assert("clWaitForEvents", errcode);
@@ -508,22 +565,23 @@ pub fn wait_for_events(count: cl_uint, event_list: &[cl_event]) {
 
 
 #[allow(dead_code)]
-pub fn wait_for_event(event: cl_event) {
-    let event_array: [cl_event; 1] = [event];
+/// [FIXME]: Why are we wrapping in this array? Fix this.
+pub fn wait_for_event(event: EventRaw) {
+    let event_array: [EventRaw; 1] = [event];
 
     let errcode = unsafe {
-        cl_h::clWaitForEvents(1, event_array.as_ptr())
+        cl_h::clWaitForEvents(1, &(*event_array.as_ptr()).as_ptr())
     };
 
     errcode_assert("clWaitForEvents", errcode);
 }
 
-pub fn get_event_status(event: cl_event) -> cl_int {
+pub fn get_event_status(event: EventRaw) -> cl_int {
     let mut status: cl_int = 0;
 
     let errcode = unsafe { 
         cl_h::clGetEventInfo(
-            event,
+            event.as_ptr(),
             cl_h::CL_EVENT_COMMAND_EXECUTION_STATUS,
             mem::size_of::<cl_int>(),
             &mut status as *mut _ as *mut c_void,
@@ -542,23 +600,10 @@ pub unsafe fn set_event_callback(
             callback_receiver: extern fn (cl_event, cl_int, *mut c_void),
             user_data: *mut c_void)
 {
-    let errcode = cl_h::clSetEventCallback(event, callback_trigger, callback_receiver, user_data);
+    let errcode = cl_h::clSetEventCallback(event, callback_trigger, 
+        callback_receiver, user_data);
 
     errcode_assert("clSetEventCallback", errcode);
-}
-
-pub fn release_event(event: cl_event) {
-    let errcode = unsafe {
-        cl_h::clReleaseEvent(event)
-    };
-
-    errcode_assert("clReleaseEvent", errcode);
-}
-
-pub fn release_mem_object(obj: cl_mem) {
-    unsafe {
-        cl_h::clReleaseMemObject(obj);
-    }
 }
 
 /// TODO: Evaluate usefulness
@@ -733,26 +778,39 @@ pub fn verify_context(context: ContextRaw) -> OclResult<()> {
 //========================== DESTRUCTOR FUNCTIONS =============================
 //=============================================================================
 
-pub fn release_context(context: ContextRaw) {
-    unsafe {
-        cl_h::clReleaseContext(context.as_ptr());
-    }
-}
- 
-pub fn release_command_queue(queue: CommandQueueRaw) {
-    unsafe {
-        cl_h::clReleaseCommandQueue(queue.as_ptr());
-    }
+
+pub fn release_event(event: EventRaw) {
+    errcode_assert("clReleaseEvent", unsafe {
+        cl_h::clReleaseEvent(event.as_ptr())
+    });
 }
 
-pub fn release_program(program: ProgramRaw) {
-    unsafe { 
-        cl_h::clReleaseProgram(program.as_ptr());
-    }
+pub fn release_mem_object(mem: MemRaw) {
+    errcode_assert("clReleaseMemObject", unsafe {
+        cl_h::clReleaseMemObject(mem.as_ptr())
+    });
+}
+
+pub fn release_command_queue(queue: CommandQueueRaw) {
+    errcode_assert("clReleaseCommandQueue", unsafe {
+        cl_h::clReleaseCommandQueue(queue.as_ptr())
+    });
 }
 
 pub fn release_kernel(kernel: KernelRaw) {
-    unsafe {
-        cl_h::clReleaseKernel(kernel.as_ptr());
-    }
+    errcode_assert("clReleaseKernel", unsafe {
+        cl_h::clReleaseKernel(kernel.as_ptr())
+    });
+}
+
+pub fn release_program(program: ProgramRaw) {
+    errcode_assert("clReleaseKernel", unsafe { 
+        cl_h::clReleaseProgram(program.as_ptr())
+    });
+}
+
+pub fn release_context(context: ContextRaw) {
+    errcode_assert("clReleaseContext", unsafe {
+        cl_h::clReleaseContext(context.as_ptr())
+    });
 }

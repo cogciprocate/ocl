@@ -128,7 +128,7 @@ fn main() {
         let mut read_event = EventList::new();
         
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
-        result_buffer.fill_vec_async(None, Some(&mut read_event));
+        unsafe { result_buffer.fill_vec_async(None, Some(&mut read_event)).ok(); }
     
 
         let last_idx = buncha_stuffs.len() - 1;     

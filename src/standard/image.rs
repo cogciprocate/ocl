@@ -16,8 +16,8 @@ pub struct Image<T> {
 impl<T: Default> Image<T> {    
     /// Returns a new `Image`.
     /// [FIXME]: Return result.
-    pub fn new(context: &Context, flags: MemFlags, image_format: &ImageFormat,
-            image_desc: &ImageDescriptor, image_data: Option<&[T]>) -> Image<T>
+    pub fn new(context: &Context, flags: MemFlags, image_format: ImageFormat,
+            image_desc: ImageDescriptor, image_data: Option<&[T]>) -> Image<T>
     {
         // let flags = raw::flag::READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
@@ -25,8 +25,8 @@ impl<T: Default> Image<T> {
         let obj_raw = raw::create_image(
             context.obj_raw(),
             flags,
-            &image_format.as_raw(), 
-            &image_desc.as_raw(),
+            image_format,
+            image_desc,
             image_data,).expect("[FIXME: TEMPORARY]: Image::new():");
 
         Image {

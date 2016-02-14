@@ -23,7 +23,7 @@ use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, 
 pub struct PlatformIdRaw(cl_platform_id);
 
 impl PlatformIdRaw {
-	pub fn new(ptr: cl_kernel) -> PlatformIdRaw {
+	pub fn new(ptr: cl_platform_id) -> PlatformIdRaw {
 		PlatformIdRaw(ptr)
 	}
 
@@ -31,7 +31,7 @@ impl PlatformIdRaw {
 		PlatformIdRaw(0 as *mut libc::c_void)
 	}
 
-	pub fn as_ptr(&self) -> cl_kernel {
+	pub fn as_ptr(&self) -> cl_platform_id {
 		self.0
 	}
 }
@@ -41,7 +41,7 @@ impl PlatformIdRaw {
 pub struct DeviceIdRaw(cl_device_id);
 
 impl DeviceIdRaw {
-	pub fn new(ptr: cl_kernel) -> DeviceIdRaw {
+	pub fn new(ptr: cl_device_id) -> DeviceIdRaw {
 		DeviceIdRaw(ptr)
 	}
 
@@ -49,7 +49,7 @@ impl DeviceIdRaw {
 		DeviceIdRaw(0 as *mut libc::c_void)
 	}
 
-	pub fn as_ptr(&self) -> cl_kernel {
+	pub fn as_ptr(&self) -> cl_device_id {
 		self.0
 	}
 }
@@ -59,11 +59,11 @@ impl DeviceIdRaw {
 pub struct ContextRaw(cl_context);
 
 impl ContextRaw {
-	pub fn new(ptr: cl_kernel) -> ContextRaw {
+	pub fn new(ptr: cl_context) -> ContextRaw {
 		ContextRaw(ptr)
 	}
 
-	pub fn as_ptr(&self) -> cl_kernel {
+	pub fn as_ptr(&self) -> cl_context {
 		self.0
 	}
 }
@@ -73,11 +73,11 @@ impl ContextRaw {
 pub struct CommandQueueRaw(cl_command_queue);
 
 impl CommandQueueRaw {
-	pub fn new(ptr: cl_kernel) -> CommandQueueRaw {
+	pub fn new(ptr: cl_command_queue) -> CommandQueueRaw {
 		CommandQueueRaw(ptr)
 	}
 
-	pub fn as_ptr(&self) -> cl_kernel {
+	pub fn as_ptr(&self) -> cl_command_queue {
 		self.0
 	}
 }
@@ -87,7 +87,7 @@ impl CommandQueueRaw {
 pub struct MemRaw(cl_mem);
 
 impl MemRaw {
-	pub fn new(ptr: cl_kernel) -> MemRaw {
+	pub fn new(ptr: cl_mem) -> MemRaw {
 		MemRaw(ptr)
 	}
 
@@ -95,7 +95,7 @@ impl MemRaw {
 		MemRaw(0 as *mut libc::c_void)
 	}
 
-	pub fn as_ptr(&self) -> cl_kernel {
+	pub fn as_ptr(&self) -> cl_mem {
 		self.0
 	}
 }
@@ -105,11 +105,11 @@ impl MemRaw {
 pub struct ProgramRaw(cl_program);
 
 impl ProgramRaw {
-	pub fn new(ptr: cl_kernel) -> ProgramRaw {
+	pub fn new(ptr: cl_program) -> ProgramRaw {
 		ProgramRaw(ptr)
 	}
 
-	pub fn as_ptr(&self) -> cl_kernel {
+	pub fn as_ptr(&self) -> cl_program {
 		self.0
 	}
 }
@@ -129,29 +129,33 @@ impl KernelRaw {
 }
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug)]
 pub struct EventRaw(cl_event);
 
 impl EventRaw {
-	pub fn new(ptr: cl_kernel) -> EventRaw {
+	pub fn new(ptr: cl_event) -> EventRaw {
 		EventRaw(ptr)
 	}
 
-	pub fn as_ptr(&self) -> cl_kernel {
+	pub fn null() -> EventRaw {
+		EventRaw(0 as *mut libc::c_void)
+	}
+
+	pub fn as_ptr(&self) -> cl_event {
 		self.0
 	}
 }
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct SamplerRaw(cl_sampler);
 
 impl SamplerRaw {
-	pub fn new(ptr: cl_kernel) -> SamplerRaw {
+	pub fn new(ptr: cl_sampler) -> SamplerRaw {
 		SamplerRaw(ptr)
 	}
 
-	pub fn as_ptr(&self) -> cl_kernel {
+	pub fn as_ptr(&self) -> cl_sampler {
 		self.0
 	}
 }

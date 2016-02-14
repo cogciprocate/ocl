@@ -27,10 +27,12 @@ Breaking Changes
   The more straightforward, blocking versions of these methods now have the 
   simplest names wheras the more complicated, non-blocking versions have the 
   `_async` suffix.
-* `ProQue::build` has been renamed `ProQue::build_program`.
+* [`Buffer`] non-blocking read methods (*_async) are now unsafe pending review.
+* [`Buffer`] reading and writing methods now returns a `Result<()>`.
 * The `Buffer::with_vec_shuffled` and `Buffer::with_vec_scrambled` methods 
   now accept a 2-tuple as the first argument instead of two separate values for 
   the first two arguments.
+* `ProQue::build` has been renamed `ProQue::build_program`.
 * `BuildOptions` has been renamed to [`ProgramBuilder`] and has been 
   redesigned:
    * A new `ProgramBuilder` can be created with `ProgramBuilder::new` or 

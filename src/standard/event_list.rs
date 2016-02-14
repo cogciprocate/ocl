@@ -1,5 +1,5 @@
 //! Event list for coordinating enqueued tasks.
-use std::ptr;
+// use std::ptr;
 use libc::c_void;
 
 use raw::{self, EventRaw};
@@ -10,18 +10,16 @@ use cl_h::{self, cl_event};
 // [FIXME] TODO: impl Index.
 #[derive(Debug)]
 pub struct EventList {
-    events: Vec<cl_event>,
+    events: Vec<EventRaw>,
 }
 
 impl EventList {
     /// Returns a new, empty, `EventList`.
-    #[inline]
     pub fn new() -> EventList {
         EventList { events: Vec::with_capacity(16) }
     }
 
     /// Merges the copied contents of this list and another into a new list and returns it.
-    #[inline]
     pub fn union(&self, other_list: &EventList) -> EventList {
         let mut new_list = EventList { events: Vec::with_capacity(other_list.events().len() 
             + self.events.len() + 8) };
@@ -32,45 +30,46 @@ impl EventList {
     }
 
     /// Appends a new null element to the end of the list and returns a mutable slice
-    /// containing only that element.
+    /// containing only that element. 
+    /// [FIXME]: Update
     #[inline]
-    pub fn allot(&mut self) -> &mut cl_event {
-        self.events.push(ptr::null_mut());
+    pub fn allot(&mut self) -> &mut EventRaw {
+        self.events.push(EventRaw::null());
         self.events.last_mut().unwrap()
     }
 
     // #[inline]
-    pub fn last(&self) -> Option<&cl_event> {
+    pub fn last(&self) -> Option<&EventRaw> {
         self.events.last()
     }
 
 
     // #[inline]
-    pub fn last_mut(&mut self) -> Option<&mut cl_event> {
+    pub fn last_mut(&mut self) -> Option<&mut EventRaw> {
         self.events.last_mut()
     }
 
     /// Returns an immutable slice to the events list.
     #[inline]
-    pub fn events(&self) -> &[cl_event] {
+    pub fn events(&self) -> &[EventRaw] {
         &self.events[..]
     }
 
     /// Returns a mutable slice to the events list.
     #[inline]
-    pub fn events_mut(&mut self) -> &mut [cl_event] {
+    pub fn events_mut(&mut self) -> &mut [EventRaw] {
         &mut self.events[..]
     }
 
     /// Returns a const pointer to the list, useful for passing directly to the c ffi.
     #[inline]
-    pub fn as_ptr(&self) -> *const cl_event {
+    pub fn as_ptr(&self) -> *const EventRaw {
         self.events().as_ptr()
     }
 
     /// Returns a mut pointer to the list, useful for passing directly to the c ffi.
     #[inline]
-    pub fn as_mut_ptr(&mut self) -> *mut cl_event {
+    pub fn as_mut_ptr(&mut self) -> *mut EventRaw {
         self.events_mut().as_mut_ptr()
     }
 
@@ -96,7 +95,7 @@ impl EventList {
     {
         if self.events.len() > 0 {
             raw::set_event_callback(
-                self.events[self.events.len() - 1], 
+                self.events[self.events.len() - 1].as_ptr(), 
                 cl_h::CL_COMPLETE, 
                 callback_receiver,
                 user_data as *mut _ as *mut c_void,
@@ -105,7 +104,7 @@ impl EventList {
     }
 
     // pub fn set_callback_buffer(&self, 
-    //          callback_receiver: extern fn (cl_event, i32, *mut libc::c_void),
+    //          callback_receiver: extern fn (EventRaw, i32, *mut libc::c_void),
     //          user_data: *mut libc::c_void,
     //      )
     // {
@@ -137,7 +136,7 @@ impl EventList {
 
         let mut idx = 0;
         for event in self.events.iter() {
-            if raw::get_event_status(*event) == cl_h::CL_COMPLETE {
+            if raw::get_event_status((*event).clone()) == cl_h::CL_COMPLETE {
                 ce_idxs.push(idx)
             }
 
@@ -159,8 +158,8 @@ impl EventList {
     /// Events will continue to exist until their creating commands have completed 
     /// and no other commands are waiting for them to complete.
     pub fn release_all(&mut self) {
-        for &mut event in &mut self.events {
-            raw::release_event(event);
+        for event in &mut self.events {
+            raw::release_event(event.clone());
         }
 
         self.clear();

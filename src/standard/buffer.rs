@@ -196,9 +196,9 @@ impl<T: OclNum> Buffer<T> {
     pub unsafe fn new_raw_unchecked(flags: MemFlags, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
-        let obj_raw = MemRaw::new(raw::create_buffer(queue.context_obj_raw(), flags, len,
+        let obj_raw = raw::create_buffer(queue.context_obj_raw(), flags, len,
             host_ptr)
-            .expect("[FIXME: TEMPORARY]: Buffer::_new():"));
+            .expect("[FIXME: TEMPORARY]: Buffer::_new():");
 
         Buffer {
             obj_raw: obj_raw,
@@ -211,10 +211,10 @@ impl<T: OclNum> Buffer<T> {
     // Consolidated constructor for Buffers without vectors.
     /// [FIXME]: Return result.
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
-        let obj_raw = MemRaw::new(raw::create_buffer::<T>(queue.context_obj_raw(),
+        let obj_raw = raw::create_buffer::<T>(queue.context_obj_raw(),
             // cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, len, None)
             raw::MEM_READ_WRITE | raw::MEM_COPY_HOST_PTR, len, None)
-            .expect("[FIXME: TEMPORARY]: Buffer::_new():"));
+            .expect("[FIXME: TEMPORARY]: Buffer::_new():");
 
         Buffer {            
             obj_raw: obj_raw,
@@ -227,9 +227,9 @@ impl<T: OclNum> Buffer<T> {
     // Consolidated constructor for Buffers with vectors.
     /// [FIXME]: Return result.
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let obj_raw = MemRaw::new(raw::create_buffer(queue.context_obj_raw(), 
+        let obj_raw = raw::create_buffer(queue.context_obj_raw(), 
             raw::MEM_READ_WRITE | raw::MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec))
-            .expect("[FIXME: TEMPORARY]: Buffer::_with_vec():"));
+            .expect("[FIXME: TEMPORARY]: Buffer::_with_vec():");
 
         Buffer {        
             obj_raw: obj_raw,
@@ -247,9 +247,9 @@ impl<T: OclNum> Buffer<T> {
     /// `offset` must be less than the length of the buffer.
     ///
     /// The length of `data` must be less than the length of the buffer minus `offset`.
-    pub fn write(&self, data: &[T], offset: usize) 
+    pub fn write(&self, data: &[T], offset: usize) -> OclResult<()>
     {
-        self.write_async(data, offset, None, None);
+        self.write_async(data, offset, None, None)
     }
 
 
@@ -261,9 +261,10 @@ impl<T: OclNum> Buffer<T> {
     /// `offset` must be less than the length of the buffer.
     ///
     /// The length of `data` must be less than the length of the buffer minus `offset`.
-    pub fn read(&self, data: &mut [T], offset: usize) 
+    pub fn read(&self, data: &mut [T], offset: usize) -> OclResult<()>
     {
-        self.read_async(data, offset, None, None);
+        // Safe due to being a blocking read (right?).
+        unsafe { self.read_async(data, offset, None, None) }
     }
 
     /// Enqueues writing `data.len() * mem::size_of::<T>()` bytes from `data` to the 
@@ -275,20 +276,25 @@ impl<T: OclNum> Buffer<T> {
     /// If the `dest_list` event list is `None`, the write will be blocking, otherwise
     /// returns immediately.
     ///
+    /// # Data Integrity
+    ///
+    /// Ensure that the memory referred to by `data` is unmolested until the 
+    /// write completes if passing a `dest_list`.
+    ///
     /// # Panics
     ///
     /// `offset` must be less than the length of the buffer.
     ///
     /// The length of `data` must be less than the length of the buffer minus `offset`.
     pub fn write_async(&self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
-                dest_list: Option<&mut EventList>) 
+                dest_list: Option<&mut EventList>) -> OclResult<()>
     {
         assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
         assert!(data.len() <= self.len() - offset, 
             "Buffer::write{{_async}}(): Data length out of range.");
         let blocking_write = dest_list.is_none();
         raw::enqueue_write_buffer(self.queue_obj_raw, &self.obj_raw, blocking_write, 
-            data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
+            data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
     }
 
 
@@ -302,34 +308,50 @@ impl<T: OclNum> Buffer<T> {
     /// If the `dest_list` event list is `None`, the read will be blocking, otherwise
     /// returns immediately.
     ///
+    /// # Safety
+    ///
+    /// Bad things will happen if the memory referred to by `data` is freed and
+    /// reallocated before the read completes. It's up to the caller to make 
+    /// sure that the new event added to `dest_list` completes. Use 
+    /// 'dest_list.last()' right after the calling `::read_async` to get a.
+    /// reference to the event associated with the read. [NOTE: Improved ease
+    /// of use is coming to the event api eventually]
+    ///
     /// # Panics
     ///
     /// `offset` must be less than the length of the buffer.
     ///
     /// The length of `data` must be less than the length of the buffer minus `offset`.
-    pub fn read_async(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
-                dest_list: Option<&mut EventList>) 
+    pub unsafe fn read_async(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
+                dest_list: Option<&mut EventList>) -> OclResult<()>
     {
         assert!(offset < self.len(), "Buffer::read{{_async}}(): Offset out of range.");
         assert!(data.len() <= self.len() - offset, 
             "Buffer::read{{_async}}(): Data length out of range.");
         let blocking_read = dest_list.is_none();
         raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, blocking_read, 
-            data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
+            data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
     }
 
     /// After waiting on events in `wait_list` to finish, writes the contents of
     /// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`.
     ///
+    /// # Data Integrity
+    ///
+    /// Ensure that this `Buffer` lives until until the write completes if 
+    /// passing a `dest_list`.
+    ///
     /// Will block until the write is complete if `dest_list` is None.
     ///
     /// # Panics
     /// Panics if this Buffer contains no vector.
-    pub fn flush_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+    pub fn flush_vec_async(&mut self, wait_list: Option<&EventList>, 
+                dest_list: Option<&mut EventList>) -> OclResult<()>
+    {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = self.vec.as_mut().expect("Buffer::flush_vec_async()");
         raw::enqueue_write_buffer(self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
-            vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
+            vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
     }
 
     /// After waiting on events in `wait_list` to finish, reads the remote device 
@@ -338,13 +360,23 @@ impl<T: OclNum> Buffer<T> {
     /// Will block until the read is complete and the internal vector is filled if 
     /// `dest_list` is `None`.
     ///
+    /// # Safety 
+    ///
+    /// Currently up to the caller to ensure this `Buffer` lives long enough
+    /// for the read to complete.
+    ///
+    /// TODO: Keep an internal eventlist to track pending reads and cancel them
+    /// if this `Buffer` is destroyed beforehand.
+    ///
     /// # Panics
     /// Panics if this Buffer contains no vector.
-    pub fn fill_vec_async(&mut self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+    pub unsafe fn fill_vec_async(&mut self, wait_list: Option<&EventList>, 
+                dest_list: Option<&mut EventList>) -> OclResult<()>
+    {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = self.vec.as_mut().expect("Buffer::fill_vec_async()");
         raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
-            vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()));
+            vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
     }
 
     /// Writes the contents of `self.vec` to the remote device data buffer and 
@@ -354,10 +386,8 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// # Panics
     /// Panics if this Buffer contains no vector.
-    pub fn flush_vec(&mut self) {       
-        // let vec = self.vec.as_mut().expect("Buffer::flush_vec()");
-        // raw::enqueue_write_buffer(self.queue_obj_raw, self.obj_raw, true, vec, 0, None, None);
-        self.flush_vec_async(None, None);
+    pub fn flush_vec(&mut self) -> OclResult<()> {
+        self.flush_vec_async(None, None)
     }
 
     /// Reads the remote device data buffer into `self.vec` and blocks until completed.
@@ -366,11 +396,9 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// # Panics
     /// Panics if this Buffer contains no vector.
-    pub fn fill_vec(&mut self) {
-        // let vec = self.vec.as_mut().expect("Buffer::read_wait()");
-        // raw::enqueue_read_buffer(self.queue_obj_raw, self.obj_raw, 
-        //  true, vec, 0, None, None);
-        self.fill_vec_async(None, None);
+    pub fn fill_vec(&mut self) -> OclResult<()> {
+        // Safe due to being a blocking read (right?).
+        unsafe { self.fill_vec_async(None, None) }
     }   
 
     /// Blocks until the underlying command queue has completed all commands.
@@ -383,7 +411,7 @@ impl<T: OclNum> Buffer<T> {
     /// # Panics
     /// Panics if this Buffer contains no vector.
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    pub fn set_all_to(&mut self, val: T) {
+    pub fn set_all_to(&mut self, val: T) -> OclResult<()> {
         {
             let vec = self.vec.as_mut().expect("Buffer::set_all_to()");
             for ele in vec.iter_mut() {
@@ -391,7 +419,7 @@ impl<T: OclNum> Buffer<T> {
             }
         }
 
-        self.flush_vec();
+        self.flush_vec()
     }
 
     /// [UNSTABLE]: Convenience method.
@@ -399,7 +427,7 @@ impl<T: OclNum> Buffer<T> {
     /// # Panics
     /// Panics if this Buffer contains no vector.
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    pub fn set_range_to(&mut self, val: T, range: Range<usize>) {       
+    pub fn set_range_to(&mut self, val: T, range: Range<usize>) -> OclResult<()> {       
         {
             let vec = self.vec.as_mut().expect("Buffer::set_range_to()");
             // for idx in range {
@@ -409,7 +437,7 @@ impl<T: OclNum> Buffer<T> {
             }
         }
 
-        self.flush_vec();
+        self.flush_vec()
     }
 
     /// Returns the length of the Buffer.
@@ -440,16 +468,16 @@ impl<T: OclNum> Buffer<T> {
         match self.vec {
             VecOption::Some(ref mut vec) => {
                 vec.resize(new_len, T::default());
-                self.obj_raw = MemRaw::new(raw::create_buffer(queue.context_obj_raw(), 
+                self.obj_raw = raw::create_buffer(queue.context_obj_raw(), 
                     raw::MEM_READ_WRITE | raw::MEM_COPY_HOST_PTR, self.len, Some(vec))
-                    .expect("[FIXME: TEMPORARY]: Buffer::_resize():"));
+                    .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
             },
             VecOption::None => {
                 self.len = new_len;
                 // let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
-                self.obj_raw = MemRaw::new(raw::create_buffer::<T>(queue.context_obj_raw(), 
+                self.obj_raw = raw::create_buffer::<T>(queue.context_obj_raw(), 
                     raw::MEM_READ_WRITE, self.len, None)
-                    .expect("[FIXME: TEMPORARY]: Buffer::_resize():"));
+                    .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
             },
         };
     }
@@ -457,7 +485,7 @@ impl<T: OclNum> Buffer<T> {
     /// Decrements the reference count associated with the previous buffer object, 
     /// `self.obj_raw`.
     pub fn release(&mut self) {
-        raw::release_mem_object(self.obj_raw.as_ptr());
+        raw::release_mem_object(self.obj_raw);
     }
 
     /// Returns a reference to the local vector associated with this buffer.
@@ -466,7 +494,7 @@ impl<T: OclNum> Buffer<T> {
     /// reads. ([FIXME]: Is this a safety issue?)
     ///
     /// # Failures
-    /// [FIXME: NOW PANICS] Returns an error if this buffer contains no vector.
+    /// [FIXME: UPDATE DOC] Returns an error if this buffer contains no vector.
     #[inline]
     pub fn vec(&self) -> &Vec<T> {
         self.vec.as_ref().expect("Buffer::vec()")
@@ -478,7 +506,7 @@ impl<T: OclNum> Buffer<T> {
     /// read.
     /// 
     /// # Failures
-    /// [FIXME: NOW PANICS] Returns an error if this buffer contains no vector.
+    /// [FIXME: UPDATE DOC] Returns an error if this buffer contains no vector.
     ///
     /// # Safety
     /// Could cause data collisions, etc. May not be unsafe strictly speaking
@@ -571,7 +599,9 @@ impl<T: OclNum> Buffer<T> {
     /// [FIXME]: CREATE AN EMPTY VECTOR FOR PRINTING IF NONE EXISTS INSTEAD
     /// OF PANICING.
     ///
+    ///
     /// # Panics
+    ///
     /// Panics if this Buffer contains no vector.
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
     pub fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
@@ -584,8 +614,8 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
-            &mut vec[idx_range.clone()], idx_range.start, None, None);
+        unsafe { raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
+            &mut vec[idx_range.clone()], idx_range.start, None, None).ok() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 
     }
@@ -729,9 +759,10 @@ pub mod tests {
     }
 
     impl<T: OclNum> BufferTest<T> for Buffer<T> {
+        // Throw caution to the wind (this is potentially unsafe).
         fn read_idx_direct(&self, idx: usize) -> T {
             let mut buffer = vec![Zero::zero()];
-            self.read_async(&mut buffer[0..1], idx, None, None);
+            self.read(&mut buffer[0..1], idx).ok();
             buffer[0]
         }
     }
