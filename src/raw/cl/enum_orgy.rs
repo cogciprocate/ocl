@@ -11,14 +11,7 @@ pub enum ContextInfo {
 	Properties = cl_h::CL_CONTEXT_PROPERTIES as isize,
 }
 
-
-// // cl_device_type - bitfield 
-// pub const CL_DEVICE_TYPE_DEFAULT:                      cl_bitfield = 1 << 0;
-// pub const CL_DEVICE_TYPE_CPU:                          cl_bitfield = 1 << 1;
-// pub const CL_DEVICE_TYPE_GPU:                          cl_bitfield = 1 << 2;
-// pub const CL_DEVICE_TYPE_ACCELERATOR:                  cl_bitfield = 1 << 3;
-// pub const CL_DEVICE_TYPE_CUSTOM:                       cl_bitfield = 1 << 4;
-// pub const CL_DEVICE_TYPE_ALL:                          cl_bitfield = 0xFFFFFFFF;
+/// cl_device_type - bitfield 
 #[derive(Clone, Copy)]
 pub enum DeviceType {
     Default = cl_h::CL_DEVICE_TYPE_DEFAULT as isize,
@@ -34,7 +27,6 @@ impl DeviceType {
         self.clone() as u64
     }
 }
-
 
 #[derive(Clone, Copy)]
 pub enum MemObjectType {

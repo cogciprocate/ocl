@@ -38,7 +38,7 @@ mod cl;
 mod custom;
 
 use cl_h;
-// [FIXME]: Import everything individually.
+// [FIXME]: Import things from `raw::raw` individually.
 pub use self::raw::*;
 pub use self::cl::abs::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, 
 	ProgramRaw, KernelRaw, EventRaw, SamplerRaw};

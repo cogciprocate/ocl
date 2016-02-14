@@ -14,6 +14,7 @@ mod work_dims;
 mod event_list;
 
 
+#[cfg(not(release))] pub use self::buffer::tests::BufferTest;
 pub use self::context::Context;
 pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;
@@ -26,7 +27,6 @@ pub use self::pro_que::ProQue;
 pub use self::simple_dims::SimpleDims;
 pub use self::work_dims::WorkDims;
 pub use self::event_list::EventList;
-#[cfg(not(release))]pub use self::buffer::tests::BufferTest;
 
 
 //=============================================================================

@@ -10,6 +10,7 @@ use std::default::Default;
 
 use raw::{self, MemRaw, CommandQueueRaw};
 use cl_h;
+use util;
 use error::{Error as OclError, Result as OclResult};
 use standard::{OclNum, Queue, BufferDims, EventList};
 
@@ -465,10 +466,10 @@ impl<T: OclNum> Buffer<T> {
     /// reads. ([FIXME]: Is this a safety issue?)
     ///
     /// # Failures
-    /// Returns an error if this buffer contains no vector.
+    /// [FIXME: NOW PANICS] Returns an error if this buffer contains no vector.
     #[inline]
-    pub fn vec(&self) -> OclResult<&Vec<T>> {
-        self.vec.as_ref()
+    pub fn vec(&self) -> &Vec<T> {
+        self.vec.as_ref().expect("Buffer::vec()")
     }
 
     /// Returns a mutable reference to the local vector associated with this buffer.
@@ -477,15 +478,15 @@ impl<T: OclNum> Buffer<T> {
     /// read.
     /// 
     /// # Failures
-    /// Returns an error if this buffer contains no vector.
+    /// [FIXME: NOW PANICS] Returns an error if this buffer contains no vector.
     ///
     /// # Safety
     /// Could cause data collisions, etc. May not be unsafe strictly speaking
     /// (is it?) but marked as such to alert the caller to any potential 
     /// synchronization issues from previously enqueued reads.
     #[inline]
-    pub unsafe fn vec_mut(&mut self) -> OclResult<&mut Vec<T>> {
-        self.vec.as_mut()
+    pub unsafe fn vec_mut(&mut self) -> &mut Vec<T> {
+        self.vec.as_mut().expect("Buffer::vec_mut()")
     }
 
     /// Returns an immutable reference to the value located at index `idx`, bypassing 
@@ -545,6 +546,48 @@ impl<T: OclNum> Buffer<T> {
     /// Panics if this Buffer contains no vector.
     pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
         self.vec.as_mut().expect("Buffer::iter()").iter_mut()
+    }
+
+
+    /// [UNSTABLE]: Convenience method.
+    ///
+    /// # Panics
+    /// Panics if this Buffer contains no vector.
+    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
+    pub fn print_simple(&mut self) {
+        self.print(1, None, None, true);
+    }
+
+    /// [UNSTABLE]: Convenience method. 
+    ///
+    /// # Panics
+    /// Panics if this Buffer contains no vector.
+    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
+    pub fn print_val_range(&mut self, every: usize, val_range: Option<(T, T)>,) {
+        self.print(every, val_range, None, true);
+    }
+
+    /// [UNSTABLE]: Convenience/debugging method. May be moved/renamed/deleted.
+    /// [FIXME]: CREATE AN EMPTY VECTOR FOR PRINTING IF NONE EXISTS INSTEAD
+    /// OF PANICING.
+    ///
+    /// # Panics
+    /// Panics if this Buffer contains no vector.
+    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
+    pub fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
+                idx_range_opt: Option<Range<usize>>, zeros: bool)
+    {
+        let idx_range = match idx_range_opt.clone() {
+            Some(r) => r,
+            None => 0..self.len(),
+        };
+
+        let vec = self.vec.as_mut().expect("Buffer::print()");
+
+        raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
+            &mut vec[idx_range.clone()], idx_range.start, None, None);
+        util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
+
     }
 }
 
@@ -674,7 +717,6 @@ pub fn shuffle_vec<T: OclNum>(vec: &mut Vec<T>) {
 }
 
 
-
 // #[cfg(test)]
 #[cfg(not(release))]
 pub mod tests {
@@ -719,45 +761,3 @@ pub mod tests {
 //      fmt::fmt_vec(fmtr.buf, &tmp_vec[..], 1, None, None, true)
 //  }
 // }
-
-
-    // /// [UNSTABLE]: Convenience method. (move to tests module?)
-    // ///
-    // /// # Panics
-    // /// Panics if this Buffer contains no vector.
-    // /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    // pub fn print_simple(&mut self) {
-    //     self.print(1, None, None, true);
-    // }
-
-    // /// [UNSTABLE]: Convenience method. (move to tests module?)
-    // ///
-    // /// # Panics
-    // /// Panics if this Buffer contains no vector.
-    // /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    // pub fn print_val_range(&mut self, every: usize, val_range: Option<(T, T)>,) {
-    //     self.print(every, val_range, None, true);
-    // }
-
-    // /// [UNSTABLE]: Convenience method. (move to tests module?)
-    // /// [FIXME]: CREATE A VECTOR FOR PRINTING IF NONE EXISTS
-    // ///
-    // /// # Panics
-    // /// Panics if this Buffer contains no vector.
-    // /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    // pub fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
-    //             idx_range_opt: Option<Range<usize>>, zeros: bool)
-    // {
-    //     let idx_range = match idx_range_opt.clone() {
-    //         Some(r) => r,
-    //         None => 0..self.len(),
-    //     };
-
-    //     let vec = self.vec.as_mut().expect("Buffer::print()");
-
-    //     raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
-    //         &mut vec[idx_range.clone()], idx_range.start, None, None);
-    //     fmt::print_vec(&vec[..], every, val_range, idx_range_opt, zeros);
-
-    // }
-

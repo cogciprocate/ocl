@@ -23,8 +23,7 @@
 //! ## Help Wanted
 //!
 //! Please help complete any functionality you may need by filing an 
-//! [issue] or creating a
-//! [pull request](https://github.com/cogciprocate/ocl/pulls).
+//! [issue] or creating a [pull request](https://github.com/cogciprocate/ocl/pulls).
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues
 
@@ -44,6 +43,7 @@ pub mod raw;
 pub mod cl_h;
 pub mod util;
 
+#[cfg(not(release))] pub use standard::BufferTest;
 pub use standard::{Context, ProgramBuilder, BuildOpt, Program, Queue, Kernel, Buffer, Image,
     ProQueBuilder, ProQue, SimpleDims, WorkDims, OclNum, BufferDims, EventList};
 pub use self::error::{Error, Result};
