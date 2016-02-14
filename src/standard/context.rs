@@ -3,7 +3,7 @@
 // use formatting::MT;
 use raw::{self, ContextRaw, PlatformIdRaw, DeviceIdRaw};
 use cl_h::cl_device_type;
-use super::{DEFAULT_PLATFORM_IDX, Result as OclResult, Error as OclError};
+use error::{Result as OclResult, Error as OclError};
 
 
 /// An OpenCL context for a particular platform and set of device types.
@@ -109,7 +109,7 @@ impl Context {
             },
             None => {
                 debug_assert!(platforms.len() > 0, "Context::new(): Internal indexing error.");
-                platforms[DEFAULT_PLATFORM_IDX].clone()
+                platforms[raw::DEFAULT_PLATFORM_IDX].clone()
             },
         };
         
@@ -133,7 +133,7 @@ impl Context {
     /// Resolves the zero-based device index into a DeviceIdRaw (pointer).
     pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdRaw> {
         match device_idxs.len() {
-            0 => vec![self.device_ids()[super::DEFAULT_DEVICE_IDX]],
+            0 => vec![self.device_ids()[raw::DEFAULT_DEVICE_IDX]],
             _ => self.valid_device_ids(&device_idxs),
         }
     }

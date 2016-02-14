@@ -10,7 +10,8 @@ use std::default::Default;
 
 use raw::{self, MemRaw, CommandQueueRaw};
 use cl_h;
-use super::super::{fmt, OclNum, Queue, BufferDims, EventList, Error as OclError, Result as OclResult};
+use error::{Error as OclError, Result as OclResult};
+use standard::{OclNum, Queue, BufferDims, EventList};
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
         You must create this Buffer using 'Buffer::with_vec()' (et al.) in order to call this method.";
@@ -423,46 +424,6 @@ impl<T: OclNum> Buffer<T> {
         self.len
     }
 
-    /// [UNSTABLE]: Convenience method. (move to tests module?)
-    ///
-    /// # Panics
-    /// Panics if this Buffer contains no vector.
-    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    pub fn print_simple(&mut self) {
-        self.print(1, None, None, true);
-    }
-
-    /// [UNSTABLE]: Convenience method. (move to tests module?)
-    ///
-    /// # Panics
-    /// Panics if this Buffer contains no vector.
-    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    pub fn print_val_range(&mut self, every: usize, val_range: Option<(T, T)>,) {
-        self.print(every, val_range, None, true);
-    }
-
-    /// [UNSTABLE]: Convenience method. (move to tests module?)
-    /// [FIXME]: CREATE A VECTOR FOR PRINTING IF NONE EXISTS
-    ///
-    /// # Panics
-    /// Panics if this Buffer contains no vector.
-    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    pub fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
-                idx_range_opt: Option<Range<usize>>, zeros: bool)
-    {
-        let idx_range = match idx_range_opt.clone() {
-            Some(r) => r,
-            None => 0..self.len(),
-        };
-
-        let vec = self.vec.as_mut().expect("Buffer::print()");
-
-        raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
-            &mut vec[idx_range.clone()], idx_range.start, None, None);
-        fmt::print_vec(&vec[..], every, val_range, idx_range_opt, zeros);
-
-    }
-
     /// Resizes Buffer. Recreates device side buffer and dangles any references 
     /// kernels may have had to the old buffer.
     ///
@@ -557,11 +518,6 @@ impl<T: OclNum> Buffer<T> {
     pub fn obj_raw(&self) -> MemRaw {
         self.obj_raw
     }
-
-    // /// Returns a reference to the program/command queue associated with this buffer.
-    // pub fn queue(&self) -> &Queue {
-    //     &self.queue
-    // }
 
     /// Changes the queue used by this Buffer for reads and writes, etc.
     ///
@@ -668,30 +624,6 @@ impl<T> IndexMut<RangeFull> for Buffer<T> {
     }
 }
 
-// impl<T> IntoIterator for Buffer<T> {
-//     type Item = T;
-//     type IntoIter = ::std::vec::IntoIter<T>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//      match self.vec {
-//          VecOption::Some(vec) => vec.into_iter(),
-//          VecOption::None => panic!("Buffer::into_iter(): Cannot iterate over a Buffer that
-//              does not contain a built-in vector. Try creating your Buffer with ::with_vec()."),
-//      }
-//     }
-// }
-
-
-// impl<T: OclNum> Display for Buffer<T> {
-//     fn fmt(&self, fmtr: &mut Formatter) -> FmtResult {
-//      // self.print(1, None, None, true)
-//      let mut tmp_vec = Vec::with_capacity(self.vec.len());
-//      self.read_async(&mut tmp_vec[..], 0);
-//      fmt::fmt_vec(fmtr.buf, &tmp_vec[..], 1, None, None, true)
-//  }
-// }
-
-
 /// Returns a vector with length `size` containing random values in the (half-open)
 /// range `[vals.0, vals.1)`.
 pub fn scrambled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
@@ -762,3 +694,70 @@ pub mod tests {
         }
     }
 }
+
+
+
+// impl<T> IntoIterator for Buffer<T> {
+//     type Item = T;
+//     type IntoIter = ::std::vec::IntoIter<T>;
+
+//     fn into_iter(self) -> Self::IntoIter {
+//      match self.vec {
+//          VecOption::Some(vec) => vec.into_iter(),
+//          VecOption::None => panic!("Buffer::into_iter(): Cannot iterate over a Buffer that
+//              does not contain a built-in vector. Try creating your Buffer with ::with_vec()."),
+//      }
+//     }
+// }
+
+
+// impl<T: OclNum> Display for Buffer<T> {
+//     fn fmt(&self, fmtr: &mut Formatter) -> FmtResult {
+//      // self.print(1, None, None, true)
+//      let mut tmp_vec = Vec::with_capacity(self.vec.len());
+//      self.read_async(&mut tmp_vec[..], 0);
+//      fmt::fmt_vec(fmtr.buf, &tmp_vec[..], 1, None, None, true)
+//  }
+// }
+
+
+    // /// [UNSTABLE]: Convenience method. (move to tests module?)
+    // ///
+    // /// # Panics
+    // /// Panics if this Buffer contains no vector.
+    // /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
+    // pub fn print_simple(&mut self) {
+    //     self.print(1, None, None, true);
+    // }
+
+    // /// [UNSTABLE]: Convenience method. (move to tests module?)
+    // ///
+    // /// # Panics
+    // /// Panics if this Buffer contains no vector.
+    // /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
+    // pub fn print_val_range(&mut self, every: usize, val_range: Option<(T, T)>,) {
+    //     self.print(every, val_range, None, true);
+    // }
+
+    // /// [UNSTABLE]: Convenience method. (move to tests module?)
+    // /// [FIXME]: CREATE A VECTOR FOR PRINTING IF NONE EXISTS
+    // ///
+    // /// # Panics
+    // /// Panics if this Buffer contains no vector.
+    // /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
+    // pub fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
+    //             idx_range_opt: Option<Range<usize>>, zeros: bool)
+    // {
+    //     let idx_range = match idx_range_opt.clone() {
+    //         Some(r) => r,
+    //         None => 0..self.len(),
+    //     };
+
+    //     let vec = self.vec.as_mut().expect("Buffer::print()");
+
+    //     raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
+    //         &mut vec[idx_range.clone()], idx_range.start, None, None);
+    //     fmt::print_vec(&vec[..], every, val_range, idx_range_opt, zeros);
+
+    // }
+

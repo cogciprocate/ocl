@@ -34,3 +34,21 @@ impl DeviceType {
         self.clone() as u64
     }
 }
+
+
+#[derive(Clone, Copy)]
+pub enum MemObjectType {
+    Buffer = cl_h::CL_MEM_OBJECT_BUFFER as isize,
+    Image2d = cl_h::CL_MEM_OBJECT_IMAGE2D as isize,
+    Image3d = cl_h::CL_MEM_OBJECT_IMAGE3D as isize,
+    Image2dArray = cl_h::CL_MEM_OBJECT_IMAGE2D_ARRAY as isize,
+    Image1d = cl_h::CL_MEM_OBJECT_IMAGE1D as isize,
+    Image1dArray = cl_h::CL_MEM_OBJECT_IMAGE1D_ARRAY as isize,
+    Image1dBuffer = cl_h::CL_MEM_OBJECT_IMAGE1D_BUFFER as isize,
+}
+
+impl MemObjectType {
+    pub fn as_raw(&self) -> u64 {
+        self.clone() as u64
+    }
+}

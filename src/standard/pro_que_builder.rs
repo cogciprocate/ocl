@@ -1,7 +1,8 @@
 //! The builder for `ProQue`.
 
 use std::convert::Into;
-use super::{Context, ProgramBuilder, Program, Queue, ProQue, Result as OclResult, Error as OclError};
+use error::{Result as OclResult, Error as OclError};
+use standard::{Context, ProgramBuilder, Program, Queue, ProQue};
 
 /// A builder for `ProQue`.
 pub struct ProQueBuilder<'c> {

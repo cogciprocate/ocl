@@ -1,7 +1,7 @@
 //! A convenience raw chimera of `Program` and `Queue`.
 use raw;
-use super::{Context, Kernel, WorkDims, ProgramBuilder, ProQueBuilder, Program, Queue, 
-    Result as OclResult, Error as OclError};
+use standard::{Context, Kernel, WorkDims, ProgramBuilder, ProQueBuilder, Program, Queue};
+use error::{Result as OclResult, Error as OclError};
 
 /// A convenience raw chimera of the `Program`, `Queue`, and optionally,
 /// `Context` types .

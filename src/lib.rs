@@ -37,102 +37,14 @@ extern crate libc;
 extern crate num;
 extern crate rand;
 
-mod context;
-mod program_builder;
-mod program;
-mod queue;
-mod pro_que_builder;
-mod pro_que;
-mod simple_dims;
-mod kernel;
-mod work_dims;
-mod error;
-mod event_list;
-mod mem;
 #[cfg(test)] mod tests;
+mod standard;
+mod error;
 pub mod raw;
-pub mod fmt;
 pub mod cl_h;
+pub mod util;
 
-pub use self::cl_h::{cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context, 
-    cl_program, cl_program_build_info, cl_command_queue, cl_mem, cl_event, ClStatus, 
-    CL_DEVICE_TYPE_DEFAULT, CL_DEVICE_TYPE_CPU, CL_DEVICE_TYPE_GPU, 
-    CL_DEVICE_TYPE_ACCELERATOR, CL_DEVICE_TYPE_CUSTOM, CL_DEVICE_TYPE_ALL};
-
-pub use self::context::Context;
-pub use self::program_builder::{ProgramBuilder, BuildOpt};
-pub use self::program::Program;
-pub use self::queue::Queue;
-pub use self::kernel::Kernel;
-pub use self::mem::buffer::Buffer;
-pub use self::mem::image::Image;
-pub use self::mem::image_format::{ImageFormat, ImageChannelOrder, ImageChannelDataType};
-pub use self::mem::image_descriptor::{ImageDescriptor, MemObjectType};
-pub use self::pro_que_builder::ProQueBuilder;
-pub use self::pro_que::ProQue;
-pub use self::simple_dims::SimpleDims;
-pub use self::work_dims::WorkDims;
+pub use standard::{Context, ProgramBuilder, BuildOpt, Program, Queue, Kernel, Buffer, Image,
+    ProQueBuilder, ProQue, SimpleDims, WorkDims, OclNum, BufferDims, EventList};
 pub use self::error::{Error, Result};
-pub use self::event_list::EventList;
-#[cfg(not(release))]pub use self::mem::buffer::tests::BufferTest;
 
-
-//=============================================================================
-//============================== INTERNAL USE =================================
-//=============================================================================
-
-
-
-//=============================================================================
-//================================ CONSTANTS ==================================
-//=============================================================================
-
-const DEFAULT_DEVICE_TYPE: cl_device_type = CL_DEVICE_TYPE_DEFAULT;
-
-const DEVICES_MAX: u32 = 16;
-const DEFAULT_PLATFORM_IDX: usize = 0;
-const DEFAULT_DEVICE_IDX: usize = 0;
-
-//=============================================================================
-//================================= TRAITS ====================================
-//=============================================================================
-
-use std::fmt::{Display, Debug};
-use std::num::Zero;
-use num::{NumCast, FromPrimitive, ToPrimitive};
-use rand::distributions::range::SampleRange;
-
-/// A number compatible with OpenCL.
-pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + Display + Debug
-    + FromPrimitive + ToPrimitive + SampleRange {}
-
-impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + Display + Debug
-    + FromPrimitive + ToPrimitive + SampleRange {}
-
-/// A type which has dimensional properties allowing it to be used to define the size
-/// of buffers and work sizes.
-pub trait BufferDims {
-    fn padded_buffer_len(&self, usize) -> usize;
-}
-
-impl<'a, T> BufferDims for &'a T where T: BufferDims {
-    fn padded_buffer_len(&self, incr: usize) -> usize { (*self).padded_buffer_len(incr) }
-}
-
-//=============================================================================
-//=========================== UTILITY FUNCTIONS ===============================
-//=============================================================================
-
-/// Pads `len` to make it evenly divisible by `incr`.
-pub fn padded_len(len: usize, incr: usize) -> usize {
-    let len_mod = len % incr;
-
-    if len_mod == 0 {
-        len
-    } else {
-        let pad = incr - len_mod;
-        let padded_len = len + pad;
-        debug_assert_eq!(padded_len % incr, 0);
-        padded_len
-    }
-}

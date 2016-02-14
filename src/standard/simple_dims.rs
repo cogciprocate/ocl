@@ -1,5 +1,7 @@
 //! A simple way to specify the sizes of up to three dimensions.
-use super::{BufferDims, Result as OclResult, Error as OclError, WorkDims};
+use error::{Result as OclResult, Error as OclError};
+use standard::{BufferDims, WorkDims};
+use util;
 
 /// A simple implementation of a type specifying the sizes of up to three
 /// dimensions. 
@@ -64,6 +66,6 @@ impl BufferDims for SimpleDims {
             _ => 0,
         };
 
-        super::padded_len(simple_len, incr)
+        util::padded_len(simple_len, incr)
     }
 }

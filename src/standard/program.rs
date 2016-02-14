@@ -2,8 +2,9 @@
 
 use std::ffi::CString;
 
+use error::{Result as OclResult};
 use raw::{self, ProgramRaw, DeviceIdRaw, ContextRaw};
-use super::{ProgramBuilder, Context, Result as OclResult};
+use standard::{ProgramBuilder, Context};
 
 /// An OpenCL program, sometimes referred to as a build.
 ///

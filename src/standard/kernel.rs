@@ -7,7 +7,8 @@ use std::collections::HashMap;
 // use libc::{size_t, c_void};
 
 use raw::{self, KernelRaw, MemRaw, CommandQueueRaw, KernelArg};
-use super::{Result as OclResult, WorkDims, Buffer, OclNum, EventList, Program, Queue};
+use error::{Result as OclResult};
+use standard::{WorkDims, Buffer, OclNum, EventList, Program, Queue};
 
 /// An OpenCL kernel.
 ///

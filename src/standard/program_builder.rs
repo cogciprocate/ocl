@@ -6,8 +6,9 @@ use std::path::Path;
 use std::ffi::{CString};
 use std::collections::HashSet;
 use std::convert::Into;
-// use std::error::{Error};
-use super::{Context, Program, Result as OclResult, Error as OclError};
+
+use error::{Result as OclResult, Error as OclError};
+use standard::{Context, Program};
 
 /// Compilation options for building an OpenCL program. Used when creating 
 /// a new `Program`.

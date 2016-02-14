@@ -23,7 +23,7 @@
 //!
 //! ## Panics
 //!
-//! All functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an `Error` type instead.
+//! [NOT UP TO DATE: more and more functions are returning results] All functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an `Error` type instead.
 //!
 //! ### Official Documentation
 //!
@@ -34,12 +34,24 @@
 //! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls).
 
 mod raw;
-mod abstracts;
-pub mod enums;
+mod cl;
+mod custom;
 
+use cl_h;
 // [FIXME]: Import everything individually.
 pub use self::raw::*;
+pub use self::cl::abs::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, 
+	ProgramRaw, KernelRaw, EventRaw, SamplerRaw};
+pub use self::cl::enum_orgy::{MemObjectType, ContextInfo, DeviceType};
+pub use self::cl::image::{ImageFormat, ImageChannelOrder, ImageChannelDataType, ImageDescriptor};
+pub use self::custom::enums::{KernelArg};
 
-pub use self::abstracts::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, 
-	ProgramRaw, KernelRaw,EventRaw, SamplerRaw};
+//=============================================================================
+//================================ CONSTANTS ==================================
+//=============================================================================
 
+pub const DEFAULT_DEVICE_TYPE: cl_h::cl_device_type = cl_h::CL_DEVICE_TYPE_DEFAULT;
+
+pub const DEVICES_MAX: u32 = 16;
+pub const DEFAULT_PLATFORM_IDX: usize = 0;
+pub const DEFAULT_DEVICE_IDX: usize = 0;

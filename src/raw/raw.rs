@@ -10,10 +10,8 @@ use cl_h::{self, cl_platform_id, cl_device_id, cl_device_type, cl_device_info,
     cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel,
     cl_program_build_info, cl_mem, cl_event, ClStatus};
 
-use super::super::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, Error as OclError, Result as OclResult};
-use super::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw,
-    EventRaw, SamplerRaw};
-
+use error::{Error as OclError, Result as OclResult};
+use raw::{DEFAULT_DEVICE_TYPE, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg};
 
 
 //=============================================================================
@@ -223,27 +221,10 @@ pub fn create_kernel(
     Ok(KernelRaw::new(kernel_ptr))
 }
 
-
-/// Kernel argument option type.
-///
-/// The type argument `T` is ignored for `Mem`, `Sampler`, and `Other` 
-/// (just put `usize` or anything).
-pub enum KernelArg<'a, T: 'a> {
-    /// Type `T` is ignored.
-    Mem(MemRaw),
-    /// Type `T` is ignored.
-    Sampler(SamplerRaw),
-    Scalar(&'a T),
-    Vector(&'a [T]),
-    /// Length in multiples of T (not bytes).
-    Local(usize),
-    /// `size`: size in bytes. Type `T` is ignored.
-    Other { size: size_t, value: *const c_void },
-}
-
 /// Modifies or creates a kernel argument.
 ///
 /// `kernel_name` is for error reporting and is optional.
+///
 pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
             kernel_name: Option<&str>) -> OclResult<()>
 {
