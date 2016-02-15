@@ -1,4 +1,4 @@
-//! ocl standard types.
+//! `ocl` standard types.
 
 mod context;
 mod program_builder;
@@ -34,16 +34,15 @@ pub use self::event_list::EventList;
 //=============================================================================
 
 use std::fmt::{Display, Debug};
-use std::num::Zero;
+use std::num::{Zero, One};
+use std::ops::{Add, Sub};
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 
 /// A number compatible with OpenCL.
-pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + Display + Debug
-    + FromPrimitive + ToPrimitive + SampleRange {}
+pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + One + Add + Sub + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + Display + Debug
-    + FromPrimitive + ToPrimitive + SampleRange {}
+impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 /// A type which has dimensional properties allowing it to be used to define the size
 /// of buffers and work sizes.

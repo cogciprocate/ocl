@@ -49,7 +49,7 @@ fn main() {
     kern.enqueue(None, None);
 
     // Read results from the device into result_buffer's local vector:
-    result_buffer.fill_vec().ok();
+    result_buffer.fill_vec().unwrap();
 
     // Check results and print the first 20:
     for idx in 0..DATA_SET_SIZE {

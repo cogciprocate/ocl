@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use raw::{self, KernelRaw, MemRaw, CommandQueueRaw, KernelArg};
-use error::{Result as OclResult};
+use error::{Result as OclResult, Error as OclError};
 use standard::{WorkDims, Buffer, OclNum, EventList, Program, Queue};
 
 /// An OpenCL kernel.
@@ -118,28 +118,39 @@ impl Kernel {
     }     
 
     /// Modifies the kernel argument named: `name`.
-    // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_scl_named<T: OclNum>(&mut self, name: &'static str, scalar: T) {
-        //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
-        let arg_idx = self.named_args[name]; 
-
-        self.set_arg::<T>(arg_idx, KernelArg::Scalar(&scalar)).unwrap();
+    // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
+    pub fn set_arg_scl_named<T: OclNum>(&mut self, name: &'static str, scalar: T) 
+            -> OclResult<()> 
+    {
+        let arg_idx = try!(self.resolve_named_arg_idx(name));
+        self.set_arg::<T>(arg_idx, KernelArg::Scalar(&scalar))
     }
 
     /// Modifies the kernel argument named: `name`.
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_buf_named<T: OclNum>(&mut self, name: &'static str, 
-                buffer_opt: Option<&Buffer<T>>) 
+                buffer_opt: Option<&Buffer<T>>)  -> OclResult<()>   
     {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
-        let arg_idx = self.named_args[name];
+        // let arg_idx = self.named_args[name];
+        let arg_idx = try!(self.resolve_named_arg_idx(name));
 
         let buf_obj_raw = match buffer_opt {
             Some(buffer) => buffer.obj_raw(),
             None => MemRaw::null(),
         };
 
-        self.set_arg::<T>(arg_idx, KernelArg::Mem(buf_obj_raw)).unwrap();
+        self.set_arg::<T>(arg_idx, KernelArg::Mem(buf_obj_raw))
+    }
+
+    fn resolve_named_arg_idx(&self, name: &'static str) -> OclResult<u32> {
+        match self.named_args.get(name) {
+            Some(&ai) => Ok(ai),
+            None => {
+                OclError::err(format!("Kernel::set_arg_scl_named(): Invalid argument \
+                    name: '{}'.", name))
+            },
+        }
     }
 
     /// Enqueues kernel on the default command queue.

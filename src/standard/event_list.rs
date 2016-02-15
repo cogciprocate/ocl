@@ -6,28 +6,41 @@ use libc::c_void;
 use raw::{self, EventRaw};
 use cl_h::{self, cl_event};
 
+const EXTRA_CAPACITY: usize = 16;
+const CLEAR_INTERVAL: u32 = 32;
+
+// Clear the list automatically. Usefulness and performance impact of this is
+// currently under evaluation.
+const AUTO_CLEAR: bool = true;
+
 /// A list of OpenCL events which contain status information about the command that
 /// created them. Used to coordinate the activity of multiple commands.
 // [FIXME] TODO: impl Index.
 #[derive(Debug)]
 pub struct EventList {
     events: Vec<EventRaw>,
+    clear_counter: u32,
 }
 
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
-        EventList { events: Vec::with_capacity(16) }
+        EventList { 
+            events: Vec::with_capacity(EXTRA_CAPACITY),
+            clear_counter: 0,
+        }
     }
 
-    /// Merges the copied contents of this list and another into a new list and returns it.
-    pub fn union(&self, other_list: &EventList) -> EventList {
-        let mut new_list = EventList { events: Vec::with_capacity(other_list.events().len() 
-            + self.events.len() + 8) };
-        new_list.events.extend(self.events().iter().cloned());
-        new_list.events.extend(other_list.events().iter().cloned());
+    pub fn push(&mut self, event: EventRaw) {
+        if AUTO_CLEAR {
+            if self.clear_counter > CLEAR_INTERVAL {
+                self.clear_completed();
+            } else {
+                self.clear_counter += 1;
+            }
+        }
 
-        new_list
+        self.events.push(event);
     }
 
     /// Appends a new null element to the end of the list and returns a mutable slice
@@ -35,6 +48,14 @@ impl EventList {
     /// [FIXME]: Update
     #[inline]
     pub fn allot(&mut self) -> &mut EventRaw {
+        if AUTO_CLEAR {
+            if self.clear_counter > CLEAR_INTERVAL {
+                self.clear_completed();
+            } else {
+                self.clear_counter += 1;
+            }
+        }
+
         self.events.push(EventRaw::null());
         self.events.last_mut().unwrap()
     }
@@ -57,11 +78,11 @@ impl EventList {
         &self.events[..]
     }
 
-    /// Returns a mutable slice to the events list.
-    #[inline]
-    pub fn events_mut(&mut self) -> &mut [EventRaw] {
-        &mut self.events[..]
-    }
+    // /// Returns a mutable slice to the events list.
+    // #[inline]
+    // pub fn events_mut(&mut self) -> &mut [EventRaw] {
+    //     &mut self.events[..]
+    // }
 
     /// Returns a const pointer to the list, useful for passing directly to the c ffi.
     #[inline]
@@ -72,7 +93,7 @@ impl EventList {
     /// Returns a mut pointer to the list, useful for passing directly to the c ffi.
     #[inline]
     pub fn as_mut_ptr(&mut self) -> *mut EventRaw {
-        self.events_mut().as_mut_ptr()
+        self.events.as_mut_ptr()
     }
 
     /// Waits for all events in list to complete.
@@ -80,6 +101,25 @@ impl EventList {
         if self.events.len() > 0 {
             raw::wait_for_events(self.count(), self.events());
         }
+    }
+
+    /// Merges the copied contents of this list and another into a new list and returns it.
+    pub fn union(&self, other_list: &EventList) -> EventList {
+        let new_cap = other_list.events().len() + self.events.len() + EXTRA_CAPACITY;
+
+        let mut new_list = EventList {
+            events: Vec::with_capacity(new_cap),
+            clear_counter: 0,
+        };
+
+        new_list.events.extend(self.events().iter().cloned());
+        new_list.events.extend(other_list.events().iter().cloned());
+
+        if AUTO_CLEAR {
+            new_list.clear_completed();
+        }
+
+        new_list
     }
 
     /// Sets a callback function, `callback_receiver`, to trigger upon completion of
@@ -133,13 +173,22 @@ impl EventList {
     #[inline]
     pub fn clear(&mut self) {
         self.events.clear();
+
+        if AUTO_CLEAR {
+            self.clear_counter = 0;
+        }
     }
 
     /// Clears each completed event from the list.
+    ///
+    /// TODO: Optimize this. Determine if any gains can be had by reassembling 
+    /// the event vec completely (probably can depending on how big this
+    /// list tends to grow).
+    ///
     pub fn clear_completed(&mut self) {
-        let mut ce_idxs: Vec<usize> = Vec::with_capacity(8);
-
+        let mut ce_idxs: Vec<usize> = Vec::with_capacity(64);
         let mut idx = 0;
+
         for event in self.events.iter() {
             if raw::get_event_status((*event).clone()) == cl_h::CL_COMPLETE {
                 ce_idxs.push(idx)
@@ -155,10 +204,14 @@ impl EventList {
             // Release?
             // raw::release_event(ev);
         }
+
+        if AUTO_CLEAR {
+            self.clear_counter = 0;
+        }
     }
 
     /// Releases all events in the list by decrementing their reference counts by one
-    /// and empties the list.
+    /// then empties the list.
     ///
     /// Events will continue to exist until their creating commands have completed 
     /// and no other commands are waiting for them to complete.

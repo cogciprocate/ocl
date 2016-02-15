@@ -123,7 +123,7 @@ fn test_events() {
         let mut read_event = EventList::new();
         
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
-        unsafe { result_buffer.fill_vec_async(None, Some(&mut read_event)).ok(); }
+        unsafe { result_buffer.fill_vec_async(None, Some(&mut read_event)).unwrap(); }
     
 
         let last_idx = buncha_stuffs.len() - 1;     
@@ -187,7 +187,7 @@ fn test_basics() {
     kernel.enqueue(None, None);
 
     // Read results:
-    result_buffer.fill_vec().ok();
+    result_buffer.fill_vec().unwrap();
 
     // Check results and print the first 20:
     for idx in 0..data_set_size {

@@ -11,11 +11,11 @@ use std::time::Instant;
 use ocl::{ProQue, SimpleDims, Buffer, EventList};
 
 
-const DATASET_SIZE: usize = 500000;
+const DATASET_SIZE: usize = 1000000;
 
-const KERNEL_RUN_ITERS: i32 = 8000;
-const BUFFER_READ_ITERS: i32 = 200;
-const KERNEL_AND_BUFFER_ITERS: i32 = 1000;
+const KERNEL_RUN_ITERS: i32 = 800;
+const BUFFER_READ_ITERS: i32 = 20;
+const KERNEL_AND_BUFFER_ITERS: i32 = 10000;
 
 const SCALAR: f32 = 1.0;
 const INIT_VAL_RANGE: (f32, f32) = (100.0, 200.0);
@@ -70,7 +70,7 @@ fn main() {
     kern.enqueue(None, None);
 
     // Set kernel source buffer to the same as result:
-    kern.set_arg_buf_named("source", Some(&buffer_result));
+    kern.set_arg_buf_named("source", Some(&buffer_result)).unwrap();
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {
@@ -81,7 +81,7 @@ fn main() {
     ocl_pq.queue().finish();
     
     // Print elapsed time for kernels:
-    print_elapsed("", kern_start);
+    print_elapsed("total elapsed", kern_start);
 
     // ##################################################
     // ##################### BUFFER #####################
@@ -95,11 +95,14 @@ fn main() {
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
-        buffer_result.fill_vec().ok();
+        buffer_result.fill_vec().unwrap();
     }
 
-    // Print elapsed time for buffer reads:
-    print_elapsed("", buffer_start);
+    print_elapsed("queue unfinished", buffer_start);
+    ocl_pq.queue().finish();    
+    print_elapsed("queue finished", buffer_start);
+
+    verify_results(&buffer_init, &buffer_result, KERNEL_RUN_ITERS);
 
     // ##################################################
     // ########### KERNEL & BUFFER BLOCKING #############
@@ -112,12 +115,14 @@ fn main() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enqueue(None, None);
-        buffer_result.fill_vec().ok();
+        buffer_result.fill_vec().unwrap();
     }
 
-    ocl_pq.queue().finish();
-    
-    print_elapsed("", kern_buf_start);
+    print_elapsed("queue unfinished", kern_buf_start);
+    ocl_pq.queue().finish();    
+    print_elapsed("queue finished", kern_buf_start);
+
+    verify_results(&buffer_init, &buffer_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 
     // ##################################################
     // ######### KERNEL & BUFFER NON-BLOCKING ###########
@@ -128,29 +133,68 @@ fn main() {
 
     let kern_buf_start = Instant::now();
 
-    // let mut el = EventList::new();
+    let mut kern_events = EventList::new();
+    let mut buf_events = EventList::new();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        // kern.enqueue(Some(&el), Some(&mut el));
-        // buffer_result.fill_vec_async(Some(&el), Some(&mut el));
+        kern.enqueue(Some(&buf_events), Some(&mut kern_events));
+        unsafe { buffer_result.fill_vec_async(Some(&kern_events), Some(&mut buf_events)).unwrap(); }
     }
 
-    ocl_pq.queue().finish();
-    
-    print_elapsed("", kern_buf_start);
+    print_elapsed("queue unfinished", kern_buf_start);
+    ocl_pq.queue().finish();    
+    print_elapsed("queue finished", kern_buf_start);
+
+    verify_results(&buffer_init, &buffer_result, 
+        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 
     // ##################################################
-    // ##################### VERIFY #####################
-    // ################################################## 
+    // ############# CAUTION IS OVERRATED ###############
+    // ##################################################
 
+    print!("\n");
+    println!("Enqueuing {} oh-fuck-it kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
+
+    let kern_buf_start = Instant::now();
+
+    let mut kern_events = EventList::new();
+    let mut buf_events = EventList::new();
+
+    for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
+        kern.enqueue(None, Some(&mut kern_events));
+        unsafe { buffer_result.fill_vec_async(None, Some(&mut buf_events)).unwrap(); }
+    }
+
+    print_elapsed("queue unfinished", kern_buf_start);
+    ocl_pq.queue().finish();    
+    print_elapsed("queue finished", kern_buf_start);
+
+    verify_results(&buffer_init, &buffer_result, 
+        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
+}
+
+
+fn print_elapsed(title: &str, start: Instant) {
+    let time_elapsed = Instant::now().duration_from_earlier(start);
+    let elapsed_ms = time_elapsed.subsec_nanos() / 1000000;
+    let separator = if title.len() > 0 { ": " } else { "" };
+    println!("    {}{}: {}.{:03}", title, separator, time_elapsed.as_secs(), elapsed_ms);
+}
+
+
+fn verify_results(buffer_init: &Buffer<f32>, buffer_result: &Buffer<f32>, iters: i32) {
     print!("\nVerifying result values... ");
-    if PRINT_SOME_RESULTS { print!("(printing {})\n\n", RESULTS_TO_PRINT); }
+    if PRINT_SOME_RESULTS { print!("(printing {})\n", RESULTS_TO_PRINT); }
+
+    // let margin_of_error = iters as f32 / 100000.0;
+    let margin_of_error = 0.1 as f32;
 
     for idx in 0..DATASET_SIZE {
-        let correct = buffer_init[idx] + (KERNEL_RUN_ITERS as f32 * SCALAR);
+        let correct = buffer_init[idx] + (iters as f32 * SCALAR);
         // let correct = buffer_init[i] + SCALAR;
-        assert!((correct - buffer_result[idx]) < 0.1, 
-            "    init: {}, correct: {}, result: {}", buffer_init[idx], correct, buffer_result[idx]);
+        assert!((correct - buffer_result[idx]).abs() < margin_of_error, 
+            "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}", 
+            idx, buffer_init[idx], correct, margin_of_error, buffer_result[idx]);
 
         if PRINT_SOME_RESULTS && (idx % (DATASET_SIZE / RESULTS_TO_PRINT)) == 0  {
             println!("    [{}]: init: {}, correct: {}, result: {}", idx, buffer_init[idx],
@@ -160,13 +204,4 @@ fn main() {
 
     if PRINT_SOME_RESULTS { print!("\n"); }
     println!("All result values are correct.");
-
-    // if PRINT_SOME_RESULTS { println!("The value at index [{}] is '{}'!", 9001, buffer_result[9001]); }
-}
-
-
-fn print_elapsed(title: &str, start: Instant) {
-    let time_elapsed = Instant::now().duration_from_earlier(start);
-    let elapsed_ms = time_elapsed.subsec_nanos() / 1000000;
-    println!("{}elapsed: {}.{:03}", title, time_elapsed.as_secs(), elapsed_ms);
 }

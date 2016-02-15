@@ -615,7 +615,7 @@ impl<T: OclNum> Buffer<T> {
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
         unsafe { raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
-            &mut vec[idx_range.clone()], idx_range.start, None, None).ok() };
+            &mut vec[idx_range.clone()], idx_range.start, None, None).unwrap() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 
     }
@@ -762,7 +762,7 @@ pub mod tests {
         // Throw caution to the wind (this is potentially unsafe).
         fn read_idx_direct(&self, idx: usize) -> T {
             let mut buffer = vec![Zero::zero()];
-            self.read(&mut buffer[0..1], idx).ok();
+            self.read(&mut buffer[0..1], idx).unwrap();
             buffer[0]
         }
     }
