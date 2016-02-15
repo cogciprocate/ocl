@@ -1,6 +1,6 @@
 //! # [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) | [GitHub](https://github.com/cogciprocate/ocl)
 //!
-//! Rust implementation of OpenCL.
+//! Rust implementation of OpenCL&trade;.
 //!
 //! This documentation is generally built from the [`dev` branch](https://github.com/cogciprocate/ocl/tree/dev) and may be newer than what is on crates.io and the master branch. 
 //!
@@ -25,6 +25,10 @@
 //!
 //! Please help complete any functionality you may need by filing an 
 //! [issue] or creating a [pull request](https://github.com/cogciprocate/ocl/pulls).
+//!
+//! <br/>
+//! *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission by Khronos.”*
+
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues
 

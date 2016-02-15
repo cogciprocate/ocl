@@ -6,11 +6,12 @@ Lots of changes, breaking and otherwise:
 A new type, [`Image`] has been added for processing images. It is still very 
 much a work in progress.
 
-The 'raw' api now located in the new [`raw`] module allows access to OpenCL 
-FFI functions with only a thin layer of abstraction providing safety and 
-convenience. Using functions in this module is only recommended for use when
-functionality has not yet been implemented on the 'standard' ocl interfaces
-although the 'raw' and 'standard' interfaces are all completely interoperable.
+The 'raw' api now located in the new [`raw`] module allows access to
+OpenCL&trade; FFI functions with only a thin layer of abstraction providing
+safety and  convenience. Using functions in this module is only recommended
+for use when functionality has not yet been implemented on the 'standard' ocl
+interfaces although the 'raw' and 'standard' interfaces are all completely
+interoperable.
 
 Breaking Changes
 ----------------
@@ -74,3 +75,8 @@ New Types
 [`ProgramBuilder`]: http://doc.cogciprocate.com/ocl/
 [`Program`]: http://doc.cogciprocate.com/ocl/
 [`Kernel`]: http://doc.cogciprocate.com/ocl/
+
+
+<br/><br/>
+
+*“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission by Khronos.”*
