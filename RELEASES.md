@@ -76,7 +76,9 @@ New Types
 [`ProgramBuilder`]: http://docs.cogciprocate.com/ocl/struct.ProgramBuilder.html
 [`Program`]: http://docs.cogciprocate.com/ocl/struct.Program.html
 [`Kernel`]: http://docs.cogciprocate.com/ocl/struct.Kernel.html
+[`SimpleDims`]: http://doc.cogciprocate.com/ocl/enum.SimpleDims.html
+[`WorkDims`]: http://doc.cogciprocate.com/ocl/enum.WorkDims.html
+[`DeviceType`]: http://doc.cogciprocate.com/ocl/raw/struct.DeviceType.html
 
-
-<br/>
+<br/><br/>
 *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission by Khronos.”*
