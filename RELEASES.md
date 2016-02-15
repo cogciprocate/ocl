@@ -1,4 +1,4 @@
-Version 0.5.0 (2016-02-09)
+Version 0.5.0 (2016-02-15)
 ==========================
 
 Lots of changes, breaking and otherwise:

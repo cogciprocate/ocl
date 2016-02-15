@@ -4,7 +4,7 @@ use raw;
 use standard::{Context, Kernel, WorkDims, ProgramBuilder, ProQueBuilder, Program, Queue};
 use error::{Result as OclResult, Error as OclError};
 
-/// A chimera of the `Program`, `Queue`, and (optionally) `Context` types.
+/// An all-in-one chimera of the `Program`, `Queue`, and (optionally) `Context` types.
 ///
 /// Handy when creating only a single context, program, and queue or when
 /// using a unique program build on each device.

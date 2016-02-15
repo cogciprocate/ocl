@@ -11,7 +11,7 @@
 //!
 //! ## Low Level Interfaces
 //!
-//! For lower level interfaces and to use OpenCL features that have not yet been implemented, see the `raw` and `cl_h` modules (still poorly documented... use the source, Luke).
+//! For lower level interfaces and to use OpenCL features that have not yet been implemented, see the [`raw`] and [`cl_h`] modules.
 //!
 //! ## Library Wide Panics
 //!
@@ -19,7 +19,7 @@
 //! evaluating which errors are easily uncovered during development
 //! and are therefore better off 
 //! continuing to panic such as invalid kernel code or invalid sizes of things, and which errors are 
-//! more run-timeish and should be returned in a `Result`.
+//! more run-timeish and should be returned in a [`Result`].
 //!
 //! ## Help Wanted
 //!
@@ -31,6 +31,9 @@
 
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues
+//! [`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
+//! [`cl_h`]: http://docs.cogciprocate.com/ocl/cl_h/index.html
+//! [`Result`]: http://docs.cogciprocate.com/ocl/type.Result.html
 
 // #![warn(missing_docs)]
 #![feature(zero_one)]

@@ -1,4 +1,4 @@
-//! [WORK IN PROGRESS][UNTESTED][UNUSED] An OpenCL Image.
+//! [WORK IN PROGRESS][UNTESTED] An OpenCL Image.
 //!
 //! TODO: Implement types for each pixel format.
 use std::default::Default;
