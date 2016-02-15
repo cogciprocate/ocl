@@ -30,6 +30,7 @@ fn errcode_string(errcode: cl_int) -> String {
     }
 }
 
+
 /// Evaluates `errcode` and returns an `Err` if it is not 0.
 fn errcode_try(message: &str, errcode: cl_int) -> OclResult<()> {
     if errcode != cl_h::ClStatus::CL_SUCCESS as cl_int {
@@ -40,44 +41,19 @@ fn errcode_try(message: &str, errcode: cl_int) -> OclResult<()> {
     }
 }
 
+
 /// Evaluates `errcode` and panics with a failure message if it is not 0.
 fn errcode_assert(message: &str, errcode: cl_int) {
     errcode_try(message, errcode).unwrap();
 }
+
 
 /// Maps options of slices to pointers and a length.
 fn resolve_queue_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>)
         -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
-    // otherwise map to the length and pointer:    
-
-    // let (wait_list_len, wait_list_ptr) = match wait_list {
-    //     Some(wl) => {
-    //         if wl.len() > 0 {
-    //             (wl.len() as cl_uint, wl.as_ptr() as *const cl_event)
-    //         } else {
-    //             (0, ptr::null_mut() as *const cl_event)
-    //         }
-    //     },
-    //     None => (0, ptr::null_mut() as *const cl_event),
-    // };
-
-    // let wait_list_ptr = match wait_list {
-    //     Some(wl) => wl.as_ptr() as *const cl_event,
-    //     None => ptr::null() as *const cl_event,
-    // };
-    // let wait_list_len = match &wait_list {
-    //     &Some(ref wl) => wl.len() as u32,
-    //     &None => 0,
-    // };
-
-    // let new_event_ptr = new_event.map(|ref mut e| e as *mut _ as *mut cl_event)
-    //     .unwrap_or(ptr::null_mut() as *mut cl_event);
-
-
-    // If the wait list is empty or if its containing option is none, map to (0, null),
-    // otherwise map to the length and pointer:    
+    // otherwise map to the length and pointer (driver doesn't want an empty list):    
     let (wait_list_len, wait_list_ptr) = match wait_list {
         Some(wl) => {
             if wl.len() > 0 {
@@ -97,6 +73,7 @@ fn resolve_queue_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut Eve
     Ok((wait_list_len, wait_list_ptr, new_event_ptr))
 }
 
+
 /// Converts an array option reference into a pointer to the contained array.
 fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
     match work_dims {
@@ -111,9 +88,8 @@ fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 //=============================================================================
 //=============================================================================
 
-
 //=============================================================================
-//=================================== Platform API =====================================
+//============================= Platform API ==================================
 //=============================================================================
 
 /// Returns a list of available platforms as 'raw' objects.
@@ -160,10 +136,11 @@ pub fn get_platform_ids() -> Vec<PlatformIdRaw> {
 
 
 
-//=============================================================================
-//=================================== Device APIs  =====================================
-//=============================================================================
 
+
+//=============================================================================
+//============================== Device APIs  =================================
+//=============================================================================
 
 /// Returns a list of available devices for a particular platform by id.
 ///
@@ -199,13 +176,11 @@ pub fn get_device_ids(
 
 
 
-
     // pub fn clGetDeviceInfo(device: cl_device_id,
     //                    param_name: cl_device_info,
     //                    param_value_size: size_t,
     //                    param_value: *mut c_void,
     //                    param_value_size_ret: *mut size_t) -> cl_int;
-
 
 
 
@@ -217,9 +192,13 @@ pub fn get_device_ids(
     //                    cl_device_id *                       /* out_devices */,
     //                    cl_uint *                            /* num_devices_ret */) CL_API_SUFFIX__VERSION_1_2;
 
+
+
     //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clRetainDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
+
+
     
     //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
@@ -228,7 +207,7 @@ pub fn get_device_ids(
 
 
 //=============================================================================
-//=================================== Context APIs  =====================================
+//============================== Context APIs  ================================
 //=============================================================================
 
 
@@ -250,7 +229,6 @@ pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
 
 
 
-
     // pub fn clCreateContextFromType(properties: *mut cl_context_properties,
     //                            device_type: cl_device_type,
     //                            pfn_notify: extern fn (*mut c_char, *mut c_void, size_t, *mut c_void),
@@ -259,9 +237,7 @@ pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
 
 
 
-
     // pub fn clRetainContext(context: cl_context) -> cl_int;
-
 
 
 
@@ -274,7 +250,6 @@ pub fn release_context(context: ContextRaw) {
 
 
 
-
     // pub fn clGetContextInfo(context: cl_context,
     //                     param_name: cl_context_info,
     //                     param_value_size: size_t,
@@ -283,10 +258,10 @@ pub fn release_context(context: ContextRaw) {
 
 
 
-//=============================================================================
-//=================================== Command Queue APIs =====================================
-//=============================================================================
 
+//=============================================================================
+//=========================== Command Queue APIs ==============================
+//=============================================================================
 
 /// Returns a new command queue pointer.
 pub fn create_command_queue(
@@ -312,10 +287,7 @@ pub fn create_command_queue(
 
 
 
-
-
     // pub fn clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
-
 
 
 
@@ -325,7 +297,6 @@ pub fn release_command_queue(queue: CommandQueueRaw) {
         cl_h::clReleaseCommandQueue(queue.as_ptr())
     });
 }
-
 
 
 
@@ -339,9 +310,8 @@ pub fn release_command_queue(queue: CommandQueueRaw) {
 
 
 //=============================================================================
-//=================================== Memory Object APIs =====================================
+//=========================== Memory Object APIs ==============================
 //=============================================================================
-
 
 /// Returns a new buffer pointer with size (bytes): `len` * sizeof(T).
 pub fn create_buffer<T>(
@@ -379,13 +349,11 @@ pub fn create_buffer<T>(
 
 
 
-
     // pub fn clCreateSubBuffer(buffer: cl_mem,
     //                     flags: cl_mem_flags,
     //                     buffer_create_type: cl_buffer_create_type,
     //                     buffer_create_info: *mut c_void,
     //                     errcode_ret: *mut cl_int) -> cl_mem;
-
 
 
 
@@ -480,7 +448,7 @@ pub fn release_mem_object(mem: MemRaw) {
 
 
 //=============================================================================
-//=================================== Sampler APIs =====================================
+//============================== Sampler APIs =================================
 //=============================================================================
 
     // pub fn clCreateSampler(context: cl_context,
@@ -509,8 +477,10 @@ pub fn release_mem_object(mem: MemRaw) {
 
 
 //=============================================================================
-//=================================== Program Object APIs =====================================
+//=========================== Program Object APIs =============================
 //=============================================================================
+
+
 
     // pub fn clCreateProgramWithSource(context: cl_context,
     //                              count: cl_uint,
@@ -554,14 +524,12 @@ pub fn release_program(program: ProgramRaw) {
 
 
 
-
     // pub fn clBuildProgram(program: cl_program,
     //                   num_devices: cl_uint,
     //                   device_list: *const cl_device_id,
     //                   options: *const c_char,
     //                   pfn_notify: extern fn (cl_program, *mut c_void),
     //                   user_data: *mut c_void) -> cl_int;
-
 
 
 
@@ -579,7 +547,6 @@ pub fn release_program(program: ProgramRaw) {
 
 
 
-
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_program CL_API_CALL
     // clLinkProgram(cl_context           /* context */,
@@ -594,11 +561,9 @@ pub fn release_program(program: ProgramRaw) {
 
 
 
-
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clUnloadPlatformCompiler(cl_platform_id /* platform */) CL_API_SUFFIX__VERSION_1_2;
-
 
 
 
@@ -659,7 +624,6 @@ pub fn create_build_program(
 
 
 
-
     // pub fn clGetProgramBuildInfo(program: cl_program,
     //                          device: cl_device_id,
     //                          param_name: cl_program_info,
@@ -669,7 +633,7 @@ pub fn create_build_program(
 
 
 //=============================================================================
-//=================================== Kernel Object APIs =====================================
+//=========================== Kernel Object APIs ==============================
 //=============================================================================
 
 /// Returns a new kernel pointer.
@@ -702,9 +666,7 @@ pub fn create_kernel(
 
 
 
-
     // pub fn clRetainKernel(kernel: cl_kernel) -> cl_int;
-
 
 
 
@@ -713,8 +675,6 @@ pub fn release_kernel(kernel: KernelRaw) {
         cl_h::clReleaseKernel(kernel.as_ptr())
     });
 }
-
-
 
 
 /// Modifies or creates a kernel argument.
@@ -768,8 +728,6 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
 
 
 
-
-
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clGetKernelArgInfo(cl_kernel       /* kernel */,
@@ -778,7 +736,6 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
     //                   size_t          /* param_value_size */,
     //                   void *          /* param_value */,
     //                   size_t *        /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_2;
-
 
 
 
@@ -792,7 +749,7 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
 
 
 //=============================================================================
-//=================================== Event Object APIs =====================================
+//=========================== Event Object APIs ===============================
 //=============================================================================
 
 pub fn wait_for_events(count: cl_uint, event_list: &[EventRaw]) {
@@ -814,15 +771,12 @@ pub fn wait_for_events(count: cl_uint, event_list: &[EventRaw]) {
 
 
 
-
     // pub fn clCreateUserEvent(context: cl_context,
     //                      errcode_ret: *mut cl_int) -> cl_event;
 
 
 
-
     // pub fn clRetainEvent(event: cl_event) -> cl_int;
-
 
 
 
@@ -836,12 +790,8 @@ pub fn release_event(event: EventRaw) {
 
 
 
-
     // pub fn clSetUserEventStatus(event: cl_event,
     //                         execution_status: cl_int) -> cl_int;
-
-
-
 
 
 
@@ -862,9 +812,8 @@ pub unsafe fn set_event_callback(
 
 
 
-
 //=============================================================================
-//=================================== Profiling APIs =====================================
+//============================= Profiling APIs ================================
 //=============================================================================
 
 
@@ -876,9 +825,8 @@ pub unsafe fn set_event_callback(
 
 
 
-
 //=============================================================================
-//=================================== Flush and Finish APIs =====================================
+//========================== Flush and Finish APIs ============================
 //=============================================================================
 
 
@@ -898,7 +846,7 @@ pub fn finish(command_queue: CommandQueueRaw) {
 
 
 //=============================================================================
-//=================================== Enqueued Commands APIs =====================================
+//======================== Enqueued Commands APIs =============================
 //=============================================================================
 
 
@@ -944,7 +892,6 @@ pub unsafe fn enqueue_read_buffer<T>(
 
 
 
-
     // pub fn clEnqueueReadBufferRect(command_queue: cl_command_queue,
     //                            buffer: cl_mem,
     //                            blocking_read: cl_bool,
@@ -959,7 +906,6 @@ pub unsafe fn enqueue_read_buffer<T>(
     //                            num_events_in_wait_list: cl_uint,
     //                            event_wait_list: *const cl_event,
     //                            event: *mut cl_event) -> cl_int;
-
 
 
 
@@ -1010,7 +956,6 @@ pub fn enqueue_write_buffer<T>(
 
 
 
-
     // pub fn clEnqueueWriteBufferRect(command_queue: cl_command_queue,
     //                             blocking_write: cl_bool,
     //                             buffer_origin: *mut size_t,
@@ -1024,7 +969,6 @@ pub fn enqueue_write_buffer<T>(
     //                             num_events_in_wait_list: cl_uint,
     //                             event_wait_list: *const cl_event,
     //                             event: *mut cl_event) -> cl_int;
-
 
 
 
@@ -1058,7 +1002,6 @@ pub fn enqueue_copy_buffer(
 
 
 
-
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueFillBuffer(cl_command_queue   /* command_queue */,
@@ -1070,8 +1013,6 @@ pub fn enqueue_copy_buffer(
     //                 cl_uint            /* num_events_in_wait_list */, 
     //                 const cl_event *   /* event_wait_list */, 
     //                 cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
-
-
 
 
 
@@ -1088,8 +1029,6 @@ pub fn enqueue_copy_buffer(
     //                            num_events_in_wait_list: cl_uint,
     //                            event_wait_list: *const cl_event,
     //                            event: *mut cl_event) -> cl_int;
-
-
 
 
 
@@ -1220,7 +1159,6 @@ pub fn enqueue_copy_buffer(
 
 
 
-
 pub fn enqueue_kernel(
             command_queue: CommandQueueRaw,
             kernel: cl_kernel,
@@ -1322,6 +1260,7 @@ pub fn enqueue_kernel(
     //                    ) CL_API_SUFFIX__VERSION_1_2;
     
 
+
 //=============================================================================
 //=============================================================================
 //============================ DERIVED FUNCTIONS ==============================
@@ -1360,6 +1299,7 @@ pub fn wait_for_event(event: EventRaw) {
     errcode_assert("clWaitForEvents", errcode);
 }
 
+/// Returns the status of `event`.
 pub fn get_event_status(event: EventRaw) -> cl_int {
     let mut status: cl_int = 0;
 
@@ -1378,7 +1318,8 @@ pub fn get_event_status(event: EventRaw) -> cl_int {
     status
 }
 
-/// TODO: Evaluate usefulness
+
+/// [UNFINISHED] Currently prints the platform name.
 #[allow(dead_code)]
 pub fn platform_info(platform: PlatformIdRaw) {
     let mut size = 0 as size_t;
@@ -1408,8 +1349,9 @@ pub fn platform_info(platform: PlatformIdRaw) {
 }
 
 
-
-/// If the program pointed to by `cl_program` for any of the devices listed in `device_ids` has a build log of any length, it will be returned as an errcode result.
+/// If the program pointed to by `cl_program` for any of the devices listed in 
+/// `device_ids` has a build log of any length, it will be returned as an 
+/// errcode result.
 ///
 pub fn program_build_err(program: ProgramRaw, device_ids: &Vec<DeviceIdRaw>) -> OclResult<()> 
 {
@@ -1459,6 +1401,7 @@ pub fn program_build_err(program: ProgramRaw, device_ids: &Vec<DeviceIdRaw>) -> 
     Ok(())
 }
 
+
 /// Returns a string containing requested information.
 ///
 /// Currently lazily assumes everything is a char[] and converts to a String. 
@@ -1486,6 +1429,7 @@ pub fn device_info(device_id: DeviceIdRaw, info_type: cl_device_info) -> String 
 
     String::new()
 }
+
 
 /// Returns context information.
 ///
@@ -1538,6 +1482,7 @@ pub fn context_info(context: ContextRaw, info_kind: cl_context_info)
     Ok(())
 }
 
+
 /// Verifies that the `context` is in fact a context object pointer.
 ///
 /// # Assumptions
@@ -1558,6 +1503,6 @@ pub fn verify_context(context: ContextRaw) -> OclResult<()> {
 
 //=============================================================================
 //=============================================================================
-//=================================== END =====================================
+//=================================== EOF =====================================
 //=============================================================================
 //=============================================================================
