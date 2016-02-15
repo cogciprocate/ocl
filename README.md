@@ -38,7 +38,8 @@ or some other diagnostic command will run.
 Add:
 
 ```rust
-[dependencies] ocl = "0.5"
+[dependencies] 
+ocl = "0.5"
 ```
 
 to your project's `Cargo.toml`.
