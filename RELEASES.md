@@ -60,6 +60,7 @@ New Types
 * [`ProQueBuilder`] is now the most boilerplate-free way to create an OpenCL
   context, program, and queue. Create one by calling [`ProQue::builder`].
   See [`basics.rs` for an example][0.5ba] and [documentation][0.5doc] for more info.
+* [`Image`] is still a newborn.
 
 
 [0.5doc]: http://doc.cogciprocate.com/ocl/

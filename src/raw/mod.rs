@@ -6,7 +6,7 @@
 //!
 //! Allows access to OpenCL FFI functions with a minimal layer of abstraction, providing both safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces, although the 'raw' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
 //! 
-//! Object pointers can generally be shared between threads (except for kernel -- see the official [clSetKernelArg] documentation for details). 
+//! Object pointers can generally be shared between threads (except for kernel -- see the official [`clSetKernelArg`] documentation for details). 
 //!
 //! ## Even Lower Level: [`cl_h`]
 //!
@@ -20,7 +20,7 @@
 //!
 //! ## Safety
 //!
-//! At the time of writing, some functions still *may* break Rust's usual safety promises and have not been comprehensively tested or evaluated. Please file an [issue](https://github.com/cogciprocate/ocl/issues) if you discover something!
+//! At the time of writing, some functions still *may* break Rust's usual safety promises and have not been comprehensively tested or evaluated. Please file an [issue] if you discover something!
 //!
 //! ## Panics
 //!
@@ -29,24 +29,26 @@
 //!
 //! ### Official Documentation
 //!
-//! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/)
+//! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
 //!
 //! ### Help Wanted
 //!
 //! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls). 
 //!
 //! [STATUS]: <br/>
-//! Coverage of important stuff: 90%. <br/>
-//! Coverage of peripheral stuff: 10% - 20%. <br/>
+//! Coverage of core stuff: 80%. <br/>
+//! Coverage of peripheral stuff: 5% - 10%. <br/>
 //!
 //! #### `raw` Stands Alone
 //!	
 //! This module may eventually be moved to its own separate crate (with its dependencies `cl_h` and `error`).
 //!
+//! [issue]: https://github.com/cogciprocate/ocl/issues
 //! [`cl_h`]: /ocl/cl_h/index.html
 //! [`raw`]: /ocl/raw/index.html
 //! [`Error`]: /ocl/enum.Error.html
-//! [clSetKernelArg]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
+//! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
+//! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 
 mod function;
 mod cl;
