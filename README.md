@@ -1,5 +1,8 @@
 # ocl
-#### [Documentation](http://doc.cogciprocate.com/ocl/) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md) | [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
+
+#### [Documentation](http://doc.cogciprocate.com/ocl/) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
+
+[![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
 
 
 OpenCL&trade; interfaces for Rust. Makes easy to use the most common features

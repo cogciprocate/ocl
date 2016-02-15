@@ -3,15 +3,13 @@ Version 0.5.0 (2016-02-15)
 
 Lots of changes, breaking and otherwise:
 
-A new type, [`Image`] has been added for processing images. It is still very 
+A new type, [`Image`] has been added for processing images. It is still very
 much a work in progress.
 
-The 'raw' api now located in the new [`raw`] module allows access to
-OpenCL&trade; FFI functions with only a thin layer of abstraction providing
-safety and convenience. Using functions in this module is only recommended
-for use when functionality has not yet been implemented on the 'standard' ocl
-interfaces although the 'raw' and 'standard' interfaces are all completely
-interoperable.
+The new [`raw`] api allows access to OpenCL&trade; FFI functions with only a
+thin layer of abstraction providing safety and convenience. Using functions in
+this module is only recommended for use when functionality has not yet been
+implemented on the 'standard' ocl interfaces.
 
 Breaking Changes
 ----------------
@@ -29,7 +27,7 @@ Breaking Changes
   simplest names wheras the more complicated, non-blocking versions have the 
   `_async` suffix.
 * [`Buffer`] non-blocking read methods (*_async) are now unsafe pending review.
-* [`Buffer`] reading and writing methods now returns a `Result<()>`.
+* [`Buffer`] reading and writing methods now return a `Result<()>`.
 * The `Buffer::with_vec_shuffled` and `Buffer::with_vec_scrambled` methods 
   now accept a 2-tuple as the first argument instead of two separate values for 
   the first two arguments.
@@ -40,11 +38,10 @@ Breaking Changes
      `Program::builder`.
    * The `::build` method has been added, consuming the builder and returning
      a new [`Program`].
-   * Methods dealing with kernel source code renamed from `kern` to `src` 
-     for clarity and simplicity.
+   * Methods dealing with kernel source code have been renamed for clarity.
    * Extraneous methods have been removed.
 * The following methods on [`Kernel`] have been renamed reflecting `Envoy`
-  having been recently renamed to `Buffer' in v0.4.0:
+  having been recently renamed to [`Buffer`] in v0.4.0:
   * `::arg_env` to `::arg_buf`
   * `::arg_env_named` to `::arg_buf_named`
   * `::set_arg_env_named` to `::set_arg_buf_named`
@@ -61,7 +58,7 @@ Breaking Changes
 New Types
 ---------
 * [`ProQueBuilder`] is now the most boilerplate-free way to create an OpenCL
-  context, program, and queue. Create one by calling ['ProQue::builder'].
+  context, program, and queue. Create one by calling [`ProQue::builder`].
   See [`basics.rs` for an example][0.5ba] and [documentation][0.5doc] for more info.
 
 
