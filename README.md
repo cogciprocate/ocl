@@ -15,7 +15,8 @@ Interfaces are still mildly unstable. Changes are now being documented in
 
 ## Goals
 
-To provide a simple and intuitive way to interact with OpenCL devices with:
+To provide:
+- A simple and intuitive interface with OpenCL devices
 - The full functionality of the OpenCL C ABI
 - An absolute minimum of boilerplate
 - As close as possible to zero performance overhead
@@ -23,16 +24,16 @@ To provide a simple and intuitive way to interact with OpenCL devices with:
 
 ## Platforms
 
-Tested so far only on Linux. Please [provide
+Tested so far only on Linux (and probably OS X - need confirmation). Windows
+support looks imminent. Please [provide
 feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and
-successes on other platforms. *Note: Probably working in OS X, need
-confirmation.*
+successes on your platform.
 
 
 ## Installation
 
-Ensure that an OpenCL library is installed for your preferred platform and
-that `clinfo` or some other diagnostic command will run.
+Ensure that an OpenCL library is installed for your platform and that `clinfo`
+or some other diagnostic command will run.
 
 Add:
 
@@ -86,7 +87,15 @@ fn main() {
 
 ```
 
-## Help
+
+### Taking Requests
+
+Want to bring your OpenCL-ness to Rust but can't find the functionality you
+need? File an [issue](https://github.com/cogciprocate/ocl_rust/issues) and
+let us know what should come next.
+
+
+### Help
 
 *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1`
 exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in
@@ -98,29 +107,6 @@ enter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)).
 
 Please ask questions and provide feedback by opening an
 [issue](https://github.com/cogciprocate/ocl_rust/issues).
-
-
-### Recent Changes
-
-See **[RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.m
-d)**.
-
-
-### Upcoming Changes
-
-* Addition of the `Image` type for dealing with images.
-* Cleaning up and consolidating error handling [Issue
-  #8](https://github.com/cogciprocate/ocl/issues/8)
-* Finishing [documentation](http://doc.cogciprocate.com/ocl/) (now about 60%
-  complete).
-
-
-### Taking Requests
-
-Want to bring your OpenCL-ness to Rust but can't find the functionality you
-need? File an [issue](https://github.com/cogciprocate/ocl_rust/issues) and
-prefix the title with `Feature Request:`.
-
 
 <br/><br/>
 
