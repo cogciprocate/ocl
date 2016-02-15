@@ -14,9 +14,10 @@ use error::{Result as OclResult, Error as OclError};
 /// 
 /// # Creation
 /// There are two ways to create a `ProQue`:
-/// 1. First call `::new` and pass a `Context` and device index. Next call 
+///
+/// 1. First call `::new` and pass a `Context` and device index then call 
 ///    `::build` and pass a `ProgramBuilder`.
-/// 2. [FIXME]: UPDATE THIS
+/// 2. Call `::builder` [FIXME]: Complete description and give examples.
 ///
 /// # Destruction
 ///
@@ -62,7 +63,6 @@ impl ProQue {
 
     /// Creates a new ProQue from individual parts.
     pub fn from_parts(context: Option<Context>, queue: Queue, program: Option<Program>) -> ProQue {
-
         ProQue {
             context: context,
             queue: queue,
@@ -70,7 +70,7 @@ impl ProQue {
         }
     }
 
-    /// Builds contained program with `program_builder`.
+    /// Builds and stores the program defined by `builder`.
     ///
     /// ### Panics
     /// This `ProQue` must not already contain a program.
@@ -125,7 +125,6 @@ impl ProQue {
     }
 
     /// Returns a new Kernel with name: `name` and global work size: `gws`.
-    // [FIXME] TODO: Return result instead of panic.
     pub fn create_kernel(&self, name: &str, gws: WorkDims) -> OclResult<Kernel> {
         let program = match self.program {
             Some(ref prg) => prg,
@@ -139,13 +138,13 @@ impl ProQue {
         Kernel::new(name.to_string(), &program, &self.queue, gws)   
     }
 
-    /// Returns the maximum workgroup size supported by the device on which the
-    /// contained queue exists.
+    /// Returns the maximum workgroup size supported by the device associated
+    /// with this `ProQue`.
     pub fn max_work_group_size(&self) -> usize {
         raw::get_max_work_group_size(self.queue.device_id_obj_raw())
     }
 
-    /// Returns the queue created when constructing this ProQue.
+    /// Returns a reference to the queue associated with this ProQue.
     pub fn queue(&self) -> &Queue {
         &self.queue
     }
@@ -155,7 +154,7 @@ impl ProQue {
         &self.program
     }
 
-    /// Release all components.
+    /// Releases all components.
     pub fn release(&mut self) {     
         self.queue.release();
         self.clear_build();

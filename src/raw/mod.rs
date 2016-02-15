@@ -1,21 +1,22 @@
+// ocl::raw::
+
 //! Thin wrappers for the OpenCL FFI functions and types.
 //!
 //! *The layer between the metal and the soft fuzzy parts...*
 //!
-//! Allows access to OpenCL FFI functions with a minimal layer of abstraction providing safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces although the 'raw' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
+//! Allows access to OpenCL FFI functions with a minimal layer of abstraction, providing both safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces, although the 'raw' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
 //! 
-//! Object pointers can generally be shared between threads except for kernel. 
-//! See [clSetKernelArg documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html).
+//! Object pointers can generally be shared between threads (except for kernel -- see the official [clSetKernelArg] documentation for details). 
 //!
 //! ## Even Lower Level: [`cl_h`]
 //!
 //! *Not as raw as...*
 //!
-//! If there's still something missing, or for some reason you need direct FFI access, use the functions in the [`cl_h`] module.
+//! If there's still something missing or for some reason you need direct FFI access, use the functions in the [`cl_h`] module.
 //!
 //! # Performance
 //!
-//! Performance between all three levels of interface, [`cl_h`], `raw`, and the standard types, is virtually identical for non-trival uses (if not, file an issue).
+//! Performance between all three interface layers, [`cl_h`], [`raw`], and the 'standard' types, is virtually identical for non-trival uses (if not, please file an issue).
 //!
 //! ## Safety
 //!
@@ -24,7 +25,7 @@
 //! ## Panics
 //!
 //! [FIXME]: NEEDS UPDATE:
-//! All functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an `Error` type instead.
+//! All functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an [`Error`] type instead.
 //!
 //! ### Official Documentation
 //!
@@ -40,9 +41,12 @@
 //!
 //! #### `raw` Stands Alone
 //!	
-//! This module may eventually be moved to its own separate crate (with its dependencies, `cl_h` and `error`).
+//! This module may eventually be moved to its own separate crate (with its dependencies `cl_h` and `error`).
 //!
 //! [`cl_h`]: /ocl/cl_h/index.html
+//! [`raw`]: /ocl/raw/index.html
+//! [`Error`]: /ocl/enum.Error.html
+//! [clSetKernelArg]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 
 mod function;
 mod cl;

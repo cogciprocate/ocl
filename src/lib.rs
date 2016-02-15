@@ -15,11 +15,7 @@
 //!
 //! ## Library Wide Panics
 //!
-//! Many operations will panic upon any OpenCL error [UPDATE: Error handling is in a state of transition, some things panic, some return results]. More work needs to be done
-//! evaluating which errors are easily uncovered during development
-//! and are therefore better off 
-//! continuing to panic such as invalid kernel code or invalid sizes of things, and which errors are 
-//! more run-timeish and should be returned in a [`Result`].
+//! Many operations will panic upon any OpenCL error [UPDATE: Error handling is in a state of transition, some things panic, some return results].
 //!
 //! ## Help Wanted
 //!
@@ -37,6 +33,11 @@
 
 // #![warn(missing_docs)]
 #![feature(zero_one)]
+
+// For some reason have to have this to supress the warning (TODO: figure out
+// how to conditionally allow [feature(time2)] for cfg(test) only).
+#![allow(unused_features)]
+#![feature(time2)]
 
 #[macro_use] extern crate enum_primitive;
 #[macro_use] extern crate bitflags;

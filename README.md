@@ -37,7 +37,7 @@ or some other diagnostic command will run.
 
 Add:
 
-```
+```rust
 [dependencies] ocl = "0.5"
 ```
 
@@ -47,7 +47,7 @@ to your project's `Cargo.toml`.
 ## Example 
 
 From 'examples/trivial.rs':
-```
+```rust
 extern crate ocl;
 use ocl::{ProQue, SimpleDims, Buffer};
 
@@ -75,13 +75,13 @@ fn main() {
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    // // Enqueue kernel:
+    // Enqueue kernel:
     kern.enqueue(None, None);
 
-    // // Read results from the device into buffer's local vector:
+    // Read results from the device into buffer's local vector:
     buffer.fill_vec().unwrap();
 
-    // // Print a result:
+    // Print a result:
     println!("The value at index [{}] is '{}'!", 200007, buffer[200007]);
 }
 
@@ -108,7 +108,7 @@ enter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)).
 Please ask questions and provide feedback by opening an
 [issue](https://github.com/cogciprocate/ocl_rust/issues).
 
-<br/><br/>
+<br/>
 
 *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission
 by Khronos.”*

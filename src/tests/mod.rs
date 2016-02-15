@@ -7,6 +7,7 @@
 //!
 //!
 pub mod build_error;
+pub mod timed_stuff;
 
 use libc::c_void;
 use cl_h::{cl_event, cl_int};
@@ -114,7 +115,7 @@ fn test_events() {
         // Yes, this is far from optimal...
         // Should just copy the values in the first place but oh well.
         if itr != 0 {
-            kernel.set_arg_buf_named("src", Some(&result_buffer));
+            kernel.set_arg_buf_named("src", Some(&result_buffer)).unwrap();
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
