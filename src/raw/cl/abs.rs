@@ -19,6 +19,7 @@ use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, 
 	cl_kernel, cl_event, cl_sampler};
 
 
+/// cl_platform_id
 #[derive(Clone, Copy)]
 pub struct PlatformIdRaw(cl_platform_id);
 
@@ -37,6 +38,7 @@ impl PlatformIdRaw {
 }
 
 
+/// cl_device_id
 #[derive(Clone, Copy)]
 pub struct DeviceIdRaw(cl_device_id);
 
@@ -55,6 +57,7 @@ impl DeviceIdRaw {
 }
 
 
+/// cl_context
 #[derive(Clone, Copy)]
 pub struct ContextRaw(cl_context);
 
@@ -69,6 +72,7 @@ impl ContextRaw {
 }
 
 
+/// cl_command_queue
 #[derive(Clone, Copy)]
 pub struct CommandQueueRaw(cl_command_queue);
 
@@ -83,6 +87,7 @@ impl CommandQueueRaw {
 }
 
 
+/// cl_mem
 #[derive(Clone, Copy)]
 pub struct MemRaw(cl_mem);
 
@@ -101,6 +106,7 @@ impl MemRaw {
 }
 
 
+/// cl_program
 #[derive(Clone, Copy)]
 pub struct ProgramRaw(cl_program);
 
@@ -115,6 +121,7 @@ impl ProgramRaw {
 }
 
 
+/// cl_kernel
 #[derive(Clone, Copy)]
 pub struct KernelRaw(cl_kernel);
 
@@ -129,6 +136,7 @@ impl KernelRaw {
 }
 
 
+/// cl_event
 #[derive(Clone, Debug)]
 pub struct EventRaw(cl_event);
 
@@ -147,6 +155,7 @@ impl EventRaw {
 }
 
 
+/// cl_sampler
 #[derive(Clone)]
 pub struct SamplerRaw(cl_sampler);
 

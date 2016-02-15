@@ -3,9 +3,9 @@
 use cl_h::{self, cl_mem};
 use raw::{MemObjectType, ImageChannelOrder, ImageChannelDataType};
 
-/// A structure that describes format properties of the image to be allocated. (from SDK)
-///
 /// Image format properties used by `Image`.
+///
+/// A structure that describes format properties of the image to be allocated. (from SDK)
 ///
 /// # Examples (from SDK)
 ///
@@ -38,7 +38,8 @@ impl ImageFormat {
 }
 
 
-/// An image descriptor.
+/// An image descriptor use in the creation of `Image`.
+///
 /// image_type
 /// Describes the image type and must be either CL_MEM_OBJECT_IMAGE1D, CL_MEM_OBJECT_IMAGE1D_BUFFER, CL_MEM_OBJECT_IMAGE1D_ARRAY, CL_MEM_OBJECT_IMAGE2D, CL_MEM_OBJECT_IMAGE2D_ARRAY, or CL_MEM_OBJECT_IMAGE3D.
 ///
