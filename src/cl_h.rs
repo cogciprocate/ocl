@@ -4,10 +4,10 @@
 //!
 //! This file was adapted from [https://www.khronos.org/registry/cl/api/1.2/cl.h](https://www.khronos.org/registry/cl/api/1.2/cl.h).
 //!
-//! Supports OpenCL version 1.2. Version 1.0 and 1.1 support is currently disabled. If there is a need for the old versions right away please file an [issue](https://github.com/cogciprocate/ocl/issues) and ask to bring it back (it's trivial). Eventually there will be support for every version (including 2.0+) and some sort of auto-detection system.
+//! Supports OpenCL version 1.2. Version 1.0 and 1.1 support is currently disabled. Eventually there will be support for every version (including 2.0+) and an auto-detecting best version avaliable system. 
+//! [FIXME]: 1.2 implementation not 100% complete.
 //! 
 //!
-
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
 use std::fmt::{Display, Formatter, Result};

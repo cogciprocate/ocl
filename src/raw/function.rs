@@ -1,3 +1,10 @@
+//! All the functions.
+//!
+//! TODO: Break this file up
+//!
+
+#![allow(dead_code)]
+
 use std::ptr;
 use std::mem;
 use std::io::Read;
@@ -21,7 +28,7 @@ use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags,
 //=============================================================================
 //=============================================================================
 
-/// Converts the `cl_int` errcode into a string containing the associated 
+/// Converts the `cl_int` errcode into a string containing the associated
 /// constant name.
 fn errcode_string(errcode: cl_int) -> String {
     match ClStatus::from_i32(errcode) {
@@ -29,7 +36,6 @@ fn errcode_string(errcode: cl_int) -> String {
         None => format!("[Unknown Error Code: {}]", errcode as i64),
     }
 }
-
 
 /// Evaluates `errcode` and returns an `Err` if it is not 0.
 fn errcode_try(message: &str, errcode: cl_int) -> OclResult<()> {
@@ -41,12 +47,10 @@ fn errcode_try(message: &str, errcode: cl_int) -> OclResult<()> {
     }
 }
 
-
 /// Evaluates `errcode` and panics with a failure message if it is not 0.
 fn errcode_assert(message: &str, errcode: cl_int) {
     errcode_try(message, errcode).unwrap();
 }
-
 
 /// Maps options of slices to pointers and a length.
 fn resolve_queue_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>)
@@ -72,7 +76,6 @@ fn resolve_queue_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut Eve
 
     Ok((wait_list_len, wait_list_ptr, new_event_ptr))
 }
-
 
 /// Converts an array option reference into a pointer to the contained array.
 fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
@@ -125,18 +128,15 @@ pub fn get_platform_ids() -> Vec<PlatformIdRaw> {
     platforms
 }
 
-
-
-
-    // pub fn clGetPlatformInfo(platform: cl_platform_id,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_platform_info() {
+    // cl_h::clGetPlatformInfo(platform: cl_platform_id,
     //                              param_name: cl_platform_info,
     //                              param_value_size: size_t,
     //                              param_value: *mut c_void,
     //                              param_value_size_ret: *mut size_t) -> cl_int;
-
-
-
-
+    unimplemented!();
+}
 
 //=============================================================================
 //============================== Device APIs  =================================
@@ -174,16 +174,18 @@ pub fn get_device_ids(
     device_ids
 }
 
-
-
-    // pub fn clGetDeviceInfo(device: cl_device_id,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_device_info() {
+    // cl_h::clGetDeviceInfo(device: cl_device_id,
     //                    param_name: cl_device_info,
     //                    param_value_size: size_t,
     //                    param_value: *mut c_void,
     //                    param_value_size_ret: *mut size_t) -> cl_int;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_sub_devices() {
     //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clCreateSubDevices(cl_device_id                         /* in_device */,
@@ -191,25 +193,28 @@ pub fn get_device_ids(
     //                    cl_uint                              /* num_devices */,
     //                    cl_device_id *                       /* out_devices */,
     //                    cl_uint *                            /* num_devices_ret */) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn retain_device() {
     //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clRetainDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-    
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn release_device() {
     //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clReleaseDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
-
-
+    unimplemented!();
+}
 
 //=============================================================================
 //============================== Context APIs  ================================
 //=============================================================================
-
 
 /// Returns a new context pointer valid for all devices in `device_ids`.
 pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
@@ -227,20 +232,21 @@ pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
     context
 }
 
-
-
-    // pub fn clCreateContextFromType(properties: *mut cl_context_properties,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_context_from_type() {
+    // cl_h::clCreateContextFromType(properties: *mut cl_context_properties,
     //                            device_type: cl_device_type,
     //                            pfn_notify: extern fn (*mut c_char, *mut c_void, size_t, *mut c_void),
     //                            user_data: *mut c_void,
     //                            errcode_ret: *mut cl_int) -> cl_context;
+    unimplemented!();
+}
 
-
-
-    // pub fn clRetainContext(context: cl_context) -> cl_int;
-
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn retain_context() {
+    // cl_h::clRetainContext(context: cl_context) -> cl_int;
+    unimplemented!();
+}
 
 pub fn release_context(context: ContextRaw) {
     errcode_assert("clReleaseContext", unsafe {
@@ -248,16 +254,15 @@ pub fn release_context(context: ContextRaw) {
     });
 }
 
-
-
-    // pub fn clGetContextInfo(context: cl_context,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_context_info() {
+    // cl_h::clGetContextInfo(context: cl_context,
     //                     param_name: cl_context_info,
     //                     param_value_size: size_t,
     //                     param_value: *mut c_void,
     //                     param_value_size_ret: *mut size_t) -> cl_int;
-
-
-
+    unimplemented!();
+}
 
 //=============================================================================
 //=========================== Command Queue APIs ==============================
@@ -284,13 +289,11 @@ pub fn create_command_queue(
     Ok(cq)
 }
 
-
-
-
-    // pub fn clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
-
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn retain_command_queue() {
+    // cl_h::clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
+    unimplemented!();
+}
 
 pub fn release_command_queue(queue: CommandQueueRaw) {
     errcode_assert("clReleaseCommandQueue", unsafe {
@@ -298,16 +301,15 @@ pub fn release_command_queue(queue: CommandQueueRaw) {
     });
 }
 
-
-
-    // pub fn clGetCommandQueueInfo(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_command_queue_info() {
+    // cl_h::clGetCommandQueueInfo(command_queue: cl_command_queue,
     //                          param_name: cl_command_queue_info,
     //                          param_value_size: size_t,
     //                          param_value: *mut c_void,
     //                          param_value_size_ret: *mut size_t) -> cl_int;
-
-
-
+    unimplemented!();
+}
 
 //=============================================================================
 //=========================== Memory Object APIs ==============================
@@ -346,17 +348,15 @@ pub fn create_buffer<T>(
     Ok(buf)
 }
 
-
-
-
-    // pub fn clCreateSubBuffer(buffer: cl_mem,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_sub_buffer() {
+    // cl_h::clCreateSubBuffer(buffer: cl_mem,
     //                     flags: cl_mem_flags,
     //                     buffer_create_type: cl_buffer_create_type,
     //                     buffer_create_info: *mut c_void,
     //                     errcode_ret: *mut cl_int) -> cl_mem;
-
-
-
+    unimplemented!();
+}
 
 /// Returns a new image (mem) pointer.
 // [WORK IN PROGRESS]
@@ -399,14 +399,11 @@ pub fn create_image<T>(
     Ok(MemRaw::new(image_ptr))
 }
 
-
-
-
-    // pub fn clRetainMemObject(memobj: cl_mem) -> cl_int;
-
-
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn retain_mem_object() {
+    // cl_h::clRetainMemObject(memobj: cl_mem) -> cl_int;
+    unimplemented!();
+}
 
 pub fn release_mem_object(mem: MemRaw) {
     errcode_assert("clReleaseMemObject", unsafe {
@@ -414,93 +411,109 @@ pub fn release_mem_object(mem: MemRaw) {
     });
 }
 
-
-
-    // pub fn clGetSupportedImageFormats(context: cl_context,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_supported_image_formats() {
+    // cl_h::clGetSupportedImageFormats(context: cl_context,
     //                               flags: cl_mem_flags,
     //                               image_type: cl_mem_object_type,
     //                               num_entries: cl_uint,
     //                               image_formats: *mut cl_image_format,
     //                               num_image_formats: *mut cl_uint) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clGetMemObjectInfo(memobj: cl_mem,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_mem_object_info() {
+    // cl_h::clGetMemObjectInfo(memobj: cl_mem,
     //                       param_name: cl_mem_info,
     //                       param_value_size: size_t,
     //                       param_value: *mut c_void,
     //                       param_value_size_ret: *mut size_t) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clGetImageInfo(image: cl_mem,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_image_info() {
+    // cl_h::clGetImageInfo(image: cl_mem,
     //                   param_name: cl_image_info,
     //                   param_value_size: size_t,
     //                   param_value: *mut c_void,
     //                   param_value_size_ret: *mut size_t) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clSetMemObjectDestructorCallback(memobj: cl_mem,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn set_mem_object_destructor_callback() {
+    // cl_h::clSetMemObjectDestructorCallback(memobj: cl_mem,
     //                                     pfn_notify: extern fn (cl_mem, *mut c_void),
     //                                     user_data: *mut c_void) -> cl_int;
-
-
+    unimplemented!();
+}
 
 //=============================================================================
 //============================== Sampler APIs =================================
 //=============================================================================
 
-    // pub fn clCreateSampler(context: cl_context,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_sampler() {
+    // cl_h::clCreateSampler(context: cl_context,
     //                    normalize_coords: cl_bool,
     //                    addressing_mode: cl_addressing_mode,
     //                    filter_mode: cl_filter_mode,
     //                    errcode_ret: *mut cl_int) -> cl_sampler;
+    unimplemented!();
+}
 
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn retain_sampler() {
+    // cl_h::clRetainSampler(sampler: cl_sampler) -> cl_int;
+    unimplemented!();
+}
 
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn release_sampler() {
+    // cl_h::clReleaseSampler(sampler: cl_sampler) ->cl_int;
+    unimplemented!();
+}
 
-    // pub fn clRetainSampler(sampler: cl_sampler) -> cl_int;
-
-
-
-    // pub fn clReleaseSampler(sampler: cl_sampler) ->cl_int;
-
-
-
-    // pub fn clGetSamplerInfo(sampler: cl_sampler,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_sampler_info() {
+    // cl_h::clGetSamplerInfo(sampler: cl_sampler,
     //                     param_name: cl_sampler_info,
     //                     param_value_size: size_t,
     //                     param_value: *mut c_void,
     //                     param_value_size_ret: *mut size_t) -> cl_int;
-
-
-
+    unimplemented!();
+}
 
 //=============================================================================
 //=========================== Program Object APIs =============================
 //=============================================================================
 
-
-
-    // pub fn clCreateProgramWithSource(context: cl_context,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_program_with_source() {
+    // cl_h::clCreateProgramWithSource(context: cl_context,
     //                              count: cl_uint,
     //                              strings: *const *const c_char,
     //                              lengths: *const size_t,
     //                              errcode_ret: *mut cl_int) -> cl_program;
+    unimplemented!();
+}
 
-
-
-
-    // pub fn clCreateProgramWithBinary(context: cl_context,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_program_with_binary() {
+    // cl_h::clCreateProgramWithBinary(context: cl_context,
     //                              num_devices: cl_uint,
     //                              device_list: *const cl_device_id,
     //                              lengths: *const size_t,
     //                              binaries: *const *const c_uchar,
     //                              binary_status: *mut cl_int,
     //                              errcode_ret: *mut cl_int) -> cl_program;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_program_with_build_in_kernels() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_program CL_API_CALL
     // clCreateProgramWithBuiltInKernels(cl_context            /* context */,
@@ -508,13 +521,14 @@ pub fn release_mem_object(mem: MemRaw) {
     //                                  const cl_device_id *  /* device_list */,
     //                                  const char *          /* kernel_names */,
     //                                  cl_int *              /* errcode_ret */) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
-    // pub fn clRetainProgram(program: cl_program) -> cl_int;
-
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn retain_program() {
+    // cl_h::clRetainProgram(program: cl_program) -> cl_int;
+    unimplemented!();
+}
 
 pub fn release_program(program: ProgramRaw) {
     errcode_assert("clReleaseKernel", unsafe { 
@@ -522,17 +536,19 @@ pub fn release_program(program: ProgramRaw) {
     });
 }
 
-
-
-    // pub fn clBuildProgram(program: cl_program,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn build_program() {
+    // cl_h::clBuildProgram(program: cl_program,
     //                   num_devices: cl_uint,
     //                   device_list: *const cl_device_id,
     //                   options: *const c_char,
     //                   pfn_notify: extern fn (cl_program, *mut c_void),
     //                   user_data: *mut c_void) -> cl_int;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn compile_program() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clCompileProgram(cl_program           /* program */,
@@ -544,9 +560,11 @@ pub fn release_program(program: ProgramRaw) {
     //                 const char **        /* header_include_names */,
     //                 void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
     //                 void *               /* user_data */) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn link_program() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_program CL_API_CALL
     // clLinkProgram(cl_context           /* context */,
@@ -558,15 +576,16 @@ pub fn release_program(program: ProgramRaw) {
     //               void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
     //               void *               /* user_data */,
     //               cl_int *             /* errcode_ret */ ) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn unload_platform_compiler() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clUnloadPlatformCompiler(cl_platform_id /* platform */) CL_API_SUFFIX__VERSION_1_2;
-
-
-
+    unimplemented!();
+}
 
 /// Creates, builds, and returns a new program pointer from `src_strings`.
 ///
@@ -614,23 +633,26 @@ pub fn create_build_program(
     }
 }
 
-
-
-    // pub fn clGetProgramInfo(program: cl_program,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_program_info() {
+    // cl_h::clGetProgramInfo(program: cl_program,
     //                     param_name: cl_program_info,
     //                     param_value_size: size_t,
     //                     param_value: *mut c_void,
     //                     param_value_size_ret: *mut size_t) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clGetProgramBuildInfo(program: cl_program,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_program_build_info() {
+    // cl_h::clGetProgramBuildInfo(program: cl_program,
     //                          device: cl_device_id,
     //                          param_name: cl_program_info,
     //                          param_value_size: size_t,
     //                          param_value: *mut c_void,
     //                          param_value_size_ret: *mut size_t) -> cl_int;
-
+    unimplemented!();
+}
 
 //=============================================================================
 //=========================== Kernel Object APIs ==============================
@@ -656,18 +678,20 @@ pub fn create_kernel(
     Ok(KernelRaw::new(kernel_ptr))
 }
 
-
-
-
-    // pub fn clCreateKernelsInProgram(program: cl_program,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_kernels_in_program() {
+    // cl_h::clCreateKernelsInProgram(program: cl_program,
     //                             num_kernels: cl_uint,
     //                             kernels: *mut cl_kernel,
     //                             num_kernels_ret: *mut cl_uint) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clRetainKernel(kernel: cl_kernel) -> cl_int;
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn retain_kernel() {
+    // cl_h::clRetainKernel(kernel: cl_kernel) -> cl_int;
+    unimplemented!();
+}
 
 
 pub fn release_kernel(kernel: KernelRaw) {
@@ -675,7 +699,6 @@ pub fn release_kernel(kernel: KernelRaw) {
         cl_h::clReleaseKernel(kernel.as_ptr())
     });
 }
-
 
 /// Modifies or creates a kernel argument.
 ///
@@ -718,16 +741,18 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
     errcode_try(&err_pre, err)
 } 
 
-
-
-    // pub fn clGetKernelInfo(kernel: cl_kernel,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_kernel_info() {
+    // cl_h::clGetKernelInfo(kernel: cl_kernel,
     //                    param_name: cl_kernel_info,
     //                    param_value_size: size_t,
     //                    param_value: *mut c_void,
     //                    param_value_size_ret: *mut size_t) -> cl_int;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_kernel_arg_info() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clGetKernelArgInfo(cl_kernel       /* kernel */,
@@ -736,17 +761,19 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
     //                   size_t          /* param_value_size */,
     //                   void *          /* param_value */,
     //                   size_t *        /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
-    // pub fn clGetKernelWorkGroupInfo(kernel: cl_kernel,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_kernel_work_group_info() {
+    // cl_h::clGetKernelWorkGroupInfo(kernel: cl_kernel,
     //                             device: cl_device_id,
     //                             param_name: cl_kernel_work_group_info,
     //                             param_value_size: size_t,
     //                             param_value: *mut c_void,
     //                             param_value_size_ret: *mut size_t) -> cl_int;
-
-
+    unimplemented!();
+}
 
 //=============================================================================
 //=========================== Event Object APIs ===============================
@@ -760,26 +787,28 @@ pub fn wait_for_events(count: cl_uint, event_list: &[EventRaw]) {
     errcode_assert("clWaitForEvents", errcode);
 }
 
-
-
-
-    // pub fn clGetEventInfo(event: cl_event,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_event_info() {
+    // cl_h::clGetEventInfo(event: cl_event,
     //                   param_name: cl_event_info,
     //                   param_value_size: size_t,
     //                   param_value: *mut c_void,
     //                   param_value_size_ret: *mut size_t) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clCreateUserEvent(context: cl_context,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn create_user_event() {
+    // cl_h::clCreateUserEvent(context: cl_context,
     //                      errcode_ret: *mut cl_int) -> cl_event;
+    unimplemented!();
+}
 
-
-
-    // pub fn clRetainEvent(event: cl_event) -> cl_int;
-
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn retain_event() {
+    // cl_h::clRetainEvent(event: cl_event) -> cl_int;
+    unimplemented!();
+}
 
 pub fn release_event(event: EventRaw) {
     errcode_assert("clReleaseEvent", unsafe {
@@ -787,15 +816,12 @@ pub fn release_event(event: EventRaw) {
     });
 }
 
-
-
-
-    // pub fn clSetUserEventStatus(event: cl_event,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn set_user_event_status() {
+    // cl_h::clSetUserEventStatus(event: cl_event,
     //                         execution_status: cl_int) -> cl_int;
-
-
-
-
+    unimplemented!();
+}
 
 pub unsafe fn set_event_callback(
             event: cl_event, 
@@ -809,32 +835,29 @@ pub unsafe fn set_event_callback(
     errcode_assert("clSetEventCallback", errcode);
 }
 
-
-
-
 //=============================================================================
 //============================= Profiling APIs ================================
 //=============================================================================
 
-
-    // pub fn clGetEventProfilingInfo(event: cl_event,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn get_event_profiling_info() {
+    // cl_h::clGetEventProfilingInfo(event: cl_event,
     //                            param_name: cl_profiling_info,
     //                            param_value_size: size_t,
     //                            param_value: *mut c_void,
     //                            param_value_size_ret: *mut size_t) -> cl_int;
-
-
+    unimplemented!();
+}
 
 //=============================================================================
 //========================== Flush and Finish APIs ============================
 //=============================================================================
 
-
-
-    // pub fn clFlush(command_queue: cl_command_queue) -> cl_int;
-
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn flush() {
+    // cl_h::clFlush(command_queue: cl_command_queue) -> cl_int;
+    unimplemented!();
+}
 
 pub fn finish(command_queue: CommandQueueRaw) {
     unsafe { 
@@ -843,12 +866,9 @@ pub fn finish(command_queue: CommandQueueRaw) {
     }
 }
 
-
-
 //=============================================================================
 //======================== Enqueued Commands APIs =============================
 //=============================================================================
-
 
 /// Enqueues a read from device memory referred to by `buffer` to device memory,
 /// `data`.
@@ -889,10 +909,9 @@ pub unsafe fn enqueue_read_buffer<T>(
     errcode_try("clEnqueueReadBuffer()", errcode)
 }
 
-
-
-
-    // pub fn clEnqueueReadBufferRect(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_read_buffer_rect() {
+    // cl_h::clEnqueueReadBufferRect(command_queue: cl_command_queue,
     //                            buffer: cl_mem,
     //                            blocking_read: cl_bool,
     //                            buffer_origin: *mut size_t,
@@ -906,9 +925,8 @@ pub unsafe fn enqueue_read_buffer<T>(
     //                            num_events_in_wait_list: cl_uint,
     //                            event_wait_list: *const cl_event,
     //                            event: *mut cl_event) -> cl_int;
-
-
-
+    unimplemented!();
+}
 
 /// Enqueues a write from host memory, `data`, to device memory referred to by
 /// `buffer`.
@@ -953,10 +971,9 @@ pub fn enqueue_write_buffer<T>(
     }
 }
 
-
-
-
-    // pub fn clEnqueueWriteBufferRect(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_write_buffer_rect() {
+    // cl_h::clEnqueueWriteBufferRect(command_queue: cl_command_queue,
     //                             blocking_write: cl_bool,
     //                             buffer_origin: *mut size_t,
     //                             host_origin: *mut size_t,
@@ -969,9 +986,8 @@ pub fn enqueue_write_buffer<T>(
     //                             num_events_in_wait_list: cl_uint,
     //                             event_wait_list: *const cl_event,
     //                             event: *mut cl_event) -> cl_int;
-
-
-
+    unimplemented!();
+}
 
 /// [UNTESTED][UNUSED]
 #[allow(dead_code)]
@@ -999,9 +1015,8 @@ pub fn enqueue_copy_buffer(
     }
 }
 
-
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_fill_buffer() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueFillBuffer(cl_command_queue   /* command_queue */,
@@ -1013,10 +1028,12 @@ pub fn enqueue_copy_buffer(
     //                 cl_uint            /* num_events_in_wait_list */, 
     //                 const cl_event *   /* event_wait_list */, 
     //                 cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueCopyBufferRect(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_copy_buffer_rect() {
+    // cl_h::clEnqueueCopyBufferRect(command_queue: cl_command_queue,
     //                            src_buffer: cl_mem,
     //                            dst_buffer: cl_mem,
     //                            src_origin: *mut size_t,
@@ -1029,10 +1046,12 @@ pub fn enqueue_copy_buffer(
     //                            num_events_in_wait_list: cl_uint,
     //                            event_wait_list: *const cl_event,
     //                            event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueReadImage(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_read_image() {
+    // cl_h::clEnqueueReadImage(command_queue: cl_command_queue,
     //                       image: cl_mem,
     //                       blocking_read: cl_bool,
     //                       origin: *mut size_t,
@@ -1043,10 +1062,12 @@ pub fn enqueue_copy_buffer(
     //                       num_events_in_wait_list: cl_uint,
     //                       event_wait_list: *const cl_event,
     //                       event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueWriteImage(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_write_image() {
+    // cl_h::clEnqueueWriteImage(command_queue: cl_command_queue,
     //                        image: cl_mem,
     //                        blocking_write: cl_bool,
     //                        origin: *mut size_t,
@@ -1057,9 +1078,11 @@ pub fn enqueue_copy_buffer(
     //                        num_events_in_wait_list: cl_uint,
     //                        event_wait_list: *const cl_event,
     //                        event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_fill_image() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueFillImage(cl_command_queue   /* command_queue */,
@@ -1070,10 +1093,12 @@ pub fn enqueue_copy_buffer(
     //                   cl_uint            /* num_events_in_wait_list */, 
     //                   const cl_event *   /* event_wait_list */, 
     //                   cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueCopyImage(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_copy_image() {
+    // cl_h::clEnqueueCopyImage(command_queue: cl_command_queue,
     //                       src_image: cl_mem,
     //                       dst_image: cl_mem,
     //                       src_origin: *mut size_t,
@@ -1082,10 +1107,12 @@ pub fn enqueue_copy_buffer(
     //                       num_events_in_wait_list: cl_uint,
     //                       event_wait_list: *const cl_event,
     //                       event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueCopyImageToBuffer(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_copy_image_to_buffer() {
+    // cl_h::clEnqueueCopyImageToBuffer(command_queue: cl_command_queue,
     //                               src_image: cl_mem,
     //                               dst_buffer: cl_mem,
     //                               src_origin: *mut size_t,
@@ -1094,10 +1121,12 @@ pub fn enqueue_copy_buffer(
     //                               num_events_in_wait_list: cl_uint,
     //                               event_wait_list: *const cl_event,
     //                               event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueCopyBufferToImage(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_copy_buffer_to_image() {
+    // cl_h::clEnqueueCopyBufferToImage(command_queue: cl_command_queue,
     //                               src_buffer: cl_mem,
     //                               dst_image: cl_mem,
     //                               src_offset: size_t,
@@ -1106,10 +1135,12 @@ pub fn enqueue_copy_buffer(
     //                               num_events_in_wait_list: cl_uint,
     //                               event_wait_list: *const cl_event,
     //                               event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueMapBuffer(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_map_buffer() {
+    // cl_h::clEnqueueMapBuffer(command_queue: cl_command_queue,
     //                       buffer: cl_mem,
     //                       blocking_map: cl_bool,
     //                       map_flags: cl_map_flags,
@@ -1119,10 +1150,12 @@ pub fn enqueue_copy_buffer(
     //                       event_wait_list: *const cl_event,
     //                       event: *mut cl_event,
     //                       errorcode_ret: *mut cl_int);
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueMapImage(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_map_image() {
+    // cl_h::clEnqueueMapImage(command_queue: cl_command_queue,
     //                      image: cl_mem,
     //                      blocking_map: cl_bool,
     //                      map_flags: cl_map_flags,
@@ -1134,18 +1167,22 @@ pub fn enqueue_copy_buffer(
     //                      event_wait_list: *const cl_event,
     //                      event: *mut cl_event,
     //                      errorcode_ret: *mut cl_int);
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueUnmapMemObject(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_unmap_mem_object() {
+    // cl_h::clEnqueueUnmapMemObject(command_queue: cl_command_queue,
     //                            memobj: cl_mem,
     //                            mapped_ptr: *mut c_void,
     //                            num_events_in_wait_list: cl_uint,
     //                            event_wait_list: *const cl_event,
     //                            event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_migrate_mem_objects() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueMigrateMemObjects(cl_command_queue       /* command_queue */,
@@ -1155,9 +1192,8 @@ pub fn enqueue_copy_buffer(
     //                           cl_uint                /* num_events_in_wait_list */,
     //                           const cl_event *       /* event_wait_list */,
     //                           cl_event *             /* event */) CL_API_SUFFIX__VERSION_1_2;
-
-
-
+    unimplemented!();
+}
 
 pub fn enqueue_kernel(
             command_queue: CommandQueueRaw,
@@ -1194,18 +1230,19 @@ pub fn enqueue_kernel(
     }
 }
 
-
-
-
-    // pub fn clEnqueueTask(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_task() {
+    // cl_h::clEnqueueTask(command_queue: cl_command_queue,
     //                  kernel: cl_kernel,
     //                  num_events_in_wait_list: cl_uint,
     //                  event_wait_list: *const cl_event,
     //                  event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
-    // pub fn clEnqueueNativeKernel(command_queue: cl_command_queue,
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_native_kernel() {
+    // cl_h::clEnqueueNativeKernel(command_queue: cl_command_queue,
     //                          user_func: extern fn (*mut c_void),
     //                          args: *mut c_void,
     //                          cb_args: size_t,
@@ -1215,18 +1252,22 @@ pub fn enqueue_kernel(
     //                          num_events_in_wait_list: cl_uint,
     //                          event_wait_list: *const cl_event,
     //                          event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_marker_with_wait_list() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueMarkerWithWaitList(cl_command_queue /* command_queue */,
     //          cl_uint           /* num_events_in_wait_list */,
     //          const cl_event *  /* event_wait_list */,
     //          cl_event *        /* event */) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+pub fn enqueue_barrier_with_wait_list() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueBarrierWithWaitList(
@@ -1242,24 +1283,26 @@ pub fn enqueue_kernel(
     //          cl_event *        
     //           // event
     //      ) CL_API_SUFFIX__VERSION_1_2;
+    unimplemented!();
+}
 
-
-
-    // Extension function access
-    //
-    // Returns the extension function address for the given function name,
-    // or NULL if a valid function can not be found. The client must
-    // check to make sure the address is not NULL, before using or
-    // or calling the returned function address.
-    //
+/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// Extension function access
+///
+/// Returns the extension function address for the given function name,
+/// or NULL if a valid function can not be found. The client must
+/// check to make sure the address is not NULL, before using or
+/// or calling the returned function address.
+///
+pub fn get_extension_function_address_for_platform() {
     // //################## NEW 1.2 ###################
     // extern CL_API_ENTRY void * CL_API_CALL 
     // clGetExtensionFunctionAddressForPlatform(cl_platform_id /* platform */,
     //                    const char *   
     //                     // func_name 
     //                    ) CL_API_SUFFIX__VERSION_1_2;
-    
-
+    unimplemented!();
+}
 
 //=============================================================================
 //=============================================================================
@@ -1285,7 +1328,6 @@ pub fn get_max_work_group_size(device: DeviceIdRaw) -> usize {
 
     max_work_group_size
 }
-
 
 #[allow(dead_code)]
 /// [FIXME]: Why are we wrapping in this array? Fix this.
@@ -1318,7 +1360,6 @@ pub fn get_event_status(event: EventRaw) -> cl_int {
     status
 }
 
-
 /// [UNFINISHED] Currently prints the platform name.
 #[allow(dead_code)]
 pub fn platform_info(platform: PlatformIdRaw) {
@@ -1347,7 +1388,6 @@ pub fn platform_info(platform: PlatformIdRaw) {
         println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
     }
 }
-
 
 /// If the program pointed to by `cl_program` for any of the devices listed in 
 /// `device_ids` has a build log of any length, it will be returned as an 
@@ -1401,7 +1441,6 @@ pub fn program_build_err(program: ProgramRaw, device_ids: &Vec<DeviceIdRaw>) -> 
     Ok(())
 }
 
-
 /// Returns a string containing requested information.
 ///
 /// Currently lazily assumes everything is a char[] and converts to a String. 
@@ -1429,7 +1468,6 @@ pub fn device_info(device_id: DeviceIdRaw, info_type: cl_device_info) -> String 
 
     String::new()
 }
-
 
 /// Returns context information.
 ///
@@ -1481,7 +1519,6 @@ pub fn context_info(context: ContextRaw, info_kind: cl_context_info)
 
     Ok(())
 }
-
 
 /// Verifies that the `context` is in fact a context object pointer.
 ///
