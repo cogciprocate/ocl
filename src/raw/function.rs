@@ -1,6 +1,6 @@
 //! All the functions.
 //!
-//! TODO: Break this file up
+//! POSSIBLE TODO: Break this file up
 //!
 
 #![allow(dead_code)]
@@ -589,7 +589,8 @@ pub fn unload_platform_compiler() {
 
 /// Creates, builds, and returns a new program pointer from `src_strings`.
 ///
-/// TODO: Break out create and build parts separately.
+/// TODO: Break out create and build parts into requisite functions then call
+/// from here.
 pub fn create_build_program(
             src_strings: Vec<CString>,
             cmplr_opts: CString,
@@ -824,12 +825,12 @@ pub fn set_user_event_status() {
 }
 
 pub unsafe fn set_event_callback(
-            event: cl_event, 
-            callback_trigger: cl_int, 
+            event: EventRaw, 
+            callback_trigger: i32, 
             callback_receiver: extern fn (cl_event, cl_int, *mut c_void),
             user_data: *mut c_void)
 {
-    let errcode = cl_h::clSetEventCallback(event, callback_trigger, 
+    let errcode = cl_h::clSetEventCallback(event.as_ptr(), callback_trigger, 
         callback_receiver, user_data);
 
     errcode_assert("clSetEventCallback", errcode);
@@ -993,8 +994,8 @@ pub fn enqueue_write_buffer_rect() {
 #[allow(dead_code)]
 pub fn enqueue_copy_buffer(
                 command_queue: CommandQueueRaw,
-                src_buffer: cl_mem,
-                dst_buffer: cl_mem,
+                src_buffer: MemRaw,
+                dst_buffer: MemRaw,
                 src_offset: usize,
                 dst_offset: usize,
                 len_copy_bytes: usize)
@@ -1002,8 +1003,8 @@ pub fn enqueue_copy_buffer(
     unsafe {
         let errcode = cl_h::clEnqueueCopyBuffer(
             command_queue.as_ptr(),
-            src_buffer,
-            dst_buffer,
+            src_buffer.as_ptr(),
+            dst_buffer.as_ptr(),
             src_offset,
             dst_offset,
             len_copy_bytes as usize,
@@ -1195,10 +1196,16 @@ pub fn enqueue_migrate_mem_objects() {
     unimplemented!();
 }
 
-pub fn enqueue_kernel(
+/// Enqueues a command to execute a kernel on a device.
+///
+/// # Stability
+/// 
+/// Work dimension/offset sizes *may* eventually be wrapped up in specialized types.
+///
+pub fn enqueue_n_d_range_kernel(
             command_queue: CommandQueueRaw,
-            kernel: cl_kernel,
-            work_dims: cl_uint,
+            kernel: KernelRaw,
+            work_dims: u32,
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: [usize; 3],
             local_work_dims: Option<[usize; 3]>,
@@ -1207,7 +1214,7 @@ pub fn enqueue_kernel(
             kernel_name: Option<&str>)
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        resolve_queue_opts(wait_list, new_event).expect("[FIXME]: enqueue_kernel()");
+        resolve_queue_opts(wait_list, new_event).expect("[FIXME]: enqueue_n_d_range_kernel()");
     let gwo = resolve_work_dims(&global_work_offset);
     let gws = &global_work_dims as *const size_t;
     let lws = resolve_work_dims(&local_work_dims);
@@ -1215,7 +1222,7 @@ pub fn enqueue_kernel(
     unsafe {
         let errcode = cl_h::clEnqueueNDRangeKernel(
             command_queue.as_ptr(),
-            kernel,
+            kernel.as_ptr() as cl_kernel,
             work_dims,
             gwo,
             gws,
@@ -1524,7 +1531,7 @@ pub fn context_info(context: ContextRaw, info_kind: cl_context_info)
 ///
 /// # Assumptions
 ///
-/// Some (most?) OpenCL implementations do not correctly error if non-context pointers are passed. This function relies on the fact that passing the `CL_CONTEXT_DEVICES` as the `param_name` to `clGetContextInfo` will (on my AMD implementation at least) often return a huge result size if `context` is not actually a `cl_context` pointer due to the fact that it's reading from some random memory location on non-context objects. Also checks for zero because a context must have at least one device (true?).
+/// Some (most?/all?) OpenCL implementations do not correctly error if non-context pointers are passed. This function relies on the fact that passing the `CL_CONTEXT_DEVICES` as the `param_name` to `clGetContextInfo` will (at least on my AMD implementation) often return a huge result size if `context` is not actually a `cl_context` pointer due to the fact that it's reading from some random memory location on non-context structs. Also checks for zero because a context must have at least one device (true?). Should probably choose a value lower than 10kB because it seems unlikely any result would be that big but w/e.
 ///
 /// [UPDATE]: This function may no longer be necessary now that the raw pointers have wrappers but it still prevents a hard to track down bug so leaving it intact for now.
 ///
@@ -1540,6 +1547,6 @@ pub fn verify_context(context: ContextRaw) -> OclResult<()> {
 
 //=============================================================================
 //=============================================================================
-//=================================== EOF =====================================
+//======================= Wow, you made it this far? ==========================
 //=============================================================================
 //=============================================================================

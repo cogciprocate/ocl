@@ -137,7 +137,7 @@ impl KernelRaw {
 
 
 /// cl_event
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct EventRaw(cl_event);
 
 impl EventRaw {

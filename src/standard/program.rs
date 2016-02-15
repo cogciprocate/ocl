@@ -11,14 +11,17 @@ use standard::{ProgramBuilder, Context};
 /// To use with multiple devices, create manually with `::from_parts()`.
 ///
 /// # Destruction
-/// [FIXME]: `::release` must be manually called by consumer.
 ///
-#[derive(Clone)]
+/// `::release` must be manually called by consumer (temporary).
+///
+/// [FIXME]: Destruction
+///
 pub struct Program {
     obj_raw: ProgramRaw,
-    context_obj_raw: ContextRaw,
-    device_ids: Vec<DeviceIdRaw>,
+    // context_obj_raw: ContextRaw,
+    // device_ids: Vec<DeviceIdRaw>,
 }
+
 
 // [TODO]: ERROR HANDLING
 impl Program {
@@ -56,8 +59,8 @@ impl Program {
 
         Ok(Program {
             obj_raw: obj_raw,
-            context_obj_raw: context_obj_raw,
-            device_ids: device_ids.clone(),
+            // context_obj_raw: context_obj_raw,
+            // device_ids: device_ids.clone(),
         })
     }
 

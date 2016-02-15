@@ -1,11 +1,6 @@
 //! An OpenCL kernel.
 
-// use std::ptr;
-// use std::mem;
-// use std::ffi;
 use std::collections::HashMap;
-// use libc::{size_t, c_void};
-
 use raw::{self, KernelRaw, MemRaw, CommandQueueRaw, KernelArg};
 use error::{Result as OclResult};
 use standard::{WorkDims, Buffer, OclNum, EventList, Program, Queue};
@@ -149,10 +144,10 @@ impl Kernel {
 
     /// Enqueues kernel on the default command queue.
     ///
-    /// [FIXME]: Implement non-default queue version.
+    /// TODO: Implement 'alternative queue' version of this function.
     #[inline]
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-        raw::enqueue_kernel(self.command_queue, self.obj_raw.as_ptr(), self.gws.dim_count(), 
+        raw::enqueue_n_d_range_kernel(self.command_queue, self.obj_raw, self.gws.dim_count(), 
             self.gwo.as_raw(), self.gws.as_raw().unwrap(), self.lws.as_raw(), 
             wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()), Some(&self.name));
     }

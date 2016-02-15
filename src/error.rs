@@ -11,7 +11,11 @@ use std::convert::Into;
 pub type Result<T> = std::result::Result<T, Error>;
 
 
-/// Error type containing a string.
+/// An enum containing either a `String` or one of several other standard 
+/// error types.
+///
+/// Implements the usual error traits.
+///
 pub enum Error {
     // description: String,
     String(String),
@@ -25,8 +29,8 @@ impl Error {
         Error::String(desc.into())
     }
 
-    /// Returns a new `OclResult::Err` containing an `OclResult` with the given 
-    /// description.
+    /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the 
+    /// given description.
     pub fn err<T, S: Into<String>>(desc: S) -> self::Result<T> {
         Err(Error::new(desc))
     }

@@ -1,4 +1,4 @@
-//! [WORK IN PROGRESS] An OpenCL Image.
+//! [WORK IN PROGRESS][UNTESTED][UNUSED] An OpenCL Image.
 //!
 //! TODO: Implement types for each pixel format.
 use std::default::Default;
@@ -6,7 +6,7 @@ use standard::Context;
 use raw::{self, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
 
 
-/// [WORK IN PROGRESS] An OpenCL Image. 
+/// [WORK IN PROGRESS][UNTESTED][UNUSED] An OpenCL Image. 
 #[allow(dead_code)]
 pub struct Image<T> {
     default_val: T,

@@ -15,7 +15,8 @@ impl<'c> ProQueBuilder<'c> {
     /// Returns a new `ProQueBuilder` with an empty / default configuration.
     ///
     /// The minimum amount of configuration possible before calling `::build` is to 
-    /// simply assign some source using `::src`.
+    /// simply assign some source code using `::src`.
+    ///
     pub fn new() -> ProQueBuilder<'c> {
         ProQueBuilder { 
             context: None,
@@ -26,9 +27,10 @@ impl<'c> ProQueBuilder<'c> {
 
     /// Returns a new `ProQue`.
     ///
-    /// # Errors
-    /// A `ProgramBuilder` or some source code must have been specified before building
-    /// using `::program_builder` or `::src`.
+    /// ### Errors
+    ///
+    /// A `ProgramBuilder` or some source code must have been specified with `::program_builder` or `::src` before building.
+    ///
     pub fn build(&self) -> OclResult<ProQue> {
         let program_builder = match self.program_builder {
             // Some(program_builder) => ProQueBuilder::_build(self.context, self.device_idx, program_builder),
@@ -90,7 +92,8 @@ impl<'c> ProQueBuilder<'c> {
 
     /// Adds a pre-configured `ProgramBuilder` and returns the `ProQueBuilder`.
     ///
-    /// # Panics
+    /// ### Panics
+    ///
     /// This `ProQueBuilder` may not already contain a `ProgramBuilder`.
     ///
     /// `program_builder` must not have any device indexes configured (via its

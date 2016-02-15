@@ -1,4 +1,5 @@
 //! Event list for coordinating enqueued tasks.
+
 // use std::ptr;
 use libc::c_void;
 
@@ -38,12 +39,13 @@ impl EventList {
         self.events.last_mut().unwrap()
     }
 
+    /// Returns a reference to the last event in the list.
     // #[inline]
     pub fn last(&self) -> Option<&EventRaw> {
         self.events.last()
     }
 
-
+    /// Returns a mutable reference to the last event in the list.
     // #[inline]
     pub fn last_mut(&mut self) -> Option<&mut EventRaw> {
         self.events.last_mut()
@@ -84,9 +86,12 @@ impl EventList {
     /// the *last event* added to the event list with an optional reference to user 
     /// data.
     ///
-    /// #Safety
+    /// # Safety
+    ///
     /// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
     /// is ever called.
+    ///
+    /// TODO: Create a safer type wrapper for `callback_receiver`
     pub unsafe fn set_callback<T>(&self, 
                 callback_receiver: extern fn (cl_event, i32, *mut c_void),
                 // user_data: *mut c_void,
@@ -95,7 +100,7 @@ impl EventList {
     {
         if self.events.len() > 0 {
             raw::set_event_callback(
-                self.events[self.events.len() - 1].as_ptr(), 
+                self.events[self.events.len() - 1], 
                 cl_h::CL_COMPLETE, 
                 callback_receiver,
                 user_data as *mut _ as *mut c_void,

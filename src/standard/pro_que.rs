@@ -1,10 +1,10 @@
-//! A convenience raw chimera of `Program` and `Queue`.
+//! A convenient wrapper for `Program` and `Queue`.
+
 use raw;
 use standard::{Context, Kernel, WorkDims, ProgramBuilder, ProQueBuilder, Program, Queue};
 use error::{Result as OclResult, Error as OclError};
 
-/// A convenience raw chimera of the `Program`, `Queue`, and optionally,
-/// `Context` types .
+/// A chimera of the `Program`, `Queue`, and (optionally) `Context` types.
 ///
 /// Handy when creating only a single context, program, and queue or when
 /// using a unique program build on each device.
@@ -19,7 +19,10 @@ use error::{Result as OclResult, Error as OclError};
 /// 2. [FIXME]: UPDATE THIS
 ///
 /// # Destruction
-/// `::release` must be manually called by consumer.
+///
+/// `::release` must currently be called manually by consumer (this is temporary).
+///
+/// [FIXME]: Finish implementing new destruction sequence.
 ///
 pub struct ProQue {
     context: Option<Context>,
@@ -28,24 +31,25 @@ pub struct ProQue {
 }
 
 impl ProQue {
-    /// Returns a new ProQueBuilder.
+    /// Returns a new `ProQueBuilder`.
     ///
-    /// Calling `ProQueBuilder::build()` will return a new ProQue.
-    // pub fn builder() -> ProQueBuilder {
-    //  ProQueBuilder::new()
-    // }
+    /// Calling `ProQueBuilder::build()` will return a new `ProQue`.
     pub fn builder<'c>() -> ProQueBuilder<'c> {
         ProQueBuilder::new()
     }
 
-    /// Creates a new queue on the device with `device_idx` (see `Queue` documentation)
-    /// and returns a new Program/Queue hybrid.
+    /// Creates a new queue on the device with `device_idx` (see 
+    /// [`Queue`](http://docs.cogciprocate.com/ocl/struct.Queue.html) 
+    /// documentation) and returns a new Program/Queue hybrid.
     ///
-    /// `::build` must be called before this ProQue can be used.
-    //
+    /// `::build_program` must be called before this ProQue can be used.
+    ///
     /// [FIXME]: Elaborate upon the following:
-    ///    - device_idx wraps around (round robins)
-    ///    - one device only per ProQue
+    ///
+    /// - device_idx wraps around (round robins)
+    /// - one device only per ProQue
+    /// - when is built-in Context used / destroyed
+    ///
     pub fn new(context: &Context, device_idx: Option<usize>) -> ProQue {
         let queue = Queue::new(context, device_idx);
 
@@ -66,20 +70,21 @@ impl ProQue {
         }
     }
 
-    /// [UNSTABLE]: Prefer using `ProQueBuilder`.
     /// Builds contained program with `program_builder`.
     ///
-    /// # Panics
+    /// ### Panics
     /// This `ProQue` must not already contain a program.
     ///
     /// `program_builder` must not have any device indexes configured (via its
     /// `::device_idxs` method). `ProQue` will only build programs for the device
     /// previously configured or the default device if none had been specified.
     ///
-    /// # Stability
+    /// ### Stability
     ///
     /// The usefulness of this method is questionable now that we have a builder. 
     /// It may be depricated.
+    ///
+    /// [UNSTABLE]: Prefer using `ProQueBuilder`.
     pub fn build_program(&mut self, builder: &ProgramBuilder) -> OclResult<()> {
         if self.program.is_some() { 
             return OclError::err("ProQue::build_program(): Pre-existing build detected. Use \
@@ -102,12 +107,12 @@ impl ProQue {
         Ok(())
     }
 
-    /// [UNSTABLE]: Usefulness and safety questionable.
     /// Clears the current program build. Any kernels created with the pre-existing program will continue to work but new kernels will require a new program to be built. This can occasionally be useful for creating different programs based on the same source but with different constants.
     /// 
-    /// # Stability
+    /// ### Stability
     ///
-    /// The safety and usefulness of this method is questionable. It may be depricated.
+    /// [UNSTABLE]: Usefulness and safety questionable.
+    ///
     pub fn clear_build(&mut self) {
         match self.program {
             Some(ref mut program) => { 

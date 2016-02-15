@@ -8,7 +8,7 @@ much a work in progress.
 
 The 'raw' api now located in the new [`raw`] module allows access to
 OpenCL&trade; FFI functions with only a thin layer of abstraction providing
-safety and  convenience. Using functions in this module is only recommended
+safety and convenience. Using functions in this module is only recommended
 for use when functionality has not yet been implemented on the 'standard' ocl
 interfaces although the 'raw' and 'standard' interfaces are all completely
 interoperable.
@@ -36,7 +36,7 @@ Breaking Changes
 * `ProQue::build` has been renamed `ProQue::build_program`.
 * `BuildOptions` has been renamed to [`ProgramBuilder`] and has been 
   redesigned:
-   * A new `ProgramBuilder` can be created with `ProgramBuilder::new` or 
+   * A new [`ProgramBuilder`] can be created with `ProgramBuilder::new` or 
      `Program::builder`.
    * The `::build` method has been added, consuming the builder and returning
      a new [`Program`].
@@ -50,12 +50,12 @@ Breaking Changes
   * `::set_arg_env_named` to `::set_arg_buf_named`
 * Several non-essential methods on [`Kernel`] have been depricated.
 * `Kernel::new` and its equivalent, `ProQue::create_kernel`, now return a
-  `Result<Kernel>` instead of just `Kernel`.
+  `Result<Kernel>` instead of just [`Kernel`].
 * `Kernel::set_arg_buf_named` and `Kernel::set_arg_buf_named` now require an
   `Option` wrapper.
-* `SimpleDims` has had its variants renamed.
-* `WorkSize` has been renamed to `WorkDims` and has had its variants renamed.
-* `Context::new` now takes a `DeviceType` instead of a u32.
+* [`SimpleDims`] has had its variants renamed.
+* `WorkSize` has been renamed to [`WorkDims`] and has had its variants renamed.
+* `Context::new` now takes a [`DeviceType`] instead of a u32.
 
 
 New Types
@@ -67,16 +67,16 @@ New Types
 
 [0.5doc]: http://doc.cogciprocate.com/ocl/
 [0.5ba]: https://github.com/cogciprocate/ocl/blob/master/examples/basics.rs
-[`Buffer`]: http://doc.cogciprocate.com/ocl/
-[`Image`]: http://doc.cogciprocate.com/ocl/
-[`raw`]: http://doc.cogciprocate.com/ocl/
-[`ProQueBuilder`]: http://doc.cogciprocate.com/ocl/
-[`ProQue`]: http://doc.cogciprocate.com/ocl/
-[`ProgramBuilder`]: http://doc.cogciprocate.com/ocl/
-[`Program`]: http://doc.cogciprocate.com/ocl/
-[`Kernel`]: http://doc.cogciprocate.com/ocl/
+[`Buffer`]: http://docs.cogciprocate.com/ocl/struct.Buffer.html
+[`Image`]: http://docs.cogciprocate.com/ocl/struct.Image.html
+[`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
+[`ProQueBuilder`]: http://docs.cogciprocate.com/ocl/struct.ProQueBuilder.html
+[`ProQue`]: http://docs.cogciprocate.com/ocl/struct.ProQue.html
+['ProQue::builder']: http://docs.cogciprocate.com/ocl/struct.ProQue.html#method.builder
+[`ProgramBuilder`]: http://docs.cogciprocate.com/ocl/struct.ProgramBuilder.html
+[`Program`]: http://docs.cogciprocate.com/ocl/struct.Program.html
+[`Kernel`]: http://docs.cogciprocate.com/ocl/struct.Kernel.html
 
 
-<br/><br/>
-
+<br/>
 *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission by Khronos.”*

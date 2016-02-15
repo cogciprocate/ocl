@@ -5,7 +5,7 @@
 //! Allows access to OpenCL FFI functions with a minimal layer of abstraction providing safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces although the 'raw' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
 //! 
 //! Object pointers can generally be shared between threads except for kernel. 
-//! See [clSetKernelArg documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html)
+//! See [clSetKernelArg documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html).
 //!
 //! ## Even Lower Level: [`cl_h`]
 //!
@@ -33,11 +33,14 @@
 //! ### Help Wanted
 //!
 //! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls). 
-//! ([UPDATE]: Coverage roughly 50%)
 //!
-//! #### Raw Stands Alone
+//! [STATUS]: <br/>
+//! Coverage of important stuff: 90%. <br/>
+//! Coverage of peripheral stuff: 10% - 20%. <br/>
+//!
+//! #### `raw` Stands Alone
 //!	
-//! This module (with cl_h and error) may eventually be moved to its own separate crate. ('ocl_raw' or some such... might need a more clever name)
+//! This module (with cl_h and error) may eventually be moved to its own separate crate. ('ocl_raw' or some such... will need a more clever name)
 //!
 //! [`cl_h`]: /ocl/cl_h/index.html
 
@@ -128,7 +131,7 @@ pub use self::function::{
     enqueue_map_image,
     enqueue_unmap_mem_object,
     enqueue_migrate_mem_objects,
-    enqueue_kernel,
+    enqueue_n_d_range_kernel,
     enqueue_task,
     enqueue_native_kernel,
     enqueue_marker_with_wait_list,

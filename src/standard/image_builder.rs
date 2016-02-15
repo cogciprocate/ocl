@@ -1,8 +1,9 @@
-//! The builder type for `Image`.
+//! [UNTESTED][UNUSED] The builder type for `Image`.
+//!
+//! 
 
-use cl_h::{cl_mem, u64};
 use raw;
-use super::super::{Image};
+use standard::{Image};
 
 pub enum 
 
@@ -24,28 +25,3 @@ impl ImageBuilder {
     }
 }
  
-
-
-
-// pub fn clCreateImage2D(context: cl_context,
-//                     flags: u64,
-//                     image_format: *mut cl_image_format,
-//                     image_width: size_t,
-//                     image_depth: size_t,
-//                     image_slc_pitch: size_t,
-//                     host_ptr: *mut c_void,
-//                     errcode_ret: *mut cl_int) -> cl_mem;
-
-
-// pub fn clCreateImage3D(context: cl_context,
-//                     flags: u64,
-//                     image_format: *mut cl_image_format,
-//                     image_width: size_t,
-//                     image_depth: size_t,
-//                     image_depth: size_t,
-//                     image_slc_pitch: size_t,
-//                     image_depth: size_t,
-//                     image_slc_pitch: size_t,
-//                     image_slc_pitch: size_t,
-//                     host_ptr: *mut c_void,
-//                     errcode_ret: *mut cl_int) -> cl_mem;

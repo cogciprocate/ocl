@@ -1,17 +1,28 @@
+// Timed kernel and buffer tests / benchmarks.
+//
+// Manipulate the consts below to fiddle with parameters. To create longer 
+// running tests, increase `DATASET_SIZE`, and the `*_ITERS` consts.
+// The other consts can be anything at all
+
 #![feature(time2)]
 extern crate ocl;
 use std::time::Instant;
 
 use ocl::{ProQue, SimpleDims, Buffer, EventList};
 
-const DATASET_SIZE: usize = 5000000;
-const SCALAR: f32 = 1.0;
+
+const DATASET_SIZE: usize = 500000;
+
 const KERNEL_RUN_ITERS: i32 = 8000;
 const BUFFER_READ_ITERS: i32 = 200;
 const KERNEL_AND_BUFFER_ITERS: i32 = 1000;
+
+const SCALAR: f32 = 1.0;
+const INIT_VAL_RANGE: (f32, f32) = (100.0, 200.0);
+
 const PRINT_SOME_RESULTS: bool = true;
 const RESULTS_TO_PRINT: usize = 5;
-const INIT_VAL_RANGE: (f32, f32) = (100.0, 200.0);
+
 
 fn main() {
     // Define a kernel:
