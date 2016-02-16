@@ -40,7 +40,6 @@ fn main() {
     // Set our work dimensions / data set size to something arbitrary:
     let dims = SimpleDims::One(DATASET_SIZE);
 
-
     // Create an all-in-one context, program, and command queue:
     let ocl_pq = ProQue::builder().src(src).build().unwrap();
 

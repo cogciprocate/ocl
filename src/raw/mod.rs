@@ -12,7 +12,7 @@
 //!
 //! *Not as raw as...*
 //!
-//! If there's still something missing or for some reason you need direct FFI access, use the functions in the [`cl_h`] module.
+//! If there's still something missing or for some reason you need direct FFI access, use the functions in the [`cl_h`] module. The pointers used by [`cl_h`] functions can be wrapped in [`raw`] wrappers (PlatformIdRaw, ContextRaw, etc.) and passed to [`raw`] module functions and likewise the other way around (using, for example: [`EventRaw::as_ptr`]).
 //!
 //! # Performance
 //!
@@ -27,7 +27,14 @@
 //! [FIXME]: NEEDS UPDATE:
 //! All functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an [`Error`] type instead.
 //!
-//! ### Official Documentation
+//! ### More Documentation
+//!
+//! As most of the functions here are minimally documented, please refer to the
+//! official OpenCL documentation linked below. Although there isn't an exact 
+//! 1:1 parameter mapping between the `raw` and original functions,
+//! it's close enough to help sort out any questions you may have until a
+//! more thorough documentation pass can be made. View the source code in 
+//! [`src/raw/function.rs`] for mapping details.
 //!
 //! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
 //!
@@ -47,8 +54,10 @@
 //! [`cl_h`]: /ocl/cl_h/index.html
 //! [`raw`]: /ocl/raw/index.html
 //! [`Error`]: /ocl/enum.Error.html
+//! [`EventRaw::as_ptr`]: /ocl/raw/struct.EventRaw.html#method.as_ptr
 //! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 //! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
+//! [`src/raw/function.rs`]: /src/ocl/raw/function.rs.html
 
 mod function;
 mod cl;

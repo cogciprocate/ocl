@@ -10,6 +10,50 @@ use std::convert::Into;
 use error::{Result as OclResult, Error as OclError};
 use standard::{Context, Program};
 
+
+/// A build option.
+///
+/// `String`s intended for use either by the compiler as a command line switch
+/// or for inclusion in the final build source code.
+///
+/// A few of the often used variants have constructors for convenience.
+///
+/// [FIXME] TODO: Explain how each variant is used.
+///
+/// [FIXME] TODO: Examples.
+pub enum BuildOpt {
+    CmplrDefine { ident: String, val: String },
+    CmplrInclDir { path: String },
+    CmplrOther(String),
+    IncludeDefine { ident: String, val: String },
+    IncludeRaw(String),
+    IncludeRawEof(String),
+}
+
+impl BuildOpt {
+    /// Returns a `BuildOpt::CmplrDefine`.
+    pub fn cmplr_def<S: Into<String>>(ident: S, val: i32) -> BuildOpt {
+        BuildOpt::CmplrDefine {
+            ident: ident.into(),
+            val: val.to_string(),
+        }
+    }
+
+    /// Returns a `BuildOpt::CmplrOther`.
+    pub fn cmplr_opt<S: Into<String>>(opt: S) -> BuildOpt {
+        BuildOpt::CmplrOther(opt.into())
+    }
+
+    /// Returns a `BuildOpt::IncludeDefine`.
+    pub fn include_def<S: Into<String>>(ident: S, val: String) -> BuildOpt {
+        BuildOpt::IncludeDefine {
+            ident: ident.into(),
+            val: val,
+        }
+    }
+}
+
+
 /// Compilation options for building an OpenCL program. Used when creating 
 /// a new `Program`.
 pub struct ProgramBuilder {
@@ -241,44 +285,6 @@ impl ProgramBuilder {
         Ok(src_strings)
     }
 }
-
-/// A build option intended for use either by the compiler as a command line switch
-/// or for inclusion at the top of the final build source code.
-///
-/// A few of the often used variants have constructors for convenience.
-/// [FIXME] TODO: Explain how each variant is used.
-pub enum BuildOpt {
-    CmplrDefine { ident: String, val: String },
-    CmplrInclDir { path: String },
-    CmplrOther(String),
-    IncludeDefine { ident: String, val: String },
-    IncludeRaw(String),
-    IncludeRawEof(String),
-}
-
-impl BuildOpt {
-    /// Returns a `BuildOpt::CmplrDefine`.
-    pub fn cmplr_def<S: Into<String>>(ident: S, val: i32) -> BuildOpt {
-        BuildOpt::CmplrDefine {
-            ident: ident.into(),
-            val: val.to_string(),
-        }
-    }
-
-    /// Returns a `BuildOpt::CmplrOther`.
-    pub fn cmplr_opt<S: Into<String>>(opt: S) -> BuildOpt {
-        BuildOpt::CmplrOther(opt.into())
-    }
-
-    /// Returns a `BuildOpt::IncludeDefine`.
-    pub fn include_def<S: Into<String>>(ident: S, val: String) -> BuildOpt {
-        BuildOpt::IncludeDefine {
-            ident: ident.into(),
-            val: val,
-        }
-    }
-}
-
 
 
 

@@ -1,27 +1,30 @@
 //! [UNTESTED][UNUSED] The builder type for `Image`.
 //!
-//! 
+//!
 
-use raw;
+#![allow(dead_code)]
+
+use std::default::Default;
+// use raw;
 use standard::{Image};
 
-pub enum 
+
 
 /// [WORK IN PROGRESS] An OpenCL Image. 
-pub struct ImageBuilder {
+pub struct ImageBuilder<T> {
+    stuff: T,
     flags: u64,
 }
 
-impl ImageBuilder {
-    /// Returns a new two dimensional image.
-    pub fn new_2d() -> ImageBuilder {
-        ImageBuilder {
-            flags: 0,
-        }
+impl<T: Default> ImageBuilder<T> {
+    pub fn new() -> ImageBuilder<T> {
+        ImageBuilder { stuff: T::default(), flags: 0 }
     }
 
-    pub fn build(self) -> Image {
-        Image::new()
+
+    pub fn build(self) -> Image<T> {
+        unimplemented!();
+        // Image::new()
     }
 }
  

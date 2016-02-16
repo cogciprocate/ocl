@@ -18,6 +18,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///
 pub enum Error {
     // description: String,
+    ErrCode(i32, String),
     String(String),
     Nul(std::ffi::NulError),
     Io(std::io::Error),
@@ -32,7 +33,13 @@ impl Error {
     /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the 
     /// given description.
     pub fn err<T, S: Into<String>>(desc: S) -> self::Result<T> {
-        Err(Error::new(desc))
+        Err(Error::String(desc.into()))
+    }
+
+    /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the 
+    /// given error code and description.
+    pub fn errcode<T, S: Into<String>>(code: i32, desc: S) -> self::Result<T> {
+        Err(Error::ErrCode(code, desc.into()))
     }
 }
 
@@ -42,6 +49,7 @@ impl std::error::Error for Error {
             &Error::String(ref desc) => &desc,
             &Error::Nul(ref err) => err.description(),
             &Error::Io(ref err) => err.description(),
+            &Error::ErrCode(_, ref desc) => &desc,
         }
     }
 }

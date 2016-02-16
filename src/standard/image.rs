@@ -2,11 +2,15 @@
 //!
 //! TODO: Implement types for each pixel format.
 use std::default::Default;
-use standard::Context;
+use error::{Result as OclResult};
+use standard::{Context, ImageBuilder};
 use raw::{self, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
 
 
-/// [WORK IN PROGRESS][UNTESTED][UNUSED] An OpenCL Image. 
+/// [WORK IN PROGRESS][UNTESTED] An OpenCL Image. 
+///
+/// Use `::builder` for an easy way to create. [UNIMPLEMENTED]
+///
 #[allow(dead_code)]
 pub struct Image<T> {
     default_val: T,
@@ -17,23 +21,29 @@ impl<T: Default> Image<T> {
     /// Returns a new `Image`.
     /// [FIXME]: Return result.
     pub fn new(context: &Context, flags: MemFlags, image_format: ImageFormat,
-            image_desc: ImageDescriptor, image_data: Option<&[T]>) -> Image<T>
+            image_desc: ImageDescriptor, image_data: Option<&[T]>) -> OclResult<Image<T>>
     {
         // let flags = raw::flag::READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
 
-        let obj_raw = raw::create_image(
+        let obj_raw = try!(raw::create_image(
             context.obj_raw(),
             flags,
             image_format,
             image_desc,
-            image_data,).expect("[FIXME: TEMPORARY]: Image::new():");
+            image_data,
+        ));
 
-        Image {
+        Ok(Image {
             default_val: T::default(),
             obj_raw: obj_raw          
-        }
-    }   
+        })
+    }
+
+    pub fn builder() -> ImageBuilder<T> {
+        unimplemented!();
+        // ImageBuilder::new()
+    }
 
     /// Returns the raw image object pointer.
     pub fn obj_raw(&self) -> &MemRaw {

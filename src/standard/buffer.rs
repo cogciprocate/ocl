@@ -403,7 +403,7 @@ impl<T: OclNum> Buffer<T> {
 
     /// Blocks until the underlying command queue has completed all commands.
     pub fn wait(&self) {
-        raw::finish(self.queue_obj_raw);
+        raw::finish(self.queue_obj_raw).unwrap();
     }
 
     /// [UNSTABLE]: Convenience method.
@@ -485,7 +485,7 @@ impl<T: OclNum> Buffer<T> {
     /// Decrements the reference count associated with the previous buffer object, 
     /// `self.obj_raw`.
     pub fn release(&mut self) {
-        raw::release_mem_object(self.obj_raw);
+        raw::release_mem_object(self.obj_raw).unwrap();
     }
 
     /// Returns a reference to the local vector associated with this buffer.

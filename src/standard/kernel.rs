@@ -160,7 +160,8 @@ impl Kernel {
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         raw::enqueue_n_d_range_kernel(self.command_queue, self.obj_raw, self.gws.dim_count(), 
             self.gwo.as_raw(), self.gws.as_raw().unwrap(), self.lws.as_raw(), 
-            wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()), Some(&self.name));
+            wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()), Some(&self.name))
+            .unwrap();
     }
 
     /// Returns the number of arguments specified for this kernel.
@@ -214,6 +215,6 @@ impl Kernel {
 
 impl Drop for Kernel {
     fn drop(&mut self) {
-        raw::release_kernel(self.obj_raw);
+        raw::release_kernel(self.obj_raw).unwrap();
     }
 }

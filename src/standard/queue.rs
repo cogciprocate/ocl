@@ -49,7 +49,7 @@ impl Queue {
 
     /// Blocks until all commands in this queue have completed.
     pub fn finish(&self) {
-        raw::finish(self.obj_raw);
+        raw::finish(self.obj_raw).unwrap();
     }
 
     /// Returns the OpenCL command queue object associated with this queue.
@@ -73,6 +73,6 @@ impl Queue {
     /// Decrements the reference counter of the associated OpenCL command queue object.
     // Note: Do not move this to a Drop impl in case this Queue has been cloned.
     pub fn release(&mut self) {
-        raw::release_command_queue(self.obj_raw);
+        raw::release_command_queue(self.obj_raw).unwrap();
     }
 }

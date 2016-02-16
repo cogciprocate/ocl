@@ -72,6 +72,6 @@ impl Program {
     /// Decrements the associated OpenCL program object's reference count.
     // [NOTE]: Do not move this to a Drop impl in case this Program has been cloned.
     pub fn release(&mut self) {
-        raw::release_program(self.obj_raw);
+        raw::release_program(self.obj_raw).unwrap();
     }
 }

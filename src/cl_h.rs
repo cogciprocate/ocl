@@ -104,6 +104,7 @@ pub struct cl_buffer_region {
 
 // #[derive(PartialEq, Debug, FromPrimitive)]
 enum_from_primitive! {
+    /// TODO: MOVE ME AND LEAVE CONSTS AS THEY WERE.
     #[repr(C)]
     #[derive(Debug, PartialEq)]
     pub enum ClStatus {

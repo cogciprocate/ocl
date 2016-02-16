@@ -20,7 +20,7 @@ use cl_h::{self, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, 
 use error::{Error as OclError, Result as OclResult};
 use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, 
     CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType,
-    ImageFormat, ImageDescriptor};
+    ImageFormat, ImageDescriptor, CommandExecutionStatus};
 
 //============================================================================
 //============================================================================
@@ -39,10 +39,15 @@ fn errcode_string(errcode: cl_int) -> String {
 
 /// Evaluates `errcode` and returns an `Err` with a failure message if it is
 /// not 0.
+///
+/// [NAME?]: Is this an idiomatic name for this function?
+///
 fn errcode_try(message: &str, errcode: cl_int) -> OclResult<()> {
     if errcode != cl_h::ClStatus::CL_SUCCESS as cl_int {
-        OclError::err(format!("\n\nOPENCL ERROR: {} failed with code: {}\n\n", 
-            message, errcode_string(errcode)))
+        OclError::errcode(errcode, 
+            format!("\n\nOPENCL ERROR: {} failed with code [{}]: {}\n\n", 
+                message, errcode, errcode_string(errcode))
+        )
     } else {
         Ok(())
     }
@@ -176,7 +181,7 @@ pub fn get_device_ids(
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_device_info() {
+pub fn get_device_info() -> OclResult<()> {
     // cl_h::clGetDeviceInfo(device: cl_device_id,
     //                    param_name: cl_device_info,
     //                    param_value_size: size_t,
@@ -186,31 +191,27 @@ pub fn get_device_info() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_sub_devices() {
-    //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clCreateSubDevices(cl_device_id                         /* in_device */,
-    //                    const cl_device_partition_property * /* properties */,
-    //                    cl_uint                              /* num_devices */,
-    //                    cl_device_id *                       /* out_devices */,
-    //                    cl_uint *                            /* num_devices_ret */) CL_API_SUFFIX__VERSION_1_2;
+pub fn create_sub_devices() -> OclResult<()> {
+    // clCreateSubDevices(in_device: cl_device_id,
+    //                    properties: *const cl_device_partition_property,
+    //                    num_devices: cl_uint,
+    //                    out_devices: *mut cl_device_id,
+    //                    num_devices_ret: *mut cl_uint) -> cl_int;
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn retain_device() {
-    //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clRetainDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
-    unimplemented!();
+/// [UNTESTED]
+/// Increments the reference count of a device.
+pub fn retain_device(device: DeviceIdRaw) -> OclResult<()> {
+    // clRetainDevice(device: cl_device_id) -> cl_int;
+    unsafe { errcode_try("clRetainDevice", cl_h::clRetainDevice(device.as_ptr())) }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn release_device() {
-    //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clReleaseDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
-    unimplemented!();
+/// [UNTESTED]
+/// Decrements the reference count of a device.
+pub fn release_device(device: DeviceIdRaw) -> OclResult<()> {
+    // clReleaseDevice(device: cl_device_id ) -> cl_int;
+    unsafe { errcode_try("clReleaseDevice", cl_h::clReleaseDevice(device.as_ptr())) }
 }
 
 //============================================================================
@@ -234,7 +235,7 @@ pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> ContextRaw {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_context_from_type() {
+pub fn create_context_from_type() -> OclResult<()> {
     // cl_h::clCreateContextFromType(properties: *mut cl_context_properties,
     //                            device_type: cl_device_type,
     //                            pfn_notify: extern fn (*mut c_char, *mut c_void, size_t, *mut c_void),
@@ -243,20 +244,23 @@ pub fn create_context_from_type() {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn retain_context() {
+/// [UNTESTED]
+/// Increments the reference count of a context.
+pub fn retain_context(context: ContextRaw) -> OclResult<()> {
     // cl_h::clRetainContext(context: cl_context) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clRetainContext", cl_h::clRetainContext(context.as_ptr())) }
 }
 
+/// [UNTESTED]
+/// Decrements reference count of a context.
+///
+/// [FIXME]: Return result
 pub fn release_context(context: ContextRaw) {
-    errcode_assert("clReleaseContext", unsafe {
-        cl_h::clReleaseContext(context.as_ptr())
-    });
+    unsafe { errcode_assert("clReleaseContext", cl_h::clReleaseContext(context.as_ptr())); }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_context_info() {
+pub fn get_context_info() -> OclResult<()> {
     // cl_h::clGetContextInfo(context: cl_context,
     //                     param_name: cl_context_info,
     //                     param_value_size: size_t,
@@ -290,20 +294,23 @@ pub fn create_command_queue(
     Ok(cq)
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn retain_command_queue() {
+/// [UNTESTED]
+/// Increments the reference count of a command queue.
+pub fn retain_command_queue(queue: CommandQueueRaw) -> OclResult<()> {
     // cl_h::clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clRetainCommandQueue", cl_h::clRetainCommandQueue(queue.as_ptr())) }
 }
 
-pub fn release_command_queue(queue: CommandQueueRaw) {
-    errcode_assert("clReleaseCommandQueue", unsafe {
-        cl_h::clReleaseCommandQueue(queue.as_ptr())
-    });
+/// Decrements the reference count of a command queue.
+///
+/// [FIXME]: Return result
+pub fn release_command_queue(queue: CommandQueueRaw) -> OclResult<()> {
+    unsafe { errcode_try("clReleaseCommandQueue", 
+        cl_h::clReleaseCommandQueue(queue.as_ptr())) }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_command_queue_info() {
+pub fn get_command_queue_info() -> OclResult<()> {
     // cl_h::clGetCommandQueueInfo(command_queue: cl_command_queue,
     //                          param_name: cl_command_queue_info,
     //                          param_value_size: size_t,
@@ -350,7 +357,7 @@ pub fn create_buffer<T>(
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_sub_buffer() {
+pub fn create_sub_buffer() -> OclResult<()> {
     // cl_h::clCreateSubBuffer(buffer: cl_mem,
     //                     flags: cl_mem_flags,
     //                     buffer_create_type: cl_buffer_create_type,
@@ -400,20 +407,20 @@ pub fn create_image<T>(
     Ok(MemRaw::new(image_ptr))
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn retain_mem_object() {
+/// [UNTESTED]
+/// Increments the reference counter of a mem object.
+pub fn retain_mem_object(mem: MemRaw) -> OclResult<()> {
     // cl_h::clRetainMemObject(memobj: cl_mem) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clRetainMemObject", cl_h::clRetainMemObject(mem.as_ptr())) }
 }
 
-pub fn release_mem_object(mem: MemRaw) {
-    errcode_assert("clReleaseMemObject", unsafe {
-        cl_h::clReleaseMemObject(mem.as_ptr())
-    });
+/// Decrements the reference counter of a mem object.
+pub fn release_mem_object(mem: MemRaw) -> OclResult<()> {
+    unsafe { errcode_try("clReleaseMemObject", cl_h::clReleaseMemObject(mem.as_ptr())) }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_supported_image_formats() {
+pub fn get_supported_image_formats() -> OclResult<()> {
     // cl_h::clGetSupportedImageFormats(context: cl_context,
     //                               flags: cl_mem_flags,
     //                               image_type: cl_mem_object_type,
@@ -424,7 +431,7 @@ pub fn get_supported_image_formats() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_mem_object_info() {
+pub fn get_mem_object_info() -> OclResult<()> {
     // cl_h::clGetMemObjectInfo(memobj: cl_mem,
     //                       param_name: cl_mem_info,
     //                       param_value_size: size_t,
@@ -434,7 +441,7 @@ pub fn get_mem_object_info() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_image_info() {
+pub fn get_image_info() -> OclResult<()> {
     // cl_h::clGetImageInfo(image: cl_mem,
     //                   param_name: cl_image_info,
     //                   param_value_size: size_t,
@@ -444,7 +451,7 @@ pub fn get_image_info() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn set_mem_object_destructor_callback() {
+pub fn set_mem_object_destructor_callback() -> OclResult<()> {
     // cl_h::clSetMemObjectDestructorCallback(memobj: cl_mem,
     //                                     pfn_notify: extern fn (cl_mem, *mut c_void),
     //                                     user_data: *mut c_void) -> cl_int;
@@ -456,7 +463,7 @@ pub fn set_mem_object_destructor_callback() {
 //============================================================================
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_sampler() {
+pub fn create_sampler() -> OclResult<()> {
     // cl_h::clCreateSampler(context: cl_context,
     //                    normalize_coords: cl_bool,
     //                    addressing_mode: cl_addressing_mode,
@@ -465,20 +472,22 @@ pub fn create_sampler() {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn retain_sampler() {
+/// [UNTESTED]
+/// Increments a sampler reference counter.
+pub fn retain_sampler(sampler: SamplerRaw) -> OclResult<()> {
     // cl_h::clRetainSampler(sampler: cl_sampler) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clRetainSampler", cl_h::clRetainSampler(sampler.as_ptr())) }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn release_sampler() {
+/// [UNTESTED]
+/// Decrements a sampler reference counter.
+pub fn release_sampler(sampler: SamplerRaw) -> OclResult<()> {
     // cl_h::clReleaseSampler(sampler: cl_sampler) ->cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clReleaseSampler", cl_h::clReleaseSampler(sampler.as_ptr())) }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_sampler_info() {
+pub fn get_sampler_info() -> OclResult<()> {
     // cl_h::clGetSamplerInfo(sampler: cl_sampler,
     //                     param_name: cl_sampler_info,
     //                     param_value_size: size_t,
@@ -492,7 +501,7 @@ pub fn get_sampler_info() {
 //============================================================================
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_program_with_source() {
+pub fn create_program_with_source() -> OclResult<()> {
     // cl_h::clCreateProgramWithSource(context: cl_context,
     //                              count: cl_uint,
     //                              strings: *const *const c_char,
@@ -502,7 +511,7 @@ pub fn create_program_with_source() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_program_with_binary() {
+pub fn create_program_with_binary() -> OclResult<()> {
     // cl_h::clCreateProgramWithBinary(context: cl_context,
     //                              num_devices: cl_uint,
     //                              device_list: *const cl_device_id,
@@ -514,31 +523,29 @@ pub fn create_program_with_binary() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_program_with_build_in_kernels() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_program CL_API_CALL
-    // clCreateProgramWithBuiltInKernels(cl_context            /* context */,
-    //                                  cl_uint               /* num_devices */,
-    //                                  const cl_device_id *  /* device_list */,
-    //                                  const char *          /* kernel_names */,
-    //                                  cl_int *              /* errcode_ret */) CL_API_SUFFIX__VERSION_1_2;
+pub fn create_program_with_build_in_kernels() -> OclResult<()> {
+    // clCreateProgramWithBuiltInKernels(context: cl_context,
+    //                                  num_devices: cl_uint,
+    //                                  device_list: *const cl_device_id,
+    //                                  kernel_names: *mut char,
+    //                                  errcode_ret: *mut cl_int) -> cl_program;
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn retain_program() {
+/// [UNTESTED]
+/// Increments a program reference counter.
+pub fn retain_program(program: ProgramRaw) -> OclResult<()> {
     // cl_h::clRetainProgram(program: cl_program) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clRetainProgram", cl_h::clRetainProgram(program.as_ptr())) }
 }
 
-pub fn release_program(program: ProgramRaw) {
-    errcode_assert("clReleaseKernel", unsafe { 
-        cl_h::clReleaseProgram(program.as_ptr())
-    });
+/// Decrements a program reference counter.
+pub fn release_program(program: ProgramRaw) -> OclResult<()> {
+    unsafe { errcode_try("clReleaseKernel", cl_h::clReleaseProgram(program.as_ptr())) }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn build_program() {
+pub fn build_program() -> OclResult<()> {
     // cl_h::clBuildProgram(program: cl_program,
     //                   num_devices: cl_uint,
     //                   device_list: *const cl_device_id,
@@ -549,43 +556,39 @@ pub fn build_program() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn compile_program() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clCompileProgram(cl_program           /* program */,
-    //                 cl_uint              /* num_devices */,
-    //                 const cl_device_id * /* device_list */,
-    //                 const char *         /* options */, 
-    //                 cl_uint              /* num_input_headers */,
-    //                 const cl_program *   /* input_headers */,
-    //                 const char **        /* header_include_names */,
-    //                 void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
-    //                 void *               /* user_data */) CL_API_SUFFIX__VERSION_1_2;
+pub fn compile_program() -> OclResult<()> {
+    // clCompileProgram(program: cl_program,
+    //                 num_devices: cl_uint,
+    //                 device_list: *const cl_device_id,
+    //                 options: *const c_char, 
+    //                 num_input_headers: cl_uint,
+    //                 input_headers: *const cl_program,
+    //                 header_include_names: *const *const c_char,
+    //                 pfn_notify: extern fn (program: cl_program, user_data: *mut c_void),
+    //                 user_data: *mut c_void) -> cl_int;
     unimplemented!();
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn link_program() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_program CL_API_CALL
-    // clLinkProgram(cl_context           /* context */,
-    //               cl_uint              /* num_devices */,
-    //               const cl_device_id * /* device_list */,
-    //               const char *         /* options */, 
-    //               cl_uint              /* num_input_programs */,
-    //               const cl_program *   /* input_programs */,
-    //               void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
-    //               void *               /* user_data */,
-    //               cl_int *             /* errcode_ret */ ) CL_API_SUFFIX__VERSION_1_2;
+pub fn link_program() -> OclResult<()> {
+    // clLinkProgram(context: cl_context,
+    //               num_devices: cl_uint,
+    //               device_list: *const cl_device_id,
+    //               options: *const c_char, 
+    //               num_input_programs: cl_uint,
+    //               input_programs: *const cl_program,
+    //               pfn_notify: extern fn (program: cl_program, user_data: *mut c_void),
+    //               user_data: *mut c_void,
+    //               errcode_ret: *mut cl_int) -> cl_program;
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn unload_platform_compiler() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clUnloadPlatformCompiler(cl_platform_id /* platform */) CL_API_SUFFIX__VERSION_1_2;
-    unimplemented!();
+/// [UNTESTED]
+/// Unloads a platform compiler.
+pub fn unload_platform_compiler(platform: PlatformIdRaw) -> OclResult<()> {
+    // pub fn clUnloadPlatformCompiler(platform: cl_platform_id) -> cl_int;
+    unsafe { errcode_try("clUnloadPlatformCompiler", 
+        cl_h::clUnloadPlatformCompiler(platform.as_ptr())) }
 }
 
 /// Creates, builds, and returns a new program pointer from `src_strings`.
@@ -636,7 +639,7 @@ pub fn create_build_program(
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_program_info() {
+pub fn get_program_info() -> OclResult<()> {
     // cl_h::clGetProgramInfo(program: cl_program,
     //                     param_name: cl_program_info,
     //                     param_value_size: size_t,
@@ -646,7 +649,7 @@ pub fn get_program_info() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_program_build_info() {
+pub fn get_program_build_info() -> OclResult<()> {
     // cl_h::clGetProgramBuildInfo(program: cl_program,
     //                          device: cl_device_id,
     //                          param_name: cl_program_info,
@@ -670,7 +673,7 @@ pub fn create_kernel(
 
     let kernel_ptr = unsafe {
         cl_h::clCreateKernel(
-            program.as_ptr(), 
+            program.as_ptr(),
             try!(CString::new(name.as_bytes())).as_ptr(), 
             &mut err,
         )
@@ -681,7 +684,7 @@ pub fn create_kernel(
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_kernels_in_program() {
+pub fn create_kernels_in_program() -> OclResult<()> {
     // cl_h::clCreateKernelsInProgram(program: cl_program,
     //                             num_kernels: cl_uint,
     //                             kernels: *mut cl_kernel,
@@ -689,22 +692,21 @@ pub fn create_kernels_in_program() {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn retain_kernel() {
+/// [UNTESTED]
+/// Increments a kernel reference counter.
+pub fn retain_kernel(kernel: KernelRaw) -> OclResult<()> {
     // cl_h::clRetainKernel(kernel: cl_kernel) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clRetainKernel", cl_h::clRetainKernel(kernel.as_ptr())) }
 }
 
-
-pub fn release_kernel(kernel: KernelRaw) {
-    errcode_assert("clReleaseKernel", unsafe {
-        cl_h::clReleaseKernel(kernel.as_ptr())
-    });
+/// Decrements a kernel reference counter.
+pub fn release_kernel(kernel: KernelRaw) -> OclResult<()> {
+    unsafe { errcode_try("clReleaseKernel", cl_h::clReleaseKernel(kernel.as_ptr())) }
 }
 
 /// Modifies or creates a kernel argument.
 ///
-/// `kernel_name` is for error reporting and is optional.
+/// `kernel_name` is for error reporting and is optional but highly recommended.
 ///
 pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
             kernel_name: Option<&str>) -> OclResult<()>
@@ -744,7 +746,7 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
 } 
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_kernel_info() {
+pub fn get_kernel_info() -> OclResult<()> {
     // cl_h::clGetKernelInfo(kernel: cl_kernel,
     //                    param_name: cl_kernel_info,
     //                    param_value_size: size_t,
@@ -754,20 +756,18 @@ pub fn get_kernel_info() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_kernel_arg_info() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clGetKernelArgInfo(cl_kernel       /* kernel */,
-    //                   cl_uint         /* arg_indx */,
-    //                   cl_kernel_arg_info  /* param_name */,
-    //                   size_t          /* param_value_size */,
-    //                   void *          /* param_value */,
-    //                   size_t *        /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_2;
+pub fn get_kernel_arg_info() -> OclResult<()> {
+    // clGetKernelArgInfo(kernel: cl_kernel,
+    //                   arg_indx: cl_uint,
+    //                   param_name: cl_kernel_arg_info,
+    //                   param_value_size: size_t,
+    //                   param_value: *mut c_void,
+    //                   param_value_size_ret: *mut size_t) -> cl_int;
     unimplemented!();
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_kernel_work_group_info() {
+pub fn get_kernel_work_group_info() -> OclResult<()> {
     // cl_h::clGetKernelWorkGroupInfo(kernel: cl_kernel,
     //                             device: cl_device_id,
     //                             param_name: cl_kernel_work_group_info,
@@ -790,7 +790,7 @@ pub fn wait_for_events(count: cl_uint, event_list: &[EventRaw]) {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_event_info() {
+pub fn get_event_info() -> OclResult<()> {
     // cl_h::clGetEventInfo(event: cl_event,
     //                   param_name: cl_event_info,
     //                   param_value_size: size_t,
@@ -799,30 +799,36 @@ pub fn get_event_info() {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_user_event() {
+/// [UNTESTED]
+/// Creates an event not already associated with any command.
+pub fn create_user_event(context: ContextRaw) -> OclResult<(EventRaw)> {
     // cl_h::clCreateUserEvent(context: cl_context,
     //                      errcode_ret: *mut cl_int) -> cl_event;
-    unimplemented!();
+    let mut errcode = 0;
+    let event = unsafe { EventRaw::new(cl_h::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
+    errcode_try("clCreateUserEvent", errcode).and(Ok(event))
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn retain_event() {
+/// [UNTESTED]
+/// Increments an event's reference counter.
+pub fn retain_event(event: EventRaw) -> OclResult<()> {
     // cl_h::clRetainEvent(event: cl_event) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clRetainEvent", cl_h::clRetainEvent(event.as_ptr())) }
 }
 
-pub fn release_event(event: EventRaw) {
-    errcode_assert("clReleaseEvent", unsafe {
-        cl_h::clReleaseEvent(event.as_ptr())
-    });
+/// Decrements an event's reference counter.
+pub fn release_event(event: EventRaw) -> OclResult<()> {
+    unsafe { errcode_try("clReleaseEvent", cl_h::clReleaseEvent(event.as_ptr())) }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn set_user_event_status() {
+pub fn set_user_event_status(event: EventRaw, execution_status: CommandExecutionStatus) 
+        -> OclResult<()> 
+{
     // cl_h::clSetUserEventStatus(event: cl_event,
     //                         execution_status: cl_int) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clSetUserEventStatus", cl_h::clSetUserEventStatus(
+        event.as_ptr(), execution_status as cl_int)) }
 }
 
 pub unsafe fn set_event_callback(
@@ -842,7 +848,7 @@ pub unsafe fn set_event_callback(
 //============================================================================
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_event_profiling_info() {
+pub fn get_event_profiling_info() -> OclResult<()> {
     // cl_h::clGetEventProfilingInfo(event: cl_event,
     //                            param_name: cl_profiling_info,
     //                            param_value_size: size_t,
@@ -855,16 +861,24 @@ pub fn get_event_profiling_info() {
 //========================= Flush and Finish APIs ============================
 //============================================================================
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn flush() {
+/// [UNTESTED]
+/// Flushes a command queue.
+///
+/// Issues all previously queued OpenCL commands in a command-queue to the 
+/// device associated with the command-queue.
+pub fn flush(command_queue: CommandQueueRaw) -> OclResult<()> {
     // cl_h::clFlush(command_queue: cl_command_queue) -> cl_int;
-    unimplemented!();
+    unsafe { errcode_try("clFlush", cl_h::clFlush(command_queue.as_ptr())) }
 }
 
-pub fn finish(command_queue: CommandQueueRaw) {
+/// Waits for a queue to finish.
+///
+/// Blocks until all previously queued OpenCL commands in a command-queue are 
+/// issued to the associated device and have completed.
+pub fn finish(command_queue: CommandQueueRaw) -> OclResult<()> {
     unsafe { 
         let errcode = cl_h::clFinish(command_queue.as_ptr());
-        errcode_assert("clFinish()", errcode);
+        errcode_try("clFinish()", errcode)
     }
 }
 
@@ -912,7 +926,7 @@ pub unsafe fn enqueue_read_buffer<T>(
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_read_buffer_rect() {
+pub fn enqueue_read_buffer_rect() -> OclResult<()> {
     // cl_h::clEnqueueReadBufferRect(command_queue: cl_command_queue,
     //                            buffer: cl_mem,
     //                            blocking_read: cl_bool,
@@ -974,7 +988,7 @@ pub fn enqueue_write_buffer<T>(
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_write_buffer_rect() {
+pub fn enqueue_write_buffer_rect() -> OclResult<()> {
     // cl_h::clEnqueueWriteBufferRect(command_queue: cl_command_queue,
     //                             blocking_write: cl_bool,
     //                             buffer_origin: *mut size_t,
@@ -999,7 +1013,7 @@ pub fn enqueue_copy_buffer(
                 dst_buffer: MemRaw,
                 src_offset: usize,
                 dst_offset: usize,
-                len_copy_bytes: usize)
+                len_copy_bytes: usize) -> OclResult<()>
 {
     unsafe {
         let errcode = cl_h::clEnqueueCopyBuffer(
@@ -1013,28 +1027,26 @@ pub fn enqueue_copy_buffer(
             ptr::null(),
             ptr::null_mut(),
         );
-        errcode_assert("clEnqueueCopyBuffer()", errcode);
+        errcode_try("clEnqueueCopyBuffer()", errcode)
     }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_fill_buffer() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clEnqueueFillBuffer(cl_command_queue   /* command_queue */,
-    //                 cl_mem             /* buffer */, 
-    //                 const void *       /* pattern */, 
-    //                 size_t             /* pattern_size */, 
-    //                 size_t             /* offset */, 
-    //                 size_t             /* size */, 
-    //                 cl_uint            /* num_events_in_wait_list */, 
-    //                 const cl_event *   /* event_wait_list */, 
-    //                 cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
+pub fn enqueue_fill_buffer() -> OclResult<()> {
+    // clEnqueueFillBuffer(command_queue: cl_command_queue,
+    //                 buffer: cl_mem, 
+    //                 pattern: *const c_void, 
+    //                 pattern_size: size_t, 
+    //                 offset: size_t, 
+    //                 size: size_t, 
+    //                 num_events_in_wait_list: cl_uint, 
+    //                 event_wait_list: *const cl_event, 
+    //                 event: *mut cl_event) -> cl_int;
     unimplemented!();
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_copy_buffer_rect() {
+pub fn enqueue_copy_buffer_rect() -> OclResult<()> {
     // cl_h::clEnqueueCopyBufferRect(command_queue: cl_command_queue,
     //                            src_buffer: cl_mem,
     //                            dst_buffer: cl_mem,
@@ -1052,7 +1064,7 @@ pub fn enqueue_copy_buffer_rect() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_read_image() {
+pub fn enqueue_read_image() -> OclResult<()> {
     // cl_h::clEnqueueReadImage(command_queue: cl_command_queue,
     //                       image: cl_mem,
     //                       blocking_read: cl_bool,
@@ -1068,7 +1080,7 @@ pub fn enqueue_read_image() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_write_image() {
+pub fn enqueue_write_image() -> OclResult<()> {
     // cl_h::clEnqueueWriteImage(command_queue: cl_command_queue,
     //                        image: cl_mem,
     //                        blocking_write: cl_bool,
@@ -1084,22 +1096,20 @@ pub fn enqueue_write_image() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_fill_image() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clEnqueueFillImage(cl_command_queue   /* command_queue */,
-    //                   cl_mem             /* image */, 
-    //                   const void *       /* fill_color */, 
-    //                   const size_t *     /* origin[3] */, 
-    //                   const size_t *     /* region[3] */, 
-    //                   cl_uint            /* num_events_in_wait_list */, 
-    //                   const cl_event *   /* event_wait_list */, 
-    //                   cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
+pub fn enqueue_fill_image() -> OclResult<()> {
+    // clEnqueueFillImage(command_queue: cl_command_queue,
+    //                   image: cl_mem, 
+    //                   fill_color: *const c_void, 
+    //                   origin: *const size_t, 
+    //                   region: *const size_t, 
+    //                   num_events_in_wait_list: cl_uint, 
+    //                   event_wait_list: *const cl_event, 
+    //                   event: *mut cl_event) -> cl_int;
     unimplemented!();
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_copy_image() {
+pub fn enqueue_copy_image() -> OclResult<()> {
     // cl_h::clEnqueueCopyImage(command_queue: cl_command_queue,
     //                       src_image: cl_mem,
     //                       dst_image: cl_mem,
@@ -1113,7 +1123,7 @@ pub fn enqueue_copy_image() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_copy_image_to_buffer() {
+pub fn enqueue_copy_image_to_buffer() -> OclResult<()> {
     // cl_h::clEnqueueCopyImageToBuffer(command_queue: cl_command_queue,
     //                               src_image: cl_mem,
     //                               dst_buffer: cl_mem,
@@ -1127,7 +1137,7 @@ pub fn enqueue_copy_image_to_buffer() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_copy_buffer_to_image() {
+pub fn enqueue_copy_buffer_to_image() -> OclResult<()> {
     // cl_h::clEnqueueCopyBufferToImage(command_queue: cl_command_queue,
     //                               src_buffer: cl_mem,
     //                               dst_image: cl_mem,
@@ -1141,7 +1151,7 @@ pub fn enqueue_copy_buffer_to_image() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_map_buffer() {
+pub fn enqueue_map_buffer() -> OclResult<()> {
     // cl_h::clEnqueueMapBuffer(command_queue: cl_command_queue,
     //                       buffer: cl_mem,
     //                       blocking_map: cl_bool,
@@ -1156,7 +1166,7 @@ pub fn enqueue_map_buffer() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_map_image() {
+pub fn enqueue_map_image() -> OclResult<()> {
     // cl_h::clEnqueueMapImage(command_queue: cl_command_queue,
     //                      image: cl_mem,
     //                      blocking_map: cl_bool,
@@ -1173,7 +1183,7 @@ pub fn enqueue_map_image() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_unmap_mem_object() {
+pub fn enqueue_unmap_mem_object() -> OclResult<()> {
     // cl_h::clEnqueueUnmapMemObject(command_queue: cl_command_queue,
     //                            memobj: cl_mem,
     //                            mapped_ptr: *mut c_void,
@@ -1184,16 +1194,14 @@ pub fn enqueue_unmap_mem_object() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_migrate_mem_objects() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clEnqueueMigrateMemObjects(cl_command_queue       /* command_queue */,
-    //                           cl_uint                /* num_mem_objects */,
-    //                           const cl_mem *         /* mem_objects */,
-    //                           cl_mem_migration_flags /* flags */,
-    //                           cl_uint                /* num_events_in_wait_list */,
-    //                           const cl_event *       /* event_wait_list */,
-    //                           cl_event *             /* event */) CL_API_SUFFIX__VERSION_1_2;
+pub fn enqueue_migrate_mem_objects() -> OclResult<()> {
+    // clEnqueueMigrateMemObjects(command_queue: cl_command_queue,
+    //                           num_mem_objects: cl_uint,
+    //                           mem_objects: *const cl_mem,
+    //                           flags: cl_mem_migration_flags,
+    //                           num_events_in_wait_list: cl_uint,
+    //                           event_wait_list: *const cl_event,
+    //                           event: *mut cl_event) -> cl_int;
     unimplemented!();
 }
 
@@ -1212,7 +1220,7 @@ pub fn enqueue_n_d_range_kernel(
             local_work_dims: Option<[usize; 3]>,
             wait_list: Option<&[EventRaw]>, 
             new_event: Option<&mut EventRaw>,
-            kernel_name: Option<&str>)
+            kernel_name: Option<&str>) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         resolve_queue_opts(wait_list, new_event).expect("[FIXME]: enqueue_n_d_range_kernel()");
@@ -1234,12 +1242,12 @@ pub fn enqueue_n_d_range_kernel(
         );
 
         let errcode_pre = format!("ocl::Kernel::enqueue()[{}]:", kernel_name.unwrap_or(""));
-        errcode_assert(&errcode_pre, errcode);
+        errcode_try(&errcode_pre, errcode)
     }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_task() {
+pub fn enqueue_task() -> OclResult<()> {
     // cl_h::clEnqueueTask(command_queue: cl_command_queue,
     //                  kernel: cl_kernel,
     //                  num_events_in_wait_list: cl_uint,
@@ -1249,7 +1257,7 @@ pub fn enqueue_task() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_native_kernel() {
+pub fn enqueue_native_kernel() -> OclResult<()> {
     // cl_h::clEnqueueNativeKernel(command_queue: cl_command_queue,
     //                          user_func: extern fn (*mut c_void),
     //                          args: *mut c_void,
@@ -1264,52 +1272,86 @@ pub fn enqueue_native_kernel() {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_marker_with_wait_list() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
-    // clEnqueueMarkerWithWaitList(cl_command_queue /* command_queue */,
-    //          cl_uint           /* num_events_in_wait_list */,
-    //          const cl_event *  /* event_wait_list */,
-    //          cl_event *        /* event */) CL_API_SUFFIX__VERSION_1_2;
+pub fn enqueue_marker_with_wait_list() -> OclResult<()> {
+    // clEnqueueMarkerWithWaitList(command_queue: cl_command_queue,
+    //          num_events_in_wait_list: cl_uint,
+    //          event_wait_list: *const cl_event,
+    //          event: *mut cl_event) -> cl_int;
     unimplemented!();
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_barrier_with_wait_list() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY cl_int CL_API_CALL
+pub fn enqueue_barrier_with_wait_list() -> OclResult<()> {
     // clEnqueueBarrierWithWaitList(
-    //          cl_command_queue 
-    //           // command_queue 
-    //          ,                                
-    //          cl_uint           
-    //           // num_events_in_wait_list 
-    //          ,
-    //          const cl_event *  
-    //           // event_wait_list 
-    //          ,
-    //          cl_event *        
-    //           // event
-    //      ) CL_API_SUFFIX__VERSION_1_2;
+    //          command_queue: cl_command_queue,
+    //          num_events_in_wait_list: cl_uint,
+    //          event_wait_list: *const cl_event,
+    //          event: *mut cl_event) -> cl_int;
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-/// Extension function access
+
+
+/// [UNTESTED]
+/// Returns the address of the extension function named by `func_name` for 
+/// a given platform.
 ///
-/// Returns the extension function address for the given function name,
-/// or NULL if a valid function can not be found. The client must
-/// check to make sure the address is not NULL, before using or
-/// or calling the returned function address.
+/// The pointer returned should be cast to a function pointer type matching the extension
+/// function's definition defined in the appropriate extension specification and
+/// header file. 
 ///
-pub fn get_extension_function_address_for_platform() {
-    // //################## NEW 1.2 ###################
-    // extern CL_API_ENTRY void * CL_API_CALL 
-    // clGetExtensionFunctionAddressForPlatform(cl_platform_id /* platform */,
-    //                    const char *   
-    //                     // func_name 
-    //                    ) CL_API_SUFFIX__VERSION_1_2;
-    unimplemented!();
+///
+/// A non-NULL return value does
+/// not guarantee that an extension function is actually supported by the
+/// platform. The application must also make a corresponding query using
+/// `ocl::raw::get_platform_info(platform_raw, CL_PLATFORM_EXTENSIONS, ... )` or
+/// `ocl::raw::get_device_info(device_raw, CL_DEVICE_EXTENSIONS, ... )` 
+/// to determine if an extension is supported by the OpenCL implementation.
+///
+/// [FIXME]: Update enum names above to the wrapped types.
+///
+/// # Errors
+/// 
+/// Returns an error if:
+///
+/// - `func_name` cannot be converted to a `CString`.
+/// - The specified function does not exist for the implementation.
+/// - 'platform' is not a valid platform.
+///
+// Extension function access
+//
+// Returns the extension function address for the given function name,
+// or NULL if a valid function can not be found. The client must
+// check to make sure the address is not NULL, before using or
+// or calling the returned function address.
+//
+// A non-NULL return value for clGetExtensionFunctionAddressForPlatform does
+// not guarantee that an extension function is actually supported by the
+// platform. The application must also make a corresponding query using
+// clGetPlatformInfo (platform, CL_PLATFORM_EXTENSIONS, ... ) or
+// clGetDeviceInfo (device,CL_DEVICE_EXTENSIONS, ... ) to determine if an
+// extension is supported by the OpenCL implementation.
+// 
+// [FIXME]: Return a generic that implements `Fn` (or `FnMut/Once`?).
+// TODO: Create another function which will handle the second check described 
+// above in addition to calling this.
+pub unsafe fn get_extension_function_address_for_platform(platform: PlatformIdRaw,
+            func_name: &str) -> OclResult<*mut c_void> {
+    // clGetExtensionFunctionAddressForPlatform(platform: cl_platform_id,
+    //                    func_name: *const c_char) -> *mut c_void;
+    let func_name_c = try!(CString::new(func_name));
+
+    let ext_fn = cl_h::clGetExtensionFunctionAddressForPlatform(
+        platform.as_ptr(),
+        func_name_c.as_ptr(),
+    );
+
+    if ext_fn == 0 as *mut c_void { 
+        OclError::err("The specified function does not exist for the implementation or 'platform' \
+            is not a valid platform.")
+    } else {
+        Ok(ext_fn)
+    }
 }
 
 //============================================================================

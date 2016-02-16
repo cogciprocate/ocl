@@ -13,8 +13,12 @@ const CLEAR_INTERVAL: u32 = 32;
 // currently under evaluation.
 const AUTO_CLEAR: bool = true;
 
-/// A list of OpenCL events which contain status information about the command that
-/// created them. Used to coordinate the activity of multiple commands.
+/// A list of events for coordinating enqueued commands.
+///
+/// Events contain status information about the command that
+/// created them. Used to coordinate the activity of multiple commands with
+/// more fine-grained control than the queue alone.
+///
 // [FIXME] TODO: impl Index.
 #[derive(Debug)]
 pub struct EventList {
@@ -217,7 +221,7 @@ impl EventList {
     /// and no other commands are waiting for them to complete.
     pub fn release_all(&mut self) {
         for event in &mut self.events {
-            raw::release_event(event.clone());
+            raw::release_event(event.clone()).unwrap();
         }
 
         self.clear();
