@@ -13,14 +13,12 @@ use std::iter;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
-use cl_h::{self, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, 
-    cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel,
-    cl_program_build_info, cl_mem, cl_event, ClStatus};
+use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel, cl_program_build_info, cl_mem, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, };
 
 use error::{Error as OclError, Result as OclResult};
 use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, 
     CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType,
-    ImageFormat, ImageDescriptor, CommandExecutionStatus};
+    ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode};
 
 //============================================================================
 //============================================================================
@@ -31,7 +29,7 @@ use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags,
 /// Converts the `cl_int` errcode into a string containing the associated
 /// constant name.
 fn errcode_string(errcode: cl_int) -> String {
-    match ClStatus::from_i32(errcode) {
+    match Status::from_i32(errcode) {
         Some(cls) => format!("{:?}", cls),
         None => format!("[Unknown Error Code: {}]", errcode as i64),
     }
@@ -43,7 +41,7 @@ fn errcode_string(errcode: cl_int) -> String {
 /// [NAME?]: Is this an idiomatic name for this function?
 ///
 fn errcode_try(message: &str, errcode: cl_int) -> OclResult<()> {
-    if errcode != cl_h::ClStatus::CL_SUCCESS as cl_int {
+    if errcode != cl_h::Status::CL_SUCCESS as cl_int {
         OclError::errcode(errcode, 
             format!("\n\nOPENCL ERROR: {} failed with code [{}]: {}\n\n", 
                 message, errcode, errcode_string(errcode))
@@ -90,6 +88,61 @@ fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
         &None => 0 as *const size_t,
     }
 }
+
+
+
+/// If the program pointed to by `cl_program` for any of the devices listed in 
+/// `device_ids` has a build log of any length, it will be returned as an 
+/// errcode result.
+///
+pub fn program_build_err(program: ProgramRaw, device_ids: &[DeviceIdRaw]) -> OclResult<()> 
+{
+    let mut size = 0 as size_t;
+
+    for &device_id in device_ids.iter() {
+        unsafe {
+            let name = cl_h::CL_PROGRAM_BUILD_LOG as cl_program_build_info;
+
+            let mut errcode = cl_h::clGetProgramBuildInfo(
+                program.as_ptr(),
+                device_id.as_ptr(),
+                name,
+                0,
+                ptr::null_mut(),
+                &mut size,
+            );
+            errcode_assert("clGetProgramBuildInfo(size)", errcode);
+
+            let mut pbi: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
+
+            errcode = cl_h::clGetProgramBuildInfo(
+                program.as_ptr(),
+                device_id.as_ptr(),
+                name,
+                size,
+                pbi.as_mut_ptr() as *mut c_void,
+                ptr::null_mut(),
+            );
+            errcode_assert("clGetProgramBuildInfo()", errcode);
+
+            if size > 1 {
+                let pbi_nonull = try!(String::from_utf8(pbi).map_err(|e| e.to_string()));
+                let pbi_errcode_string = format!(
+                    "\n\n\
+                    ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\
+                    \n\n{}\n\
+                    ###############################################################################\
+                    \n\n",
+                    pbi_nonull);
+
+                return OclError::err(pbi_errcode_string);
+            }
+        }
+    }
+
+    Ok(())
+}
+
 
 //============================================================================
 //============================================================================
@@ -462,14 +515,28 @@ pub fn set_mem_object_destructor_callback() -> OclResult<()> {
 //============================= Sampler APIs =================================
 //============================================================================
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_sampler() -> OclResult<()> {
+/// [UNTESTED]
+/// Returns a new sampler.
+pub fn create_sampler(context: ContextRaw, normalize_coords: bool, addressing_mode: AddressingMode,
+            filter_mode: FilterMode) -> OclResult<(SamplerRaw)>
+{
     // cl_h::clCreateSampler(context: cl_context,
     //                    normalize_coords: cl_bool,
     //                    addressing_mode: cl_addressing_mode,
     //                    filter_mode: cl_filter_mode,
     //                    errcode_ret: *mut cl_int) -> cl_sampler;
-    unimplemented!();
+
+    let mut errcode = 0;
+
+    let sampler = unsafe { SamplerRaw::new(cl_h::clCreateSampler(
+        context.as_ptr(),
+        normalize_coords as cl_bool,
+        addressing_mode as cl_addressing_mode,
+        filter_mode as cl_filter_mode,
+        &mut errcode,
+    ))};
+
+    errcode_try("clCreateSampler", errcode).and(Ok(sampler))
 }
 
 /// [UNTESTED]
@@ -500,14 +567,40 @@ pub fn get_sampler_info() -> OclResult<()> {
 //========================== Program Object APIs =============================
 //============================================================================
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_program_with_source() -> OclResult<()> {
+/// Creates a new program.
+pub fn create_program_with_source(
+            context: ContextRaw, 
+            src_strings: Vec<CString>,
+            // cmplr_opts: CString,
+            // device_ids: &Vec<DeviceIdRaw>
+        ) -> OclResult<ProgramRaw> 
+{
     // cl_h::clCreateProgramWithSource(context: cl_context,
     //                              count: cl_uint,
     //                              strings: *const *const c_char,
     //                              lengths: *const size_t,
     //                              errcode_ret: *mut cl_int) -> cl_program;
-    unimplemented!();
+
+    // Verify that the context is valid:
+    try!(verify_context(context));
+
+    // Lengths (not including \0 terminator) of each string:
+    let ks_lens: Vec<usize> = src_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
+
+    // Pointers to each string:
+    let kern_string_ptrs: Vec<*const i8> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
+
+    let mut errcode: cl_int = 0;
+    
+    let program = ProgramRaw::new(unsafe { cl_h::clCreateProgramWithSource(
+                context.as_ptr(), 
+                kern_string_ptrs.len() as cl_uint,
+                kern_string_ptrs.as_ptr() as *const *const i8,
+                ks_lens.as_ptr() as *const usize,
+                &mut errcode,
+    )});
+
+    errcode_try("clCreateProgramWithSource()", errcode).and(Ok(program))
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
@@ -523,7 +616,7 @@ pub fn create_program_with_binary() -> OclResult<()> {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn create_program_with_build_in_kernels() -> OclResult<()> {
+pub fn create_program_with_built_in_kernels() -> OclResult<()> {
     // clCreateProgramWithBuiltInKernels(context: cl_context,
     //                                  num_devices: cl_uint,
     //                                  device_list: *const cl_device_id,
@@ -544,15 +637,60 @@ pub fn release_program(program: ProgramRaw) -> OclResult<()> {
     unsafe { errcode_try("clReleaseKernel", cl_h::clReleaseProgram(program.as_ptr())) }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn build_program() -> OclResult<()> {
+pub struct UserDataPh(usize);
+
+impl UserDataPh {
+    fn unwrapped(&self) -> *mut c_void {
+        ptr::null_mut()
+    }
+}
+
+/// Builds a program.
+///
+/// Callback functions are not yet supported.
+pub fn build_program(
+            program: ProgramRaw,
+            devices: &[DeviceIdRaw],
+            options: CString,
+            pfn_notify: Option<extern "C" fn(*mut c_void, *mut c_void)>,
+            user_data: Option<Box<UserDataPh>>,
+        ) -> OclResult<()> 
+{
+    assert!(pfn_notify.is_none() && user_data.is_none(),
+        "ocl::raw::build_program(): Callback functions not yet implemented.");
     // cl_h::clBuildProgram(program: cl_program,
     //                   num_devices: cl_uint,
     //                   device_list: *const cl_device_id,
     //                   options: *const c_char,
     //                   pfn_notify: extern fn (cl_program, *mut c_void),
     //                   user_data: *mut c_void) -> cl_int;
-    unimplemented!();
+
+            // src_strings: Vec<CString>,
+            // cmplr_opts: CString,
+            // context: ContextRaw, 
+            // device_ids: &Vec<DeviceIdRaw>)
+            // -> OclResult<ProgramRaw> {
+    let user_data = match user_data {
+        Some(ud) => ud.unwrapped(),
+        None => ptr::null_mut(),
+    };
+
+    let errcode = unsafe { cl_h::clBuildProgram(
+                program.as_ptr() as cl_program,
+                devices.len() as cl_uint,
+                devices.as_ptr() as *const cl_device_id, 
+                options.as_ptr() as *const i8,
+                // mem::transmute(ptr::null::<fn()>()), 
+                pfn_notify.unwrap_or(mem::transmute(ptr::null::<fn()>())),
+                user_data,
+    )};  
+
+    if errcode < 0 {
+        program_build_err(program, devices)
+    } else {
+        try!(errcode_try("clBuildProgram()", errcode));
+        Ok(()) 
+    }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
@@ -596,46 +734,50 @@ pub fn unload_platform_compiler(platform: PlatformIdRaw) -> OclResult<()> {
 /// TODO: Break out create and build parts into requisite functions then call
 /// from here.
 pub fn create_build_program(
+            context: ContextRaw, 
             src_strings: Vec<CString>,
             cmplr_opts: CString,
-            context: ContextRaw, 
-            device_ids: &Vec<DeviceIdRaw>)
+            device_ids: &[DeviceIdRaw])
             -> OclResult<ProgramRaw>
 {
-    // Verify that the context is valid:
-    try!(verify_context(context));
+    // // Verify that the context is valid:
+    // try!(verify_context(context));
 
-    // Lengths (not including \0 terminator) of each string:
-    let ks_lens: Vec<usize> = src_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
-    // Pointers to each string:
-    let kern_string_ptrs: Vec<*const i8> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
+    // // Lengths (not including \0 terminator) of each string:
+    // let ks_lens: Vec<usize> = src_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
+    // // Pointers to each string:
+    // let kern_string_ptrs: Vec<*const i8> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
 
-    let mut errcode: cl_int = 0;
+    // let mut errcode: cl_int = 0;
     
-    let program = ProgramRaw::new(unsafe { cl_h::clCreateProgramWithSource(
-                context.as_ptr(), 
-                kern_string_ptrs.len() as cl_uint,
-                kern_string_ptrs.as_ptr() as *const *const i8,
-                ks_lens.as_ptr() as *const usize,
-                &mut errcode,
-    )});
-    errcode_assert("clCreateProgramWithSource()", errcode);
+    // let program = ProgramRaw::new(unsafe { cl_h::clCreateProgramWithSource(
+    //             context.as_ptr(), 
+    //             kern_string_ptrs.len() as cl_uint,
+    //             kern_string_ptrs.as_ptr() as *const *const i8,
+    //             ks_lens.as_ptr() as *const usize,
+    //             &mut errcode,
+    // )});
+    // errcode_assert("clCreateProgramWithSource()", errcode);
 
-    errcode = unsafe { cl_h::clBuildProgram(
-                program.as_ptr(),
-                device_ids.len() as cl_uint,
-                device_ids.as_ptr() as *const cl_device_id, 
-                cmplr_opts.as_ptr() as *const i8,
-                mem::transmute(ptr::null::<fn()>()), 
-                ptr::null_mut(),
-    )};  
+    let program = try!(create_program_with_source(context, src_strings));
+    try!(build_program(program, device_ids, cmplr_opts, None, None));
+    Ok(program)
 
-    if errcode < 0 {
-        program_build_err(program, device_ids).map(|_| program)
-    } else {
-        try!(errcode_try("clBuildProgram()", errcode));
-        Ok(program) 
-    }
+    // let errcode = unsafe { cl_h::clBuildProgram(
+    //             program.as_ptr(),
+    //             device_ids.len() as cl_uint,
+    //             device_ids.as_ptr() as *const cl_device_id, 
+    //             cmplr_opts.as_ptr() as *const i8,
+    //             mem::transmute(ptr::null::<fn()>()), 
+    //             ptr::null_mut(),
+    // )};  
+
+    // if errcode < 0 {
+    //     program_build_err(program, device_ids).map(|_| program)
+    // } else {
+    //     try!(errcode_try("clBuildProgram()", errcode));
+    //     Ok(program) 
+    // }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
@@ -1437,58 +1579,6 @@ pub fn platform_info(platform: PlatformIdRaw) {
         errcode_assert("clGetPlatformInfo()", errcode);
         println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
     }
-}
-
-/// If the program pointed to by `cl_program` for any of the devices listed in 
-/// `device_ids` has a build log of any length, it will be returned as an 
-/// errcode result.
-///
-pub fn program_build_err(program: ProgramRaw, device_ids: &Vec<DeviceIdRaw>) -> OclResult<()> 
-{
-    let mut size = 0 as size_t;
-
-    for &device_id in device_ids.iter() {
-        unsafe {
-            let name = cl_h::CL_PROGRAM_BUILD_LOG as cl_program_build_info;
-
-            let mut errcode = cl_h::clGetProgramBuildInfo(
-                program.as_ptr(),
-                device_id.as_ptr(),
-                name,
-                0,
-                ptr::null_mut(),
-                &mut size,
-            );
-            errcode_assert("clGetProgramBuildInfo(size)", errcode);
-
-            let mut pbi: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
-
-            errcode = cl_h::clGetProgramBuildInfo(
-                program.as_ptr(),
-                device_id.as_ptr(),
-                name,
-                size,
-                pbi.as_mut_ptr() as *mut c_void,
-                ptr::null_mut(),
-            );
-            errcode_assert("clGetProgramBuildInfo()", errcode);
-
-            if size > 1 {
-                let pbi_nonull = try!(String::from_utf8(pbi).map_err(|e| e.to_string()));
-                let pbi_errcode_string = format!(
-                    "\n\n\
-                    ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\
-                    \n\n{}\n\
-                    ###############################################################################\
-                    \n\n",
-                    pbi_nonull);
-
-                return OclError::err(pbi_errcode_string);
-            }
-        }
-    }
-
-    Ok(())
 }
 
 /// Returns a string containing requested information.

@@ -107,7 +107,7 @@ enum_from_primitive! {
     /// TODO: MOVE ME AND LEAVE CONSTS AS THEY WERE.
     #[repr(C)]
     #[derive(Debug, PartialEq)]
-    pub enum ClStatus {
+    pub enum Status {
         CL_SUCCESS                                      = 0,
         CL_DEVICE_NOT_FOUND                             = -1,
         CL_DEVICE_NOT_AVAILABLE                         = -2,
@@ -171,7 +171,7 @@ enum_from_primitive! {
     }
 }
 
-impl Display for ClStatus {
+impl Display for Status {
     fn fmt(&self, fmtr: &mut Formatter) -> Result {
         write!(fmtr, "{:?}", self)
     }

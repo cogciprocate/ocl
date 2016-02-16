@@ -51,11 +51,11 @@ impl Program {
                 src_strings: Vec<CString>, 
                 cmplr_opts: CString, 
                 context_obj_raw: ContextRaw, 
-                device_ids: &Vec<DeviceIdRaw>,
+                device_ids: &[DeviceIdRaw],
             ) -> OclResult<Program> 
     {
-        let obj_raw = try!(raw::create_build_program(src_strings, cmplr_opts, 
-            context_obj_raw, device_ids).map_err(|e| e.to_string()));
+        let obj_raw = try!(raw::create_build_program(context_obj_raw, src_strings, cmplr_opts, 
+             device_ids).map_err(|e| e.to_string()));
 
         Ok(Program {
             obj_raw: obj_raw,
