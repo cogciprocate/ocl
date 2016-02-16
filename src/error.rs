@@ -5,6 +5,7 @@ use std;
 // use std::io;
 // use std::fmt;
 use std::convert::Into;
+// use std::collections::str::FromUtf8Error;
 // use std::ffi;
 
 /// `ocl::Error` result type.
@@ -22,6 +23,7 @@ pub enum Error {
     String(String),
     Nul(std::ffi::NulError),
     Io(std::io::Error),
+    // Utf8Error(std::collections::str::Utf8Error),
 }
 
 impl Error {
@@ -50,6 +52,8 @@ impl std::error::Error for Error {
             &Error::Nul(ref err) => err.description(),
             &Error::Io(ref err) => err.description(),
             &Error::ErrCode(_, ref desc) => &desc,
+            // &Error::Utf8Error(err) => err.description(),
+            // _ => panic!("OclError::description()"),
         }
     }
 }
@@ -77,6 +81,12 @@ impl From<std::io::Error> for Error {
         Error::Io(err)
     }
 }
+
+// impl From<std::collections::string::FromUtf8Error> for Error {
+//     fn from(from_err: std::collections::string::FromUtf8Error) -> Error {
+//         Error::String(from_err.from_utf8().description())
+//     }
+// }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

@@ -18,7 +18,8 @@ use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id,
 use error::{Error as OclError, Result as OclResult};
 use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, 
     CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType,
-    ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode};
+    ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo,
+    PlatformInfoResult, DeviceInfo, DeviceInfoResult};
 
 //============================================================================
 //============================================================================
@@ -57,7 +58,7 @@ fn errcode_assert(message: &str, errcode: cl_int) {
 }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_queue_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>)
+fn resolve_event_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>)
         -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
@@ -187,14 +188,42 @@ pub fn get_platform_ids() -> Vec<PlatformIdRaw> {
     platforms
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_platform_info() {
+/// [UNTESTED]
+/// Returns platform information of the requested type.
+pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo) 
+        -> OclResult<(PlatformInfoResult)>
+{
     // cl_h::clGetPlatformInfo(platform: cl_platform_id,
     //                              param_name: cl_platform_info,
     //                              param_value_size: size_t,
     //                              param_value: *mut c_void,
     //                              param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut size = 0 as size_t;
+
+    unsafe {
+        try!(errcode_try("clGetPlatformInfo()", cl_h::clGetPlatformInfo(
+                    platform.as_ptr(),
+                    request_param as cl_platform_info,
+                    0,
+                    ptr::null_mut(),
+                    &mut size,
+        )));
+    }
+        
+    let mut request_value: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
+
+    unsafe {
+        try!(errcode_try("clGetPlatformInfo()", cl_h::clGetPlatformInfo(
+                    platform.as_ptr(),
+                    request_param as cl_platform_info,
+                    size,
+                    request_value.as_mut_ptr() as *mut c_void,
+                    ptr::null_mut(),
+        )));
+    }
+
+    PlatformInfoResult::new(request_param, request_value)
 }
 
 //============================================================================
@@ -233,14 +262,43 @@ pub fn get_device_ids(
     device_ids
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_device_info() -> OclResult<()> {
+/// [UNSTABLE][INCOMPLETE]
+/// [FIXME: Currently returns an empty vec] Returns information about a device.
+///
+/// 
+///
+/// ### Stability
+///
+/// Will eventually return a `DeviceInfoResult` instead of a `Vec<u8>`.
+#[allow(unused_variables)]
+pub fn get_device_info(device: DeviceIdRaw, info_request: DeviceInfo) 
+        // -> OclResult<(DeviceInfoResult)>
+         -> OclResult<(Vec<u8>)>
+{
     // cl_h::clGetDeviceInfo(device: cl_device_id,
     //                    param_name: cl_device_info,
     //                    param_value_size: size_t,
     //                    param_value: *mut c_void,
     //                    param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: usize = 0;
+
+    let errcode = unsafe { 
+        cl_h::clGetDeviceInfo(
+            device.as_ptr(),
+            info_request as cl_device_info,
+            mem::size_of::<usize>() as usize,
+            0 as cl_device_id,
+            &mut info_value_size as *mut usize,
+        ) 
+    }; 
+
+    try!(errcode_try("clGetDeviceInfo", errcode));
+
+    // [FIXME] This is ignored:
+    let proper_return_value = DeviceInfoResult::Type;
+
+    Ok(Vec::with_capacity(info_value_size))
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
@@ -391,7 +449,9 @@ pub fn create_buffer<T>(
 
     let host_ptr = match data {
         Some(d) => {
-            assert!(d.len() == len, "ocl::create_buffer(): Data length mismatch.");
+            if d.len() != len { 
+                return OclError::err("ocl::create_buffer(): Data length mismatch.");
+            }
             d.as_ptr() as cl_mem
         },
         None => ptr::null_mut(),
@@ -729,58 +789,8 @@ pub fn unload_platform_compiler(platform: PlatformIdRaw) -> OclResult<()> {
         cl_h::clUnloadPlatformCompiler(platform.as_ptr())) }
 }
 
-/// Creates, builds, and returns a new program pointer from `src_strings`.
-///
-/// TODO: Break out create and build parts into requisite functions then call
-/// from here.
-pub fn create_build_program(
-            context: ContextRaw, 
-            src_strings: Vec<CString>,
-            cmplr_opts: CString,
-            device_ids: &[DeviceIdRaw])
-            -> OclResult<ProgramRaw>
-{
-    // // Verify that the context is valid:
-    // try!(verify_context(context));
-
-    // // Lengths (not including \0 terminator) of each string:
-    // let ks_lens: Vec<usize> = src_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
-    // // Pointers to each string:
-    // let kern_string_ptrs: Vec<*const i8> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
-
-    // let mut errcode: cl_int = 0;
-    
-    // let program = ProgramRaw::new(unsafe { cl_h::clCreateProgramWithSource(
-    //             context.as_ptr(), 
-    //             kern_string_ptrs.len() as cl_uint,
-    //             kern_string_ptrs.as_ptr() as *const *const i8,
-    //             ks_lens.as_ptr() as *const usize,
-    //             &mut errcode,
-    // )});
-    // errcode_assert("clCreateProgramWithSource()", errcode);
-
-    let program = try!(create_program_with_source(context, src_strings));
-    try!(build_program(program, device_ids, cmplr_opts, None, None));
-    Ok(program)
-
-    // let errcode = unsafe { cl_h::clBuildProgram(
-    //             program.as_ptr(),
-    //             device_ids.len() as cl_uint,
-    //             device_ids.as_ptr() as *const cl_device_id, 
-    //             cmplr_opts.as_ptr() as *const i8,
-    //             mem::transmute(ptr::null::<fn()>()), 
-    //             ptr::null_mut(),
-    // )};  
-
-    // if errcode < 0 {
-    //     program_build_err(program, device_ids).map(|_| program)
-    // } else {
-    //     try!(errcode_try("clBuildProgram()", errcode));
-    //     Ok(program) 
-    // }
-}
-
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+// (partial implementation in 'derived' section)
 pub fn get_program_info() -> OclResult<()> {
     // cl_h::clGetProgramInfo(program: cl_program,
     //                     param_name: cl_program_info,
@@ -791,6 +801,7 @@ pub fn get_program_info() -> OclResult<()> {
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+// (partial implementation in 'derived' section)
 pub fn get_program_build_info() -> OclResult<()> {
     // cl_h::clGetProgramBuildInfo(program: cl_program,
     //                          device: cl_device_id,
@@ -1050,7 +1061,7 @@ pub unsafe fn enqueue_read_buffer<T>(
         ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        resolve_queue_opts(wait_list, new_event).expect("[FIXME]: enqueue_read_buffer()");
+        resolve_event_opts(wait_list, new_event).expect("[FIXME]: enqueue_read_buffer()");
 
     let errcode = cl_h::clEnqueueReadBuffer(
             command_queue.as_ptr(), 
@@ -1068,6 +1079,13 @@ pub unsafe fn enqueue_read_buffer<T>(
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// Enqueue commands to read from a rectangular region from a buffer object to host memory.
+///
+/// ## Official Documentation
+///
+/// [SDK]
+///
+/// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html
 pub fn enqueue_read_buffer_rect() -> OclResult<()> {
     // cl_h::clEnqueueReadBufferRect(command_queue: cl_command_queue,
     //                            buffer: cl_mem,
@@ -1101,7 +1119,7 @@ pub fn enqueue_write_buffer<T>(
         ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
-        = resolve_queue_opts(wait_list, new_event)
+        = resolve_event_opts(wait_list, new_event)
             .expect("[FIXME: Return result]: enqueue_write_buffer()");
 
     // let wait_list_len = match &wait_list {
@@ -1353,6 +1371,7 @@ pub fn enqueue_migrate_mem_objects() -> OclResult<()> {
 /// 
 /// Work dimension/offset sizes *may* eventually be wrapped up in specialized types.
 ///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueNDRangeKernel.html)
 pub fn enqueue_n_d_range_kernel(
             command_queue: CommandQueueRaw,
             kernel: KernelRaw,
@@ -1362,10 +1381,11 @@ pub fn enqueue_n_d_range_kernel(
             local_work_dims: Option<[usize; 3]>,
             wait_list: Option<&[EventRaw]>, 
             new_event: Option<&mut EventRaw>,
-            kernel_name: Option<&str>) -> OclResult<()>
-{
+            kernel_name: Option<&str>
+        ) -> OclResult<()>
+{ 
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        resolve_queue_opts(wait_list, new_event).expect("[FIXME]: enqueue_n_d_range_kernel()");
+        try!(resolve_event_opts(wait_list, new_event));
     let gwo = resolve_work_dims(&global_work_offset);
     let gws = &global_work_dims as *const size_t;
     let lws = resolve_work_dims(&local_work_dims);
@@ -1383,19 +1403,50 @@ pub fn enqueue_n_d_range_kernel(
             new_event_ptr,
         );
 
-        let errcode_pre = format!("ocl::Kernel::enqueue()[{}]:", kernel_name.unwrap_or(""));
+        let errcode_pre = format!("clEnqueueNDRangeKernel('{}'):", kernel_name.unwrap_or(""));
         errcode_try(&errcode_pre, errcode)
     }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn enqueue_task() -> OclResult<()> {
+/// [UNTESTED]
+/// Enqueues a command to execute a kernel on a device.
+///
+/// The kernel is executed using a single work-item.
+///
+/// From [SDK]: clEnqueueTask is equivalent to calling clEnqueueNDRangeKernel 
+/// with work_dim = 1, global_work_offset = NULL, global_work_size[0] set to 1,
+/// and local_work_size[0] set to 1.
+///
+/// [SDK]: https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueTask.html
+pub fn enqueue_task(
+            command_queue: CommandQueueRaw,
+            kernel: KernelRaw,
+            wait_list: Option<&[EventRaw]>, 
+            new_event: Option<&mut EventRaw>,
+            kernel_name: Option<&str>
+        ) -> OclResult<()> 
+{
     // cl_h::clEnqueueTask(command_queue: cl_command_queue,
     //                  kernel: cl_kernel,
     //                  num_events_in_wait_list: cl_uint,
     //                  event_wait_list: *const cl_event,
     //                  event: *mut cl_event) -> cl_int;
-    unimplemented!();
+
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = 
+        try!(resolve_event_opts(wait_list, new_event));
+    
+    unsafe {
+        let errcode = cl_h::clEnqueueTask(
+            command_queue.as_ptr(),
+            kernel.as_ptr() as cl_kernel,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        );
+
+        let errcode_pre = format!("clEnqueueTask('{}'):", kernel_name.unwrap_or(""));
+        errcode_try(&errcode_pre, errcode)
+    }
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
@@ -1503,6 +1554,57 @@ pub unsafe fn get_extension_function_address_for_platform(platform: PlatformIdRa
 //============================================================================
 // MANY OF THESE NEED TO BE MORPHED INTO THE MORE GENERAL VERSIONS AND MOVED UP
 
+/// Creates, builds, and returns a new program pointer from `src_strings`.
+///
+/// TODO: Break out create and build parts into requisite functions then call
+/// from here.
+pub fn create_build_program(
+            context: ContextRaw, 
+            src_strings: Vec<CString>,
+            cmplr_opts: CString,
+            device_ids: &[DeviceIdRaw])
+            -> OclResult<ProgramRaw>
+{
+    // // Verify that the context is valid:
+    // try!(verify_context(context));
+
+    // // Lengths (not including \0 terminator) of each string:
+    // let ks_lens: Vec<usize> = src_strings.iter().map(|cs| cs.as_bytes().len()).collect();  
+    // // Pointers to each string:
+    // let kern_string_ptrs: Vec<*const i8> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
+
+    // let mut errcode: cl_int = 0;
+    
+    // let program = ProgramRaw::new(unsafe { cl_h::clCreateProgramWithSource(
+    //             context.as_ptr(), 
+    //             kern_string_ptrs.len() as cl_uint,
+    //             kern_string_ptrs.as_ptr() as *const *const i8,
+    //             ks_lens.as_ptr() as *const usize,
+    //             &mut errcode,
+    // )});
+    // errcode_assert("clCreateProgramWithSource()", errcode);
+
+    // let errcode = unsafe { cl_h::clBuildProgram(
+    //             program.as_ptr(),
+    //             device_ids.len() as cl_uint,
+    //             device_ids.as_ptr() as *const cl_device_id, 
+    //             cmplr_opts.as_ptr() as *const i8,
+    //             mem::transmute(ptr::null::<fn()>()), 
+    //             ptr::null_mut(),
+    // )};  
+
+    // if errcode < 0 {
+    //     program_build_err(program, device_ids).map(|_| program)
+    // } else {
+    //     try!(errcode_try("clBuildProgram()", errcode));
+    //     Ok(program) 
+    // }
+
+    let program = try!(create_program_with_source(context, src_strings));
+    try!(build_program(program, device_ids, cmplr_opts, None, None));
+    Ok(program)
+}
+
 pub fn get_max_work_group_size(device: DeviceIdRaw) -> usize {
     let mut max_work_group_size: usize = 0;
 
@@ -1552,33 +1654,38 @@ pub fn get_event_status(event: EventRaw) -> cl_int {
     status
 }
 
-/// [UNFINISHED] Currently prints the platform name.
-#[allow(dead_code)]
-pub fn platform_info(platform: PlatformIdRaw) {
-    let mut size = 0 as size_t;
+/// [UNTESTED] Returns the platform name.
+///
+/// TODO: DEPRICATE
+pub fn platform_name(platform: PlatformIdRaw) -> OclResult<String> {
+    // let mut size = 0 as size_t;
 
-    unsafe {
-        let name = cl_h::CL_PLATFORM_NAME as cl_platform_info;
-        let mut errcode = cl_h::clGetPlatformInfo(
-                    platform.as_ptr(),
-                    name,
-                    0,
-                    ptr::null_mut(),
-                    &mut size,
-        );
-        errcode_assert("clGetPlatformInfo(size)", errcode);
+    // unsafe {
+    //     let name = cl_h::CL_PLATFORM_NAME as cl_platform_info;
+    //     let mut errcode = cl_h::clGetPlatformInfo(
+    //                 platform.as_ptr(),
+    //                 name,
+    //                 0,
+    //                 ptr::null_mut(),
+    //                 &mut size,
+    //     );
+    //     errcode_assert("clGetPlatformInfo(size)", errcode);
         
-        let mut param_value: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
-        errcode = cl_h::clGetPlatformInfo(
-                    platform.as_ptr(),
-                    name,
-                    size,
-                    param_value.as_mut_ptr() as *mut c_void,
-                    ptr::null_mut(),
-        );
-        errcode_assert("clGetPlatformInfo()", errcode);
-        println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
-    }
+    //     let mut param_value: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
+    //     errcode = cl_h::clGetPlatformInfo(
+    //                 platform.as_ptr(),
+    //                 name,
+    //                 size,
+    //                 param_value.as_mut_ptr() as *mut c_void,
+    //                 ptr::null_mut(),
+    //     );
+    //     errcode_assert("clGetPlatformInfo()", errcode);
+    //     println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
+    // }
+
+    let info_result = try!(get_platform_info(platform, PlatformInfo::Name));
+    Ok(info_result.into_string())
+    // println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
 }
 
 /// Returns a string containing requested information.

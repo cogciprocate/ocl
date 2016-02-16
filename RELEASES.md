@@ -1,3 +1,19 @@
+Version 0.6.0 (UNRELEASED)
+==========================
+
+Breaking Changes
+----------------
+* [FIXME: New result returns?]
+
+New Features
+------------
+* [FIXME: Elaborate] `raw` has a considerable number of newly implemented functions.
+
+
+[0.6doc]: http://doc.cogciprocate.com/ocl/
+[`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
+
+
 Version 0.5.0 (2016-02-15)
 ==========================
 
