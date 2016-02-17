@@ -15,22 +15,32 @@ fn main() {
     // Set our work dimensions / data set size to something arbitrary:
     let dims = SimpleDims::One(500000);
 
-    // Create a 'Buffer' with a built-in `Vec` and initialize it with random 
+    // Create a `Buffer` with a built-in `Vec` and initialize it with random 
     // floats between 0.0 and 20.0:
     let mut buffer: Buffer<f32> = Buffer::with_vec_scrambled(
          (0.0, 20.0), &dims, &ocl_pq.queue());
 
+    // Declare a value to multiply our buffer's contents by:
+    let scalar = 10.0f32;
+
     // Create a kernel with arguments matching those in the source above:
     let kern = ocl_pq.create_kernel("multiply", dims.work_dims()).unwrap()
         .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+        .arg_scl(scalar);
 
-    // Enqueue kernel:
+    // Keep an eye on one of the elements:
+    let element_idx = 200007;
+    let original_value = buffer[element_idx];
+
+    // Run the kernel (the optional arguments are for event lists):
     kern.enqueue(None, None);
 
-    // Read results from the device into buffer's local vector:
+    // Read results from the device into our buffer's built-in vector:
     buffer.fill_vec().unwrap();
 
-    // Print a result:
-    println!("The value at index [{}] is '{}'!", 200007, buffer[200007]);
+    // Verify and print a result:
+    let final_value = buffer[element_idx];
+    assert!((final_value - (original_value * scalar)).abs() < 0.0001);
+    println!("The value at index [{}] was '{}' and is now '{}'!", 
+        element_idx, original_value, final_value);
 }
