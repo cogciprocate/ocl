@@ -97,15 +97,20 @@ fn main() {
 }
 ```
 
+### Diving Deeper
 
-### Taking Requests
+Already familiar with the standard OpenCL core API? See the [`raw`] module for
+access to the complete feature set with Rust's safety and convenience.
+
+
+#### Taking Requests
 
 Want to bring your OpenCL-ness to Rust but can't find the functionality you
 need? File an [issue](https://github.com/cogciprocate/ocl_rust/issues) and
 let us know what should come next.
 
 
-### Help
+#### Help
 
 *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1`
 exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in
@@ -122,3 +127,5 @@ Please ask questions and provide feedback by opening an
 
 *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission
 by Khronos.”*
+
+[`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
