@@ -5,12 +5,14 @@
 
 use std::fmt;
 use libc::{size_t, c_void};
-use raw::{MemRaw, SamplerRaw, PlatformInfo};
+use util;
+use raw::{MemRaw, SamplerRaw, PlatformInfo, DeviceIdRaw, ContextInfo};
 use error::{Result as OclResult};
 // use cl_h;
 
-/// Here until everything can be implemented.
+// Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
+
 
 /// Kernel argument option type.
 ///
@@ -69,12 +71,18 @@ impl PlatformInfoResult {
 
     pub fn as_str(&self) -> &str {
         match self {
-            &PlatformInfoResult::Profile(ref string) => string,
-            &PlatformInfoResult::Version(ref string) => string,
-            &PlatformInfoResult::Name(ref string) => string,
-            &PlatformInfoResult::Vendor(ref string) => string,
-            &PlatformInfoResult::Extensions(ref string) => string,
+            &PlatformInfoResult::Profile(ref s) => s,
+            &PlatformInfoResult::Version(ref s) => s,
+            &PlatformInfoResult::Name(ref s) => s,
+            &PlatformInfoResult::Vendor(ref s) => s,
+            &PlatformInfoResult::Extensions(ref s) => s,
         }
+    }
+}
+
+impl fmt::Debug for PlatformInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -86,9 +94,9 @@ impl fmt::Display for PlatformInfoResult {
 
 /// A device info result.
 ///
-/// [FIXME]: Implement this beast... someday...
+/// [FIXME]: Implement this beast... eventually...
 pub enum DeviceInfoResult {
-    PlaceholderVariant(Vec<u8>),
+    TemporaryPlaceholderVariant(Vec<u8>),
     Type(TemporaryPlaceholderType),
     VendorId(TemporaryPlaceholderType),
     MaxComputeUnits(TemporaryPlaceholderType),
@@ -165,5 +173,88 @@ pub enum DeviceInfoResult {
     PrintfBufferSize(TemporaryPlaceholderType),
     ImagePitchAlignment(TemporaryPlaceholderType),
     ImageBaseAddressAlignment(TemporaryPlaceholderType),
+}
+
+impl DeviceInfoResult {
+    pub fn to_string(&self) -> String {
+        match self {
+            &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => format!("{:?}", v),
+            _ => panic!("DeviceInfoResult: Printing this variant not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for DeviceInfoResult {
+    /// [INCOMPLETE]: TEMPORARY
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for DeviceInfoResult {
+    /// [INCOMPLETE]: TEMPORARY
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// A context info result.
+///
+/// [FIXME]: Figure out what to do with the properties variant.
+pub enum ContextInfoResult {
+    ReferenceCount(u32),
+    Devices(Vec<DeviceIdRaw>),
+    // Properties(ContextInfoOrPropertiesPointerType),
+    Properties(Vec<u8>),
+    NumDevices(u32),
+    // TemporaryPlaceholderVariant(Vec<u8>),
+}
+
+impl ContextInfoResult {
+    pub fn new(request_param: ContextInfo, result: Vec<u8>) -> OclResult<ContextInfoResult> {
+        Ok(match request_param {
+            ContextInfo::ReferenceCount => {
+                ContextInfoResult::ReferenceCount(util::bytes_to_u32(&result))
+            },
+            ContextInfo::Devices => {
+                ContextInfoResult::Devices(
+                    unsafe { util::bytes_into_vec::<DeviceIdRaw>(result) }
+                )
+            },
+            ContextInfo::Properties => {
+                // unsafe { ContextInfoResult::Properties(
+                //     ContextInfoOrPropertiesPointerType.from_u32(util::bytes_into::
+                //         <cl_h::cl_context_properties>(result))
+                // ) }
+                ContextInfoResult::Properties(result)
+            },
+            ContextInfo::NumDevices => {
+                ContextInfoResult::NumDevices(util::bytes_to_u32(&result))
+            },
+        })
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            &ContextInfoResult::ReferenceCount(ref count) => count.to_string(),
+            &ContextInfoResult::Devices(ref vec) => format!("{:?}", vec),
+            &ContextInfoResult::Properties(ref props) => format!("{:?}", props),
+            &ContextInfoResult::NumDevices(ref num) => num.to_string(),
+        }
+    }
+}
+
+impl fmt::Debug for ContextInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for ContextInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
 }
 

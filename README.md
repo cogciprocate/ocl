@@ -97,7 +97,7 @@ fn main() {
 }
 ```
 
-### Diving Deeper
+#### Diving Deeper
 
 Already familiar with the standard OpenCL core API? See the [`raw`] module for
 access to the complete feature set with Rust's safety and convenience.

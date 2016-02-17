@@ -4,12 +4,65 @@
 //!
 //! Printing functions may be moved/renamed/removed at any time.
 use std::ops::Range;
+use std::mem;
+use std::ptr;
 
 use super::OclNum;
 
 //=============================================================================
 //=========================== UTILITY FUNCTIONS ===============================
 //=============================================================================
+
+/// Converts a byte slice to a `u32`.
+pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
+    debug_assert!(bytes.len() == 4);
+    
+    bytes[0] as u32 | 
+    ((bytes[1] as u32) << 8) |
+    ((bytes[2] as u32) << 16) |
+    ((bytes[3] as u32) << 24)
+}
+
+/// Converts a vector of bytes into a value of arbitrary type.
+///
+/// ### Safety
+///
+/// Roughly equivalent to a weekend in Tijuana.
+///
+// [NOTE]: Not sure this is the best or simplest way to do this but whatever.
+// Would be nice to not even have to copy anything and just basically 
+// transmute the vector into the result type. TODO: Fiddle with this 
+// at some point.
+//
+// TODO: Consider using `alloc::heap::reallocate_inplace` or equivalent.
+pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
+    let vec_byte_count = mem::size_of::<u8>() * vec.len();
+    assert!(mem::size_of::<T>() == vec_byte_count);
+
+    let mut new_val: T = mem::uninitialized();
+
+    ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec_byte_count);
+
+    new_val
+}
+
+/// Converts a vector of bytes into a vector of arbitrary type.
+///
+/// ### Safety
+///
+/// Ummm... Say what?
+///
+/// TODO: Consider using alloc::heap::reallocate_inplace` or equivalent.
+pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> Vec<T> {
+    debug_assert!(vec.len() % mem::size_of::<T>() == 0);
+    let new_len = vec.len() / mem::size_of::<T>();
+    let new_cap = vec.capacity() / mem::size_of::<T>();
+    let ptr = vec.as_mut_ptr();
+    mem::forget(vec);
+    let mut vec = Vec::from_raw_parts(ptr as *mut T, new_len, new_cap);
+    vec.shrink_to_fit();
+    vec
+}
 
 /// Pads `len` to make it evenly divisible by `incr`.
 pub fn padded_len(len: usize, incr: usize) -> usize {
@@ -69,8 +122,7 @@ pub fn print_slice<T: OclNum>(
             val_range: Option<(T, T)>, 
             idx_range: Option<Range<usize>>,
             show_zeros: bool, 
-    )
-{
+            ) {
     print!( "{cdgr}[{cg}{}{cdgr}/{}", vec.len(), every, cg = C_GRN, cdgr = C_DGR);
 
     let (vr_start, vr_end) = match val_range {

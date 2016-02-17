@@ -13,6 +13,9 @@
 //! _cl_kernel *	A kernel.	cl_kernel
 //! _cl_event *	An event. Also see event_t.	cl_event
 //! _cl_sampler *	A sampler. Also see sampler_t.	cl_sampler
+//! 
+//! [FIXME]: Bring back `Send` and `Sync` to those types deemed worthy 
+//! (Everything but kernel? How should we roll?)
 
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
@@ -20,7 +23,7 @@ use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, 
 
 
 /// cl_platform_id
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct PlatformIdRaw(cl_platform_id);
 
 impl PlatformIdRaw {
@@ -39,7 +42,7 @@ impl PlatformIdRaw {
 
 
 /// cl_device_id
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct DeviceIdRaw(cl_device_id);
 
 impl DeviceIdRaw {
@@ -58,7 +61,7 @@ impl DeviceIdRaw {
 
 
 /// cl_context
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ContextRaw(cl_context);
 
 impl ContextRaw {
@@ -73,7 +76,7 @@ impl ContextRaw {
 
 
 /// cl_command_queue
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct CommandQueueRaw(cl_command_queue);
 
 impl CommandQueueRaw {
@@ -88,7 +91,7 @@ impl CommandQueueRaw {
 
 
 /// cl_mem
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct MemRaw(cl_mem);
 
 impl MemRaw {
@@ -107,7 +110,7 @@ impl MemRaw {
 
 
 /// cl_program
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct ProgramRaw(cl_program);
 
 impl ProgramRaw {
@@ -122,7 +125,7 @@ impl ProgramRaw {
 
 
 /// cl_kernel
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct KernelRaw(cl_kernel);
 
 impl KernelRaw {

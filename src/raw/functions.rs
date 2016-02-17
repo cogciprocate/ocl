@@ -19,7 +19,7 @@ use error::{Error as OclError, Result as OclResult};
 use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, 
     CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType,
     ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo,
-    PlatformInfoResult, DeviceInfo, DeviceInfoResult};
+    PlatformInfoResult, DeviceInfo, DeviceInfoResult, ContextInfo, ContextInfoResult};
 
 //============================================================================
 //============================================================================
@@ -59,8 +59,8 @@ fn errcode_assert(message: &str, errcode: cl_int) {
 }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_event_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>,
-            ) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)> {
+fn resolve_event_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>)
+            -> OclResult<(cl_uint, *const cl_event, *mut cl_event)> {
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer (driver doesn't want an empty list):    
     let (wait_list_len, wait_list_ptr) = match wait_list {
@@ -167,7 +167,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformIdRaw>> {
 
     // Create a vec with the appropriate size:
     let mut null_vec: Vec<usize> = iter::repeat(0).take(num_platforms as usize).collect();
-    let (ptr, cap, len) = (null_vec.as_mut_ptr(), null_vec.len(), null_vec.capacity());
+    let (ptr, len, cap) = (null_vec.as_mut_ptr(), null_vec.len(), null_vec.capacity());
 
     // Steal the vec's soul:
     let mut platforms: Vec<PlatformIdRaw> = unsafe {
@@ -189,7 +189,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformIdRaw>> {
 
 /// [UNTESTED]
 /// Returns platform information of the requested type.
-pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo, 
+pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
             ) -> OclResult<(PlatformInfoResult)> {
     // cl_h::clGetPlatformInfo(platform: cl_platform_id,
     //                              param_name: cl_platform_info,
@@ -201,11 +201,11 @@ pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
 
     unsafe {
         try!(errcode_try("clGetPlatformInfo()", cl_h::clGetPlatformInfo(
-                    platform.as_ptr(),
-                    request_param as cl_platform_info,
-                    0,
-                    ptr::null_mut(),
-                    &mut size,
+            platform.as_ptr(),
+            request_param as cl_platform_info,
+            0,
+            ptr::null_mut(),
+            &mut size,
         )));
     }
         
@@ -213,11 +213,11 @@ pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
 
     unsafe {
         try!(errcode_try("clGetPlatformInfo()", cl_h::clGetPlatformInfo(
-                    platform.as_ptr(),
-                    request_param as cl_platform_info,
-                    size,
-                    requested_value.as_mut_ptr() as *mut c_void,
-                    ptr::null_mut(),
+            platform.as_ptr(),
+            request_param as cl_platform_info,
+            size,
+            requested_value.as_mut_ptr() as *mut c_void,
+            ptr::null_mut(),
         )));
     }
 
@@ -232,8 +232,8 @@ pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
 pub fn get_device_ids(
             platform: PlatformIdRaw, 
             // device_types_opt: Option<cl_device_type>)
-            device_types_opt: Option<DeviceType>,
-            ) -> OclResult<Vec<DeviceIdRaw>> {
+            device_types_opt: Option<DeviceType>)
+            -> OclResult<Vec<DeviceIdRaw>> {
     let device_type = device_types_opt.unwrap_or(raw::DEVICE_TYPE_DEFAULT);
     let mut devices_available: cl_uint = 0;
 
@@ -256,17 +256,17 @@ pub fn get_device_ids(
     Ok(device_ids)
 }
 
-/// [UNSTABLE][INCOMPLETE]
+/// [UNSTABLE][WORK IN PROGRESS]
 /// [FIXME: Currently returns an empty vec] Returns information about a device.
 ///
 /// 
 ///
-/// ### Stability
+/// ### Stability (or lack thereof)
 ///
 /// Will eventually return a `DeviceInfoResult` instead of a `Vec<u8>`.
+///
 #[allow(unused_variables)]
 pub fn get_device_info(device: DeviceIdRaw, info_request: DeviceInfo,
-            // -> OclResult<(DeviceInfoResult)>
             ) -> OclResult<(DeviceInfoResult)> {
     // cl_h::clGetDeviceInfo(device: cl_device_id,
     //                    param_name: cl_device_info,
@@ -274,22 +274,30 @@ pub fn get_device_info(device: DeviceIdRaw, info_request: DeviceInfo,
     //                    param_value: *mut c_void,
     //                    param_value_size_ret: *mut size_t) -> cl_int;
 
-    let mut info_value_size: usize = 0;
+    let mut info_value_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetDeviceInfo(
         device.as_ptr(),
         info_request as cl_device_info,
-        mem::size_of::<usize>() as usize,
-        0 as cl_device_id,
-        &mut info_value_size as *mut usize,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
     ) };
-
     try!(errcode_try("clGetDeviceInfo", errcode));
 
-    let result = DeviceInfoResult::PlaceholderVariant(
-        Vec::with_capacity(info_value_size));
+    let mut result: Vec<u8> = Vec::with_capacity(info_value_size);
 
-    Ok(result)
+    let errcode = unsafe { cl_h::clGetDeviceInfo(
+        device.as_ptr(),
+        info_request as cl_device_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };
+
+    println!("GET_DEVICE_INFO(): errcode: {}, result: {:?}", errcode, result);
+
+    Ok(DeviceInfoResult::TemporaryPlaceholderVariant(result))
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
@@ -302,15 +310,13 @@ pub fn create_sub_devices() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED]
-/// Increments the reference count of a device.
+/// [UNTESTED] Increments the reference count of a device.
 pub fn retain_device(device: DeviceIdRaw) -> OclResult<()> {
     // clRetainDevice(device: cl_device_id) -> cl_int;
     unsafe { errcode_try("clRetainDevice", cl_h::clRetainDevice(device.as_ptr())) }
 }
 
-/// [UNTESTED]
-/// Decrements the reference count of a device.
+/// [UNTESTED] Decrements the reference count of a device.
 pub fn release_device(device: DeviceIdRaw) -> OclResult<()> {
     // clReleaseDevice(device: cl_device_id ) -> cl_int;
     unsafe { errcode_try("clReleaseDevice", cl_h::clReleaseDevice(device.as_ptr())) }
@@ -320,7 +326,10 @@ pub fn release_device(device: DeviceIdRaw) -> OclResult<()> {
 //============================= Context APIs  ================================
 //============================================================================
 
-/// Returns a new context pointer valid for all devices in `device_ids`.
+/// [INCOMPLETE] Returns a new context pointer valid for all devices in 
+/// `device_ids`.
+///
+/// [FIXME]: INCOMPLETE IMPLEMENTATION: Take properties, callback, and userdata.
 pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> OclResult<ContextRaw> {
     let mut errcode: cl_int = 0;
 
@@ -345,29 +354,75 @@ pub fn create_context_from_type() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED]
-/// Increments the reference count of a context.
+/// [UNTESTED] Increments the reference count of a context.
 pub fn retain_context(context: ContextRaw) -> OclResult<()> {
     // cl_h::clRetainContext(context: cl_context) -> cl_int;
     unsafe { errcode_try("clRetainContext", cl_h::clRetainContext(context.as_ptr())) }
 }
 
-/// [UNTESTED]
-/// Decrements reference count of a context.
+/// [UNTESTED] Decrements reference count of a context.
 ///
 /// [FIXME]: Return result
 pub fn release_context(context: ContextRaw) {
     unsafe { errcode_assert("clReleaseContext", cl_h::clReleaseContext(context.as_ptr())); }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_context_info() -> OclResult<()> {
+/// Returns various kinds of context information.
+///
+/// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
+///
+/// # Errors
+///
+/// Returns an error result for all the reasons listed in the SDK in addition 
+/// to an additional error when called with `CL_CONTEXT_DEVICES` as described
+/// in in the `verify_context()` documentation below.
+pub fn get_context_info(context: ContextRaw, request_param: ContextInfo)
+            -> OclResult<(ContextInfoResult)> {
     // cl_h::clGetContextInfo(context: cl_context,
     //                     param_name: cl_context_info,
     //                     param_value_size: size_t,
     //                     param_value: *mut c_void,
     //                     param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+   let mut result_size = 0;
+
+    // let request_param: cl_context_info = cl_h::CL_CONTEXT_PROPERTIES;
+    let errcode = unsafe { cl_h::clGetContextInfo(   
+        context.as_ptr(),
+        request_param as cl_context_info,
+        0,
+        0 as *mut c_void,
+        &mut result_size as *mut usize,
+    ) };
+    // println!("context_info(): errcode: {}, result_size: {}", errcode, result_size);
+    try!(errcode_try("clGetContextInfo", errcode));
+
+    // Check for invalid context pointer (a potentially hard to track down bug)
+    // using ridiculous and probably platform-specific logic [if the `Devices` 
+    // variant is passed and we're not in the release config]:
+    if !cfg!(release) {
+        let err_if_zero_result_size = request_param as cl_context_info == cl_h::CL_CONTEXT_DEVICES;
+
+        if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
+            return OclError::err("\n\nocl::raw::context_info(): Possible invalid context detected. \n\
+                Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
+                invalid context object. If not, please file an issue at: \n\
+                https://github.com/cogciprocate/ocl/issues.\n\n");
+        }
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
+
+    let errcode = unsafe { cl_h::clGetContextInfo(   
+        context.as_ptr(),
+        request_param as cl_context_info,
+        result_size,
+        result.as_mut_ptr() as *mut c_void,
+        0 as *mut usize,
+    ) };
+    // println!("GET_CONTEXT_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetContextInfo", errcode).and(
+        ContextInfoResult::new(request_param, result))
 }
 
 //============================================================================
@@ -377,8 +432,8 @@ pub fn get_context_info() -> OclResult<()> {
 /// Returns a new command queue pointer.
 pub fn create_command_queue(
             context: ContextRaw, 
-            device: DeviceIdRaw,
-            ) -> OclResult<CommandQueueRaw> {
+            device: DeviceIdRaw)
+            -> OclResult<CommandQueueRaw> {
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -427,8 +482,8 @@ pub fn create_buffer<T>(
             context: ContextRaw,
             flags: MemFlags,
             len: usize,
-            data: Option<&[T]>,
-            ) -> OclResult<MemRaw> {
+            data: Option<&[T]>)
+            -> OclResult<MemRaw> {
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -475,8 +530,8 @@ pub fn create_image<T>(
             // desc: &cl_image_desc,
             format: ImageFormat,
             desc: ImageDescriptor,
-            data: Option<&[T]>,
-            ) -> OclResult<MemRaw> {
+            data: Option<&[T]>)
+            -> OclResult<MemRaw> {
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -615,10 +670,10 @@ pub fn get_sampler_info() -> OclResult<()> {
 /// Creates a new program.
 pub fn create_program_with_source(
             context: ContextRaw, 
-            src_strings: Vec<CString>,
+            src_strings: Vec<CString>)
             // cmplr_opts: CString,
-            // device_ids: &Vec<DeviceIdRaw>,
-            ) -> OclResult<ProgramRaw> {
+            // device_ids: &Vec<DeviceIdRaw>)
+            -> OclResult<ProgramRaw> {
     // cl_h::clCreateProgramWithSource(context: cl_context,
     //                              count: cl_uint,
     //                              strings: *const *const c_char,
@@ -697,8 +752,8 @@ pub fn build_program(
             devices: &[DeviceIdRaw],
             options: CString,
             pfn_notify: Option<extern "C" fn(*mut c_void, *mut c_void)>,
-            user_data: Option<Box<UserDataPh>>,
-            ) -> OclResult<()> {
+            user_data: Option<Box<UserDataPh>>)
+            -> OclResult<()> {
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::raw::build_program(): Callback functions not yet implemented.");
     // cl_h::clBuildProgram(program: cl_program,
@@ -802,8 +857,8 @@ pub fn get_program_build_info() -> OclResult<()> {
 /// Returns a new kernel pointer.
 pub fn create_kernel(
             program: ProgramRaw, 
-            name: &str,
-            ) -> OclResult<KernelRaw> {
+            name: &str)
+            -> OclResult<KernelRaw> {
     let mut err: cl_int = 0;
 
     let kernel_ptr = unsafe { KernelRaw::new(cl_h::clCreateKernel(
@@ -840,8 +895,8 @@ pub fn release_kernel(kernel: KernelRaw) -> OclResult<()> {
 /// `kernel_name` is for error reporting and is optional but highly recommended.
 ///
 pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
-            kernel_name: Option<&str>) -> OclResult<()>
-{
+            kernel_name: Option<&str>
+            ) -> OclResult<()> {
     let (arg_size, arg_value) = match arg {
         KernelArg::Mem(mem_obj) => {
             (mem::size_of::<MemRaw>() as size_t, 
@@ -1034,8 +1089,8 @@ pub unsafe fn enqueue_read_buffer<T>(
             data: &[T],
             offset: usize,
             wait_list: Option<&[EventRaw]>, 
-            new_event: Option<&mut EventRaw>,
-            ) -> OclResult<()> {
+            new_event: Option<&mut EventRaw>)
+            -> OclResult<()> {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         resolve_event_opts(wait_list, new_event).expect("[FIXME]: enqueue_read_buffer()");
 
@@ -1091,8 +1146,8 @@ pub fn enqueue_write_buffer<T>(
             data: &[T],
             offset: usize,
             wait_list: Option<&[EventRaw]>, 
-            new_event: Option<&mut EventRaw>,
-            ) -> OclResult<()> {
+            new_event: Option<&mut EventRaw>)
+            -> OclResult<()> {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = resolve_event_opts(wait_list, new_event)
             .expect("[FIXME: Return result]: enqueue_write_buffer()");
@@ -1148,8 +1203,8 @@ pub fn enqueue_copy_buffer(
             dst_buffer: MemRaw,
             src_offset: usize,
             dst_offset: usize,
-            len_copy_bytes: usize,
-            ) -> OclResult<()> {
+            len_copy_bytes: usize)
+            -> OclResult<()> {
     let errcode = unsafe {
         cl_h::clEnqueueCopyBuffer(
         command_queue.as_ptr(),
@@ -1534,8 +1589,8 @@ pub fn create_build_program(
             context: ContextRaw, 
             src_strings: Vec<CString>,
             cmplr_opts: CString,
-            device_ids: &[DeviceIdRaw],
-            ) -> OclResult<ProgramRaw> {
+            device_ids: &[DeviceIdRaw])
+            -> OclResult<ProgramRaw> {
     // // Verify that the context is valid:
     // try!(verify_context(context));
 
@@ -1657,84 +1712,6 @@ pub fn platform_name(platform: PlatformIdRaw) -> OclResult<String> {
     // println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
 }
 
-/// Returns a string containing requested information.
-///
-/// Currently lazily assumes everything is a char[] and converts to a String. 
-/// Non-string info types need to be manually reconstructed from that. Yes this
-/// is retarded.
-///
-/// [TODO (low priority)]: Needs to eventually be made more flexible and should return 
-/// an enum with a variant corresponding to the type of info requested. Could 
-/// alternatively return a generic type and just blindly cast to it.
-#[allow(dead_code, unused_variables)] 
-pub fn device_info(device_id: DeviceIdRaw, info_type: cl_device_info) -> String {
-    let mut info_value_size: usize = 0;
-
-    let errcode = unsafe { 
-        cl_h::clGetDeviceInfo(
-            device_id.as_ptr(),
-            cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
-            mem::size_of::<usize>() as usize,
-            0 as cl_device_id,
-            &mut info_value_size as *mut usize,
-        ) 
-    }; 
-
-    errcode_assert("clGetDeviceInfo", errcode);
-
-    String::new()
-}
-
-/// Returns context information.
-///
-/// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
-///
-/// # Errors
-///
-/// Returns an error result for all the reasons listed in the SDK in addition 
-/// to an additional error when called with `CL_CONTEXT_DEVICES` as described
-/// in in the `verify_context()` documentation below.
-///
-/// TODO: Finish wiring up full functionality. Return a 'ContextInfo' enum result.
-pub fn context_info(context: ContextRaw, info_kind: cl_context_info,
-            ) -> OclResult<()> {
-    let mut result_size = 0;
-
-    // let info_kind: cl_context_info = cl_h::CL_CONTEXT_PROPERTIES;
-    let errcode = unsafe { cl_h::clGetContextInfo(   
-        context.as_ptr(),
-        info_kind,
-        0,
-        0 as *mut c_void,
-        &mut result_size as *mut usize,
-    ) };
-    try!(errcode_try("clGetContextInfo", errcode));
-    // println!("context_info(): errcode: {}, result_size: {}", errcode, result_size);
-
-    let err_if_zero_result_size = info_kind == cl_h::CL_CONTEXT_DEVICES;
-
-    if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-        return OclError::err("\n\nocl::raw::context_info(): Possible invalid context detected. \n\
-            Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
-            invalid context object. If not, please file an issue at: \n\
-            https://github.com/cogciprocate/ocl/issues.\n\n");
-    }
-
-    let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
-
-    let errcode = unsafe { cl_h::clGetContextInfo(   
-        context.as_ptr(),
-        info_kind,
-        result_size,
-        result.as_mut_ptr() as *mut c_void,
-        0 as *mut usize,
-    ) };
-    try!(errcode_try("clGetContextInfo", errcode));
-    // println!("context_info(): errcode: {}, result: {:?}", errcode, result);
-
-    Ok(())
-}
-
 /// Verifies that the `context` is in fact a context object pointer.
 ///
 /// # Assumptions
@@ -1749,7 +1726,7 @@ pub fn verify_context(context: ContextRaw) -> OclResult<()> {
     if cfg!(release) {
         Ok(())
     } else {
-        context_info(context, cl_h::CL_CONTEXT_DEVICES)
+        get_context_info(context, ContextInfo::Devices).and(Ok(()))
     }
 }
 
@@ -1758,3 +1735,87 @@ pub fn verify_context(context: ContextRaw) -> OclResult<()> {
 //====================== Wow, you made it this far? ==========================
 //============================================================================
 //============================================================================
+
+
+
+
+// /// Returns a string containing requested information.
+// ///
+// /// Currently lazily assumes everything is a char[] and converts to a String. 
+// /// Non-string info types need to be manually reconstructed from that. Yes this
+// /// is retarded.
+// ///
+// /// [TODO (low priority)]: Needs to eventually be made more flexible and should return 
+// /// an enum with a variant corresponding to the type of info requested. Could 
+// /// alternatively return a generic type and just blindly cast to it.
+// #[allow(dead_code, unused_variables)] 
+// pub fn device_info(device_id: DeviceIdRaw, info_type: cl_device_info) -> String {
+//     let mut info_value_size: usize = 0;
+
+//     let errcode = unsafe { 
+//         cl_h::clGetDeviceInfo(
+//             device_id.as_ptr(),
+//             cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
+//             mem::size_of::<usize>() as usize,
+//             0 as cl_device_id,
+//             &mut info_value_size as *mut usize,
+//         ) 
+//     }; 
+
+//     errcode_assert("clGetDeviceInfo", errcode);
+
+//     String::new()
+// }
+
+
+
+
+// /// Returns context information.
+// ///
+// /// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
+// ///
+// /// # Errors
+// ///
+// /// Returns an error result for all the reasons listed in the SDK in addition 
+// /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
+// /// in in the `verify_context()` documentation below.
+// ///
+// /// TODO: Finish wiring up full functionality. Return a 'ContextInfo' enum result.
+// pub fn context_info(context: ContextRaw, request_param: cl_context_info)
+//             -> OclResult<()> {
+//     let mut result_size = 0;
+
+//     // let request_param: cl_context_info = cl_h::CL_CONTEXT_PROPERTIES;
+//     let errcode = unsafe { cl_h::clGetContextInfo(   
+//         context.as_ptr(),
+//         request_param,
+//         0,(
+//         0 as *mut c_void,
+//         &mut result_size as *mut usize,
+//     ) };
+//     try!(errcode_try("clGetContextInfo", errcode));
+//     // println!("context_info(): errcode: {}, result_size: {}", errcode, result_size);
+
+//     let err_if_zero_result_size = request_param == cl_h::CL_CONTEXT_DEVICES;
+
+//     if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
+//         return OclError::err("\n\nocl::raw::context_info(): Possible invalid context detected. \n\
+//             Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
+//             invalid context object. If not, please file an issue at: \n\
+//             https://github.com/cogciprocate/ocl/issues.\n\n");
+//     }
+
+//     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
+
+//     let errcode = unsafe { cl_h::clGetContextInfo(   
+//         context.as_ptr(),
+//         request_param,
+//         result_size,
+//         result.as_mut_ptr() as *mut c_void,
+//         0 as *mut usize,
+//     ) };
+//     try!(errcode_try("clGetContextInfo", errcode));
+//     // println!("context_info(): errcode: {}, result: {:?}", errcode, result);
+
+//     Ok(())
+// }
