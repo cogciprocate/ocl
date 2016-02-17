@@ -81,7 +81,7 @@ impl Context {
     pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<DeviceType>) 
             -> OclResult<Context>
     {
-        let platforms: Vec<PlatformIdRaw> = raw::get_platform_ids();
+        let platforms: Vec<PlatformIdRaw> = try!(raw::get_platform_ids());
         if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
         // let platform = match platform_idx_opt {
@@ -114,13 +114,13 @@ impl Context {
         
 
         
-        let device_ids: Vec<DeviceIdRaw> = raw::get_device_ids(platform_obj_raw.clone(), 
-            device_types_opt);
+        let device_ids: Vec<DeviceIdRaw> = try!(raw::get_device_ids(platform_obj_raw.clone(), 
+            device_types_opt));
         if device_ids.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
         // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids);
 
-        let obj_raw = raw::create_context(&device_ids);
+        let obj_raw = try!(raw::create_context(&device_ids));
 
         Ok(Context {
             platform_obj_raw: platform_obj_raw,

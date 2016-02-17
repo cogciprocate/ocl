@@ -24,7 +24,7 @@ use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, 
 pub struct PlatformIdRaw(cl_platform_id);
 
 impl PlatformIdRaw {
-	pub fn new(ptr: cl_platform_id) -> PlatformIdRaw {
+	pub unsafe fn new(ptr: cl_platform_id) -> PlatformIdRaw {
 		PlatformIdRaw(ptr)
 	}
 
@@ -43,7 +43,7 @@ impl PlatformIdRaw {
 pub struct DeviceIdRaw(cl_device_id);
 
 impl DeviceIdRaw {
-	pub fn new(ptr: cl_device_id) -> DeviceIdRaw {
+	pub unsafe fn new(ptr: cl_device_id) -> DeviceIdRaw {
 		DeviceIdRaw(ptr)
 	}
 
@@ -62,7 +62,7 @@ impl DeviceIdRaw {
 pub struct ContextRaw(cl_context);
 
 impl ContextRaw {
-	pub fn new(ptr: cl_context) -> ContextRaw {
+	pub unsafe fn new(ptr: cl_context) -> ContextRaw {
 		ContextRaw(ptr)
 	}
 
@@ -77,7 +77,7 @@ impl ContextRaw {
 pub struct CommandQueueRaw(cl_command_queue);
 
 impl CommandQueueRaw {
-	pub fn new(ptr: cl_command_queue) -> CommandQueueRaw {
+	pub unsafe fn new(ptr: cl_command_queue) -> CommandQueueRaw {
 		CommandQueueRaw(ptr)
 	}
 
@@ -92,7 +92,7 @@ impl CommandQueueRaw {
 pub struct MemRaw(cl_mem);
 
 impl MemRaw {
-	pub fn new(ptr: cl_mem) -> MemRaw {
+	pub unsafe fn new(ptr: cl_mem) -> MemRaw {
 		MemRaw(ptr)
 	}
 
@@ -111,7 +111,7 @@ impl MemRaw {
 pub struct ProgramRaw(cl_program);
 
 impl ProgramRaw {
-	pub fn new(ptr: cl_program) -> ProgramRaw {
+	pub unsafe fn new(ptr: cl_program) -> ProgramRaw {
 		ProgramRaw(ptr)
 	}
 
@@ -126,7 +126,7 @@ impl ProgramRaw {
 pub struct KernelRaw(cl_kernel);
 
 impl KernelRaw {
-	pub fn new(ptr: cl_kernel) -> KernelRaw {
+	pub unsafe fn new(ptr: cl_kernel) -> KernelRaw {
 		KernelRaw(ptr)
 	}
 
@@ -141,7 +141,7 @@ impl KernelRaw {
 pub struct EventRaw(cl_event);
 
 impl EventRaw {
-	pub fn new(ptr: cl_event) -> EventRaw {
+	pub unsafe fn new(ptr: cl_event) -> EventRaw {
 		EventRaw(ptr)
 	}
 
@@ -160,7 +160,7 @@ impl EventRaw {
 pub struct SamplerRaw(cl_sampler);
 
 impl SamplerRaw {
-	pub fn new(ptr: cl_sampler) -> SamplerRaw {
+	pub unsafe fn new(ptr: cl_sampler) -> SamplerRaw {
 		SamplerRaw(ptr)
 	}
 

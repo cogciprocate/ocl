@@ -75,7 +75,7 @@ pub use self::custom::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult};
 //=============================================================================
 
 // pub const DEFAULT_DEVICE_TYPE: cl_h::cl_device_type = cl_h::CL_DEVICE_TYPE_DEFAULT;
-pub const DEVICES_MAX: u32 = 16;
+pub const DEVICES_MAX: u32 = 64;
 pub const DEFAULT_PLATFORM_IDX: usize = 0;
 pub const DEFAULT_DEVICE_IDX: usize = 0;
 
