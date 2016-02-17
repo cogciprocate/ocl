@@ -1,6 +1,6 @@
-//! Get information about various stuff.
+//! [WORK IN PROGRESS] Get information about all the things.
 //!
-//! WORK IN PROGRESS
+//! 
 
 extern crate ocl;
 use ocl::{Context, Program, Queue};

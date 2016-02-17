@@ -3,11 +3,14 @@ Version 0.6.0 (UNRELEASED)
 
 Breaking Changes
 ----------------
-* [FIXME: New result returns?]
+* Some methods and functions now return results where before they would unwind.
 
 New Features
 ------------
-* [FIXME: Elaborate] `raw` has a considerable number of newly implemented functions.
+* `raw` has a considerable number of newly implemented (and unimplemented 
+  placeholder) functions.
+* Many 'info' functions and types have been added. See the example, `info.rs`,
+  for details on how to use them.
 
 
 [0.6doc]: http://doc.cogciprocate.com/ocl/
