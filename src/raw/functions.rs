@@ -302,7 +302,7 @@ pub fn get_device_info(device: DeviceIdRaw, info_request: DeviceInfo,
         .and(Ok(DeviceInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn create_sub_devices() -> OclResult<()> {
     // clCreateSubDevices(in_device: cl_device_id,
     //                    properties: *const cl_device_partition_property,
@@ -346,7 +346,7 @@ pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> OclResult<ContextRaw> {
     errcode_try("clCreateContext()", errcode).and(Ok(context))
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn create_context_from_type() -> OclResult<()> {
     // cl_h::clCreateContextFromType(properties: *mut cl_context_properties,
     //                            device_type: cl_device_type,
@@ -537,7 +537,7 @@ pub fn create_buffer<T>(
     Ok(buf)
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn create_sub_buffer() -> OclResult<()> {
     // cl_h::clCreateSubBuffer(buffer: cl_mem,
     //                     flags: cl_mem_flags,
@@ -599,7 +599,7 @@ pub fn release_mem_object(mem: MemRaw) -> OclResult<()> {
     unsafe { errcode_try("clReleaseMemObject", cl_h::clReleaseMemObject(mem.as_ptr())) }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_supported_image_formats() -> OclResult<()> {
     // cl_h::clGetSupportedImageFormats(context: cl_context,
     //                               flags: cl_mem_flags,
@@ -637,7 +637,7 @@ pub fn get_supported_image_formats() -> OclResult<()> {
 
 
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_mem_object_info() -> OclResult<()> {
     // cl_h::clGetMemObjectInfo(memobj: cl_mem,
     //                       param_name: cl_mem_info,
@@ -687,7 +687,7 @@ pub fn get_mem_object_info() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_image_info() -> OclResult<()> {
     // cl_h::clGetImageInfo(image: cl_mem,
     //                   param_name: cl_image_info,
@@ -697,7 +697,7 @@ pub fn get_image_info() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn set_mem_object_destructor_callback() -> OclResult<()> {
     // cl_h::clSetMemObjectDestructorCallback(memobj: cl_mem,
     //                                     pfn_notify: extern fn (cl_mem, *mut c_void),
@@ -746,7 +746,7 @@ pub fn release_sampler(sampler: SamplerRaw) -> OclResult<()> {
     unsafe { errcode_try("clReleaseSampler", cl_h::clReleaseSampler(sampler.as_ptr())) }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_sampler_info() -> OclResult<()> {
     // cl_h::clGetSamplerInfo(sampler: cl_sampler,
     //                     param_name: cl_sampler_info,
@@ -795,7 +795,7 @@ pub fn create_program_with_source(
     errcode_try("clCreateProgramWithSource()", errcode).and(Ok(program))
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn create_program_with_binary() -> OclResult<()> {
     // cl_h::clCreateProgramWithBinary(context: cl_context,
     //                              num_devices: cl_uint,
@@ -807,7 +807,7 @@ pub fn create_program_with_binary() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn create_program_with_built_in_kernels() -> OclResult<()> {
     // clCreateProgramWithBuiltInKernels(context: cl_context,
     //                                  num_devices: cl_uint,
@@ -884,7 +884,7 @@ pub fn build_program(
     }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn compile_program() -> OclResult<()> {
     // clCompileProgram(program: cl_program,
     //                 num_devices: cl_uint,
@@ -898,7 +898,7 @@ pub fn compile_program() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn link_program() -> OclResult<()> {
     // clLinkProgram(context: cl_context,
     //               num_devices: cl_uint,
@@ -920,7 +920,7 @@ pub fn unload_platform_compiler(platform: PlatformIdRaw) -> OclResult<()> {
         cl_h::clUnloadPlatformCompiler(platform.as_ptr())) }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 // (partial implementation in 'derived' section)
 pub fn get_program_info() -> OclResult<()> {
     // cl_h::clGetProgramInfo(program: cl_program,
@@ -931,7 +931,7 @@ pub fn get_program_info() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 // (partial implementation in 'derived' section)
 pub fn get_program_build_info() -> OclResult<()> {
     // cl_h::clGetProgramBuildInfo(program: cl_program,
@@ -962,7 +962,7 @@ pub fn create_kernel(
     errcode_try(&format!("clCreateKernel('{}'):", &name), err).and(Ok(kernel_ptr))
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn create_kernels_in_program() -> OclResult<()> {
     // cl_h::clCreateKernelsInProgram(program: cl_program,
     //                             num_kernels: cl_uint,
@@ -1024,7 +1024,7 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
     errcode_try(&err_pre, err)
 } 
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_kernel_info() -> OclResult<()> {
     // cl_h::clGetKernelInfo(kernel: cl_kernel,
     //                    param_name: cl_kernel_info,
@@ -1034,7 +1034,7 @@ pub fn get_kernel_info() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_kernel_arg_info() -> OclResult<()> {
     // clGetKernelArgInfo(kernel: cl_kernel,
     //                   arg_indx: cl_uint,
@@ -1045,7 +1045,7 @@ pub fn get_kernel_arg_info() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_kernel_work_group_info() -> OclResult<()> {
     // cl_h::clGetKernelWorkGroupInfo(kernel: cl_kernel,
     //                             device: cl_device_id,
@@ -1068,7 +1068,7 @@ pub fn wait_for_events(count: cl_uint, event_list: &[EventRaw]) {
     errcode_assert("clWaitForEvents", errcode);
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_event_info() -> OclResult<()> {
     // cl_h::clGetEventInfo(event: cl_event,
     //                   param_name: cl_event_info,
@@ -1100,7 +1100,7 @@ pub fn release_event(event: EventRaw) -> OclResult<()> {
     unsafe { errcode_try("clReleaseEvent", cl_h::clReleaseEvent(event.as_ptr())) }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn set_user_event_status(event: EventRaw, execution_status: CommandExecutionStatus) 
         -> OclResult<()> {
     // cl_h::clSetUserEventStatus(event: cl_event,
@@ -1125,7 +1125,7 @@ pub unsafe fn set_event_callback(
 //============================ Profiling APIs ================================
 //============================================================================
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn get_event_profiling_info() -> OclResult<()> {
     // cl_h::clGetEventProfilingInfo(event: cl_event,
     //                            param_name: cl_profiling_info,
@@ -1202,7 +1202,7 @@ pub unsafe fn enqueue_read_buffer<T>(
     errcode_try("clEnqueueReadBuffer()", errcode)
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 /// Enqueue commands to read from a rectangular region from a buffer object to host memory.
 ///
 /// ## Official Documentation
@@ -1270,7 +1270,7 @@ pub fn enqueue_write_buffer<T>(
     }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_write_buffer_rect() -> OclResult<()> {
     // cl_h::clEnqueueWriteBufferRect(command_queue: cl_command_queue,
     //                             blocking_write: cl_bool,
@@ -1313,7 +1313,7 @@ pub fn enqueue_copy_buffer(
     errcode_try("clEnqueueCopyBuffer()", errcode)
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_fill_buffer() -> OclResult<()> {
     // clEnqueueFillBuffer(command_queue: cl_command_queue,
     //                 buffer: cl_mem, 
@@ -1327,7 +1327,7 @@ pub fn enqueue_fill_buffer() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_copy_buffer_rect() -> OclResult<()> {
     // cl_h::clEnqueueCopyBufferRect(command_queue: cl_command_queue,
     //                            src_buffer: cl_mem,
@@ -1345,7 +1345,7 @@ pub fn enqueue_copy_buffer_rect() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_read_image() -> OclResult<()> {
     // cl_h::clEnqueueReadImage(command_queue: cl_command_queue,
     //                       image: cl_mem,
@@ -1361,7 +1361,7 @@ pub fn enqueue_read_image() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_write_image() -> OclResult<()> {
     // cl_h::clEnqueueWriteImage(command_queue: cl_command_queue,
     //                        image: cl_mem,
@@ -1377,7 +1377,7 @@ pub fn enqueue_write_image() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_fill_image() -> OclResult<()> {
     // clEnqueueFillImage(command_queue: cl_command_queue,
     //                   image: cl_mem, 
@@ -1390,7 +1390,7 @@ pub fn enqueue_fill_image() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_copy_image() -> OclResult<()> {
     // cl_h::clEnqueueCopyImage(command_queue: cl_command_queue,
     //                       src_image: cl_mem,
@@ -1404,7 +1404,7 @@ pub fn enqueue_copy_image() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_copy_image_to_buffer() -> OclResult<()> {
     // cl_h::clEnqueueCopyImageToBuffer(command_queue: cl_command_queue,
     //                               src_image: cl_mem,
@@ -1418,7 +1418,7 @@ pub fn enqueue_copy_image_to_buffer() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_copy_buffer_to_image() -> OclResult<()> {
     // cl_h::clEnqueueCopyBufferToImage(command_queue: cl_command_queue,
     //                               src_buffer: cl_mem,
@@ -1432,7 +1432,7 @@ pub fn enqueue_copy_buffer_to_image() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_map_buffer() -> OclResult<()> {
     // cl_h::clEnqueueMapBuffer(command_queue: cl_command_queue,
     //                       buffer: cl_mem,
@@ -1447,7 +1447,7 @@ pub fn enqueue_map_buffer() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_map_image() -> OclResult<()> {
     // cl_h::clEnqueueMapImage(command_queue: cl_command_queue,
     //                      image: cl_mem,
@@ -1464,7 +1464,7 @@ pub fn enqueue_map_image() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_unmap_mem_object() -> OclResult<()> {
     // cl_h::clEnqueueUnmapMemObject(command_queue: cl_command_queue,
     //                            memobj: cl_mem,
@@ -1475,7 +1475,7 @@ pub fn enqueue_unmap_mem_object() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_migrate_mem_objects() -> OclResult<()> {
     // clEnqueueMigrateMemObjects(command_queue: cl_command_queue,
     //                           num_mem_objects: cl_uint,
@@ -1569,7 +1569,7 @@ pub fn enqueue_task(
     }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_native_kernel() -> OclResult<()> {
     // cl_h::clEnqueueNativeKernel(command_queue: cl_command_queue,
     //                          user_func: extern fn (*mut c_void),
@@ -1584,7 +1584,7 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_marker_with_wait_list() -> OclResult<()> {
     // clEnqueueMarkerWithWaitList(command_queue: cl_command_queue,
     //          num_events_in_wait_list: cl_uint,
@@ -1593,7 +1593,7 @@ pub fn enqueue_marker_with_wait_list() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
+/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_barrier_with_wait_list() -> OclResult<()> {
     // clEnqueueBarrierWithWaitList(
     //          command_queue: cl_command_queue,
