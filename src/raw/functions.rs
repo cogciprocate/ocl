@@ -1,5 +1,9 @@
 //! All the functions.
 //!
+//! ### Redundant Casts
+//!
+//! Redundant casts are temporary for development and will be removed.
+//!
 //! POSSIBLE TODO: Break this file up
 //!
 
@@ -13,13 +17,14 @@ use std::iter;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
-use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel, cl_program_build_info, cl_mem, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, };
+use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel, cl_program_build_info, cl_mem, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_context, cl_command_queue};
 
 use error::{Error as OclError, Result as OclResult};
 use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, 
     CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType,
     ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo,
-    PlatformInfoResult, DeviceInfo, DeviceInfoResult, ContextInfo, ContextInfoResult};
+    PlatformInfoResult, DeviceInfo, DeviceInfoResult, ContextInfo, ContextInfoResult, 
+    CommandQueueInfo, CommandQueueInfoResult};
 
 //============================================================================
 //============================================================================
@@ -201,11 +206,11 @@ pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
 
     unsafe {
         try!(errcode_try("clGetPlatformInfo()", cl_h::clGetPlatformInfo(
-            platform.as_ptr(),
+            platform.as_ptr() as cl_platform_id,
             request_param as cl_platform_info,
-            0,
+            0 as size_t,
             ptr::null_mut(),
-            &mut size,
+            &mut size as *mut size_t,
         )));
     }
         
@@ -213,11 +218,11 @@ pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
 
     unsafe {
         try!(errcode_try("clGetPlatformInfo()", cl_h::clGetPlatformInfo(
-            platform.as_ptr(),
+            platform.as_ptr() as cl_platform_id,
             request_param as cl_platform_info,
-            size,
+            size as size_t,
             requested_value.as_mut_ptr() as *mut c_void,
-            ptr::null_mut(),
+            ptr::null_mut() as *mut size_t,
         )));
     }
 
@@ -256,14 +261,11 @@ pub fn get_device_ids(
     Ok(device_ids)
 }
 
-/// [UNSTABLE][WORK IN PROGRESS]
-/// [FIXME: Currently returns an empty vec] Returns information about a device.
-///
-/// 
+/// [INCOMPLETE][WORK IN PROGRESS] Returns information about a device.
 ///
 /// ### Stability (or lack thereof)
 ///
-/// Will eventually return a `DeviceInfoResult` instead of a `Vec<u8>`.
+/// Currently returning only one (temporary) variant.
 ///
 #[allow(unused_variables)]
 pub fn get_device_info(device: DeviceIdRaw, info_request: DeviceInfo,
@@ -277,7 +279,7 @@ pub fn get_device_info(device: DeviceIdRaw, info_request: DeviceInfo,
     let mut info_value_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetDeviceInfo(
-        device.as_ptr(),
+        device.as_ptr() as cl_device_id,
         info_request as cl_device_info,
         0 as size_t,
         0 as *mut c_void,
@@ -285,19 +287,19 @@ pub fn get_device_info(device: DeviceIdRaw, info_request: DeviceInfo,
     ) };
     try!(errcode_try("clGetDeviceInfo", errcode));
 
-    let mut result: Vec<u8> = Vec::with_capacity(info_value_size);
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
 
     let errcode = unsafe { cl_h::clGetDeviceInfo(
-        device.as_ptr(),
+        device.as_ptr() as cl_device_id,
         info_request as cl_device_info,
-        info_value_size,
+        info_value_size  as size_t,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };
 
-    println!("GET_DEVICE_INFO(): errcode: {}, result: {:?}", errcode, result);
-
-    Ok(DeviceInfoResult::TemporaryPlaceholderVariant(result))
+    // println!("GET_DEVICE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetDeviceInfo", errcode)
+        .and(Ok(DeviceInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
@@ -384,13 +386,13 @@ pub fn get_context_info(context: ContextRaw, request_param: ContextInfo)
     //                     param_value: *mut c_void,
     //                     param_value_size_ret: *mut size_t) -> cl_int;
 
-   let mut result_size = 0;
+   let mut result_size: size_t = 0;
 
     // let request_param: cl_context_info = cl_h::CL_CONTEXT_PROPERTIES;
     let errcode = unsafe { cl_h::clGetContextInfo(   
-        context.as_ptr(),
+        context.as_ptr() as cl_context,
         request_param as cl_context_info,
-        0,
+        0 as size_t,
         0 as *mut c_void,
         &mut result_size as *mut usize,
     ) };
@@ -414,9 +416,9 @@ pub fn get_context_info(context: ContextRaw, request_param: ContextInfo)
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetContextInfo(   
-        context.as_ptr(),
+        context.as_ptr() as cl_context,
         request_param as cl_context_info,
-        result_size,
+        result_size as size_t,
         result.as_mut_ptr() as *mut c_void,
         0 as *mut usize,
     ) };
@@ -463,14 +465,38 @@ pub fn release_command_queue(queue: CommandQueueRaw) -> OclResult<()> {
         cl_h::clReleaseCommandQueue(queue.as_ptr())) }
 }
 
-/// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
-pub fn get_command_queue_info() -> OclResult<()> {
+/// [UNTESTED] Returns information about a command queue
+pub fn get_command_queue_info(queue: CommandQueueRaw, info_request: CommandQueueInfo,
+            ) -> OclResult<(CommandQueueInfoResult)> {
     // cl_h::clGetCommandQueueInfo(command_queue: cl_command_queue,
     //                          param_name: cl_command_queue_info,
     //                          param_value_size: size_t,
     //                          param_value: *mut c_void,
     //                          param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetCommandQueueInfo(
+        queue.as_ptr() as cl_command_queue,
+        info_request as cl_command_queue_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetCommandQueueInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetCommandQueueInfo(
+        queue.as_ptr() as cl_command_queue,
+        info_request as cl_command_queue_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetCommandQueueInfo", errcode)
+        .and(Ok(CommandQueueInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
 //============================================================================
@@ -584,6 +610,33 @@ pub fn get_supported_image_formats() -> OclResult<()> {
     unimplemented!();
 }
 
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
+
+
+
+
+
 /// [UNIMPLEMENTED][FIXME]: IMPLEMENT ME
 pub fn get_mem_object_info() -> OclResult<()> {
     // cl_h::clGetMemObjectInfo(memobj: cl_mem,
@@ -591,6 +644,46 @@ pub fn get_mem_object_info() -> OclResult<()> {
     //                       param_value_size: size_t,
     //                       param_value: *mut c_void,
     //                       param_value_size_ret: *mut size_t) -> cl_int;
+
+
+
+
+    // queue: CommandQueueRaw, info_request: CommandQueueInfo,
+    //         ) -> OclResult<(CommandQueueInfoResult)> {
+    // // cl_h::clGetCommandQueueInfo(command_queue: cl_command_queue,
+    // //                          param_name: cl_command_queue_info,
+    // //                          param_value_size: size_t,
+    // //                          param_value: *mut c_void,
+    // //                          param_value_size_ret: *mut size_t) -> cl_int;
+
+    // let mut info_value_size: size_t = 0;
+
+    // let errcode = unsafe { cl_h::clGetCommandQueueInfo(
+    //     queue.as_ptr() as cl_command_queue,
+    //     info_request as cl_command_queue_info,
+    //     0 as size_t,
+    //     0 as *mut c_void,
+    //     &mut info_value_size as *mut size_t,
+    // ) };
+    // try!(errcode_try("clGetCommandQueueInfo", errcode));
+
+    // let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    // let errcode = unsafe { cl_h::clGetCommandQueueInfo(
+    //     queue.as_ptr() as cl_command_queue,
+    //     info_request as cl_command_queue_info,
+    //     info_value_size,
+    //     result.as_mut_ptr() as *mut _ as *mut c_void,
+    //     0 as *mut size_t,
+    // ) };    
+    // // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    // errcode_try("clGetCommandQueueInfo", errcode)
+    //     .and(Ok(CommandQueueInfoResult::TemporaryPlaceholderVariant(result)))
+
+
+
+
+
     unimplemented!();
 }
 

@@ -6,7 +6,7 @@
 use std::fmt;
 use libc::{size_t, c_void};
 use util;
-use raw::{MemRaw, SamplerRaw, PlatformInfo, DeviceIdRaw, ContextInfo};
+use raw::{MemRaw, SamplerRaw, PlatformInfo, DeviceIdRaw, ContextInfo, ContextRaw, CommandQueueProperties};
 use error::{Result as OclResult};
 // use cl_h;
 
@@ -176,10 +176,16 @@ pub enum DeviceInfoResult {
 }
 
 impl DeviceInfoResult {
+    // [FIXME]: THIS IS A JANKY MOFO (a what?).
+    // NOTE: Interestingly, this actually works sorta decently as long as there
+    // isn't a 4, 8, or 24 character string. Ummm, yeah. Fix this.
     pub fn to_string(&self) -> String {
         match self {
-            &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => format!("{:?}", v),
-            _ => panic!("DeviceInfoResult: Printing this variant not yet implemented."),
+            &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
+                // TEMPORARY (and retarded):
+                to_string_retarded(v)
+            },
+            _ => panic!("DeviceInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -200,7 +206,7 @@ impl fmt::Display for DeviceInfoResult {
 
 
 
-/// A context info result.
+/// [UNSTABLE][INCOMPLETE] A context info result.
 ///
 /// [FIXME]: Figure out what to do with the properties variant.
 pub enum ContextInfoResult {
@@ -258,3 +264,51 @@ impl fmt::Display for ContextInfoResult {
     }
 }
 
+
+/// [UNSTABLE][INCOMPLETE] A command queue info result.
+pub enum CommandQueueInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    Context(ContextRaw),
+    Device(DeviceIdRaw),
+    ReferenceCount(u32),
+    Properties(CommandQueueProperties),
+}
+
+impl CommandQueueInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for CommandQueueInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for CommandQueueInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// TEMPORARY
+fn to_string_retarded(v: &Vec<u8>) -> String {
+    if v.len() == 4 {
+        util::bytes_to_u32(&v[..]).to_string()
+    } else if v.len() == 8 {
+        unsafe { util::bytes_to::<usize>(&v[..]).to_string() }
+    } else if v.len() == 3 * 8 {
+        unsafe { format!("{:?}", util::bytes_to_vec::<usize>(&v[..])) }
+    } else {
+        String::from_utf8(v.clone()).unwrap_or(format!("{:?}", v))
+    }
+}

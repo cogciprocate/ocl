@@ -39,7 +39,7 @@ Add:
 
 ```rust
 [dependencies] 
-ocl = "0.5"
+ocl = "0.6"
 ```
 
 to your project's `Cargo.toml`.
