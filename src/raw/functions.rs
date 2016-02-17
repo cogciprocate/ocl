@@ -59,9 +59,8 @@ fn errcode_assert(message: &str, errcode: cl_int) {
 }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_event_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>)
-        -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
-{
+fn resolve_event_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>,
+            ) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)> {
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer (driver doesn't want an empty list):    
     let (wait_list_len, wait_list_ptr) = match wait_list {
@@ -97,8 +96,7 @@ fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 /// `device_ids` has a build log of any length, it will be returned as an 
 /// errcode result.
 ///
-pub fn program_build_err(program: ProgramRaw, device_ids: &[DeviceIdRaw]) -> OclResult<()> 
-{
+pub fn program_build_err(program: ProgramRaw, device_ids: &[DeviceIdRaw]) -> OclResult<()> {
     let mut size = 0 as size_t;
 
     for &device_id in device_ids.iter() {
@@ -148,7 +146,7 @@ pub fn program_build_err(program: ProgramRaw, device_ids: &[DeviceIdRaw]) -> Ocl
 
 //============================================================================
 //============================================================================
-//=========================== OPENCL FUNCTIONS ===============================
+//======================= OPENCL FUNCTION WRAPPERS ===========================
 //============================================================================
 //============================================================================
 
@@ -268,8 +266,8 @@ pub fn get_device_ids(
 /// Will eventually return a `DeviceInfoResult` instead of a `Vec<u8>`.
 #[allow(unused_variables)]
 pub fn get_device_info(device: DeviceIdRaw, info_request: DeviceInfo,
-        // -> OclResult<(DeviceInfoResult)>
-         ) -> OclResult<(DeviceInfoResult)> {
+            // -> OclResult<(DeviceInfoResult)>
+            ) -> OclResult<(DeviceInfoResult)> {
     // cl_h::clGetDeviceInfo(device: cl_device_id,
     //                    param_name: cl_device_info,
     //                    param_value_size: size_t,
