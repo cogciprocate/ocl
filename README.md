@@ -115,7 +115,10 @@ properly with his multi-gpu AMD Linux configuration, 2.0 & 2.1 support is on
 hold. APIs are being designed with their future support in mind however.
 
 On a side note. 1.1 support is intact but intentionally disabled for
-simplicity. If anyone needs this functionality please file an [issue].
+simplicity. If anyone needs this support for this please file an [issue] and I
+will reenable it right away. Automatic best-version support for versions going
+all the way back to 1.0 will eventually be included once some time can be
+spent on that.
 
 
 ##### What About Vulkan&trade;?
@@ -131,7 +134,8 @@ Moving forward it's possible the two may completely merge (or that Vulkan will
 gobble up OpenCL). Whatever happens, not much will change as far as the front
 end of this library is concerned (though the `raw` module functions / types
 could get some renaming, etc. but it wouldn't be for a long time... version
-2.0).
+2.0...). This library will always maintain it's focus on the compute side of
+things. For the graphics side, see the excellent [glium] library.
 
 
 ##### Help
@@ -155,3 +159,4 @@ by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Gro
 [`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
+[glium]: https://github.com/tomaka/glium

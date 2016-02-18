@@ -219,11 +219,17 @@ impl EventList {
     ///
     /// Events will continue to exist until their creating commands have completed 
     /// and no other commands are waiting for them to complete.
-    pub fn release_all(&mut self) {
+    pub unsafe fn release_all(&mut self) {
         for event in &mut self.events {
             raw::release_event(event.clone()).unwrap();
         }
 
         self.clear();
+    }
+}
+
+impl Drop for EventList {
+    fn drop(&mut self) {
+        unsafe { self.release_all(); }
     }
 }

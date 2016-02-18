@@ -231,10 +231,6 @@ fn main() {
     // ##################### QUEUE ######################
     // ##################################################
 
-    // Context = cl_h::CL_QUEUE_CONTEXT as isize,
-    // Device = cl_h::CL_QUEUE_DEVICE as isize,
-    // ReferenceCount = cl_h::CL_QUEUE_REFERENCE_COUNT as isize,
-    // Properties = cl_h::CL_QUEUE_PROPERTIES as isize,
 
 	println!("Command Queue:\n\
 			{t}Context:         {}\n\
@@ -256,6 +252,17 @@ fn main() {
 
     // [FIXME]: Complete this section.
 
+    // pub enum MemInfo {
+    //     Type = cl_h::CL_MEM_TYPE as isize,
+    //     Flags = cl_h::CL_MEM_FLAGS as isize,
+    //     Size = cl_h::CL_MEM_SIZE as isize,
+    //     HostPtr = cl_h::CL_MEM_HOST_PTR as isize,
+    //     MapCount = cl_h::CL_MEM_MAP_COUNT as isize,
+    //     ReferenceCount = cl_h::CL_MEM_REFERENCE_COUNT as isize,
+    //     Context = cl_h::CL_MEM_CONTEXT as isize,
+    //     AssociatedMemobject = cl_h::CL_MEM_ASSOCIATED_MEMOBJECT as isize,
+    //     Offset = cl_h::CL_MEM_OFFSET as isize,
+    // }
 
 
     // ##################################################
@@ -263,63 +270,127 @@ fn main() {
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum ImageInfo {
+    //     Format = cl_h::CL_IMAGE_FORMAT as isize,
+    //     ElementSize = cl_h::CL_IMAGE_ELEMENT_SIZE as isize,
+    //     RowPitch = cl_h::CL_IMAGE_ROW_PITCH as isize,
+    //     SlicePitch = cl_h::CL_IMAGE_SLICE_PITCH as isize,
+    //     Width = cl_h::CL_IMAGE_WIDTH as isize,
+    //     Height = cl_h::CL_IMAGE_HEIGHT as isize,
+    //     Depth = cl_h::CL_IMAGE_DEPTH as isize,
+    //     ArraySize = cl_h::CL_IMAGE_ARRAY_SIZE as isize,
+    //     Buffer = cl_h::CL_IMAGE_BUFFER as isize,
+    //     NumMipLevels = cl_h::CL_IMAGE_NUM_MIP_LEVELS as isize,
+    //     NumSamples = cl_h::CL_IMAGE_NUM_SAMPLES as isize,
+    // }
 
     // ##################################################
     // #################### SAMPLER #####################
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum SamplerInfo {
+    //     ReferenceCount = cl_h::CL_SAMPLER_REFERENCE_COUNT as isize,
+    //     Context = cl_h::CL_SAMPLER_CONTEXT as isize,
+    //     NormalizedCoords = cl_h::CL_SAMPLER_NORMALIZED_COORDS as isize,
+    //     AddressingMode = cl_h::CL_SAMPLER_ADDRESSING_MODE as isize,
+    //     FilterMode = cl_h::CL_SAMPLER_FILTER_MODE as isize,
+    // }
 
     // ##################################################
     // #################### PROGRAM #####################
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum ProgramInfo {
+    //     ReferenceCount = cl_h::CL_PROGRAM_REFERENCE_COUNT as isize,
+    //     Context = cl_h::CL_PROGRAM_CONTEXT as isize,
+    //     NumDevices = cl_h::CL_PROGRAM_NUM_DEVICES as isize,
+    //     Devices = cl_h::CL_PROGRAM_DEVICES as isize,
+    //     Source = cl_h::CL_PROGRAM_SOURCE as isize,
+    //     BinarySizes = cl_h::CL_PROGRAM_BINARY_SIZES as isize,
+    //     Binaries = cl_h::CL_PROGRAM_BINARIES as isize,
+    //     NumKernels = cl_h::CL_PROGRAM_NUM_KERNELS as isize,
+    //     KernelNames = cl_h::CL_PROGRAM_KERNEL_NAMES as isize,
+    // }
 
     // ##################################################
     // ################# PROGRAM BUILD ##################
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum ProgramBuildInfo {
+    //     BuildStatus = cl_h::CL_PROGRAM_BUILD_STATUS as isize,
+    //     BuildOptions = cl_h::CL_PROGRAM_BUILD_OPTIONS as isize,
+    //     BuildLog = cl_h::CL_PROGRAM_BUILD_LOG as isize,
+    //     BinaryType = cl_h::CL_PROGRAM_BINARY_TYPE as isize,
+    // }
 
     // ##################################################
     // ##################### KERNEL #####################
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum KernelInfo {
+    //     FunctionName = cl_h::CL_KERNEL_FUNCTION_NAME as isize,
+    //     NumArgs = cl_h::CL_KERNEL_NUM_ARGS as isize,
+    //     ReferenceCount = cl_h::CL_KERNEL_REFERENCE_COUNT as isize,
+    //     Context = cl_h::CL_KERNEL_CONTEXT as isize,
+    //     Program = cl_h::CL_KERNEL_PROGRAM as isize,
+    //     Attributes = cl_h::CL_KERNEL_ATTRIBUTES as isize,
+    // }
 
     // ##################################################
     // ################# KERNEL ARGUMENT ################
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum KernelArgInfo {
+    //     AddressQualifier = cl_h::CL_KERNEL_ARG_ADDRESS_QUALIFIER as isize,
+    //     AccessQualifier = cl_h::CL_KERNEL_ARG_ACCESS_QUALIFIER as isize,
+    //     TypeName = cl_h::CL_KERNEL_ARG_TYPE_NAME as isize,
+    //     TypeQualifier = cl_h::CL_KERNEL_ARG_TYPE_QUALIFIER as isize,
+    //     Name = cl_h::CL_KERNEL_ARG_NAME as isize,
+    // }
 
     // ##################################################
     // ################ KERNEL WORK GROUP ###############
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum KernelWorkGroupInfo {
+    //     WorkGroupSize = cl_h::CL_KERNEL_WORK_GROUP_SIZE as isize,
+    //     CompileWorkGroupSize = cl_h::CL_KERNEL_COMPILE_WORK_GROUP_SIZE as isize,
+    //     LocalMemSize = cl_h::CL_KERNEL_LOCAL_MEM_SIZE as isize,
+    //     PreferredWorkGroupSizeMultiple = cl_h::CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE as isize,
+    //     PrivateMemSize = cl_h::CL_KERNEL_PRIVATE_MEM_SIZE as isize,
+    //     GlobalWorkSize = cl_h::CL_KERNEL_GLOBAL_WORK_SIZE as isize,
+    // }
 
     // ##################################################
     // ##################### EVENT ######################
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum EventInfo {
+    //     CommandQueue = cl_h::CL_EVENT_COMMAND_QUEUE as isize,
+    //     CommandType = cl_h::CL_EVENT_COMMAND_TYPE as isize,
+    //     ReferenceCount = cl_h::CL_EVENT_REFERENCE_COUNT as isize,
+    //     CommandExecutionStatus = cl_h::CL_EVENT_COMMAND_EXECUTION_STATUS as isize,
+    //     Context = cl_h::CL_EVENT_CONTEXT as isize,
+    // }
 
     // ##################################################
     // ################ EVENT PROFILING #################
     // ##################################################
 
     // [FIXME]: Complete this section.
-
+    // pub enum ProfilingInfo {
+    //     Queued = cl_h::CL_PROFILING_COMMAND_QUEUED as isize,
+    //     Submit = cl_h::CL_PROFILING_COMMAND_SUBMIT as isize,
+    //     Start = cl_h::CL_PROFILING_COMMAND_START as isize,
+    //     End = cl_h::CL_PROFILING_COMMAND_END as isize,
+    // }
 
 
     print!("\n");

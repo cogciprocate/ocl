@@ -149,18 +149,23 @@ impl ProQue {
         &self.queue
     }
 
+    /// Returns the contained context, if any.
+    pub fn context(&self) -> &Option<Context> {
+        &self.context
+    }
+
     /// Returns the current program build, if any.
     pub fn program(&self) -> &Option<Program> {
         &self.program
     }
 
-    /// Releases all components.
-    pub fn release(&mut self) {     
-        self.queue.release();
-        self.clear_build();
+    // /// Releases all components.
+    // pub fn release(&mut self) {     
+    //     // self.queue.release();
+    //     // self.clear_build();
 
-        if let Some(ref mut context) = self.context {
-            context.release();
-        }
-    }
+    //     if let Some(ref mut context) = self.context {
+    //         context.release();
+    //     }
+    // }
 }

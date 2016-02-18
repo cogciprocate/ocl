@@ -166,9 +166,14 @@ impl Context {
         self.platform_obj_raw.clone()
     }   
 
-    /// Releases the current context.
-    pub fn release(&mut self) {     
+    // /// Releases the current context.
+    // pub fn release(&mut self) {     
+    //     raw::release_context(self.obj_raw);
+    // }
+}
+
+impl Drop for Context {
+    fn drop(&mut self) {
         raw::release_context(self.obj_raw);
     }
 }
-

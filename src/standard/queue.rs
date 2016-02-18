@@ -8,7 +8,8 @@ use super::Context;
 /// An OpenCL command queue.
 ///
 /// # Destruction
-/// [FIXME]: `::release` must be manually called by consumer.
+///
+/// Underlying queue object is destroyed automatically.
 ///
 // TODO: Implement a constructor which accepts a DeviceIdRaw.
 pub struct Queue {
@@ -70,9 +71,14 @@ impl Queue {
         self.device_id_obj_raw
     }
 
-    /// Decrements the reference counter of the associated OpenCL command queue object.
-    // Note: Do not move this to a Drop impl in case this Queue has been cloned.
-    pub fn release(&mut self) {
+    // /// Decrements the reference counter of the associated OpenCL command queue object.
+    // pub fn release(&mut self) {
+    //     raw::release_command_queue(self.obj_raw).unwrap();
+    // }
+}
+
+impl Drop for Queue {
+    fn drop(&mut self) {
         raw::release_command_queue(self.obj_raw).unwrap();
     }
 }

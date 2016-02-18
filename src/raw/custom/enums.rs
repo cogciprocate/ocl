@@ -3,6 +3,8 @@
 //! Bleh. Implementing these sucks.
 //! 
 
+#![allow(dead_code)]
+
 use std::fmt;
 use libc::{size_t, c_void};
 use util;
@@ -94,7 +96,7 @@ impl fmt::Display for PlatformInfoResult {
 
 /// A device info result.
 ///
-/// [FIXME]: Implement this beast... eventually...
+/// [FIXME]: Implement the rest of this beast... eventually...
 pub enum DeviceInfoResult {
     TemporaryPlaceholderVariant(Vec<u8>),
     Type(TemporaryPlaceholderType),
@@ -293,6 +295,380 @@ impl fmt::Debug for CommandQueueInfoResult {
 }
 
 impl fmt::Display for CommandQueueInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] A mem info result.
+pub enum MemInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    Type(TemporaryPlaceholderType),
+    Flags(TemporaryPlaceholderType),
+    Size(TemporaryPlaceholderType),
+    HostPtr(TemporaryPlaceholderType),
+    MapCount(TemporaryPlaceholderType),
+    ReferenceCount(TemporaryPlaceholderType),
+    Context(TemporaryPlaceholderType),
+    AssociatedMemobject(TemporaryPlaceholderType),
+    Offset(TemporaryPlaceholderType),
+}
+
+impl MemInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for MemInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for MemInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] An image info result.
+pub enum ImageInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    Format(TemporaryPlaceholderType),
+    ElementSize(TemporaryPlaceholderType),
+    RowPitch(TemporaryPlaceholderType),
+    SlicePitch(TemporaryPlaceholderType),
+    Width(TemporaryPlaceholderType),
+    Height(TemporaryPlaceholderType),
+    Depth(TemporaryPlaceholderType),
+    ArraySize(TemporaryPlaceholderType),
+    Buffer(TemporaryPlaceholderType),
+    NumMipLevels(TemporaryPlaceholderType),
+    NumSamples(TemporaryPlaceholderType),
+}
+
+impl ImageInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for ImageInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for ImageInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] A sampler info result.
+pub enum SamplerInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    ReferenceCount(TemporaryPlaceholderType),
+    Context(TemporaryPlaceholderType),
+    NormalizedCoords(TemporaryPlaceholderType),
+    AddressingMode(TemporaryPlaceholderType),
+    FilterMode(TemporaryPlaceholderType),
+}
+
+impl SamplerInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for SamplerInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for SamplerInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] A program info result.
+pub enum ProgramInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    ReferenceCount(TemporaryPlaceholderType),
+    Context(TemporaryPlaceholderType),
+    NumDevices(TemporaryPlaceholderType),
+    Devices(TemporaryPlaceholderType),
+    Source(TemporaryPlaceholderType),
+    BinarySizes(TemporaryPlaceholderType),
+    Binaries(TemporaryPlaceholderType),
+    NumKernels(TemporaryPlaceholderType),
+    KernelNames(TemporaryPlaceholderType),
+}
+
+impl ProgramInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for ProgramInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for ProgramInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] A program build info result.
+pub enum ProgramBuildInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    BuildStatus(TemporaryPlaceholderType),
+    BuildOptions(TemporaryPlaceholderType),
+    BuildLog(TemporaryPlaceholderType),
+    BinaryType(TemporaryPlaceholderType),
+}
+
+impl ProgramBuildInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &ProgramBuildInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("ProgramBuildInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for ProgramBuildInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for ProgramBuildInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] A kernel info result.
+pub enum KernelInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    FunctionName(TemporaryPlaceholderType),
+    NumArgs(TemporaryPlaceholderType),
+    ReferenceCount(TemporaryPlaceholderType),
+    Context(TemporaryPlaceholderType),
+    Program(TemporaryPlaceholderType),
+    Attributes(TemporaryPlaceholderType),
+}
+
+impl KernelInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &KernelInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("KernelInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for KernelInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for KernelInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] A kernel arg info result.
+pub enum KernelArgInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    AddressQualifier(TemporaryPlaceholderType),
+    AccessQualifier(TemporaryPlaceholderType),
+    TypeName(TemporaryPlaceholderType),
+    TypeQualifier(TemporaryPlaceholderType),
+    Name(TemporaryPlaceholderType),
+}
+
+impl KernelArgInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &KernelArgInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("KernelArgInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for KernelArgInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for KernelArgInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] A kernel work groups info result.
+pub enum KernelWorkGroupInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    WorkGroupSize(TemporaryPlaceholderType),
+    CompileWorkGroupSize(TemporaryPlaceholderType),
+    LocalMemSize(TemporaryPlaceholderType),
+    PreferredWorkGroupSizeMultiple(TemporaryPlaceholderType),
+    PrivateMemSize(TemporaryPlaceholderType),
+    GlobalWorkSize(TemporaryPlaceholderType),
+}
+
+impl KernelWorkGroupInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("KernelWorkGroupInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for KernelWorkGroupInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for KernelWorkGroupInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] An event info result.
+pub enum EventInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    CommandQueue(TemporaryPlaceholderType),
+    CommandType(TemporaryPlaceholderType),
+    ReferenceCount(TemporaryPlaceholderType),
+    CommandExecutionStatus(TemporaryPlaceholderType),
+    Context(TemporaryPlaceholderType),
+}
+
+impl EventInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &EventInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("EventInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for EventInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for EventInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+
+
+/// [UNSTABLE][INCOMPLETE] A profiling info result.
+pub enum ProfilingInfoResult {
+    TemporaryPlaceholderVariant(Vec<u8>),
+    Queued(TemporaryPlaceholderType),
+    Submit(TemporaryPlaceholderType),
+    Start(TemporaryPlaceholderType),
+    End(TemporaryPlaceholderType),
+}
+
+impl ProfilingInfoResult {
+    // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn to_string(&self) -> String {
+        match self {
+            &ProfilingInfoResult::TemporaryPlaceholderVariant(ref v) => {
+               to_string_retarded(v)
+            },
+            _ => panic!("ProfilingInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+impl fmt::Debug for ProfilingInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl fmt::Display for ProfilingInfoResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }

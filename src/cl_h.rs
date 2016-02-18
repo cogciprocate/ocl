@@ -853,7 +853,7 @@ extern {
 
     pub fn clGetProgramBuildInfo(program: cl_program,
                              device: cl_device_id,
-                             param_name: cl_program_info,
+                             param_name: cl_program_build_info,
                              param_value_size: size_t,
                              param_value: *mut c_void,
                              param_value_size_ret: *mut size_t) -> cl_int;

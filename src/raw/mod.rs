@@ -6,7 +6,7 @@
 //!
 //! Allows access to OpenCL FFI functions with a minimal layer of abstraction, providing both safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces, although the 'raw' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
 //! 
-//! Object pointers can generally be shared between threads (except for kernel -- see the official [`clSetKernelArg`] documentation for details) [FIXME: `Send` and `Sync` impl's temporarily removed pending further evaluation]. 
+//! Object pointers can generally be shared between threads (except for kernel -- see the official [`clSetKernelArg`] documentation for details) [FIXME: `Send` impl's temporarily removed pending further evaluation]. 
 //!
 //! ## Even Lower Level: [`cl_h`]
 //!
@@ -69,7 +69,7 @@ pub use self::cl::abs::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw,
 	ProgramRaw, KernelRaw, EventRaw, SamplerRaw};
 pub use self::cl::image_st::{ImageFormat, ImageDescriptor};
 pub use self::custom::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult, ContextInfoResult,
-    CommandQueueInfoResult};
+    CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -686,7 +686,7 @@ enum_from_primitive! {
 	/// cl_kernel_work_group_info 
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum KernelWorkGroupinfo {
+    pub enum KernelWorkGroupInfo {
         WorkGroupSize = cl_h::CL_KERNEL_WORK_GROUP_SIZE as isize,
         CompileWorkGroupSize = cl_h::CL_KERNEL_COMPILE_WORK_GROUP_SIZE as isize,
         LocalMemSize = cl_h::CL_KERNEL_LOCAL_MEM_SIZE as isize,

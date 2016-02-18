@@ -137,8 +137,8 @@ fn test_events() {
                 &mut buncha_stuffs[last_idx]);
         }
 
-        if PRINT_DEBUG { println!("Releasing read_event [i:{}]...", itr); }
-        read_event.release_all();
+        // if PRINT_DEBUG { println!("Releasing read_event [i:{}]...", itr); }
+        // read_event.release_all();
     }
 
     // Wait for all queued tasks to finish so that verify_result() will be called:
@@ -166,7 +166,7 @@ fn test_basics() {
     "#;
 
 
-    let mut ocl_pq = ProQue::builder().src(kernel_src).build().expect("ProQue build");
+    let ocl_pq = ProQue::builder().src(kernel_src).build().expect("ProQue build");
 
     // Set up our work dimensions / data set size:
     let dims = SimpleDims::One(data_set_size);
@@ -201,5 +201,4 @@ fn test_basics() {
             source_buffer[idx], coeff, result_buffer[idx]); 
         }
     }
-    ocl_pq.release();
 }

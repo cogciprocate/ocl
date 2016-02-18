@@ -75,3 +75,10 @@ impl Program {
         raw::release_program(self.obj_raw).unwrap();
     }
 }
+
+impl Drop for Program {
+    fn drop(&mut self) {
+        // raw::release_context(self.obj_raw);
+        raw::release_program(self.obj_raw).unwrap();
+    }
+}

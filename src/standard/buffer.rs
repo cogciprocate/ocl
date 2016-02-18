@@ -621,6 +621,13 @@ impl<T: OclNum> Buffer<T> {
     }
 }
 
+impl<T> Drop for Buffer<T> {
+    fn drop(&mut self) {
+        raw::release_mem_object(self.obj_raw).unwrap();
+    }
+}
+
+
 impl<T> Index<usize> for Buffer<T> {
     type Output = T;
     /// # Panics

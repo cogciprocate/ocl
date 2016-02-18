@@ -17,14 +17,10 @@ use std::iter;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
-use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_mem_flags, cl_kernel, cl_program_build_info, cl_mem, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_context, cl_command_queue};
+use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_context, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, 
-    CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType,
-    ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo,
-    PlatformInfoResult, DeviceInfo, DeviceInfoResult, ContextInfo, ContextInfoResult, 
-    CommandQueueInfo, CommandQueueInfoResult};
+use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
 
 //============================================================================
 //============================================================================
@@ -632,69 +628,97 @@ pub fn get_supported_image_formats() -> OclResult<()> {
 //============================================================================
 //============================================================================
 
-
-
-
-
-
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_mem_object_info() -> OclResult<()> {
+pub fn get_mem_object_info(obj: MemRaw, info_request: MemInfo,
+            ) -> OclResult<(MemInfoResult)> {
     // cl_h::clGetMemObjectInfo(memobj: cl_mem,
     //                       param_name: cl_mem_info,
     //                       param_value_size: size_t,
     //                       param_value: *mut c_void,
     //                       param_value_size_ret: *mut size_t) -> cl_int;
 
+    let mut info_value_size: size_t = 0;
 
+    let errcode = unsafe { cl_h::clGetMemObjectInfo(
+        obj.as_ptr() as cl_mem,
+        info_request as cl_mem_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetMemObjectInfo", errcode));
 
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
 
-    // queue: CommandQueueRaw, info_request: CommandQueueInfo,
-    //         ) -> OclResult<(CommandQueueInfoResult)> {
-    // // cl_h::clGetCommandQueueInfo(command_queue: cl_command_queue,
-    // //                          param_name: cl_command_queue_info,
-    // //                          param_value_size: size_t,
-    // //                          param_value: *mut c_void,
-    // //                          param_value_size_ret: *mut size_t) -> cl_int;
-
-    // let mut info_value_size: size_t = 0;
-
-    // let errcode = unsafe { cl_h::clGetCommandQueueInfo(
-    //     queue.as_ptr() as cl_command_queue,
-    //     info_request as cl_command_queue_info,
-    //     0 as size_t,
-    //     0 as *mut c_void,
-    //     &mut info_value_size as *mut size_t,
-    // ) };
-    // try!(errcode_try("clGetCommandQueueInfo", errcode));
-
-    // let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
-
-    // let errcode = unsafe { cl_h::clGetCommandQueueInfo(
-    //     queue.as_ptr() as cl_command_queue,
-    //     info_request as cl_command_queue_info,
-    //     info_value_size,
-    //     result.as_mut_ptr() as *mut _ as *mut c_void,
-    //     0 as *mut size_t,
-    // ) };    
-    // // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
-    // errcode_try("clGetCommandQueueInfo", errcode)
-    //     .and(Ok(CommandQueueInfoResult::TemporaryPlaceholderVariant(result)))
-
-
-
-
-
-    unimplemented!();
+    let errcode = unsafe { cl_h::clGetMemObjectInfo(
+        obj.as_ptr() as cl_mem,
+        info_request as cl_mem_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetMemObjectInfo", errcode)
+        .and(Ok(MemInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_image_info() -> OclResult<()> {
+pub fn get_image_info(obj: MemRaw, info_request: ImageInfo,
+            ) -> OclResult<(ImageInfoResult)> {
     // cl_h::clGetImageInfo(image: cl_mem,
     //                   param_name: cl_image_info,
     //                   param_value_size: size_t,
     //                   param_value: *mut c_void,
     //                   param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetImageInfo(
+        obj.as_ptr() as cl_mem,
+        info_request as cl_image_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetImageInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetImageInfo(
+        obj.as_ptr() as cl_mem,
+        info_request as cl_image_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetImageInfo", errcode)
+        .and(Ok(ImageInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
@@ -746,14 +770,67 @@ pub fn release_sampler(sampler: SamplerRaw) -> OclResult<()> {
     unsafe { errcode_try("clReleaseSampler", cl_h::clReleaseSampler(sampler.as_ptr())) }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
+
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_sampler_info() -> OclResult<()> {
+pub fn get_sampler_info(obj: SamplerRaw, info_request: SamplerInfo,
+            ) -> OclResult<(SamplerInfoResult)> {
     // cl_h::clGetSamplerInfo(sampler: cl_sampler,
     //                     param_name: cl_sampler_info,
     //                     param_value_size: size_t,
     //                     param_value: *mut c_void,
     //                     param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetSamplerInfo(
+        obj.as_ptr() as cl_sampler,
+        info_request as cl_sampler_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetSamplerInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetSamplerInfo(
+        obj.as_ptr() as cl_sampler,
+        info_request as cl_sampler_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetSamplerInfo", errcode)
+        .and(Ok(SamplerInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
 //============================================================================
@@ -920,27 +997,129 @@ pub fn unload_platform_compiler(platform: PlatformIdRaw) -> OclResult<()> {
         cl_h::clUnloadPlatformCompiler(platform.as_ptr())) }
 }
 
+
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
 // (partial implementation in 'derived' section)
-pub fn get_program_info() -> OclResult<()> {
+pub fn get_program_info(obj: ProgramRaw, info_request: ProgramInfo,
+            ) -> OclResult<(ProgramInfoResult)> {
     // cl_h::clGetProgramInfo(program: cl_program,
     //                     param_name: cl_program_info,
     //                     param_value_size: size_t,
     //                     param_value: *mut c_void,
     //                     param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetProgramInfo(
+        obj.as_ptr() as cl_program,
+        info_request as cl_program_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetProgramInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetProgramInfo(
+        obj.as_ptr() as cl_program,
+        info_request as cl_program_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetProgramInfo", errcode)
+        .and(Ok(ProgramInfoResult::TemporaryPlaceholderVariant(result)))
 }
+
+
+
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
 // (partial implementation in 'derived' section)
-pub fn get_program_build_info() -> OclResult<()> {
+pub fn get_program_build_info(obj: ProgramRaw, device_obj: DeviceIdRaw, info_request: ProgramBuildInfo,
+            ) -> OclResult<(ProgramBuildInfoResult)> {
     // cl_h::clGetProgramBuildInfo(program: cl_program,
     //                          device: cl_device_id,
-    //                          param_name: cl_program_info,
+    //                          param_name: cl_program_build_info,
     //                          param_value_size: size_t,
     //                          param_value: *mut c_void,
     //                          param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetProgramBuildInfo(
+        obj.as_ptr() as cl_program,
+        device_obj.as_ptr() as cl_device_id,
+        info_request as cl_program_build_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetProgramBuildInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetProgramBuildInfo(
+        obj.as_ptr() as cl_program,
+        device_obj.as_ptr() as cl_device_id,
+        info_request as cl_program_build_info,
+        info_value_size as size_t,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetProgramBuildInfo", errcode)
+        .and(Ok(ProgramBuildInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
 //============================================================================
@@ -1024,36 +1203,190 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
     errcode_try(&err_pre, err)
 } 
 
+
+
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_kernel_info() -> OclResult<()> {
+pub fn get_kernel_info(obj: KernelRaw, info_request: KernelInfo,
+            ) -> OclResult<(KernelInfoResult)> {
     // cl_h::clGetKernelInfo(kernel: cl_kernel,
     //                    param_name: cl_kernel_info,
     //                    param_value_size: size_t,
     //                    param_value: *mut c_void,
     //                    param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetKernelInfo(
+        obj.as_ptr() as cl_kernel,
+        info_request as cl_kernel_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetKernelInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetKernelInfo(
+        obj.as_ptr() as cl_kernel,
+        info_request as cl_kernel_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetKernelInfo", errcode)
+        .and(Ok(KernelInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
+
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_kernel_arg_info() -> OclResult<()> {
+pub fn get_kernel_arg_info(obj: KernelRaw, arg_index: u32, info_request: KernelArgInfo,
+            ) -> OclResult<(KernelArgInfoResult)> {
     // clGetKernelArgInfo(kernel: cl_kernel,
     //                   arg_indx: cl_uint,
     //                   param_name: cl_kernel_arg_info,
     //                   param_value_size: size_t,
     //                   param_value: *mut c_void,
     //                   param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetKernelArgInfo(
+        obj.as_ptr() as cl_kernel,
+        arg_index as cl_uint,
+        info_request as cl_kernel_arg_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetKernelArgInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetKernelArgInfo(
+        obj.as_ptr() as cl_kernel,
+        arg_index as cl_uint,
+        info_request as cl_kernel_arg_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetKernelArgInfo", errcode)
+        .and(Ok(KernelArgInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
+
+
+
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_kernel_work_group_info() -> OclResult<()> {
+pub fn get_kernel_work_group_info(obj: KernelRaw, device_obj: DeviceIdRaw, info_request: KernelWorkGroupInfo,
+            ) -> OclResult<(KernelWorkGroupInfoResult)> {
     // cl_h::clGetKernelWorkGroupInfo(kernel: cl_kernel,
     //                             device: cl_device_id,
     //                             param_name: cl_kernel_work_group_info,
     //                             param_value_size: size_t,
     //                             param_value: *mut c_void,
     //                             param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetKernelWorkGroupInfo(
+        obj.as_ptr() as cl_kernel,
+        device_obj.as_ptr() as cl_device_id,
+        info_request as cl_kernel_work_group_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetKernelWorkGroupInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetKernelWorkGroupInfo(
+        obj.as_ptr() as cl_kernel,
+        device_obj.as_ptr() as cl_device_id,
+        info_request as cl_kernel_work_group_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetKernelWorkGroupInfo", errcode)
+        .and(Ok(KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
 //============================================================================
@@ -1068,14 +1401,63 @@ pub fn wait_for_events(count: cl_uint, event_list: &[EventRaw]) {
     errcode_assert("clWaitForEvents", errcode);
 }
 
+
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_event_info() -> OclResult<()> {
+pub fn get_event_info(obj: EventRaw, info_request: EventInfo,
+            ) -> OclResult<(EventInfoResult)> {
     // cl_h::clGetEventInfo(event: cl_event,
     //                   param_name: cl_event_info,
     //                   param_value_size: size_t,
     //                   param_value: *mut c_void,
     //                   param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetEventInfo(
+        obj.as_ptr() as cl_event,
+        info_request as cl_event_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetEventInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetEventInfo(
+        obj.as_ptr() as cl_event,
+        info_request as cl_event_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetEventInfo", errcode)
+        .and(Ok(EventInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
 /// [UNTESTED]
@@ -1125,14 +1507,65 @@ pub unsafe fn set_event_callback(
 //============================ Profiling APIs ================================
 //============================================================================
 
+
+
+
+
+
+
+
+
+
+
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//=========================== WORK IN PROGRESS ===============================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+//============================================================================
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_event_profiling_info() -> OclResult<()> {
+pub fn get_event_profiling_info(obj: EventRaw, info_request: ProfilingInfo,
+            ) -> OclResult<(ProfilingInfoResult)> {
     // cl_h::clGetEventProfilingInfo(event: cl_event,
     //                            param_name: cl_profiling_info,
     //                            param_value_size: size_t,
     //                            param_value: *mut c_void,
     //                            param_value_size_ret: *mut size_t) -> cl_int;
-    unimplemented!();
+
+
+    let mut info_value_size: size_t = 0;
+
+    let errcode = unsafe { cl_h::clGetEventProfilingInfo(
+        obj.as_ptr() as cl_event,
+        info_request as cl_profiling_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut info_value_size as *mut size_t,
+    ) };
+    try!(errcode_try("clGetEventProfilingInfo", errcode));
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+
+    let errcode = unsafe { cl_h::clGetEventProfilingInfo(
+        obj.as_ptr() as cl_event,
+        info_request as cl_profiling_info,
+        info_value_size,
+        result.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };    
+    // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
+    errcode_try("clGetEventProfilingInfo", errcode)
+        .and(Ok(ProfilingInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
 //============================================================================

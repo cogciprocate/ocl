@@ -141,9 +141,9 @@ fn main() {
                 &mut buncha_stuffs[last_idx]);
         }
 
-        if PRINT_DEBUG { println!("Releasing read_event [i:{}]...", itr); }
-        // Decrement reference count. Will still complete before releasing.
-        read_event.release_all();
+        // if PRINT_DEBUG { println!("Releasing read_event [i:{}]...", itr); }
+        // // Decrement reference count. Will still complete before releasing.
+        // read_event.release_all();
     }
 
     // Wait for all queued tasks to finish so that verify_result() will be called:

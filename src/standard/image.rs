@@ -51,6 +51,13 @@ impl<T: Default> Image<T> {
     }
 }
 
+impl<T> Drop for Image<T> {
+    fn drop(&mut self) {
+        raw::release_mem_object(self.obj_raw).unwrap();
+    }
+}
+
+
 // pub struct cl_image_format {
 //  image_channel_order:        cl_channel_order,
 //  image_channel_data_type:    cl_channel_type,

@@ -40,6 +40,9 @@ impl PlatformIdRaw {
 	}
 }
 
+unsafe impl Sync for PlatformIdRaw {}
+unsafe impl Send for PlatformIdRaw {}
+
 
 /// cl_device_id
 #[derive(Clone, Copy, Debug)]
@@ -59,6 +62,9 @@ impl DeviceIdRaw {
 	}
 }
 
+unsafe impl Sync for DeviceIdRaw {}
+unsafe impl Send for DeviceIdRaw {}
+
 
 /// cl_context
 #[derive(Clone, Copy, Debug)]
@@ -74,6 +80,9 @@ impl ContextRaw {
 	}
 }
 
+unsafe impl Sync for ContextRaw {}
+unsafe impl Send for ContextRaw {}
+
 
 /// cl_command_queue
 #[derive(Clone, Copy, Debug)]
@@ -88,6 +97,9 @@ impl CommandQueueRaw {
 		self.0
 	}
 }
+
+unsafe impl Sync for CommandQueueRaw {}
+unsafe impl Send for CommandQueueRaw {}
 
 
 /// cl_mem
@@ -108,6 +120,9 @@ impl MemRaw {
 	}
 }
 
+unsafe impl Sync for MemRaw {}
+unsafe impl Send for MemRaw {}
+
 
 /// cl_program
 #[derive(Clone, Copy, Debug)]
@@ -123,8 +138,15 @@ impl ProgramRaw {
 	}
 }
 
+unsafe impl Sync for ProgramRaw {}
+unsafe impl Send for ProgramRaw {}
+
 
 /// cl_kernel
+///
+/// ### Thread Safety
+///
+/// Not thread safe: do not implement `Send` or `Sync`.
 #[derive(Clone, Copy, Debug)]
 pub struct KernelRaw(cl_kernel);
 
@@ -157,9 +179,12 @@ impl EventRaw {
 	}
 }
 
+unsafe impl Sync for EventRaw {}
+unsafe impl Send for EventRaw {}
+
 
 /// cl_sampler
-#[derive(Clone)]
+#[derive(Clone, Copy, Debug)]
 pub struct SamplerRaw(cl_sampler);
 
 impl SamplerRaw {
@@ -171,3 +196,6 @@ impl SamplerRaw {
 		self.0
 	}
 }
+
+unsafe impl Sync for SamplerRaw {}
+unsafe impl Send for SamplerRaw {}

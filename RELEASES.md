@@ -4,6 +4,8 @@ Version 0.6.0 (UNRELEASED)
 Breaking Changes
 ----------------
 * Some methods and functions now return results where before they would unwind.
+* The `::release` method has been removed from those types which still had it.
+  All types now automatically release their resources properly.
 
 New Features
 ------------
