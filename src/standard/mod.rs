@@ -12,9 +12,10 @@ mod image_builder;
 mod image;
 mod pro_que_builder;
 mod pro_que;
+mod event;
+mod event_list;
 mod simple_dims;
 mod work_dims;
-mod event_list;
 
 
 #[cfg(not(release))] pub use self::buffer::tests::BufferTest;
@@ -30,9 +31,10 @@ pub use self::image_builder::ImageBuilder;
 pub use self::image::Image;
 pub use self::pro_que_builder::ProQueBuilder;
 pub use self::pro_que::ProQue;
+pub use self::event::Event;
+pub use self::event_list::EventList;
 pub use self::simple_dims::SimpleDims;
 pub use self::work_dims::WorkDims;
-pub use self::event_list::EventList;
 
 
 //=============================================================================

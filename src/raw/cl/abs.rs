@@ -17,6 +17,7 @@
 //! [FIXME]: Bring back `Send` and `Sync` to those types deemed worthy 
 //! (Everything but kernel? How should we roll?)
 
+use std::convert::Into;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
 	cl_kernel, cl_event, cl_sampler};
@@ -159,7 +160,6 @@ impl KernelRaw {
 		self.0
 	}
 }
-
 
 /// cl_event
 #[derive(Clone, Copy, Debug)]

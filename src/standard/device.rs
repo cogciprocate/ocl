@@ -6,7 +6,7 @@ use std::convert::Into;
 use error::Result as OclResult;
 use standard::Platform;
 use raw::{self, DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult};
-use util;
+// use util;
 
 #[derive(Copy, Clone, Debug)]
 /// A device identifier.
@@ -69,83 +69,83 @@ impl Into<DeviceIdRaw> for Device {
 
 impl std::fmt::Display for Device {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		writeln!(f, "DEVICE:\n\
-				{t}DeviceInfo::Type: {}\n\
-				{t}DeviceInfo::VendorId: {}\n\
-				{t}DeviceInfo::MaxComputeUnits: {}\n\
-				{t}DeviceInfo::MaxWorkItemDimensions: {}\n\
-				{t}DeviceInfo::MaxWorkGroupSize: {}\n\
-				{t}DeviceInfo::MaxWorkItemSizes: {}\n\
-				{t}DeviceInfo::PreferredVectorWidthChar: {}\n\
-				{t}DeviceInfo::PreferredVectorWidthShort: {}\n\
-				{t}DeviceInfo::PreferredVectorWidthInt: {}\n\
-				{t}DeviceInfo::PreferredVectorWidthLong: {}\n\
-				{t}DeviceInfo::PreferredVectorWidthFloat: {}\n\
-				{t}DeviceInfo::PreferredVectorWidthDouble: {}\n\
-				{t}DeviceInfo::MaxClockFrequency: {}\n\
-				{t}DeviceInfo::AddressBits: {}\n\
-				{t}DeviceInfo::MaxReadImageArgs: {}\n\
-				{t}DeviceInfo::MaxWriteImageArgs: {}\n\
-				{t}DeviceInfo::MaxMemAllocSize: {}\n\
-				{t}DeviceInfo::Image2dMaxWidth: {}\n\
-				{t}DeviceInfo::Image2dMaxHeight: {}\n\
-				{t}DeviceInfo::Image3dMaxWidth: {}\n\
-				{t}DeviceInfo::Image3dMaxHeight: {}\n\
-				{t}DeviceInfo::Image3dMaxDepth: {}\n\
-				{t}DeviceInfo::ImageSupport: {}\n\
-				{t}DeviceInfo::MaxParameterSize: {}\n\
-				{t}DeviceInfo::MaxSamplers: {}\n\
-				{t}DeviceInfo::MemBaseAddrAlign: {}\n\
-				{t}DeviceInfo::MinDataTypeAlignSize: {}\n\
-				{t}DeviceInfo::SingleFpConfig: {}\n\
-				{t}DeviceInfo::GlobalMemCacheType: {}\n\
-				{t}DeviceInfo::GlobalMemCachelineSize: {}\n\
-				{t}DeviceInfo::GlobalMemCacheSize: {}\n\
-				{t}DeviceInfo::GlobalMemSize: {}\n\
-				{t}DeviceInfo::MaxConstantBufferSize: {}\n\
-				{t}DeviceInfo::MaxConstantArgs: {}\n\
-				{t}DeviceInfo::LocalMemType: {}\n\
-				{t}DeviceInfo::LocalMemSize: {}\n\
-				{t}DeviceInfo::ErrorCorrectionSupport: {}\n\
-				{t}DeviceInfo::ProfilingTimerResolution: {}\n\
-				{t}DeviceInfo::EndianLittle: {}\n\
-				{t}DeviceInfo::Available: {}\n\
-				{t}DeviceInfo::CompilerAvailable: {}\n\
-				{t}DeviceInfo::ExecutionCapabilities: {}\n\
-				{t}DeviceInfo::QueueProperties: {}\n\
-				{t}DeviceInfo::Name: {}\n\
-				{t}DeviceInfo::Vendor: {}\n\
-				{t}DeviceInfo::DriverVersion: {}\n\
-				{t}DeviceInfo::Profile: {}\n\
-				{t}DeviceInfo::Version: {}\n\
-				{t}DeviceInfo::Extensions: {}\n\
-				{t}DeviceInfo::Platform: {}\n\
-				{t}DeviceInfo::DoubleFpConfig: {}\n\
-				{t}DeviceInfo::HalfFpConfig: {}\n\
-				{t}DeviceInfo::PreferredVectorWidthHalf: {}\n\
-				{t}DeviceInfo::HostUnifiedMemory: {}\n\
-				{t}DeviceInfo::NativeVectorWidthChar: {}\n\
-				{t}DeviceInfo::NativeVectorWidthShort: {}\n\
-				{t}DeviceInfo::NativeVectorWidthInt: {}\n\
-				{t}DeviceInfo::NativeVectorWidthLong: {}\n\
-				{t}DeviceInfo::NativeVectorWidthFloat: {}\n\
-				{t}DeviceInfo::NativeVectorWidthDouble: {}\n\
-				{t}DeviceInfo::NativeVectorWidthHalf: {}\n\
-				{t}DeviceInfo::OpenclCVersion: {}\n\
-				{t}DeviceInfo::LinkerAvailable: {}\n\
-				{t}DeviceInfo::BuiltInKernels: {}\n\
-				{t}DeviceInfo::ImageMaxBufferSize: {}\n\
-				{t}DeviceInfo::ImageMaxArraySize: {}\n\
-				{t}DeviceInfo::ParentDevice: {}\n\
-				{t}DeviceInfo::PartitionMaxSubDevices: {}\n\
-				{t}DeviceInfo::PartitionProperties: {}\n\
-				{t}DeviceInfo::PartitionAffinityDomain: {}\n\
-				{t}DeviceInfo::PartitionType: {}\n\
-				{t}DeviceInfo::ReferenceCount: {}\n\
-				{t}DeviceInfo::PreferredInteropUserSync: {}\n\
-				{t}DeviceInfo::PrintfBufferSize: {}\n\
-				{t}DeviceInfo::ImagePitchAlignment: {}\n\
-				{t}DeviceInfo::ImageBaseAddressAlignment: {}\n\
+		writeln!(f, "[FORMATTING NOT FULLY IMPLEMENTED] DEVICE:\n\
+				DeviceInfo::Type: {}\n\
+				DeviceInfo::VendorId: {}\n\
+				DeviceInfo::MaxComputeUnits: {}\n\
+				DeviceInfo::MaxWorkItemDimensions: {}\n\
+				DeviceInfo::MaxWorkGroupSize: {}\n\
+				DeviceInfo::MaxWorkItemSizes: {}\n\
+				DeviceInfo::PreferredVectorWidthChar: {}\n\
+				DeviceInfo::PreferredVectorWidthShort: {}\n\
+				DeviceInfo::PreferredVectorWidthInt: {}\n\
+				DeviceInfo::PreferredVectorWidthLong: {}\n\
+				DeviceInfo::PreferredVectorWidthFloat: {}\n\
+				DeviceInfo::PreferredVectorWidthDouble: {}\n\
+				DeviceInfo::MaxClockFrequency: {}\n\
+				DeviceInfo::AddressBits: {}\n\
+				DeviceInfo::MaxReadImageArgs: {}\n\
+				DeviceInfo::MaxWriteImageArgs: {}\n\
+				DeviceInfo::MaxMemAllocSize: {}\n\
+				DeviceInfo::Image2dMaxWidth: {}\n\
+				DeviceInfo::Image2dMaxHeight: {}\n\
+				DeviceInfo::Image3dMaxWidth: {}\n\
+				DeviceInfo::Image3dMaxHeight: {}\n\
+				DeviceInfo::Image3dMaxDepth: {}\n\
+				DeviceInfo::ImageSupport: {}\n\
+				DeviceInfo::MaxParameterSize: {}\n\
+				DeviceInfo::MaxSamplers: {}\n\
+				DeviceInfo::MemBaseAddrAlign: {}\n\
+				DeviceInfo::MinDataTypeAlignSize: {}\n\
+				DeviceInfo::SingleFpConfig: {}\n\
+				DeviceInfo::GlobalMemCacheType: {}\n\
+				DeviceInfo::GlobalMemCachelineSize: {}\n\
+				DeviceInfo::GlobalMemCacheSize: {}\n\
+				DeviceInfo::GlobalMemSize: {}\n\
+				DeviceInfo::MaxConstantBufferSize: {}\n\
+				DeviceInfo::MaxConstantArgs: {}\n\
+				DeviceInfo::LocalMemType: {}\n\
+				DeviceInfo::LocalMemSize: {}\n\
+				DeviceInfo::ErrorCorrectionSupport: {}\n\
+				DeviceInfo::ProfilingTimerResolution: {}\n\
+				DeviceInfo::EndianLittle: {}\n\
+				DeviceInfo::Available: {}\n\
+				DeviceInfo::CompilerAvailable: {}\n\
+				DeviceInfo::ExecutionCapabilities: {}\n\
+				DeviceInfo::QueueProperties: {}\n\
+				DeviceInfo::Name: {}\n\
+				DeviceInfo::Vendor: {}\n\
+				DeviceInfo::DriverVersion: {}\n\
+				DeviceInfo::Profile: {}\n\
+				DeviceInfo::Version: {}\n\
+				DeviceInfo::Extensions: {}\n\
+				DeviceInfo::Platform: {}\n\
+				DeviceInfo::DoubleFpConfig: {}\n\
+				DeviceInfo::HalfFpConfig: {}\n\
+				DeviceInfo::PreferredVectorWidthHalf: {}\n\
+				DeviceInfo::HostUnifiedMemory: {}\n\
+				DeviceInfo::NativeVectorWidthChar: {}\n\
+				DeviceInfo::NativeVectorWidthShort: {}\n\
+				DeviceInfo::NativeVectorWidthInt: {}\n\
+				DeviceInfo::NativeVectorWidthLong: {}\n\
+				DeviceInfo::NativeVectorWidthFloat: {}\n\
+				DeviceInfo::NativeVectorWidthDouble: {}\n\
+				DeviceInfo::NativeVectorWidthHalf: {}\n\
+				DeviceInfo::OpenclCVersion: {}\n\
+				DeviceInfo::LinkerAvailable: {}\n\
+				DeviceInfo::BuiltInKernels: {}\n\
+				DeviceInfo::ImageMaxBufferSize: {}\n\
+				DeviceInfo::ImageMaxArraySize: {}\n\
+				DeviceInfo::ParentDevice: {}\n\
+				DeviceInfo::PartitionMaxSubDevices: {}\n\
+				DeviceInfo::PartitionProperties: {}\n\
+				DeviceInfo::PartitionAffinityDomain: {}\n\
+				DeviceInfo::PartitionType: {}\n\
+				DeviceInfo::ReferenceCount: {}\n\
+				DeviceInfo::PreferredInteropUserSync: {}\n\
+				DeviceInfo::PrintfBufferSize: {}\n\
+				DeviceInfo::ImagePitchAlignment: {}\n\
+				DeviceInfo::ImageBaseAddressAlignment: {}\n\
 			",
 			try_to_str(raw::get_device_info(self.0, DeviceInfo::Type)),
 			try_to_str(raw::get_device_info(self.0, DeviceInfo::VendorId)),
@@ -223,7 +223,6 @@ impl std::fmt::Display for Device {
 			try_to_str(raw::get_device_info(self.0, DeviceInfo::PrintfBufferSize)),
 			try_to_str(raw::get_device_info(self.0, DeviceInfo::ImagePitchAlignment)),
 			try_to_str(raw::get_device_info(self.0, DeviceInfo::ImageBaseAddressAlignment)),
-			t = util::TAB,
 		)
     }
 }

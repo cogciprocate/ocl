@@ -54,6 +54,6 @@ pub mod util;
 
 #[cfg(not(release))] pub use standard::BufferTest;
 pub use standard::{Platform, Device, Context, ProgramBuilder, BuildOpt, Program, Queue, Kernel, Buffer, Image,
-    ProQueBuilder, ProQue, SimpleDims, WorkDims, OclNum, BufferDims, EventList};
+    ProQueBuilder, ProQue, SimpleDims, WorkDims, OclNum, BufferDims, Event, EventList};
 pub use self::error::{Error, Result};
 

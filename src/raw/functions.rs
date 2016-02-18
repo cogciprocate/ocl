@@ -1470,7 +1470,7 @@ pub fn wait_for_events(count: cl_uint, event_list: &[EventRaw]) {
 //============================================================================
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_event_info(obj: EventRaw, info_request: EventInfo,
+pub fn get_event_info<E: Into<EventRaw>>(obj: E, info_request: EventInfo,
             ) -> OclResult<(EventInfoResult)> {
     // cl_h::clGetEventInfo(event: cl_event,
     //                   param_name: cl_event_info,
@@ -1478,10 +1478,12 @@ pub fn get_event_info(obj: EventRaw, info_request: EventInfo,
     //                   param_value: *mut c_void,
     //                   param_value_size_ret: *mut size_t) -> cl_int;
 
+    let event: EventRaw = obj.into();
+
     let mut info_value_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetEventInfo(
-        obj.as_ptr() as cl_event,
+        event.as_ptr() as cl_event,
         info_request as cl_event_info,
         0 as size_t,
         0 as *mut c_void,
@@ -1492,7 +1494,7 @@ pub fn get_event_info(obj: EventRaw, info_request: EventInfo,
     let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
 
     let errcode = unsafe { cl_h::clGetEventInfo(
-        obj.as_ptr() as cl_event,
+        event.as_ptr() as cl_event,
         info_request as cl_event_info,
         info_value_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
@@ -1577,7 +1579,7 @@ pub unsafe fn set_event_callback(
 //============================================================================
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_event_profiling_info(obj: EventRaw, info_request: ProfilingInfo,
+pub fn get_event_profiling_info<E: Into<EventRaw>>(obj: E, info_request: ProfilingInfo,
             ) -> OclResult<(ProfilingInfoResult)> {
     // cl_h::clGetEventProfilingInfo(event: cl_event,
     //                            param_name: cl_profiling_info,
@@ -1585,11 +1587,11 @@ pub fn get_event_profiling_info(obj: EventRaw, info_request: ProfilingInfo,
     //                            param_value: *mut c_void,
     //                            param_value_size_ret: *mut size_t) -> cl_int;
 
-
+    let event = obj.into();
     let mut info_value_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetEventProfilingInfo(
-        obj.as_ptr() as cl_event,
+        event.as_ptr() as cl_event,
         info_request as cl_profiling_info,
         0 as size_t,
         0 as *mut c_void,
@@ -1600,7 +1602,7 @@ pub fn get_event_profiling_info(obj: EventRaw, info_request: ProfilingInfo,
     let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
 
     let errcode = unsafe { cl_h::clGetEventProfilingInfo(
-        obj.as_ptr() as cl_event,
+        event.as_ptr() as cl_event,
         info_request as cl_profiling_info,
         info_value_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,

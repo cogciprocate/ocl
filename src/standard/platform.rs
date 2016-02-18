@@ -6,7 +6,7 @@
 use std;
 use std::convert::Into;
 use raw::{self, PlatformIdRaw, PlatformInfo};
-use util;
+// use util;
 
 #[derive(Copy, Clone, Debug)]
 /// A platform identifier.
@@ -113,18 +113,17 @@ impl std::fmt::Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // write!(f, "{}", &self.to_string())
         writeln!(f, "PLATFORM:\n\
-				{t}Profile: {}\n\
-				{t}Version: {}\n\
-				{t}Name: {}\n\
-				{t}Vendor: {}\n\
-				{t}Extensions: {}\n\
+				Profile: {}\n\
+				Version: {}\n\
+				Name: {}\n\
+				Vendor: {}\n\
+				Extensions: {}\n\
 			",
 			self.profile(),
 			self.version(),
 			self.name(),
 			self.vendor(),
 			self.extensions(),
-			t = util::TAB,
 		)
     }
 }
