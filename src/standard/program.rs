@@ -20,6 +20,7 @@ pub struct Program {
     obj_raw: ProgramRaw,
     // context_obj_raw: ContextRaw,
     // device_ids: Vec<DeviceIdRaw>,
+    devices_ids_raw: Vec<DeviceIdRaw>,
 }
 
 
@@ -59,14 +60,17 @@ impl Program {
 
         Ok(Program {
             obj_raw: obj_raw,
-            // context_obj_raw: context_obj_raw,
-            // device_ids: device_ids.clone(),
+            devices_ids_raw: Vec::from(device_ids),
         })
     }
 
     /// Returns the associated OpenCL program object.
     pub fn obj_raw(&self) -> ProgramRaw {
         self.obj_raw
+    }
+
+    pub fn devices(&self) -> &[DeviceIdRaw] {
+        &self.devices_ids_raw
     }
 
     /// Decrements the associated OpenCL program object's reference count.

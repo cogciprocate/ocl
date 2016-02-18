@@ -1,5 +1,6 @@
 //! An OpenCL kernel.
 
+use std::convert::Into;
 use std::collections::HashMap;
 use raw::{self, KernelRaw, MemRaw, CommandQueueRaw, KernelArg};
 use error::{Result as OclResult, Error as OclError};
@@ -33,9 +34,10 @@ pub struct Kernel {
 impl Kernel {
     /// Returns a new kernel.
     // TODO: Implement proper error handling (return result etc.).
-    pub fn new(name: String, program: &Program, queue: &Queue, 
+    pub fn new<S: Into<String>>(name: S, program: &Program, queue: &Queue, 
                 gws: WorkDims ) -> OclResult<Kernel>
     {
+        let name = name.into();
         let obj_raw = try!(raw::create_kernel(program.obj_raw(), &name));
 
         Ok(Kernel {
@@ -210,7 +212,11 @@ impl Kernel {
 
     fn set_arg<T>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
         raw::set_kernel_arg::<T>(self.obj_raw, arg_idx, arg, Some(&self.name))
-    } 
+    }
+
+    pub fn obj_raw(&self) -> KernelRaw {
+        self.obj_raw
+    }
 }
 
 impl Drop for Kernel {

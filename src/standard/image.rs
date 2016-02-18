@@ -41,7 +41,7 @@ impl<T: Default> Image<T> {
     }
 
     pub fn builder() -> ImageBuilder<T> {
-        unimplemented!();
+        ImageBuilder::new()
         // ImageBuilder::new()
     }
 

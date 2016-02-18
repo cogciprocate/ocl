@@ -70,11 +70,11 @@ impl EventList {
         self.events.last()
     }
 
-    /// Returns a mutable reference to the last event in the list.
-    // #[inline]
-    pub fn last_mut(&mut self) -> Option<&mut EventRaw> {
-        self.events.last_mut()
-    }
+    // /// Returns a mutable reference to the last event in the list.
+    // // #[inline]
+    // pub fn last_mut(&mut self) -> Option<&mut EventRaw> {
+    //     self.events.last_mut()
+    // }
 
     /// Returns an immutable slice to the events list.
     #[inline]

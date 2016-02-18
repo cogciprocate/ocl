@@ -684,6 +684,9 @@ enum_from_primitive! {
 
 enum_from_primitive! {
 	/// cl_kernel_work_group_info 
+    ///
+    /// [NOTE] PrivateMemSize: If device is not a custom device or kernel is not a built-in
+    /// kernel, clGetKernelArgInfo returns the error CL_INVALID_VALUE:
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelWorkGroupInfo {

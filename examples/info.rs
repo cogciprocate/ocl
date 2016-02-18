@@ -3,8 +3,8 @@
 
 extern crate ocl;
 
-use ocl::{SimpleDims, Context, Queue, Buffer, Program};
-use ocl::raw::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo};
+use ocl::{SimpleDims, Context, Queue, Buffer, Program, Kernel, EventList};
+use ocl::raw::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 
 static TAB: &'static str = "    ";
 static SRC: &'static str = r#"
@@ -18,10 +18,19 @@ fn main() {
 
 	let context = Context::new(None, None).unwrap();
 	let queue = Queue::new(&context, None);
-	let buffer = Buffer::<u32>::new(&dims, &queue);
+	let buffer = Buffer::<f32>::new(&dims, &queue);
+	// let image = Image::new();
+	// let sampler = Sampler::new();
 	let program = Program::builder().src(SRC).build(&context).unwrap();
+	let device = program.devices()[0];
+	let kernel = Kernel::new("multiply", &program, &queue, dims.work_dims()).unwrap()
+        .arg_buf(&buffer)
+        .arg_scl(10.0f32);
+    let mut event_list = EventList::new();
 
-
+    kernel.enqueue(None, Some(&mut event_list));
+    let event = event_list.last().unwrap().clone();
+    event_list.wait();
 
 	println!("############### OpenCL [Default Platform] [Default Device] Info ################");
 	print!("\n");
@@ -31,11 +40,11 @@ fn main() {
     // ##################################################
 
 	println!("Platform:\n\
-			{t}Profile:     {}\n\
-			{t}Version:     {}\n\
-			{t}Name:        {}\n\
-			{t}Vendor:      {}\n\
-			{t}Extensions:  {}\n\
+			{t}Profile: {}\n\
+			{t}Version: {}\n\
+			{t}Name: {}\n\
+			{t}Vendor: {}\n\
+			{t}Extensions: {}\n\
 		",
 		raw::get_platform_info(context.platform_obj_raw(), PlatformInfo::Profile).unwrap(),
 		raw::get_platform_info(context.platform_obj_raw(), PlatformInfo::Version).unwrap(),
@@ -218,10 +227,10 @@ fn main() {
     // ##################################################
 
     println!("Context:\n\
-			{t}Reference Count:  {}\n\
-			{t}Devices:          {}\n\
-			{t}Properties:       {}\n\
-			{t}Device Count:     {}\n\
+			{t}Reference Count: {}\n\
+			{t}Devices: {}\n\
+			{t}Properties: {}\n\
+			{t}Device Count: {}\n\
 		",
 		raw::get_context_info(context.obj_raw(), ContextInfo::ReferenceCount).unwrap(),
 		raw::get_context_info(context.obj_raw(), ContextInfo::Devices).unwrap(),
@@ -237,10 +246,10 @@ fn main() {
 
 
 	println!("Command Queue:\n\
-			{t}Context:         {}\n\
-			{t}Device:          {}\n\
-			{t}ReferenceCount:  {}\n\
-			{t}Properties:      {}\n\
+			{t}Context: {}\n\
+			{t}Device: {}\n\
+			{t}ReferenceCount: {}\n\
+			{t}Properties: {}\n\
 		",
 		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
 		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Device).unwrap(),
@@ -268,10 +277,26 @@ fn main() {
     //     Offset = cl_h::CL_MEM_OFFSET as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
+    println!("Buffer:\n\
+			{t}Type: {}\n\
+	        {t}Flags: {}\n\
+	        {t}Size: {}\n\
+	        {t}HostPtr: {}\n\
+	        {t}MapCount: {}\n\
+	        {t}ReferenceCount: {}\n\
+	        {t}Context: {}\n\
+	        {t}AssociatedMemobject: {}\n\
+	        {t}Offset: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Type).unwrap(),
+	    raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Flags).unwrap(),
+        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Size).unwrap(),
+        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::HostPtr).unwrap(),
+        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::MapCount).unwrap(),
+        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::ReferenceCount).unwrap(),
+        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Context).unwrap(),
+        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::AssociatedMemobject).unwrap(),
+        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Offset).unwrap(),
 		t = TAB,
 	);
 
@@ -295,12 +320,32 @@ fn main() {
     //     NumSamples = cl_h::CL_IMAGE_NUM_SAMPLES as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
-		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
-		t = TAB,
-	);
+ //    println!("[UNIMPLEMENTED] Image:\n\
+	// 		{t}Format: {}\n\
+ //            {t}ElementSize: {}\n\
+ //            {t}RowPitch: {}\n\
+ //            {t}SlicePitch: {}\n\
+ //            {t}Width: {}\n\
+ //            {t}Height: {}\n\
+ //            {t}Depth: {}\n\
+ //            {t}ArraySize: {}\n\
+ //            {t}Buffer: {}\n\
+ //            {t}NumMipLevels: {}\n\
+ //            {t}NumSamples: {}\n\
+	// 	",
+	// 	raw::get_image_info(image.obj_raw(), ImageInfo::Format).unwrap(),
+	//     raw::get_image_info(image.obj_raw(), ImageInfo::ElementSize).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::RowPitch).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::SlicePitch).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::Width).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::Height).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::Depth).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::ArraySize).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::Buffer).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::NumMipLevels).unwrap(),
+ //        raw::get_image_info(image.obj_raw(), ImageInfo::NumSamples).unwrap(),
+	// 	t = TAB,
+	// );
 
     // ##################################################
     // #################### SAMPLER #####################
@@ -315,12 +360,20 @@ fn main() {
     //     FilterMode = cl_h::CL_SAMPLER_FILTER_MODE as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
-		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
-		t = TAB,
-	);
+ //    println!("[UNIMPLEMENTED] Sampler:\n\
+	// 		{t}ReferenceCount: {}\n\
+ //            {t}Context: {}\n\
+ //            {t}NormalizedCoords: {}\n\
+ //            {t}AddressingMode: {}\n\
+ //            {t}FilterMode: {}\n\
+	// 	",
+	// 	raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::ReferenceCount).unwrap(),
+ //        raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::Context).unwrap(),
+ //        raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::NormalizedCoords).unwrap(),
+ //        raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::AddressingMode).unwrap(),
+ //        raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::FilterMode).unwrap(),
+	// 	t = TAB,
+	// );
 
     // ##################################################
     // #################### PROGRAM #####################
@@ -339,10 +392,26 @@ fn main() {
     //     KernelNames = cl_h::CL_PROGRAM_KERNEL_NAMES as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
+    println!("Program:\n\
+			{t}ReferenceCount: {}\n\
+            {t}Context: {}\n\
+            {t}NumDevices: {}\n\
+            {t}Devices: {}\n\
+            {t}Source: {}\n\
+            {t}BinarySizes: {}\n\
+            {t}Binaries: {}\n\
+            {t}NumKernels: {}\n\
+            {t}KernelNames: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		raw::get_program_info(program.obj_raw(), ProgramInfo::ReferenceCount).unwrap(),
+        raw::get_program_info(program.obj_raw(), ProgramInfo::Context).unwrap(),
+        raw::get_program_info(program.obj_raw(), ProgramInfo::NumDevices).unwrap(),
+        raw::get_program_info(program.obj_raw(), ProgramInfo::Devices).unwrap(),
+        raw::get_program_info(program.obj_raw(), ProgramInfo::Source).unwrap(),
+        raw::get_program_info(program.obj_raw(), ProgramInfo::BinarySizes).unwrap(),
+        raw::get_program_info(program.obj_raw(), ProgramInfo::Binaries).unwrap(),
+        raw::get_program_info(program.obj_raw(), ProgramInfo::NumKernels).unwrap(),
+        raw::get_program_info(program.obj_raw(), ProgramInfo::KernelNames).unwrap(),
 		t = TAB,
 	);
 
@@ -358,10 +427,16 @@ fn main() {
     //     BinaryType = cl_h::CL_PROGRAM_BINARY_TYPE as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
+    println!("Program Build:\n\
+			{t}BuildStatus: {}\n\
+            {t}BuildOptions: {}\n\
+            {t}BuildLog: {}\n\
+            {t}BinaryType: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		raw::get_program_build_info(program.obj_raw(), device, ProgramBuildInfo::BuildStatus).unwrap(),
+        raw::get_program_build_info(program.obj_raw(), device, ProgramBuildInfo::BuildOptions).unwrap(),
+        raw::get_program_build_info(program.obj_raw(), device, ProgramBuildInfo::BuildLog).unwrap(),
+        raw::get_program_build_info(program.obj_raw(), device, ProgramBuildInfo::BinaryType).unwrap(),
 		t = TAB,
 	);
 
@@ -379,10 +454,20 @@ fn main() {
     //     Attributes = cl_h::CL_KERNEL_ATTRIBUTES as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
+    println!("Kernel Info:\n\
+			{t}FunctionName: {}\n\
+            {t}NumArgs: {}\n\
+            {t}ReferenceCount: {}\n\
+            {t}Context: {}\n\
+            {t}Program: {}\n\
+            {t}Attributes: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		raw::get_kernel_info(kernel.obj_raw(), KernelInfo::FunctionName).unwrap(),
+	    raw::get_kernel_info(kernel.obj_raw(), KernelInfo::NumArgs).unwrap(),
+        raw::get_kernel_info(kernel.obj_raw(), KernelInfo::ReferenceCount).unwrap(),
+        raw::get_kernel_info(kernel.obj_raw(), KernelInfo::Context).unwrap(),
+        raw::get_kernel_info(kernel.obj_raw(), KernelInfo::Program).unwrap(),
+        raw::get_kernel_info(kernel.obj_raw(), KernelInfo::Attributes).unwrap(),
 		t = TAB,
 	);
 
@@ -399,10 +484,18 @@ fn main() {
     //     Name = cl_h::CL_KERNEL_ARG_NAME as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
+    println!("KernelArgInfo:\n\
+			{t}AddressQualifier: {}\n\
+            {t}AccessQualifier: {}\n\
+            {t}TypeName: {}\n\
+            {t}TypeQualifier: {}\n\
+            {t}Name: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::AddressQualifier).unwrap(),
+        raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::AccessQualifier).unwrap(),
+        raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::TypeName).unwrap(),
+        raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::TypeQualifier).unwrap(),
+        raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::Name).unwrap(),
 		t = TAB,
 	);
 
@@ -420,10 +513,27 @@ fn main() {
     //     GlobalWorkSize = cl_h::CL_KERNEL_GLOBAL_WORK_SIZE as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
+    println!("Kernel Work Group:\n\
+			{t}WorkGroupSize: {}\n\
+	    	{t}CompileWorkGroupSize: {}\n\
+            {t}LocalMemSize: {}\n\
+            {t}PreferredWorkGroupSizeMultiple: {}\n\
+            {t}PrivateMemSize: {}\n\
+            {t}GlobalWorkSize: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		raw::get_kernel_work_group_info(kernel.obj_raw(), device, 
+			KernelWorkGroupInfo::WorkGroupSize).unwrap(),
+	    raw::get_kernel_work_group_info(kernel.obj_raw(), device, 
+	    	KernelWorkGroupInfo::CompileWorkGroupSize).unwrap(),
+        raw::get_kernel_work_group_info(kernel.obj_raw(), device, 
+        	KernelWorkGroupInfo::LocalMemSize).unwrap(),
+        raw::get_kernel_work_group_info(kernel.obj_raw(), device, 
+        	KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple).unwrap(),
+        raw::get_kernel_work_group_info(kernel.obj_raw(), device, 
+        	KernelWorkGroupInfo::PrivateMemSize).unwrap(),
+        // raw::get_kernel_work_group_info(kernel.obj_raw(), device, 
+        // 	KernelWorkGroupInfo::GlobalWorkSize).unwrap(),
+    	"[KernelWorkGroupInfo::GlobalWorkSize not avaliable in this configuration]",
 		t = TAB,
 	);
 
@@ -440,10 +550,18 @@ fn main() {
     //     Context = cl_h::CL_EVENT_CONTEXT as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
+    println!("EventInfo:\n\
+			{t}CommandQueue: {}\n\
+            {t}CommandType: {}\n\
+            {t}ReferenceCount: {}\n\
+            {t}CommandExecutionStatus: {}\n\
+            {t}Context: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		raw::get_event_info(event, EventInfo::CommandQueue).unwrap(),
+        raw::get_event_info(event, EventInfo::CommandType).unwrap(),
+        raw::get_event_info(event, EventInfo::ReferenceCount).unwrap(),
+        raw::get_event_info(event, EventInfo::CommandExecutionStatus).unwrap(),
+        raw::get_event_info(event, EventInfo::Context).unwrap(),
 		t = TAB,
 	);
 
@@ -459,10 +577,16 @@ fn main() {
     //     End = cl_h::CL_PROFILING_COMMAND_END as isize,
     // }
 
-    println!("Command Queue:\n\
-			{t}Context:         {}\n\
+    println!("ProfilingInfo:\n\
+			{t}Queued: {}\n\
+	    	{t}Submit: {}\n\
+	    	{t}Start: {}\n\
+	    	{t}End: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		raw::get_event_profiling_info(event, ProfilingInfo::Queued).unwrap(),
+        raw::get_event_profiling_info(event, ProfilingInfo::Submit).unwrap(),
+        raw::get_event_profiling_info(event, ProfilingInfo::Start).unwrap(),
+        raw::get_event_profiling_info(event, ProfilingInfo::End).unwrap(),
 		t = TAB,
 	);
 
