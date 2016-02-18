@@ -26,7 +26,7 @@ To provide:
 
 Tested so far only on Linux (and probably OS X - need confirmation). Windows
 support looks imminent. Please [provide
-feedback](https://github.com/cogciprocate/ocl_rust/issues) about failures and
+feedback] about failures and
 successes on your platform.
 
 
@@ -106,11 +106,35 @@ access to the complete feature set with Rust's safety and convenience.
 #### Taking Requests
 
 Want to bring your OpenCL-ness to Rust but can't find the functionality you
-need? File an [issue](https://github.com/cogciprocate/ocl_rust/issues) and
-let us know what should come next.
+need? File an [issue] and let us know what should come next.
+
+##### 2.0+ Version Support
+
+Due to this developer continuing to have problems getting 2.0 drivers to work
+properly with his multi-gpu AMD Linux configuration, 2.0 & 2.1 support is on
+hold. APIs are being designed with their future support in mind however.
+
+On a side note. 1.1 support is intact but intentionally disabled for
+simplicity. If anyone needs this functionality please file an [issue].
 
 
-#### Help
+##### What About Vulkan&trade;?
+
+The OpenCL API already posesses all of the new attributes of the Vulkan API
+like low-overhead, high performance, and unfettered hardware access. For all
+practical purposes, OpenCL is now a just a compute-focused subset of Vulkan's
+features (sorta kinda). OpenCL 2.1+ and Vulkan kernels/shaders now both
+compile into SPIR-V. I wouldn't be suprised if driver vendors also implement
+the two APIs identically.
+
+Moving forward it's possible the two may completely merge (or that Vulkan will
+gobble up OpenCL). Whatever happens, not much will change as far as the front
+end of this library is concerned (though the `raw` module functions / types
+could get some renaming, etc. but it wouldn't be for a long time... version
+2.0).
+
+
+##### Help
 
 *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1`
 exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in
@@ -121,11 +145,12 @@ getting your GPU to work (intel: [windows](http://registrationcenter.intel.com
 enter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)).
 
 Please ask questions and provide feedback by opening an
-[issue](https://github.com/cogciprocate/ocl_rust/issues).
+[issue].
 
 <br/>
 
 *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission
-by Khronos.”*
+by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Group Inc.”
 
 [`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
+[issue]: https://github.com/cogciprocate/ocl_rust/issues

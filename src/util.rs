@@ -1,4 +1,6 @@
 //! Utility and debugging functions.
+//!
+//! Largely untested.
 //! 
 //! ## Stability
 //!

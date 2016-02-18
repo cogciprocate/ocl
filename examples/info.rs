@@ -1,13 +1,12 @@
 //! [WORK IN PROGRESS] Get information about all the things.
 //!
-//! 
 
 extern crate ocl;
+
 use ocl::{Context, Program, Queue};
 use ocl::raw::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo};
 
 static TAB: &'static str = "    ";
-
 static SRC: &'static str = r#"
 	__kernel void multiply(__global float* buffer, float coeff) {
         buffer[get_global_id(0)] *= coeff;
