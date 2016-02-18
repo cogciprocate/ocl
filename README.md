@@ -17,17 +17,9 @@ Interfaces are still mildly unstable. Changes are now being documented in
 
 To provide:
 - A simple and intuitive interface with OpenCL devices
-- The full functionality of the OpenCL C ABI
+- The full functionality of the OpenCL API
 - An absolute minimum of boilerplate
 - As close as possible to zero performance overhead
-
-
-## Platforms
-
-Tested so far only on Linux (and probably OS X - need confirmation). Windows
-support looks imminent. Please [provide
-feedback] about failures and
-successes on your platform.
 
 
 ## Installation
@@ -97,6 +89,13 @@ fn main() {
 }
 ```
 
+#### Platforms
+
+Tested so far only on Linux (and probably OS X - need confirmation). Windows
+support looks imminent. Please [provide feedback] about failures and successes
+on your platform.
+
+
 #### Diving Deeper
 
 Already familiar with the standard OpenCL core API? See the [`raw`] module for
@@ -107,6 +106,7 @@ access to the complete feature set with Rust's safety and convenience.
 
 Want to bring your OpenCL-ness to Rust but can't find the functionality you
 need? File an [issue] and let us know what should come next.
+
 
 ##### 2.0+ Version Support
 
@@ -122,10 +122,10 @@ simplicity. If anyone needs this functionality please file an [issue].
 
 The OpenCL API already posesses all of the new attributes of the Vulkan API
 like low-overhead, high performance, and unfettered hardware access. For all
-practical purposes, OpenCL is now a just a compute-focused subset of Vulkan's
+practical purposes, Vulkan is simply a graphics-focused superset of OpenCL's
 features (sorta kinda). OpenCL 2.1+ and Vulkan kernels/shaders now both
-compile into SPIR-V. I wouldn't be suprised if driver vendors also implement
-the two APIs identically.
+compile into SPIR-V making the device side of things the same. I wouldn't be
+suprised if most driver vendors also implement the two host APIs identically.
 
 Moving forward it's possible the two may completely merge (or that Vulkan will
 gobble up OpenCL). Whatever happens, not much will change as far as the front
@@ -150,7 +150,8 @@ Please ask questions and provide feedback by opening an
 <br/>
 
 *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission
-by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Group Inc.”
+by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Group Inc.”*
 
 [`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
+[provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
