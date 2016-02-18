@@ -11,6 +11,39 @@ use std::ptr;
 
 use super::OclNum;
 
+
+//=============================================================================
+//================================ STATICS ====================================
+//=============================================================================
+
+pub static TAB: &'static str = "    "; 
+
+pub static C_DEFAULT: &'static str = "\x1b[0m";
+pub static C_UNDER: &'static str = "\x1b[1m";
+
+pub static C_RED: &'static str = "\x1b[31m";
+pub static C_BRED: &'static str = "\x1b[1;31m";
+pub static C_GRN: &'static str = "\x1b[32m";
+pub static C_BGRN: &'static str = "\x1b[1;32m";
+pub static C_ORA: &'static str = "\x1b[33m";
+pub static C_DBL: &'static str = "\x1b[34m";
+pub static C_PUR: &'static str = "\x1b[35m";
+pub static C_CYA: &'static str = "\x1b[36m";
+pub static C_LGR: &'static str = "\x1b[37m";
+pub static C_DGR: &'static str = "\x1b[90m";
+pub static C_LRD: &'static str = "\x1b[91m";
+pub static C_YEL: &'static str = "\x1b[93m";
+pub static C_BLU: &'static str = "\x1b[94m";
+pub static C_MAG: &'static str = "\x1b[95m";
+pub static C_LBL: &'static str = "\x1b[94m";
+
+pub static BGC_DEFAULT: &'static str = "\x1b[49m";
+pub static BGC_GRN: &'static str = "\x1b[42m";
+pub static BGC_PUR: &'static str = "\x1b[45m";
+pub static BGC_LGR: &'static str = "\x1b[47m";
+pub static BGC_DGR: &'static str = "\x1b[100m";
+
+
 //=============================================================================
 //=========================== UTILITY FUNCTIONS ===============================
 //=============================================================================
@@ -121,35 +154,6 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 //=============================================================================
 //=========================== PRINTING FUNCTIONS ==============================
 //=============================================================================
-
-
-// MT: Mini-tab: 4 spaces ('mini' compared to the huge tab on certain terminals)
-pub static MT: &'static str = "    "; 
-
-pub static C_DEFAULT: &'static str = "\x1b[0m";
-pub static C_UNDER: &'static str = "\x1b[1m";
-
-pub static C_RED: &'static str = "\x1b[31m";
-pub static C_BRED: &'static str = "\x1b[1;31m";
-pub static C_GRN: &'static str = "\x1b[32m";
-pub static C_BGRN: &'static str = "\x1b[1;32m";
-pub static C_ORA: &'static str = "\x1b[33m";
-pub static C_DBL: &'static str = "\x1b[34m";
-pub static C_PUR: &'static str = "\x1b[35m";
-pub static C_CYA: &'static str = "\x1b[36m";
-pub static C_LGR: &'static str = "\x1b[37m";
-pub static C_DGR: &'static str = "\x1b[90m";
-pub static C_LRD: &'static str = "\x1b[91m";
-pub static C_YEL: &'static str = "\x1b[93m";
-pub static C_BLU: &'static str = "\x1b[94m";
-pub static C_MAG: &'static str = "\x1b[95m";
-pub static C_LBL: &'static str = "\x1b[94m";
-
-pub static BGC_DEFAULT: &'static str = "\x1b[49m";
-pub static BGC_GRN: &'static str = "\x1b[42m";
-pub static BGC_PUR: &'static str = "\x1b[45m";
-pub static BGC_LGR: &'static str = "\x1b[47m";
-pub static BGC_DGR: &'static str = "\x1b[100m";
 
 
 #[allow(unused_assignments, unused_variables)]

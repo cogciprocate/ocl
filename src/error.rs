@@ -9,7 +9,7 @@ use std::convert::Into;
 // use std::ffi;
 
 /// `ocl::Error` result type.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, self::Error>;
 
 
 /// An enum containing either a `String` or one of several other standard 
@@ -23,13 +23,13 @@ pub enum Error {
     String(String),
     Nul(std::ffi::NulError),
     Io(std::io::Error),
-    // Utf8Error(std::collections::str::Utf8Error),
+    FromUtf8Error(std::string::FromUtf8Error),
 }
 
-impl Error {
+impl self::Error {
     /// Returns a new `Error` with the description string: `desc`.
-    pub fn new<S: Into<String>>(desc: S) -> Error {
-        Error::String(desc.into())
+    pub fn new<S: Into<String>>(desc: S) -> self::Error {
+        self::Error::String(desc.into())
     }
 
     /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the 
@@ -45,57 +45,64 @@ impl Error {
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for self::Error {
     fn description(&self) -> &str {
-        match self {
-            &Error::String(ref desc) => &desc,
+        match self {            
             &Error::Nul(ref err) => err.description(),
             &Error::Io(ref err) => err.description(),
+            &Error::FromUtf8Error(ref err) => err.description(),
             &Error::ErrCode(_, ref desc) => &desc,
-            // &Error::Utf8Error(err) => err.description(),
+            &Error::String(ref desc) => &desc,
             // _ => panic!("OclError::description()"),
         }
     }
 }
 
-impl From<String> for Error {
-    fn from(desc: String) -> Error {
-        Error::new(desc)
+impl Into<String> for self::Error {
+    fn into(self) -> String {
+        use std::error::Error;
+        self.description().to_string()
     }
 }
 
-impl<'a> From<&'a str> for Error {
-    fn from(desc: &'a str) -> Error {
-        Error::new(String::from(desc))
+impl From<String> for self::Error {
+    fn from(desc: String) -> self::Error {
+        self::Error::new(desc)
     }
 }
 
-impl From<std::ffi::NulError> for Error {
-    fn from(err: std::ffi::NulError) -> Error {
-        Error::Nul(err)
+impl<'a> From<&'a str> for self::Error {
+    fn from(desc: &'a str) -> self::Error {
+        self::Error::new(String::from(desc))
     }
 }
 
-impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error {
-        Error::Io(err)
+impl From<std::ffi::NulError> for self::Error {
+    fn from(err: std::ffi::NulError) -> self::Error {
+        self::Error::Nul(err)
     }
 }
 
-// impl From<std::collections::string::FromUtf8Error> for Error {
-//     fn from(from_err: std::collections::string::FromUtf8Error) -> Error {
-//         Error::String(from_err.from_utf8().description())
-//     }
-// }
+impl From<std::io::Error> for self::Error {
+    fn from(err: std::io::Error) -> self::Error {
+        self::Error::Io(err)
+    }
+}
 
-impl std::fmt::Display for Error {
+impl From<std::string::FromUtf8Error> for self::Error {
+    fn from(err: std::string::FromUtf8Error) -> self::Error {
+        self::Error::FromUtf8Error(err)
+    }
+}
+
+impl std::fmt::Display for self::Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use std::error::Error;
         f.write_str(&self.description())
     }
 }
 
-impl std::fmt::Debug for Error {
+impl std::fmt::Debug for self::Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use std::error::Error;
         f.write_str(&self.description())

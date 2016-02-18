@@ -11,6 +11,7 @@ Breaking Changes
 * All of the `Buffer` creation methods (such as `::new` and `::with_vec`) now
   take a reference to a `BufferDims` type for the `dims` argument instead 
   moving it.
+* `Context::device_ids` has been renamed `::device_ids_raw`.
 
 New Features
 ------------

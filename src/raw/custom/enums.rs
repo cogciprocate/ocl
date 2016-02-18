@@ -2,10 +2,12 @@
 //!
 //! Bleh. Implementing these sucks.
 //! 
+//! TODO: ADD ERROR VARIANT FOR EACH OF THE RESULT ENUMS.
 
 #![allow(dead_code)]
 
-use std::fmt;
+use std;
+use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
 use raw::{MemRaw, SamplerRaw, PlatformInfo, DeviceIdRaw, ContextInfo, ContextRaw, CommandQueueProperties};
@@ -35,6 +37,7 @@ pub enum KernelArg<'a, T: 'a> {
 }
 
 /// Platform info result.
+/// TODO: ADD ERROR VARIANT.
 // #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PlatformInfoResult {
     Profile(String),
@@ -42,11 +45,30 @@ pub enum PlatformInfoResult {
     Name(String),
     Vendor(String),
     Extensions(String),
+    // Error(Box<OclError>),
 }
 
 impl PlatformInfoResult {
     pub fn new(request_param: PlatformInfo, result_string: Vec<u8>) -> OclResult<PlatformInfoResult> {
-        let string = String::from_utf8(result_string).expect("FIXME: src/raw/custom/enums.rs");
+        // match result_string {
+        //     Ok(rs) => {
+        //         // let string = String::from_utf8(result_string).expect("FIXME: src/raw/custom/enums.rs");
+        //         let string = try!(String::from_utf8(rs));
+
+        //         Ok(match request_param {
+        //             PlatformInfo::Profile => PlatformInfoResult::Profile(string),
+        //             PlatformInfo::Version => PlatformInfoResult::Version(string),
+        //             PlatformInfo::Name => PlatformInfoResult::Name(string),
+        //             PlatformInfo::Vendor => PlatformInfoResult::Vendor(string),
+        //             PlatformInfo::Extensions => PlatformInfoResult::Extensions(string),
+        //         })
+        //     },
+        //     Err(err) => {
+        //         PlatformInfoResult::Error(Box::new(err.clone))
+        //     }
+        // }
+
+        let string = try!(String::from_utf8(result_string));
 
         Ok(match request_param {
             PlatformInfo::Profile => PlatformInfoResult::Profile(string),
@@ -55,16 +77,6 @@ impl PlatformInfoResult {
             PlatformInfo::Vendor => PlatformInfoResult::Vendor(string),
             PlatformInfo::Extensions => PlatformInfoResult::Extensions(string),
         })
-    }
-
-    pub fn into_string(self) -> String {
-        match self {
-            PlatformInfoResult::Profile(string) => string,
-            PlatformInfoResult::Version(string) => string,
-            PlatformInfoResult::Name(string) => string,
-            PlatformInfoResult::Vendor(string) => string,
-            PlatformInfoResult::Extensions(string) => string,
-        }
     }
 
     pub fn to_string(&self) -> String {
@@ -78,18 +90,38 @@ impl PlatformInfoResult {
             &PlatformInfoResult::Name(ref s) => s,
             &PlatformInfoResult::Vendor(ref s) => s,
             &PlatformInfoResult::Extensions(ref s) => s,
+            // &PlatformInfoResult::Error(ref err) => err.description(),
         }
     }
 }
 
-impl fmt::Debug for PlatformInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl Into<String> for PlatformInfoResult {
+    fn into(self) -> String {
+        match self {
+            PlatformInfoResult::Profile(string) => string,
+            PlatformInfoResult::Version(string) => string,
+            PlatformInfoResult::Name(string) => string,
+            PlatformInfoResult::Vendor(string) => string,
+            PlatformInfoResult::Extensions(string) => string,
+            // PlatformInfoResult::Error(err) => (*err).description().to_string(),
+        }
+    }
+}
+
+// impl std::error::Error for PlatformInfoResult {
+//     fn description(&self) -> &str {
+//         self.as_str()
+//     }
+// }
+
+impl std::fmt::Debug for PlatformInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl fmt::Display for PlatformInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for PlatformInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
@@ -175,6 +207,7 @@ pub enum DeviceInfoResult {
     PrintfBufferSize(TemporaryPlaceholderType),
     ImagePitchAlignment(TemporaryPlaceholderType),
     ImageBaseAddressAlignment(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl DeviceInfoResult {
@@ -192,16 +225,16 @@ impl DeviceInfoResult {
     }
 }
 
-impl fmt::Debug for DeviceInfoResult {
+impl std::fmt::Debug for DeviceInfoResult {
     /// [INCOMPLETE]: TEMPORARY
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for DeviceInfoResult {
+impl std::fmt::Display for DeviceInfoResult {
     /// [INCOMPLETE]: TEMPORARY
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -214,10 +247,9 @@ impl fmt::Display for DeviceInfoResult {
 pub enum ContextInfoResult {
     ReferenceCount(u32),
     Devices(Vec<DeviceIdRaw>),
-    // Properties(ContextInfoOrPropertiesPointerType),
     Properties(Vec<u8>),
     NumDevices(u32),
-    // TemporaryPlaceholderVariant(Vec<u8>),
+    // Error(Box<OclError>),
 }
 
 impl ContextInfoResult {
@@ -250,18 +282,19 @@ impl ContextInfoResult {
             &ContextInfoResult::Devices(ref vec) => format!("{:?}", vec),
             &ContextInfoResult::Properties(ref props) => format!("{:?}", props),
             &ContextInfoResult::NumDevices(ref num) => num.to_string(),
+            // &ContextInfoResult::Error(ref err) => err.description().to_string(),
         }
     }
 }
 
-impl fmt::Debug for ContextInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for ContextInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for ContextInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for ContextInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -274,6 +307,7 @@ pub enum CommandQueueInfoResult {
     Device(DeviceIdRaw),
     ReferenceCount(u32),
     Properties(CommandQueueProperties),
+    // Error(Box<OclError>),
 }
 
 impl CommandQueueInfoResult {
@@ -288,14 +322,14 @@ impl CommandQueueInfoResult {
     }
 }
 
-impl fmt::Debug for CommandQueueInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for CommandQueueInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for CommandQueueInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for CommandQueueInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -314,6 +348,7 @@ pub enum MemInfoResult {
     Context(TemporaryPlaceholderType),
     AssociatedMemobject(TemporaryPlaceholderType),
     Offset(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl MemInfoResult {
@@ -328,14 +363,14 @@ impl MemInfoResult {
     }
 }
 
-impl fmt::Debug for MemInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for MemInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for MemInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for MemInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -356,6 +391,7 @@ pub enum ImageInfoResult {
     Buffer(TemporaryPlaceholderType),
     NumMipLevels(TemporaryPlaceholderType),
     NumSamples(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl ImageInfoResult {
@@ -370,14 +406,14 @@ impl ImageInfoResult {
     }
 }
 
-impl fmt::Debug for ImageInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for ImageInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for ImageInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for ImageInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -392,6 +428,7 @@ pub enum SamplerInfoResult {
     NormalizedCoords(TemporaryPlaceholderType),
     AddressingMode(TemporaryPlaceholderType),
     FilterMode(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl SamplerInfoResult {
@@ -406,14 +443,14 @@ impl SamplerInfoResult {
     }
 }
 
-impl fmt::Debug for SamplerInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for SamplerInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for SamplerInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for SamplerInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -432,6 +469,7 @@ pub enum ProgramInfoResult {
     Binaries(TemporaryPlaceholderType),
     NumKernels(TemporaryPlaceholderType),
     KernelNames(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl ProgramInfoResult {
@@ -446,14 +484,14 @@ impl ProgramInfoResult {
     }
 }
 
-impl fmt::Debug for ProgramInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for ProgramInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for ProgramInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for ProgramInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -467,6 +505,7 @@ pub enum ProgramBuildInfoResult {
     BuildOptions(TemporaryPlaceholderType),
     BuildLog(TemporaryPlaceholderType),
     BinaryType(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl ProgramBuildInfoResult {
@@ -481,14 +520,14 @@ impl ProgramBuildInfoResult {
     }
 }
 
-impl fmt::Debug for ProgramBuildInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for ProgramBuildInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for ProgramBuildInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for ProgramBuildInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -504,6 +543,7 @@ pub enum KernelInfoResult {
     Context(TemporaryPlaceholderType),
     Program(TemporaryPlaceholderType),
     Attributes(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl KernelInfoResult {
@@ -518,14 +558,14 @@ impl KernelInfoResult {
     }
 }
 
-impl fmt::Debug for KernelInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for KernelInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for KernelInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for KernelInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -540,6 +580,7 @@ pub enum KernelArgInfoResult {
     TypeName(TemporaryPlaceholderType),
     TypeQualifier(TemporaryPlaceholderType),
     Name(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl KernelArgInfoResult {
@@ -554,14 +595,14 @@ impl KernelArgInfoResult {
     }
 }
 
-impl fmt::Debug for KernelArgInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for KernelArgInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for KernelArgInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for KernelArgInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -577,6 +618,7 @@ pub enum KernelWorkGroupInfoResult {
     PreferredWorkGroupSizeMultiple(TemporaryPlaceholderType),
     PrivateMemSize(TemporaryPlaceholderType),
     GlobalWorkSize(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl KernelWorkGroupInfoResult {
@@ -591,14 +633,14 @@ impl KernelWorkGroupInfoResult {
     }
 }
 
-impl fmt::Debug for KernelWorkGroupInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for KernelWorkGroupInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for KernelWorkGroupInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for KernelWorkGroupInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -613,6 +655,7 @@ pub enum EventInfoResult {
     ReferenceCount(TemporaryPlaceholderType),
     CommandExecutionStatus(TemporaryPlaceholderType),
     Context(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl EventInfoResult {
@@ -627,14 +670,14 @@ impl EventInfoResult {
     }
 }
 
-impl fmt::Debug for EventInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for EventInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for EventInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for EventInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
@@ -648,6 +691,7 @@ pub enum ProfilingInfoResult {
     Submit(TemporaryPlaceholderType),
     Start(TemporaryPlaceholderType),
     End(TemporaryPlaceholderType),
+    // Error(Box<OclError>),
 }
 
 impl ProfilingInfoResult {
@@ -662,14 +706,14 @@ impl ProfilingInfoResult {
     }
 }
 
-impl fmt::Debug for ProfilingInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Debug for ProfilingInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl fmt::Display for ProfilingInfoResult {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for ProfilingInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }

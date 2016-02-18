@@ -191,7 +191,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformIdRaw>> {
 /// [UNTESTED]
 /// Returns platform information of the requested type.
 pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
-            ) -> OclResult<(PlatformInfoResult)> {
+            ) -> OclResult<PlatformInfoResult> {
     // cl_h::clGetPlatformInfo(platform: cl_platform_id,
     //                              param_name: cl_platform_info,
     //                              param_value_size: size_t,
@@ -2234,7 +2234,7 @@ pub fn platform_name(platform: PlatformIdRaw) -> OclResult<String> {
     // }
 
     let info_result = try!(get_platform_info(platform, PlatformInfo::Name));
-    Ok(info_result.into_string())
+    Ok(info_result.into())
     // println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
 }
 

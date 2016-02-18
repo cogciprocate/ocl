@@ -1,5 +1,6 @@
 //! `ocl` standard types.
 
+mod platform;
 mod context;
 mod program_builder;
 mod program;
@@ -16,6 +17,7 @@ mod event_list;
 
 
 #[cfg(not(release))] pub use self::buffer::tests::BufferTest;
+pub use self::platform::Platform;
 pub use self::context::Context;
 pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;

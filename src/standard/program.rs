@@ -69,7 +69,7 @@ impl Program {
         self.obj_raw
     }
 
-    pub fn devices(&self) -> &[DeviceIdRaw] {
+    pub fn device_ids_raw(&self) -> &[DeviceIdRaw] {
         &self.devices_ids_raw
     }
 
