@@ -94,7 +94,7 @@ impl<T: OclNum> Buffer<T> {
     /// The returned Buffer contains no host side vector. Functions associated with
     /// one such as `.flush_vec_async()`, `fill_vec_async()`, etc. will panic.
     /// [FIXME]: Return result.
-    pub fn new<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
+    pub fn new<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
         Buffer::_new(len, queue)
     }
@@ -102,7 +102,7 @@ impl<T: OclNum> Buffer<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
-    pub fn with_vec<E: BufferDims>(dims: E, queue: &Queue) -> Buffer<T> {
+    pub fn with_vec<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
         let vec: Vec<T> = iter::repeat(T::default()).take(len).collect();
 
@@ -113,7 +113,7 @@ impl<T: OclNum> Buffer<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
-    pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: E, queue: &Queue) -> Buffer<T> {
+    pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: &E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
         let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
@@ -133,7 +133,7 @@ impl<T: OclNum> Buffer<T> {
     /// Resulting values are not cryptographically secure.
     /// [FIXME]: Return result.
     // Note: vals.1 is inclusive.
-    pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
+    pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: &E, queue: &Queue) 
             -> Buffer<T> 
     {
         let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
@@ -151,7 +151,7 @@ impl<T: OclNum> Buffer<T> {
     /// Resulting values are not cryptographically secure.
     /// [FIXME]: Return result.
     // Note: vals.1 is exclusive.
-    pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: E, queue: &Queue) 
+    pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: &E, queue: &Queue) 
             -> Buffer<T> 
     {
         let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_id_obj_raw()));
@@ -212,8 +212,7 @@ impl<T: OclNum> Buffer<T> {
     /// [FIXME]: Return result.
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
         let obj_raw = raw::create_buffer::<T>(queue.context_obj_raw(),
-            // cl_h::CL_MEM_READ_WRITE | cl_h::CL_MEM_COPY_HOST_PTR, len, None)
-            raw::MEM_READ_WRITE | raw::MEM_COPY_HOST_PTR, len, None)
+            raw::MEM_READ_WRITE, len, None)
             .expect("[FIXME: TEMPORARY]: Buffer::_new():");
 
         Buffer {            
@@ -247,6 +246,8 @@ impl<T: OclNum> Buffer<T> {
     /// `offset` must be less than the length of the buffer.
     ///
     /// The length of `data` must be less than the length of the buffer minus `offset`.
+    ///
+    /// Errors upon any OpenCL error.
     pub fn write(&self, data: &[T], offset: usize) -> OclResult<()>
     {
         self.write_async(data, offset, None, None)
@@ -256,11 +257,13 @@ impl<T: OclNum> Buffer<T> {
     /// Reads `data.len() * mem::size_of::<T>()` bytes from the (remote) device buffer 
     /// into `data` with a remote offset of `offset` and blocks until complete.
     ///
-    /// # Panics
+    /// # Errors
     ///
     /// `offset` must be less than the length of the buffer.
     ///
     /// The length of `data` must be less than the length of the buffer minus `offset`.
+    ///
+    /// Errors upon any OpenCL error.
     pub fn read(&self, data: &mut [T], offset: usize) -> OclResult<()>
     {
         // Safe due to being a blocking read (right?).
@@ -281,17 +284,24 @@ impl<T: OclNum> Buffer<T> {
     /// Ensure that the memory referred to by `data` is unmolested until the 
     /// write completes if passing a `dest_list`.
     ///
-    /// # Panics
+    /// # Errors
     ///
     /// `offset` must be less than the length of the buffer.
     ///
     /// The length of `data` must be less than the length of the buffer minus `offset`.
+    ///
+    /// Errors upon any OpenCL error.
     pub fn write_async(&self, data: &[T], offset: usize, wait_list: Option<&EventList>, 
                 dest_list: Option<&mut EventList>) -> OclResult<()>
     {
-        assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
-        assert!(data.len() <= self.len() - offset, 
-            "Buffer::write{{_async}}(): Data length out of range.");
+        // assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
+        // assert!(data.len() <= self.len() - offset, 
+        //     "Buffer::write{{_async}}(): Data length out of range.");
+        if offset >= self.len() { 
+            return OclError::err("Buffer::write{{_async}}(): Offset out of range."); }
+        if data.len() > self.len() - offset {
+            return OclError::err("Buffer::write{{_async}}(): Data length out of range."); }
+
         let blocking_write = dest_list.is_none();
         raw::enqueue_write_buffer(self.queue_obj_raw, &self.obj_raw, blocking_write, 
             data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
@@ -317,17 +327,24 @@ impl<T: OclNum> Buffer<T> {
     /// reference to the event associated with the read. [NOTE: Improved ease
     /// of use is coming to the event api eventually]
     ///
-    /// # Panics
+    /// # Errors
     ///
     /// `offset` must be less than the length of the buffer.
     ///
     /// The length of `data` must be less than the length of the buffer minus `offset`.
+    ///
+    /// Errors upon any OpenCL error.
     pub unsafe fn read_async(&self, data: &mut [T], offset: usize, wait_list: Option<&EventList>, 
                 dest_list: Option<&mut EventList>) -> OclResult<()>
     {
-        assert!(offset < self.len(), "Buffer::read{{_async}}(): Offset out of range.");
-        assert!(data.len() <= self.len() - offset, 
-            "Buffer::read{{_async}}(): Data length out of range.");
+        // assert!(offset < self.len(), "Buffer::read{{_async}}(): Offset out of range.");
+        // assert!(data.len() <= self.len() - offset, 
+        //     "Buffer::read{{_async}}(): Data length out of range.");
+        if offset >= self.len() { 
+            return OclError::err("Buffer::read{{_async}}(): Offset out of range."); }
+        if data.len() > self.len() - offset {
+            return OclError::err("Buffer::read{{_async}}(): Data length out of range."); }
+
         let blocking_read = dest_list.is_none();
         raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, blocking_read, 
             data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
@@ -343,13 +360,14 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// Will block until the write is complete if `dest_list` is None.
     ///
-    /// # Panics
-    /// Panics if this Buffer contains no vector.
+    /// # Errors
+    ///
+    /// Errors if this Buffer contains no vector or upon any OpenCL error.
     pub fn flush_vec_async(&mut self, wait_list: Option<&EventList>, 
                 dest_list: Option<&mut EventList>) -> OclResult<()>
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
-        let vec = self.vec.as_mut().expect("Buffer::flush_vec_async()");
+        let vec = try!(self.vec.as_mut());
         raw::enqueue_write_buffer(self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
             vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
     }
@@ -368,13 +386,14 @@ impl<T: OclNum> Buffer<T> {
     /// TODO: Keep an internal eventlist to track pending reads and cancel them
     /// if this `Buffer` is destroyed beforehand.
     ///
-    /// # Panics
-    /// Panics if this Buffer contains no vector.
+    /// # Errors
+    ///
+    /// Errors if this Buffer contains no vector or upon any OpenCL error.
     pub unsafe fn fill_vec_async(&mut self, wait_list: Option<&EventList>, 
                 dest_list: Option<&mut EventList>) -> OclResult<()>
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
-        let vec = self.vec.as_mut().expect("Buffer::fill_vec_async()");
+        let vec = try!(self.vec.as_mut());
         raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
             vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
     }
@@ -385,9 +404,10 @@ impl<T: OclNum> Buffer<T> {
     /// Equivalent to `.flush_vec_async(None, None)`.
     ///
     /// # Panics
-    /// Panics if this Buffer contains no vector.
-    pub fn flush_vec(&mut self) -> OclResult<()> {
-        self.flush_vec_async(None, None)
+    ///
+    /// Panics if this Buffer contains no vector or upon any OpenCL error.
+    pub fn flush_vec(&mut self) {
+        self.flush_vec_async(None, None).expect("Buffer::flush_vec");
     }
 
     /// Reads the remote device data buffer into `self.vec` and blocks until completed.
@@ -395,10 +415,11 @@ impl<T: OclNum> Buffer<T> {
     /// Equivalent to `.fill_vec_async(None, None)`.
     ///
     /// # Panics
-    /// Panics if this Buffer contains no vector.
-    pub fn fill_vec(&mut self) -> OclResult<()> {
+    ///
+    /// Panics if this Buffer contains no vector or upon any OpenCL error.
+    pub fn fill_vec(&mut self) {
         // Safe due to being a blocking read (right?).
-        unsafe { self.fill_vec_async(None, None) }
+        unsafe { self.fill_vec_async(None, None).expect("Buffer::fill_vec"); }
     }   
 
     /// Blocks until the underlying command queue has completed all commands.
@@ -408,28 +429,30 @@ impl<T: OclNum> Buffer<T> {
 
     /// [UNSTABLE]: Convenience method.
     ///
-    /// # Panics
+    /// # Panics [UPDATE ME]
     /// Panics if this Buffer contains no vector.
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
     pub fn set_all_to(&mut self, val: T) -> OclResult<()> {
         {
-            let vec = self.vec.as_mut().expect("Buffer::set_all_to()");
+            let vec = try!(self.vec.as_mut());
             for ele in vec.iter_mut() {
                 *ele = val;
             }
         }
 
-        self.flush_vec()
+        self.flush_vec_async(None, None)
     }
 
     /// [UNSTABLE]: Convenience method.
     ///
-    /// # Panics
+    /// # Panics [UPDATE ME]
+    ///
     /// Panics if this Buffer contains no vector.
+    ///
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
     pub fn set_range_to(&mut self, val: T, range: Range<usize>) -> OclResult<()> {       
         {
-            let vec = self.vec.as_mut().expect("Buffer::set_range_to()");
+            let vec = try!(self.vec.as_mut());
             // for idx in range {
                 // self.vec[idx] = val;
             for ele in vec[range].iter_mut() {
@@ -437,7 +460,7 @@ impl<T: OclNum> Buffer<T> {
             }
         }
 
-        self.flush_vec()
+        self.flush_vec_async(None, None)
     }
 
     /// Returns the length of the Buffer.
@@ -457,10 +480,11 @@ impl<T: OclNum> Buffer<T> {
     /// kernels may have had to the old buffer.
     ///
     /// # Safety
+    ///
     /// [IMPORTANT]: You must manually reassign any kernel arguments which may have 
     /// had a reference to the (device side) buffer associated with this Buffer.
     /// [FIXME]: Return result.
-    pub unsafe fn resize(&mut self, new_dims: &BufferDims, queue: &Queue) {
+    pub unsafe fn resize<B: BufferDims>(&mut self, new_dims: &B, queue: &Queue) {
         self.release();
         let new_len = new_dims.padded_buffer_len(raw::get_max_work_group_size(
             queue.device_id_obj_raw()));
@@ -494,6 +518,7 @@ impl<T: OclNum> Buffer<T> {
     /// reads. ([FIXME]: Is this a safety issue?)
     ///
     /// # Failures
+    ///
     /// [FIXME: UPDATE DOC] Returns an error if this buffer contains no vector.
     #[inline]
     pub fn vec(&self) -> &Vec<T> {
@@ -506,9 +531,11 @@ impl<T: OclNum> Buffer<T> {
     /// read.
     /// 
     /// # Failures
+    ///
     /// [FIXME: UPDATE DOC] Returns an error if this buffer contains no vector.
     ///
     /// # Safety
+    ///
     /// Could cause data collisions, etc. May not be unsafe strictly speaking
     /// (is it?) but marked as such to alert the caller to any potential 
     /// synchronization issues from previously enqueued reads.
@@ -521,6 +548,7 @@ impl<T: OclNum> Buffer<T> {
     /// bounds and enum variant checks.
     ///
     /// # Safety
+    ///
     /// Assumes `self.vec` is a `VecOption::Vec` and that the index `idx` is within
     /// the vector bounds.
     #[inline]
@@ -534,6 +562,7 @@ impl<T: OclNum> Buffer<T> {
     /// bounds and enum variant checks.
     ///
     /// # Safety
+    ///
     /// Assumes `self.vec` is a `VecOption::Vec` and that the index `idx` is within
     /// bounds. Might eat all the laundry.
     #[inline]
@@ -551,6 +580,7 @@ impl<T: OclNum> Buffer<T> {
     /// Changes the queue used by this Buffer for reads and writes, etc.
     ///
     /// # Safety
+    ///
     /// Not all implications of changing the queue, particularly if the new queue
     /// is associated with a new device which has different workgroup size dimensions,
     /// have been considered or are dealt with. For now, considering these cases is
@@ -563,6 +593,7 @@ impl<T: OclNum> Buffer<T> {
     /// Returns an iterator to a contained vector.
     ///
     /// # Panics
+    ///
     /// Panics if this Buffer contains no vector.
     pub fn iter<'a>(&'a self) -> Iter<'a, T> {
         self.vec.as_ref().expect("Buffer::iter()").iter()
@@ -571,6 +602,7 @@ impl<T: OclNum> Buffer<T> {
     /// Returns a mutable iterator to a contained vector.
     ///
     /// # Panics
+    ///
     /// Panics if this Buffer contains no vector.
     pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
         self.vec.as_mut().expect("Buffer::iter()").iter_mut()
@@ -580,6 +612,7 @@ impl<T: OclNum> Buffer<T> {
     /// [UNSTABLE]: Convenience method.
     ///
     /// # Panics
+    ///
     /// Panics if this Buffer contains no vector.
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
     pub fn print_simple(&mut self) {
@@ -589,6 +622,7 @@ impl<T: OclNum> Buffer<T> {
     /// [UNSTABLE]: Convenience method. 
     ///
     /// # Panics
+    ///
     /// Panics if this Buffer contains no vector.
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
     pub fn print_val_range(&mut self, every: usize, val_range: Option<(T, T)>,) {

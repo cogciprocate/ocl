@@ -3,7 +3,7 @@
 
 extern crate ocl;
 
-use ocl::{Context, Program, Queue};
+use ocl::{SimpleDims, Context, Queue, Buffer, Program};
 use ocl::raw::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo};
 
 static TAB: &'static str = "    ";
@@ -14,9 +14,13 @@ static SRC: &'static str = r#"
 "#;
 
 fn main() {
+	let dims = SimpleDims::One(1000);
+
 	let context = Context::new(None, None).unwrap();
 	let queue = Queue::new(&context, None);
+	let buffer = Buffer::<u32>::new(&dims, &queue);
 	let program = Program::builder().src(SRC).build(&context).unwrap();
+
 
 
 	println!("############### OpenCL [Default Platform] [Default Device] Info ################");
@@ -264,6 +268,13 @@ fn main() {
     //     Offset = cl_h::CL_MEM_OFFSET as isize,
     // }
 
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
+
 
     // ##################################################
     // ##################### IMAGE ######################
@@ -284,6 +295,13 @@ fn main() {
     //     NumSamples = cl_h::CL_IMAGE_NUM_SAMPLES as isize,
     // }
 
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
+
     // ##################################################
     // #################### SAMPLER #####################
     // ##################################################
@@ -296,6 +314,13 @@ fn main() {
     //     AddressingMode = cl_h::CL_SAMPLER_ADDRESSING_MODE as isize,
     //     FilterMode = cl_h::CL_SAMPLER_FILTER_MODE as isize,
     // }
+
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
 
     // ##################################################
     // #################### PROGRAM #####################
@@ -314,6 +339,13 @@ fn main() {
     //     KernelNames = cl_h::CL_PROGRAM_KERNEL_NAMES as isize,
     // }
 
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
+
     // ##################################################
     // ################# PROGRAM BUILD ##################
     // ##################################################
@@ -325,6 +357,13 @@ fn main() {
     //     BuildLog = cl_h::CL_PROGRAM_BUILD_LOG as isize,
     //     BinaryType = cl_h::CL_PROGRAM_BINARY_TYPE as isize,
     // }
+
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
 
     // ##################################################
     // ##################### KERNEL #####################
@@ -340,6 +379,13 @@ fn main() {
     //     Attributes = cl_h::CL_KERNEL_ATTRIBUTES as isize,
     // }
 
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
+
     // ##################################################
     // ################# KERNEL ARGUMENT ################
     // ##################################################
@@ -352,6 +398,13 @@ fn main() {
     //     TypeQualifier = cl_h::CL_KERNEL_ARG_TYPE_QUALIFIER as isize,
     //     Name = cl_h::CL_KERNEL_ARG_NAME as isize,
     // }
+
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
 
     // ##################################################
     // ################ KERNEL WORK GROUP ###############
@@ -367,6 +420,13 @@ fn main() {
     //     GlobalWorkSize = cl_h::CL_KERNEL_GLOBAL_WORK_SIZE as isize,
     // }
 
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
+
     // ##################################################
     // ##################### EVENT ######################
     // ##################################################
@@ -380,6 +440,13 @@ fn main() {
     //     Context = cl_h::CL_EVENT_CONTEXT as isize,
     // }
 
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
+
     // ##################################################
     // ################ EVENT PROFILING #################
     // ##################################################
@@ -391,6 +458,13 @@ fn main() {
     //     Start = cl_h::CL_PROFILING_COMMAND_START as isize,
     //     End = cl_h::CL_PROFILING_COMMAND_END as isize,
     // }
+
+    println!("Command Queue:\n\
+			{t}Context:         {}\n\
+		",
+		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
+		t = TAB,
+	);
 
 
     print!("\n");

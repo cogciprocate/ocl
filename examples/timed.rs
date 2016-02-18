@@ -94,7 +94,7 @@ fn main() {
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
-        buffer_result.fill_vec().unwrap();
+        buffer_result.fill_vec();
     }
 
     print_elapsed("queue unfinished", buffer_start);
@@ -114,7 +114,7 @@ fn main() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enqueue(None, None);
-        buffer_result.fill_vec().unwrap();
+        buffer_result.fill_vec();
     }
 
     print_elapsed("queue unfinished", kern_buf_start);

@@ -6,6 +6,11 @@ Breaking Changes
 * Some methods and functions now return results where before they would unwind.
 * The `::release` method has been removed from those types which still had it.
   All types now automatically release their resources properly.
+* `Buffer::fill_vec` and `Buffer::flush_vec` no longer return results and 
+  instead panic in the event of an error.
+* All of the `Buffer` creation methods (such as `::new` and `::with_vec`) now
+  take a reference to a `BufferDims` type for the `dims` argument instead 
+  moving it.
 
 New Features
 ------------

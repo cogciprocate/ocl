@@ -79,7 +79,7 @@ fn main() {
     kern.enqueue(None, None);
 
     // Read results from the device into our buffer's built-in vector:
-    buffer.fill_vec().unwrap();
+    buffer.fill_vec();
 
     // Verify and print a result:
     let final_value = buffer[element_idx];

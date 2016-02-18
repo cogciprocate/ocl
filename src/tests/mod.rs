@@ -188,7 +188,7 @@ fn test_basics() {
     kernel.enqueue(None, None);
 
     // Read results:
-    result_buffer.fill_vec().unwrap();
+    result_buffer.fill_vec();
 
     // Check results and print the first 20:
     for idx in 0..data_set_size {
