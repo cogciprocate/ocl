@@ -1,4 +1,4 @@
-//! Interfaces to an OpenCL buffer.
+//! Interfaces to a buffer.
 
 use std::iter;
 use std::slice::{Iter, IterMut};
@@ -46,7 +46,7 @@ impl<T> VecOption<T> {
 }
 
 
-/// An OpenCL buffer with an optional built-in vector. 
+/// A buffer with an optional built-in vector. 
 ///
 /// Data is stored both remotely in a memory buffer on the device associated with 
 /// `queue` and optionally in a vector (`self.vec`) in host (local) memory for 

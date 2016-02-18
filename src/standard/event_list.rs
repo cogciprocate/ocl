@@ -1,4 +1,4 @@
-//! Event list for coordinating enqueued tasks.
+//! Event list for coordinating enqueued commands.
 
 // use std::ptr;
 use libc::c_void;

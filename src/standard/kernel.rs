@@ -6,7 +6,7 @@ use raw::{self, KernelRaw, MemRaw, CommandQueueRaw, KernelArg};
 use error::{Result as OclResult, Error as OclError};
 use standard::{WorkDims, Buffer, OclNum, EventList, Program, Queue};
 
-/// An OpenCL kernel.
+/// A kernel.
 ///
 /// # Destruction
 /// Releases kernel object automatically upon drop.

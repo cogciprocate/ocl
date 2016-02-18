@@ -7,7 +7,7 @@ use standard::{Context, ImageBuilder};
 use raw::{self, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
 
 
-/// [WORK IN PROGRESS][UNTESTED] An OpenCL Image. 
+/// [WORK IN PROGRESS][UNTESTED] An Image. 
 ///
 /// Use `::builder` for an easy way to create. [UNIMPLEMENTED]
 ///

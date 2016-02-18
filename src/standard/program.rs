@@ -6,7 +6,7 @@ use error::{Result as OclResult};
 use raw::{self, ProgramRaw, DeviceIdRaw, ContextRaw};
 use standard::{ProgramBuilder, Context};
 
-/// An OpenCL program, sometimes referred to as a build.
+/// A program, sometimes referred to as a build.
 ///
 /// To use with multiple devices, create manually with `::from_parts()`.
 ///

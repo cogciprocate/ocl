@@ -5,7 +5,7 @@ use raw::{self, ContextRaw, ContextProperties, PlatformIdRaw, DeviceIdRaw, Devic
 use error::{Result as OclResult, Error as OclError};
 
 
-/// An OpenCL context for a particular platform and set of device types.
+/// A context for a particular platform and set of device types.
 ///
 /// Wraps a `ContextRaw` such as that returned by `raw::create_context`.
 ///

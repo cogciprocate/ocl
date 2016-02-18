@@ -10,7 +10,7 @@ use standard::{Image};
 
 
 
-/// [WORK IN PROGRESS] An OpenCL Image. 
+/// [WORK IN PROGRESS] A builder for `Image`. 
 pub struct ImageBuilder<T> {
     stuff: T,
     flags: u64,

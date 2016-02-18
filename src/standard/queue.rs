@@ -5,7 +5,7 @@
 use raw::{self, CommandQueueRaw, DeviceIdRaw, ContextRaw};
 use super::Context;
 
-/// An OpenCL command queue.
+/// A command queue.
 ///
 /// # Destruction
 ///

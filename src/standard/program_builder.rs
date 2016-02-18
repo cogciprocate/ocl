@@ -54,8 +54,7 @@ impl BuildOpt {
 }
 
 
-/// Compilation options for building an OpenCL program. Used when creating 
-/// a new `Program`.
+/// A builder for `Program`.
 pub struct ProgramBuilder {
     options: Vec<BuildOpt>,
     src_file_names: Vec<String>,
