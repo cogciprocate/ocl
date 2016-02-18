@@ -328,9 +328,13 @@ pub fn release_device(device: DeviceIdRaw) -> OclResult<()> {
 /// [INCOMPLETE] Returns a new context pointer valid for all devices in 
 /// `device_ids`.
 ///
-/// [FIXME]: INCOMPLETE IMPLEMENTATION: Take properties, callback, and userdata.
-pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<DeviceIdRaw>
-            ) -> OclResult<ContextRaw> {
+/// [FIXME]: Incomplete implementation. Callback and userdata unimplemented.
+///
+//
+// [NOTE]: Leave commented print statements intact until more `ContextProperties 
+// variants are implemented.
+pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<DeviceIdRaw>,
+            pfn_notify: Option<fn()>, user_data: Option<*mut c_void>) -> OclResult<ContextRaw> {
     if device_ids.len() == 0 {
         return OclError::err("ocl::raw::create_context: No devices specified.");
     }
@@ -343,8 +347,8 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
     };
 
     // print!("CREATE_CONTEXT: BYTES: ");
-    util::print_bytes_as_hex(&properties_bytes);
-    print!("\n");
+    // util::print_bytes_as_hex(&properties_bytes);
+    // print!("\n");
 
     let properties_ptr = if properties_bytes.len() == 0 { 
         ptr::null() 
@@ -357,6 +361,7 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
 
     let mut errcode: cl_int = 0;
 
+    // [FIXME]: Callback function and data unimplemented.
     let context = unsafe { ContextRaw::new(cl_h::clCreateContext(
         properties_ptr as *const cl_context_properties, 
         device_ids.len() as cl_uint, 

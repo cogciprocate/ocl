@@ -84,13 +84,13 @@ impl Context {
         let platforms: Vec<PlatformIdRaw> = try!(raw::get_platform_ids());
         if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
-        println!("Platform list: {:?}", platforms);
+        // println!("Platform list: {:?}", platforms);
 
         let platform_id_raw: PlatformIdRaw = match platform_idx_opt {
             Some(pf_idx) => {
                 match platforms.get(pf_idx) {
                     Some(pf) => {
-                        println!("Platform [{}]: {:?}", pf_idx, pf);
+                        // println!("Platform [{}]: {:?}", pf_idx, pf);
                         pf.clone()
                     },
                     None => {
@@ -113,7 +113,8 @@ impl Context {
 
         // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids_raw);
 
-        let obj_raw = try!(raw::create_context(properties, &device_ids_raw));
+        // [FIXME]: No callback or user data:
+        let obj_raw = try!(raw::create_context(properties, &device_ids_raw, None, None));
 
         Ok(Context {
             platform_id_raw: platform_id_raw,
