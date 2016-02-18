@@ -21,7 +21,7 @@ use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id,
 
 use error::{Error as OclError, Result as OclResult};
 use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
-use util;
+
 
 //============================================================================
 //============================================================================
@@ -234,9 +234,9 @@ pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
 pub fn get_device_ids(
             platform: PlatformIdRaw, 
             // device_types_opt: Option<cl_device_type>)
-            device_types_opt: Option<DeviceType>)
-            -> OclResult<Vec<DeviceIdRaw>> {
-    let device_type = device_types_opt.unwrap_or(raw::DEVICE_TYPE_DEFAULT);
+            device_types: Option<DeviceType>,
+            ) -> OclResult<Vec<DeviceIdRaw>> {
+    let device_types = device_types.unwrap_or(raw::DEVICE_TYPE_ALL);
     let mut devices_available: cl_uint = 0;
 
     let mut device_ids: Vec<DeviceIdRaw> = iter::repeat(DeviceIdRaw::null())
@@ -244,7 +244,7 @@ pub fn get_device_ids(
 
     let errcode = unsafe { cl_h::clGetDeviceIDs(
         platform.as_ptr(), 
-        device_type.bits() as cl_device_type,
+        device_types.bits() as cl_device_type,
         DEVICES_MAX, 
         device_ids.as_mut_ptr() as *mut cl_device_id,
         &mut devices_available,
@@ -342,7 +342,7 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
     let properties_bytes: Vec<u8> = match properties {
-        Some(p) => p.into_bytes(),
+        Some(props) => props.into_bytes(),
         None => Vec::<u8>::with_capacity(0),
     };
 
@@ -356,6 +356,16 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
         properties_bytes.as_ptr()
         // ptr::null() 
     };
+
+    let pfn_notify_ptr = unsafe { match pfn_notify {
+        Some(cb) => mem::transmute(cb),
+        None => mem::transmute(ptr::null::<fn()>()), 
+    } };
+
+    let user_data_ptr = match user_data {
+        Some(ud_ptr) => ud_ptr,
+        None => ptr::null_mut(), 
+    };
     
     // println!("CREATE_CONTEXT: POINTER: {:?}", properties_ptr);
 
@@ -366,8 +376,10 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
         properties_ptr as *const cl_context_properties, 
         device_ids.len() as cl_uint, 
         device_ids.as_ptr()  as *const cl_device_id,
-        mem::transmute(ptr::null::<fn()>()), 
-        ptr::null_mut(), 
+        // mem::transmute(ptr::null::<fn()>()), 
+        pfn_notify_ptr,
+        // ptr::null_mut(), 
+        user_data_ptr,
         &mut errcode,
     )) };
     errcode_try("clCreateContext()", errcode).and(Ok(context))

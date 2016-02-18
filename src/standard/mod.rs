@@ -1,6 +1,7 @@
 //! `ocl` standard types.
 
 mod platform;
+mod device;
 mod context;
 mod program_builder;
 mod program;
@@ -18,6 +19,7 @@ mod event_list;
 
 #[cfg(not(release))] pub use self::buffer::tests::BufferTest;
 pub use self::platform::Platform;
+pub use self::device::Device;
 pub use self::context::Context;
 pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;
@@ -43,7 +45,9 @@ use std::ops::{Add, Sub};
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 
-/// A number compatible with OpenCL.
+/// [INCOMPLETE] A number compatible with OpenCL.
+/// 
+/// TODO: Clean this up.
 pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + One + Add + Sub + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}

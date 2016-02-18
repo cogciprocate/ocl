@@ -33,8 +33,11 @@ impl ContextProperties {
 		self.0.push(prop);
 	}
 
+	/// [UNTESTED: Not properly tested]
 	/// Converts this list into a packed-byte representation as specified
 	/// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
+	///
+	/// TODO: Evaluate cleaner ways to do this.
 	pub fn into_bytes(self) -> Vec<u8> {
 		let mut bytes = Vec::with_capacity(128);
 
@@ -57,14 +60,11 @@ impl ContextProperties {
 
 				// Property Kind Enum:
 				bytes.extend_from_slice(&kind);
-
-				// Add 32 bits of padding:
+				// 32 bits of padding:
 				bytes.extend_from_slice(&util::into_bytes(0 as u32));
-
 				// Value:
 				bytes.extend_from_slice(&val);
-
-				// Add 32 bits of padding:
+				// 32 bits of padding:
 				bytes.extend_from_slice(&util::into_bytes(0 as u32));
 			}
 

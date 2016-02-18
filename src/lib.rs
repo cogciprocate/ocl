@@ -53,7 +53,7 @@ pub mod cl_h;
 pub mod util;
 
 #[cfg(not(release))] pub use standard::BufferTest;
-pub use standard::{Platform, Context, ProgramBuilder, BuildOpt, Program, Queue, Kernel, Buffer, Image,
+pub use standard::{Platform, Device, Context, ProgramBuilder, BuildOpt, Program, Queue, Kernel, Buffer, Image,
     ProQueBuilder, ProQue, SimpleDims, WorkDims, OclNum, BufferDims, EventList};
 pub use self::error::{Error, Result};
 

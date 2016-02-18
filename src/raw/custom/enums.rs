@@ -297,6 +297,20 @@ impl std::fmt::Display for DeviceInfoResult {
 }
 
 
+impl Into<String> for DeviceInfoResult {
+    fn into(self) -> String {
+        match self {
+            DeviceInfoResult::TemporaryPlaceholderVariant(v) => {
+                // TEMPORARY (and retarded):
+                to_string_retarded(&v)
+            },
+            _ => panic!("DeviceInfoResult: Converting this variant to string not yet implemented."),
+        }
+    }
+}
+
+
+
 
 /// [UNSTABLE][INCOMPLETE] A context info result.
 ///
