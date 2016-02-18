@@ -17,10 +17,11 @@ use std::iter;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
-use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_context_info, cl_platform_info, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_context, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
+use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, MemFlags, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use util;
 
 //============================================================================
 //============================================================================
@@ -127,7 +128,7 @@ pub fn program_build_err(program: ProgramRaw, device_ids: &[DeviceIdRaw]) -> Ocl
             errcode_assert("clGetProgramBuildInfo()", errcode);
 
             if size > 1 {
-                let pbi_nonull = try!(String::from_utf8(pbi).map_err(|e| e.to_string()));
+                let pbi_nonull = try!(String::from_utf8(pbi));
                 let pbi_errcode_string = format!(
                     "\n\n\
                     ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\
@@ -328,11 +329,36 @@ pub fn release_device(device: DeviceIdRaw) -> OclResult<()> {
 /// `device_ids`.
 ///
 /// [FIXME]: INCOMPLETE IMPLEMENTATION: Take properties, callback, and userdata.
-pub fn create_context(device_ids: &Vec<DeviceIdRaw>) -> OclResult<ContextRaw> {
+pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<DeviceIdRaw>
+            ) -> OclResult<ContextRaw> {
+    if device_ids.len() == 0 {
+        return OclError::err("ocl::raw::create_context: No devices specified.");
+    }
+
+    // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
+
+    let properties_bytes: Vec<u8> = match properties {
+        Some(p) => p.into_bytes(),
+        None => Vec::<u8>::with_capacity(0),
+    };
+
+    // print!("CREATE_CONTEXT: BYTES: ");
+    util::print_bytes_as_hex(&properties_bytes);
+    print!("\n");
+
+    let properties_ptr = if properties_bytes.len() == 0 { 
+        ptr::null() 
+    } else {
+        properties_bytes.as_ptr()
+        // ptr::null() 
+    };
+    
+    // println!("CREATE_CONTEXT: POINTER: {:?}", properties_ptr);
+
     let mut errcode: cl_int = 0;
 
     let context = unsafe { ContextRaw::new(cl_h::clCreateContext(
-        ptr::null(), 
+        properties_ptr as *const cl_context_properties, 
         device_ids.len() as cl_uint, 
         device_ids.as_ptr()  as *const cl_device_id,
         mem::transmute(ptr::null::<fn()>()), 

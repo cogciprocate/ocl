@@ -10,7 +10,7 @@ use std;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
-use raw::{MemRaw, SamplerRaw, PlatformInfo, DeviceIdRaw, ContextInfo, ContextRaw, CommandQueueProperties};
+use raw::{PlatformIdRaw, PlatformInfo, DeviceIdRaw, ContextInfo, ContextRaw, MemRaw, SamplerRaw, CommandQueueProperties};
 use error::{Result as OclResult};
 // use cl_h;
 
@@ -34,6 +34,63 @@ pub enum KernelArg<'a, T: 'a> {
     Local(usize),
     /// `size`: size in bytes. Type `T` is ignored.
     Other { size: size_t, value: *const c_void },
+}
+
+
+
+    // /// cl_context_info + cl_context_properties
+    // #[repr(C)]
+    // #[derive(Clone, Copy, Debug, PartialEq)]
+    // pub enum ContextInfoOrPropertiesPointerType {
+    //     Platform = cl_h::CL_CONTEXT_PLATFORM as isize,
+    //     InteropUserSync = cl_h::CL_CONTEXT_INTEROP_USER_SYNC as isize,
+    // }
+//   
+// cl_context_properties enum  Property value  Description
+//
+// CL_CONTEXT_PLATFORM cl_platform_id  Specifies the platform to use.
+//
+// CL_CONTEXT_INTEROP_USER_SYNC    cl_bool Specifies whether the user is
+// responsible for synchronization between OpenCL and other APIs. Please refer
+// to the specific sections in the OpenCL 1.2 extension specification that
+// describe sharing with other APIs for restrictions on using this flag.
+//
+//    - If CL_CONTEXT_INTEROP_USER_ SYNC is not specified, a default of CL_FALSE is assumed.
+//
+// CL_CONTEXT_D3D10_DEVICE_KHR ID3D10Device*   If the cl_khr_d3d10_sharing extension is enabled, specifies the ID3D10Device* to use for Direct3D 10 interoperability. The default value is NULL.
+//
+// CL_GL_CONTEXT_KHR   0, OpenGL context handle    OpenGL context to associated the OpenCL context with (available if the cl_khr_gl_sharing extension is enabled)
+//
+// CL_EGL_DISPLAY_KHR  EGL_NO_DISPLAY, EGLDisplay handle   EGLDisplay an OpenGL context was created with respect to (available if the cl_khr_gl_sharing extension is enabled)
+//
+// CL_GLX_DISPLAY_KHR  None, X handle  X Display an OpenGL context was created with respect to (available if the cl_khr_gl_sharing extension is enabled)
+//
+// CL_CGL_SHAREGROUP_KHR   0, CGL share group handle   CGL share group to associate the OpenCL context with (available if the cl_khr_gl_sharing extension is enabled)
+//
+// CL_WGL_HDC_KHR  0, HDC handle   HDC an OpenGL context was created with respect to (available if the cl_khr_gl_sharing extension is enabled)
+//
+// CL_CONTEXT_ADAPTER_D3D9_KHR IDirect3DDevice9 *  Specifies an IDirect3DDevice9 to use for D3D9 interop (if the cl_khr_dx9_media_sharing extension is supported).
+//
+// CL_CONTEXT_ADAPTER_D3D9EX_KHR   IDirect3DDeviceEx*  Specifies an IDirect3DDevice9Ex to use for D3D9 interop (if the cl_khr_dx9_media_sharing extension is supported).
+//
+// CL_CONTEXT_ADAPTER_DXVA_KHR IDXVAHD_Device *    Specifies an IDXVAHD_Device to use for DXVA interop (if the cl_khr_dx9_media_sharing extension is supported).
+//
+// CL_CONTEXT_D3D11_DEVICE_KHR ID3D11Device *  Specifies the ID3D11Device * to use for Direct3D 11 interoperability. The default value is NULL.
+//
+#[derive(Debug)]
+pub enum ContextProperty {
+    Platform(PlatformIdRaw),
+    InteropUserSync(bool),
+    D3d10DeviceKhr(TemporaryPlaceholderType),
+    GlContextKhr(TemporaryPlaceholderType),
+    EglDisplayKhr(TemporaryPlaceholderType),
+    GlxDisplayKhr(TemporaryPlaceholderType),
+    CglSharegroupKhr(TemporaryPlaceholderType),
+    WglHdcKhr(TemporaryPlaceholderType),
+    AdapterD3d9Khr(TemporaryPlaceholderType),
+    AdapterD3d9exKhr(TemporaryPlaceholderType),
+    AdapterDxvaKhr(TemporaryPlaceholderType),
+    D3d11DeviceKhr(TemporaryPlaceholderType),
 }
 
 /// Platform info result.

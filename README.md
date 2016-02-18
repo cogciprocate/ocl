@@ -124,29 +124,26 @@ spent on that.
 ##### What About Vulkan&trade;?
 
 The OpenCL API already posesses all of the new attributes of the Vulkan API
-like low-overhead, high performance, and unfettered hardware access. For all
+such as low-overhead, high performance, and unfettered hardware access. For all
 practical purposes, Vulkan is simply a graphics-focused superset of OpenCL's
 features (sorta kinda). OpenCL 2.1+ and Vulkan kernels/shaders now both
 compile into SPIR-V making the device side of things the same. I wouldn't be
-suprised if most driver vendors also implement the two host APIs identically.
+suprised if most driver vendors will implement the two host APIs identically.
 
 Moving forward it's possible the two may completely merge (or that Vulkan will
-gobble up OpenCL). Whatever happens, not much will change as far as the front
-end of this library is concerned (though the `raw` module functions / types
-could get some renaming, etc. but it wouldn't be for a long time... version
-2.0...). This library will always maintain it's focus on the compute side of
-things. For the graphics side, see the excellent [glium] library.
+absorb OpenCL). Whatever happens, not much will change as far as the front end
+of this library is concerned (though the `raw` module functions / types could
+get some renaming, etc. but it wouldn't be for several years... version
+2.0...). This library will maintain it's focus on the compute side of things.
+For the graphics side, see the excellent [glium] library (and eventually maybe
+[vulkano]).
 
 
 ##### Help
 
 *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1`
 exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in
-case it's not already (AMD drivers sometimes don't create this link).  Intel
-and AMD also have OpenCL libraries for your CPU if you're having trouble
-getting your GPU to work (intel: [windows](http://registrationcenter.intel.com
-/irc_nas/5198/opencl_runtime_15.1_x64_setup.msi), [linux](http://registrationc
-enter.intel.com/irc_nas/5193/opencl_runtime_15.1_x64_5.0.0.57.tgz)).
+case it's not already done (AMD drivers sometimes don't create this link).  Intel also has [OpenCL libraries for your CPU] if you're having trouble getting your GPU to work (AMD used to have some for CPUs too, can't find them anymore).
 
 Please ask questions and provide feedback by opening an
 [issue].
@@ -156,7 +153,10 @@ Please ask questions and provide feedback by opening an
 *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission
 by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Group Inc.”*
 
+[OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
+[AMD]: https://software.intel.com/en-us/intel-opencl/download
 [`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [glium]: https://github.com/tomaka/glium
+[vulkano]: https://github.com/tomaka/vulkano

@@ -1,7 +1,7 @@
 //! An OpenCL context.
 
 // use formatting::MT;
-use raw::{self, ContextRaw, PlatformIdRaw, DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult};
+use raw::{self, ContextRaw, ContextProperties, PlatformIdRaw, DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult};
 use error::{Result as OclResult, Error as OclError};
 
 
@@ -84,22 +84,15 @@ impl Context {
         let platforms: Vec<PlatformIdRaw> = try!(raw::get_platform_ids());
         if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
-        // let platform = match platform_idx_opt {
-        //     Some(pf_idx) => {
-        //         match platforms.get(pf_idx) {
-        //             Some(pf) => pf.clone(),
-        //             None => return OclError::err("Invalid OpenCL platform index specified. \
-        //                 Use 'get_platform_ids()' for a list."),
-        //         }               
-        //     },
+        println!("Platform list: {:?}", platforms);
 
-        //     None => PlatformIdRaw::null(),
-        // };
-
-        let platform_id_raw = match platform_idx_opt {
+        let platform_id_raw: PlatformIdRaw = match platform_idx_opt {
             Some(pf_idx) => {
                 match platforms.get(pf_idx) {
-                    Some(pf) => pf.clone(),
+                    Some(pf) => {
+                        println!("Platform [{}]: {:?}", pf_idx, pf);
+                        pf.clone()
+                    },
                     None => {
                         return OclError::err("Invalid OpenCL platform index specified. \
                             Use 'get_platform_ids()' for a list.")
@@ -111,8 +104,8 @@ impl Context {
                 platforms[raw::DEFAULT_PLATFORM_IDX].clone()
             },
         };
-        
 
+        let properties = Some(ContextProperties::new().platform(platform_id_raw));
         
         let device_ids_raw: Vec<DeviceIdRaw> = try!(raw::get_device_ids(platform_id_raw.clone(), 
             device_types_opt));
@@ -120,7 +113,7 @@ impl Context {
 
         // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids_raw);
 
-        let obj_raw = try!(raw::create_context(&device_ids_raw));
+        let obj_raw = try!(raw::create_context(properties, &device_ids_raw));
 
         Ok(Context {
             platform_id_raw: platform_id_raw,

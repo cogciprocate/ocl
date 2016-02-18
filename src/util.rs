@@ -8,6 +8,7 @@
 use std::ops::Range;
 use std::mem;
 use std::ptr;
+use std::iter;
 
 use super::OclNum;
 
@@ -136,6 +137,34 @@ pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> Vec<T> {
     new_vec
 }
 
+
+/// [UNTESTED] Copies an arbitrary primitive or struct into raw bytes.
+///
+/// ### Depth
+///
+/// This is not a deep copy, will only copy the surface of primitives, structs,
+/// etc. Not 100% sure about what happens with other types.
+///
+/// ### Endianness
+///
+/// 98% sure (speculative) this will always be correct due to the driver
+/// automatically taking it into account.
+///
+/// [FIXME]: Evaluate the ins and outs of this and lock this down a bit.
+pub unsafe fn into_bytes<T>(val: T) -> Vec<u8> {
+    // let big_endian = false;
+    let size = mem::size_of::<T>();
+    let mut new_vec: Vec<u8> = iter::repeat(0).take(size).collect();
+
+    ptr::copy(&val as *const _ as *const u8, new_vec.as_mut_ptr(), size);
+
+    // if big_endian {
+    //     new_vec = new_vec.into_iter().rev().collect();
+    // }
+
+    new_vec
+}
+
 /// Pads `len` to make it evenly divisible by `incr`.
 pub fn padded_len(len: usize, incr: usize) -> usize {
     let len_mod = len % incr;
@@ -154,6 +183,15 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 //=============================================================================
 //=========================== PRINTING FUNCTIONS ==============================
 //=============================================================================
+
+/// Does what is says it's gonna.
+pub fn print_bytes_as_hex(bytes: &Vec<u8>) {
+    print!("0x");
+
+    for &byte in bytes.iter() {
+        print!("{:x}", byte);
+    }
+}
 
 
 #[allow(unused_assignments, unused_variables)]

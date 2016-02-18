@@ -68,8 +68,8 @@ pub use self::functions::{ get_platform_ids, get_platform_info, get_device_ids, 
 pub use self::cl::abs::{PlatformIdRaw, DeviceIdRaw, ContextRaw, CommandQueueRaw, MemRaw, 
 	ProgramRaw, KernelRaw, EventRaw, SamplerRaw};
 pub use self::cl::image_st::{ImageFormat, ImageDescriptor};
-pub use self::custom::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult, ContextInfoResult,
-    CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
+pub use self::custom::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult, ContextInfoResult, ContextProperty, CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
+pub use self::custom::structs::{ContextProperties};
 
 //=============================================================================
 //================================ CONSTANTS ==================================

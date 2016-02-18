@@ -69,6 +69,12 @@ impl Into<String> for Platform {
 	}
 }
 
+impl Into<PlatformIdRaw> for Platform {
+	fn into(self) -> PlatformIdRaw {
+		self.as_raw()
+	}
+}
+
 impl std::fmt::Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // write!(f, "{}", &self.to_string())

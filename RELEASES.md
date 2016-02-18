@@ -20,6 +20,8 @@ New Features
 * Many 'info' functions and types have been added. See the example, `info.rs`,
   for details on how to use them.
 
+* [FIXME]: PLATFORM
+
 
 [0.6doc]: http://doc.cogciprocate.com/ocl/
 [`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
