@@ -20,6 +20,7 @@ To provide:
 - The full functionality of the OpenCL API
 - An absolute minimum of boilerplate
 - As close as possible to zero performance overhead
+- Safe and painless management of API resources and pointers
 
 
 ## Installation

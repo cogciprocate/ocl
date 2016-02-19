@@ -24,6 +24,7 @@ use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
 	cl_kernel, cl_event, cl_sampler};
 use raw::{self, OclNum, /*EventPtr, EventListPtr*/};
+use error::{Result as OclResult};
 
 
 const EL_INIT_CAPACITY: usize = 64;
@@ -33,6 +34,12 @@ const EL_CLEAR_INTERVAL: isize = 32;
 // Clear the list automatically. Usefulness and performance impact of this is
 // currently under evaluation.
 const EL_AUTO_CLEAR: bool = false;
+
+
+pub unsafe trait EventRawNew {
+	fn ptr_mut_new(&mut self) -> OclResult<&mut cl_event>;
+}
+
 
 
 /// cl_platform_id
@@ -275,74 +282,6 @@ impl Drop for KernelRaw {
 
 
 
-/// Reference counted list of `cl_event` pointers.
-#[derive(Debug)]
-pub struct EventListRaw {
-	events: Vec<cl_event>,
-	// Kinda experimental:
-	clear_counter: isize, 
-}
-
-impl EventListRaw {
-	/// Returns a new, empty, `EventListRaw`.
-    pub fn new() -> EventListRaw {
-        EventListRaw { 
-            events: Vec::with_capacity(EL_INIT_CAPACITY),
-            clear_counter: EL_CLEAR_INTERVAL,
-        }
-    }
-
-    /// Pushes a new event onto the list.
-    ///
-    /// Technically, copies of `event`s contained pointer (a `cl_event`) then 
-    /// `mem::forget`s it. This seems preferrable to incrementing the reference
-    /// count (with `raw::retain_event`) then letting `event` drop which just decrements it right back.
-    pub unsafe fn push(&mut self, event: EventRaw) {
-        self.events.push((*event.as_ptr()));
-        mem::forget(event);
-        self.decr_counter();
-    }
-
-    /// Appends a new null element to the end of the list and returns a mutable reference to that element.
-    pub fn allot(&mut self) -> &mut EventRaw {
-        unsafe { self.events.push(EventRaw::null()); }
-        self.events.last_mut().unwrap()
-    }
-
-    /// Counts down the auto-list-clear counter.
-    fn decr_counter(&mut self) {
-    	if EL_AUTO_CLEAR {
-    		self.clear_counter -= 1
-
-    		if self.clear_counter <= 0 && self.events.len() > EL_CLEAR_SIZE {
-                // self.clear_completed();
-                unimplemented!()
-            }
-		}
-	}
-}
-
-// impl Clone for EventListRaw {
-// 	fn clone(&self) -> EventRaw {
-// 		unsafe { raw::retain_event(self).unwrap(); }
-// 		EventRaw(self.0)
-// 	}
-// }
-
-impl Drop for EventListRaw {
-	fn drop(&mut self) {
-		for event in self.events.iter() {
-			unsafe { raw::release_event(event).unwrap(); }
-		}
-	}
-}
-
-// unsafe impl EventListPtr for EventRaw {}
-unsafe impl Sync for EventListRaw {}
-unsafe impl Send for EventListRaw {}
-
-
-
 /// cl_event
 #[derive(Debug)]
 pub struct EventRaw(cl_event);
@@ -376,24 +315,128 @@ impl EventRaw {
 	pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
 		&mut self.0
 	}
+
+	/// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
+	/// NULL CHECK IS NOT ENOUGH
+	pub fn is_valid(&self) -> bool {
+		!self.0.is_null()
+	}
+}
+
+unsafe impl EventRawNew for EventRaw {
+	fn ptr_mut_new(&mut self) -> OclResult<&mut cl_event> {
+		if self.0.is_null() {
+			Ok(&mut self.0)
+		} else {
+			try!(raw::release_event(self));
+			Ok(&mut self.0)
+		}
+	}
 }
 
 impl Clone for EventRaw {
 	fn clone(&self) -> EventRaw {
-		unsafe { raw::retain_event(self).unwrap(); }
+		unsafe { raw::retain_event(self).expect("raw::EventRaw::clone()"); }
 		EventRaw(self.0)
 	}
 }
 
 impl Drop for EventRaw {
 	fn drop(&mut self) {
-		unsafe { raw::release_event(self).unwrap(); }
+		if self.is_valid() {
+			unsafe { raw::release_event(self).expect("raw::EventRaw::drop()"); }
+		}
 	}
 }
 
 // unsafe impl EventPtr for EventRaw {}
 unsafe impl Sync for EventRaw {}
 unsafe impl Send for EventRaw {}
+
+
+
+
+/// Reference counted list of `cl_event` pointers.
+#[derive(Debug)]
+pub struct EventListRaw {
+	event_ptrs: Vec<cl_event>,
+	// Kinda experimental:
+	clear_counter: isize, 
+}
+
+impl EventListRaw {
+	/// Returns a new, empty, `EventListRaw`.
+    pub fn new() -> EventListRaw {
+        EventListRaw { 
+            event_ptrs: Vec::with_capacity(EL_INIT_CAPACITY),
+            clear_counter: EL_CLEAR_INTERVAL,
+        }
+    }
+
+    /// Pushes a new event onto the list.
+    ///
+    /// Technically, copies `event`s contained pointer (a `cl_event`) then 
+    /// `mem::forget`s it. This seems preferrable to incrementing the reference
+    /// count (with `raw::retain_event`) then letting `event` drop which just decrements it right back.
+    pub unsafe fn push(&mut self, event: EventRaw) {
+        self.event_ptrs.push((*event.as_ptr_ref()));
+        mem::forget(event);
+        self.decr_counter();
+    }
+
+    /// Appends a new null element to the end of the list and returns a reference to it.
+    pub fn allot(&mut self) -> &mut cl_event {
+        unsafe { self.event_ptrs.push(0 as cl_event); }
+        self.event_ptrs.last_mut().unwrap()
+    }
+
+    /// Returns an immutable slice of the event list.
+    fn event_ptrs_slice(&self) -> &[cl_event] {
+    	&self.event_ptrs[..]
+	}
+
+    /// Counts down the auto-list-clear counter.
+    fn decr_counter(&mut self) {
+    	if EL_AUTO_CLEAR {
+    		self.clear_counter -= 1;
+
+    		if self.clear_counter <= 0 && self.event_ptrs.len() > EL_CLEAR_SIZE {
+                // self.clear_completed();
+                unimplemented!();
+            }
+		}
+	}
+}
+
+unsafe impl EventRawNew for EventListRaw {
+	fn ptr_mut_new(&mut self) -> OclResult<&mut cl_event> {
+		Ok(self.allot())
+	}
+}
+
+// impl Clone for EventListRaw {
+// 	fn clone(&self) -> EventRaw {
+// 		unsafe { raw::retain_event(self).unwrap(); }
+// 		EventRaw(self.0)
+// 	}
+// }
+
+impl Drop for EventListRaw {
+	fn drop(&mut self) {
+		for event_ptr in self.event_ptrs.into_iter() {
+			let temp_event_raw = EventRaw(event_ptr);
+
+			if temp_event_raw.is_valid() {
+				unsafe { raw::release_event(&temp_event_raw).expect("EventListRaw::drop()"); }
+				mem::forget(temp_event_raw);
+			}
+		}
+	}
+}
+
+// unsafe impl EventListPtr for EventRaw {}
+unsafe impl Sync for EventListRaw {}
+unsafe impl Send for EventListRaw {}
 
 
 

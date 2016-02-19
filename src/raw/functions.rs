@@ -21,7 +21,7 @@ use num::{FromPrimitive};
 use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use raw::{self, DEVICES_MAX, OclNum, PlatformIdRaw, DeviceIdRaw, ContextRaw, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventPtr, EventRaw, SamplerRaw, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use raw::{self, DEVICES_MAX, OclNum, PlatformIdRaw, DeviceIdRaw, ContextRaw, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRawNew, EventRaw, EventListRaw, SamplerRaw, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
 
 
 //============================================================================
@@ -62,10 +62,8 @@ fn errcode_assert(message: &str, errcode: cl_int) {
 }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_event_opts<E: EventPtr>(wait_list: Option<&[E]>, new_event: Option<&mut E>)
+fn resolve_event_opts<E: EventRawNew>(wait_list: Option<&EventListRaw>, new_event: Option<&mut E>)
             -> OclResult<(cl_uint, *const cl_event, *mut cl_event)> {
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
-
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer (driver doesn't want an empty list):    
     let (wait_list_len, wait_list_ptr) = match wait_list {
@@ -79,7 +77,7 @@ fn resolve_event_opts<E: EventPtr>(wait_list: Option<&[E]>, new_event: Option<&m
                     get_event_info(event, EventInfo::CommandType).unwrap());
                 println!("Derefing...");
                 println!("Ptr val: {:?}", *event);
-                println!("Size of 'E': {}", mem::size_of::<E>());
+                // println!("Size of 'E': {}", mem::size_of::<E>());
                 println!("Size of 'EventRaw': {}", mem::size_of::<EventRaw>());
                 println!("Size of 'usize': {}", mem::size_of::<usize>());
                 println!("Size of '*const c_void': {}", mem::size_of::<*const c_void>());
@@ -1499,9 +1497,7 @@ pub fn get_kernel_work_group_info(obj: &KernelRaw, device_obj: &DeviceIdRaw, inf
 //========================== Event Object APIs ===============================
 //============================================================================
 
-pub fn wait_for_events<E: EventPtr>(count: cl_uint, event_list: &[E]) {
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
-
+pub fn wait_for_events(count: cl_uint, event_list: &EventListRaw) {
     let errcode = unsafe {
         // &(*event_list.as_ptr()).as_ptr()
         let el_ptr = event_list.as_ptr() as *const _ as *const cl_event;
@@ -1537,9 +1533,8 @@ pub fn wait_for_events<E: EventPtr>(count: cl_uint, event_list: &[E]) {
 //============================================================================
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_event_info<E: EventPtr>(event: &E, info_request: EventInfo,
+pub fn get_event_info(event: &EventRaw, info_request: EventInfo,
             ) -> OclResult<(EventInfoResult)> {
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
     // cl_h::clGetEventInfo(event: cl_event,
     //                   param_name: cl_event_info,
     //                   param_value_size: size_t,
@@ -1647,9 +1642,8 @@ pub unsafe fn set_event_callback(
 //============================================================================
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_event_profiling_info<E: EventPtr>(event: &E, info_request: ProfilingInfo,
+pub fn get_event_profiling_info(event: &EventRaw, info_request: ProfilingInfo,
             ) -> OclResult<(ProfilingInfoResult)> {
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
     // cl_h::clGetEventProfilingInfo(event: cl_event,
     //                            param_name: cl_profiling_info,
     //                            param_value_size: size_t,
@@ -1724,17 +1718,15 @@ pub fn finish(command_queue: &CommandQueueRaw) -> OclResult<()> {
 /// [FIXME]: Add a proper explanation of all the ins and outs. 
 ///
 /// [FIXME]: Return result
-pub unsafe fn enqueue_read_buffer<T: OclNum, E: EventPtr>(
+pub unsafe fn enqueue_read_buffer<T: OclNum, E: EventRawNew>(
             command_queue: &CommandQueueRaw,
             buffer: &MemRaw<T>, 
             block: bool,
-            data: &[T],
+            data: &mut [T],
             offset: usize,
-            wait_list: Option<&[E]>, 
+            wait_list: Option<&EventListRaw>, 
             new_event: Option<&mut E>,
             ) -> OclResult<()> {
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
-
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         resolve_event_opts(wait_list, new_event).expect("[FIXME]: enqueue_read_buffer()");
 
@@ -1789,17 +1781,15 @@ pub fn enqueue_read_buffer_rect() -> OclResult<()> {
 /// `buffer`.
 ///
 /// [FIXME]: Return result
-pub fn enqueue_write_buffer<T: OclNum, E: EventPtr>(
+pub fn enqueue_write_buffer<T: OclNum, E: EventRawNew>(
             command_queue: &CommandQueueRaw,
             buffer: &MemRaw<T>, 
             block: bool,
             data: &[T],
             offset: usize,
-            wait_list: Option<&[E]>, 
+            wait_list: Option<&EventListRaw>, 
             new_event: Option<&mut E>,
             ) -> OclResult<()> {
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
-
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = resolve_event_opts(wait_list, new_event)
             .expect("[FIXME: Return result]: enqueue_write_buffer()");
@@ -2053,19 +2043,17 @@ pub fn enqueue_migrate_mem_objects() -> OclResult<()> {
 /// Work dimension/offset sizes *may* eventually be wrapped up in specialized types.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueNDRangeKernel.html)
-pub fn enqueue_kernel<E: EventPtr>(
+pub fn enqueue_kernel<E: EventRawNew>(
             command_queue: &CommandQueueRaw,
             kernel: &KernelRaw,
             work_dims: u32,
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: [usize; 3],
             local_work_dims: Option<[usize; 3]>,
-            wait_list: Option<&[E]>, 
+            wait_list: Option<&EventListRaw>, 
             new_event: Option<&mut E>,
             kernel_name: Option<&str>
             ) -> OclResult<()> {
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
-    
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_opts(wait_list, new_event));
     let gwo = resolve_work_dims(&global_work_offset);
@@ -2100,14 +2088,13 @@ pub fn enqueue_kernel<E: EventPtr>(
 /// and local_work_size[0] set to 1.
 ///
 /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueTask.html
-pub fn enqueue_task<E: EventPtr>(
+pub fn enqueue_task<E: EventRawNew>(
             command_queue: &CommandQueueRaw,
             kernel: &KernelRaw,
-            wait_list: Option<&[E]>, 
+            wait_list: Option<&EventListRaw>, 
             new_event: Option<&mut E>,
             kernel_name: Option<&str>
             ) -> OclResult<()> {
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
     // cl_h::clEnqueueTask(command_queue: cl_command_queue,
     //                  kernel: cl_kernel,
     //                  num_events_in_wait_list: cl_uint,
@@ -2304,10 +2291,8 @@ pub fn get_max_work_group_size(device: &DeviceIdRaw) -> usize {
 
 #[allow(dead_code)]
 /// [FIXME]: Why are we wrapping in this array? Fix this.
-pub fn wait_for_event<E: EventPtr>(event: &E) {
+pub fn wait_for_event(event: &EventRaw) {
     // let event_array: [EventRaw; 1] = [event];
-    debug_assert!(mem::size_of::<cl_event>() == mem::size_of::<E>());
-
     let errcode = unsafe {
         let event_ptr = event.as_ptr();
         cl_h::clWaitForEvents(1, &event_ptr)

@@ -4,15 +4,9 @@
 use libc::c_void;
 
 use standard::Event;
-use raw;
-use cl_h::{self, cl_event};
+use raw::{self, EventListRaw};
+// use cl_h::{self, cl_event};
 
-const EXTRA_CAPACITY: usize = 16;
-const CLEAR_INTERVAL: u32 = 32;
-
-// Clear the list automatically. Usefulness and performance impact of this is
-// currently under evaluation.
-const AUTO_CLEAR: bool = false;
 
 /// A list of events for coordinating enqueued commands.
 ///
@@ -23,53 +17,33 @@ const AUTO_CLEAR: bool = false;
 // [FIXME] TODO: impl Index.
 #[derive(Debug)]
 pub struct EventList {
-    events: Vec<Event>,
-    clear_counter: u32,
+    events_raw: EventListRaw,
 }
 
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
         EventList { 
-            events: Vec::with_capacity(EXTRA_CAPACITY),
-            clear_counter: 0,
+            events_raw: EventListRaw::new(),
         }
     }
 
-    pub fn push(&mut self, event: Event) {
-        if AUTO_CLEAR {
-            if self.clear_counter > CLEAR_INTERVAL {
-                self.clear_completed();
-            } else {
-                self.clear_counter += 1;
-            }
-        }
+    // pub fn push(&mut self, event: Event) {
+    //     self.events.push(event);
+    // }
 
-        self.events.push(event);
-    }
+    // /// Appends a new null element to the end of the list and returns...
+    // /// [FIXME]: Update
+    // pub fn allot(&mut self) -> &mut Event {
+    //     unsafe { self.events.push(Event::null()); }
+    //     self.events.last_mut().unwrap()
+    // }
 
-    /// Appends a new null element to the end of the list and returns a mutable slice
-    /// containing only that element. 
-    /// [FIXME]: Update
-    #[inline]
-    pub fn allot(&mut self) -> &mut Event {
-        if AUTO_CLEAR {
-            if self.clear_counter > CLEAR_INTERVAL {
-                self.clear_completed();
-            } else {
-                self.clear_counter += 1;
-            }
-        }
-
-        unsafe { self.events.push(Event::null()); }
-        self.events.last_mut().unwrap()
-    }
-
-    /// Returns a reference to the last event in the list.
-    // #[inline]
-    pub fn last(&self) -> Option<&Event> {
-        self.events.last()
-    }
+    // /// Returns a reference to the last event in the list.
+    // // #[inline]
+    // pub fn last(&self) -> Option<&Event> {
+    //     self.events.last()
+    // }
 
     // /// Returns a mutable reference to the last event in the list.
     // // #[inline]
@@ -77,10 +51,12 @@ impl EventList {
     //     self.events.last_mut()
     // }
 
-    /// Returns an immutable slice to the events list.
-    #[inline]
-    pub fn events(&self) -> &[Event] {
-        &self.events[..]
+    pub fn as_raw_ref(&self) -> &EventListRaw {
+        &self.events_raw
+    }
+
+    pub fn as_raw_mut(&mut self) -> &mut EventListRaw {
+        &mut self.events_raw
     }
 
     // /// Returns a mutable slice to the events list.
@@ -93,72 +69,72 @@ impl EventList {
     //     self.events().iter().map(|ref event| event.as_raw()).collect()
     // }
 
-    /// Returns a const pointer to the list, useful for passing directly to the c ffi.
-    #[inline]
-    pub fn as_ptr(&self) -> *const Event {
-        self.events().as_ptr()
-    }
+    // /// Returns a const pointer to the list, useful for passing directly to the c ffi.
+    // #[inline]
+    // pub fn as_raw_ref(&self) -> *const Event {
+    //     self.events().as_ptr()
+    // }
 
-    /// Returns a mut pointer to the list, useful for passing directly to the c ffi.
-    #[inline]
-    pub fn as_mut_ptr(&mut self) -> *mut Event {
-        self.events.as_mut_ptr()
-    }
+    // /// Returns a mut pointer to the list, useful for passing directly to the c ffi.
+    // #[inline]
+    // pub fn as_mut_ptr(&mut self) -> *mut Event {
+    //     self.events.as_mut_ptr()
+    // }
 
-    /// Waits for all events in list to complete.
-    pub fn wait(&self) {
-        if self.events.len() > 0 {
-            // let events_raw = self.events_raw();
-            raw::wait_for_events(self.count(), &self.events);
-        }
-    }
+    // /// Waits for all events in list to complete.
+    // pub fn wait(&self) {
+    //     if self.events.len() > 0 {
+    //         // let events_raw = self.events_raw();
+    //         raw::wait_for_events(self.count(), &self.events);
+    //     }
+    // }
 
-    /// Merges the copied contents of this list and another into a new list and returns it.
-    pub fn union(&self, other_list: &EventList) -> EventList {
-        let new_cap = other_list.events().len() + self.events.len() + EXTRA_CAPACITY;
+    // /// Merges the copied contents of this list and another into a new list and returns it.
+    // pub fn union(&self, other_list: &EventList) -> EventList {
+    //     let new_cap = other_list.events().len() + self.events.len() + EXTRA_CAPACITY;
 
-        let mut new_list = EventList {
-            events: Vec::with_capacity(new_cap),
-            clear_counter: 0,
-        };
+    //     let mut new_list = EventList {
+    //         events: Vec::with_capacity(new_cap),
+    //         clear_counter: 0,
+    //     };
 
-        new_list.events.extend(self.events().iter().cloned());
-        new_list.events.extend(other_list.events().iter().cloned());
+    //     new_list.events.extend(self.events().iter().cloned());
+    //     new_list.events.extend(other_list.events().iter().cloned());
 
-        if AUTO_CLEAR {
-            new_list.clear_completed();
-        }
+    //     if AUTO_CLEAR {
+    //         new_list.clear_completed();
+    //     }
 
-        new_list
-    }
+    //     new_list
+    // }
 
-    /// Sets a callback function, `callback_receiver`, to trigger upon completion of
-    /// the *last event* added to the event list with an optional reference to user 
-    /// data.
-    ///
-    /// # Safety
-    ///
-    /// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
-    /// is ever called.
-    ///
-    /// TODO: Create a safer type wrapper for `callback_receiver`
-    pub unsafe fn set_callback<T>(&self, 
-                callback_receiver: extern fn (cl_event, i32, *mut c_void),
-                // user_data: *mut c_void,
-                user_data: &mut T,
-            )
-    {
-        // let events_raw = self.events_raw();
+    // /// Sets a callback function, `callback_receiver`, to trigger upon completion of
+    // /// the *last event* added to the event list with an optional reference to user 
+    // /// data.
+    // ///
+    // /// # Safety
+    // ///
+    // /// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
+    // /// is ever called.
+    // ///
+    // /// TODO: Create a safer type wrapper for `callback_receiver`
+    // pub unsafe fn set_callback<T>(&self, 
+    //             callback_receiver: extern fn (cl_event, i32, *mut c_void),
+    //             // user_data: *mut c_void,
+    //             user_data: &mut T,
+    //         )
+    // {
+    //     // let events_raw = self.events_raw();
 
-        if self.events.len() > 0 {
-            raw::set_event_callback(
-                self.events.last().unwrap().as_raw(), 
-                cl_h::CL_COMPLETE, 
-                callback_receiver,
-                user_data as *mut _ as *mut c_void,
-            )
-        }
-    }
+    //     if self.events.len() > 0 {
+    //         raw::set_event_callback(
+    //             self.events.last().unwrap().as_raw(), 
+    //             cl_h::CL_COMPLETE, 
+    //             callback_receiver,
+    //             user_data as *mut _ as *mut c_void,
+    //         )
+    //     }
+    // }
 
     // pub fn set_callback_buffer(&self, 
     //          callback_receiver: extern fn (Event, i32, *mut libc::c_void),
@@ -175,52 +151,52 @@ impl EventList {
     //  }
     // }
 
-    /// Returns the number of events in the list.
-    #[inline]
-    pub fn count(&self) -> u32 {
-        self.events.len() as u32
-    }
+    // /// Returns the number of events in the list.
+    // #[inline]
+    // pub fn count(&self) -> u32 {
+    //     self.events.len() as u32
+    // }
 
-    /// Clears this list regardless of whether or not its events have completed.
-    #[inline]
-    pub fn clear(&mut self) {
-        self.events.clear();
+    // /// Clears this list regardless of whether or not its events have completed.
+    // #[inline]
+    // pub fn clear(&mut self) {
+    //     self.events.clear();
 
-        if AUTO_CLEAR {
-            self.clear_counter = 0;
-        }
-    }
+    //     if AUTO_CLEAR {
+    //         self.clear_counter = 0;
+    //     }
+    // }
 
-    /// Clears each completed event from the list.
-    ///
-    /// TODO: Optimize this. Determine if any gains can be had by reassembling 
-    /// the event vec completely (probably can depending on how big this
-    /// list tends to grow).
-    ///
-    pub fn clear_completed(&mut self) {
-        let mut ce_idxs: Vec<usize> = Vec::with_capacity(64);
-        let mut idx = 0;
+    // /// Clears each completed event from the list.
+    // ///
+    // /// TODO: Optimize this. Determine if any gains can be had by reassembling 
+    // /// the event vec completely (probably can depending on how big this
+    // /// list tends to grow).
+    // ///
+    // pub fn clear_completed(&mut self) {
+    //     let mut ce_idxs: Vec<usize> = Vec::with_capacity(64);
+    //     let mut idx = 0;
 
-        for event in self.events.iter() {
-            if raw::get_event_status((*event).as_raw()) == cl_h::CL_COMPLETE {
-                ce_idxs.push(idx)
-            }
+    //     for event in self.events.iter() {
+    //         if raw::get_event_status((*event).as_raw()) == cl_h::CL_COMPLETE {
+    //             ce_idxs.push(idx)
+    //         }
 
-            idx += 1;
-        }
+    //         idx += 1;
+    //     }
 
-        for idx in ce_idxs.into_iter().rev() {
-            self.events.remove(idx);
+    //     for idx in ce_idxs.into_iter().rev() {
+    //         self.events.remove(idx);
             
-            // let ev = self.events.remove(idx);
-            // Release?
-            // raw::release_event(ev);
-        }
+    //         // let ev = self.events.remove(idx);
+    //         // Release?
+    //         // raw::release_event(ev);
+    //     }
 
-        if AUTO_CLEAR {
-            self.clear_counter = 0;
-        }
-    }
+    //     if AUTO_CLEAR {
+    //         self.clear_counter = 0;
+    //     }
+    // }
 
     // /// Releases all events in the list by decrementing their reference counts by one
     // /// then empties the list.

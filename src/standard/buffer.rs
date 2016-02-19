@@ -8,7 +8,7 @@ use num::{FromPrimitive, ToPrimitive};
 use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
-use raw::{self, OclNum, MemRaw, CommandQueueRaw, MemFlags};
+use raw::{self, OclNum, MemRaw, CommandQueueRaw, MemFlags, EventRaw};
 use util;
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, BufferDims, Event, EventList};
@@ -304,7 +304,7 @@ impl<T: OclNum> Buffer<T> {
 
         let blocking_write = dest_list.is_none();
         raw::enqueue_write_buffer(&self.queue_obj_raw, &self.obj_raw, blocking_write, 
-            data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
+            data, offset, wait_list.map(|el| el.as_raw_ref()), dest_list.map(|el| el.as_raw_mut()))
     }
 
 
@@ -347,7 +347,7 @@ impl<T: OclNum> Buffer<T> {
 
         let blocking_read = dest_list.is_none();
         raw::enqueue_read_buffer(&self.queue_obj_raw, &self.obj_raw, blocking_read, 
-            data, offset, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
+            data, offset, wait_list.map(|el| el.as_raw_ref()), dest_list.map(|el| el.as_raw_mut()))
     }
 
     /// After waiting on events in `wait_list` to finish, writes the contents of
@@ -369,7 +369,7 @@ impl<T: OclNum> Buffer<T> {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
         raw::enqueue_write_buffer(&self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
-            vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
+            vec, 0, wait_list.map(|el| el.as_raw_ref()), dest_list.map(|el| el.as_raw_mut()))
     }
 
     /// After waiting on events in `wait_list` to finish, reads the remote device 
@@ -395,7 +395,7 @@ impl<T: OclNum> Buffer<T> {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
         raw::enqueue_read_buffer(&self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
-            vec, 0, wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()))
+            vec, 0, wait_list.map(|el| el.as_raw_ref()), dest_list.map(|el| el.as_raw_mut()))
     }
 
     /// Writes the contents of `self.vec` to the remote device data buffer and 
@@ -648,7 +648,7 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        unsafe { raw::enqueue_read_buffer::<T, Event>(&self.queue_obj_raw, &self.obj_raw, true, 
+        unsafe { raw::enqueue_read_buffer::<T, EventRaw>(&self.queue_obj_raw, &self.obj_raw, true, 
             &mut vec[idx_range.clone()], idx_range.start, None, None).unwrap() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 

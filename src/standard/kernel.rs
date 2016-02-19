@@ -165,7 +165,7 @@ impl Kernel {
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         raw::enqueue_kernel(&self.command_queue, &self.obj_raw, self.gws.dim_count(), 
             self.gwo.as_raw(), self.gws.as_raw().unwrap(), self.lws.as_raw(), 
-            wait_list.map(|el| el.events()), dest_list.map(|el| el.allot()), Some(&self.name))
+            wait_list.map(|el| el.as_raw_ref()), dest_list.map(|el| el.as_raw_mut()), Some(&self.name))
             .unwrap();
     }
 
