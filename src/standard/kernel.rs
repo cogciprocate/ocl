@@ -2,9 +2,9 @@
 
 use std::convert::Into;
 use std::collections::HashMap;
-use raw::{self, KernelRaw, MemRaw, CommandQueueRaw, KernelArg};
+use raw::{self, OclNum, KernelRaw, MemRaw, CommandQueueRaw, KernelArg};
 use error::{Result as OclResult, Error as OclError};
-use standard::{WorkDims, Buffer, OclNum, EventList, Program, Queue};
+use standard::{WorkDims, Buffer, EventList, Program, Queue};
 
 /// A kernel.
 ///
@@ -137,12 +137,13 @@ impl Kernel {
         // let arg_idx = self.named_args[name];
         let arg_idx = try!(self.resolve_named_arg_idx(name));
 
+        // This value lives long enough to be copied by `clSetKernelArg`.
         let buf_obj_raw = match buffer_opt {
             Some(buffer) => buffer.obj_raw(),
             None => MemRaw::null(),
         };
 
-        self.set_arg::<T>(arg_idx, KernelArg::Mem(buf_obj_raw))
+        self.set_arg::<T>(arg_idx, KernelArg::Mem(&buf_obj_raw))
     }
 
     fn resolve_named_arg_idx(&self, name: &'static str) -> OclResult<u32> {
@@ -173,13 +174,14 @@ impl Kernel {
     }    
 
     // Non-builder-style version of `::arg_buf()`.
-    fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {
+    fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {        
+        // This value lives long enough to be copied by `clSetKernelArg`.
         let buf_obj = match buffer_opt {
             Some(buffer) => buffer.obj_raw(),
             None => MemRaw::null(),
         };
 
-        self.new_arg::<T>(KernelArg::Mem(buf_obj))
+        self.new_arg::<T>(KernelArg::Mem(&buf_obj))
     }
 
     // Non-builder-style version of `::arg_scl()`.
@@ -193,24 +195,26 @@ impl Kernel {
     }
 
     // Non-builder-style version of `::arg_loc()`.
+    //
+    // `length` lives long enough to be copied by `clSetKernelArg`.
     fn new_arg_loc<T: OclNum>(&mut self, length: usize) -> u32 {
-        self.new_arg::<T>(KernelArg::Local(length))
+        self.new_arg::<T>(KernelArg::Local(&length))
     } 
 
     // Adds a new argument to the kernel and returns the index.
-    fn new_arg<T>(&mut self, arg: KernelArg<T>) -> u32 {
+    fn new_arg<T: OclNum>(&mut self, arg: KernelArg<T>) -> u32 {
         let arg_idx = self.arg_index;
 
         raw::set_kernel_arg::<T>(self.obj_raw, arg_idx, 
-                arg,
-                Some(&self.name)
-            ).unwrap();
+            arg,
+            Some(&self.name)
+        ).unwrap();
 
         self.arg_index += 1;
         arg_idx
     } 
 
-    fn set_arg<T>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
+    fn set_arg<T: OclNum>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
         raw::set_kernel_arg::<T>(self.obj_raw, arg_idx, arg, Some(&self.name))
     }
 
@@ -221,6 +225,7 @@ impl Kernel {
 
 impl Drop for Kernel {
     fn drop(&mut self) {
+        // println!("DROPPING KERNEL");
         raw::release_kernel(self.obj_raw).unwrap();
     }
 }

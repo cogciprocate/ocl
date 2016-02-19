@@ -22,6 +22,10 @@ impl Event {
 		Event(id_raw)
 	}
 
+	pub unsafe fn null() -> Event {
+		Event(EventRaw::null())
+	}
+
 	// pub fn list(platform: Platform, device_types: Option<EventType>) -> Vec<Event> {
 	// 	let list_raw = raw::get_device_ids(platform.as_raw(), device_types)
 	// 		.expect("Event::list: Error retrieving device list");

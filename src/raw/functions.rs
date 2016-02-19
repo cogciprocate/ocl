@@ -14,13 +14,14 @@ use std::mem;
 use std::io::Read;
 use std::ffi::CString;
 use std::iter;
+// use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
 use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use raw::{self, DEVICES_MAX, PlatformIdRaw, DeviceIdRaw, ContextRaw, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use raw::{self, DEVICES_MAX, OclNum, PlatformIdRaw, DeviceIdRaw, ContextRaw, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueueRaw, MemRaw, ProgramRaw, KernelRaw, EventRaw, SamplerRaw, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
 
 
 //============================================================================
@@ -61,7 +62,7 @@ fn errcode_assert(message: &str, errcode: cl_int) {
 }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_event_opts(wait_list: Option<&[EventRaw]>, new_event: Option<&mut EventRaw>)
+fn resolve_event_opts<E: Into<EventRaw>>(wait_list: Option<&[E]>, new_event: Option<&mut E>)
             -> OclResult<(cl_uint, *const cl_event, *mut cl_event)> {
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer (driver doesn't want an empty list):    
@@ -329,6 +330,7 @@ pub fn release_device(device: DeviceIdRaw) -> OclResult<()> {
 /// `device_ids`.
 ///
 /// [FIXME]: Incomplete implementation. Callback and userdata unimplemented.
+/// [FIXME]: Properties disabled.
 ///
 //
 // [NOTE]: Leave commented print statements intact until more `ContextProperties 
@@ -339,6 +341,7 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
         return OclError::err("ocl::raw::create_context: No devices specified.");
     }
 
+    // [DEBUG]: 
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
     let properties_bytes: Vec<u8> = match properties {
@@ -346,24 +349,31 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
         None => Vec::<u8>::with_capacity(0),
     };
 
+    // [DEBUG]: 
     // print!("CREATE_CONTEXT: BYTES: ");
     // util::print_bytes_as_hex(&properties_bytes);
     // print!("\n");
 
+    // [FIXME]: Properties disabled:
     let properties_ptr = if properties_bytes.len() == 0 { 
         ptr::null() 
     } else {
-        properties_bytes.as_ptr()
-        // ptr::null() 
+        // [FIXME]: Properties disabled.
+        // properties_bytes.as_ptr()
+        ptr::null() 
     };
 
+    // [FIXME]: Disabled:
     let pfn_notify_ptr = unsafe { match pfn_notify {
-        Some(cb) => mem::transmute(cb),
+        // Some(cb) => mem::transmute(cb),
+        Some(_) => mem::transmute(ptr::null::<fn()>()), 
         None => mem::transmute(ptr::null::<fn()>()), 
     } };
 
+    // [FIXME]: Disabled:
     let user_data_ptr = match user_data {
-        Some(ud_ptr) => ud_ptr,
+        // Some(ud_ptr) => ud_ptr,
+        Some(_) => ptr::null_mut(),
         None => ptr::null_mut(), 
     };
     
@@ -373,6 +383,7 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
 
     // [FIXME]: Callback function and data unimplemented.
     let context = unsafe { ContextRaw::new(cl_h::clCreateContext(
+        // ptr::null(),
         properties_ptr as *const cl_context_properties, 
         device_ids.len() as cl_uint, 
         device_ids.as_ptr()  as *const cl_device_id,
@@ -382,6 +393,8 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
         user_data_ptr,
         &mut errcode,
     )) };
+    // [DEBUG]: 
+    // println!("CREATE_CONTEXT: CONTEXT PTR: {:?}", context);
     errcode_try("clCreateContext()", errcode).and(Ok(context))
 }
 
@@ -543,12 +556,12 @@ pub fn get_command_queue_info(queue: CommandQueueRaw, info_request: CommandQueue
 //============================================================================
 
 /// Returns a new buffer pointer with size (bytes): `len` * sizeof(T).
-pub fn create_buffer<T>(
+pub fn create_buffer<T: OclNum>(
             context: ContextRaw,
             flags: MemFlags,
             len: usize,
             data: Option<&[T]>)
-            -> OclResult<MemRaw> {
+            -> OclResult<MemRaw<T>> {
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -588,7 +601,7 @@ pub fn create_sub_buffer() -> OclResult<()> {
 
 /// Returns a new image (mem) pointer.
 // [WORK IN PROGRESS]
-pub fn create_image<T>(
+pub fn create_image<T: OclNum>(
             context: ContextRaw,
             flags: MemFlags,
             // format: &cl_image_format,
@@ -596,7 +609,7 @@ pub fn create_image<T>(
             format: ImageFormat,
             desc: ImageDescriptor,
             data: Option<&[T]>)
-            -> OclResult<MemRaw> {
+            -> OclResult<MemRaw<T>> {
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -628,13 +641,13 @@ pub fn create_image<T>(
 
 /// [UNTESTED]
 /// Increments the reference counter of a mem object.
-pub fn retain_mem_object(mem: MemRaw) -> OclResult<()> {
+pub fn retain_mem_object<T: OclNum>(mem: MemRaw<T>) -> OclResult<()> {
     // cl_h::clRetainMemObject(memobj: cl_mem) -> cl_int;
     unsafe { errcode_try("clRetainMemObject", cl_h::clRetainMemObject(mem.as_ptr())) }
 }
 
 /// Decrements the reference counter of a mem object.
-pub fn release_mem_object(mem: MemRaw) -> OclResult<()> {
+pub fn release_mem_object<T: OclNum>(mem: MemRaw<T>) -> OclResult<()> {
     unsafe { errcode_try("clReleaseMemObject", cl_h::clReleaseMemObject(mem.as_ptr())) }
 }
 
@@ -672,7 +685,7 @@ pub fn get_supported_image_formats() -> OclResult<()> {
 //============================================================================
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_mem_object_info(obj: MemRaw, info_request: MemInfo,
+pub fn get_mem_object_info<T: OclNum>(obj: MemRaw<T>, info_request: MemInfo,
             ) -> OclResult<(MemInfoResult)> {
     // cl_h::clGetMemObjectInfo(memobj: cl_mem,
     //                       param_name: cl_mem_info,
@@ -731,7 +744,7 @@ pub fn get_mem_object_info(obj: MemRaw, info_request: MemInfo,
 
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_image_info(obj: MemRaw, info_request: ImageInfo,
+pub fn get_image_info<T: OclNum>(obj: MemRaw<T>, info_request: ImageInfo,
             ) -> OclResult<(ImageInfoResult)> {
     // cl_h::clGetImageInfo(image: cl_mem,
     //                   param_name: cl_image_info,
@@ -903,6 +916,8 @@ pub fn create_program_with_source(
     let kern_string_ptrs: Vec<*const i8> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
 
     let mut errcode: cl_int = 0;
+
+    // println!("CREATE_PROGRAM: BUILDING WITH CONTEXT PTR: {:?}", context);
     
     let program = unsafe { ProgramRaw::new(cl_h::clCreateProgramWithSource(
         context.as_ptr(), 
@@ -911,6 +926,8 @@ pub fn create_program_with_source(
         ks_lens.as_ptr() as *const usize,
         &mut errcode,
     )) };
+
+    // println!("CREATE_PROGRAM: NEW PROGRAM PTR: {:?}", program);
 
     errcode_try("clCreateProgramWithSource()", errcode).and(Ok(program))
 }
@@ -1176,12 +1193,14 @@ pub fn create_kernel(
             -> OclResult<KernelRaw> {
     let mut err: cl_int = 0;
 
-    let kernel_ptr = unsafe { KernelRaw::new(cl_h::clCreateKernel(
+    // println!("CREATE_KERNEL: PROGRAM PTR: {:?}", program);
+    let kernel = unsafe { KernelRaw::new(cl_h::clCreateKernel(
         program.as_ptr(),
         try!(CString::new(name.as_bytes())).as_ptr(), 
         &mut err,
     )) };
-    errcode_try(&format!("clCreateKernel('{}'):", &name), err).and(Ok(kernel_ptr))
+    // println!("CREATE_KERNEL: KERNEL PTR: {:?}", kernel);
+    errcode_try(&format!("clCreateKernel('{}'):", &name), err).and(Ok(kernel))
 }
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
@@ -1205,36 +1224,55 @@ pub fn release_kernel(kernel: KernelRaw) -> OclResult<()> {
     unsafe { errcode_try("clReleaseKernel", cl_h::clReleaseKernel(kernel.as_ptr())) }
 }
 
-/// Modifies or creates a kernel argument.
+
+/// Sets the argument value for a specific argument of a kernel.
 ///
-/// `kernel_name` is for error reporting and is optional but highly recommended.
+/// [SDK Documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html)
 ///
-pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
-            kernel_name: Option<&str>
+/// [FIXME: Remove] `kernel_name` is for error reporting and is optional but highly recommended.
+///
+/// TODO: Remove `name` parameter and lookup name with `get_kernel_info` instead.
+pub fn set_kernel_arg<T: OclNum>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
+            name: Option<&str>
             ) -> OclResult<()> {
-    let (arg_size, arg_value) = match arg {
-        KernelArg::Mem(mem_obj) => {
-            (mem::size_of::<MemRaw>() as size_t, 
-            (&mem_obj.as_ptr() as *const *mut c_void) as *const c_void)
-        },
-        KernelArg::Sampler(smplr) => {
-            (mem::size_of::<SamplerRaw>() as size_t, 
-            (&smplr.as_ptr() as *const *mut c_void) as *const c_void)
-        },
-        KernelArg::Scalar(scalar) => {
-            (mem::size_of::<T>() as size_t, 
-            scalar as *const _ as *const c_void)
-        },
-        KernelArg::Vector(vector)=> {
-            ((mem::size_of::<T>() * vector.len()) as size_t,
-            vector as *const _ as *const c_void)
-        },
-        KernelArg::Local(length) => {
-            ((mem::size_of::<T>() * length) as size_t,
-            ptr::null())
-        },
-        KernelArg::Other { size, value } => (size, value),
+    // [DEBUG] LEAVE THIS HERE:
+    // println!("SET_KERNEL_ARG: KERNELARG: {:?}", arg);
+
+    let (arg_size, arg_value): (size_t, *const c_void) = match arg {
+        KernelArg::Mem(mem_raw_ref) => (
+            mem::size_of::<MemRaw<T>>() as size_t, 
+            // (mem_obj.as_ptr() as *mut c_void) as *const c_void
+            mem_raw_ref as *const _ as *const c_void
+        ),
+        KernelArg::Sampler(smplr_raw_ref) => (
+            mem::size_of::<SamplerRaw>() as size_t, 
+            // (smplr.as_ptr() as *mut c_void) as *const c_void)
+            smplr_raw_ref as *const _ as *const c_void
+        ),
+        KernelArg::Scalar(scalar_ref) => (
+            mem::size_of::<T>() as size_t, 
+            // scalar as *const _ as *const c_void
+            scalar_ref as *const _ as *const c_void
+        ),
+        KernelArg::Vector(slice)=> (
+            (mem::size_of::<T>() * slice.len()) as size_t,
+            // vector as *const _ as *const c_void
+            slice as *const _ as *const c_void
+        ),
+        KernelArg::Local(length) => (
+            (mem::size_of::<T>() * length) as size_t,
+            ptr::null()
+        ),
+        KernelArg::UnsafePointer { size, value } => (size, value),
     };
+
+    // [DEBUG] LEAVE THIS HERE:
+    // println!("SET_KERNEL_ARG: KERNEL: {:?}", kernel);
+    // println!("SET_KERNEL_ARG: index: {:?}", arg_index);
+    // println!("SET_KERNEL_ARG: size: {:?}", arg_size);
+    // println!("SET_KERNEL_ARG: value: {:?}", arg_value);
+    // println!("SET_KERNEL_ARG: name: {:?}", name);
+    // [/DEBUG]
 
     let err = unsafe { cl_h::clSetKernelArg(
             kernel.as_ptr(), 
@@ -1242,7 +1280,9 @@ pub fn set_kernel_arg<T>(kernel: KernelRaw, arg_index: u32, arg: KernelArg<T>,
             arg_size, 
             arg_value,
     ) };
-    let err_pre = format!("clSetKernelArg('{}'):", kernel_name.unwrap_or(""));
+
+    let err_pre = format!("clSetKernelArg('{}'):", name.unwrap_or(""));
+
     errcode_try(&err_pre, err)
 } 
 
@@ -1653,14 +1693,14 @@ pub fn finish(command_queue: CommandQueueRaw) -> OclResult<()> {
 /// [FIXME]: Add a proper explanation of all the ins and outs. 
 ///
 /// [FIXME]: Return result
-pub unsafe fn enqueue_read_buffer<T>(
+pub unsafe fn enqueue_read_buffer<T: OclNum, E: Into<EventRaw>>(
             command_queue: CommandQueueRaw,
-            buffer: &MemRaw, 
+            buffer: &MemRaw<T>, 
             block: bool,
             data: &[T],
             offset: usize,
-            wait_list: Option<&[EventRaw]>, 
-            new_event: Option<&mut EventRaw>)
+            wait_list: Option<&[E]>, 
+            new_event: Option<&mut E>)
             -> OclResult<()> {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         resolve_event_opts(wait_list, new_event).expect("[FIXME]: enqueue_read_buffer()");
@@ -1710,14 +1750,14 @@ pub fn enqueue_read_buffer_rect() -> OclResult<()> {
 /// `buffer`.
 ///
 /// [FIXME]: Return result
-pub fn enqueue_write_buffer<T>(
+pub fn enqueue_write_buffer<T: OclNum, E: Into<EventRaw>>(
             command_queue: CommandQueueRaw,
-            buffer: &MemRaw, 
+            buffer: &MemRaw<T>, 
             block: bool,
             data: &[T],
             offset: usize,
-            wait_list: Option<&[EventRaw]>, 
-            new_event: Option<&mut EventRaw>)
+            wait_list: Option<&[E]>, 
+            new_event: Option<&mut E>)
             -> OclResult<()> {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = resolve_event_opts(wait_list, new_event)
@@ -1768,10 +1808,10 @@ pub fn enqueue_write_buffer_rect() -> OclResult<()> {
 
 /// [UNTESTED][UNUSED]
 #[allow(dead_code)]
-pub fn enqueue_copy_buffer(
+pub fn enqueue_copy_buffer<T: OclNum>(
             command_queue: CommandQueueRaw,
-            src_buffer: MemRaw,
-            dst_buffer: MemRaw,
+            src_buffer: MemRaw<T>,
+            dst_buffer: MemRaw<T>,
             src_offset: usize,
             dst_offset: usize,
             len_copy_bytes: usize)
@@ -1972,15 +2012,15 @@ pub fn enqueue_migrate_mem_objects() -> OclResult<()> {
 /// Work dimension/offset sizes *may* eventually be wrapped up in specialized types.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueNDRangeKernel.html)
-pub fn enqueue_n_d_range_kernel(
+pub fn enqueue_n_d_range_kernel<E: Into<EventRaw>>(
             command_queue: CommandQueueRaw,
             kernel: KernelRaw,
             work_dims: u32,
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: [usize; 3],
             local_work_dims: Option<[usize; 3]>,
-            wait_list: Option<&[EventRaw]>, 
-            new_event: Option<&mut EventRaw>,
+            wait_list: Option<&[E]>, 
+            new_event: Option<&mut E>,
             kernel_name: Option<&str>
             ) -> OclResult<()> {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
@@ -2017,11 +2057,11 @@ pub fn enqueue_n_d_range_kernel(
 /// and local_work_size[0] set to 1.
 ///
 /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueTask.html
-pub fn enqueue_task(
+pub fn enqueue_task<E: Into<EventRaw>>(
             command_queue: CommandQueueRaw,
             kernel: KernelRaw,
-            wait_list: Option<&[EventRaw]>, 
-            new_event: Option<&mut EventRaw>,
+            wait_list: Option<&[E]>, 
+            new_event: Option<&mut E>,
             kernel_name: Option<&str>
             ) -> OclResult<()> {
     // cl_h::clEnqueueTask(command_queue: cl_command_queue,

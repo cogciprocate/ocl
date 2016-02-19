@@ -3,6 +3,7 @@
 // use std::ptr;
 use libc::c_void;
 
+use standard::Event;
 use raw::{self, EventRaw};
 use cl_h::{self, cl_event};
 
@@ -22,7 +23,7 @@ const AUTO_CLEAR: bool = true;
 // [FIXME] TODO: impl Index.
 #[derive(Debug)]
 pub struct EventList {
-    events: Vec<EventRaw>,
+    events: Vec<Event>,
     clear_counter: u32,
 }
 
@@ -35,7 +36,7 @@ impl EventList {
         }
     }
 
-    pub fn push(&mut self, event: EventRaw) {
+    pub fn push(&mut self, event: Event) {
         if AUTO_CLEAR {
             if self.clear_counter > CLEAR_INTERVAL {
                 self.clear_completed();
@@ -51,7 +52,7 @@ impl EventList {
     /// containing only that element. 
     /// [FIXME]: Update
     #[inline]
-    pub fn allot(&mut self) -> &mut EventRaw {
+    pub fn allot(&mut self) -> &mut Event {
         if AUTO_CLEAR {
             if self.clear_counter > CLEAR_INTERVAL {
                 self.clear_completed();
@@ -60,50 +61,55 @@ impl EventList {
             }
         }
 
-        self.events.push(EventRaw::null());
+        unsafe { self.events.push(Event::null()); }
         self.events.last_mut().unwrap()
     }
 
     /// Returns a reference to the last event in the list.
     // #[inline]
-    pub fn last(&self) -> Option<&EventRaw> {
+    pub fn last(&self) -> Option<&Event> {
         self.events.last()
     }
 
     // /// Returns a mutable reference to the last event in the list.
     // // #[inline]
-    // pub fn last_mut(&mut self) -> Option<&mut EventRaw> {
+    // pub fn last_mut(&mut self) -> Option<&mut Event> {
     //     self.events.last_mut()
     // }
 
     /// Returns an immutable slice to the events list.
     #[inline]
-    pub fn events(&self) -> &[EventRaw] {
+    pub fn events(&self) -> &[Event] {
         &self.events[..]
     }
 
     // /// Returns a mutable slice to the events list.
     // #[inline]
-    // pub fn events_mut(&mut self) -> &mut [EventRaw] {
+    // pub fn events_mut(&mut self) -> &mut [Event] {
     //     &mut self.events[..]
     // }
 
+    pub fn events_raw(&self) -> Vec<EventRaw> {
+        self.events().iter().map(|ref event| event.as_raw()).collect()
+    }
+
     /// Returns a const pointer to the list, useful for passing directly to the c ffi.
     #[inline]
-    pub fn as_ptr(&self) -> *const EventRaw {
+    pub fn as_ptr(&self) -> *const Event {
         self.events().as_ptr()
     }
 
     /// Returns a mut pointer to the list, useful for passing directly to the c ffi.
     #[inline]
-    pub fn as_mut_ptr(&mut self) -> *mut EventRaw {
+    pub fn as_mut_ptr(&mut self) -> *mut Event {
         self.events.as_mut_ptr()
     }
 
     /// Waits for all events in list to complete.
     pub fn wait(&self) {
         if self.events.len() > 0 {
-            raw::wait_for_events(self.count(), self.events());
+            let events_raw = self.events_raw();
+            raw::wait_for_events(self.count(), &events_raw);
         }
     }
 
@@ -142,9 +148,11 @@ impl EventList {
                 user_data: &mut T,
             )
     {
+        // let events_raw = self.events_raw();
+
         if self.events.len() > 0 {
             raw::set_event_callback(
-                self.events[self.events.len() - 1], 
+                self.events.last().unwrap().as_raw(), 
                 cl_h::CL_COMPLETE, 
                 callback_receiver,
                 user_data as *mut _ as *mut c_void,
@@ -153,7 +161,7 @@ impl EventList {
     }
 
     // pub fn set_callback_buffer(&self, 
-    //          callback_receiver: extern fn (EventRaw, i32, *mut libc::c_void),
+    //          callback_receiver: extern fn (Event, i32, *mut libc::c_void),
     //          user_data: *mut libc::c_void,
     //      )
     // {
@@ -194,7 +202,7 @@ impl EventList {
         let mut idx = 0;
 
         for event in self.events.iter() {
-            if raw::get_event_status((*event).clone()) == cl_h::CL_COMPLETE {
+            if raw::get_event_status((*event).as_raw()) == cl_h::CL_COMPLETE {
                 ce_idxs.push(idx)
             }
 
@@ -221,7 +229,7 @@ impl EventList {
     /// and no other commands are waiting for them to complete.
     pub unsafe fn release_all(&mut self) {
         for event in &mut self.events {
-            raw::release_event(event.clone()).unwrap();
+            raw::release_event(event.as_raw()).unwrap();
         }
 
         self.clear();
@@ -230,6 +238,7 @@ impl EventList {
 
 impl Drop for EventList {
     fn drop(&mut self) {
+        // println!("DROPPING EVENT LIST");
         unsafe { self.release_all(); }
     }
 }

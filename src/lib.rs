@@ -52,8 +52,9 @@ pub mod raw;
 pub mod cl_h;
 pub mod util;
 
+pub use raw::OclNum;
 #[cfg(not(release))] pub use standard::BufferTest;
 pub use standard::{Platform, Device, Context, ProgramBuilder, BuildOpt, Program, Queue, Kernel, Buffer, Image,
-    ProQueBuilder, ProQue, SimpleDims, WorkDims, OclNum, BufferDims, Event, EventList};
+    ProQueBuilder, ProQue, SimpleDims, WorkDims, BufferDims, Event, EventList};
 pub use self::error::{Error, Result};
 

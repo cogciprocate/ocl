@@ -41,19 +41,6 @@ pub use self::work_dims::WorkDims;
 //================================= TRAITS ====================================
 //=============================================================================
 
-use std::fmt::{Display, Debug};
-use std::num::{Zero, One};
-use std::ops::{Add, Sub};
-use num::{NumCast, FromPrimitive, ToPrimitive};
-use rand::distributions::range::SampleRange;
-
-/// [INCOMPLETE] A number compatible with OpenCL.
-/// 
-/// TODO: Clean this up.
-pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + One + Add + Sub + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
-
-impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
-
 /// A type which has dimensional properties allowing it to be used to define the size
 /// of buffers and work sizes.
 pub trait BufferDims {

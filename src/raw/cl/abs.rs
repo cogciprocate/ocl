@@ -17,11 +17,11 @@
 //! [FIXME]: Bring back `Send` and `Sync` to those types deemed worthy 
 //! (Everything but kernel? How should we roll?)
 
-use std::convert::Into;
+use std::marker::PhantomData;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
 	cl_kernel, cl_event, cl_sampler};
-
+use raw::OclNum;
 
 /// cl_platform_id
 #[derive(Clone, Copy, Debug)]
@@ -105,15 +105,15 @@ unsafe impl Send for CommandQueueRaw {}
 
 /// cl_mem
 #[derive(Clone, Copy, Debug)]
-pub struct MemRaw(cl_mem);
+pub struct MemRaw<T>(cl_mem, PhantomData<T>);
 
-impl MemRaw {
-	pub unsafe fn new(ptr: cl_mem) -> MemRaw {
-		MemRaw(ptr)
+impl<T: OclNum> MemRaw<T> {
+	pub unsafe fn new(ptr: cl_mem) -> MemRaw<T> {
+		MemRaw(ptr, PhantomData)
 	}
 
-	pub fn null() -> MemRaw {
-		MemRaw(0 as *mut libc::c_void)
+	pub fn null() -> MemRaw<T> {
+		MemRaw(0 as *mut libc::c_void, PhantomData)
 	}
 
 	pub fn as_ptr(&self) -> cl_mem {
@@ -121,8 +121,8 @@ impl MemRaw {
 	}
 }
 
-unsafe impl Sync for MemRaw {}
-unsafe impl Send for MemRaw {}
+unsafe impl<T: OclNum> Sync for MemRaw<T> {}
+unsafe impl<T: OclNum> Send for MemRaw<T> {}
 
 
 /// cl_program

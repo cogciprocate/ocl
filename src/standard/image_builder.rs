@@ -5,18 +5,18 @@
 #![allow(dead_code)]
 
 use std::default::Default;
-// use raw;
+use raw::OclNum;
 use standard::{Image};
 
 
 
 /// [WORK IN PROGRESS] A builder for `Image`. 
-pub struct ImageBuilder<T> {
+pub struct ImageBuilder<T: OclNum> {
     stuff: T,
     flags: u64,
 }
 
-impl<T: Default> ImageBuilder<T> {
+impl<T: OclNum> ImageBuilder<T> {
     pub fn new() -> ImageBuilder<T> {
         ImageBuilder { stuff: T::default(), flags: 0 }
     }

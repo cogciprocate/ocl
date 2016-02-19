@@ -1,4 +1,4 @@
-//! [WORK IN PROGRESS] Get information about all the things.
+//! [WORK IN PROGRESS] Get information about all the things using `raw` function calls.
 //!
 
 extern crate ocl;
@@ -8,7 +8,7 @@ use ocl::raw::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, Me
 use ocl::util;
 
 static SRC: &'static str = r#"
-	__kernel void multiply(__global float* buffer, float coeff) {
+	__kernel void multiply(float coeff, __global float* buffer) {
         buffer[get_global_id(0)] *= coeff;
     }
 "#;
@@ -24,8 +24,8 @@ fn main() {
 	let program = Program::builder().src(SRC).build(&context).unwrap();
 	let device = program.device_ids_raw()[0];
 	let kernel = Kernel::new("multiply", &program, &queue, dims.work_dims()).unwrap()
-        .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+        .arg_scl(10.0f32)
+        .arg_buf(&buffer);
     let mut event_list = EventList::new();
 
     kernel.enqueue(None, Some(&mut event_list));
@@ -60,7 +60,7 @@ fn main() {
 
     // [FIXME]: Complete this section.
     // [FIXME]: Implement `Display`/`Debug` for all variants of `DeviceInfoResult`.
-    // Currently printing random utf8 stuff.
+    // Printing algorithm is highly janky (due to laziness).
 
     for &device in context.device_ids_raw().iter() {
 	    println!("Device:\n\

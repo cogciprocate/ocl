@@ -10,7 +10,7 @@ use std;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
-use raw::{PlatformIdRaw, PlatformInfo, DeviceIdRaw, ContextInfo, ContextRaw, MemRaw, SamplerRaw, CommandQueueProperties};
+use raw::{OclNum, PlatformIdRaw, PlatformInfo, DeviceIdRaw, ContextInfo, ContextRaw, MemRaw, SamplerRaw, CommandQueueProperties};
 use error::{Result as OclResult};
 // use cl_h;
 
@@ -18,22 +18,35 @@ use error::{Result as OclResult};
 pub type TemporaryPlaceholderType = ();
 
 
-/// Kernel argument option type.
+/// [UNSAFE: Not thoroughly tested, Some variants dangerous] Kernel argument option type.
 ///
-/// The type argument `T` is ignored for `Mem`, `Sampler`, and `Other` 
+/// The type argument `T` is ignored for `Mem`, `Sampler`, and `UnsafePointer` 
 /// (just put `usize` or anything).
 ///
-pub enum KernelArg<'a, T: 'a> {
+/// ## Safety
+///
+/// If there was some way for this enum to be marked unsafe it would be.
+///
+/// The `Mem`, `Sampler`, `Scalar`, and `Local` variants are tested and will
+/// work perfectly well.
+///
+/// * `Vector`: The `Vector` variant is poorly tested and probably a bit platform dependent. Use at your own risk.
+/// * `UnsafePointer`: Really know what you're doing when using the `UnsafePointer` variant. Setting its properties, `size` and `value`, incorrectly can cause bugs, crashes, and data integrity issues that are very hard to track down. This is due to the fact that the pointer value is intended to be a pointer to a memory structure in YOUR programs memory, NOT a copy of an OpenCL object pointer (such as a `cl_h::cl_mem` for example, which is itself a `*mut libc::c_void`). This is made more complicated by the fact that the pointer can also be a pointer to a scalar (ex: `*const u32`, etc.). See the [SDK docs] for more details.
+/// 
+/// [SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
+#[derive(Debug)]
+pub enum KernelArg<'a, T: 'a + OclNum> {
     /// Type `T` is ignored.
-    Mem(MemRaw),
+    Mem(&'a MemRaw<T>),
     /// Type `T` is ignored.
-    Sampler(SamplerRaw),
+    Sampler(&'a SamplerRaw),
     Scalar(&'a T),
+    /// This probably has a max len of 4... (4 * 32bits):
     Vector(&'a [T]),
     /// Length in multiples of T (not bytes).
-    Local(usize),
+    Local(&'a usize),
     /// `size`: size in bytes. Type `T` is ignored.
-    Other { size: size_t, value: *const c_void },
+    UnsafePointer { size: size_t, value: *const c_void },
 }
 
 

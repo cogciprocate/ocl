@@ -79,6 +79,7 @@ impl Queue {
 
 impl Drop for Queue {
     fn drop(&mut self) {
+        // println!("DROPPING COMMAND QUEUE");
         raw::release_command_queue(self.obj_raw).unwrap();
     }
 }

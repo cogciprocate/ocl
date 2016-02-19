@@ -90,7 +90,6 @@ impl Context {
             Some(pf_idx) => {
                 match platforms.get(pf_idx) {
                     Some(pf) => {
-                        // println!("Platform [{}]: {:?}", pf_idx, pf);
                         pf.clone()
                     },
                     None => {
@@ -105,7 +104,11 @@ impl Context {
             },
         };
 
+        // [DEBUG]: 
+        // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_raw);
+
         let properties = Some(ContextProperties::new().platform(platform_id_raw));
+        // let properties = None;
         
         let device_ids_raw: Vec<DeviceIdRaw> = try!(raw::get_device_ids(platform_id_raw.clone(), 
             device_types_opt));
@@ -115,6 +118,9 @@ impl Context {
 
         // [FIXME]: No callback or user data:
         let obj_raw = try!(raw::create_context(properties, &device_ids_raw, None, None));
+
+        // [DEBUG]: 
+        // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_raw);
 
         Ok(Context {
             platform_id_raw: platform_id_raw,
@@ -180,6 +186,7 @@ impl Context {
 
 impl Drop for Context {
     fn drop(&mut self) {
+        // println!("DROPPING CONTEXT");
         raw::release_context(self.obj_raw);
     }
 }

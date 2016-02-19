@@ -8,10 +8,10 @@ use num::{FromPrimitive, ToPrimitive};
 use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
-use raw::{self, MemRaw, CommandQueueRaw, MemFlags};
+use raw::{self, OclNum, MemRaw, CommandQueueRaw, MemFlags};
 use util;
 use error::{Error as OclError, Result as OclResult};
-use standard::{OclNum, Queue, BufferDims, EventList};
+use standard::{Queue, BufferDims, Event, EventList};
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
         You must create this Buffer using 'Buffer::with_vec()' (et al.) in order to call this method.";
@@ -68,9 +68,9 @@ impl<T> VecOption<T> {
 // TODO: Return result for reads and writes instead of panicing.
 // TODO: Check that type size (sizeof(T)) is <= the maximum supported by device.
 // TODO: Consider integrating an event list to help coordinate pending reads/writes.
-pub struct Buffer<T> {
+pub struct Buffer<T: OclNum> {
     // vec: Vec<T>,
-    obj_raw: MemRaw,
+    obj_raw: MemRaw<T>,
     // queue: Queue,
     queue_obj_raw: CommandQueueRaw,
     len: usize,
@@ -573,7 +573,7 @@ impl<T: OclNum> Buffer<T> {
     }
 
     /// Returns a copy of the raw buffer object reference.
-    pub fn obj_raw(&self) -> MemRaw {
+    pub fn obj_raw(&self) -> MemRaw<T> {
         self.obj_raw
     }
 
@@ -648,21 +648,21 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        unsafe { raw::enqueue_read_buffer(self.queue_obj_raw, &self.obj_raw, true, 
+        unsafe { raw::enqueue_read_buffer::<T, Event>(self.queue_obj_raw, &self.obj_raw, true, 
             &mut vec[idx_range.clone()], idx_range.start, None, None).unwrap() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 
     }
 }
 
-impl<T> Drop for Buffer<T> {
+impl<T: OclNum> Drop for Buffer<T> {
     fn drop(&mut self) {
         raw::release_mem_object(self.obj_raw).unwrap();
     }
 }
 
 
-impl<T> Index<usize> for Buffer<T> {
+impl<T: OclNum> Index<usize> for Buffer<T> {
     type Output = T;
     /// # Panics
     /// Panics if this Buffer contains no vector.
@@ -672,7 +672,7 @@ impl<T> Index<usize> for Buffer<T> {
     }
 }
 
-impl<T> IndexMut<usize> for Buffer<T> {
+impl<T: OclNum> IndexMut<usize> for Buffer<T> {
     /// # Panics
     /// Panics if this Buffer contains no vector.
     #[inline]
@@ -681,7 +681,7 @@ impl<T> IndexMut<usize> for Buffer<T> {
     }
 }
 
-impl<'b, T> Index<&'b usize> for Buffer<T> {
+impl<'b, T: OclNum> Index<&'b usize> for Buffer<T> {
     type Output = T;
     /// # Panics
     /// Panics if this Buffer contains no vector.
@@ -691,7 +691,7 @@ impl<'b, T> Index<&'b usize> for Buffer<T> {
     }
 }
 
-impl<'b, T> IndexMut<&'b usize> for Buffer<T> {
+impl<'b, T: OclNum> IndexMut<&'b usize> for Buffer<T> {
     /// # Panics
     /// Panics if this Buffer contains no vector.
     #[inline]
@@ -700,7 +700,7 @@ impl<'b, T> IndexMut<&'b usize> for Buffer<T> {
     }
 }
 
-impl<T> Index<Range<usize>> for Buffer<T> {
+impl<T: OclNum> Index<Range<usize>> for Buffer<T> {
     type Output = [T];
     /// # Panics
     /// Panics if this Buffer contains no vector.
@@ -710,7 +710,7 @@ impl<T> Index<Range<usize>> for Buffer<T> {
     }
 }
 
-impl<T> IndexMut<Range<usize>> for Buffer<T> {
+impl<T: OclNum> IndexMut<Range<usize>> for Buffer<T> {
     /// # Panics
     /// Panics if this Buffer contains no vector.
     #[inline]
@@ -719,7 +719,7 @@ impl<T> IndexMut<Range<usize>> for Buffer<T> {
     }
 }
 
-impl<T> Index<RangeFull> for Buffer<T> {
+impl<T: OclNum> Index<RangeFull> for Buffer<T> {
     type Output = [T];
     /// # Panics
     /// Panics if this Buffer contains no vector.
@@ -729,7 +729,7 @@ impl<T> Index<RangeFull> for Buffer<T> {
     }
 }
 
-impl<T> IndexMut<RangeFull> for Buffer<T> {
+impl<T: OclNum> IndexMut<RangeFull> for Buffer<T> {
     /// # Panics
     /// Panics if this Buffer contains no vector.
     #[inline]

@@ -82,7 +82,7 @@ impl Program {
 
 impl Drop for Program {
     fn drop(&mut self) {
-        // raw::release_context(self.obj_raw);
+        // println!("DROPPING PROGRAM");
         raw::release_program(self.obj_raw).unwrap();
     }
 }

@@ -4,7 +4,7 @@
 use std::default::Default;
 use error::{Result as OclResult};
 use standard::{Context, ImageBuilder};
-use raw::{self, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
+use raw::{self, OclNum, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
 
 
 /// [WORK IN PROGRESS][UNTESTED] An Image. 
@@ -12,12 +12,12 @@ use raw::{self, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
 /// Use `::builder` for an easy way to create. [UNIMPLEMENTED]
 ///
 #[allow(dead_code)]
-pub struct Image<T> {
-    default_val: T,
-    obj_raw: MemRaw,
+pub struct Image<T: OclNum> {
+    // default_val: PhantomData<T,
+    obj_raw: MemRaw<T>,
 }
 
-impl<T: Default> Image<T> {    
+impl<T: OclNum> Image<T> {    
     /// Returns a new `Image`.
     /// [FIXME]: Return result.
     pub fn new(context: &Context, flags: MemFlags, image_format: ImageFormat,
@@ -35,7 +35,7 @@ impl<T: Default> Image<T> {
         ));
 
         Ok(Image {
-            default_val: T::default(),
+            // default_val: T::default(),
             obj_raw: obj_raw          
         })
     }
@@ -46,12 +46,12 @@ impl<T: Default> Image<T> {
     }
 
     /// Returns the raw image object pointer.
-    pub fn obj_raw(&self) -> &MemRaw {
+    pub fn obj_raw(&self) -> &MemRaw<T> {
         &self.obj_raw
     }
 }
 
-impl<T> Drop for Image<T> {
+impl<T: OclNum> Drop for Image<T> {
     fn drop(&mut self) {
         raw::release_mem_object(self.obj_raw).unwrap();
     }
