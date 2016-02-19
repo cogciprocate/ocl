@@ -71,9 +71,9 @@ fn main() {
         .arg_buf(&buffer)
         .arg_scl(scalar);
 
-    // Keep an eye on one of the elements:
+    // Choose an element to keep track of:
     let element_idx = 200007;
-    let original_value = buffer[element_idx];
+    let element_original_value = buffer[element_idx];
 
     // Run the kernel (the optional arguments are for event lists):
     kern.enqueue(None, None);
@@ -82,10 +82,10 @@ fn main() {
     buffer.fill_vec();
 
     // Verify and print a result:
-    let final_value = buffer[element_idx];
-    assert!((final_value - (original_value * scalar)).abs() < 0.0001);
+    let element_final_value = buffer[element_idx];
+    assert!((element_final_value - (element_original_value * scalar)).abs() < 0.0001);
     println!("The value at index [{}] was '{}' and is now '{}'!", 
-        element_idx, original_value, final_value);
+        element_idx, element_original_value, element_final_value);
 }
 ```
 

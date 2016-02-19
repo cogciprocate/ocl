@@ -7,11 +7,12 @@
 #![allow(dead_code)]
 
 use std;
+use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
 use raw::{OclNum, PlatformIdRaw, PlatformInfo, DeviceIdRaw, ContextInfo, ContextRaw, MemRaw, SamplerRaw, CommandQueueProperties};
-use error::{Result as OclResult};
+use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
 // Until everything can be implemented:
@@ -48,8 +49,6 @@ pub enum KernelArg<'a, T: 'a + OclNum> {
     /// `size`: size in bytes. Type `T` is ignored.
     UnsafePointer { size: size_t, value: *const c_void },
 }
-
-
 
     // /// cl_context_info + cl_context_properties
     // #[repr(C)]
@@ -115,11 +114,12 @@ pub enum PlatformInfoResult {
     Name(String),
     Vendor(String),
     Extensions(String),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl PlatformInfoResult {
-    pub fn new(request_param: PlatformInfo, result_string: Vec<u8>) -> OclResult<PlatformInfoResult> {
+    pub fn from_bytes(request_param: PlatformInfo, result_string: Vec<u8>
+                ) -> OclResult<PlatformInfoResult> {
         // match result_string {
         //     Ok(rs) => {
         //         // let string = String::from_utf8(result_string).expect("FIXME: src/raw/custom/enums.rs");
@@ -160,7 +160,7 @@ impl PlatformInfoResult {
             &PlatformInfoResult::Name(ref s) => s,
             &PlatformInfoResult::Vendor(ref s) => s,
             &PlatformInfoResult::Extensions(ref s) => s,
-            // &PlatformInfoResult::Error(ref err) => err.description(),
+            &PlatformInfoResult::Error(ref err) => err.description(),
         }
     }
 }
@@ -173,16 +173,10 @@ impl Into<String> for PlatformInfoResult {
             PlatformInfoResult::Name(string) => string,
             PlatformInfoResult::Vendor(string) => string,
             PlatformInfoResult::Extensions(string) => string,
-            // PlatformInfoResult::Error(err) => (*err).description().to_string(),
+            PlatformInfoResult::Error(err) => (*err).description().to_string(),
         }
     }
 }
-
-// impl std::error::Error for PlatformInfoResult {
-//     fn description(&self) -> &str {
-//         self.as_str()
-//     }
-// }
 
 impl std::fmt::Debug for PlatformInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -277,7 +271,7 @@ pub enum DeviceInfoResult {
     PrintfBufferSize(TemporaryPlaceholderType),
     ImagePitchAlignment(TemporaryPlaceholderType),
     ImageBaseAddressAlignment(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl DeviceInfoResult {
@@ -309,7 +303,6 @@ impl std::fmt::Display for DeviceInfoResult {
     }
 }
 
-
 impl Into<String> for DeviceInfoResult {
     fn into(self) -> String {
         match self {
@@ -333,7 +326,7 @@ pub enum ContextInfoResult {
     Devices(Vec<DeviceIdRaw>),
     Properties(Vec<u8>),
     NumDevices(u32),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl ContextInfoResult {
@@ -366,7 +359,7 @@ impl ContextInfoResult {
             &ContextInfoResult::Devices(ref vec) => format!("{:?}", vec),
             &ContextInfoResult::Properties(ref props) => format!("{:?}", props),
             &ContextInfoResult::NumDevices(ref num) => num.to_string(),
-            // &ContextInfoResult::Error(ref err) => err.description().to_string(),
+            &ContextInfoResult::Error(ref err) => err.description().into(),
         }
     }
 }
@@ -391,7 +384,7 @@ pub enum CommandQueueInfoResult {
     Device(DeviceIdRaw),
     ReferenceCount(u32),
     Properties(CommandQueueProperties),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl CommandQueueInfoResult {
@@ -400,6 +393,9 @@ impl CommandQueueInfoResult {
         match self {
             &CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &CommandQueueInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -432,7 +428,7 @@ pub enum MemInfoResult {
     Context(TemporaryPlaceholderType),
     AssociatedMemobject(TemporaryPlaceholderType),
     Offset(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl MemInfoResult {
@@ -441,6 +437,9 @@ impl MemInfoResult {
         match self {
             &MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &MemInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -475,7 +474,7 @@ pub enum ImageInfoResult {
     Buffer(TemporaryPlaceholderType),
     NumMipLevels(TemporaryPlaceholderType),
     NumSamples(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl ImageInfoResult {
@@ -484,6 +483,9 @@ impl ImageInfoResult {
         match self {
             &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &ImageInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -512,7 +514,7 @@ pub enum SamplerInfoResult {
     NormalizedCoords(TemporaryPlaceholderType),
     AddressingMode(TemporaryPlaceholderType),
     FilterMode(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl SamplerInfoResult {
@@ -521,6 +523,9 @@ impl SamplerInfoResult {
         match self {
             &SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &SamplerInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -553,7 +558,7 @@ pub enum ProgramInfoResult {
     Binaries(TemporaryPlaceholderType),
     NumKernels(TemporaryPlaceholderType),
     KernelNames(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl ProgramInfoResult {
@@ -562,6 +567,9 @@ impl ProgramInfoResult {
         match self {
             &ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &ProgramInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -589,7 +597,7 @@ pub enum ProgramBuildInfoResult {
     BuildOptions(TemporaryPlaceholderType),
     BuildLog(TemporaryPlaceholderType),
     BinaryType(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl ProgramBuildInfoResult {
@@ -598,6 +606,9 @@ impl ProgramBuildInfoResult {
         match self {
             &ProgramBuildInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &ProgramBuildInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("ProgramBuildInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -627,7 +638,7 @@ pub enum KernelInfoResult {
     Context(TemporaryPlaceholderType),
     Program(TemporaryPlaceholderType),
     Attributes(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl KernelInfoResult {
@@ -636,6 +647,9 @@ impl KernelInfoResult {
         match self {
             &KernelInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &KernelInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("KernelInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -664,7 +678,7 @@ pub enum KernelArgInfoResult {
     TypeName(TemporaryPlaceholderType),
     TypeQualifier(TemporaryPlaceholderType),
     Name(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl KernelArgInfoResult {
@@ -673,6 +687,9 @@ impl KernelArgInfoResult {
         match self {
             &KernelArgInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &KernelArgInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("KernelArgInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -702,7 +719,7 @@ pub enum KernelWorkGroupInfoResult {
     PreferredWorkGroupSizeMultiple(TemporaryPlaceholderType),
     PrivateMemSize(TemporaryPlaceholderType),
     GlobalWorkSize(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl KernelWorkGroupInfoResult {
@@ -711,6 +728,9 @@ impl KernelWorkGroupInfoResult {
         match self {
             &KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &KernelWorkGroupInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("KernelWorkGroupInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -739,7 +759,7 @@ pub enum EventInfoResult {
     ReferenceCount(TemporaryPlaceholderType),
     CommandExecutionStatus(TemporaryPlaceholderType),
     Context(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl EventInfoResult {
@@ -748,6 +768,9 @@ impl EventInfoResult {
         match self {
             &EventInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &EventInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("EventInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -775,7 +798,7 @@ pub enum ProfilingInfoResult {
     Submit(TemporaryPlaceholderType),
     Start(TemporaryPlaceholderType),
     End(TemporaryPlaceholderType),
-    // Error(Box<OclError>),
+    Error(Box<OclError>),
 }
 
 impl ProfilingInfoResult {
@@ -784,6 +807,9 @@ impl ProfilingInfoResult {
         match self {
             &ProfilingInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
+            },
+            &ProfilingInfoResult::Error(ref err) => {
+               err.description().into()
             },
             _ => panic!("ProfilingInfoResult: Converting this variant to string not yet implemented."),
         }

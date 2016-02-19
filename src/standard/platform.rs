@@ -5,7 +5,8 @@
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
 use std::convert::Into;
-use raw::{self, PlatformIdRaw, PlatformInfo};
+use raw::{self, PlatformIdRaw, PlatformInfo, PlatformInfoResult};
+use standard;
 // use util;
 
 #[derive(Copy, Clone, Debug)]
@@ -35,6 +36,14 @@ impl Platform {
 		self.clone().into()
 	}
 
+	/// Returns info about the platform. 
+	pub fn info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
+		match raw::get_platform_info(self.0, info_kind) {
+			Ok(pi) => pi,
+			Err(err) => PlatformInfoResult::Error(Box::new(err)),
+		}
+	}
+
 	/// Returns the platform profile as a string. 
 	///
 	/// Returns the profile name supported by the implementation. The profile name returned can be one of the following strings:
@@ -50,7 +59,6 @@ impl Platform {
 		}
 	}
 
-		
 	/// Returns the platform driver version as a string. 
 	///
 	/// Returns the OpenCL version supported by the implementation. This version string has the following format:
@@ -112,18 +120,27 @@ impl Into<PlatformIdRaw> for Platform {
 impl std::fmt::Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         // write!(f, "{}", &self.to_string())
-        writeln!(f, "PLATFORM:\n\
-				Profile: {}\n\
-				Version: {}\n\
-				Name: {}\n\
-				Vendor: {}\n\
-				Extensions: {}\n\
+        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+    		("\n", "\n", "\n")
+    	} else {
+    		("{{ ", ", ", " }}")
+		};
+
+        write!(f, "[Platform]: {b}\
+				Profile: {}{d}\
+				Version: {}{d}\
+				Name: {}{d}\
+				Vendor: {}{d}\
+				Extensions: {}{e}\
 			",
 			self.profile(),
 			self.version(),
 			self.name(),
 			self.vendor(),
 			self.extensions(),
+			b = begin,
+			d = delim,
+			e = end,
 		)
     }
 }

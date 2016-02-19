@@ -4,8 +4,8 @@
 use std;
 use std::convert::Into;
 use error::Result as OclResult;
-use standard::Platform;
-use raw::{self, EventRaw, EventInfo, EventInfoResult};
+use standard::{self, Platform};
+use raw::{self, EventRaw, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
 // use util;
 
 #[derive(Copy, Clone, Debug)]
@@ -17,21 +17,35 @@ impl Event {
 	///
 	/// ### Safety 
 	///
-	/// Not meant to be called unless you know what you're doing.
+	/// Not meant to be called directly by consumers.
 	pub unsafe fn new(id_raw: EventRaw) -> Event {
 		Event(id_raw)
 	}
 
+	/// Creates a new null `Event`.
+	///
+	/// ### Safety 
+	///
+	/// Don't use unless you know what you're doing.
 	pub unsafe fn null() -> Event {
 		Event(EventRaw::null())
 	}
 
-	// pub fn list(platform: Platform, device_types: Option<EventType>) -> Vec<Event> {
-	// 	let list_raw = raw::get_device_ids(platform.as_raw(), device_types)
-	// 		.expect("Event::list: Error retrieving device list");
+	/// Returns info about the event. 
+	pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
+		match raw::get_event_info(self.0, info_kind) {
+			Ok(pi) => pi,
+			Err(err) => EventInfoResult::Error(Box::new(err)),
+		}
+	}
 
-	// 	unsafe { list_raw.into_iter().map(|pr| Event::new(pr) ).collect() }
-	// }
+	/// Returns info about the event. 
+	pub fn profiling_info(&self, info_kind: ProfilingInfo) -> ProfilingInfoResult {
+		match raw::get_event_profiling_info(self.0, info_kind) {
+			Ok(pi) => pi,
+			Err(err) => ProfilingInfoResult::Error(Box::new(err)),
+		}
+	}
 
 	/// Returns a string containing a formatted list of event properties.
 	pub fn to_string(&self) -> String {
@@ -58,23 +72,60 @@ impl Into<EventRaw> for Event {
 
 impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		writeln!(f, "EVENT:\n\
-				CommandQueue: {}\n\
-	            CommandType: {}\n\
-	            ReferenceCount: {}\n\
-	            CommandExecutionStatus: {}\n\
-	            Context: {}\n\
+		// if standard::INFO_FORMAT_MULTILINE {
+		// 	write!(f, "[Event]: \n\
+		// 			CommandQueue: {}\n\
+		//             CommandType: {}\n\
+		//             ReferenceCount: {}\n\
+		//             CommandExecutionStatus: {}\n\
+		//             Context: {}\n\
+		// 		",
+		// 		raw::get_event_info(self.0, EventInfo::CommandQueue).unwrap(),
+		//         raw::get_event_info(self.0, EventInfo::CommandType).unwrap(),
+		//         raw::get_event_info(self.0, EventInfo::ReferenceCount).unwrap(),
+		//         raw::get_event_info(self.0, EventInfo::CommandExecutionStatus).unwrap(),
+		//         raw::get_event_info(self.0, EventInfo::Context).unwrap(),
+		// 	)
+		// } else {
+		// 	write!(f, "[Event]: {{ \
+		// 			CommandQueue: {}, \
+		//             CommandType: {}, \
+		//             ReferenceCount: {}, \
+		//             CommandExecutionStatus: {}, \
+		//             Context: {}, \
+		// 		}}",
+		// 		raw::get_event_info(self.0, EventInfo::CommandQueue).unwrap(),
+		//         raw::get_event_info(self.0, EventInfo::CommandType).unwrap(),
+		//         raw::get_event_info(self.0, EventInfo::ReferenceCount).unwrap(),
+		//         raw::get_event_info(self.0, EventInfo::CommandExecutionStatus).unwrap(),
+		//         raw::get_event_info(self.0, EventInfo::Context).unwrap(),
+		// 	)
+		// }
+
+		let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+    		("\n", "\n", "\n")
+    	} else {
+    		("{{ ", ", ", " }}")
+		};
+
+		write!(f, "[Event]: {b}\
+				CommandQueue: {}{d}\
+	            CommandType: {}{d}\
+	            ReferenceCount: {}{d}\
+	            CommandExecutionStatus: {}{d}\
+	            Context: {}{e}\
 			",
 			raw::get_event_info(self.0, EventInfo::CommandQueue).unwrap(),
 	        raw::get_event_info(self.0, EventInfo::CommandType).unwrap(),
 	        raw::get_event_info(self.0, EventInfo::ReferenceCount).unwrap(),
 	        raw::get_event_info(self.0, EventInfo::CommandExecutionStatus).unwrap(),
 	        raw::get_event_info(self.0, EventInfo::Context).unwrap(),
+	        b = begin,
+			d = delim,
+			e = end,
 		)
     }
 }
-
-
 
 
 //     // ##################################################

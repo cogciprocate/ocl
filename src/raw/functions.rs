@@ -224,7 +224,7 @@ pub fn get_platform_info(platform: PlatformIdRaw, request_param: PlatformInfo,
         )));
     }
 
-    PlatformInfoResult::new(request_param, requested_value)
+    PlatformInfoResult::from_bytes(request_param, requested_value)
 }
 
 //============================================================================
