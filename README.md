@@ -133,10 +133,10 @@ suprised if most driver vendors will implement the two host APIs identically.
 Moving forward it's possible the two may completely merge (or that Vulkan will
 absorb OpenCL). Whatever happens, not much will change as far as the front end
 of this library is concerned (though the `raw` module functions / types could
-get some renaming, etc. but it wouldn't be for several years... version
+get some renaming, etc. but it wouldn't be for a very long time... version
 2.0...). This library will maintain it's focus on the compute side of things.
-For the graphics side, see the excellent [glium] library (and eventually maybe
-[vulkano]).
+For the graphics side, see the excellent OpenGL library, [glium], and its
+younger sibling, [vulkano].
 
 
 ##### Help
@@ -159,4 +159,4 @@ by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Gro
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [glium]: https://github.com/tomaka/glium
-[vulkano]: https://github.com/tomaka/vulkano
+[vulkano]: https://github.com/tomaka/vulkano/tree/master/vulkano

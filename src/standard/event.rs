@@ -3,12 +3,13 @@
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
 use std::convert::Into;
-use error::Result as OclResult;
-use standard::{self, Platform};
-use raw::{self, EventRaw, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+// use error::Result as OclResult;
+// use cl_h::cl_event;
+use raw::{self, /*EventPtr,*/ EventRaw, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use standard;
 // use util;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 /// An event representing a command.
 pub struct Event(EventRaw);
 
@@ -33,7 +34,7 @@ impl Event {
 
 	/// Returns info about the event. 
 	pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
-		match raw::get_event_info(self.0, info_kind) {
+		match raw::get_event_info(&self.0, info_kind) {
 			Ok(pi) => pi,
 			Err(err) => EventInfoResult::Error(Box::new(err)),
 		}
@@ -41,7 +42,7 @@ impl Event {
 
 	/// Returns info about the event. 
 	pub fn profiling_info(&self, info_kind: ProfilingInfo) -> ProfilingInfoResult {
-		match raw::get_event_profiling_info(self.0, info_kind) {
+		match raw::get_event_profiling_info(&self.0, info_kind) {
 			Ok(pi) => pi,
 			Err(err) => ProfilingInfoResult::Error(Box::new(err)),
 		}
@@ -53,10 +54,17 @@ impl Event {
 	}
 
 	/// Returns the underlying `EventRaw`.
-	pub fn as_raw(&self) -> EventRaw {
-		self.0
+	pub fn as_raw(&self) -> &EventRaw {
+		&self.0
 	}
 }
+
+// unsafe impl EventPtr for Event {}
+// unsafe impl EventPtr for Event {
+// 	fn as_ptr(&self) -> cl_event {
+// 		self.0.as_ptr()
+// 	}
+// }
 
 impl Into<String> for Event {
 	fn into(self) -> String {
@@ -64,48 +72,18 @@ impl Into<String> for Event {
 	}
 }
 
-impl Into<EventRaw> for Event {
-	fn into(self) -> EventRaw {
-		self.as_raw()
-	}
-}
+// impl Into<EventRaw> for Event {
+// 	fn into(self) -> EventRaw {
+// 		self.as_raw()
+// 	}
+// }
 
 impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		// if standard::INFO_FORMAT_MULTILINE {
-		// 	write!(f, "[Event]: \n\
-		// 			CommandQueue: {}\n\
-		//             CommandType: {}\n\
-		//             ReferenceCount: {}\n\
-		//             CommandExecutionStatus: {}\n\
-		//             Context: {}\n\
-		// 		",
-		// 		raw::get_event_info(self.0, EventInfo::CommandQueue).unwrap(),
-		//         raw::get_event_info(self.0, EventInfo::CommandType).unwrap(),
-		//         raw::get_event_info(self.0, EventInfo::ReferenceCount).unwrap(),
-		//         raw::get_event_info(self.0, EventInfo::CommandExecutionStatus).unwrap(),
-		//         raw::get_event_info(self.0, EventInfo::Context).unwrap(),
-		// 	)
-		// } else {
-		// 	write!(f, "[Event]: {{ \
-		// 			CommandQueue: {}, \
-		//             CommandType: {}, \
-		//             ReferenceCount: {}, \
-		//             CommandExecutionStatus: {}, \
-		//             Context: {}, \
-		// 		}}",
-		// 		raw::get_event_info(self.0, EventInfo::CommandQueue).unwrap(),
-		//         raw::get_event_info(self.0, EventInfo::CommandType).unwrap(),
-		//         raw::get_event_info(self.0, EventInfo::ReferenceCount).unwrap(),
-		//         raw::get_event_info(self.0, EventInfo::CommandExecutionStatus).unwrap(),
-		//         raw::get_event_info(self.0, EventInfo::Context).unwrap(),
-		// 	)
-		// }
-
 		let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
     		("\n", "\n", "\n")
     	} else {
-    		("{{ ", ", ", " }}")
+    		("{ ", ", ", " }")
 		};
 
 		write!(f, "[Event]: {b}\
@@ -115,11 +93,11 @@ impl std::fmt::Display for Event {
 	            CommandExecutionStatus: {}{d}\
 	            Context: {}{e}\
 			",
-			raw::get_event_info(self.0, EventInfo::CommandQueue).unwrap(),
-	        raw::get_event_info(self.0, EventInfo::CommandType).unwrap(),
-	        raw::get_event_info(self.0, EventInfo::ReferenceCount).unwrap(),
-	        raw::get_event_info(self.0, EventInfo::CommandExecutionStatus).unwrap(),
-	        raw::get_event_info(self.0, EventInfo::Context).unwrap(),
+			raw::get_event_info(&self.0, EventInfo::CommandQueue).unwrap(),
+	        raw::get_event_info(&self.0, EventInfo::CommandType).unwrap(),
+	        raw::get_event_info(&self.0, EventInfo::ReferenceCount).unwrap(),
+	        raw::get_event_info(&self.0, EventInfo::CommandExecutionStatus).unwrap(),
+	        raw::get_event_info(&self.0, EventInfo::Context).unwrap(),
 	        b = begin,
 			d = delim,
 			e = end,

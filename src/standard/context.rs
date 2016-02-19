@@ -1,8 +1,26 @@
 //! An OpenCL context.
 
+
+// TEMPORARY:
+#![allow(dead_code)]
+
+
+
 // use formatting::MT;
-use raw::{self, ContextRaw, ContextProperties, PlatformIdRaw, DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult};
+use std;
+use raw::{self, ContextRaw, ContextProperties, ContextInfo, ContextInfoResult, PlatformIdRaw, DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult};
 use error::{Result as OclResult, Error as OclError};
+use standard::{self, Device};
+
+
+pub enum DeviceSpecifier {
+    All,
+    Single(Device),
+    List(Vec<Device>),
+    Index(usize),
+    Indices(Vec<usize>),
+    TypeFlags(DeviceType),
+}
 
 
 /// A context for a particular platform and set of device types.
@@ -107,10 +125,10 @@ impl Context {
         // [DEBUG]: 
         // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_raw);
 
-        let properties = Some(ContextProperties::new().platform(platform_id_raw));
+        let properties = Some(ContextProperties::new().platform(platform_id_raw.clone()));
         // let properties = None;
         
-        let device_ids_raw: Vec<DeviceIdRaw> = try!(raw::get_device_ids(platform_id_raw.clone(), 
+        let device_ids_raw: Vec<DeviceIdRaw> = try!(raw::get_device_ids(&platform_id_raw, 
             device_types_opt));
         if device_ids_raw.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
@@ -132,7 +150,7 @@ impl Context {
     /// Resolves the zero-based device index into a DeviceIdRaw (pointer).
     pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdRaw> {
         match device_idxs.len() {
-            0 => vec![self.device_ids_raw[raw::DEFAULT_DEVICE_IDX]],
+            0 => vec![self.device_ids_raw[raw::DEFAULT_DEVICE_IDX].clone()],
             _ => self.valid_device_ids(&device_idxs),
         }
     }
@@ -145,27 +163,53 @@ impl Context {
 
         for selected_idx in selected_idxs {
             let valid_idx = selected_idx % self.device_ids_raw.len();
-            valid_device_ids.push(self.device_ids_raw[valid_idx]);
+            valid_device_ids.push(self.device_ids_raw[valid_idx].clone());
         }
 
         valid_device_ids
     }
 
-    pub fn platform_info(&self, info_kind: PlatformInfo) -> OclResult<PlatformInfoResult> {
-        raw::get_platform_info(self.platform_id_raw, info_kind)
+    /// Returns info about the platform associated with the context.
+    pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
+        match raw::get_platform_info(&self.platform_id_raw, info_kind) {
+            Ok(pi) => pi,
+            Err(err) => PlatformInfoResult::Error(Box::new(err)),
+        }
     }
 
-    pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> OclResult<DeviceInfoResult> {
+    /// Returns info about a device associated with the context.
+    pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> DeviceInfoResult {
         let device = match self.device_ids_raw.get(index) {
-            Some(&d) => d,
-            None => return OclError::err("Context::device_info: Invalid device index"),
+            Some(d) => d,
+            None => {
+                return DeviceInfoResult::Error(Box::new(
+                    OclError::new("Context::device_info: Invalid device index")));
+            },
         };
-        raw::get_device_info(device, info_kind)
+
+        match raw::get_device_info(device, info_kind) {
+            Ok(pi) => pi,
+            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+        }
+    }
+
+    /// Returns info about the context. 
+    pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
+        match raw::get_context_info(&self.obj_raw, info_kind) {
+            Ok(pi) => pi,
+            Err(err) => ContextInfoResult::Error(Box::new(err)),
+        }
+    }
+
+    /// Returns a string containing a formatted list of context properties.
+    pub fn to_string(&self) -> String {
+        // self.clone().into()
+        String::new()
     }
 
     /// Returns the current context as a `*mut libc::c_void`.
-    pub fn obj_raw(&self) -> ContextRaw {
-        self.obj_raw
+    pub fn obj_raw(&self) -> &ContextRaw {
+        &self.obj_raw
     }
 
     /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
@@ -174,19 +218,39 @@ impl Context {
     }
 
     /// Returns the platform our context pertains to.
-    pub fn platform_id_raw(&self) -> PlatformIdRaw {
-        self.platform_id_raw.clone()
-    }   
-
-    // /// Releases the current context.
-    // pub fn release(&mut self) {     
-    //     raw::release_context(self.obj_raw);
-    // }
+    pub fn platform_id_raw(&self) -> &PlatformIdRaw {
+        &self.platform_id_raw
+    }  
 }
 
-impl Drop for Context {
-    fn drop(&mut self) {
-        // println!("DROPPING CONTEXT");
-        raw::release_context(self.obj_raw);
+// impl Drop for Context {
+//     fn drop(&mut self) {
+//         // println!("DROPPING CONTEXT");
+//         unsafe { raw::release_context(&mut self.obj_raw); }
+//     }
+// }
+
+impl std::fmt::Display for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+            ("\n", "\n", "\n")
+        } else {
+            ("{ ", ", ", " }")
+        };
+
+        write!(f, "[Context]:{b}\
+                Reference Count: {}{d}\
+                Devices: {}{d}\
+                Properties: {}{d}\
+                Device Count: {}{e}\
+            ",
+            raw::get_context_info(&self.obj_raw, ContextInfo::ReferenceCount).unwrap(),
+            raw::get_context_info(&self.obj_raw, ContextInfo::Devices).unwrap(),
+            raw::get_context_info(&self.obj_raw, ContextInfo::Properties).unwrap(),
+            raw::get_context_info(&self.obj_raw, ContextInfo::NumDevices).unwrap(),
+            b = begin,
+            d = delim,
+            e = end,
+        )
     }
 }

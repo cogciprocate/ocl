@@ -1,7 +1,7 @@
 //! [WORK IN PROGRESS][UNTESTED] An OpenCL Image.
 //!
 //! TODO: Implement types for each pixel format.
-use std::default::Default;
+// use std::default::Default;
 use error::{Result as OclResult};
 use standard::{Context, ImageBuilder};
 use raw::{self, OclNum, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
@@ -51,11 +51,11 @@ impl<T: OclNum> Image<T> {
     }
 }
 
-impl<T: OclNum> Drop for Image<T> {
-    fn drop(&mut self) {
-        raw::release_mem_object(self.obj_raw).unwrap();
-    }
-}
+// impl<T: OclNum> Drop for Image<T> {
+//     fn drop(&mut self) {
+//         raw::release_mem_object(self.obj_raw).unwrap();
+//     }
+// }
 
 
 // pub struct cl_image_format {

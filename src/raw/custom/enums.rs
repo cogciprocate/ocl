@@ -40,7 +40,11 @@ pub enum KernelArg<'a, T: 'a + OclNum> {
     /// Type `T` is ignored.
     Mem(&'a MemRaw<T>),
     /// Type `T` is ignored.
+    MemNull,
+    /// Type `T` is ignored.
     Sampler(&'a SamplerRaw),
+    /// Type `T` is ignored.
+    SamplerNull,
     Scalar(&'a T),
     /// This probably has a max len of 4... (4 * 32bits):
     Vector(&'a [T]),

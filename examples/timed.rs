@@ -11,11 +11,13 @@ use std::time::Instant;
 use ocl::{ProQue, SimpleDims, Buffer, EventList};
 
 
-const DATASET_SIZE: usize = 1000000;
+const DATASET_SIZE: usize = 10000;
 
-const KERNEL_RUN_ITERS: i32 = 800;
-const BUFFER_READ_ITERS: i32 = 20;
-const KERNEL_AND_BUFFER_ITERS: i32 = 10000;
+// const KERNEL_RUN_ITERS: i32 = 800;
+// const BUFFER_READ_ITERS: i32 = 20;
+const KERNEL_RUN_ITERS: i32 = 1;
+const BUFFER_READ_ITERS: i32 = 1;
+const KERNEL_AND_BUFFER_ITERS: i32 = 100;
 
 const SCALAR: f32 = 1.0;
 const INIT_VAL_RANGE: (f32, f32) = (100.0, 200.0);
@@ -107,21 +109,23 @@ fn main() {
     // ########### KERNEL & BUFFER BLOCKING #############
     // ##################################################
 
-    print!("\n");
-    println!("Enqueuing {} blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
+    // TEMPORARILY DISABLED
 
-    let kern_buf_start = Instant::now();
+    // print!("\n");
+    // println!("Enqueuing {} blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
 
-    for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enqueue(None, None);
-        buffer_result.fill_vec();
-    }
+    // let kern_buf_start = Instant::now();
 
-    print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();    
-    print_elapsed("queue finished", kern_buf_start);
+    // for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
+    //     kern.enqueue(None, None);
+    //     buffer_result.fill_vec();
+    // }
 
-    verify_results(&buffer_init, &buffer_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
+    // print_elapsed("queue unfinished", kern_buf_start);
+    // ocl_pq.queue().finish();    
+    // print_elapsed("queue finished", kern_buf_start);
+
+    // verify_results(&buffer_init, &buffer_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 
     // ##################################################
     // ######### KERNEL & BUFFER NON-BLOCKING ###########
@@ -135,10 +139,29 @@ fn main() {
     let mut kern_events = EventList::new();
     let mut buf_events = EventList::new();
 
-    for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
+
+
+    println!("0");
+
+    for i in 0..(KERNEL_AND_BUFFER_ITERS) {
+        if i < 20 { println!("0.0 [{}] ", i); }
+
         kern.enqueue(Some(&buf_events), Some(&mut kern_events));
-        unsafe { buffer_result.fill_vec_async(Some(&kern_events), Some(&mut buf_events)).unwrap(); }
+        // kern.enqueue(None, Some(&mut kern_events));
+        // kern.enqueue(Some(&buf_events), None);
+        // kern.enqueue(None, None);
+
+        if i < 20 { println!("0.1 [{}] ", i); }
+
+        // unsafe { buffer_result.fill_vec_async(Some(&kern_events), Some(&mut buf_events)).unwrap(); }
+        // unsafe { buffer_result.fill_vec_async(None, Some(&mut buf_events)).unwrap(); }
+        unsafe { buffer_result.fill_vec_async(Some(&kern_events), None).unwrap(); }
+        // unsafe { buffer_result.fill_vec_async(None, None).unwrap(); }
+
+        if i < 20 { println!("0.2 [{}] ", i); }
     }
+
+    println!("1");
 
     print_elapsed("queue unfinished", kern_buf_start);
     ocl_pq.queue().finish();    

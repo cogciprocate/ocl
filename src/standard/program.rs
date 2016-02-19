@@ -51,7 +51,7 @@ impl Program {
     pub fn from_parts(
                 src_strings: Vec<CString>, 
                 cmplr_opts: CString, 
-                context_obj_raw: ContextRaw, 
+                context_obj_raw: &ContextRaw, 
                 device_ids: &[DeviceIdRaw],
             ) -> OclResult<Program> 
     {
@@ -65,24 +65,24 @@ impl Program {
     }
 
     /// Returns the associated OpenCL program object.
-    pub fn obj_raw(&self) -> ProgramRaw {
-        self.obj_raw
+    pub fn obj_raw(&self) -> &ProgramRaw {
+        &self.obj_raw
     }
 
     pub fn device_ids_raw(&self) -> &[DeviceIdRaw] {
         &self.devices_ids_raw
     }
 
-    /// Decrements the associated OpenCL program object's reference count.
-    // [NOTE]: Do not move this to a Drop impl in case this Program has been cloned.
-    pub fn release(&mut self) {
-        raw::release_program(self.obj_raw).unwrap();
-    }
+    // /// Decrements the associated OpenCL program object's reference count.
+    // // [NOTE]: Do not move this to a Drop impl in case this Program has been cloned.
+    // pub fn release(&mut self) {
+    //     raw::release_program(self.obj_raw).unwrap();
+    // }
 }
 
-impl Drop for Program {
-    fn drop(&mut self) {
-        // println!("DROPPING PROGRAM");
-        raw::release_program(self.obj_raw).unwrap();
-    }
-}
+// impl Drop for Program {
+//     fn drop(&mut self) {
+//         // println!("DROPPING PROGRAM");
+//         raw::release_program(self.obj_raw).unwrap();
+//     }
+// }

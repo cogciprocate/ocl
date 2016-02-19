@@ -101,7 +101,7 @@ impl ProQue {
             try!(builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
             self.queue.context_obj_raw(), 
-            &vec![self.queue.device_id_obj_raw()],
+            &vec![self.queue.device_id_raw().clone()],
         )));
 
         Ok(())
@@ -114,13 +114,13 @@ impl ProQue {
     /// [UNSTABLE]: Usefulness and safety questionable.
     ///
     pub fn clear_build(&mut self) {
-        match self.program {
-            Some(ref mut program) => { 
-                program.release();              
-            },
+        // match self.program {
+        //     Some(ref mut program) => { 
+        //         program.release();              
+        //     },
 
-            None => (),
-        }
+        //     None => (),
+        // }
         self.program = None;
     }
 
@@ -141,7 +141,7 @@ impl ProQue {
     /// Returns the maximum workgroup size supported by the device associated
     /// with this `ProQue`.
     pub fn max_work_group_size(&self) -> usize {
-        raw::get_max_work_group_size(self.queue.device_id_obj_raw())
+        raw::get_max_work_group_size(self.queue.device_id_raw())
     }
 
     /// Returns a reference to the queue associated with this ProQue.

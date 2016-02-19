@@ -1,5 +1,7 @@
 //! [WORK IN PROGRESS] Get information about all the things.
 //!
+//! Printing algorithm is highly janky (due to laziness -- need to complete
+//! for each `*InfoResult` type).
 
 #![allow(unused_imports, unused_variables, dead_code)]
 
@@ -8,7 +10,7 @@ extern crate ocl;
 use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
 use ocl::raw::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 
-const PRINT_DETAILED: bool = false;
+const PRINT_DETAILED: bool = true;
 // Overrides above for device:
 const PRINT_DETAILED_DEVICE: bool = false;
 
@@ -27,29 +29,26 @@ fn main() {
 
 	// Loop through all avaliable platforms:
     for p_idx in 0..platforms.len() {
-    	let platform = platforms[p_idx];
+    	let platform = &platforms[p_idx];
     	print!("\n");
-    	println!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
+    	if PRINT_DETAILED {
+    		println!("{}", platform);
+		} else {
+			println!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
+		}
 
     	let devices = Device::list_all(platform);
 
     	// Loop through each device
     	for d_idx in 0..devices.len() {
-    		let device = devices[d_idx];
-
-    		if PRINT_DETAILED_DEVICE {
-    			println!("Device[{}]: {}", d_idx, device);
-    		} else {
-	    		println!("{t}Device[{}]: {} ({})", d_idx, device.name(), device.vendor(), t = TAB);
-	    	}
-
+    		let device = &devices[d_idx];
 	    	let context = Context::new(None, None).unwrap();
 			let queue = Queue::new(&context, None);
 			let buffer = Buffer::<f32>::new(&dims, &queue);
 			// let image = Image::new();
 			// let sampler = Sampler::new();
 			let program = Program::builder().src(SRC).build(&context).unwrap();
-			let device = program.device_ids_raw()[0];
+			let device = program.device_ids_raw()[0].clone();
 			let kernel = Kernel::new("multiply", &program, &queue, dims.work_dims()).unwrap()
 			        .arg_buf(&buffer)
 			        .arg_scl(10.0f32);
@@ -60,9 +59,25 @@ fn main() {
 			event_list.wait();
 
 			if PRINT_DETAILED {
+    			println!("{}", context);
+    		} else {
+	    		println!("{t}{t}[Context]:  ()", t = TAB);
+	    	}
+	    	
+	    	//
+	    	// [FIXME]: GET DEVICE PRINTING
+	    	//
+			// if PRINT_DETAILED_DEVICE {
+   //  			println!("[Device][{}]: {}", d_idx, device);
+   //  		} else {
+   //  			if !PRINT_DETAILED { print!("{t}", t = TAB); } 
+	  //   		println!("[Device][{}]: {} ({})", d_idx, device.name(), device.vendor());
+	  //   	}
+
+			if PRINT_DETAILED {
     			println!("{}", event);
     		} else {
-	    		println!("{t}{t}Event: {{ Type: {}, Status: {} }}", 
+	    		println!("{t}{t}[Event]: {{ Type: {}, Status: {} }}", 
 	    			event.info(EventInfo::CommandType),
 	    			event.info(EventInfo::CommandExecutionStatus),
 	    			t = TAB);

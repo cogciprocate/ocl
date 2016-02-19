@@ -10,8 +10,8 @@ const COEFF: f32 = 5432.1;
 // Our kernel source code:
 static KERNEL_SRC: &'static str = r#"
     __kernel void multiply_by_scalar(
-                __global float const* const src,
                 __private float const coeff,
+                __global float const* const src,
                 __global float* const res)
     {
         uint const idx = get_global_id(0);
@@ -41,8 +41,8 @@ fn main() {
     // Create a kernel with three arguments corresponding to those in the kernel:
     let kern = ocl_pq.create_kernel("multiply_by_scalar", dims.work_dims())
         .expect("Create Kernel")
-        .arg_buf(&source_buffer)
         .arg_scl(COEFF)
+        .arg_buf(&source_buffer)
         .arg_buf(&mut result_buffer);
 
     // Enqueue kernel depending on and creating no events:

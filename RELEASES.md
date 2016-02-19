@@ -12,6 +12,9 @@ Breaking Changes
   take a reference to a `BufferDims` type for the `dims` argument instead 
   moving it.
 * `Context::device_ids` has been renamed `::device_ids_raw`.
+* Functions in the `raw` module now take references to `*Raw` types instead of
+  copying them.
+* `*Raw` types no longer implement `Copy`.
 
 New Features
 ------------

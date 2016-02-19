@@ -9,7 +9,7 @@ use raw::{self, PlatformIdRaw, PlatformInfo, PlatformInfoResult};
 use standard;
 // use util;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 /// A platform identifier.
 pub struct Platform(PlatformIdRaw);
 
@@ -38,7 +38,7 @@ impl Platform {
 
 	/// Returns info about the platform. 
 	pub fn info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
-		match raw::get_platform_info(self.0, info_kind) {
+		match raw::get_platform_info(&self.0, info_kind) {
 			Ok(pi) => pi,
 			Err(err) => PlatformInfoResult::Error(Box::new(err)),
 		}
@@ -53,7 +53,7 @@ impl Platform {
 	/// * EMBEDDED_PROFILE - if the implementation supports the OpenCL embedded profile. The embedded profile is defined to be a subset for each version of OpenCL.
 	///
 	pub fn profile(&self) -> String {
-		match raw::get_platform_info(self.0, PlatformInfo::Profile) {
+		match raw::get_platform_info(&self.0, PlatformInfo::Profile) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -67,7 +67,7 @@ impl Platform {
 	///
 	/// * The major_version.minor_version value returned will be 1.2.
 	pub fn version(&self) -> String {
-		match raw::get_platform_info(self.0, PlatformInfo::Version) {
+		match raw::get_platform_info(&self.0, PlatformInfo::Version) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -75,7 +75,7 @@ impl Platform {
 
 	/// Returns the platform name as a string.
 	pub fn name(&self) -> String {
-		match raw::get_platform_info(self.0, PlatformInfo::Name) {
+		match raw::get_platform_info(&self.0, PlatformInfo::Name) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -83,7 +83,7 @@ impl Platform {
 
 	/// Returns the platform vendor as a string.
 	pub fn vendor(&self) -> String {
-		match raw::get_platform_info(self.0, PlatformInfo::Vendor) {
+		match raw::get_platform_info(&self.0, PlatformInfo::Vendor) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -93,15 +93,15 @@ impl Platform {
 	///
 	/// Returns a space-separated list of extension names (the extension names themselves do not contain any spaces) supported by the platform. Extensions defined here must be supported by all devices associated with this platform.
 	pub fn extensions(&self) -> String {
-		match raw::get_platform_info(self.0, PlatformInfo::Extensions) {
+		match raw::get_platform_info(&self.0, PlatformInfo::Extensions) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
 	}
 
 	/// Returns the underlying `PlatformIdRaw`.
-	pub fn as_raw(&self) -> PlatformIdRaw {
-		self.0
+	pub fn as_raw(&self) -> &PlatformIdRaw {
+		&self.0
 	}
 }
 
@@ -113,7 +113,7 @@ impl Into<String> for Platform {
 
 impl Into<PlatformIdRaw> for Platform {
 	fn into(self) -> PlatformIdRaw {
-		self.as_raw()
+		self.0
 	}
 }
 
@@ -123,7 +123,7 @@ impl std::fmt::Display for Platform {
         let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
     		("\n", "\n", "\n")
     	} else {
-    		("{{ ", ", ", " }}")
+    		("{ ", ", ", " }")
 		};
 
         write!(f, "[Platform]: {b}\
