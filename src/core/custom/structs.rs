@@ -1,5 +1,5 @@
 use std::convert::Into;
-use raw::{ContextProperty, ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
+use core::{ContextProperty, ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
 use util;
 use cl_h;
 
@@ -45,11 +45,11 @@ impl ContextProperties {
 			// For each property:
 			for prop in self.0.into_iter() {
 				// Convert both the kind of property (a u32) and the value (variable type/size) 
-				// into just a raw byte vector (Vec<u8>):
+				// into just a core byte vector (Vec<u8>):
 				let (kind, val) = match prop {
-					ContextProperty::Platform(platform_id_raw) => (
+					ContextProperty::Platform(platform_id_core) => (
 						util::into_bytes(PropKind::Platform as cl_h::cl_uint),
-						util::into_bytes(platform_id_raw.as_ptr() as cl_h::cl_platform_id) 
+						util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id) 
 					),
 				    ContextProperty::InteropUserSync(sync) => (
 				    	util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),

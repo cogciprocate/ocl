@@ -8,7 +8,7 @@
 
 // use formatting::MT;
 use std;
-use raw::{self, Context as ContextRaw, ContextProperties, ContextInfo, ContextInfoResult, PlatformId as PlatformIdRaw, DeviceId as DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult};
+use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, PlatformId as PlatformIdCore, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult};
 use error::{Result as OclResult, Error as OclError};
 use standard::{self, Device};
 
@@ -25,16 +25,16 @@ pub enum DeviceSpecifier {
 
 /// A context for a particular platform and set of device types.
 ///
-/// Wraps a `ContextRaw` such as that returned by `raw::create_context`.
+/// Wraps a `ContextCore` such as that returned by `core::create_context`.
 ///
 /// # Destruction
 /// `::release()` must be manually called by consumer.
 ///
 #[derive(Debug, Clone)]
 pub struct Context {
-    platform_id_raw: PlatformIdRaw,
-    device_ids_raw: Vec<DeviceIdRaw>,
-    obj_raw: ContextRaw,
+    platform_id_core: PlatformIdCore,
+    device_ids_core: Vec<DeviceIdCore>,
+    obj_core: ContextCore,
 }
 
 impl Context {
@@ -86,7 +86,7 @@ impl Context {
     /// ``` 
     ///
     /// # Panics
-    ///    - `get_devices_raw_as_ref()` (work in progress)
+    ///    - `get_devices_core_as_ref()` (work in progress)
     ///
     /// # Failures
     /// - No platforms.
@@ -102,12 +102,12 @@ impl Context {
     pub fn new(platform_idx_opt: Option<usize>, device_types_opt: Option<DeviceType>) 
             -> OclResult<Context>
     {
-        let platforms: Vec<PlatformIdRaw> = try!(raw::get_platform_ids());
+        let platforms: Vec<PlatformIdCore> = try!(core::get_platform_ids());
         if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
         // println!("Platform list: {:?}", platforms);
 
-        let platform_id_raw: PlatformIdRaw = match platform_idx_opt {
+        let platform_id_core: PlatformIdCore = match platform_idx_opt {
             Some(pf_idx) => {
                 match platforms.get(pf_idx) {
                     Some(pf) => {
@@ -121,32 +121,32 @@ impl Context {
             },
             None => {
                 debug_assert!(platforms.len() > 0, "Context::new(): Internal indexing error.");
-                platforms[raw::DEFAULT_PLATFORM_IDX].clone()
+                platforms[core::DEFAULT_PLATFORM_IDX].clone()
             },
         };
 
         // [DEBUG]: 
-        // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_raw);
+        // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_core);
 
-        let properties = Some(ContextProperties::new().platform(platform_id_raw.clone()));
+        let properties = Some(ContextProperties::new().platform(platform_id_core.clone()));
         // let properties = None;
         
-        let device_ids_raw: Vec<DeviceIdRaw> = try!(raw::get_device_ids(&platform_id_raw, 
+        let device_ids_core: Vec<DeviceIdCore> = try!(core::get_device_ids(&platform_id_core, 
             device_types_opt));
-        if device_ids_raw.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
+        if device_ids_core.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
-        // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids_raw);
+        // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_ids_core);
 
         // [FIXME]: No callback or user data:
-        let obj_raw = try!(raw::create_context(properties, &device_ids_raw, None, None));
+        let obj_core = try!(core::create_context(properties, &device_ids_core, None, None));
 
         // [DEBUG]: 
-        // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_raw);
+        // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_core);
 
         Ok(Context {
-            platform_id_raw: platform_id_raw,
-            device_ids_raw: device_ids_raw,
-            obj_raw: obj_raw,
+            platform_id_core: platform_id_core,
+            device_ids_core: device_ids_core,
+            obj_core: obj_core,
         })
     }
 
@@ -156,10 +156,10 @@ impl Context {
 
 
 
-    /// Resolves the zero-based device index into a DeviceIdRaw (pointer).
-    pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdRaw> {
+    /// Resolves the zero-based device index into a DeviceIdCore (pointer).
+    pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdCore> {
         match device_idxs.len() {
-            0 => vec![self.device_ids_raw[raw::DEFAULT_DEVICE_IDX].clone()],
+            0 => vec![self.device_ids_core[core::DEFAULT_DEVICE_IDX].clone()],
             _ => self.valid_device_ids(&device_idxs),
         }
     }
@@ -167,12 +167,12 @@ impl Context {
     /// Returns a list of valid devices regardless of whether or not the indexes 
     /// passed are valid by performing a modulo operation on them and letting them
     /// wrap around (round robin).
-    pub fn valid_device_ids(&self, selected_idxs: &[usize]) -> Vec<DeviceIdRaw> {
+    pub fn valid_device_ids(&self, selected_idxs: &[usize]) -> Vec<DeviceIdCore> {
         let mut valid_device_ids = Vec::with_capacity(selected_idxs.len());
 
         for selected_idx in selected_idxs {
-            let valid_idx = selected_idx % self.device_ids_raw.len();
-            valid_device_ids.push(self.device_ids_raw[valid_idx].clone());
+            let valid_idx = selected_idx % self.device_ids_core.len();
+            valid_device_ids.push(self.device_ids_core[valid_idx].clone());
         }
 
         valid_device_ids
@@ -180,7 +180,7 @@ impl Context {
 
     /// Returns info about the platform associated with the context.
     pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
-        match raw::get_platform_info(&self.platform_id_raw, info_kind) {
+        match core::get_platform_info(&self.platform_id_core, info_kind) {
             Ok(pi) => pi,
             Err(err) => PlatformInfoResult::Error(Box::new(err)),
         }
@@ -188,7 +188,7 @@ impl Context {
 
     /// Returns info about a device associated with the context.
     pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> DeviceInfoResult {
-        let device = match self.device_ids_raw.get(index) {
+        let device = match self.device_ids_core.get(index) {
             Some(d) => d,
             None => {
                 return DeviceInfoResult::Error(Box::new(
@@ -196,7 +196,7 @@ impl Context {
             },
         };
 
-        match raw::get_device_info(device, info_kind) {
+        match core::get_device_info(device, info_kind) {
             Ok(pi) => pi,
             Err(err) => DeviceInfoResult::Error(Box::new(err)),
         }
@@ -204,7 +204,7 @@ impl Context {
 
     /// Returns info about the context. 
     pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
-        match raw::get_context_info(&self.obj_raw, info_kind) {
+        match core::get_context_info(&self.obj_core, info_kind) {
             Ok(pi) => pi,
             Err(err) => ContextInfoResult::Error(Box::new(err)),
         }
@@ -217,25 +217,25 @@ impl Context {
     }
 
     /// Returns the current context as a `*mut libc::c_void`.
-    pub fn raw_as_ref(&self) -> &ContextRaw {
-        &self.obj_raw
+    pub fn core_as_ref(&self) -> &ContextCore {
+        &self.obj_core
     }
 
     /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
-    pub fn devices_raw_as_ref(&self) -> &[DeviceIdRaw] {
-        &self.device_ids_raw[..]
+    pub fn devices_core_as_ref(&self) -> &[DeviceIdCore] {
+        &self.device_ids_core[..]
     }
 
     /// Returns the platform our context pertains to.
-    pub fn platform_raw_as_ref(&self) -> &PlatformIdRaw {
-        &self.platform_id_raw
+    pub fn platform_core_as_ref(&self) -> &PlatformIdCore {
+        &self.platform_id_core
     }  
 }
 
 // impl Drop for Context {
 //     fn drop(&mut self) {
 //         // println!("DROPPING CONTEXT");
-//         unsafe { raw::release_context(&mut self.obj_raw); }
+//         unsafe { core::release_context(&mut self.obj_core); }
 //     }
 // }
 
@@ -253,10 +253,10 @@ impl std::fmt::Display for Context {
                 Properties: {}{d}\
                 Device Count: {}{e}\
             ",
-            raw::get_context_info(&self.obj_raw, ContextInfo::ReferenceCount).unwrap(),
-            raw::get_context_info(&self.obj_raw, ContextInfo::Devices).unwrap(),
-            raw::get_context_info(&self.obj_raw, ContextInfo::Properties).unwrap(),
-            raw::get_context_info(&self.obj_raw, ContextInfo::NumDevices).unwrap(),
+            core::get_context_info(&self.obj_core, ContextInfo::ReferenceCount).unwrap(),
+            core::get_context_info(&self.obj_core, ContextInfo::Devices).unwrap(),
+            core::get_context_info(&self.obj_core, ContextInfo::Properties).unwrap(),
+            core::get_context_info(&self.obj_core, ContextInfo::NumDevices).unwrap(),
             b = begin,
             d = delim,
             e = end,

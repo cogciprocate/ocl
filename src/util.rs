@@ -139,7 +139,7 @@ pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> Vec<T> {
 }
 
 
-/// [UNTESTED] Copies an arbitrary primitive or struct into raw bytes.
+/// [UNTESTED] Copies an arbitrary primitive or struct into core bytes.
 ///
 /// ### Depth
 ///

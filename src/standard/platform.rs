@@ -5,30 +5,30 @@
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
 use std::convert::Into;
-use raw::{self, PlatformId as PlatformIdRaw, PlatformInfo, PlatformInfoResult};
+use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult};
 use standard;
 // use util;
 
 #[derive(Clone, Debug)]
 /// A platform identifier.
-pub struct Platform(PlatformIdRaw);
+pub struct Platform(PlatformIdCore);
 
 impl Platform {
-	/// Creates a new `Platform` from a `PlatformIdRaw`.
+	/// Creates a new `Platform` from a `PlatformIdCore`.
 	///
 	/// ### Safety 
 	///
 	/// Not meant to be called unless you know what you're doing.
-	pub unsafe fn new(id_raw: PlatformIdRaw) -> Platform {
-		Platform(id_raw)
+	pub unsafe fn new(id_core: PlatformIdCore) -> Platform {
+		Platform(id_core)
 	}
 
 	/// Returns a list of all platforms avaliable on the host machine.
 	pub fn list() -> Vec<Platform> {
-		let list_raw = raw::get_platform_ids()
+		let list_core = core::get_platform_ids()
 			.expect("Platform::list: Error retrieving platform list");
 
-		unsafe { list_raw.into_iter().map(|pr| Platform::new(pr) ).collect() }
+		unsafe { list_core.into_iter().map(|pr| Platform::new(pr) ).collect() }
 	}
 
 	/// Returns a string containing a formatted list of every platform property.
@@ -38,7 +38,7 @@ impl Platform {
 
 	/// Returns info about the platform. 
 	pub fn info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
-		match raw::get_platform_info(&self.0, info_kind) {
+		match core::get_platform_info(&self.0, info_kind) {
 			Ok(pi) => pi,
 			Err(err) => PlatformInfoResult::Error(Box::new(err)),
 		}
@@ -53,7 +53,7 @@ impl Platform {
 	/// * EMBEDDED_PROFILE - if the implementation supports the OpenCL embedded profile. The embedded profile is defined to be a subset for each version of OpenCL.
 	///
 	pub fn profile(&self) -> String {
-		match raw::get_platform_info(&self.0, PlatformInfo::Profile) {
+		match core::get_platform_info(&self.0, PlatformInfo::Profile) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -67,7 +67,7 @@ impl Platform {
 	///
 	/// * The major_version.minor_version value returned will be 1.2.
 	pub fn version(&self) -> String {
-		match raw::get_platform_info(&self.0, PlatformInfo::Version) {
+		match core::get_platform_info(&self.0, PlatformInfo::Version) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -75,7 +75,7 @@ impl Platform {
 
 	/// Returns the platform name as a string.
 	pub fn name(&self) -> String {
-		match raw::get_platform_info(&self.0, PlatformInfo::Name) {
+		match core::get_platform_info(&self.0, PlatformInfo::Name) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -83,7 +83,7 @@ impl Platform {
 
 	/// Returns the platform vendor as a string.
 	pub fn vendor(&self) -> String {
-		match raw::get_platform_info(&self.0, PlatformInfo::Vendor) {
+		match core::get_platform_info(&self.0, PlatformInfo::Vendor) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -93,14 +93,14 @@ impl Platform {
 	///
 	/// Returns a space-separated list of extension names (the extension names themselves do not contain any spaces) supported by the platform. Extensions defined here must be supported by all devices associated with this platform.
 	pub fn extensions(&self) -> String {
-		match raw::get_platform_info(&self.0, PlatformInfo::Extensions) {
+		match core::get_platform_info(&self.0, PlatformInfo::Extensions) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
 	}
 
-	/// Returns the underlying `PlatformIdRaw`.
-	pub fn as_raw(&self) -> &PlatformIdRaw {
+	/// Returns the underlying `PlatformIdCore`.
+	pub fn as_core(&self) -> &PlatformIdCore {
 		&self.0
 	}
 }
@@ -111,8 +111,8 @@ impl Into<String> for Platform {
 	}
 }
 
-impl Into<PlatformIdRaw> for Platform {
-	fn into(self) -> PlatformIdRaw {
+impl Into<PlatformIdCore> for Platform {
+	fn into(self) -> PlatformIdCore {
 		self.0
 	}
 }

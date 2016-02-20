@@ -37,7 +37,7 @@ impl WorkDims {
     //     }
     // }
 
-    pub fn as_raw(&self) -> Option<[usize; 3]> {
+    pub fn as_core(&self) -> Option<[usize; 3]> {
         match self {
             &WorkDims::OneDim(x) => Some([x, 0, 0]),
             &WorkDims::TwoDims(x, y) => Some([x, y, 0]),
@@ -55,7 +55,7 @@ impl WorkDims {
     //     }
     // }
 
-    // /// Returns a raw pointer to the enum.
+    // /// Returns a core pointer to the enum.
     // pub fn as_ptr(&self) -> *const size_t {
     //     match self {
     //         &WorkDims::OneDim(x) => {

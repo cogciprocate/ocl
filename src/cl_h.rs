@@ -1,6 +1,6 @@
 //! Rust bindings for the OpenCL ABI
 //!
-//! For low level access still within the confines of Rust's safety and convenience, use the extremely lightweight functions and types in the [`raw`] module.
+//! For low level access still within the confines of Rust's safety and convenience, use the extremely lightweight functions and types in the [`core`] module.
 //!
 //! This file was adapted from [https://www.khronos.org/registry/cl/api/1.2/cl.h](https://www.khronos.org/registry/cl/api/1.2/cl.h).
 //!
@@ -8,7 +8,7 @@
 //! [FIXME]: 1.2 implementation not 100% complete.
 //! 
 //!
-//! [`raw`]: /ocl/raw/index.html
+//! [`core`]: /ocl/core/index.html
 //!
 
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]

@@ -2,7 +2,7 @@
 
 use std::convert::Into;
 use std::collections::HashMap;
-use raw::{self, OclNum, Kernel as KernelRaw, CommandQueue as CommandQueueRaw, KernelArg};
+use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg};
 use error::{Result as OclResult, Error as OclError};
 use standard::{WorkDims, Buffer, EventList, Program, Queue};
 
@@ -21,12 +21,12 @@ use standard::{WorkDims, Buffer, EventList, Program, Queue};
 /// TODO: Add information about panics and errors.
 #[derive(Debug)]
 pub struct Kernel {
-    obj_raw: KernelRaw,
+    obj_core: KernelCore,
     name: String,
     arg_index: u32,
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
-    command_queue: CommandQueueRaw,
+    command_queue: CommandQueueCore,
     gwo: WorkDims,
     gws: WorkDims,
     lws: WorkDims,
@@ -39,15 +39,15 @@ impl Kernel {
                 gws: WorkDims ) -> OclResult<Kernel>
     {
         let name = name.into();
-        let obj_raw = try!(raw::create_kernel(program.raw_as_ref(), &name));
+        let obj_core = try!(core::create_kernel(program.core_as_ref(), &name));
 
         Ok(Kernel {
-            obj_raw: obj_raw,
+            obj_core: obj_core,
             name: name,
             arg_index: 0,
             named_args: HashMap::with_capacity(5),
             arg_count: 0u32,
-            command_queue: queue.raw_as_ref().clone(),
+            command_queue: queue.core_as_ref().clone(),
             gwo: WorkDims::Unspecified,
             gws: gws,
             lws: WorkDims::Unspecified,
@@ -140,10 +140,10 @@ impl Kernel {
 
         match buffer_opt {
             Some(buffer) => {
-                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer.raw_as_ref()))
+                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer.core_as_ref()))
             },
             None => {
-                // let mem_raw_null = unsafe { MemRaw::null() };
+                // let mem_core_null = unsafe { MemCore::null() };
                 self.set_arg::<T>(arg_idx, KernelArg::MemNull)
             },
         }
@@ -164,9 +164,9 @@ impl Kernel {
     /// TODO: Implement 'alternative queue' version of this function.
     #[inline]
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
-        raw::enqueue_kernel(&self.command_queue, &self.obj_raw, self.gws.dim_count(), 
-            self.gwo.as_raw(), self.gws.as_raw().unwrap(), self.lws.as_raw(), 
-            wait_list.map(|el| el.raw_as_ref()), dest_list.map(|el| el.raw_as_mut()), Some(&self.name))
+        core::enqueue_kernel(&self.command_queue, &self.obj_core, self.gws.dim_count(), 
+            self.gwo.as_core(), self.gws.as_core().unwrap(), self.lws.as_core(), 
+            wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
             .unwrap();
     }
 
@@ -180,18 +180,18 @@ impl Kernel {
     fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {        
         // This value lives long enough to be copied by `clSetKernelArg`.
         // let buf_obj = match buffer_opt {
-        //     Some(buffer) => buffer.raw_as_ref(),
-        //     None => unsafe { MemRaw::null() },
+        //     Some(buffer) => buffer.core_as_ref(),
+        //     None => unsafe { MemCore::null() },
         // };
 
         // self.new_arg::<T>(KernelArg::Mem(&buf_obj))
 
         match buffer_opt {
             Some(buffer) => {
-                self.new_arg::<T>(KernelArg::Mem(buffer.raw_as_ref()))
+                self.new_arg::<T>(KernelArg::Mem(buffer.core_as_ref()))
             },
             None => {
-                // let mem_raw_null = unsafe { MemRaw::null() };
+                // let mem_core_null = unsafe { MemCore::null() };
                 self.new_arg::<T>(KernelArg::MemNull)
             },
         }
@@ -218,7 +218,7 @@ impl Kernel {
     fn new_arg<T: OclNum>(&mut self, arg: KernelArg<T>) -> u32 {
         let arg_idx = self.arg_index;
 
-        raw::set_kernel_arg::<T>(&self.obj_raw, arg_idx, 
+        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, 
             arg,
             Some(&self.name)
         ).unwrap();
@@ -228,17 +228,17 @@ impl Kernel {
     } 
 
     fn set_arg<T: OclNum>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
-        raw::set_kernel_arg::<T>(&self.obj_raw, arg_idx, arg, Some(&self.name))
+        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg, Some(&self.name))
     }
 
-    pub fn raw_as_ref(&self) -> &KernelRaw {
-        &self.obj_raw
+    pub fn core_as_ref(&self) -> &KernelCore {
+        &self.obj_core
     }
 }
 
 // impl Drop for Kernel {
 //     fn drop(&mut self) {
 //         // println!("DROPPING KERNEL");
-//         raw::release_kernel(self.obj_raw).unwrap();
+//         core::release_kernel(self.obj_core).unwrap();
 //     }
 // }

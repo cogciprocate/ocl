@@ -2,7 +2,7 @@
 // use std::mem;
 // use std::ptr;
 
-use raw::{self, CommandQueue as CommandQueueRaw, DeviceId as DeviceIdRaw, Context as ContextRaw};
+use core::{self, CommandQueue as CommandQueueCore, DeviceId as DeviceIdCore, Context as ContextCore};
 use super::Context;
 
 /// A command queue.
@@ -11,12 +11,12 @@ use super::Context;
 ///
 /// Underlying queue object is destroyed automatically.
 ///
-// TODO: Implement a constructor which accepts a DeviceIdRaw.
+// TODO: Implement a constructor which accepts a DeviceIdCore.
 #[derive(Clone, Debug)]
 pub struct Queue {
-    obj_raw: CommandQueueRaw,
-    context_obj_raw: ContextRaw,
-    device_id_raw: DeviceIdRaw,
+    obj_core: CommandQueueCore,
+    context_obj_core: ContextCore,
+    device_id_core: DeviceIdCore,
 }
 
 impl Queue {
@@ -35,52 +35,52 @@ impl Queue {
             None => Vec::with_capacity(0),
         };
 
-        let device_ids_raw = context.resolve_device_idxs(&device_idxs);
-        assert!(device_ids_raw.len() == 1, "Queue::new: Error resolving device ids.");
-        let device_id_raw = device_ids_raw[0].clone();
+        let device_ids_core = context.resolve_device_idxs(&device_idxs);
+        assert!(device_ids_core.len() == 1, "Queue::new: Error resolving device ids.");
+        let device_id_core = device_ids_core[0].clone();
 
-        let obj_raw = raw::create_command_queue(context.raw_as_ref(), &device_id_raw)
+        let obj_core = core::create_command_queue(context.core_as_ref(), &device_id_core)
             .expect("[FIXME: TEMPORARY]: Queue::new():"); 
 
         Queue {
-            obj_raw: obj_raw,
-            context_obj_raw: context.raw_as_ref().clone(),
-            device_id_raw: device_id_raw, 
+            obj_core: obj_core,
+            context_obj_core: context.core_as_ref().clone(),
+            device_id_core: device_id_core, 
         }
     }   
 
     /// Blocks until all commands in this queue have completed.
     pub fn finish(&self) {
-        raw::finish(&self.obj_raw).unwrap();
+        core::finish(&self.obj_core).unwrap();
     }
 
     /// Returns the OpenCL command queue object associated with this queue.
-    pub fn raw_as_ref(&self) -> &CommandQueueRaw {
-        &self.obj_raw
+    pub fn core_as_ref(&self) -> &CommandQueueCore {
+        &self.obj_core
     }
 
     /// Returns the OpenCL context object associated with this queue.
-    pub fn context_raw_as_ref(&self) -> &ContextRaw {
-        &self.context_obj_raw
+    pub fn context_core_as_ref(&self) -> &ContextCore {
+        &self.context_obj_core
     }
 
     /// Returns the OpenCL device id associated with this queue.
     ///
     /// Not to be confused with the zero-indexed `device_idx` passed to `::new()`
     /// when creating this queue.
-    pub fn device_raw_as_ref(&self) -> &DeviceIdRaw {
-        &self.device_id_raw
+    pub fn device_core_as_ref(&self) -> &DeviceIdCore {
+        &self.device_id_core
     }
 
     // /// Decrements the reference counter of the associated OpenCL command queue object.
     // pub fn release(&mut self) {
-    //     raw::release_command_queue(self.obj_raw).unwrap();
+    //     core::release_command_queue(self.obj_core).unwrap();
     // }
 }
 
 // impl Drop for Queue {
 //     fn drop(&mut self) {
 //         // println!("DROPPING COMMAND QUEUE");
-//         raw::release_command_queue(&self.obj_raw).unwrap();
+//         core::release_command_queue(&self.obj_core).unwrap();
 //     }
 // }

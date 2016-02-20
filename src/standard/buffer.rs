@@ -8,7 +8,7 @@ use num::{FromPrimitive, ToPrimitive};
 use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
-use raw::{self, OclNum, Mem as MemRaw, CommandQueue as CommandQueueRaw, MemFlags, Event as EventRaw};
+use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, Event as EventCore};
 use util;
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, BufferDims, EventList};
@@ -72,9 +72,9 @@ impl<T> VecOption<T> {
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclNum> {
     // vec: Vec<T>,
-    obj_raw: MemRaw<T>,
+    obj_core: MemCore<T>,
     // queue: Queue,
-    queue_obj_raw: CommandQueueRaw,
+    queue_obj_core: CommandQueueCore,
     len: usize,
     vec: VecOption<T>,
 }
@@ -97,7 +97,7 @@ impl<T: OclNum> Buffer<T> {
     /// one such as `.flush_vec_async()`, `fill_vec_async()`, etc. will panic.
     /// [FIXME]: Return result.
     pub fn new<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_raw_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
         Buffer::_new(len, queue)
     }
 
@@ -105,7 +105,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
     pub fn with_vec<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_raw_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
         let vec: Vec<T> = iter::repeat(T::default()).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -116,7 +116,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
     pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: &E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_raw_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
         let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -138,7 +138,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: &E, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_raw_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
         let vec: Vec<T> = shuffled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -156,7 +156,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: &E, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(raw::get_max_work_group_size(queue.device_raw_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
         let vec: Vec<T> = scrambled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -195,16 +195,16 @@ impl<T: OclNum> Buffer<T> {
     /// or are unknown.
     ///
     /// [FIXME]: Return result.
-    pub unsafe fn new_raw_unchecked(flags: MemFlags, len: usize, host_ptr: Option<&[T]>, 
+    pub unsafe fn new_core_unchecked(flags: MemFlags, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
-        let obj_raw = raw::create_buffer(queue.context_raw_as_ref(), flags, len,
+        let obj_core = core::create_buffer(queue.context_core_as_ref(), flags, len,
             host_ptr)
             .expect("[FIXME: TEMPORARY]: Buffer::_new():");
 
         Buffer {
-            obj_raw: obj_raw,
-            queue_obj_raw: queue.raw_as_ref().clone(),
+            obj_core: obj_core,
+            queue_obj_core: queue.core_as_ref().clone(),
             len: len,
             vec: VecOption::None,
         }
@@ -213,13 +213,13 @@ impl<T: OclNum> Buffer<T> {
     // Consolidated constructor for Buffers without vectors.
     /// [FIXME]: Return result.
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
-        let obj_raw = raw::create_buffer::<T>(queue.context_raw_as_ref(),
-            raw::MEM_READ_WRITE, len, None)
+        let obj_core = core::create_buffer::<T>(queue.context_core_as_ref(),
+            core::MEM_READ_WRITE, len, None)
             .expect("[FIXME: TEMPORARY]: Buffer::_new():");
 
         Buffer {            
-            obj_raw: obj_raw,
-            queue_obj_raw: queue.raw_as_ref().clone(),
+            obj_core: obj_core,
+            queue_obj_core: queue.core_as_ref().clone(),
             len: len,
             vec: VecOption::None,
         }
@@ -228,13 +228,13 @@ impl<T: OclNum> Buffer<T> {
     // Consolidated constructor for Buffers with vectors.
     /// [FIXME]: Return result.
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let obj_raw = raw::create_buffer(queue.context_raw_as_ref(), 
-            raw::MEM_READ_WRITE | raw::MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec))
+        let obj_core = core::create_buffer(queue.context_core_as_ref(), 
+            core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec))
             .expect("[FIXME: TEMPORARY]: Buffer::_with_vec():");
 
         Buffer {        
-            obj_raw: obj_raw,
-            queue_obj_raw: queue.raw_as_ref().clone(),
+            obj_core: obj_core,
+            queue_obj_core: queue.core_as_ref().clone(),
             len: vec.len(), 
             vec: VecOption::Some(vec),
         }
@@ -305,8 +305,8 @@ impl<T: OclNum> Buffer<T> {
             return OclError::err("Buffer::write{{_async}}(): Data length out of range."); }
 
         let blocking_write = dest_list.is_none();
-        raw::enqueue_write_buffer(&self.queue_obj_raw, &self.obj_raw, blocking_write, 
-            data, offset, wait_list.map(|el| el.raw_as_ref()), dest_list.map(|el| el.raw_as_mut()))
+        core::enqueue_write_buffer(&self.queue_obj_core, &self.obj_core, blocking_write, 
+            data, offset, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
 
@@ -348,8 +348,8 @@ impl<T: OclNum> Buffer<T> {
             return OclError::err("Buffer::read{{_async}}(): Data length out of range."); }
 
         let blocking_read = dest_list.is_none();
-        raw::enqueue_read_buffer(&self.queue_obj_raw, &self.obj_raw, blocking_read, 
-            data, offset, wait_list.map(|el| el.raw_as_ref()), dest_list.map(|el| el.raw_as_mut()))
+        core::enqueue_read_buffer(&self.queue_obj_core, &self.obj_core, blocking_read, 
+            data, offset, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
     /// After waiting on events in `wait_list` to finish, writes the contents of
@@ -370,8 +370,8 @@ impl<T: OclNum> Buffer<T> {
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
-        raw::enqueue_write_buffer(&self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
-            vec, 0, wait_list.map(|el| el.raw_as_ref()), dest_list.map(|el| el.raw_as_mut()))
+        core::enqueue_write_buffer(&self.queue_obj_core, &self.obj_core, dest_list.is_none(), 
+            vec, 0, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
     /// After waiting on events in `wait_list` to finish, reads the remote device 
@@ -396,8 +396,8 @@ impl<T: OclNum> Buffer<T> {
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
-        raw::enqueue_read_buffer(&self.queue_obj_raw, &self.obj_raw, dest_list.is_none(), 
-            vec, 0, wait_list.map(|el| el.raw_as_ref()), dest_list.map(|el| el.raw_as_mut()))
+        core::enqueue_read_buffer(&self.queue_obj_core, &self.obj_core, dest_list.is_none(), 
+            vec, 0, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
     /// Writes the contents of `self.vec` to the remote device data buffer and 
@@ -426,7 +426,7 @@ impl<T: OclNum> Buffer<T> {
 
     /// Blocks until the underlying command queue has completed all commands.
     pub fn wait(&self) {
-        raw::finish(&self.queue_obj_raw).unwrap();
+        core::finish(&self.queue_obj_core).unwrap();
     }
 
     /// [UNSTABLE]: Convenience method.
@@ -488,30 +488,30 @@ impl<T: OclNum> Buffer<T> {
     /// [FIXME]: Return result.
     pub unsafe fn resize<B: BufferDims>(&mut self, new_dims: &B, queue: &Queue) {
         // self.release();
-        let new_len = new_dims.padded_buffer_len(raw::get_max_work_group_size(
-            queue.device_raw_as_ref()));
+        let new_len = new_dims.padded_buffer_len(core::get_max_work_group_size(
+            queue.device_core_as_ref()));
 
         match self.vec {
             VecOption::Some(ref mut vec) => {
                 vec.resize(new_len, T::default());
-                self.obj_raw = raw::create_buffer(queue.context_raw_as_ref(), 
-                    raw::MEM_READ_WRITE | raw::MEM_COPY_HOST_PTR, self.len, Some(vec))
+                self.obj_core = core::create_buffer(queue.context_core_as_ref(), 
+                    core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR, self.len, Some(vec))
                     .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
             },
             VecOption::None => {
                 self.len = new_len;
                 // let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
-                self.obj_raw = raw::create_buffer::<T>(queue.context_raw_as_ref(), 
-                    raw::MEM_READ_WRITE, self.len, None)
+                self.obj_core = core::create_buffer::<T>(queue.context_core_as_ref(), 
+                    core::MEM_READ_WRITE, self.len, None)
                     .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
             },
         };
     }
 
     // /// Decrements the reference count associated with the previous buffer object, 
-    // /// `self.obj_raw`.
+    // /// `self.obj_core`.
     // pub fn release(&mut self) {
-    //     raw::release_mem_object(self.obj_raw).unwrap();
+    //     core::release_mem_object(self.obj_core).unwrap();
     // }
 
     /// Returns a reference to the local vector associated with this buffer.
@@ -574,9 +574,9 @@ impl<T: OclNum> Buffer<T> {
         (*vec_ptr_mut).get_unchecked_mut(idx) 
     }
 
-    /// Returns a copy of the raw buffer object reference.
-    pub fn raw_as_ref(&self) -> &MemRaw<T> {
-        &self.obj_raw
+    /// Returns a copy of the core buffer object reference.
+    pub fn core_as_ref(&self) -> &MemCore<T> {
+        &self.obj_core
     }
 
     /// Changes the queue used by this Buffer for reads and writes, etc.
@@ -589,7 +589,7 @@ impl<T: OclNum> Buffer<T> {
     /// left to the caller. It's probably a good idea to at least call `.resize()`
     /// after calling this method.
     pub unsafe fn set_queue(&mut self, queue: Queue) {
-        self.queue_obj_raw = queue.raw_as_ref().clone();
+        self.queue_obj_core = queue.core_as_ref().clone();
     }
 
     /// Returns an iterator to a contained vector.
@@ -650,7 +650,7 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        unsafe { raw::enqueue_read_buffer::<T, EventRaw>(&self.queue_obj_raw, &self.obj_raw, true, 
+        unsafe { core::enqueue_read_buffer::<T, EventCore>(&self.queue_obj_core, &self.obj_core, true, 
             &mut vec[idx_range.clone()], idx_range.start, None, None).unwrap() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 
@@ -659,7 +659,7 @@ impl<T: OclNum> Buffer<T> {
 
 // impl<T: OclNum> Drop for Buffer<T> {
 //     fn drop(&mut self) {
-//         raw::release_mem_object(self.obj_raw).unwrap();
+//         core::release_mem_object(self.obj_core).unwrap();
 //     }
 // }
 

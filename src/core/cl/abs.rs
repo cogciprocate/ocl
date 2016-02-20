@@ -23,7 +23,7 @@ use std::marker::PhantomData;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
 	cl_kernel, cl_event, cl_sampler};
-use raw::{self, OclNum, CommandExecutionStatus};
+use core::{self, OclNum, CommandExecutionStatus};
 use error::{Result as OclResult, Error as OclError};
 use util;
 
@@ -143,14 +143,14 @@ impl Context {
 
 impl Clone for Context {
 	fn clone(&self) -> Context {
-		unsafe { raw::retain_context(self).unwrap(); }
+		unsafe { core::retain_context(self).unwrap(); }
 		Context(self.0)
 	}
 }
 
 impl Drop for Context {
 	fn drop(&mut self) {
-		unsafe { raw::release_context(self).unwrap(); }
+		unsafe { core::release_context(self).unwrap(); }
 	}
 }
 
@@ -178,14 +178,14 @@ impl CommandQueue {
 
 impl Clone for CommandQueue {
 	fn clone(&self) -> CommandQueue {
-		unsafe { raw::retain_command_queue(self).unwrap(); }
+		unsafe { core::retain_command_queue(self).unwrap(); }
 		CommandQueue(self.0)
 	}
 }
 
 impl Drop for CommandQueue {
 	fn drop(&mut self) {
-		unsafe { raw::release_command_queue(self).unwrap(); }
+		unsafe { core::release_command_queue(self).unwrap(); }
 	}
 }
 
@@ -217,14 +217,14 @@ impl<T: OclNum> Mem<T> {
 
 impl<T: OclNum> Clone for Mem<T> {
 	fn clone(&self) -> Mem<T> {
-		unsafe { raw::retain_mem_object(self).unwrap(); }
+		unsafe { core::retain_mem_object(self).unwrap(); }
 		Mem(self.0, PhantomData)
 	}
 }
 
 impl<T: OclNum> Drop for Mem<T> {
 	fn drop(&mut self) {
-		unsafe { raw::release_mem_object(self).unwrap(); }
+		unsafe { core::release_mem_object(self).unwrap(); }
 	}
 }
 
@@ -252,14 +252,14 @@ impl Program {
 
 impl Clone for Program {
 	fn clone(&self) -> Program {
-		unsafe { raw::retain_program(self).unwrap(); }
+		unsafe { core::retain_program(self).unwrap(); }
 		Program(self.0)
 	}
 }
 
 impl Drop for Program {
 	fn drop(&mut self) {
-		unsafe { raw::release_program(self).unwrap(); }
+		unsafe { core::release_program(self).unwrap(); }
 	}
 }
 
@@ -269,7 +269,7 @@ unsafe impl Send for Program {}
 // impl Drop for Program {
 //     fn drop(&mut self) {
 //         // println!("DROPPING PROGRAM");
-//         unsafe { raw::release_program(self.obj_raw).unwrap(); }
+//         unsafe { core::release_program(self.obj_core).unwrap(); }
 //     }
 // }
 
@@ -297,14 +297,14 @@ impl Kernel {
 
 impl Clone for Kernel {
 	fn clone(&self) -> Kernel {
-		unsafe { raw::retain_kernel(self).unwrap(); }
+		unsafe { core::retain_kernel(self).unwrap(); }
 		Kernel(self.0)
 	}
 }
 
 impl Drop for Kernel {
 	fn drop(&mut self) {
-		unsafe { raw::release_kernel(self).unwrap(); }
+		unsafe { core::release_kernel(self).unwrap(); }
 	}
 }
 
@@ -323,13 +323,13 @@ impl Event {
 
 	/// Only use when cloning from a pre-existing and valid `cl_event`.
 	pub unsafe fn from_cloned_ptr(ptr: cl_event) -> OclResult<Event> {
-		let new_raw = Event(ptr);
+		let new_core = Event(ptr);
 
-		if new_raw.is_valid() {
-			try!(raw::retain_event(&new_raw));
-			Ok(new_raw)
+		if new_core.is_valid() {
+			try!(core::retain_event(&new_core));
+			Ok(new_core)
 		} else {
-			OclError::err("raw::EventList::from_cloned_ptr: Invalid pointer `ptr`.")
+			OclError::err("core::EventList::from_cloned_ptr: Invalid pointer `ptr`.")
 		}
 	}
 
@@ -368,7 +368,7 @@ unsafe impl ClEventPtrNew for Event {
 		if self.0.is_null() {
 			Ok(&mut self.0)
 		} else {
-			unsafe { try!(raw::release_event(self)); }
+			unsafe { try!(core::release_event(self)); }
 			Ok(&mut self.0)
 		}
 	}
@@ -381,7 +381,7 @@ impl<'e> ClEventRef<'e> for Event {
 
 impl Clone for Event {
 	fn clone(&self) -> Event {
-		unsafe { raw::retain_event(self).expect("raw::Event::clone"); }
+		unsafe { core::retain_event(self).expect("core::Event::clone"); }
 		Event(self.0)
 	}
 }
@@ -389,7 +389,7 @@ impl Clone for Event {
 impl Drop for Event {
 	fn drop(&mut self) {
 		if self.is_valid() {
-			unsafe { raw::release_event(self).expect("raw::Event::drop"); }
+			unsafe { core::release_event(self).expect("core::Event::drop"); }
 		}
 	}
 }
@@ -422,7 +422,7 @@ impl EventList {
     ///
     /// Technically, copies `event`s contained pointer (a `cl_event`) then 
     /// `mem::forget`s it. This seems preferrable to incrementing the reference
-    /// count (with `raw::retain_event`) then letting `event` drop which just decrements it right back.
+    /// count (with `core::retain_event`) then letting `event` drop which just decrements it right back.
     pub unsafe fn push(&mut self, event: Event) {
         self.event_ptrs.push((*event.as_ptr_ref()));
         mem::forget(event);
@@ -472,7 +472,7 @@ impl EventList {
         let mut idx = 0;
 
         for event_ptr in self.event_ptrs.iter() {
-        	let status = try!(raw::get_event_status(&EventRefWrapper(event_ptr)));
+        	let status = try!(core::get_event_status(&EventRefWrapper(event_ptr)));
 
             if status == CommandExecutionStatus::Complete {
                 cmpltd_events.push(idx)
@@ -484,7 +484,7 @@ impl EventList {
         // Release completed events:        
     	for &idx in cmpltd_events.iter() {
     		unsafe { 
-				try!(raw::release_event(&EventRefWrapper(&self.event_ptrs[idx])));
+				try!(core::release_event(&EventRefWrapper(&self.event_ptrs[idx])));
 			}
 		}
 
@@ -521,8 +521,8 @@ impl Clone for EventList {
 	fn clone(&self) -> EventList {
 		for event_ptr in self.event_ptrs.iter() {
 			if !(*event_ptr).is_null() {
-				unsafe { raw::retain_event(&EventRefWrapper(event_ptr))
-					.expect("raw::EventList::clone") }
+				unsafe { core::retain_event(&EventRefWrapper(event_ptr))
+					.expect("core::EventList::clone") }
 			}
 		}
 
@@ -538,7 +538,7 @@ impl Drop for EventList {
 	fn drop(&mut self) {
 		if DEBUG_PRINT { print!("Dropping events... "); }
 		for event_ptr in self.event_ptrs.iter() {
-			unsafe { raw::release_event(&EventRefWrapper(event_ptr)).expect("raw::EventList::drop"); }
+			unsafe { core::release_event(&EventRefWrapper(event_ptr)).expect("core::EventList::drop"); }
 			if DEBUG_PRINT { print!("{{.}}"); }
 		}
 		if DEBUG_PRINT { print!("\n"); }
@@ -571,14 +571,14 @@ impl Sampler {
 
 impl Clone for Sampler {
 	fn clone(&self) -> Sampler {
-		unsafe { raw::retain_sampler(self).unwrap(); }
+		unsafe { core::retain_sampler(self).unwrap(); }
 		Sampler(self.0)
 	}
 }
 
 impl Drop for Sampler {
 	fn drop(&mut self) {
-		unsafe { raw::release_sampler(self).unwrap(); }
+		unsafe { core::release_sampler(self).unwrap(); }
 	}
 }
 

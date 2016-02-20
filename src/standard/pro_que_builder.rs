@@ -54,8 +54,8 @@ impl<'c> ProQueBuilder<'c> {
         let program_opt = Some(try!(Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
-            queue.context_raw_as_ref(), 
-            &vec![queue.device_raw_as_ref().clone()],
+            queue.context_core_as_ref(), 
+            &vec![queue.device_core_as_ref().clone()],
         )));
 
         Ok(ProQue::from_parts(context_opt, queue, program_opt))
@@ -139,7 +139,7 @@ impl<'c> ProQueBuilder<'c> {
     //  let program_opt = Some(try!(Program::from_parts(
     //      try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
     //      try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
-    //      queue.context_raw_as_ref(), 
+    //      queue.context_core_as_ref(), 
     //      &vec![queue.device_id()],
     //  )));
 

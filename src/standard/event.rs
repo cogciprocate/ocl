@@ -5,23 +5,23 @@ use std;
 use std::convert::Into;
 // use error::Result as OclResult;
 // use cl_h::cl_event;
-use raw::{self, /*EventPtr,*/ Event as EventRaw, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use core::{self, /*EventPtr,*/ Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
 use standard;
 // use util;
 
 
 /// An event representing a command.
 #[derive(Clone, Debug)]
-pub struct Event(EventRaw);
+pub struct Event(EventCore);
 
 impl Event {
-	/// Creates a new `Event` from a `EventRaw`.
+	/// Creates a new `Event` from a `EventCore`.
 	///
 	/// ### Safety 
 	///
 	/// Not meant to be called directly by consumers.
-	pub fn from_event_raw(event_raw: EventRaw) -> Event {
-		Event(event_raw)
+	pub fn from_event_core(event_core: EventCore) -> Event {
+		Event(event_core)
 	}
 
 	// /// Creates a new null `Event`.
@@ -30,12 +30,12 @@ impl Event {
 	// ///
 	// /// Don't use unless you know what you're doing.
 	// pub unsafe fn new_null() -> Event {
-	// 	Event(EventRaw::null())
+	// 	Event(EventCore::null())
 	// }
 
 	/// Returns info about the event. 
 	pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
-		match raw::get_event_info(&self.0, info_kind) {
+		match core::get_event_info(&self.0, info_kind) {
 			Ok(pi) => pi,
 			Err(err) => EventInfoResult::Error(Box::new(err)),
 		}
@@ -43,7 +43,7 @@ impl Event {
 
 	/// Returns info about the event. 
 	pub fn profiling_info(&self, info_kind: ProfilingInfo) -> ProfilingInfoResult {
-		match raw::get_event_profiling_info(&self.0, info_kind) {
+		match core::get_event_profiling_info(&self.0, info_kind) {
 			Ok(pi) => pi,
 			Err(err) => ProfilingInfoResult::Error(Box::new(err)),
 		}
@@ -54,13 +54,13 @@ impl Event {
 		self.clone().into()
 	}
 
-	/// Returns the underlying `EventRaw`.
-	pub fn raw_as_ref(&self) -> &EventRaw {
+	/// Returns the underlying `EventCore`.
+	pub fn core_as_ref(&self) -> &EventCore {
 		&self.0
 	}
 
-	/// Returns the underlying `EventRaw`.
-	pub fn raw_as_mut(&mut self) -> &mut EventRaw {
+	/// Returns the underlying `EventCore`.
+	pub fn core_as_mut(&mut self) -> &mut EventCore {
 		&mut self.0
 	}
 }
@@ -78,9 +78,9 @@ impl Into<String> for Event {
 	}
 }
 
-// impl Into<EventRaw> for Event {
-// 	fn into(self) -> EventRaw {
-// 		self.as_raw()
+// impl Into<EventCore> for Event {
+// 	fn into(self) -> EventCore {
+// 		self.as_core()
 // 	}
 // }
 
@@ -99,11 +99,11 @@ impl std::fmt::Display for Event {
 	            CommandExecutionStatus: {}{d}\
 	            Context: {}{e}\
 			",
-			raw::get_event_info(&self.0, EventInfo::CommandQueue).unwrap(),
-	        raw::get_event_info(&self.0, EventInfo::CommandType).unwrap(),
-	        raw::get_event_info(&self.0, EventInfo::ReferenceCount).unwrap(),
-	        raw::get_event_info(&self.0, EventInfo::CommandExecutionStatus).unwrap(),
-	        raw::get_event_info(&self.0, EventInfo::Context).unwrap(),
+			core::get_event_info(&self.0, EventInfo::CommandQueue).unwrap(),
+	        core::get_event_info(&self.0, EventInfo::CommandType).unwrap(),
+	        core::get_event_info(&self.0, EventInfo::ReferenceCount).unwrap(),
+	        core::get_event_info(&self.0, EventInfo::CommandExecutionStatus).unwrap(),
+	        core::get_event_info(&self.0, EventInfo::Context).unwrap(),
 	        b = begin,
 			d = delim,
 			e = end,
@@ -132,11 +132,11 @@ impl std::fmt::Display for Event {
 //             {t}CommandExecutionStatus: {}\n\
 //             {t}Context: {}\n\
 // 		",
-// 		raw::get_event_info(event, EventInfo::CommandQueue).unwrap(),
-//         raw::get_event_info(event, EventInfo::CommandType).unwrap(),
-//         raw::get_event_info(event, EventInfo::ReferenceCount).unwrap(),
-//         raw::get_event_info(event, EventInfo::CommandExecutionStatus).unwrap(),
-//         raw::get_event_info(event, EventInfo::Context).unwrap(),
+// 		core::get_event_info(event, EventInfo::CommandQueue).unwrap(),
+//         core::get_event_info(event, EventInfo::CommandType).unwrap(),
+//         core::get_event_info(event, EventInfo::ReferenceCount).unwrap(),
+//         core::get_event_info(event, EventInfo::CommandExecutionStatus).unwrap(),
+//         core::get_event_info(event, EventInfo::Context).unwrap(),
 // 		t = util::TAB,
 // 	);
 
@@ -158,10 +158,10 @@ impl std::fmt::Display for Event {
 // 	    	{t}Start: {}\n\
 // 	    	{t}End: {}\n\
 // 		",
-// 		raw::get_event_profiling_info(event, ProfilingInfo::Queued).unwrap(),
-//         raw::get_event_profiling_info(event, ProfilingInfo::Submit).unwrap(),
-//         raw::get_event_profiling_info(event, ProfilingInfo::Start).unwrap(),
-//         raw::get_event_profiling_info(event, ProfilingInfo::End).unwrap(),
+// 		core::get_event_profiling_info(event, ProfilingInfo::Queued).unwrap(),
+//         core::get_event_profiling_info(event, ProfilingInfo::Submit).unwrap(),
+//         core::get_event_profiling_info(event, ProfilingInfo::Start).unwrap(),
+//         core::get_event_profiling_info(event, ProfilingInfo::End).unwrap(),
 // 		t = util::TAB,
 // 	);
 

@@ -11,7 +11,7 @@
 //!
 //! ## Low Level Interfaces
 //!
-//! For lower level interfaces and to use OpenCL features that have not yet been implemented, see the [`raw`] and [`cl_h`] modules.
+//! For lower level interfaces and to use OpenCL features that have not yet been implemented, see the [`core`] and [`cl_h`] modules.
 //!
 //! ## Library Wide Panics
 //!
@@ -27,7 +27,7 @@
 
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues
-//! [`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
+//! [`core`]: http://docs.cogciprocate.com/ocl/core/index.html
 //! [`cl_h`]: http://docs.cogciprocate.com/ocl/cl_h/index.html
 //! [`Result`]: http://docs.cogciprocate.com/ocl/type.Result.html
 
@@ -48,11 +48,11 @@ extern crate rand;
 #[cfg(test)] mod tests;
 mod standard;
 mod error;
-pub mod raw;
+pub mod core;
 pub mod cl_h;
 pub mod util;
 
-pub use raw::OclNum;
+pub use core::OclNum;
 #[cfg(not(release))] pub use standard::BufferTest;
 pub use standard::{Platform, Device, Context, ProgramBuilder, BuildOpt, Program, Queue, Kernel, Buffer, Image,
     ProQueBuilder, ProQue, SimpleDims, WorkDims, BufferDims, Event, EventList};

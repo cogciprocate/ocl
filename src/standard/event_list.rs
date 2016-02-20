@@ -5,7 +5,7 @@ use libc::c_void;
 
 use error::{Result as OclResult, Error as OclError};
 use standard::Event;
-use raw::{self, EventCallbackFn, EventList as EventListRaw, CommandExecutionStatus};
+use core::{self, EventCallbackFn, EventList as EventListCore, CommandExecutionStatus};
 // use cl_h::{self, cl_event};
 
 
@@ -21,14 +21,14 @@ use raw::{self, EventCallbackFn, EventList as EventListRaw, CommandExecutionStat
 // [FIXME] TODO: impl Index.
 #[derive(Debug, Clone)]
 pub struct EventList {
-    event_list_raw: EventListRaw,
+    event_list_core: EventListCore,
 }
 
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
         EventList { 
-            event_list_raw: EventListRaw::new(),
+            event_list_core: EventListCore::new(),
         }
     }
 
@@ -45,10 +45,10 @@ impl EventList {
 
     /// Clones an event by index.
     pub fn get_clone(&self, index: usize) -> Option<Event> {
-        match self.event_list_raw.get_clone(index) {
+        match self.event_list_core.get_clone(index) {
             Some(ev_res) => {
                 match ev_res {
-                    Ok(ev) => Some(Event::from_event_raw(ev)),
+                    Ok(ev) => Some(Event::from_event_core(ev)),
                     Err(_) => None,
                 }
             },
@@ -58,10 +58,10 @@ impl EventList {
 
     /// Returns a new clone of the last event in the list.
     pub fn last_clone(&self) -> Option<Event> {
-        match self.event_list_raw.last_clone() {
+        match self.event_list_core.last_clone() {
             Some(ev_res) => {
                 match ev_res {
-                    Ok(ev) => Some(Event::from_event_raw(ev)),
+                    Ok(ev) => Some(Event::from_event_core(ev)),
                     Err(_) => None,
                 }
             },
@@ -77,12 +77,12 @@ impl EventList {
     //     self.events.last_mut()
     // }
 
-    pub fn raw_as_ref(&self) -> &EventListRaw {
-        &self.event_list_raw
+    pub fn core_as_ref(&self) -> &EventListCore {
+        &self.event_list_core
     }
 
-    pub fn raw_as_mut(&mut self) -> &mut EventListRaw {
-        &mut self.event_list_raw
+    pub fn core_as_mut(&mut self) -> &mut EventListCore {
+        &mut self.event_list_core
     }
 
     // /// Returns a mutable slice to the events list.
@@ -91,13 +91,13 @@ impl EventList {
     //     &mut self.events[..]
     // }
 
-    // pub fn event_list_raw(&self) -> Vec<EventRaw> {
-    //     self.events().iter().map(|ref event| event.as_raw()).collect()
+    // pub fn event_list_core(&self) -> Vec<EventCore> {
+    //     self.events().iter().map(|ref event| event.as_core()).collect()
     // }
 
     // /// Returns a const pointer to the list, useful for passing directly to the c ffi.
     // #[inline]
-    // pub fn raw_as_ref(&self) -> *const Event {
+    // pub fn core_as_ref(&self) -> *const Event {
     //     self.events().as_ptr()
     // }
 
@@ -109,9 +109,9 @@ impl EventList {
 
     /// Waits for all events in list to complete.
     pub fn wait(&self) {
-        if self.event_list_raw.len() > 0 {
-            // let event_list_raw = self.event_list_raw();
-            raw::wait_for_events(self.count(), &self.event_list_raw);
+        if self.event_list_core.len() > 0 {
+            // let event_list_core = self.event_list_core();
+            core::wait_for_events(self.count(), &self.event_list_core);
         }
     }
 
@@ -151,24 +151,24 @@ impl EventList {
                 user_data: &mut T,
                 ) -> OclResult<()>
     {
-        // let event_list_raw = self.event_list_raw();
-        // match self.event_list_raw.last_clone() {
+        // let event_list_core = self.event_list_core();
+        // match self.event_list_core.last_clone() {
         //     Ok(last_event) => {
-        //         raw::set_event_callback(&last_event, CommandExecutionStatus::Complete,
+        //         core::set_event_callback(&last_event, CommandExecutionStatus::Complete,
         //             callback_receiver, user_data as *mut _ as *mut c_void)
         //     },
         //     Err(err) => Err(err),
         // }
 
-        let event_raw = try!(try!(self.event_list_raw.last_clone().ok_or(
+        let event_core = try!(try!(self.event_list_core.last_clone().ok_or(
             OclError::new("ocl::EventList::set_callback: This event list is empty."))));
 
-        raw::set_event_callback(&event_raw, CommandExecutionStatus::Complete,
+        core::set_event_callback(&event_core, CommandExecutionStatus::Complete,
                     callback_receiver, user_data as *mut _ as *mut c_void)
     }
 
     pub fn clear_completed(&mut self) -> OclResult<()> {
-        self.event_list_raw.clear_completed()
+        self.event_list_core.clear_completed()
     }
 
     // pub fn set_callback_buffer(&self, 
@@ -177,7 +177,7 @@ impl EventList {
     //      )
     // {
     //  if self.events.len() > 0 {
-    //      raw::set_event_callback(
+    //      core::set_event_callback(
     //          self.events[self.events.len() - 1], 
     //          CL_COMPLETE, 
     //          callback_receiver,
@@ -188,7 +188,7 @@ impl EventList {
 
     /// Returns the number of events in the list.
     pub fn count(&self) -> u32 {
-        self.event_list_raw.count()
+        self.event_list_core.count()
     }
 
     // /// Clears this list regardless of whether or not its events have completed.
@@ -208,7 +208,7 @@ impl EventList {
     // /// and no other commands are waiting for them to complete.
     // pub unsafe fn release_all(&mut self) {
     //     for event in &mut self.events {
-    //         raw::release_event(event.as_raw()).unwrap();
+    //         core::release_event(event.as_core()).unwrap();
     //     }
 
     //     self.clear();

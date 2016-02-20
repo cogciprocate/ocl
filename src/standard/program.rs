@@ -3,7 +3,7 @@
 use std::ffi::CString;
 
 use error::{Result as OclResult};
-use raw::{self, Program as ProgramRaw, DeviceId as DeviceIdRaw, Context as ContextRaw};
+use core::{self, Program as ProgramCore, DeviceId as DeviceIdCore, Context as ContextCore};
 use standard::{ProgramBuilder, Context};
 
 /// A program, sometimes referred to as a build.
@@ -18,10 +18,10 @@ use standard::{ProgramBuilder, Context};
 ///
 #[derive(Clone, Debug)]
 pub struct Program {
-    obj_raw: ProgramRaw,
-    // context_obj_raw: ContextRaw,
-    // device_ids: Vec<DeviceIdRaw>,
-    devices_ids_raw: Vec<DeviceIdRaw>,
+    obj_core: ProgramCore,
+    // context_obj_core: ContextCore,
+    // device_ids: Vec<DeviceIdCore>,
+    devices_ids_core: Vec<DeviceIdCore>,
 }
 
 
@@ -41,7 +41,7 @@ impl Program {
         Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
-            context.raw_as_ref(), 
+            context.core_as_ref(), 
             &device_ids)
     }
 
@@ -52,38 +52,38 @@ impl Program {
     pub fn from_parts(
                 src_strings: Vec<CString>, 
                 cmplr_opts: CString, 
-                context_obj_raw: &ContextRaw, 
-                device_ids: &[DeviceIdRaw],
+                context_obj_core: &ContextCore, 
+                device_ids: &[DeviceIdCore],
             ) -> OclResult<Program> 
     {
-        let obj_raw = try!(raw::create_build_program(context_obj_raw, src_strings, cmplr_opts, 
+        let obj_core = try!(core::create_build_program(context_obj_core, src_strings, cmplr_opts, 
              device_ids).map_err(|e| e.to_string()));
 
         Ok(Program {
-            obj_raw: obj_raw,
-            devices_ids_raw: Vec::from(device_ids),
+            obj_core: obj_core,
+            devices_ids_core: Vec::from(device_ids),
         })
     }
 
     /// Returns the associated OpenCL program object.
-    pub fn raw_as_ref(&self) -> &ProgramRaw {
-        &self.obj_raw
+    pub fn core_as_ref(&self) -> &ProgramCore {
+        &self.obj_core
     }
 
-    pub fn devices_raw_as_ref(&self) -> &[DeviceIdRaw] {
-        &self.devices_ids_raw
+    pub fn devices_core_as_ref(&self) -> &[DeviceIdCore] {
+        &self.devices_ids_core
     }
 
     // /// Decrements the associated OpenCL program object's reference count.
     // // [NOTE]: Do not move this to a Drop impl in case this Program has been cloned.
     // pub fn release(&mut self) {
-    //     raw::release_program(self.obj_raw).unwrap();
+    //     core::release_program(self.obj_core).unwrap();
     // }
 }
 
 // impl Drop for Program {
 //     fn drop(&mut self) {
 //         // println!("DROPPING PROGRAM");
-//         raw::release_program(self.obj_raw).unwrap();
+//         core::release_program(self.obj_core).unwrap();
 //     }
 // }

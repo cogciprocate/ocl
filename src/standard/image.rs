@@ -4,7 +4,7 @@
 // use std::default::Default;
 use error::{Result as OclResult};
 use standard::{Context, ImageBuilder};
-use raw::{self, OclNum, Mem as MemRaw, MemFlags, ImageFormat, ImageDescriptor};
+use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor};
 
 
 /// [WORK IN PROGRESS][UNTESTED] An Image. 
@@ -14,7 +14,7 @@ use raw::{self, OclNum, Mem as MemRaw, MemFlags, ImageFormat, ImageDescriptor};
 #[allow(dead_code)]
 pub struct Image<T: OclNum> {
     // default_val: PhantomData<T,
-    obj_raw: MemRaw<T>,
+    obj_core: MemCore<T>,
 }
 
 impl<T: OclNum> Image<T> {    
@@ -23,11 +23,11 @@ impl<T: OclNum> Image<T> {
     pub fn new(context: &Context, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, image_data: Option<&[T]>) -> OclResult<Image<T>>
     {
-        // let flags = raw::flag::READ_WRITE;
+        // let flags = core::flag::READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
 
-        let obj_raw = try!(raw::create_image(
-            context.raw_as_ref(),
+        let obj_core = try!(core::create_image(
+            context.core_as_ref(),
             flags,
             image_format,
             image_desc,
@@ -36,7 +36,7 @@ impl<T: OclNum> Image<T> {
 
         Ok(Image {
             // default_val: T::default(),
-            obj_raw: obj_raw          
+            obj_core: obj_core          
         })
     }
 
@@ -45,15 +45,15 @@ impl<T: OclNum> Image<T> {
         // ImageBuilder::new()
     }
 
-    /// Returns the raw image object pointer.
-    pub fn raw_as_ref(&self) -> &MemRaw<T> {
-        &self.obj_raw
+    /// Returns the core image object pointer.
+    pub fn core_as_ref(&self) -> &MemCore<T> {
+        &self.obj_core
     }
 }
 
 // impl<T: OclNum> Drop for Image<T> {
 //     fn drop(&mut self) {
-//         raw::release_mem_object(self.obj_raw).unwrap();
+//         core::release_mem_object(self.obj_core).unwrap();
 //     }
 // }
 

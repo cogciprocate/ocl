@@ -5,7 +5,7 @@
 #![allow(dead_code)]
 
 use std::default::Default;
-use raw::OclNum;
+use core::OclNum;
 use standard::{Image};
 
 

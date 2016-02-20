@@ -11,7 +11,7 @@ use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
-use raw::{OclNum, PlatformId, PlatformInfo, DeviceId, ContextInfo, Context, Mem, Sampler, CommandQueueProperties};
+use core::{OclNum, PlatformId, PlatformInfo, DeviceId, ContextInfo, Context, Mem, Sampler, CommandQueueProperties};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -126,7 +126,7 @@ impl PlatformInfoResult {
                 ) -> OclResult<PlatformInfoResult> {
         // match result_string {
         //     Ok(rs) => {
-        //         // let string = String::from_utf8(result_string).expect("FIXME: src/raw/custom/enums.rs");
+        //         // let string = String::from_utf8(result_string).expect("FIXME: src/core/custom/enums.rs");
         //         let string = try!(String::from_utf8(rs));
 
         //         Ok(match request_param {

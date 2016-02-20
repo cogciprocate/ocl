@@ -27,7 +27,7 @@ pub enum BuildOpt {
     CmplrInclDir { path: String },
     CmplrOther(String),
     IncludeDefine { ident: String, val: String },
-    IncludeRaw(String),
+    IncludeCore(String),
     IncludeRawEof(String),
 }
 
@@ -81,7 +81,7 @@ impl ProgramBuilder {
         Program::from_parts(
             try!(self.get_src_strings().map_err(|e| e.to_string())), 
             try!(self.get_compiler_options().map_err(|e| e.to_string())), 
-            context.raw_as_ref(), 
+            context.core_as_ref(), 
             &context.resolve_device_idxs(&self.device_idxs))
     }
 
@@ -92,7 +92,7 @@ impl ProgramBuilder {
         self
     }
 
-    /// Adds a build option containing a raw compiler command line parameter. 
+    /// Adds a build option containing a core compiler command line parameter. 
     /// Formatted as `{co}` (exact text).
     pub fn cmplr_opt<'p>(&'p mut self, co: &'static str) -> &'p mut ProgramBuilder {
         self.options.push(BuildOpt::cmplr_opt(co));
@@ -179,7 +179,7 @@ impl ProgramBuilder {
                 &BuildOpt::IncludeDefine { ref ident, ref val } => {
                     strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val).into_bytes())));
                 },
-                &BuildOpt::IncludeRaw(ref text) => {
+                &BuildOpt::IncludeCore(ref text) => {
                     strings.push(try!(CString::new(text.clone().into_bytes())));
                 },
                 _ => (),
@@ -241,7 +241,7 @@ impl ProgramBuilder {
     /// Order of inclusion:
     /// - includes from `::get_kernel_includes()`
     /// - source from files listed in `self.src_file_names` in reverse order
-    /// - raw source from `self.embedded_kernel_source`
+    /// - core source from `self.embedded_kernel_source`
     pub fn get_src_strings(&self) -> OclResult<Vec<CString>> {
         let mut src_strings: Vec<CString> = Vec::with_capacity(64);
         let mut src_file_history: HashSet<&String> = HashSet::with_capacity(64);

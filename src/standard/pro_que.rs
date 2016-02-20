@@ -1,6 +1,6 @@
 //! A convenient wrapper for `Program` and `Queue`.
 
-use raw;
+use core;
 use standard::{Context, Kernel, WorkDims, ProgramBuilder, ProQueBuilder, Program, Queue};
 use error::{Result as OclResult, Error as OclError};
 
@@ -101,8 +101,8 @@ impl ProQue {
         self.program = Some(try!(Program::from_parts(
             try!(builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
-            self.queue.context_raw_as_ref(), 
-            &vec![self.queue.device_raw_as_ref().clone()],
+            self.queue.context_core_as_ref(), 
+            &vec![self.queue.device_core_as_ref().clone()],
         )));
 
         Ok(())
@@ -142,7 +142,7 @@ impl ProQue {
     /// Returns the maximum workgroup size supported by the device associated
     /// with this `ProQue`.
     pub fn max_work_group_size(&self) -> usize {
-        raw::get_max_work_group_size(self.queue.device_raw_as_ref())
+        core::get_max_work_group_size(self.queue.device_core_as_ref())
     }
 
     /// Returns a reference to the queue associated with this ProQue.

@@ -21,7 +21,7 @@ use num::{FromPrimitive};
 use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use raw::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
 
 
 //============================================================================
@@ -184,7 +184,7 @@ pub fn program_build_err(program: &Program, device_ids: &[DeviceId]) -> OclResul
 //============================= Platform API =================================
 //============================================================================
 
-/// Returns a list of available platforms as 'raw' objects.
+/// Returns a list of available platforms as 'core' objects.
 // TODO: Get rid of manual vec allocation now that PlatformId implements Clone.
 pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
     let mut num_platforms = 0 as cl_uint;
@@ -264,7 +264,7 @@ pub fn get_device_ids(
             // device_types_opt: Option<cl_device_type>)
             device_types: Option<DeviceType>,
             ) -> OclResult<Vec<DeviceId>> {
-    let device_types = device_types.unwrap_or(raw::DEVICE_TYPE_ALL);
+    let device_types = device_types.unwrap_or(core::DEVICE_TYPE_ALL);
     let mut devices_available: cl_uint = 0;
 
     let mut device_ids: Vec<DeviceId> = iter::repeat(unsafe { DeviceId::null() } )
@@ -365,7 +365,7 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<DeviceId>,
             pfn_notify: Option<fn()>, user_data: Option<*mut c_void>) -> OclResult<Context> {
     if device_ids.len() == 0 {
-        return OclError::err("ocl::raw::create_context: No devices specified.");
+        return OclError::err("ocl::core::create_context: No devices specified.");
     }
 
     // [DEBUG]: 
@@ -485,7 +485,7 @@ pub fn get_context_info(context: &Context, request_param: ContextInfo)
         let err_if_zero_result_size = request_param as cl_context_info == cl_h::CL_CONTEXT_DEVICES;
 
         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-            return OclError::err("\n\nocl::raw::context_info(): Possible invalid context detected. \n\
+            return OclError::err("\n\nocl::core::context_info(): Possible invalid context detected. \n\
                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
                 invalid context object. If not, please file an issue at: \n\
                 https://github.com/cogciprocate/ocl/issues.\n\n");
@@ -654,8 +654,8 @@ pub fn create_image<T: OclNum>(
     let image_ptr = unsafe { Mem::from_fresh_ptr(cl_h::clCreateImage(
         context.as_ptr(),
         flags.bits() as cl_mem_flags,
-        &format.as_raw() as *const cl_image_format,
-        &desc.as_raw() as *const cl_image_desc,
+        &format.as_core() as *const cl_image_format,
+        &desc.as_core() as *const cl_image_desc,
         data_ptr,
         &mut errcode as *mut cl_int,
     )) }; 
@@ -1012,7 +1012,7 @@ pub fn build_program(
             user_data: Option<Box<UserDataPh>>)
             -> OclResult<()> {
     assert!(pfn_notify.is_none() && user_data.is_none(),
-        "ocl::raw::build_program(): Callback functions not yet implemented.");
+        "ocl::core::build_program(): Callback functions not yet implemented.");
     // cl_h::clBuildProgram(program: cl_program,
     //                   num_devices: cl_uint,
     //                   device_list: *const cl_device_id,
@@ -1261,15 +1261,15 @@ pub fn set_kernel_arg<T: OclNum>(kernel: &Kernel, arg_index: u32, arg: KernelArg
     // println!("SET_KERNEL_ARG: KERNELARG: {:?}", arg);
 
     let (arg_size, arg_value): (size_t, *const c_void) = match arg {
-        KernelArg::Mem(mem_raw_ref) => (
+        KernelArg::Mem(mem_core_ref) => (
             mem::size_of::<cl_mem>() as size_t, 
             // (mem_obj.as_ptr() as *mut c_void) as *const c_void
-            mem_raw_ref as *const _ as *const c_void
+            mem_core_ref as *const _ as *const c_void
         ),
-        KernelArg::Sampler(smplr_raw_ref) => (
+        KernelArg::Sampler(smplr_core_ref) => (
             mem::size_of::<cl_sampler>() as size_t, 
             // (smplr.as_ptr() as *mut c_void) as *const c_void)
-            smplr_raw_ref as *const _ as *const c_void
+            smplr_core_ref as *const _ as *const c_void
         ),
         KernelArg::Scalar(scalar_ref) => (
             mem::size_of::<T>() as size_t, 
@@ -2168,8 +2168,8 @@ pub fn enqueue_barrier_with_wait_list() -> OclResult<()> {
 /// A non-NULL return value does
 /// not guarantee that an extension function is actually supported by the
 /// platform. The application must also make a corresponding query using
-/// `ocl::raw::get_platform_info(platform_raw, CL_PLATFORM_EXTENSIONS, ... )` or
-/// `ocl::raw::get_device_info(device_raw, CL_DEVICE_EXTENSIONS, ... )` 
+/// `ocl::core::get_platform_info(platform_core, CL_PLATFORM_EXTENSIONS, ... )` or
+/// `ocl::core::get_device_info(device_core, CL_DEVICE_EXTENSIONS, ... )` 
 /// to determine if an extension is supported by the OpenCL implementation.
 ///
 /// [FIXME]: Update enum names above to the wrapped types.
@@ -2362,7 +2362,7 @@ pub fn platform_name(platform: &PlatformId) -> OclResult<String> {
 ///
 /// Some (most?/all?) OpenCL implementations do not correctly error if non-context pointers are passed. This function relies on the fact that passing the `CL_CONTEXT_DEVICES` as the `param_name` to `clGetContextInfo` will (at least on my AMD implementation) often return a huge result size if `context` is not actually a `cl_context` pointer due to the fact that it's reading from some random memory location on non-context structs. Also checks for zero because a context must have at least one device (true?). Should probably choose a value lower than 10kB because it seems unlikely any result would be that big but w/e.
 ///
-/// [UPDATE]: This function may no longer be necessary now that the raw pointers have wrappers but it still prevents a hard to track down bug so leaving it intact for now.
+/// [UPDATE]: This function may no longer be necessary now that the core pointers have wrappers but it still prevents a hard to track down bug so leaving it intact for now.
 ///
 #[inline]
 pub fn verify_context(context: &Context) -> OclResult<()> {
@@ -2443,7 +2443,7 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
 //     let err_if_zero_result_size = request_param == cl_h::CL_CONTEXT_DEVICES;
 
 //     if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-//         return OclError::err("\n\nocl::raw::context_info(): Possible invalid context detected. \n\
+//         return OclError::err("\n\nocl::core::context_info(): Possible invalid context detected. \n\
 //             Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
 //             invalid context object. If not, please file an issue at: \n\
 //             https://github.com/cogciprocate/ocl/issues.\n\n");

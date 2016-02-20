@@ -1,7 +1,7 @@
 //! Enums, structs, and bitfields related to images.
 // use libc::c_void;
 use cl_h::{self, cl_mem};
-use raw::{MemObjectType, ImageChannelOrder, ImageChannelDataType};
+use core::{MemObjectType, ImageChannelOrder, ImageChannelDataType};
 
 /// Image format properties used by `Image`.
 ///
@@ -29,7 +29,7 @@ impl ImageFormat {
         }
     }
 
-    pub fn as_raw(&self) -> cl_h::cl_image_format {
+    pub fn as_core(&self) -> cl_h::cl_image_format {
         cl_h::cl_image_format {
             image_channel_order: self.channel_order as cl_h::cl_channel_order,
             image_channel_data_type: self.channel_data_type as cl_h::cl_channel_type,
@@ -101,7 +101,7 @@ impl ImageDescriptor {
         }
     }
 
-    pub fn as_raw(&self) -> cl_h::cl_image_desc {
+    pub fn as_core(&self) -> cl_h::cl_image_desc {
         cl_h::cl_image_desc {
             image_type: self.image_type as u32,
             image_width: self.image_width,

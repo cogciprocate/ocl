@@ -8,7 +8,7 @@
 extern crate ocl;
 
 use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
-use ocl::raw::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
+use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 
 const PRINT_DETAILED: bool = true;
 // Overrides above for device:
@@ -48,7 +48,7 @@ fn main() {
 			// let image = Image::new();
 			// let sampler = Sampler::new();
 			let program = Program::builder().src(SRC).build(&context).unwrap();
-			let device = program.devices_raw_as_ref()[0].clone();
+			let device = program.devices_core_as_ref()[0].clone();
 			let kernel = Kernel::new("multiply", &program, &queue, dims.work_dims()).unwrap()
 			        .arg_buf(&buffer)
 			        .arg_scl(10.0f32);

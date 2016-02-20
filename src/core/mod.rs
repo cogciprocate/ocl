@@ -1,22 +1,22 @@
-// ocl::raw::
+// ocl::core::
 
 //! Thin wrappers for the OpenCL FFI functions and types.
 //!
 //! *The layer between the metal and the soft fuzzy parts...*
 //!
-//! Allows access to OpenCL FFI functions with a minimal layer of abstraction, providing both safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces, although the 'raw' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
+//! Allows access to OpenCL FFI functions with a minimal layer of abstraction, providing both safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces, although the 'core' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
 //! 
 //! Object pointers can generally be shared between threads (except for kernel -- see the official [`clSetKernelArg`] documentation for details) [FIXME: `Send` impl's temporarily removed pending further evaluation]. 
 //!
 //! ## Even Lower Level: [`cl_h`]
 //!
-//! *Not as raw as...*
+//! *Not as core as...*
 //!
-//! If there's still something missing or for some reason you need direct FFI access, use the functions in the [`cl_h`] module. The pointers used by [`cl_h`] functions can be wrapped in [`raw`] wrappers (PlatformIdRaw, ContextRaw, etc.) and passed to [`raw`] module functions and likewise the other way around (using, for example: [`EventRaw::as_ptr`]).
+//! If there's still something missing or for some reason you need direct FFI access, use the functions in the [`cl_h`] module. The pointers used by [`cl_h`] functions can be wrapped in [`core`] wrappers (PlatformIdRaw, ContextRaw, etc.) and passed to [`core`] module functions and likewise the other way around (using, for example: [`EventRaw::as_ptr`]).
 //!
 //! # Performance
 //!
-//! Performance between all three interface layers, [`cl_h`], [`raw`], and the 'standard' types, is virtually identical for non-trival uses (if not, please file an issue).
+//! Performance between all three interface layers, [`cl_h`], [`core`], and the 'standard' types, is virtually identical for non-trival uses (if not, please file an issue).
 //!
 //! ## Safety
 //!
@@ -31,10 +31,10 @@
 //!
 //! As most of the functions here are minimally documented, please refer to the
 //! official OpenCL documentation linked below. Although there isn't an exact 
-//! 1:1 parameter mapping between the `raw` and original functions,
+//! 1:1 parameter mapping between the `core` and original functions,
 //! it's close enough to help sort out any questions you may have until a
 //! more thorough documentation pass can be made. View the source code in 
-//! [`src/raw/function.rs`] for mapping details.
+//! [`src/core/function.rs`] for mapping details.
 //!
 //! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
 //!
@@ -46,18 +46,18 @@
 //! Coverage of core stuff: 80%. <br/>
 //! Coverage of peripheral stuff: 5% - 10%. <br/>
 //!
-//! #### `raw` Stands Alone
+//! #### `core` Stands Alone
 //!	
 //! This module may eventually be moved to its own separate crate (with its dependencies `cl_h` and `error`).
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues
 //! [`cl_h`]: /ocl/cl_h/index.html
-//! [`raw`]: /ocl/raw/index.html
+//! [`core`]: /ocl/core/index.html
 //! [`Error`]: /ocl/enum.Error.html
-//! [`EventRaw::as_ptr`]: /ocl/raw/struct.EventRaw.html#method.as_ptr
+//! [`EventRaw::as_ptr`]: /ocl/core/struct.EventRaw.html#method.as_ptr
 //! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 //! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
-//! [`src/raw/function.rs`]: /src/ocl/raw/function.rs.html
+//! [`src/core/function.rs`]: /src/ocl/core/function.rs.html
 
 mod functions;
 mod cl;

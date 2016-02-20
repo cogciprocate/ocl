@@ -99,7 +99,7 @@ on your platform.
 
 #### Diving Deeper
 
-Already familiar with the standard OpenCL core API? See the [`raw`] module for
+Already familiar with the standard OpenCL core API? See the [`core`] module for
 access to the complete feature set with Rust's safety and convenience.
 
 
@@ -133,7 +133,7 @@ suprised if most driver vendors will implement the two host APIs identically.
 
 Moving forward it's possible the two may completely merge (or that Vulkan will
 absorb OpenCL). Whatever happens, not much will change as far as the front end
-of this library is concerned (though the `raw` module functions / types could
+of this library is concerned (though the `core` module functions / types could
 get some renaming, etc. but it wouldn't be for a very long time... version
 2.0...). This library will maintain it's focus on the compute side of things.
 For the graphics side, see the excellent OpenGL library, [glium], and its
@@ -156,7 +156,7 @@ by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Gro
 
 [OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
 [AMD]: https://software.intel.com/en-us/intel-opencl/download
-[`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
+[`core`]: http://docs.cogciprocate.com/ocl/core/index.html
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [glium]: https://github.com/tomaka/glium

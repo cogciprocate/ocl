@@ -11,16 +11,16 @@ Breaking Changes
 * All of the `Buffer` creation methods (such as `::new` and `::with_vec`) now
   take a reference to a `BufferDims` type for the `dims` argument instead 
   moving it.
-* `Context::device_ids` has been renamed `::device_ids_raw`.
-* Functions in the `raw` module now take references to `*Raw` types instead of
+* The `raw` module has been renamed to `core` for clarity.
+* Functions in the `core` module now take references to `*Raw` types instead of
   copying them.
 * `*Raw` types no longer implement `Copy`.
-* Many of the method names dealing with references to `raw` objects have been
+* Many of the method names dealing with references to `core` objects have been
   renamed.
 
 New Features
 ------------
-* `raw` has a considerable number of newly implemented (and unimplemented 
+* `core` has a considerable number of newly implemented (and unimplemented 
   placeholder) functions.
 * Many 'info' functions and types have been added. See the example, `info.rs`,
   for details on how to use them.

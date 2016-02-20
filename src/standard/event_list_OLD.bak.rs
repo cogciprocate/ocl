@@ -4,7 +4,7 @@
 use libc::c_void;
 
 use standard::Event;
-use raw;
+use core;
 use cl_h::{self, cl_event};
 
 const EXTRA_CAPACITY: usize = 16;
@@ -89,8 +89,8 @@ impl EventList {
     //     &mut self.events[..]
     // }
 
-    // pub fn events_raw(&self) -> Vec<EventRaw> {
-    //     self.events().iter().map(|ref event| event.as_raw()).collect()
+    // pub fn events_core(&self) -> Vec<EventCore> {
+    //     self.events().iter().map(|ref event| event.as_core()).collect()
     // }
 
     /// Returns a const pointer to the list, useful for passing directly to the c ffi.
@@ -108,8 +108,8 @@ impl EventList {
     /// Waits for all events in list to complete.
     pub fn wait(&self) {
         if self.events.len() > 0 {
-            // let events_raw = self.events_raw();
-            raw::wait_for_events(self.count(), &self.events);
+            // let events_core = self.events_core();
+            core::wait_for_events(self.count(), &self.events);
         }
     }
 
@@ -148,11 +148,11 @@ impl EventList {
                 user_data: &mut T,
             )
     {
-        // let events_raw = self.events_raw();
+        // let events_core = self.events_core();
 
         if self.events.len() > 0 {
-            raw::set_event_callback(
-                self.events.last().unwrap().as_raw(), 
+            core::set_event_callback(
+                self.events.last().unwrap().as_core(), 
                 cl_h::CL_COMPLETE, 
                 callback_receiver,
                 user_data as *mut _ as *mut c_void,
@@ -166,7 +166,7 @@ impl EventList {
     //      )
     // {
     //  if self.events.len() > 0 {
-    //      raw::set_event_callback(
+    //      core::set_event_callback(
     //          self.events[self.events.len() - 1], 
     //          CL_COMPLETE, 
     //          callback_receiver,
@@ -202,7 +202,7 @@ impl EventList {
         let mut idx = 0;
 
         for event in self.events.iter() {
-            if raw::get_event_status((*event).as_raw()) == cl_h::CL_COMPLETE {
+            if core::get_event_status((*event).as_core()) == cl_h::CL_COMPLETE {
                 ce_idxs.push(idx)
             }
 
@@ -214,7 +214,7 @@ impl EventList {
             
             // let ev = self.events.remove(idx);
             // Release?
-            // raw::release_event(ev);
+            // core::release_event(ev);
         }
 
         if AUTO_CLEAR {
@@ -229,7 +229,7 @@ impl EventList {
     // /// and no other commands are waiting for them to complete.
     // pub unsafe fn release_all(&mut self) {
     //     for event in &mut self.events {
-    //         raw::release_event(event.as_raw()).unwrap();
+    //         core::release_event(event.as_core()).unwrap();
     //     }
 
     //     self.clear();
