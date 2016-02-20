@@ -40,6 +40,8 @@ pub struct Context {
 impl Context {
     /// Constructs a new `Context` within a specified platform and set of device types.
     /// 
+    ///
+    ///
     /// The desired platform may be specified by passing a valid index from a list 
     /// obtainable from the ocl::get_platform_ids() function and wrapping it with a 
     /// Some (ex. `Some(2)`). Pass `None` to use the first platform available (0). 
@@ -147,6 +149,12 @@ impl Context {
             obj_raw: obj_raw,
         })
     }
+
+    pub fn from_specifics() {
+
+    }
+
+
 
     /// Resolves the zero-based device index into a DeviceIdRaw (pointer).
     pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdRaw> {
