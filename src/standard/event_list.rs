@@ -105,7 +105,7 @@ impl EventList {
     pub fn wait(&self) {
         if self.event_list_core.len() > 0 {
             // let event_list_core = self.event_list_core();
-            core::wait_for_events(self.count(), &self.event_list_core);
+            core::wait_for_events(self.event_list_core.count(), &self.event_list_core);
         }
     }
 
