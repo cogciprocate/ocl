@@ -1,4 +1,4 @@
-Version 0.6.0 (UNRELEASED)
+Version 0.6.0 (2016-02-20)
 ==========================
 
 Breaking Changes
@@ -28,8 +28,6 @@ New Features
   between threads (with the exception of `Kernel`, for good reason) and are
   reference counted automatically in coordination with the API to ensure safe
   and leak-free destruction.
-
-* [FIXME]: PLATFORM
 
 
 [0.6doc]: http://doc.cogciprocate.com/ocl/
