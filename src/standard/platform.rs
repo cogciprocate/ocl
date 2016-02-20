@@ -99,7 +99,7 @@ impl Platform {
 		}
 	}
 
-	/// Returns the underlying `PlatformIdCore`.
+	/// Returns a reference to the underlying `PlatformIdCore`.
 	pub fn as_core(&self) -> &PlatformIdCore {
 		&self.0
 	}

@@ -12,20 +12,15 @@ use standard::{ProgramBuilder, Context};
 ///
 /// # Destruction
 ///
-/// `::release` must be manually called by consumer (temporary).
-///
-/// [FIXME]: Destruction
+/// Handled automatically. Feel free to store, clone, and share among threads
+/// as you please.
 ///
 #[derive(Clone, Debug)]
 pub struct Program {
     obj_core: ProgramCore,
-    // context_obj_core: ContextCore,
-    // device_ids: Vec<DeviceIdCore>,
     devices_ids_core: Vec<DeviceIdCore>,
 }
 
-
-// [TODO]: ERROR HANDLING
 impl Program {
     /// Returns a new `ProgramBuilder`.
     pub fn builder() -> ProgramBuilder {
@@ -73,17 +68,4 @@ impl Program {
     pub fn devices_core_as_ref(&self) -> &[DeviceIdCore] {
         &self.devices_ids_core
     }
-
-    // /// Decrements the associated OpenCL program object's reference count.
-    // // [NOTE]: Do not move this to a Drop impl in case this Program has been cloned.
-    // pub fn release(&mut self) {
-    //     core::release_program(self.obj_core).unwrap();
-    // }
 }
-
-// impl Drop for Program {
-//     fn drop(&mut self) {
-//         // println!("DROPPING PROGRAM");
-//         core::release_program(self.obj_core).unwrap();
-//     }
-// }

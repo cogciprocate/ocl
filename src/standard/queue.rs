@@ -1,6 +1,4 @@
 //! An OpenCL command queue.
-// use std::mem;
-// use std::ptr;
 
 use core::{self, CommandQueue as CommandQueueCore, DeviceId as DeviceIdCore, Context as ContextCore};
 use super::Context;
@@ -71,16 +69,5 @@ impl Queue {
     pub fn device_core_as_ref(&self) -> &DeviceIdCore {
         &self.device_id_core
     }
-
-    // /// Decrements the reference counter of the associated OpenCL command queue object.
-    // pub fn release(&mut self) {
-    //     core::release_command_queue(self.obj_core).unwrap();
-    // }
 }
 
-// impl Drop for Queue {
-//     fn drop(&mut self) {
-//         // println!("DROPPING COMMAND QUEUE");
-//         core::release_command_queue(&self.obj_core).unwrap();
-//     }
-// }

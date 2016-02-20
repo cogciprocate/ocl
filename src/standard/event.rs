@@ -10,7 +10,7 @@ use standard;
 // use util;
 
 
-/// An event representing a command.
+/// An event representing a command or user created event.
 #[derive(Clone, Debug)]
 pub struct Event(EventCore);
 

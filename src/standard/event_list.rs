@@ -15,7 +15,7 @@ use core::{self, EventCallbackFn, EventList as EventListCore, CommandExecutionSt
 /// created them. Used to coordinate the activity of multiple commands with
 /// more fine-grained control than the queue alone.
 ///
-/// For access to individual events use `get_clone` and `clone_last` then
+/// For access to individual events use `get_clone` and `last_clone` then
 /// either store or discard the result.
 ///
 // [FIXME] TODO: impl Index.
@@ -43,7 +43,7 @@ impl EventList {
     //     self.events.last_mut().unwrap()
     // }
 
-    /// Clones an event by index.
+    /// Returns a new copy of an event by index.
     pub fn get_clone(&self, index: usize) -> Option<Event> {
         match self.event_list_core.get_clone(index) {
             Some(ev_res) => {
@@ -56,7 +56,7 @@ impl EventList {
         }
     }
 
-    /// Returns a new clone of the last event in the list.
+    /// Returns a copy of the last event in the list.
     pub fn last_clone(&self) -> Option<Event> {
         match self.event_list_core.last_clone() {
             Some(ev_res) => {
@@ -69,18 +69,12 @@ impl EventList {
         }
     }
 
-    /// Returns 
-
-    // /// Returns a mutable reference to the last event in the list.
-    // // #[inline]
-    // pub fn last_mut(&mut self) -> Option<&mut Event> {
-    //     self.events.last_mut()
-    // }
-
+    // Returns a reference to the underlying `core` event list.
     pub fn core_as_ref(&self) -> &EventListCore {
         &self.event_list_core
     }
 
+    // Returns a mutableb reference to the underlying `core` event list.
     pub fn core_as_mut(&mut self) -> &mut EventListCore {
         &mut self.event_list_core
     }
@@ -187,8 +181,8 @@ impl EventList {
     // }
 
     /// Returns the number of events in the list.
-    pub fn count(&self) -> u32 {
-        self.event_list_core.count()
+    pub fn len(&self) -> usize {
+        self.event_list_core.len()
     }
 
     // /// Clears this list regardless of whether or not its events have completed.

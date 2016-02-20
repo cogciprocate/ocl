@@ -1,10 +1,7 @@
 //! An OpenCL context.
 
-
 // TEMPORARY:
 #![allow(dead_code)]
-
-
 
 // use formatting::MT;
 use std;
@@ -24,8 +21,6 @@ pub enum DeviceSpecifier {
 
 
 /// A context for a particular platform and set of device types.
-///
-/// Wraps a `ContextCore` such as that returned by `core::create_context`.
 ///
 /// # Destruction
 /// `::release()` must be manually called by consumer.
@@ -231,13 +226,6 @@ impl Context {
         &self.platform_id_core
     }  
 }
-
-// impl Drop for Context {
-//     fn drop(&mut self) {
-//         // println!("DROPPING CONTEXT");
-//         unsafe { core::release_context(&mut self.obj_core); }
-//     }
-// }
 
 impl std::fmt::Display for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

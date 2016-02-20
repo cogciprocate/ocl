@@ -13,7 +13,7 @@ use standard::{Context, Program};
 
 /// A build option.
 ///
-/// `String`s intended for use either by the compiler as a command line switch
+/// Strings intended for use either by the compiler as a command line switch
 /// or for inclusion in the final build source code.
 ///
 /// A few of the often used variants have constructors for convenience.
@@ -76,7 +76,6 @@ impl ProgramBuilder {
     }
 
     /// Returns a newly built Program.
-    // [FIXME]: Don't map errors to strings, feed directly to OclError:
     pub fn build(&self, context: &Context) -> OclResult<Program> {
         Program::from_parts(
             try!(self.get_src_strings().map_err(|e| e.to_string())), 
@@ -101,14 +100,12 @@ impl ProgramBuilder {
 
     /// Pushes pre-created build option to the list.
     pub fn bo<'p>(&'p mut self, bo: BuildOpt) -> &'p mut ProgramBuilder {
-        // self.add_bo(bo);
         self.options.push(bo);
         self
     }
 
     /// Adds a kernel file to the list of included sources.
     pub fn src_file<'p, S: Into<String>>(&'p mut self, file_name: S) -> &'p mut ProgramBuilder {
-        // self.add_src_file(file_name.to_string());
         self.src_file_names.push(file_name.into());
         self
     }   
@@ -124,6 +121,7 @@ impl ProgramBuilder {
     /// zero-based device indexes.
     ///
     /// # Example
+    ///
     /// If your system has 4 OpenGL devices and you want to include them all:
     /// ```
     /// let program = program::builder()
@@ -131,6 +129,8 @@ impl ProgramBuilder {
     ///     .device_idxs(vec![0, 1, 2, 3])
     ///     .build(context);
     /// ```
+    /// Out of range device indexes will simply round-robin around to 0 and
+    /// count up again (modulo).
     pub fn device_idxs<'p>(&'p mut self, device_idxs: Vec<usize>) -> &'p mut ProgramBuilder {
         self.device_idxs.extend_from_slice(&device_idxs);
         self
@@ -252,71 +252,18 @@ impl ProgramBuilder {
             let mut src_str: Vec<u8> = Vec::with_capacity(100000);
 
             if src_file_history.contains(kfn) { continue; }
-
             src_file_history.insert(&kfn);
 
             let valid_kfp = Path::new(kfn);
-
-            // let mut src_file = match File::open(&valid_kfp) {
-            //  Err(why) => return Err(format!("Couldn't open '{}': {}", 
-            //      kfn, Error::description(&why))),
-            //  Ok(file) => file,
-            // };
-
             let mut src_file = try!(File::open(&valid_kfp));
 
-            // match src_file.read_to_end(&mut src_str) {
-      //        Err(why) => return Err(format!("Couldn't read '{}': {}", 
-      //            kfn, Error::description(&why))),
-            //     Ok(_) => (), //println!("{}OCL::BUILD(): parsing {}: {} bytes read.", MT, &file_name, bytes),
-            // }
-
             try!(src_file.read_to_end(&mut src_str));
-
             src_str.shrink_to_fit();
-
             src_strings.push(try!(CString::new(src_str)));
         }
 
-        // for elem in self.embedded_kernel_source.iter() {
-        //  src_strings.push(try!(CString::new(elem.clone().into_bytes()).map_err(|e| e.to_string())));
-        // }
         src_strings.extend_from_slice(&try!(self.get_kernel_includes_eof()));
 
         Ok(src_strings)
     }
 }
-
-
-
-// pub struct BuildOption {
-//  name: &'static str,
-//  val: String,
-//  is_kern_header: bool,
-// }
-
-// impl BuildOption {
-//  pub fn new(name: &'static str, val: i32) -> BuildOption {
-//      BuildOption {
-//          name: name,
-//          val: val.to_string(),
-//          is_kern_header: false,
-//      }
-//  }
-
-//  pub fn with_str_val(name: &'static str, val: String) -> BuildOption {
-//      BuildOption {
-//          name: name,
-//          val: val,
-//          is_kern_header: true,
-//      }
-//  }
-
-//  pub fn to_preprocessor_option_string(&self) -> String {
-//      format!(" -D{}={}", self.name, self.val)
-//  }
-
-//  pub fn to_define_directive_string(&self) -> String {
-//      format!("#define {}  {}\n", self.name, self.val)
-//  }
-// }

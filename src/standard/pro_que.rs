@@ -21,9 +21,8 @@ use error::{Result as OclResult, Error as OclError};
 ///
 /// # Destruction
 ///
-/// `::release` must currently be called manually by consumer (this is temporary).
-///
-/// [FIXME]: Finish implementing new destruction sequence.
+/// Handled automatically. Freely use, store, clone, discard, share among 
+/// threads... put some on your toast... whatever.
 ///
 #[derive(Clone, Debug)]
 pub struct ProQue {
@@ -159,14 +158,4 @@ impl ProQue {
     pub fn program(&self) -> &Option<Program> {
         &self.program
     }
-
-    // /// Releases all components.
-    // pub fn release(&mut self) {     
-    //     // self.queue.release();
-    //     // self.clear_build();
-
-    //     if let Some(ref mut context) = self.context {
-    //         context.release();
-    //     }
-    // }
 }

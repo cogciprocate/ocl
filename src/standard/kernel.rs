@@ -9,6 +9,7 @@ use standard::{WorkDims, Buffer, EventList, Program, Queue};
 /// A kernel.
 ///
 /// # Destruction
+/// 
 /// Releases kernel object automatically upon drop.
 ///
 /// # Thread Safety
