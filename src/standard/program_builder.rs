@@ -21,6 +21,7 @@ use standard::{Context, Program};
 /// [FIXME] TODO: Explain how each variant is used.
 ///
 /// [FIXME] TODO: Examples.
+#[derive(Clone, Debug)]
 pub enum BuildOpt {
     CmplrDefine { ident: String, val: String },
     CmplrInclDir { path: String },
@@ -55,6 +56,7 @@ impl BuildOpt {
 
 
 /// A builder for `Program`.
+#[derive(Clone, Debug)]
 pub struct ProgramBuilder {
     options: Vec<BuildOpt>,
     src_file_names: Vec<String>,
@@ -79,7 +81,7 @@ impl ProgramBuilder {
         Program::from_parts(
             try!(self.get_src_strings().map_err(|e| e.to_string())), 
             try!(self.get_compiler_options().map_err(|e| e.to_string())), 
-            context.obj_raw(), 
+            context.raw_as_ref(), 
             &context.resolve_device_idxs(&self.device_idxs))
     }
 

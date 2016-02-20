@@ -9,8 +9,9 @@ use raw::{self, /*EventPtr,*/ Event as EventRaw, EventInfo, EventInfoResult, Pro
 use standard;
 // use util;
 
-#[derive(Clone, Debug)]
+
 /// An event representing a command.
+#[derive(Clone, Debug)]
 pub struct Event(EventRaw);
 
 impl Event {
@@ -19,18 +20,18 @@ impl Event {
 	/// ### Safety 
 	///
 	/// Not meant to be called directly by consumers.
-	pub unsafe fn from_event_raw(event_raw: EventRaw) -> Event {
+	pub fn from_event_raw(event_raw: EventRaw) -> Event {
 		Event(event_raw)
 	}
 
-	/// Creates a new null `Event`.
-	///
-	/// ### Safety 
-	///
-	/// Don't use unless you know what you're doing.
-	pub unsafe fn new_null() -> Event {
-		Event(EventRaw::null())
-	}
+	// /// Creates a new null `Event`.
+	// ///
+	// /// ### Safety 
+	// ///
+	// /// Don't use unless you know what you're doing.
+	// pub unsafe fn new_null() -> Event {
+	// 	Event(EventRaw::null())
+	// }
 
 	/// Returns info about the event. 
 	pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
@@ -54,12 +55,12 @@ impl Event {
 	}
 
 	/// Returns the underlying `EventRaw`.
-	pub fn as_raw_ref(&self) -> &EventRaw {
+	pub fn raw_as_ref(&self) -> &EventRaw {
 		&self.0
 	}
 
 	/// Returns the underlying `EventRaw`.
-	pub fn as_raw_mut(&mut self) -> &mut EventRaw {
+	pub fn raw_as_mut(&mut self) -> &mut EventRaw {
 		&mut self.0
 	}
 }

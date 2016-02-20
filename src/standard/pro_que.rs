@@ -25,6 +25,7 @@ use error::{Result as OclResult, Error as OclError};
 ///
 /// [FIXME]: Finish implementing new destruction sequence.
 ///
+#[derive(Clone, Debug)]
 pub struct ProQue {
     context: Option<Context>,
     queue: Queue,
@@ -100,8 +101,8 @@ impl ProQue {
         self.program = Some(try!(Program::from_parts(
             try!(builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
-            self.queue.context_obj_raw(), 
-            &vec![self.queue.device_id_raw().clone()],
+            self.queue.context_raw_as_ref(), 
+            &vec![self.queue.device_raw_as_ref().clone()],
         )));
 
         Ok(())
@@ -141,7 +142,7 @@ impl ProQue {
     /// Returns the maximum workgroup size supported by the device associated
     /// with this `ProQue`.
     pub fn max_work_group_size(&self) -> usize {
-        raw::get_max_work_group_size(self.queue.device_id_raw())
+        raw::get_max_work_group_size(self.queue.device_raw_as_ref())
     }
 
     /// Returns a reference to the queue associated with this ProQue.

@@ -22,14 +22,14 @@ fn main() {
 	// let image = Image::new();
 	// let sampler = Sampler::new();
 	let program = Program::builder().src(SRC).build(&context).unwrap();
-	let device = program.device_ids_raw()[0].clone();
+	let device = program.devices_raw_as_ref()[0].clone();
 	let kernel = Kernel::new("multiply", &program, &queue, dims.work_dims()).unwrap()
         .arg_scl(10.0f32)
         .arg_buf(&buffer);
     let mut event_list = EventList::new();
 
     kernel.enqueue(None, Some(&mut event_list));
-    let event = event_list.clone_last().unwrap();
+    let event = event_list.last_clone().unwrap();
     event_list.wait();
 
 	println!("############### OpenCL [Default Platform] [Default Device] Info ################");
@@ -46,11 +46,11 @@ fn main() {
 			{t}Vendor: {}\n\
 			{t}Extensions: {}\n\
 		",
-		raw::get_platform_info(context.platform_id_raw(), PlatformInfo::Profile).unwrap(),
-		raw::get_platform_info(context.platform_id_raw(), PlatformInfo::Version).unwrap(),
-		raw::get_platform_info(context.platform_id_raw(), PlatformInfo::Name).unwrap(),
-		raw::get_platform_info(context.platform_id_raw(), PlatformInfo::Vendor).unwrap(),
-		raw::get_platform_info(context.platform_id_raw(), PlatformInfo::Extensions).unwrap(),
+		raw::get_platform_info(context.platform_raw_as_ref(), PlatformInfo::Profile).unwrap(),
+		raw::get_platform_info(context.platform_raw_as_ref(), PlatformInfo::Version).unwrap(),
+		raw::get_platform_info(context.platform_raw_as_ref(), PlatformInfo::Name).unwrap(),
+		raw::get_platform_info(context.platform_raw_as_ref(), PlatformInfo::Vendor).unwrap(),
+		raw::get_platform_info(context.platform_raw_as_ref(), PlatformInfo::Extensions).unwrap(),
 		t = util::TAB,
 	);
 
@@ -62,7 +62,7 @@ fn main() {
     // [FIXME]: Implement `Display`/`Debug` for all variants of `DeviceInfoResult`.
     // Printing algorithm is highly janky (due to laziness).
 
-    for device in context.device_ids_raw().iter() {
+    for device in context.devices_raw_as_ref().iter() {
 	    println!("Device:\n\
 				{t}DeviceInfo::Type: {}\n\
 				{t}DeviceInfo::VendorId: {}\n\
@@ -232,10 +232,10 @@ fn main() {
 			{t}Properties: {}\n\
 			{t}Device Count: {}\n\
 		",
-		raw::get_context_info(context.obj_raw(), ContextInfo::ReferenceCount).unwrap(),
-		raw::get_context_info(context.obj_raw(), ContextInfo::Devices).unwrap(),
-		raw::get_context_info(context.obj_raw(), ContextInfo::Properties).unwrap(),
-		raw::get_context_info(context.obj_raw(), ContextInfo::NumDevices).unwrap(),
+		raw::get_context_info(context.raw_as_ref(), ContextInfo::ReferenceCount).unwrap(),
+		raw::get_context_info(context.raw_as_ref(), ContextInfo::Devices).unwrap(),
+		raw::get_context_info(context.raw_as_ref(), ContextInfo::Properties).unwrap(),
+		raw::get_context_info(context.raw_as_ref(), ContextInfo::NumDevices).unwrap(),
 		t = util::TAB,
 	);
 
@@ -251,10 +251,10 @@ fn main() {
 			{t}ReferenceCount: {}\n\
 			{t}Properties: {}\n\
 		",
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Context).unwrap(),
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Device).unwrap(),
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::ReferenceCount).unwrap(),
-		raw::get_command_queue_info(queue.obj_raw(), CommandQueueInfo::Properties).unwrap(),
+		raw::get_command_queue_info(queue.raw_as_ref(), CommandQueueInfo::Context).unwrap(),
+		raw::get_command_queue_info(queue.raw_as_ref(), CommandQueueInfo::Device).unwrap(),
+		raw::get_command_queue_info(queue.raw_as_ref(), CommandQueueInfo::ReferenceCount).unwrap(),
+		raw::get_command_queue_info(queue.raw_as_ref(), CommandQueueInfo::Properties).unwrap(),
 		t = util::TAB,
 	);
 
@@ -288,15 +288,15 @@ fn main() {
 	        {t}AssociatedMemobject: {}\n\
 	        {t}Offset: {}\n\
 		",
-		raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Type).unwrap(),
-	    raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Flags).unwrap(),
-        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Size).unwrap(),
-        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::HostPtr).unwrap(),
-        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::MapCount).unwrap(),
-        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::ReferenceCount).unwrap(),
-        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Context).unwrap(),
-        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::AssociatedMemobject).unwrap(),
-        raw::get_mem_object_info(buffer.obj_raw(), MemInfo::Offset).unwrap(),
+		raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::Type).unwrap(),
+	    raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::Flags).unwrap(),
+        raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::Size).unwrap(),
+        raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::HostPtr).unwrap(),
+        raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::MapCount).unwrap(),
+        raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::ReferenceCount).unwrap(),
+        raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::Context).unwrap(),
+        raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::AssociatedMemobject).unwrap(),
+        raw::get_mem_object_info(buffer.raw_as_ref(), MemInfo::Offset).unwrap(),
 		t = util::TAB,
 	);
 
@@ -333,17 +333,17 @@ fn main() {
  //            {t}NumMipLevels: {}\n\
  //            {t}NumSamples: {}\n\
 	// 	",
-	// 	raw::get_image_info(image.obj_raw(), ImageInfo::Format).unwrap(),
-	//     raw::get_image_info(image.obj_raw(), ImageInfo::ElementSize).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::RowPitch).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::SlicePitch).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::Width).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::Height).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::Depth).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::ArraySize).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::Buffer).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::NumMipLevels).unwrap(),
- //        raw::get_image_info(image.obj_raw(), ImageInfo::NumSamples).unwrap(),
+	// 	raw::get_image_info(image.raw_as_ref(), ImageInfo::Format).unwrap(),
+	//     raw::get_image_info(image.raw_as_ref(), ImageInfo::ElementSize).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::RowPitch).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::SlicePitch).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::Width).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::Height).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::Depth).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::ArraySize).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::Buffer).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::NumMipLevels).unwrap(),
+ //        raw::get_image_info(image.raw_as_ref(), ImageInfo::NumSamples).unwrap(),
 	// 	t = util::TAB,
 	// );
 
@@ -367,11 +367,11 @@ fn main() {
  //            {t}AddressingMode: {}\n\
  //            {t}FilterMode: {}\n\
 	// 	",
-	// 	raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::ReferenceCount).unwrap(),
- //        raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::Context).unwrap(),
- //        raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::NormalizedCoords).unwrap(),
- //        raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::AddressingMode).unwrap(),
- //        raw::get_sampler_info(sampler.obj_raw(), SamplerInfo::FilterMode).unwrap(),
+	// 	raw::get_sampler_info(sampler.raw_as_ref(), SamplerInfo::ReferenceCount).unwrap(),
+ //        raw::get_sampler_info(sampler.raw_as_ref(), SamplerInfo::Context).unwrap(),
+ //        raw::get_sampler_info(sampler.raw_as_ref(), SamplerInfo::NormalizedCoords).unwrap(),
+ //        raw::get_sampler_info(sampler.raw_as_ref(), SamplerInfo::AddressingMode).unwrap(),
+ //        raw::get_sampler_info(sampler.raw_as_ref(), SamplerInfo::FilterMode).unwrap(),
 	// 	t = util::TAB,
 	// );
 
@@ -403,15 +403,15 @@ fn main() {
             {t}NumKernels: {}\n\
             {t}KernelNames: {}\n\
 		",
-		raw::get_program_info(program.obj_raw(), ProgramInfo::ReferenceCount).unwrap(),
-        raw::get_program_info(program.obj_raw(), ProgramInfo::Context).unwrap(),
-        raw::get_program_info(program.obj_raw(), ProgramInfo::NumDevices).unwrap(),
-        raw::get_program_info(program.obj_raw(), ProgramInfo::Devices).unwrap(),
-        raw::get_program_info(program.obj_raw(), ProgramInfo::Source).unwrap(),
-        raw::get_program_info(program.obj_raw(), ProgramInfo::BinarySizes).unwrap(),
-        raw::get_program_info(program.obj_raw(), ProgramInfo::Binaries).unwrap(),
-        raw::get_program_info(program.obj_raw(), ProgramInfo::NumKernels).unwrap(),
-        raw::get_program_info(program.obj_raw(), ProgramInfo::KernelNames).unwrap(),
+		raw::get_program_info(program.raw_as_ref(), ProgramInfo::ReferenceCount).unwrap(),
+        raw::get_program_info(program.raw_as_ref(), ProgramInfo::Context).unwrap(),
+        raw::get_program_info(program.raw_as_ref(), ProgramInfo::NumDevices).unwrap(),
+        raw::get_program_info(program.raw_as_ref(), ProgramInfo::Devices).unwrap(),
+        raw::get_program_info(program.raw_as_ref(), ProgramInfo::Source).unwrap(),
+        raw::get_program_info(program.raw_as_ref(), ProgramInfo::BinarySizes).unwrap(),
+        raw::get_program_info(program.raw_as_ref(), ProgramInfo::Binaries).unwrap(),
+        raw::get_program_info(program.raw_as_ref(), ProgramInfo::NumKernels).unwrap(),
+        raw::get_program_info(program.raw_as_ref(), ProgramInfo::KernelNames).unwrap(),
 		t = util::TAB,
 	);
 
@@ -433,10 +433,10 @@ fn main() {
             {t}BuildLog: {}\n\
             {t}BinaryType: {}\n\
 		",
-		raw::get_program_build_info(program.obj_raw(), &device, ProgramBuildInfo::BuildStatus).unwrap(),
-        raw::get_program_build_info(program.obj_raw(), &device, ProgramBuildInfo::BuildOptions).unwrap(),
-        raw::get_program_build_info(program.obj_raw(), &device, ProgramBuildInfo::BuildLog).unwrap(),
-        raw::get_program_build_info(program.obj_raw(), &device, ProgramBuildInfo::BinaryType).unwrap(),
+		raw::get_program_build_info(program.raw_as_ref(), &device, ProgramBuildInfo::BuildStatus).unwrap(),
+        raw::get_program_build_info(program.raw_as_ref(), &device, ProgramBuildInfo::BuildOptions).unwrap(),
+        raw::get_program_build_info(program.raw_as_ref(), &device, ProgramBuildInfo::BuildLog).unwrap(),
+        raw::get_program_build_info(program.raw_as_ref(), &device, ProgramBuildInfo::BinaryType).unwrap(),
 		t = util::TAB,
 	);
 
@@ -462,12 +462,12 @@ fn main() {
             {t}Program: {}\n\
             {t}Attributes: {}\n\
 		",
-		raw::get_kernel_info(kernel.obj_raw(), KernelInfo::FunctionName).unwrap(),
-	    raw::get_kernel_info(kernel.obj_raw(), KernelInfo::NumArgs).unwrap(),
-        raw::get_kernel_info(kernel.obj_raw(), KernelInfo::ReferenceCount).unwrap(),
-        raw::get_kernel_info(kernel.obj_raw(), KernelInfo::Context).unwrap(),
-        raw::get_kernel_info(kernel.obj_raw(), KernelInfo::Program).unwrap(),
-        raw::get_kernel_info(kernel.obj_raw(), KernelInfo::Attributes).unwrap(),
+		raw::get_kernel_info(kernel.raw_as_ref(), KernelInfo::FunctionName).unwrap(),
+	    raw::get_kernel_info(kernel.raw_as_ref(), KernelInfo::NumArgs).unwrap(),
+        raw::get_kernel_info(kernel.raw_as_ref(), KernelInfo::ReferenceCount).unwrap(),
+        raw::get_kernel_info(kernel.raw_as_ref(), KernelInfo::Context).unwrap(),
+        raw::get_kernel_info(kernel.raw_as_ref(), KernelInfo::Program).unwrap(),
+        raw::get_kernel_info(kernel.raw_as_ref(), KernelInfo::Attributes).unwrap(),
 		t = util::TAB,
 	);
 
@@ -491,11 +491,11 @@ fn main() {
             {t}TypeQualifier: {}\n\
             {t}Name: {}\n\
 		",
-		raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::AddressQualifier).unwrap(),
-        raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::AccessQualifier).unwrap(),
-        raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::TypeName).unwrap(),
-        raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::TypeQualifier).unwrap(),
-        raw::get_kernel_arg_info(kernel.obj_raw(), 0, KernelArgInfo::Name).unwrap(),
+		raw::get_kernel_arg_info(kernel.raw_as_ref(), 0, KernelArgInfo::AddressQualifier).unwrap(),
+        raw::get_kernel_arg_info(kernel.raw_as_ref(), 0, KernelArgInfo::AccessQualifier).unwrap(),
+        raw::get_kernel_arg_info(kernel.raw_as_ref(), 0, KernelArgInfo::TypeName).unwrap(),
+        raw::get_kernel_arg_info(kernel.raw_as_ref(), 0, KernelArgInfo::TypeQualifier).unwrap(),
+        raw::get_kernel_arg_info(kernel.raw_as_ref(), 0, KernelArgInfo::Name).unwrap(),
 		t = util::TAB,
 	);
 
@@ -521,17 +521,17 @@ fn main() {
             {t}PrivateMemSize: {}\n\
             {t}GlobalWorkSize: {}\n\
 		",
-		raw::get_kernel_work_group_info(kernel.obj_raw(), &device, 
+		raw::get_kernel_work_group_info(kernel.raw_as_ref(), &device, 
 			KernelWorkGroupInfo::WorkGroupSize).unwrap(),
-	    raw::get_kernel_work_group_info(kernel.obj_raw(), &device, 
+	    raw::get_kernel_work_group_info(kernel.raw_as_ref(), &device, 
 	    	KernelWorkGroupInfo::CompileWorkGroupSize).unwrap(),
-        raw::get_kernel_work_group_info(kernel.obj_raw(), &device, 
+        raw::get_kernel_work_group_info(kernel.raw_as_ref(), &device, 
         	KernelWorkGroupInfo::LocalMemSize).unwrap(),
-        raw::get_kernel_work_group_info(kernel.obj_raw(), &device, 
+        raw::get_kernel_work_group_info(kernel.raw_as_ref(), &device, 
         	KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple).unwrap(),
-        raw::get_kernel_work_group_info(kernel.obj_raw(), &device, 
+        raw::get_kernel_work_group_info(kernel.raw_as_ref(), &device, 
         	KernelWorkGroupInfo::PrivateMemSize).unwrap(),
-        // raw::get_kernel_work_group_info(kernel.obj_raw(), &device, 
+        // raw::get_kernel_work_group_info(kernel.raw_as_ref(), &device, 
         // 	KernelWorkGroupInfo::GlobalWorkSize).unwrap(),
     	"[KernelWorkGroupInfo::GlobalWorkSize not avaliable in this configuration]",
 		t = util::TAB,
@@ -557,11 +557,11 @@ fn main() {
             {t}CommandExecutionStatus: {}\n\
             {t}Context: {}\n\
 		",
-		raw::get_event_info(event.as_raw_ref(), EventInfo::CommandQueue).unwrap(),
-        raw::get_event_info(event.as_raw_ref(), EventInfo::CommandType).unwrap(),
-        raw::get_event_info(event.as_raw_ref(), EventInfo::ReferenceCount).unwrap(),
-        raw::get_event_info(event.as_raw_ref(), EventInfo::CommandExecutionStatus).unwrap(),
-        raw::get_event_info(event.as_raw_ref(), EventInfo::Context).unwrap(),
+		raw::get_event_info(event.raw_as_ref(), EventInfo::CommandQueue).unwrap(),
+        raw::get_event_info(event.raw_as_ref(), EventInfo::CommandType).unwrap(),
+        raw::get_event_info(event.raw_as_ref(), EventInfo::ReferenceCount).unwrap(),
+        raw::get_event_info(event.raw_as_ref(), EventInfo::CommandExecutionStatus).unwrap(),
+        raw::get_event_info(event.raw_as_ref(), EventInfo::Context).unwrap(),
 		t = util::TAB,
 	);
 
@@ -583,10 +583,10 @@ fn main() {
 	    	{t}Start: {}\n\
 	    	{t}End: {}\n\
 		",
-		raw::get_event_profiling_info(event.as_raw_ref(), ProfilingInfo::Queued).unwrap(),
-        raw::get_event_profiling_info(event.as_raw_ref(), ProfilingInfo::Submit).unwrap(),
-        raw::get_event_profiling_info(event.as_raw_ref(), ProfilingInfo::Start).unwrap(),
-        raw::get_event_profiling_info(event.as_raw_ref(), ProfilingInfo::End).unwrap(),
+		raw::get_event_profiling_info(event.raw_as_ref(), ProfilingInfo::Queued).unwrap(),
+        raw::get_event_profiling_info(event.raw_as_ref(), ProfilingInfo::Submit).unwrap(),
+        raw::get_event_profiling_info(event.raw_as_ref(), ProfilingInfo::Start).unwrap(),
+        raw::get_event_profiling_info(event.raw_as_ref(), ProfilingInfo::End).unwrap(),
 		t = util::TAB,
 	);
 

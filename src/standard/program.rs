@@ -16,6 +16,7 @@ use standard::{ProgramBuilder, Context};
 ///
 /// [FIXME]: Destruction
 ///
+#[derive(Clone, Debug)]
 pub struct Program {
     obj_raw: ProgramRaw,
     // context_obj_raw: ContextRaw,
@@ -40,7 +41,7 @@ impl Program {
         Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
-            context.obj_raw(), 
+            context.raw_as_ref(), 
             &device_ids)
     }
 
@@ -65,11 +66,11 @@ impl Program {
     }
 
     /// Returns the associated OpenCL program object.
-    pub fn obj_raw(&self) -> &ProgramRaw {
+    pub fn raw_as_ref(&self) -> &ProgramRaw {
         &self.obj_raw
     }
 
-    pub fn device_ids_raw(&self) -> &[DeviceIdRaw] {
+    pub fn devices_raw_as_ref(&self) -> &[DeviceIdRaw] {
         &self.devices_ids_raw
     }
 

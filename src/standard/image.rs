@@ -27,7 +27,7 @@ impl<T: OclNum> Image<T> {
         // let host_ptr: cl_mem = 0 as cl_mem;
 
         let obj_raw = try!(raw::create_image(
-            context.obj_raw(),
+            context.raw_as_ref(),
             flags,
             image_format,
             image_desc,
@@ -46,7 +46,7 @@ impl<T: OclNum> Image<T> {
     }
 
     /// Returns the raw image object pointer.
-    pub fn obj_raw(&self) -> &MemRaw<T> {
+    pub fn raw_as_ref(&self) -> &MemRaw<T> {
         &self.obj_raw
     }
 }

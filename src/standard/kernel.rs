@@ -19,6 +19,7 @@ use standard::{WorkDims, Buffer, EventList, Program, Queue};
 ///
 /// TODO: Add more details, examples, etc.
 /// TODO: Add information about panics and errors.
+#[derive(Debug)]
 pub struct Kernel {
     obj_raw: KernelRaw,
     name: String,
@@ -38,7 +39,7 @@ impl Kernel {
                 gws: WorkDims ) -> OclResult<Kernel>
     {
         let name = name.into();
-        let obj_raw = try!(raw::create_kernel(program.obj_raw(), &name));
+        let obj_raw = try!(raw::create_kernel(program.raw_as_ref(), &name));
 
         Ok(Kernel {
             obj_raw: obj_raw,
@@ -46,7 +47,7 @@ impl Kernel {
             arg_index: 0,
             named_args: HashMap::with_capacity(5),
             arg_count: 0u32,
-            command_queue: queue.obj_raw().clone(),
+            command_queue: queue.raw_as_ref().clone(),
             gwo: WorkDims::Unspecified,
             gws: gws,
             lws: WorkDims::Unspecified,
@@ -139,7 +140,7 @@ impl Kernel {
 
         match buffer_opt {
             Some(buffer) => {
-                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer.obj_raw()))
+                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer.raw_as_ref()))
             },
             None => {
                 // let mem_raw_null = unsafe { MemRaw::null() };
@@ -165,7 +166,7 @@ impl Kernel {
     pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
         raw::enqueue_kernel(&self.command_queue, &self.obj_raw, self.gws.dim_count(), 
             self.gwo.as_raw(), self.gws.as_raw().unwrap(), self.lws.as_raw(), 
-            wait_list.map(|el| el.as_raw_ref()), dest_list.map(|el| el.as_raw_mut()), Some(&self.name))
+            wait_list.map(|el| el.raw_as_ref()), dest_list.map(|el| el.raw_as_mut()), Some(&self.name))
             .unwrap();
     }
 
@@ -179,7 +180,7 @@ impl Kernel {
     fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {        
         // This value lives long enough to be copied by `clSetKernelArg`.
         // let buf_obj = match buffer_opt {
-        //     Some(buffer) => buffer.obj_raw(),
+        //     Some(buffer) => buffer.raw_as_ref(),
         //     None => unsafe { MemRaw::null() },
         // };
 
@@ -187,7 +188,7 @@ impl Kernel {
 
         match buffer_opt {
             Some(buffer) => {
-                self.new_arg::<T>(KernelArg::Mem(buffer.obj_raw()))
+                self.new_arg::<T>(KernelArg::Mem(buffer.raw_as_ref()))
             },
             None => {
                 // let mem_raw_null = unsafe { MemRaw::null() };
@@ -230,7 +231,7 @@ impl Kernel {
         raw::set_kernel_arg::<T>(&self.obj_raw, arg_idx, arg, Some(&self.name))
     }
 
-    pub fn obj_raw(&self) -> &KernelRaw {
+    pub fn raw_as_ref(&self) -> &KernelRaw {
         &self.obj_raw
     }
 }

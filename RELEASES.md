@@ -15,6 +15,8 @@ Breaking Changes
 * Functions in the `raw` module now take references to `*Raw` types instead of
   copying them.
 * `*Raw` types no longer implement `Copy`.
+* Many of the method names dealing with references to `raw` objects have been
+  renamed.
 
 New Features
 ------------
@@ -22,6 +24,10 @@ New Features
   placeholder) functions.
 * Many 'info' functions and types have been added. See the example, `info.rs`,
   for details on how to use them.
+* All types are now completely safe to clone (where appropriate) and share
+  between threads (with the exception of `Kernel`, for good reason) and are
+  reference counted automatically in coordination with the API to ensure safe
+  and leak-free destruction.
 
 * [FIXME]: PLATFORM
 

@@ -50,7 +50,7 @@ fn errcode_try(message: &str, errcode: cl_int) -> OclResult<()> {
         Ok(())
     } else {
         OclError::errcode(errcode, 
-            format!("\n\nOPENCL ERROR: {} failed with code [{}]: {}\n\n", 
+            format!(" {{ OPENCL ERROR: \"{} failed with code [{}]: {}\" }} ", 
                 message, errcode, errcode_string(errcode))
         )
     }

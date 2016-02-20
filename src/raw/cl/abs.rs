@@ -34,10 +34,11 @@ use util;
 const EL_INIT_CAPACITY: usize = 64;
 const EL_CLEAR_MAX_SIZE: usize = 48;
 const EL_CLEAR_INTERVAL: isize = 32;
-
 // Clear the list automatically. Usefulness and performance impact of this is
 // currently under evaluation.
 const EL_CLEAR_AUTO: bool = false;
+
+const DEBUG_PRINT: bool = false;
 
 //=============================================================================
 //================================== TRAITS ===================================
@@ -446,13 +447,23 @@ impl EventList {
 		self.event_ptrs.as_ptr() as *const cl_event
 	}
 
-	pub fn clone_last(&self) -> OclResult<Event> {
-		match self.event_ptrs.last() {
-			Some(ptr) => {
-				unsafe { Event::from_cloned_ptr(*ptr) }
-			},
-			None => OclError::err("This event list is empty."),
-		}
+	/// Clones an event by index.
+    pub fn get_clone(&self, index: usize) -> Option<OclResult<Event>> {
+    	self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) } )
+	}
+
+	/// Clones the last event.
+	pub fn last_clone(&self) -> Option<OclResult<Event>> {
+		// match self.event_ptrs.last() {
+		// 	Some(ptr) => {
+		// 		unsafe { 
+		// 			Some(Event::from_cloned_ptr(*ptr))
+		// 		}
+		// 	},
+		// 	None => None,
+		// }
+
+		self.event_ptrs.last().map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) } )
 	}
 
 	/// Clears each completed event from the list.
@@ -505,18 +516,35 @@ unsafe impl ClEventPtrNew for EventList {
 	}
 }
 
-impl Drop for EventList {
-	fn drop(&mut self) {
-		for &event_ptr in self.event_ptrs.iter() {
-			let temp_event_raw = Event(event_ptr);
-
-			if temp_event_raw.is_valid() {
-				unsafe { raw::release_event(&temp_event_raw).expect("raw::EventList::drop"); }
-				mem::forget(temp_event_raw);
+impl Clone for EventList {
+	/// Clones this list in a thread safe manner. 
+	fn clone(&self) -> EventList {
+		for event_ptr in self.event_ptrs.iter() {
+			if !(*event_ptr).is_null() {
+				unsafe { raw::retain_event(&EventRefWrapper(event_ptr))
+					.expect("raw::EventList::clone") }
 			}
+		}
+
+		EventList {
+			event_ptrs: self.event_ptrs.clone(),
+			clear_counter: self.clear_counter,
 		}
 	}
 }
+
+
+impl Drop for EventList {
+	fn drop(&mut self) {
+		if DEBUG_PRINT { print!("Dropping events... "); }
+		for event_ptr in self.event_ptrs.iter() {
+			unsafe { raw::release_event(&EventRefWrapper(event_ptr)).expect("raw::EventList::drop"); }
+			if DEBUG_PRINT { print!("{{.}}"); }
+		}
+		if DEBUG_PRINT { print!("\n"); }
+	}
+}
+
 
 // unsafe impl EventListPtr for Event {}
 unsafe impl Sync for EventList {}

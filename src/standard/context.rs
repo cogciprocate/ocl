@@ -30,6 +30,7 @@ pub enum DeviceSpecifier {
 /// # Destruction
 /// `::release()` must be manually called by consumer.
 ///
+#[derive(Debug, Clone)]
 pub struct Context {
     platform_id_raw: PlatformIdRaw,
     device_ids_raw: Vec<DeviceIdRaw>,
@@ -83,7 +84,7 @@ impl Context {
     /// ``` 
     ///
     /// # Panics
-    ///    - `get_device_ids_raw()` (work in progress)
+    ///    - `get_devices_raw_as_ref()` (work in progress)
     ///
     /// # Failures
     /// - No platforms.
@@ -208,17 +209,17 @@ impl Context {
     }
 
     /// Returns the current context as a `*mut libc::c_void`.
-    pub fn obj_raw(&self) -> &ContextRaw {
+    pub fn raw_as_ref(&self) -> &ContextRaw {
         &self.obj_raw
     }
 
     /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
-    pub fn device_ids_raw(&self) -> &Vec<DeviceIdRaw> {
-        &self.device_ids_raw
+    pub fn devices_raw_as_ref(&self) -> &[DeviceIdRaw] {
+        &self.device_ids_raw[..]
     }
 
     /// Returns the platform our context pertains to.
-    pub fn platform_id_raw(&self) -> &PlatformIdRaw {
+    pub fn platform_raw_as_ref(&self) -> &PlatformIdRaw {
         &self.platform_id_raw
     }  
 }

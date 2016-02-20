@@ -3,7 +3,7 @@
 // use std::ptr;
 use libc::c_void;
 
-use error::{Result as OclResult};
+use error::{Result as OclResult, Error as OclError};
 use standard::Event;
 use raw::{self, EventCallbackFn, EventList as EventListRaw, CommandExecutionStatus};
 // use cl_h::{self, cl_event};
@@ -15,8 +15,11 @@ use raw::{self, EventCallbackFn, EventList as EventListRaw, CommandExecutionStat
 /// created them. Used to coordinate the activity of multiple commands with
 /// more fine-grained control than the queue alone.
 ///
+/// For access to individual events use `get_clone` and `clone_last` then
+/// either store or discard the result.
+///
 // [FIXME] TODO: impl Index.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EventList {
     event_list_raw: EventListRaw,
 }
@@ -40,12 +43,33 @@ impl EventList {
     //     self.events.last_mut().unwrap()
     // }
 
-    /// Returns a reference to the last event in the list.
-    // #[inline]
-    pub fn clone_last(&self) -> OclResult<Event> {
-        let event_raw = try!(self.event_list_raw.clone_last());
-        unsafe { Ok(Event::from_event_raw(event_raw)) }
+    /// Clones an event by index.
+    pub fn get_clone(&self, index: usize) -> Option<Event> {
+        match self.event_list_raw.get_clone(index) {
+            Some(ev_res) => {
+                match ev_res {
+                    Ok(ev) => Some(Event::from_event_raw(ev)),
+                    Err(_) => None,
+                }
+            },
+            None => None,
+        }
     }
+
+    /// Returns a new clone of the last event in the list.
+    pub fn last_clone(&self) -> Option<Event> {
+        match self.event_list_raw.last_clone() {
+            Some(ev_res) => {
+                match ev_res {
+                    Ok(ev) => Some(Event::from_event_raw(ev)),
+                    Err(_) => None,
+                }
+            },
+            None => None,
+        }
+    }
+
+    /// Returns 
 
     // /// Returns a mutable reference to the last event in the list.
     // // #[inline]
@@ -53,11 +77,11 @@ impl EventList {
     //     self.events.last_mut()
     // }
 
-    pub fn as_raw_ref(&self) -> &EventListRaw {
+    pub fn raw_as_ref(&self) -> &EventListRaw {
         &self.event_list_raw
     }
 
-    pub fn as_raw_mut(&mut self) -> &mut EventListRaw {
+    pub fn raw_as_mut(&mut self) -> &mut EventListRaw {
         &mut self.event_list_raw
     }
 
@@ -73,7 +97,7 @@ impl EventList {
 
     // /// Returns a const pointer to the list, useful for passing directly to the c ffi.
     // #[inline]
-    // pub fn as_raw_ref(&self) -> *const Event {
+    // pub fn raw_as_ref(&self) -> *const Event {
     //     self.events().as_ptr()
     // }
 
@@ -128,7 +152,7 @@ impl EventList {
                 ) -> OclResult<()>
     {
         // let event_list_raw = self.event_list_raw();
-        // match self.event_list_raw.clone_last() {
+        // match self.event_list_raw.last_clone() {
         //     Ok(last_event) => {
         //         raw::set_event_callback(&last_event, CommandExecutionStatus::Complete,
         //             callback_receiver, user_data as *mut _ as *mut c_void)
@@ -136,7 +160,8 @@ impl EventList {
         //     Err(err) => Err(err),
         // }
 
-        let event_raw = try!(self.event_list_raw.clone_last());
+        let event_raw = try!(try!(self.event_list_raw.last_clone().ok_or(
+            OclError::new("ocl::EventList::set_callback: This event list is empty."))));
 
         raw::set_event_callback(&event_raw, CommandExecutionStatus::Complete,
                     callback_receiver, user_data as *mut _ as *mut c_void)

@@ -8,8 +8,9 @@ use standard::{self, Platform};
 use raw::{self, DeviceId as DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult};
 // use util;
 
-#[derive(Clone, Debug)]
+
 /// A device identifier.
+#[derive(Clone, Debug)]
 pub struct Device(DeviceIdRaw);
 
 impl Device {

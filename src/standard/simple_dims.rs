@@ -11,6 +11,7 @@ use util;
 ///
 /// [FIXME] TODO: Much more explaination needed as soon as conventions solidify.
 /// [UNSTABLE]: MAY BE CONSOLIDATED WITH `WorkDims`.
+#[derive(Clone, Debug)]
 pub enum SimpleDims {
     Unspecified,
     One     (usize),

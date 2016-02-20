@@ -130,6 +130,8 @@ fn main() {
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
         unsafe { result_buffer.fill_vec_async(None, Some(&mut read_event)).unwrap(); }
     
+        // Clone event list just for fun:
+        let read_event = read_event.clone();
 
         let last_idx = buncha_stuffs.len() - 1;     
 

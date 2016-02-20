@@ -179,8 +179,8 @@ fn main() {
 
     let kern_buf_start = Instant::now();
 
-    let mut kern_events = EventList::new();
-    let mut buf_events = EventList::new();
+    // let mut kern_events = EventList::new();
+    // let mut buf_events = EventList::new();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.enqueue(None, Some(&mut kern_events));

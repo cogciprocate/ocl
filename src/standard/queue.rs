@@ -12,6 +12,7 @@ use super::Context;
 /// Underlying queue object is destroyed automatically.
 ///
 // TODO: Implement a constructor which accepts a DeviceIdRaw.
+#[derive(Clone, Debug)]
 pub struct Queue {
     obj_raw: CommandQueueRaw,
     context_obj_raw: ContextRaw,
@@ -38,12 +39,12 @@ impl Queue {
         assert!(device_ids_raw.len() == 1, "Queue::new: Error resolving device ids.");
         let device_id_raw = device_ids_raw[0].clone();
 
-        let obj_raw = raw::create_command_queue(context.obj_raw(), &device_id_raw)
+        let obj_raw = raw::create_command_queue(context.raw_as_ref(), &device_id_raw)
             .expect("[FIXME: TEMPORARY]: Queue::new():"); 
 
         Queue {
             obj_raw: obj_raw,
-            context_obj_raw: context.obj_raw().clone(),
+            context_obj_raw: context.raw_as_ref().clone(),
             device_id_raw: device_id_raw, 
         }
     }   
@@ -54,12 +55,12 @@ impl Queue {
     }
 
     /// Returns the OpenCL command queue object associated with this queue.
-    pub fn obj_raw(&self) -> &CommandQueueRaw {
+    pub fn raw_as_ref(&self) -> &CommandQueueRaw {
         &self.obj_raw
     }
 
     /// Returns the OpenCL context object associated with this queue.
-    pub fn context_obj_raw(&self) -> &ContextRaw {
+    pub fn context_raw_as_ref(&self) -> &ContextRaw {
         &self.context_obj_raw
     }
 
@@ -67,7 +68,7 @@ impl Queue {
     ///
     /// Not to be confused with the zero-indexed `device_idx` passed to `::new()`
     /// when creating this queue.
-    pub fn device_id_raw(&self) -> &DeviceIdRaw {
+    pub fn device_raw_as_ref(&self) -> &DeviceIdRaw {
         &self.device_id_raw
     }
 
