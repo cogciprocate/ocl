@@ -2,7 +2,7 @@
 
 use std::convert::Into;
 use std::collections::HashMap;
-use raw::{self, OclNum, KernelRaw, CommandQueueRaw, KernelArg};
+use raw::{self, OclNum, Kernel as KernelRaw, CommandQueue as CommandQueueRaw, KernelArg};
 use error::{Result as OclResult, Error as OclError};
 use standard::{WorkDims, Buffer, EventList, Program, Queue};
 

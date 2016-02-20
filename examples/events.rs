@@ -138,7 +138,7 @@ fn main() {
                 last_idx, itr); }
             read_event.set_callback(_test_events_verify_result, 
                 // &mut buncha_stuffs[last_idx] as *mut _ as *mut c_void);
-                &mut buncha_stuffs[last_idx]);
+                &mut buncha_stuffs[last_idx]).unwrap();
         }
 
         // if PRINT_DEBUG { println!("Releasing read_event [i:{}]...", itr); }

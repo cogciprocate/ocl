@@ -18,44 +18,71 @@
 //! (Everything but kernel? How should we roll?)
 
 use std::mem;
-use std::fmt::Debug;
+// use std::fmt::Debug;
 use std::marker::PhantomData;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
 	cl_kernel, cl_event, cl_sampler};
-use raw::{self, OclNum, /*EventPtr, EventListPtr*/};
-use error::{Result as OclResult};
+use raw::{self, OclNum, CommandExecutionStatus};
+use error::{Result as OclResult, Error as OclError};
+use util;
 
+//=============================================================================
+//================================ CONSTANTS ==================================
+//=============================================================================
 
 const EL_INIT_CAPACITY: usize = 64;
-const EL_CLEAR_SIZE: usize = 48;
+const EL_CLEAR_MAX_SIZE: usize = 48;
 const EL_CLEAR_INTERVAL: isize = 32;
 
 // Clear the list automatically. Usefulness and performance impact of this is
 // currently under evaluation.
-const EL_AUTO_CLEAR: bool = false;
+const EL_CLEAR_AUTO: bool = false;
 
+//=============================================================================
+//================================== TRAITS ===================================
+//=============================================================================
 
-pub unsafe trait EventRawNew {
-	fn ptr_mut_new(&mut self) -> OclResult<&mut cl_event>;
+pub type EventCallbackFn = extern fn (cl_event, i32, *mut libc::c_void);
+
+pub unsafe trait ClEventPtrNew {
+	fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
 }
+
+pub trait ClEventRef<'e> {
+	fn as_ptr_ref(&'e self) -> &'e cl_event;
+	// unsafe fn as_ptr_mut(&mut self) -> &mut cl_event;
+}
+
+//=============================================================================
+//=================================== TYPES ===================================
+//=============================================================================
+
+pub struct EventRefWrapper<'e>(&'e cl_event);
+
+impl<'e> ClEventRef<'e> for EventRefWrapper<'e> {
+	fn as_ptr_ref(&'e self) -> &'e cl_event {
+		self.0
+	}
+}
+
 
 
 
 /// cl_platform_id
 #[repr(C)]
 #[derive(Clone, Debug)]
-pub struct PlatformIdRaw(cl_platform_id);
+pub struct PlatformId(cl_platform_id);
 
-impl PlatformIdRaw {
+impl PlatformId {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_platform_id) -> PlatformIdRaw {
-		PlatformIdRaw(ptr)
+	pub unsafe fn from_fresh_ptr(ptr: cl_platform_id) -> PlatformId {
+		PlatformId(ptr)
 	}
 
-	pub unsafe fn null() -> PlatformIdRaw {
-		PlatformIdRaw(0 as *mut libc::c_void)
+	pub unsafe fn null() -> PlatformId {
+		PlatformId(0 as *mut libc::c_void)
 	}
 
 	/// Returns a pointer, do not store it.
@@ -64,25 +91,25 @@ impl PlatformIdRaw {
 	}
 }
 
-unsafe impl Sync for PlatformIdRaw {}
-unsafe impl Send for PlatformIdRaw {}
+unsafe impl Sync for PlatformId {}
+unsafe impl Send for PlatformId {}
 
 
 
 /// cl_device_id
 #[repr(C)]
 #[derive(Clone, Debug)]
-pub struct DeviceIdRaw(cl_device_id);
+pub struct DeviceId(cl_device_id);
 
-impl DeviceIdRaw {
+impl DeviceId {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_device_id) -> DeviceIdRaw {
-		DeviceIdRaw(ptr)
+	pub unsafe fn from_fresh_ptr(ptr: cl_device_id) -> DeviceId {
+		DeviceId(ptr)
 	}
 
-	pub unsafe fn null() -> DeviceIdRaw {
-		DeviceIdRaw(0 as *mut libc::c_void)
+	pub unsafe fn null() -> DeviceId {
+		DeviceId(0 as *mut libc::c_void)
 	}
 
 	/// Returns a pointer, do not store it.
@@ -91,20 +118,20 @@ impl DeviceIdRaw {
 	}
 }
 
-unsafe impl Sync for DeviceIdRaw {}
-unsafe impl Send for DeviceIdRaw {}
+unsafe impl Sync for DeviceId {}
+unsafe impl Send for DeviceId {}
 
 
 
 /// cl_context
 #[derive(Debug)]
-pub struct ContextRaw(cl_context);
+pub struct Context(cl_context);
 
-impl ContextRaw {
+impl Context {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_context) -> ContextRaw {
-		ContextRaw(ptr)
+	pub unsafe fn from_fresh_ptr(ptr: cl_context) -> Context {
+		Context(ptr)
 	}
 
 	/// Returns a pointer, do not store it.
@@ -113,33 +140,33 @@ impl ContextRaw {
 	}
 }
 
-impl Clone for ContextRaw {
-	fn clone(&self) -> ContextRaw {
+impl Clone for Context {
+	fn clone(&self) -> Context {
 		unsafe { raw::retain_context(self).unwrap(); }
-		ContextRaw(self.0)
+		Context(self.0)
 	}
 }
 
-impl Drop for ContextRaw {
+impl Drop for Context {
 	fn drop(&mut self) {
 		unsafe { raw::release_context(self).unwrap(); }
 	}
 }
 
-unsafe impl Sync for ContextRaw {}
-unsafe impl Send for ContextRaw {}
+unsafe impl Sync for Context {}
+unsafe impl Send for Context {}
 
 
 
 /// cl_command_queue
 #[derive(Debug)]
-pub struct CommandQueueRaw(cl_command_queue);
+pub struct CommandQueue(cl_command_queue);
 
-impl CommandQueueRaw {
+impl CommandQueue {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_command_queue) -> CommandQueueRaw {
-		CommandQueueRaw(ptr)
+	pub unsafe fn from_fresh_ptr(ptr: cl_command_queue) -> CommandQueue {
+		CommandQueue(ptr)
 	}
 
 	/// Returns a pointer, do not store it.
@@ -148,37 +175,37 @@ impl CommandQueueRaw {
 	}
 }
 
-impl Clone for CommandQueueRaw {
-	fn clone(&self) -> CommandQueueRaw {
+impl Clone for CommandQueue {
+	fn clone(&self) -> CommandQueue {
 		unsafe { raw::retain_command_queue(self).unwrap(); }
-		CommandQueueRaw(self.0)
+		CommandQueue(self.0)
 	}
 }
 
-impl Drop for CommandQueueRaw {
+impl Drop for CommandQueue {
 	fn drop(&mut self) {
 		unsafe { raw::release_command_queue(self).unwrap(); }
 	}
 }
 
-unsafe impl Sync for CommandQueueRaw {}
-unsafe impl Send for CommandQueueRaw {}
+unsafe impl Sync for CommandQueue {}
+unsafe impl Send for CommandQueue {}
 
 
 
 /// cl_mem
 #[derive(Debug)]
-pub struct MemRaw<T: OclNum>(cl_mem, PhantomData<T>);
+pub struct Mem<T: OclNum>(cl_mem, PhantomData<T>);
 
-impl<T: OclNum> MemRaw<T> {
+impl<T: OclNum> Mem<T> {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_mem) -> MemRaw<T> {
-		MemRaw(ptr, PhantomData)
+	pub unsafe fn from_fresh_ptr(ptr: cl_mem) -> Mem<T> {
+		Mem(ptr, PhantomData)
 	}
 
-	// pub unsafe fn null() -> MemRaw<T> {
-	// 	MemRaw(0 as *mut libc::c_void, PhantomData)
+	// pub unsafe fn null() -> Mem<T> {
+	// 	Mem(0 as *mut libc::c_void, PhantomData)
 	// }
 
 	/// Returns a pointer, do not store it.
@@ -187,33 +214,33 @@ impl<T: OclNum> MemRaw<T> {
 	}
 }
 
-impl<T: OclNum> Clone for MemRaw<T> {
-	fn clone(&self) -> MemRaw<T> {
+impl<T: OclNum> Clone for Mem<T> {
+	fn clone(&self) -> Mem<T> {
 		unsafe { raw::retain_mem_object(self).unwrap(); }
-		MemRaw(self.0, PhantomData)
+		Mem(self.0, PhantomData)
 	}
 }
 
-impl<T: OclNum> Drop for MemRaw<T> {
+impl<T: OclNum> Drop for Mem<T> {
 	fn drop(&mut self) {
 		unsafe { raw::release_mem_object(self).unwrap(); }
 	}
 }
 
-unsafe impl<T: OclNum> Sync for MemRaw<T> {}
-unsafe impl<T: OclNum> Send for MemRaw<T> {}
+unsafe impl<T: OclNum> Sync for Mem<T> {}
+unsafe impl<T: OclNum> Send for Mem<T> {}
 
 
 
 /// cl_program
 #[derive(Debug)]
-pub struct ProgramRaw(cl_program);
+pub struct Program(cl_program);
 
-impl ProgramRaw {
+impl Program {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_program) -> ProgramRaw {
-		ProgramRaw(ptr)
+	pub unsafe fn from_fresh_ptr(ptr: cl_program) -> Program {
+		Program(ptr)
 	}
 
 	/// Returns a pointer, do not store it.
@@ -222,21 +249,21 @@ impl ProgramRaw {
 	}
 }
 
-impl Clone for ProgramRaw {
-	fn clone(&self) -> ProgramRaw {
+impl Clone for Program {
+	fn clone(&self) -> Program {
 		unsafe { raw::retain_program(self).unwrap(); }
-		ProgramRaw(self.0)
+		Program(self.0)
 	}
 }
 
-impl Drop for ProgramRaw {
+impl Drop for Program {
 	fn drop(&mut self) {
 		unsafe { raw::release_program(self).unwrap(); }
 	}
 }
 
-unsafe impl Sync for ProgramRaw {}
-unsafe impl Send for ProgramRaw {}
+unsafe impl Sync for Program {}
+unsafe impl Send for Program {}
 
 // impl Drop for Program {
 //     fn drop(&mut self) {
@@ -252,13 +279,13 @@ unsafe impl Send for ProgramRaw {}
 ///
 /// Not thread safe: do not implement `Send` or `Sync`.
 #[derive(Debug)]
-pub struct KernelRaw(cl_kernel);
+pub struct Kernel(cl_kernel);
 
-impl KernelRaw {
+impl Kernel {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_kernel) -> KernelRaw {
-		KernelRaw(ptr)
+	pub unsafe fn from_fresh_ptr(ptr: cl_kernel) -> Kernel {
+		Kernel(ptr)
 	}
 
 	/// Returns a pointer, do not store it.
@@ -267,14 +294,14 @@ impl KernelRaw {
 	}
 }
 
-impl Clone for KernelRaw {
-	fn clone(&self) -> KernelRaw {
+impl Clone for Kernel {
+	fn clone(&self) -> Kernel {
 		unsafe { raw::retain_kernel(self).unwrap(); }
-		KernelRaw(self.0)
+		Kernel(self.0)
 	}
 }
 
-impl Drop for KernelRaw {
+impl Drop for Kernel {
 	fn drop(&mut self) {
 		unsafe { raw::release_kernel(self).unwrap(); }
 	}
@@ -284,29 +311,41 @@ impl Drop for KernelRaw {
 
 /// cl_event
 #[derive(Debug)]
-pub struct EventRaw(cl_event);
+pub struct Event(cl_event);
 
-impl EventRaw {
+impl Event {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_event) -> EventRaw {
-		EventRaw(ptr)
+	pub unsafe fn from_fresh_ptr(ptr: cl_event) -> Event {
+		Event(ptr)
+	}
+
+	/// Only use when cloning from a pre-existing and valid `cl_event`.
+	pub unsafe fn from_cloned_ptr(ptr: cl_event) -> OclResult<Event> {
+		let new_raw = Event(ptr);
+
+		if new_raw.is_valid() {
+			try!(raw::retain_event(&new_raw));
+			Ok(new_raw)
+		} else {
+			OclError::err("raw::EventList::from_cloned_ptr: Invalid pointer `ptr`.")
+		}
 	}
 
 	/// For passage directly to an 'event creation' function (such as enqueue).
-	pub unsafe fn null() -> EventRaw {
-		EventRaw(0 as cl_event)
+	pub unsafe fn null() -> Event {
+		Event(0 as cl_event)
 	}
 
 	// /// Returns a pointer, do not store it unless you will manage its
-	// /// associated reference count carefully (as does `EventListRaw`).
+	// /// associated reference count carefully (as does `EventList`).
 	// pub unsafe fn as_ptr(&self) -> cl_event {
 	// 	self.0
 	// }
 
 	/// Returns an immutable reference to a pointer, do not deref and store it unless 
 	/// you will manage its associated reference count carefully.
-	pub unsafe fn as_ptr_ref(&self) -> &cl_event {
+	pub fn as_ptr_ref(&self) -> &cl_event {
 		&self.0
 	}
 
@@ -323,51 +362,56 @@ impl EventRaw {
 	}
 }
 
-unsafe impl EventRawNew for EventRaw {
-	fn ptr_mut_new(&mut self) -> OclResult<&mut cl_event> {
+unsafe impl ClEventPtrNew for Event {
+	fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
 		if self.0.is_null() {
 			Ok(&mut self.0)
 		} else {
-			try!(raw::release_event(self));
+			unsafe { try!(raw::release_event(self)); }
 			Ok(&mut self.0)
 		}
 	}
 }
 
-impl Clone for EventRaw {
-	fn clone(&self) -> EventRaw {
-		unsafe { raw::retain_event(self).expect("raw::EventRaw::clone()"); }
-		EventRaw(self.0)
+impl<'e> ClEventRef<'e> for Event {
+	fn as_ptr_ref(&'e self) -> &'e cl_event { self.as_ptr_ref() }
+ 	// unsafe fn as_ptr_mut(&mut self) -> &mut cl_event { self.as_ptr_mut() }
+}
+
+impl Clone for Event {
+	fn clone(&self) -> Event {
+		unsafe { raw::retain_event(self).expect("raw::Event::clone"); }
+		Event(self.0)
 	}
 }
 
-impl Drop for EventRaw {
+impl Drop for Event {
 	fn drop(&mut self) {
 		if self.is_valid() {
-			unsafe { raw::release_event(self).expect("raw::EventRaw::drop()"); }
+			unsafe { raw::release_event(self).expect("raw::Event::drop"); }
 		}
 	}
 }
 
-// unsafe impl EventPtr for EventRaw {}
-unsafe impl Sync for EventRaw {}
-unsafe impl Send for EventRaw {}
+// unsafe impl EventPtr for Event {}
+unsafe impl Sync for Event {}
+unsafe impl Send for Event {}
 
 
 
 
 /// Reference counted list of `cl_event` pointers.
 #[derive(Debug)]
-pub struct EventListRaw {
+pub struct EventList {
 	event_ptrs: Vec<cl_event>,
 	// Kinda experimental:
 	clear_counter: isize, 
 }
 
-impl EventListRaw {
-	/// Returns a new, empty, `EventListRaw`.
-    pub fn new() -> EventListRaw {
-        EventListRaw { 
+impl EventList {
+	/// Returns a new, empty, `EventList`.
+    pub fn new() -> EventList {
+        EventList { 
             event_ptrs: Vec::with_capacity(EL_INIT_CAPACITY),
             clear_counter: EL_CLEAR_INTERVAL,
         }
@@ -378,7 +422,7 @@ impl EventListRaw {
     /// Technically, copies `event`s contained pointer (a `cl_event`) then 
     /// `mem::forget`s it. This seems preferrable to incrementing the reference
     /// count (with `raw::retain_event`) then letting `event` drop which just decrements it right back.
-    pub unsafe fn push(&mut self, event: EventRaw) {
+    pub unsafe fn push(&mut self, event: Event) {
         self.event_ptrs.push((*event.as_ptr_ref()));
         mem::forget(event);
         self.decr_counter();
@@ -386,21 +430,68 @@ impl EventListRaw {
 
     /// Appends a new null element to the end of the list and returns a reference to it.
     pub fn allot(&mut self) -> &mut cl_event {
-        unsafe { self.event_ptrs.push(0 as cl_event); }
+        self.event_ptrs.push(0 as cl_event);
         self.event_ptrs.last_mut().unwrap()
     }
 
-    /// Returns an immutable slice of the event list.
-    fn event_ptrs_slice(&self) -> &[cl_event] {
-    	&self.event_ptrs[..]
+    pub fn len(&self) -> usize {
+    	self.event_ptrs.len()
 	}
+
+    pub fn count(&self) -> u32 {
+        self.event_ptrs.len() as u32
+    }
+
+	pub fn as_ptr_ptr(&self) -> *const cl_event {
+		self.event_ptrs.as_ptr() as *const cl_event
+	}
+
+	pub fn clone_last(&self) -> OclResult<Event> {
+		match self.event_ptrs.last() {
+			Some(ptr) => {
+				unsafe { Event::from_cloned_ptr(*ptr) }
+			},
+			None => OclError::err("This event list is empty."),
+		}
+	}
+
+	/// Clears each completed event from the list.
+    pub fn clear_completed(&mut self) -> OclResult<()> {
+        let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_SIZE);
+        let mut idx = 0;
+
+        for event_ptr in self.event_ptrs.iter() {
+        	let status = try!(raw::get_event_status(&EventRefWrapper(event_ptr)));
+
+            if status == CommandExecutionStatus::Complete {
+                cmpltd_events.push(idx)
+            }
+
+            idx += 1;
+        }
+
+        // Release completed events:        
+    	for &idx in cmpltd_events.iter() {
+    		unsafe { 
+				try!(raw::release_event(&EventRefWrapper(&self.event_ptrs[idx])));
+			}
+		}
+
+       	try!(util::vec_remove_rebuild(&mut self.event_ptrs, &cmpltd_events[..], 3));
+
+        if EL_CLEAR_AUTO {
+            self.clear_counter = EL_CLEAR_INTERVAL;
+        }
+
+        Ok(())
+    }
 
     /// Counts down the auto-list-clear counter.
     fn decr_counter(&mut self) {
-    	if EL_AUTO_CLEAR {
+    	if EL_CLEAR_AUTO {
     		self.clear_counter -= 1;
 
-    		if self.clear_counter <= 0 && self.event_ptrs.len() > EL_CLEAR_SIZE {
+    		if self.clear_counter <= 0 && self.event_ptrs.len() > EL_CLEAR_MAX_SIZE {
                 // self.clear_completed();
                 unimplemented!();
             }
@@ -408,47 +499,40 @@ impl EventListRaw {
 	}
 }
 
-unsafe impl EventRawNew for EventListRaw {
-	fn ptr_mut_new(&mut self) -> OclResult<&mut cl_event> {
+unsafe impl ClEventPtrNew for EventList {
+	fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
 		Ok(self.allot())
 	}
 }
 
-// impl Clone for EventListRaw {
-// 	fn clone(&self) -> EventRaw {
-// 		unsafe { raw::retain_event(self).unwrap(); }
-// 		EventRaw(self.0)
-// 	}
-// }
-
-impl Drop for EventListRaw {
+impl Drop for EventList {
 	fn drop(&mut self) {
-		for event_ptr in self.event_ptrs.into_iter() {
-			let temp_event_raw = EventRaw(event_ptr);
+		for &event_ptr in self.event_ptrs.iter() {
+			let temp_event_raw = Event(event_ptr);
 
 			if temp_event_raw.is_valid() {
-				unsafe { raw::release_event(&temp_event_raw).expect("EventListRaw::drop()"); }
+				unsafe { raw::release_event(&temp_event_raw).expect("raw::EventList::drop"); }
 				mem::forget(temp_event_raw);
 			}
 		}
 	}
 }
 
-// unsafe impl EventListPtr for EventRaw {}
-unsafe impl Sync for EventListRaw {}
-unsafe impl Send for EventListRaw {}
+// unsafe impl EventListPtr for Event {}
+unsafe impl Sync for EventList {}
+unsafe impl Send for EventList {}
 
 
 
 /// cl_sampler
 #[derive(Debug)]
-pub struct SamplerRaw(cl_sampler);
+pub struct Sampler(cl_sampler);
 
-impl SamplerRaw {
+impl Sampler {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_sampler) -> SamplerRaw {
-		SamplerRaw(ptr)
+	pub unsafe fn from_fresh_ptr(ptr: cl_sampler) -> Sampler {
+		Sampler(ptr)
 	}
 
 	/// Returns a pointer, do not store it.
@@ -457,18 +541,18 @@ impl SamplerRaw {
 	}
 }
 
-impl Clone for SamplerRaw {
-	fn clone(&self) -> SamplerRaw {
+impl Clone for Sampler {
+	fn clone(&self) -> Sampler {
 		unsafe { raw::retain_sampler(self).unwrap(); }
-		SamplerRaw(self.0)
+		Sampler(self.0)
 	}
 }
 
-impl Drop for SamplerRaw {
+impl Drop for Sampler {
 	fn drop(&mut self) {
 		unsafe { raw::release_sampler(self).unwrap(); }
 	}
 }
 
-unsafe impl Sync for SamplerRaw {}
-unsafe impl Send for SamplerRaw {}
+unsafe impl Sync for Sampler {}
+unsafe impl Send for Sampler {}

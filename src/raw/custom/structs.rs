@@ -1,5 +1,5 @@
 use std::convert::Into;
-use raw::{ContextProperty, ContextInfoOrPropertiesPointerType as PropKind, PlatformIdRaw};
+use raw::{ContextProperty, ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
 use util;
 use cl_h;
 
@@ -16,7 +16,7 @@ impl ContextProperties {
 	}
 
 	/// Specifies a platform (builder-style).
-	pub fn platform<P: Into<PlatformIdRaw>>(mut self, platform: P) -> ContextProperties {
+	pub fn platform<P: Into<PlatformId>>(mut self, platform: P) -> ContextProperties {
 		self.0.push(ContextProperty::Platform(platform.into()));
 		self
 	}

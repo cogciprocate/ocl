@@ -2,7 +2,7 @@
 // use std::mem;
 // use std::ptr;
 
-use raw::{self, CommandQueueRaw, DeviceIdRaw, ContextRaw};
+use raw::{self, CommandQueue as CommandQueueRaw, DeviceId as DeviceIdRaw, Context as ContextRaw};
 use super::Context;
 
 /// A command queue.

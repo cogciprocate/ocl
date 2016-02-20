@@ -55,7 +55,7 @@ fn main() {
 			let mut event_list = EventList::new();
 
 			kernel.enqueue(None, Some(&mut event_list));
-			let event = event_list.last().unwrap().clone();
+			let event = event_list.clone_last().unwrap();
 			event_list.wait();
 
 			if PRINT_DETAILED {

@@ -3,8 +3,9 @@
 // use std::ptr;
 use libc::c_void;
 
+use error::{Result as OclResult};
 use standard::Event;
-use raw::{self, EventListRaw};
+use raw::{self, EventCallbackFn, EventList as EventListRaw, CommandExecutionStatus};
 // use cl_h::{self, cl_event};
 
 
@@ -17,14 +18,14 @@ use raw::{self, EventListRaw};
 // [FIXME] TODO: impl Index.
 #[derive(Debug)]
 pub struct EventList {
-    events_raw: EventListRaw,
+    event_list_raw: EventListRaw,
 }
 
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
         EventList { 
-            events_raw: EventListRaw::new(),
+            event_list_raw: EventListRaw::new(),
         }
     }
 
@@ -39,11 +40,12 @@ impl EventList {
     //     self.events.last_mut().unwrap()
     // }
 
-    // /// Returns a reference to the last event in the list.
-    // // #[inline]
-    // pub fn last(&self) -> Option<&Event> {
-    //     self.events.last()
-    // }
+    /// Returns a reference to the last event in the list.
+    // #[inline]
+    pub fn clone_last(&self) -> OclResult<Event> {
+        let event_raw = try!(self.event_list_raw.clone_last());
+        unsafe { Ok(Event::from_event_raw(event_raw)) }
+    }
 
     // /// Returns a mutable reference to the last event in the list.
     // // #[inline]
@@ -52,11 +54,11 @@ impl EventList {
     // }
 
     pub fn as_raw_ref(&self) -> &EventListRaw {
-        &self.events_raw
+        &self.event_list_raw
     }
 
     pub fn as_raw_mut(&mut self) -> &mut EventListRaw {
-        &mut self.events_raw
+        &mut self.event_list_raw
     }
 
     // /// Returns a mutable slice to the events list.
@@ -65,7 +67,7 @@ impl EventList {
     //     &mut self.events[..]
     // }
 
-    // pub fn events_raw(&self) -> Vec<EventRaw> {
+    // pub fn event_list_raw(&self) -> Vec<EventRaw> {
     //     self.events().iter().map(|ref event| event.as_raw()).collect()
     // }
 
@@ -81,13 +83,13 @@ impl EventList {
     //     self.events.as_mut_ptr()
     // }
 
-    // /// Waits for all events in list to complete.
-    // pub fn wait(&self) {
-    //     if self.events.len() > 0 {
-    //         // let events_raw = self.events_raw();
-    //         raw::wait_for_events(self.count(), &self.events);
-    //     }
-    // }
+    /// Waits for all events in list to complete.
+    pub fn wait(&self) {
+        if self.event_list_raw.len() > 0 {
+            // let event_list_raw = self.event_list_raw();
+            raw::wait_for_events(self.count(), &self.event_list_raw);
+        }
+    }
 
     // /// Merges the copied contents of this list and another into a new list and returns it.
     // pub fn union(&self, other_list: &EventList) -> EventList {
@@ -108,33 +110,41 @@ impl EventList {
     //     new_list
     // }
 
-    // /// Sets a callback function, `callback_receiver`, to trigger upon completion of
-    // /// the *last event* added to the event list with an optional reference to user 
-    // /// data.
-    // ///
-    // /// # Safety
-    // ///
-    // /// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
-    // /// is ever called.
-    // ///
-    // /// TODO: Create a safer type wrapper for `callback_receiver`
-    // pub unsafe fn set_callback<T>(&self, 
-    //             callback_receiver: extern fn (cl_event, i32, *mut c_void),
-    //             // user_data: *mut c_void,
-    //             user_data: &mut T,
-    //         )
-    // {
-    //     // let events_raw = self.events_raw();
+    /// Sets a callback function, `callback_receiver`, to trigger upon completion of
+    /// the *last event* added to the event list with an optional reference to user 
+    /// data.
+    ///
+    /// # Safety
+    ///
+    /// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
+    /// is ever called.
+    ///
+    /// TODO: Create a safer type wrapper for `callback_receiver`
+    pub unsafe fn set_callback<T>(&self, 
+                // callback_receiver: extern fn (cl_event, i32, *mut c_void),
+                callback_receiver: EventCallbackFn,
+                // user_data: *mut c_void,
+                user_data: &mut T,
+                ) -> OclResult<()>
+    {
+        // let event_list_raw = self.event_list_raw();
+        // match self.event_list_raw.clone_last() {
+        //     Ok(last_event) => {
+        //         raw::set_event_callback(&last_event, CommandExecutionStatus::Complete,
+        //             callback_receiver, user_data as *mut _ as *mut c_void)
+        //     },
+        //     Err(err) => Err(err),
+        // }
 
-    //     if self.events.len() > 0 {
-    //         raw::set_event_callback(
-    //             self.events.last().unwrap().as_raw(), 
-    //             cl_h::CL_COMPLETE, 
-    //             callback_receiver,
-    //             user_data as *mut _ as *mut c_void,
-    //         )
-    //     }
-    // }
+        let event_raw = try!(self.event_list_raw.clone_last());
+
+        raw::set_event_callback(&event_raw, CommandExecutionStatus::Complete,
+                    callback_receiver, user_data as *mut _ as *mut c_void)
+    }
+
+    pub fn clear_completed(&mut self) -> OclResult<()> {
+        self.event_list_raw.clear_completed()
+    }
 
     // pub fn set_callback_buffer(&self, 
     //          callback_receiver: extern fn (Event, i32, *mut libc::c_void),
@@ -151,47 +161,15 @@ impl EventList {
     //  }
     // }
 
-    // /// Returns the number of events in the list.
-    // #[inline]
-    // pub fn count(&self) -> u32 {
-    //     self.events.len() as u32
-    // }
+    /// Returns the number of events in the list.
+    pub fn count(&self) -> u32 {
+        self.event_list_raw.count()
+    }
 
     // /// Clears this list regardless of whether or not its events have completed.
     // #[inline]
     // pub fn clear(&mut self) {
     //     self.events.clear();
-
-    //     if AUTO_CLEAR {
-    //         self.clear_counter = 0;
-    //     }
-    // }
-
-    // /// Clears each completed event from the list.
-    // ///
-    // /// TODO: Optimize this. Determine if any gains can be had by reassembling 
-    // /// the event vec completely (probably can depending on how big this
-    // /// list tends to grow).
-    // ///
-    // pub fn clear_completed(&mut self) {
-    //     let mut ce_idxs: Vec<usize> = Vec::with_capacity(64);
-    //     let mut idx = 0;
-
-    //     for event in self.events.iter() {
-    //         if raw::get_event_status((*event).as_raw()) == cl_h::CL_COMPLETE {
-    //             ce_idxs.push(idx)
-    //         }
-
-    //         idx += 1;
-    //     }
-
-    //     for idx in ce_idxs.into_iter().rev() {
-    //         self.events.remove(idx);
-            
-    //         // let ev = self.events.remove(idx);
-    //         // Release?
-    //         // raw::release_event(ev);
-    //     }
 
     //     if AUTO_CLEAR {
     //         self.clear_counter = 0;

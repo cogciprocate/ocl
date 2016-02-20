@@ -8,7 +8,7 @@
 
 // use formatting::MT;
 use std;
-use raw::{self, ContextRaw, ContextProperties, ContextInfo, ContextInfoResult, PlatformIdRaw, DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult};
+use raw::{self, Context as ContextRaw, ContextProperties, ContextInfo, ContextInfoResult, PlatformId as PlatformIdRaw, DeviceId as DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult};
 use error::{Result as OclResult, Error as OclError};
 use standard::{self, Device};
 

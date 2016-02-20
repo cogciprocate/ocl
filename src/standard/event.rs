@@ -5,7 +5,7 @@ use std;
 use std::convert::Into;
 // use error::Result as OclResult;
 // use cl_h::cl_event;
-use raw::{self, /*EventPtr,*/ EventRaw, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use raw::{self, /*EventPtr,*/ Event as EventRaw, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
 use standard;
 // use util;
 
@@ -19,8 +19,8 @@ impl Event {
 	/// ### Safety 
 	///
 	/// Not meant to be called directly by consumers.
-	pub unsafe fn new(id_raw: EventRaw) -> Event {
-		Event(id_raw)
+	pub unsafe fn from_event_raw(event_raw: EventRaw) -> Event {
+		Event(event_raw)
 	}
 
 	/// Creates a new null `Event`.
@@ -28,7 +28,7 @@ impl Event {
 	/// ### Safety 
 	///
 	/// Don't use unless you know what you're doing.
-	pub unsafe fn null() -> Event {
+	pub unsafe fn new_null() -> Event {
 		Event(EventRaw::null())
 	}
 

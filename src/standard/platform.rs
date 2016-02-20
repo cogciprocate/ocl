@@ -5,7 +5,7 @@
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
 use std::convert::Into;
-use raw::{self, PlatformIdRaw, PlatformInfo, PlatformInfoResult};
+use raw::{self, PlatformId as PlatformIdRaw, PlatformInfo, PlatformInfoResult};
 use standard;
 // use util;
 

@@ -11,7 +11,7 @@ use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
-use raw::{OclNum, PlatformIdRaw, PlatformInfo, DeviceIdRaw, ContextInfo, ContextRaw, MemRaw, SamplerRaw, CommandQueueProperties};
+use raw::{OclNum, PlatformId, PlatformInfo, DeviceId, ContextInfo, Context, Mem, Sampler, CommandQueueProperties};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -38,11 +38,11 @@ pub type TemporaryPlaceholderType = ();
 #[derive(Debug)]
 pub enum KernelArg<'a, T: 'a + OclNum> {
     /// Type `T` is ignored.
-    Mem(&'a MemRaw<T>),
+    Mem(&'a Mem<T>),
     /// Type `T` is ignored.
     MemNull,
     /// Type `T` is ignored.
-    Sampler(&'a SamplerRaw),
+    Sampler(&'a Sampler),
     /// Type `T` is ignored.
     SamplerNull,
     Scalar(&'a T),
@@ -95,7 +95,7 @@ pub enum KernelArg<'a, T: 'a + OclNum> {
 //
 #[derive(Debug)]
 pub enum ContextProperty {
-    Platform(PlatformIdRaw),
+    Platform(PlatformId),
     InteropUserSync(bool),
     D3d10DeviceKhr(TemporaryPlaceholderType),
     GlContextKhr(TemporaryPlaceholderType),
@@ -327,7 +327,7 @@ impl Into<String> for DeviceInfoResult {
 /// [FIXME]: Figure out what to do with the properties variant.
 pub enum ContextInfoResult {
     ReferenceCount(u32),
-    Devices(Vec<DeviceIdRaw>),
+    Devices(Vec<DeviceId>),
     Properties(Vec<u8>),
     NumDevices(u32),
     Error(Box<OclError>),
@@ -341,7 +341,7 @@ impl ContextInfoResult {
             },
             ContextInfo::Devices => {
                 ContextInfoResult::Devices(
-                    unsafe { util::bytes_into_vec::<DeviceIdRaw>(result) }
+                    unsafe { util::bytes_into_vec::<DeviceId>(result) }
                 )
             },
             ContextInfo::Properties => {
@@ -384,8 +384,8 @@ impl std::fmt::Display for ContextInfoResult {
 /// [UNSTABLE][INCOMPLETE] A command queue info result.
 pub enum CommandQueueInfoResult {
     TemporaryPlaceholderVariant(Vec<u8>),
-    Context(ContextRaw),
-    Device(DeviceIdRaw),
+    Context(Context),
+    Device(DeviceId),
     ReferenceCount(u32),
     Properties(CommandQueueProperties),
     Error(Box<OclError>),

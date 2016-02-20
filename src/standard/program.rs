@@ -3,7 +3,7 @@
 use std::ffi::CString;
 
 use error::{Result as OclResult};
-use raw::{self, ProgramRaw, DeviceIdRaw, ContextRaw};
+use raw::{self, Program as ProgramRaw, DeviceId as DeviceIdRaw, Context as ContextRaw};
 use standard::{ProgramBuilder, Context};
 
 /// A program, sometimes referred to as a build.

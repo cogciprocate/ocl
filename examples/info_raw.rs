@@ -29,7 +29,7 @@ fn main() {
     let mut event_list = EventList::new();
 
     kernel.enqueue(None, Some(&mut event_list));
-    let event = event_list.last().unwrap().clone();
+    let event = event_list.clone_last().unwrap();
     event_list.wait();
 
 	println!("############### OpenCL [Default Platform] [Default Device] Info ################");
@@ -557,11 +557,11 @@ fn main() {
             {t}CommandExecutionStatus: {}\n\
             {t}Context: {}\n\
 		",
-		raw::get_event_info(&event, EventInfo::CommandQueue).unwrap(),
-        raw::get_event_info(&event, EventInfo::CommandType).unwrap(),
-        raw::get_event_info(&event, EventInfo::ReferenceCount).unwrap(),
-        raw::get_event_info(&event, EventInfo::CommandExecutionStatus).unwrap(),
-        raw::get_event_info(&event, EventInfo::Context).unwrap(),
+		raw::get_event_info(event.as_raw_ref(), EventInfo::CommandQueue).unwrap(),
+        raw::get_event_info(event.as_raw_ref(), EventInfo::CommandType).unwrap(),
+        raw::get_event_info(event.as_raw_ref(), EventInfo::ReferenceCount).unwrap(),
+        raw::get_event_info(event.as_raw_ref(), EventInfo::CommandExecutionStatus).unwrap(),
+        raw::get_event_info(event.as_raw_ref(), EventInfo::Context).unwrap(),
 		t = util::TAB,
 	);
 
@@ -583,10 +583,10 @@ fn main() {
 	    	{t}Start: {}\n\
 	    	{t}End: {}\n\
 		",
-		raw::get_event_profiling_info(&event, ProfilingInfo::Queued).unwrap(),
-        raw::get_event_profiling_info(&event, ProfilingInfo::Submit).unwrap(),
-        raw::get_event_profiling_info(&event, ProfilingInfo::Start).unwrap(),
-        raw::get_event_profiling_info(&event, ProfilingInfo::End).unwrap(),
+		raw::get_event_profiling_info(event.as_raw_ref(), ProfilingInfo::Queued).unwrap(),
+        raw::get_event_profiling_info(event.as_raw_ref(), ProfilingInfo::Submit).unwrap(),
+        raw::get_event_profiling_info(event.as_raw_ref(), ProfilingInfo::Start).unwrap(),
+        raw::get_event_profiling_info(event.as_raw_ref(), ProfilingInfo::End).unwrap(),
 		t = util::TAB,
 	);
 

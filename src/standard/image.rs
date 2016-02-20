@@ -4,7 +4,7 @@
 // use std::default::Default;
 use error::{Result as OclResult};
 use standard::{Context, ImageBuilder};
-use raw::{self, OclNum, MemRaw, MemFlags, ImageFormat, ImageDescriptor};
+use raw::{self, OclNum, Mem as MemRaw, MemFlags, ImageFormat, ImageDescriptor};
 
 
 /// [WORK IN PROGRESS][UNTESTED] An Image. 

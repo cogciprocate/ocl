@@ -8,10 +8,10 @@ use num::{FromPrimitive, ToPrimitive};
 use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
-use raw::{self, OclNum, MemRaw, CommandQueueRaw, MemFlags, EventRaw};
+use raw::{self, OclNum, Mem as MemRaw, CommandQueue as CommandQueueRaw, MemFlags, Event as EventRaw};
 use util;
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, BufferDims, Event, EventList};
+use standard::{Queue, BufferDims, EventList};
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
         You must create this Buffer using 'Buffer::with_vec()' (et al.) in order to call this method.";

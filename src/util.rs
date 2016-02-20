@@ -9,6 +9,7 @@ use std::ops::Range;
 use std::mem;
 use std::ptr;
 use std::iter;
+use error::{Result as OclResult, Error as OclError};
 
 use super::OclNum;
 
@@ -178,6 +179,68 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
         padded_len
     }
 }
+
+/// Batch removes elements from a vector using a list of indices to remove.
+///
+/// Will create a new vector and do a streamlined rebuild if 
+/// `remove_list.len()` > `rebuild_threshold`. Threshold should typically be
+/// set very low (less than probably 5 or 10) as it's expensive to remove one 
+/// by one.
+///
+/// ### Safety
+///
+/// Should be perfectly safe, just need to test it a bit.
+///
+pub fn vec_remove_rebuild<T: Clone>(orig_vec: &mut Vec<T>, remove_list: &[usize], 
+                rebuild_threshold: usize) -> OclResult<()> {
+    if remove_list.len() > orig_vec.len() { 
+        return OclError::err("ocl::util::vec_remove_rebuild: Remove list is longer than source
+            vector.");
+    }
+    let orig_len = orig_vec.len();
+
+    // If the list is below threshold
+    if remove_list.len() <= rebuild_threshold {
+        for &idx in remove_list.iter().rev() {
+            if idx >= orig_len { 
+                return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
+                at least one out of range index: [{}] ('orig_vec.len()': {}).", idx, orig_len));
+            }
+            orig_vec.remove(idx);
+        }
+    } else {
+        unsafe {
+            let new_len = orig_len - remove_list.len();
+            let cap = orig_vec.capacity();
+            let ptr = orig_vec.as_mut_ptr();
+            
+            let mut new_vec: Vec<T> = Vec::from_raw_parts(ptr, 0, cap);
+            let mut remove_markers: Vec<bool> = iter::repeat(false).take(orig_len).collect();
+
+            // Build a sparse list of which elements to remove:
+            for &idx in remove_list.iter() {
+                if idx >= orig_len { 
+                    return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
+                    at least one out of range index: [{}] ('orig_vec.len()': {}).", idx, orig_len));
+                }
+                *remove_markers.get_unchecked_mut(idx) = true;
+            }
+
+            // Iterate through remove_markers and orig_vec, pushing when the marker is false:
+            for idx in 0..orig_len {
+                if !(*remove_markers.get_unchecked(idx)) {
+                    new_vec.push((*orig_vec.get_unchecked(idx)).clone());
+                }
+            }
+
+            debug_assert_eq!(new_len, new_vec.len());
+            mem::forget(orig_vec);
+        }
+    }
+
+    Ok(())
+}
+
 
 
 //=============================================================================

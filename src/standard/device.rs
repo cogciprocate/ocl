@@ -5,7 +5,7 @@ use std;
 use std::convert::Into;
 use error::Result as OclResult;
 use standard::{self, Platform};
-use raw::{self, DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult};
+use raw::{self, DeviceId as DeviceIdRaw, DeviceType, DeviceInfo, DeviceInfoResult};
 // use util;
 
 #[derive(Clone, Debug)]
