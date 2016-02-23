@@ -1,21 +1,46 @@
 //! Abstract data type wrappers.
 //!
-//! ### Reference: (from [SDK](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html))
+//! ### Reference
 //! 
-//! The following table describes abstract data types supported by OpenCL:
-//! Type	Description	API Type
-//! _cl_platform_id *	The ID for a platform.	cl_platform_id
-//! _cl_device_id *	The ID for a device.	cl_device_id
-//! _cl_context *	A context.	cl_context
-//! _cl_command_queue *	A command queue.	cl_command_queue
-//! _cl_mem *	A memory object.	cl_mem
-//! _cl_program *	A program.	cl_program
-//! _cl_kernel *	A kernel.	cl_kernel
-//! _cl_event *	An event. Also see event_t.	cl_event
-//! _cl_sampler *	A sampler. Also see sampler_t.	cl_sampler
+//! The following table describes abstract data types supported by OpenCL (from [SDK]):
+//!
+//! * cl_platform_id: The ID for a platform.
+//! * cl_device_id: The ID for a device.
+//! * cl_context: A context.
+//! * cl_command_queue: A command queue.
+//! * cl_mem: A memory object.
+//! * cl_program: A program.
+//! * cl_kernel: A kernel.
+//! * cl_event: An event.
+//! * cl_sampler: A sampler.
+//!  
+//! The following new derived wrappers are also included in this module:
 //! 
-//! [FIXME]: Bring back `Send` and `Sync` to those types deemed worthy 
-//! (Everything but kernel? How should we roll?)
+//! * [cl_event]: A list of events.
+//! 
+//!
+//! ### Who cares. Why bother?
+//!
+//! These types ensure as best they can that stored pointers to any of the
+//! above objects will be valid until that pointer is dropped by the Rust 
+//! runtime (which obviously is not a 100% guarantee).
+//!
+//! What this means is that you can share, clone, store, and throw away these 
+//! types, and
+//! any types that contain them, among multiple threads, for as long as you'd 
+//! like, with an insignificant amount of overhead, without having to worry
+//! about the dangers of dereferencing those types later on. As good as the 
+//! OpenCL library
+//! generally is about this, it fails in many cases to provide complete
+//! protection against segfaults due to dereferencing old pointers.
+//!
+//! 
+//! 
+//! So... whatever...
+//!
+//! 
+//!
+//! [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html
 
 use std::mem;
 // use std::fmt::Debug;
@@ -31,12 +56,11 @@ use util;
 //================================ CONSTANTS ==================================
 //=============================================================================
 
+// TODO: Evaluate optimal parameters:
 const EL_INIT_CAPACITY: usize = 64;
-const EL_CLEAR_MAX_SIZE: usize = 48;
-const EL_CLEAR_INTERVAL: isize = 32;
-// Clear the list automatically. Usefulness and performance impact of this is
-// currently under evaluation.
-const EL_CLEAR_AUTO: bool = false;
+const EL_CLEAR_MAX_LEN: usize = 48;
+const EL_CLEAR_INTERVAL: i32 = 32;
+const EL_CLEAR_AUTO: bool = true;
 
 const DEBUG_PRINT: bool = false;
 
@@ -279,6 +303,11 @@ unsafe impl Send for Program {}
 /// ### Thread Safety
 ///
 /// Not thread safe: do not implement `Send` or `Sync`.
+///
+/// It's possible to do with some work but it's not worth the bother, just 
+/// make another identical kernel in the other thread and call it good.
+///
+/// 
 #[derive(Debug)]
 pub struct Kernel(cl_kernel);
 
@@ -400,13 +429,14 @@ unsafe impl Send for Event {}
 
 
 
-
-/// Reference counted list of `cl_event` pointers.
+/// List of `cl_event`s.
 #[derive(Debug)]
 pub struct EventList {
 	event_ptrs: Vec<cl_event>,
-	// Kinda experimental:
-	clear_counter: isize, 
+	clear_max_len: usize,
+	clear_counter_max: i32,
+	clear_auto: bool,
+	clear_counter: i32, 
 }
 
 impl EventList {
@@ -414,7 +444,10 @@ impl EventList {
     pub fn new() -> EventList {
         EventList { 
             event_ptrs: Vec::with_capacity(EL_INIT_CAPACITY),
-            clear_counter: EL_CLEAR_INTERVAL,
+            clear_max_len: EL_CLEAR_MAX_LEN,
+			clear_counter_max: EL_CLEAR_INTERVAL,
+			clear_auto: EL_CLEAR_AUTO,
+			clear_counter: 0,
         }
     }
 
@@ -467,8 +500,10 @@ impl EventList {
 	}
 
 	/// Clears each completed event from the list.
+	///
+	/// TODO: TEST THIS
     pub fn clear_completed(&mut self) -> OclResult<()> {
-        let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_SIZE);
+        let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_LEN);
         let mut idx = 0;
 
         for event_ptr in self.event_ptrs.iter() {
@@ -502,7 +537,7 @@ impl EventList {
     	if EL_CLEAR_AUTO {
     		self.clear_counter -= 1;
 
-    		if self.clear_counter <= 0 && self.event_ptrs.len() > EL_CLEAR_MAX_SIZE {
+    		if self.clear_counter <= 0 && self.event_ptrs.len() > EL_CLEAR_MAX_LEN {
                 // self.clear_completed();
                 unimplemented!();
             }
@@ -528,6 +563,9 @@ impl Clone for EventList {
 
 		EventList {
 			event_ptrs: self.event_ptrs.clone(),
+			clear_max_len: self.clear_max_len,
+			clear_counter_max: self.clear_counter_max,
+			clear_auto: self.clear_auto,
 			clear_counter: self.clear_counter,
 		}
 	}
