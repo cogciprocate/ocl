@@ -1,3 +1,7 @@
+//!
+//! [UNIMPLEMENTED][WORK IN PROGRESS]
+//!
+
 extern crate ocl;
 use ocl::{Context, ProQue, SimpleDims};
 
