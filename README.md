@@ -71,6 +71,10 @@ fn main() {
 }
 ```
 
+See the bottom of [`examples/trivial.rs`] for some explanation. Also see the
+other [`examples`] for much more.
+
+
 #### Diving Deeper
 
 Already familiar with the standard OpenCL core API? See the [`core`] module for
@@ -125,5 +129,7 @@ by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Gro
 [`core`]: http://docs.cogciprocate.com/ocl/core/index.html
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
+[`examples`]: https://github.com/cogciprocate/ocl/tree/master/examples
+[`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/trivial.rs#L37
 [glium]: https://github.com/tomaka/glium
 [vulkano]: https://github.com/tomaka/vulkano/tree/master/vulkano
