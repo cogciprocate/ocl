@@ -39,14 +39,13 @@ fn main() {
     let mut result_buffer: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
 
     // Create a kernel with three arguments corresponding to those in the kernel:
-    let kern = ocl_pq.create_kernel("multiply_by_scalar", dims.work_dims())
-        .expect("Create Kernel")
+    let kern = ocl_pq.create_kernel_with_dims("multiply_by_scalar", dims.clone())
         .arg_scl(COEFF)
         .arg_buf(&source_buffer)
         .arg_buf(&mut result_buffer);
 
     // Enqueue kernel depending on and creating no events:
-    kern.enqueue(None, None);
+    kern.enqueue();
 
     // Read results from the device into result_buffer's local vector:
     result_buffer.fill_vec();

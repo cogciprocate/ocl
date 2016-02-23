@@ -4,7 +4,7 @@ use std::convert::Into;
 use std::collections::HashMap;
 use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg};
 use error::{Result as OclResult, Error as OclError};
-use standard::{WorkDims, Buffer, EventList, Program, Queue};
+use standard::{SimpleDims, Buffer, EventList, Program, Queue};
 
 /// A kernel.
 ///
@@ -28,16 +28,16 @@ pub struct Kernel {
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
     command_queue: CommandQueueCore,
-    gwo: WorkDims,
-    gws: WorkDims,
-    lws: WorkDims,
+    gwo: SimpleDims,
+    gws: SimpleDims,
+    lws: SimpleDims,
 }
 
 impl Kernel {
     /// Returns a new kernel.
     // TODO: Implement proper error handling (return result etc.).
-    pub fn new<S: Into<String>>(name: S, program: &Program, queue: &Queue, 
-                gws: WorkDims ) -> OclResult<Kernel>
+    pub fn new<S: Into<String>, D: Into<SimpleDims>>(name: S, program: &Program, queue: &Queue, 
+                gws: D) -> OclResult<Kernel>
     {
         let name = name.into();
         let obj_core = try!(core::create_kernel(program.core_as_ref(), &name));
@@ -49,14 +49,14 @@ impl Kernel {
             named_args: HashMap::with_capacity(5),
             arg_count: 0u32,
             command_queue: queue.core_as_ref().clone(),
-            gwo: WorkDims::Unspecified,
-            gws: gws,
-            lws: WorkDims::Unspecified,
+            gwo: SimpleDims::Unspecified,
+            gws: gws.into(),
+            lws: SimpleDims::Unspecified,
         })
     }
 
     /// Sets the global work offset (builder-style).
-    pub fn gwo(mut self, gwo: WorkDims) -> Kernel {
+    pub fn gwo(mut self, gwo: SimpleDims) -> Kernel {
         if gwo.dim_count() == self.gws.dim_count() {
             self.gwo = gwo
         } else {
@@ -66,7 +66,7 @@ impl Kernel {
     }
 
     /// Sets the local work size (builder-style).
-    pub fn lws(mut self, lws: WorkDims) -> Kernel {
+    pub fn lws(mut self, lws: SimpleDims) -> Kernel {
         if lws.dim_count() == self.gws.dim_count() {
             self.lws = lws;
         } else {
@@ -162,13 +162,30 @@ impl Kernel {
 
     /// Enqueues kernel on the default command queue.
     ///
+    /// Execution of the kernel on the device will not occur until the events
+    /// in `wait_list` have completed if it is specified. 
+    ///
+    /// Specify `dest_list` to have a new event added to that list associated
+    /// with the completion of this kernel task.
+    ///
     /// TODO: Implement 'alternative queue' version of this function.
     #[inline]
-    pub fn enqueue(&self, wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) {
+    pub fn enqueue_with_events(&self, wait_list: Option<&EventList>, 
+                    dest_list: Option<&mut EventList>) {
         core::enqueue_kernel(&self.command_queue, &self.obj_core, self.gws.dim_count(), 
-            self.gwo.as_core(), self.gws.as_core().unwrap(), self.lws.as_core(), 
+            self.gwo.work_dims(), self.gws.work_dims().unwrap(), self.lws.work_dims(), 
             wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
             .unwrap();
+    }
+
+    /// Enqueues kernel on the default command queue with no event lists.
+    ///
+    /// Equivalent to `::enqueue_with_events(None, None)`.
+    ///
+    /// TODO: Implement 'alternative queue' version of this function.
+    #[inline]
+    pub fn enqueue(&self) {
+        self.enqueue_with_events(None, None);
     }
 
     /// Returns the number of arguments specified for this kernel.

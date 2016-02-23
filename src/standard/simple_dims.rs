@@ -1,4 +1,5 @@
 //! A simple way to specify the sizes of up to three dimensions.
+// use std::convert::Into;
 use error::{Result as OclResult, Error as OclError};
 use standard::{BufferDims, WorkDims};
 use util;
@@ -47,15 +48,35 @@ impl SimpleDims {
         }
     }
 
-    /// Returns a `WorkDims` corresponding to the dimensions of this `SimpleDims`.
-    pub fn work_dims(&self) -> WorkDims {
+    /// Returns the number of dimensions defined by this `SimpleDims`.
+    pub fn dim_count(&self) -> u32 {
         match self {
-            &SimpleDims::Three(d0, d1, d2) => WorkDims::ThreeDims(d0, d1, d2),
-            &SimpleDims::Two(d0, d1) => WorkDims::TwoDims(d0, d1),
-            &SimpleDims::One(d0) => WorkDims::OneDim(d0),
-            _ => WorkDims::Unspecified,
+            &SimpleDims::Three(..)        => 3,
+            &SimpleDims::Two(..)      => 2,
+            &SimpleDims::One(..)       => 1,
+            &SimpleDims::Unspecified      => 0,
+        }
+
+    }
+
+    pub fn work_dims(&self) -> Option<[usize; 3]> {
+        match self {
+            &SimpleDims::One(x) => Some([x, 0, 0]),
+            &SimpleDims::Two(x, y) => Some([x, y, 0]),
+            &SimpleDims::Three(x, y, z) => Some([x, y, z]),
+            _ => None
         }
     }
+
+    // /// Returns a `WorkDims` corresponding to the dimensions of this `SimpleDims`.
+    // pub fn work_dims(&self) -> Option<[usize; 3]> {
+    //     match self {
+    //         &SimpleDims::Three(d0, d1, d2) => WorkDims::ThreeDims(d0, d1, d2),
+    //         &SimpleDims::Two(d0, d1) => WorkDims::TwoDims(d0, d1),
+    //         &SimpleDims::One(d0) => WorkDims::OneDim(d0),
+    //         _ => WorkDims::Unspecified,
+    //     }
+    // }
 }
 
 impl BufferDims for SimpleDims {
@@ -68,5 +89,16 @@ impl BufferDims for SimpleDims {
         };
 
         util::padded_len(simple_len, incr)
+    }
+}
+
+impl WorkDims for SimpleDims {
+    /// Returns the number of dimensions defined by this `SimpleDims`.
+    fn dim_count(&self) -> u32 {
+        self.dim_count()
+    }
+
+    fn work_dims(&self) -> Option<[usize; 3]> {
+        self.work_dims()
     }
 }

@@ -1,3 +1,24 @@
+Version 0.7.0 (UNRELEASED)
+==========================
+
+Breaking Changes
+----------------
+* `Kernel::enqueue` is now called `Kernel::enqueue_with_events`. A new method
+  with the old name is now a convenience shortcut for
+  `.enqueue_with_events(None, None)`.
+* `ProQue::create_kernel` has been renamed `ProQue::create_kernel_with_dims`.
+  A new method with the old name, is now a shortcut for kernel creation using
+  pre-assigned dimensions`.
+* The kernel created using `ProQue::create_kernel` is no longer wrapped in a
+  result and instead panics if there is a problem. If you require a 
+  non-panicing way to create a kernel use `Kernel::new`.
+
+
+New Features
+------------
+
+
+
 Version 0.6.0 (2016-02-20)
 ==========================
 

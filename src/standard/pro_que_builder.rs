@@ -2,13 +2,14 @@
 
 use std::convert::Into;
 use error::{Result as OclResult, Error as OclError};
-use standard::{Context, ProgramBuilder, Program, Queue, ProQue};
+use standard::{Context, ProgramBuilder, Program, Queue, ProQue, SimpleDims};
 
 /// A builder for `ProQue`.
 pub struct ProQueBuilder<'c> {
     context: Option<&'c Context>,
     device_idx: Option<usize>,
     program_builder: Option<ProgramBuilder>,
+    dims: Option<SimpleDims>,
 }
 
 impl<'c> ProQueBuilder<'c> {
@@ -22,6 +23,7 @@ impl<'c> ProQueBuilder<'c> {
             context: None,
             device_idx: None,
             program_builder: None,
+            dims: None,
         }
     }
 
@@ -58,7 +60,7 @@ impl<'c> ProQueBuilder<'c> {
             &vec![queue.device_core_as_ref().clone()],
         )));
 
-        Ok(ProQue::from_parts(context_opt, queue, program_opt))
+        Ok(ProQue::from_parts(context_opt, queue, program_opt, self.dims.clone()))
     }
 
     /// Sets the context and returns the `ProQueBuilder`.
@@ -112,6 +114,11 @@ impl<'c> ProQueBuilder<'c> {
         self.program_builder = Some(program_builder);
         self
     }   
+
+    pub fn dims<'p>(&'p mut self, dims: SimpleDims) -> &'p mut ProQueBuilder<'c> {
+        self.dims = Some(dims);
+        self
+    }
 
     // pub fn build_with(self, program_builder: ProgramBuilder) -> OclResult<ProQue> {
     //  if self.program_builder.is_some() { 

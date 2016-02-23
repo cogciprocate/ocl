@@ -1,5 +1,6 @@
 //! Interfaces to a buffer.
 
+// use std::convert::Into;
 use std::iter;
 use std::slice::{Iter, IterMut};
 use rand;

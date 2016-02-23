@@ -1,10 +1,13 @@
 //! A convenient wrapper for `Program` and `Queue`.
 
+// use std::convert::Into;
 use core;
-use standard::{Context, Kernel, WorkDims, ProgramBuilder, ProQueBuilder, Program, Queue};
+use standard::{Context, Kernel, ProgramBuilder, ProQueBuilder, Program, Queue, 
+    BufferDims, SimpleDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
 
-/// An all-in-one chimera of the `Program`, `Queue`, and (optionally) `Context` types.
+/// An all-in-one chimera of the `Program`, `Queue`, and (optionally) the 
+/// `Context` and `SimpleDims` types.
 ///
 /// Handy when creating only a single context, program, and queue or when
 /// using a unique program build on each device.
@@ -29,6 +32,7 @@ pub struct ProQue {
     context: Option<Context>,
     queue: Queue,
     program: Option<Program>,
+    dims: Option<SimpleDims>,
 }
 
 impl ProQue {
@@ -58,15 +62,18 @@ impl ProQue {
             queue: queue,
             program: None,
             context: None,
+            dims: None,
         }
     }
 
     /// Creates a new ProQue from individual parts.
-    pub fn from_parts(context: Option<Context>, queue: Queue, program: Option<Program>) -> ProQue {
+    pub fn from_parts(context: Option<Context>, queue: Queue, program: Option<Program>, 
+                    dims: Option<SimpleDims>) -> ProQue {
         ProQue {
             context: context,
             queue: queue,
             program: program,
+            dims: dims,
         }
     }
 
@@ -124,18 +131,38 @@ impl ProQue {
         self.program = None;
     }
 
+    /// Creates a kernel with pre-assigned dimensions.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the contained program has not been created / built, if
+    /// there is a problem creating the kernel, or if this `ProQue` has no
+    /// pre-assigned dimensions.
+    pub fn create_kernel(&self, name: &str) -> Kernel {
+        self.create_kernel_with_dims(name, self.dims_result().expect("ocl::ProQue::create_kernel"))
+    }
+
     /// Returns a new Kernel with name: `name` and global work size: `gws`.
-    pub fn create_kernel(&self, name: &str, gws: WorkDims) -> OclResult<Kernel> {
+    ///
+    /// # Panics
+    ///
+    /// Panics if the contained program has not been created / built or if
+    /// there is a problem creating the kernel.
+    pub fn create_kernel_with_dims(&self, name: &str, gws: SimpleDims) -> Kernel {
         let program = match self.program {
             Some(ref prg) => prg,
             None => {
-                return OclError::err("\nProQue::create_kernel(): Cannot add new kernel until \
+                panic!("\nProQue::create_kernel(): Cannot add new kernel until \
                 OpenCL program is built. Use: \
                 '{{your_proque}}.build_program({{your_program_builder}});'.\n")
             },
         };
 
-        Kernel::new(name.to_string(), &program, &self.queue, gws)   
+        Kernel::new(name.to_string(), &program, &self.queue, gws).unwrap()
+    }
+
+    pub fn set_dims(&mut self, dims: SimpleDims) {
+        self.dims = Some(dims);
     }
 
     /// Returns the maximum workgroup size supported by the device associated
@@ -150,12 +177,53 @@ impl ProQue {
     }
 
     /// Returns the contained context, if any.
-    pub fn context(&self) -> &Option<Context> {
-        &self.context
+    pub fn context(&self) -> Option<&Context> {
+        self.context.as_ref()
     }
 
     /// Returns the current program build, if any.
-    pub fn program(&self) -> &Option<Program> {
-        &self.program
+    pub fn program(&self) -> Option<&Program> {
+        self.program.as_ref()
+    }
+
+    /// Returns the current `dims` or panics.
+    pub fn dims(&self) -> SimpleDims {
+        self.dims_result().unwrap()
+    }
+
+    /// Returns the current `dims` or an error.
+    pub fn dims_result(&self) -> OclResult<SimpleDims> {
+        match self.dims {
+            Some(ref dims) => Ok(dims.clone()),
+            None => OclError::err("This 'ProQue' has not had any dimensions specified. Use 
+                'ProQue::builder().dims(__)...' or 'my_pro_que.set_dims(__)' to specify."),
+        }
+    }
+}
+
+impl BufferDims for ProQue {
+    fn padded_buffer_len(&self, len: usize) -> usize {
+        self.dims_result().expect("ProQue::padded_buffer_len").padded_buffer_len(len)
+    }
+}
+
+impl WorkDims for ProQue {
+    /// Returns the number of dimensions defined by this `SimpleDims`.
+    fn dim_count(&self) -> u32 {
+        // match self.dims {
+        //     Some(ref dims) => dims.dim_count(),
+        //     None => panic!("ProQue::dim_count: This 'ProQue' has not had any dimensions \
+        //         specified. Use 'ProQue::builder().dims(__)...' or 'my_pro_que.set_dims(__)' to specify."),
+        // }
+        self.dims_result().expect("ProQue::dim_count").dim_count()
+    }
+
+    fn work_dims(&self) -> Option<[usize; 3]> {
+        // match self.dims {
+        //     Some(ref dims) => dims.work_dims(),
+        //     None => panic!("ProQue::work_dims: This 'ProQue' has not had any dimensions \
+        //         specified. Use 'ProQue::builder().dims(__)...' or 'my_pro_que.set_dims(__)' to specify."),
+        // }
+        self.dims_result().expect("ProQue::work_dims").work_dims()
     }
 }

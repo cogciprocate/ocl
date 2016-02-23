@@ -24,6 +24,8 @@ struct TestEventsStuff {
 extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data: *mut c_void) {
     let buncha_stuff = user_data as *const TestEventsStuff;
 
+    
+
     unsafe {
         let seed_buffer: *const Buffer<u32> = (*buncha_stuff).seed_env as *const Buffer<u32>;
         let result_buffer: *const Buffer<u32> = (*buncha_stuff).res_env as *const Buffer<u32>;
@@ -89,7 +91,7 @@ fn main() {
     let addend = 11u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_dims()).unwrap()
+    let mut kernel = ocl_pq.create_kernel_with_dims("add_scalar", our_test_dims.clone())
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)
         .arg_buf(&mut result_buffer);
@@ -123,7 +125,7 @@ fn main() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.enqueue(None, Some(&mut kernel_event));
+        kernel.enqueue_with_events(None, Some(&mut kernel_event));
 
         let mut read_event = EventList::new();
         

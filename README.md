@@ -5,9 +5,9 @@
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
 
 
-OpenCL&trade; interfaces for Rust. Makes easy to use the most common features
-of OpenCL. All interfaces are virtually zero-cost and perform on a par with
-any C++ libraries.
+Pure OpenCL&trade; interfaces for Rust. Makes easy to use the most common
+features of OpenCL. All interfaces are virtually zero-cost and perform on a
+par with (often better than) the usual C++ libraries.
 
 Interfaces are still mildly unstable. Changes are now being documented in
 [RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md).
@@ -20,7 +20,7 @@ To provide:
 - The full functionality of the OpenCL API
 - An absolute minimum of boilerplate
 - As close as possible to zero performance overhead
-- Safe and painless management of API resources and pointers
+- Safe and automatic management of API resources and pointers
 
 
 ## Installation
@@ -32,13 +32,13 @@ Add:
 
 ```rust
 [dependencies] 
-ocl = "0.6"
+ocl = "0.7"
 ```
 
 to your project's `Cargo.toml`.
 
 
-## Example 
+## A Trivial Example 
 
 From 'examples/trivial.rs':
 ```rust
@@ -46,56 +46,30 @@ extern crate ocl;
 use ocl::{ProQue, SimpleDims, Buffer};
 
 fn main() {
-    // Define some program source code:
     let src = r#"
         __kernel void multiply(__global float* buffer, float coeff) {
             buffer[get_global_id(0)] *= coeff;
         }
     "#;
 
-    // Create an all-in-one context, program, and command queue:
-    let ocl_pq = ProQue::builder().src(src).build().unwrap();
+    let pro_que = ProQue::builder()
+        .src(src)
+        .dims(SimpleDims::One(500000))
+        .build().unwrap();   
 
-    // Set our work dimensions / data set size to something arbitrary:
-    let dims = SimpleDims::One(500000);
-
-    // Create a `Buffer` with a built-in `Vec` and initialize it with random 
-    // floats between 0.0 and 20.0:
     let mut buffer: Buffer<f32> = Buffer::with_vec_scrambled(
-         (0.0, 20.0), &dims, &ocl_pq.queue());
+         (0.1, 1.0), &pro_que.dims(), &pro_que.queue());
 
-    // Declare a value to multiply our buffer's contents by:
-    let scalar = 10.0f32;
-
-    // Create a kernel with arguments matching those in the source above:
-    let kern = ocl_pq.create_kernel("multiply", dims.work_dims()).unwrap()
+    let kernel = pro_que.create_kernel("multiply")
         .arg_buf(&buffer)
-        .arg_scl(scalar);
+        .arg_scl(100.0f32);
 
-    // Choose an element to keep track of:
-    let element_idx = 200007;
-    let element_original_value = buffer[element_idx];
-
-    // Run the kernel (the optional arguments are for event lists):
-    kern.enqueue(None, None);
-
-    // Read results from the device into our buffer's built-in vector:
+    kernel.enqueue();
     buffer.fill_vec();
 
-    // Verify and print a result:
-    let element_final_value = buffer[element_idx];
-    assert!((element_final_value - (element_original_value * scalar)).abs() < 0.0001);
-    println!("The value at index [{}] was '{}' and is now '{}'!", 
-        element_idx, element_original_value, element_final_value);
+    println!("The buffer element at [{}] is '{}'", 200007, buffer[200007]);
 }
 ```
-
-#### Platforms
-
-Tested so far only on Linux (and probably OS X - need confirmation). Windows
-support looks imminent. Please [provide feedback] about failures and successes
-on your platform.
-
 
 #### Diving Deeper
 
@@ -103,23 +77,12 @@ Already familiar with the standard OpenCL core API? See the [`core`] module for
 access to the complete feature set with Rust's safety and convenience.
 
 
-#### Taking Requests
+##### Version Support
 
-Want to bring your OpenCL-ness to Rust but can't find the functionality you
-need? File an [issue] and let us know what should come next.
-
-
-##### 2.0+ Version Support
-
-Due to this developer continuing to have problems getting 2.0 drivers to work
-properly with his multi-gpu AMD Linux configuration, 2.0 & 2.1 support is on
-hold. APIs are being designed with their future support in mind however.
-
-On a side note. 1.1 support is intact but intentionally disabled for
-simplicity. If anyone needs this support for this please file an [issue] and I
-will reenable it right away. Automatic best-version support for versions going
-all the way back to 1.0 will eventually be included once some time can be
-spent on that.
+1.1 support is intact but intentionally disabled for simplicity. If this
+support is needed, please file an [issue] and it will be reenabled. Automatic
+best-version support for versions going all the way back to 1.0 will
+eventually be included as soon as time permits.
 
 
 ##### What About Vulkan&trade;?
@@ -141,6 +104,9 @@ younger sibling, [vulkano].
 
 
 ##### Help
+
+Try `cargo run --example info` or `cargo run --example info_core` and see what
+happens.
 
 *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1`
 exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in

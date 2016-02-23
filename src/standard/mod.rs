@@ -15,7 +15,7 @@ mod pro_que;
 mod event;
 mod event_list;
 mod simple_dims;
-mod work_dims;
+// mod work_dims;
 
 
 #[cfg(not(release))] pub use self::buffer::tests::BufferTest;
@@ -34,7 +34,7 @@ pub use self::pro_que::ProQue;
 pub use self::event::Event;
 pub use self::event_list::EventList;
 pub use self::simple_dims::SimpleDims;
-pub use self::work_dims::WorkDims;
+// pub use self::work_dims::WorkDims;
 
 
 //=============================================================================
@@ -57,3 +57,9 @@ impl<'a, T> BufferDims for &'a T where T: BufferDims {
     fn padded_buffer_len(&self, incr: usize) -> usize { (*self).padded_buffer_len(incr) }
 }
 
+
+pub trait WorkDims {
+    /// Returns the number of dimensions defined by this `SimpleDims`.
+    fn dim_count(&self) -> u32;
+    fn work_dims(&self) -> Option<[usize; 3]>;
+}

@@ -58,12 +58,12 @@ fn main() {
 
 
 	// 		let program = Program::builder().src(SRC).build(&context).unwrap();
-	// 		let kernel = Kernel::new("add", &program, &queue, dims.work_dims()).unwrap()
+	// 		let kernel = Kernel::new("add", &program, &queue, dims.clone()).unwrap()
 	// 		        .arg_buf(&buffer)
 	// 		        .arg_scl(10.0f32);
 	// 		let mut event_list = EventList::new();
 
-	// 		kernel.enqueue(None, Some(&mut event_list));
+	// 		kernel.enqueue_with_events(None, Some(&mut event_list));
 	// 		let event = event_list.last_clone().unwrap();
 	// 		event_list.wait();
 

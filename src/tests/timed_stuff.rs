@@ -36,20 +36,17 @@ fn test_timed() {
         }
     "#;
 
-    // Set our work dimensions / data set size to something arbitrary:
-    let dims = SimpleDims::One(DATASET_SIZE);
-
-
     // Create an all-in-one context, program, and command queue:
-    let ocl_pq = ProQue::builder().src(src).build().unwrap();
+    let ocl_pq = ProQue::builder().src(src).dims(SimpleDims::One(DATASET_SIZE))
+        .build().unwrap();
 
     // Create init and result buffers:
     let buffer_init: Buffer<f32> = Buffer::with_vec_scrambled(
-         INIT_VAL_RANGE, &dims, &ocl_pq.queue());
-    let mut buffer_result: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
+         INIT_VAL_RANGE, &ocl_pq, &ocl_pq.queue());
+    let mut buffer_result: Buffer<f32> = Buffer::with_vec(&ocl_pq, &ocl_pq.queue());
 
     // Create a kernel with arguments matching those in the kernel:
-    let mut kern = ocl_pq.create_kernel("add", dims.work_dims()).unwrap()
+    let mut kern = ocl_pq.create_kernel("add")
         .arg_buf_named("source", Some(&buffer_init))
         .arg_scl(SCALAR)
         .arg_buf(&buffer_result);
@@ -66,14 +63,14 @@ fn test_timed() {
     let kern_start = Instant::now();
 
     // Enqueue kernel the first time:
-    kern.enqueue(None, None);
+    kern.enqueue();
 
     // Set kernel source buffer to the same as result:
     kern.set_arg_buf_named("source", Some(&buffer_result)).unwrap();
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {
-        kern.enqueue(None, None);
+        kern.enqueue();
     }
 
     // Wait for all kernels to run:
@@ -113,7 +110,7 @@ fn test_timed() {
     let kern_buf_start = Instant::now();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enqueue(None, None);
+        kern.enqueue();
         buffer_result.fill_vec();
     }
 
@@ -136,7 +133,7 @@ fn test_timed() {
     let mut buf_events = EventList::new();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enqueue(Some(&buf_events), Some(&mut kern_events));
+        kern.enqueue_with_events(Some(&buf_events), Some(&mut kern_events));
         unsafe { buffer_result.fill_vec_async(Some(&kern_events), Some(&mut buf_events)).unwrap(); }
     }
 
@@ -160,7 +157,7 @@ fn test_timed() {
     let mut buf_events = EventList::new();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enqueue(None, Some(&mut kern_events));
+        kern.enqueue_with_events(None, Some(&mut kern_events));
         unsafe { buffer_result.fill_vec_async(None, Some(&mut buf_events)).unwrap(); }
     }
 

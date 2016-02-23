@@ -81,7 +81,7 @@ fn test_events() {
     let addend = 10u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel("add_scalar", our_test_dims.work_dims()).unwrap()
+    let mut kernel = ocl_pq.create_kernel_with_dims("add_scalar", our_test_dims.clone())
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)
         .arg_buf(&mut result_buffer)
@@ -119,7 +119,7 @@ fn test_events() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.enqueue(None, Some(&mut kernel_event));
+        kernel.enqueue_with_events(None, Some(&mut kernel_event));
 
         let mut read_event = EventList::new();
         
@@ -178,14 +178,14 @@ fn test_basics() {
     let mut result_buffer = Buffer::<f32>::with_vec(&dims, &ocl_pq.queue());
 
     // Create a kernel with three arguments corresponding to those in the kernel:
-    let kernel = ocl_pq.create_kernel("multiply_by_scalar", dims.work_dims()).unwrap()
+    let kernel = ocl_pq.create_kernel_with_dims("multiply_by_scalar", dims.clone())
         .arg_buf(&source_buffer)
         .arg_scl(coeff)
         .arg_buf(&mut result_buffer)
     ;
 
     // Enqueue kernel depending on and creating no events:
-    kernel.enqueue(None, None);
+    kernel.enqueue();
 
     // Read results:
     result_buffer.fill_vec();

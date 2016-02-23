@@ -51,7 +51,7 @@ fn main() {
     let mut buffer_result: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
 
     // Create a kernel with arguments matching those in the kernel:
-    let mut kern = ocl_pq.create_kernel("add", dims.work_dims()).unwrap()
+    let mut kern = ocl_pq.create_kernel_with_dims("add", dims.clone())
         .arg_buf_named("source", Some(&buffer_init))
         .arg_scl(SCALAR)
         .arg_buf(&buffer_result);
@@ -68,14 +68,14 @@ fn main() {
     let kern_start = Instant::now();
 
     // Enqueue kernel the first time:
-    kern.enqueue(None, None);
+    kern.enqueue();
 
     // Set kernel source buffer to the same as result:
     kern.set_arg_buf_named("source", Some(&buffer_result)).unwrap();
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {
-        kern.enqueue(None, None);
+        kern.enqueue();
     }
 
     // Wait for all kernels to run:
@@ -115,7 +115,7 @@ fn main() {
     let kern_buf_start = Instant::now();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enqueue(None, None);
+        kern.enqueue();
         buffer_result.fill_vec();
     }
 
@@ -141,10 +141,10 @@ fn main() {
     for i in 0..KERNEL_AND_BUFFER_ITERS {
         // if i < 20 { println!("0.0 [{}] ", i); }
 
-        kern.enqueue(Some(&buf_events), Some(&mut kern_events));
-        // kern.enqueue(None, Some(&mut kern_events));
-        // kern.enqueue(Some(&buf_events), None);
-        // kern.enqueue(None, None);
+        kern.enqueue_with_events(Some(&buf_events), Some(&mut kern_events));
+        // kern.enqueue_with_events(None, Some(&mut kern_events));
+        // kern.enqueue_with_events(Some(&buf_events), None);
+        // kern.enqueue();
 
         // if i < 20 { println!("0.1 [{}] ", i); }
 
@@ -183,7 +183,7 @@ fn main() {
     // let mut buf_events = EventList::new();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
-        kern.enqueue(None, Some(&mut kern_events));
+        kern.enqueue_with_events(None, Some(&mut kern_events));
         unsafe { buffer_result.fill_vec_async(None, Some(&mut buf_events)).unwrap(); }
     }
 
