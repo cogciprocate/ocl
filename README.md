@@ -19,8 +19,8 @@ To provide:
 - A simple and intuitive interface with OpenCL devices
 - The full functionality of the OpenCL API
 - An absolute minimum of boilerplate
-- As close as possible to zero performance overhead
-- Safe and automatic management of API resources and pointers
+- Virtually zero performance overhead
+- Thread-safe and automatic management of API pointers and resources
 
 
 ## Installation
@@ -38,7 +38,7 @@ ocl = "0.7"
 to your project's `Cargo.toml`.
 
 
-## A Trivial Example 
+## Example 
 
 From 'examples/trivial.rs':
 ```rust
