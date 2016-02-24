@@ -12,6 +12,9 @@ Breaking Changes
 * The kernel created using `ProQue::create_kernel` is no longer wrapped in a
   result and instead panics if there is a problem. If you require a 
   non-panicing way to create a kernel use `Kernel::new`.
+* `Context::new` has been redesigned. It is now recommended to use
+  `Context::builder` or its equivalent, `ContextBuilder::new' to create a
+  `Context`.
 
 
 New Features

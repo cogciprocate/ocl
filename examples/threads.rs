@@ -33,19 +33,19 @@ fn main() {
 
 	println!("Looping through avaliable platforms ({}):", platforms.len());
 
-	// Loop through all avaliable platforms:
+	// Loop through each avaliable platform:
     for p_idx in 0..platforms.len() {
     	let platform = &platforms[p_idx];
     	println!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
 
     	let devices = Device::list_all(platform);
 
-    	// Loop through each device an average of 3 times
-    	for i in 0..(devices.len() * 2) {
+    	// Loop through each device:
+    	for device_idx in 0..devices.len() {
     		// Choose a device at random: 
-    		let dev_idx = rng.gen_range(0, devices.len());
-    		let device = &devices[dev_idx];
-    		println!("Device[{}]: {} ({})", dev_idx, device.name(), device.vendor());
+    		// let dev_idx = rng.gen_range(0, devices.len());
+    		let device = &devices[device_idx];
+    		println!("Device[{}]: {} ({})", device_idx, device.name(), device.vendor());
 
     		// Make a context to share around:
     		let context = Context::new_by_index_and_type(None, None).unwrap();
@@ -53,7 +53,7 @@ fn main() {
 			print!("    Spawning threads... ");
 
 			for i in 0..5 {
-				let thread_name = format!("{}:[D{}.I{}]", threads.len(), dev_idx, i);
+				let thread_name = format!("{}:[D{}.I{}]", threads.len(), device_idx, i);
 
 				let context = context.clone();
 				let dims = dims.clone();

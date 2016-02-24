@@ -15,6 +15,8 @@ use standard::{self, Platform, DeviceSpecifier, ContextBuilder};
 /// Thread safety and destruction for any enclosed pointers are all handled automatically. 
 /// Clone, store, and share between threads to your hearts content.
 ///
+/// [FIXME]: Don't store device id list or platform id. Can be ascertained via the SDK.
+/// 
 #[derive(Debug, Clone)]
 pub struct Context {
     platform_id_core: Option<PlatformIdCore>,
