@@ -13,34 +13,38 @@ pub enum DeviceSpecifier {
 }
 
 impl DeviceSpecifier {
-	pub fn into_device_list(self, platform: Option<PlatformIdCore>) -> OclResult<Vec<DeviceIdCore>> {
-		let device_list_all = try!(core::get_device_ids(platform.clone(), Some(core::DEVICE_TYPE_ALL)));
+    pub fn to_device_list(&self, platform: Option<PlatformIdCore>) -> OclResult<Vec<DeviceIdCore>> {
+        let device_list_all = try!(core::get_device_ids(platform.clone(), Some(core::DEVICE_TYPE_ALL)));
 
         Ok(match self {
-            DeviceSpecifier::All => {
+            &DeviceSpecifier::All => {
                 device_list_all
             },
-            DeviceSpecifier::Single(device) => {
+            &DeviceSpecifier::Single(ref device) => {
                 vec![device.as_core().clone()]
             },
-            DeviceSpecifier::List(devices) => {
-                devices.into_iter().map(|d| d.as_core().clone()).collect() 
+            &DeviceSpecifier::List(ref devices) => {
+                devices.iter().map(|d| d.as_core().clone()).collect() 
             },
-            DeviceSpecifier::Index(idx) => {
+            &DeviceSpecifier::Index(idx) => {
                 assert!(idx < device_list_all.len(), "ocl::Context::new: DeviceSpecifier::Index: \
                     Device index out of range.");
                 vec![device_list_all[idx].clone()]
             },
-            DeviceSpecifier::Indices(idx_list) => {
-                idx_list.into_iter().map(|idx| {
+            &DeviceSpecifier::Indices(ref idx_list) => {
+                idx_list.iter().map(|&idx| {
                         assert!(idx < device_list_all.len(), "ocl::Context::new: \
                             DeviceSpecifier::Indices: Device index out of range.");
                         device_list_all[idx].clone()
                     } ).collect()
             },
-            DeviceSpecifier::TypeFlags(flags) => {
+            &DeviceSpecifier::TypeFlags(flags) => {
                 try!(core::get_device_ids(platform.clone(), Some(flags)))
             },
         } )
+    }
+
+	pub fn into_device_list(self, platform: Option<PlatformIdCore>) -> OclResult<Vec<DeviceIdCore>> {        
+        self.to_device_list(platform)
 	}
 }
