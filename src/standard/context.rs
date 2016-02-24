@@ -7,7 +7,7 @@
 use std;
 use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, PlatformId as PlatformIdCore, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
 use error::{Result as OclResult, Error as OclError};
-use standard::{self, Platform, DeviceSpecifier};
+use standard::{self, Platform, DeviceSpecifier, ContextBuilder};
 
 
 /// A context for a particular platform and set of device types.
@@ -29,16 +29,11 @@ impl Context {
     ///
     /// Use `Context::builder()...` instead of this method unless you know what you're doing. Please also contact us or file an issue immediately if you do, in fact, know what you're doing so that you can be added to the development team immediately as the one who does.
     ///
-    /// # Panics
+    /// ### Panics
     ///
     /// [TEMPORARY] Passing a `Some` value for `pfn_notify` or `user_data` is 
     /// not yet supported.
     ///
-    /// Any device indexes within `DeviceSpecifier` must be within the range of
-    /// the number of devices for the platform specified in `properties`. If no
-    /// platform has been specified, this behaviour is undefined and may be
-    /// using an unintended platform. See `ContextProperties` for how to
-    /// correctly specify the platform.
     pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>, 
                 pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
                 ) -> OclResult<Context> {
@@ -64,6 +59,11 @@ impl Context {
             device_id_core_list: device_list,
             obj_core: obj_core,
         })
+    }
+
+    // Returns a `ContextBuilder`.
+    pub fn builder() -> ContextBuilder {
+        ContextBuilder::new()
     }
 
 
@@ -92,14 +92,9 @@ impl Context {
     /// Some (ex. `Some(2)`). Pass `None` to use the first platform available (0). 
     /// 
     /// The device types mask may be specified using a union of any or all of the 
-    /// following flags:
-    /// - `CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
-    /// - `CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor. The host processor runs the OpenCL implementations and is a single or multi-core CPU.
-    /// - `CL_DEVICE_TYPE_GPU`: An OpenCL device that is a GPU. By this we mean that the device can also be used to accelerate a 3D API such as OpenGL or DirectX.
-    /// - `CL_DEVICE_TYPE_ACCELERATOR`: Dedicated OpenCL accelerators (for example the IBM CELL Blade). These devices communicate with the host processor using a peripheral interconnect such as PCIe.
-    /// - `CL_DEVICE_TYPE_ALL`: A union of all flags.
+    /// following flags: [MOVED TO `DeviceType` DOCS].
     ///
-    /// Passing `None` will use the flag: `CL_DEVICE_TYPE_GPU`.
+    /// [FIXME: Update] Passing `None` will use the flag: `CL_DEVICE_TYPE_GPU`.
     ///
     /// # Examples
     /// 

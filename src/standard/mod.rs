@@ -3,6 +3,7 @@
 mod platform;
 mod device;
 mod device_specifier;
+mod context_builder;
 mod context;
 mod program_builder;
 mod program;
@@ -23,6 +24,7 @@ mod simple_dims;
 pub use self::platform::Platform;
 pub use self::device::Device;
 pub use self::device_specifier::DeviceSpecifier;
+pub use self::context_builder::ContextBuilder;
 pub use self::context::Context;
 pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;
