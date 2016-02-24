@@ -19,7 +19,7 @@ impl Device {
 	/// ### Safety 
 	///
 	/// Not meant to be called unless you know what you're doing.
-	pub unsafe fn new(id_core: DeviceIdCore) -> Device {
+	pub fn new(id_core: DeviceIdCore) -> Device {
 		Device(id_core)
 	}
 
@@ -32,7 +32,7 @@ impl Device {
 		let list_core = core::get_device_ids(Some(platform.as_core().clone()), device_types)
 			.expect("Device::list: Error retrieving device list");
 
-		unsafe { list_core.into_iter().map(|pr| Device::new(pr) ).collect() }
+		list_core.into_iter().map(|pr| Device::new(pr) ).collect()
 	}
 
 	/// Returns a list of all devices avaliable for a given `platform`.
@@ -42,7 +42,7 @@ impl Device {
 		let list_core = core::get_device_ids(Some(platform.as_core().clone()), None)
 			.expect("Device::list_all: Error retrieving device list");
 
-		unsafe { list_core.into_iter().map(|pr| Device::new(pr) ).collect() }
+		list_core.into_iter().map(|pr| Device::new(pr) ).collect()
 	}
 
 	/// Returns the device name.

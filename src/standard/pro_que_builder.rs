@@ -46,10 +46,10 @@ impl<'c> ProQueBuilder<'c> {
         let mut context_opt: Option<Context> = None;
 
         let queue = match self.context {
-            Some(ctx) => Queue::new(ctx, self.device_idx),
+            Some(ctx) => Queue::new_by_device_index(ctx, self.device_idx),
             None => {
                 context_opt = Some(try!(Context::new_by_index_and_type(None, None)));
-                Queue::new(&context_opt.as_ref().unwrap(), None)
+                Queue::new_by_device_index(&context_opt.as_ref().unwrap(), None)
             },
         };
 
@@ -136,10 +136,10 @@ impl<'c> ProQueBuilder<'c> {
     //  let mut context_opt: Option<Context> = None;
 
     //  let queue = match context {
-    //      Some(ctx) => Queue::new(ctx, device_idx),
+    //      Some(ctx) => Queue::new_by_device_index(ctx, device_idx),
     //      None => {
     //          context_opt = Some(try!(Context::new_by_index_and_type(None, None)));
-    //          Queue::new(&context_opt.as_ref().unwrap(), None)
+    //          Queue::new_by_device_index(&context_opt.as_ref().unwrap(), None)
     //      },
     //  };
 

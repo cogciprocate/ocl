@@ -17,7 +17,7 @@ fn main() {
 	let dims = SimpleDims::One(1000);
 
 	let context = Context::new_by_index_and_type(None, None).unwrap();
-	let queue = Queue::new(&context, None);
+	let queue = Queue::new_by_device_index(&context, None);
 	let buffer = Buffer::<f32>::new(&dims, &queue);
 	// let image = Image::new();
 	// let sampler = Sampler::new();

@@ -56,7 +56,7 @@ impl ProQue {
     /// - when is built-in Context used / destroyed
     ///
     pub fn new(context: &Context, device_idx: Option<usize>) -> ProQue {
-        let queue = Queue::new(context, device_idx);
+        let queue = Queue::new_by_device_index(context, device_idx);
 
         ProQue {
             queue: queue,

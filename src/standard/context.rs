@@ -7,7 +7,7 @@
 use std;
 use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, PlatformId as PlatformIdCore, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
 use error::{Result as OclResult, Error as OclError};
-use standard::{self, Platform, DeviceSpecifier, ContextBuilder};
+use standard::{self, Platform, Device, DeviceSpecifier, ContextBuilder};
 
 
 /// A context for a particular platform and set of device types.
@@ -207,6 +207,8 @@ impl Context {
     }
 
     /// Resolves the zero-based device index into a DeviceIdCore (pointer).
+    ///
+    /// [FIXME]: Figure out how to accept vecs or slices
     pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdCore> {
         match device_idxs.len() {
             0 => vec![self.device_id_core_list[core::DEFAULT_DEVICE_IDX].clone()],
@@ -217,6 +219,8 @@ impl Context {
     /// Returns a list of valid devices regardless of whether or not the indexes 
     /// passed are valid by performing a modulo operation on them and letting them
     /// wrap around (round robin).
+    ///
+    /// [FIXME]: Figure out how to accept vecs or slices
     pub fn valid_device_ids(&self, selected_idxs: &[usize]) -> Vec<DeviceIdCore> {
         let mut valid_device_ids = Vec::with_capacity(selected_idxs.len());
 
@@ -226,6 +230,16 @@ impl Context {
         }
 
         valid_device_ids
+    }
+
+    /// Returns a device by its ordinal count within this context.
+    ///
+    /// Round-robins (%) to the next valid device.
+    ///
+    pub fn get_device_by_index(&self, index: usize) -> Device {
+        // [FIXME]: FIGURE OUT HOW TO DO THIS CORRECTLY
+        let indices = [index; 1];
+        Device::new(self.resolve_device_idxs(&indices)[0].clone())
     }
 
     /// Returns info about the platform associated with the context.

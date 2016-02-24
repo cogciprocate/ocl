@@ -582,15 +582,27 @@ impl<T: OclNum> Buffer<T> {
 
     /// Changes the queue used by this Buffer for reads and writes, etc.
     ///
+    /// Returns a ref for chaining i.e.:
+    ///
+    /// `buffer.set_queue(queue).flush_vec(....);`
+    ///
     /// # Safety
+    ///
+    /// [FIXME]: Update this. Safety is pretty much fine.
     ///
     /// Not all implications of changing the queue, particularly if the new queue
     /// is associated with a new device which has different workgroup size dimensions,
     /// have been considered or are dealt with. For now, considering these cases is
     /// left to the caller. It's probably a good idea to at least call `.resize()`
     /// after calling this method.
-    pub unsafe fn set_queue(&mut self, queue: Queue) {
+    ///
+    pub fn set_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Buffer<T> {
+        // [FIXME]: Set this up:
+        // assert!(queue.device == self.queue.device);
+        // [/FIXME]
+
         self.queue_obj_core = queue.core_as_ref().clone();
+        self
     }
 
     /// Returns an iterator to a contained vector.

@@ -19,8 +19,8 @@ impl Event {
 	///
 	/// ### Safety 
 	///
-	/// Not meant to be called directly by consumers.
-	pub fn from_event_core(event_core: EventCore) -> Event {
+	/// Not meant to be called directly.
+	pub fn new(event_core: EventCore) -> Event {
 		Event(event_core)
 	}
 

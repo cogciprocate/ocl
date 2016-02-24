@@ -65,7 +65,7 @@ fn main() {
 				print!("{}, ", thread_name);
 
 				let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
-			        let queue = Queue::new(&context, None);
+			        let queue = Queue::new_by_device_index(&context, None);
 					let mut buffer = Buffer::<f32>::with_vec(&dims, &queue);
 					let program = Program::builder().src(SRC).build(&context).unwrap();
 					let kernel = Kernel::new("add", &program, &queue, dims.clone()).unwrap()

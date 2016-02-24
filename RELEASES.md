@@ -15,6 +15,8 @@ Breaking Changes
 * `Context::new` has been redesigned. It is now recommended to use
   `Context::builder` or its equivalent, `ContextBuilder::new' to create a
   `Context`.
+* `Queue::new` now takes a `Device` as its second argument. Use the new 
+  `Context::get_device_by_index` to achieve the same result.
 
 
 New Features
