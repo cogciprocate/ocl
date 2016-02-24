@@ -30,22 +30,47 @@ fn main() {
 	// Loop through all avaliable platforms:
     for p_idx in 0..platforms.len() {
     	let platform = &platforms[p_idx];
-    	print!("\n");
-    	if PRINT_DETAILED {
-    		println!("{}", platform);
-		} else {
-			println!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
-		}
+
+  //   	// Print platform info:
+  //   	{
+  //   		print!("\n");
+
+  //   		if PRINT_DETAILED {
+	 //    		print!("{}", platform);	    		
+
+		// 	} else {
+		// 		print!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
+		// 	}
+
+		// 	print!(" {{ Total Device Count: {} }}", devices.len());
+  //   		print!("\n");
+		// }
+		// //
+
+		print_platform_info(&platform, p_idx);
+    	
 
     	let devices = Device::list_all(platform);
 
     	// Loop through each device
     	for d_idx in 0..devices.len() {
     		let device = &devices[d_idx];
+
+    		// Print device info:
+    		{
+				if PRINT_DETAILED_DEVICE {
+	    			println!("[Device][{}]: {}", d_idx, device);
+	    		} else {
+	    			if !PRINT_DETAILED { print!("{t}", t = TAB); } 
+		    		println!("[Device][{}]: {} ({})", d_idx, device.name(), device.vendor());
+		    	}
+		    }
+		    //
+
 	    	// let context = Context::new_by_index_and_type(None, None).unwrap();
 	    	let context = Context::builder()
 	    		.platform(platform.clone())
-	    		.devices(devices.clone())
+	    		.device(device.clone())
 	    		.build().unwrap();	    	
 
 			let queue = Queue::new(&context, None);
@@ -69,16 +94,6 @@ fn main() {
 	    		println!("{t}{t}[Context]:  ()", t = TAB);
 	    	}
 	    	
-	    	//
-	    	// [FIXME]: GET DEVICE PRINTING
-	    	//
-			// if PRINT_DETAILED_DEVICE {
-   //  			println!("[Device][{}]: {}", d_idx, device);
-   //  		} else {
-   //  			if !PRINT_DETAILED { print!("{t}", t = TAB); } 
-	  //   		println!("[Device][{}]: {} ({})", d_idx, device.name(), device.vendor());
-	  //   	}
-
 			if PRINT_DETAILED {
     			println!("{}", event);
     		} else {
@@ -94,4 +109,22 @@ fn main() {
 	}
 
 	// print!("\n");
+}
+
+
+fn print_platform_info(platform: &Platform, idx: usize) {
+	let devices = Device::list_all(platform);
+
+	print!("\n");
+
+	if PRINT_DETAILED {
+		print!("{}", platform);	    		
+
+	} else {
+		print!("Platform[{}]: {} ({})", idx, platform.name(), platform.vendor());
+	}
+
+	print!(" {{ Total Device Count: {} }}", devices.len());
+	print!("\n");
+	print!("\n");
 }
