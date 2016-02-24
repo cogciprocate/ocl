@@ -128,6 +128,13 @@ impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Ze
 
 bitflags! {
 	/// cl_device_type - bitfield 
+    ///
+    /// - `CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
+    /// - `CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor. The host processor runs the OpenCL implementations and is a single or multi-core CPU.
+    /// - `CL_DEVICE_TYPE_GPU`: An OpenCL device that is a GPU. By this we mean that the device can also be used to accelerate a 3D API such as OpenGL or DirectX.
+    /// - `CL_DEVICE_TYPE_ACCELERATOR`: Dedicated OpenCL accelerators (for example the IBM CELL Blade). These devices communicate with the host processor using a peripheral interconnect such as PCIe.
+    /// - `CL_DEVICE_TYPE_ALL`: A union of all flags.
+    ///
     flags DeviceType: u64 {
 		const DEVICE_TYPE_DEFAULT = 1 << 0,
 		const DEVICE_TYPE_CPU = 1 << 1,
