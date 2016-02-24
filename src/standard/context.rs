@@ -23,7 +23,84 @@ pub struct Context {
 }
 
 impl Context {
-    /// Constructs a new `Context` within a specified platform and set of device types.
+    /// [UNTESTED] Returns a newly created context.
+    pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>, 
+                pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
+                ) -> OclResult<Context> {
+        assert!(pfn_notify.is_none() && user_data.is_none(), 
+            "Context creation callbacks not yet implemented.");
+
+        let platform: Option<PlatformIdCore> = match properties {
+            Some(ref props) => props.get_platform().clone(),
+            None => None,
+        };
+
+        let device_spec = match device_spec {
+            Some(ds) => ds,
+            None => DeviceSpecifier::All,
+        };
+
+        let device_list_all = try!(core::get_device_ids(platform.clone(), Some(core::DEVICE_TYPE_ALL)));
+
+        let device_list: Vec<DeviceIdCore> = match device_spec {
+            DeviceSpecifier::All => {
+                device_list_all
+            },
+            DeviceSpecifier::Single(device) => {
+                vec![device.as_core().clone()]
+            },
+            DeviceSpecifier::List(devices) => {
+                devices.into_iter().map(|d| d.as_core().clone()).collect() 
+            },
+            DeviceSpecifier::Index(idx) => {
+                if idx >= device_list_all.len() { 
+                    return OclError::err("ocl::Context::new: Device index out of range.")
+                } else {
+                    vec![device_list_all[idx].clone()]
+                }
+            },
+            DeviceSpecifier::Indices(idx_list) => {
+                idx_list.into_iter().map(|idx| {
+                        assert!(idx < device_list_all.len(), "ocl::Context::new: Device index \
+                            out of range.");                    
+                        device_list_all[idx].clone()
+                    } ).collect()
+            },
+            DeviceSpecifier::TypeFlags(flags) => {
+                try!(core::get_device_ids(platform.clone(), Some(flags)))
+            },
+        };
+
+        let obj_core = try!(core::create_context(&properties, &device_list, pfn_notify, user_data));
+
+        // [DEBUG]: 
+        // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_core);
+
+        Ok(Context {
+            platform_id_core: platform,
+            device_id_core_list: device_list,
+            obj_core: obj_core,
+        })
+    }
+
+
+    /// [UNTESTED] Returns a newly created context.
+    pub fn new_by_platform_and_device_list<D: Into<DeviceIdCore>>(platform: Platform, 
+                    device_list: Vec<D>) -> OclResult<Context> {
+        let devices: Vec<DeviceIdCore> = device_list.into_iter().map(|d| d.into()).collect();
+        let properties: Option<ContextProperties> = 
+            Some(ContextProperties::new().platform::<PlatformIdCore>(platform.clone().into()));
+        let obj_core = try!(core::create_context(&properties, &devices, None, None));
+
+        Ok(Context {
+            platform_id_core: Some(platform.into()),
+            device_id_core_list: devices,
+            obj_core: obj_core,
+        })
+    }
+
+
+    /// [FIXME: Docs] Returns a newly created context with a specified platform and set of device types.
     /// 
     /// [FIXME: Needs update]
     ///
@@ -84,110 +161,6 @@ impl Context {
     /// # Maybe Someday TODO:
     /// - Handle context creation callbacks.
     ///
-    pub fn new(properties: Option<ContextProperties>, device_spec: DeviceSpecifier, 
-                pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
-                ) -> OclResult<Context> {
-        assert!(pfn_notify.is_none() && user_data.is_none(), 
-            "Context creation callbacks not yet implemented.");
-        // let platforms: Vec<PlatformIdCore> = try!(core::get_platform_ids());
-        // if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
-
-        // println!("Platform list: {:?}", platforms);
-
-        // let platform_id_core: PlatformIdCore = match platform_idx_opt {
-        //     Some(pf_idx) => {
-        //         match platforms.get(pf_idx) {
-        //             Some(pf) => {
-        //                 pf.clone()
-        //             },
-        //             None => {
-        //                 return OclError::err("Invalid OpenCL platform index specified. \
-        //                     Use 'get_platform_ids()' for a list.")
-        //             },
-        //         }
-        //     },
-        //     None => {
-        //         debug_assert!(platforms.len() > 0, "Context::new_by_index_and_type(): Internal indexing error.");
-        //         platforms[core::DEFAULT_PLATFORM_IDX].clone()
-        //     },
-        // };
-
-        // [DEBUG]: 
-        // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_core);
-
-        // let properties = Some(ContextProperties::new().platform(platform_id_core.clone()));
-        // let properties = None;
-
-        let platform: Option<PlatformIdCore> = match properties {
-            Some(ref props) => props.get_platform().clone(),
-            None => None,
-        };
-
-        let device_list = match device_spec {
-            DeviceSpecifier::All => {
-                try!(core::get_device_ids(platform.clone(), Some(core::DEVICE_TYPE_ALL)))
-            },
-            // DeviceSpecifier::Single(Device) => {
-            //     try!(core::get_device_ids(&platform_id_core, 
-            //         device_types_opt))
-            // },
-            // DeviceSpecifier::List(Vec<Device>) => {
-            //     try!(core::get_device_ids(&platform_id_core, 
-            //         device_types_opt))
-            // },
-            // DeviceSpecifier::Index(usize) => {
-            //     try!(core::get_device_ids(&platform_id_core, 
-            //         device_types_opt))
-            // },
-            // DeviceSpecifier::Indices(Vec<usize>) => {
-            //     try!(core::get_device_ids(&platform_id_core, 
-            //         device_types_opt))
-            // },
-            // DeviceSpecifier::TypeFlags(DeviceType) => {
-            //     try!(core::get_device_ids(&platform_id_core, 
-            //         device_types_opt))
-            // },
-            _ => unimplemented!(),
-        };
-
-        
-        // let device_id_core_list: Vec<DeviceIdCore> = try!(core::get_device_ids(&platform_id_core, 
-        //     device_types_opt));
-        // if device_id_core_list.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
-
-        // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_id_core_list);
-
-        // [FIXME]: No callback or user data:
-        let obj_core = try!(core::create_context(&properties, &device_list, None, None));
-
-        // [DEBUG]: 
-        // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_core);
-
-        Ok(Context {
-            platform_id_core: platform,
-            device_id_core_list: device_list,
-            obj_core: obj_core,
-        })
-    }
-
-
-    /// [UNTESTED] Returns a newly created context.
-    pub fn new_by_platform_and_device_list<D: Into<DeviceIdCore>>(platform: Platform, 
-                    device_list: Vec<D>) -> OclResult<Context> {
-        let devices: Vec<DeviceIdCore> = device_list.into_iter().map(|d| d.into()).collect();
-        let properties: Option<ContextProperties> = 
-            Some(ContextProperties::new().platform::<PlatformIdCore>(platform.clone().into()));
-        let obj_core = try!(core::create_context(&properties, &devices, None, None));
-
-        Ok(Context {
-            platform_id_core: Some(platform.into()),
-            device_id_core_list: devices,
-            obj_core: obj_core,
-        })
-    }
-
-
-    /// [FIXME: Docs] Returns a newly created context.
     pub fn new_by_index_and_type(platform_idx_opt: Option<usize>, device_types_opt: Option<DeviceType>) 
             -> OclResult<Context>
     {
@@ -238,12 +211,6 @@ impl Context {
             obj_core: obj_core,
         })
     }
-
-    pub fn from_specifics() {
-
-    }
-
-
 
     /// Resolves the zero-based device index into a DeviceIdCore (pointer).
     pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdCore> {
