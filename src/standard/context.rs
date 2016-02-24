@@ -84,7 +84,7 @@ impl Context {
         //     },
         // };
 
-        let device_list = try!(device_spec.into_device_list(platform.clone()));
+        let device_list = try!(device_spec.to_device_list(platform.clone()));
 
         let obj_core = try!(core::create_context(&properties, &device_list, pfn_notify, user_data));
 

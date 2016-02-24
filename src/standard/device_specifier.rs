@@ -44,7 +44,7 @@ impl DeviceSpecifier {
         } )
     }
 
-	pub fn into_device_list(self, platform: Option<PlatformIdCore>) -> OclResult<Vec<DeviceIdCore>> {        
-        self.to_device_list(platform)
-	}
+	// pub fn into_device_list(self, platform: Option<PlatformIdCore>) -> OclResult<Vec<DeviceIdCore>> {        
+ //        self.to_device_list(platform)
+	// }
 }
