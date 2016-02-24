@@ -48,7 +48,7 @@ impl<'c> ProQueBuilder<'c> {
         let queue = match self.context {
             Some(ctx) => Queue::new(ctx, self.device_idx),
             None => {
-                context_opt = Some(try!(Context::new(None, None)));
+                context_opt = Some(try!(Context::new_by_index_and_type(None, None)));
                 Queue::new(&context_opt.as_ref().unwrap(), None)
             },
         };
@@ -138,7 +138,7 @@ impl<'c> ProQueBuilder<'c> {
     //  let queue = match context {
     //      Some(ctx) => Queue::new(ctx, device_idx),
     //      None => {
-    //          context_opt = Some(try!(Context::new(None, None)));
+    //          context_opt = Some(try!(Context::new_by_index_and_type(None, None)));
     //          Queue::new(&context_opt.as_ref().unwrap(), None)
     //      },
     //  };

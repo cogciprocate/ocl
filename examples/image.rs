@@ -22,7 +22,7 @@ fn main() {
     let image_dims = SimpleDims::Two(200, 100);
 
     // Create a context with the first available platform and default device type:
-    let ocl_cxt = Context::new(None, None).unwrap();
+    let ocl_cxt = Context::new_by_index_and_type(None, None).unwrap();
 
     // Create a program/queue with the first available device: 
     let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");

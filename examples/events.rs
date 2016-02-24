@@ -74,7 +74,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 
 fn main() {
     // Create a context & program/queue: 
-    let mut ocl_pq = ProQue::new(&Context::new(None, None).unwrap(), None);
+    let mut ocl_pq = ProQue::new(&Context::new_by_index_and_type(None, None).unwrap(), None);
 
     // Build program:
     ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();

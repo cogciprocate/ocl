@@ -29,7 +29,7 @@ impl Device {
 	/// Setting `device_types` to `None` will return a list of all avaliable
 	/// devices for `platform`
 	pub fn list(platform: Platform, device_types: Option<DeviceType>) -> Vec<Device> {
-		let list_core = core::get_device_ids(platform.as_core(), device_types)
+		let list_core = core::get_device_ids(Some(platform.as_core().clone()), device_types)
 			.expect("Device::list: Error retrieving device list");
 
 		unsafe { list_core.into_iter().map(|pr| Device::new(pr) ).collect() }
@@ -39,7 +39,7 @@ impl Device {
 	///
 	/// Equivalent to `::list(platform, None)`.
 	pub fn list_all(platform: &Platform) -> Vec<Device> {
-		let list_core = core::get_device_ids(platform.as_core(), None)
+		let list_core = core::get_device_ids(Some(platform.as_core().clone()), None)
 			.expect("Device::list_all: Error retrieving device list");
 
 		unsafe { list_core.into_iter().map(|pr| Device::new(pr) ).collect() }
@@ -86,11 +86,11 @@ impl Into<String> for Device {
 	}
 }
 
-// impl Into<DeviceIdCore> for Device {
-// 	fn into(self) -> DeviceIdCore {
-// 		self.as_core()
-// 	}
-// }
+impl Into<DeviceIdCore> for Device {
+	fn into(self) -> DeviceIdCore {
+		self.0
+	}
+}
 
 impl std::fmt::Display for Device {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

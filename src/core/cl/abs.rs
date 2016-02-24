@@ -68,8 +68,6 @@ const DEBUG_PRINT: bool = false;
 //================================== TRAITS ===================================
 //=============================================================================
 
-pub type EventCallbackFn = extern fn (cl_event, i32, *mut libc::c_void);
-
 pub unsafe trait ClEventPtrNew {
 	fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
 }
@@ -110,8 +108,8 @@ impl PlatformId {
 		PlatformId(0 as *mut libc::c_void)
 	}
 
-	/// Returns a pointer, do not store it.
-	pub unsafe fn as_ptr(&self) -> cl_platform_id {
+	/// Returns a pointer.
+	pub fn as_ptr(&self) -> cl_platform_id {
 		self.0
 	}
 }
@@ -137,8 +135,8 @@ impl DeviceId {
 		DeviceId(0 as *mut libc::c_void)
 	}
 
-	/// Returns a pointer, do not store it.
-	pub unsafe fn as_ptr(&self) -> cl_device_id {
+	/// Returns a pointer.
+	pub fn as_ptr(&self) -> cl_device_id {
 		self.0
 	}
 }

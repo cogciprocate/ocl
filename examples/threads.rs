@@ -48,7 +48,7 @@ fn main() {
     		println!("Device[{}]: {} ({})", dev_idx, device.name(), device.vendor());
 
     		// Make a context to share around:
-    		let context = Context::new(None, None).unwrap();
+    		let context = Context::new_by_index_and_type(None, None).unwrap();
 
 			print!("    Spawning threads... ");
 

@@ -42,7 +42,7 @@ fn main() {
     	// Loop through each device
     	for d_idx in 0..devices.len() {
     		let device = &devices[d_idx];
-	    	let context = Context::new(None, None).unwrap();
+	    	let context = Context::new_by_index_and_type(None, None).unwrap();
 			let queue = Queue::new(&context, None);
 			let buffer = Buffer::<f32>::new(&dims, &queue);
 			// let image = Image::new();

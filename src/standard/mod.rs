@@ -63,3 +63,19 @@ pub trait WorkDims {
     fn dim_count(&self) -> u32;
     fn work_dims(&self) -> Option<[usize; 3]>;
 }
+
+
+//=============================================================================
+//========================= MISC ENUMS AND STRUCTS ============================
+//=============================================================================
+
+use core::DeviceType;
+
+pub enum DeviceSpecifier {
+    All,
+    Single(Device),
+    List(Vec<Device>),
+    Index(usize),
+    Indices(Vec<usize>),
+    TypeFlags(DeviceType),
+}

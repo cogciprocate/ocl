@@ -33,25 +33,38 @@ impl ContextProperties {
 		self.0.push(prop);
 	}
 
+	/// Returns a platform id or none.
+	pub fn get_platform(&self) -> Option<PlatformId> {
+		let mut platform = None;
+
+		for prop in self.0.iter() {
+			if let &ContextProperty::Platform(ref plat) = prop {
+				platform = Some(plat.clone());
+			}
+		}
+
+		platform
+	} 
+
 	/// [UNTESTED: Not properly tested]
 	/// Converts this list into a packed-byte representation as specified
 	/// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
 	///
 	/// TODO: Evaluate cleaner ways to do this.
-	pub fn into_bytes(self) -> Vec<u8> {
+	pub fn to_bytes(&self) -> Vec<u8> {
 		let mut bytes = Vec::with_capacity(128);
 
 		unsafe { 
 			// For each property:
-			for prop in self.0.into_iter() {
+			for prop in self.0.iter() {
 				// Convert both the kind of property (a u32) and the value (variable type/size) 
 				// into just a core byte vector (Vec<u8>):
 				let (kind, val) = match prop {
-					ContextProperty::Platform(platform_id_core) => (
+					&ContextProperty::Platform(ref platform_id_core) => (
 						util::into_bytes(PropKind::Platform as cl_h::cl_uint),
 						util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id) 
 					),
-				    ContextProperty::InteropUserSync(sync) => (
+				    &ContextProperty::InteropUserSync(sync) => (
 				    	util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
 				    	util::into_bytes(sync as cl_h::cl_bool)
 			    	),
@@ -90,6 +103,6 @@ impl Into<Vec<ContextProperty>> for ContextProperties {
 
 impl Into<Vec<u8>> for ContextProperties {
 	fn into(self) -> Vec<u8> {
-		self.into_bytes()
+		self.to_bytes()
 	}
 }

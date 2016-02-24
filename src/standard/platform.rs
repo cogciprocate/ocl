@@ -38,7 +38,7 @@ impl Platform {
 
 	/// Returns info about the platform. 
 	pub fn info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
-		match core::get_platform_info(&self.0, info_kind) {
+		match core::get_platform_info(Some(self.0.clone()), info_kind) {
 			Ok(pi) => pi,
 			Err(err) => PlatformInfoResult::Error(Box::new(err)),
 		}
@@ -53,7 +53,7 @@ impl Platform {
 	/// * EMBEDDED_PROFILE - if the implementation supports the OpenCL embedded profile. The embedded profile is defined to be a subset for each version of OpenCL.
 	///
 	pub fn profile(&self) -> String {
-		match core::get_platform_info(&self.0, PlatformInfo::Profile) {
+		match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Profile) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -67,7 +67,7 @@ impl Platform {
 	///
 	/// * The major_version.minor_version value returned will be 1.2.
 	pub fn version(&self) -> String {
-		match core::get_platform_info(&self.0, PlatformInfo::Version) {
+		match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -75,7 +75,7 @@ impl Platform {
 
 	/// Returns the platform name as a string.
 	pub fn name(&self) -> String {
-		match core::get_platform_info(&self.0, PlatformInfo::Name) {
+		match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Name) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -83,7 +83,7 @@ impl Platform {
 
 	/// Returns the platform vendor as a string.
 	pub fn vendor(&self) -> String {
-		match core::get_platform_info(&self.0, PlatformInfo::Vendor) {
+		match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Vendor) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}
@@ -93,7 +93,7 @@ impl Platform {
 	///
 	/// Returns a space-separated list of extension names (the extension names themselves do not contain any spaces) supported by the platform. Extensions defined here must be supported by all devices associated with this platform.
 	pub fn extensions(&self) -> String {
-		match core::get_platform_info(&self.0, PlatformInfo::Extensions) {
+		match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Extensions) {
 			Ok(pi) => pi.into(),
 			Err(err) => err.into(),
 		}

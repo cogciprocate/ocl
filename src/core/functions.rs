@@ -21,7 +21,7 @@ use num::{FromPrimitive};
 use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr};
 
 
 //============================================================================
@@ -219,7 +219,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 
 /// [UNTESTED]
 /// Returns platform information of the requested type.
-pub fn get_platform_info(platform: &PlatformId, request_param: PlatformInfo,
+pub fn get_platform_info(platform: Option<PlatformId>, request_param: PlatformInfo,
             ) -> OclResult<PlatformInfoResult> {
     // cl_h::clGetPlatformInfo(platform: cl_platform_id,
     //                              param_name: cl_platform_info,
@@ -227,11 +227,16 @@ pub fn get_platform_info(platform: &PlatformId, request_param: PlatformInfo,
     //                              param_value: *mut c_void,
     //                              param_value_size_ret: *mut size_t) -> cl_int;
 
+    let platform_ptr: cl_platform_id = match platform {
+        Some(p) => p.as_ptr(),
+        None => ptr::null_mut() as cl_platform_id,
+    };
+
     let mut size = 0 as size_t;
 
     unsafe {
         try!(errcode_try("clGetPlatformInfo()", cl_h::clGetPlatformInfo(
-            platform.as_ptr() as cl_platform_id,
+            platform_ptr,
             request_param as cl_platform_info,
             0 as size_t,
             ptr::null_mut(),
@@ -243,7 +248,7 @@ pub fn get_platform_info(platform: &PlatformId, request_param: PlatformInfo,
 
     unsafe {
         try!(errcode_try("clGetPlatformInfo()", cl_h::clGetPlatformInfo(
-            platform.as_ptr() as cl_platform_id,
+            platform_ptr,
             request_param as cl_platform_info,
             size as size_t,
             requested_value.as_mut_ptr() as *mut c_void,
@@ -260,10 +265,12 @@ pub fn get_platform_info(platform: &PlatformId, request_param: PlatformInfo,
 
 /// Returns a list of available devices for a particular platform.
 pub fn get_device_ids(
-            platform: &PlatformId, 
+            platform: Option<PlatformId>, 
             // device_types_opt: Option<cl_device_type>)
             device_types: Option<DeviceType>,
             ) -> OclResult<Vec<DeviceId>> {
+    let platform_ptr = platform.map(|p| p.as_ptr()).unwrap_or(ptr::null_mut());
+
     let device_types = device_types.unwrap_or(core::DEVICE_TYPE_ALL);
     let mut devices_available: cl_uint = 0;
 
@@ -271,7 +278,7 @@ pub fn get_device_ids(
         .take(DEVICES_MAX as usize).collect();
 
     let errcode = unsafe { cl_h::clGetDeviceIDs(
-        platform.as_ptr(), 
+        platform_ptr, 
         device_types.bits() as cl_device_type,
         DEVICES_MAX, 
         device_ids.as_mut_ptr() as *mut cl_device_id,
@@ -362,8 +369,9 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 //
 // [NOTE]: Leave commented print statements intact until more `ContextProperties 
 // variants are implemented.
-pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<DeviceId>,
-            pfn_notify: Option<fn()>, user_data: Option<*mut c_void>) -> OclResult<Context> {
+pub fn create_context(properties: &Option<ContextProperties>, device_ids: &Vec<DeviceId>,
+            pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
+            ) -> OclResult<Context> {
     if device_ids.len() == 0 {
         return OclError::err("ocl::core::create_context: No devices specified.");
     }
@@ -372,8 +380,8 @@ pub fn create_context(properties: Option<ContextProperties>, device_ids: &Vec<De
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
     let properties_bytes: Vec<u8> = match properties {
-        Some(props) => props.into_bytes(),
-        None => Vec::<u8>::with_capacity(0),
+        &Some(ref props) => props.to_bytes(),
+        &None => Vec::<u8>::with_capacity(0),
     };
 
     // [DEBUG]: 
@@ -2351,7 +2359,7 @@ pub fn platform_name(platform: &PlatformId) -> OclResult<String> {
     //     println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
     // }
 
-    let info_result = try!(get_platform_info(platform, PlatformInfo::Name));
+    let info_result = try!(get_platform_info(Some(platform.clone()), PlatformInfo::Name));
     Ok(info_result.into())
     // println!("*** Platform Name ({}): {}", name, String::from_utf8(param_value).unwrap());
 }

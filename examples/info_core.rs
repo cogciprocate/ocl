@@ -16,7 +16,7 @@ static SRC: &'static str = r#"
 fn main() {
 	let dims = SimpleDims::One(1000);
 
-	let context = Context::new(None, None).unwrap();
+	let context = Context::new_by_index_and_type(None, None).unwrap();
 	let queue = Queue::new(&context, None);
 	let buffer = Buffer::<f32>::new(&dims, &queue);
 	// let image = Image::new();
