@@ -41,10 +41,6 @@ impl DeviceSpecifier {
             &DeviceSpecifier::TypeFlags(flags) => {
                 try!(core::get_device_ids(platform.clone(), Some(flags)))
             },
-        } )
+        })
     }
-
-	// pub fn into_device_list(self, platform: Option<PlatformIdCore>) -> OclResult<Vec<DeviceIdCore>> {        
- //        self.to_device_list(platform)
-	// }
 }

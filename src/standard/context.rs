@@ -55,41 +55,9 @@ impl Context {
             None => DeviceSpecifier::All,
         };
 
-        // let device_list_all = try!(core::get_device_ids(platform.clone(), Some(core::DEVICE_TYPE_ALL)));
-
-        // let device_list: Vec<DeviceIdCore> = match device_spec {
-        //     DeviceSpecifier::All => {
-        //         device_list_all
-        //     },
-        //     DeviceSpecifier::Single(device) => {
-        //         vec![device.as_core().clone()]
-        //     },
-        //     DeviceSpecifier::List(devices) => {
-        //         devices.into_iter().map(|d| d.as_core().clone()).collect() 
-        //     },
-        //     DeviceSpecifier::Index(idx) => {
-        //         assert!(idx < device_list_all.len(), "ocl::Context::new: DeviceSpecifier::Index: \
-        //             Device index out of range.");
-        //         vec![device_list_all[idx].clone()]
-        //     },
-        //     DeviceSpecifier::Indices(idx_list) => {
-        //         idx_list.into_iter().map(|idx| {
-        //                 assert!(idx < device_list_all.len(), "ocl::Context::new: \
-        //                     DeviceSpecifier::Indices: Device index out of range.");
-        //                 device_list_all[idx].clone()
-        //             } ).collect()
-        //     },
-        //     DeviceSpecifier::TypeFlags(flags) => {
-        //         try!(core::get_device_ids(platform.clone(), Some(flags)))
-        //     },
-        // };
-
         let device_list = try!(device_spec.to_device_list(platform.clone()));
 
         let obj_core = try!(core::create_context(&properties, &device_list, pfn_notify, user_data));
-
-        // [DEBUG]: 
-        // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_core);
 
         Ok(Context {
             platform_id_core: platform,
