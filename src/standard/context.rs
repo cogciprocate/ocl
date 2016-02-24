@@ -34,9 +34,9 @@ impl Context {
     /// 
     /// ### Defaults
     ///
-    /// * The 'NULL' context (which is not to be relied on but is generally
+    /// * The 'NULL' platform (which is not to be relied on but is generally
     ///   the first avaliable).
-    /// * All devices associated with the 'NULL' context
+    /// * All devices associated with the 'NULL' platform
     /// * No notify callback function or user data.
     ///
     /// Don't rely on these defaults, instead rely on the `ContextBuilder` 

@@ -19,7 +19,7 @@ impl Platform {
 	/// ### Safety 
 	///
 	/// Not meant to be called unless you know what you're doing.
-	pub unsafe fn new(id_core: PlatformIdCore) -> Platform {
+	pub fn new(id_core: PlatformIdCore) -> Platform {
 		Platform(id_core)
 	}
 
@@ -28,7 +28,7 @@ impl Platform {
 		let list_core = core::get_platform_ids()
 			.expect("Platform::list: Error retrieving platform list");
 
-		unsafe { list_core.into_iter().map(|pr| Platform::new(pr) ).collect() }
+		list_core.into_iter().map(|pr| Platform::new(pr) ).collect()
 	}
 
 	/// Returns a string containing a formatted list of every platform property.

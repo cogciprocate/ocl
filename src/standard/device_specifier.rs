@@ -20,6 +20,7 @@ use standard::Device;
 /// - UPDATE: Leave this to the builder or whatever else to determine and leave this
 ///   enum an exact index which panics.
 ///
+#[derive(Debug, Clone)]
 pub enum DeviceSpecifier {
     All,
     Index(usize),

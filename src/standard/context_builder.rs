@@ -1,17 +1,20 @@
 //! A builder for `Context`.
 
+use core::{self, PlatformId as PlatformIdCore, ContextProperties};
 use error::{Result as OclResult};
-use standard::{Context, Device, DeviceSpecifier};
+use standard::{Context, Platform, Device, DeviceSpecifier};
 
 
 /// A builder for `Context`.
 ///
+/// Currently ignores all of the `cl_context_properties` except for platform. Use `Context::new` directly to specify `ContextProperties` in all its glory.
+///
 /// [WORK IN PROGRESS]
 ///
 ///
-/// TODO: Implement index-searching-round-robin-ing methods (and thier '_exact'
-/// counterparts).
+/// TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
 pub struct ContextBuilder {
+	platform: Option<Platform>,
 	device_spec: Option<DeviceSpecifier>,
 }
 
@@ -22,29 +25,49 @@ impl ContextBuilder {
 	///
 	/// ### Defaults
 	///
-	/// * The first avaliable context
-	/// * All devices associated with the first available context
+	/// * The first avaliable platform
+	/// * All devices associated with the first available platform
 	/// * No notify callback function or user data.
 	///
 	///	TODO: That stuff above (find a valid context, devices, etc. first thing).
 	/// 
 	pub fn new() -> ContextBuilder {
 		ContextBuilder {
-			device_spec: Some(DeviceSpecifier::All),
+			platform: None,
+			device_spec: None,
 		}
 	}
 
 	/// Returns a new `Context` with the parameters hitherinforthto specified (say what?).
 	pub fn build(&self) -> OclResult<Context> {
-		Context::new(None, None, None, None)
+		let platform = match self.platform {
+			Some(ref plat) => plat.clone(),
+			None => Platform::new(try!(core::get_first_platform())),
+		};
+
+		let properties: Option<ContextProperties> = Some(
+				ContextProperties::new().platform::<PlatformIdCore>(platform.into())
+			);
+
+		// let device_spec = match self.device_spec {
+		// 	Some(ref ds) => ds.clone(),
+		// 	None => DeviceSpecifier::All,
+		// };
+
+		Context::new(properties, self.device_spec.clone(), None, None)
 	}
 
-	// // [ADD ME]
-	//
-	// pub fn device_idx_round_robin
-	// pub fn context_idx_round_robin
-	//
-	//
+	/// Specifies a platform.
+	///
+	/// ### Panics
+	///
+	/// [FIXME]
+	///
+	pub fn platform<'a>(&'a mut self, platform: Platform) -> &'a mut ContextBuilder {
+		assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
+		self.platform = Some(platform);
+		self
+	}
 
 	/// Specifies a device.
 	///
@@ -76,4 +99,11 @@ impl ContextBuilder {
 		self.device_spec = Some(device_spec);
 		self
 	}
+
+	// // [FIXME: Add these]
+	//
+	// pub fn device_idx_round_robin
+	// pub fn context_idx_round_robin
+	//
+	//
 }
