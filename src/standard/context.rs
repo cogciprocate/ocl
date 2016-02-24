@@ -29,11 +29,23 @@ impl Context {
     ///
     /// [FIXME]: Yeah... documentation.
     ///
-    /// Use `Context::builder()...` instead of this method unless you know what you're doing. Please also contact us or file an issue immediately if you do, in fact, know what you're doing so that you can be added to the development team immediately as the one who does.
+    /// Use `Context::builder()...` instead of this method unless you know what you're doing. Please also contact us or file an issue immediately if you do, in fact, know what you're doing so that you can be added to the development team as the one who does.
+    ///
+    /// 
+    /// ### Defaults
+    ///
+    /// * The 'NULL' context (which is not to be relied on but is generally
+    ///   the first avaliable).
+    /// * All devices associated with the 'NULL' context
+    /// * No notify callback function or user data.
+    ///
+    /// Don't rely on these defaults, instead rely on the `ContextBuilder` 
+    /// defaults. In other words, use: `Context::builder().build().unwrap()`
+    /// rather than `Context::new(None, None, None, None).unwrap()`.
     ///
     /// ### Panics
     ///
-    /// [TEMPORARY] Passing a `Some` value for `pfn_notify` or `user_data` is 
+    /// [TEMPORARY] Passing a `Some` variant for `pfn_notify` or `user_data` is 
     /// not yet supported.
     ///
     pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>, 
@@ -69,6 +81,7 @@ impl Context {
     }
 
 
+    /// [UNSTABLE: About to be moved to builder]
     /// [UNTESTED] Returns a newly created context.
     pub fn new_by_platform_and_device_list<D: Into<DeviceIdCore>>(platform: Platform, 
                     device_list: Vec<D>) -> OclResult<Context> {
@@ -85,7 +98,8 @@ impl Context {
     }
 
 
-    /// [FIXME: Docs] Returns a newly created context with a specified platform and set of device types.
+    /// [UNSTABLE: About to be moved to builder]
+    /// Returns a newly created context with a specified platform and set of device types.
     /// 
     /// [FIXME: Needs update]
     ///

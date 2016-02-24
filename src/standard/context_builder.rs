@@ -8,6 +8,9 @@ use standard::{Context, Device, DeviceSpecifier};
 ///
 /// [WORK IN PROGRESS]
 ///
+///
+/// TODO: Implement index-searching-round-robin-ing methods (and thier '_exact'
+/// counterparts).
 pub struct ContextBuilder {
 	device_spec: Option<DeviceSpecifier>,
 }
@@ -23,6 +26,8 @@ impl ContextBuilder {
 	/// * All devices associated with the first available context
 	/// * No notify callback function or user data.
 	///
+	///	TODO: That stuff above (find a valid context, devices, etc. first thing).
+	/// 
 	pub fn new() -> ContextBuilder {
 		ContextBuilder {
 			device_spec: Some(DeviceSpecifier::All),
