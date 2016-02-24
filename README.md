@@ -19,7 +19,7 @@ To provide:
 - A simple and intuitive interface with OpenCL devices
 - The full functionality of the OpenCL API
 - An absolute minimum of boilerplate
-- Virtually zero performance overhead
+- Zero or virtually zero performance overhead
 - Thread-safe and automatic management of API pointers and resources
 
 

@@ -6,31 +6,29 @@
 //!
 //! Allows access to OpenCL FFI functions with a minimal layer of abstraction, providing both safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces, although the 'core' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
 //! 
-//! Object pointers can generally be shared between threads (except for kernel -- see the official [`clSetKernelArg`] documentation for details) [FIXME: `Send` impl's temporarily removed pending further evaluation]. 
+//! Object pointers can be shared between threads (except for kernel -- see the official [`clSetKernelArg`] documentation for details). 
 //!
 //! ## Even Lower Level: [`cl_h`]
-//!
-//! *Not as core as...*
 //!
 //! If there's still something missing or for some reason you need direct FFI access, use the functions in the [`cl_h`] module. The pointers used by [`cl_h`] functions can be wrapped in [`core`] wrappers (PlatformIdRaw, ContextRaw, etc.) and passed to [`core`] module functions and likewise the other way around (using, for example: [`EventRaw::as_ptr`]).
 //!
 //! # Performance
 //!
-//! Performance between all three interface layers, [`cl_h`], [`core`], and the 'standard' types, is virtually identical for non-trival uses (if not, please file an issue).
+//! Performance between all three interface layers, [`cl_h`], [`core`], and the 'standard' types, is identical or virtually identical for non-trival uses (if not, please file an issue).
 //!
 //! ## Safety
 //!
-//! At the time of writing, some functions still *may* break Rust's usual safety promises and have not been comprehensively tested or evaluated. Please file an [issue] if you discover something!
+//! At the time of writing, some functions still *may* break Rust's usual safety promises and have not been 100% comprehensively evaluated and tested. Please file an [issue] if you discover something!
 //!
 //! ## Panics
 //!
 //! [FIXME]: NEEDS UPDATE:
-//! All functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an [`Error`] type instead.
+//! All [update: very few] functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an [`Error`] type instead.
 //!
 //! ### More Documentation
 //!
 //! As most of the functions here are minimally documented, please refer to the
-//! official OpenCL documentation linked below. Although there isn't an exact 
+//! official OpenCL documentation linked below. Although there isn't a precise 
 //! 1:1 parameter mapping between the `core` and original functions,
 //! it's close enough to help sort out any questions you may have until a
 //! more thorough documentation pass can be made. View the source code in 
@@ -70,7 +68,7 @@ use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 use cl_h;
 
-pub use self::functions::{ get_platform_ids, get_platform_info, get_device_ids, get_device_info, create_sub_devices, retain_device, release_device, create_context, create_context_from_type, retain_context, release_context, get_context_info, create_command_queue, retain_command_queue, release_command_queue, get_command_queue_info, create_buffer, create_sub_buffer, create_image, retain_mem_object, release_mem_object, get_supported_image_formats, get_mem_object_info, get_image_info, set_mem_object_destructor_callback, create_sampler, retain_sampler, release_sampler, get_sampler_info, create_program_with_source, create_program_with_binary, create_program_with_built_in_kernels, retain_program, release_program, build_program, compile_program, link_program, unload_platform_compiler, create_build_program, get_program_info, get_program_build_info, create_kernel, create_kernels_in_program, retain_kernel, release_kernel, set_kernel_arg, get_kernel_info, get_kernel_arg_info, get_kernel_work_group_info, wait_for_events, get_event_info, create_user_event, retain_event, release_event, set_user_event_status, set_event_callback, get_event_profiling_info, flush, finish, enqueue_read_buffer, enqueue_read_buffer_rect, enqueue_write_buffer, enqueue_write_buffer_rect, enqueue_copy_buffer, enqueue_fill_buffer, enqueue_copy_buffer_rect, enqueue_read_image, enqueue_write_image, enqueue_fill_image, enqueue_copy_image, enqueue_copy_image_to_buffer, enqueue_copy_buffer_to_image, enqueue_map_buffer, enqueue_map_image, enqueue_unmap_mem_object, enqueue_migrate_mem_objects, enqueue_kernel, enqueue_task, enqueue_native_kernel, enqueue_marker_with_wait_list, enqueue_barrier_with_wait_list, get_extension_function_address_for_platform, get_max_work_group_size, wait_for_event, get_event_status, platform_name, program_build_err, /* device_info, context_info,*/ verify_context};
+pub use self::functions::{ get_platform_ids, get_platform_info, get_device_ids, get_device_info, create_sub_devices, retain_device, release_device, create_context, create_context_from_type, retain_context, release_context, get_context_info, create_command_queue, retain_command_queue, release_command_queue, get_command_queue_info, create_buffer, create_sub_buffer, create_image, retain_mem_object, release_mem_object, get_supported_image_formats, get_mem_object_info, get_image_info, set_mem_object_destructor_callback, create_sampler, retain_sampler, release_sampler, get_sampler_info, create_program_with_source, create_program_with_binary, create_program_with_built_in_kernels, retain_program, release_program, build_program, compile_program, link_program, unload_platform_compiler, create_build_program, get_program_info, get_program_build_info, create_kernel, create_kernels_in_program, retain_kernel, release_kernel, set_kernel_arg, get_kernel_info, get_kernel_arg_info, get_kernel_work_group_info, wait_for_events, get_event_info, create_user_event, retain_event, release_event, set_user_event_status, set_event_callback, get_event_profiling_info, flush, finish, enqueue_read_buffer, enqueue_read_buffer_rect, enqueue_write_buffer, enqueue_write_buffer_rect, enqueue_copy_buffer, enqueue_fill_buffer, enqueue_copy_buffer_rect, enqueue_read_image, enqueue_write_image, enqueue_fill_image, enqueue_copy_image, enqueue_copy_image_to_buffer, enqueue_copy_buffer_to_image, enqueue_map_buffer, enqueue_map_image, enqueue_unmap_mem_object, enqueue_migrate_mem_objects, enqueue_kernel, enqueue_task, enqueue_native_kernel, enqueue_marker_with_wait_list, enqueue_barrier_with_wait_list, get_extension_function_address_for_platform, get_max_work_group_size, wait_for_event, get_event_status, platform_name, program_build_err, verify_context};
 pub use self::cl::abs::{EventCallbackFn, ClEventPtrNew, ClEventRef, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler};
 pub use self::cl::image_st::{ImageFormat, ImageDescriptor};
 pub use self::custom::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult, ContextInfoResult, ContextProperty, CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
