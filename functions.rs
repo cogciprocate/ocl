@@ -269,7 +269,10 @@ pub fn get_device_ids(
             // device_types_opt: Option<cl_device_type>)
             device_types: Option<DeviceType>,
             ) -> OclResult<Vec<DeviceId>> {
-    let platform_ptr = platform.map(|p| p.as_ptr()).unwrap_or(ptr::null_mut());
+    let platform_ptr = match platform {
+        Some(plat) => plat.as_ptr(),
+        None => try!(get_first_platform()).as_ptr(),
+    };
 
     let device_types = device_types.unwrap_or(core::DEVICE_TYPE_ALL);
     let mut devices_available: cl_uint = 0;
@@ -2232,6 +2235,18 @@ pub unsafe fn get_extension_function_address_for_platform(platform: &PlatformId,
 //============================================================================
 //============================================================================
 // MANY OF THESE NEED TO BE MORPHED INTO THE MORE GENERAL VERSIONS AND MOVED UP
+
+
+/// Get the first platform.
+pub fn get_first_platform() -> OclResult<PlatformId> {
+    let platform_list = try!(get_platform_ids());
+
+    if platform_list.len() == 0 {
+        OclError::err("No platforms found!")
+    } else {
+        Ok(platform_list[0].clone())
+    }
+}
 
 /// Creates, builds, and returns a new program pointer from `src_strings`.
 ///
