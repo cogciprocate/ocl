@@ -12,8 +12,8 @@ use standard::{self, Platform, DeviceSpecifier};
 
 /// A context for a particular platform and set of device types.
 ///
-/// # Destruction
-/// `::release()` must be manually called by consumer.
+/// Thread safety and destruction for any enclosed pointers are all handled automatically. 
+/// Clone, store, and share between threads to your hearts content.
 ///
 #[derive(Debug, Clone)]
 pub struct Context {
@@ -24,6 +24,21 @@ pub struct Context {
 
 impl Context {
     /// [UNTESTED] Returns a newly created context.
+    ///
+    /// [FIXME]: Yeah... documentation.
+    ///
+    /// Use `Context::builder()...` instead of this method unless you know what you're doing. Please also contact us or file an issue immediately if you do, in fact, know what you're doing so that you can be added to the development team immediately as the one who does.
+    ///
+    /// # Panics
+    ///
+    /// [TEMPORARY] Passing a `Some` value for `pfn_notify` or `user_data` is 
+    /// not yet supported.
+    ///
+    /// Any device indexes within `DeviceSpecifier` must be within the range of
+    /// the number of devices for the platform specified in `properties`. If no
+    /// platform has been specified, this behaviour is undefined and may be
+    /// using an unintended platform. See `ContextProperties` for how to
+    /// correctly specify the platform.
     pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>, 
                 pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
                 ) -> OclResult<Context> {
@@ -40,36 +55,36 @@ impl Context {
             None => DeviceSpecifier::All,
         };
 
-        let device_list_all = try!(core::get_device_ids(platform.clone(), Some(core::DEVICE_TYPE_ALL)));
+        // let device_list_all = try!(core::get_device_ids(platform.clone(), Some(core::DEVICE_TYPE_ALL)));
 
-        let device_list: Vec<DeviceIdCore> = match device_spec {
-            DeviceSpecifier::All => {
-                device_list_all
-            },
-            DeviceSpecifier::Single(device) => {
-                vec![device.as_core().clone()]
-            },
-            DeviceSpecifier::List(devices) => {
-                devices.into_iter().map(|d| d.as_core().clone()).collect() 
-            },
-            DeviceSpecifier::Index(idx) => {
-                if idx >= device_list_all.len() { 
-                    return OclError::err("ocl::Context::new: Device index out of range.")
-                } else {
-                    vec![device_list_all[idx].clone()]
-                }
-            },
-            DeviceSpecifier::Indices(idx_list) => {
-                idx_list.into_iter().map(|idx| {
-                        assert!(idx < device_list_all.len(), "ocl::Context::new: Device index \
-                            out of range.");                    
-                        device_list_all[idx].clone()
-                    } ).collect()
-            },
-            DeviceSpecifier::TypeFlags(flags) => {
-                try!(core::get_device_ids(platform.clone(), Some(flags)))
-            },
-        };
+        // let device_list: Vec<DeviceIdCore> = match device_spec {
+        //     DeviceSpecifier::All => {
+        //         device_list_all
+        //     },
+        //     DeviceSpecifier::Single(device) => {
+        //         vec![device.as_core().clone()]
+        //     },
+        //     DeviceSpecifier::List(devices) => {
+        //         devices.into_iter().map(|d| d.as_core().clone()).collect() 
+        //     },
+        //     DeviceSpecifier::Index(idx) => {
+        //         assert!(idx < device_list_all.len(), "ocl::Context::new: DeviceSpecifier::Index: \
+        //             Device index out of range.");
+        //         vec![device_list_all[idx].clone()]
+        //     },
+        //     DeviceSpecifier::Indices(idx_list) => {
+        //         idx_list.into_iter().map(|idx| {
+        //                 assert!(idx < device_list_all.len(), "ocl::Context::new: \
+        //                     DeviceSpecifier::Indices: Device index out of range.");
+        //                 device_list_all[idx].clone()
+        //             } ).collect()
+        //     },
+        //     DeviceSpecifier::TypeFlags(flags) => {
+        //         try!(core::get_device_ids(platform.clone(), Some(flags)))
+        //     },
+        // };
+
+        let device_list = try!(device_spec.into_device_list(platform.clone()));
 
         let obj_core = try!(core::create_context(&properties, &device_list, pfn_notify, user_data));
 

@@ -2,6 +2,7 @@
 
 mod platform;
 mod device;
+mod device_specifier;
 mod context;
 mod program_builder;
 mod program;
@@ -21,6 +22,7 @@ mod simple_dims;
 #[cfg(not(release))] pub use self::buffer::tests::BufferTest;
 pub use self::platform::Platform;
 pub use self::device::Device;
+pub use self::device_specifier::DeviceSpecifier;
 pub use self::context::Context;
 pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;
@@ -62,20 +64,4 @@ pub trait WorkDims {
     /// Returns the number of dimensions defined by this `SimpleDims`.
     fn dim_count(&self) -> u32;
     fn work_dims(&self) -> Option<[usize; 3]>;
-}
-
-
-//=============================================================================
-//========================= MISC ENUMS AND STRUCTS ============================
-//=============================================================================
-
-use core::DeviceType;
-
-pub enum DeviceSpecifier {
-    All,
-    Single(Device),
-    List(Vec<Device>),
-    Index(usize),
-    Indices(Vec<usize>),
-    TypeFlags(DeviceType),
 }

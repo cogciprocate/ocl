@@ -15,6 +15,8 @@ use core::{OclNum, PlatformId, PlatformInfo, DeviceId, ContextInfo, Context, Mem
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
+
+
 // Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
 
