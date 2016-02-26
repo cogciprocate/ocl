@@ -57,7 +57,7 @@ impl<'c> ProQueBuilder<'c> {
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
             queue.context_core_as_ref(), 
-            &vec![queue.device_core_as_ref().clone()],
+            &vec![queue.device().clone()],
         )));
 
         Ok(ProQue::from_parts(context_opt, queue, program_opt, self.dims.clone()))

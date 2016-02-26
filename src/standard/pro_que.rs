@@ -108,7 +108,7 @@ impl ProQue {
             try!(builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
             self.queue.context_core_as_ref(), 
-            &vec![self.queue.device_core_as_ref().clone()],
+            &vec![self.queue.device().clone()],
         )));
 
         Ok(())
@@ -168,7 +168,7 @@ impl ProQue {
     /// Returns the maximum workgroup size supported by the device associated
     /// with this `ProQue`.
     pub fn max_work_group_size(&self) -> usize {
-        core::get_max_work_group_size(self.queue.device_core_as_ref())
+        core::get_max_work_group_size(self.queue.device())
     }
 
     /// Returns a reference to the queue associated with this ProQue.

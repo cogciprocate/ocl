@@ -5,7 +5,7 @@
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
 use std::convert::Into;
-use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult};
+use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 use standard;
 // use util;
 
@@ -109,6 +109,9 @@ impl Platform {
 		&self.0
 	}
 }
+
+unsafe impl ClPlatformIdPtr for Platform {}
+unsafe impl<'p> ClPlatformIdPtr for &'p Platform {}
 
 impl Into<String> for Platform {
 	fn into(self) -> String {

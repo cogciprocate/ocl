@@ -100,7 +100,7 @@ impl<T: OclNum> Buffer<T> {
     /// one such as `.flush_vec_async()`, `fill_vec_async()`, etc. will panic.
     /// [FIXME]: Return result.
     pub fn new<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
         Buffer::_new(len, queue)
     }
 
@@ -108,7 +108,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
     pub fn with_vec<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
         let vec: Vec<T> = std::iter::repeat(T::default()).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -119,7 +119,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
     pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: &E, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
         let vec: Vec<T> = std::iter::repeat(init_val).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -141,7 +141,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: &E, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
         let vec: Vec<T> = shuffled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -159,7 +159,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: &E, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
+        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
         let vec: Vec<T> = scrambled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -492,7 +492,7 @@ impl<T: OclNum> Buffer<T> {
     pub unsafe fn resize<B: BufferDims>(&mut self, new_dims: &B, queue: &Queue) {
         // self.release();
         let new_len = new_dims.padded_buffer_len(core::get_max_work_group_size(
-            queue.device_core_as_ref()));
+            queue.device()));
 
         match self.vec {
             VecOption::Some(ref mut vec) => {

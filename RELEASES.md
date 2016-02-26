@@ -17,6 +17,8 @@ Breaking Changes
   `Context`.
 * `Queue::new` now takes a `Device` as its second argument. Use the new 
   `Context::get_device_by_index` to achieve the same result.
+* All 'standard' types refer to `Device` and `Platform` instead of
+  `core::DeviceId` and `core::PlatformId` in method signatures.
 
 
 New Features

@@ -22,7 +22,7 @@ fn main() {
 	// let image = Image::new();
 	// let sampler = Sampler::new();
 	let program = Program::builder().src(SRC).build(&context).unwrap();
-	let device = program.devices_core_as_ref()[0].clone();
+	let device = program.devices()[0].clone();
 	let kernel = Kernel::new("multiply", &program, &queue, dims.clone()).unwrap()
         .arg_scl(10.0f32)
         .arg_buf(&buffer);
@@ -46,11 +46,11 @@ fn main() {
 			{t}Vendor: {}\n\
 			{t}Extensions: {}\n\
 		",
-		core::get_platform_info(context.platform_to_core(), PlatformInfo::Profile).unwrap(),
-		core::get_platform_info(context.platform_to_core(), PlatformInfo::Version).unwrap(),
-		core::get_platform_info(context.platform_to_core(), PlatformInfo::Name).unwrap(),
-		core::get_platform_info(context.platform_to_core(), PlatformInfo::Vendor).unwrap(),
-		core::get_platform_info(context.platform_to_core(), PlatformInfo::Extensions).unwrap(),
+		core::get_platform_info(context.platform().clone(), PlatformInfo::Profile).unwrap(),
+		core::get_platform_info(context.platform().clone(), PlatformInfo::Version).unwrap(),
+		core::get_platform_info(context.platform().clone(), PlatformInfo::Name).unwrap(),
+		core::get_platform_info(context.platform().clone(), PlatformInfo::Vendor).unwrap(),
+		core::get_platform_info(context.platform().clone(), PlatformInfo::Extensions).unwrap(),
 		t = util::TAB,
 	);
 
@@ -62,7 +62,7 @@ fn main() {
     // [FIXME]: Implement `Display`/`Debug` for all variants of `DeviceInfoResult`.
     // Printing algorithm is highly janky (due to laziness).
 
-    for device in context.devices_core_as_ref().iter() {
+    for device in context.devices().iter() {
 	    println!("Device:\n\
 				{t}DeviceInfo::Type: {}\n\
 				{t}DeviceInfo::VendorId: {}\n\

@@ -5,7 +5,7 @@
 
 // use formatting::MT;
 use std;
-use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, PlatformId as PlatformIdCore, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
+use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
 use error::{Result as OclResult, Error as OclError};
 use standard::{self, Platform, Device, DeviceSpecifier, ContextBuilder};
 
@@ -19,11 +19,11 @@ use standard::{self, Platform, Device, DeviceSpecifier, ContextBuilder};
 /// 
 #[derive(Debug, Clone)]
 pub struct Context {
+    obj_core: ContextCore,
     // platform_id_core: Option<PlatformIdCore>,
     platform: Option<Platform>,
-    device_id_core_list: Vec<DeviceIdCore>,
-    // devices: Vec<DeviceId>,
-    obj_core: ContextCore,
+    // device_id_core_list: Vec<DeviceIdCore>,
+    devices: Vec<Device>,
 }
 
 impl Context {
@@ -71,10 +71,11 @@ impl Context {
         let obj_core = try!(core::create_context(&properties, &device_list, pfn_notify, user_data));
 
         Ok(Context {
+            obj_core: obj_core,
             // platform_id_core: platform,
             platform: platform,
-            device_id_core_list: device_list,
-            obj_core: obj_core,
+            // device_id_core_list: device_list,
+            devices: device_list,
         })
     }
 
@@ -86,18 +87,19 @@ impl Context {
 
     /// [UNSTABLE: About to be moved to builder]
     /// [UNTESTED] Returns a newly created context.
-    pub fn new_by_platform_and_device_list<D: Into<DeviceIdCore>>(platform: Platform, 
-                    device_list: Vec<D>) -> OclResult<Context> {
-        let devices: Vec<DeviceIdCore> = device_list.into_iter().map(|d| d.into()).collect();
+    pub fn new_by_platform_and_device_list(platform: Platform, device_list: Vec<Device>
+                ) -> OclResult<Context> {
+        let devices = Device::list_from_core(device_list.into_iter().map(|d| d.into()).collect());
         let properties: Option<ContextProperties> = 
-            Some(ContextProperties::new().platform::<PlatformIdCore>(platform.clone().into()));
+            Some(ContextProperties::new().platform(platform.as_core().clone()));
         let obj_core = try!(core::create_context(&properties, &devices, None, None));
 
         Ok(Context {
+            obj_core: obj_core,
             // platform_id_core: Some(platform.into()),
             platform: Some(platform),
-            device_id_core_list: devices,
-            obj_core: obj_core,
+            // device_id_core_list: devices,
+            devices: devices,
         })
     }
 
@@ -193,32 +195,33 @@ impl Context {
         let properties = Some(ContextProperties::new().platform(platform.as_core().clone()));
         // let properties = None;
         
-        let device_id_core_list: Vec<DeviceIdCore> = try!(core::get_device_ids(Some(platform.as_core().clone()), 
-            device_types_opt));
-        if device_id_core_list.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
+        let devices: Vec<Device> = 
+            Device::list_from_core(try!(core::get_device_ids(Some(platform.clone()), device_types_opt)));
+        if devices.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
         // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_id_core_list);
 
         // [FIXME]: No callback or user data:
-        let obj_core = try!(core::create_context(&properties, &device_id_core_list, None, None));
+        let obj_core = try!(core::create_context(&properties, &devices, None, None));
 
         // [DEBUG]: 
         // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_core);
 
         Ok(Context {
+            obj_core: obj_core,
             // platform_id_core: Some(platform_id_core),
             platform: Some(platform),
-            device_id_core_list: device_id_core_list,
-            obj_core: obj_core,
+            // device_id_core_list: device_id_core_list,
+            devices: devices,
         })
     }
 
     /// Resolves the zero-based device index into a DeviceIdCore (pointer).
     ///
-    /// [FIXME]: Figure out how to accept vecs or slices
-    pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<DeviceIdCore> {
+    /// [FIXME]: Figure out how to accept either vecs or slices
+    pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<Device> {
         match device_idxs.len() {
-            0 => vec![self.device_id_core_list[core::DEFAULT_DEVICE_IDX].clone()],
+            0 => vec![self.devices[core::DEFAULT_DEVICE_IDX].clone()],
             _ => self.valid_device_ids(&device_idxs),
         }
     }
@@ -227,13 +230,13 @@ impl Context {
     /// passed are valid by performing a modulo operation on them and letting them
     /// wrap around (round robin).
     ///
-    /// [FIXME]: Figure out how to accept vecs or slices
-    pub fn valid_device_ids(&self, selected_idxs: &[usize]) -> Vec<DeviceIdCore> {
+    /// [FIXME]: Figure out how to accept either vecs or slices
+    pub fn valid_device_ids(&self, selected_idxs: &[usize]) -> Vec<Device> {
         let mut valid_device_ids = Vec::with_capacity(selected_idxs.len());
 
         for selected_idx in selected_idxs {
-            let valid_idx = selected_idx % self.device_id_core_list.len();
-            valid_device_ids.push(self.device_id_core_list[valid_idx].clone());
+            let valid_idx = selected_idx % self.devices.len();
+            valid_device_ids.push(self.devices[valid_idx].clone());
         }
 
         valid_device_ids
@@ -246,13 +249,13 @@ impl Context {
     pub fn get_device_by_index(&self, index: usize) -> Device {
         // [FIXME]: FIGURE OUT HOW TO DO THIS CORRECTLY
         let indices = [index; 1];
-        Device::new(self.resolve_device_idxs(&indices)[0].clone())
+        self.resolve_device_idxs(&indices)[0].clone()
     }
 
     /// Returns info about the platform associated with the context.
     pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
         // match core::get_platform_info(self.platform_id_core.clone(), info_kind) {
-        match core::get_platform_info(self.platform_to_core(), info_kind) {
+        match core::get_platform_info(self.platform().clone(), info_kind) {
             Ok(pi) => pi,
             Err(err) => PlatformInfoResult::Error(Box::new(err)),
         }
@@ -260,7 +263,7 @@ impl Context {
 
     /// Returns info about a device associated with the context.
     pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> DeviceInfoResult {
-        let device = match self.device_id_core_list.get(index) {
+        let device = match self.devices.get(index) {
             Some(d) => d,
             None => {
                 return DeviceInfoResult::Error(Box::new(
@@ -296,15 +299,15 @@ impl Context {
     /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
     ///
     /// TODO: Rethink what this should return.
-    pub fn devices_core_as_ref(&self) -> &[DeviceIdCore] {
-        &self.device_id_core_list[..]
+    pub fn devices(&self) -> &[Device] {
+        &self.devices[..]
     }
 
     /// Returns the platform our context pertains to.
     ///
     /// TODO: Rethink what this should return.
-    pub fn platform_to_core(&self) -> Option<PlatformIdCore> {
-        self.platform.clone().map(|p| p.as_core().clone())
+    pub fn platform(&self) -> &Option<Platform> {
+        &self.platform
     }  
 }
 

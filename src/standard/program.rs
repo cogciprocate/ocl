@@ -3,7 +3,7 @@ use std;
 use std::ffi::CString;
 
 use error::{Result as OclResult};
-use core::{self, Program as ProgramCore, DeviceId as DeviceIdCore, Context as ContextCore,
+use core::{self, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
 use standard::{self, ProgramBuilder, Context, Device};
 
@@ -19,7 +19,8 @@ use standard::{self, ProgramBuilder, Context, Device};
 #[derive(Clone, Debug)]
 pub struct Program {
     obj_core: ProgramCore,
-    devices_ids_core: Vec<DeviceIdCore>,
+    // devices_ids_core: Vec<DeviceIdCore>,
+    devices: Vec<Device>,
 }
 
 impl Program {
@@ -49,7 +50,7 @@ impl Program {
                 src_strings: Vec<CString>, 
                 cmplr_opts: CString, 
                 context_obj_core: &ContextCore, 
-                device_ids: &[DeviceIdCore],
+                device_ids: &[Device],
             ) -> OclResult<Program> 
     {
         let obj_core = try!(core::create_build_program(context_obj_core, src_strings, cmplr_opts, 
@@ -57,7 +58,7 @@ impl Program {
 
         Ok(Program {
             obj_core: obj_core,
-            devices_ids_core: Vec::from(device_ids),
+            devices: Vec::from(device_ids),
         })
     }
 
@@ -66,8 +67,8 @@ impl Program {
         &self.obj_core
     }
 
-    pub fn devices_core_as_ref(&self) -> &[DeviceIdCore] {
-        &self.devices_ids_core
+    pub fn devices(&self) -> &[Device] {
+        &self.devices
     }
 
     /// Returns info about this program.

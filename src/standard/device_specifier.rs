@@ -1,6 +1,6 @@
 // use std::convert::Into;
 use error::{Result as OclResult};
-use core::{self, DeviceId as DeviceIdCore, DeviceType};
+use core::{self, DeviceType};
 use standard::{Device, Platform};
 
 /// Specifies [what boils down to] a list of devices.
@@ -37,23 +37,26 @@ impl DeviceSpecifier {
     ///
     /// Any device indices within the `Index` and `Indices` variants must be within the range of the number of devices for the platform specified by `Platform`. If no `platform` has been specified, this behaviour is undefined and could end up using any platform at all.
     ///
-    pub fn to_device_list(&self, platform: Option<Platform>) -> OclResult<Vec<DeviceIdCore>> {
+    /// TODO: Swap some of the `try!`s for `.map`s.
+    pub fn to_device_list(&self, platform: Option<Platform>) -> OclResult<Vec<Device>> {
         let platform_id_core = match platform {
             Some(plat) => Some(plat.as_core().clone()),
             None => None,
         };
 
-        let device_list_all = try!(core::get_device_ids(platform_id_core.clone(), Some(core::DEVICE_TYPE_ALL)));
+        let device_list_all = Device::list_from_core(
+            try!(core::get_device_ids(platform_id_core.clone(), Some(core::DEVICE_TYPE_ALL)))
+        );
 
         Ok(match self {
             &DeviceSpecifier::All => {
                 device_list_all
             },
             &DeviceSpecifier::Single(ref device) => {
-                vec![device.as_core().clone()]
+                vec![device.clone()]
             },
             &DeviceSpecifier::List(ref devices) => {
-                devices.iter().map(|d| d.as_core().clone()).collect() 
+                devices.iter().map(|d| d.clone()).collect() 
             },
             &DeviceSpecifier::Index(idx) => {
                 assert!(idx < device_list_all.len(), "ocl::Context::new: DeviceSpecifier::Index: \
@@ -68,7 +71,9 @@ impl DeviceSpecifier {
                     } ).collect()
             },
             &DeviceSpecifier::TypeFlags(flags) => {
-                try!(core::get_device_ids(platform_id_core.clone(), Some(flags)))
+                Device::list_from_core(try!(
+                    core::get_device_ids(platform_id_core.clone(), Some(flags))
+                ))
             },
         })
     }

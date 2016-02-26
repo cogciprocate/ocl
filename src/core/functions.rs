@@ -21,7 +21,7 @@ use num::{FromPrimitive};
 use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr};
+use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr};
 
 
 //============================================================================
@@ -126,7 +126,7 @@ fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 /// `device_ids` has a build log of any length, it will be returned as an 
 /// errcode result.
 ///
-pub fn program_build_err(program: &Program, device_ids: &[DeviceId]) -> OclResult<()> {
+pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) -> OclResult<()> {
     let mut size = 0 as size_t;
 
     for device_id in device_ids.iter() {
@@ -219,7 +219,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 
 /// [UNTESTED]
 /// Returns platform information of the requested type.
-pub fn get_platform_info(platform: Option<PlatformId>, request_param: PlatformInfo,
+pub fn get_platform_info<P: ClPlatformIdPtr>(platform: Option<P>, request_param: PlatformInfo,
             ) -> OclResult<PlatformInfoResult> {
     // cl_h::clGetPlatformInfo(platform: cl_platform_id,
     //                              param_name: cl_platform_info,
@@ -264,8 +264,8 @@ pub fn get_platform_info(platform: Option<PlatformId>, request_param: PlatformIn
 //============================================================================
 
 /// Returns a list of available devices for a particular platform.
-pub fn get_device_ids(
-            platform: Option<PlatformId>, 
+pub fn get_device_ids<P: ClPlatformIdPtr>(
+            platform: Option<P>, 
             // device_types_opt: Option<cl_device_type>)
             device_types: Option<DeviceType>,
             ) -> OclResult<Vec<DeviceId>> {
@@ -303,7 +303,7 @@ pub fn get_device_ids(
 /// Currently returning only one (temporary) variant.
 ///
 #[allow(unused_variables)]
-pub fn get_device_info(device: &DeviceId, info_request: DeviceInfo,
+pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, info_request: DeviceInfo,
             ) -> OclResult<(DeviceInfoResult)> {
     // cl_h::clGetDeviceInfo(device: cl_device_id,
     //                    param_name: cl_device_info,
@@ -372,7 +372,7 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 //
 // [NOTE]: Leave commented print statements intact until more `ContextProperties 
 // variants are implemented.
-pub fn create_context(properties: &Option<ContextProperties>, device_ids: &Vec<DeviceId>,
+pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, device_ids: &Vec<D>,
             pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
             ) -> OclResult<Context> {
     if device_ids.len() == 0 {
@@ -522,9 +522,9 @@ pub fn get_context_info(context: &Context, request_param: ContextInfo)
 //============================================================================
 
 /// Returns a new command queue pointer.
-pub fn create_command_queue(
+pub fn create_command_queue<D: ClDeviceIdPtr>(
             context: &Context, 
-            device: &DeviceId)
+            device: &D)
             -> OclResult<CommandQueue> {
     // Verify that the context is valid:
     try!(verify_context(context));
@@ -1015,9 +1015,9 @@ impl UserDataPh {
 /// Builds a program.
 ///
 /// Callback functions are not yet supported.
-pub fn build_program(
+pub fn build_program<D: ClDeviceIdPtr>(
             program: &Program,
-            devices: &[DeviceId],
+            devices: &[D],
             options: CString,
             pfn_notify: Option<extern "C" fn(*mut c_void, *mut c_void)>,
             user_data: Option<Box<UserDataPh>>)
@@ -1179,7 +1179,7 @@ pub fn get_program_info(obj: &Program, info_request: ProgramInfo,
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
 // (partial implementation in 'derived' section)
-pub fn get_program_build_info(obj: &Program, device_obj: &DeviceId, info_request: ProgramBuildInfo,
+pub fn get_program_build_info<D: ClDeviceIdPtr>(obj: &Program, device_obj: &D, info_request: ProgramBuildInfo,
             ) -> OclResult<(ProgramBuildInfoResult)> {
     // cl_h::clGetProgramBuildInfo(program: cl_program,
     //                          device: cl_device_id,
@@ -1471,7 +1471,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, info_request: KernelArg
 //============================================================================
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_kernel_work_group_info(obj: &Kernel, device_obj: &DeviceId, info_request: KernelWorkGroupInfo,
+pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D, info_request: KernelWorkGroupInfo,
             ) -> OclResult<(KernelWorkGroupInfoResult)> {
     // cl_h::clGetKernelWorkGroupInfo(kernel: cl_kernel,
     //                             device: cl_device_id,
@@ -2252,11 +2252,11 @@ pub fn get_first_platform() -> OclResult<PlatformId> {
 ///
 /// TODO: Break out create and build parts into requisite functions then call
 /// from here.
-pub fn create_build_program(
+pub fn create_build_program<D: ClDeviceIdPtr>(
             context: &Context, 
             src_strings: Vec<CString>,
             cmplr_opts: CString,
-            device_ids: &[DeviceId])
+            device_ids: &[D])
             -> OclResult<Program> {
     // // Verify that the context is valid:
     // try!(verify_context(context));
@@ -2298,7 +2298,7 @@ pub fn create_build_program(
     Ok(program)
 }
 
-pub fn get_max_work_group_size(device: &DeviceId) -> usize {
+pub fn get_max_work_group_size<D: ClDeviceIdPtr>(device: &D) -> usize {
     let mut max_work_group_size: usize = 0;
 
     let errcode = unsafe { cl_h::clGetDeviceInfo(

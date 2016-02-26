@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::convert::Into;
 
 use error::{Result as OclResult, Error as OclError};
-use core::{DeviceId as DeviceIdCore};
+// use core::{DeviceId as DeviceIdCore};
 use standard::{Device, Context, Program};
 
 
@@ -86,7 +86,7 @@ impl ProgramBuilder {
     ///
     /// TODO: Check for duplicate devices in the final device list.
     pub fn build(&self, context: &Context) -> OclResult<Program> {
-        let mut device_list: Vec<DeviceIdCore> = self.devices.iter().map(|d| d.as_core().clone()).collect();
+        let mut device_list: Vec<Device> = self.devices.iter().map(|d| d.clone()).collect();
         device_list.extend_from_slice(&context.resolve_device_idxs(&self.device_idxs));
 
         Program::from_parts(

@@ -5,7 +5,7 @@ use std;
 use std::convert::Into;
 use error::Result as OclResult;
 use standard::{self, Platform};
-use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult};
+use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
 // use util;
 
 
@@ -45,6 +45,11 @@ impl Device {
 		list_core.into_iter().map(|pr| Device::new(pr) ).collect()
 	}
 
+	/// Returns a list of `Device`s from a list of `DeviceIdCore`s
+	pub fn list_from_core(devices: Vec<DeviceIdCore>) -> Vec<Device> {
+		devices.into_iter().map(|p| Device::new(p)).collect()
+	}
+
 	/// Returns the device name.
 	pub fn name(&self) -> String {
 		match core::get_device_info(&self.0, DeviceInfo::Name) {
@@ -79,6 +84,9 @@ impl Device {
 		&self.0
 	}
 }
+
+unsafe impl ClDeviceIdPtr for Device {}
+unsafe impl<'d> ClDeviceIdPtr for &'d Device {}
 
 impl Into<String> for Device {
 	fn into(self) -> String {
