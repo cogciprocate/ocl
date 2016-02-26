@@ -86,7 +86,6 @@ impl Device {
 }
 
 unsafe impl ClDeviceIdPtr for Device {}
-unsafe impl<'d> ClDeviceIdPtr for &'d Device {}
 
 impl Into<String> for Device {
 	fn into(self) -> String {

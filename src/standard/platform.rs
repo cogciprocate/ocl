@@ -111,7 +111,6 @@ impl Platform {
 }
 
 unsafe impl ClPlatformIdPtr for Platform {}
-unsafe impl<'p> ClPlatformIdPtr for &'p Platform {}
 
 impl Into<String> for Platform {
 	fn into(self) -> String {

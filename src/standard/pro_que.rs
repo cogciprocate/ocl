@@ -55,6 +55,7 @@ impl ProQue {
     /// - one device only per ProQue
     /// - when is built-in Context used / destroyed
     ///
+    /// [UNSTABLE]: Prefer using `ProQueBuilder`.
     pub fn new(context: &Context, device_idx: Option<usize>) -> ProQue {
         let queue = Queue::new_by_device_index(context, device_idx);
 
@@ -208,22 +209,11 @@ impl BufferDims for ProQue {
 }
 
 impl WorkDims for ProQue {
-    /// Returns the number of dimensions defined by this `SimpleDims`.
     fn dim_count(&self) -> u32 {
-        // match self.dims {
-        //     Some(ref dims) => dims.dim_count(),
-        //     None => panic!("ProQue::dim_count: This 'ProQue' has not had any dimensions \
-        //         specified. Use 'ProQue::builder().dims(__)...' or 'my_pro_que.set_dims(__)' to specify."),
-        // }
         self.dims_result().expect("ProQue::dim_count").dim_count()
     }
 
     fn work_dims(&self) -> Option<[usize; 3]> {
-        // match self.dims {
-        //     Some(ref dims) => dims.work_dims(),
-        //     None => panic!("ProQue::work_dims: This 'ProQue' has not had any dimensions \
-        //         specified. Use 'ProQue::builder().dims(__)...' or 'my_pro_que.set_dims(__)' to specify."),
-        // }
         self.dims_result().expect("ProQue::work_dims").work_dims()
     }
 }

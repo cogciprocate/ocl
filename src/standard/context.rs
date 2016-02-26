@@ -20,14 +20,12 @@ use standard::{self, Platform, Device, DeviceSpecifier, ContextBuilder};
 #[derive(Debug, Clone)]
 pub struct Context {
     obj_core: ContextCore,
-    // platform_id_core: Option<PlatformIdCore>,
     platform: Option<Platform>,
-    // device_id_core_list: Vec<DeviceIdCore>,
     devices: Vec<Device>,
 }
 
 impl Context {
-    /// [UNTESTED] Returns a newly created context.
+    /// Returns a newly created context.
     ///
     /// [FIXME]: Yeah... documentation.
     ///
@@ -72,9 +70,7 @@ impl Context {
 
         Ok(Context {
             obj_core: obj_core,
-            // platform_id_core: platform,
             platform: platform,
-            // device_id_core_list: device_list,
             devices: device_list,
         })
     }
@@ -85,7 +81,7 @@ impl Context {
     }
 
 
-    /// [UNSTABLE: About to be moved to builder]
+    /// [UNSTABLE]: About to be moved to builder
     /// [UNTESTED] Returns a newly created context.
     pub fn new_by_platform_and_device_list(platform: Platform, device_list: Vec<Device>
                 ) -> OclResult<Context> {
@@ -96,15 +92,13 @@ impl Context {
 
         Ok(Context {
             obj_core: obj_core,
-            // platform_id_core: Some(platform.into()),
             platform: Some(platform),
-            // device_id_core_list: devices,
             devices: devices,
         })
     }
 
 
-    /// [UNSTABLE: About to be moved to builder]
+    /// [UNSTABLE]: About to be moved to builder
     /// Returns a newly created context with a specified platform and set of device types.
     /// 
     /// [FIXME: Needs update]
@@ -164,13 +158,11 @@ impl Context {
     pub fn new_by_index_and_type(platform_idx_opt: Option<usize>, device_types_opt: Option<DeviceType>) 
             -> OclResult<Context>
     {
-        // let platforms: Vec<PlatformIdCore> = try!(core::get_platform_ids());
         let platforms: Vec<Platform> = Platform::list_from_core(try!(core::get_platform_ids()));
         if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
         // println!("Platform list: {:?}", platforms);
 
-        // let platform_id_core: PlatformIdCore = match platform_idx_opt {
         let platform: Platform = match platform_idx_opt {
             Some(pf_idx) => {
                 match platforms.get(pf_idx) {
@@ -193,7 +185,6 @@ impl Context {
         // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_core);
 
         let properties = Some(ContextProperties::new().platform(platform.as_core().clone()));
-        // let properties = None;
         
         let devices: Vec<Device> = 
             Device::list_from_core(try!(core::get_device_ids(Some(platform.clone()), device_types_opt)));
@@ -209,9 +200,7 @@ impl Context {
 
         Ok(Context {
             obj_core: obj_core,
-            // platform_id_core: Some(platform_id_core),
             platform: Some(platform),
-            // device_id_core_list: device_id_core_list,
             devices: devices,
         })
     }
@@ -287,7 +276,6 @@ impl Context {
 
     /// Returns a string containing a formatted list of context properties.
     pub fn to_string(&self) -> String {
-        // self.clone().into()
         String::new()
     }
 
@@ -297,15 +285,11 @@ impl Context {
     }
 
     /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
-    ///
-    /// TODO: Rethink what this should return.
     pub fn devices(&self) -> &[Device] {
         &self.devices[..]
     }
 
-    /// Returns the platform our context pertains to.
-    ///
-    /// TODO: Rethink what this should return.
+    /// Returns the platform our context is associated with.
     pub fn platform(&self) -> &Option<Platform> {
         &self.platform
     }  

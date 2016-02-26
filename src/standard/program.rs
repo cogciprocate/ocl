@@ -19,7 +19,6 @@ use standard::{self, ProgramBuilder, Context, Device};
 #[derive(Clone, Debug)]
 pub struct Program {
     obj_core: ProgramCore,
-    // devices_ids_core: Vec<DeviceIdCore>,
     devices: Vec<Device>,
 }
 
@@ -83,7 +82,7 @@ impl Program {
     ///
     /// TODO: Check that device is valid.
     pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo) -> ProgramBuildInfoResult {
-        match core::get_program_build_info(&self.obj_core, device.as_core(), info_kind) {
+        match core::get_program_build_info(&self.obj_core, &device, info_kind) {
             Ok(res) => res,
             Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
         }        
