@@ -1,7 +1,7 @@
 // use std::convert::Into;
 use error::{Result as OclResult};
-use core::{self, DeviceId as DeviceIdCore, PlatformId as PlatformIdCore, DeviceType};
-use standard::Device;
+use core::{self, DeviceId as DeviceIdCore, DeviceType};
+use standard::{Device, Platform};
 
 /// Specifies [what boils down to] a list of devices.
 ///
@@ -37,13 +37,13 @@ impl DeviceSpecifier {
     ///
     /// Any device indices within the `Index` and `Indices` variants must be within the range of the number of devices for the platform specified by `Platform`. If no `platform` has been specified, this behaviour is undefined and could end up using any platform at all.
     ///
-    pub fn to_device_list(&self, platform: Option<PlatformIdCore>) -> OclResult<Vec<DeviceIdCore>> {
-        let platform = match platform {
-            Some(plat) => Some(plat),
+    pub fn to_device_list(&self, platform: Option<Platform>) -> OclResult<Vec<DeviceIdCore>> {
+        let platform_id_core = match platform {
+            Some(plat) => Some(plat.as_core().clone()),
             None => None,
         };
 
-        let device_list_all = try!(core::get_device_ids(platform.clone(), Some(core::DEVICE_TYPE_ALL)));
+        let device_list_all = try!(core::get_device_ids(platform_id_core.clone(), Some(core::DEVICE_TYPE_ALL)));
 
         Ok(match self {
             &DeviceSpecifier::All => {
@@ -68,7 +68,7 @@ impl DeviceSpecifier {
                     } ).collect()
             },
             &DeviceSpecifier::TypeFlags(flags) => {
-                try!(core::get_device_ids(platform.clone(), Some(flags)))
+                try!(core::get_device_ids(platform_id_core.clone(), Some(flags)))
             },
         })
     }

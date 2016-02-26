@@ -1,14 +1,19 @@
-//! [WORK IN PROGRESS] Get information about all the things.
+//! [WORK IN PROGRESS] Print information about all the things.
+//!
+//! Printing info for any of the main types is as simple as 
+//! `println("{}", &instance);` as `Display` is implemented for each.
 //!
 //! Printing algorithm is highly janky (due to laziness -- need to complete
 //! for each `*InfoResult` type).
+//!
+//! 
 
 #![allow(unused_imports, unused_variables, dead_code)]
 
 extern crate ocl;
 
 use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Program, Kernel, Event, EventList};
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
+use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo, OclNum};
 
 const PRINT_DETAILED: bool = true;
 // Overrides above for device:
@@ -30,21 +35,29 @@ fn main() {
 	// Loop through all avaliable platforms:
     for p_idx in 0..platforms.len() {
     	let platform = &platforms[p_idx];
-		print_platform_info(&platform, p_idx);    	
 
     	let devices = Device::list_all(platform);
 
+    	// [NOTE]: A new context can also be created for each device if desired.
+    	let context = Context::builder()
+			.platform(platform.clone())
+			.devices(devices.clone())
+			.build().unwrap();
+
+		print_platform_info(&platform, p_idx); 
+		print_context_info(&context);
+		print!("\n");
+
     	// Loop through each device
     	for d_idx in 0..devices.len() {
-    		let device = &devices[d_idx];		    
-
-	    	let context = Context::builder()
-	    		.platform(platform.clone())
-	    		.device(device.clone())
-	    		.build().unwrap();
-	    	let program = Program::builder().src(SRC).build(&context).unwrap();
+    		let device = &devices[d_idx];
+	    	
 			let queue = Queue::new(&context, Some(device.clone()));
 			let buffer = Buffer::<f32>::new(&dims, &queue);
+	    	let program = Program::builder()
+	    		.src(SRC)
+	    		.devices(vec![device.clone()])
+	    		.build(&context).unwrap();
 			// let image = Image::new();
 			// let sampler = Sampler::new();
 			let kernel = Kernel::new("multiply", &program, &queue, dims.clone()).unwrap()
@@ -58,7 +71,13 @@ fn main() {
 			
 			// Print all the things:
 			print_device_info(&device, d_idx);
-			print_context_info(&context);			
+			print_queue_info(&queue);
+			print_buffer_info(&buffer);
+			print_program_info(&program);
+			// print_kernel_info
+			// print event_list_info
+
+
 			print_event_info(&event);
 
 			print!("\n");
@@ -84,7 +103,6 @@ fn print_platform_info(platform: &Platform, p_idx: usize) {
 
 	print!(" {{ Total Device Count: {} }}", devices.len());
 	print!("\n");
-	print!("\n");
 }
 
 
@@ -102,7 +120,43 @@ fn print_context_info(context: &Context) {
 	if PRINT_DETAILED {
 		println!("{}", context);
 	} else {
-		println!("{t}{t}[Context]:  ()", t = TAB);
+		println!("{t}{t}{}", context, t = TAB);
+	}
+}
+
+
+fn print_queue_info(queue: &Queue) {
+	if PRINT_DETAILED {
+		println!("{}", queue);
+	} else {
+		println!("{t}{t}{}", queue, t = TAB);
+	}
+}
+
+
+fn print_buffer_info<T: OclNum>(buffer: &Buffer<T>) {
+	if PRINT_DETAILED {
+		println!("{}", buffer);
+	} else {
+		println!("{t}{t}[Buffer]: {{ Type: {}, Flags: {}, Size: {} }}", 
+			buffer.info(MemInfo::Type),
+			buffer.info(MemInfo::Flags),
+			buffer.info(MemInfo::Size),
+			t = TAB,
+		);
+	}
+}
+
+
+fn print_program_info(program: &Program) {
+	if PRINT_DETAILED {
+		println!("{}", program);
+	} else {
+		println!("{t}{t}[Program]: {{ Kernels: {}, Devices: {} }}", 
+			program.info(ProgramInfo::KernelNames),
+			program.info(ProgramInfo::NumDevices),
+			t = TAB,
+		);
 	}
 }
 

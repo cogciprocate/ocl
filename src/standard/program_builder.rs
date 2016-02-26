@@ -8,7 +8,8 @@ use std::collections::HashSet;
 use std::convert::Into;
 
 use error::{Result as OclResult, Error as OclError};
-use standard::{Context, Program};
+use core::{DeviceId as DeviceIdCore};
+use standard::{Device, Context, Program};
 
 
 /// A build option.
@@ -61,6 +62,7 @@ pub struct ProgramBuilder {
     options: Vec<BuildOpt>,
     src_file_names: Vec<String>,
     device_idxs: Vec<usize>,
+    devices: Vec<Device>,
     // embedded_kernel_source: Vec<String>,
 }
 
@@ -71,17 +73,27 @@ impl ProgramBuilder {
             options: Vec::with_capacity(64),
             src_file_names: Vec::with_capacity(32),
             device_idxs: Vec::with_capacity(8),
+            devices: Vec::with_capacity(8),
             // embedded_kernel_source: Vec::with_capacity(32),
         }
     }
 
     /// Returns a newly built Program.
+    ///
+    /// TODO: If the context is associated with more than one device,
+    /// check that at least one of those devices has been specified. An empty
+    /// device list will cause an OpenCL error in that case.
+    ///
+    /// TODO: Check for duplicate devices in the final device list.
     pub fn build(&self, context: &Context) -> OclResult<Program> {
+        let mut device_list: Vec<DeviceIdCore> = self.devices.iter().map(|d| d.as_core().clone()).collect();
+        device_list.extend_from_slice(&context.resolve_device_idxs(&self.device_idxs));
+
         Program::from_parts(
             try!(self.get_src_strings().map_err(|e| e.to_string())), 
             try!(self.get_compiler_options().map_err(|e| e.to_string())), 
             context.core_as_ref(), 
-            &context.resolve_device_idxs(&self.device_idxs))
+            &device_list[..])
     }
 
     /// Adds a build option containing a compiler command line definition.
@@ -133,6 +145,13 @@ impl ProgramBuilder {
     /// count up again (modulo).
     pub fn device_idxs<'p>(&'p mut self, device_idxs: Vec<usize>) -> &'p mut ProgramBuilder {
         self.device_idxs.extend_from_slice(&device_idxs);
+        self
+    }
+
+    /// Specify a list of devices to build this program on. The devices must be 
+    /// associated with the context passed to `::build` later on.
+    pub fn devices<'p>(&'p mut self, devices: Vec<Device>) -> &'p mut ProgramBuilder {
+        self.devices.extend_from_slice(&devices);
         self
     }
 

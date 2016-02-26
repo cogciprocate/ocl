@@ -89,7 +89,7 @@ fn resolve_event_opts<E: ClEventPtrNew>(wait_list: Option<&EventList>, new_event
 
             if wl.count() > 0 {
                 // (wl.len() as cl_uint, wl.as_ptr() as *const cl_event)
-                (wl.count(), wl.as_ptr_ptr())
+                (wl.count(), unsafe { wl.as_ptr_ptr() } )
             } else {
                 (0, ptr::null_mut() as *const cl_event)
             }
@@ -228,7 +228,7 @@ pub fn get_platform_info(platform: Option<PlatformId>, request_param: PlatformIn
     //                              param_value_size_ret: *mut size_t) -> cl_int;
 
     let platform_ptr: cl_platform_id = match platform {
-        Some(p) => p.as_ptr(),
+        Some(p) => unsafe { p.as_ptr() },
         None => ptr::null_mut() as cl_platform_id,
     };
 
@@ -269,10 +269,10 @@ pub fn get_device_ids(
             // device_types_opt: Option<cl_device_type>)
             device_types: Option<DeviceType>,
             ) -> OclResult<Vec<DeviceId>> {
-    let platform_ptr = match platform {
+    let platform_ptr = unsafe { match platform {
         Some(plat) => plat.as_ptr(),
         None => try!(get_first_platform()).as_ptr(),
-    };
+    } };
 
     let device_types = device_types.unwrap_or(core::DEVICE_TYPE_ALL);
     let mut devices_available: cl_uint = 0;
@@ -1672,7 +1672,7 @@ pub fn get_event_profiling_info(event: &Event, info_request: ProfilingInfo,
     // let event: Event = obj.into();
     let mut info_value_size: size_t = 0;
     // let event: cl_event = unsafe { event as *const _ as cl_event };
-    let event: cl_event = *event.as_ptr_ref();
+    let event: cl_event = unsafe { *event.as_ptr_ref() };
 
     let errcode = unsafe { cl_h::clGetEventProfilingInfo(
         event,

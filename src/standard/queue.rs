@@ -1,7 +1,9 @@
 //! An OpenCL command queue.
 
-use core::{self, CommandQueue as CommandQueueCore, DeviceId as DeviceIdCore, Context as ContextCore};
-use standard::{Context, Device};
+use std;
+use core::{self, CommandQueue as CommandQueueCore, DeviceId as DeviceIdCore, Context as ContextCore,
+    CommandQueueInfo, CommandQueueInfoResult};
+use standard::{self, Context, Device};
 
 /// A command queue.
 ///
@@ -102,5 +104,48 @@ impl Queue {
     pub fn device_core_as_ref(&self) -> &DeviceIdCore {
         &self.device_id_core
     }
+
+    /// Returns info about this queue.
+    pub fn info(&self, info_kind: CommandQueueInfo) -> CommandQueueInfoResult {
+        match core::get_command_queue_info(&self.obj_core, info_kind) {
+            Ok(res) => res,
+            Err(err) => CommandQueueInfoResult::Error(Box::new(err)),
+        }        
+    }
 }
 
+
+
+
+impl std::fmt::Display for Queue {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        // write!(f, "{}", &self.to_string())
+        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+            ("\n", "\n", "\n")
+        } else {
+            ("{ ", ", ", " }")
+        };
+
+        // TemporaryPlaceholderVariant(Vec<u8>),
+        // Context(Context),
+        // Device(DeviceId),
+        // ReferenceCount(u32),
+        // Properties(CommandQueueProperties),
+        // Error(Box<OclError>),
+
+        write!(f, "[Queue]: {b}\
+                Context: {}{d}\
+                Device: {}{d}\
+                ReferenceCount: {}{d}\
+                Properties: {}{e}\
+            ",
+            self.info(CommandQueueInfo::Context),
+            self.info(CommandQueueInfo::Device),
+            self.info(CommandQueueInfo::ReferenceCount),
+            self.info(CommandQueueInfo::Properties),
+            b = begin,
+            d = delim,
+            e = end,
+        )
+    }
+}

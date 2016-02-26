@@ -1,7 +1,7 @@
 //! Interfaces to a buffer.
 
 // use std::convert::Into;
-use std::iter;
+use std;
 use std::slice::{Iter, IterMut};
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
@@ -9,10 +9,12 @@ use num::{FromPrimitive, ToPrimitive};
 use std::ops::{Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 
-use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, Event as EventCore};
+use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, Event as EventCore,
+    MemInfo, MemInfoResult};
 use util;
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, BufferDims, EventList};
+use standard::{self, Queue, BufferDims, EventList};
+
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
         You must create this Buffer using 'Buffer::with_vec()' (et al.) in order to call this method.";
@@ -107,7 +109,7 @@ impl<T: OclNum> Buffer<T> {
     /// [FIXME]: Return result.
     pub fn with_vec<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
-        let vec: Vec<T> = iter::repeat(T::default()).take(len).collect();
+        let vec: Vec<T> = std::iter::repeat(T::default()).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
     }
@@ -118,7 +120,7 @@ impl<T: OclNum> Buffer<T> {
     /// [FIXME]: Return result.
     pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: &E, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device_core_as_ref()));
-        let vec: Vec<T> = iter::repeat(init_val).take(len).collect();
+        let vec: Vec<T> = std::iter::repeat(init_val).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
     }
@@ -501,7 +503,7 @@ impl<T: OclNum> Buffer<T> {
             },
             VecOption::None => {
                 self.len = new_len;
-                // let vec: Vec<T> = iter::repeat(T::default()).take(new_len).collect();
+                // let vec: Vec<T> = std::iter::repeat(T::default()).take(new_len).collect();
                 self.obj_core = core::create_buffer::<T>(queue.context_core_as_ref(), 
                     core::MEM_READ_WRITE, self.len, None)
                     .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
@@ -668,7 +670,62 @@ impl<T: OclNum> Buffer<T> {
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 
     }
+
+    /// Returns info about this buffer.
+    pub fn info(&self, info_kind: MemInfo) -> MemInfoResult {
+        match core::get_mem_object_info(&self.obj_core, info_kind) {
+            Ok(res) => res,
+            Err(err) => MemInfoResult::Error(Box::new(err)),
+        }        
+    }
 }
+
+impl<T: OclNum> std::fmt::Display for Buffer<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        // write!(f, "{}", &self.to_string())
+        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+            ("\n", "\n", "\n")
+        } else {
+            ("{ ", ", ", " }")
+        };
+
+        // Type = cl_h::CL_MEM_TYPE as isize,
+        // Flags = cl_h::CL_MEM_FLAGS as isize,
+        // Size = cl_h::CL_MEM_SIZE as isize,
+        // HostPtr = cl_h::CL_MEM_HOST_PTR as isize,
+        // MapCount = cl_h::CL_MEM_MAP_COUNT as isize,
+        // ReferenceCount = cl_h::CL_MEM_REFERENCE_COUNT as isize,
+        // Context = cl_h::CL_MEM_CONTEXT as isize,
+        // AssociatedMemobject = cl_h::CL_MEM_ASSOCIATED_MEMOBJECT as isize,
+        // Offset = cl_h::CL_MEM_OFFSET as isize,
+
+        write!(f, "[Buffer]: {b}\
+                Type: {}{d}\
+                Flags: {}{d}\
+                Size: {}{d}\
+                HostPtr: {}{d}\
+                MapCount: {}{d}\
+                ReferenceCount: {}{d}\
+                Context: {}{d}\
+                AssociatedMemobject: {}{d}\
+                Offset: {}{e}\
+            ",
+            self.info(MemInfo::Type),
+            self.info(MemInfo::Flags),
+            self.info(MemInfo::Size),
+            self.info(MemInfo::HostPtr),
+            self.info(MemInfo::MapCount),
+            self.info(MemInfo::ReferenceCount),
+            self.info(MemInfo::Context),
+            self.info(MemInfo::AssociatedMemobject),
+            self.info(MemInfo::Offset),
+            b = begin,
+            d = delim,
+            e = end,
+        )
+    }
+}
+
 
 impl<T: OclNum> Index<usize> for Buffer<T> {
     type Output = T;

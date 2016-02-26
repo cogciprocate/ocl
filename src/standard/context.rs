@@ -19,8 +19,10 @@ use standard::{self, Platform, Device, DeviceSpecifier, ContextBuilder};
 /// 
 #[derive(Debug, Clone)]
 pub struct Context {
-    platform_id_core: Option<PlatformIdCore>,
+    // platform_id_core: Option<PlatformIdCore>,
+    platform: Option<Platform>,
     device_id_core_list: Vec<DeviceIdCore>,
+    // devices: Vec<DeviceId>,
     obj_core: ContextCore,
 }
 
@@ -54,8 +56,8 @@ impl Context {
         assert!(pfn_notify.is_none() && user_data.is_none(), 
             "Context creation callbacks not yet implemented.");
 
-        let platform: Option<PlatformIdCore> = match properties {
-            Some(ref props) => props.get_platform().clone(),
+        let platform: Option<Platform> = match properties {
+            Some(ref props) => props.get_platform().clone().map(|p| Platform::new(p)),
             None => None,
         };
 
@@ -69,7 +71,8 @@ impl Context {
         let obj_core = try!(core::create_context(&properties, &device_list, pfn_notify, user_data));
 
         Ok(Context {
-            platform_id_core: platform,
+            // platform_id_core: platform,
+            platform: platform,
             device_id_core_list: device_list,
             obj_core: obj_core,
         })
@@ -91,7 +94,8 @@ impl Context {
         let obj_core = try!(core::create_context(&properties, &devices, None, None));
 
         Ok(Context {
-            platform_id_core: Some(platform.into()),
+            // platform_id_core: Some(platform.into()),
+            platform: Some(platform),
             device_id_core_list: devices,
             obj_core: obj_core,
         })
@@ -158,12 +162,14 @@ impl Context {
     pub fn new_by_index_and_type(platform_idx_opt: Option<usize>, device_types_opt: Option<DeviceType>) 
             -> OclResult<Context>
     {
-        let platforms: Vec<PlatformIdCore> = try!(core::get_platform_ids());
+        // let platforms: Vec<PlatformIdCore> = try!(core::get_platform_ids());
+        let platforms: Vec<Platform> = Platform::list_from_core(try!(core::get_platform_ids()));
         if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
         // println!("Platform list: {:?}", platforms);
 
-        let platform_id_core: PlatformIdCore = match platform_idx_opt {
+        // let platform_id_core: PlatformIdCore = match platform_idx_opt {
+        let platform: Platform = match platform_idx_opt {
             Some(pf_idx) => {
                 match platforms.get(pf_idx) {
                     Some(pf) => {
@@ -184,10 +190,10 @@ impl Context {
         // [DEBUG]: 
         // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_core);
 
-        let properties = Some(ContextProperties::new().platform(platform_id_core.clone()));
+        let properties = Some(ContextProperties::new().platform(platform.as_core().clone()));
         // let properties = None;
         
-        let device_id_core_list: Vec<DeviceIdCore> = try!(core::get_device_ids(Some(platform_id_core.clone()), 
+        let device_id_core_list: Vec<DeviceIdCore> = try!(core::get_device_ids(Some(platform.as_core().clone()), 
             device_types_opt));
         if device_id_core_list.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
@@ -200,7 +206,8 @@ impl Context {
         // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_core);
 
         Ok(Context {
-            platform_id_core: Some(platform_id_core),
+            // platform_id_core: Some(platform_id_core),
+            platform: Some(platform),
             device_id_core_list: device_id_core_list,
             obj_core: obj_core,
         })
@@ -244,7 +251,8 @@ impl Context {
 
     /// Returns info about the platform associated with the context.
     pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
-        match core::get_platform_info(self.platform_id_core.clone(), info_kind) {
+        // match core::get_platform_info(self.platform_id_core.clone(), info_kind) {
+        match core::get_platform_info(self.platform_to_core(), info_kind) {
             Ok(pi) => pi,
             Err(err) => PlatformInfoResult::Error(Box::new(err)),
         }
@@ -295,8 +303,8 @@ impl Context {
     /// Returns the platform our context pertains to.
     ///
     /// TODO: Rethink what this should return.
-    pub fn platform_core_as_ref(&self) -> Option<PlatformIdCore> {
-        self.platform_id_core.clone()
+    pub fn platform_to_core(&self) -> Option<PlatformIdCore> {
+        self.platform.clone().map(|p| p.as_core().clone())
     }  
 }
 
@@ -308,7 +316,7 @@ impl std::fmt::Display for Context {
             ("{ ", ", ", " }")
         };
 
-        write!(f, "[Context]:{b}\
+        write!(f, "[Context]: {b}\
                 Reference Count: {}{d}\
                 Devices: {}{d}\
                 Properties: {}{d}\

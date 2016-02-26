@@ -73,7 +73,7 @@ pub unsafe trait ClEventPtrNew {
 }
 
 pub trait ClEventRef<'e> {
-	fn as_ptr_ref(&'e self) -> &'e cl_event;
+	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
 	// unsafe fn as_ptr_mut(&mut self) -> &mut cl_event;
 }
 
@@ -84,7 +84,7 @@ pub trait ClEventRef<'e> {
 pub struct EventRefWrapper<'e>(&'e cl_event);
 
 impl<'e> ClEventRef<'e> for EventRefWrapper<'e> {
-	fn as_ptr_ref(&'e self) -> &'e cl_event {
+	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
 		self.0
 	}
 }
@@ -109,7 +109,7 @@ impl PlatformId {
 	}
 
 	/// Returns a pointer.
-	pub fn as_ptr(&self) -> cl_platform_id {
+	pub unsafe fn as_ptr(&self) -> cl_platform_id {
 		self.0
 	}
 }
@@ -136,7 +136,7 @@ impl DeviceId {
 	}
 
 	/// Returns a pointer.
-	pub fn as_ptr(&self) -> cl_device_id {
+	pub unsafe fn as_ptr(&self) -> cl_device_id {
 		self.0
 	}
 }
@@ -373,7 +373,7 @@ impl Event {
 
 	/// Returns an immutable reference to a pointer, do not deref and store it unless 
 	/// you will manage its associated reference count carefully.
-	pub fn as_ptr_ref(&self) -> &cl_event {
+	pub unsafe fn as_ptr_ref(&self) -> &cl_event {
 		&self.0
 	}
 
@@ -402,7 +402,7 @@ unsafe impl ClEventPtrNew for Event {
 }
 
 impl<'e> ClEventRef<'e> for Event {
-	fn as_ptr_ref(&'e self) -> &'e cl_event { self.as_ptr_ref() }
+	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { self.as_ptr_ref() }
  	// unsafe fn as_ptr_mut(&mut self) -> &mut cl_event { self.as_ptr_mut() }
 }
 
@@ -474,7 +474,7 @@ impl EventList {
         self.event_ptrs.len() as u32
     }
 
-	pub fn as_ptr_ptr(&self) -> *const cl_event {
+	pub unsafe fn as_ptr_ptr(&self) -> *const cl_event {
 		self.event_ptrs.as_ptr() as *const cl_event
 	}
 

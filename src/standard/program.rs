@@ -1,10 +1,11 @@
 //! An OpenCL program.
-
+use std;
 use std::ffi::CString;
 
 use error::{Result as OclResult};
-use core::{self, Program as ProgramCore, DeviceId as DeviceIdCore, Context as ContextCore};
-use standard::{ProgramBuilder, Context};
+use core::{self, Program as ProgramCore, DeviceId as DeviceIdCore, Context as ContextCore,
+    ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
+use standard::{self, ProgramBuilder, Context, Device};
 
 /// A program, sometimes referred to as a build.
 ///
@@ -68,4 +69,70 @@ impl Program {
     pub fn devices_core_as_ref(&self) -> &[DeviceIdCore] {
         &self.devices_ids_core
     }
+
+    /// Returns info about this program.
+    pub fn info(&self, info_kind: ProgramInfo) -> ProgramInfoResult {
+        match core::get_program_info(&self.obj_core, info_kind) {
+            Ok(res) => res,
+            Err(err) => ProgramInfoResult::Error(Box::new(err)),
+        }        
+    }
+
+    /// Returns info about this program's build.
+    ///
+    /// TODO: Check that device is valid.
+    pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo) -> ProgramBuildInfoResult {
+        match core::get_program_build_info(&self.obj_core, device.as_core(), info_kind) {
+            Ok(res) => res,
+            Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
+        }        
+    }
 }
+
+
+impl std::fmt::Display for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        // write!(f, "{}", &self.to_string())
+        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+            ("\n", "\n", "\n")
+        } else {
+            ("{ ", ", ", " }")
+        };
+
+        // ReferenceCount = cl_h::CL_PROGRAM_REFERENCE_COUNT as isize,
+        // Context = cl_h::CL_PROGRAM_CONTEXT as isize,
+        // NumDevices = cl_h::CL_PROGRAM_NUM_DEVICES as isize,
+        // Devices = cl_h::CL_PROGRAM_DEVICES as isize,
+        // Source = cl_h::CL_PROGRAM_SOURCE as isize,
+        // BinarySizes = cl_h::CL_PROGRAM_BINARY_SIZES as isize,
+        // Binaries = cl_h::CL_PROGRAM_BINARIES as isize,
+        // NumKernels = cl_h::CL_PROGRAM_NUM_KERNELS as isize,
+        // KernelNames = cl_h::CL_PROGRAM_KERNEL_NAMES as isize,
+
+        write!(f, "[Program]: {b}\
+                ReferenceCount: {}{d}\
+                Context: {}{d}\
+                NumDevices: {}{d}\
+                Devices: {}{d}\
+                Source: {}{d}\
+                BinarySizes: {}{d}\
+                Binaries: {}{d}\
+                NumKernels: {}{d}\
+                KernelNames: {}{e}\
+            ",
+            self.info(ProgramInfo::ReferenceCount),
+            self.info(ProgramInfo::Context),
+            self.info(ProgramInfo::NumDevices),
+            self.info(ProgramInfo::Devices),
+            self.info(ProgramInfo::Source),
+            self.info(ProgramInfo::BinarySizes),
+            self.info(ProgramInfo::Binaries),
+            self.info(ProgramInfo::NumKernels),
+            self.info(ProgramInfo::KernelNames),
+            b = begin,
+            d = delim,
+            e = end,
+        )
+    }
+}
+

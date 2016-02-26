@@ -46,11 +46,11 @@ fn main() {
 			{t}Vendor: {}\n\
 			{t}Extensions: {}\n\
 		",
-		core::get_platform_info(context.platform_core_as_ref(), PlatformInfo::Profile).unwrap(),
-		core::get_platform_info(context.platform_core_as_ref(), PlatformInfo::Version).unwrap(),
-		core::get_platform_info(context.platform_core_as_ref(), PlatformInfo::Name).unwrap(),
-		core::get_platform_info(context.platform_core_as_ref(), PlatformInfo::Vendor).unwrap(),
-		core::get_platform_info(context.platform_core_as_ref(), PlatformInfo::Extensions).unwrap(),
+		core::get_platform_info(context.platform_to_core(), PlatformInfo::Profile).unwrap(),
+		core::get_platform_info(context.platform_to_core(), PlatformInfo::Version).unwrap(),
+		core::get_platform_info(context.platform_to_core(), PlatformInfo::Name).unwrap(),
+		core::get_platform_info(context.platform_to_core(), PlatformInfo::Vendor).unwrap(),
+		core::get_platform_info(context.platform_to_core(), PlatformInfo::Extensions).unwrap(),
 		t = util::TAB,
 	);
 

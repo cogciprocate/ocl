@@ -31,6 +31,11 @@ impl Platform {
 		list_core.into_iter().map(|pr| Platform::new(pr) ).collect()
 	}
 
+	/// Returns a list of `Platform`s from a list of `PlatformIdCore`s
+	pub fn list_from_core(platforms: Vec<PlatformIdCore>) -> Vec<Platform> {
+		platforms.into_iter().map(|p| Platform::new(p)).collect()
+	}
+
 	/// Returns a string containing a formatted list of every platform property.
 	pub fn to_string(&self) -> String {
 		self.clone().into()
