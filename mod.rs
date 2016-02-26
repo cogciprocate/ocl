@@ -97,7 +97,7 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     get_max_work_group_size, wait_for_event, get_event_status, platform_name,
     program_build_err, verify_context, get_first_platform};
 
-pub use self::cl::abs::{ClEventPtrNew, ClEventRef, EventRefWrapper,
+pub use self::cl::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event,
     EventList, Sampler};
 

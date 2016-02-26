@@ -43,8 +43,9 @@
 //! [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html
 
 use std::mem;
+// use std::ptr;
 // use std::fmt::Debug;
-use std::marker::PhantomData;
+use std::marker::{PhantomData, Sized};
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
 	cl_kernel, cl_event, cl_sampler};
@@ -75,6 +76,20 @@ pub unsafe trait ClEventPtrNew {
 pub trait ClEventRef<'e> {
 	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
 	// unsafe fn as_ptr_mut(&mut self) -> &mut cl_event;
+}
+
+pub unsafe trait ClPlatformIdPtr: Sized {
+	unsafe fn as_ptr(&self) -> cl_platform_id {
+		debug_assert!(mem::size_of_val(self) == mem::size_of::<cl_platform_id>());
+		mem::transmute_copy(self)
+	}
+}
+
+pub unsafe trait ClDeviceIdPtr: Sized {
+	unsafe fn as_ptr(&self) -> cl_device_id {
+		debug_assert!(mem::size_of_val(self) == mem::size_of::<cl_device_id>());
+		mem::transmute_copy(self)
+	}
 }
 
 //=============================================================================
@@ -114,6 +129,7 @@ impl PlatformId {
 	}
 }
 
+unsafe impl ClPlatformIdPtr for PlatformId {}
 unsafe impl Sync for PlatformId {}
 unsafe impl Send for PlatformId {}
 
@@ -141,6 +157,7 @@ impl DeviceId {
 	}
 }
 
+unsafe impl ClDeviceIdPtr for DeviceId {}
 unsafe impl Sync for DeviceId {}
 unsafe impl Send for DeviceId {}
 
