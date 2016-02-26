@@ -16,8 +16,9 @@ use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Program, Kernel,
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo, OclNum};
 
 const PRINT_DETAILED: bool = true;
-// Overrides above for device:
+// Overrides above:
 const PRINT_DETAILED_DEVICE: bool = false;
+const PRINT_DETAILED_PROGRAM: bool = false;
 
 static TAB: &'static str = "    ";
 static SRC: &'static str = r#"
@@ -54,12 +55,12 @@ fn main() {
 	    	
 			let queue = Queue::new(&context, Some(device.clone()));
 			let buffer = Buffer::<f32>::new(&dims, &queue);
+			// let image = Image::new();
+			// let sampler = Sampler::new();
 	    	let program = Program::builder()
 	    		.src(SRC)
 	    		.devices(vec![device.clone()])
 	    		.build(&context).unwrap();
-			// let image = Image::new();
-			// let sampler = Sampler::new();
 			let kernel = Kernel::new("multiply", &program, &queue, dims.clone()).unwrap()
 			        .arg_buf(&buffer)
 			        .arg_scl(10.0f32);
@@ -73,19 +74,16 @@ fn main() {
 			print_device_info(&device, d_idx);
 			print_queue_info(&queue);
 			print_buffer_info(&buffer);
+			// print_image_info(&image);
+			// print_sampler_info(&sampler);
 			print_program_info(&program);
-			// print_kernel_info
-			// print event_list_info
-
-
+			print_kernel_info(&kernel);
+			// print event_list_info(&event_list);
 			print_event_info(&event);
 
 			print!("\n");
 		}
-
 	}
-
-	// print!("\n");
 }
 
 
@@ -148,15 +146,37 @@ fn print_buffer_info<T: OclNum>(buffer: &Buffer<T>) {
 }
 
 
+fn print_image_info() {
+	unimplemented!;
+}
+
+
+fn print_sampler_info() {
+	unimplemented!;
+}
+
+
 fn print_program_info(program: &Program) {
-	if PRINT_DETAILED {
+
+	if PRINT_DETAILED_PROGRAM {
 		println!("{}", program);
 	} else {
-		println!("{t}{t}[Program]: {{ Kernels: {}, Devices: {} }}", 
+		if !PRINT_DETAILED { print!("{t}{t}", t = TAB); } 
+		println!("[Program]: {{ KernelNames: '{}', NumDevices: {}, ReferenceCount: {}, Context: {} }}", 
 			program.info(ProgramInfo::KernelNames),
 			program.info(ProgramInfo::NumDevices),
-			t = TAB,
+			program.info(ProgramInfo::ReferenceCount),
+			program.info(ProgramInfo::Context),
 		);
+	}
+}
+
+
+fn print_kernel_info(kernel: &Kernel) {
+	if PRINT_DETAILED {
+		println!("{}", kernel);
+	} else {
+		println!("{t}{t}{}", kernel, t = TAB);
 	}
 }
 
@@ -170,4 +190,9 @@ fn print_event_info(event: &Event) {
 			event.info(EventInfo::CommandExecutionStatus),
 			t = TAB);
 	}
+}
+
+
+fn print_event_list_info() {
+	unimplemented!;
 }

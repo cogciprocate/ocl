@@ -1,10 +1,12 @@
 //! An OpenCL kernel.
 
+use std;
 use std::convert::Into;
 use std::collections::HashMap;
-use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg};
+use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
+    KernelInfo, KernelInfoResult};
 use error::{Result as OclResult, Error as OclError};
-use standard::{SimpleDims, Buffer, EventList, Program, Queue};
+use standard::{self, SimpleDims, Buffer, EventList, Program, Queue};
 
 /// A kernel.
 ///
@@ -252,11 +254,42 @@ impl Kernel {
     pub fn core_as_ref(&self) -> &KernelCore {
         &self.obj_core
     }
+
+    /// Returns info about this kernel.
+    pub fn info(&self, info_kind: KernelInfo) -> KernelInfoResult {
+        match core::get_kernel_info(&self.obj_core, info_kind) {
+            Ok(res) => res,
+            Err(err) => KernelInfoResult::Error(Box::new(err)),
+        }        
+    }
 }
 
-// impl Drop for Kernel {
-//     fn drop(&mut self) {
-//         // println!("DROPPING KERNEL");
-//         core::release_kernel(self.obj_core).unwrap();
-//     }
-// }
+
+
+impl std::fmt::Display for Kernel {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+            ("\n", "\n", "\n")
+        } else {
+            ("{ ", ", ", " }")
+        };
+
+        write!(f, "[Kernel]: {b}\
+                FunctionName: {}{d}\
+                ReferenceCount: {}{d}\
+                Context: {}{d}\
+                Program: {}{d}\
+                Attributes: {}{e}\
+            ",
+            self.info(KernelInfo::FunctionName),
+            self.info(KernelInfo::ReferenceCount),
+            self.info(KernelInfo::Context),
+            self.info(KernelInfo::Program),
+            self.info(KernelInfo::Attributes),
+            b = begin,
+            d = delim,
+            e = end,
+        )
+    }
+}
+
