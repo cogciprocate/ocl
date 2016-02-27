@@ -5,7 +5,7 @@
 #![allow(unused_imports, unused_variables, dead_code)]
 
 extern crate ocl;
-use ocl::{core, SimpleDims, Context, DeviceSpecifier, Image};
+use ocl::{SimpleDims, Context, DeviceSpecifier, Image};
 
 static KERNEL_SRC: &'static str = r#"
         __kernel void multiply_by_scalar(
@@ -28,12 +28,32 @@ fn main() {
 
     let context = Context::builder().device_spec(DeviceSpecifier::Index(0)).build().unwrap();
 
-    let img_formats = core::get_supported_image_formats(context.core_as_ref(), core::MEM_READ_WRITE, 
-        core::MemObjectType::Image2d).unwrap();
+    let img_formats = Image::supported_formats(&context, ocl::MEM_READ_WRITE, 
+        ocl::MemObjectType::Image2d).unwrap();
 
     println!("Image Formats Avaliable: {}.", img_formats.len());
 
-    let image = Image::builder::<u8>().build(&context);
+    let data: Vec<u8> = Vec::with_capacity(100000);
+
+    let image = Image::builder().flags(ocl::MEM_READ_WRITE | ocl::MEM_COPY_HOST_PTR)
+        .build_with_data(&context, &data).unwrap();
+
+    println!("{:#}", image);
+
+    // pub enum ImageInfo {
+    //     Format = cl_h::CL_IMAGE_FORMAT as isize,
+    //     ElementSize = cl_h::CL_IMAGE_ELEMENT_SIZE as isize,
+    //     RowPitch = cl_h::CL_IMAGE_ROW_PITCH as isize,
+    //     SlicePitch = cl_h::CL_IMAGE_SLICE_PITCH as isize,
+    //     Width = cl_h::CL_IMAGE_WIDTH as isize,
+    //     Height = cl_h::CL_IMAGE_HEIGHT as isize,
+    //     Depth = cl_h::CL_IMAGE_DEPTH as isize,
+    //     ArraySize = cl_h::CL_IMAGE_ARRAY_SIZE as isize,
+    //     Buffer = cl_h::CL_IMAGE_BUFFER as isize,
+    //     NumMipLevels = cl_h::CL_IMAGE_NUM_MIP_LEVELS as isize,
+    //     NumSamples = cl_h::CL_IMAGE_NUM_SAMPLES as isize,
+    // }
+
 
     // // Create a program/queue with the first available device: 
     // let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");

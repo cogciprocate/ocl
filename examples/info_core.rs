@@ -3,9 +3,11 @@
 
 extern crate ocl;
 
-use ocl::{SimpleDims, Context, Queue, Buffer, Program, Kernel, EventList};
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
+use ocl::{SimpleDims, Context, Queue, Buffer, Image, Program, Kernel, EventList};
+use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 use ocl::util;
+
+const INFO_FORMAT_MULTILINE: bool = true;
 
 static SRC: &'static str = r#"
 	__kernel void multiply(float coeff, __global float* buffer) {
@@ -19,7 +21,7 @@ fn main() {
 	let context = Context::new_by_index_and_type(None, None).unwrap();
 	let queue = Queue::new_by_device_index(&context, None);
 	let buffer = Buffer::<f32>::new(&dims, &queue);
-	// let image = Image::new();
+	let image = Image::builder().build(&context).unwrap();
 	// let sampler = Sampler::new();
 	let program = Program::builder().src(SRC).build(&context).unwrap();
 	let device = program.devices()[0].clone();
@@ -34,6 +36,12 @@ fn main() {
 
 	println!("############### OpenCL [Default Platform] [Default Device] Info ################");
 	print!("\n");
+
+	let (begin, delim, end) = if INFO_FORMAT_MULTILINE {
+        ("\n", "\n", "\n")
+    } else {
+        ("{ ", ", ", " }")
+    };
 
     // ##################################################
     // #################### PLATFORM ####################
@@ -281,7 +289,7 @@ fn main() {
     //     Offset = cl_h::CL_MEM_OFFSET as isize,
     // }
 
-    println!("Buffer:\n\
+    println!("Buffer Memory:\n\
 			{t}Type: {}\n\
 	        {t}Flags: {}\n\
 	        {t}Size: {}\n\
@@ -350,6 +358,58 @@ fn main() {
  //        core::get_image_info(image.core_as_ref(), ImageInfo::NumSamples).unwrap(),
 	// 	t = util::TAB,
 	// );
+
+
+		println!("Image: {b}\
+                {t}ElementSize: {}{d}\
+                {t}RowPitch: {}{d}\
+                {t}SlicePitch: {}{d}\
+                {t}Width: {}{d}\
+                {t}Height: {}{d}\
+                {t}Depth: {}{d}\
+                {t}ArraySize: {}{d}\
+                {t}Buffer: {}{d}\
+                {t}NumMipLevels: {}{d}\
+                {t}NumSamples: {}{e}\
+            ",
+            core::get_image_info(image.core_as_ref(), ImageInfo::ElementSize).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::RowPitch).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::SlicePitch).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::Width).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::Height).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::Depth).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::ArraySize).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::Buffer).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::NumMipLevels).unwrap(),
+            core::get_image_info(image.core_as_ref(), ImageInfo::NumSamples).unwrap(),
+            b = begin,
+            d = delim,
+            e = end,
+            t = util::TAB,
+        );
+
+		println!("{t}Image Memory:\n\
+			{t}{t}Type: {}\n\
+	        {t}{t}Flags: {}\n\
+	        {t}{t}Size: {}\n\
+	        {t}{t}HostPtr: {}\n\
+	        {t}{t}MapCount: {}\n\
+	        {t}{t}ReferenceCount: {}\n\
+	        {t}{t}Context: {}\n\
+	        {t}{t}AssociatedMemobject: {}\n\
+	        {t}{t}Offset: {}\n\
+		",
+		core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Type).unwrap(),
+	    core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Flags).unwrap(),
+        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Size).unwrap(),
+        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::HostPtr).unwrap(),
+        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::MapCount).unwrap(),
+        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::ReferenceCount).unwrap(),
+        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Context).unwrap(),
+        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::AssociatedMemobject).unwrap(),
+        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Offset).unwrap(),
+		t = util::TAB,
+	);
 
     // ##################################################
     // #################### SAMPLER #####################

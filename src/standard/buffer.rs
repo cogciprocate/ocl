@@ -672,22 +672,38 @@ impl<T: OclNum> Buffer<T> {
     }
 
     /// Returns info about this buffer.
-    pub fn info(&self, info_kind: MemInfo) -> MemInfoResult {
+    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
         match core::get_mem_object_info(&self.obj_core, info_kind) {
             Ok(res) => res,
             Err(err) => MemInfoResult::Error(Box::new(err)),
         }        
     }
+
+    pub fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Buffer Memory")
+            .field("Type", &self.mem_info(MemInfo::Type))
+            .field("Flags", &self.mem_info(MemInfo::Flags))
+            .field("Size", &self.mem_info(MemInfo::Size))
+            .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
+            .field("MapCount", &self.mem_info(MemInfo::MapCount))
+            .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
+            .field("Context", &self.mem_info(MemInfo::Context))
+            .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
+            .field("Offset", &self.mem_info(MemInfo::Offset))
+            .finish()
+    }
 }
 
 impl<T: OclNum> std::fmt::Display for Buffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.fmt_mem_info(f)
+
         // write!(f, "{}", &self.to_string())
-        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
-            ("\n", "\n", "\n")
-        } else {
-            ("{ ", ", ", " }")
-        };
+        // let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+        //     ("\n", "\n", "\n")
+        // } else {
+        //     ("{ ", ", ", " }")
+        // };
 
         // Type = cl_h::CL_MEM_TYPE as isize,
         // Flags = cl_h::CL_MEM_FLAGS as isize,
@@ -699,30 +715,42 @@ impl<T: OclNum> std::fmt::Display for Buffer<T> {
         // AssociatedMemobject = cl_h::CL_MEM_ASSOCIATED_MEMOBJECT as isize,
         // Offset = cl_h::CL_MEM_OFFSET as isize,
 
-        write!(f, "[Buffer]: {b}\
-                Type: {}{d}\
-                Flags: {}{d}\
-                Size: {}{d}\
-                HostPtr: {}{d}\
-                MapCount: {}{d}\
-                ReferenceCount: {}{d}\
-                Context: {}{d}\
-                AssociatedMemobject: {}{d}\
-                Offset: {}{e}\
-            ",
-            self.info(MemInfo::Type),
-            self.info(MemInfo::Flags),
-            self.info(MemInfo::Size),
-            self.info(MemInfo::HostPtr),
-            self.info(MemInfo::MapCount),
-            self.info(MemInfo::ReferenceCount),
-            self.info(MemInfo::Context),
-            self.info(MemInfo::AssociatedMemobject),
-            self.info(MemInfo::Offset),
-            b = begin,
-            d = delim,
-            e = end,
-        )
+        // write!(f, "[Buffer Memory]: {b}\
+        //         Type: {}{d}\
+        //         Flags: {}{d}\
+        //         Size: {}{d}\
+        //         HostPtr: {}{d}\
+        //         MapCount: {}{d}\
+        //         ReferenceCount: {}{d}\
+        //         Context: {}{d}\
+        //         AssociatedMemobject: {}{d}\
+        //         Offset: {}{e}\
+        //     ",
+        //     self.mem_info(MemInfo::Type),
+        //     self.mem_info(MemInfo::Flags),
+        //     self.mem_info(MemInfo::Size),
+        //     self.mem_info(MemInfo::HostPtr),
+        //     self.mem_info(MemInfo::MapCount),
+        //     self.mem_info(MemInfo::ReferenceCount),
+        //     self.mem_info(MemInfo::Context),
+        //     self.mem_info(MemInfo::AssociatedMemobject),
+        //     self.mem_info(MemInfo::Offset),
+        //     b = begin,
+        //     d = delim,
+        //     e = end,
+        // )
+
+        // f.debug_struct("Buffer Memory")
+        //     .field("Type", &self.mem_info(MemInfo::Type))
+        //     .field("Flags", &self.mem_info(MemInfo::Flags))
+        //     .field("Size", &self.mem_info(MemInfo::Size))
+        //     .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
+        //     .field("MapCount", &self.mem_info(MemInfo::MapCount))
+        //     .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
+        //     .field("Context", &self.mem_info(MemInfo::Context))
+        //     .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
+        //     .field("Offset", &self.mem_info(MemInfo::Offset))
+        //     .finish()
     }
 }
 

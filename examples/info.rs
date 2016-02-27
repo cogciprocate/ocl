@@ -12,7 +12,7 @@
 
 extern crate ocl;
 
-use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Program, Kernel, Event, EventList};
+use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Image, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo, OclNum};
 
 const PRINT_DETAILED: bool = true;
@@ -55,7 +55,7 @@ fn main() {
 	    	
 			let queue = Queue::new(&context, Some(device.clone()));
 			let buffer = Buffer::<f32>::new(&dims, &queue);
-			// let image = Image::new();
+			let image = Image::builder().build(&context).unwrap();
 			// let sampler = Sampler::new();
 	    	let program = Program::builder()
 	    		.src(SRC)
@@ -74,7 +74,7 @@ fn main() {
 			print_device_info(&device, d_idx);
 			print_queue_info(&queue);
 			print_buffer_info(&buffer);
-			// print_image_info(&image);
+			print_image_info(&image);
 			// print_sampler_info(&sampler);
 			print_program_info(&program);
 			print_kernel_info(&kernel);
@@ -137,17 +137,17 @@ fn print_buffer_info<T: OclNum>(buffer: &Buffer<T>) {
 		println!("{}", buffer);
 	} else {
 		println!("{t}{t}[Buffer]: {{ Type: {}, Flags: {}, Size: {} }}", 
-			buffer.info(MemInfo::Type),
-			buffer.info(MemInfo::Flags),
-			buffer.info(MemInfo::Size),
+			buffer.mem_info(MemInfo::Type),
+			buffer.mem_info(MemInfo::Flags),
+			buffer.mem_info(MemInfo::Size),
 			t = TAB,
 		);
 	}
 }
 
 
-fn print_image_info() {
-	unimplemented!();
+fn print_image_info(image: &Image) {
+	println!("{}", image);
 }
 
 
