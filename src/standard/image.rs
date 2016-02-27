@@ -6,9 +6,9 @@
 
 use std;
 use error::{Result as OclResult};
-use standard::{self, Context, ImageBuilder};
+use standard::{self, Context, Queue, ImageBuilder, EventList};
 use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor, 
-    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult};
+    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, CommandQueue as CommandQueueCore};
 
 
 /// [WORK IN PROGRESS][UNTESTED] An Image. 
@@ -19,6 +19,7 @@ use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
 pub struct Image {
     // default_val: PhantomData<T,
     obj_core: MemCore,
+    queue_obj_core: CommandQueueCore,
 }
 
 impl Image {
@@ -36,14 +37,14 @@ impl Image {
     }
 
     /// Returns a new `Image`.
-    pub fn new<T>(context: &Context, flags: MemFlags, image_format: ImageFormat,
+    pub fn new<T>(queue: &Queue, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, image_data: Option<&[T]>) -> OclResult<Image>
     {
         // let flags = core::flag::READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
 
         let obj_core = try!(core::create_image(
-            context.core_as_ref(),
+            queue.context_core_as_ref(),
             flags,
             &image_format,
             &image_desc,
@@ -52,8 +53,17 @@ impl Image {
 
         Ok(Image {
             // default_val: T::default(),
-            obj_core: obj_core          
+            obj_core: obj_core,
+            queue_obj_core: queue.core_as_ref().clone(),     
         })
+    }
+
+    pub fn enqueue_write<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
+                row_pitch: usize, slc_pitch: usize, data: &[T], wait_list: Option<&EventList>,
+                dest_list: Option<&mut EventList>) -> OclResult<()> {
+        core::enqueue_write_image(&self.queue_obj_core, &self.obj_core, block, origin, region,
+            row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
+            dest_list.map(|el| el.core_as_mut()))
     }
 
     /// Returns the core image object pointer.

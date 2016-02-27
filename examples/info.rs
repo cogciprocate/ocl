@@ -55,7 +55,7 @@ fn main() {
 	    	
 			let queue = Queue::new(&context, Some(device.clone()));
 			let buffer = Buffer::<f32>::new(&dims, &queue);
-			let image = Image::builder().build(&context).unwrap();
+			let image = Image::builder().build(&queue).unwrap();
 			// let sampler = Sampler::new();
 	    	let program = Program::builder()
 	    		.src(SRC)

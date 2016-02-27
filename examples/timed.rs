@@ -148,10 +148,10 @@ fn main() {
 
         // if i < 20 { println!("0.1 [{}] ", i); }
 
-        unsafe { buffer_result.fill_vec_async(Some(&kern_events), Some(&mut buf_events)).unwrap(); }
-        // unsafe { buffer_result.fill_vec_async(None, Some(&mut buf_events)).unwrap(); }
-        // unsafe { buffer_result.fill_vec_async(Some(&kern_events), None).unwrap(); }
-        // unsafe { buffer_result.fill_vec_async(None, None).unwrap(); }
+        unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), Some(&mut buf_events)).unwrap(); }
+        // unsafe { buffer_result.enqueue_fill_vec(None, Some(&mut buf_events)).unwrap(); }
+        // unsafe { buffer_result.enqueue_fill_vec(Some(&kern_events), None).unwrap(); }
+        // unsafe { buffer_result.enqueue_fill_vec(None, None).unwrap(); }
 
         // if i < 20 { println!("0.2 [{}] ", i); }
         if i < 20 { 
@@ -184,7 +184,7 @@ fn main() {
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.enqueue_with_events(None, Some(&mut kern_events));
-        unsafe { buffer_result.fill_vec_async(None, Some(&mut buf_events)).unwrap(); }
+        unsafe { buffer_result.enqueue_fill_vec(false, None, Some(&mut buf_events)).unwrap(); }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);

@@ -134,7 +134,7 @@ fn test_timed() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enqueue_with_events(Some(&buf_events), Some(&mut kern_events));
-        unsafe { buffer_result.fill_vec_async(Some(&kern_events), Some(&mut buf_events)).unwrap(); }
+        unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), Some(&mut buf_events)).unwrap(); }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
@@ -158,7 +158,7 @@ fn test_timed() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enqueue_with_events(None, Some(&mut kern_events));
-        unsafe { buffer_result.fill_vec_async(None, Some(&mut buf_events)).unwrap(); }
+        unsafe { buffer_result.enqueue_fill_vec(false, None, Some(&mut buf_events)).unwrap(); }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);

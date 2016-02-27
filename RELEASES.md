@@ -19,6 +19,11 @@ Breaking Changes
   `Context::get_device_by_index` to achieve the same result.
 * All 'standard' types refer to `Device` and `Platform` instead of
   `core::DeviceId` and `core::PlatformId` in method signatures.
+* `Buffer::read_async` and `::write_async` have been renamed `::enqueue_read`
+  and `::enqueue_write` and have an additional parameter to set blocking.
+* `Buffer::fill_vec_async` and `::flush_vec_async` have been renamed 
+  `::enqueue_fill_vec` and `::enqueue_flush_vec` and have an additional
+  parameter to set blocking.
 
 
 New Features

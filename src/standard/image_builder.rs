@@ -7,7 +7,7 @@
 // use std::default::Default;
 // use core::OclNum;
 use error::{Result as OclResult};
-use standard::{Context, Image};
+use standard::{Context, Queue, Image};
 use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType};
 
 
@@ -50,15 +50,15 @@ impl ImageBuilder {
 
     /// Builds with no host side image data memory specified and returns a 
 	/// new `Image`.
-    pub fn build(&self, context: &Context) -> OclResult<Image> {
-        Image::new::<usize>(context, self.flags, self.image_format.clone(), self.image_desc.clone(), 
+    pub fn build(&self, queue: &Queue) -> OclResult<Image> {
+        Image::new::<usize>(queue, self.flags, self.image_format.clone(), self.image_desc.clone(), 
         	None)
     }
 
     /// Builds with the host side image data memory specified by `image_data`
     /// and returns a new `Image`.
-    pub fn build_with_data<T>(&self, context: &Context, image_data: &[T]) -> OclResult<Image> {
-        Image::new(context, self.flags, self.image_format.clone(), self.image_desc.clone(), 
+    pub fn build_with_data<T>(&self, queue: &Queue, image_data: &[T]) -> OclResult<Image> {
+        Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(), 
         	Some(image_data))
     }
 

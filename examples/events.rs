@@ -130,7 +130,7 @@ fn main() {
         let mut read_event = EventList::new();
         
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
-        unsafe { result_buffer.fill_vec_async(None, Some(&mut read_event)).unwrap(); }
+        unsafe { result_buffer.enqueue_fill_vec(false, None, Some(&mut read_event)).unwrap(); }
     
         // Clone event list just for fun:
         let read_event = read_event.clone();

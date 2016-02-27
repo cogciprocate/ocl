@@ -1730,7 +1730,10 @@ pub fn enqueue_read_image<T, E: ClEventPtrNew>(
     errcode_try("clEnqueueReadImage()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNTESTED]
+/// Enqueues a command to write to an image or image array object from host memory.
+///
+/// TODO: Size check (rather than leaving it to API).
 pub fn enqueue_write_image<T, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             image: &Mem,

@@ -5,17 +5,21 @@
 #![allow(unused_imports, unused_variables, dead_code)]
 
 extern crate ocl;
-use ocl::{SimpleDims, Context, DeviceSpecifier, Image};
+use ocl::{SimpleDims, Context, Queue, DeviceSpecifier, Image, Program, Kernel};
 
 static KERNEL_SRC: &'static str = r#"
-        __kernel void multiply_by_scalar(
-                    __global float const* const src,
-                    __private float const coeff,
-                    __global float* const res)
+        __constant sampler_t sampler = 
+            CLK_NORMALIZED_COORDS_FALSE | 
+            CLK_ADDRESS_NONE | 
+            CLK_FILTER_NEAREST;
+
+        __kernel void add(
+                    read_only image2d_t src_image,
+                    write_only image2d_t dst_image)
         {
             uint const idx = get_global_id(0);
 
-            res[idx] = src[idx] * coeff;
+            dst_image[idx] = src_image[idx];
         }
     "#;
 
@@ -27,18 +31,34 @@ fn main() {
     // let context = Context::new_by_index_and_type(None, None).unwrap();
 
     let context = Context::builder().device_spec(DeviceSpecifier::Index(0)).build().unwrap();
+    let device = context.devices()[0].clone();
+    let queue = Queue::new(&context, Some(device.clone()));
 
     let img_formats = Image::supported_formats(&context, ocl::MEM_READ_WRITE, 
         ocl::MemObjectType::Image2d).unwrap();
 
     println!("Image Formats Avaliable: {}.", img_formats.len());
 
-    let data: Vec<u8> = Vec::with_capacity(100000);
+    let data: Vec<u32> = (0..100000).map(|_| 5).collect();
 
-    let image = Image::builder().flags(ocl::MEM_READ_WRITE | ocl::MEM_COPY_HOST_PTR)
-        .build_with_data(&context, &data).unwrap();
+    let src_image = Image::builder()
+        .flags(ocl::MEM_READ_ONLY | ocl::MEM_HOST_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)
+        .build_with_data(&queue, &data).unwrap();
 
-    println!("{:#}", image);
+    let dst_image = Image::builder()
+        .flags(ocl::MEM_WRITE_ONLY | ocl::MEM_HOST_READ_ONLY | ocl::MEM_COPY_HOST_PTR)
+        .build_with_data(&queue, &data).unwrap();
+
+    // image.write(false, [0, 0, 0], [200, 200, 1], 0, 0, &data, None, None).unwrap();
+
+    let program = Program::builder()
+        .src(KERNEL_SRC)
+        .devices(vec![device.clone()])
+        .build(&context).unwrap();
+
+    // let kernel = Kernel::new()
+
+    println!("{:#}", src_image);
 
     // pub enum ImageInfo {
     //     Format = cl_h::CL_IMAGE_FORMAT as isize,
