@@ -6,7 +6,7 @@ use cl_h;
 /// [FIXME: Minimally tested] Context properties.
 ///
 /// TODO: Check for duplicate property assignments.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ContextProperties(Vec<ContextProperty>);
 
 impl ContextProperties {

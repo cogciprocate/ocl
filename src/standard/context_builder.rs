@@ -7,13 +7,16 @@ use standard::{Context, Platform, Device, DeviceSpecifier};
 
 /// A builder for `Context`.
 ///
-/// Currently ignores all of the `cl_context_properties` except for platform. Use `Context::new` directly to specify `ContextProperties` in all its glory.
+/// Currently ignores all of the `cl_context_properties` except for platform. 
+/// Use `Context::new` directly to specify `ContextProperties` in all its glory.
+/// [UPDATE ME]
 ///
 /// [WORK IN PROGRESS]
 ///
 ///
 /// TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
 pub struct ContextBuilder {
+	properties: Option<ContextProperties>,
 	platform: Option<Platform>,
 	device_spec: Option<DeviceSpecifier>,
 }
@@ -33,6 +36,7 @@ impl ContextBuilder {
 	/// 
 	pub fn new() -> ContextBuilder {
 		ContextBuilder {
+			properties: None,
 			platform: None,
 			device_spec: None,
 		}
@@ -40,19 +44,20 @@ impl ContextBuilder {
 
 	/// Returns a new `Context` with the parameters hitherinforthto specified (say what?).
 	pub fn build(&self) -> OclResult<Context> {
-		let platform = match self.platform {
-			Some(ref plat) => plat.clone(),
-			None => Platform::new(try!(core::get_first_platform())),
+		let properties = match self.properties {
+			Some(ref props) => {
+				assert!(self.platform.is_none(), "ocl::ContextBuilder::build: Internal error. 'platform' \
+					and 'properties' have both been set.");
+				Some(props.clone())
+			},
+			None => {
+				let platform = match self.platform {
+					Some(ref plat) => plat.clone(),
+					None => Platform::new(try!(core::get_first_platform())),
+				};
+				Some(ContextProperties::new().platform::<PlatformIdCore>(platform.into()))
+			},
 		};
-
-		let properties: Option<ContextProperties> = Some(
-				ContextProperties::new().platform::<PlatformIdCore>(platform.into())
-			);
-
-		// let device_spec = match self.device_spec {
-		// 	Some(ref ds) => ds.clone(),
-		// 	None => DeviceSpecifier::All,
-		// };
 
 		Context::new(properties, self.device_spec.clone(), None, None)
 	}
@@ -61,19 +66,32 @@ impl ContextBuilder {
 	///
 	/// ### Panics
 	///
-	/// [FIXME]
+	/// Panics if it has already been specified.
 	///
 	pub fn platform<'a>(&'a mut self, platform: Platform) -> &'a mut ContextBuilder {
 		assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
+		assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
 		self.platform = Some(platform);
 		self
 	}
 
+	/// Specify context properties directly.
+	///
+	/// ### Panics
+	///
+	/// Panics if properties have already been specified.
+	///
+	pub fn properties<'a>(&'a mut self, properties: ContextProperties) -> &'a mut ContextBuilder {
+		assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
+		assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
+		self.properties = Some(properties);
+		self
+	}
 	/// Specifies a device.
 	///
 	/// ### Panics
 	///
-	/// [FIXME]
+	/// Panics if any devices have already been specified.
 	///
 	pub fn device<'a>(&'a mut self, device: Device) -> &'a mut ContextBuilder {
 		assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device: Devices already specified");
@@ -85,7 +103,7 @@ impl ContextBuilder {
 	///
 	/// ### Panics
 	///
-	/// [FIXME]
+	/// Panics if any devices have already been specified.
 	///
 	pub fn devices<'a>(&'a mut self, devices: Vec<Device>) -> &'a mut ContextBuilder {
 		assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
@@ -95,7 +113,15 @@ impl ContextBuilder {
 
 	/// Specifies a `DeviceSpecifer` which specifies, specifically, how exactly
 	/// the relevant devices shall be specified.
+	///
+	/// See [`DeviceSpecifier`](/ocl/enum.DeviceSpecifier.html) documentation.
+	///
+	/// ### Panics
+	///
+	/// Panics if any devices have already been specified.
+	///
 	pub fn device_spec<'a>(&'a mut self, device_spec: DeviceSpecifier) -> &'a mut ContextBuilder {
+		assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device_spec: Devices already specified");
 		self.device_spec = Some(device_spec);
 		self
 	}

@@ -2,27 +2,26 @@
 //!
 //!
 
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports)]
 
-use std::default::Default;
-use core::OclNum;
+// use std::default::Default;
+// use core::OclNum;
 use standard::{Image};
 
 
 
 /// [WORK IN PROGRESS] A builder for `Image`. 
-pub struct ImageBuilder<T: OclNum> {
-    stuff: T,
+pub struct ImageBuilder {
     flags: u64,
 }
 
-impl<T: OclNum> ImageBuilder<T> {
-    pub fn new() -> ImageBuilder<T> {
-        ImageBuilder { stuff: T::default(), flags: 0 }
+impl ImageBuilder {
+    pub fn new() -> ImageBuilder {
+        ImageBuilder { flags: 0 }
     }
 
 
-    pub fn build(self) -> Image<T> {
+    pub fn build(self) -> Image {
         unimplemented!();
         // Image::new()
     }

@@ -75,7 +75,7 @@ impl<T> VecOption<T> {
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclNum> {
     // vec: Vec<T>,
-    obj_core: MemCore<T>,
+    obj_core: MemCore,
     // queue: Queue,
     queue_obj_core: CommandQueueCore,
     len: usize,
@@ -578,7 +578,7 @@ impl<T: OclNum> Buffer<T> {
     }
 
     /// Returns a copy of the core buffer object reference.
-    pub fn core_as_ref(&self) -> &MemCore<T> {
+    pub fn core_as_ref(&self) -> &MemCore {
         &self.obj_core
     }
 
@@ -673,7 +673,7 @@ impl<T: OclNum> Buffer<T> {
 
     /// Returns info about this buffer.
     pub fn info(&self, info_kind: MemInfo) -> MemInfoResult {
-        match core::get_mem_object_info(&self.obj_core, info_kind) {
+        match core::get_mem_object_info::<T>(&self.obj_core, info_kind) {
             Ok(res) => res,
             Err(err) => MemInfoResult::Error(Box::new(err)),
         }        
