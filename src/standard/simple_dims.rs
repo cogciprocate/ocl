@@ -59,24 +59,23 @@ impl SimpleDims {
 
     }
 
-    pub fn work_dims(&self) -> Option<[usize; 3]> {
+    pub fn to_sizes(&self) -> Option<[usize; 3]> {
+        match self {
+            &SimpleDims::One(x) => Some([x, 1, 1]),
+            &SimpleDims::Two(x, y) => Some([x, y, 1]),
+            &SimpleDims::Three(x, y, z) => Some([x, y, z]),
+            _ => None
+        }
+    }
+
+    pub fn to_offsets(&self) -> Option<[usize; 3]> {
         match self {
             &SimpleDims::One(x) => Some([x, 0, 0]),
             &SimpleDims::Two(x, y) => Some([x, y, 0]),
             &SimpleDims::Three(x, y, z) => Some([x, y, z]),
             _ => None
         }
-    }
-
-    // /// Returns a `WorkDims` corresponding to the dimensions of this `SimpleDims`.
-    // pub fn work_dims(&self) -> Option<[usize; 3]> {
-    //     match self {
-    //         &SimpleDims::Three(d0, d1, d2) => WorkDims::ThreeDims(d0, d1, d2),
-    //         &SimpleDims::Two(d0, d1) => WorkDims::TwoDims(d0, d1),
-    //         &SimpleDims::One(d0) => WorkDims::OneDim(d0),
-    //         _ => WorkDims::Unspecified,
-    //     }
-    // }
+    }    
 }
 
 impl BufferDims for SimpleDims {
@@ -99,6 +98,6 @@ impl WorkDims for SimpleDims {
     }
 
     fn work_dims(&self) -> Option<[usize; 3]> {
-        self.work_dims()
+        self.to_sizes()
     }
 }

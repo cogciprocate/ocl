@@ -93,7 +93,7 @@ impl Image {
     }
 
     fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct(" Image Memory")
+        f.debug_struct("Image Memory")
             .field("Type", &self.mem_info(MemInfo::Type))
             .field("Flags", &self.mem_info(MemInfo::Flags))
             .field("Size", &self.mem_info(MemInfo::Size))
@@ -112,103 +112,8 @@ impl Image {
 impl std::fmt::Display for Image {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         try!(self.fmt_info(f));
+        try!(write!(f, ", ")); 
         self.fmt_mem_info(f)
-        // write!(f, "{}", &self.to_string())
-        // let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
-        //     ("\n", "\n", "\n")
-        // } else {
-        //     ("{ ", ", ", " }")
-        // };
-
-        // Format = cl_h::CL_IMAGE_FORMAT as isize,
-        // ElementSize = cl_h::CL_IMAGE_ELEMENT_SIZE as isize,
-        // RowPitch = cl_h::CL_IMAGE_ROW_PITCH as isize,
-        // SlicePitch = cl_h::CL_IMAGE_SLICE_PITCH as isize,
-        // Width = cl_h::CL_IMAGE_WIDTH as isize,
-        // Height = cl_h::CL_IMAGE_HEIGHT as isize,
-        // Depth = cl_h::CL_IMAGE_DEPTH as isize,
-        // ArraySize = cl_h::CL_IMAGE_ARRAY_SIZE as isize,
-        // Buffer = cl_h::CL_IMAGE_BUFFER as isize,
-        // NumMipLevels = cl_h::CL_IMAGE_NUM_MIP_LEVELS as isize,
-        // NumSamples = cl_h::CL_IMAGE_NUM_SAMPLES as isize,
-
-        // try!(write!(f, "[Image]: {b}\
-        //         ElementSize: {}{d}\
-        //         RowPitch: {}{d}\
-        //         SlicePitch: {}{d}\
-        //         Width: {}{d}\
-        //         Height: {}{d}\
-        //         Depth: {}{d}\
-        //         ArraySize: {}{d}\
-        //         Buffer: {}{d}\
-        //         NumMipLevels: {}{d}\
-        //         NumSamples: {}{e}\
-        //     ",
-        //     self.info(ImageInfo::ElementSize),
-        //     self.info(ImageInfo::RowPitch),
-        //     self.info(ImageInfo::SlicePitch),
-        //     self.info(ImageInfo::Width),
-        //     self.info(ImageInfo::Height),
-        //     self.info(ImageInfo::Depth),
-        //     self.info(ImageInfo::ArraySize),
-        //     self.info(ImageInfo::Buffer),
-        //     self.info(ImageInfo::NumMipLevels),
-        //     self.info(ImageInfo::NumSamples),
-        //     b = begin,
-        //     d = delim,
-        //     e = end,
-        // ));
-
-        // try!(f.debug_struct("Image")
-        //     .field("ElementSize", &self.info(ImageInfo::ElementSize))
-        //     .field("RowPitch", &self.info(ImageInfo::RowPitch))
-        //     .field("SlicePitch", &self.info(ImageInfo::SlicePitch))
-        //     .field("Width", &self.info(ImageInfo::Width))
-        //     .field("Height", &self.info(ImageInfo::Height))
-        //     .field("Depth", &self.info(ImageInfo::Depth))
-        //     .field("ArraySize", &self.info(ImageInfo::ArraySize))
-        //     .field("Buffer", &self.info(ImageInfo::Buffer))
-        //     .field("NumMipLevels", &self.info(ImageInfo::NumMipLevels))
-        //     .field("NumSamples", &self.info(ImageInfo::NumSamples))
-        //     .finish());
-
-
-        // write!(f, "  [Image Memory]: {b}\
-        //         Type: {}{d}\
-        //         Flags: {}{d}\
-        //         Size: {}{d}\
-        //         HostPtr: {}{d}\
-        //         MapCount: {}{d}\
-        //         ReferenceCount: {}{d}\
-        //         Context: {}{d}\
-        //         AssociatedMemobject: {}{d}\
-        //         Offset: {}{e}\
-        //     ",
-        //     self.mem_info(MemInfo::Type),
-        //     self.mem_info(MemInfo::Flags),
-        //     self.mem_info(MemInfo::Size),
-        //     self.mem_info(MemInfo::HostPtr),
-        //     self.mem_info(MemInfo::MapCount),
-        //     self.mem_info(MemInfo::ReferenceCount),
-        //     self.mem_info(MemInfo::Context),
-        //     self.mem_info(MemInfo::AssociatedMemobject),
-        //     self.mem_info(MemInfo::Offset),
-        //     b = begin,
-        //     d = delim,
-        //     e = end,
-        // )
-
-        // f.debug_struct(" Image Memory")
-        //     .field("Type", &self.mem_info(MemInfo::Type))
-        //     .field("Flags", &self.mem_info(MemInfo::Flags))
-        //     .field("Size", &self.mem_info(MemInfo::Size))
-        //     .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
-        //     .field("MapCount", &self.mem_info(MemInfo::MapCount))
-        //     .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
-        //     .field("Context", &self.mem_info(MemInfo::Context))
-        //     .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
-        //     .field("Offset", &self.mem_info(MemInfo::Offset))
-        //     .finish()
     }
 }
 

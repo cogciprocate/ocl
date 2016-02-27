@@ -1594,24 +1594,18 @@ pub fn enqueue_write_buffer<T: OclNum, E: ClEventPtrNew>(
     //     &None => 0,
     // };
 
-    unsafe {
-        // let wait_list_ptr = wait_list as *const *mut c_void;
-        // let new_event_ptr = new_event as *mut *mut c_void;
-
-        let errcode = cl_h::clEnqueueWriteBuffer(
-                    command_queue.as_ptr(),
-                    buffer.as_ptr(),
-                    block as cl_uint,
-                    offset,
-                    (data.len() * mem::size_of::<T>()) as size_t,
-                    data.as_ptr() as cl_mem,
-                    wait_list_len,
-                    wait_list_ptr,
-                    new_event_ptr,
-        );
-
-        errcode_try("clEnqueueWriteBuffer()", errcode)
-    }
+    let errcode = unsafe { cl_h::clEnqueueWriteBuffer(
+        command_queue.as_ptr(),
+        buffer.as_ptr(),
+        block as cl_uint,
+        offset,
+        (data.len() * mem::size_of::<T>()) as size_t,
+        data.as_ptr() as cl_mem,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueWriteBuffer()", errcode)
 }
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
@@ -1629,6 +1623,20 @@ pub fn enqueue_write_buffer_rect() -> OclResult<()> {
     //                             num_events_in_wait_list: cl_uint,
     //                             event_wait_list: *const cl_event,
     //                             event: *mut cl_event) -> cl_int;
+    unimplemented!();
+}
+
+/// [UNIMPLEMENTED][PLACEHOLDER]
+pub fn enqueue_fill_buffer() -> OclResult<()> {
+    // clEnqueueFillBuffer(command_queue: cl_command_queue,
+    //                 buffer: cl_mem, 
+    //                 pattern: *const c_void, 
+    //                 pattern_size: size_t, 
+    //                 offset: size_t, 
+    //                 size: size_t, 
+    //                 num_events_in_wait_list: cl_uint, 
+    //                 event_wait_list: *const cl_event, 
+    //                 event: *mut cl_event) -> cl_int;
     unimplemented!();
 }
 
@@ -1659,20 +1667,6 @@ pub fn enqueue_copy_buffer<T: OclNum>(
 }
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_fill_buffer() -> OclResult<()> {
-    // clEnqueueFillBuffer(command_queue: cl_command_queue,
-    //                 buffer: cl_mem, 
-    //                 pattern: *const c_void, 
-    //                 pattern_size: size_t, 
-    //                 offset: size_t, 
-    //                 size: size_t, 
-    //                 num_events_in_wait_list: cl_uint, 
-    //                 event_wait_list: *const cl_event, 
-    //                 event: *mut cl_event) -> cl_int;
-    unimplemented!();
-}
-
-/// [UNIMPLEMENTED][PLACEHOLDER]
 pub fn enqueue_copy_buffer_rect() -> OclResult<()> {
     // cl_h::clEnqueueCopyBufferRect(command_queue: cl_command_queue,
     //                            src_buffer: cl_mem,
@@ -1690,8 +1684,24 @@ pub fn enqueue_copy_buffer_rect() -> OclResult<()> {
     unimplemented!();
 }
 
+
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_read_image() -> OclResult<()> {
+pub fn enqueue_read_image<T, E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            image: &Mem,
+            block: bool,
+            origin: [usize; 3],
+            region: [usize; 3],
+            row_pitch: usize,
+            slc_pitch: usize,
+            data: &[T],
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+            ) -> OclResult<()> {
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = resolve_event_opts(wait_list, new_event)
+            .expect("[FIXME: Return result]: enqueue_write_buffer()");
+
     // cl_h::clEnqueueReadImage(command_queue: cl_command_queue,
     //                       image: cl_mem,
     //                       blocking_read: cl_bool,
@@ -1703,11 +1713,39 @@ pub fn enqueue_read_image() -> OclResult<()> {
     //                       num_events_in_wait_list: cl_uint,
     //                       event_wait_list: *const cl_event,
     //                       event: *mut cl_event) -> cl_int;
-    unimplemented!();
+
+    let errcode = unsafe { cl_h::clEnqueueReadImage(
+        command_queue.as_ptr(),
+        image.as_ptr(),
+        block as cl_uint,
+        &origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
+        row_pitch,
+        slc_pitch,
+        data.as_ptr() as cl_mem,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueReadImage()", errcode)
 }
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_write_image() -> OclResult<()> {
+pub fn enqueue_write_image<T, E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            image: &Mem,
+            block: bool,
+            origin: [usize; 3],
+            region: [usize; 3],
+            input_row_pitch: usize,
+            input_slc_pitch: usize,
+            data: &[T],
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+            ) -> OclResult<()> {
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = resolve_event_opts(wait_list, new_event)
+            .expect("[FIXME: Return result]: enqueue_write_buffer()");
     // cl_h::clEnqueueWriteImage(command_queue: cl_command_queue,
     //                        image: cl_mem,
     //                        blocking_write: cl_bool,
@@ -1719,7 +1757,21 @@ pub fn enqueue_write_image() -> OclResult<()> {
     //                        num_events_in_wait_list: cl_uint,
     //                        event_wait_list: *const cl_event,
     //                        event: *mut cl_event) -> cl_int;
-    unimplemented!();
+
+    let errcode = unsafe { cl_h::clEnqueueWriteImage(
+        command_queue.as_ptr(),
+        image.as_ptr(),
+        block as cl_uint,
+        &origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
+        input_row_pitch,
+        input_slc_pitch,
+        data.as_ptr() as cl_mem,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueWriteImage()", errcode)
 }
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
