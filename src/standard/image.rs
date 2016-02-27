@@ -21,7 +21,6 @@ pub struct Image {
 
 impl Image {    
     /// Returns a new `Image`.
-    /// [FIXME]: Return result.
     pub fn new<T>(context: &Context, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, image_data: Option<&[T]>) -> OclResult<Image>
     {
@@ -42,7 +41,7 @@ impl Image {
         })
     }
 
-    pub fn builder() -> ImageBuilder {
+    pub fn builder<'a, T>() -> ImageBuilder<'a, T> {
         ImageBuilder::new()
         // ImageBuilder::new()
     }

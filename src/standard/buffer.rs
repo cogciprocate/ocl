@@ -673,7 +673,7 @@ impl<T: OclNum> Buffer<T> {
 
     /// Returns info about this buffer.
     pub fn info(&self, info_kind: MemInfo) -> MemInfoResult {
-        match core::get_mem_object_info::<T>(&self.obj_core, info_kind) {
+        match core::get_mem_object_info(&self.obj_core, info_kind) {
             Ok(res) => res,
             Err(err) => MemInfoResult::Error(Box::new(err)),
         }        

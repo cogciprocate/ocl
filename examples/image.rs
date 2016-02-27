@@ -5,7 +5,7 @@
 #![allow(unused_imports, unused_variables, dead_code)]
 
 extern crate ocl;
-use ocl::{core, Context, DeviceSpecifier, ProQue, SimpleDims};
+use ocl::{core, SimpleDims, Context, DeviceSpecifier, Image};
 
 static KERNEL_SRC: &'static str = r#"
         __kernel void multiply_by_scalar(
@@ -33,7 +33,7 @@ fn main() {
 
     println!("Image Formats Avaliable: {}.", img_formats.len());
 
-    
+    let image = Image::builder::<u8>().build(&context);
 
     // // Create a program/queue with the first available device: 
     // let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");
