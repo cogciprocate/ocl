@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
     KernelInfo, KernelInfoResult};
 use error::{Result as OclResult, Error as OclError};
-use standard::{self, SimpleDims, Buffer, EventList, Program, Queue};
+use standard::{self, SimpleDims, Buffer, EventList, Program, Queue, WorkDims};
 
 /// A kernel.
 ///
@@ -175,7 +175,7 @@ impl Kernel {
     pub fn enqueue_with_events(&self, wait_list: Option<&EventList>, 
                     dest_list: Option<&mut EventList>) {
         core::enqueue_kernel(&self.command_queue, &self.obj_core, self.gws.dim_count(), 
-            self.gwo.to_offsets(), self.gws.to_sizes().unwrap(), self.lws.to_sizes(), 
+            self.gwo.to_work_offset(), self.gws.to_work_size().unwrap(), self.lws.to_work_size(), 
             wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
             .unwrap();
     }

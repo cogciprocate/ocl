@@ -3,7 +3,7 @@
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use cl_h::{self, cl_mem};
-use core::{MemObjectType, ImageChannelOrder, ImageChannelDataType};
+use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType};
 
 /// Image format properties used by `Image`.
 ///
@@ -193,23 +193,24 @@ pub struct ImageDescriptor {
     pub image_slice_pitch: usize,
     num_mip_levels: u32,
     num_samples: u32,
-    pub buffer: Option<cl_mem>,
+    pub buffer: Option<Mem>,
 }
 
 impl ImageDescriptor {
-    pub fn new(image_type: MemObjectType, width: usize, height: usize, depth: usize,
+    pub fn new(image_type: MemObjectType, width: usize, height: usize, depth: usize, 
+                array_size: usize, row_pitch: usize, slc_pitch: usize, buffer: Option<Mem>,
                 ) -> ImageDescriptor {
         ImageDescriptor {
             image_type: image_type,
             image_width: width,
             image_height: height,
             image_depth: depth,
-            image_array_size: 0,
-            image_row_pitch: 0,
-            image_slice_pitch: 0,
+            image_array_size: array_size,
+            image_row_pitch: row_pitch,
+            image_slice_pitch: slc_pitch,
             num_mip_levels: 0,
             num_samples: 0,
-            buffer: None,
+            buffer: buffer,
         }
     }
 
@@ -224,7 +225,10 @@ impl ImageDescriptor {
             image_slice_pitch: self.image_slice_pitch,
             num_mip_levels: self.num_mip_levels,
             num_samples: self.num_mip_levels,
-            buffer: self.buffer.unwrap_or(0 as cl_mem),
+            buffer: match &self.buffer {
+                    &Some(ref b) => unsafe { b.as_ptr() },
+                    &None => 0 as cl_mem,
+                },
         }
     }
 }

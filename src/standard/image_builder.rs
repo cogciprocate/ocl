@@ -7,7 +7,7 @@
 // use std::default::Default;
 // use core::OclNum;
 use error::{Result as OclResult};
-use standard::{Context, Queue, Image};
+use standard::{Context, Queue, Image, SimpleDims};
 use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType};
 
 
@@ -25,25 +25,36 @@ impl ImageBuilder {
 	///
 	/// # Defaults
 	///
-	/// ocl::MEM_READ_WRITE
-	///
-	///	ocl::ImageFormat {
+	/// Flags: 
+    /// ```notest
+    /// ocl::MEM_READ_WRITE
+	/// ```
+    ///
+    /// Image Format:
+	///	```notest
+    /// ocl::ImageFormat {
     ///    channel_order: ocl::ImageChannelOrder::Rgba,
     ///    channel_data_type: ocl::ImageChannelDataType::SnormInt8,
     /// }
+    /// ```
     ///
-    /// ocl::ImageDescriptor::new(ocl::MemObjectType::Image2d, 100, 100, 1)
+    /// Descriptor (stores everything else - width, height, pitch, etc.):
+    /// ```notest
+    /// ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None)
+    /// ```
     ///
     /// # Reference
     ///
-    /// See the [official SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html)
-    /// for more information about what the parameters do.
+    /// See the [official SDK documentation] for more information.
+    ///
+    /// Some descriptions here are adapted from various SDK docs.
 	/// 
+    /// [official SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html
     pub fn new() -> ImageBuilder {
         ImageBuilder { 
         	flags: core::MEM_READ_WRITE,
         	image_format: ImageFormat::new_rgba(),
-        	image_desc: ImageDescriptor::new(MemObjectType::Image2d, 200, 200, 1),
+        	image_desc: ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None),
         	// image_data: None,
         }
     }
@@ -55,11 +66,117 @@ impl ImageBuilder {
         	None)
     }
 
-    /// Builds with the host side image data memory specified by `image_data`
+    /// Builds with the host side image data specified by `image_data`
     /// and returns a new `Image`.
+    ///
+    /// Useful with the `ocl::MEM_COPY_HOST_PTR` flag for initializing device
+    /// memory by copying the contents of `image_data`.
+    ///
+    /// Also used with the `ocl::MEM_USE_HOST_PTR` and `ocl::ALLOC_HOST_PTR`
+    /// flags. See the [official SDK docs] for more info.
+    ///
+    /// [official SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html
     pub fn build_with_data<T>(&self, queue: &Queue, image_data: &[T]) -> OclResult<Image> {
         Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(), 
         	Some(image_data))
+    }
+
+    /// Sets the type of image (technically the type of memory buffer).
+    ///
+	/// Describes the image type and must be either `Image1d`, `Image1dBuffer`,
+	/// `Image1dArray`, `Image2d`, `Image2dArray`, or `Image3d`.
+	///
+    pub fn image_type<'a>(&'a mut self, image_type: MemObjectType) -> &'a mut ImageBuilder {
+    	self.image_desc.image_type = image_type;
+    	self
+    }
+
+    /// The width, height, and depth of an image or image array:
+    ///
+    /// Some notes adapted from SDK docs:
+    ///
+    /// ##### Width
+    ///
+	/// The width of the image in pixels. For a 2D image and image array, the
+	/// image width must be ≤ `DeviceInfo::Image2dMaxWidth`. For a 3D image, the
+	/// image width must be ≤ `DeviceInfo::Image3dMaxWidth`. For a 1D image buffer,
+	/// the image width must be ≤ `DeviceInfo::ImageMaxBufferSize`. For a 1D image
+	/// and 1D image array, the image width must be ≤ `DeviceInfo::Image2dMaxWidth`.
+	///
+	/// ##### Height
+	///
+	/// The height of the image in pixels. This is only used if the
+	/// image is a 2D, 3D or 2D image array. For a 2D image or image array, the
+	/// image height must be ≤ `DeviceInfo::Image2dMaxHeight`. For a 3D image, the
+	/// image height must be ≤ `DeviceInfo::Image3dMaxHeight`.
+	///
+	/// ##### Depth
+	///
+	/// image_depth The depth of the image in pixels. This is only used if the
+	/// image is a 3D image and must be a value ≥ 1 and ≤
+	/// `DeviceInfo::Image3dMaxDepth`.
+	///
+	/// #### Examples
+	///
+	/// * To set the dimensions of a 2d image use:
+	///   `SimpleDims::Two(width, height)`.
+	/// * To set the dimensions of a 2d image array use:
+	///   `SimpleDims::Three(width, height, array_length)`.
+	/// * To set the dimensions of a 3d image use:
+	///   `SimpleDims::Three(width, height, depth)`.
+	///
+    pub fn dims<'a>(&'a mut self, dims: SimpleDims) -> &'a mut ImageBuilder {
+    	let size = dims.to_size();
+    	self.image_desc.image_width = size[0];
+    	self.image_desc.image_height = size[1];
+    	self.image_desc.image_depth = size[2];
+    	self
+	}
+
+	/// Image array size.
+	///
+	/// The number of images in the image array. This is only used if the image is
+	/// a 1D or 2D image array. The values for image_array_size, if specified,
+	/// must be a value ≥ 1 and ≤ `DeviceInfo::ImageMaxArraySize`.
+	///
+	/// Note that reading and writing 2D image arrays from a kernel with
+	/// image_array_size = 1 may be lower performance than 2D images.
+	///
+    pub fn array_size<'a>(&'a mut self, array_size: usize) -> &'a mut ImageBuilder {
+    	self.image_desc.image_array_size = array_size;
+    	self
+    }
+
+    /// Image row pitch.
+    ///
+    /// The scan-line pitch in bytes. This must be 0 if host data is `None` and
+    /// can be either 0 or ≥ image_width * size of element in bytes if host data
+    /// is not `None`. If host data is not `None` and image_row_pitch = 0,
+    /// image_row_pitch is calculated as image_width * size of element in bytes.
+    /// If image_row_pitch is not 0, it must be a multiple of the image element
+    /// size in bytes.
+    ///
+    pub fn row_pitch<'a>(&'a mut self, row_pitch: usize) -> &'a mut ImageBuilder {
+    	self.image_desc.image_row_pitch = row_pitch;
+    	self
+    }
+
+
+    /// Image slice pitch.
+    ///
+    /// The size in bytes of each 2D slice in the 3D image or the size in bytes of
+    /// each image in a 1D or 2D image array. This must be 0 if host data is
+    /// `None`. If host data is not `None`, image_slice_pitch can be either 0 or ≥
+    /// image_row_pitch * image_height for a 2D image array or 3D image and can be
+    /// either 0 or ≥ image_row_pitch for a 1D image array. If host data is not
+    /// `None` and image_slice_pitch = 0, image_slice_pitch is calculated as
+    /// image_row_pitch * image_height for a 2D image array or 3D image and
+    /// image_row_pitch for a 1D image array. If image_slice_pitch is not 0, it
+    /// must be a multiple of the image_row_pitch.
+    ///
+    pub fn slc_pitch<'a>(&'a mut self, slc_pitch: usize) -> &'a mut ImageBuilder {
+    	self.image_desc.image_slice_pitch = slc_pitch;
+        self
     }
 
     /// Sets the flags for the memory to be created.
@@ -92,41 +209,58 @@ impl ImageBuilder {
 		self
 	}
 
-	/// Specifies the image descriptor containing a number of important settings.
-	///
-	/// If unspecified (not recommended), defaults to: 
-	///
-	/// ```notest
-	/// ImageDescriptor {
-	///     image_type: MemObjectType::Image2d,
-	///     image_width: 100,
-	///     image_height: 100,
-	///     image_depth: 1,
-	///     image_array_size: 0,
-	///     image_row_pitch: 0,
-	///     image_slice_pitch: 0,
-	///     num_mip_levels: 0,
-	///     num_samples: 0,
-	///     buffer: None,
-	/// }
-    /// ```
+    /// Buffer synchronization.
     ///
-    /// If you are unsure, just set the first four by using 
-    /// `ImageDescriptor::new`. Ex.:
-    /// 
-    /// ```notest
-    /// ocl::Image::builder()
-    ///	   .image_desc(ocl::ImageDescriptor::new(
-    ///	      ocl::MemObjectType::Image2d, 1280, 800, 1))
-	///	   ...
-	///	   ...
-	///	   .build()
-    /// ```
-    /// 
-    /// 
-	pub fn image_desc<'a>(&'a mut self, image_desc: ImageDescriptor) -> &'a mut ImageBuilder {
-		self.image_desc = image_desc;
-		self
-	}
+    /// Refers to a valid buffer memory object if image_type is
+    /// `MemObjectType::Image1dBuffer`. Otherwise it must be `None` (default).
+    /// For a 1D image buffer object, the image pixels are taken from the buffer
+    /// object's data store. When the contents of a buffer object's data store are
+    /// modified, those changes are reflected in the contents of the 1D image
+    /// buffer object and vice-versa at corresponding sychronization points. The
+    /// image_width * size of element in bytes must be ≤ size of buffer object
+    /// data store.
+    ///
+	pub fn buffer_sync<'a>(&'a mut self, buffer: MemCore) -> &'a mut ImageBuilder {
+        self.image_desc.buffer = Some(buffer);
+        self
+    }
 }
  
+
+// /// Specifies the image descriptor containing a number of important settings.
+// ///
+// /// If unspecified (not recommended), defaults to: 
+// ///
+// /// ```notest
+// /// ImageDescriptor {
+// ///     image_type: MemObjectType::Image1d,
+// ///     image_width: 0,
+// ///     image_height: 0,
+// ///     image_depth: 0,
+// ///     image_array_size: 0,
+// ///     image_row_pitch: 0,
+// ///     image_slice_pitch: 0,
+// ///     num_mip_levels: 0,
+// ///     num_samples: 0,
+// ///     buffer: None,
+// /// }
+// /// ```
+// ///
+// /// If you are unsure, just set the first four by using 
+// /// `ImageDescriptor::new`. Ex.:
+// /// 
+// /// ```notest
+// /// ocl::Image::builder()
+// ///	   .image_desc(ocl::ImageDescriptor::new(
+// ///	      ocl::MemObjectType::Image2d, 1280, 800, 1))
+// ///	   ...
+// ///	   ...
+// ///	   .build()
+// /// ```
+// /// 
+// /// Setting this overwrites any previously set type, dimensions, array size, and pitch.
+// /// 
+// pub unsafe fn image_desc<'a>(&'a mut self, image_desc: ImageDescriptor) -> &'a mut ImageBuilder {
+// 	self.image_desc = image_desc;
+// 	self
+// }

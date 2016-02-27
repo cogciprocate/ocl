@@ -65,5 +65,6 @@ impl<'a, T> BufferDims for &'a T where T: BufferDims {
 pub trait WorkDims {
     /// Returns the number of dimensions defined by this `SimpleDims`.
     fn dim_count(&self) -> u32;
-    fn work_dims(&self) -> Option<[usize; 3]>;
+    fn to_work_size(&self) -> Option<[usize; 3]>;
+    fn to_work_offset(&self) -> Option<[usize; 3]>;
 }

@@ -42,10 +42,12 @@ fn main() {
     let data: Vec<u32> = (0..100000).map(|_| 5).collect();
 
     let src_image = Image::builder()
+        .dims(SimpleDims::Two(200, 200))
         .flags(ocl::MEM_READ_ONLY | ocl::MEM_HOST_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)
         .build_with_data(&queue, &data).unwrap();
 
     let dst_image = Image::builder()
+        .dims(SimpleDims::Two(200, 200))
         .flags(ocl::MEM_WRITE_ONLY | ocl::MEM_HOST_READ_ONLY | ocl::MEM_COPY_HOST_PTR)
         .build_with_data(&queue, &data).unwrap();
 

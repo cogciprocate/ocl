@@ -20,6 +20,7 @@ pub struct Image {
     // default_val: PhantomData<T,
     obj_core: MemCore,
     queue_obj_core: CommandQueueCore,
+    dims: [usize; 3],
 }
 
 impl Image {
@@ -51,11 +52,22 @@ impl Image {
             image_data,
         ));
 
+        let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth]; 
+
         Ok(Image {
             // default_val: T::default(),
             obj_core: obj_core,
-            queue_obj_core: queue.core_as_ref().clone(),     
+            queue_obj_core: queue.core_as_ref().clone(),
+            dims: dims,  
         })
+    }
+
+    pub fn enqueue_read<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
+                row_pitch: usize, slc_pitch: usize, data: &mut [T], wait_list: Option<&EventList>,
+                dest_list: Option<&mut EventList>) -> OclResult<()> {
+        core::enqueue_read_image(&self.queue_obj_core, &self.obj_core, block, origin, region,
+            row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
+            dest_list.map(|el| el.core_as_mut()))
     }
 
     pub fn enqueue_write<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
@@ -64,6 +76,15 @@ impl Image {
         core::enqueue_write_image(&self.queue_obj_core, &self.obj_core, block, origin, region,
             row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
             dest_list.map(|el| el.core_as_mut()))
+    }
+
+    pub fn read<T>(&self, data: &mut [T]) -> OclResult<()> {
+        // self.enqueue_read(true, [0, 0, 0], 
+        unimplemented!();
+    }
+
+    pub fn write<T>(&self, data: &[T]) -> OclResult<()> {
+        unimplemented!();
     }
 
     /// Returns the core image object pointer.

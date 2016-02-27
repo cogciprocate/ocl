@@ -51,29 +51,29 @@ impl SimpleDims {
     /// Returns the number of dimensions defined by this `SimpleDims`.
     pub fn dim_count(&self) -> u32 {
         match self {
-            &SimpleDims::Three(..)        => 3,
-            &SimpleDims::Two(..)      => 2,
-            &SimpleDims::One(..)       => 1,
-            &SimpleDims::Unspecified      => 0,
+            &SimpleDims::Unspecified => 0,
+            &SimpleDims::Three(..) => 3,
+            &SimpleDims::Two(..) => 2,
+            &SimpleDims::One(..) => 1,
         }
 
     }
 
-    pub fn to_sizes(&self) -> Option<[usize; 3]> {
+    pub fn to_size(&self) -> [usize; 3] {
         match self {
-            &SimpleDims::One(x) => Some([x, 1, 1]),
-            &SimpleDims::Two(x, y) => Some([x, y, 1]),
-            &SimpleDims::Three(x, y, z) => Some([x, y, z]),
-            _ => None
+            &SimpleDims::Unspecified => [0, 0, 0],
+            &SimpleDims::One(x) => [x, 1, 1],
+            &SimpleDims::Two(x, y) => [x, y, 1],
+            &SimpleDims::Three(x, y, z) => [x, y, z],
         }
     }
 
-    pub fn to_offsets(&self) -> Option<[usize; 3]> {
+    pub fn to_offset(&self) -> [usize; 3] {
         match self {
-            &SimpleDims::One(x) => Some([x, 0, 0]),
-            &SimpleDims::Two(x, y) => Some([x, y, 0]),
-            &SimpleDims::Three(x, y, z) => Some([x, y, z]),
-            _ => None
+            &SimpleDims::Unspecified => [0, 0, 0],
+            &SimpleDims::One(x) => [x, 0, 0],
+            &SimpleDims::Two(x, y) => [x, y, 0],
+            &SimpleDims::Three(x, y, z) => [x, y, z],
         }
     }    
 }
@@ -81,10 +81,10 @@ impl SimpleDims {
 impl BufferDims for SimpleDims {
     fn padded_buffer_len(&self, incr: usize) -> usize {
         let simple_len = match self {
+            &SimpleDims::Unspecified => 0,
             &SimpleDims::Three(d0, d1, d2) => d0 * d1 * d2,
             &SimpleDims::Two(d0, d1) => d0 * d1,
             &SimpleDims::One(d0) => d0,
-            _ => 0,
         };
 
         util::padded_len(simple_len, incr)
@@ -97,7 +97,21 @@ impl WorkDims for SimpleDims {
         self.dim_count()
     }
 
-    fn work_dims(&self) -> Option<[usize; 3]> {
-        self.to_sizes()
+    fn to_work_size(&self) -> Option<[usize; 3]> {
+        match self {
+            &SimpleDims::Unspecified => None,
+            &SimpleDims::One(x) => Some([x, 1, 1]),
+            &SimpleDims::Two(x, y) => Some([x, y, 1]),
+            &SimpleDims::Three(x, y, z) => Some([x, y, z]),
+        }
+    }
+
+    fn to_work_offset(&self) -> Option<[usize; 3]> {
+        match self {
+            &SimpleDims::Unspecified => None,
+            &SimpleDims::One(x) => Some([x, 0, 0]),
+            &SimpleDims::Two(x, y) => Some([x, y, 0]),
+            &SimpleDims::Three(x, y, z) => Some([x, y, z]),
+        }
     }
 }

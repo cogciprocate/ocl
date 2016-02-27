@@ -213,7 +213,11 @@ impl WorkDims for ProQue {
         self.dims_result().expect("ProQue::dim_count").dim_count()
     }
 
-    fn work_dims(&self) -> Option<[usize; 3]> {
-        self.dims_result().expect("ProQue::work_dims").work_dims()
+    fn to_work_size(&self) -> Option<[usize; 3]> {
+        self.dims_result().expect("ProQue::to_work_size").to_work_size()
+    }
+
+    fn to_work_offset(&self) -> Option<[usize; 3]> {
+        self.dims_result().expect("ProQue::to_work_offset").to_work_offset()
     }
 }
