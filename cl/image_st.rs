@@ -25,6 +25,13 @@ pub struct ImageFormat {
 }
 
 impl ImageFormat {
+    pub fn new(order: ImageChannelOrder, data_type: ImageChannelDataType) -> ImageFormat {
+        ImageFormat {
+            channel_order: order,
+            channel_data_type: data_type,
+        }
+    }
+
     pub fn new_rgba() -> ImageFormat {
         ImageFormat {
             channel_order: ImageChannelOrder::Rgba,
@@ -63,6 +70,80 @@ impl ImageFormat {
             image_channel_order: 0 as cl_h::cl_channel_order,
             image_channel_data_type: 0 as cl_h::cl_channel_type,
         }
+    }
+
+    /// Returns the size in bytes of a pixel using the format specified by this
+    /// `ImageFormat`.
+    ///
+    /// TODO: Add a special case for Depth & DepthStencil
+    /// (https://www.khronos.org/registry/cl/sdk/2.0/docs/man/xhtml/cl_khr_gl_depth_images.html).
+    /// 
+    /// TODO: Validate combinations.
+    /// TODO: Use `core::get_image_info` to check these with a test.
+    ///
+    pub fn pixel_bytes(&self) -> usize {
+        let channel_count = match self.channel_order {
+            ImageChannelOrder::R => 1,
+            ImageChannelOrder::A => 1,
+            ImageChannelOrder::Rg => 2,
+            ImageChannelOrder::Ra => 2,
+            // This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
+            ImageChannelOrder::Rgb => 1,
+            ImageChannelOrder::Rgba => 4,
+            // This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
+            ImageChannelOrder::Bgra => 4,
+            // This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
+            ImageChannelOrder::Argb => 4,
+            // This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
+            ImageChannelOrder::Intensity => 4,
+            // This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
+            ImageChannelOrder::Luminance => 4,
+            ImageChannelOrder::Rx => 2,
+            ImageChannelOrder::Rgx => 4,
+            // This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
+            ImageChannelOrder::Rgbx => 4,
+            // Depth => 1,
+            // DepthStencil => 1,
+            _ => 0,
+        };
+
+        let channel_size = match self.channel_data_type {
+            // Each channel component is a normalized signed 8-bit integer value:
+            ImageChannelDataType::SnormInt8 => 1,
+            // Each channel component is a normalized signed 16-bit integer value:
+            ImageChannelDataType::SnormInt16 => 2,
+            // Each channel component is a normalized unsigned 8-bit integer value:
+            ImageChannelDataType::UnormInt8 => 1,
+            // Each channel component is a normalized unsigned 16-bit integer value:
+            ImageChannelDataType::UnormInt16 => 2,
+            // Represents a normalized 5-6-5 3-channel RGB image. The channel order must be CL_RGB or CL_RGBx:
+            ImageChannelDataType::UnormShort565 => 2,
+            // Represents a normalized x-5-5-5 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
+            ImageChannelDataType::UnormShort555 => 2,
+            // Represents a normalized x-10-10-10 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
+            ImageChannelDataType::UnormInt101010 => 4,
+            // Each channel component is an unnormalized signed 8-bit integer value:
+            ImageChannelDataType::SignedInt8 => 1,
+            // Each channel component is an unnormalized signed 16-bit integer value:
+            ImageChannelDataType::SignedInt16 => 2,
+            // Each channel component is an unnormalized signed 32-bit integer value:
+            ImageChannelDataType::SignedInt32 => 4,
+            // Each channel component is an unnormalized unsigned 8-bit integer value:
+            ImageChannelDataType::UnsignedInt8 => 1,
+            // Each channel component is an unnormalized unsigned 16-bit integer value:
+            ImageChannelDataType::UnsignedInt16 => 2,
+            // Each channel component is an unnormalized unsigned 32-bit integer value:
+            ImageChannelDataType::UnsignedInt32 => 4,
+            // Each channel component is a 16-bit half-float value:
+            ImageChannelDataType::HalfFloat => 2,
+            // Each channel component is a single precision floating-point value:
+            ImageChannelDataType::Float => 4,
+            // Each channel component is a normalized unsigned 24-bit integer value:
+            // UnormInt24 => 3,
+            _ => 0
+        };
+
+        channel_count * channel_size
     }
 }
 
