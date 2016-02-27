@@ -652,7 +652,7 @@ pub fn create_image<T>(
 
     let mut errcode: cl_int = 0;
     
-    let data_ptr = match data {
+    let host_ptr = match data {
         Some(d) => {
             // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE
             // assert!(d.len() == len, "ocl::create_image(): Data length mismatch.");
@@ -666,7 +666,7 @@ pub fn create_image<T>(
         flags.bits() as cl_mem_flags,
         &format.to_raw() as *const cl_image_format,
         &desc.to_raw() as *const cl_image_desc,
-        data_ptr,
+        host_ptr,
         &mut errcode as *mut cl_int,
     )) }; 
     errcode_assert("create_image", errcode);
@@ -742,7 +742,7 @@ pub fn get_supported_image_formats(
 
 
 /// Get mem object info.
-pub fn get_mem_object_info<T: OclNum>(obj: &Mem, info_request: MemInfo,
+pub fn get_mem_object_info(obj: &Mem, info_request: MemInfo,
             ) -> OclResult<(MemInfoResult)> {
     // cl_h::clGetMemObjectInfo(memobj: cl_mem,
     //                       param_name: cl_mem_info,
@@ -777,7 +777,7 @@ pub fn get_mem_object_info<T: OclNum>(obj: &Mem, info_request: MemInfo,
 
 
 /// Get image info.
-pub fn get_image_info<T: OclNum>(obj: &Mem, info_request: ImageInfo,
+pub fn get_image_info(obj: &Mem, info_request: ImageInfo,
             ) -> OclResult<(ImageInfoResult)> {
     // cl_h::clGetImageInfo(image: cl_mem,
     //                   param_name: cl_image_info,

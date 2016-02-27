@@ -101,6 +101,7 @@ impl ImageFormat {
 /// Note
 /// Concurrent reading from, writing to and copying between both a buffer object and 1D image buffer object associated with the buffer object is undefined. Only reading from both a buffer object and 1D image buffer object associated with the buffer object is defined.
 #[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub struct ImageDescriptor {
     pub image_type: MemObjectType,
     pub image_width: usize,
@@ -115,12 +116,13 @@ pub struct ImageDescriptor {
 }
 
 impl ImageDescriptor {
-    pub fn new() -> ImageDescriptor {
+    pub fn new(image_type: MemObjectType, width: usize, height: usize, depth: usize,
+                ) -> ImageDescriptor {
         ImageDescriptor {
-            image_type: MemObjectType::Buffer,
-            image_width: 0,
-            image_height: 0,
-            image_depth: 0,
+            image_type: image_type,
+            image_width: width,
+            image_height: height,
+            image_depth: depth,
             image_array_size: 0,
             image_row_pitch: 0,
             image_slice_pitch: 0,
