@@ -1694,7 +1694,7 @@ pub fn enqueue_read_image<T, E: ClEventPtrNew>(
             region: [usize; 3],
             row_pitch: usize,
             slc_pitch: usize,
-            data: &[T],
+            data: &mut [T],
             wait_list: Option<&EventList>, 
             new_event: Option<&mut E>,
             ) -> OclResult<()> {
