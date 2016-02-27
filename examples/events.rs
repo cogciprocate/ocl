@@ -140,7 +140,7 @@ fn main() {
         unsafe {
             if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...", 
                 last_idx, itr); }
-            read_event.set_callback(_test_events_verify_result, 
+            read_event.set_callback(Some(_test_events_verify_result), 
                 // &mut buncha_stuffs[last_idx] as *mut _ as *mut c_void);
                 &mut buncha_stuffs[last_idx]).unwrap();
         }

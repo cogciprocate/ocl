@@ -147,12 +147,12 @@ fn print_buffer_info<T: OclNum>(buffer: &Buffer<T>) {
 
 
 fn print_image_info() {
-	unimplemented!;
+	unimplemented!();
 }
 
 
 fn print_sampler_info() {
-	unimplemented!;
+	unimplemented!();
 }
 
 
@@ -194,5 +194,5 @@ fn print_event_info(event: &Event) {
 
 
 fn print_event_list_info() {
-	unimplemented!;
+	unimplemented!();
 }

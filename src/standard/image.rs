@@ -29,8 +29,8 @@ impl<T: OclNum> Image<T> {
         let obj_core = try!(core::create_image(
             context.core_as_ref(),
             flags,
-            image_format,
-            image_desc,
+            &image_format,
+            &image_desc,
             image_data,
         ));
 

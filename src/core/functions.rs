@@ -18,10 +18,10 @@ use std::iter;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
-use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
+use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_mem_object_type, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr};
+use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn};
 
 
 //============================================================================
@@ -394,19 +394,21 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
 
     // [FIXME]: Properties disabled:
     let properties_ptr = if properties_bytes.len() == 0 { 
-        ptr::null() 
+        ptr::null() as *const cl_context_properties
     } else {
         // [FIXME]: Properties disabled.
         // properties_bytes.as_ptr()
-        ptr::null() 
+        ptr::null() as *const cl_context_properties
     };
 
-    // [FIXME]: Disabled:
-    let pfn_notify_ptr = unsafe { match pfn_notify {
-        // Some(cb) => mem::transmute(cb),
-        Some(_) => mem::transmute(ptr::null::<fn()>()), 
-        None => mem::transmute(ptr::null::<fn()>()), 
-    } };
+    // // [FIXME]: Disabled:
+    // let pfn_notify_ptr = unsafe { match pfn_notify {
+    //     // Some(cb) => mem::transmute(cb),
+    //     Some(_) => mem::transmute(ptr::null::<fn()>()), 
+    //     // Some(_) => ptr::null::<CreateContextCallbackFn>(),
+    //     None => mem::transmute(ptr::null::<fn()>()), 
+    //     // None => ptr::null::<CreateContextCallbackFn>(),
+    // } };
 
     // [FIXME]: Disabled:
     let user_data_ptr = match user_data {
@@ -422,11 +424,10 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     // [FIXME]: Callback function and data unimplemented.
     let context = unsafe { Context::from_fresh_ptr(cl_h::clCreateContext(
         // ptr::null(),
-        properties_ptr as *const cl_context_properties, 
+        properties_ptr, 
         device_ids.len() as cl_uint, 
         device_ids.as_ptr()  as *const cl_device_id,
-        // mem::transmute(ptr::null::<fn()>()), 
-        pfn_notify_ptr,
+        pfn_notify,
         // ptr::null_mut(), 
         user_data_ptr,
         &mut errcode,
@@ -644,8 +645,8 @@ pub fn create_image<T: OclNum>(
             flags: MemFlags,
             // format: &cl_image_format,
             // desc: &cl_image_desc,
-            format: ImageFormat,
-            desc: ImageDescriptor,
+            format: &ImageFormat,
+            desc: &ImageDescriptor,
             data: Option<&[T]>)
             -> OclResult<Mem<T>> {
     // Verify that the context is valid:
@@ -665,8 +666,8 @@ pub fn create_image<T: OclNum>(
     let image_ptr = unsafe { Mem::from_fresh_ptr(cl_h::clCreateImage(
         context.as_ptr(),
         flags.bits() as cl_mem_flags,
-        &format.as_core() as *const cl_image_format,
-        &desc.as_core() as *const cl_image_desc,
+        &format.to_raw() as *const cl_image_format,
+        &desc.to_raw() as *const cl_image_desc,
         data_ptr,
         &mut errcode as *mut cl_int,
     )) }; 
@@ -689,15 +690,57 @@ pub unsafe fn release_mem_object<T: OclNum>(mem: &Mem<T>) -> OclResult<()> {
     errcode_try("clReleaseMemObject", cl_h::clReleaseMemObject(mem.as_ptr()))
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn get_supported_image_formats() -> OclResult<()> {
+/// Returns a list of supported image formats.
+///
+/// # Example
+/// 
+/// ```notest
+/// let context = Context::builder().build().unwrap();
+/// 
+/// let img_fmts = core::get_supported_image_formats(context.core_as_ref(), 
+///    core::MEM_READ_WRITE, core::MemObjectType::Image2d)
+/// ```
+pub fn get_supported_image_formats(
+            context: &Context, 
+            flags: MemFlags,
+            image_type: MemObjectType,
+            ) -> OclResult<Vec<ImageFormat>> {
     // cl_h::clGetSupportedImageFormats(context: cl_context,
     //                               flags: cl_mem_flags,
     //                               image_type: cl_mem_object_type,
     //                               num_entries: cl_uint,
     //                               image_formats: *mut cl_image_format,
     //                               num_image_formats: *mut cl_uint) -> cl_int;
-    unimplemented!();
+
+    let mut num_image_formats = 0 as cl_uint;
+
+    let errcode = unsafe { cl_h::clGetSupportedImageFormats(
+        context.as_ptr(),
+        flags.bits() as cl_mem_flags,
+        image_type as cl_mem_object_type,
+        0 as cl_uint,
+        ptr::null_mut() as *mut cl_image_format,
+        &mut num_image_formats as *mut cl_uint,
+    ) };
+    try!(errcode_try("clGetSupportedImageFormats", errcode));
+
+    let mut image_formats: Vec<cl_image_format> = (0..(num_image_formats as usize)).map(|_| {
+           ImageFormat::new_raw()
+        } ).collect();
+
+    debug_assert!(image_formats.len() == num_image_formats as usize && image_formats.len() > 0);
+
+    let errcode = unsafe { cl_h::clGetSupportedImageFormats(
+        context.as_ptr(),
+        flags.bits() as cl_mem_flags,
+        image_type as cl_mem_object_type,
+        num_image_formats,
+        image_formats.as_mut_ptr() as *mut _ as *mut cl_image_format,
+        0 as *mut cl_uint,
+    ) };
+    try!(errcode_try("clGetSupportedImageFormats", errcode));
+
+    ImageFormat::list_from_raw(image_formats)
 }
 
 
@@ -945,7 +988,7 @@ pub fn build_program<D: ClDeviceIdPtr>(
             program: &Program,
             devices: &[D],
             options: CString,
-            pfn_notify: Option<extern "C" fn(*mut c_void, *mut c_void)>,
+            pfn_notify: Option<BuildProgramCallbackFn>,
             user_data: Option<Box<UserDataPh>>)
             -> OclResult<()> {
     assert!(pfn_notify.is_none() && user_data.is_none(),
@@ -968,7 +1011,8 @@ pub fn build_program<D: ClDeviceIdPtr>(
         devices.as_ptr() as *const cl_device_id, 
         options.as_ptr() as *const i8,
         // mem::transmute(ptr::null::<fn()>()), 
-        pfn_notify.unwrap_or(mem::transmute(ptr::null::<fn()>())),
+        // pfn_notify.unwrap_or(mem::transmute(ptr::null::<fn()>())),
+        pfn_notify,
         user_data,
     ) };  
 
@@ -1388,7 +1432,7 @@ pub fn set_user_event_status<'e, E: ClEventRef<'e>>(event: &'e E, execution_stat
 pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
             event: &'e E,
             callback_trigger: CommandExecutionStatus,
-            callback_receiver: extern fn (cl_event, cl_int, *mut c_void),
+            callback_receiver: Option<EventCallbackFn>,
             user_data: *mut c_void,
             ) -> OclResult<()> {
     errcode_try("clSetEventCallback", cl_h::clSetEventCallback(

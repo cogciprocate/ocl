@@ -80,15 +80,19 @@ pub trait ClEventRef<'e> {
 
 pub unsafe trait ClPlatformIdPtr: Sized {
 	unsafe fn as_ptr(&self) -> cl_platform_id {
-		debug_assert!(mem::size_of_val(self) == mem::size_of::<cl_platform_id>());
-		mem::transmute_copy(self)
+		debug_assert!(mem::size_of_val(self) == mem::size_of::<PlatformId>());
+		// mem::transmute_copy()
+		let core = self as *const Self as *const _ as *const PlatformId;
+		(*core).as_ptr()
 	}
 }
 
 pub unsafe trait ClDeviceIdPtr: Sized {
 	unsafe fn as_ptr(&self) -> cl_device_id {
-		debug_assert!(mem::size_of_val(self) == mem::size_of::<cl_device_id>());
-		mem::transmute_copy(self)
+		debug_assert!(mem::size_of_val(self) == mem::size_of::<DeviceId>());
+		// mem::transmute_copy(self)
+		let core = self as *const Self as *const _ as *const DeviceId;
+		(*core).as_ptr()
 	}
 }
 

@@ -78,11 +78,13 @@ pub type cl_event_info                      = cl_uint;
 pub type cl_command_type                    = cl_uint;
 pub type cl_profiling_info                  = cl_uint;
 
+#[repr(C)]
 pub struct cl_image_format {
     pub image_channel_order:        cl_channel_order,
     pub image_channel_data_type:    cl_channel_type,
 }
 
+#[repr(C)]
 pub struct cl_image_desc {
     pub image_type:         cl_mem_object_type,
     pub image_width:        size_t,
@@ -96,6 +98,7 @@ pub struct cl_image_desc {
     pub buffer:             cl_mem,
 }
 
+#[repr(C)]
 pub struct cl_buffer_region {
     pub origin:     size_t,
     pub size:       size_t,
@@ -571,7 +574,7 @@ pub const CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
 #[cfg_attr(target_os = "macos", link(name = "OpenCL", kind = "framework"))]
 #[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
-extern {
+extern "C" {
     // Platform API
     pub fn clGetPlatformIDs(num_entries:   cl_uint,
                             platforms:     *mut cl_platform_id,
@@ -627,13 +630,13 @@ extern {
     pub fn clCreateContext(properties: *const cl_context_properties,
                        num_devices: cl_uint,
                        devices: *const cl_device_id,
-                       pfn_notify: extern fn (*const c_char, *const c_void, size_t, *mut c_void),
+                       pfn_notify: Option<extern fn (*const c_char, *const c_void, size_t, *mut c_void)>,
                        user_data: *mut c_void,
                        errcode_ret: *mut cl_int) -> cl_context;
 
     pub fn clCreateContextFromType(properties: *mut cl_context_properties,
                                device_type: cl_device_type,
-                               pfn_notify: extern fn (*mut c_char, *mut c_void, size_t, *mut c_void),
+                               pfn_notify: Option<extern fn (*mut c_char, *mut c_void, size_t, *mut c_void)>,
                                user_data: *mut c_void,
                                errcode_ret: *mut cl_int) -> cl_context;
 
@@ -732,7 +735,7 @@ extern {
                       param_value_size_ret: *mut size_t) -> cl_int;
 
     pub fn clSetMemObjectDestructorCallback(memobj: cl_mem,
-                                        pfn_notify: extern fn (cl_mem, *mut c_void),
+                                        pfn_notify: Option<extern fn (cl_mem, *mut c_void)>,
                                         user_data: *mut c_void) -> cl_int;
 
     // Sampler APIs 
@@ -789,7 +792,7 @@ extern {
                       num_devices: cl_uint,
                       device_list: *const cl_device_id,
                       options: *const c_char,
-                      pfn_notify: extern fn (cl_program, *mut c_void),
+                      pfn_notify: Option<extern fn (cl_program, *mut c_void)>,
                       user_data: *mut c_void) -> cl_int;
 
     // //##### DEPRICATED 1.1 #####
@@ -814,7 +817,7 @@ extern {
                     num_input_headers: cl_uint,
                     input_headers: *const cl_program,
                     header_include_names: *const *const c_char,
-                    pfn_notify: extern fn (program: cl_program, user_data: *mut c_void),
+                    pfn_notify: Option<extern fn (program: cl_program, user_data: *mut c_void)>,
                     user_data: *mut c_void) -> cl_int;
 
     // //################## NEW 1.2 ###################
@@ -835,7 +838,7 @@ extern {
                   options: *const c_char, 
                   num_input_programs: cl_uint,
                   input_programs: *const cl_program,
-                  pfn_notify: extern fn (program: cl_program, user_data: *mut c_void),
+                  pfn_notify: Option<extern fn (program: cl_program, user_data: *mut c_void)>,
                   user_data: *mut c_void,
                   errcode_ret: *mut cl_int) -> cl_program;
 
@@ -928,7 +931,7 @@ extern {
 
     pub fn clSetEventCallback(event: cl_event,
                           command_exec_callback_type: cl_int,
-                          pfn_notify: extern fn (cl_event, cl_int, *mut c_void),
+                          pfn_notify: Option<extern fn (cl_event, cl_int, *mut c_void)>,
                           user_data: *mut c_void) -> cl_int;
 
     // Profiling APIs 
@@ -1179,7 +1182,7 @@ extern {
                      event: *mut cl_event) -> cl_int;
 
     pub fn clEnqueueNativeKernel(command_queue: cl_command_queue,
-                             user_func: extern fn (*mut c_void),
+                             user_func: Option<extern fn (*mut c_void)>,
                              args: *mut c_void,
                              cb_args: size_t,
                              num_mem_objects: cl_uint,

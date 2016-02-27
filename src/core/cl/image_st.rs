@@ -1,5 +1,7 @@
 //! Enums, structs, and bitfields related to images.
 // use libc::c_void;
+use num::FromPrimitive;
+use error::{Error as OclError, Result as OclResult};
 use cl_h::{self, cl_mem};
 use core::{MemObjectType, ImageChannelOrder, ImageChannelDataType};
 
@@ -16,6 +18,7 @@ use core::{MemObjectType, ImageChannelOrder, ImageChannelDataType};
 /// image_channel_data_type values of CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 and CL_UNORM_INT_101010 are special cases of packed image formats where the channels of each element are packed into a single unsigned short or unsigned int. For these special packed image formats, the channels are normally packed with the first channel in the most significant bits of the bitfield, and successive channels occupying progressively less significant locations. For CL_UNORM_SHORT_565, R is in bits 15:11, G is in bits 10:5 and B is in bits 4:0. For CL_UNORM_SHORT_555, bit 15 is undefined, R is in bits 14:10, G in bits 9:5 and B in bits 4:0. For CL_UNORM_INT_101010, bits 31:30 are undefined, R is in bits 29:20, G in bits 19:10 and B in bits 9:0.
 /// OpenCL implementations must maintain the minimum precision specified by the number of bits in image_channel_data_type. If the image format specified by image_channel_order, and image_channel_data_type cannot be supported by the OpenCL implementation, then the call to clCreateImage will return a NULL memory object.
 ///
+#[derive(Debug, Clone)]
 pub struct ImageFormat {
     pub channel_order: ImageChannelOrder,
     pub channel_data_type: ImageChannelDataType,
@@ -29,10 +32,36 @@ impl ImageFormat {
         }
     }
 
-    pub fn as_core(&self) -> cl_h::cl_image_format {
+    pub fn from_raw(raw: cl_h::cl_image_format) -> OclResult<ImageFormat> {
+        Ok(ImageFormat {
+            channel_order: try!(ImageChannelOrder::from_u32(raw.image_channel_order)
+                .ok_or(OclError::new("Error converting to 'ImageChannelOrder'."))),
+            channel_data_type: try!(ImageChannelDataType::from_u32(raw.image_channel_data_type)
+                .ok_or(OclError::new("Error converting to 'ImageChannelDataType'."))),
+        })
+    }
+
+    pub fn list_from_raw(list_raw: Vec<cl_h::cl_image_format>) -> OclResult<Vec<ImageFormat>> {
+        let mut result_list = Vec::with_capacity(list_raw.len());
+
+        for clif in list_raw.into_iter() {
+            result_list.push(try!(ImageFormat::from_raw(clif)));
+        }
+
+        Ok(result_list)
+    }
+
+    pub fn to_raw(&self) -> cl_h::cl_image_format {
         cl_h::cl_image_format {
             image_channel_order: self.channel_order as cl_h::cl_channel_order,
             image_channel_data_type: self.channel_data_type as cl_h::cl_channel_type,
+        }
+    }
+
+    pub fn new_raw() -> cl_h::cl_image_format {
+        cl_h::cl_image_format {
+            image_channel_order: 0 as cl_h::cl_channel_order,
+            image_channel_data_type: 0 as cl_h::cl_channel_type,
         }
     }
 }
@@ -101,7 +130,7 @@ impl ImageDescriptor {
         }
     }
 
-    pub fn as_core(&self) -> cl_h::cl_image_desc {
+    pub fn to_raw(&self) -> cl_h::cl_image_desc {
         cl_h::cl_image_desc {
             image_type: self.image_type as u32,
             image_width: self.image_width,

@@ -2,8 +2,10 @@
 //! [UNIMPLEMENTED][WORK IN PROGRESS]
 //!
 
+#![allow(unused_imports, unused_variables, dead_code)]
+
 extern crate ocl;
-use ocl::{Context, ProQue, SimpleDims};
+use ocl::{core, Context, ProQue, SimpleDims};
 
 static KERNEL_SRC: &'static str = r#"
         __kernel void multiply_by_scalar(
@@ -22,10 +24,17 @@ fn main() {
     let image_dims = SimpleDims::Two(200, 100);
 
     // Create a context with the first available platform and default device type:
-    let ocl_cxt = Context::new_by_index_and_type(None, None).unwrap();
+    // let context = Context::new_by_index_and_type(None, None).unwrap();
 
-    // Create a program/queue with the first available device: 
-    let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");
+    let context = Context::builder().build().unwrap();
+
+    let img_formats = core::get_supported_image_formats(context.core_as_ref(), core::MEM_READ_WRITE, 
+        core::MemObjectType::Image2d).unwrap();
+
+    println!("Image Formats: {:#?}", img_formats);
+
+    // // Create a program/queue with the first available device: 
+    // let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("ProQue build");
 
     // // Set up our work dimensions / data set size:
     // let dims = SimpleDims::One(data_set_size);

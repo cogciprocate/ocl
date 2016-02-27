@@ -140,7 +140,7 @@ impl EventList {
     /// TODO: Create a safer type wrapper for `callback_receiver`
     pub unsafe fn set_callback<T>(&self, 
                 // callback_receiver: extern fn (cl_event, i32, *mut c_void),
-                callback_receiver: EventCallbackFn,
+                callback_receiver: Option<EventCallbackFn>,
                 // user_data: *mut c_void,
                 user_data: &mut T,
                 ) -> OclResult<()>
