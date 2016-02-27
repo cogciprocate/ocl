@@ -40,7 +40,7 @@ pub type TemporaryPlaceholderType = ();
 #[derive(Debug)]
 pub enum KernelArg<'a, T: 'a + OclNum> {
     /// Type `T` is ignored.
-    Mem(&'a Mem<T>),
+    Mem(&'a Mem),
     /// Type `T` is ignored.
     MemNull,
     /// Type `T` is ignored.
@@ -95,7 +95,7 @@ pub enum KernelArg<'a, T: 'a + OclNum> {
 //
 // CL_CONTEXT_D3D11_DEVICE_KHR ID3D11Device *  Specifies the ID3D11Device * to use for Direct3D 11 interoperability. The default value is NULL.
 //
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ContextProperty {
     Platform(PlatformId),
     InteropUserSync(bool),

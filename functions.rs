@@ -598,7 +598,7 @@ pub fn create_buffer<T: OclNum>(
             flags: MemFlags,
             len: usize,
             data: Option<&[T]>)
-            -> OclResult<Mem<T>> {
+            -> OclResult<Mem> {
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -638,7 +638,7 @@ pub fn create_sub_buffer() -> OclResult<()> {
 
 /// Returns a new image (mem) pointer.
 // [WORK IN PROGRESS]
-pub fn create_image<T: OclNum>(
+pub fn create_image<T>(
             context: &Context,
             flags: MemFlags,
             // format: &cl_image_format,
@@ -646,7 +646,7 @@ pub fn create_image<T: OclNum>(
             format: &ImageFormat,
             desc: &ImageDescriptor,
             data: Option<&[T]>)
-            -> OclResult<Mem<T>> {
+            -> OclResult<Mem> {
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -677,13 +677,13 @@ pub fn create_image<T: OclNum>(
 }
 
 /// Increments the reference counter of a mem object.
-pub unsafe fn retain_mem_object<T: OclNum>(mem: &Mem<T>) -> OclResult<()> {
+pub unsafe fn retain_mem_object(mem: &Mem) -> OclResult<()> {
     // cl_h::clRetainMemObject(memobj: cl_mem) -> cl_int;
     errcode_try("clRetainMemObject", cl_h::clRetainMemObject(mem.as_ptr()))
 }
 
 /// Decrements the reference counter of a mem object.
-pub unsafe fn release_mem_object<T: OclNum>(mem: &Mem<T>) -> OclResult<()> {
+pub unsafe fn release_mem_object(mem: &Mem) -> OclResult<()> {
     errcode_try("clReleaseMemObject", cl_h::clReleaseMemObject(mem.as_ptr()))
 }
 
@@ -742,7 +742,7 @@ pub fn get_supported_image_formats(
 
 
 /// Get mem object info.
-pub fn get_mem_object_info<T: OclNum>(obj: &Mem<T>, info_request: MemInfo,
+pub fn get_mem_object_info<T: OclNum>(obj: &Mem, info_request: MemInfo,
             ) -> OclResult<(MemInfoResult)> {
     // cl_h::clGetMemObjectInfo(memobj: cl_mem,
     //                       param_name: cl_mem_info,
@@ -777,7 +777,7 @@ pub fn get_mem_object_info<T: OclNum>(obj: &Mem<T>, info_request: MemInfo,
 
 
 /// Get image info.
-pub fn get_image_info<T: OclNum>(obj: &Mem<T>, info_request: ImageInfo,
+pub fn get_image_info<T: OclNum>(obj: &Mem, info_request: ImageInfo,
             ) -> OclResult<(ImageInfoResult)> {
     // cl_h::clGetImageInfo(image: cl_mem,
     //                   param_name: cl_image_info,
@@ -1521,7 +1521,7 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 /// [FIXME]: Return result
 pub unsafe fn enqueue_read_buffer<T: OclNum, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
-            buffer: &Mem<T>, 
+            buffer: &Mem, 
             block: bool,
             data: &mut [T],
             offset: usize,
@@ -1578,7 +1578,7 @@ pub fn enqueue_read_buffer_rect() -> OclResult<()> {
 /// [FIXME]: Return result
 pub fn enqueue_write_buffer<T: OclNum, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
-            buffer: &Mem<T>, 
+            buffer: &Mem, 
             block: bool,
             data: &[T],
             offset: usize,
@@ -1637,8 +1637,8 @@ pub fn enqueue_write_buffer_rect() -> OclResult<()> {
 #[allow(dead_code)]
 pub fn enqueue_copy_buffer<T: OclNum>(
             command_queue: &CommandQueue,
-            src_buffer: &Mem<T>,
-            dst_buffer: &Mem<T>,
+            src_buffer: &Mem,
+            dst_buffer: &Mem,
             src_offset: usize,
             dst_offset: usize,
             len_copy_bytes: usize)

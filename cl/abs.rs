@@ -45,11 +45,11 @@
 use std::mem;
 // use std::ptr;
 // use std::fmt::Debug;
-use std::marker::{PhantomData, Sized};
+use std::marker::Sized;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
 	cl_kernel, cl_event, cl_sampler};
-use core::{self, OclNum, CommandExecutionStatus};
+use core::{self, CommandExecutionStatus};
 use error::{Result as OclResult, Error as OclError};
 use util;
 
@@ -239,16 +239,16 @@ unsafe impl Send for CommandQueue {}
 
 /// cl_mem
 #[derive(Debug)]
-pub struct Mem<T: OclNum>(cl_mem, PhantomData<T>);
+pub struct Mem(cl_mem);
 
-impl<T: OclNum> Mem<T> {
+impl Mem {
 	/// Only call this when passing a newly created pointer directly from 
 	/// `clCreate...`. Do not use this to clone or copy.
-	pub unsafe fn from_fresh_ptr(ptr: cl_mem) -> Mem<T> {
-		Mem(ptr, PhantomData)
+	pub unsafe fn from_fresh_ptr(ptr: cl_mem) -> Mem {
+		Mem(ptr)
 	}
 
-	// pub unsafe fn null() -> Mem<T> {
+	// pub unsafe fn null() -> Mem {
 	// 	Mem(0 as *mut libc::c_void, PhantomData)
 	// }
 
@@ -258,21 +258,21 @@ impl<T: OclNum> Mem<T> {
 	}
 }
 
-impl<T: OclNum> Clone for Mem<T> {
-	fn clone(&self) -> Mem<T> {
+impl Clone for Mem {
+	fn clone(&self) -> Mem {
 		unsafe { core::retain_mem_object(self).unwrap(); }
-		Mem(self.0, PhantomData)
+		Mem(self.0)
 	}
 }
 
-impl<T: OclNum> Drop for Mem<T> {
+impl Drop for Mem {
 	fn drop(&mut self) {
 		unsafe { core::release_mem_object(self).unwrap(); }
 	}
 }
 
-unsafe impl<T: OclNum> Sync for Mem<T> {}
-unsafe impl<T: OclNum> Send for Mem<T> {}
+unsafe impl Sync for Mem {}
+unsafe impl Send for Mem {}
 
 
 
