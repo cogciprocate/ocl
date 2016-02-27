@@ -41,8 +41,8 @@
 //! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls). 
 //!
 //! [STATUS]: <br/>
-//! Coverage of core stuff: 80%. <br/>
-//! Coverage of peripheral stuff: 5% - 10%. <br/>
+//! Coverage of core stuff: 90%. <br/>
+//! Coverage of peripheral stuff: 50 - 60%. <br/>
 //!
 //! #### `core` Stands Alone
 //!	

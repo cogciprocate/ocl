@@ -217,7 +217,6 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
     Ok(platforms)
 }
 
-/// [UNTESTED]
 /// Returns platform information of the requested type.
 pub fn get_platform_info<P: ClPlatformIdPtr>(platform: Option<P>, request_param: PlatformInfo,
             ) -> OclResult<PlatformInfoResult> {
@@ -347,13 +346,13 @@ pub fn create_sub_devices() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED] Increments the reference count of a device.
+/// Increments the reference count of a device.
 pub unsafe fn retain_device(device: &DeviceId) -> OclResult<()> {
     // clRetainDevice(device: cl_device_id) -> cl_int;
     errcode_try("clRetainDevice", cl_h::clRetainDevice(device.as_ptr()))
 }
 
-/// [UNTESTED] Decrements the reference count of a device.
+/// Decrements the reference count of a device.
 pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
     // clReleaseDevice(device: cl_device_id ) -> cl_int;
     errcode_try("clReleaseDevice", cl_h::clReleaseDevice(device.as_ptr())) 
@@ -447,13 +446,13 @@ pub fn create_context_from_type() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED] Increments the reference count of a context.
+/// Increments the reference count of a context.
 pub unsafe fn retain_context(context: &Context) -> OclResult<()> {
     // cl_h::clRetainContext(context: cl_context) -> cl_int;
     errcode_try("clRetainContext", cl_h::clRetainContext(context.as_ptr()))
 }
 
-/// [UNTESTED] Decrements reference count of a context.
+/// Decrements reference count of a context.
 ///
 /// [FIXME]: Return result
 pub unsafe fn release_context(context: &Context) -> OclResult<()> {
@@ -541,7 +540,6 @@ pub fn create_command_queue<D: ClDeviceIdPtr>(
     errcode_try("clCreateCommandQueue()", errcode).and(Ok(cq))
 }
 
-/// [UNTESTED]
 /// Increments the reference count of a command queue.
 pub unsafe fn retain_command_queue(queue: &CommandQueue) -> OclResult<()> {
     // cl_h::clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
@@ -556,7 +554,7 @@ pub unsafe fn release_command_queue(queue: &CommandQueue) -> OclResult<()> {
         cl_h::clReleaseCommandQueue(queue.as_ptr()))
 }
 
-/// [UNTESTED] Returns information about a command queue
+/// Returns information about a command queue
 pub fn get_command_queue_info(queue: &CommandQueue, info_request: CommandQueueInfo,
             ) -> OclResult<(CommandQueueInfoResult)> {
     // cl_h::clGetCommandQueueInfo(command_queue: cl_command_queue,
@@ -678,7 +676,6 @@ pub fn create_image<T: OclNum>(
     Ok(image_ptr)
 }
 
-/// [UNTESTED]
 /// Increments the reference counter of a mem object.
 pub unsafe fn retain_mem_object<T: OclNum>(mem: &Mem<T>) -> OclResult<()> {
     // cl_h::clRetainMemObject(memobj: cl_mem) -> cl_int;
@@ -961,7 +958,6 @@ pub fn create_program_with_built_in_kernels() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED]
 /// Increments a program reference counter.
 pub unsafe fn retain_program(program: &Program) -> OclResult<()> {
     // cl_h::clRetainProgram(program: cl_program) -> cl_int;
@@ -1161,7 +1157,6 @@ pub fn create_kernels_in_program() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED]
 /// Increments a kernel reference counter.
 pub unsafe fn retain_kernel(kernel: &Kernel) -> OclResult<()> {
     // cl_h::clRetainKernel(kernel: cl_kernel) -> cl_int;
@@ -1349,14 +1344,12 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
 //========================== Event Object APIs ===============================
 //============================================================================
 
+/// Blocks until the first `num_events` events in `event_list` are complete.
 pub fn wait_for_events(num_events: u32, event_list: &EventList) {
-    // let num_events: cl_uint = event_list.len() as cl_uint;
-    debug_assert!(event_list.count() >= num_events);
+    assert!(event_list.count() >= num_events);
 
     let errcode = unsafe {
-        // &(*event_list.as_ptr()).as_ptr()
-        let el_ptr = event_list.as_ptr_ptr() as *const cl_event;
-        cl_h::clWaitForEvents(num_events, el_ptr)
+        cl_h::clWaitForEvents(num_events, event_list.as_ptr_ptr())
     };
 
     errcode_assert("clWaitForEvents", errcode);
@@ -1408,7 +1401,6 @@ pub fn create_user_event(context: &Context) -> OclResult<(Event)> {
     errcode_try("clCreateUserEvent", errcode).and(Ok(event))
 }
 
-/// [UNTESTED]
 /// Increments an event's reference counter.
 pub unsafe fn retain_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
     // cl_h::clRetainEvent(event: cl_event) -> cl_int;
@@ -1420,7 +1412,8 @@ pub unsafe fn release_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()
     errcode_try("clReleaseEvent", cl_h::clReleaseEvent(*event.as_ptr_ref()))
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNTESTED]
+/// Updates a user events status.
 pub fn set_user_event_status<'e, E: ClEventRef<'e>>(event: &'e E, execution_status: CommandExecutionStatus) 
         -> OclResult<()> {
     // cl_h::clSetUserEventStatus(event: cl_event,
@@ -1429,6 +1422,8 @@ pub fn set_user_event_status<'e, E: ClEventRef<'e>>(event: &'e E, execution_stat
         *event.as_ptr_ref(), execution_status as cl_int)) }
 }
 
+/// Sets a callback function which is called as soon as the `callback_trigger`
+/// status is reached.
 pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
             event: &'e E,
             callback_trigger: CommandExecutionStatus,
@@ -1638,6 +1633,7 @@ pub fn enqueue_write_buffer_rect() -> OclResult<()> {
 }
 
 /// [UNTESTED][UNUSED]
+/// Copies the contents of one buffer to another.
 #[allow(dead_code)]
 pub fn enqueue_copy_buffer<T: OclNum>(
             command_queue: &CommandQueue,
