@@ -3,7 +3,7 @@
 use std;
 use core::{self, CommandQueue as CommandQueueCore, Context as ContextCore,
     CommandQueueInfo, CommandQueueInfoResult};
-use standard::{self, Context, Device};
+use standard::{Context, Device};
 
 /// A command queue.
 ///
@@ -112,40 +112,19 @@ impl Queue {
             Err(err) => CommandQueueInfoResult::Error(Box::new(err)),
         }        
     }
+
+    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Queue")
+            .field("Context", &self.info(CommandQueueInfo::Context))
+            .field("Device", &self.info(CommandQueueInfo::Device))
+            .field("ReferenceCount", &self.info(CommandQueueInfo::ReferenceCount))
+            .field("Properties", &self.info(CommandQueueInfo::Properties))
+            .finish()
+    }
 }
-
-
-
 
 impl std::fmt::Display for Queue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
-        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
-            ("\n", "\n", "\n")
-        } else {
-            ("{ ", ", ", " }")
-        };
-
-        // TemporaryPlaceholderVariant(Vec<u8>),
-        // Context(Context),
-        // Device(DeviceId),
-        // ReferenceCount(u32),
-        // Properties(CommandQueueProperties),
-        // Error(Box<OclError>),
-
-        write!(f, "[Queue]: {b}\
-                Context: {}{d}\
-                Device: {}{d}\
-                ReferenceCount: {}{d}\
-                Properties: {}{e}\
-            ",
-            self.info(CommandQueueInfo::Context),
-            self.info(CommandQueueInfo::Device),
-            self.info(CommandQueueInfo::ReferenceCount),
-            self.info(CommandQueueInfo::Properties),
-            b = begin,
-            d = delim,
-            e = end,
-        )
+        self.fmt_info(f)
     }
 }

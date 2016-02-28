@@ -141,9 +141,9 @@ fn main() {
     for i in 0..KERNEL_AND_BUFFER_ITERS {
         // if i < 20 { println!("0.0 [{}] ", i); }
 
-        kern.enqueue_with_events(Some(&buf_events), Some(&mut kern_events));
-        // kern.enqueue_with_events(None, Some(&mut kern_events));
-        // kern.enqueue_with_events(Some(&buf_events), None);
+        kern.enqueue_with(None, Some(&buf_events), Some(&mut kern_events));
+        // kern.enqueue_with(None, None, Some(&mut kern_events));
+        // kern.enqueue_with(None, Some(&buf_events), None);
         // kern.enqueue();
 
         // if i < 20 { println!("0.1 [{}] ", i); }
@@ -183,7 +183,7 @@ fn main() {
     // let mut buf_events = EventList::new();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
-        kern.enqueue_with_events(None, Some(&mut kern_events));
+        kern.enqueue_with(None, None, Some(&mut kern_events));
         unsafe { buffer_result.enqueue_fill_vec(false, None, Some(&mut buf_events)).unwrap(); }
     }
 

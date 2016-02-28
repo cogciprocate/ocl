@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
     KernelInfo, KernelInfoResult};
 use error::{Result as OclResult, Error as OclError};
-use standard::{self, SimpleDims, Buffer, EventList, Program, Queue, WorkDims};
+use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims};
 
 /// A kernel.
 ///
@@ -26,10 +26,10 @@ use standard::{self, SimpleDims, Buffer, EventList, Program, Queue, WorkDims};
 pub struct Kernel {
     obj_core: KernelCore,
     name: String,
-    arg_index: u32,
+    // arg_index: u32,
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
-    command_queue: CommandQueueCore,
+    command_queue_obj_core: CommandQueueCore,
     gwo: SimpleDims,
     gws: SimpleDims,
     lws: SimpleDims,
@@ -47,10 +47,10 @@ impl Kernel {
         Ok(Kernel {
             obj_core: obj_core,
             name: name,
-            arg_index: 0,
+            // arg_index: 0,
             named_args: HashMap::with_capacity(5),
-            arg_count: 0u32,
-            command_queue: queue.core_as_ref().clone(),
+            arg_count: 0,
+            command_queue_obj_core: queue.core_as_ref().clone(),
             gwo: SimpleDims::Unspecified,
             gws: gws.into(),
             lws: SimpleDims::Unspecified,
@@ -82,6 +82,14 @@ impl Kernel {
     /// order.
     pub fn arg_buf<T: OclNum>(mut self, buffer: &Buffer<T>) -> Kernel {
         self.new_arg_buf(Some(buffer));
+        self
+    }
+
+    /// Adds a new argument to the kernel specifying the image object represented
+    /// by 'image' (builder-style). Argument is added to the bottom of the argument 
+    /// order.
+    pub fn arg_img(mut self, image: &Image) -> Kernel {
+        self.new_arg_img(Some(image));
         self
     }
 
@@ -119,9 +127,18 @@ impl Kernel {
     pub fn arg_buf_named<T: OclNum>(mut self, name: &'static str,  buffer_opt: Option<&Buffer<T>>) -> Kernel {
         let arg_idx = self.new_arg_buf(buffer_opt);
         self.named_args.insert(name, arg_idx);
-
         self
     }     
+
+    /// Adds a new named image argument specifying the image object represented by 
+    /// 'image' (builder-style). Argument is added to the bottom of the argument order.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
+    pub fn arg_img_named(mut self, name: &'static str,  image_opt: Option<&Image>) -> Kernel {
+        let arg_idx = self.new_arg_img(image_opt);
+        self.named_args.insert(name, arg_idx);
+        self
+    }    
 
     /// Modifies the kernel argument named: `name`.
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
@@ -172,12 +189,17 @@ impl Kernel {
     ///
     /// TODO: Implement 'alternative queue' version of this function.
     #[inline]
-    pub fn enqueue_with_events(&self, wait_list: Option<&EventList>, 
-                    dest_list: Option<&mut EventList>) {
-        core::enqueue_kernel(&self.command_queue, &self.obj_core, self.gws.dim_count(), 
+    pub fn enqueue_with(&self, queue: Option<&Queue>, wait_list: Option<&EventList>, 
+                    dest_list: Option<&mut EventList>) -> OclResult<()>
+    {
+        let command_queue = match queue {
+            Some(q) => q.core_as_ref(),
+            None => &self.command_queue_obj_core,
+        };
+
+        core::enqueue_kernel(command_queue, &self.obj_core, self.gws.dim_count(), 
             self.gwo.to_work_offset(), self.gws.to_work_size().unwrap(), self.lws.to_work_size(), 
             wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
-            .unwrap();
     }
 
     /// Enqueues kernel on the default command queue with no event lists.
@@ -187,7 +209,7 @@ impl Kernel {
     /// TODO: Implement 'alternative queue' version of this function.
     #[inline]
     pub fn enqueue(&self) {
-        self.enqueue_with_events(None, None);
+        self.enqueue_with(None, None, None).expect("ocl::Kernel::enqueue");
     }
 
     /// Returns the number of arguments specified for this kernel.
@@ -198,14 +220,6 @@ impl Kernel {
 
     // Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {        
-        // This value lives long enough to be copied by `clSetKernelArg`.
-        // let buf_obj = match buffer_opt {
-        //     Some(buffer) => buffer.core_as_ref(),
-        //     None => unsafe { MemCore::null() },
-        // };
-
-        // self.new_arg::<T>(KernelArg::Mem(&buf_obj))
-
         match buffer_opt {
             Some(buffer) => {
                 self.new_arg::<T>(KernelArg::Mem(buffer.core_as_ref()))
@@ -213,6 +227,19 @@ impl Kernel {
             None => {
                 // let mem_core_null = unsafe { MemCore::null() };
                 self.new_arg::<T>(KernelArg::MemNull)
+            },
+        }
+    }
+
+    // Non-builder-style version of `::arg_img()`.
+    fn new_arg_img(&mut self, image_opt: Option<&Image>) -> u32 {        
+        match image_opt {
+            Some(image) => {
+                self.new_arg::<u8>(KernelArg::Mem(image.core_as_ref()))
+            },
+            None => {
+                // Type is ignored:
+                self.new_arg::<u8>(KernelArg::MemNull)
             },
         }
     }
@@ -236,14 +263,14 @@ impl Kernel {
 
     // Adds a new argument to the kernel and returns the index.
     fn new_arg<T: OclNum>(&mut self, arg: KernelArg<T>) -> u32 {
-        let arg_idx = self.arg_index;
+        let arg_idx = self.arg_count;
 
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, 
             arg,
             Some(&self.name)
         ).unwrap();
 
-        self.arg_index += 1;
+        self.arg_count += 1;
         arg_idx
     } 
 
@@ -262,34 +289,38 @@ impl Kernel {
             Err(err) => KernelInfoResult::Error(Box::new(err)),
         }        
     }
+
+    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Kernel")
+            .field("FunctionName", &self.info(KernelInfo::FunctionName))
+            .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
+            .field("Context", &self.info(KernelInfo::Context))
+            .field("Program", &self.info(KernelInfo::Program))
+            .field("Attributes", &self.info(KernelInfo::Attributes))
+            .finish()
+    }
+
+        // AddressQualifier = cl_h::CL_KERNEL_ARG_ADDRESS_QUALIFIER as isize,
+        // AccessQualifier = cl_h::CL_KERNEL_ARG_ACCESS_QUALIFIER as isize,
+        // TypeName = cl_h::CL_KERNEL_ARG_TYPE_NAME as isize,
+        // TypeQualifier = cl_h::CL_KERNEL_ARG_TYPE_QUALIFIER as isize,
+        // Name = cl_h::CL_KERNEL_ARG_NAME as isize,
+    // fn fmt_arg_info(&self, f: &mut std::fmt::Formatter, arg_idx: u32) -> std::fmt::Result {
+    //     f.debug_struct("Kernel")
+    //         .field("FunctionName", &self.info(KernelInfo::FunctionName))
+    //         .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
+    //         .field("Context", &self.info(KernelInfo::Context))
+    //         .field("Program", &self.info(KernelInfo::Program))
+    //         .field("Attributes", &self.info(KernelInfo::Attributes))
+    //         .finish()
+    // }
 }
 
 
 
 impl std::fmt::Display for Kernel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
-            ("\n", "\n", "\n")
-        } else {
-            ("{ ", ", ", " }")
-        };
-
-        write!(f, "[Kernel]: {b}\
-                FunctionName: {}{d}\
-                ReferenceCount: {}{d}\
-                Context: {}{d}\
-                Program: {}{d}\
-                Attributes: {}{e}\
-            ",
-            self.info(KernelInfo::FunctionName),
-            self.info(KernelInfo::ReferenceCount),
-            self.info(KernelInfo::Context),
-            self.info(KernelInfo::Program),
-            self.info(KernelInfo::Attributes),
-            b = begin,
-            d = delim,
-            e = end,
-        )
+        self.fmt_info(f)
     }
 }
 

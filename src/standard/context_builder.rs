@@ -87,17 +87,18 @@ impl ContextBuilder {
 		self.properties = Some(properties);
 		self
 	}
-	/// Specifies a device.
-	///
-	/// ### Panics
-	///
-	/// Panics if any devices have already been specified.
-	///
-	pub fn device<'a>(&'a mut self, device: Device) -> &'a mut ContextBuilder {
-		assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device: Devices already specified");
-		self.device_spec = Some(DeviceSpecifier::Single(device));
-		self
-	}
+
+	// /// Specifies a device.
+	// ///
+	// /// ### Panics
+	// ///
+	// /// Panics if any devices have already been specified.
+	// ///
+	// pub fn device<'a>(&'a mut self, device: Device) -> &'a mut ContextBuilder {
+	// 	assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device: Devices already specified");
+	// 	self.device_spec = Some(DeviceSpecifier::Single(device));
+	// 	self
+	// }
 
 	/// Specifies a list of devices.
 	///
@@ -105,23 +106,24 @@ impl ContextBuilder {
 	///
 	/// Panics if any devices have already been specified.
 	///
-	pub fn devices<'a>(&'a mut self, devices: Vec<Device>) -> &'a mut ContextBuilder {
-		assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
+	pub fn device_list<'a>(&'a mut self, devices: Vec<Device>) -> &'a mut ContextBuilder {
+		assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device_list: Devices already specified");
 		self.device_spec = Some(DeviceSpecifier::List(devices));
 		self
 	}
 
-	/// Specifies a `DeviceSpecifer` which specifies, specifically, how exactly
+	/// Specifies a `DeviceSpecifer` which specifies how specifically
 	/// the relevant devices shall be specified.
 	///
-	/// See [`DeviceSpecifier`](/ocl/enum.DeviceSpecifier.html) documentation.
+	/// See [`DeviceSpecifier`](/ocl/enum.DeviceSpecifier.html) for actually
+	/// useful documentation.
 	///
 	/// ### Panics
 	///
 	/// Panics if any devices have already been specified.
 	///
-	pub fn device_spec<'a>(&'a mut self, device_spec: DeviceSpecifier) -> &'a mut ContextBuilder {
-		assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device_spec: Devices already specified");
+	pub fn devices<'a>(&'a mut self, device_spec: DeviceSpecifier) -> &'a mut ContextBuilder {
+		assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
 		self.device_spec = Some(device_spec);
 		self
 	}

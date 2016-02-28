@@ -119,7 +119,7 @@ fn test_events() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.enqueue_with_events(None, Some(&mut kernel_event));
+        kernel.enqueue_with(None, None, Some(&mut kernel_event));
 
         let mut read_event = EventList::new();
         

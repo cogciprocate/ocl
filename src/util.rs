@@ -13,6 +13,60 @@ use error::{Result as OclResult, Error as OclError};
 
 use super::OclNum;
 
+//=============================================================================
+//================================= MACROS ====================================
+//=============================================================================
+
+#[macro_export]
+macro_rules! printc {
+    ($c:ident: $fmt:expr) => ( print!(colorify!($c: $fmt)) );
+    ($c:ident: $fmt:expr, $($arg:tt)*) => ( print!(colorify!($c: $fmt), $($arg)*) );
+}
+
+#[macro_export]
+macro_rules! printlnc {
+    ($c:ident: $fmt:expr) => ( print!(concat!(colorify!($c: $fmt), "\n")) );
+    ($c:ident: $fmt:expr, $($arg:tt)*) => ( print!(concat!(colorify!($c: $fmt), "\n"), $($arg)*) );
+}
+
+#[macro_export]
+macro_rules! colorify {
+    (red: $s:expr) => ( concat!("\x1b[31m", $s, "\x1b[0m") );
+    (bright_red: $s:expr) => ( concat!("\x1b[1;31m", $s, "\x1b[0m") );
+    (green: $s:expr) => ( concat!("\x1b[32m", $s, "\x1b[0m") );
+    (bright_green: $s:expr) => ( concat!("\x1b[1;32m", $s, "\x1b[0m") );
+    (orange: $s:expr) => ( concat!("\x1b[33m", $s, "\x1b[0m") );
+    (bright_orange: $s:expr) => ( concat!("\x1b[1;33m", $s, "\x1b[0m") );
+    (indigo: $s:expr) => ( concat!("\x1b[34m", $s, "\x1b[0m") );
+    (bright_indigo: $s:expr) => ( concat!("\x1b[1;34m", $s, "\x1b[0m") );
+    (purple: $s:expr) => ( concat!("\x1b[35m", $s, "\x1b[0m") );
+    (bright_purple: $s:expr) => ( concat!("\x1b[1;35m", $s, "\x1b[0m") );
+    (cyan: $s:expr) => ( concat!("\x1b[36m", $s, "\x1b[0m") );
+    (bright_cyan: $s:expr) => ( concat!("\x1b[1;36m", $s, "\x1b[0m") );
+    (light_grey: $s:expr) => ( concat!("\x1b[37m", $s, "\x1b[0m") );
+    (bright_white: $s:expr) => ( concat!("\x1b[1;37m", $s, "\x1b[0m") );
+    (dark_grey: $s:expr) => ( concat!("\x1b[90m", $s, "\x1b[0m") );
+    (bright_dark_grey: $s:expr) => ( concat!("\x1b[1;90m", $s, "\x1b[0m") );
+    (peach: $s:expr) => ( concat!("\x1b[91m", $s, "\x1b[0m") );
+    (bright_peach: $s:expr) => ( concat!("\x1b[1;91m", $s, "\x1b[0m") );
+    (lime: $s:expr) => ( concat!("\x1b[92m", $s, "\x1b[0m") );
+    (bright_lime: $s:expr) => ( concat!("\x1b[1;92m", $s, "\x1b[0m") );
+    (yellow: $s:expr) => ( concat!("\x1b[93m", $s, "\x1b[0m") );
+    (bright_yellow: $s:expr) => ( concat!("\x1b[1;93m", $s, "\x1b[0m") );
+    (blue: $s:expr) => ( concat!("\x1b[94m", $s, "\x1b[0m") );
+    (bright_blue: $s:expr) => ( concat!("\x1b[1;94m", $s, "\x1b[0m") );
+}
+
+// #[macro_export]
+// macro_rules! printy {
+//     ($fmt:expr) => ( print!(yellowify!($fmt)) );
+//     ($fmt:expr, $($arg:tt)*) => ( print!(yellowify!($fmt), $($arg)*) );
+// }
+
+// #[macro_export]
+// macro_rules! yellowify {
+//     ($s:expr) => (concat!("\x1b[93m", $s, "\x1b[0m"));
+// }
 
 //=============================================================================
 //================================ STATICS ====================================

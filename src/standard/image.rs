@@ -21,6 +21,7 @@ pub struct Image {
     obj_core: MemCore,
     queue_obj_core: CommandQueueCore,
     dims: [usize; 3],
+    pixel_bytes: usize,
 }
 
 impl Image {
@@ -58,33 +59,55 @@ impl Image {
             // default_val: T::default(),
             obj_core: obj_core,
             queue_obj_core: queue.core_as_ref().clone(),
-            dims: dims,  
+            dims: dims,
+            pixel_bytes: 4,
         })
     }
 
+    /// Reads from the device image buffer into `data`.
+    ///
+    /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadImage.html)
+    /// for more detailed information.
     pub fn enqueue_read<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
                 row_pitch: usize, slc_pitch: usize, data: &mut [T], wait_list: Option<&EventList>,
-                dest_list: Option<&mut EventList>) -> OclResult<()> {
+                dest_list: Option<&mut EventList>) -> OclResult<()> 
+    {
         core::enqueue_read_image(&self.queue_obj_core, &self.obj_core, block, origin, region,
             row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
             dest_list.map(|el| el.core_as_mut()))
     }
 
+    /// Writes from `data` to the device image buffer.
+    ///
+    /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteImage.html)
+    /// for more detailed information.
     pub fn enqueue_write<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
                 row_pitch: usize, slc_pitch: usize, data: &[T], wait_list: Option<&EventList>,
-                dest_list: Option<&mut EventList>) -> OclResult<()> {
+                dest_list: Option<&mut EventList>) -> OclResult<()> 
+    {
         core::enqueue_write_image(&self.queue_obj_core, &self.obj_core, block, origin, region,
             row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
             dest_list.map(|el| el.core_as_mut()))
     }
 
+    /// Reads the entire device image buffer into `data`, blocking until complete.
+    ///
+    /// `data` must be equal to the size of the device image buffer and must be
+    /// alligned without pitch or offset of any kind.
+    ///
+    /// Use `::enqueue_read` for the complete range of options.
     pub fn read<T>(&self, data: &mut [T]) -> OclResult<()> {
-        // self.enqueue_read(true, [0, 0, 0], 
-        unimplemented!();
+        self.enqueue_read(true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None)
     }
 
+    /// Writes from `data` to the device image buffer, blocking until complete.
+    ///
+    /// `data` must be equal to the size of the device image buffer and must be
+    /// alligned without pitch or offset of any kind.
+    ///
+    /// Use `::enqueue_write` for the complete range of options.
     pub fn write<T>(&self, data: &[T]) -> OclResult<()> {
-        unimplemented!();
+        self.enqueue_write(true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None)
     }
 
     /// Returns the core image object pointer.
@@ -124,7 +147,7 @@ impl Image {
     }
 
     fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("Image Memory")
+        f.debug_struct("Mem")
             .field("Type", &self.mem_info(MemInfo::Type))
             .field("Flags", &self.mem_info(MemInfo::Flags))
             .field("Size", &self.mem_info(MemInfo::Size))
@@ -143,7 +166,7 @@ impl Image {
 impl std::fmt::Display for Image {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         try!(self.fmt_info(f));
-        try!(write!(f, ", ")); 
+        try!(write!(f, " ")); 
         self.fmt_mem_info(f)
     }
 }

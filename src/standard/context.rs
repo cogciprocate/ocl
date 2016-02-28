@@ -7,7 +7,7 @@
 use std;
 use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
 use error::{Result as OclResult, Error as OclError};
-use standard::{self, Platform, Device, DeviceSpecifier, ContextBuilder};
+use standard::{Platform, Device, DeviceSpecifier, ContextBuilder};
 
 
 /// A context for a particular platform and set of device types.
@@ -292,30 +292,20 @@ impl Context {
     /// Returns the platform our context is associated with.
     pub fn platform(&self) -> &Option<Platform> {
         &self.platform
-    }  
+    }
+
+    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Context")
+            .field("ReferenceCount", &self.info(ContextInfo::ReferenceCount))
+            .field("Devices", &self.info(ContextInfo::Devices))
+            .field("Properties", &self.info(ContextInfo::Properties))
+            .field("NumDevices", &self.info(ContextInfo::NumDevices))
+            .finish()
+    }
 }
 
 impl std::fmt::Display for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
-            ("\n", "\n", "\n")
-        } else {
-            ("{ ", ", ", " }")
-        };
-
-        write!(f, "[Context]: {b}\
-                Reference Count: {}{d}\
-                Devices: {}{d}\
-                Properties: {}{d}\
-                Device Count: {}{e}\
-            ",
-            core::get_context_info(&self.obj_core, ContextInfo::ReferenceCount).unwrap(),
-            core::get_context_info(&self.obj_core, ContextInfo::Devices).unwrap(),
-            core::get_context_info(&self.obj_core, ContextInfo::Properties).unwrap(),
-            core::get_context_info(&self.obj_core, ContextInfo::NumDevices).unwrap(),
-            b = begin,
-            d = delim,
-            e = end,
-        )
+        self.fmt_info(f)
     }
 }

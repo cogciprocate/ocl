@@ -62,8 +62,9 @@ fn errcode_assert(message: &str, errcode: cl_int) {
 }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_event_opts<E: ClEventPtrNew>(wait_list: Option<&EventList>, new_event: Option<&mut E>)
-            -> OclResult<(cl_uint, *const cl_event, *mut cl_event)> {
+fn resolve_event_opts<E: ClEventPtrNew>(wait_list: Option<&EventList>, new_event: Option<&mut E>,
+        ) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)> 
+{
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer (driver doesn't want an empty list):    
     let (wait_list_len, wait_list_ptr) = match wait_list {
@@ -219,7 +220,8 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 
 /// Returns platform information of the requested type.
 pub fn get_platform_info<P: ClPlatformIdPtr>(platform: Option<P>, request_param: PlatformInfo,
-            ) -> OclResult<PlatformInfoResult> {
+        ) -> OclResult<PlatformInfoResult> 
+{
     // cl_h::clGetPlatformInfo(platform: cl_platform_id,
     //                              param_name: cl_platform_info,
     //                              param_value_size: size_t,
@@ -267,7 +269,8 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
             platform: Option<P>, 
             // device_types_opt: Option<cl_device_type>)
             device_types: Option<DeviceType>,
-            ) -> OclResult<Vec<DeviceId>> {
+        ) -> OclResult<Vec<DeviceId>> 
+{
     let platform_ptr = unsafe { match platform {
         Some(plat) => plat.as_ptr(),
         None => try!(get_first_platform()).as_ptr(),
@@ -303,7 +306,8 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
 ///
 #[allow(unused_variables)]
 pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, info_request: DeviceInfo,
-            ) -> OclResult<(DeviceInfoResult)> {
+        ) -> OclResult<(DeviceInfoResult)> 
+{
     // cl_h::clGetDeviceInfo(device: cl_device_id,
     //                    param_name: cl_device_info,
     //                    param_value_size: size_t,
@@ -373,7 +377,8 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 // variants are implemented.
 pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, device_ids: &Vec<D>,
             pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
-            ) -> OclResult<Context> {
+        ) -> OclResult<Context> 
+{
     if device_ids.len() == 0 {
         return OclError::err("ocl::core::create_context: No devices specified.");
     }
@@ -468,8 +473,9 @@ pub unsafe fn release_context(context: &Context) -> OclResult<()> {
 /// Returns an error result for all the reasons listed in the SDK in addition 
 /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
 /// in in the `verify_context()` documentation below.
-pub fn get_context_info(context: &Context, request_param: ContextInfo)
-            -> OclResult<(ContextInfoResult)> {
+pub fn get_context_info(context: &Context, request_param: ContextInfo,
+        ) -> OclResult<(ContextInfoResult)>
+{
     // cl_h::clGetContextInfo(context: cl_context,
     //                     param_name: cl_context_info,
     //                     param_value_size: size_t,
@@ -524,8 +530,9 @@ pub fn get_context_info(context: &Context, request_param: ContextInfo)
 /// Returns a new command queue pointer.
 pub fn create_command_queue<D: ClDeviceIdPtr>(
             context: &Context, 
-            device: &D)
-            -> OclResult<CommandQueue> {
+            device: &D,
+        ) -> OclResult<CommandQueue> 
+{
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -556,7 +563,8 @@ pub unsafe fn release_command_queue(queue: &CommandQueue) -> OclResult<()> {
 
 /// Returns information about a command queue
 pub fn get_command_queue_info(queue: &CommandQueue, info_request: CommandQueueInfo,
-            ) -> OclResult<(CommandQueueInfoResult)> {
+        ) -> OclResult<(CommandQueueInfoResult)> 
+{
     // cl_h::clGetCommandQueueInfo(command_queue: cl_command_queue,
     //                          param_name: cl_command_queue_info,
     //                          param_value_size: size_t,
@@ -597,8 +605,9 @@ pub fn create_buffer<T: OclNum>(
             context: &Context,
             flags: MemFlags,
             len: usize,
-            data: Option<&[T]>)
-            -> OclResult<Mem> {
+            data: Option<&[T]>,
+        ) -> OclResult<Mem> 
+{
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -645,8 +654,9 @@ pub fn create_image<T>(
             // desc: &cl_image_desc,
             format: &ImageFormat,
             desc: &ImageDescriptor,
-            data: Option<&[T]>)
-            -> OclResult<Mem> {
+            data: Option<&[T]>,
+        ) -> OclResult<Mem> 
+{
     // Verify that the context is valid:
     try!(verify_context(context));
 
@@ -701,7 +711,8 @@ pub fn get_supported_image_formats(
             context: &Context, 
             flags: MemFlags,
             image_type: MemObjectType,
-            ) -> OclResult<Vec<ImageFormat>> {
+        ) -> OclResult<Vec<ImageFormat>> 
+{
     // cl_h::clGetSupportedImageFormats(context: cl_context,
     //                               flags: cl_mem_flags,
     //                               image_type: cl_mem_object_type,
@@ -743,7 +754,8 @@ pub fn get_supported_image_formats(
 
 /// Get mem object info.
 pub fn get_mem_object_info(obj: &Mem, info_request: MemInfo,
-            ) -> OclResult<(MemInfoResult)> {
+        ) -> OclResult<(MemInfoResult)> 
+{
     // cl_h::clGetMemObjectInfo(memobj: cl_mem,
     //                       param_name: cl_mem_info,
     //                       param_value_size: size_t,
@@ -777,8 +789,7 @@ pub fn get_mem_object_info(obj: &Mem, info_request: MemInfo,
 
 
 /// Get image info.
-pub fn get_image_info(obj: &Mem, info_request: ImageInfo,
-            ) -> OclResult<(ImageInfoResult)> {
+pub fn get_image_info(obj: &Mem, info_request: ImageInfo) -> OclResult<(ImageInfoResult)> {
     // cl_h::clGetImageInfo(image: cl_mem,
     //                   param_name: cl_image_info,
     //                   param_value_size: size_t,
@@ -825,7 +836,8 @@ pub fn set_mem_object_destructor_callback() -> OclResult<()> {
 /// [UNTESTED]
 /// Returns a new sampler.
 pub fn create_sampler(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
-            filter_mode: FilterMode) -> OclResult<(Sampler)> {
+            filter_mode: FilterMode) -> OclResult<(Sampler)> 
+{
     // cl_h::clCreateSampler(context: cl_context,
     //                    normalize_coords: cl_bool,
     //                    addressing_mode: cl_addressing_mode,
@@ -861,7 +873,8 @@ pub unsafe fn release_sampler(sampler: &Sampler) -> OclResult<()> {
 
 /// Get sampler info.
 pub fn get_sampler_info(obj: &Sampler, info_request: SamplerInfo,
-            ) -> OclResult<(SamplerInfoResult)> {
+    ) -> OclResult<(SamplerInfoResult)> 
+{
     // cl_h::clGetSamplerInfo(sampler: cl_sampler,
     //                     param_name: cl_sampler_info,
     //                     param_value_size: size_t,
@@ -900,10 +913,11 @@ pub fn get_sampler_info(obj: &Sampler, info_request: SamplerInfo,
 /// Creates a new program.
 pub fn create_program_with_source(
             context: &Context, 
-            src_strings: Vec<CString>)
+            src_strings: Vec<CString>,
             // cmplr_opts: CString,
-            // device_ids: &Vec<DeviceId>)
-            -> OclResult<Program> {
+            // device_ids: &Vec<DeviceId>,
+        ) -> OclResult<Program> 
+{
     // cl_h::clCreateProgramWithSource(context: cl_context,
     //                              count: cl_uint,
     //                              strings: *const *const c_char,
@@ -985,8 +999,9 @@ pub fn build_program<D: ClDeviceIdPtr>(
             devices: &[D],
             options: CString,
             pfn_notify: Option<BuildProgramCallbackFn>,
-            user_data: Option<Box<UserDataPh>>)
-            -> OclResult<()> {
+            user_data: Option<Box<UserDataPh>>,
+        ) -> OclResult<()> 
+{
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::build_program(): Callback functions not yet implemented.");
     // cl_h::clBuildProgram(program: cl_program,
@@ -1058,7 +1073,8 @@ pub fn unload_platform_compiler(platform: &PlatformId) -> OclResult<()> {
 
 /// Get program info.
 pub fn get_program_info(obj: &Program, info_request: ProgramInfo,
-            ) -> OclResult<(ProgramInfoResult)> {
+        ) -> OclResult<(ProgramInfoResult)> 
+{
     // cl_h::clGetProgramInfo(program: cl_program,
     //                     param_name: cl_program_info,
     //                     param_value_size: size_t,
@@ -1092,7 +1108,8 @@ pub fn get_program_info(obj: &Program, info_request: ProgramInfo,
 
 /// Get program build info.
 pub fn get_program_build_info<D: ClDeviceIdPtr>(obj: &Program, device_obj: &D, info_request: ProgramBuildInfo,
-            ) -> OclResult<(ProgramBuildInfoResult)> {
+        ) -> OclResult<(ProgramBuildInfoResult)> 
+{
     // cl_h::clGetProgramBuildInfo(program: cl_program,
     //                          device: cl_device_id,
     //                          param_name: cl_program_build_info,
@@ -1134,8 +1151,9 @@ pub fn get_program_build_info<D: ClDeviceIdPtr>(obj: &Program, device_obj: &D, i
 /// Returns a new kernel pointer.
 pub fn create_kernel(
             program: &Program, 
-            name: &str)
-            -> OclResult<Kernel> {
+            name: &str,
+        ) -> OclResult<Kernel> 
+{
     let mut err: cl_int = 0;
 
     // println!("CREATE_KERNEL: PROGRAM PTR: {:?}", program);
@@ -1177,8 +1195,8 @@ pub unsafe fn release_kernel(kernel: &Kernel) -> OclResult<()> {
 ///
 /// TODO: Remove `name` parameter and lookup name with `get_kernel_info` instead.
 pub fn set_kernel_arg<T: OclNum>(kernel: &Kernel, arg_index: u32, arg: KernelArg<T>,
-            name: Option<&str>
-            ) -> OclResult<()> {
+            name: Option<&str>) -> OclResult<()>
+{
     // [DEBUG] LEAVE THIS HERE:
     // println!("SET_KERNEL_ARG: KERNELARG: {:?}", arg);
 
@@ -1234,7 +1252,8 @@ pub fn set_kernel_arg<T: OclNum>(kernel: &Kernel, arg_index: u32, arg: KernelArg
 
 /// Get kernel info.
 pub fn get_kernel_info(obj: &Kernel, info_request: KernelInfo,
-            ) -> OclResult<(KernelInfoResult)> {
+        ) -> OclResult<(KernelInfoResult)> 
+{
     // cl_h::clGetKernelInfo(kernel: cl_kernel,
     //                    param_name: cl_kernel_info,
     //                    param_value_size: size_t,
@@ -1268,7 +1287,8 @@ pub fn get_kernel_info(obj: &Kernel, info_request: KernelInfo,
 
 /// Get kernel arg info.
 pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, info_request: KernelArgInfo,
-            ) -> OclResult<(KernelArgInfoResult)> {
+        ) -> OclResult<(KernelArgInfoResult)> 
+{
     // clGetKernelArgInfo(kernel: cl_kernel,
     //                   arg_indx: cl_uint,
     //                   param_name: cl_kernel_arg_info,
@@ -1304,8 +1324,9 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, info_request: KernelArg
 }
 
 /// Get kernel work group info.
-pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D, info_request: KernelWorkGroupInfo,
-            ) -> OclResult<(KernelWorkGroupInfoResult)> {
+pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D, 
+            info_request: KernelWorkGroupInfo) -> OclResult<(KernelWorkGroupInfoResult)> 
+{
     // cl_h::clGetKernelWorkGroupInfo(kernel: cl_kernel,
     //                             device: cl_device_id,
     //                             param_name: cl_kernel_work_group_info,
@@ -1357,7 +1378,8 @@ pub fn wait_for_events(num_events: u32, event_list: &EventList) {
 
 /// Get event info.
 pub fn get_event_info(event: &Event, info_request: EventInfo,
-            ) -> OclResult<(EventInfoResult)> {
+        ) -> OclResult<(EventInfoResult)> 
+{
     // cl_h::clGetEventInfo(event: cl_event,
     //                   param_name: cl_event_info,
     //                   param_value_size: size_t,
@@ -1414,8 +1436,9 @@ pub unsafe fn release_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()
 
 /// [UNTESTED]
 /// Updates a user events status.
-pub fn set_user_event_status<'e, E: ClEventRef<'e>>(event: &'e E, execution_status: CommandExecutionStatus) 
-        -> OclResult<()> {
+pub fn set_user_event_status<'e, E: ClEventRef<'e>>(event: &'e E, 
+            execution_status: CommandExecutionStatus) -> OclResult<()>
+{
     // cl_h::clSetUserEventStatus(event: cl_event,
     //                         execution_status: cl_int) -> cl_int;
     unsafe { errcode_try("clSetUserEventStatus", cl_h::clSetUserEventStatus(
@@ -1429,7 +1452,8 @@ pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
             callback_trigger: CommandExecutionStatus,
             callback_receiver: Option<EventCallbackFn>,
             user_data: *mut c_void,
-            ) -> OclResult<()> {
+        ) -> OclResult<()> 
+{
     errcode_try("clSetEventCallback", cl_h::clSetEventCallback(
         *event.as_ptr_ref(), 
         callback_trigger as cl_int, 
@@ -1444,7 +1468,8 @@ pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
 
 /// Get event profiling info (for debugging / benchmarking).
 pub fn get_event_profiling_info(event: &Event, info_request: ProfilingInfo,
-            ) -> OclResult<(ProfilingInfoResult)> {
+        ) -> OclResult<(ProfilingInfoResult)> 
+{
     // cl_h::clGetEventProfilingInfo(event: cl_event,
     //                            param_name: cl_profiling_info,
     //                            param_value_size: size_t,
@@ -1527,7 +1552,8 @@ pub unsafe fn enqueue_read_buffer<T: OclNum, E: ClEventPtrNew>(
             offset: usize,
             wait_list: Option<&EventList>, 
             new_event: Option<&mut E>,
-            ) -> OclResult<()> {
+        ) -> OclResult<()> 
+{
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         resolve_event_opts(wait_list, new_event).expect("[FIXME]: enqueue_read_buffer()");
 
@@ -1584,7 +1610,8 @@ pub fn enqueue_write_buffer<T: OclNum, E: ClEventPtrNew>(
             offset: usize,
             wait_list: Option<&EventList>, 
             new_event: Option<&mut E>,
-            ) -> OclResult<()> {
+        ) -> OclResult<()> 
+{
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = resolve_event_opts(wait_list, new_event)
             .expect("[FIXME: Return result]: enqueue_write_buffer()");
@@ -1649,8 +1676,9 @@ pub fn enqueue_copy_buffer<T: OclNum>(
             dst_buffer: &Mem,
             src_offset: usize,
             dst_offset: usize,
-            len_copy_bytes: usize)
-            -> OclResult<()> {
+            len_copy_bytes: usize,
+        ) -> OclResult<()> 
+{
     let errcode = unsafe {
         cl_h::clEnqueueCopyBuffer(
         command_queue.as_ptr(),
@@ -1697,7 +1725,8 @@ pub fn enqueue_read_image<T, E: ClEventPtrNew>(
             data: &mut [T],
             wait_list: Option<&EventList>, 
             new_event: Option<&mut E>,
-            ) -> OclResult<()> {
+        ) -> OclResult<()> 
+{
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = resolve_event_opts(wait_list, new_event)
             .expect("[FIXME: Return result]: enqueue_write_buffer()");
@@ -1745,7 +1774,8 @@ pub fn enqueue_write_image<T, E: ClEventPtrNew>(
             data: &[T],
             wait_list: Option<&EventList>, 
             new_event: Option<&mut E>,
-            ) -> OclResult<()> {
+        ) -> OclResult<()> 
+{
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = resolve_event_opts(wait_list, new_event)
             .expect("[FIXME: Return result]: enqueue_write_buffer()");
@@ -1904,7 +1934,8 @@ pub fn enqueue_kernel<E: ClEventPtrNew>(
             wait_list: Option<&EventList>, 
             new_event: Option<&mut E>,
             kernel_name: Option<&str>
-            ) -> OclResult<()> {
+        ) -> OclResult<()> 
+{
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_opts(wait_list, new_event));
     let gwo = resolve_work_dims(&global_work_offset);
@@ -1945,7 +1976,8 @@ pub fn enqueue_task<E: ClEventPtrNew>(
             wait_list: Option<&EventList>, 
             new_event: Option<&mut E>,
             kernel_name: Option<&str>
-            ) -> OclResult<()> {
+        ) -> OclResult<()> 
+{
     // cl_h::clEnqueueTask(command_queue: cl_command_queue,
     //                  kernel: cl_kernel,
     //                  num_events_in_wait_list: cl_uint,
@@ -2049,7 +2081,8 @@ pub fn enqueue_barrier_with_wait_list() -> OclResult<()> {
 // TODO: Create another function which will handle the second check described 
 // above in addition to calling this.
 pub unsafe fn get_extension_function_address_for_platform(platform: &PlatformId,
-            func_name: &str) -> OclResult<*mut c_void> {
+            func_name: &str) -> OclResult<*mut c_void> 
+{
     // clGetExtensionFunctionAddressForPlatform(platform: cl_platform_id,
     //                    func_name: *const c_char) -> *mut c_void;
     let func_name_c = try!(CString::new(func_name));
@@ -2094,8 +2127,9 @@ pub fn create_build_program<D: ClDeviceIdPtr>(
             context: &Context, 
             src_strings: Vec<CString>,
             cmplr_opts: CString,
-            device_ids: &[D])
-            -> OclResult<Program> {
+            device_ids: &[D],
+        ) -> OclResult<Program> 
+{
     // // Verify that the context is valid:
     // try!(verify_context(context));
 

@@ -8,7 +8,8 @@
 // use core::OclNum;
 use error::{Result as OclResult};
 use standard::{Context, Queue, Image, SimpleDims};
-use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType};
+use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType,
+    ImageChannelOrder, ImageChannelDataType};
 
 
 
@@ -81,6 +82,17 @@ impl ImageBuilder {
         	Some(image_data))
     }
 
+    pub fn channel_order<'a>(&'a mut self, order: ImageChannelOrder) -> &'a mut ImageBuilder {
+        self.image_format.channel_order = order;
+        self
+    }
+
+    pub fn channel_data_type<'a>(&'a mut self, data_type: ImageChannelDataType) -> &'a mut ImageBuilder {
+        self.image_format.channel_data_type = data_type;
+        self
+    }
+
+
     /// Sets the type of image (technically the type of memory buffer).
     ///
 	/// Describes the image type and must be either `Image1d`, `Image1dBuffer`,
@@ -125,7 +137,7 @@ impl ImageBuilder {
 	/// * To set the dimensions of a 3d image use:
 	///   `SimpleDims::Three(width, height, depth)`.
 	///
-    pub fn dims<'a>(&'a mut self, dims: SimpleDims) -> &'a mut ImageBuilder {
+    pub fn dims<'a>(&'a mut self, dims: &SimpleDims) -> &'a mut ImageBuilder {
     	let size = dims.to_size();
     	self.image_desc.image_width = size[0];
     	self.image_desc.image_height = size[1];
@@ -179,36 +191,6 @@ impl ImageBuilder {
         self
     }
 
-    /// Sets the flags for the memory to be created.
-    ///
-    /// Setting this overwrites any previously set flags. To combine them,
-    /// use the bitwise or operator (`|`), for example:
-    ///
-    /// ```notest
-    /// ocl::Image::builder().flags(ocl::MEM_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)...
-    /// ```
-    ///
-    /// Defaults to `core::MEM_READ_WRITE` if not set.
-    pub fn flags<'a>(&'a mut self, flags: MemFlags) -> &'a mut ImageBuilder {
-    	self.flags = flags;
-    	self
-	}
-
-	/// Specifies the image pixel format.
-	///
-	/// If unspecified, defaults to: 
-	///
-	/// ```notest
-	///	ImageFormat {
-    ///    channel_order: ImageChannelOrder::Rgba,
-    ///    channel_data_type: ImageChannelDataType::SnormInt8,
-    /// }
-    /// ```
-	pub fn image_format<'a>(&'a mut self, image_format: ImageFormat) -> &'a mut ImageBuilder {
-		self.image_format = image_format;
-		self
-	}
-
     /// Buffer synchronization.
     ///
     /// Refers to a valid buffer memory object if image_type is
@@ -224,43 +206,76 @@ impl ImageBuilder {
         self.image_desc.buffer = Some(buffer);
         self
     }
+
+
+    /// Sets the flags for the memory to be created.
+    ///
+    /// Setting this overwrites any previously set flags. To combine them,
+    /// use the bitwise or operator (`|`), for example:
+    ///
+    /// ```notest
+    /// ocl::Image::builder().flags(ocl::MEM_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)...
+    /// ```
+    ///
+    /// Defaults to `core::MEM_READ_WRITE` if not set.
+    pub fn flags<'a>(&'a mut self, flags: MemFlags) -> &'a mut ImageBuilder {
+        self.flags = flags;
+        self
+    }
+
+
+    /// Specifies the image pixel format.
+    ///
+    /// If unspecified, defaults to: 
+    ///
+    /// ```notest
+    /// ImageFormat {
+    ///    channel_order: ImageChannelOrder::Rgba,
+    ///    channel_data_type: ImageChannelDataType::SnormInt8,
+    /// }
+    /// ```
+    pub fn image_format<'a>(&'a mut self, image_format: ImageFormat) -> &'a mut ImageBuilder {
+        self.image_format = image_format;
+        self
+    }
+
+
+    /// Specifies the image descriptor containing a number of important settings.
+    ///
+    /// If unspecified (not recommended), defaults to: 
+    ///
+    /// ```notest
+    /// ImageDescriptor {
+    ///     image_type: MemObjectType::Image1d,
+    ///     image_width: 0,
+    ///     image_height: 0,
+    ///     image_depth: 0,
+    ///     image_array_size: 0,
+    ///     image_row_pitch: 0,
+    ///     image_slice_pitch: 0,
+    ///     num_mip_levels: 0,
+    ///     num_samples: 0,
+    ///     buffer: None,
+    /// }
+    /// ```
+    ///
+    /// If you are unsure, just set the first four by using 
+    /// `ImageDescriptor::new`. Ex.:
+    /// 
+    /// ```notest
+    /// ocl::Image::builder()
+    ///    .image_desc(ocl::ImageDescriptor::new(
+    ///       ocl::MemObjectType::Image2d, 1280, 800, 1))
+    ///    ...
+    ///    ...
+    ///    .build()
+    /// ```
+    /// 
+    /// Setting this overwrites any previously set type, dimensions, array size, pitch, etc.
+    /// 
+    pub unsafe fn image_desc<'a>(&'a mut self, image_desc: ImageDescriptor) -> &'a mut ImageBuilder {
+        self.image_desc = image_desc;
+        self
+    }
 }
  
-
-// /// Specifies the image descriptor containing a number of important settings.
-// ///
-// /// If unspecified (not recommended), defaults to: 
-// ///
-// /// ```notest
-// /// ImageDescriptor {
-// ///     image_type: MemObjectType::Image1d,
-// ///     image_width: 0,
-// ///     image_height: 0,
-// ///     image_depth: 0,
-// ///     image_array_size: 0,
-// ///     image_row_pitch: 0,
-// ///     image_slice_pitch: 0,
-// ///     num_mip_levels: 0,
-// ///     num_samples: 0,
-// ///     buffer: None,
-// /// }
-// /// ```
-// ///
-// /// If you are unsure, just set the first four by using 
-// /// `ImageDescriptor::new`. Ex.:
-// /// 
-// /// ```notest
-// /// ocl::Image::builder()
-// ///	   .image_desc(ocl::ImageDescriptor::new(
-// ///	      ocl::MemObjectType::Image2d, 1280, 800, 1))
-// ///	   ...
-// ///	   ...
-// ///	   .build()
-// /// ```
-// /// 
-// /// Setting this overwrites any previously set type, dimensions, array size, and pitch.
-// /// 
-// pub unsafe fn image_desc<'a>(&'a mut self, image_desc: ImageDescriptor) -> &'a mut ImageBuilder {
-// 	self.image_desc = image_desc;
-// 	self
-// }

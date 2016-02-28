@@ -680,7 +680,7 @@ impl<T: OclNum> Buffer<T> {
     }
 
     pub fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("Buffer Memory")
+        f.debug_struct("Buffer Mem")
             .field("Type", &self.mem_info(MemInfo::Type))
             .field("Flags", &self.mem_info(MemInfo::Flags))
             .field("Size", &self.mem_info(MemInfo::Size))

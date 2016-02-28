@@ -10,7 +10,7 @@
 
 #![allow(unused_imports, unused_variables, dead_code)]
 
-extern crate ocl;
+#[macro_use] extern crate ocl;
 
 use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Image, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo, OclNum};
@@ -42,12 +42,11 @@ fn main() {
     	// [NOTE]: A new context can also be created for each device if desired.
     	let context = Context::builder()
 			.platform(platform.clone())
-			.devices(devices.clone())
+			.device_list(devices.clone())
 			.build().unwrap();
 
 		print_platform_info(&platform, p_idx); 
-		print_context_info(&context);
-		print!("\n");
+		// print!("\n");
 
     	// Loop through each device
     	for d_idx in 0..devices.len() {
@@ -55,7 +54,9 @@ fn main() {
 	    	
 			let queue = Queue::new(&context, Some(device.clone()));
 			let buffer = Buffer::<f32>::new(&dims, &queue);
-			let image = Image::builder().build(&queue).unwrap();
+			let image = Image::builder()
+				.dims(&SimpleDims::One(100))
+				.build(&queue).unwrap();
 			// let sampler = Sampler::new();
 	    	let program = Program::builder()
 	    		.src(SRC)
@@ -66,88 +67,65 @@ fn main() {
 			        .arg_scl(10.0f32);
 			let mut event_list = EventList::new();
 
-			kernel.enqueue_with_events(None, Some(&mut event_list));
+			kernel.enqueue_with(None, None, Some(&mut event_list)).unwrap();
 			let event = event_list.last_clone().unwrap();
-			event_list.wait();
-			
-			// Print all the things:
-			print_device_info(&device, d_idx);
-			print_queue_info(&queue);
-			print_buffer_info(&buffer);
-			print_image_info(&image);
-			// print_sampler_info(&sampler);
-			print_program_info(&program);
-			print_kernel_info(&kernel);
-			// print event_list_info(&event_list);
-			print_event_info(&event);
+			event_list.wait();			
 
-			print!("\n");
+			// Print all the devices:
+			print_device_info(&device, d_idx);
+
+			// Print all the things (just once):
+			if (d_idx == devices.len() - 1) && (p_idx == platforms.len() - 1) {
+				print_context_info(&context);
+				print_queue_info(&queue);
+				print_buffer_info(&buffer);
+				print_image_info(&image);
+				// print_sampler_info(&sampler);
+				print_program_info(&program);
+				print_kernel_info(&kernel);
+				// print event_list_info(&event_list);
+				print_event_info(&event);
+			}
 		}
 	}
 }
 
 
 fn print_platform_info(platform: &Platform, p_idx: usize) {
+	printc!(indigo: "{}", platform);
 	let devices = Device::list_all(platform);
-
-	print!("\n");
-
-	if PRINT_DETAILED {
-		print!("{}", platform);	    		
-
-	} else {
-		print!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
-	}
-
-	print!(" {{ Total Device Count: {} }}", devices.len());
+	printc!(indigo: " {{ Total Device Count: {} }}", devices.len());
 	print!("\n");
 }
 
 
 fn print_device_info(device: &Device, d_idx: usize) {
 	if PRINT_DETAILED_DEVICE {
-		println!("[Device][{}]: {}", d_idx, device);
+		printlnc!(orange: "{}", device);
 	} else {
 		if !PRINT_DETAILED { print!("{t}", t = TAB); } 
-		println!("[Device][{}]: {} ({})", d_idx, device.name(), device.vendor());
+		printlnc!(orange: "Device {{ Name: {}, Verdor: {} }}", device.name(), device.vendor());
 	}
 }
 
 
 fn print_context_info(context: &Context) {
-	if PRINT_DETAILED {
-		println!("{}", context);
-	} else {
-		println!("{t}{t}{}", context, t = TAB);
-	}
+	printlnc!(purple: "{}", context);
 }
 
 
 fn print_queue_info(queue: &Queue) {
-	if PRINT_DETAILED {
-		println!("{}", queue);
-	} else {
-		println!("{t}{t}{}", queue, t = TAB);
-	}
+	printlnc!(lime: "{}", queue);
 }
 
 
 fn print_buffer_info<T: OclNum>(buffer: &Buffer<T>) {
-	if PRINT_DETAILED {
-		println!("{}", buffer);
-	} else {
-		println!("{t}{t}[Buffer]: {{ Type: {}, Flags: {}, Size: {} }}", 
-			buffer.mem_info(MemInfo::Type),
-			buffer.mem_info(MemInfo::Flags),
-			buffer.mem_info(MemInfo::Size),
-			t = TAB,
-		);
-	}
+	printlnc!(blue: "{}", buffer);
 }
 
 
 fn print_image_info(image: &Image) {
-	println!("{}", image);
+	printlnc!(peach: "{}", image);
 }
 
 
@@ -157,12 +135,11 @@ fn print_sampler_info() {
 
 
 fn print_program_info(program: &Program) {
-
 	if PRINT_DETAILED_PROGRAM {
-		println!("{}", program);
+		printlnc!(cyan: "{}", program);
 	} else {
 		if !PRINT_DETAILED { print!("{t}{t}", t = TAB); } 
-		println!("[Program]: {{ KernelNames: '{}', NumDevices: {}, ReferenceCount: {}, Context: {} }}", 
+		printlnc!(cyan: "Program {{ KernelNames: '{}', NumDevices: {}, ReferenceCount: {}, Context: {} }}", 
 			program.info(ProgramInfo::KernelNames),
 			program.info(ProgramInfo::NumDevices),
 			program.info(ProgramInfo::ReferenceCount),
@@ -173,23 +150,12 @@ fn print_program_info(program: &Program) {
 
 
 fn print_kernel_info(kernel: &Kernel) {
-	if PRINT_DETAILED {
-		println!("{}", kernel);
-	} else {
-		println!("{t}{t}{}", kernel, t = TAB);
-	}
+	printlnc!(green: "{}", kernel);
 }
 
 
 fn print_event_info(event: &Event) {
-	if PRINT_DETAILED {
-		println!("{}", event);
-	} else {
-		println!("{t}{t}[Event]: {{ Type: {}, Status: {} }}", 
-			event.info(EventInfo::CommandType),
-			event.info(EventInfo::CommandExecutionStatus),
-			t = TAB);
-	}
+	printlnc!(yellow: "{}", event);
 }
 
 

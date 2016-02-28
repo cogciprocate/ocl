@@ -30,7 +30,7 @@ fn main() {
         .arg_buf(&buffer);
     let mut event_list = EventList::new();
 
-    kernel.enqueue_with_events(None, Some(&mut event_list));
+    kernel.enqueue_with(None, None, Some(&mut event_list)).unwrap();
     let event = event_list.last_clone().unwrap();
     event_list.wait();
 
@@ -61,6 +61,35 @@ fn main() {
 		core::get_platform_info(context.platform().clone(), PlatformInfo::Extensions).unwrap(),
 		t = util::TAB,
 	);
+
+
+	//
+	// CHANGE TO --->
+	//
+
+	// write!(f, "{}", &self.to_string())
+        // let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+        //     ("\n", "\n", "\n")
+        // } else {
+        //     ("{ ", ", ", " }")
+        // };
+
+        // write!(f, "[Platform]: {b}\
+        //         Profile: {}{d}\
+        //         Version: {}{d}\
+        //         Name: {}{d}\
+        //         Vendor: {}{d}\
+        //         Extensions: {}{e}\
+        //     ",
+        //     self.profile(),
+        //     self.version(),
+        //     self.name(),
+        //     self.vendor(),
+        //     self.extensions(),
+        //     b = begin,
+        //     d = delim,
+        //     e = end,
+        // )
 
     // ##################################################
     // #################### DEVICES #####################
@@ -234,6 +263,176 @@ fn main() {
     }
 
 
+    //
+	// CHANGE TO --->
+	//
+
+
+//		let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+ //            ("\n", "\n", "\n")
+ //        } else {
+ //            ("{ ", ", ", " }")
+ //        };
+
+ //        write!(f, "[FORMATTING NOT FULLY IMPLEMENTED][Device] {b}\
+ //                DeviceInfo::Type: {}{d}\
+ //                DeviceInfo::VendorId: {}{d}\
+ //                DeviceInfo::MaxComputeUnits: {}{d}\
+ //                DeviceInfo::MaxWorkItemDimensions: {}{d}\
+ //                DeviceInfo::MaxWorkGroupSize: {}{d}\
+ //                DeviceInfo::MaxWorkItemSizes: {}{d}\
+ //                DeviceInfo::PreferredVectorWidthChar: {}{d}\
+ //                DeviceInfo::PreferredVectorWidthShort: {}{d}\
+ //                DeviceInfo::PreferredVectorWidthInt: {}{d}\
+ //                DeviceInfo::PreferredVectorWidthLong: {}{d}\
+ //                DeviceInfo::PreferredVectorWidthFloat: {}{d}\
+ //                DeviceInfo::PreferredVectorWidthDouble: {}{d}\
+ //                DeviceInfo::MaxClockFrequency: {}{d}\
+ //                DeviceInfo::AddressBits: {}{d}\
+ //                DeviceInfo::MaxReadImageArgs: {}{d}\
+ //                DeviceInfo::MaxWriteImageArgs: {}{d}\
+ //                DeviceInfo::MaxMemAllocSize: {}{d}\
+ //                DeviceInfo::Image2dMaxWidth: {}{d}\
+ //                DeviceInfo::Image2dMaxHeight: {}{d}\
+ //                DeviceInfo::Image3dMaxWidth: {}{d}\
+ //                DeviceInfo::Image3dMaxHeight: {}{d}\
+ //                DeviceInfo::Image3dMaxDepth: {}{d}\
+ //                DeviceInfo::ImageSupport: {}{d}\
+ //                DeviceInfo::MaxParameterSize: {}{d}\
+ //                DeviceInfo::MaxSamplers: {}{d}\
+ //                DeviceInfo::MemBaseAddrAlign: {}{d}\
+ //                DeviceInfo::MinDataTypeAlignSize: {}{d}\
+ //                DeviceInfo::SingleFpConfig: {}{d}\
+ //                DeviceInfo::GlobalMemCacheType: {}{d}\
+ //                DeviceInfo::GlobalMemCachelineSize: {}{d}\
+ //                DeviceInfo::GlobalMemCacheSize: {}{d}\
+ //                DeviceInfo::GlobalMemSize: {}{d}\
+ //                DeviceInfo::MaxConstantBufferSize: {}{d}\
+ //                DeviceInfo::MaxConstantArgs: {}{d}\
+ //                DeviceInfo::LocalMemType: {}{d}\
+ //                DeviceInfo::LocalMemSize: {}{d}\
+ //                DeviceInfo::ErrorCorrectionSupport: {}{d}\
+ //                DeviceInfo::ProfilingTimerResolution: {}{d}\
+ //                DeviceInfo::EndianLittle: {}{d}\
+ //                DeviceInfo::Available: {}{d}\
+ //                DeviceInfo::CompilerAvailable: {}{d}\
+ //                DeviceInfo::ExecutionCapabilities: {}{d}\
+ //                DeviceInfo::QueueProperties: {}{d}\
+ //                DeviceInfo::Name: {}{d}\
+ //                DeviceInfo::Vendor: {}{d}\
+ //                DeviceInfo::DriverVersion: {}{d}\
+ //                DeviceInfo::Profile: {}{d}\
+ //                DeviceInfo::Version: {}{d}\
+ //                DeviceInfo::Extensions: {}{d}\
+ //                DeviceInfo::Platform: {}{d}\
+ //                DeviceInfo::DoubleFpConfig: {}{d}\
+ //                DeviceInfo::HalfFpConfig: {}{d}\
+ //                DeviceInfo::PreferredVectorWidthHalf: {}{d}\
+ //                DeviceInfo::HostUnifiedMemory: {}{d}\
+ //                DeviceInfo::NativeVectorWidthChar: {}{d}\
+ //                DeviceInfo::NativeVectorWidthShort: {}{d}\
+ //                DeviceInfo::NativeVectorWidthInt: {}{d}\
+ //                DeviceInfo::NativeVectorWidthLong: {}{d}\
+ //                DeviceInfo::NativeVectorWidthFloat: {}{d}\
+ //                DeviceInfo::NativeVectorWidthDouble: {}{d}\
+ //                DeviceInfo::NativeVectorWidthHalf: {}{d}\
+ //                DeviceInfo::OpenclCVersion: {}{d}\
+ //                DeviceInfo::LinkerAvailable: {}{d}\
+ //                DeviceInfo::BuiltInKernels: {}{d}\
+ //                DeviceInfo::ImageMaxBufferSize: {}{d}\
+ //                DeviceInfo::ImageMaxArraySize: {}{d}\
+ //                DeviceInfo::ParentDevice: {}{d}\
+ //                DeviceInfo::PartitionMaxSubDevices: {}{d}\
+ //                DeviceInfo::PartitionProperties: {}{d}\
+ //                DeviceInfo::PartitionAffinityDomain: {}{d}\
+ //                DeviceInfo::PartitionType: {}{d}\
+ //                DeviceInfo::ReferenceCount: {}{d}\
+ //                DeviceInfo::PreferredInteropUserSync: {}{d}\
+ //                DeviceInfo::PrintfBufferSize: {}{d}\
+ //                DeviceInfo::ImagePitchAlignment: {}{d}\
+ //                DeviceInfo::ImageBaseAddressAlignment: {}{e}\
+ //            ",
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Type)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::VendorId)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxComputeUnits)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxWorkItemDimensions)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxWorkGroupSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxWorkItemSizes)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PreferredVectorWidthChar)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PreferredVectorWidthShort)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PreferredVectorWidthInt)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PreferredVectorWidthLong)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PreferredVectorWidthFloat)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PreferredVectorWidthDouble)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxClockFrequency)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::AddressBits)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxReadImageArgs)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxWriteImageArgs)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxMemAllocSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Image2dMaxWidth)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Image2dMaxHeight)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Image3dMaxWidth)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Image3dMaxHeight)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Image3dMaxDepth)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ImageSupport)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxParameterSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxSamplers)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MemBaseAddrAlign)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MinDataTypeAlignSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::SingleFpConfig)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::GlobalMemCacheType)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::GlobalMemCachelineSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::GlobalMemCacheSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::GlobalMemSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxConstantBufferSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::MaxConstantArgs)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::LocalMemType)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::LocalMemSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ErrorCorrectionSupport)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ProfilingTimerResolution)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::EndianLittle)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Available)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::CompilerAvailable)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ExecutionCapabilities)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::QueueProperties)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Name)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Vendor)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::DriverVersion)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Profile)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Version)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Extensions)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::Platform)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::DoubleFpConfig)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::HalfFpConfig)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PreferredVectorWidthHalf)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::HostUnifiedMemory)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::NativeVectorWidthChar)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::NativeVectorWidthShort)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::NativeVectorWidthInt)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::NativeVectorWidthLong)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::NativeVectorWidthFloat)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::NativeVectorWidthDouble)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::NativeVectorWidthHalf)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::OpenclCVersion)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::LinkerAvailable)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::BuiltInKernels)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ImageMaxBufferSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ImageMaxArraySize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ParentDevice)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PartitionMaxSubDevices)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PartitionProperties)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PartitionAffinityDomain)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PartitionType)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ReferenceCount)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PreferredInteropUserSync)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::PrintfBufferSize)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ImagePitchAlignment)),
+ //            try_to_str(core::get_device_info(&self.0, DeviceInfo::ImageBaseAddressAlignment)),
+ //            b = begin,
+ //            d = delim,
+ //            e = end,
+ //        )
+
     // ##################################################
     // #################### CONTEXT #####################
     // ##################################################
@@ -250,6 +449,31 @@ fn main() {
 		core::get_context_info(context.core_as_ref(), ContextInfo::NumDevices).unwrap(),
 		t = util::TAB,
 	);
+
+    //
+	// CHANGE TO --->
+	//
+
+		// let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+  //           ("\n", "\n", "\n")
+  //       } else {
+  //           ("{ ", ", ", " }")
+  //       };
+
+  //       write!(f, "[Context]: {b}\
+  //               Reference Count: {}{d}\
+  //               Devices: {}{d}\
+  //               Properties: {}{d}\
+  //               Device Count: {}{e}\
+  //           ",
+  //           core::get_context_info(&self.obj_core, ContextInfo::ReferenceCount).unwrap(),
+  //           core::get_context_info(&self.obj_core, ContextInfo::Devices).unwrap(),
+  //           core::get_context_info(&self.obj_core, ContextInfo::Properties).unwrap(),
+  //           core::get_context_info(&self.obj_core, ContextInfo::NumDevices).unwrap(),
+  //           b = begin,
+  //           d = delim,
+  //           e = end,
+  //       )
 
 
     // ##################################################
@@ -269,6 +493,40 @@ fn main() {
 		core::get_command_queue_info(queue.core_as_ref(), CommandQueueInfo::Properties).unwrap(),
 		t = util::TAB,
 	);
+
+
+	//
+	// CHANGE TO --->
+	//
+
+	// write!(f, "{}", &self.to_string())
+        // let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+        //     ("\n", "\n", "\n")
+        // } else {
+        //     ("{ ", ", ", " }")
+        // };
+
+        // // TemporaryPlaceholderVariant(Vec<u8>),
+        // // Context(Context),
+        // // Device(DeviceId),
+        // // ReferenceCount(u32),
+        // // Properties(CommandQueueProperties),
+        // // Error(Box<OclError>),
+
+        // write!(f, "[Queue]: {b}\
+        //         Context: {}{d}\
+        //         Device: {}{d}\
+        //         ReferenceCount: {}{d}\
+        //         Properties: {}{e}\
+        //     ",
+        //     self.info(CommandQueueInfo::Context),
+        //     self.info(CommandQueueInfo::Device),
+        //     self.info(CommandQueueInfo::ReferenceCount),
+        //     self.info(CommandQueueInfo::Properties),
+        //     b = begin,
+        //     d = delim,
+        //     e = end,
+        // )
 
 
 	// ##################################################
@@ -311,6 +569,11 @@ fn main() {
         core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Offset).unwrap(),
 		t = util::TAB,
 	);
+
+
+	//
+	// CHANGE TO --->
+	//
 
 
     // ##################################################
@@ -388,28 +651,28 @@ fn main() {
             t = util::TAB,
         );
 
-		println!("{t}Image Memory:\n\
-			{t}{t}Type: {}\n\
-	        {t}{t}Flags: {}\n\
-	        {t}{t}Size: {}\n\
-	        {t}{t}HostPtr: {}\n\
-	        {t}{t}MapCount: {}\n\
-	        {t}{t}ReferenceCount: {}\n\
-	        {t}{t}Context: {}\n\
-	        {t}{t}AssociatedMemobject: {}\n\
-	        {t}{t}Offset: {}\n\
-		",
-		core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Type).unwrap(),
-	    core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Flags).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Size).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::HostPtr).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::MapCount).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::ReferenceCount).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Context).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::AssociatedMemobject).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Offset).unwrap(),
-		t = util::TAB,
-	);
+		println!("{t}Image Mem:\n\
+				{t}{t}Type: {}\n\
+		        {t}{t}Flags: {}\n\
+		        {t}{t}Size: {}\n\
+		        {t}{t}HostPtr: {}\n\
+		        {t}{t}MapCount: {}\n\
+		        {t}{t}ReferenceCount: {}\n\
+		        {t}{t}Context: {}\n\
+		        {t}{t}AssociatedMemobject: {}\n\
+		        {t}{t}Offset: {}\n\
+			",
+			core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Type).unwrap(),
+		    core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Flags).unwrap(),
+	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Size).unwrap(),
+	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::HostPtr).unwrap(),
+	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::MapCount).unwrap(),
+	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::ReferenceCount).unwrap(),
+	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Context).unwrap(),
+	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::AssociatedMemobject).unwrap(),
+	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Offset).unwrap(),
+			t = util::TAB,
+		);
 
     // ##################################################
     // #################### SAMPLER #####################
@@ -479,6 +742,53 @@ fn main() {
 		t = util::TAB,
 	);
 
+	//
+	// CHANGE TO --->
+	//
+
+
+	// write!(f, "{}", &self.to_string())
+        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+            ("\n", "\n", "\n")
+        } else {
+            ("{ ", ", ", " }")
+        };
+
+        // ReferenceCount = cl_h::CL_PROGRAM_REFERENCE_COUNT as isize,
+        // Context = cl_h::CL_PROGRAM_CONTEXT as isize,
+        // NumDevices = cl_h::CL_PROGRAM_NUM_DEVICES as isize,
+        // Devices = cl_h::CL_PROGRAM_DEVICES as isize,
+        // Source = cl_h::CL_PROGRAM_SOURCE as isize,
+        // BinarySizes = cl_h::CL_PROGRAM_BINARY_SIZES as isize,
+        // Binaries = cl_h::CL_PROGRAM_BINARIES as isize,
+        // NumKernels = cl_h::CL_PROGRAM_NUM_KERNELS as isize,
+        // KernelNames = cl_h::CL_PROGRAM_KERNEL_NAMES as isize,
+
+        write!(f, "[Program]: {b}\
+                ReferenceCount: {}{d}\
+                Context: {}{d}\
+                NumDevices: {}{d}\
+                Devices: {}{d}\
+                Source: {}{d}\
+                BinarySizes: {}{d}\
+                Binaries: {}{d}\
+                NumKernels: {}{d}\
+                KernelNames: {}{e}\
+            ",
+            self.info(ProgramInfo::ReferenceCount),
+            self.info(ProgramInfo::Context),
+            self.info(ProgramInfo::NumDevices),
+            self.info(ProgramInfo::Devices),
+            self.info(ProgramInfo::Source),
+            self.info(ProgramInfo::BinarySizes),
+            self.info(ProgramInfo::Binaries),
+            self.info(ProgramInfo::NumKernels),
+            self.info(ProgramInfo::KernelNames),
+            b = begin,
+            d = delim,
+            e = end,
+        )
+
     // ##################################################
     // ################# PROGRAM BUILD ##################
     // ##################################################
@@ -503,6 +813,10 @@ fn main() {
         core::get_program_build_info(program.core_as_ref(), &device, ProgramBuildInfo::BinaryType).unwrap(),
 		t = util::TAB,
 	);
+
+	//
+	// CHANGE TO --->
+	//
 
     // ##################################################
     // ##################### KERNEL #####################
@@ -535,6 +849,33 @@ fn main() {
 		t = util::TAB,
 	);
 
+    //
+	// CHANGE TO BELOW:
+	//
+
+	// let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+	//        ("\n", "\n", "\n")
+	//    } else {
+	//        ("{ ", ", ", " }")
+	//    };
+
+	// write!(f, "[Kernel]: {b}\
+	//        FunctionName: {}{d}\
+	//        ReferenceCount: {}{d}\
+	//        Context: {}{d}\
+	//        Program: {}{d}\
+	//        Attributes: {}{e}\
+	//    ",
+	//    self.info(KernelInfo::FunctionName),
+	//    self.info(KernelInfo::ReferenceCount),
+	//    self.info(KernelInfo::Context),
+	//    self.info(KernelInfo::Program),
+	//    self.info(KernelInfo::Attributes),
+	//    b = begin,
+	//    d = delim,
+	//    e = end,
+	// )
+
     // ##################################################
     // ################# KERNEL ARGUMENT ################
     // ##################################################
@@ -562,6 +903,10 @@ fn main() {
         core::get_kernel_arg_info(kernel.core_as_ref(), 0, KernelArgInfo::Name).unwrap(),
 		t = util::TAB,
 	);
+
+	//
+	// CHANGE TO --->
+	//
 
     // ##################################################
     // ################ KERNEL WORK GROUP ###############
@@ -601,6 +946,10 @@ fn main() {
 		t = util::TAB,
 	);
 
+	//
+	// CHANGE TO --->
+	//
+
     // ##################################################
     // ##################### EVENT ######################
     // ##################################################
@@ -629,6 +978,33 @@ fn main() {
 		t = util::TAB,
 	);
 
+	//
+	// CHANGE TO --->
+	//
+
+	let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+            ("\n", "\n", "\n")
+        } else {
+            ("{ ", ", ", " }")
+        };
+
+        write!(f, "[Event]: {b}\
+                CommandQueue: {}{d}\
+                CommandType: {}{d}\
+                ReferenceCount: {}{d}\
+                CommandExecutionStatus: {}{d}\
+                Context: {}{e}\
+            ",
+            core::get_event_info(&self.0, EventInfo::CommandQueue).unwrap(),
+            core::get_event_info(&self.0, EventInfo::CommandType).unwrap(),
+            core::get_event_info(&self.0, EventInfo::ReferenceCount).unwrap(),
+            core::get_event_info(&self.0, EventInfo::CommandExecutionStatus).unwrap(),
+            core::get_event_info(&self.0, EventInfo::Context).unwrap(),
+            b = begin,
+            d = delim,
+            e = end,
+        )
+
     // ##################################################
     // ################ EVENT PROFILING #################
     // ##################################################
@@ -654,6 +1030,14 @@ fn main() {
 		t = util::TAB,
 	);
 
+	//
+	// CHANGE TO --->
+	//
+
+
+	// ##################################################
+    // ###################### END #######################
+    // ##################################################
 
     print!("\n");
 }
