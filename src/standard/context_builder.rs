@@ -7,13 +7,6 @@ use standard::{Context, Platform, Device, DeviceSpecifier};
 
 /// A builder for `Context`.
 ///
-/// Currently ignores all of the `cl_context_properties` except for platform. 
-/// Use `Context::new` directly to specify `ContextProperties` in all its glory.
-/// [UPDATE ME]
-///
-/// [WORK IN PROGRESS]
-///
-///
 /// TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
 pub struct ContextBuilder {
 	properties: Option<ContextProperties>,

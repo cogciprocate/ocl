@@ -25,6 +25,13 @@ pub struct Context {
 }
 
 impl Context {
+    /// Returns a [`ContextBuilder`](/ocl/struct.ContextBuilder.html).
+    ///
+    /// This is the preferred way to create a Context.
+    pub fn builder() -> ContextBuilder {
+        ContextBuilder::new()
+    }
+
     /// Returns a newly created context.
     ///
     /// [FIXME]: Yeah... documentation.
@@ -75,12 +82,6 @@ impl Context {
         })
     }
 
-    // Returns a `ContextBuilder`.
-    pub fn builder() -> ContextBuilder {
-        ContextBuilder::new()
-    }
-
-
     /// [UNSTABLE]: About to be moved to builder
     /// [UNTESTED] Returns a newly created context.
     pub fn new_by_platform_and_device_list(platform: Platform, device_list: Vec<Device>
@@ -96,7 +97,6 @@ impl Context {
             devices: devices,
         })
     }
-
 
     /// [UNSTABLE]: About to be moved to builder
     /// Returns a newly created context with a specified platform and set of device types.

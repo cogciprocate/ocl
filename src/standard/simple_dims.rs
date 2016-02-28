@@ -1,5 +1,6 @@
 //! A simple way to specify the sizes of up to three dimensions.
 // use std::convert::Into;
+use std::convert::From;
 use error::{Result as OclResult, Error as OclError};
 use standard::{BufferDims, WorkDims};
 use util;
@@ -113,5 +114,17 @@ impl WorkDims for SimpleDims {
             &SimpleDims::Two(x, y) => Some([x, y, 0]),
             &SimpleDims::Three(x, y, z) => Some([x, y, z]),
         }
+    }
+}
+
+impl From<(u32, u32)> for SimpleDims {
+    fn from(pair: (u32, u32)) -> SimpleDims {
+        SimpleDims::Two(pair.0 as usize, pair.1 as usize)
+    }
+}
+
+impl From<(usize, usize)> for SimpleDims {
+    fn from(pair: (usize, usize)) -> SimpleDims {
+        SimpleDims::Two(pair.0 as usize, pair.1 as usize)
     }
 }
