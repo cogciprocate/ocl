@@ -125,7 +125,7 @@ fn main() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.enqueue_with(None, None, Some(&mut kernel_event));
+        kernel.enqueue_with(None, None, Some(&mut kernel_event)).unwrap();
 
         let mut read_event = EventList::new();
         

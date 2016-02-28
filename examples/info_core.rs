@@ -748,46 +748,46 @@ fn main() {
 
 
 	// write!(f, "{}", &self.to_string())
-        let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
-            ("\n", "\n", "\n")
-        } else {
-            ("{ ", ", ", " }")
-        };
+        // let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+        //     ("\n", "\n", "\n")
+        // } else {
+        //     ("{ ", ", ", " }")
+        // };
 
-        // ReferenceCount = cl_h::CL_PROGRAM_REFERENCE_COUNT as isize,
-        // Context = cl_h::CL_PROGRAM_CONTEXT as isize,
-        // NumDevices = cl_h::CL_PROGRAM_NUM_DEVICES as isize,
-        // Devices = cl_h::CL_PROGRAM_DEVICES as isize,
-        // Source = cl_h::CL_PROGRAM_SOURCE as isize,
-        // BinarySizes = cl_h::CL_PROGRAM_BINARY_SIZES as isize,
-        // Binaries = cl_h::CL_PROGRAM_BINARIES as isize,
-        // NumKernels = cl_h::CL_PROGRAM_NUM_KERNELS as isize,
-        // KernelNames = cl_h::CL_PROGRAM_KERNEL_NAMES as isize,
+        // // ReferenceCount = cl_h::CL_PROGRAM_REFERENCE_COUNT as isize,
+        // // Context = cl_h::CL_PROGRAM_CONTEXT as isize,
+        // // NumDevices = cl_h::CL_PROGRAM_NUM_DEVICES as isize,
+        // // Devices = cl_h::CL_PROGRAM_DEVICES as isize,
+        // // Source = cl_h::CL_PROGRAM_SOURCE as isize,
+        // // BinarySizes = cl_h::CL_PROGRAM_BINARY_SIZES as isize,
+        // // Binaries = cl_h::CL_PROGRAM_BINARIES as isize,
+        // // NumKernels = cl_h::CL_PROGRAM_NUM_KERNELS as isize,
+        // // KernelNames = cl_h::CL_PROGRAM_KERNEL_NAMES as isize,
 
-        write!(f, "[Program]: {b}\
-                ReferenceCount: {}{d}\
-                Context: {}{d}\
-                NumDevices: {}{d}\
-                Devices: {}{d}\
-                Source: {}{d}\
-                BinarySizes: {}{d}\
-                Binaries: {}{d}\
-                NumKernels: {}{d}\
-                KernelNames: {}{e}\
-            ",
-            self.info(ProgramInfo::ReferenceCount),
-            self.info(ProgramInfo::Context),
-            self.info(ProgramInfo::NumDevices),
-            self.info(ProgramInfo::Devices),
-            self.info(ProgramInfo::Source),
-            self.info(ProgramInfo::BinarySizes),
-            self.info(ProgramInfo::Binaries),
-            self.info(ProgramInfo::NumKernels),
-            self.info(ProgramInfo::KernelNames),
-            b = begin,
-            d = delim,
-            e = end,
-        )
+        // write!(f, "[Program]: {b}\
+        //         ReferenceCount: {}{d}\
+        //         Context: {}{d}\
+        //         NumDevices: {}{d}\
+        //         Devices: {}{d}\
+        //         Source: {}{d}\
+        //         BinarySizes: {}{d}\
+        //         Binaries: {}{d}\
+        //         NumKernels: {}{d}\
+        //         KernelNames: {}{e}\
+        //     ",
+        //     self.info(ProgramInfo::ReferenceCount),
+        //     self.info(ProgramInfo::Context),
+        //     self.info(ProgramInfo::NumDevices),
+        //     self.info(ProgramInfo::Devices),
+        //     self.info(ProgramInfo::Source),
+        //     self.info(ProgramInfo::BinarySizes),
+        //     self.info(ProgramInfo::Binaries),
+        //     self.info(ProgramInfo::NumKernels),
+        //     self.info(ProgramInfo::KernelNames),
+        //     b = begin,
+        //     d = delim,
+        //     e = end,
+        // )
 
     // ##################################################
     // ################# PROGRAM BUILD ##################
@@ -982,28 +982,28 @@ fn main() {
 	// CHANGE TO --->
 	//
 
-	let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
-            ("\n", "\n", "\n")
-        } else {
-            ("{ ", ", ", " }")
-        };
+	// let (begin, delim, end) = if standard::INFO_FORMAT_MULTILINE {
+ //            ("\n", "\n", "\n")
+ //        } else {
+ //            ("{ ", ", ", " }")
+ //        };
 
-        write!(f, "[Event]: {b}\
-                CommandQueue: {}{d}\
-                CommandType: {}{d}\
-                ReferenceCount: {}{d}\
-                CommandExecutionStatus: {}{d}\
-                Context: {}{e}\
-            ",
-            core::get_event_info(&self.0, EventInfo::CommandQueue).unwrap(),
-            core::get_event_info(&self.0, EventInfo::CommandType).unwrap(),
-            core::get_event_info(&self.0, EventInfo::ReferenceCount).unwrap(),
-            core::get_event_info(&self.0, EventInfo::CommandExecutionStatus).unwrap(),
-            core::get_event_info(&self.0, EventInfo::Context).unwrap(),
-            b = begin,
-            d = delim,
-            e = end,
-        )
+ //        write!(f, "[Event]: {b}\
+ //                CommandQueue: {}{d}\
+ //                CommandType: {}{d}\
+ //                ReferenceCount: {}{d}\
+ //                CommandExecutionStatus: {}{d}\
+ //                Context: {}{e}\
+ //            ",
+ //            core::get_event_info(&self.0, EventInfo::CommandQueue).unwrap(),
+ //            core::get_event_info(&self.0, EventInfo::CommandType).unwrap(),
+ //            core::get_event_info(&self.0, EventInfo::ReferenceCount).unwrap(),
+ //            core::get_event_info(&self.0, EventInfo::CommandExecutionStatus).unwrap(),
+ //            core::get_event_info(&self.0, EventInfo::Context).unwrap(),
+ //            b = begin,
+ //            d = delim,
+ //            e = end,
+ //        )
 
     // ##################################################
     // ################ EVENT PROFILING #################

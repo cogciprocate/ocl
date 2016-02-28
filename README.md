@@ -96,15 +96,15 @@ such as low-overhead, high performance, and unfettered hardware access. For all
 practical purposes, Vulkan is simply a graphics-focused superset of OpenCL's
 features (sorta kinda). OpenCL 2.1+ and Vulkan kernels/shaders now both
 compile into SPIR-V making the device side of things the same. I wouldn't be
-suprised if most driver vendors will implement the two host APIs identically.
+suprised if most driver vendors implement the two host APIs identically.
 
-Moving forward it's possible the two may completely merge (or that Vulkan will
+In the future it's possible the two may completely merge (or that Vulkan will
 absorb OpenCL). Whatever happens, not much will change as far as the front end
 of this library is concerned (though the `core` module functions / types could
-get some renaming, etc. but it wouldn't be for a very long time... version
-2.0...). This library will maintain it's focus on the compute side of things.
-For the graphics side, see the excellent OpenGL library, [glium], and its
-younger sibling, [vulkano].
+get some very minor renaming, etc. but it wouldn't be for a very long time...
+version 2.0...). This library will maintain it's focus on the compute side of
+things. For the graphics side, see the excellent OpenGL library, [glium], and
+its younger sibling, [vulkano].
 
 
 ##### Help

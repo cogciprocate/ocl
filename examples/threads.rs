@@ -77,7 +77,7 @@ fn main() {
 					        .arg_scl(1000.0f32);
 					let mut event_list = EventList::new();
 
-					kernel.enqueue_with(None, None, Some(&mut event_list));
+					kernel.enqueue_with(None, None, Some(&mut event_list)).unwrap();
 
 					thread::sleep(Duration::from_millis(500));
 

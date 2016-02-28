@@ -1,14 +1,14 @@
-Version 0.7.0 (UNRELEASED)
+Version 0.7.0 (2016-02-27)
 ==========================
 
 Breaking Changes
 ----------------
-* `Kernel::enqueue` is now called `Kernel::enqueue_with_events`. A new method
-  with the old name is now a convenience shortcut for
-  `.enqueue_with_events(None, None)`.
+* `Kernel::enqueue` is now called `Kernel::enqueue_with` and has an additional
+  parameter to set an alternative command queue. A new method with the old
+  name is now a convenience shortcut for `.enqueue_with(None, None, None)`.
 * `ProQue::create_kernel` has been renamed `ProQue::create_kernel_with_dims`.
   A new method with the old name, is now a shortcut for kernel creation using
-  pre-assigned dimensions`.
+  pre-assigned dimensions` (this naming is likely temporary).
 * The kernel created using `ProQue::create_kernel` is no longer wrapped in a
   result and instead panics if there is a problem. If you require a 
   non-panicing way to create a kernel use `Kernel::new`.
@@ -25,10 +25,15 @@ Breaking Changes
   `::enqueue_fill_vec` and `::enqueue_flush_vec` and have an additional
   parameter to set blocking.
 
-
 New Features
 ------------
+* Images! I can see! ... oh shut up.
+* [`Image`] and [`ImageBuilder`] have been added. Please see their
+  documentation along with [`examples/image.rs`].
 
+
+[`ImageBuilder`]: http://docs.cogciprocate.com/ocl/struct.ImageBuilder.html
+[`examples/image.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/image.rs
 
 
 Version 0.6.0 (2016-02-20)
