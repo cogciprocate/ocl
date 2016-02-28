@@ -14,7 +14,6 @@ use std::mem;
 use std::io::Read;
 use std::ffi::CString;
 use std::iter;
-// use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
@@ -349,8 +348,7 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 //============================= Context APIs  ================================
 //============================================================================
 
-/// [INCOMPLETE] Returns a new context pointer valid for all devices in 
-/// `device_ids`.
+/// Returns a new context pointer valid for all devices in `device_ids`.
 ///
 /// [FIXME]: Incomplete implementation. Callback and userdata unimplemented.
 /// [FIXME]: Properties disabled.
@@ -787,13 +785,11 @@ pub fn create_sampler(context: &Context, normalize_coords: bool, addressing_mode
     errcode_try("clCreateSampler", errcode).and(Ok(sampler))
 }
 
-/// [UNTESTED]
 /// Increments a sampler reference counter.
 pub unsafe fn retain_sampler(sampler: &Sampler) -> OclResult<()> {
     errcode_try("clRetainSampler", cl_h::clRetainSampler(sampler.as_ptr()))
 }
 
-/// [UNTESTED]
 /// Decrements a sampler reference counter.
 pub unsafe fn release_sampler(sampler: &Sampler) -> OclResult<()> {
     errcode_try("clReleaseSampler", cl_h::clReleaseSampler(sampler.as_ptr()))
@@ -1356,7 +1352,6 @@ pub fn get_event_profiling_info(event: &Event, info_request: ProfilingInfo,
 /// Issues all previously queued OpenCL commands in a command-queue to the 
 /// device associated with the command-queue.
 pub fn flush(command_queue: &CommandQueue) -> OclResult<()> {
-    // cl_h::clFlush(command_queue: cl_command_queue) -> cl_int;
     unsafe { errcode_try("clFlush", cl_h::clFlush(command_queue.as_ptr())) }
 }
 
@@ -1417,11 +1412,16 @@ pub unsafe fn enqueue_read_buffer<T: OclNum, E: ClEventPtrNew>(
 /// [UNTESTED]
 /// Enqueues a command to read from a rectangular region from a buffer object to host memory.
 ///
-/// ## Official Documentation
+/// ### Safety
 ///
-/// [SDK - clEnqueueReadBufferRect]
+/// Short version: make sure the memory pointed to by the 
+/// slice, `data`, doesn't get reallocated before `new_event` is complete.
 ///
-/// [SDK - clEnqueueReadBufferRect]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html
+///
+/// ### Official Documentation
+///
+/// [SDK - clEnqueueReadBufferRect](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html)
+///
 pub unsafe fn enqueue_read_buffer_rect<T: OclNum, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
@@ -1462,8 +1462,6 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclNum, E: ClEventPtrNew>(
 
 /// Enqueues a write from host memory, `data`, to device memory referred to by
 /// `buffer`.
-///
-/// [FIXME]: Return result
 pub fn enqueue_write_buffer<T: OclNum, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
@@ -1552,7 +1550,7 @@ pub fn enqueue_fill_buffer() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED][UNUSED]
+/// [UNTESTED]
 /// Copies the contents of one buffer to another.
 #[allow(dead_code)]
 pub fn enqueue_copy_buffer<T: OclNum>(
@@ -1598,7 +1596,7 @@ pub fn enqueue_copy_buffer_rect() -> OclResult<()> {
 }
 
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNTESTED] Reads an image from device to host memory.
 pub fn enqueue_read_image<T, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             image: &Mem,
@@ -1822,8 +1820,7 @@ pub fn enqueue_kernel<E: ClEventPtrNew>(
     }
 }
 
-/// [UNTESTED]
-/// Enqueues a command to execute a kernel on a device.
+/// [UNTESTED] Enqueues a command to execute a kernel on a device.
 ///
 /// The kernel is executed using a single work-item.
 ///
@@ -1832,6 +1829,7 @@ pub fn enqueue_kernel<E: ClEventPtrNew>(
 /// and local_work_size[0] set to 1.
 ///
 /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueTask.html
+///
 pub fn enqueue_task<E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             kernel: &Kernel,
@@ -1939,8 +1937,6 @@ pub fn enqueue_barrier_with_wait_list() -> OclResult<()> {
 pub unsafe fn get_extension_function_address_for_platform(platform: &PlatformId,
             func_name: &str) -> OclResult<*mut c_void> 
 {
-    // clGetExtensionFunctionAddressForPlatform(platform: cl_platform_id,
-    //                    func_name: *const c_char) -> *mut c_void;
     let func_name_c = try!(CString::new(func_name));
 
     let ext_fn = cl_h::clGetExtensionFunctionAddressForPlatform(
@@ -1991,6 +1987,7 @@ pub fn create_build_program<D: ClDeviceIdPtr>(
     Ok(program)
 }
 
+/// Returns the maximum workgroup size of a device.
 pub fn get_max_work_group_size<D: ClDeviceIdPtr>(device: &D) -> usize {
     let mut max_work_group_size: usize = 0;
 
@@ -2008,14 +2005,12 @@ pub fn get_max_work_group_size<D: ClDeviceIdPtr>(device: &D) -> usize {
 }
 
 #[allow(dead_code)]
-/// [FIXME]: Why are we wrapping in this array? Fix this.
+/// Blocks until an event is complete.
 pub fn wait_for_event(event: &Event) {
-    // let event_array: [Event; 1] = [event];
     let errcode = unsafe {
         let event_ptr = *event.as_ptr_ref();
         cl_h::clWaitForEvents(1, &event_ptr)
     };
-
     errcode_assert("clWaitForEvents", errcode);
 }
 
