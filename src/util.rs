@@ -17,44 +17,66 @@ use super::OclNum;
 //================================= MACROS ====================================
 //=============================================================================
 
+/// `print!` with all the colors of the rainbow (the ANSI rainbow).
+///
+/// #### Usage
+/// 
+/// `printc!(yellow: "Number of banana peels on head: {}", hat_height);`
+///
+/// See [`colorify!` docs](http://doc.cogciprocate.com/ocl/macro.colorify!.html)
+/// for a current list of colors.
 #[macro_export]
 macro_rules! printc {
     ($c:ident: $fmt:expr) => ( print!(colorify!($c: $fmt)) );
     ($c:ident: $fmt:expr, $($arg:tt)*) => ( print!(colorify!($c: $fmt), $($arg)*) );
 }
 
+/// `println!` with pretty colors.
+///
+/// #### Usage
+/// 
+/// `printlnc!(dark_orange: "Number of baggies filled while walking dogs: {}", bag_count);`
+///
+/// See [`colorify!` docs](http://doc.cogciprocate.com/ocl/macro.colorify!.html)
+/// for a current list of colors.
 #[macro_export]
 macro_rules! printlnc {
     ($c:ident: $fmt:expr) => ( print!(concat!(colorify!($c: $fmt), "\n")) );
     ($c:ident: $fmt:expr, $($arg:tt)*) => ( print!(concat!(colorify!($c: $fmt), "\n"), $($arg)*) );
 }
 
+/// Adds color to a formatting literal.
+///
+/// #### Usage
+/// 
+/// `writeln!(fmtr, colorify!(red: "Number of zombies killed: {}"), zombie_kills);`
+///
 #[macro_export]
 macro_rules! colorify {
     (red: $s:expr) => ( concat!("\x1b[31m", $s, "\x1b[0m") );
-    (bright_red: $s:expr) => ( concat!("\x1b[1;31m", $s, "\x1b[0m") );
+    (bold_red: $s:expr) => ( concat!("\x1b[1;31m", $s, "\x1b[0m") );
     (green: $s:expr) => ( concat!("\x1b[32m", $s, "\x1b[0m") );
-    (bright_green: $s:expr) => ( concat!("\x1b[1;32m", $s, "\x1b[0m") );
-    (orange: $s:expr) => ( concat!("\x1b[33m", $s, "\x1b[0m") );
-    (bright_orange: $s:expr) => ( concat!("\x1b[1;33m", $s, "\x1b[0m") );
-    (indigo: $s:expr) => ( concat!("\x1b[34m", $s, "\x1b[0m") );
-    (bright_indigo: $s:expr) => ( concat!("\x1b[1;34m", $s, "\x1b[0m") );
+    (bold_green: $s:expr) => ( concat!("\x1b[1;32m", $s, "\x1b[0m") );
+    (dark_orange: $s:expr) => ( concat!("\x1b[33m", $s, "\x1b[0m") );
+    (bold_yellow: $s:expr) => ( concat!("\x1b[1;33m", $s, "\x1b[0m") );
+    (blue: $s:expr) => ( concat!("\x1b[34m", $s, "\x1b[0m") );
+    (bold_blue: $s:expr) => ( concat!("\x1b[1;34m", $s, "\x1b[0m") );
     (purple: $s:expr) => ( concat!("\x1b[35m", $s, "\x1b[0m") );
-    (bright_purple: $s:expr) => ( concat!("\x1b[1;35m", $s, "\x1b[0m") );
+    (bold_purple: $s:expr) => ( concat!("\x1b[1;35m", $s, "\x1b[0m") );
     (cyan: $s:expr) => ( concat!("\x1b[36m", $s, "\x1b[0m") );
-    (bright_cyan: $s:expr) => ( concat!("\x1b[1;36m", $s, "\x1b[0m") );
+    (bold_cyan: $s:expr) => ( concat!("\x1b[1;36m", $s, "\x1b[0m") );
     (light_grey: $s:expr) => ( concat!("\x1b[37m", $s, "\x1b[0m") );
-    (bright_white: $s:expr) => ( concat!("\x1b[1;37m", $s, "\x1b[0m") );
+    (bold_white: $s:expr) => ( concat!("\x1b[1;37m", $s, "\x1b[0m") );
     (dark_grey: $s:expr) => ( concat!("\x1b[90m", $s, "\x1b[0m") );
-    (bright_dark_grey: $s:expr) => ( concat!("\x1b[1;90m", $s, "\x1b[0m") );
+    (bold_dark_grey: $s:expr) => ( concat!("\x1b[1;90m", $s, "\x1b[0m") );
     (peach: $s:expr) => ( concat!("\x1b[91m", $s, "\x1b[0m") );
-    (bright_peach: $s:expr) => ( concat!("\x1b[1;91m", $s, "\x1b[0m") );
+    (bold_peach: $s:expr) => ( concat!("\x1b[1;91m", $s, "\x1b[0m") );
     (lime: $s:expr) => ( concat!("\x1b[92m", $s, "\x1b[0m") );
-    (bright_lime: $s:expr) => ( concat!("\x1b[1;92m", $s, "\x1b[0m") );
+    (bold_lime: $s:expr) => ( concat!("\x1b[1;92m", $s, "\x1b[0m") );
     (yellow: $s:expr) => ( concat!("\x1b[93m", $s, "\x1b[0m") );
-    (bright_yellow: $s:expr) => ( concat!("\x1b[1;93m", $s, "\x1b[0m") );
-    (blue: $s:expr) => ( concat!("\x1b[94m", $s, "\x1b[0m") );
-    (bright_blue: $s:expr) => ( concat!("\x1b[1;94m", $s, "\x1b[0m") );
+    (bold_yellow_2: $s:expr) => ( concat!("\x1b[1;93m", $s, "\x1b[0m") );
+    (royal_blue: $s:expr) => ( concat!("\x1b[94m", $s, "\x1b[0m") );
+    (bold_royal_blue: $s:expr) => ( concat!("\x1b[1;94m", $s, "\x1b[0m") );
 }
 
 // #[macro_export]
@@ -77,6 +99,7 @@ pub static TAB: &'static str = "    ";
 pub static C_DEFAULT: &'static str = "\x1b[0m";
 pub static C_UNDER: &'static str = "\x1b[1m";
 
+// 30–37
 pub static C_RED: &'static str = "\x1b[31m";
 pub static C_BRED: &'static str = "\x1b[1;31m";
 pub static C_GRN: &'static str = "\x1b[32m";
@@ -86,12 +109,19 @@ pub static C_DBL: &'static str = "\x1b[34m";
 pub static C_PUR: &'static str = "\x1b[35m";
 pub static C_CYA: &'static str = "\x1b[36m";
 pub static C_LGR: &'static str = "\x1b[37m";
+// [ADDME] 38: Extended Colors
+// pub static C_EXT38: &'static str = "\x1b[38m";
+pub static C_DFLT: &'static str = "\x1b[39m";
+
+// 90-97
 pub static C_DGR: &'static str = "\x1b[90m";
 pub static C_LRD: &'static str = "\x1b[91m";
 pub static C_YEL: &'static str = "\x1b[93m";
 pub static C_BLU: &'static str = "\x1b[94m";
-pub static C_MAG: &'static str = "\x1b[95m";
 pub static C_LBL: &'static str = "\x1b[94m";
+pub static C_MAG: &'static str = "\x1b[95m";
+// [ADDME] 38: Extended Colors
+// pub static C_EXT38: &'static str = "\x1b[38m";
 
 pub static BGC_DEFAULT: &'static str = "\x1b[49m";
 pub static BGC_GRN: &'static str = "\x1b[42m";

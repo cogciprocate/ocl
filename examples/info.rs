@@ -4,7 +4,8 @@
 //! `println("{}", &instance);` as `Display` is implemented for each.
 //!
 //! Printing algorithm is highly janky (due to laziness -- need to complete
-//! for each `*InfoResult` type).
+//! for each `*InfoResult` type) so lots of stuff isn't formatted correctly
+//! (or at all).
 //!
 //! 
 
@@ -55,7 +56,7 @@ fn main() {
 			let queue = Queue::new(&context, Some(device.clone()));
 			let buffer = Buffer::<f32>::new(&dims, &queue);
 			let image = Image::builder()
-				.dims(&SimpleDims::One(100))
+				.dims(&dims)
 				.build(&queue).unwrap();
 			// let sampler = Sampler::new();
 	    	let program = Program::builder()
@@ -92,19 +93,19 @@ fn main() {
 
 
 fn print_platform_info(platform: &Platform, p_idx: usize) {
-	printc!(indigo: "{}", platform);
+	printc!(blue: "{}", platform);
 	let devices = Device::list_all(platform);
-	printc!(indigo: " {{ Total Device Count: {} }}", devices.len());
+	printc!(blue: " {{ Total Device Count: {} }}", devices.len());
 	print!("\n");
 }
 
 
 fn print_device_info(device: &Device, d_idx: usize) {
 	if PRINT_DETAILED_DEVICE {
-		printlnc!(orange: "{}", device);
+		printlnc!(dark_orange: "{}", device);
 	} else {
 		if !PRINT_DETAILED { print!("{t}", t = TAB); } 
-		printlnc!(orange: "Device {{ Name: {}, Verdor: {} }}", device.name(), device.vendor());
+		printlnc!(dark_orange: "Device {{ Name: {}, Verdor: {} }}", device.name(), device.vendor());
 	}
 }
 
@@ -120,7 +121,7 @@ fn print_queue_info(queue: &Queue) {
 
 
 fn print_buffer_info<T: OclNum>(buffer: &Buffer<T>) {
-	printlnc!(blue: "{}", buffer);
+	printlnc!(royal_blue: "{}", buffer);
 }
 
 

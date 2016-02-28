@@ -309,7 +309,7 @@ impl<T: OclNum> Buffer<T> {
 
         // let blocking_write = dest_list.is_none();
         core::enqueue_write_buffer(&self.queue_obj_core, &self.obj_core, block, 
-            data, offset, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
 
@@ -352,7 +352,7 @@ impl<T: OclNum> Buffer<T> {
 
         // let blocking_read = dest_list.is_none();
         core::enqueue_read_buffer(&self.queue_obj_core, &self.obj_core, block, 
-            data, offset, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
     /// After waiting on events in `wait_list` to finish, writes the contents of
@@ -374,7 +374,7 @@ impl<T: OclNum> Buffer<T> {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
         core::enqueue_write_buffer(&self.queue_obj_core, &self.obj_core, block, 
-            vec, 0, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
     /// After waiting on events in `wait_list` to finish, reads the remote device 
@@ -400,7 +400,7 @@ impl<T: OclNum> Buffer<T> {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
         core::enqueue_read_buffer(&self.queue_obj_core, &self.obj_core, block, 
-            vec, 0, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
     /// Writes the contents of `self.vec` to the remote device data buffer and 
@@ -666,7 +666,7 @@ impl<T: OclNum> Buffer<T> {
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
         unsafe { core::enqueue_read_buffer::<T, EventCore>(&self.queue_obj_core, &self.obj_core, true, 
-            &mut vec[idx_range.clone()], idx_range.start, None, None).unwrap() };
+            idx_range.start, &mut vec[idx_range.clone()], None, None).unwrap() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 
     }

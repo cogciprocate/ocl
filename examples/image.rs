@@ -63,7 +63,9 @@ fn main() {
         .flags(ocl::MEM_WRITE_ONLY | ocl::MEM_HOST_READ_ONLY | ocl::MEM_COPY_HOST_PTR)
         .build_with_data(&queue, &data).unwrap();
 
-    println!("{:#}", src_image);
+    println!("Source {:#}", src_image);
+    print!("\n");
+    println!("Destination {:#}", src_image);
 
     let program = Program::builder()
         .src(KERNEL_SRC)
@@ -74,12 +76,13 @@ fn main() {
         .arg_img(&src_image)
         .arg_img(&dst_image);
 
+    print!("\n");
     println!("Kernel Info: {:#}", &kernel);
 
     kernel.enqueue();
 
     dst_image.read(&mut data).unwrap();
 
-    println!("data: [0..125]: {:?}", &data[0..125]);
-
+    print!("\n");
+    println!("data: [0..16]: {:?}", &data[0..16]);
 }
