@@ -32,7 +32,7 @@
 //! 1:1 parameter mapping between the `core` and original functions,
 //! it's close enough to help sort out any questions you may have until a
 //! more thorough documentation pass can be made. View the source code in 
-//! [`src/core/function.rs`] for mapping details.
+//! [`src/core/functions.rs`] for more mapping details.
 //!
 //! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
 //!
@@ -41,8 +41,8 @@
 //! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls). 
 //!
 //! [STATUS]: <br/>
-//! Coverage of core stuff: 90%. <br/>
-//! Coverage of peripheral stuff: 50 - 60%. <br/>
+//! Coverage of core stuff: 100%. <br/>
+//! Coverage of peripheral stuff: 90%. <br/>
 //!
 //! #### `core` Stands Alone
 //!	
@@ -57,7 +57,9 @@
 //! [`EventRaw::as_ptr`]: /ocl/core/struct.EventRaw.html#method.as_ptr
 //! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 //! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
-//! [`src/core/function.rs`]: /src/ocl/core/function.rs.html
+//! [`src/core/functions.rs`]: /src/ocl/src/core/functions.rs.html
+
+// https://github.com/cogciprocate/ocl/blob/master/src/core/functions.rs
 
 mod functions;
 mod cl;
@@ -103,7 +105,7 @@ pub use self::cl::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPt
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event,
     EventList, Sampler};
 
-pub use self::cl::image_st::{ImageFormat, ImageDescriptor};
+pub use self::cl::structs::{ImageFormat, ImageDescriptor, BufferRegion};
 
 pub use self::custom::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
     ContextInfoResult, ContextProperty, CommandQueueInfoResult, MemInfoResult,

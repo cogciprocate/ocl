@@ -17,10 +17,10 @@ use std::iter;
 use libc::{size_t, c_void};
 use num::{FromPrimitive};
 
-use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_mem_object_type, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
+use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_mem_object_type, cl_buffer_create_type, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn};
+use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, BufferCreateType};
 
 
 //============================================================================
@@ -61,7 +61,7 @@ fn errcode_assert(message: &str, errcode: cl_int) {
 }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_event_opts<E: ClEventPtrNew>(wait_list: Option<&EventList>, new_event: Option<&mut E>,
+fn resolve_event_ptrs<E: ClEventPtrNew>(wait_list: Option<&EventList>, new_event: Option<&mut E>,
         ) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)> 
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
@@ -509,7 +509,7 @@ pub fn create_command_queue<D: ClDeviceIdPtr>(
         cl_h::CL_QUEUE_PROFILING_ENABLE, 
         &mut errcode
     )) };
-    errcode_try("clCreateCommandQueue()", errcode).and(Ok(cq))
+    errcode_try("clCreateCommandQueue", errcode).and(Ok(cq))
 }
 
 /// Increments the reference count of a command queue.
@@ -573,33 +573,56 @@ pub fn create_buffer<T: OclNum>(
     let host_ptr = match data {
         Some(d) => {
             if d.len() != len { 
-                return OclError::err("ocl::create_buffer(): Data length mismatch.");
+                return OclError::err("ocl::create_buffer: Data length mismatch.");
             }
             d.as_ptr() as cl_mem
         },
         None => ptr::null_mut(),
     };
 
-    let buf = unsafe { Mem::from_fresh_ptr(cl_h::clCreateBuffer(
+    let buf_ptr = unsafe { cl_h::clCreateBuffer(
         context.as_ptr(), 
         flags.bits() as cl_mem_flags,
         len * mem::size_of::<T>(),
         host_ptr, 
         &mut errcode,
-    )) };
-    errcode_assert("create_buffer", errcode);
+    ) };
+    try!(errcode_try("create_buffer", errcode));
+    debug_assert!(!buf_ptr.is_null());
 
-    Ok(buf)
+    unsafe { Ok(Mem::from_fresh_ptr(buf_ptr)) }
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn create_sub_buffer() -> OclResult<()> {
-    // cl_h::clCreateSubBuffer(buffer: cl_mem,
-    //                     flags: cl_mem_flags,
-    //                     buffer_create_type: cl_buffer_create_type,
-    //                     buffer_create_info: *mut c_void,
-    //                     errcode_ret: *mut cl_int) -> cl_mem;
-    unimplemented!();
+/// [UNTESTED]
+/// Creates a new buffer object (referred to as a sub-buffer object) from an
+/// existing buffer object.
+///
+/// The returned sub-buffer has a number of caveats which can cause undefined
+/// behavior.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html)
+///
+pub fn create_sub_buffer(
+            buffer: &Mem,
+            flags: MemFlags,
+            buffer_create_info: &BufferRegion,
+        ) -> OclResult<Mem> 
+{
+    let buffer_create_type = BufferCreateType::Region;
+
+    let mut errcode = 0i32;
+
+    let sub_buf_ptr = unsafe { cl_h::clCreateSubBuffer(
+        buffer.as_ptr(),
+        flags.bits(),
+        buffer_create_type as cl_buffer_create_type,
+        buffer_create_info as *const _ as *const c_void,
+        &mut errcode,
+    ) };
+    try!(errcode_try("clCreateSubBuffer", errcode));
+    debug_assert!(!sub_buf_ptr.is_null()); 
+
+    unsafe { Ok(Mem::from_fresh_ptr(sub_buf_ptr)) }    
 }
 
 /// Returns a new image (mem) pointer.
@@ -626,19 +649,18 @@ pub fn create_image<T>(
         None => ptr::null_mut(),
     };
 
-    let image_ptr = unsafe { Mem::from_fresh_ptr(cl_h::clCreateImage(
+    let image_ptr = unsafe { cl_h::clCreateImage(
         context.as_ptr(),
         flags.bits() as cl_mem_flags,
         &format.to_raw() as *const cl_image_format,
         &desc.to_raw() as *const cl_image_desc,
         host_ptr,
         &mut errcode as *mut cl_int,
-    )) }; 
-    errcode_assert("create_image", errcode);
+    ) }; 
+    errcode_assert("clCreateImage", errcode);
+    debug_assert!(!image_ptr.is_null());
 
-    unsafe { assert!(!image_ptr.as_ptr().is_null()); }
-
-    Ok(image_ptr)
+    unsafe { Ok(Mem::from_fresh_ptr(image_ptr)) }
 }
 
 /// Increments the reference counter of a mem object.
@@ -830,9 +852,7 @@ pub fn get_sampler_info(obj: &Sampler, info_request: SamplerInfo,
 /// Creates a new program.
 pub fn create_program_with_source(
             context: &Context, 
-            src_strings: Vec<CString>,
-            // cmplr_opts: CString,
-            // device_ids: &Vec<DeviceId>,
+            src_strings: &[CString],
         ) -> OclResult<Program> 
 {
     // Verify that the context is valid:
@@ -846,26 +866,57 @@ pub fn create_program_with_source(
 
     let mut errcode: cl_int = 0;
     
-    let program = unsafe { Program::from_fresh_ptr(cl_h::clCreateProgramWithSource(
+    let program = unsafe { cl_h::clCreateProgramWithSource(
         context.as_ptr(), 
         kern_string_ptrs.len() as cl_uint,
         kern_string_ptrs.as_ptr() as *const *const i8,
         ks_lens.as_ptr() as *const usize,
         &mut errcode,
-    )) };
-    errcode_try("clCreateProgramWithSource()", errcode).and(Ok(program))
+    ) };
+    try!(errcode_try("clCreateProgramWithSource", errcode));
+
+    unsafe { Ok(Program::from_fresh_ptr(program)) }
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn create_program_with_binary() -> OclResult<()> {
-    // cl_h::clCreateProgramWithBinary(context: cl_context,
-    //                              num_devices: cl_uint,
-    //                              device_list: *const cl_device_id,
-    //                              lengths: *const size_t,
-    //                              binaries: *const *const c_uchar,
-    //                              binary_status: *mut cl_int,
-    //                              errcode_ret: *mut cl_int) -> cl_program;
-    unimplemented!();
+/// [UNTESTED]
+/// Creates a program object for a context, and loads the binary bits
+/// specified by binary into the program object.
+///
+/// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateProgramWithBinary.html
+///
+pub fn create_program_with_binary<D: ClDeviceIdPtr>(
+            context: &Context, 
+            devices: &[D],            
+            binaries: &[&[u8]],
+        ) -> OclResult<(Program)> 
+{
+    // assert!(devices.len() > 0);
+    // assert!(devices.len() == binaries.len());
+    if devices.len() == 0 { return OclError::err("ocl::create_program_with_binary: \
+        Length of 'devices' must be greater than zero."); }
+    if devices.len() != binaries.len() { return OclError::err("ocl::create_program_with_binary: \
+        Length of 'devices' must equal the length of 'binaries' (e.g. one binary per device)."); }
+
+    let lengths: Vec<usize> = binaries.iter().map(|bin| bin.len()).collect();
+    let mut binary_status: Vec<i32> = iter::repeat(0).take(devices.len()).collect();
+    let mut errcode: cl_int = 0;
+    
+    let program = unsafe { cl_h::clCreateProgramWithBinary(
+        context.as_ptr(),         
+        devices.len() as u32,
+        devices.as_ptr() as *const _ as *const cl_device_id,
+        lengths.as_ptr(),
+        binaries.as_ptr() as *const *const u8,
+        binary_status.as_mut_ptr(),
+        &mut errcode,
+    ) };
+    try!(errcode_try("clCreateProgramWithBinary", errcode));
+
+    for i in 0..binary_status.len() {
+        try!(errcode_try(&format!("clCreateProgramWithBinary: Device [{}]", i), binary_status[i]));
+    }
+
+    unsafe { Ok(Program::from_fresh_ptr(program)) }
 }
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
@@ -880,7 +931,6 @@ pub fn create_program_with_built_in_kernels() -> OclResult<()> {
 
 /// Increments a program reference counter.
 pub unsafe fn retain_program(program: &Program) -> OclResult<()> {
-    // cl_h::clRetainProgram(program: cl_program) -> cl_int;
     errcode_try("clRetainProgram", cl_h::clRetainProgram(program.as_ptr()))
 }
 
@@ -903,7 +953,7 @@ impl UserDataPh {
 pub fn build_program<D: ClDeviceIdPtr>(
             program: &Program,
             devices: &[D],
-            options: CString,
+            options: &CString,
             pfn_notify: Option<BuildProgramCallbackFn>,
             user_data: Option<Box<UserDataPh>>,
         ) -> OclResult<()> 
@@ -1373,14 +1423,15 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 /// Enqueues a read from device memory referred to by `buffer` to device memory,
 /// `data`.
 ///
-/// # Safety
+/// ### Safety
 ///
-/// It's complicated. Short version: make sure the memory pointed to by the 
-/// slice, `data`, doesn't get reallocated before `new_event` is complete.
+/// Caller must ensure that `data` lives until the read is complete. Use
+/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// an event list as `new_event`).
 ///
-/// [FIXME]: Add a proper explanation of all the ins and outs. 
 ///
-/// [FIXME]: Return result
+/// [`core::EventList::get_clone`]: http://doc.cogciprocate.com/ocl/core/struct.EventList.html#method.last_clone
+///
 pub unsafe fn enqueue_read_buffer<T: OclNum, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
@@ -1392,7 +1443,7 @@ pub unsafe fn enqueue_read_buffer<T: OclNum, E: ClEventPtrNew>(
         ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        try!(resolve_event_opts(wait_list, new_event));
+        try!(resolve_event_ptrs(wait_list, new_event));
 
     let errcode = cl_h::clEnqueueReadBuffer(
         command_queue.as_ptr(), 
@@ -1414,13 +1465,16 @@ pub unsafe fn enqueue_read_buffer<T: OclNum, E: ClEventPtrNew>(
 ///
 /// ### Safety
 ///
-/// Short version: make sure the memory pointed to by the 
-/// slice, `data`, doesn't get reallocated before `new_event` is complete.
-///
+/// Caller must ensure that `data` lives until the read is complete. Use
+/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// an event list as `new_event`).
 ///
 /// ### Official Documentation
 ///
 /// [SDK - clEnqueueReadBufferRect](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html)
+///
+///
+/// [`core::EventList::get_clone`]: http://doc.cogciprocate.com/ocl/core/struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer_rect<T: OclNum, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
@@ -1439,7 +1493,7 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclNum, E: ClEventPtrNew>(
         ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        try!(resolve_event_opts(wait_list, new_event));
+        try!(resolve_event_ptrs(wait_list, new_event));
 
     let errcode = cl_h::clEnqueueReadBufferRect(
         command_queue.as_ptr(), 
@@ -1473,7 +1527,7 @@ pub fn enqueue_write_buffer<T: OclNum, E: ClEventPtrNew>(
         ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_opts(wait_list, new_event));
+        try!(resolve_event_ptrs(wait_list, new_event));
 
     let errcode = unsafe { cl_h::clEnqueueWriteBuffer(
         command_queue.as_ptr(),
@@ -1515,7 +1569,7 @@ pub fn enqueue_write_buffer_rect<T: OclNum, E: ClEventPtrNew>(
     ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        try!(resolve_event_opts(wait_list, new_event));
+        try!(resolve_event_ptrs(wait_list, new_event));
 
     let errcode = unsafe { cl_h::clEnqueueWriteBufferRect(
         command_queue.as_ptr(), 
@@ -1536,18 +1590,47 @@ pub fn enqueue_write_buffer_rect<T: OclNum, E: ClEventPtrNew>(
     errcode_try("clEnqueueWriteBufferRect()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_fill_buffer() -> OclResult<()> {
-    // clEnqueueFillBuffer(command_queue: cl_command_queue,
-    //                 buffer: cl_mem, 
-    //                 pattern: *const c_void, 
-    //                 pattern_size: size_t, 
-    //                 offset: size_t, 
-    //                 size: size_t, 
-    //                 num_events_in_wait_list: cl_uint, 
-    //                 event_wait_list: *const cl_event, 
-    //                 event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to fill a buffer object with a pattern of a given pattern size.
+///
+/// ### Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
+///
+/// A pointer to the data pattern of size pattern_size in bytes. pattern will be
+/// used to fill a region in buffer starting at offset and is size bytes in size.
+/// The data pattern must be a scalar or vector integer or floating-point data
+/// type. For example, if buffer is to be filled with a pattern of float4 values,
+/// then pattern will be a pointer to a cl_float4 value and pattern_size will be
+/// sizeof(cl_float4). The maximum value of pattern_size is the size of the
+/// largest integer or floating-point vector data type supported by the OpenCL
+/// device. The memory associated with pattern can be reused or freed after the
+/// function returns.
+///
+pub fn enqueue_fill_buffer<T, E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            buffer: &Mem,
+            pattern: &[T],
+            pattern_size: usize,
+            offset: usize,
+            size: usize,
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { cl_h::clEnqueueFillBuffer(
+        command_queue.as_ptr(),
+        buffer.as_ptr(), 
+        &pattern as *const _ as *const c_void, 
+        pattern_size,
+        offset,
+        size,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueFillBuffer()", errcode)
 }
 
 /// [UNTESTED]
@@ -1577,27 +1660,62 @@ pub fn enqueue_copy_buffer<T: OclNum>(
     errcode_try("clEnqueueCopyBuffer()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_copy_buffer_rect() -> OclResult<()> {
-    // cl_h::clEnqueueCopyBufferRect(command_queue: cl_command_queue,
-    //                            src_buffer: cl_mem,
-    //                            dst_buffer: cl_mem,
-    //                            src_origin: *mut size_t,
-    //                            dst_origin: *mut size_t,
-    //                            region: *mut size_t,
-    //                            src_slc_pitch: size_t,
-    //                            src_slc_pitch: size_t,
-    //                            dst_slc_pitch: size_t,
-    //                            dst_slc_pitch: size_t,
-    //                            num_events_in_wait_list: cl_uint,
-    //                            event_wait_list: *const cl_event,
-    //                            event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to copy a rectangular region from a buffer object to
+/// another buffer object.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferRect.html)
+///
+pub fn enqueue_copy_buffer_rect<E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            src_buffer: &Mem, 
+            dst_buffer: &Mem, 
+            src_origin: [usize; 3],
+            dst_origin: [usize; 3],
+            region: [usize; 3],
+            src_row_pitch: usize,
+            src_slc_pitch: usize,
+            dst_row_pitch: usize,
+            dst_slc_pitch: usize,
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) = 
+        try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { cl_h::clEnqueueCopyBufferRect(
+        command_queue.as_ptr(), 
+        src_buffer.as_ptr(), 
+        dst_buffer.as_ptr(), 
+        &src_origin as *const _ as *const usize,
+        &dst_origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
+        src_row_pitch,
+        src_slc_pitch,
+        dst_row_pitch,
+        dst_slc_pitch,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueCopyBufferRect()", errcode)
 }
 
 
-/// [UNTESTED] Reads an image from device to host memory.
-pub fn enqueue_read_image<T, E: ClEventPtrNew>(
+/// [UNTESTED] 
+/// Reads an image from device to host memory.
+///
+/// ### Safety
+///
+/// Caller must ensure that `data` lives until the read is complete. Use
+/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// an event list as `new_event`).
+///
+/// [`core::EventList::get_clone`]: http://doc.cogciprocate.com/ocl/core/struct.EventList.html#method.last_clone
+///
+// pub unsafe fn enqueue_read_image<T, E: ClEventPtrNew>(
+pub unsafe fn enqueue_read_image<T, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             image: &Mem,
             block: bool,
@@ -1611,10 +1729,9 @@ pub fn enqueue_read_image<T, E: ClEventPtrNew>(
         ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
-        = resolve_event_opts(wait_list, new_event)
-            .expect("[FIXME: Return result]: enqueue_write_buffer()");
+        = try!(resolve_event_ptrs(wait_list, new_event));
 
-    let errcode = unsafe { cl_h::clEnqueueReadImage(
+    let errcode = cl_h::clEnqueueReadImage(
         command_queue.as_ptr(),
         image.as_ptr(),
         block as cl_uint,
@@ -1626,7 +1743,7 @@ pub fn enqueue_read_image<T, E: ClEventPtrNew>(
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
-    ) };
+    );
     errcode_try("clEnqueueReadImage()", errcode)
 }
 
@@ -1648,8 +1765,7 @@ pub fn enqueue_write_image<T, E: ClEventPtrNew>(
         ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
-        = resolve_event_opts(wait_list, new_event)
-            .expect("[FIXME: Return result]: enqueue_write_buffer()");
+        = try!(resolve_event_ptrs(wait_list, new_event));
 
     let errcode = unsafe { cl_h::clEnqueueWriteImage(
         command_queue.as_ptr(),
@@ -1667,114 +1783,317 @@ pub fn enqueue_write_image<T, E: ClEventPtrNew>(
     errcode_try("clEnqueueWriteImage()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_fill_image() -> OclResult<()> {
-    // clEnqueueFillImage(command_queue: cl_command_queue,
-    //                   image: cl_mem, 
-    //                   fill_color: *const c_void, 
-    //                   origin: *const size_t, 
-    //                   region: *const size_t, 
-    //                   num_events_in_wait_list: cl_uint, 
-    //                   event_wait_list: *const cl_event, 
-    //                   event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to fill an image object with a specified color.
+///
+/// ### Fill Color (from [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillImage.html)
+///
+/// The fill color. The fill color is a four component RGBA floating-point color
+/// value if the image channel data type is not an unnormalized signed and
+/// unsigned integer type, is a four component signed integer value if the image
+/// channel data type is an unnormalized signed integer type and is a four
+/// component unsigned integer value if the image channel data type is an
+/// unormalized unsigned integer type. The fill color will be converted to the
+/// appropriate image channel format and order associated with image.
+///
+/// TODO: Trait constraints for `T`. Presumably it should be 32bits? Testing needed.
+pub fn enqueue_fill_image<T, E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            image: &Mem,
+            fill_color: [T; 4],
+            origin: [usize; 3],
+            region: [usize; 3],
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { cl_h::clEnqueueFillImage(
+        command_queue.as_ptr(),
+        image.as_ptr(), 
+        &fill_color as *const _ as *const c_void, 
+        &origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueFillImage()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_copy_image() -> OclResult<()> {
-    // cl_h::clEnqueueCopyImage(command_queue: cl_command_queue,
-    //                       src_image: cl_mem,
-    //                       dst_image: cl_mem,
-    //                       src_origin: *mut size_t,
-    //                       dst_origin: *mut size_t,
-    //                       region: *mut size_t,
-    //                       num_events_in_wait_list: cl_uint,
-    //                       event_wait_list: *const cl_event,
-    //                       event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to copy image objects.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImage.html)
+pub fn enqueue_copy_image<E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            src_image: &Mem,
+            dst_image: &Mem,
+            src_origin: [usize; 3],
+            dst_origin: [usize; 3],
+            region: [usize; 3],
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { cl_h::clEnqueueCopyImage(
+        command_queue.as_ptr(),
+        src_image.as_ptr(),
+        dst_image.as_ptr(),
+        &src_origin as *const _ as *const usize,
+        &dst_origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueCopyImage()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_copy_image_to_buffer() -> OclResult<()> {
-    // cl_h::clEnqueueCopyImageToBuffer(command_queue: cl_command_queue,
-    //                               src_image: cl_mem,
-    //                               dst_buffer: cl_mem,
-    //                               src_origin: *mut size_t,
-    //                               region: *mut size_t,
-    //                               dst_offset: size_t,
-    //                               num_events_in_wait_list: cl_uint,
-    //                               event_wait_list: *const cl_event,
-    //                               event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to copy an image object to a buffer object.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImageToBuffer.html)
+pub fn enqueue_copy_image_to_buffer<E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            src_image: &Mem,
+            dst_buffer: &Mem,
+            src_origin: [usize; 3],
+            region: [usize; 3],
+            dst_offset: usize,
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { cl_h::clEnqueueCopyImageToBuffer(
+        command_queue.as_ptr(),
+        src_image.as_ptr(),
+        dst_buffer.as_ptr(),
+        &src_origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
+        dst_offset,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueCopyImageToBuffer()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_copy_buffer_to_image() -> OclResult<()> {
-    // cl_h::clEnqueueCopyBufferToImage(command_queue: cl_command_queue,
-    //                               src_buffer: cl_mem,
-    //                               dst_image: cl_mem,
-    //                               src_offset: size_t,
-    //                               dst_origin: *mut size_t,
-    //                               region: *mut size_t,
-    //                               num_events_in_wait_list: cl_uint,
-    //                               event_wait_list: *const cl_event,
-    //                               event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to copy a buffer object to an image object.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferToImage.html)
+pub fn enqueue_copy_buffer_to_image<E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            src_buffer: &Mem,
+            dst_image: &Mem,
+            src_offset: usize,
+            dst_origin: [usize; 3],
+            region: [usize; 3],            
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { cl_h::clEnqueueCopyBufferToImage(
+        command_queue.as_ptr(),
+        src_buffer.as_ptr(),
+        dst_image.as_ptr(),
+        src_offset,
+        &dst_origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueCopyBufferToImage()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_map_buffer() -> OclResult<()> {
-    // cl_h::clEnqueueMapBuffer(command_queue: cl_command_queue,
-    //                       buffer: cl_mem,
-    //                       blocking_map: cl_bool,
-    //                       map_flags: cl_map_flags,
-    //                       offset: size_t,
-    //                       cb: size_t,
-    //                       num_events_in_wait_list: cl_uint,
-    //                       event_wait_list: *const cl_event,
-    //                       event: *mut cl_event,
-    //                       errorcode_ret: *mut cl_int);
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to map a region of the buffer object given by `buffer` into
+/// the host address space and returns a pointer to this mapped region.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html)
+///
+/// ### Stability
+///
+/// This function will eventually return a safe wrapper for the mapped host
+/// memory. Until then, just create a `Vec` from the returned pointer using
+/// `size` / size_of::<T>() as the length and capacity.
+///
+/// ### Safety
+///
+/// Caller must ensure that the returned pointer is not used until the map is complete. Use
+/// `new_event` to monitor it. [TEMPORARY] It also must be ensured that memory referred to by the returned pointer is not dropped, reused, or otherwise interfered with until `enqueue_unmap_mem_object` is called.
+///
+/// 
+/// TODO: Return a new wrapped type representing the newly mapped memory.
+///
+/// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
+///
+///
+pub unsafe fn enqueue_map_buffer<T, E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            buffer: &Mem,
+            block: bool,
+            map_flags: MapFlags,
+            offset: usize,
+            size: usize,         
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<*mut c_void> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+    let mut errcode = 0i32;
+
+    let mapped_ptr = cl_h::clEnqueueMapBuffer(
+        command_queue.as_ptr(),
+        buffer.as_ptr(),
+        block as cl_uint,
+        map_flags.bits(),
+        offset,
+        size,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+        &mut errcode,
+    );
+    try!(errcode_try("clEnqueueMapBuffer()", errcode));
+
+    Ok(mapped_ptr)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_map_image() -> OclResult<()> {
-    // cl_h::clEnqueueMapImage(command_queue: cl_command_queue,
-    //                      image: cl_mem,
-    //                      blocking_map: cl_bool,
-    //                      map_flags: cl_map_flags,
-    //                      origin: *mut size_t,
-    //                      region: *mut size_t,
-    //                      image_slc_pitch: size_t,
-    //                      image_slc_pitch: size_t,
-    //                      num_events_in_wait_list: cl_uint,
-    //                      event_wait_list: *const cl_event,
-    //                      event: *mut cl_event,
-    //                      errorcode_ret: *mut cl_int);
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to map a region of the image object given by `image` into
+/// the host address space and returns a pointer to this mapped region.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html)
+///
+/// ### Stability
+///
+/// This function will eventually return a safe wrapper for the mapped host
+/// memory. Until then, just create a `Vec` from the returned pointer using
+/// `size` / size_of::<T>() as the length and capacity.
+///
+/// ### Safety
+///
+/// Caller must ensure that the returned pointer is not used until the map is complete. Use
+/// `new_event` to monitor it. [TEMPORARY] It also must be ensured that memory referred to by the returned pointer is not dropped, reused, or otherwise interfered with until `enqueue_unmap_mem_object` is called.
+///
+/// 
+/// TODO: Return a new wrapped type representing the newly mapped memory.
+///
+/// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
+///
+///
+pub unsafe fn enqueue_map_image<T, E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            image: &Mem,
+            block: bool,
+            map_flags: MapFlags,
+            origin: [usize; 3],
+            region: [usize; 3],
+            row_pitch: usize,
+            slc_pitch: usize,        
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<*mut c_void> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+    let mut errcode = 0i32;
+
+    let mapped_ptr = cl_h::clEnqueueMapImage(
+        command_queue.as_ptr(),
+        image.as_ptr(),
+        block as cl_uint,
+        map_flags.bits(),
+        &origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
+        row_pitch,
+        slc_pitch,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+        &mut errcode,
+    );
+    try!(errcode_try("clEnqueueMapImage()", errcode));
+
+    Ok(mapped_ptr)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_unmap_mem_object() -> OclResult<()> {
-    // cl_h::clEnqueueUnmapMemObject(command_queue: cl_command_queue,
-    //                            memobj: cl_mem,
-    //                            mapped_ptr: *mut c_void,
-    //                            num_events_in_wait_list: cl_uint,
-    //                            event_wait_list: *const cl_event,
-    //                            event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to unmap a previously mapped region of a memory object.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueUnmapMemObject.html)
+///
+/// ### Stability
+///
+/// This function will eventually accept a safe wrapper of some sort for the
+/// mapped host memory rather than a pointer.
+///
+pub fn enqueue_unmap_mem_object<E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            memobj: &Mem,
+            mapped_ptr: *mut c_void,
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> {
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+    
+    let errcode = unsafe { cl_h::clEnqueueUnmapMemObject(
+        command_queue.as_ptr(),
+        memobj.as_ptr(),
+        mapped_ptr,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueUnmapMemObject()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_migrate_mem_objects() -> OclResult<()> {
-    // clEnqueueMigrateMemObjects(command_queue: cl_command_queue,
-    //                           num_mem_objects: cl_uint,
-    //                           mem_objects: *const cl_mem,
-    //                           flags: cl_mem_migration_flags,
-    //                           num_events_in_wait_list: cl_uint,
-    //                           event_wait_list: *const cl_event,
-    //                           event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a command to indicate which device a set of memory objects should
+/// be associated with.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMigrateMemObjects.html)
+pub fn enqueue_migrate_mem_objects<E: ClEventPtrNew>(
+            command_queue: &CommandQueue,
+            num_mem_objects: u32,
+            mem_objects: &[Mem],
+            flags: MemMigrationFlags,           
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = try!(resolve_event_ptrs(wait_list, new_event));
+
+    let mem_ptr_list: Vec<cl_mem> = mem_objects.iter()
+        .map(|ref mem_obj| unsafe { mem_obj.as_ptr() } ).collect();
+
+    let errcode = unsafe { cl_h::clEnqueueMigrateMemObjects(
+        command_queue.as_ptr(),
+        num_mem_objects,
+        mem_ptr_list.as_ptr() as *const _ as *const cl_mem,
+        flags.bits(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueMigrateMemObjects()", errcode)
 }
 
 /// Enqueues a command to execute a kernel on a device.
@@ -1797,7 +2116,7 @@ pub fn enqueue_kernel<E: ClEventPtrNew>(
         ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        try!(resolve_event_opts(wait_list, new_event));
+        try!(resolve_event_ptrs(wait_list, new_event));
     let gwo = resolve_work_dims(&global_work_offset);
     let gws = &global_work_dims as *const size_t;
     let lws = resolve_work_dims(&local_work_dims);
@@ -1839,20 +2158,17 @@ pub fn enqueue_task<E: ClEventPtrNew>(
         ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
-        try!(resolve_event_opts(wait_list, new_event));
+        try!(resolve_event_ptrs(wait_list, new_event));
     
-    unsafe {
-        let errcode = cl_h::clEnqueueTask(
+    let errcode = unsafe { cl_h::clEnqueueTask(
             command_queue.as_ptr(),
             kernel.as_ptr() as cl_kernel,
             wait_list_len,
             wait_list_ptr,
             new_event_ptr,
-        );
-
-        let errcode_pre = format!("clEnqueueTask('{}'):", kernel_name.unwrap_or(""));
-        errcode_try(&errcode_pre, errcode)
-    }
+    ) };
+    let errcode_pre = format!("clEnqueueTask('{}'):", kernel_name.unwrap_or(""));
+    errcode_try(&errcode_pre, errcode)    
 }
 
 /// [UNIMPLEMENTED][PLACEHOLDER]
@@ -1870,23 +2186,49 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_marker_with_wait_list() -> OclResult<()> {
-    // clEnqueueMarkerWithWaitList(command_queue: cl_command_queue,
-    //          num_events_in_wait_list: cl_uint,
-    //          event_wait_list: *const cl_event,
-    //          event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// Enqueues a marker command which waits for either a list of events to
+/// complete, or all previously enqueued commands to complete.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMarkerWithWaitList.html)
+pub fn enqueue_marker_with_wait_list<E: ClEventPtrNew>(
+            command_queue: &CommandQueue,          
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+    
+    let errcode = unsafe { cl_h::clEnqueueMarkerWithWaitList(
+        command_queue.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueMarkerWithWaitList()", errcode)
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
-pub fn enqueue_barrier_with_wait_list() -> OclResult<()> {
-    // clEnqueueBarrierWithWaitList(
-    //          command_queue: cl_command_queue,
-    //          num_events_in_wait_list: cl_uint,
-    //          event_wait_list: *const cl_event,
-    //          event: *mut cl_event) -> cl_int;
-    unimplemented!();
+/// [UNTESTED]
+/// A synchronization point that enqueues a barrier operation.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueBarrierWithWaitList.html)
+pub fn enqueue_barrier_with_wait_list<E: ClEventPtrNew>(
+            command_queue: &CommandQueue,          
+            wait_list: Option<&EventList>, 
+            new_event: Option<&mut E>,
+        ) -> OclResult<()> 
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+    
+    let errcode = unsafe { cl_h::clEnqueueBarrierWithWaitList(
+        command_queue.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    ) };
+    errcode_try("clEnqueueBarrierWithWaitList()", errcode)
 }
 
 
@@ -1977,8 +2319,8 @@ pub fn get_first_platform() -> OclResult<PlatformId> {
 /// from here.
 pub fn create_build_program<D: ClDeviceIdPtr>(
             context: &Context, 
-            src_strings: Vec<CString>,
-            cmplr_opts: CString,
+            src_strings: &Vec<CString>,
+            cmplr_opts: &CString,
             device_ids: &[D],
         ) -> OclResult<Program> 
 {

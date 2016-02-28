@@ -5,6 +5,35 @@ use error::{Error as OclError, Result as OclResult};
 use cl_h::{self, cl_mem};
 use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType};
 
+
+
+/// Defines a buffer region for creating a sub-buffer.
+///
+/// ### Info (from [SDK](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html))
+///
+/// (origin, size) defines the offset and size in bytes in buffer.
+///
+/// If buffer is created with CL_MEM_USE_HOST_PTR, the host_ptr associated with
+/// the buffer object returned is host_ptr + origin.
+///
+/// The buffer object returned references the data store allocated for buffer and
+/// points to a specific region given by (origin, size) in this data store.
+///
+/// CL_INVALID_VALUE is returned in errcode_ret if the region specified by
+/// (origin, size) is out of bounds in buffer.
+///
+/// CL_INVALID_BUFFER_SIZE if size is 0.
+///
+/// CL_MISALIGNED_SUB_BUFFER_OFFSET is returned in errcode_ret if there are no
+/// devices in context associated with buffer for which the origin value is
+/// aligned to the CL_DEVICE_MEM_BASE_ADDR_ALIGN value.
+///
+pub struct BufferRegion {
+    pub origin: usize,
+    pub size: usize,
+}
+
+
 /// Image format properties used by `Image`.
 ///
 /// A structure that describes format properties of the image to be allocated. (from SDK)
