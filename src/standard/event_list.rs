@@ -1,6 +1,6 @@
 //! Event list for coordinating enqueued commands.
 
-// use std::ptr;
+use std::ops::{Deref, DerefMut};
 use libc::c_void;
 
 use error::{Result as OclResult, Error as OclError};
@@ -208,6 +208,21 @@ impl EventList {
     //     self.clear();
     // }
 }
+
+impl Deref for EventList {
+    type Target = EventListCore;
+
+    fn deref(&self) -> &EventListCore {
+        &self.event_list_core
+    }
+}
+
+impl DerefMut for EventList {
+    fn deref_mut(&mut self) -> &mut EventListCore {
+        &mut self.event_list_core
+    }
+}
+
 
 // impl Drop for EventList {
 //     fn drop(&mut self) {

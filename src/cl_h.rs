@@ -676,7 +676,7 @@ extern "C" {
     pub fn clCreateSubBuffer(buffer: cl_mem,
                         flags: cl_mem_flags,
                         buffer_create_type: cl_buffer_create_type,
-                        buffer_create_info: *mut c_void,
+                        buffer_create_info: *const c_void,
                         errcode_ret: *mut cl_int) -> cl_mem;
 
     // //##### DEPRICATED 1.1 #####
@@ -1122,11 +1122,11 @@ extern "C" {
                           blocking_map: cl_bool,
                           map_flags: cl_map_flags,
                           offset: size_t,
-                          cb: size_t,
+                          size: size_t,
                           num_events_in_wait_list: cl_uint,
                           event_wait_list: *const cl_event,
                           event: *mut cl_event,
-                          errorcode_ret: *mut cl_int);
+                          errorcode_ret: *mut cl_int) -> *mut c_void;
 
     pub fn clEnqueueMapImage(command_queue: cl_command_queue,
                          image: cl_mem,
@@ -1139,7 +1139,7 @@ extern "C" {
                          num_events_in_wait_list: cl_uint,
                          event_wait_list: *const cl_event,
                          event: *mut cl_event,
-                         errorcode_ret: *mut cl_int);
+                         errorcode_ret: *mut cl_int) -> *mut c_void;
 
     pub fn clEnqueueUnmapMemObject(command_queue: cl_command_queue,
                                memobj: cl_mem,

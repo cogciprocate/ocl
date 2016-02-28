@@ -52,7 +52,7 @@ impl Program {
                 device_ids: &[Device],
             ) -> OclResult<Program> 
     {
-        let obj_core = try!(core::create_build_program(context_obj_core, src_strings, cmplr_opts, 
+        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts, 
              device_ids).map_err(|e| e.to_string()));
 
         Ok(Program {

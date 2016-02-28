@@ -310,6 +310,7 @@ impl<T: OclNum> Buffer<T> {
         // let blocking_write = dest_list.is_none();
         core::enqueue_write_buffer(&self.queue_obj_core, &self.obj_core, block, 
             offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            // offset, data, wait_list.map(|el| el.core_as_ref()), dest_list)
     }
 
 

@@ -68,7 +68,15 @@ impl Image {
     ///
     /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadImage.html)
     /// for more detailed information.
-    pub fn enqueue_read<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
+    ///
+    /// ### Safety
+    ///
+    /// Caller must ensure that `data` lives until the read is complete. Use
+    /// the new event in `dest_list` to monitor it (use [`EventList::last_clone`]).
+    ///
+    /// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
+    ///
+    pub unsafe fn enqueue_read<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
                 row_pitch: usize, slc_pitch: usize, data: &mut [T], wait_list: Option<&EventList>,
                 dest_list: Option<&mut EventList>) -> OclResult<()> 
     {
@@ -97,7 +105,8 @@ impl Image {
     ///
     /// Use `::enqueue_read` for the complete range of options.
     pub fn read<T>(&self, data: &mut [T]) -> OclResult<()> {
-        self.enqueue_read(true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None)
+        // Safe because `block = true`:
+        unsafe { self.enqueue_read(true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None) }
     }
 
     /// Writes from `data` to the device image buffer, blocking until complete.

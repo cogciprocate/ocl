@@ -1,6 +1,7 @@
 //! An OpenCL event.
 
 use std;
+use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
 
@@ -94,6 +95,22 @@ impl std::fmt::Display for Event {
         self.fmt_info(f)
     }
 }
+
+
+impl Deref for Event {
+    type Target = EventCore;
+
+    fn deref(&self) -> &EventCore {
+        &self.0
+    }
+}
+
+impl DerefMut for Event {
+    fn deref_mut(&mut self) -> &mut EventCore {
+        &mut self.0
+    }
+}
+
 
 
 //     // ##################################################
