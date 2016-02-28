@@ -1,6 +1,31 @@
 //! Custom enumerators not specifically based on OpenCL C-style enums.
 //!
-//! Bleh. Implementing these sucks.
+//! #### Complete
+//!
+//! * PlatformInfoResult
+//! * ContextInfoResult
+//!
+//!
+//! #### Incomplete 
+//! 
+//! The following are using placeholder variants and types meaning everything
+//! is just stored and formatted as raw bytes.
+//!
+//! * DeviceInfoResult
+//! * CommandQueueInfoResult
+//! * MemInfoResult
+//! * ImageInfoResult
+//! * SamplerInfoResult
+//! * ProgramInfoResult
+//! * ProgramBuildInfoResult
+//! * KernelInfoResult
+//! * KernelArgInfoResult
+//! * KernelWorkGroupInfoResult
+//! * EventInfoResult
+//! * ProfilingInfoResult
+//! 
+//!
+//! Bleh. Implementing these sucks. On hold for a while.
 //! 
 //! TODO: ADD ERROR VARIANT FOR EACH OF THE RESULT ENUMS.
 
