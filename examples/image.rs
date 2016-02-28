@@ -3,15 +3,13 @@
 //!
 //! Optionally saves for viewing, fiddle with consts/statics below.
 
-#![allow(unused_imports, unused_variables, dead_code)]
+// #![allow(unused_imports, unused_variables, dead_code)]
 
 extern crate image;
 extern crate ocl;
 
-use std::convert::From;
-use std::fs::File;
 use std::path::Path;
-use ocl::{SimpleDims, Context, Queue, DeviceSpecifier, Image, Program, Kernel, ImageFormat,
+use ocl::{Context, Queue, DeviceSpecifier, Image, Program, Kernel,
     ImageChannelOrder, ImageChannelDataType, MemObjectType};
 
 const SAVE_IMAGES_TO_DISK: bool = false;
@@ -42,8 +40,6 @@ static KERNEL_SRC: &'static str = r#"
 ///
 /// Generates a diagonal reddish stripe and a grey background.
 fn generate_image() -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
-    let img: image::ImageBuffer<image::Rgba<u8>, _> = image::ImageBuffer::new(512, 512);
-
     let img = image::ImageBuffer::from_fn(512, 512, |x, y| {
         let near_midline = (x + y < 536) && (x + y > 488);
 
@@ -57,7 +53,8 @@ fn generate_image() -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     img
 }
 
-#[allow(unused_variables)]
+
+/// Generates and image then sends it through a kernel and optionally saves.
 fn main() {
     let mut img = generate_image();
 
@@ -75,12 +72,23 @@ fn main() {
     println!("Image Formats Avaliable: {}.", img_formats.len());
     // println!("Image Formats: {:#?}.", img_formats);
 
-    // let dims = SimpleDims::Two(200, 200);
     let dims = img.dimensions().into();
 
-    // Width * Height * Image Channel Count * Image Channel Size:
-    let image_bytes = 500 * 500 * 4 * 1;
-
+    // When mapping settings from `image` crate:
+    // 
+    // Map `ImageChannelOrder` roughly like this:
+    // image::Rgba => ImageChannelOrder::Rgba
+    // image::Rgb  => ImageChannelOrder::Rgb
+    // image::Luma => ImageChannelOrder::Luminance
+    // image::LumaA => Not sure
+    //
+    // Then just map your primitive type with ImageChannelDataType i.e.:
+    // u8 => ImageChannelDataType::UnormInt8
+    // f32 => ImageChannelDataType::Float
+    // etc.
+    // 
+    // Will probably be some automation for this in the future.
+    //
     let src_image = Image::builder()
         .channel_order(ImageChannelOrder::Rgba)
         .channel_data_type(ImageChannelDataType::UnormInt8)
