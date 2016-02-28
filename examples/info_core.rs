@@ -21,7 +21,9 @@ fn main() {
 	let context = Context::new_by_index_and_type(None, None).unwrap();
 	let queue = Queue::new_by_device_index(&context, None);
 	let buffer = Buffer::<f32>::new(&dims, &queue);
-	let image = Image::builder().build(&queue).unwrap();
+	let image = Image::builder()
+		.dims(&dims)
+		.build(&queue).unwrap();
 	// let sampler = Sampler::new();
 	let program = Program::builder().src(SRC).build(&context).unwrap();
 	let device = program.devices()[0].clone();
