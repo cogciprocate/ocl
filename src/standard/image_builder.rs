@@ -1,4 +1,4 @@
-//! [UNTESTED][UNUSED] The builder type for `Image`.
+//! The builder type for `Image`.
 //!
 //!
 
@@ -13,7 +13,7 @@ use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor,
 
 
 
-/// [WORK IN PROGRESS] A builder for `Image`. 
+/// A builder for `Image`. 
 pub struct ImageBuilder {
     flags: MemFlags,
     image_format: ImageFormat,

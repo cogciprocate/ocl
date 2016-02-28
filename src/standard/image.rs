@@ -1,4 +1,4 @@
-//! [WORK IN PROGRESS][UNTESTED] An OpenCL Image.
+//! An OpenCL Image.
 //!
 //! TODO: Implement types for each pixel format.
 
@@ -11,7 +11,7 @@ use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, CommandQueue as CommandQueueCore};
 
 
-/// [WORK IN PROGRESS][UNTESTED] An Image. 
+/// An Image. 
 ///
 /// Use `::builder` for an easy way to create. [UNIMPLEMENTED]
 ///
