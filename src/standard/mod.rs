@@ -79,10 +79,6 @@ mod traits {
 	    fn padded_buffer_len(&self, incr: usize) -> usize { (*self).padded_buffer_len(incr) }
 	}
 
-	// impl<'a, T> BufferDims for &'a T where T: Into<SimpleDims> + Num + ToPrimitive + Debug + Copy {
-	//     fn padded_buffer_len(&self, incr: usize) -> usize { (*self).into::<SimpleDims>().padded_buffer_len(incr) }
-	// }
-
 
 	impl<'a, T> BufferDims for &'a (T, ) where T: Num + ToPrimitive + Debug + Copy {
 	    fn padded_buffer_len(&self, incr: usize) -> usize {
@@ -96,36 +92,18 @@ mod traits {
 	    }
 	}
 
-
-	// impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T)> for SimpleDims {
-	//     fn from(pair: (T, T)) -> SimpleDims {
-	//         SimpleDims::Two(to_usize(pair.0), to_usize(pair.1))
-	//     }
-	// }
 	impl<'a, T> BufferDims for &'a (T, T) where T: Num + ToPrimitive + Debug + Copy {
 	    fn padded_buffer_len(&self, incr: usize) -> usize {
 	    	SimpleDims::Two(to_usize(self.0), to_usize(self.1)).padded_buffer_len(incr)
 	    }
 	}
 
-
-	// impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 2]> for SimpleDims {
-	//     fn from(pair: [T; 2]) -> SimpleDims {
-	//         SimpleDims::Two(to_usize(pair[0]), to_usize(pair[1]))
-	//     }
-	// }
 	impl<'a, T> BufferDims for &'a [T; 2] where T: Num + ToPrimitive + Debug + Copy {
 		fn padded_buffer_len(&self, incr: usize) -> usize {
 	        SimpleDims::Two(to_usize(self[0]), to_usize(self[1])).padded_buffer_len(incr)
 	    }
 	}
 
-
-	// impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T, T)> for SimpleDims {
-	//     fn from(self: (T, T, T)) -> SimpleDims {
-	//         SimpleDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2))
-	//     }
-	// }
 	impl<'a, T> BufferDims for &'a (T, T, T) where T: Num + ToPrimitive + Debug + Copy {
 	    fn padded_buffer_len(&self, incr: usize) -> usize {
 	        SimpleDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2))
@@ -133,31 +111,12 @@ mod traits {
 	    }
 	}
 
-
-	// impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 3]> for SimpleDims {
-	//     fn from(self: [T; 3]) -> SimpleDims {
-	//         SimpleDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2]))
-	//     }
-	// }
 	impl<'a, T> BufferDims for &'a [T; 3] where T: Num + ToPrimitive + Debug + Copy {
 		fn padded_buffer_len(&self, incr: usize) -> usize {
 	        SimpleDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2]))
 	        	.padded_buffer_len(incr)
 	    }
-	}
-
-
-
-
-
-
-
-
-	
-
-	
-
-	
+	}	
 }
 
 

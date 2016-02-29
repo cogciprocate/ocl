@@ -9,8 +9,14 @@ New Features
 ------------
 * Most of the remaining functions in the `core` module have been implemented.
   Coverage is now about 98%.
-* `Sampler` has been added along with the appropriate methods on `Kernel`
+* [`Sampler`] has been added along with the appropriate methods on [`Kernel`]
   to accept samplers as arguments. See `examples/image.rs` for usage.
+* Dimensions for images, buffers, kernels, and everything else can now be
+  specified by using a tuple or array with 1, 2, or, 3 components (i.e. `(80,
+  150)` or `[5, 1, 7]` or just `[250]`).
+
+
+[`Sampler`]: http://doc.cogciprocate.com/ocl/struct.Sampler.html
 
 
 Version 0.7.0 (2016-02-27)

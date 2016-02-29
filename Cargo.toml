@@ -24,7 +24,7 @@ bitflags = "0.4"
 
 [dev-dependencies]
 # time = "*"
-image = "*"
+image = "0.7"
 
 [profile.test]
 opt-level = 0
