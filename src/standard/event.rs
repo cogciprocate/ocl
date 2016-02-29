@@ -13,7 +13,7 @@ pub struct Event(EventCore);
 impl Event {
     /// Creates a new `Event` from a `EventCore`.
     ///
-    /// ### Safety 
+    /// ## Safety 
     ///
     /// Not meant to be called directly.
     pub fn new(event_core: EventCore) -> Event {
@@ -22,7 +22,7 @@ impl Event {
 
     // /// Creates a new null `Event`.
     // ///
-    // /// ### Safety 
+    // /// ## Safety 
     // ///
     // /// Don't use unless you know what you're doing.
     // pub unsafe fn new_null() -> Event {

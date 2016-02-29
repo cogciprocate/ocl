@@ -85,14 +85,14 @@ impl ProQue {
 
     /// Builds and stores the program defined by `builder`.
     ///
-    /// ### Panics
+    /// ## Panics
     /// This `ProQue` must not already contain a program.
     ///
     /// `program_builder` must not have any device indexes configured (via its
     /// `::device_idxs` method). `ProQue` will only build programs for the device
     /// previously configured or the default device if none had been specified.
     ///
-    /// ### Stability
+    /// ## Stability
     ///
     /// The usefulness of this method is questionable now that we have a builder. 
     /// It may be depricated.
@@ -122,7 +122,7 @@ impl ProQue {
 
     /// Clears the current program build. Any kernels created with the pre-existing program will continue to work but new kernels will require a new program to be built. This can occasionally be useful for creating different programs based on the same source but with different constants.
     /// 
-    /// ### Stability
+    /// ## Stability
     ///
     /// [UNSTABLE]: Usefulness and safety questionable.
     ///

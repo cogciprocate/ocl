@@ -1,6 +1,6 @@
 //! All the functions.
 //!
-//! ### Redundant Casts
+//! ## Redundant Casts
 //!
 //! Redundant casts are temporary for development and will be removed.
 //!
@@ -292,7 +292,7 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
 
 /// Returns information about a device.
 ///
-/// ### Stability (or lack thereof)
+/// ## Stability (or lack thereof)
 ///
 /// Currently returning only one (temporary) variant.
 ///
@@ -1427,7 +1427,7 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 /// Enqueues a read from device memory referred to by `buffer` to device memory,
 /// `data`.
 ///
-/// ### Safety
+/// ## Safety
 ///
 /// Caller must ensure that `data` lives until the read is complete. Use
 /// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
@@ -1467,13 +1467,13 @@ pub unsafe fn enqueue_read_buffer<T: OclNum, E: ClEventPtrNew>(
 /// [UNTESTED]
 /// Enqueues a command to read from a rectangular region from a buffer object to host memory.
 ///
-/// ### Safety
+/// ## Safety
 ///
 /// Caller must ensure that `data` lives until the read is complete. Use
 /// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
 /// an event list as `new_event`).
 ///
-/// ### Official Documentation
+/// ## Official Documentation
 ///
 /// [SDK - clEnqueueReadBufferRect](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html)
 ///
@@ -1597,7 +1597,7 @@ pub fn enqueue_write_buffer_rect<T: OclNum, E: ClEventPtrNew>(
 /// [UNTESTED]
 /// Enqueues a command to fill a buffer object with a pattern of a given pattern size.
 ///
-/// ### Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
+/// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
 ///
 /// A pointer to the data pattern of size pattern_size in bytes. pattern will be
 /// used to fill a region in buffer starting at offset and is size bytes in size.
@@ -1710,7 +1710,7 @@ pub fn enqueue_copy_buffer_rect<E: ClEventPtrNew>(
 /// [UNTESTED] 
 /// Reads an image from device to host memory.
 ///
-/// ### Safety
+/// ## Safety
 ///
 /// Caller must ensure that `data` lives until the read is complete. Use
 /// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
@@ -1790,7 +1790,7 @@ pub fn enqueue_write_image<T, E: ClEventPtrNew>(
 /// [UNTESTED]
 /// Enqueues a command to fill an image object with a specified color.
 ///
-/// ### Fill Color (from [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillImage.html)
+/// ## Fill Color (from [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillImage.html)
 ///
 /// The fill color. The fill color is a four component RGBA floating-point color
 /// value if the image channel data type is not an unnormalized signed and
@@ -1929,13 +1929,13 @@ pub fn enqueue_copy_buffer_to_image<E: ClEventPtrNew>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html)
 ///
-/// ### Stability
+/// ## Stability
 ///
 /// This function will eventually return a safe wrapper for the mapped host
 /// memory. Until then, just create a `Vec` from the returned pointer using
 /// `size` / size_of::<T>() as the length and capacity.
 ///
-/// ### Safety
+/// ## Safety
 ///
 /// Caller must ensure that the returned pointer is not used until the map is complete. Use
 /// `new_event` to monitor it. [TEMPORARY] It also must be ensured that memory referred to by the returned pointer is not dropped, reused, or otherwise interfered with until `enqueue_unmap_mem_object` is called.
@@ -1984,13 +1984,13 @@ pub unsafe fn enqueue_map_buffer<T, E: ClEventPtrNew>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html)
 ///
-/// ### Stability
+/// ## Stability
 ///
 /// This function will eventually return a safe wrapper for the mapped host
 /// memory. Until then, just create a `Vec` from the returned pointer using
 /// `size` / size_of::<T>() as the length and capacity.
 ///
-/// ### Safety
+/// ## Safety
 ///
 /// Caller must ensure that the returned pointer is not used until the map is complete. Use
 /// `new_event` to monitor it. [TEMPORARY] It also must be ensured that memory referred to by the returned pointer is not dropped, reused, or otherwise interfered with until `enqueue_unmap_mem_object` is called.
@@ -2042,7 +2042,7 @@ pub unsafe fn enqueue_map_image<T, E: ClEventPtrNew>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueUnmapMemObject.html)
 ///
-/// ### Stability
+/// ## Stability
 ///
 /// This function will eventually accept a safe wrapper of some sort for the
 /// mapped host memory rather than a pointer.

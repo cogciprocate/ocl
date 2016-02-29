@@ -19,7 +19,7 @@ impl ContextBuilder {
 	///
 	/// Use `Context::builder().build().unwrap()` for defaults.
 	///
-	/// ### Defaults
+	/// ## Defaults
 	///
 	/// * The first avaliable platform
 	/// * All devices associated with the first available platform
@@ -57,7 +57,7 @@ impl ContextBuilder {
 
 	/// Specifies a platform.
 	///
-	/// ### Panics
+	/// ## Panics
 	///
 	/// Panics if it has already been specified.
 	///
@@ -70,7 +70,7 @@ impl ContextBuilder {
 
 	/// Specify context properties directly.
 	///
-	/// ### Panics
+	/// ## Panics
 	///
 	/// Panics if properties have already been specified.
 	///
@@ -83,7 +83,7 @@ impl ContextBuilder {
 
 	// /// Specifies a device.
 	// ///
-	// /// ### Panics
+	// /// ## Panics
 	// ///
 	// /// Panics if any devices have already been specified.
 	// ///
@@ -95,7 +95,7 @@ impl ContextBuilder {
 
 	/// Specifies a list of devices.
 	///
-	/// ### Panics
+	/// ## Panics
 	///
 	/// Panics if any devices have already been specified.
 	///
@@ -111,7 +111,7 @@ impl ContextBuilder {
 	/// See [`DeviceSpecifier`](/ocl/enum.DeviceSpecifier.html) for actually
 	/// useful documentation.
 	///
-	/// ### Panics
+	/// ## Panics
 	///
 	/// Panics if any devices have already been specified.
 	///

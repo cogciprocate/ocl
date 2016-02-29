@@ -15,7 +15,7 @@ pub struct Platform(PlatformIdCore);
 impl Platform {
     /// Creates a new `Platform` from a `PlatformIdCore`.
     ///
-    /// ### Safety 
+    /// ## Safety 
     ///
     /// Not meant to be called unless you know what you're doing.
     pub fn new(id_core: PlatformIdCore) -> Platform {

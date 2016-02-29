@@ -1,5 +1,6 @@
-//! [WORK IN PROGRESS] Get information about all the things using `core` function calls.
+//! Get information about all the things using `core` function calls.
 //!
+//! [UNDERGOING SOME REDESIGN]
 
 extern crate ocl;
 

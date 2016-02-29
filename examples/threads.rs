@@ -1,5 +1,7 @@
 //! Threading.
 //!
+//! Much of this is just testing stuff out and not really practical.
+//!
 //! [WORK IN PROGRESS]
 //!
 //! TODO: Have threads swap stuff around for fun.
@@ -8,7 +10,7 @@
 #![allow(unused_imports, unused_variables, dead_code, unused_mut)]
 
 extern crate rand;
-extern crate ocl;
+#[macro_use] extern crate ocl;
 
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc;
@@ -37,7 +39,7 @@ fn main() {
 	// Loop through each avaliable platform:
     for p_idx in 0..platforms.len() {
     	let platform = &platforms[p_idx];
-    	println!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
+    	printlnc!(green: "Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
 
     	let devices = Device::list_all(platform);
 
@@ -47,22 +49,34 @@ fn main() {
     		// let dev_idx = rng.gen_range(0, devices.len());
 
     		let device = &devices[device_idx];
-    		println!("Device[{}]: {} ({})", device_idx, device.name(), device.vendor());
+    		printlnc!(royal_blue: "Device[{}]: {} ({})", device_idx, device.name(), device.vendor());
 
     		// Make a context to share around:
     		let context = Context::new_by_index_and_type(None, None).unwrap();
     		let program = Program::builder().src(SRC).build(&context).unwrap();
 
-			print!("    Spawning threads... ");
+    		// Make a few different queues for the hell of it:
+	        let queueball = vec![Queue::new_by_device_index(&context, None),
+	        	Queue::new_by_device_index(&context, None), 
+	        	Queue::new_by_device_index(&context, None)];
+
+			printc!(dark_orange: "    Spawning threads... ");
 
 			for i in 0..5 {
 				let thread_name = format!("{}:[D{}.I{}]", threads.len(), device_idx, i);
 
+				// Clone all the shared stuff for use by just this thread.
+				// You could wrap all of these in an Arc<Mutex<_>> and share
+				// them that way but it would be totally redundant as they
+				// each contain reference counted pointers at their core.
+				// You could pass them around on channels but it would be
+				// inconvenient and more costly.
 				let context_th = context.clone();
 				let program_th = program.clone();
 				let dims_th = dims.clone();
+				let queueball_th = queueball.clone();
 
-				// Create some channels to swap around buffers, queues, and kernels.
+				// [FIXME] Create some channels to swap around buffers, queues, and kernels.
 	    		// let (queue_tx, queue_rx) = mpsc::channel();
 	    		// let (buffer_tx, buffer_rx) = mpsc::channel();
 	    		// let (kernel_tx, kernel_rx) = mpsc::channel();
@@ -70,19 +84,30 @@ fn main() {
 				print!("{}, ", thread_name);
 
 				let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
-			        let queue = Queue::new_by_device_index(&context_th, None);
-					let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queue);
-					let kernel = Kernel::new("add", &program_th, &queue, dims_th.clone()).unwrap()
-					        .arg_buf(&buffer)
-					        .arg_scl(1000.0f32);
+					let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
+					let mut kernel = Kernel::new("add", &program_th, &queueball_th[0], 
+							dims_th.clone()).unwrap()
+				        .arg_buf(&buffer)
+				        .arg_scl(1000.0f32);
+
+					// Event list isn't really necessary here but hey.
 					let mut event_list = EventList::new();
 
+					// Change queues just for fun (yes, `enqueue_with` can do it too):
 					kernel.enqueue_with(None, None, Some(&mut event_list)).unwrap();
+					kernel.set_queue(&queueball_th[1]).enqueue();
+					kernel.set_queue(&queueball_th[2]).enqueue();
 
+					// Sleep just so the results don't print too quickly.
 					thread::sleep(Duration::from_millis(500));
 
+					// Basically redundant in this situation.
 					event_list.wait();
-					buffer.fill_vec();
+
+					// Again, just playing with queues...
+					buffer.set_queue(&queueball_th[2]).fill_vec();
+					buffer.set_queue(&queueball_th[1]).fill_vec();
+					buffer.set_queue(&queueball_th[0]).fill_vec();
 
 					// Print results (won't appear until later):
 					let check_idx = data_set_size / 2;

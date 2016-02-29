@@ -108,7 +108,7 @@ impl ImageBuilder {
     ///
     /// Some notes adapted from SDK docs:
     ///
-    /// ##### Width
+    /// ## Width
     ///
 	/// The width of the image in pixels. For a 2D image and image array, the
 	/// image width must be ≤ `DeviceInfo::Image2dMaxWidth`. For a 3D image, the
@@ -116,20 +116,20 @@ impl ImageBuilder {
 	/// the image width must be ≤ `DeviceInfo::ImageMaxBufferSize`. For a 1D image
 	/// and 1D image array, the image width must be ≤ `DeviceInfo::Image2dMaxWidth`.
 	///
-	/// ##### Height
+	/// ## Height
 	///
 	/// The height of the image in pixels. This is only used if the
 	/// image is a 2D, 3D or 2D image array. For a 2D image or image array, the
 	/// image height must be ≤ `DeviceInfo::Image2dMaxHeight`. For a 3D image, the
 	/// image height must be ≤ `DeviceInfo::Image3dMaxHeight`.
 	///
-	/// ##### Depth
+	/// ## Depth
 	///
 	/// image_depth The depth of the image in pixels. This is only used if the
 	/// image is a 3D image and must be a value ≥ 1 and ≤
 	/// `DeviceInfo::Image3dMaxDepth`.
 	///
-	/// #### Examples
+	/// ## Examples
 	///
 	/// * To set the dimensions of a 2d image use:
 	///   `SimpleDims::Two(width, height)`.

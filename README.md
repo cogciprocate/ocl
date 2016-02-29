@@ -5,9 +5,9 @@
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
 
 
-Pure OpenCL&trade; interfaces for Rust. Makes easy to use the most common
-features of OpenCL. All interfaces are virtually zero-cost and perform on a
-par with (often better than) the usual C++ libraries.
+Pure OpenCL&trade; bindings and interfaces for Rust. Makes easy to use the
+most common features of OpenCL. All interfaces are virtually zero-cost and
+perform on a par with the C++ bindings.
 
 Interfaces are still mildly unstable. Changes are now being documented in
 [RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md).
@@ -77,8 +77,9 @@ other [`examples`] for much more.
 
 #### Diving Deeper
 
-Already familiar with the standard OpenCL core API? See the [`core`] module for
-access to the complete feature set with Rust's safety and convenience.
+Already familiar with the standard OpenCL core API? See the [`core`] module
+for access to the complete feature set in the conventional API style with
+Rust's safety and convenience.
 
 
 ##### Version Support
@@ -86,7 +87,7 @@ access to the complete feature set with Rust's safety and convenience.
 1.1 support is intact but intentionally disabled for simplicity. If this
 support is needed, please file an [issue] and it will be reenabled. Automatic
 best-version support for versions going all the way back to 1.0 will
-eventually be included as soon as time permits.
+eventually be added.
 
 
 ##### What About Vulkan&trade;?

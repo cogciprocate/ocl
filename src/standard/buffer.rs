@@ -76,7 +76,7 @@ pub struct Buffer<T: OclNum> {
     // vec: Vec<T>,
     obj_core: MemCore,
     // queue: Queue,
-    queue_obj_core: CommandQueueCore,
+    command_queue_obj_core: CommandQueueCore,
     len: usize,
     vec: VecOption<T>,
 }
@@ -206,7 +206,7 @@ impl<T: OclNum> Buffer<T> {
 
         Buffer {
             obj_core: obj_core,
-            queue_obj_core: queue.core_as_ref().clone(),
+            command_queue_obj_core: queue.core_as_ref().clone(),
             len: len,
             vec: VecOption::None,
         }
@@ -221,7 +221,7 @@ impl<T: OclNum> Buffer<T> {
 
         Buffer {            
             obj_core: obj_core,
-            queue_obj_core: queue.core_as_ref().clone(),
+            command_queue_obj_core: queue.core_as_ref().clone(),
             len: len,
             vec: VecOption::None,
         }
@@ -236,85 +236,17 @@ impl<T: OclNum> Buffer<T> {
 
         Buffer {        
             obj_core: obj_core,
-            queue_obj_core: queue.core_as_ref().clone(),
+            command_queue_obj_core: queue.core_as_ref().clone(),
             len: vec.len(), 
             vec: VecOption::Some(vec),
         }
     }
 
-    /// Writes `data.len() * mem::size_of::<T>()` bytes from `data` to the (remote) 
-    /// device buffer with a remote offset of `offset` and blocks until complete.
-    ///
-    /// # Panics
-    ///
-    /// `offset` must be less than the length of the buffer.
-    ///
-    /// The length of `data` must be less than the length of the buffer minus `offset`.
-    ///
-    /// Errors upon any OpenCL error.
-    pub fn write(&self, data: &[T], offset: usize) -> OclResult<()>
-    {
-        self.enqueue_write(data, offset, true, None, None)
-    }
-
-
-    /// Reads `data.len() * mem::size_of::<T>()` bytes from the (remote) device buffer 
-    /// into `data` with a remote offset of `offset` and blocks until complete.
-    ///
-    /// # Errors
-    ///
-    /// `offset` must be less than the length of the buffer.
-    ///
-    /// The length of `data` must be less than the length of the buffer minus `offset`.
-    ///
-    /// Errors upon any OpenCL error.
-    pub fn read(&self, data: &mut [T], offset: usize) -> OclResult<()>
-    {
-        // Safe due to being a blocking read (right?).
-        unsafe { self.enqueue_read(data, offset, true, None, None) }
-    }
-
-    /// Enqueues writing `data.len() * mem::size_of::<T>()` bytes from `data` to the 
-    /// device buffer with a remote offset of `offset`.
-    ///
-    /// Will optionally wait for events in `wait_list` to finish before writing. 
-    /// Will also optionally add a new event associated with the write to `dest_list`.
-    ///
-    /// [UPDATE] If the `dest_list` event list is `None`, the write will be blocking, otherwise
-    /// returns immediately.
-    ///
-    /// # Data Integrity
-    ///
-    /// Ensure that the memory referred to by `data` is unmolested until the 
-    /// write completes if passing a `dest_list`.
-    ///
-    /// # Errors
-    ///
-    /// `offset` must be less than the length of the buffer.
-    ///
-    /// The length of `data` must be less than the length of the buffer minus `offset`.
-    ///
-    /// Errors upon any OpenCL error.
-    pub fn enqueue_write(&self, data: &[T], offset: usize, block: bool, 
-                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
-    {
-        // assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
-        // assert!(data.len() <= self.len() - offset, 
-        //     "Buffer::write{{_async}}(): Data length out of range.");
-        if offset >= self.len() { 
-            return OclError::err("Buffer::write{{_async}}(): Offset out of range."); }
-        if data.len() > self.len() - offset {
-            return OclError::err("Buffer::write{{_async}}(): Data length out of range."); }
-
-        // let blocking_write = dest_list.is_none();
-        core::enqueue_write_buffer(&self.queue_obj_core, &self.obj_core, block, 
-            offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
-            // offset, data, wait_list.map(|el| el.core_as_ref()), dest_list)
-    }
-
-
     /// Enqueues reading `data.len() * mem::size_of::<T>()` bytes from the device 
     /// buffer into `data` with a remote offset of `offset`.
+    ///
+    /// Setting `queue` to `None` will use the default queue set during creation.
+    /// Otherwise, the queue passed will be used for this call only.
     ///
     /// Will optionally wait for events in `wait_list` to finish 
     /// before reading. Will also optionally add a new event associated with
@@ -339,7 +271,7 @@ impl<T: OclNum> Buffer<T> {
     /// The length of `data` must be less than the length of the buffer minus `offset`.
     ///
     /// Errors upon any OpenCL error.
-    pub unsafe fn enqueue_read(&self, data: &mut [T], offset: usize, block: bool, 
+    pub unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &mut [T],
                 wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
     {
         // assert!(offset < self.len(), "Buffer::read{{_async}}(): Offset out of range.");
@@ -350,31 +282,91 @@ impl<T: OclNum> Buffer<T> {
         if data.len() > self.len() - offset {
             return OclError::err("Buffer::read{{_async}}(): Data length out of range."); }
 
+        let command_queue = match queue {
+            Some(q) => q.core_as_ref(),
+            None => &self.command_queue_obj_core,
+        };
+
         // let blocking_read = dest_list.is_none();
-        core::enqueue_read_buffer(&self.queue_obj_core, &self.obj_core, block, 
+        core::enqueue_read_buffer(command_queue, &self.obj_core, block, 
             offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
-    /// After waiting on events in `wait_list` to finish, writes the contents of
-    /// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`.
+    /// Enqueues writing `data.len() * mem::size_of::<T>()` bytes from `data` to the 
+    /// device buffer with a remote offset of `offset`.
+    ///
+    /// Setting `queue` to `None` will use the default queue set during creation.
+    /// Otherwise, the queue passed will be used for this call only.
+    ///
+    /// Will optionally wait for events in `wait_list` to finish before writing. 
+    /// Will also optionally add a new event associated with the write to `dest_list`.
+    ///
+    /// [UPDATE] If the `dest_list` event list is `None`, the write will be blocking, otherwise
+    /// returns immediately.
     ///
     /// # Data Integrity
     ///
-    /// Ensure that this `Buffer` lives until until the write completes if 
-    /// passing a `dest_list`.
-    ///
-    /// [UPDATE] Will block until the write is complete if `dest_list` is None.
+    /// Ensure that the memory referred to by `data` is unmolested until the 
+    /// write completes if passing a `dest_list`.
     ///
     /// # Errors
     ///
-    /// Errors if this Buffer contains no vector or upon any OpenCL error.
-    pub fn enqueue_flush_vec(&mut self, block: bool, wait_list: Option<&EventList>, 
-                dest_list: Option<&mut EventList>) -> OclResult<()>
+    /// `offset` must be less than the length of the buffer.
+    ///
+    /// The length of `data` must be less than the length of the buffer minus `offset`.
+    ///
+    /// Errors upon any OpenCL error.
+    pub fn enqueue_write(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &[T], 
+                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
+    {        
+        // assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
+        // assert!(data.len() <= self.len() - offset, 
+        //     "Buffer::write{{_async}}(): Data length out of range.");
+        if offset >= self.len() { 
+            return OclError::err("Buffer::write{{_async}}(): Offset out of range."); }
+        if data.len() > self.len() - offset {
+            return OclError::err("Buffer::write{{_async}}(): Data length out of range."); }
+
+        let command_queue = match queue {
+            Some(q) => q.core_as_ref(),
+            None => &self.command_queue_obj_core,
+        };
+
+        // let blocking_write = dest_list.is_none();
+        core::enqueue_write_buffer(command_queue, &self.obj_core, block, 
+            offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            // offset, data, wait_list.map(|el| el.core_as_ref()), dest_list)
+    }
+
+    /// Reads `data.len() * mem::size_of::<T>()` bytes from the (remote) device buffer 
+    /// into `data` with a remote offset of `offset` and blocks until complete.
+    ///
+    /// # Errors
+    ///
+    /// `offset` must be less than the length of the buffer.
+    ///
+    /// The length of `data` must be less than the length of the buffer minus `offset`.
+    ///
+    /// Errors upon any OpenCL error.
+    pub fn read(&self, data: &mut [T], offset: usize) -> OclResult<()>
     {
-        debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
-        let vec = try!(self.vec.as_mut());
-        core::enqueue_write_buffer(&self.queue_obj_core, &self.obj_core, block, 
-            0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+        // Safe due to being a blocking read (right?).
+        unsafe { self.enqueue_read(None, true, offset, data, None, None) }
+    }
+
+    /// Writes `data.len() * mem::size_of::<T>()` bytes from `data` to the (remote) 
+    /// device buffer with a remote offset of `offset` and blocks until complete.
+    ///
+    /// # Panics
+    ///
+    /// `offset` must be less than the length of the buffer.
+    ///
+    /// The length of `data` must be less than the length of the buffer minus `offset`.
+    ///
+    /// Errors upon any OpenCL error.
+    pub fn write(&self, data: &[T], offset: usize) -> OclResult<()>
+    {
+        self.enqueue_write(None, true, offset, data, None, None)
     }
 
     /// After waiting on events in `wait_list` to finish, reads the remote device 
@@ -399,7 +391,41 @@ impl<T: OclNum> Buffer<T> {
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
-        core::enqueue_read_buffer(&self.queue_obj_core, &self.obj_core, block, 
+        core::enqueue_read_buffer(&self.command_queue_obj_core, &self.obj_core, block, 
+            0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+    }
+
+    /// Reads the remote device data buffer into `self.vec` and blocks until completed.
+    ///
+    /// Equivalent to `.enqueue_fill_vec(true, None, None)`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this Buffer contains no vector or upon any OpenCL error.
+    pub fn fill_vec(&mut self) {
+        // Safe due to being a blocking read (right?).
+        unsafe { self.enqueue_fill_vec(true, None, None).expect("Buffer::fill_vec"); }
+    } 
+
+    /// After waiting on events in `wait_list` to finish, writes the contents of
+    /// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`.
+    ///
+    /// # Data Integrity
+    ///
+    /// Ensure that this `Buffer` lives until until the write completes if 
+    /// passing a `dest_list`.
+    ///
+    /// [UPDATE] Will block until the write is complete if `dest_list` is None.
+    ///
+    /// # Errors
+    ///
+    /// Errors if this Buffer contains no vector or upon any OpenCL error.
+    pub fn enqueue_flush_vec(&mut self, block: bool, wait_list: Option<&EventList>, 
+                dest_list: Option<&mut EventList>) -> OclResult<()>
+    {
+        debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
+        let vec = try!(self.vec.as_mut());
+        core::enqueue_write_buffer(&self.command_queue_obj_core, &self.obj_core, block, 
             0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
     }
 
@@ -413,23 +439,12 @@ impl<T: OclNum> Buffer<T> {
     /// Panics if this Buffer contains no vector or upon any OpenCL error.
     pub fn flush_vec(&mut self) {
         self.enqueue_flush_vec(true, None, None).expect("Buffer::flush_vec");
-    }
+    }  
 
-    /// Reads the remote device data buffer into `self.vec` and blocks until completed.
-    ///
-    /// Equivalent to `.enqueue_fill_vec(true, None, None)`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if this Buffer contains no vector or upon any OpenCL error.
-    pub fn fill_vec(&mut self) {
-        // Safe due to being a blocking read (right?).
-        unsafe { self.enqueue_fill_vec(true, None, None).expect("Buffer::fill_vec"); }
-    }   
-
-    /// Blocks until the underlying command queue has completed all commands.
+    /// Blocks the current thread until the underlying command queue has
+    /// completed all commands.
     pub fn wait(&self) {
-        core::finish(&self.queue_obj_core).unwrap();
+        core::finish(&self.command_queue_obj_core).unwrap();
     }
 
     /// [UNSTABLE]: Convenience method.
@@ -582,28 +597,22 @@ impl<T: OclNum> Buffer<T> {
         &self.obj_core
     }
 
-    /// Changes the queue used by this Buffer for reads and writes, etc.
+    /// Changes the default queue used by this Buffer for reads and writes, etc.
     ///
     /// Returns a ref for chaining i.e.:
     ///
     /// `buffer.set_queue(queue).flush_vec(....);`
     ///
-    /// # Safety
+    /// [NOTE]: Even when used as above, the queue is changed permanently,
+    /// not just for the one call. Changing the queue is cheap so feel free
+    /// to change as often as needed.
     ///
-    /// [FIXME]: Update this. Safety is pretty much fine.
-    ///
-    /// Not all implications of changing the queue, particularly if the new queue
-    /// is associated with a new device which has different workgroup size dimensions,
-    /// have been considered or are dealt with. For now, considering these cases is
-    /// left to the caller. It's probably a good idea to at least call `.resize()`
-    /// after calling this method.
-    ///
-    pub fn set_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Buffer<T> {
+    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Buffer<T> {
         // [FIXME]: Set this up:
         // assert!(queue.device == self.queue.device);
         // [/FIXME]
 
-        self.queue_obj_core = queue.core_as_ref().clone();
+        self.command_queue_obj_core = queue.core_as_ref().clone();
         self
     }
 
@@ -665,7 +674,7 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        unsafe { core::enqueue_read_buffer::<T, EventCore>(&self.queue_obj_core, &self.obj_core, true, 
+        unsafe { core::enqueue_read_buffer::<T, EventCore>(&self.command_queue_obj_core, &self.obj_core, true, 
             idx_range.start, &mut vec[idx_range.clone()], None, None).unwrap() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 
@@ -848,6 +857,7 @@ pub mod tests {
     use super::super::super::OclNum;
     use std::num::Zero;
 
+    /// Test functions available to external crates.
     pub trait BufferTest<T> {
         fn read_idx_direct(&self, idx: usize) -> T;
     }

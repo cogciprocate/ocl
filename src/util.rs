@@ -17,7 +17,9 @@ use super::OclNum;
 //================================= MACROS ====================================
 //=============================================================================
 
-/// `print!` with all the colors of the rainbow (the ANSI rainbow).
+/// `print!` with all the glorious colors of the the ANSI rainbow.
+///
+/// Watch out for the leprechaun at the end of that rainbow. Seriously.
 ///
 /// #### Usage
 /// 
@@ -31,7 +33,7 @@ macro_rules! printc {
     ($c:ident: $fmt:expr, $($arg:tt)*) => ( print!(colorify!($c: $fmt), $($arg)*) );
 }
 
-/// `println!` with pretty colors.
+/// `println!` with color.
 ///
 /// #### Usage
 /// 

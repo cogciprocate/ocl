@@ -138,26 +138,10 @@ fn main() {
     let mut buf_events = EventList::new();
 
 
-    for i in 0..KERNEL_AND_BUFFER_ITERS {
-        // if i < 20 { println!("0.0 [{}] ", i); }
-
+    for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.enqueue_with(None, Some(&buf_events), Some(&mut kern_events)).unwrap();
-        // kern.enqueue_with(None, None, Some(&mut kern_events));
-        // kern.enqueue_with(None, Some(&buf_events), None);
-        // kern.enqueue();
-
-        // if i < 20 { println!("0.1 [{}] ", i); }
-
-        unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), Some(&mut buf_events)).unwrap(); }
-        // unsafe { buffer_result.enqueue_fill_vec(None, Some(&mut buf_events)).unwrap(); }
-        // unsafe { buffer_result.enqueue_fill_vec(Some(&kern_events), None).unwrap(); }
-        // unsafe { buffer_result.enqueue_fill_vec(None, None).unwrap(); }
-
-        // if i < 20 { println!("0.2 [{}] ", i); }
-        if i < 20 { 
-            // println!("kern_events: {:?}, buf_events: {:?} ", kern_events, buf_events); 
-            // print!("\n");
-        }
+        unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), 
+            Some(&mut buf_events)).unwrap(); }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);

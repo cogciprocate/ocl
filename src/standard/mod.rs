@@ -62,6 +62,8 @@ mod traits {
 	use super::simple_dims::to_usize;
 
 
+	/// Types which have properties describing the amount of work to be done
+	/// in multiple dimensions.
 	pub trait WorkDims {
 	    /// Returns the number of dimensions defined by this `SimpleDims`.
 	    fn dim_count(&self) -> u32;
@@ -69,8 +71,8 @@ mod traits {
 	    fn to_work_offset(&self) -> Option<[usize; 3]>;
 	}
 
-	/// A type which has dimensional properties allowing it to be used to define the size
-	/// of buffers and work sizes.
+	/// Types which have properties allowing them to be used to define the size
+	/// of buffers.
 	pub trait BufferDims {
 	    fn padded_buffer_len(&self, usize) -> usize;
 	}

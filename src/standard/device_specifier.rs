@@ -33,7 +33,7 @@ pub enum DeviceSpecifier {
 impl DeviceSpecifier {
     /// Returns the list of devices matching the parameters specified by this `DeviceSpecifier`
     ///
-    /// ### Panics
+    /// ## Panics
     ///
     /// Any device indices within the `Index` and `Indices` variants must be within the range of the number of devices for the platform specified by `Platform`. If no `platform` has been specified, this behaviour is undefined and could end up using any platform at all.
     ///

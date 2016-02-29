@@ -17,7 +17,7 @@ pub struct Device(DeviceIdCore);
 impl Device {
     /// Creates a new `Device` from a `DeviceIdCore`.
     ///
-    /// ### Safety 
+    /// ## Safety 
     ///
     /// Not meant to be called unless you know what you're doing.
     pub fn new(id_core: DeviceIdCore) -> Device {

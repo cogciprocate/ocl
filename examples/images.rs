@@ -15,8 +15,7 @@ static BEFORE_IMAGE_FILE_NAME: &'static str = "before_example_image.png";
 static AFTER_IMAGE_FILE_NAME: &'static str = "after_example_image.png";
 
 static KERNEL_SRC: &'static str = r#"
-    // UNUSED. FOR COMPARISON PURPOSES.
-    // USING SAMPLER FROM HOST INSTEAD.
+    // Unused... here for comparison purposes:
     __constant sampler_t sampler_const = 
         CLK_NORMALIZED_COORDS_FALSE | 
         CLK_ADDRESS_NONE | 

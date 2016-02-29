@@ -12,7 +12,7 @@ pub struct Sampler(SamplerCore);
 impl Sampler {
 	/// Creates and returns a new sampler.
 	///
-	/// ### Enum Quick Reference
+	/// ## Enum Quick Reference
 	///
 	/// `addressing_mode`:
 	///
@@ -41,7 +41,7 @@ impl Sampler {
 
 	/// Creates and returns a new sampler with some default settings.
 	///
-	/// ### Defaults
+	/// ## Defaults
 	/// 
 	/// - `normalize_coords`: false
 	/// - `addressing_mode`: `AddressingMode::None`

@@ -7,15 +7,13 @@
 //! Documentation is very much a work in progress, as is the library itself. Please help by filing an [issue](https://github.com/cogciprocate/ocl/issues) about unclear and/or incomplete documentation and it will be addressed.
 //!
 //! An explanation of how dimensions and sizes of buffers and work queues are intended 
-//! to be used will be coming as soon as a few more things are ironed out.
+//! to be used will be coming as soon as a few more things are ironed out. Until then please see the [examples].
+//!
 //!
 //! ## Low Level Interfaces
 //!
-//! For lower level interfaces and to use OpenCL features that have not yet been implemented, see the [`core`] and [`cl_h`] modules.
+//! For lower level interfaces and to use OpenCL features that have not yet been implemented on the top-level interface types, see the [`core`] and [`cl_h`] modules.
 //!
-//! ## Library Wide Panics
-//!
-//! Many operations will panic upon any OpenCL error [UPDATE: Error handling is in a state of transition, some things panic, some return results].
 //!
 //! ## Help Wanted
 //!
@@ -30,6 +28,7 @@
 //! [`core`]: http://docs.cogciprocate.com/ocl/core/index.html
 //! [`cl_h`]: http://docs.cogciprocate.com/ocl/cl_h/index.html
 //! [`Result`]: http://docs.cogciprocate.com/ocl/type.Result.html
+//! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
 // #![warn(missing_docs)]
 #![feature(zero_one)]

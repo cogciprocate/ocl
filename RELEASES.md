@@ -3,7 +3,12 @@ Version 0.8.0 (UNRELEASED)
 
 Breaking Changes
 ----------------
-
+* `Buffer` and `Image` have had their `::enqueue_***` methods modified to
+  accept an optional queue. When a queue is passed it will temporarily override
+  the default queue for that call only. The default queue can still be changed
+  permanently by calling `::set_queue` for either.
+* The order of arguments for the `Buffer::enqueue_***` methods has been
+  slightly changed for consistency.
 
 
 New Features

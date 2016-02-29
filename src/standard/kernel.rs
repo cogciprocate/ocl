@@ -203,13 +203,14 @@ impl Kernel {
 
     /// Enqueues kernel on the default command queue.
     ///
+    /// Specify `queue` to use a non-default queue.
+    ///
     /// Execution of the kernel on the device will not occur until the events
     /// in `wait_list` have completed if it is specified. 
     ///
     /// Specify `dest_list` to have a new event added to that list associated
     /// with the completion of this kernel task.
     ///
-    /// TODO: Implement 'alternative queue' version of this function.
     #[inline]
     pub fn enqueue_with(&self, queue: Option<&Queue>, wait_list: Option<&EventList>, 
                     dest_list: Option<&mut EventList>) -> OclResult<()>
@@ -228,10 +229,27 @@ impl Kernel {
     ///
     /// Equivalent to `::enqueue_with_events(None, None)`.
     ///
-    /// TODO: Implement 'alternative queue' version of this function.
     #[inline]
     pub fn enqueue(&self) {
         self.enqueue_with(None, None, None).expect("ocl::Kernel::enqueue");
+    }
+
+    /// Changes the default queue used when none is passed to `::enqueue_with`
+    /// or when using `::enqueue`.
+    ///
+    /// Returns a ref for chaining i.e.:
+    ///
+    /// `buffer.set_queue(queue).flush_vec(....);`
+    ///
+    /// [NOTE]: Even when used as above, the queue is changed permanently,
+    /// not just for the one call. Changing the queue is cheap so feel free
+    /// to change as often as needed.
+    ///
+    /// The new queue must be associated with a device valid for the kernel's
+    /// program.
+    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Kernel {
+        self.command_queue_obj_core = queue.core_as_ref().clone();
+        self
     }
 
     /// Returns the number of arguments specified for this kernel.

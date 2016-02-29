@@ -27,7 +27,7 @@ fn main() {
     // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
     let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("Build ProQue");
 
-    // Set up our work dimensions / data set size:
+    // Set up our work dimensions / data set size with an array or tuple:
     let dims = [DATA_SET_SIZE];
 
     // Create a 'Buffer' (a device buffer + a local vector) as a data source
@@ -44,7 +44,7 @@ fn main() {
         .arg_buf(&source_buffer)
         .arg_buf(&mut result_buffer);
 
-    // Enqueue kernel depending on and creating no events:
+    // Enqueue kernel:
     kern.enqueue();
 
     // Read results from the device into result_buffer's local vector:

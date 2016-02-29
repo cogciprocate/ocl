@@ -1,4 +1,4 @@
-//! [WORK IN PROGRESS] Print information about all the things.
+//! Print information about all the things.
 //!
 //! Printing info for any of the main types is as simple as 
 //! `println("{}", &instance);` as `Display` is implemented for each.
@@ -15,7 +15,7 @@ use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Ker
 use ocl::core::{ProgramInfo, OclNum};
 
 const PRINT_DETAILED: bool = true;
-// Overrides above:
+// Overrides above for device and program:
 const PRINT_DETAILED_DEVICE: bool = false;
 const PRINT_DETAILED_PROGRAM: bool = false;
 
@@ -45,7 +45,6 @@ fn main() {
 			.build().unwrap();
 
 		print_platform_info(&platform); 
-		// print!("\n");
 
     	// Loop through each device
     	for d_idx in 0..devices.len() {
@@ -70,10 +69,10 @@ fn main() {
 			let event = event_list.last_clone().unwrap();
 			event_list.wait();			
 
-			// Print all the devices:
+			// Print device info:
 			print_device_info(&device);
 
-			// Print all the things (just once):
+			// Print all the rest (just once):
 			if (d_idx == devices.len() - 1) && (p_idx == platforms.len() - 1) {
 				print_context_info(&context);
 				print_queue_info(&queue);

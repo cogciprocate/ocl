@@ -29,7 +29,7 @@ impl<'c> ProQueBuilder<'c> {
 
     /// Returns a new `ProQue`.
     ///
-    /// ### Errors
+    /// ## Errors
     ///
     /// A `ProgramBuilder` or some source code must have been specified with `::program_builder` or `::src` before building.
     ///
@@ -94,7 +94,7 @@ impl<'c> ProQueBuilder<'c> {
 
     /// Adds a pre-configured `ProgramBuilder` and returns the `ProQueBuilder`.
     ///
-    /// ### Panics
+    /// ## Panics
     ///
     /// This `ProQueBuilder` may not already contain a `ProgramBuilder`.
     ///

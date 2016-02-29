@@ -40,7 +40,7 @@ impl Context {
     /// Use `Context::builder()...` instead of this method unless you know what you're doing. Please also contact us or file an issue immediately if you do, in fact, know what you're doing so that you can be added to the development team as the one who does.
     ///
     /// 
-    /// ### Defaults
+    /// ## Defaults
     ///
     /// * The 'NULL' platform (which is not to be relied on but is generally
     ///   the first avaliable).
@@ -51,7 +51,7 @@ impl Context {
     /// defaults. In other words, use: `Context::builder().build().unwrap()`
     /// rather than `Context::new(None, None, None, None).unwrap()`.
     ///
-    /// ### Panics
+    /// ## Panics
     ///
     /// [TEMPORARY] Passing a `Some` variant for `pfn_notify` or `user_data` is 
     /// not yet supported.

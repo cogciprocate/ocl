@@ -20,7 +20,7 @@ use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
 pub struct Image {
     // default_val: PhantomData<T,
     obj_core: MemCore,
-    queue_obj_core: CommandQueueCore,
+    command_queue_obj_core: CommandQueueCore,
     dims: [usize; 3],
     pixel_bytes: usize,
 }
@@ -59,7 +59,7 @@ impl Image {
         Ok(Image {
             // default_val: T::default(),
             obj_core: obj_core,
-            queue_obj_core: queue.core_as_ref().clone(),
+            command_queue_obj_core: queue.core_as_ref().clone(),
             dims: dims,
             pixel_bytes: 4,
         })
@@ -67,34 +67,50 @@ impl Image {
 
     /// Reads from the device image buffer into `data`.
     ///
-    /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadImage.html)
-    /// for more detailed information.
+    /// Setting `queue` to `None` will use the default queue set during creation.
+    /// Otherwise, the queue passed will be used for this call only.
     ///
-    /// ### Safety
+    /// ## Safety
     ///
     /// Caller must ensure that `data` lives until the read is complete. Use
     /// the new event in `dest_list` to monitor it (use [`EventList::last_clone`]).
     ///
+    ///
+    /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadImage.html)
+    /// for more detailed information.
     /// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
     ///
-    pub unsafe fn enqueue_read<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
-                row_pitch: usize, slc_pitch: usize, data: &mut [T], wait_list: Option<&EventList>,
-                dest_list: Option<&mut EventList>) -> OclResult<()> 
+    pub unsafe fn enqueue_read<T>(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
+                region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &mut [T],
+                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
     {
-        core::enqueue_read_image(&self.queue_obj_core, &self.obj_core, block, origin, region,
+        let command_queue = match queue {
+            Some(q) => q.core_as_ref(),
+            None => &self.command_queue_obj_core,
+        };
+
+        core::enqueue_read_image(command_queue, &self.obj_core, block, origin, region,
             row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
             dest_list.map(|el| el.core_as_mut()))
     }
 
     /// Writes from `data` to the device image buffer.
     ///
+    /// Setting `queue` to `None` will use the default queue set during creation.
+    /// Otherwise, the queue passed will be used for this call only.
+    ///
     /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteImage.html)
     /// for more detailed information.
-    pub fn enqueue_write<T>(&self, block: bool, origin: [usize; 3], region: [usize; 3], 
-                row_pitch: usize, slc_pitch: usize, data: &[T], wait_list: Option<&EventList>,
-                dest_list: Option<&mut EventList>) -> OclResult<()> 
+    pub fn enqueue_write<T>(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
+                region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &[T], 
+                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
     {
-        core::enqueue_write_image(&self.queue_obj_core, &self.obj_core, block, origin, region,
+        let command_queue = match queue {
+            Some(q) => q.core_as_ref(),
+            None => &self.command_queue_obj_core,
+        };
+
+        core::enqueue_write_image(command_queue, &self.obj_core, block, origin, region,
             row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
             dest_list.map(|el| el.core_as_mut()))
     }
@@ -107,7 +123,7 @@ impl Image {
     /// Use `::enqueue_read` for the complete range of options.
     pub fn read<T>(&self, data: &mut [T]) -> OclResult<()> {
         // Safe because `block = true`:
-        unsafe { self.enqueue_read(true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None) }
+        unsafe { self.enqueue_read(None, true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None) }
     }
 
     /// Writes from `data` to the device image buffer, blocking until complete.
@@ -117,7 +133,7 @@ impl Image {
     ///
     /// Use `::enqueue_write` for the complete range of options.
     pub fn write<T>(&self, data: &[T]) -> OclResult<()> {
-        self.enqueue_write(true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None)
+        self.enqueue_write(None, true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None)
     }
 
     /// Returns the core image object pointer.
@@ -139,6 +155,23 @@ impl Image {
             Ok(res) => res,
             Err(err) => MemInfoResult::Error(Box::new(err)),
         }        
+    }
+
+    /// Changes the default queue.
+    ///
+    /// Returns a ref for chaining i.e.:
+    ///
+    /// `image.set_queue(queue).write(....);`
+    ///
+    /// [NOTE]: Even when used as above, the queue is changed permanently,
+    /// not just for the one call. Changing the queue is cheap so feel free
+    /// to change as often as needed.
+    ///
+    /// The new queue must be associated with a valid device.
+    ///
+    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Image {
+        self.command_queue_obj_core = queue.core_as_ref().clone();
+        self
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
