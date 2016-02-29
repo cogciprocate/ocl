@@ -25,7 +25,7 @@
 //! [FIXME]: NEEDS UPDATE:
 //! All [update: very few] functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an [`Error`] type instead.
 //!
-//! ### More Documentation
+//! ## More Documentation
 //!
 //! As most of the functions here are minimally documented, please refer to the
 //! official OpenCL documentation linked below. Although there isn't a precise 
@@ -36,7 +36,7 @@
 //!
 //! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
 //!
-//! ### Help Wanted
+//! ## Help Wanted
 //!
 //! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls). 
 //!
@@ -44,7 +44,7 @@
 //! Coverage of core stuff: 100%. <br/>
 //! Coverage of peripheral stuff: 90%. <br/>
 //!
-//! #### `core` Stands Alone
+//! ## `core` Stands Alone
 //!	
 //! This module may eventually be moved to its own separate crate (with its dependencies `cl_h` and `error`).
 //!
