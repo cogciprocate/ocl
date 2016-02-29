@@ -2,6 +2,7 @@
 
 // use std::convert::Into;
 use std;
+use std::ops::{Deref, DerefMut};
 use std::slice::{Iter, IterMut};
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
@@ -692,6 +693,20 @@ impl<T: OclNum> Buffer<T> {
             .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
             .field("Offset", &self.mem_info(MemInfo::Offset))
             .finish()
+    }
+}
+
+impl<T: OclNum> Deref for Buffer<T> {
+    type Target = MemCore;
+
+    fn deref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<T: OclNum> DerefMut for Buffer<T> {
+    fn deref_mut(&mut self) -> &mut MemCore {
+        &mut self.obj_core
     }
 }
 

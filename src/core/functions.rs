@@ -680,7 +680,7 @@ pub unsafe fn release_mem_object(mem: &Mem) -> OclResult<()> {
 /// ```notest
 /// let context = Context::builder().build().unwrap();
 /// 
-/// let img_fmts = core::get_supported_image_formats(context.core_as_ref(), 
+/// let img_fmts = core::get_supported_image_formats(context, 
 ///    core::MEM_READ_WRITE, core::MemObjectType::Image2d)
 /// ```
 pub fn get_supported_image_formats(
@@ -790,9 +790,11 @@ pub fn set_mem_object_destructor_callback() -> OclResult<()> {
 //============================================================================
 
 /// [UNTESTED]
-/// Returns a new sampler.
+/// Creates and returns a new sampler object.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSampler.html)
 pub fn create_sampler(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
-            filter_mode: FilterMode) -> OclResult<(Sampler)> 
+            filter_mode: FilterMode) -> OclResult<Sampler> 
 {
     let mut errcode = 0;
 
@@ -817,7 +819,9 @@ pub unsafe fn release_sampler(sampler: &Sampler) -> OclResult<()> {
     errcode_try("clReleaseSampler", cl_h::clReleaseSampler(sampler.as_ptr()))
 }
 
-/// Get sampler info.
+/// Returns information about the sampler object.
+///
+/// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetSamplerInfo.html)
 pub fn get_sampler_info(obj: &Sampler, info_request: SamplerInfo,
     ) -> OclResult<(SamplerInfoResult)> 
 {

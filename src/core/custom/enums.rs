@@ -46,7 +46,7 @@ use error::{Result as OclResult, Error as OclError};
 pub type TemporaryPlaceholderType = ();
 
 
-/// [UNSAFE: Not thoroughly tested, Some variants dangerous] Kernel argument option type.
+/// [UNSAFE] Kernel argument option type.
 ///
 /// The type argument `T` is ignored for `Mem`, `Sampler`, and `UnsafePointer` 
 /// (just put `usize` or anything).
@@ -137,7 +137,7 @@ pub enum ContextProperty {
 }
 
 /// Platform info result.
-/// TODO: ADD ERROR VARIANT.
+///
 // #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum PlatformInfoResult {
     Profile(String),

@@ -2,6 +2,7 @@
 
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
+use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 // use error::Result as OclResult;
 use standard::{Platform};
@@ -185,6 +186,21 @@ impl std::fmt::Display for Device {
         self.fmt_info(f)
     }
 }
+
+impl Deref for Device {
+    type Target = DeviceIdCore;
+
+    fn deref(&self) -> &DeviceIdCore {
+        &self.0
+    }
+}
+
+impl DerefMut for Device {
+    fn deref_mut(&mut self) -> &mut DeviceIdCore {
+        &mut self.0
+    }
+}
+
 
 // fn try_to_str(result: OclResult<DeviceInfoResult>) -> String {
 //     match result {

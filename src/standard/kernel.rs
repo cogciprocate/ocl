@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
     KernelInfo, KernelInfoResult};
 use error::{Result as OclResult, Error as OclError};
-use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims};
+use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler};
 
 /// A kernel.
 ///
@@ -42,7 +42,7 @@ impl Kernel {
                 gws: D) -> OclResult<Kernel>
     {
         let name = name.into();
-        let obj_core = try!(core::create_kernel(program.core_as_ref(), &name));
+        let obj_core = try!(core::create_kernel(program, &name));
 
         Ok(Kernel {
             obj_core: obj_core,
@@ -93,6 +93,14 @@ impl Kernel {
         self
     }
 
+    /// Adds a new argument to the kernel specifying the sampler object represented
+    /// by 'sampler' (builder-style). Argument is added to the bottom of the argument 
+    /// order.
+    pub fn arg_smp(mut self, sampler: &Sampler) -> Kernel {
+        self.new_arg_smp(Some(sampler));
+        self
+    }
+
     /// Adds a new argument specifying the value: `scalar` (builder-style). Argument 
     /// is added to the bottom of the argument order.
     pub fn arg_scl<T: OclNum>(mut self, scalar: T) -> Kernel {
@@ -124,7 +132,7 @@ impl Kernel {
     /// 'buffer' (builder-style). Argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-    pub fn arg_buf_named<T: OclNum>(mut self, name: &'static str,  buffer_opt: Option<&Buffer<T>>) -> Kernel {
+    pub fn arg_buf_named<T: OclNum>(mut self, name: &'static str, buffer_opt: Option<&Buffer<T>>) -> Kernel {
         let arg_idx = self.new_arg_buf(buffer_opt);
         self.named_args.insert(name, arg_idx);
         self
@@ -134,8 +142,18 @@ impl Kernel {
     /// 'image' (builder-style). Argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-    pub fn arg_img_named(mut self, name: &'static str,  image_opt: Option<&Image>) -> Kernel {
+    pub fn arg_img_named(mut self, name: &'static str, image_opt: Option<&Image>) -> Kernel {
         let arg_idx = self.new_arg_img(image_opt);
+        self.named_args.insert(name, arg_idx);
+        self
+    }    
+
+    /// Adds a new named sampler argument specifying the sampler object represented by 
+    /// 'sampler' (builder-style). Argument is added to the bottom of the argument order.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
+    pub fn arg_smp_named(mut self, name: &'static str, sampler_opt: Option<&Sampler>) -> Kernel {
+        let arg_idx = self.new_arg_smp(sampler_opt);
         self.named_args.insert(name, arg_idx);
         self
     }    
@@ -160,7 +178,7 @@ impl Kernel {
 
         match buffer_opt {
             Some(buffer) => {
-                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer.core_as_ref()))
+                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
             },
             None => {
                 // let mem_core_null = unsafe { MemCore::null() };
@@ -222,7 +240,7 @@ impl Kernel {
     fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {        
         match buffer_opt {
             Some(buffer) => {
-                self.new_arg::<T>(KernelArg::Mem(buffer.core_as_ref()))
+                self.new_arg::<T>(KernelArg::Mem(buffer))
             },
             None => {
                 // let mem_core_null = unsafe { MemCore::null() };
@@ -235,11 +253,24 @@ impl Kernel {
     fn new_arg_img(&mut self, image_opt: Option<&Image>) -> u32 {        
         match image_opt {
             Some(image) => {
-                self.new_arg::<u8>(KernelArg::Mem(image.core_as_ref()))
+                // Type is ignored:
+                self.new_arg::<u8>(KernelArg::Mem(image))
             },
             None => {
-                // Type is ignored:
                 self.new_arg::<u8>(KernelArg::MemNull)
+            },
+        }
+    }
+
+    // Non-builder-style version of `::arg_img()`.
+    fn new_arg_smp(&mut self, sampler_opt: Option<&Sampler>) -> u32 {
+        match sampler_opt {
+            Some(sampler) => {
+                // Type is ignored:
+                self.new_arg::<u8>(KernelArg::Sampler(sampler))
+            },
+            None => {
+                self.new_arg::<u8>(KernelArg::SamplerNull)
             },
         }
     }
@@ -324,3 +355,18 @@ impl std::fmt::Display for Kernel {
     }
 }
 
+use std::ops::{Deref, DerefMut};
+
+impl Deref for Kernel {
+    type Target = KernelCore;
+
+    fn deref(&self) -> &KernelCore {
+        &self.obj_core
+    }
+}
+
+impl DerefMut for Kernel {
+    fn deref_mut(&mut self) -> &mut KernelCore {
+        &mut self.obj_core
+    }
+}

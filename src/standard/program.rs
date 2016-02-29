@@ -1,7 +1,7 @@
 //! An OpenCL program.
 use std;
+use std::ops::{Deref, DerefMut};
 use std::ffi::CString;
-
 use error::{Result as OclResult};
 use core::{self, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
@@ -37,7 +37,7 @@ impl Program {
         Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
-            context.core_as_ref(), 
+            context, 
             &device_ids)
     }
 
@@ -110,3 +110,16 @@ impl std::fmt::Display for Program {
     }
 }
 
+impl Deref for Program {
+    type Target = ProgramCore;
+
+    fn deref(&self) -> &ProgramCore {
+        &self.obj_core
+    }
+}
+
+impl DerefMut for Program {
+    fn deref_mut(&mut self) -> &mut ProgramCore {
+        &mut self.obj_core
+    }
+}

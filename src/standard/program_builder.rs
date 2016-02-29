@@ -92,7 +92,7 @@ impl ProgramBuilder {
         Program::from_parts(
             try!(self.get_src_strings().map_err(|e| e.to_string())), 
             try!(self.get_compiler_options().map_err(|e| e.to_string())), 
-            context.core_as_ref(), 
+            context, 
             &device_list[..])
     }
 

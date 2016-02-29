@@ -1,6 +1,7 @@
 //! An OpenCL command queue.
 
 use std;
+use std::ops::{Deref, DerefMut};
 use core::{self, CommandQueue as CommandQueueCore, Context as ContextCore,
     CommandQueueInfo, CommandQueueInfoResult};
 use standard::{Context, Device};
@@ -41,7 +42,7 @@ impl Queue {
             None => context.get_device_by_index(0).clone(),
         };
 
-        let obj_core = core::create_command_queue(context.core_as_ref(), &device)
+        let obj_core = core::create_command_queue(context, &device)
             .expect("[FIXME: TEMPORARY]: Queue::new_by_device_index():"); 
 
         Queue {
@@ -71,7 +72,7 @@ impl Queue {
         assert!(devices.len() == 1, "Queue::new_by_device_index: Error resolving device ids.");
         let device = devices[0].clone();
 
-        let obj_core = core::create_command_queue(context.core_as_ref(), &device)
+        let obj_core = core::create_command_queue(context, &device)
             .expect("[FIXME: TEMPORARY]: Queue::new_by_device_index():"); 
 
         Queue {
@@ -126,5 +127,19 @@ impl Queue {
 impl std::fmt::Display for Queue {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_info(f)
+    }
+}
+
+impl Deref for Queue {
+    type Target = CommandQueueCore;
+
+    fn deref(&self) -> &CommandQueueCore {
+        &self.obj_core
+    }
+}
+
+impl DerefMut for Queue {
+    fn deref_mut(&mut self) -> &mut CommandQueueCore {
+        &mut self.obj_core
     }
 }

@@ -5,6 +5,7 @@
 #![allow(dead_code, unused_imports)]
 
 use std;
+use std::ops::{Deref, DerefMut};
 use error::{Result as OclResult};
 use standard::{self, Context, Queue, ImageBuilder, EventList};
 use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor, 
@@ -35,7 +36,7 @@ impl Image {
     /// Returns a list of supported image formats.
     pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType,
                 ) -> OclResult<Vec<ImageFormat>> {
-        core::get_supported_image_formats(context.core_as_ref(), flags, mem_obj_type)
+        core::get_supported_image_formats(context, flags, mem_obj_type)
     }
 
     /// Returns a new `Image`.
@@ -181,3 +182,16 @@ impl std::fmt::Display for Image {
 }
 
 
+impl Deref for Image {
+    type Target = MemCore;
+
+    fn deref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl DerefMut for Image {
+    fn deref_mut(&mut self) -> &mut MemCore {
+        &mut self.obj_core
+    }
+}

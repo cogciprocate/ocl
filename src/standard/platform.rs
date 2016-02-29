@@ -4,6 +4,7 @@
 
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
+use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 
@@ -138,3 +139,16 @@ impl std::fmt::Display for Platform {
     }
 }
 
+impl Deref for Platform {
+    type Target = PlatformIdCore;
+
+    fn deref(&self) -> &PlatformIdCore {
+        &self.0
+    }
+}
+
+impl DerefMut for Platform {
+    fn deref_mut(&mut self) -> &mut PlatformIdCore {
+        &mut self.0
+    }
+}

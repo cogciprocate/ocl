@@ -5,6 +5,7 @@
 
 // use formatting::MT;
 use std;
+use std::ops::{Deref, DerefMut};
 use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
 use error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier, ContextBuilder};
@@ -307,5 +308,19 @@ impl Context {
 impl std::fmt::Display for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_info(f)
+    }
+}
+
+impl Deref for Context {
+    type Target = ContextCore;
+
+    fn deref(&self) -> &ContextCore {
+        &self.obj_core
+    }
+}
+
+impl DerefMut for Context {
+    fn deref_mut(&mut self) -> &mut ContextCore {
+        &mut self.obj_core
     }
 }

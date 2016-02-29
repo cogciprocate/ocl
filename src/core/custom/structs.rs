@@ -3,7 +3,9 @@ use core::{ContextProperty, ContextInfoOrPropertiesPointerType as PropKind, Plat
 use util;
 use cl_h;
 
-/// [FIXME: Minimally tested] Context properties.
+/// Context properties list.
+///
+/// [MINIMALLY TESTED]
 ///
 /// TODO: Check for duplicate property assignments.
 #[derive(Clone, Debug)]
