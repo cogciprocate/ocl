@@ -63,7 +63,6 @@ impl<'a, T> BufferDims for &'a T where T: BufferDims {
     fn padded_buffer_len(&self, incr: usize) -> usize { (*self).padded_buffer_len(incr) }
 }
 
-
 pub trait WorkDims {
     /// Returns the number of dimensions defined by this `SimpleDims`.
     fn dim_count(&self) -> u32;

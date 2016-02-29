@@ -115,8 +115,8 @@ impl<'c> ProQueBuilder<'c> {
         self
     }   
 
-    pub fn dims<'p>(&'p mut self, dims: SimpleDims) -> &'p mut ProQueBuilder<'c> {
-        self.dims = Some(dims);
+    pub fn dims<'p, S: Into<SimpleDims>>(&'p mut self, dims: S) -> &'p mut ProQueBuilder<'c> {
+        self.dims = Some(dims.into());
         self
     }
 

@@ -1,15 +1,15 @@
 [package]
 name = "ocl"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
-description = "OpenCL interfaces for Rust."
+description = "OpenCL bindings and interfaces for Rust."
 documentation = "http://doc.cogciprocate.com/ocl/index.html"
 homepage = "https://github.com/cogciprocate/ocl_rust"
 repository = "https://github.com/cogciprocate/ocl_rust"
 readme = "README.md"
 keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT"
-exclude = ["target/*"]
+exclude = ["target/*", "*.png"]
 
 # [dependencies.bitflags]
 # git = "https://github.com/rust-lang-nursery/bitflags.git"

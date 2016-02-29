@@ -1,10 +1,15 @@
 //! A convenient wrapper for `Program` and `Queue`.
 
-// use std::convert::Into;
+use std::convert::Into;
+use std::ops::Deref;
 use core;
 use standard::{Context, Kernel, ProgramBuilder, ProQueBuilder, Program, Queue, 
     BufferDims, SimpleDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
+
+static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use 
+    'ProQue::builder().dims(__)...' or 'my_pro_que.set_dims(__)' to specify.";
+
 
 /// An all-in-one chimera of the `Program`, `Queue`, and (optionally) the 
 /// `Context` and `SimpleDims` types.
@@ -162,8 +167,8 @@ impl ProQue {
         Kernel::new(name.to_string(), &program, &self.queue, gws).unwrap()
     }
 
-    pub fn set_dims(&mut self, dims: SimpleDims) {
-        self.dims = Some(dims);
+    pub fn set_dims<S: Into<SimpleDims>>(&mut self, dims: S) {
+        self.dims = Some(dims.into());
     }
 
     /// Returns the maximum workgroup size supported by the device associated
@@ -196,8 +201,7 @@ impl ProQue {
     pub fn dims_result(&self) -> OclResult<SimpleDims> {
         match self.dims {
             Some(ref dims) => Ok(dims.clone()),
-            None => OclError::err("This 'ProQue' has not had any dimensions specified. Use 
-                'ProQue::builder().dims(__)...' or 'my_pro_que.set_dims(__)' to specify."),
+            None => OclError::err(DIMS_ERR_MSG),
         }
     }
 }
@@ -219,5 +223,16 @@ impl WorkDims for ProQue {
 
     fn to_work_offset(&self) -> Option<[usize; 3]> {
         self.dims_result().expect("ProQue::to_work_offset").to_work_offset()
+    }
+}
+
+impl Deref for ProQue {
+    type Target = SimpleDims;
+
+    fn deref(&self) -> &SimpleDims {
+        match self.dims {
+            Some(ref dims) => dims,
+            None => panic!(DIMS_ERR_MSG),
+        }
     }
 }

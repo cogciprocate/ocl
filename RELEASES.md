@@ -1,3 +1,18 @@
+Version 0.8.0 (UNRELEASED)
+==========================
+
+Breaking Changes
+----------------
+
+
+New Features
+------------
+* Most of the remaining functions in the `core` module have been implemented.
+  Coverage is now about 98%.
+* `Sampler` has been added along with the appropriate methods on `Kernel`
+  to accept samplers as arguments. See `examples/image.rs` for usage.
+
+
 Version 0.7.0 (2016-02-27)
 ==========================
 

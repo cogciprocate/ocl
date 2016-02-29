@@ -1,5 +1,8 @@
 extern crate ocl;
 
+use std::convert::Into;
+use ocl::{ProQue, SimpleDims, Buffer};
+
 // Number of results to print out:
 const RESULTS_TO_PRINT: usize = 20;
 
@@ -22,8 +25,6 @@ static KERNEL_SRC: &'static str = r#"
 
 
 fn main() {
-    use ocl::{ProQue, SimpleDims, Buffer};
-
     // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
     let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("Build ProQue");
 

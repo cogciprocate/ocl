@@ -1,6 +1,8 @@
 //! A simple way to specify the sizes of up to three dimensions.
 // use std::convert::Into;
 use std::convert::From;
+use std::fmt::Debug;
+use num::{Num, ToPrimitive};
 use error::{Result as OclResult, Error as OclError};
 use standard::{BufferDims, WorkDims};
 use util;
@@ -13,7 +15,7 @@ use util;
 ///
 /// [FIXME] TODO: Much more explaination needed as soon as conventions solidify.
 /// [UNSTABLE]: MAY BE CONSOLIDATED WITH `WorkDims`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 pub enum SimpleDims {
     Unspecified,
     One     (usize),
@@ -117,14 +119,158 @@ impl WorkDims for SimpleDims {
     }
 }
 
-impl From<(u32, u32)> for SimpleDims {
-    fn from(pair: (u32, u32)) -> SimpleDims {
-        SimpleDims::Two(pair.0 as usize, pair.1 as usize)
+impl<T: Num + ToPrimitive + Debug + Copy> From<(T, )> for SimpleDims {
+    fn from(val: (T, )) -> SimpleDims {
+        SimpleDims::One(to_usize(val.0))
     }
 }
 
-impl From<(usize, usize)> for SimpleDims {
-    fn from(pair: (usize, usize)) -> SimpleDims {
-        SimpleDims::Two(pair.0 as usize, pair.1 as usize)
+impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 1]> for SimpleDims {
+    fn from(val: [T; 1]) -> SimpleDims {
+        SimpleDims::One(to_usize(val[0]))
     }
 }
+
+impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T)> for SimpleDims {
+    fn from(pair: (T, T)) -> SimpleDims {
+        SimpleDims::Two(
+            to_usize(pair.0), 
+            to_usize(pair.1),
+        )
+    }
+}
+
+impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 2]> for SimpleDims {
+    fn from(pair: [T; 2]) -> SimpleDims {
+        SimpleDims::Two(
+            to_usize(pair[0]), 
+            to_usize(pair[1]),
+        )
+    }
+}
+
+impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T, T)> for SimpleDims {
+    fn from(set: (T, T, T)) -> SimpleDims {
+        SimpleDims::Three(
+            to_usize(set.0), 
+            to_usize(set.1), 
+            to_usize(set.2),
+        )
+    }
+}
+
+impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 3]> for SimpleDims {
+    fn from(set: [T; 3]) -> SimpleDims {
+        SimpleDims::Three(
+            // set[0]), 
+            // set[1]), 
+            // set[2]),
+            to_usize(set[0]), 
+            to_usize(set[1]), 
+            to_usize(set[2]),
+        )
+    }
+}
+
+#[inline]
+fn to_usize<T: Num + ToPrimitive + Debug + Copy>(val: T) -> usize {
+    val.to_usize().expect(&format!("Unable to convert the value '{:?}' into a SimpleDims. \
+        Dimensions must have positive values.", val))
+}
+
+
+
+//// OLD: //// 
+//// OLD: //// 
+//// OLD: //// 
+
+
+// #[inline]
+// fn conv_panic<T: Num + ToPrimitive + Debug>(val: T) {
+//     panic!("Unable to convert the value '{:?}' into a SimpleDims. \
+//         Dimensions must have positive values.", val);
+// }
+
+
+// impl<T: Into<usize>> From<T> for SimpleDims {
+//     fn from(val: T) -> SimpleDims {
+//         // SimpleDims::One(to_usize(val))
+//         SimpleDims::One(val.into())
+//     }
+// }
+
+// impl<T: ToPrimitive> From<T> for SimpleDims {
+//     fn from(val: T) -> SimpleDims {
+//         // SimpleDims::One(to_usize(val))
+//         SimpleDims::One(val.to_usize().unwrap())
+//     }
+// }
+
+// impl<T: Unsigned + ToPrimitive + Debug + Copy> From<(T, T)> for SimpleDims {
+//     fn from(pair: (T, T)) -> SimpleDims {
+//         SimpleDims::Two(to_usize(pair.0), to_usize(pair.1))
+//     }
+// }
+
+// impl<T: Unsigned + ToPrimitive + Debug + Copy> From<(T, T, T)> for SimpleDims {
+//     fn from(set: (T, T, T)) -> SimpleDims {
+//         SimpleDims::Three(to_usize(set.0), to_usize(set.1), to_usize(set.2))
+//     }
+// }
+
+// impl<T: Unsigned + ToPrimitive + Debug + Copy> From<[T; 2]> for SimpleDims {
+//     fn from(pair: [T; 2]) -> SimpleDims {
+//         SimpleDims::Two(to_usize(pair[0]), to_usize(pair[1]))
+//     }
+// }
+
+// impl<T: Unsigned + ToPrimitive + Debug + Copy> From<[T; 3]> for SimpleDims {
+//     fn from(set: [T; 3]) -> SimpleDims {
+//         SimpleDims::Three(to_usize(set[0]), to_usize(set[1]), to_usize(set[2]))
+//     }
+// }
+
+
+
+
+// impl From<u8> for SimpleDims {
+//     fn from(val: u8) -> SimpleDims {
+//         // SimpleDims::One(to_usize(val))
+//         SimpleDims::One(val.into())
+//     }
+// }
+
+// impl From<u16> for SimpleDims {
+//     fn from(val: u16) -> SimpleDims {
+//         // SimpleDims::One(to_usize(val))
+//         SimpleDims::One(val.to_usize().unwrap())
+//     }
+// }
+
+// impl From<i32> for SimpleDims {
+//     fn from(val: i32) -> SimpleDims {
+//         // SimpleDims::One(to_usize(val))
+//         SimpleDims::One(val.to_usize().unwrap())
+//     }
+// }
+
+// impl From<u32> for SimpleDims {
+//     fn from(val: u32) -> SimpleDims {
+//         // SimpleDims::One(to_usize(val))
+//         SimpleDims::One(val.to_usize().unwrap())
+//     }
+// }
+
+// impl From<u64> for SimpleDims {
+//     fn from(val: u64) -> SimpleDims {
+//         // SimpleDims::One(to_usize(val))
+//         SimpleDims::One(val.to_usize().unwrap())
+//     }
+// }
+
+// impl From<usize> for SimpleDims {
+//     fn from(val: usize) -> SimpleDims {
+//         // SimpleDims::One(to_usize(val))
+//         SimpleDims::One(val.into())
+//     }
+// }

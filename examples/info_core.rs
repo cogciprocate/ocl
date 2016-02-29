@@ -445,10 +445,10 @@ fn main() {
 			{t}Properties: {}\n\
 			{t}Device Count: {}\n\
 		",
-		core::get_context_info(context.core_as_ref(), ContextInfo::ReferenceCount).unwrap(),
-		core::get_context_info(context.core_as_ref(), ContextInfo::Devices).unwrap(),
-		core::get_context_info(context.core_as_ref(), ContextInfo::Properties).unwrap(),
-		core::get_context_info(context.core_as_ref(), ContextInfo::NumDevices).unwrap(),
+		core::get_context_info(&context, ContextInfo::ReferenceCount).unwrap(),
+		core::get_context_info(&context, ContextInfo::Devices).unwrap(),
+		core::get_context_info(&context, ContextInfo::Properties).unwrap(),
+		core::get_context_info(&context, ContextInfo::NumDevices).unwrap(),
 		t = util::TAB,
 	);
 
@@ -489,10 +489,10 @@ fn main() {
 			{t}ReferenceCount: {}\n\
 			{t}Properties: {}\n\
 		",
-		core::get_command_queue_info(queue.core_as_ref(), CommandQueueInfo::Context).unwrap(),
-		core::get_command_queue_info(queue.core_as_ref(), CommandQueueInfo::Device).unwrap(),
-		core::get_command_queue_info(queue.core_as_ref(), CommandQueueInfo::ReferenceCount).unwrap(),
-		core::get_command_queue_info(queue.core_as_ref(), CommandQueueInfo::Properties).unwrap(),
+		core::get_command_queue_info(&queue, CommandQueueInfo::Context).unwrap(),
+		core::get_command_queue_info(&queue, CommandQueueInfo::Device).unwrap(),
+		core::get_command_queue_info(&queue, CommandQueueInfo::ReferenceCount).unwrap(),
+		core::get_command_queue_info(&queue, CommandQueueInfo::Properties).unwrap(),
 		t = util::TAB,
 	);
 
@@ -560,15 +560,15 @@ fn main() {
 	        {t}AssociatedMemobject: {}\n\
 	        {t}Offset: {}\n\
 		",
-		core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Type).unwrap(),
-	    core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Flags).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Size).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::HostPtr).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::MapCount).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::ReferenceCount).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Context).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::AssociatedMemobject).unwrap(),
-        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Offset).unwrap(),
+		core::get_mem_object_info(&buffer, MemInfo::Type).unwrap(),
+	    core::get_mem_object_info(&buffer, MemInfo::Flags).unwrap(),
+        core::get_mem_object_info(&buffer, MemInfo::Size).unwrap(),
+        core::get_mem_object_info(&buffer, MemInfo::HostPtr).unwrap(),
+        core::get_mem_object_info(&buffer, MemInfo::MapCount).unwrap(),
+        core::get_mem_object_info(&buffer, MemInfo::ReferenceCount).unwrap(),
+        core::get_mem_object_info(&buffer, MemInfo::Context).unwrap(),
+        core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject).unwrap(),
+        core::get_mem_object_info(&buffer, MemInfo::Offset).unwrap(),
 		t = util::TAB,
 	);
 
@@ -610,17 +610,17 @@ fn main() {
  //            {t}NumMipLevels: {}\n\
  //            {t}NumSamples: {}\n\
 	// 	",
-	// 	core::get_image_info(image.core_as_ref(), ImageInfo::Format).unwrap(),
-	//     core::get_image_info(image.core_as_ref(), ImageInfo::ElementSize).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::RowPitch).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::SlicePitch).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::Width).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::Height).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::Depth).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::ArraySize).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::Buffer).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::NumMipLevels).unwrap(),
- //        core::get_image_info(image.core_as_ref(), ImageInfo::NumSamples).unwrap(),
+	// 	core::get_image_info(&image, ImageInfo::Format).unwrap(),
+	//     core::get_image_info(&image, ImageInfo::ElementSize).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::RowPitch).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::SlicePitch).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::Width).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::Height).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::Depth).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::ArraySize).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::Buffer).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::NumMipLevels).unwrap(),
+ //        core::get_image_info(&image, ImageInfo::NumSamples).unwrap(),
 	// 	t = util::TAB,
 	// );
 
@@ -637,16 +637,16 @@ fn main() {
                 {t}NumMipLevels: {}{d}\
                 {t}NumSamples: {}{e}\
             ",
-            core::get_image_info(image.core_as_ref(), ImageInfo::ElementSize).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::RowPitch).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::SlicePitch).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::Width).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::Height).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::Depth).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::ArraySize).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::Buffer).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::NumMipLevels).unwrap(),
-            core::get_image_info(image.core_as_ref(), ImageInfo::NumSamples).unwrap(),
+            core::get_image_info(&image, ImageInfo::ElementSize).unwrap(),
+            core::get_image_info(&image, ImageInfo::RowPitch).unwrap(),
+            core::get_image_info(&image, ImageInfo::SlicePitch).unwrap(),
+            core::get_image_info(&image, ImageInfo::Width).unwrap(),
+            core::get_image_info(&image, ImageInfo::Height).unwrap(),
+            core::get_image_info(&image, ImageInfo::Depth).unwrap(),
+            core::get_image_info(&image, ImageInfo::ArraySize).unwrap(),
+            core::get_image_info(&image, ImageInfo::Buffer).unwrap(),
+            core::get_image_info(&image, ImageInfo::NumMipLevels).unwrap(),
+            core::get_image_info(&image, ImageInfo::NumSamples).unwrap(),
             b = begin,
             d = delim,
             e = end,
@@ -664,15 +664,15 @@ fn main() {
 		        {t}{t}AssociatedMemobject: {}\n\
 		        {t}{t}Offset: {}\n\
 			",
-			core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Type).unwrap(),
-		    core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Flags).unwrap(),
-	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Size).unwrap(),
-	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::HostPtr).unwrap(),
-	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::MapCount).unwrap(),
-	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::ReferenceCount).unwrap(),
-	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Context).unwrap(),
-	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::AssociatedMemobject).unwrap(),
-	        core::get_mem_object_info(buffer.core_as_ref(), MemInfo::Offset).unwrap(),
+			core::get_mem_object_info(&buffer, MemInfo::Type).unwrap(),
+		    core::get_mem_object_info(&buffer, MemInfo::Flags).unwrap(),
+	        core::get_mem_object_info(&buffer, MemInfo::Size).unwrap(),
+	        core::get_mem_object_info(&buffer, MemInfo::HostPtr).unwrap(),
+	        core::get_mem_object_info(&buffer, MemInfo::MapCount).unwrap(),
+	        core::get_mem_object_info(&buffer, MemInfo::ReferenceCount).unwrap(),
+	        core::get_mem_object_info(&buffer, MemInfo::Context).unwrap(),
+	        core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject).unwrap(),
+	        core::get_mem_object_info(&buffer, MemInfo::Offset).unwrap(),
 			t = util::TAB,
 		);
 
@@ -696,11 +696,11 @@ fn main() {
  //            {t}AddressingMode: {}\n\
  //            {t}FilterMode: {}\n\
 	// 	",
-	// 	core::get_sampler_info(sampler.core_as_ref(), SamplerInfo::ReferenceCount).unwrap(),
- //        core::get_sampler_info(sampler.core_as_ref(), SamplerInfo::Context).unwrap(),
- //        core::get_sampler_info(sampler.core_as_ref(), SamplerInfo::NormalizedCoords).unwrap(),
- //        core::get_sampler_info(sampler.core_as_ref(), SamplerInfo::AddressingMode).unwrap(),
- //        core::get_sampler_info(sampler.core_as_ref(), SamplerInfo::FilterMode).unwrap(),
+	// 	core::get_sampler_info(&sampler, SamplerInfo::ReferenceCount).unwrap(),
+ //        core::get_sampler_info(&sampler, SamplerInfo::Context).unwrap(),
+ //        core::get_sampler_info(&sampler, SamplerInfo::NormalizedCoords).unwrap(),
+ //        core::get_sampler_info(&sampler, SamplerInfo::AddressingMode).unwrap(),
+ //        core::get_sampler_info(&sampler, SamplerInfo::FilterMode).unwrap(),
 	// 	t = util::TAB,
 	// );
 
@@ -732,15 +732,15 @@ fn main() {
             {t}NumKernels: {}\n\
             {t}KernelNames: {}\n\
 		",
-		core::get_program_info(program.core_as_ref(), ProgramInfo::ReferenceCount).unwrap(),
-        core::get_program_info(program.core_as_ref(), ProgramInfo::Context).unwrap(),
-        core::get_program_info(program.core_as_ref(), ProgramInfo::NumDevices).unwrap(),
-        core::get_program_info(program.core_as_ref(), ProgramInfo::Devices).unwrap(),
-        core::get_program_info(program.core_as_ref(), ProgramInfo::Source).unwrap(),
-        core::get_program_info(program.core_as_ref(), ProgramInfo::BinarySizes).unwrap(),
-        core::get_program_info(program.core_as_ref(), ProgramInfo::Binaries).unwrap(),
-        core::get_program_info(program.core_as_ref(), ProgramInfo::NumKernels).unwrap(),
-        core::get_program_info(program.core_as_ref(), ProgramInfo::KernelNames).unwrap(),
+		core::get_program_info(&program, ProgramInfo::ReferenceCount).unwrap(),
+        core::get_program_info(&program, ProgramInfo::Context).unwrap(),
+        core::get_program_info(&program, ProgramInfo::NumDevices).unwrap(),
+        core::get_program_info(&program, ProgramInfo::Devices).unwrap(),
+        core::get_program_info(&program, ProgramInfo::Source).unwrap(),
+        core::get_program_info(&program, ProgramInfo::BinarySizes).unwrap(),
+        core::get_program_info(&program, ProgramInfo::Binaries).unwrap(),
+        core::get_program_info(&program, ProgramInfo::NumKernels).unwrap(),
+        core::get_program_info(&program, ProgramInfo::KernelNames).unwrap(),
 		t = util::TAB,
 	);
 
@@ -809,10 +809,10 @@ fn main() {
             {t}BuildLog: {}\n\
             {t}BinaryType: {}\n\
 		",
-		core::get_program_build_info(program.core_as_ref(), &device, ProgramBuildInfo::BuildStatus).unwrap(),
-        core::get_program_build_info(program.core_as_ref(), &device, ProgramBuildInfo::BuildOptions).unwrap(),
-        core::get_program_build_info(program.core_as_ref(), &device, ProgramBuildInfo::BuildLog).unwrap(),
-        core::get_program_build_info(program.core_as_ref(), &device, ProgramBuildInfo::BinaryType).unwrap(),
+		core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildStatus).unwrap(),
+        core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildOptions).unwrap(),
+        core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildLog).unwrap(),
+        core::get_program_build_info(&program, &device, ProgramBuildInfo::BinaryType).unwrap(),
 		t = util::TAB,
 	);
 
@@ -842,12 +842,12 @@ fn main() {
             {t}Program: {}\n\
             {t}Attributes: {}\n\
 		",
-		core::get_kernel_info(kernel.core_as_ref(), KernelInfo::FunctionName).unwrap(),
-	    core::get_kernel_info(kernel.core_as_ref(), KernelInfo::NumArgs).unwrap(),
-        core::get_kernel_info(kernel.core_as_ref(), KernelInfo::ReferenceCount).unwrap(),
-        core::get_kernel_info(kernel.core_as_ref(), KernelInfo::Context).unwrap(),
-        core::get_kernel_info(kernel.core_as_ref(), KernelInfo::Program).unwrap(),
-        core::get_kernel_info(kernel.core_as_ref(), KernelInfo::Attributes).unwrap(),
+		core::get_kernel_info(&kernel, KernelInfo::FunctionName).unwrap(),
+	    core::get_kernel_info(&kernel, KernelInfo::NumArgs).unwrap(),
+        core::get_kernel_info(&kernel, KernelInfo::ReferenceCount).unwrap(),
+        core::get_kernel_info(&kernel, KernelInfo::Context).unwrap(),
+        core::get_kernel_info(&kernel, KernelInfo::Program).unwrap(),
+        core::get_kernel_info(&kernel, KernelInfo::Attributes).unwrap(),
 		t = util::TAB,
 	);
 
@@ -898,11 +898,11 @@ fn main() {
             {t}TypeQualifier: {}\n\
             {t}Name: {}\n\
 		",
-		core::get_kernel_arg_info(kernel.core_as_ref(), 0, KernelArgInfo::AddressQualifier).unwrap(),
-        core::get_kernel_arg_info(kernel.core_as_ref(), 0, KernelArgInfo::AccessQualifier).unwrap(),
-        core::get_kernel_arg_info(kernel.core_as_ref(), 0, KernelArgInfo::TypeName).unwrap(),
-        core::get_kernel_arg_info(kernel.core_as_ref(), 0, KernelArgInfo::TypeQualifier).unwrap(),
-        core::get_kernel_arg_info(kernel.core_as_ref(), 0, KernelArgInfo::Name).unwrap(),
+		core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier).unwrap(),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier).unwrap(),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName).unwrap(),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier).unwrap(),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name).unwrap(),
 		t = util::TAB,
 	);
 
@@ -932,17 +932,17 @@ fn main() {
             {t}PrivateMemSize: {}\n\
             {t}GlobalWorkSize: {}\n\
 		",
-		core::get_kernel_work_group_info(kernel.core_as_ref(), &device, 
+		core::get_kernel_work_group_info(&kernel, &device, 
 			KernelWorkGroupInfo::WorkGroupSize).unwrap(),
-	    core::get_kernel_work_group_info(kernel.core_as_ref(), &device, 
+	    core::get_kernel_work_group_info(&kernel, &device, 
 	    	KernelWorkGroupInfo::CompileWorkGroupSize).unwrap(),
-        core::get_kernel_work_group_info(kernel.core_as_ref(), &device, 
+        core::get_kernel_work_group_info(&kernel, &device, 
         	KernelWorkGroupInfo::LocalMemSize).unwrap(),
-        core::get_kernel_work_group_info(kernel.core_as_ref(), &device, 
+        core::get_kernel_work_group_info(&kernel, &device, 
         	KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple).unwrap(),
-        core::get_kernel_work_group_info(kernel.core_as_ref(), &device, 
+        core::get_kernel_work_group_info(&kernel, &device, 
         	KernelWorkGroupInfo::PrivateMemSize).unwrap(),
-        // core::get_kernel_work_group_info(kernel.core_as_ref(), &device, 
+        // core::get_kernel_work_group_info(&kernel, &device, 
         // 	KernelWorkGroupInfo::GlobalWorkSize).unwrap(),
     	"[KernelWorkGroupInfo::GlobalWorkSize not avaliable in this configuration]",
 		t = util::TAB,
@@ -972,11 +972,11 @@ fn main() {
             {t}CommandExecutionStatus: {}\n\
             {t}Context: {}\n\
 		",
-		core::get_event_info(event.core_as_ref(), EventInfo::CommandQueue).unwrap(),
-        core::get_event_info(event.core_as_ref(), EventInfo::CommandType).unwrap(),
-        core::get_event_info(event.core_as_ref(), EventInfo::ReferenceCount).unwrap(),
-        core::get_event_info(event.core_as_ref(), EventInfo::CommandExecutionStatus).unwrap(),
-        core::get_event_info(event.core_as_ref(), EventInfo::Context).unwrap(),
+		core::get_event_info(&event, EventInfo::CommandQueue).unwrap(),
+        core::get_event_info(&event, EventInfo::CommandType).unwrap(),
+        core::get_event_info(&event, EventInfo::ReferenceCount).unwrap(),
+        core::get_event_info(&event, EventInfo::CommandExecutionStatus).unwrap(),
+        core::get_event_info(&event, EventInfo::Context).unwrap(),
 		t = util::TAB,
 	);
 
@@ -1025,10 +1025,10 @@ fn main() {
 	    	{t}Start: {}\n\
 	    	{t}End: {}\n\
 		",
-		core::get_event_profiling_info(event.core_as_ref(), ProfilingInfo::Queued).unwrap(),
-        core::get_event_profiling_info(event.core_as_ref(), ProfilingInfo::Submit).unwrap(),
-        core::get_event_profiling_info(event.core_as_ref(), ProfilingInfo::Start).unwrap(),
-        core::get_event_profiling_info(event.core_as_ref(), ProfilingInfo::End).unwrap(),
+		core::get_event_profiling_info(&event, ProfilingInfo::Queued).unwrap(),
+        core::get_event_profiling_info(&event, ProfilingInfo::Submit).unwrap(),
+        core::get_event_profiling_info(&event, ProfilingInfo::Start).unwrap(),
+        core::get_event_profiling_info(&event, ProfilingInfo::End).unwrap(),
 		t = util::TAB,
 	);
 

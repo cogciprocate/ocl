@@ -2,19 +2,19 @@
 
 // use std::convert::Into;
 use std;
-use std::ops::{Deref, DerefMut};
+use std::convert::Into;
+use std::ops::{Deref, DerefMut, Range, RangeFull, Index, IndexMut};
+use std::default::Default;
 use std::slice::{Iter, IterMut};
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use num::{FromPrimitive, ToPrimitive};
-use std::ops::{Range, RangeFull, Index, IndexMut};
-use std::default::Default;
 
 use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, Event as EventCore,
     MemInfo, MemInfoResult};
 use util;
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, BufferDims, EventList};
+use standard::{Queue, BufferDims, EventList, SimpleDims};
 
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
@@ -100,7 +100,7 @@ impl<T: OclNum> Buffer<T> {
     /// The returned Buffer contains no host side vector. Functions associated with
     /// one such as `.enqueue_flush_vec()`, `enqueue_fill_vec()`, etc. will panic.
     /// [FIXME]: Return result.
-    pub fn new<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
+    pub fn new<D: BufferDims>(dims: D, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
         Buffer::_new(len, queue)
     }
@@ -108,7 +108,7 @@ impl<T: OclNum> Buffer<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
-    pub fn with_vec<E: BufferDims>(dims: &E, queue: &Queue) -> Buffer<T> {
+    pub fn with_vec<D: BufferDims>(dims: D, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
         let vec: Vec<T> = std::iter::repeat(T::default()).take(len).collect();
 
@@ -119,7 +119,7 @@ impl<T: OclNum> Buffer<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
-    pub fn with_vec_initialized_to<E: BufferDims>(init_val: T, dims: &E, queue: &Queue) -> Buffer<T> {
+    pub fn with_vec_initialized_to<D: BufferDims>(init_val: T, dims: D, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
         let vec: Vec<T> = std::iter::repeat(init_val).take(len).collect();
 
@@ -139,7 +139,7 @@ impl<T: OclNum> Buffer<T> {
     /// Resulting values are not cryptographically secure.
     /// [FIXME]: Return result.
     // Note: vals.1 is inclusive.
-    pub fn with_vec_shuffled<E: BufferDims>(vals: (T, T), dims: &E, queue: &Queue) 
+    pub fn with_vec_shuffled<D: BufferDims>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
         let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
@@ -147,6 +147,8 @@ impl<T: OclNum> Buffer<T> {
 
         Buffer::_with_vec(vec, queue)
     }
+
+     // + Into<SimpleDims>
 
     /// [UNSTABLE]: Convenience method.
     /// Creates a new read/write Buffer with a vector initialized with random values 
@@ -157,7 +159,7 @@ impl<T: OclNum> Buffer<T> {
     /// Resulting values are not cryptographically secure.
     /// [FIXME]: Return result.
     // Note: vals.1 is exclusive.
-    pub fn with_vec_scrambled<E: BufferDims>(vals: (T, T), dims: &E, queue: &Queue) 
+    pub fn with_vec_scrambled<D: BufferDims>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
         let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));

@@ -223,6 +223,17 @@ impl DerefMut for EventList {
     }
 }
 
+// impl<'a> Deref for Option<&'a EventList> {
+//     type Target = Option<&'a EventListCore>;
+
+//     fn deref(&'a self) -> Option<&'a EventListCore> {
+//         match self {
+//             Some(ref el) => &el.event_list_core,
+//             None => None,
+//         }
+//     }
+// }
+
 
 // impl Drop for EventList {
 //     fn drop(&mut self) {
