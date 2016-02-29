@@ -1,8 +1,6 @@
 //! Interfaces to a buffer.
 
-// use std::convert::Into;
 use std;
-use std::convert::Into;
 use std::ops::{Deref, DerefMut, Range, RangeFull, Index, IndexMut};
 use std::default::Default;
 use std::slice::{Iter, IterMut};
@@ -14,7 +12,7 @@ use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFl
     MemInfo, MemInfoResult};
 use util;
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, BufferDims, EventList, SimpleDims};
+use standard::{Queue, BufferDims, EventList};
 
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \

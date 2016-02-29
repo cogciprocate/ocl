@@ -43,7 +43,7 @@ to your project's `Cargo.toml`.
 From 'examples/trivial.rs':
 ```rust
 extern crate ocl;
-use ocl::{ProQue, SimpleDims, Buffer};
+use ocl::{ProQue, Buffer};
 
 fn main() {
     let src = r#"
@@ -54,7 +54,7 @@ fn main() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims(SimpleDims::One(500000))
+        .dims([500000])
         .build().unwrap();   
 
     let mut buffer: Buffer<f32> = Buffer::with_vec_scrambled(

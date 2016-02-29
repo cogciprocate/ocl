@@ -1,6 +1,5 @@
 extern crate ocl;
 
-use std::convert::Into;
 use ocl::{ProQue, SimpleDims, Buffer};
 
 // Number of results to print out:
