@@ -176,7 +176,7 @@ bitflags! {
     /// - `CL_DEVICE_TYPE_ACCELERATOR`: Dedicated OpenCL accelerators (for example the IBM CELL Blade). These devices communicate with the host processor using a peripheral interconnect such as PCIe.
     /// - `CL_DEVICE_TYPE_ALL`: A union of all flags.
     ///
-    flags DeviceType: u64 {
+    pub flags DeviceType: u64 {
 		const DEVICE_TYPE_DEFAULT = 1 << 0,
 		const DEVICE_TYPE_CPU = 1 << 1,
 		const DEVICE_TYPE_GPU = 1 << 2,
@@ -189,7 +189,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_device_fp_config - bitfield
-    flags DeviceFpConfig: u64 {
+    pub flags DeviceFpConfig: u64 {
 		const FP_DENORM = 1 << 0,
 		const FP_INF_NAN = 1 << 1,
 		const FP_ROUND_TO_NEAREST = 1 << 2,
@@ -204,7 +204,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_device_exec_capabilities - bitfield
-    flags DeviceExecCapabilities: u64 {
+    pub flags DeviceExecCapabilities: u64 {
 		const EXEC_KERNEL = 1 << 0,
 		const EXEC_NATIVE_KERNEL = 1 << 1,
     }
@@ -213,7 +213,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_command_queue_properties - bitfield
-    flags CommandQueueProperties: u64 {
+    pub flags CommandQueueProperties: u64 {
 		const QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE = 1 << 0,
 		const QUEUE_PROFILING_ENABLE = 1 << 1,
     }
@@ -222,7 +222,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_device_affinity_domain
-    flags DeviceAffinityDomain: u64 {
+    pub flags DeviceAffinityDomain: u64 {
 		const DEVICE_AFFINITY_DOMAIN_NUMA = 1 << 0,
 		const DEVICE_AFFINITY_DOMAIN_L4_CACHE = 1 << 1,
 		const DEVICE_AFFINITY_DOMAIN_L3_CACHE = 1 << 2,
@@ -235,7 +235,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_mem_flags - bitfield
-    flags MemFlags: u64 {
+    pub flags MemFlags: u64 {
 		const MEM_READ_WRITE = 1 << 0,
 		const MEM_WRITE_ONLY = 1 << 1,
 		const MEM_READ_ONLY = 1 << 2,
@@ -252,7 +252,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_mem_migration_flags - bitfield
-    flags MemMigrationFlags: u64 {
+    pub flags MemMigrationFlags: u64 {
 		const MIGRATE_MEM_OBJECT_HOST = 1 << 0,
 		const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED = 1 << 1,
     }
@@ -261,7 +261,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_map_flags - bitfield
-    flags MapFlags: u64 {
+    pub flags MapFlags: u64 {
 		const MAP_READ = 1 << 0,
 		const MAP_WRITE = 1 << 1,
 		const MAP_WRITE_INVALIDATE_REGION = 1 << 2,
@@ -271,7 +271,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_program_binary_type
-    flags ProgramBinaryType: u64 {
+    pub flags ProgramBinaryType: u64 {
 		const PROGRAM_BINARY_TYPE_NONE = 0x0,
 		const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
 		const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
@@ -282,7 +282,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_kernel_arg_type_qualifer 
-    flags KernelArgTypeQualifier: u64 {
+    pub flags KernelArgTypeQualifier: u64 {
 		const KERNEL_ARG_TYPE_NONE = 0,
 		const KERNEL_ARG_TYPE_CONST = 1 << 0,
 		const KERNEL_ARG_TYPE_RESTRICT = 1 << 1,

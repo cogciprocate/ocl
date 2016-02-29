@@ -20,7 +20,7 @@ rand = "0.3"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
-bitflags = "0.4"
+bitflags = "0.5"
 
 [dev-dependencies]
 # time = "*"
