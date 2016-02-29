@@ -324,7 +324,7 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, info_request: DeviceInfo,
         .and(Ok(DeviceInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNIMPLEMENTED]
 pub fn create_sub_devices() -> OclResult<()> {
     // clCreateSubDevices(in_device: cl_device_id,
     //                    properties: *const cl_device_partition_property,
@@ -418,7 +418,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     errcode_try("clCreateContext()", errcode).and(Ok(context))
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNIMPLEMENTED]
 pub fn create_context_from_type() -> OclResult<()> {
     // cl_h::clCreateContextFromType(properties: *mut cl_context_properties,
     //                            device_type: cl_device_type,
@@ -777,7 +777,7 @@ pub fn get_image_info(obj: &Mem, info_request: ImageInfo) -> OclResult<(ImageInf
         .and(Ok(ImageInfoResult::TemporaryPlaceholderVariant(result)))
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNIMPLEMENTED]
 pub fn set_mem_object_destructor_callback() -> OclResult<()> {
     // cl_h::clSetMemObjectDestructorCallback(memobj: cl_mem,
     //                                     pfn_notify: extern fn (cl_mem, *mut c_void),
@@ -923,7 +923,7 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
     unsafe { Ok(Program::from_fresh_ptr(program)) }
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNIMPLEMENTED]
 pub fn create_program_with_built_in_kernels() -> OclResult<()> {
     // clCreateProgramWithBuiltInKernels(context: cl_context,
     //                                  num_devices: cl_uint,
@@ -987,7 +987,7 @@ pub fn build_program<D: ClDeviceIdPtr>(
     }
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNIMPLEMENTED]
 pub fn compile_program() -> OclResult<()> {
     // clCompileProgram(program: cl_program,
     //                 num_devices: cl_uint,
@@ -1001,7 +1001,7 @@ pub fn compile_program() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNIMPLEMENTED]
 pub fn link_program() -> OclResult<()> {
     // clLinkProgram(context: cl_context,
     //               num_devices: cl_uint,
@@ -1100,7 +1100,7 @@ pub fn create_kernel(
     errcode_try(&format!("clCreateKernel('{}'):", &name), err).and(Ok(kernel))
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNIMPLEMENTED]
 pub fn create_kernels_in_program() -> OclResult<()> {
     // cl_h::clCreateKernelsInProgram(program: cl_program,
     //                             num_kernels: cl_uint,
@@ -2175,7 +2175,7 @@ pub fn enqueue_task<E: ClEventPtrNew>(
     errcode_try(&errcode_pre, errcode)    
 }
 
-/// [UNIMPLEMENTED][PLACEHOLDER]
+/// [UNIMPLEMENTED]
 pub fn enqueue_native_kernel() -> OclResult<()> {
     // cl_h::clEnqueueNativeKernel(command_queue: cl_command_queue,
     //                          user_func: extern fn (*mut c_void),
