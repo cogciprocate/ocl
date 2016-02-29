@@ -73,13 +73,13 @@ impl ProQue {
     }
 
     /// Creates a new ProQue from individual parts.
-    pub fn from_parts(context: Option<Context>, queue: Queue, program: Option<Program>, 
-                    dims: Option<SimpleDims>) -> ProQue {
+    pub fn from_parts<D: Into<SimpleDims>>(context: Option<Context>, queue: Queue, program: Option<Program>, 
+                    dims: Option<D>) -> ProQue {
         ProQue {
             context: context,
             queue: queue,
             program: program,
-            dims: dims,
+            dims: dims.map(|d| d.into()),
         }
     }
 
@@ -154,7 +154,7 @@ impl ProQue {
     ///
     /// Panics if the contained program has not been created / built or if
     /// there is a problem creating the kernel.
-    pub fn create_kernel_with_dims(&self, name: &str, gws: SimpleDims) -> Kernel {
+    pub fn create_kernel_with_dims<D: Into<SimpleDims>>(&self, name: &str, gws: D) -> Kernel {
         let program = match self.program {
             Some(ref prg) => prg,
             None => {
@@ -164,7 +164,7 @@ impl ProQue {
             },
         };
 
-        Kernel::new(name.to_string(), &program, &self.queue, gws).unwrap()
+        Kernel::new(name.to_string(), &program, &self.queue, gws.into()).unwrap()
     }
 
     pub fn set_dims<S: Into<SimpleDims>>(&mut self, dims: S) {

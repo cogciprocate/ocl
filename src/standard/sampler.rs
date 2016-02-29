@@ -39,6 +39,22 @@ impl Sampler {
 		Ok(Sampler(sampler_core))
 	}
 
+	/// Creates and returns a new sampler with some default settings.
+	///
+	/// ### Defaults
+	/// 
+	/// - `normalize_coords`: false
+	/// - `addressing_mode`: `AddressingMode::None`
+	/// - `filter_mode`: `FilterMode::Nearest`
+	///
+	pub fn with_defaults(context: &Context) -> OclResult<Sampler> 
+	{
+		let sampler_core = try!(core::create_sampler(context, false,
+			AddressingMode::None, FilterMode::Nearest));
+
+		Ok(Sampler(sampler_core))
+	}
+
 	/// Returns various kinds of information about the sampler.
 	pub fn info(&self, info_kind: SamplerInfo) -> SamplerInfoResult {
         match core::get_sampler_info(&self.0, info_kind) {

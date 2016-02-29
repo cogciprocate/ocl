@@ -2,7 +2,7 @@ extern crate libc;
 extern crate ocl;
 
 use libc::c_void;
-use ocl::{Context, ProQue, ProgramBuilder, SimpleDims, Buffer, EventList};
+use ocl::{Context, ProQue, ProgramBuilder, Buffer, EventList};
 use ocl::cl_h::{cl_event, cl_int};
 
 // How many iterations we wish to run:
@@ -81,7 +81,7 @@ fn main() {
 
     // Set up data set size and work dimensions:
     let data_set_size = 900000;
-    let our_test_dims = SimpleDims::One(data_set_size);
+    let our_test_dims = [data_set_size];
 
     // Create source and result buffers (our data containers):
     let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &our_test_dims, &ocl_pq.queue());

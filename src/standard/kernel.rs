@@ -58,9 +58,11 @@ impl Kernel {
     }
 
     /// Sets the global work offset (builder-style).
-    pub fn gwo(mut self, gwo: SimpleDims) -> Kernel {
+    pub fn gwo<D: Into<SimpleDims>>(mut self, gwo: D) -> Kernel {
+        let gwo = gwo.into();
+
         if gwo.dim_count() == self.gws.dim_count() {
-            self.gwo = gwo
+            self.gwo = gwo;
         } else {
             panic!("ocl::Kernel::gwo(): Work size mismatch.");
         }
@@ -68,7 +70,9 @@ impl Kernel {
     }
 
     /// Sets the local work size (builder-style).
-    pub fn lws(mut self, lws: SimpleDims) -> Kernel {
+    pub fn lws<D: Into<SimpleDims>>(mut self, lws: D) -> Kernel {
+        let lws = lws.into();
+
         if lws.dim_count() == self.gws.dim_count() {
             self.lws = lws;
         } else {

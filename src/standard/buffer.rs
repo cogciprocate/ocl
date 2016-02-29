@@ -146,8 +146,6 @@ impl<T: OclNum> Buffer<T> {
         Buffer::_with_vec(vec, queue)
     }
 
-     // + Into<SimpleDims>
-
     /// [UNSTABLE]: Convenience method.
     /// Creates a new read/write Buffer with a vector initialized with random values 
     /// within the (half-open) range `vals.0..vals.1`.

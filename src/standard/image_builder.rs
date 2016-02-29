@@ -6,6 +6,7 @@
 
 // use std::default::Default;
 // use core::OclNum;
+use std::convert::Into;
 use error::{Result as OclResult};
 use standard::{Context, Queue, Image, SimpleDims};
 use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType,
@@ -137,7 +138,8 @@ impl ImageBuilder {
 	/// * To set the dimensions of a 3d image use:
 	///   `SimpleDims::Three(width, height, depth)`.
 	///
-    pub fn dims<'a>(&'a mut self, dims: &SimpleDims) -> &'a mut ImageBuilder {
+    pub fn dims<'a, D: Into<SimpleDims> + Clone>(&'a mut self, dims: D) -> &'a mut ImageBuilder {
+        let dims: SimpleDims = dims.into();
     	let size = dims.to_size();
     	self.image_desc.image_width = size[0];
     	self.image_desc.image_height = size[1];

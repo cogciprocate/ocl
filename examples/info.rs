@@ -9,12 +9,10 @@
 //!
 //! 
 
-#![allow(unused_imports, unused_variables, dead_code)]
-
 #[macro_use] extern crate ocl;
 
-use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Image, Program, Kernel, Event, EventList};
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo, OclNum};
+use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
+use ocl::core::{ProgramInfo, OclNum};
 
 const PRINT_DETAILED: bool = true;
 // Overrides above:
@@ -29,7 +27,7 @@ static SRC: &'static str = r#"
 "#;
 
 fn main() {
-	let dims = SimpleDims::One(1000);
+	let dims = [1000];
 	let platforms = Platform::list();
 
 	println!("Looping through avaliable platforms ({}):", platforms.len());
@@ -46,7 +44,7 @@ fn main() {
 			.device_list(devices.clone())
 			.build().unwrap();
 
-		print_platform_info(&platform, p_idx); 
+		print_platform_info(&platform); 
 		// print!("\n");
 
     	// Loop through each device
@@ -56,14 +54,14 @@ fn main() {
 			let queue = Queue::new(&context, Some(device.clone()));
 			let buffer = Buffer::<f32>::new(&dims, &queue);
 			let image = Image::builder()
-				.dims(&dims)
+				.dims(dims)
 				.build(&queue).unwrap();
-			// let sampler = Sampler::new();
+			let sampler = Sampler::with_defaults(&context).unwrap();
 	    	let program = Program::builder()
 	    		.src(SRC)
 	    		.devices(vec![device.clone()])
 	    		.build(&context).unwrap();
-			let kernel = Kernel::new("multiply", &program, &queue, dims.clone()).unwrap()
+			let kernel = Kernel::new("multiply", &program, &queue, &dims).unwrap()
 			        .arg_buf(&buffer)
 			        .arg_scl(10.0f32);
 			let mut event_list = EventList::new();
@@ -73,7 +71,7 @@ fn main() {
 			event_list.wait();			
 
 			// Print all the devices:
-			print_device_info(&device, d_idx);
+			print_device_info(&device);
 
 			// Print all the things (just once):
 			if (d_idx == devices.len() - 1) && (p_idx == platforms.len() - 1) {
@@ -81,10 +79,10 @@ fn main() {
 				print_queue_info(&queue);
 				print_buffer_info(&buffer);
 				print_image_info(&image);
-				// print_sampler_info(&sampler);
+				print_sampler_info(&sampler);
 				print_program_info(&program);
 				print_kernel_info(&kernel);
-				// print event_list_info(&event_list);
+				print_event_list_info(&event_list);
 				print_event_info(&event);
 			}
 		}
@@ -92,7 +90,7 @@ fn main() {
 }
 
 
-fn print_platform_info(platform: &Platform, p_idx: usize) {
+fn print_platform_info(platform: &Platform) {
 	printc!(blue: "{}", platform);
 	let devices = Device::list_all(platform);
 	printc!(blue: " {{ Total Device Count: {} }}", devices.len());
@@ -100,7 +98,7 @@ fn print_platform_info(platform: &Platform, p_idx: usize) {
 }
 
 
-fn print_device_info(device: &Device, d_idx: usize) {
+fn print_device_info(device: &Device) {
 	if PRINT_DETAILED_DEVICE {
 		printlnc!(dark_orange: "{}", device);
 	} else {
@@ -130,8 +128,8 @@ fn print_image_info(image: &Image) {
 }
 
 
-fn print_sampler_info() {
-	unimplemented!();
+fn print_sampler_info(sampler: &Sampler) {
+	printlnc!(dark_grey: "{}", sampler);
 }
 
 
@@ -160,6 +158,6 @@ fn print_event_info(event: &Event) {
 }
 
 
-fn print_event_list_info() {
-	unimplemented!();
+fn print_event_list_info(event_list: &EventList) {
+	println!("{:?}", event_list);
 }

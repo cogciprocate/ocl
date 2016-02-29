@@ -8,7 +8,7 @@
 extern crate ocl;
 use std::time::Instant;
 
-use ocl::{ProQue, SimpleDims, Buffer, EventList};
+use ocl::{ProQue, Buffer, EventList};
 
 
 const DATASET_SIZE: usize = 10000;
@@ -40,7 +40,7 @@ fn main() {
     "#;
 
     // Set our work dimensions / data set size to something arbitrary:
-    let dims = SimpleDims::One(DATASET_SIZE);
+    let dims = [DATASET_SIZE];
 
     // Create an all-in-one context, program, and command queue:
     let ocl_pq = ProQue::builder().src(src).build().unwrap();

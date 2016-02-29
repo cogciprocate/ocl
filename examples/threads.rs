@@ -14,7 +14,7 @@ use std::thread::{self, JoinHandle};
 use std::sync::mpsc;
 use std::time::Duration;
 use rand::Rng;
-use ocl::{SimpleDims, Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
+use ocl::{Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 
 
@@ -27,7 +27,7 @@ static SRC: &'static str = r#"
 fn main() {
 	let mut rng = rand::weak_rng();
 	let data_set_size = 1000;
-	let dims = SimpleDims::One(data_set_size);
+	let dims = [data_set_size];
 	let mut threads = Vec::new();
 
 	let platforms = Platform::list();

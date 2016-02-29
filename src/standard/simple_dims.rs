@@ -125,14 +125,35 @@ impl<T: Num + ToPrimitive + Debug + Copy> From<(T, )> for SimpleDims {
     }
 }
 
+impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, )> for SimpleDims {
+    fn from(val: &(T, )) -> SimpleDims {
+        SimpleDims::One(to_usize(val.0))
+    }
+}
+
 impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 1]> for SimpleDims {
     fn from(val: [T; 1]) -> SimpleDims {
         SimpleDims::One(to_usize(val[0]))
     }
 }
 
+impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 1]> for SimpleDims {
+    fn from(val: &[T; 1]) -> SimpleDims {
+        SimpleDims::One(to_usize(val[0]))
+    }
+}
+
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T)> for SimpleDims {
     fn from(pair: (T, T)) -> SimpleDims {
+        SimpleDims::Two(
+            to_usize(pair.0), 
+            to_usize(pair.1),
+        )
+    }
+}
+
+impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, T)> for SimpleDims {
+    fn from(pair: &(T, T)) -> SimpleDims {
         SimpleDims::Two(
             to_usize(pair.0), 
             to_usize(pair.1),
@@ -149,8 +170,27 @@ impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 2]> for SimpleDims {
     }
 }
 
+impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 2]> for SimpleDims {
+    fn from(pair: &[T; 2]) -> SimpleDims {
+        SimpleDims::Two(
+            to_usize(pair[0]), 
+            to_usize(pair[1]),
+        )
+    }
+}
+
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T, T)> for SimpleDims {
     fn from(set: (T, T, T)) -> SimpleDims {
+        SimpleDims::Three(
+            to_usize(set.0), 
+            to_usize(set.1), 
+            to_usize(set.2),
+        )
+    }
+}
+
+impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, T, T)> for SimpleDims {
+    fn from(set: &(T, T, T)) -> SimpleDims {
         SimpleDims::Three(
             to_usize(set.0), 
             to_usize(set.1), 
@@ -169,8 +209,18 @@ impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 3]> for SimpleDims {
     }
 }
 
+impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 3]> for SimpleDims {
+    fn from(set: &[T; 3]) -> SimpleDims {
+        SimpleDims::Three(
+            to_usize(set[0]), 
+            to_usize(set[1]), 
+            to_usize(set[2]),
+        )
+    }
+}
+
 #[inline]
-fn to_usize<T: Num + ToPrimitive + Debug + Copy>(val: T) -> usize {
+pub fn to_usize<T: Num + ToPrimitive + Debug + Copy>(val: T) -> usize {
     val.to_usize().expect(&format!("Unable to convert the value '{:?}' into a SimpleDims. \
         Dimensions must have positive values.", val))
 }

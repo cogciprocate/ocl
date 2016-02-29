@@ -78,7 +78,7 @@ fn main() {
     println!("Image formats supported: {}.", sup_img_formats.len());
     // println!("Image Formats: {:#?}.", sup_img_formats);
 
-    let dims = img.dimensions().into();
+    let dims = img.dimensions();
 
     // When mapping settings from `image` crate:
     // 
@@ -114,7 +114,7 @@ fn main() {
     // Not sure why you'd bother creating a sampler on the host but here's how:
     let sampler = Sampler::new(&context, true, AddressingMode::None, FilterMode::Nearest).unwrap();
 
-    let kernel = Kernel::new("increase_blue", &program, &queue, dims.clone()).unwrap()
+    let kernel = Kernel::new("increase_blue", &program, &queue, &dims).unwrap()
         .arg_smp(&sampler)
         .arg_img(&src_image)
         .arg_img(&dst_image);

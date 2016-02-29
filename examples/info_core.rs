@@ -3,8 +3,8 @@
 
 extern crate ocl;
 
-use ocl::{SimpleDims, Context, Queue, Buffer, Image, Program, Kernel, EventList};
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
+use ocl::{Context, Queue, Buffer, Image, Sampler, Program, Kernel, EventList};
+use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 use ocl::util;
 
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -16,7 +16,7 @@ static SRC: &'static str = r#"
 "#;
 
 fn main() {
-	let dims = SimpleDims::One(1000);
+	let dims = [1000, 100, 10];
 
 	let context = Context::new_by_index_and_type(None, None).unwrap();
 	let queue = Queue::new_by_device_index(&context, None);
@@ -24,7 +24,7 @@ fn main() {
 	let image = Image::builder()
 		.dims(&dims)
 		.build(&queue).unwrap();
-	// let sampler = Sampler::new();
+	let sampler = Sampler::with_defaults(&context).unwrap();
 	let program = Program::builder().src(SRC).build(&context).unwrap();
 	let device = program.devices()[0].clone();
 	let kernel = Kernel::new("multiply", &program, &queue, dims.clone()).unwrap()
@@ -689,20 +689,20 @@ fn main() {
     //     FilterMode = cl_h::CL_SAMPLER_FILTER_MODE as isize,
     // }
 
- //    println!("[UNIMPLEMENTED] Sampler:\n\
-	// 		{t}ReferenceCount: {}\n\
- //            {t}Context: {}\n\
- //            {t}NormalizedCoords: {}\n\
- //            {t}AddressingMode: {}\n\
- //            {t}FilterMode: {}\n\
-	// 	",
-	// 	core::get_sampler_info(&sampler, SamplerInfo::ReferenceCount).unwrap(),
- //        core::get_sampler_info(&sampler, SamplerInfo::Context).unwrap(),
- //        core::get_sampler_info(&sampler, SamplerInfo::NormalizedCoords).unwrap(),
- //        core::get_sampler_info(&sampler, SamplerInfo::AddressingMode).unwrap(),
- //        core::get_sampler_info(&sampler, SamplerInfo::FilterMode).unwrap(),
-	// 	t = util::TAB,
-	// );
+    println!("[UNIMPLEMENTED] Sampler:\n\
+			{t}ReferenceCount: {}\n\
+            {t}Context: {}\n\
+            {t}NormalizedCoords: {}\n\
+            {t}AddressingMode: {}\n\
+            {t}FilterMode: {}\n\
+		",
+		core::get_sampler_info(&sampler, SamplerInfo::ReferenceCount).unwrap(),
+        core::get_sampler_info(&sampler, SamplerInfo::Context).unwrap(),
+        core::get_sampler_info(&sampler, SamplerInfo::NormalizedCoords).unwrap(),
+        core::get_sampler_info(&sampler, SamplerInfo::AddressingMode).unwrap(),
+        core::get_sampler_info(&sampler, SamplerInfo::FilterMode).unwrap(),
+		t = util::TAB,
+	);
 
     // ##################################################
     // #################### PROGRAM #####################

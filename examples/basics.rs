@@ -1,6 +1,6 @@
 extern crate ocl;
 
-use ocl::{ProQue, SimpleDims, Buffer};
+use ocl::{ProQue, Buffer};
 
 // Number of results to print out:
 const RESULTS_TO_PRINT: usize = 20;
@@ -28,7 +28,7 @@ fn main() {
     let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("Build ProQue");
 
     // Set up our work dimensions / data set size:
-    let dims = SimpleDims::One(DATA_SET_SIZE);
+    let dims = [DATA_SET_SIZE];
 
     // Create a 'Buffer' (a device buffer + a local vector) as a data source
     // and initialize it with random floats between 0.0 and 20.0:
