@@ -53,6 +53,7 @@ macro_rules! printlnc {
 ///
 #[macro_export]
 macro_rules! colorify {
+    (default: $s:expr) => ( concat!("\x1b[0m", $s, "\x1b[0m") );
     (red: $s:expr) => ( concat!("\x1b[31m", $s, "\x1b[0m") );
     (bold_red: $s:expr) => ( concat!("\x1b[1;31m", $s, "\x1b[0m") );
     (green: $s:expr) => ( concat!("\x1b[32m", $s, "\x1b[0m") );

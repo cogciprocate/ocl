@@ -3,32 +3,32 @@
 //!
 //! Optionally saves for viewing, fiddle with consts/statics below.
 
-// #![allow(unused_imports, unused_variables, dead_code)]
-
 extern crate image;
-extern crate ocl;
+#[macro_use] extern crate ocl;
 
 use std::path::Path;
-use ocl::{Context, Queue, DeviceSpecifier, Image, Program, Kernel,
-    ImageChannelOrder, ImageChannelDataType, MemObjectType};
+use ocl::{Context, Queue, DeviceSpecifier, Program, Image, Sampler, Kernel,
+    ImageChannelOrder, ImageChannelDataType, MemObjectType, AddressingMode, FilterMode};
 
 const SAVE_IMAGES_TO_DISK: bool = false;
 static BEFORE_IMAGE_FILE_NAME: &'static str = "before_example_image.png";
 static AFTER_IMAGE_FILE_NAME: &'static str = "after_example_image.png";
 
 static KERNEL_SRC: &'static str = r#"
-    __constant sampler_t sampler = 
+    // UNUSED -- FOR COMPARISON PURPOSES:
+    __constant sampler_t sampler_const = 
         CLK_NORMALIZED_COORDS_FALSE | 
         CLK_ADDRESS_NONE | 
         CLK_FILTER_NEAREST;
 
     __kernel void increase_blue(
+                sampler_t sampler_host,
                 read_only image2d_t src_image,
                 write_only image2d_t dst_image)
     {
         int2 coord = (int2)(get_global_id(0), get_global_id(1));
 
-        float4 pixel = read_imagef(src_image, sampler, coord);
+        float4 pixel = read_imagef(src_image, sampler_host, coord);
 
         pixel += (float4)(0.0, 0.0, 0.5, 0.0);
 
@@ -56,6 +56,7 @@ fn generate_image() -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
 
 /// Generates and image then sends it through a kernel and optionally saves.
 fn main() {
+    println!("Running 'examples/image.rs::main()'...");
     let mut img = generate_image();
 
     if SAVE_IMAGES_TO_DISK {
@@ -66,11 +67,15 @@ fn main() {
     let device = context.devices()[0].clone();
     let queue = Queue::new(&context, Some(device.clone()));
 
-    let img_formats = Image::supported_formats(&context, ocl::MEM_READ_WRITE, 
-        ocl::MemObjectType::Image2d).unwrap();
+    let program = Program::builder()
+        .src(KERNEL_SRC)
+        .devices(vec![device.clone()])
+        .build(&context).unwrap();
 
-    println!("Image Formats Avaliable: {}.", img_formats.len());
-    // println!("Image Formats: {:#?}.", img_formats);
+    let sup_img_formats = Image::supported_formats(&context, ocl::MEM_READ_WRITE, 
+        ocl::MemObjectType::Image2d).unwrap();
+    println!("Image formats supported: {}.", sup_img_formats.len());
+    // println!("Image Formats: {:#?}.", sup_img_formats);
 
     let dims = img.dimensions().into();
 
@@ -105,33 +110,36 @@ fn main() {
         .flags(ocl::MEM_WRITE_ONLY | ocl::MEM_HOST_READ_ONLY | ocl::MEM_COPY_HOST_PTR)
         .build_with_data(&queue, &img).unwrap();
 
-    println!("Source {:#}", src_image);
-    print!("\n");
-    println!("Destination {:#}", src_image);
-
-    let program = Program::builder()
-        .src(KERNEL_SRC)
-        .devices(vec![device.clone()])
-        .build(&context).unwrap();
+    // Not sure why you'd bother creating a sampler on the host but here's how:
+    let sampler = Sampler::new(&context, true, AddressingMode::None, FilterMode::Nearest).unwrap();
 
     let kernel = Kernel::new("increase_blue", &program, &queue, dims.clone()).unwrap()
+        .arg_smp(&sampler)
         .arg_img(&src_image)
         .arg_img(&dst_image);
 
+    println!("Printing image info:");
+    printlnc!(dark_grey: "Source {}", src_image);
+    print!("\n");
+    printlnc!(dark_grey: "Destination {}", src_image);
     print!("\n");
     println!("Printing the first pixel of the image (each value is a component, RGBA): ");
-    println!("Pixel before: [0..16]: {:?}", &img[(0, 0)]);
+    printlnc!(dark_grey: "Pixel before: [0..16]: {:?}", &img[(0, 0)]);
 
     // print!("\n");
-    println!("Attempting to blue-ify the image...");
+    printlnc!(royal_blue: "Attempting to blue-ify the image...");
     kernel.enqueue();
 
     dst_image.read(&mut img).unwrap();
 
     // print!("\n");
-    println!("Pixel after: [0..16]: {:?}", &img[(0, 0)]);
-
+    printlnc!(dark_grey: "Pixel after: [0..16]: {:?}", &img[(0, 0)]);
+    
     if SAVE_IMAGES_TO_DISK {
         img.save(&Path::new(AFTER_IMAGE_FILE_NAME)).unwrap();
+        printlnc!(lime: "Images saved as: '{}' and '{}'.", 
+            BEFORE_IMAGE_FILE_NAME, AFTER_IMAGE_FILE_NAME);
+    } else {
+        printlnc!(dark_orange: "Saving images to disk disabled. No files saved.");
     }
 }
