@@ -105,7 +105,7 @@ fn main_exploded() {
         .platform(platform)
         .devices(DeviceSpecifier::Single(device.clone()))
         .build().unwrap();
-    let queue = Queue::new(&context, Some(device.clone())).unwrap();
+    let queue = Queue::new(&context, device).unwrap();
     let program = Program::builder()
         .devices(&[device.clone()])
         .src(src)

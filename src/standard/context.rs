@@ -6,7 +6,7 @@
 // use formatting::MT;
 use std;
 use std::ops::{Deref, DerefMut};
-use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, DeviceType, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
+use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
 use error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier, ContextBuilder};
 
@@ -99,115 +99,115 @@ impl Context {
     //     })
     // }
 
-    /// [UNSTABLE]: About to be moved to builder
-    /// Returns a newly created context with a specified platform and set of device types.
-    /// 
-    /// [FIXME: Needs update]
-    ///
-    /// The desired platform may be specified by passing a valid index from a list 
-    /// obtainable from the ocl::get_platform_ids() function and wrapping it with a 
-    /// Some (ex. `Some(2)`). Pass `None` to use the first platform available (0). 
-    /// 
-    /// The device types mask may be specified using a union of any or all of the 
-    /// following flags: [MOVED TO `DeviceType` DOCS].
-    ///
-    /// [FIXME: Update] Passing `None` will use the flag: `CL_DEVICE_TYPE_GPU`.
-    ///
-    /// # Examples
-    /// 
-    /// ```notest
-    /// // use ocl;
-    ///
-    /// fn main() {
-    ///     // Create a context with the first available platform and the default device type.
-    ///     let ocl_context = ocl::Context::new_by_index_and_type(None, None);
-    ///     
-    ///     // Do fun stuff...
-    /// }
-    /// ```
-    ///
-    ///
-    /// ```notest
-    /// // use ocl;
-    /// 
-    /// fn main() {
-    ///     //let platform_ids = ocl::get_platform_ids();
-    /// 
-    ///     let device_types = ocl::CL_DEVICE_TYPE_GPU | ocl::CL_DEVICE_TYPE_CPU;
-    ///
-    ///     // Create a context using the 1st platform and both CPU and GPU devices.
-    ///     let ocl_context = ocl::Context::new_by_index_and_type(Some(0), Some(device_types));
-    ///     
-    ///     // ...
-    /// }
-    /// ``` 
-    ///
-    /// # Panics
-    ///    - `get_devices_core_as_ref()` (work in progress)
-    ///
-    /// # Failures
-    /// - No platforms.
-    /// - Invalid platform index.
-    /// - No devices.
-    ///
-    /// # TODO:
-    /// - Add a more in-depth constructor which accepts an arbitrary list of devices (or sub-devices) and a list of cl_context_properties.
-    ///
-    /// # Maybe Someday TODO:
-    /// - Handle context creation callbacks.
-    ///
-    pub fn new_by_index_and_type(platform_idx_opt: Option<usize>, device_types_opt: Option<DeviceType>) 
-            -> OclResult<Context>
-    {
-        let platforms: Vec<Platform> = Platform::list_from_core(try!(core::get_platform_ids()));
-        if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
+    // /// [UNSTABLE]: About to be moved to builder
+    // /// Returns a newly created context with a specified platform and set of device types.
+    // /// 
+    // /// [FIXME: Needs update]
+    // ///
+    // /// The desired platform may be specified by passing a valid index from a list 
+    // /// obtainable from the ocl::get_platform_ids() function and wrapping it with a 
+    // /// Some (ex. `Some(2)`). Pass `None` to use the first platform available (0). 
+    // /// 
+    // /// The device types mask may be specified using a union of any or all of the 
+    // /// following flags: [MOVED TO `DeviceType` DOCS].
+    // ///
+    // /// [FIXME: Update] Passing `None` will use the flag: `CL_DEVICE_TYPE_GPU`.
+    // ///
+    // /// # Examples
+    // /// 
+    // /// ```notest
+    // /// // use ocl;
+    // ///
+    // /// fn main() {
+    // ///     // Create a context with the first available platform and the default device type.
+    // ///     let ocl_context = ocl::Context::new_by_index_and_type(None, None);
+    // ///     
+    // ///     // Do fun stuff...
+    // /// }
+    // /// ```
+    // ///
+    // ///
+    // /// ```notest
+    // /// // use ocl;
+    // /// 
+    // /// fn main() {
+    // ///     //let platform_ids = ocl::get_platform_ids();
+    // /// 
+    // ///     let device_types = ocl::CL_DEVICE_TYPE_GPU | ocl::CL_DEVICE_TYPE_CPU;
+    // ///
+    // ///     // Create a context using the 1st platform and both CPU and GPU devices.
+    // ///     let ocl_context = ocl::Context::new_by_index_and_type(Some(0), Some(device_types));
+    // ///     
+    // ///     // ...
+    // /// }
+    // /// ``` 
+    // ///
+    // /// # Panics
+    // ///    - `get_devices_core_as_ref()` (work in progress)
+    // ///
+    // /// # Failures
+    // /// - No platforms.
+    // /// - Invalid platform index.
+    // /// - No devices.
+    // ///
+    // /// # TODO:
+    // /// - Add a more in-depth constructor which accepts an arbitrary list of devices (or sub-devices) and a list of cl_context_properties.
+    // ///
+    // /// # Maybe Someday TODO:
+    // /// - Handle context creation callbacks.
+    // ///
+    // pub fn new_by_index_and_type(platform_idx_opt: Option<usize>, device_types_opt: Option<DeviceType>) 
+    //         -> OclResult<Context>
+    // {
+    //     let platforms: Vec<Platform> = Platform::list_from_core(try!(core::get_platform_ids()));
+    //     if platforms.len() == 0 { return OclError::err("\nNo OpenCL platforms found!\n"); }
 
-        // println!("Platform list: {:?}", platforms);
+    //     // println!("Platform list: {:?}", platforms);
 
-        let platform: Platform = match platform_idx_opt {
-            Some(pf_idx) => {
-                match platforms.get(pf_idx) {
-                    Some(pf) => {
-                        pf.clone()
-                    },
-                    None => {
-                        return OclError::err("Invalid OpenCL platform index specified. \
-                            Use 'get_platform_ids()' for a list.")
-                    },
-                }
-            },
-            None => {
-                debug_assert!(platforms.len() > 0, "Context::new_by_index_and_type(): Internal indexing error.");
-                platforms[core::DEFAULT_PLATFORM_IDX].clone()
-            },
-        };
+    //     let platform: Platform = match platform_idx_opt {
+    //         Some(pf_idx) => {
+    //             match platforms.get(pf_idx) {
+    //                 Some(pf) => {
+    //                     pf.clone()
+    //                 },
+    //                 None => {
+    //                     return OclError::err("Invalid OpenCL platform index specified. \
+    //                         Use 'get_platform_ids()' for a list.")
+    //                 },
+    //             }
+    //         },
+    //         None => {
+    //             debug_assert!(platforms.len() > 0, "Context::new_by_index_and_type(): Internal indexing error.");
+    //             platforms[core::DEFAULT_PLATFORM_IDX].clone()
+    //         },
+    //     };
 
-        // [DEBUG]: 
-        // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_core);
+    //     // [DEBUG]: 
+    //     // println!("CONTEXT::NEW: PLATFORM BEING USED: {:?}", platform_id_core);
 
-        let properties = Some(ContextProperties::new().platform(platform.as_core().clone()));
+    //     let properties = Some(ContextProperties::new().platform(platform.as_core().clone()));
         
-        let devices: Vec<Device> = Device::list_from_core(try!(core::get_device_ids(
-            &platform, device_types_opt, None)));
-        if devices.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
+    //     let devices: Vec<Device> = Device::list_from_core(try!(core::get_device_ids(
+    //         &platform, device_types_opt, None)));
+    //     if devices.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
-        // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_id_core_list);
+    //     // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_id_core_list);
 
-        // [FIXME]: No callback or user data:
-        let obj_core = try!(core::create_context(&properties, &devices, None, None));
+    //     // [FIXME]: No callback or user data:
+    //     let obj_core = try!(core::create_context(&properties, &devices, None, None));
 
-        // [DEBUG]: 
-        // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_core);
+    //     // [DEBUG]: 
+    //     // println!("CONTEXT::NEW: CONTEXT: {:?}", obj_core);
 
-        Ok(Context {
-            obj_core: obj_core,
-            platform: Some(platform),
-            devices: devices,
-        })
-    }
+    //     Ok(Context {
+    //         obj_core: obj_core,
+    //         platform: Some(platform),
+    //         devices: devices,
+    //     })
+    // }
 
     /// Resolves the zero-based device index into a list of Devices.
-    pub fn resolve_device_idxs_wrap(&self, idxs: &[usize]) -> Vec<Device> {
+    pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
         // let selected_idxs = match device_idxs.len() {
         //     0 => vec![0],
         //     _ => Vec::from(device_idxs),
@@ -243,10 +243,10 @@ impl Context {
     ///
     /// Round-robins (%) to the next valid device.
     ///
-    pub fn get_device_by_index(&self, index: usize) -> Device {
+    pub fn get_device_by_wrapping_index(&self, index: usize) -> Device {
         // [FIXME]: FIGURE OUT HOW TO DO THIS CORRECTLY
         let indices = [index; 1];
-        self.resolve_device_idxs_wrap(&indices)[0].clone()
+        self.resolve_wrapping_device_idxs(&indices)[0].clone()
     }
 
     /// Returns info about the platform associated with the context.

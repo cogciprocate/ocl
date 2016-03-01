@@ -32,7 +32,7 @@ impl Program {
     pub fn new(program_builder: ProgramBuilder, context: &Context, device_idxs: Vec<usize>
             ) -> OclResult<Program> 
     {
-        let device_ids = context.resolve_device_idxs_wrap(&device_idxs);
+        let device_ids = context.resolve_wrapping_device_idxs(&device_idxs);
 
         Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 

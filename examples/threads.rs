@@ -48,12 +48,12 @@ fn main() {
     		// Choose a device at random: 
     		// let dev_idx = rng.gen_range(0, devices.len());
 
-    		let device = &devices[device_idx];
+    		let device = devices[device_idx];
     		printlnc!(royal_blue: "Device[{}]: {} ({})", device_idx, device.name(), device.vendor());
 
     		// Make a context to share around:
-    		let context = Context::new_by_index_and_type(None, None).unwrap();
-    		let program = Program::builder().src(SRC).device(device.clone())
+    		let context = Context::builder().build().unwrap();
+    		let program = Program::builder().src(SRC).device(device)
     			.build(&context).unwrap();
 
     		// Make a few different queues for the hell of it:
@@ -62,9 +62,9 @@ fn main() {
 	        // 	Queue::new_by_device_index(&context, None)];
 
 	        // Make a few different queues for the hell of it:
-	        let queueball = vec![Queue::new(&context, Some(device.clone())).unwrap(),
-	        	Queue::new(&context, Some(device.clone())).unwrap(), 
-	        	Queue::new(&context, Some(device.clone())).unwrap()];
+	        let queueball = vec![Queue::new(&context, device).unwrap(),
+	        	Queue::new(&context, device).unwrap(), 
+	        	Queue::new(&context, device).unwrap()];
 
 			printc!(dark_orange: "    Spawning threads... ");
 
@@ -99,8 +99,8 @@ fn main() {
 					// Event list isn't really necessary here but hey.
 					let mut event_list = EventList::new();
 
-					// Change queues just for fun (yes, `enqueue_with` can do it too):
-					kernel.enqueue_events(None, Some(&mut event_list)).unwrap();
+					// Change queues around just for fun:
+					kernel.cmd().e_dest(&mut event_list).enq().unwrap();
 					kernel.set_queue(&queueball_th[1]).enqueue();
 					kernel.set_queue(&queueball_th[2]).enqueue();
 

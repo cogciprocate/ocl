@@ -28,7 +28,7 @@ struct TestEventsStuff {
 fn main() {
     // Create a context, program, & queue: 
     let ocl_pq = ProQue::builder()
-        .program_builder(ProgramBuilder::with_opts(vec![], &["cl/kernel_file.cl"]))
+        .prog_bldr(ProgramBuilder::new().src_file("cl/kernel_file.cl"))
         .build().unwrap();
 
     // Set up data set size and work dimensions:
@@ -77,7 +77,7 @@ fn main() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.enqueue_events(None, Some(&mut kernel_event)).unwrap();
+        kernel.cmd().e_dest(&mut kernel_event).enq().unwrap();
 
         let mut read_event = EventList::new();
         

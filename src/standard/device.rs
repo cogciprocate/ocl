@@ -11,7 +11,7 @@ use util;
 
 
 /// A device identifier.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct Device(DeviceIdCore);
 
 impl Device {
@@ -19,7 +19,7 @@ impl Device {
     pub fn first(platform: &Platform) -> Device {
         let first_core = core::get_device_ids(platform, None, None)
             .expect("ocl::Device::first: Error retrieving device list");
-        Device(first_core[0].clone())
+        Device(first_core[0])
     }
     
     /// Resolves a list of indexes into a list of valid devices.
@@ -31,11 +31,11 @@ impl Device {
     /// All indices in `idxs` must be valid.
     ///
     pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclResult<Vec<Device>> {
-        // idxs.iter().map(|&idx| devices.get(idx).clone()).collect()
+        // idxs.iter().map(|&idx| devices.get(idx)).collect()
         let mut result = Vec::with_capacity(idxs.len());
         for &idx in idxs.iter() {
             match devices.get(idx) {
-                Some(device) => result.push(device.clone()),
+                Some(&device) => result.push(device),
                 None => return OclError::err(format!("Error resolving device index: '{}'. Index out of \
                     range. Devices avaliable: '{}'.", idx, devices.len())),
             }
@@ -51,7 +51,7 @@ impl Device {
     ///
     pub fn resolve_idxs_wrap(idxs: &[usize], devices: &[Device]) -> Vec<Device> {
         let valid_idxs = util::wrap_vals(idxs, devices.len());
-        valid_idxs.iter().map(|&idx| devices[idx].clone()).collect()
+        valid_idxs.iter().map(|&idx| devices[idx]).collect()
     }
 
     /// Returns a list of all devices avaliable for a given platform which
@@ -69,7 +69,7 @@ impl Device {
     ///
     /// Equivalent to `::list(platform, None)`.
     pub fn list_all(platform: &Platform) -> Vec<Device> {
-        // let list_core = core::get_device_ids(Some(platform.as_core().clone()), None)
+        // let list_core = core::get_device_ids(Some(platform.as_core()), None)
         //     .expect("Device::list_all: Error retrieving device list");        
         // list_core.into_iter().map(|pr| Device(pr) ).collect()
         Self::list(platform, None)

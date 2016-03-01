@@ -64,12 +64,12 @@ fn main() {
     }
 
     let context = Context::builder().devices(DeviceSpecifier::First).build().unwrap();
-    let device = context.devices()[0].clone();
-    let queue = Queue::new(&context, Some(device.clone())).unwrap();
+    let device = context.devices()[0];
+    let queue = Queue::new(&context, device).unwrap();
 
     let program = Program::builder()
         .src(KERNEL_SRC)
-        .device(device.clone())
+        .device(device)
         .build(&context).unwrap();
 
     let sup_img_formats = Image::supported_formats(&context, ocl::MEM_READ_WRITE, 

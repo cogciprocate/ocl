@@ -8,6 +8,56 @@ use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore,
 use error::{Result as OclResult, Error as OclError};
 use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler};
 
+
+
+/// A kernel command builder used to queue a kernel with a mix of default
+/// and optionally specified arguments.
+pub struct KernelCmd<'a> {
+    queue: &'a CommandQueueCore,
+    kernel: &'a KernelCore,
+    gwo: SimpleDims,
+    gws: SimpleDims,
+    lws: SimpleDims,
+    wait_list: Option<&'a EventList>,
+    dest_list: Option<&'a mut EventList>,
+    name: &'a str,
+}
+
+impl<'a> KernelCmd<'a> {
+    /// Specifies the list of events to wait on before the command will run.
+    pub fn e_wait(mut self, wait_list: &'a EventList) -> KernelCmd<'a> {
+        self.wait_list = Some(wait_list);
+        self
+    }
+
+    /// Specifies the destination for a new, optionally created event
+    /// associated with this command.
+    pub fn e_dest(mut self, dest_list: &'a mut EventList) -> KernelCmd<'a> {
+        self.dest_list = Some(dest_list);
+        self
+    }
+
+    /// Enqueues this kernel command.
+    pub fn enq(self) -> OclResult<()> {
+        let dim_count = self.gws.dim_count();
+
+        let gws = match self.gws.to_work_size() {
+            Some(gws) => gws,
+            None => return OclError::err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
+                cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
+        };
+
+        let wait_list = self.wait_list.map(|el| el.core_as_ref());
+        let dest_list = self.dest_list.map(|el| el.core_as_mut());
+
+        core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(), 
+            gws, self.lws.to_work_size(), wait_list, dest_list, Some(self.name))
+    }
+}
+
+
+
+
 /// A kernel.
 ///
 /// # Destruction
@@ -213,16 +263,12 @@ impl Kernel {
         }
     }
 
-    // pub fn enqueue_ndrange(&self, queue: Option<&Queue>, ) {
-    //     let command_queue = match queue {
-    //         Some(q) => q.core_as_ref(),
-    //         None => &self.command_queue_obj_core,
-    //     };        
 
-    //     core::enqueue_kernel(command_queue, &self.obj_core, self.gws.dim_count(), 
-    //         self.gwo.to_work_offset(), self.gws.to_work_size().unwrap(), self.lws.to_work_size(), 
-    //         wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
-    // }
+    pub fn cmd<'a>(&'a self) -> KernelCmd<'a> {
+        KernelCmd { queue: &self.command_queue_obj_core, kernel: &self.obj_core, 
+            gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
+            wait_list: None, dest_list: None, name: &self.name }
+    }
 
     /// Enqueues kernel on the default command queue.
     ///
@@ -234,14 +280,54 @@ impl Kernel {
     /// Specify `dest_list` to have a new event added to that list associated
     /// with the completion of this kernel task.
     ///
-    #[inline]
-    pub fn enqueue_events(&self, wait_list: Option<&EventList>, 
-                    dest_list: Option<&mut EventList>) -> OclResult<()>
+    pub fn enqueue_ndrange<D: Into<SimpleDims>>(&self, queue: Option<&Queue>,  
+                gwo: Option<D>, gws: Option<D>, lws: Option<D>, wait_list: Option<&EventList>, 
+                dest_list: Option<&mut EventList>) -> OclResult<()>
     {
-        core::enqueue_kernel(&self.command_queue_obj_core, &self.obj_core, self.gws.dim_count(), 
-            self.gwo.to_work_offset(), self.gws.to_work_size().unwrap(), self.lws.to_work_size(), 
-            wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
+        let queue = match queue {
+            Some(q) => q.core_as_ref(),
+            None => &self.command_queue_obj_core,
+        };
+
+        // If offset/size is passed, use passed value, if not use stored default:
+        let gwo = gwo.map(|gwo| gwo.into()).unwrap_or(self.gwo);
+        let gws = gws.map(|gws| gws.into()).unwrap_or(self.gws);
+        let lws = lws.map(|lws| lws.into()).unwrap_or(self.lws);
+
+        let dim_count = gws.dim_count();
+
+        // If gws is still `None` we cannot continue.
+        let gws = match gws.to_work_size() {
+            Some(gws) => gws,
+            None => return OclError::err("ocl::Kernel::enqueue_ndrange: Global Work Size ('gws') \
+                cannot be left unspecified. Set a default for the kernel or pass a valid
+                parameter."),
+        };
+
+        let wait_list = wait_list.map(|el| el.core_as_ref());
+        let dest_list = dest_list.map(|el| el.core_as_mut());
+
+        core::enqueue_kernel(queue, &self.obj_core, dim_count, gwo.to_work_offset(), 
+            gws, lws.to_work_size(), wait_list, dest_list, Some(&self.name))
     }
+
+    // /// Enqueues kernel on the default command queue.
+    // ///
+    // /// Specify `queue` to use a non-default queue.
+    // ///
+    // /// Execution of the kernel on the device will not occur until the events
+    // /// in `wait_list` have completed if it is specified. 
+    // ///
+    // /// Specify `dest_list` to have a new event added to that list associated
+    // /// with the completion of this kernel task.
+    // ///
+    // pub fn enqueue_events(&self, wait_list: Option<&EventList>, 
+    //                 dest_list: Option<&mut EventList>) -> OclResult<()>
+    // {
+    //     core::enqueue_kernel(&self.command_queue_obj_core, &self.obj_core, self.gws.dim_count(), 
+    //         self.gwo.to_work_offset(), self.gws.to_work_size().unwrap(), self.lws.to_work_size(), 
+    //         wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
+    // }
 
     /// Enqueues kernel on the default command queue with no event lists.
     ///
@@ -249,7 +335,8 @@ impl Kernel {
     ///
     #[inline]
     pub fn enqueue(&self) {
-        self.enqueue_events(None, None).expect("ocl::Kernel::enqueue");
+        self.enqueue_ndrange::<SimpleDims>(None, None, None, None, None, None)
+            .expect("ocl::Kernel::enqueue");
     }
 
     /// Changes the default queue used when none is passed to `::enqueue_with`

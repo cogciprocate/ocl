@@ -19,14 +19,13 @@ static SRC: &'static str = r#"
 fn main() {
 	let dims = [1000, 100, 10];
 
-	let context = Context::new_by_index_and_type(None, None).unwrap();
-	let device = context.get_device_by_index(0);
-	// let queue = Queue::new_by_device_index(&context, None);
+	let context = Context::builder().build().unwrap();
+	let device = context.get_device_by_wrapping_index(0);
 	let program = Program::builder()
-		.device(device.clone())
+		.device(device)
 		.src(SRC)
 		.build(&context).unwrap();
-    let queue = Queue::new(&context, Some(device.clone())).unwrap();
+    let queue = Queue::new(&context, device).unwrap();
     let buffer = Buffer::<f32>::new(&dims, &queue);
 	let image = Image::builder()
 		.dims(&dims)
@@ -38,7 +37,7 @@ fn main() {
         .arg_buf(&buffer);
     let mut event_list = EventList::new();
 
-    kernel.enqueue_events(None, Some(&mut event_list)).unwrap();
+    kernel.cmd().e_dest(&mut event_list).enq().unwrap();
     let event = event_list.last_clone().unwrap();
     event_list.wait();
 

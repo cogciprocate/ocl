@@ -8,7 +8,7 @@ use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 /// A platform identifier.
 pub struct Platform(PlatformIdCore);
 

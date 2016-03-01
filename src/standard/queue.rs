@@ -28,7 +28,7 @@ impl Queue {
     /// associated with `context`.
     ///
     /// [FIXME]: Return result.
-    pub fn new(context: &Context, device: Option<Device>) -> OclResult<Queue> {
+    pub fn new(context: &Context, device: Device) -> OclResult<Queue> {
         // let device_idxs = match device_idx {
         //     Some(idx) => vec![idx],
         //     None => Vec::with_capacity(0),
@@ -38,10 +38,10 @@ impl Queue {
         // assert!(device_ids_core.len() == 1, "Queue::new_by_device_index: Error resolving device ids.");
         // let device_id_core = device_ids_core[0].clone();
 
-        let device = match device {
-            Some(d) => d,
-            None => context.get_device_by_index(0),
-        };
+        // let device = match device {
+        //     Some(d) => d,
+        //     None => context.devices()[0],
+        // };
 
         let obj_core = try!(core::create_command_queue(context, &device));
 

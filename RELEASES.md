@@ -11,7 +11,9 @@ Breaking Changes
   slightly changed for consistency.
 * `Queue::new_by_device_index` has been depricated.
 * `ProQue::create_kernel_with_dims` has been depricated.
-
+* `Kernel::new` no longer accepts a global work size as an argument. Instead
+  use the new builder-style method, `::gws` after creating.
+* The `device` argument for `Queue::new` is no longer optional.
 
 New Features
 ------------

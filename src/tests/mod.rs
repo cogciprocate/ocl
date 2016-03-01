@@ -68,7 +68,7 @@ fn test_events() {
     // pb.src_file("cl/kernel_file.cl");
     // let mut ocl_pq = ProQue::builder().program_builder(pb).build().unwrap();
     let ocl_pq = ProQue::builder()
-        .program_builder(ProgramBuilder::with_opts(vec![], &["cl/kernel_file.cl"]))
+        .prog_bldr(ProgramBuilder::new().src_file("cl/kernel_file.cl"))
         .build().unwrap();
 
     // Build program:
@@ -125,7 +125,8 @@ fn test_events() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.enqueue_events(None, Some(&mut kernel_event)).unwrap();
+        // kernel.enqueue_events(None, Some(&mut kernel_event)).unwrap();
+        kernel.cmd().e_dest(&mut kernel_event).enq().unwrap();
 
         let mut read_event = EventList::new();
         

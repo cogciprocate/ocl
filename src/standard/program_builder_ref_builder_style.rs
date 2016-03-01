@@ -78,18 +78,18 @@ impl ProgramBuilder {
         }
     }
 
-    // pub fn with_opts<S: Into<String> + Clone>(options: Vec<BuildOpt>, src_file_names: &[S]
-    //         ) -> ProgramBuilder 
-    // {
-    //     let src_file_names: Vec<String> = src_file_names.iter().map(|s| s.clone().into()).collect();
+    pub fn with_opts<S: Into<String> + Clone>(options: Vec<BuildOpt>, src_file_names: &[S]
+            ) -> ProgramBuilder 
+    {
+        let src_file_names: Vec<String> = src_file_names.iter().map(|s| s.clone().into()).collect();
 
-    //     ProgramBuilder {
-    //         options: options,
-    //         src_file_names: src_file_names,
-    //         // device_idxs: Vec::with_capacity(8),
-    //         devices: Vec::with_capacity(8),
-    //     }
-    // }
+        ProgramBuilder {
+            options: options,
+            src_file_names: src_file_names,
+            // device_idxs: Vec::with_capacity(8),
+            devices: Vec::with_capacity(8),
+        }
+    }
 
     /// Returns a newly built Program.
     ///
@@ -116,32 +116,32 @@ impl ProgramBuilder {
 
     /// Adds a build option containing a compiler command line definition.
     /// Formatted as `-D {name}={val}`.
-    pub fn cmplr_def(mut self, name: &'static str, val: i32) -> ProgramBuilder {
+    pub fn cmplr_def<'p>(&'p mut self, name: &'static str, val: i32) -> &'p mut ProgramBuilder {
         self.options.push(BuildOpt::cmplr_def(name, val));
         self
     }
 
     /// Adds a build option containing a core compiler command line parameter. 
     /// Formatted as `{co}` (exact text).
-    pub fn cmplr_opt(mut self, co: &'static str) -> ProgramBuilder {
+    pub fn cmplr_opt<'p>(&'p mut self, co: &'static str) -> &'p mut ProgramBuilder {
         self.options.push(BuildOpt::cmplr_opt(co));
         self
     }
 
     /// Pushes pre-created build option to the list.
-    pub fn bo(mut self, bo: BuildOpt) -> ProgramBuilder {
+    pub fn bo<'p>(&'p mut self, bo: BuildOpt) -> &'p mut ProgramBuilder {
         self.options.push(bo);
         self
     }
 
     /// Adds a kernel file to the list of included sources.
-    pub fn src_file<S: Into<String>>(mut self, file_name: S) -> ProgramBuilder {
+    pub fn src_file<'p, S: Into<String>>(&'p mut self, file_name: S) -> &'p mut ProgramBuilder {
         self.src_file_names.push(file_name.into());
         self
     }   
 
     /// Adds text to the included kernel source.
-    pub fn src<S: Into<String>>(mut self, src: S) -> ProgramBuilder {
+    pub fn src<'p, S: Into<String>>(&'p mut self, src: S) -> &'p mut ProgramBuilder {
         // self.add_src(src);
         self.options.push(BuildOpt::IncludeRawEof(src.into()));
         self
@@ -161,21 +161,21 @@ impl ProgramBuilder {
     // /// ```
     // /// Out of range device indexes will simply round-robin around to 0 and
     // /// count up again (modulo).
-    // pub fn device_idxs(mut self, device_idxs: &[usize]) -> ProgramBuilder {
+    // pub fn device_idxs<'p>(&'p mut self, device_idxs: &[usize]) -> &'p mut ProgramBuilder {
     //     self.device_idxs.extend_from_slice(&device_idxs);
     //     self
     // }
 
     /// Specify a list of devices to build this program on. The devices must be 
     /// associated with the context passed to `::build` later on.
-    pub fn devices<D: AsRef<[Device]>>(mut self, devices: D) -> ProgramBuilder {
+    pub fn devices<'p, D: AsRef<[Device]>>(&'p mut self, devices: D) -> &'p mut ProgramBuilder {
         self.devices.extend_from_slice(devices.as_ref());
         self
     }
 
     /// Specify a list of devices to build this program on. The devices must be 
     /// associated with the context passed to `::build` later on.
-    pub fn device(mut self, device: Device) -> ProgramBuilder {
+    pub fn device<'p>(&'p mut self, device: Device) -> &'p mut ProgramBuilder {
         self.devices.push(device);
         self
     }

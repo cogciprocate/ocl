@@ -64,7 +64,7 @@ impl SimpleDims {
 
     pub fn to_size(&self) -> [usize; 3] {
         match self {
-            &SimpleDims::Unspecified => [0, 0, 0],
+            &SimpleDims::Unspecified => [1, 1, 1],
             &SimpleDims::One(x) => [x, 1, 1],
             &SimpleDims::Two(x, y) => [x, y, 1],
             &SimpleDims::Three(x, y, z) => [x, y, z],

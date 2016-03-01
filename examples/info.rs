@@ -48,9 +48,9 @@ fn main() {
 
     	// Loop through each device
     	for d_idx in 0..devices.len() {
-    		let device = &devices[d_idx];
+    		let device = devices[d_idx];
 	    	
-			let queue = Queue::new(&context, Some(device.clone())).unwrap();
+			let queue = Queue::new(&context, device).unwrap();
 			let buffer = Buffer::<f32>::new(&dims, &queue);
 			let image = Image::builder()
 				.dims(dims)
@@ -58,7 +58,7 @@ fn main() {
 			let sampler = Sampler::with_defaults(&context).unwrap();
 	    	let program = Program::builder()
 	    		.src(SRC)
-	    		.devices(&[device.clone()])
+	    		.device(device)
 	    		.build(&context).unwrap();
 			let kernel = Kernel::new("multiply", &program, &queue).unwrap()
 					.gws(&dims)
@@ -66,7 +66,7 @@ fn main() {
 			        .arg_scl(10.0f32);
 			let mut event_list = EventList::new();
 
-			kernel.enqueue_events(None, Some(&mut event_list)).unwrap();
+			kernel.cmd().e_dest(&mut event_list).enq().unwrap();
 			let event = event_list.last_clone().unwrap();
 			event_list.wait();			
 
