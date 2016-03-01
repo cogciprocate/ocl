@@ -113,7 +113,7 @@ impl<'e> ClEventRef<'e> for EventRefWrapper<'e> {
 
 /// cl_platform_id
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct PlatformId(cl_platform_id);
 
 impl PlatformId {
@@ -141,7 +141,7 @@ unsafe impl Send for PlatformId {}
 
 /// cl_device_id
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct DeviceId(cl_device_id);
 
 impl DeviceId {
