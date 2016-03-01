@@ -50,7 +50,7 @@ fn main() {
     	for d_idx in 0..devices.len() {
     		let device = &devices[d_idx];
 	    	
-			let queue = Queue::new(&context, Some(device.clone()));
+			let queue = Queue::new(&context, Some(device.clone())).unwrap();
 			let buffer = Buffer::<f32>::new(&dims, &queue);
 			let image = Image::builder()
 				.dims(dims)
@@ -60,7 +60,8 @@ fn main() {
 	    		.src(SRC)
 	    		.devices(&[device.clone()])
 	    		.build(&context).unwrap();
-			let kernel = Kernel::new("multiply", &program, &queue, &dims).unwrap()
+			let kernel = Kernel::new("multiply", &program, &queue).unwrap()
+					.gws(&dims)
 			        .arg_buf(&buffer)
 			        .arg_scl(10.0f32);
 			let mut event_list = EventList::new();

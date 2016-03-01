@@ -105,7 +105,7 @@ fn main_exploded() {
         .platform(platform)
         .devices(DeviceSpecifier::Single(device.clone()))
         .build().unwrap();
-    let queue = Queue::new(&context, Some(device.clone()));
+    let queue = Queue::new(&context, Some(device.clone())).unwrap();
     let program = Program::builder()
         .devices(&[device.clone()])
         .src(src)
@@ -120,7 +120,8 @@ fn main_exploded() {
     let element_original_value = buffer[element_idx];
 
     // 3.) Create a kernel with arguments matching those in the source above:
-    let kernel = Kernel::new("add", &program, &queue, &dims).unwrap()
+    let kernel = Kernel::new("add", &program, &queue).unwrap()
+        .gws(&dims)
         .arg_buf(&buffer)
         .arg_scl(scalar)
     ;

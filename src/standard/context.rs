@@ -83,21 +83,21 @@ impl Context {
         })
     }
 
-    /// [UNSTABLE]: About to be moved to builder
-    /// [UNTESTED] Returns a newly created context.
-    pub fn new_by_platform_and_device_list(platform: Platform, device_list: Vec<Device>
-                ) -> OclResult<Context> {
-        let devices = Device::list_from_core(device_list.into_iter().map(|d| d.into()).collect());
-        let properties: Option<ContextProperties> = 
-            Some(ContextProperties::new().platform(platform.as_core().clone()));
-        let obj_core = try!(core::create_context(&properties, &devices, None, None));
+    // /// [UNSTABLE]: About to be moved to builder
+    // /// [UNTESTED] Returns a newly created context.
+    // pub fn new_by_platform_and_device_list(platform: Platform, device_list: Vec<Device>
+    //             ) -> OclResult<Context> {
+    //     let devices = Device::list_from_core(device_list.into_iter().map(|d| d.into()).collect());
+    //     let properties: Option<ContextProperties> = 
+    //         Some(ContextProperties::new().platform(platform.as_core().clone()));
+    //     let obj_core = try!(core::create_context(&properties, &devices, None, None));
 
-        Ok(Context {
-            obj_core: obj_core,
-            platform: Some(platform),
-            devices: devices,
-        })
-    }
+    //     Ok(Context {
+    //         obj_core: obj_core,
+    //         platform: Some(platform),
+    //         devices: devices,
+    //     })
+    // }
 
     /// [UNSTABLE]: About to be moved to builder
     /// Returns a newly created context with a specified platform and set of device types.
@@ -207,7 +207,7 @@ impl Context {
     }
 
     /// Resolves the zero-based device index into a list of Devices.
-    pub fn resolve_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
+    pub fn resolve_device_idxs_wrap(&self, idxs: &[usize]) -> Vec<Device> {
         // let selected_idxs = match device_idxs.len() {
         //     0 => vec![0],
         //     _ => Vec::from(device_idxs),
@@ -246,7 +246,7 @@ impl Context {
     pub fn get_device_by_index(&self, index: usize) -> Device {
         // [FIXME]: FIGURE OUT HOW TO DO THIS CORRECTLY
         let indices = [index; 1];
-        self.resolve_device_idxs(&indices)[0].clone()
+        self.resolve_device_idxs_wrap(&indices)[0].clone()
     }
 
     /// Returns info about the platform associated with the context.

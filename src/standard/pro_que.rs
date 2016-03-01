@@ -3,7 +3,7 @@
 use std::convert::Into;
 use std::ops::Deref;
 use core::{self, OclNum};
-use standard::{Context, ProgramBuilder, ProQueBuilder, Program, Queue, Kernel, Buffer,
+use standard::{Context, ProQueBuilder, Program, Queue, Kernel, Buffer,
     BufferDims, SimpleDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
 
@@ -36,7 +36,7 @@ static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions sp
 pub struct ProQue {
     context: Context,
     queue: Queue,
-    program: Option<Program>,
+    program: Program,
     dims: Option<SimpleDims>,
 }
 
@@ -47,6 +47,7 @@ impl ProQue {
     pub fn builder() -> ProQueBuilder {
         ProQueBuilder::new()
     }
+
 
     // / Creates a new queue on the device with `device_idx` (see 
     // / [`Queue`](http://docs.cogciprocate.com/ocl/struct.Queue.html) 
@@ -72,14 +73,16 @@ impl ProQue {
     //     }
     // }
 
+
     /// Creates a new ProQue from individual parts.
     ///
     /// Use builder unless you know what you're doing. Creating parts which are
     /// from different devices or contexts will cause errors later on.
     ///
     /// [FIXME] TODO: DEPRICATE BUILDING THROUGH PROQUE.
-    pub fn new<D: Into<SimpleDims>>(context: Context, queue: Queue, program: Option<Program>, 
-                    dims: Option<D>) -> ProQue {
+    pub fn new<D: Into<SimpleDims>>(context: Context, queue: Queue, program: Program,
+                    dims: Option<D>) -> ProQue 
+    {
         ProQue {
             context: context,
             queue: queue,
@@ -88,59 +91,62 @@ impl ProQue {
         }
     }
 
-    /// Builds and stores the program defined by `builder`.
-    ///
-    /// ## Panics
-    /// This `ProQue` must not already contain a program.
-    ///
-    /// `program_builder` must not have any device indexes configured (via its
-    /// `::device_idxs` method). `ProQue` will only build programs for the device
-    /// previously configured or the default device if none had been specified.
-    ///
-    /// ## Stability
-    ///
-    /// The usefulness of this method is questionable now that we have a builder. 
-    /// It may be depricated.
-    ///
-    /// [UNSTABLE]: Prefer using `ProQueBuilder`.
-    pub fn build_program(&mut self, builder: &ProgramBuilder) -> OclResult<()> {
-        if self.program.is_some() { 
-            return OclError::err("ProQue::build_program(): Pre-existing build detected. Use \
-                '.clear_build()' first.");
-        }
 
-        if builder.get_device_idxs().len() > 0 {
-            return OclError::err("ProQue::build_program(): The 'ProgramBuilder' passed \
-                may not have any device indexes set as they will be ignored. See 'ProQue' \
-                documentation for more information.");
-        }
+    // /// Builds and stores the program defined by `builder`.
+    // ///
+    // /// ## Panics
+    // /// This `ProQue` must not already contain a program.
+    // ///
+    // /// `program_builder` must not have any device indexes configured (via its
+    // /// `::device_idxs` method). `ProQue` will only build programs for the device
+    // /// previously configured or the default device if none had been specified.
+    // ///
+    // /// ## Stability
+    // ///
+    // /// The usefulness of this method is questionable now that we have a builder. 
+    // /// It may be depricated.
+    // ///
+    // /// [UNSTABLE]: Prefer using `ProQueBuilder`.
+    // pub fn build_program(&mut self, builder: &ProgramBuilder) -> OclResult<()> {
+    //     if self.program.is_some() { 
+    //         return OclError::err("ProQue::build_program(): Pre-existing build detected. Use \
+    //             '.clear_build()' first.");
+    //     }
+
+    //     if builder.get_devices().len() > 0 {
+    //         return OclError::err("ProQue::build_program(): The 'ProgramBuilder' passed \
+    //             may not have any device indexes set as they will be ignored. See 'ProQue' \
+    //             documentation for more information.");
+    //     }
         
-        self.program = Some(try!(Program::from_parts(
-            try!(builder.get_src_strings().map_err(|e| e.to_string())), 
-            try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
-            self.queue.context_core_as_ref(), 
-            &vec![self.queue.device().clone()],
-        )));
+    //     self.program = Some(try!(Program::from_parts(
+    //         try!(builder.get_src_strings().map_err(|e| e.to_string())), 
+    //         try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
+    //         self.queue.context_core_as_ref(), 
+    //         &vec![self.queue.device().clone()],
+    //     )));
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    /// Clears the current program build. Any kernels created with the pre-existing program will continue to work but new kernels will require a new program to be built. This can occasionally be useful for creating different programs based on the same source but with different constants.
-    /// 
-    /// ## Stability
-    ///
-    /// [UNSTABLE]: Usefulness and safety questionable.
-    ///
-    pub fn clear_build(&mut self) {
-        // match self.program {
-        //     Some(ref mut program) => { 
-        //         program.release();              
-        //     },
 
-        //     None => (),
-        // }
-        self.program = None;
-    }
+    // /// Clears the current program build. Any kernels created with the pre-existing program will continue to work but new kernels will require a new program to be built. This can occasionally be useful for creating different programs based on the same source but with different constants.
+    // /// 
+    // /// ## Stability
+    // ///
+    // /// [UNSTABLE]: Usefulness and safety questionable.
+    // ///
+    // pub fn clear_build(&mut self) {
+    //     // match self.program {
+    //     //     Some(ref mut program) => { 
+    //     //         program.release();              
+    //     //     },
+
+    //     //     None => (),
+    //     // }
+    //     self.program = None;
+    // }
+
 
     /// Creates a kernel with pre-assigned dimensions.
     ///
@@ -150,27 +156,35 @@ impl ProQue {
     /// there is a problem creating the kernel, or if this `ProQue` has no
     /// pre-assigned dimensions.
     pub fn create_kernel(&self, name: &str) -> Kernel {
-        self.create_kernel_with_dims(name, self.dims_result().expect("ocl::ProQue::create_kernel"))
+        let kernel = Kernel::new(name.to_string(), &self.program, &self.queue)
+            .expect("ocl::ProQue::create_kernel");
+
+        match self.dims {
+            Some(d) => kernel.gws(d),
+            None => kernel,
+        }        
     }
 
-    /// Returns a new Kernel with name: `name` and global work size: `gws`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the contained program has not been created / built or if
-    /// there is a problem creating the kernel.
-    pub fn create_kernel_with_dims<D: Into<SimpleDims>>(&self, name: &str, gws: D) -> Kernel {
-        let program = match self.program {
-            Some(ref prg) => prg,
-            None => {
-                panic!("\nProQue::create_kernel(): Cannot add new kernel until \
-                OpenCL program is built. Use: \
-                '{{your_proque}}.build_program({{your_program_builder}});'.\n")
-            },
-        };
 
-        Kernel::new(name.to_string(), &program, &self.queue, gws.into()).unwrap()
-    }
+    // /// Returns a new Kernel with name: `name` and global work size: `gws`.
+    // ///
+    // /// # Panics
+    // ///
+    // /// Panics if the contained program has not been created / built or if
+    // /// there is a problem creating the kernel.
+    // pub fn create_kernel_with_dims<D: Into<SimpleDims>>(&self, name: &str, gws: D) -> Kernel {
+    //     let program = match self.program {
+    //         Some(ref prg) => prg,
+    //         None => {
+    //             panic!("\nProQue::create_kernel(): Cannot add new kernel until \
+    //             OpenCL program is built. Use: \
+    //             '{{your_proque}}.build_program({{your_program_builder}});'.\n")
+    //         },
+    //     };
+
+    //     Kernel::new(name.to_string(), &program, &self.queue, gws.into()).unwrap()
+    // }
+
 
     /// Returns a new buffer
     ///
@@ -184,8 +198,7 @@ impl ProQue {
     /// This `ProQue` must have been pre-configured with default dimensions
     // to use this method. Otherwise, use Buffer::new(), etc.
     ///
-    pub fn create_buffer<T: OclNum>(&self, with_vec: bool) -> Buffer<T>
-    {
+    pub fn create_buffer<T: OclNum>(&self, with_vec: bool) -> Buffer<T> {
         let dims = self.dims_result().expect("ocl::ProQue::create_buffer");
 
         if with_vec {
@@ -216,8 +229,8 @@ impl ProQue {
     }
 
     /// Returns the current program build, if any.
-    pub fn program(&self) -> Option<&Program> {
-        self.program.as_ref()
+    pub fn program(&self) -> &Program {
+        &self.program
     }
 
     /// Returns the current `dims` or panics.

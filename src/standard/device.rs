@@ -15,6 +15,13 @@ use util;
 pub struct Device(DeviceIdCore);
 
 impl Device {
+    /// Returns the first available device on a platform
+    pub fn first(platform: &Platform) -> Device {
+        let first_core = core::get_device_ids(platform, None, None)
+            .expect("ocl::Device::first: Error retrieving device list");
+        Device(first_core[0].clone())
+    }
+    
     /// Resolves a list of indexes into a list of valid devices.
     ///
     /// `devices` is the set of all indexable devices.
@@ -90,13 +97,6 @@ impl Device {
             idxs: &[usize]) -> Vec<Device> 
     {
         Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types))
-    }
-
-    /// Returns the first available device on a platform
-    pub fn first(platform: &Platform) -> Device {
-        let first_core = core::get_device_ids(platform, None, None)
-            .expect("ocl::Device::first: Error retrieving device list");
-        Device(first_core[0].clone())
     }
 
     // /// Creates a new `Device` from a `DeviceIdCore`.

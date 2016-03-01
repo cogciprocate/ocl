@@ -2,6 +2,7 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
+use error::{Result as OclResult};
 use core::{self, CommandQueue as CommandQueueCore, Context as ContextCore,
     CommandQueueInfo, CommandQueueInfoResult};
 use standard::{Context, Device};
@@ -27,7 +28,7 @@ impl Queue {
     /// associated with `context`.
     ///
     /// [FIXME]: Return result.
-    pub fn new<D: AsRef<Device>>(context: &Context, device: Option<D>) -> Queue {
+    pub fn new(context: &Context, device: Option<Device>) -> OclResult<Queue> {
         // let device_idxs = match device_idx {
         //     Some(idx) => vec![idx],
         //     None => Vec::with_capacity(0),
@@ -38,18 +39,17 @@ impl Queue {
         // let device_id_core = device_ids_core[0].clone();
 
         let device = match device {
-            Some(d) => d.as_ref().clone(),
-            None => context.get_device_by_index(0).clone(),
+            Some(d) => d,
+            None => context.get_device_by_index(0),
         };
 
-        let obj_core = core::create_command_queue(context, &device)
-            .expect("[FIXME: TEMPORARY]: Queue::new_by_device_index():"); 
+        let obj_core = try!(core::create_command_queue(context, &device));
 
-        Queue {
+        Ok(Queue {
             obj_core: obj_core,
             context_obj_core: context.core_as_ref().clone(),
             device: device, 
-        }
+        })
     }
 
 

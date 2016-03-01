@@ -75,14 +75,14 @@ impl ProQueBuilder {
 
         let device = context.get_device_by_index(self.device_idx);
 
-        let queue = Queue::new(&context, Some(device.clone()));
+        let queue = try!(Queue::new(&context, Some(device.clone())));
 
-        let program = Some(try!(Program::from_parts(
+        let program = try!(Program::from_parts(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
             &context, 
             &vec![device],
-        )));
+        ));
 
         Ok(ProQue::new(context, queue, program, self.dims.clone()))
     }
@@ -157,7 +157,7 @@ impl ProQueBuilder {
             'ProgramBuilder' using this method after one has already been set or after '::src' has \
             been called.");
 
-        assert!(program_builder.get_device_idxs().len() == 0, "ProQueBuilder::program_builder(): The \
+        assert!(program_builder.get_devices().len() == 0, "ProQueBuilder::program_builder(): The \
             'ProgramBuilder' passed may not have any device indexes set as they will be unused. \
             See 'ProQueBuilder' documentation for more information.");
 

@@ -61,7 +61,7 @@ impl BuildOpt {
 pub struct ProgramBuilder {
     options: Vec<BuildOpt>,
     src_file_names: Vec<String>,
-    device_idxs: Vec<usize>,
+    // device_idxs: Vec<usize>,
     devices: Vec<Device>,
     // embedded_kernel_source: Vec<String>,
 }
@@ -72,7 +72,7 @@ impl ProgramBuilder {
         ProgramBuilder {
             options: Vec::with_capacity(64),
             src_file_names: Vec::with_capacity(32),
-            device_idxs: Vec::with_capacity(8),
+            // device_idxs: Vec::with_capacity(8),
             devices: Vec::with_capacity(8),
             // embedded_kernel_source: Vec::with_capacity(32),
         }
@@ -86,7 +86,7 @@ impl ProgramBuilder {
         ProgramBuilder {
             options: options,
             src_file_names: src_file_names,
-            device_idxs: Vec::with_capacity(8),
+            // device_idxs: Vec::with_capacity(8),
             devices: Vec::with_capacity(8),
         }
     }
@@ -99,8 +99,9 @@ impl ProgramBuilder {
     ///
     /// TODO: Check for duplicate devices in the final device list.
     pub fn build(&self, context: &Context) -> OclResult<Program> {
-        let mut device_list: Vec<Device> = self.devices.iter().map(|d| d.clone()).collect();
-        device_list.extend_from_slice(&context.resolve_device_idxs(&self.device_idxs));
+        // let mut device_list: Vec<Device> = self.devices.iter().map(|d| d.clone()).collect();
+        // device_list.extend_from_slice(&context.resolve_device_idxs_wrap(&self.device_idxs));
+        let device_list = &self.devices;
 
         if device_list.len() == 0 {
             return OclError::err("ocl::ProgramBuilder::build: No devices found.");
@@ -146,24 +147,24 @@ impl ProgramBuilder {
         self
     }
 
-    /// Specify which devices this program should be built on using a vector of 
-    /// zero-based device indexes.
-    ///
-    /// # Example
-    ///
-    /// If your system has 4 OpenGL devices and you want to include them all:
-    /// ```
-    /// let program = program::builder()
-    ///     .src(source_str)
-    ///     .device_idxs(vec![0, 1, 2, 3])
-    ///     .build(context);
-    /// ```
-    /// Out of range device indexes will simply round-robin around to 0 and
-    /// count up again (modulo).
-    pub fn device_idxs<'p>(&'p mut self, device_idxs: &[usize]) -> &'p mut ProgramBuilder {
-        self.device_idxs.extend_from_slice(&device_idxs);
-        self
-    }
+    // /// Specify which devices this program should be built on using a vector of 
+    // /// zero-based device indexes.
+    // ///
+    // /// # Example
+    // ///
+    // /// If your system has 4 OpenGL devices and you want to include them all:
+    // /// ```
+    // /// let program = program::builder()
+    // ///     .src(source_str)
+    // ///     .device_idxs(vec![0, 1, 2, 3])
+    // ///     .build(context);
+    // /// ```
+    // /// Out of range device indexes will simply round-robin around to 0 and
+    // /// count up again (modulo).
+    // pub fn device_idxs<'p>(&'p mut self, device_idxs: &[usize]) -> &'p mut ProgramBuilder {
+    //     self.device_idxs.extend_from_slice(&device_idxs);
+    //     self
+    // }
 
     /// Specify a list of devices to build this program on. The devices must be 
     /// associated with the context passed to `::build` later on.
@@ -174,8 +175,8 @@ impl ProgramBuilder {
 
     /// Specify a list of devices to build this program on. The devices must be 
     /// associated with the context passed to `::build` later on.
-    pub fn device<'p, D: AsRef<Device>>(&'p mut self, device: D) -> &'p mut ProgramBuilder {
-        self.devices.push(device.as_ref().clone());
+    pub fn device<'p>(&'p mut self, device: Device) -> &'p mut ProgramBuilder {
+        self.devices.push(device);
         self
     }
 
@@ -200,10 +201,10 @@ impl ProgramBuilder {
         &self.src_file_names
     }
 
-    // Returns the list of devices indexes with which this `ProgramBuilder` is
+    // Returns the list of devices with which this `ProgramBuilder` is
     // configured to build on.
-    pub fn get_device_idxs(&self) -> &Vec<usize> {
-        &self.device_idxs
+    pub fn get_devices(&self) -> &[Device] {
+        &self.devices[..]
     }
 
 

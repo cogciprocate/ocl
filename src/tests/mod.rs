@@ -76,17 +76,18 @@ fn test_events() {
 
     // Set up data set size and work dimensions:
     let data_set_size = 900000;
-    let our_test_dims = SimpleDims::One(data_set_size);
+    let dims = SimpleDims::One(data_set_size);
 
     // Create source and result buffers (our data containers):
-    let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &our_test_dims, &ocl_pq.queue());
-    let mut result_buffer = Buffer::with_vec(&our_test_dims, &ocl_pq.queue());
+    let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
+    let mut result_buffer = Buffer::with_vec(&dims, &ocl_pq.queue());
 
     // Our addend:
     let addend = 10u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel_with_dims("add_scalar", our_test_dims.clone())
+    let mut kernel = ocl_pq.create_kernel("add_scalar")
+        .gws(dims.clone())
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)
         .arg_buf(&mut result_buffer)
@@ -183,7 +184,8 @@ fn test_basics() {
     let mut result_buffer = Buffer::<f32>::with_vec(&dims, &ocl_pq.queue());
 
     // Create a kernel with three arguments corresponding to those in the kernel:
-    let kernel = ocl_pq.create_kernel_with_dims("multiply_by_scalar", dims.clone())
+    let kernel = ocl_pq.create_kernel("multiply_by_scalar")
+        .gws(dims.clone())
         .arg_buf(&source_buffer)
         .arg_scl(coeff)
         .arg_buf(&mut result_buffer)

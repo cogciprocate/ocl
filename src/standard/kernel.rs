@@ -37,8 +37,8 @@ pub struct Kernel {
 impl Kernel {
     /// Returns a new kernel.
     // TODO: Implement proper error handling (return result etc.).
-    pub fn new<S: Into<String>, D: Into<SimpleDims>>(name: S, program: &Program, queue: &Queue, 
-                gws: D) -> OclResult<Kernel>
+    pub fn new<S: Into<String>, >(name: S, program: &Program, queue: &Queue, 
+            ) -> OclResult<Kernel>
     {
         let name = name.into();
         let obj_core = try!(core::create_kernel(program, &name));
@@ -50,32 +50,46 @@ impl Kernel {
             arg_count: 0,
             command_queue_obj_core: queue.core_as_ref().clone(),
             gwo: SimpleDims::Unspecified,
-            gws: gws.into(),
+            gws: SimpleDims::Unspecified,
             lws: SimpleDims::Unspecified,
         })
     }
 
+    pub fn gws<D: Into<SimpleDims>>(mut self, gws: D) -> Kernel {
+        // if gws.dim_count() == self.gws.dim_count() {
+        //     self.gws = gws;
+        // } else {
+        //     panic!("ocl::Kernel::gws(): Work size mismatch.");
+        // }
+
+        self.gws = gws.into();
+        self
+    }
+
     /// Sets the global work offset (builder-style).
     pub fn gwo<D: Into<SimpleDims>>(mut self, gwo: D) -> Kernel {
-        let gwo = gwo.into();
+        // let gwo = gwo.into();
 
-        if gwo.dim_count() == self.gws.dim_count() {
-            self.gwo = gwo;
-        } else {
-            panic!("ocl::Kernel::gwo(): Work size mismatch.");
-        }
+        // if gwo.dim_count() == self.gws.dim_count() {
+        //     self.gwo = gwo;
+        // } else {
+        //     panic!("ocl::Kernel::gwo(): Work size mismatch.");
+        // }
+
+        self.gwo = gwo.into();
         self
     }
 
     /// Sets the local work size (builder-style).
     pub fn lws<D: Into<SimpleDims>>(mut self, lws: D) -> Kernel {
-        let lws = lws.into();
+        // let lws = lws.into();
 
-        if lws.dim_count() == self.gws.dim_count() {
-            self.lws = lws;
-        } else {
-            panic!("ocl::Kernel::lws(): Work size mismatch.");
-        }
+        // if lws.dim_count() == self.gws.dim_count() {
+        //     self.lws = lws;
+        // } else {
+        //     panic!("ocl::Kernel::lws(): Work size mismatch.");
+        // }
+        self.lws = lws.into();
         self
     }
 
@@ -312,8 +326,6 @@ impl Kernel {
     }
 
     // Non-builder-style version of `::arg_loc()`.
-    //
-    // `length` lives long enough to be copied by `clSetKernelArg`.
     fn new_arg_loc<T: OclNum>(&mut self, length: usize) -> u32 {
         self.new_arg::<T>(KernelArg::Local(&length))
     } 
@@ -356,21 +368,6 @@ impl Kernel {
             .field("Attributes", &self.info(KernelInfo::Attributes))
             .finish()
     }
-
-        // AddressQualifier = cl_h::CL_KERNEL_ARG_ADDRESS_QUALIFIER as isize,
-        // AccessQualifier = cl_h::CL_KERNEL_ARG_ACCESS_QUALIFIER as isize,
-        // TypeName = cl_h::CL_KERNEL_ARG_TYPE_NAME as isize,
-        // TypeQualifier = cl_h::CL_KERNEL_ARG_TYPE_QUALIFIER as isize,
-        // Name = cl_h::CL_KERNEL_ARG_NAME as isize,
-    // fn fmt_arg_info(&self, f: &mut std::fmt::Formatter, arg_idx: u32) -> std::fmt::Result {
-    //     f.debug_struct("Kernel")
-    //         .field("FunctionName", &self.info(KernelInfo::FunctionName))
-    //         .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
-    //         .field("Context", &self.info(KernelInfo::Context))
-    //         .field("Program", &self.info(KernelInfo::Program))
-    //         .field("Attributes", &self.info(KernelInfo::Attributes))
-    //         .finish()
-    // }
 }
 
 

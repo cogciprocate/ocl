@@ -53,7 +53,7 @@ fn main() {
 
     		// Make a context to share around:
     		let context = Context::new_by_index_and_type(None, None).unwrap();
-    		let program = Program::builder().src(SRC).device(&device)
+    		let program = Program::builder().src(SRC).device(device.clone())
     			.build(&context).unwrap();
 
     		// Make a few different queues for the hell of it:
@@ -62,9 +62,9 @@ fn main() {
 	        // 	Queue::new_by_device_index(&context, None)];
 
 	        // Make a few different queues for the hell of it:
-	        let queueball = vec![Queue::new(&context, Some(&device)),
-	        	Queue::new(&context, Some(&device)), 
-	        	Queue::new(&context, Some(&device))];
+	        let queueball = vec![Queue::new(&context, Some(device.clone())).unwrap(),
+	        	Queue::new(&context, Some(device.clone())).unwrap(), 
+	        	Queue::new(&context, Some(device.clone())).unwrap()];
 
 			printc!(dark_orange: "    Spawning threads... ");
 
@@ -91,8 +91,8 @@ fn main() {
 
 				let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
 					let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
-					let mut kernel = Kernel::new("add", &program_th, &queueball_th[0], 
-							dims_th.clone()).unwrap()
+					let mut kernel = Kernel::new("add", &program_th, &queueball_th[0]).unwrap()
+						.gws(&dims_th)
 				        .arg_buf(&buffer)
 				        .arg_scl(1000.0f32);
 

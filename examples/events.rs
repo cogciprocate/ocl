@@ -42,7 +42,8 @@ fn main() {
     let addend = 11u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel_with_dims("add_scalar", dims.clone())
+    let mut kernel = ocl_pq.create_kernel("add_scalar")
+        .gws(&dims)
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)
         .arg_buf(&mut result_buffer);

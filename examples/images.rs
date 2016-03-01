@@ -65,11 +65,11 @@ fn main() {
 
     let context = Context::builder().devices(DeviceSpecifier::First).build().unwrap();
     let device = context.devices()[0].clone();
-    let queue = Queue::new(&context, Some(device.clone()));
+    let queue = Queue::new(&context, Some(device.clone())).unwrap();
 
     let program = Program::builder()
         .src(KERNEL_SRC)
-        .devices(&[device.clone()])
+        .device(device.clone())
         .build(&context).unwrap();
 
     let sup_img_formats = Image::supported_formats(&context, ocl::MEM_READ_WRITE, 
@@ -113,7 +113,8 @@ fn main() {
     // Not sure why you'd bother creating a sampler on the host but here's how:
     let sampler = Sampler::new(&context, true, AddressingMode::None, FilterMode::Nearest).unwrap();
 
-    let kernel = Kernel::new("increase_blue", &program, &queue, &dims).unwrap()
+    let kernel = Kernel::new("increase_blue", &program, &queue).unwrap()
+        .gws(&dims)
         .arg_smp(&sampler)
         .arg_img(&src_image)
         .arg_img(&dst_image);

@@ -51,7 +51,8 @@ fn main() {
     let mut buffer_result: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
 
     // Create a kernel with arguments matching those in the kernel:
-    let mut kern = ocl_pq.create_kernel_with_dims("add", dims.clone())
+    let mut kern = ocl_pq.create_kernel("add")
+        .gws(&dims)
         .arg_buf_named("source", Some(&buffer_init))
         .arg_scl(SCALAR)
         .arg_buf(&buffer_result);

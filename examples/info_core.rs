@@ -23,16 +23,17 @@ fn main() {
 	let device = context.get_device_by_index(0);
 	// let queue = Queue::new_by_device_index(&context, None);
 	let program = Program::builder()
-		.device(&device)
+		.device(device.clone())
 		.src(SRC)
 		.build(&context).unwrap();
-    let queue = Queue::new(&context, Some(device.clone()));
+    let queue = Queue::new(&context, Some(device.clone())).unwrap();
     let buffer = Buffer::<f32>::new(&dims, &queue);
 	let image = Image::builder()
 		.dims(&dims)
 		.build(&queue).unwrap();
 	let sampler = Sampler::with_defaults(&context).unwrap();
-		let kernel = Kernel::new("multiply", &program, &queue, dims.clone()).unwrap()
+		let kernel = Kernel::new("multiply", &program, &queue).unwrap()
+		.gws(&dims)
         .arg_scl(10.0f32)
         .arg_buf(&buffer);
     let mut event_list = EventList::new();

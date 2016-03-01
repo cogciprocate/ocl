@@ -10,6 +10,7 @@ Breaking Changes
 * The order of arguments for the `Buffer::enqueue_***` methods has been
   slightly changed for consistency.
 * `Queue::new_by_device_index` has been depricated.
+* `ProQue::create_kernel_with_dims` has been depricated.
 
 
 New Features

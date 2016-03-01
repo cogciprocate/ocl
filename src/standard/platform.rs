@@ -45,10 +45,11 @@ impl Platform {
         platforms.into_iter().map(|p| Platform::new(p)).collect()
     }
 
-    /// Returns a string containing a formatted list of every platform property.
-    pub fn to_string(&self) -> String {
-        self.clone().into()
-    }
+    // /// Returns a string containing a formatted list of every platform property.
+    // pub fn to_string(&self) -> String {
+    //     // self.clone().into()
+    //     format!("{}", self)
+    // }
 
     /// Returns info about the platform. 
     pub fn info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
