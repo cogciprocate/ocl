@@ -37,7 +37,7 @@ fn main() {
         .arg_buf(&buffer);
     let mut event_list = EventList::new();
 
-    kernel.cmd().e_dest(&mut event_list).enq().unwrap();
+    kernel.cmd().dest(&mut event_list).enq().unwrap();
     let event = event_list.last_clone().unwrap();
     event_list.wait();
 

@@ -9,11 +9,15 @@ Breaking Changes
   permanently by calling `::set_queue` for either.
 * The order of arguments for the `Buffer::enqueue_***` methods has been
   slightly changed for consistency.
-* `Queue::new_by_device_index` has been depricated.
-* `ProQue::create_kernel_with_dims` has been depricated.
+* `Queue::new_by_device_index` has been removed.
+* `ProQue::create_kernel_with_dims` has been removed.
 * `Kernel::new` no longer accepts a global work size as an argument. Instead
   use the new builder-style method, `::gws` after creating.
+* `Kernel::enqueue_events` has been removed in favor of the new `::cmd`
+  command builder method.
 * The `device` argument for `Queue::new` is no longer optional.
+* `Context::new_by_index_and_type` has been removed.
+
 
 New Features
 ------------

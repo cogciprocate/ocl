@@ -25,15 +25,28 @@ pub struct KernelCmd<'a> {
 
 impl<'a> KernelCmd<'a> {
     /// Specifies the list of events to wait on before the command will run.
-    pub fn e_wait(mut self, wait_list: &'a EventList) -> KernelCmd<'a> {
+    pub fn wait(mut self, wait_list: &'a EventList) -> KernelCmd<'a> {
         self.wait_list = Some(wait_list);
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn e_dest(mut self, dest_list: &'a mut EventList) -> KernelCmd<'a> {
+    pub fn dest(mut self, dest_list: &'a mut EventList) -> KernelCmd<'a> {
         self.dest_list = Some(dest_list);
+        self
+    }
+
+    /// Specifies the list of events to wait on before the command will run.
+    pub fn wait_opt(mut self, wait_list: Option<&'a EventList>) -> KernelCmd<'a> {
+        self.wait_list = wait_list;
+        self
+    }
+
+    /// Specifies the destination for a new, optionally created event
+    /// associated with this command.
+    pub fn dest_opt(mut self, dest_list: Option<&'a mut EventList>) -> KernelCmd<'a> {
+        self.dest_list = dest_list;
         self
     }
 

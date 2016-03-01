@@ -133,7 +133,7 @@ fn test_timed() {
     let mut buf_events = EventList::new();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.cmd().e_wait(&buf_events).e_dest(&mut kern_events).enq().unwrap();
+        kern.cmd().wait(&buf_events).dest(&mut kern_events).enq().unwrap();
         unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), Some(&mut buf_events)).unwrap(); }
     }
 
@@ -157,7 +157,7 @@ fn test_timed() {
     let mut buf_events = EventList::new();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.cmd().e_wait(&buf_events).e_dest(&mut kern_events).enq().unwrap();
+        kern.cmd().wait(&buf_events).dest(&mut kern_events).enq().unwrap();
         unsafe { buffer_result.enqueue_fill_vec(false, None, Some(&mut buf_events)).unwrap(); }
     }
 

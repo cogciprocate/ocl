@@ -51,7 +51,7 @@ mod error;
 pub mod core;
 pub mod cl_h;
 
-pub use core::{OclNum, ImageFormat, ImageDescriptor, ImageChannelOrder, ImageChannelDataType, MemFlags, MemObjectType, MEM_READ_WRITE, MEM_WRITE_ONLY, MEM_READ_ONLY, MEM_USE_HOST_PTR, MEM_ALLOC_HOST_PTR, MEM_COPY_HOST_PTR, MEM_HOST_WRITE_ONLY, MEM_HOST_READ_ONLY, MEM_HOST_NO_ACCESS, PlatformInfo, DeviceInfo, ContextInfo, ProgramInfo, CommandQueueInfo, KernelInfo, MemInfo, ImageInfo, EventInfo, FilterMode, AddressingMode, ContextProperties};
+pub use core::{OclNum, ImageFormat, ImageDescriptor, ImageChannelOrder, ImageChannelDataType, MemFlags, MemObjectType, MEM_READ_WRITE, MEM_WRITE_ONLY, MEM_READ_ONLY, MEM_USE_HOST_PTR, MEM_ALLOC_HOST_PTR, MEM_COPY_HOST_PTR, MEM_HOST_WRITE_ONLY, MEM_HOST_READ_ONLY, MEM_HOST_NO_ACCESS, PlatformInfo, DeviceInfo, ContextInfo, ProgramInfo, CommandQueueInfo, KernelInfo, MemInfo, ImageInfo, EventInfo, FilterMode, AddressingMode, ContextProperties, DEVICE_TYPE_DEFAULT, DEVICE_TYPE_CPU, DEVICE_TYPE_GPU, DEVICE_TYPE_ACCELERATOR, DEVICE_TYPE_CUSTOM, DEVICE_TYPE_ALL, };
 #[cfg(not(release))] pub use standard::BufferTest;
 pub use standard::{Platform, Device, ContextBuilder, Context, BuildOpt, ProgramBuilder, Program, Queue, Kernel, Buffer, Image, ImageBuilder, ProQueBuilder, ProQue, SimpleDims, WorkDims, BufferDims, Event, EventList, DeviceSpecifier, Sampler};
 pub use self::error::{Error, Result};
