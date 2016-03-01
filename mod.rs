@@ -67,7 +67,7 @@ mod custom;
 
 use std::fmt::{Display, Debug};
 use std::num::{Zero, One};
-use std::ops::{Add, Sub};
+use std::ops::{Add, Sub, Mul, Div, Rem};
 use libc;
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
@@ -144,9 +144,14 @@ pub type UserDataPtr = *mut libc::c_void;
 ///
 /// TODO: Ensure various types of image color data are encompassed by this 
 /// definition.
-pub trait OclNum: Copy + Clone + PartialOrd  + NumCast + Default + Zero + One + Add + Sub + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+pub trait OclNum: 
+    Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-impl<T> OclNum for T where T: Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+impl<T> OclNum for T where T: 
+    Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+
+// impl<'a, T> OclNum for &'a T where T: 
+//     Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 
 

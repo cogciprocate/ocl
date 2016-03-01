@@ -20,7 +20,7 @@ use num::{FromPrimitive};
 use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, cl_mem_flags, cl_mem_object_type, cl_buffer_create_type, cl_event, cl_program, cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
 use error::{Error as OclError, Result as OclResult};
-use core::{self, DEVICES_MAX, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, BufferCreateType};
+use core::{self, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventRef, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, BufferCreateType};
 
 
 //============================================================================
@@ -128,6 +128,10 @@ fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 ///
 pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) -> OclResult<()> {
     let mut size = 0 as size_t;
+
+    if device_ids.len() == 0 {
+        return OclError::err("ocl::core::program_build_err: Device list is empty. Aborting.");
+    }
 
     for device_id in device_ids.iter() {
         unsafe {
@@ -258,26 +262,38 @@ pub fn get_platform_info<P: ClPlatformIdPtr>(platform: Option<P>, request_param:
 //============================================================================
 
 /// Returns a list of available devices for a particular platform.
-pub fn get_device_ids<P: ClPlatformIdPtr>(
-            platform: Option<P>, 
+pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
+            platform: &PlatformId, 
             device_types: Option<DeviceType>,
+            devices_max: Option<u32>,
         ) -> OclResult<Vec<DeviceId>> 
 {
-    let platform_ptr = unsafe { match platform {
-        Some(plat) => plat.as_ptr(),
-        None => try!(get_first_platform()).as_ptr(),
-    } };
+    // let platform_ptr = unsafe { match platform {
+    //     Some(plat) => plat.as_ptr(),
+    //     None => try!(get_first_platform()).as_ptr(),
+    // } };
 
     let device_types = device_types.unwrap_or(core::DEVICE_TYPE_ALL);
     let mut devices_available: cl_uint = 0;
 
+    let devices_max = match devices_max {
+        Some(d) => {
+            if d == 0 { 
+                return OclError::err("ocl::core::get_device_ids: `devices_max` can not be zero."); 
+            } else {
+                d
+            }
+        },
+        None => core::DEVICES_MAX,
+    };
+
     let mut device_ids: Vec<DeviceId> = iter::repeat(unsafe { DeviceId::null() } )
-        .take(DEVICES_MAX as usize).collect();
+        .take(devices_max as usize).collect();
 
     let errcode = unsafe { cl_h::clGetDeviceIDs(
-        platform_ptr, 
+        platform.as_ptr(), 
         device_types.bits() as cl_device_type,
-        DEVICES_MAX, 
+        devices_max, 
         device_ids.as_mut_ptr() as *mut cl_device_id,
         &mut devices_available,
     ) };
@@ -964,6 +980,9 @@ pub fn build_program<D: ClDeviceIdPtr>(
 {
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::build_program(): Callback functions not yet implemented.");
+
+    if devices.len() == 0 { return OclError::err("ocl::core::build_program: \
+        No devices specified."); }
 
     let user_data = match user_data {
         Some(ud) => ud.unwrapped(),
