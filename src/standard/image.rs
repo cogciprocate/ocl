@@ -90,8 +90,7 @@ impl Image {
         };
 
         core::enqueue_read_image(command_queue, &self.obj_core, block, origin, region,
-            row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
-            dest_list.map(|el| el.core_as_mut()))
+            row_pitch, slc_pitch, data, wait_list, dest_list)
     }
 
     /// Writes from `data` to the device image buffer.
@@ -111,8 +110,7 @@ impl Image {
         };
 
         core::enqueue_write_image(command_queue, &self.obj_core, block, origin, region,
-            row_pitch, slc_pitch, data, wait_list.map(|el| el.core_as_ref()), 
-            dest_list.map(|el| el.core_as_mut()))
+            row_pitch, slc_pitch, data, wait_list, dest_list)
     }
 
     /// Reads the entire device image buffer into `data`, blocking until complete.

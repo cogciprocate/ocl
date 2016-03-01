@@ -3,9 +3,10 @@
 use std::ops::{Deref, DerefMut};
 use libc::c_void;
 
+use cl_h;
 use error::{Result as OclResult, Error as OclError};
 use standard::Event;
-use core::{self, EventCallbackFn, EventList as EventListCore, CommandExecutionStatus};
+use core::{self, EventCallbackFn, EventList as EventListCore, CommandExecutionStatus, ClEventPtrNew};
 // use cl_h::{self, cl_event};
 
 
@@ -209,6 +210,12 @@ impl EventList {
     // }
 }
 
+impl AsRef<EventListCore> for EventList {
+    fn as_ref(&self) -> &EventListCore {
+        &self.event_list_core
+    }
+}
+
 impl Deref for EventList {
     type Target = EventListCore;
 
@@ -223,21 +230,8 @@ impl DerefMut for EventList {
     }
 }
 
-// impl<'a> Deref for Option<&'a EventList> {
-//     type Target = Option<&'a EventListCore>;
-
-//     fn deref(&'a self) -> Option<&'a EventListCore> {
-//         match self {
-//             Some(ref el) => &el.event_list_core,
-//             None => None,
-//         }
-//     }
-// }
-
-
-// impl Drop for EventList {
-//     fn drop(&mut self) {
-//         // println!("DROPPING EVENT LIST");
-//         unsafe { self.release_all(); }
-//     }
-// }
+unsafe impl ClEventPtrNew for EventList {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_h::cl_event> {
+        Ok(self.event_list_core.allot())
+    }
+}

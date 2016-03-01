@@ -62,7 +62,7 @@ fn main_explained() {
         .arg_buf(&buffer)
         .arg_scl(scalar);
 
-    // 4.) Run the kernel (the optional arguments are for event lists):
+    // 4.) Run the kernel:
     kernel.enqueue();
 
     // 5.) Read results from the device into our buffer's built-in vector:
@@ -125,7 +125,7 @@ fn main_exploded() {
         .arg_buf(&buffer)
         .arg_scl(scalar)
     ;
-    // 4.) Run the kernel (the optional arguments are for event lists):
+    // 4.) Run the kernel:
     kernel.enqueue();
 
     // 5.) Read results from the device into our buffer's built-in vector:

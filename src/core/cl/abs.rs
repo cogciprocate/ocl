@@ -602,6 +602,11 @@ impl Drop for EventList {
 	}
 }
 
+impl AsRef<EventList> for EventList {
+    fn as_ref(&self) -> &EventList {
+        self
+    }
+}
 
 // unsafe impl EventListPtr for Event {}
 unsafe impl Sync for EventList {}

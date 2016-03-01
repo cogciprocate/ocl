@@ -8,7 +8,7 @@ use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use num::{FromPrimitive, ToPrimitive};
 
-use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, Event as EventCore,
+use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, 
     MemInfo, MemInfoResult};
 use util;
 use error::{Error as OclError, Result as OclResult};
@@ -289,7 +289,8 @@ impl<T: OclNum> Buffer<T> {
 
         // let blocking_read = dest_list.is_none();
         core::enqueue_read_buffer(command_queue, &self.obj_core, block, 
-            offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            // offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            offset, data, wait_list, dest_list)
     }
 
     /// Enqueues writing `data.len() * mem::size_of::<T>()` bytes from `data` to the 
@@ -334,8 +335,8 @@ impl<T: OclNum> Buffer<T> {
 
         // let blocking_write = dest_list.is_none();
         core::enqueue_write_buffer(command_queue, &self.obj_core, block, 
-            offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
-            // offset, data, wait_list.map(|el| el.core_as_ref()), dest_list)
+            // offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            offset, data, wait_list, dest_list)
     }
 
     /// Reads `data.len() * mem::size_of::<T>()` bytes from the (remote) device buffer 
@@ -392,7 +393,8 @@ impl<T: OclNum> Buffer<T> {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
         core::enqueue_read_buffer(&self.command_queue_obj_core, &self.obj_core, block, 
-            0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            // 0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            0, vec, wait_list, dest_list)
     }
 
     /// Reads the remote device data buffer into `self.vec` and blocks until completed.
@@ -426,7 +428,8 @@ impl<T: OclNum> Buffer<T> {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
         core::enqueue_write_buffer(&self.command_queue_obj_core, &self.obj_core, block, 
-            0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            // 0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
+            0, vec, wait_list, dest_list)
     }
 
     /// Writes the contents of `self.vec` to the remote device data buffer and 
@@ -674,8 +677,9 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        unsafe { core::enqueue_read_buffer::<T, EventCore>(&self.command_queue_obj_core, &self.obj_core, true, 
-            idx_range.start, &mut vec[idx_range.clone()], None, None).unwrap() };
+        unsafe { core::enqueue_read_buffer::<T, EventList, EventList>(
+            &self.command_queue_obj_core, &self.obj_core, true, idx_range.start, 
+            &mut vec[idx_range.clone()], None, None).unwrap() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
 
     }
