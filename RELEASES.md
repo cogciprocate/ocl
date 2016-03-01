@@ -9,6 +9,7 @@ Breaking Changes
   permanently by calling `::set_queue` for either.
 * The order of arguments for the `Buffer::enqueue_***` methods has been
   slightly changed for consistency.
+* `Queue::new_by_device_index` has been depricated.
 
 
 New Features

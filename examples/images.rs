@@ -63,13 +63,13 @@ fn main() {
         img.save(&Path::new(BEFORE_IMAGE_FILE_NAME)).unwrap();
     }
 
-    let context = Context::builder().devices(DeviceSpecifier::Index(0)).build().unwrap();
+    let context = Context::builder().devices(DeviceSpecifier::First).build().unwrap();
     let device = context.devices()[0].clone();
     let queue = Queue::new(&context, Some(device.clone()));
 
     let program = Program::builder()
         .src(KERNEL_SRC)
-        .devices(vec![device.clone()])
+        .devices(&[device.clone()])
         .build(&context).unwrap();
 
     let sup_img_formats = Image::supported_formats(&context, ocl::MEM_READ_WRITE, 

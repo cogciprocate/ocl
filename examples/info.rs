@@ -58,14 +58,14 @@ fn main() {
 			let sampler = Sampler::with_defaults(&context).unwrap();
 	    	let program = Program::builder()
 	    		.src(SRC)
-	    		.devices(vec![device.clone()])
+	    		.devices(&[device.clone()])
 	    		.build(&context).unwrap();
 			let kernel = Kernel::new("multiply", &program, &queue, &dims).unwrap()
 			        .arg_buf(&buffer)
 			        .arg_scl(10.0f32);
 			let mut event_list = EventList::new();
 
-			kernel.enqueue_with(None, None, Some(&mut event_list)).unwrap();
+			kernel.enqueue_events(None, Some(&mut event_list)).unwrap();
 			let event = event_list.last_clone().unwrap();
 			event_list.wait();			
 

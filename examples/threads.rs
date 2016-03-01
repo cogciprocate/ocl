@@ -53,12 +53,18 @@ fn main() {
 
     		// Make a context to share around:
     		let context = Context::new_by_index_and_type(None, None).unwrap();
-    		let program = Program::builder().src(SRC).build(&context).unwrap();
+    		let program = Program::builder().src(SRC).device(&device)
+    			.build(&context).unwrap();
 
     		// Make a few different queues for the hell of it:
-	        let queueball = vec![Queue::new_by_device_index(&context, None),
-	        	Queue::new_by_device_index(&context, None), 
-	        	Queue::new_by_device_index(&context, None)];
+	        // let queueball = vec![Queue::new_by_device_index(&context, None),
+	        // 	Queue::new_by_device_index(&context, None), 
+	        // 	Queue::new_by_device_index(&context, None)];
+
+	        // Make a few different queues for the hell of it:
+	        let queueball = vec![Queue::new(&context, Some(&device)),
+	        	Queue::new(&context, Some(&device)), 
+	        	Queue::new(&context, Some(&device))];
 
 			printc!(dark_orange: "    Spawning threads... ");
 
@@ -94,7 +100,7 @@ fn main() {
 					let mut event_list = EventList::new();
 
 					// Change queues just for fun (yes, `enqueue_with` can do it too):
-					kernel.enqueue_with(None, None, Some(&mut event_list)).unwrap();
+					kernel.enqueue_events(None, Some(&mut event_list)).unwrap();
 					kernel.set_queue(&queueball_th[1]).enqueue();
 					kernel.set_queue(&queueball_th[2]).enqueue();
 

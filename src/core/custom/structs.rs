@@ -31,8 +31,9 @@ impl ContextProperties {
 	}
 
 	/// Pushes a `ContextProperty` onto this list of properties.
-	pub fn and(mut self, prop: ContextProperty) {
+	pub fn and(mut self, prop: ContextProperty) -> ContextProperties {
 		self.0.push(prop);
+		self
 	}
 
 	/// Returns a platform id or none.

@@ -187,8 +187,8 @@ impl Context {
 
         let properties = Some(ContextProperties::new().platform(platform.as_core().clone()));
         
-        let devices: Vec<Device> = 
-            Device::list_from_core(try!(core::get_device_ids(Some(platform.clone()), device_types_opt)));
+        let devices: Vec<Device> = Device::list_from_core(try!(core::get_device_ids(
+            &platform, device_types_opt, None)));
         if devices.len() == 0 { return OclError::err("\nNo OpenCL devices found!\n"); }
 
         // println!("# # # # # #  OCL::CONTEXT::NEW(): device list: {:?}", device_id_core_list);
@@ -206,31 +206,38 @@ impl Context {
         })
     }
 
-    /// Resolves the zero-based device index into a DeviceIdCore (pointer).
-    ///
-    /// [FIXME]: Figure out how to accept either vecs or slices
-    pub fn resolve_device_idxs(&self, device_idxs: &[usize]) -> Vec<Device> {
-        match device_idxs.len() {
-            0 => vec![self.devices[core::DEFAULT_DEVICE_IDX].clone()],
-            _ => self.valid_device_ids(&device_idxs),
-        }
+    /// Resolves the zero-based device index into a list of Devices.
+    pub fn resolve_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
+        // let selected_idxs = match device_idxs.len() {
+        //     0 => vec![0],
+        //     _ => Vec::from(device_idxs),
+        // };
+
+        // let mut valid_devices = Vec::with_capacity(selected_idxs.len());
+
+        // for selected_idx in selected_idxs {
+        //     let valid_idx = selected_idx % self.devices.len();
+        //     valid_devices.push(self.devices[valid_idx].clone());
+        // }
+
+        // valid_devices
+
+        Device::resolve_idxs_wrap(idxs, &self.devices)
     }
 
-    /// Returns a list of valid devices regardless of whether or not the indexes 
-    /// passed are valid by performing a modulo operation on them and letting them
-    /// wrap around (round robin).
-    ///
-    /// [FIXME]: Figure out how to accept either vecs or slices
-    pub fn valid_device_ids(&self, selected_idxs: &[usize]) -> Vec<Device> {
-        let mut valid_device_ids = Vec::with_capacity(selected_idxs.len());
+    // /// Returns a list of valid devices regardless of whether or not the indexes 
+    // /// passed are valid by performing a modulo operation on them and letting them
+    // /// wrap around (round robin).
+    // pub fn valid_devices(&self, selected_idxs: &[usize]) -> Vec<Device> {
+    //     let mut valid_devices = Vec::with_capacity(selected_idxs.len());
 
-        for selected_idx in selected_idxs {
-            let valid_idx = selected_idx % self.devices.len();
-            valid_device_ids.push(self.devices[valid_idx].clone());
-        }
+    //     for selected_idx in selected_idxs {
+    //         let valid_idx = selected_idx % self.devices.len();
+    //         valid_devices.push(self.devices[valid_idx].clone());
+    //     }
 
-        valid_device_ids
-    }
+    //     valid_devices
+    // }
 
     /// Returns a device by its ordinal count within this context.
     ///

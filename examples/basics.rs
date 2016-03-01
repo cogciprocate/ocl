@@ -25,21 +25,24 @@ static KERNEL_SRC: &'static str = r#"
 
 fn main() {
     // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
-    let ocl_pq = ProQue::builder().src(KERNEL_SRC).build().expect("Build ProQue");
+    let ocl_pq = ProQue::builder()
+        .src(KERNEL_SRC)
+        .dims([DATA_SET_SIZE])
+        .build().expect("Build ProQue");
 
     // Set up our work dimensions / data set size with an array or tuple:
-    let dims = [DATA_SET_SIZE];
+    // let dims = [DATA_SET_SIZE];
 
     // Create a 'Buffer' (a device buffer + a local vector) as a data source
     // and initialize it with random floats between 0.0 and 20.0:
     let source_buffer: Buffer<f32> = 
-        Buffer::with_vec_scrambled((0.0, 20.0), &dims, &ocl_pq.queue());
+        Buffer::with_vec_scrambled((0.0, 20.0), ocl_pq.dims(), &ocl_pq.queue());
 
-    // Create another empty buffer for results:
-    let mut result_buffer: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
+    // Create another empty buffer for results (using ocl_pq for fun):
+    let mut result_buffer: Buffer<f32> = ocl_pq.create_buffer(true);
 
     // Create a kernel with three arguments corresponding to those in the kernel:
-    let kern = ocl_pq.create_kernel_with_dims("multiply_by_scalar", dims.clone())
+    let kern = ocl_pq.create_kernel("multiply_by_scalar")
         .arg_scl(COEFF)
         .arg_buf(&source_buffer)
         .arg_buf(&mut result_buffer);

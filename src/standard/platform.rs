@@ -13,21 +13,31 @@ use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult,
 pub struct Platform(PlatformIdCore);
 
 impl Platform {
-    /// Creates a new `Platform` from a `PlatformIdCore`.
-    ///
-    /// ## Safety 
-    ///
-    /// Not meant to be called unless you know what you're doing.
-    pub fn new(id_core: PlatformIdCore) -> Platform {
-        Platform(id_core)
-    }
-
     /// Returns a list of all platforms avaliable on the host machine.
     pub fn list() -> Vec<Platform> {
         let list_core = core::get_platform_ids()
             .expect("Platform::list: Error retrieving platform list");
 
         list_core.into_iter().map(|pr| Platform::new(pr) ).collect()
+    }
+
+    /// Returns the first available platform on the host machine.
+    pub fn first() -> Platform {
+        let list_core = core::get_platform_ids()
+            .expect("Platform::default: Error retrieving platform");
+
+        Platform::new(list_core[0].clone())
+    }
+
+    /// Creates a new `Platform` from a `PlatformIdCore`.
+    ///
+    /// ## Safety 
+    ///
+    /// Not meant to be called unless you know what you're doing.
+    ///
+    /// Use list to get a list of platforms.
+    pub fn new(id_core: PlatformIdCore) -> Platform {
+        Platform(id_core)
     }
 
     /// Returns a list of `Platform`s from a list of `PlatformIdCore`s
@@ -136,6 +146,12 @@ impl Into<PlatformIdCore> for Platform {
 impl std::fmt::Display for Platform {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_info(f)
+    }
+}
+
+impl AsRef<Platform> for Platform {
+    fn as_ref(&self) -> &Platform {
+        self
     }
 }
 

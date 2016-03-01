@@ -59,7 +59,7 @@ impl ContextBuilder {
 	///
 	/// ## Panics
 	///
-	/// Panics if it has already been specified.
+	/// Panics if either platform or properties has already been specified.
 	///
 	pub fn platform<'a>(&'a mut self, platform: Platform) -> &'a mut ContextBuilder {
 		assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
@@ -72,7 +72,7 @@ impl ContextBuilder {
 	///
 	/// ## Panics
 	///
-	/// Panics if properties have already been specified.
+	/// Panics if either properties or platform has already been specified.
 	///
 	pub fn properties<'a>(&'a mut self, properties: ContextProperties) -> &'a mut ContextBuilder {
 		assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");

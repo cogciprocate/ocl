@@ -43,12 +43,12 @@ to your project's `Cargo.toml`.
 From 'examples/trivial.rs':
 ```rust
 extern crate ocl;
-use ocl::{ProQue, Buffer};
+use ocl::ProQue;
 
 fn main() {
     let src = r#"
-        __kernel void multiply(__global float* buffer, float coeff) {
-            buffer[get_global_id(0)] *= coeff;
+        __kernel void add(__global float* buffer, float addend) {
+            buffer[get_global_id(0)] += addend;
         }
     "#;
 
@@ -57,22 +57,23 @@ fn main() {
         .dims([500000])
         .build().unwrap();   
 
-    let mut buffer: Buffer<f32> = Buffer::with_vec_scrambled(
-         (0.1, 1.0), &pro_que.dims(), &pro_que.queue());
+    let mut buffer = pro_que.create_buffer::<f32>(true);
 
-    let kernel = pro_que.create_kernel("multiply")
+    let kernel = pro_que.create_kernel("add")
         .arg_buf(&buffer)
         .arg_scl(100.0f32);
 
     kernel.enqueue();
     buffer.fill_vec();
 
-    println!("The buffer element at [{}] is '{}'", 200007, buffer[200007]);
+    println!("The buffer element at [{}] is '{}'", 200057, buffer[200057]);
 }
+
+////////// See the original file for more //////////
 ```
 
-See the bottom of [`examples/trivial.rs`] for some explanation. Also see the
-other [`examples`] for much more.
+See the the remainder of [`examples/trivial.rs`] for much more information and
+explanation.
 
 
 #### Diving Deeper
@@ -131,6 +132,6 @@ by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Gro
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [`examples`]: https://github.com/cogciprocate/ocl/tree/master/examples
-[`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/trivial.rs#L37
+[`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/trivial.rs#L27
 [glium]: https://github.com/tomaka/glium
 [vulkano]: https://github.com/tomaka/vulkano/tree/master/vulkano

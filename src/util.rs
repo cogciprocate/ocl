@@ -9,6 +9,7 @@ use std::ops::Range;
 use std::mem;
 use std::ptr;
 use std::iter;
+use num::Integer;
 use error::{Result as OclResult, Error as OclError};
 
 use super::OclNum;
@@ -328,6 +329,10 @@ pub fn vec_remove_rebuild<T: Clone>(orig_vec: &mut Vec<T>, remove_list: &[usize]
     Ok(())
 }
 
+/// Wraps (`%`) each value in the list `vals` if it equals or exceeds `val_n`.
+pub fn wrap_vals<T: OclNum + Integer>(vals: &[T], val_n: T) -> Vec<T> {
+    vals.iter().map(|&v| v % val_n).collect()
+}
 
 
 //=============================================================================

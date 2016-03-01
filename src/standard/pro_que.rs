@@ -2,8 +2,8 @@
 
 use std::convert::Into;
 use std::ops::Deref;
-use core;
-use standard::{Context, Kernel, ProgramBuilder, ProQueBuilder, Program, Queue, 
+use core::{self, OclNum};
+use standard::{Context, ProgramBuilder, ProQueBuilder, Program, Queue, Kernel, Buffer,
     BufferDims, SimpleDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
 
@@ -34,7 +34,7 @@ static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions sp
 ///
 #[derive(Clone, Debug)]
 pub struct ProQue {
-    context: Option<Context>,
+    context: Context,
     queue: Queue,
     program: Option<Program>,
     dims: Option<SimpleDims>,
@@ -44,36 +44,41 @@ impl ProQue {
     /// Returns a new `ProQueBuilder`.
     ///
     /// Calling `ProQueBuilder::build()` will return a new `ProQue`.
-    pub fn builder<'c>() -> ProQueBuilder<'c> {
+    pub fn builder() -> ProQueBuilder {
         ProQueBuilder::new()
     }
 
-    /// Creates a new queue on the device with `device_idx` (see 
-    /// [`Queue`](http://docs.cogciprocate.com/ocl/struct.Queue.html) 
-    /// documentation) and returns a new Program/Queue hybrid.
-    ///
-    /// `::build_program` must be called before this ProQue can be used.
-    ///
-    /// [FIXME]: Elaborate upon the following:
-    ///
-    /// - device_idx wraps around (round robins)
-    /// - one device only per ProQue
-    /// - when is built-in Context used / destroyed
-    ///
-    /// [UNSTABLE]: Prefer using `ProQueBuilder`.
-    pub fn new(context: &Context, device_idx: Option<usize>) -> ProQue {
-        let queue = Queue::new_by_device_index(context, device_idx);
+    // / Creates a new queue on the device with `device_idx` (see 
+    // / [`Queue`](http://docs.cogciprocate.com/ocl/struct.Queue.html) 
+    // / documentation) and returns a new Program/Queue hybrid.
+    // /
+    // / `::build_program` must be called before this ProQue can be used.
+    // /
+    // / [FIXME]: Elaborate upon the following:
+    // /
+    // / - device_idx wraps around (round robins)
+    // / - one device only per ProQue
+    // / - when is built-in Context used / destroyed
+    // /
+    // / [UNSTABLE]: Prefer using `ProQueBuilder`.
+    // pub fn new(context: Context, device_idx: Option<usize>) -> ProQue {
+    //     let queue = Queue::new_by_device_index(context, device_idx);
 
-        ProQue {
-            queue: queue,
-            program: None,
-            context: None,
-            dims: None,
-        }
-    }
+    //     ProQue {
+    //         context: context,
+    //         queue: queue,
+    //         program: None,
+    //         dims: None,
+    //     }
+    // }
 
     /// Creates a new ProQue from individual parts.
-    pub fn from_parts<D: Into<SimpleDims>>(context: Option<Context>, queue: Queue, program: Option<Program>, 
+    ///
+    /// Use builder unless you know what you're doing. Creating parts which are
+    /// from different devices or contexts will cause errors later on.
+    ///
+    /// [FIXME] TODO: DEPRICATE BUILDING THROUGH PROQUE.
+    pub fn new<D: Into<SimpleDims>>(context: Context, queue: Queue, program: Option<Program>, 
                     dims: Option<D>) -> ProQue {
         ProQue {
             context: context,
@@ -167,6 +172,29 @@ impl ProQue {
         Kernel::new(name.to_string(), &program, &self.queue, gws.into()).unwrap()
     }
 
+    /// Returns a new buffer
+    ///
+    /// `with_vec` determines whether or not the buffer is created with a
+    /// built-in vector.
+    ///
+    /// The default dimensions for this `ProQue` will be used.
+    ///
+    /// # Panics
+    ///
+    /// This `ProQue` must have been pre-configured with default dimensions
+    // to use this method. Otherwise, use Buffer::new(), etc.
+    ///
+    pub fn create_buffer<T: OclNum>(&self, with_vec: bool) -> Buffer<T>
+    {
+        let dims = self.dims_result().expect("ocl::ProQue::create_buffer");
+
+        if with_vec {
+            Buffer::with_vec(&dims, &self.queue)
+        } else {
+            Buffer::new(&dims, &self.queue)
+        }
+    }
+
     pub fn set_dims<S: Into<SimpleDims>>(&mut self, dims: S) {
         self.dims = Some(dims.into());
     }
@@ -183,8 +211,8 @@ impl ProQue {
     }
 
     /// Returns the contained context, if any.
-    pub fn context(&self) -> Option<&Context> {
-        self.context.as_ref()
+    pub fn context(&self) -> &Context {
+        &self.context
     }
 
     /// Returns the current program build, if any.

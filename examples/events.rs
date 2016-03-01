@@ -7,7 +7,7 @@ extern crate libc;
 extern crate ocl;
 
 use libc::c_void;
-use ocl::{Context, ProQue, ProgramBuilder, Buffer, EventList};
+use ocl::{ProQue, ProgramBuilder, Buffer, EventList};
 use ocl::cl_h::{cl_event, cl_int};
 
 // How many iterations we wish to run:
@@ -26,11 +26,10 @@ struct TestEventsStuff {
 }
 
 fn main() {
-    // Create a context & program/queue: 
-    let mut ocl_pq = ProQue::new(&Context::new_by_index_and_type(None, None).unwrap(), None);
-
-    // Build program:
-    ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();
+    // Create a context, program, & queue: 
+    let ocl_pq = ProQue::builder()
+        .program_builder(ProgramBuilder::with_opts(vec![], &["cl/kernel_file.cl"]))
+        .build().unwrap();
 
     // Set up data set size and work dimensions:
     let dims = [900000];
@@ -77,7 +76,7 @@ fn main() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.enqueue_with(None, None, Some(&mut kernel_event)).unwrap();
+        kernel.enqueue_events(None, Some(&mut kernel_event)).unwrap();
 
         let mut read_event = EventList::new();
         

@@ -11,7 +11,7 @@ pub mod timed_stuff;
 
 use libc::c_void;
 use cl_h::{cl_event, cl_int};
-use super::{Context, ProgramBuilder, Buffer, SimpleDims, ProQue, EventList};
+use super::{ProgramBuilder, Buffer, SimpleDims, ProQue, EventList};
 
 
 const PRINT_DEBUG: bool = false;
@@ -63,11 +63,16 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 
 #[test]
 fn test_events() {
-    // Create a context & program/queue: 
-    let mut ocl_pq = ProQue::new(&Context::new_by_index_and_type(None, None).unwrap(), None);
+    // Create a context, program, & queue:
+    // let mut pb = ProgramBuilder::new();
+    // pb.src_file("cl/kernel_file.cl");
+    // let mut ocl_pq = ProQue::builder().program_builder(pb).build().unwrap();
+    let ocl_pq = ProQue::builder()
+        .program_builder(ProgramBuilder::with_opts(vec![], &["cl/kernel_file.cl"]))
+        .build().unwrap();
 
     // Build program:
-    ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();
+    // ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();
 
     // Set up data set size and work dimensions:
     let data_set_size = 900000;
@@ -119,7 +124,7 @@ fn test_events() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.enqueue_with(None, None, Some(&mut kernel_event)).unwrap();
+        kernel.enqueue_events(None, Some(&mut kernel_event)).unwrap();
 
         let mut read_event = EventList::new();
         

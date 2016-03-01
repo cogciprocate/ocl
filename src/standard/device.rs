@@ -4,10 +4,10 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::convert::Into;
-// use error::Result as OclResult;
+use error::{Error as OclError, Result as OclResult};
 use standard::{Platform};
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
-// use util;
+use util;
 
 
 /// A device identifier.
@@ -15,13 +15,36 @@ use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoRes
 pub struct Device(DeviceIdCore);
 
 impl Device {
-    /// Creates a new `Device` from a `DeviceIdCore`.
+    /// Resolves a list of indexes into a list of valid devices.
     ///
-    /// ## Safety 
+    /// `devices` is the set of all indexable devices.
     ///
-    /// Not meant to be called unless you know what you're doing.
-    pub fn new(id_core: DeviceIdCore) -> Device {
-        Device(id_core)
+    /// # Errors
+    ///
+    /// All indices in `idxs` must be valid.
+    ///
+    pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclResult<Vec<Device>> {
+        // idxs.iter().map(|&idx| devices.get(idx).clone()).collect()
+        let mut result = Vec::with_capacity(idxs.len());
+        for &idx in idxs.iter() {
+            match devices.get(idx) {
+                Some(device) => result.push(device.clone()),
+                None => return OclError::err(format!("Error resolving device index: '{}'. Index out of \
+                    range. Devices avaliable: '{}'.", idx, devices.len())),
+            }
+        }
+        Ok(result)
+    }
+
+    /// Resolves a list of indexes into a list of valid devices.
+    ///
+    /// `devices` is the set of all indexable devices.
+    ///
+    /// Wraps indexes around (`%`) so that every index is valid.
+    ///
+    pub fn resolve_idxs_wrap(idxs: &[usize], devices: &[Device]) -> Vec<Device> {
+        let valid_idxs = util::wrap_vals(idxs, devices.len());
+        valid_idxs.iter().map(|&idx| devices[idx].clone()).collect()
     }
 
     /// Returns a list of all devices avaliable for a given platform which
@@ -29,26 +52,65 @@ impl Device {
     ///
     /// Setting `device_types` to `None` will return a list of all avaliable
     /// devices for `platform`
-    pub fn list(platform: Platform, device_types: Option<DeviceType>) -> Vec<Device> {
-        let list_core = core::get_device_ids(Some(platform.as_core().clone()), device_types)
+    pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> Vec<Device> {
+        let list_core = core::get_device_ids(platform.as_core(), device_types, None)
             .expect("Device::list: Error retrieving device list");
-
-        list_core.into_iter().map(|pr| Device::new(pr) ).collect()
+        list_core.into_iter().map(|pr| Device(pr) ).collect()
     }
 
     /// Returns a list of all devices avaliable for a given `platform`.
     ///
     /// Equivalent to `::list(platform, None)`.
     pub fn list_all(platform: &Platform) -> Vec<Device> {
-        let list_core = core::get_device_ids(Some(platform.as_core().clone()), None)
-            .expect("Device::list_all: Error retrieving device list");
-
-        list_core.into_iter().map(|pr| Device::new(pr) ).collect()
+        // let list_core = core::get_device_ids(Some(platform.as_core().clone()), None)
+        //     .expect("Device::list_all: Error retrieving device list");        
+        // list_core.into_iter().map(|pr| Device(pr) ).collect()
+        Self::list(platform, None)
     }
+
+    /// Returns a list of devices filtered by type then selected using a
+    /// list of indexes.
+    ///
+    /// # Errors
+    ///
+    /// All indices in `idxs` must be valid.
+    ///
+    pub fn list_select(platform: &Platform, device_types: Option<DeviceType>,
+            idxs: &[usize]) -> OclResult<Vec<Device>>
+    {
+        Self::resolve_idxs(idxs, &Self::list(platform, device_types))
+    }
+
+    /// Returns a list of devices filtered by type then selected using a
+    /// wrapping list of indexes.
+    ///
+    /// Wraps indexes around (`%`) so that every index is valid.
+    ///
+    pub fn list_select_wrap(platform: &Platform, device_types: Option<DeviceType>,
+            idxs: &[usize]) -> Vec<Device> 
+    {
+        Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types))
+    }
+
+    /// Returns the first available device on a platform
+    pub fn first(platform: &Platform) -> Device {
+        let first_core = core::get_device_ids(platform, None, None)
+            .expect("ocl::Device::first: Error retrieving device list");
+        Device(first_core[0].clone())
+    }
+
+    // /// Creates a new `Device` from a `DeviceIdCore`.
+    // ///
+    // /// ## Safety 
+    // ///
+    // /// Not meant to be called unless you know what you're doing.
+    // pub fn new(id_core: DeviceIdCore) -> Device {
+    //     Device(id_core)
+    // }
 
     /// Returns a list of `Device`s from a list of `DeviceIdCore`s
     pub fn list_from_core(devices: Vec<DeviceIdCore>) -> Vec<Device> {
-        devices.into_iter().map(|p| Device::new(p)).collect()
+        devices.into_iter().map(|p| Device(p)).collect()
     }
 
     /// Returns the device name.
@@ -184,6 +246,12 @@ impl Into<DeviceIdCore> for Device {
 impl std::fmt::Display for Device {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_info(f)
+    }
+}
+
+impl AsRef<Device> for Device {
+    fn as_ref(&self) -> &Device {
+        self
     }
 }
 

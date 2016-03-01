@@ -217,7 +217,7 @@ impl<T: OclNum> Buffer<T> {
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
         let obj_core = core::create_buffer::<T>(queue.context_core_as_ref(),
             core::MEM_READ_WRITE, len, None)
-            .expect("[FIXME: TEMPORARY]: Buffer::_new():");
+            .expect("Buffer::_new()");
 
         Buffer {            
             obj_core: obj_core,
@@ -232,7 +232,7 @@ impl<T: OclNum> Buffer<T> {
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
         let obj_core = core::create_buffer(queue.context_core_as_ref(), 
             core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec))
-            .expect("[FIXME: TEMPORARY]: Buffer::_with_vec():");
+            .expect("Buffer::_with_vec()");
 
         Buffer {        
             obj_core: obj_core,

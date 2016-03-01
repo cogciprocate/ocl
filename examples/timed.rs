@@ -139,7 +139,7 @@ fn main() {
 
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
-        kern.enqueue_with(None, Some(&buf_events), Some(&mut kern_events)).unwrap();
+        kern.enqueue_events(Some(&buf_events), Some(&mut kern_events)).unwrap();
         unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), 
             Some(&mut buf_events)).unwrap(); }
     }
@@ -167,7 +167,7 @@ fn main() {
     // let mut buf_events = EventList::new();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
-        kern.enqueue_with(None, None, Some(&mut kern_events)).unwrap();
+        kern.enqueue_events(None, Some(&mut kern_events)).unwrap();
         unsafe { buffer_result.enqueue_fill_vec(false, None, Some(&mut buf_events)).unwrap(); }
     }
 

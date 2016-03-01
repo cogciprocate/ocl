@@ -20,20 +20,24 @@ fn main() {
 	let dims = [1000, 100, 10];
 
 	let context = Context::new_by_index_and_type(None, None).unwrap();
-	let queue = Queue::new_by_device_index(&context, None);
-	let buffer = Buffer::<f32>::new(&dims, &queue);
+	let device = context.get_device_by_index(0);
+	// let queue = Queue::new_by_device_index(&context, None);
+	let program = Program::builder()
+		.device(&device)
+		.src(SRC)
+		.build(&context).unwrap();
+    let queue = Queue::new(&context, Some(device.clone()));
+    let buffer = Buffer::<f32>::new(&dims, &queue);
 	let image = Image::builder()
 		.dims(&dims)
 		.build(&queue).unwrap();
 	let sampler = Sampler::with_defaults(&context).unwrap();
-	let program = Program::builder().src(SRC).build(&context).unwrap();
-	let device = program.devices()[0].clone();
-	let kernel = Kernel::new("multiply", &program, &queue, dims.clone()).unwrap()
+		let kernel = Kernel::new("multiply", &program, &queue, dims.clone()).unwrap()
         .arg_scl(10.0f32)
         .arg_buf(&buffer);
     let mut event_list = EventList::new();
 
-    kernel.enqueue_with(None, None, Some(&mut event_list)).unwrap();
+    kernel.enqueue_events(None, Some(&mut event_list)).unwrap();
     let event = event_list.last_clone().unwrap();
     event_list.wait();
 

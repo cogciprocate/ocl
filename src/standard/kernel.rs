@@ -26,7 +26,6 @@ use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, S
 pub struct Kernel {
     obj_core: KernelCore,
     name: String,
-    // arg_index: u32,
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
     command_queue_obj_core: CommandQueueCore,
@@ -47,7 +46,6 @@ impl Kernel {
         Ok(Kernel {
             obj_core: obj_core,
             name: name,
-            // arg_index: 0,
             named_args: HashMap::with_capacity(5),
             arg_count: 0,
             command_queue_obj_core: queue.core_as_ref().clone(),
@@ -201,6 +199,17 @@ impl Kernel {
         }
     }
 
+    // pub fn enqueue_ndrange(&self, queue: Option<&Queue>, ) {
+    //     let command_queue = match queue {
+    //         Some(q) => q.core_as_ref(),
+    //         None => &self.command_queue_obj_core,
+    //     };        
+
+    //     core::enqueue_kernel(command_queue, &self.obj_core, self.gws.dim_count(), 
+    //         self.gwo.to_work_offset(), self.gws.to_work_size().unwrap(), self.lws.to_work_size(), 
+    //         wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
+    // }
+
     /// Enqueues kernel on the default command queue.
     ///
     /// Specify `queue` to use a non-default queue.
@@ -212,15 +221,10 @@ impl Kernel {
     /// with the completion of this kernel task.
     ///
     #[inline]
-    pub fn enqueue_with(&self, queue: Option<&Queue>, wait_list: Option<&EventList>, 
+    pub fn enqueue_events(&self, wait_list: Option<&EventList>, 
                     dest_list: Option<&mut EventList>) -> OclResult<()>
     {
-        let command_queue = match queue {
-            Some(q) => q.core_as_ref(),
-            None => &self.command_queue_obj_core,
-        };
-
-        core::enqueue_kernel(command_queue, &self.obj_core, self.gws.dim_count(), 
+        core::enqueue_kernel(&self.command_queue_obj_core, &self.obj_core, self.gws.dim_count(), 
             self.gwo.to_work_offset(), self.gws.to_work_size().unwrap(), self.lws.to_work_size(), 
             wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
     }
@@ -231,7 +235,7 @@ impl Kernel {
     ///
     #[inline]
     pub fn enqueue(&self) {
-        self.enqueue_with(None, None, None).expect("ocl::Kernel::enqueue");
+        self.enqueue_events(None, None).expect("ocl::Kernel::enqueue");
     }
 
     /// Changes the default queue used when none is passed to `::enqueue_with`

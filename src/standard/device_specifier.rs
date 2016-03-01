@@ -1,6 +1,6 @@
 // use std::convert::Into;
 use error::{Result as OclResult};
-use core::{self, DeviceType};
+use core::DeviceType;
 use standard::{Device, Platform};
 
 /// Specifies [what boils down to] a list of devices.
@@ -23,10 +23,11 @@ use standard::{Device, Platform};
 #[derive(Debug, Clone)]
 pub enum DeviceSpecifier {
     All,
-    Index(usize),
-    Indices(Vec<usize>),
+    First,
     Single(Device),
     List(Vec<Device>),
+    Indices(Vec<usize>),
+    WrappingIndices(Vec<usize>),
     TypeFlags(DeviceType),
 }
 
@@ -39,41 +40,52 @@ impl DeviceSpecifier {
     ///
     /// TODO: Swap some of the `try!`s for `.map`s.
     pub fn to_device_list(&self, platform: Option<Platform>) -> OclResult<Vec<Device>> {
-        let platform_id_core = match platform {
-            Some(plat) => Some(plat.as_core().clone()),
-            None => None,
+        let platform = match platform {
+            Some(p) => p.clone(),
+            None => Platform::first(),
         };
-
-        let device_list_all = Device::list_from_core(
-            try!(core::get_device_ids(platform_id_core.clone(), Some(core::DEVICE_TYPE_ALL)))
-        );
 
         Ok(match self {
             &DeviceSpecifier::All => {
-                device_list_all
+                Device::list_all(&platform)
+            },
+            &DeviceSpecifier::First => {
+                try!(Device::list_select(&platform, None, &vec![0]))
             },
             &DeviceSpecifier::Single(ref device) => {
                 vec![device.clone()]
             },
             &DeviceSpecifier::List(ref devices) => {
-                devices.iter().map(|d| d.clone()).collect() 
+                // devices.iter().map(|d| d.clone()).collect() 
+                devices.clone()
             },
-            &DeviceSpecifier::Index(idx) => {
-                assert!(idx < device_list_all.len(), "ocl::Context::new: DeviceSpecifier::Index: \
-                    Device index out of range.");
-                vec![device_list_all[idx].clone()]
-            },
+            // &DeviceSpecifier::Index(idx) => {
+            //     assert!(idx < device_list_all.len(), "ocl::Context::new: DeviceSpecifier::Index: \
+            //         Device index out of range.");
+            //     vec![device_list_all[idx].clone()]
+            // },
             &DeviceSpecifier::Indices(ref idx_list) => {
-                idx_list.iter().map(|&idx| {
-                        assert!(idx < device_list_all.len(), "ocl::Context::new: \
-                            DeviceSpecifier::Indices: Device index out of range.");
-                        device_list_all[idx].clone()
-                    } ).collect()
+                // idx_list.iter().map(|&idx| {
+                //         assert!(idx < device_list_all.len(), "ocl::Context::new: \
+                //             DeviceSpecifier::Indices: Device index out of range.");
+                //         device_list_all[idx].clone()
+                //     } ).collect()
+
+                try!(Device::list_select(&platform, None, idx_list))
+            },
+            &DeviceSpecifier::WrappingIndices(ref idx_list) => {
+                // idx_list.iter().map(|&idx| {
+                //         assert!(idx < device_list_all.len(), "ocl::Context::new: \
+                //             DeviceSpecifier::Indices: Device index out of range.");
+                //         device_list_all[idx].clone()
+                //     } ).collect()
+                Device::list_select_wrap(&platform, None, idx_list)
             },
             &DeviceSpecifier::TypeFlags(flags) => {
-                Device::list_from_core(try!(
-                    core::get_device_ids(platform_id_core.clone(), Some(flags))
-                ))
+                // Device::list_from_core(try!(
+                //     core::get_device_ids(platform_id_core.clone(), Some(flags))
+                // ))
+                Device::list(&platform, Some(flags))
             },
         })
     }

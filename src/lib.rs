@@ -2,7 +2,7 @@
 //!
 //! Rust implementation of OpenCL&trade;.
 //!
-//! This documentation is generally built from the [`dev` branch](https://github.com/cogciprocate/ocl/tree/dev) and may be newer than what is on crates.io and the master branch. 
+//! This documentation is sometimes built from the [`dev` branch](https://github.com/cogciprocate/ocl/tree/dev) and may occasionally differ slightly from what is on crates.io and the master branch. 
 //!
 //! Documentation is very much a work in progress, as is the library itself. Please help by filing an [issue](https://github.com/cogciprocate/ocl/issues) about unclear and/or incomplete documentation and it will be addressed.
 //!
@@ -51,7 +51,7 @@ mod error;
 pub mod core;
 pub mod cl_h;
 
-pub use core::{OclNum, ImageFormat, ImageDescriptor, ImageChannelOrder, ImageChannelDataType, MemFlags, MemObjectType, MEM_READ_WRITE, MEM_WRITE_ONLY, MEM_READ_ONLY, MEM_USE_HOST_PTR, MEM_ALLOC_HOST_PTR, MEM_COPY_HOST_PTR, MEM_HOST_WRITE_ONLY, MEM_HOST_READ_ONLY, MEM_HOST_NO_ACCESS, PlatformInfo, DeviceInfo, ContextInfo, ProgramInfo, CommandQueueInfo, KernelInfo, MemInfo, ImageInfo, EventInfo, FilterMode, AddressingMode};
+pub use core::{OclNum, ImageFormat, ImageDescriptor, ImageChannelOrder, ImageChannelDataType, MemFlags, MemObjectType, MEM_READ_WRITE, MEM_WRITE_ONLY, MEM_READ_ONLY, MEM_USE_HOST_PTR, MEM_ALLOC_HOST_PTR, MEM_COPY_HOST_PTR, MEM_HOST_WRITE_ONLY, MEM_HOST_READ_ONLY, MEM_HOST_NO_ACCESS, PlatformInfo, DeviceInfo, ContextInfo, ProgramInfo, CommandQueueInfo, KernelInfo, MemInfo, ImageInfo, EventInfo, FilterMode, AddressingMode, ContextProperties};
 #[cfg(not(release))] pub use standard::BufferTest;
 pub use standard::{Platform, Device, ContextBuilder, Context, BuildOpt, ProgramBuilder, Program, Queue, Kernel, Buffer, Image, ImageBuilder, ProQueBuilder, ProQue, SimpleDims, WorkDims, BufferDims, Event, EventList, DeviceSpecifier, Sampler};
 pub use self::error::{Error, Result};

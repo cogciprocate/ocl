@@ -78,6 +78,19 @@ impl ProgramBuilder {
         }
     }
 
+    pub fn with_opts<S: Into<String> + Clone>(options: Vec<BuildOpt>, src_file_names: &[S]
+            ) -> ProgramBuilder 
+    {
+        let src_file_names: Vec<String> = src_file_names.iter().map(|s| s.clone().into()).collect();
+
+        ProgramBuilder {
+            options: options,
+            src_file_names: src_file_names,
+            device_idxs: Vec::with_capacity(8),
+            devices: Vec::with_capacity(8),
+        }
+    }
+
     /// Returns a newly built Program.
     ///
     /// TODO: If the context is associated with more than one device,
@@ -88,6 +101,10 @@ impl ProgramBuilder {
     pub fn build(&self, context: &Context) -> OclResult<Program> {
         let mut device_list: Vec<Device> = self.devices.iter().map(|d| d.clone()).collect();
         device_list.extend_from_slice(&context.resolve_device_idxs(&self.device_idxs));
+
+        if device_list.len() == 0 {
+            return OclError::err("ocl::ProgramBuilder::build: No devices found.");
+        }
 
         Program::from_parts(
             try!(self.get_src_strings().map_err(|e| e.to_string())), 
@@ -143,15 +160,22 @@ impl ProgramBuilder {
     /// ```
     /// Out of range device indexes will simply round-robin around to 0 and
     /// count up again (modulo).
-    pub fn device_idxs<'p>(&'p mut self, device_idxs: Vec<usize>) -> &'p mut ProgramBuilder {
+    pub fn device_idxs<'p>(&'p mut self, device_idxs: &[usize]) -> &'p mut ProgramBuilder {
         self.device_idxs.extend_from_slice(&device_idxs);
         self
     }
 
     /// Specify a list of devices to build this program on. The devices must be 
     /// associated with the context passed to `::build` later on.
-    pub fn devices<'p>(&'p mut self, devices: Vec<Device>) -> &'p mut ProgramBuilder {
-        self.devices.extend_from_slice(&devices);
+    pub fn devices<'p, D: AsRef<[Device]>>(&'p mut self, devices: D) -> &'p mut ProgramBuilder {
+        self.devices.extend_from_slice(devices.as_ref());
+        self
+    }
+
+    /// Specify a list of devices to build this program on. The devices must be 
+    /// associated with the context passed to `::build` later on.
+    pub fn device<'p, D: AsRef<Device>>(&'p mut self, device: D) -> &'p mut ProgramBuilder {
+        self.devices.push(device.as_ref().clone());
         self
     }
 

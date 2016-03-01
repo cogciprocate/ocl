@@ -27,7 +27,7 @@ impl Queue {
     /// associated with `context`.
     ///
     /// [FIXME]: Return result.
-    pub fn new(context: &Context, device: Option<Device>) -> Queue {
+    pub fn new<D: AsRef<Device>>(context: &Context, device: Option<D>) -> Queue {
         // let device_idxs = match device_idx {
         //     Some(idx) => vec![idx],
         //     None => Vec::with_capacity(0),
@@ -38,7 +38,7 @@ impl Queue {
         // let device_id_core = device_ids_core[0].clone();
 
         let device = match device {
-            Some(d) => d.clone(),
+            Some(d) => d.as_ref().clone(),
             None => context.get_device_by_index(0).clone(),
         };
 
@@ -53,34 +53,36 @@ impl Queue {
     }
 
 
-    /// Returns a new Queue on the device specified by `device_idx`. 
-    ///
-    /// 'device_idx` refers to a index in the list of devices generated when creating
-    /// `context`. For a list of these devices, call `context.device_ids()`. If 
-    /// `device_idx` is out of range, it will automatically 'wrap around' via a 
-    /// modulo operation and therefore is valid up to the limit of `usize`. See
-    /// the documentation for `Context` for more information.
-    /// 
-    /// [FIXME]: Return result.
-    pub fn new_by_device_index(context: &Context, device_idx: Option<usize>) -> Queue {
-        let device_idxs = match device_idx {
-            Some(idx) => vec![idx],
-            None => Vec::with_capacity(0),
-        };
+    // /// Returns a new Queue on the device specified by `device_idx`. 
+    // ///
+    // /// 'device_idx` refers to a index in the list of devices generated when creating
+    // /// `context`. For a list of these devices, call `context.device_ids()`. If 
+    // /// `device_idx` is out of range, it will automatically 'wrap around' via a 
+    // /// modulo operation and therefore is valid up to the limit of `usize`. See
+    // /// the documentation for `Context` for more information.
+    // /// 
+    // /// [FIXME]: Return result.
+    // pub fn new_by_device_index(context: &Context, device_idx: Option<usize>) -> Queue {
+    //     let device_idxs = match device_idx {
+    //         Some(idx) => vec![idx],
+    //         None => Vec::with_capacity(0),
+    //     };
 
-        let devices = context.resolve_device_idxs(&device_idxs);
-        assert!(devices.len() == 1, "Queue::new_by_device_index: Error resolving device ids.");
-        let device = devices[0].clone();
 
-        let obj_core = core::create_command_queue(context, &device)
-            .expect("[FIXME: TEMPORARY]: Queue::new_by_device_index():"); 
+    //     let devices = context.resolve_device_idxs(&device_idxs);
+    //     println!("QUEUE DEVICES: {:?}", devices);
+    //     assert!(devices.len() == 1, "Queue::new_by_device_index: Error resolving device ids.");
+    //     let device = devices[0].clone();
 
-        Queue {
-            obj_core: obj_core,
-            context_obj_core: context.core_as_ref().clone(),
-            device: device, 
-        }
-    }  
+    //     let obj_core = core::create_command_queue(context, &device)
+    //         .expect("[FIXME: TEMPORARY]: Queue::new_by_device_index():"); 
+
+    //     Queue {
+    //         obj_core: obj_core,
+    //         context_obj_core: context.core_as_ref().clone(),
+    //         device: device, 
+    //     }
+    // }  
 
 
     /// Blocks until all commands in this queue have completed.
