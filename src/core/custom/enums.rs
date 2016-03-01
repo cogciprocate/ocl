@@ -36,7 +36,7 @@ use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
-use core::{OclNum, PlatformId, PlatformInfo, DeviceId, ContextInfo, Context, Mem, Sampler, CommandQueueProperties};
+use core::{OclNum, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo, Context, Mem, Sampler, CommandQueueProperties};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -150,7 +150,8 @@ pub enum PlatformInfoResult {
 
 impl PlatformInfoResult {
     pub fn from_bytes(request_param: PlatformInfo, result_string: Vec<u8>
-                ) -> OclResult<PlatformInfoResult> {
+                ) -> OclResult<PlatformInfoResult> 
+    {
         // match result_string {
         //     Ok(rs) => {
         //         // let string = String::from_utf8(result_string).expect("FIXME: src/core/custom/enums.rs");
@@ -224,13 +225,14 @@ impl std::fmt::Display for PlatformInfoResult {
 /// A device info result.
 ///
 /// [FIXME]: Implement the rest of this beast... eventually...
+#[derive(Debug)]
 pub enum DeviceInfoResult {
     TemporaryPlaceholderVariant(Vec<u8>),
     Type(TemporaryPlaceholderType),
     VendorId(TemporaryPlaceholderType),
     MaxComputeUnits(TemporaryPlaceholderType),
     MaxWorkItemDimensions(TemporaryPlaceholderType),
-    MaxWorkGroupSize(TemporaryPlaceholderType),
+    MaxWorkGroupSize(usize),
     MaxWorkItemSizes(TemporaryPlaceholderType),
     PreferredVectorWidthChar(TemporaryPlaceholderType),
     PreferredVectorWidthShort(TemporaryPlaceholderType),
@@ -306,6 +308,21 @@ pub enum DeviceInfoResult {
 }
 
 impl DeviceInfoResult {
+    pub fn from_bytes(request_param: DeviceInfo, result_bytes: Vec<u8>
+            ) -> OclResult<DeviceInfoResult>
+    {
+        Ok(match request_param {
+            DeviceInfo::MaxWorkGroupSize => {
+                let r0 = unsafe { util::bytes_to::<usize>(&result_bytes) };
+                let size = unsafe { util::bytes_into::<usize>(result_bytes) };
+                debug_assert_eq!(r0, size);
+                // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
+                DeviceInfoResult::MaxWorkGroupSize(size)
+            },
+            _ => DeviceInfoResult::TemporaryPlaceholderVariant(result_bytes),
+        })
+    }
+
     // [FIXME]: THIS IS A JANKY MOFO (a what?).
     // NOTE: Interestingly, this actually works sorta decently as long as there
     // isn't a 4, 8, or 24 character string. Ummm, yeah. Fix this.
@@ -315,17 +332,20 @@ impl DeviceInfoResult {
                 // TEMPORARY (and retarded):
                 to_string_retarded(v)
             },
-            _ => panic!("DeviceInfoResult: Converting this variant to string not yet implemented."),
+            &DeviceInfoResult::MaxWorkGroupSize(size) => size.to_string(),
+            r @ _ => panic!("DeviceInfoResult: Converting '{:?}' to string not yet implemented.", r),
         }
     }
 }
 
-impl std::fmt::Debug for DeviceInfoResult {
-    /// [INCOMPLETE]: TEMPORARY
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", &self.to_string())
-    }
-}
+// // DON'T REIMPLEMENT THIS UNTIL ALL THE VARIANTS ARE WORKING
+// impl std::fmt::Debug for DeviceInfoResult {
+//     /// [INCOMPLETE]: TEMPORARY
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         // DON'T REIMPLEMENT THIS UNTIL ALL THE VARIANTS ARE WORKING
+//         write!(f, "{}", &self.to_string())
+//     }
+// }
 
 impl std::fmt::Display for DeviceInfoResult {
     /// [INCOMPLETE]: TEMPORARY

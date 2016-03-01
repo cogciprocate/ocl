@@ -2,7 +2,7 @@
 
 use std::convert::Into;
 use std::ops::Deref;
-use core::{self, OclNum};
+use core::OclNum;
 use standard::{Context, ProQueBuilder, Program, Queue, Kernel, Buffer,
     BufferDims, SimpleDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
@@ -214,8 +214,8 @@ impl ProQue {
 
     /// Returns the maximum workgroup size supported by the device associated
     /// with this `ProQue`.
-    pub fn max_work_group_size(&self) -> usize {
-        core::get_max_work_group_size(self.queue.device())
+    pub fn max_wg_size(&self) -> usize {
+        self.queue.device().max_wg_size()
     }
 
     /// Returns a reference to the queue associated with this ProQue.

@@ -132,6 +132,12 @@ impl std::fmt::Display for Queue {
     }
 }
 
+impl AsRef<CommandQueueCore> for Queue {
+    fn as_ref(&self) -> &CommandQueueCore {
+        &self.obj_core
+    }
+}
+
 impl Deref for Queue {
     type Target = CommandQueueCore;
 

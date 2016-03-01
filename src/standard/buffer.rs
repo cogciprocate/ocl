@@ -14,10 +14,76 @@ use util;
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, BufferDims, EventList};
 
-
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
     You must create this Buffer using 'Buffer::with_vec()' (et al.) in order to call this method.";
 
+
+
+    // pub unsafe fn enqueue_read_buffer<T: OclNum, L: AsRef<EventList>, E: ClEventPtrNew>(
+    //             command_queue: &CommandQueue,
+    //             buffer: &Mem, 
+    //             block: bool,
+    //             offset: usize,
+    //             data: &mut [T],
+    //             wait_list: Option<&L>, 
+    //             new_event: Option<&mut E>,
+
+    // pub unsafe fn enqueue_read_buffer_rect<T: OclNum, L: AsRef<EventList>, E: ClEventPtrNew>(
+    //             command_queue: &CommandQueue,
+    //             buffer: &Mem, 
+    //             block: bool,
+    //             buffer_origin: [usize; 3],
+    //             host_origin: [usize; 3],
+    //             region: [usize; 3],
+    //             buffer_row_pitch: usize,
+    //             buffer_slc_pitch: usize,
+    //             host_row_pitch: usize,
+    //             host_slc_pitch: usize,
+    //             data: &mut [T],
+    //             wait_list: Option<&L>, 
+    //             new_event: Option<&mut E>,
+
+// /// A kernel command builder used to queue a kernel with a mix of default
+// /// and optionally specified arguments.
+// pub struct BufferCmd<'k> {
+//     queue: &'k CommandQueueCore,
+//     kernel: &'k KernelCore,
+//     gwo: SimpleDims,
+//     gws: SimpleDims,
+//     lws: SimpleDims,
+//     wait_list: Option<&'k EventList>,
+//     dest_list: Option<&'k mut EventList>,
+//     name: &'k str,
+// }
+
+// impl<'k> KernelCmd<'k> {
+//     /// Specifies a queue to use for this call only.
+//     pub fn queue(mut self, queue: &'k Queue) -> KernelCmd<'k> {
+//         self.queue = queue.core_as_ref();
+//         self
+//     }
+
+//         /// Enqueues this kernel command.
+//     pub fn enq(self) -> OclResult<()> {
+//         let dim_count = self.gws.dim_count();
+
+//         let gws = match self.gws.to_work_size() {
+//             Some(gws) => gws,
+//             None => return OclError::err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
+//                 cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
+//         };
+
+//         core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(), 
+//             gws, self.lws.to_work_size(), self.wait_list, self.dest_list, Some(self.name))
+//     }
+// }
+
+
+
+
+
+
+// An option type mainly just for convenient error handling.
 #[derive(Debug, Clone)]
 enum VecOption<T> {
     None,
@@ -47,6 +113,8 @@ impl<T> VecOption<T> {
         if let &VecOption::None = self { false } else { true }
     }
 }
+
+
 
 
 /// A buffer with an optional built-in vector. 
@@ -99,7 +167,7 @@ impl<T: OclNum> Buffer<T> {
     /// one such as `.enqueue_flush_vec()`, `enqueue_fill_vec()`, etc. will panic.
     /// [FIXME]: Return result.
     pub fn new<D: BufferDims>(dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
+        let len = dims.padded_buffer_len(queue.device().max_wg_size());
         Buffer::_new(len, queue)
     }
 
@@ -107,7 +175,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
     pub fn with_vec<D: BufferDims>(dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
+        let len = dims.padded_buffer_len(queue.device().max_wg_size());
         let vec: Vec<T> = std::iter::repeat(T::default()).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -118,7 +186,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
     pub fn with_vec_initialized_to<D: BufferDims>(init_val: T, dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
+        let len = dims.padded_buffer_len(queue.device().max_wg_size());
         let vec: Vec<T> = std::iter::repeat(init_val).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -140,7 +208,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_shuffled<D: BufferDims>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
+        let len = dims.padded_buffer_len(queue.device().max_wg_size());
         let vec: Vec<T> = shuffled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -158,7 +226,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_scrambled<D: BufferDims>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(core::get_max_work_group_size(queue.device()));
+        let len = dims.padded_buffer_len(queue.device().max_wg_size());
         let vec: Vec<T> = scrambled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -197,7 +265,7 @@ impl<T: OclNum> Buffer<T> {
     /// or are unknown.
     ///
     /// [FIXME]: Return result.
-    pub unsafe fn new_core_unchecked(flags: MemFlags, len: usize, host_ptr: Option<&[T]>, 
+    pub unsafe fn new_unchecked(flags: MemFlags, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
         let obj_core = core::create_buffer(queue.context_core_as_ref(), flags, len,
@@ -509,8 +577,7 @@ impl<T: OclNum> Buffer<T> {
     /// [FIXME]: Return result.
     pub unsafe fn resize<B: BufferDims>(&mut self, new_dims: &B, queue: &Queue) {
         // self.release();
-        let new_len = new_dims.padded_buffer_len(core::get_max_work_group_size(
-            queue.device()));
+        let new_len = new_dims.padded_buffer_len(queue.device().max_wg_size());
 
         match self.vec {
             VecOption::Some(ref mut vec) => {

@@ -337,8 +337,9 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, info_request: DeviceInfo,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };
-    errcode_try("clGetDeviceInfo", errcode)
-        .and(Ok(DeviceInfoResult::TemporaryPlaceholderVariant(result)))
+    try!(errcode_try("clGetDeviceInfo", errcode));
+
+    DeviceInfoResult::from_bytes(info_request, result)
 }
 
 /// [UNIMPLEMENTED]
@@ -2353,22 +2354,23 @@ pub fn create_build_program<D: ClDeviceIdPtr>(
     Ok(program)
 }
 
-/// Returns the maximum workgroup size of a device.
-pub fn get_max_work_group_size<D: ClDeviceIdPtr>(device: &D) -> usize {
-    let mut max_work_group_size: usize = 0;
+// DEPRICATED - REDUNDANT
+// /// Returns the maximum workgroup size of a device.
+// pub fn get_max_work_group_size<D: ClDeviceIdPtr>(device: &D) -> usize {
+//     let mut max_work_group_size: usize = 0;
 
-    let errcode = unsafe { cl_h::clGetDeviceInfo(
-        device.as_ptr(),
-        cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
-        mem::size_of::<usize>() as usize,
-        &mut max_work_group_size as *mut _ as *mut c_void,
-        ptr::null_mut(),
-    ) };
+//     let errcode = unsafe { cl_h::clGetDeviceInfo(
+//         device.as_ptr(),
+//         cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
+//         mem::size_of::<usize>() as usize,
+//         &mut max_work_group_size as *mut _ as *mut c_void,
+//         ptr::null_mut(),
+//     ) };
 
-    errcode_assert("clGetDeviceInfo", errcode);
+//     errcode_assert("clGetDeviceInfo", errcode);
 
-    max_work_group_size
-}
+//     max_work_group_size
+// }
 
 #[allow(dead_code)]
 /// Blocks until an event is complete.

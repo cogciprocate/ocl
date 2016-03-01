@@ -232,6 +232,12 @@ impl Drop for CommandQueue {
 	}
 }
 
+impl AsRef<CommandQueue> for CommandQueue {
+    fn as_ref(&self) -> &CommandQueue {
+        self
+    }
+}
+
 unsafe impl Sync for CommandQueue {}
 unsafe impl Send for CommandQueue {}
 

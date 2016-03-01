@@ -159,5 +159,5 @@ fn print_event_info(event: &Event) {
 
 
 fn print_event_list_info(event_list: &EventList) {
-	println!("{:?}", event_list);
+	printlnc!(teal: "{:?}", event_list);
 }

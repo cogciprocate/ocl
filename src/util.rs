@@ -58,29 +58,35 @@ macro_rules! printlnc {
 macro_rules! colorify {
     (default: $s:expr) => ( concat!("\x1b[0m", $s, "\x1b[0m") );
     (red: $s:expr) => ( concat!("\x1b[31m", $s, "\x1b[0m") );
-    (bold_red: $s:expr) => ( concat!("\x1b[1;31m", $s, "\x1b[0m") );
+    (red_bold: $s:expr) => ( concat!("\x1b[1;31m", $s, "\x1b[0m") );
     (green: $s:expr) => ( concat!("\x1b[32m", $s, "\x1b[0m") );
-    (bold_green: $s:expr) => ( concat!("\x1b[1;32m", $s, "\x1b[0m") );
+    (green_bold: $s:expr) => ( concat!("\x1b[1;32m", $s, "\x1b[0m") );
     (dark_orange: $s:expr) => ( concat!("\x1b[33m", $s, "\x1b[0m") );
-    (bold_yellow: $s:expr) => ( concat!("\x1b[1;33m", $s, "\x1b[0m") );
+    (yellow_bold: $s:expr) => ( concat!("\x1b[1;33m", $s, "\x1b[0m") );
     (blue: $s:expr) => ( concat!("\x1b[34m", $s, "\x1b[0m") );
-    (bold_blue: $s:expr) => ( concat!("\x1b[1;34m", $s, "\x1b[0m") );
+    (blue_bold: $s:expr) => ( concat!("\x1b[1;34m", $s, "\x1b[0m") );
     (purple: $s:expr) => ( concat!("\x1b[35m", $s, "\x1b[0m") );
-    (bold_purple: $s:expr) => ( concat!("\x1b[1;35m", $s, "\x1b[0m") );
+    (purple_bold: $s:expr) => ( concat!("\x1b[1;35m", $s, "\x1b[0m") );
     (cyan: $s:expr) => ( concat!("\x1b[36m", $s, "\x1b[0m") );
-    (bold_cyan: $s:expr) => ( concat!("\x1b[1;36m", $s, "\x1b[0m") );
+    (cyan_bold: $s:expr) => ( concat!("\x1b[1;36m", $s, "\x1b[0m") );
     (light_grey: $s:expr) => ( concat!("\x1b[37m", $s, "\x1b[0m") );
-    (bold_white: $s:expr) => ( concat!("\x1b[1;37m", $s, "\x1b[0m") );
+    (white_bold: $s:expr) => ( concat!("\x1b[1;37m", $s, "\x1b[0m") );
     (dark_grey: $s:expr) => ( concat!("\x1b[90m", $s, "\x1b[0m") );
-    (bold_dark_grey: $s:expr) => ( concat!("\x1b[1;90m", $s, "\x1b[0m") );
+    (dark_grey_bold: $s:expr) => ( concat!("\x1b[1;90m", $s, "\x1b[0m") );
     (peach: $s:expr) => ( concat!("\x1b[91m", $s, "\x1b[0m") );
-    (bold_peach: $s:expr) => ( concat!("\x1b[1;91m", $s, "\x1b[0m") );
+    (peach_bold: $s:expr) => ( concat!("\x1b[1;91m", $s, "\x1b[0m") );
     (lime: $s:expr) => ( concat!("\x1b[92m", $s, "\x1b[0m") );
-    (bold_lime: $s:expr) => ( concat!("\x1b[1;92m", $s, "\x1b[0m") );
+    (lime_bold: $s:expr) => ( concat!("\x1b[1;92m", $s, "\x1b[0m") );
     (yellow: $s:expr) => ( concat!("\x1b[93m", $s, "\x1b[0m") );
-    (bold_yellow_2: $s:expr) => ( concat!("\x1b[1;93m", $s, "\x1b[0m") );
+    (yellow_bold2: $s:expr) => ( concat!("\x1b[1;93m", $s, "\x1b[0m") );
     (royal_blue: $s:expr) => ( concat!("\x1b[94m", $s, "\x1b[0m") );
-    (bold_royal_blue: $s:expr) => ( concat!("\x1b[1;94m", $s, "\x1b[0m") );
+    (royal_blue_bold: $s:expr) => ( concat!("\x1b[1;94m", $s, "\x1b[0m") );
+    (magenta: $s:expr) => ( concat!("\x1b[95m", $s, "\x1b[0m") );
+    (magenta_bold: $s:expr) => ( concat!("\x1b[1;95m", $s, "\x1b[0m") );
+    (teal: $s:expr) => ( concat!("\x1b[96m", $s, "\x1b[0m") );
+    (teal_bold: $s:expr) => ( concat!("\x1b[1;96m", $s, "\x1b[0m") );
+    (white: $s:expr) => ( concat!("\x1b[97m", $s, "\x1b[0m") );
+    (white_bold2: $s:expr) => ( concat!("\x1b[1;97m", $s, "\x1b[0m") );
 }
 
 // #[macro_export]
@@ -98,40 +104,42 @@ macro_rules! colorify {
 //================================ STATICS ====================================
 //=============================================================================
 
-pub static TAB: &'static str = "    "; 
+pub mod colors {
+    pub static TAB: &'static str = "    "; 
 
-pub static C_DEFAULT: &'static str = "\x1b[0m";
-pub static C_UNDER: &'static str = "\x1b[1m";
+    pub static C_DEFAULT: &'static str = "\x1b[0m";
+    pub static C_UNDER: &'static str = "\x1b[1m";
 
-// 30–37
-pub static C_RED: &'static str = "\x1b[31m";
-pub static C_BRED: &'static str = "\x1b[1;31m";
-pub static C_GRN: &'static str = "\x1b[32m";
-pub static C_BGRN: &'static str = "\x1b[1;32m";
-pub static C_ORA: &'static str = "\x1b[33m";
-pub static C_DBL: &'static str = "\x1b[34m";
-pub static C_PUR: &'static str = "\x1b[35m";
-pub static C_CYA: &'static str = "\x1b[36m";
-pub static C_LGR: &'static str = "\x1b[37m";
-// [ADDME] 38: Extended Colors
-// pub static C_EXT38: &'static str = "\x1b[38m";
-pub static C_DFLT: &'static str = "\x1b[39m";
+    // 30–37
+    pub static C_RED: &'static str = "\x1b[31m";
+    pub static C_BRED: &'static str = "\x1b[1;31m";
+    pub static C_GRN: &'static str = "\x1b[32m";
+    pub static C_BGRN: &'static str = "\x1b[1;32m";
+    pub static C_ORA: &'static str = "\x1b[33m";
+    pub static C_DBL: &'static str = "\x1b[34m";
+    pub static C_PUR: &'static str = "\x1b[35m";
+    pub static C_CYA: &'static str = "\x1b[36m";
+    pub static C_LGR: &'static str = "\x1b[37m";
+    // [ADDME] 38: Extended Colors
+    // pub static C_EXT38: &'static str = "\x1b[38m";
+    pub static C_DFLT: &'static str = "\x1b[39m";
 
-// 90-97
-pub static C_DGR: &'static str = "\x1b[90m";
-pub static C_LRD: &'static str = "\x1b[91m";
-pub static C_YEL: &'static str = "\x1b[93m";
-pub static C_BLU: &'static str = "\x1b[94m";
-pub static C_LBL: &'static str = "\x1b[94m";
-pub static C_MAG: &'static str = "\x1b[95m";
-// [ADDME] 38: Extended Colors
-// pub static C_EXT38: &'static str = "\x1b[38m";
+    // 90-97
+    pub static C_DGR: &'static str = "\x1b[90m";
+    pub static C_LRD: &'static str = "\x1b[91m";
+    pub static C_YEL: &'static str = "\x1b[93m";
+    pub static C_BLU: &'static str = "\x1b[94m";
+    pub static C_LBL: &'static str = "\x1b[94m";
+    pub static C_MAG: &'static str = "\x1b[95m";
+    // [ADDME] 38: Extended Colors
+    // pub static C_EXT38: &'static str = "\x1b[38m";
 
-pub static BGC_DEFAULT: &'static str = "\x1b[49m";
-pub static BGC_GRN: &'static str = "\x1b[42m";
-pub static BGC_PUR: &'static str = "\x1b[45m";
-pub static BGC_LGR: &'static str = "\x1b[47m";
-pub static BGC_DGR: &'static str = "\x1b[100m";
+    pub static BGC_DEFAULT: &'static str = "\x1b[49m";
+    pub static BGC_GRN: &'static str = "\x1b[42m";
+    pub static BGC_PUR: &'static str = "\x1b[45m";
+    pub static BGC_LGR: &'static str = "\x1b[47m";
+    pub static BGC_DGR: &'static str = "\x1b[100m";
+}
 
 
 //=============================================================================
@@ -232,12 +240,17 @@ pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> Vec<T> {
 /// ### Depth
 ///
 /// This is not a deep copy, will only copy the surface of primitives, structs,
-/// etc. Not 100% sure about what happens with other types.
+/// etc. Not 100% sure about what happens with other types but should copy
+/// everything zero levels deep.
 ///
 /// ### Endianness
 ///
 /// 98% sure (speculative) this will always be correct due to the driver
 /// automatically taking it into account.
+///
+/// ### Safety
+///
+/// Don't ask.
 ///
 /// [FIXME]: Evaluate the ins and outs of this and lock this down a bit.
 pub unsafe fn into_bytes<T>(val: T) -> Vec<u8> {
@@ -359,7 +372,7 @@ pub fn print_slice<T: OclNum>(
             idx_range: Option<Range<usize>>,
             show_zeros: bool, 
             ) {
-    print!( "{cdgr}[{cg}{}{cdgr}/{}", vec.len(), every, cg = C_GRN, cdgr = C_DGR);
+    print!( "{cdgr}[{cg}{}{cdgr}/{}", vec.len(), every, cg = colors::C_GRN, cdgr = colors::C_DGR);
 
     let (vr_start, vr_end) = match val_range {
         Some(vr) => {
@@ -379,7 +392,7 @@ pub fn print_slice<T: OclNum>(
         None => (0usize, 0usize),
     };
 
-    print!( "]:{cd} ", cd = C_DEFAULT,);
+    print!( "]:{cd} ", cd = colors::C_DEFAULT,);
 
     let mut ttl_nz = 0usize;
     let mut ttl_ir = 0usize;
@@ -392,7 +405,7 @@ pub fn print_slice<T: OclNum>(
     let len = vec.len();
 
 
-    let mut color: &'static str = C_DEFAULT;
+    let mut color: &'static str = colors::C_DEFAULT;
     let mut prnt: bool = false;
 
     // Yes, this clusterfuck needs rewriting someday
@@ -447,10 +460,10 @@ pub fn print_slice<T: OclNum>(
 
             if vec[i] != Default::default() {
                 ttl_nz += 1usize;
-                color = C_ORA;
+                color = colors::C_ORA;
             } else {
                 if show_zeros {
-                    color = C_DEFAULT;
+                    color = colors::C_DEFAULT;
                 } else {
                     prnt = false;
                 }
@@ -458,7 +471,7 @@ pub fn print_slice<T: OclNum>(
         }
 
         if prnt {
-            print!( "{cg}[{cd}{}{cg}:{cc}{}{cg}]{cd}", i, vec[i], cc = color, cd = C_DEFAULT, cg = C_DGR);
+            print!( "{cg}[{cd}{}{cg}:{cc}{}{cg}]{cd}", i, vec[i], cc = color, cd = colors::C_DEFAULT, cg = colors::C_DGR);
             ttl_prntd += 1;
         }
     }
@@ -484,7 +497,7 @@ pub fn print_slice<T: OclNum>(
 
     println!("{cdgr} ;(nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
         ir:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),hi:{},lo:{},anz:{:.2},prntd:{}){cd} ", 
-        ttl_nz, nz_pct, ttl_ir, ir_pct, hi, lo, anz, ttl_prntd, cd = C_DEFAULT, clbl = C_LBL, cdgr = C_DGR);
+        ttl_nz, nz_pct, ttl_ir, ir_pct, hi, lo, anz, ttl_prntd, cd = colors::C_DEFAULT, clbl = colors::C_LBL, cdgr = colors::C_DGR);
 }
 
 

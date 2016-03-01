@@ -4,6 +4,7 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::convert::Into;
+use std::error::Error;
 use error::{Error as OclError, Result as OclResult};
 use standard::{Platform};
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
@@ -126,6 +127,15 @@ impl Device {
         match core::get_device_info(&self.0, DeviceInfo::Vendor) {
             Ok(pi) => pi.into(),
             Err(err) => err.into(),
+        }
+    }
+
+    /// Returns the maximum workgroup size.
+    pub fn max_wg_size(&self) -> usize {
+        match self.info(DeviceInfo::MaxWorkGroupSize) {
+            DeviceInfoResult::MaxWorkGroupSize(s) => s,
+            DeviceInfoResult::Error(err) => panic!("ocl::Device::max_wg_size: {}", err.description()),
+            _ => panic!("ocl::Device::max_wg_size: Unexpected 'DeviceInfoResult' variant."),
         }
     }
 

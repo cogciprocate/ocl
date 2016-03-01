@@ -78,19 +78,33 @@ impl SimpleDims {
             &SimpleDims::Two(x, y) => [x, y, 0],
             &SimpleDims::Three(x, y, z) => [x, y, z],
         }
-    }    
-}
+    }
 
-impl BufferDims for SimpleDims {
-    fn padded_buffer_len(&self, incr: usize) -> usize {
-        let simple_len = match self {
+    pub fn linear_len(&self) -> usize {
+        match self {
             &SimpleDims::Unspecified => 0,
             &SimpleDims::Three(d0, d1, d2) => d0 * d1 * d2,
             &SimpleDims::Two(d0, d1) => d0 * d1,
             &SimpleDims::One(d0) => d0,
-        };
+        }
+    }
 
-        util::padded_len(simple_len, incr)
+    pub fn padded_len(&self, incr: usize) -> usize {
+        util::padded_len(self.linear_len(), incr)
+    }
+}
+
+impl BufferDims for SimpleDims {
+    fn padded_buffer_len(&self, incr: usize) -> usize {
+        // let simple_len = match self {
+        //     &SimpleDims::Unspecified => 0,
+        //     &SimpleDims::Three(d0, d1, d2) => d0 * d1 * d2,
+        //     &SimpleDims::Two(d0, d1) => d0 * d1,
+        //     &SimpleDims::One(d0) => d0,
+        // };
+        // let len = self.linear_len();
+        // util::padded_len(len, incr)
+        self.padded_len(incr)
     }
 }
 

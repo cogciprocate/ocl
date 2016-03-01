@@ -71,24 +71,11 @@ impl Event {
     }
 }
 
-// unsafe impl EventPtr for Event {}
-// unsafe impl EventPtr for Event {
-//  fn as_ptr(&self) -> cl_event {
-//      self.0.as_ptr()
-//  }
-// }
-
 impl Into<String> for Event {
     fn into(self) -> String {
         format!("{}", self)
     }
 }
-
-// impl Into<EventCore> for Event {
-//  fn into(self) -> EventCore {
-//      self.as_core()
-//  }
-// }
 
 impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -96,6 +83,11 @@ impl std::fmt::Display for Event {
     }
 }
 
+impl AsRef<EventCore> for Event{
+    fn as_ref(&self) -> &EventCore {
+        &self.0
+    }
+}
 
 impl Deref for Event {
     type Target = EventCore;

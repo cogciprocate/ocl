@@ -10,6 +10,7 @@ use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, S
 
 
 
+
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
 pub struct KernelCmd<'k> {
@@ -25,8 +26,8 @@ pub struct KernelCmd<'k> {
 
 impl<'k> KernelCmd<'k> {
     /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'k Queue) -> KernelCmd<'k> {
-        self.queue = queue.core_as_ref();
+    pub fn queue<Q: AsRef<CommandQueueCore>>(mut self, queue: &'k Q) -> KernelCmd<'k> {
+        self.queue = queue.as_ref();
         self
     }
 
@@ -61,13 +62,13 @@ impl<'k> KernelCmd<'k> {
         self
     }
 
-    /// Specifies the list of events to wait on before the command will run.
+    /// Specifies a list of events to wait on before the command will run.
     pub fn wait_opt(mut self, wait_list: Option<&'k EventList>) -> KernelCmd<'k> {
         self.wait_list = wait_list;
         self
     }
 
-    /// Specifies the destination for a new, optionally created event
+    /// Specifies a destination for a new, optionally created event
     /// associated with this command.
     pub fn dest_opt(mut self, dest_list: Option<&'k mut EventList>) -> KernelCmd<'k> {
         self.dest_list = dest_list;
@@ -83,9 +84,6 @@ impl<'k> KernelCmd<'k> {
             None => return OclError::err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
                 cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
         };
-
-        // let wait_list = self.wait_list.map(|el| el.core_as_ref());
-        // let dest_list = self.dest_list.map(|el| el.core_as_mut());
 
         core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(), 
             gws, self.lws.to_work_size(), self.wait_list, self.dest_list, Some(self.name))
@@ -379,12 +377,13 @@ impl Kernel {
     /// Enqueues kernel on the default command queue using only default
     /// parameters, panicing instead of returning a result upon error.
     ///
-    /// Equivalent to `::cmd().enq()`
+    /// Equivalent to `::cmd().enq()` except for error handling.
     ///
     /// # Panics
     /// 
     /// Panics on anything that would normally return an error. Use
     /// `::cmd().enq()` to get a result instead.
+    ///
     #[inline]
     pub fn enqueue(&self) {
         // If gws is still `None` we cannot continue.
@@ -415,9 +414,30 @@ impl Kernel {
     ///
     /// The new queue must be associated with a device associated with the
     /// kernel's program.
+    ///
     pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Kernel {
         self.command_queue_obj_core = queue.core_as_ref().clone();
         self
+    }
+
+    /// Returns the default `core::CommandQueue` for this kernel.
+    pub fn get_queue(&self) -> &CommandQueueCore {
+        &self.command_queue_obj_core
+    }
+
+    /// Returns the default global work offset.
+    pub fn get_gwo(&self) -> SimpleDims {
+        self.gwo.clone()
+    }
+
+    /// Returns the default global work size.
+    pub fn get_gws(&self) -> SimpleDims {
+        self.gws.clone()
+    }
+
+    /// Returns the default local work size.
+    pub fn get_lws(&self) -> SimpleDims {
+        self.lws.clone()
     }
 
     /// Returns the number of arguments specified for this kernel.
