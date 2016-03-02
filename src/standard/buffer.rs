@@ -168,6 +168,8 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
                     _ => unimplemented!(),
                 }
             },
+            OpKind::Unspecified => return OclError::err("ocl::BufferCmd::enq(): No operation \
+                specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),
         }
 
@@ -407,7 +409,7 @@ impl<T: OclNum> Buffer<T> {
     }
 
 
-    /// Returns a buffer command builder.
+    /// Returns a buffer command builder used to read, write, copy, etc.
     ///
     /// Run `.enq()` to enqueue the command.
     ///
@@ -580,7 +582,7 @@ impl<T: OclNum> Buffer<T> {
     /// Panics if this Buffer contains no vector or upon any OpenCL error.
     pub fn fill_vec(&mut self) {
         // Safe due to being a blocking read (right?).
-        unsafe { self.enqueue_fill_vec(true, None, None).expect("Buffer::fill_vec"); }
+        unsafe { self.enqueue_fill_vec(true, None, None).expect("Buffer::fill_vec()"); }
     } 
 
     /// After waiting on events in `wait_list` to finish, writes the contents of
@@ -615,7 +617,7 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// Panics if this Buffer contains no vector or upon any OpenCL error.
     pub fn flush_vec(&mut self) {
-        self.enqueue_flush_vec(true, None, None).expect("Buffer::flush_vec");
+        self.enqueue_flush_vec(true, None, None).expect("Buffer::flush_vec()");
     }  
 
     /// Blocks the current thread until the underlying command queue has
@@ -690,14 +692,14 @@ impl<T: OclNum> Buffer<T> {
                 vec.resize(new_len, T::default());
                 self.obj_core = core::create_buffer(queue.context_core_as_ref(), 
                     core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR, self.len, Some(vec))
-                    .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
+                    .expect("[FIXME: TEMPORARY]: Buffer::_resize()");
             },
             VecOption::None => {
                 self.len = new_len;
                 // let vec: Vec<T> = std::iter::repeat(T::default()).take(new_len).collect();
                 self.obj_core = core::create_buffer::<T>(queue.context_core_as_ref(), 
                     core::MEM_READ_WRITE, self.len, None)
-                    .expect("[FIXME: TEMPORARY]: Buffer::_resize():");
+                    .expect("[FIXME: TEMPORARY]: Buffer::_resize()");
             },
         };
     }
