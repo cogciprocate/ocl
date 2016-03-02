@@ -100,10 +100,10 @@ fn print_platform_info(platform: &Platform) {
 
 fn print_device_info(device: &Device) {
 	if PRINT_DETAILED_DEVICE {
-		printlnc!(dark_orange: "{}", device);
+		printlnc!(teal: "{}", device);
 	} else {
 		if !PRINT_DETAILED { print!("{t}", t = TAB); } 
-		printlnc!(dark_orange: "Device {{ Name: {}, Verdor: {} }}", device.name(), device.vendor());
+		printlnc!(teal: "Device (terse) {{ Name: {}, Verdor: {} }}", device.name(), device.vendor());
 	}
 }
 
@@ -129,16 +129,16 @@ fn print_image_info(image: &Image) {
 
 
 fn print_sampler_info(sampler: &Sampler) {
-	printlnc!(dark_grey: "{}", sampler);
+	printlnc!(cyan: "{}", sampler);
 }
 
 
 fn print_program_info(program: &Program) {
 	if PRINT_DETAILED_PROGRAM {
-		printlnc!(cyan: "{}", program);
+		printlnc!(magenta: "{}", program);
 	} else {
 		if !PRINT_DETAILED { print!("{t}{t}", t = TAB); } 
-		printlnc!(cyan: "Program {{ KernelNames: '{}', NumDevices: {}, ReferenceCount: {}, Context: {} }}", 
+		printlnc!(magenta: "Program (terse) {{ KernelNames: '{}', NumDevices: {}, ReferenceCount: {}, Context: {} }}", 
 			program.info(ProgramInfo::KernelNames),
 			program.info(ProgramInfo::NumDevices),
 			program.info(ProgramInfo::ReferenceCount),
@@ -153,11 +153,11 @@ fn print_kernel_info(kernel: &Kernel) {
 }
 
 
-fn print_event_info(event: &Event) {
-	printlnc!(yellow: "{}", event);
+fn print_event_list_info(event_list: &EventList) {
+	printlnc!(dark_orange: "{:?}", event_list);
 }
 
 
-fn print_event_list_info(event_list: &EventList) {
-	printlnc!(teal: "{:?}", event_list);
+fn print_event_info(event: &Event) {
+	printlnc!(yellow: "{}", event);
 }

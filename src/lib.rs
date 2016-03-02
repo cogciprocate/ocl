@@ -51,8 +51,40 @@ mod error;
 pub mod core;
 pub mod cl_h;
 
-pub use core::{OclNum, ImageFormat, ImageDescriptor, ImageChannelOrder, ImageChannelDataType, MemFlags, MemObjectType, MEM_READ_WRITE, MEM_WRITE_ONLY, MEM_READ_ONLY, MEM_USE_HOST_PTR, MEM_ALLOC_HOST_PTR, MEM_COPY_HOST_PTR, MEM_HOST_WRITE_ONLY, MEM_HOST_READ_ONLY, MEM_HOST_NO_ACCESS, PlatformInfo, DeviceInfo, ContextInfo, ProgramInfo, CommandQueueInfo, KernelInfo, MemInfo, ImageInfo, EventInfo, FilterMode, AddressingMode, ContextProperties, DEVICE_TYPE_DEFAULT, DEVICE_TYPE_CPU, DEVICE_TYPE_GPU, DEVICE_TYPE_ACCELERATOR, DEVICE_TYPE_CUSTOM, DEVICE_TYPE_ALL, };
+pub use core::{OclNum, ImageFormat, ImageDescriptor, ContextProperties};
 #[cfg(not(release))] pub use standard::BufferTest;
 pub use standard::{Platform, Device, ContextBuilder, Context, BuildOpt, ProgramBuilder, Program, Queue, Kernel, Buffer, Image, ImageBuilder, ProQueBuilder, ProQue, SimpleDims, WorkDims, BufferDims, Event, EventList, DeviceSpecifier, Sampler};
 pub use self::error::{Error, Result};
 
+pub mod flags {
+	//! Bitflags for various parameter types.
+
+	pub use core::{
+		// cl_device_type - bitfield 
+		DeviceType, DEVICE_TYPE_DEFAULT, DEVICE_TYPE_CPU, DEVICE_TYPE_GPU, DEVICE_TYPE_ACCELERATOR, DEVICE_TYPE_CUSTOM, DEVICE_TYPE_ALL,
+		// cl_device_fp_config - bitfield
+		DeviceFpConfig, FP_DENORM, FP_INF_NAN, FP_ROUND_TO_NEAREST, FP_ROUND_TO_ZERO, FP_ROUND_TO_INF, FP_FMA, FP_SOFT_FLOAT, FP_CORRECTLY_ROUNDED_DIVIDE_SQRT,
+		// cl_device_exec_capabilities - bitfield
+		DeviceExecCapabilities, EXEC_KERNEL, EXEC_NATIVE_KERNEL,
+		// cl_command_queue_properties - bitfield
+		CommandQueueProperties, QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, QUEUE_PROFILING_ENABLE,
+		// cl_device_affinity_domain
+		DeviceAffinityDomain, DEVICE_AFFINITY_DOMAIN_NUMA, DEVICE_AFFINITY_DOMAIN_L4_CACHE, DEVICE_AFFINITY_DOMAIN_L3_CACHE, DEVICE_AFFINITY_DOMAIN_L2_CACHE, DEVICE_AFFINITY_DOMAIN_L1_CACHE, DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE,
+		// cl_mem_flags - bitfield
+		MemFlags, MEM_READ_WRITE, MEM_WRITE_ONLY, MEM_READ_ONLY, MEM_USE_HOST_PTR, MEM_ALLOC_HOST_PTR, MEM_COPY_HOST_PTR,
+			MEM_HOST_WRITE_ONLY, MEM_HOST_READ_ONLY, MEM_HOST_NO_ACCESS,
+		// cl_mem_migration_flags - bitfield
+		MemMigrationFlags, MIGRATE_MEM_OBJECT_HOST, MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED,
+		// cl_map_flags - bitfield
+		MapFlags, MAP_READ, MAP_WRITE, MAP_WRITE_INVALIDATE_REGION,
+		// cl_program_binary_type
+		ProgramBinaryType, PROGRAM_BINARY_TYPE_NONE, PROGRAM_BINARY_TYPE_COMPILED_OBJECT, PROGRAM_BINARY_TYPE_LIBRARY, PROGRAM_BINARY_TYPE_EXECUTABLE,
+		// cl_kernel_arg_type_qualifer 
+		KernelArgTypeQualifier, KERNEL_ARG_TYPE_NONE, KERNEL_ARG_TYPE_CONST, KERNEL_ARG_TYPE_RESTRICT, KERNEL_ARG_TYPE_VOLATILE,		
+	};
+}
+
+pub mod enums {
+	//! Enumerators for information requests and settings.
+	pub use core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo, DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo, ContextInfoOrPropertiesPointerType, PartitionProperty, CommandQueueInfo, ChannelType, MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo, ProgramBuildInfo, BuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier, KernelArgAccessQualifier, KernelWorkGroupInfo, EventInfo, CommandType, CommandExecutionStatus, BufferCreateType, ProfilingInfo};
+}

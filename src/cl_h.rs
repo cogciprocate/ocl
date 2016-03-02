@@ -1,4 +1,4 @@
-//! Rust bindings for the OpenCL ABI
+//! Rust bindings for the OpenCL ABI.
 //!
 //! For low level access still within the confines of Rust's safety and convenience, use the extremely lightweight functions and types in the [`core`] module.
 //!

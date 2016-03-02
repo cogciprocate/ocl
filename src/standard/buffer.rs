@@ -43,40 +43,136 @@ static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buf
     //             wait_list: Option<&L>, 
     //             new_event: Option<&mut E>,
 
-// /// A kernel command builder used to queue a kernel with a mix of default
-// /// and optionally specified arguments.
-// pub struct BufferCmd<'k> {
-//     queue: &'k CommandQueueCore,
-//     kernel: &'k KernelCore,
-//     gwo: SimpleDims,
-//     gws: SimpleDims,
-//     lws: SimpleDims,
-//     wait_list: Option<&'k EventList>,
-//     dest_list: Option<&'k mut EventList>,
-//     name: &'k str,
-// }
+pub enum OpKind<'b, T: 'b> {
+    Unspecified,
+    Read { data: &'b mut [T] },
+    Write { data: &'b [T] },
+    Copy { dst_buffer: &'b MemCore },
+    Fill { pattern: &'b [T], pattern_size: usize },
+    CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
+}
 
-// impl<'k> KernelCmd<'k> {
-//     /// Specifies a queue to use for this call only.
-//     pub fn queue(mut self, queue: &'k Queue) -> KernelCmd<'k> {
-//         self.queue = queue.core_as_ref();
-//         self
-//     }
+pub enum OpShape {
+    Lin { offset: usize },
+    Rect { 
+        src_origin: [usize; 3],
+        dst_origin: [usize; 3],
+        region: [usize; 3],
+        src_row_pitch: usize,
+        src_slc_pitch: usize,
+        dst_row_pitch: usize,
+        dst_slc_pitch: usize,
+    },
+}
 
-//         /// Enqueues this kernel command.
-//     pub fn enq(self) -> OclResult<()> {
-//         let dim_count = self.gws.dim_count();
+/// A kernel command builder used to queue a kernel with a mix of default
+/// and optionally specified arguments.
+pub struct BufferCmd<'b, T: 'b + OclNum> {
+    queue: &'b CommandQueueCore,
+    obj_core: &'b MemCore,
+    block: bool,
+    kind: OpKind<'b, T>,
+    shape: OpShape,    
+    wait_list: Option<&'b EventList>,
+    dest_list: Option<&'b mut EventList>,
+    mem_len: usize,
+}
 
-//         let gws = match self.gws.to_work_size() {
-//             Some(gws) => gws,
-//             None => return OclError::err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
-//                 cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
-//         };
+impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
+    pub fn new(queue: &'b CommandQueueCore, obj_core: &'b MemCore, mem_len: usize
+            ) -> BufferCmd<'b, T> 
+    {
+        BufferCmd {
+            queue: queue,
+            obj_core: obj_core,
+            block: true,
+            kind: OpKind::Unspecified,
+            shape: OpShape::Lin { offset: 0 },
+            wait_list: None,
+            dest_list: None,
+            mem_len: mem_len,
+        }
+    }
 
-//         core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(), 
-//             gws, self.lws.to_work_size(), self.wait_list, self.dest_list, Some(self.name))
-//     }
-// }
+    /// Specifies a queue to use for this call only.
+    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T> {
+        self.queue = queue.core_as_ref();
+        self
+    }
+
+    pub unsafe fn read(mut self, data: &'b mut [T]) -> BufferCmd<'b, T> {
+        self.kind = OpKind::Read { data: data };
+        self
+    }
+
+    pub fn write(mut self, data: &'b [T]) -> BufferCmd<'b, T> {
+        self.kind = OpKind::Write { data: data };
+        self
+    }
+
+        /// Specifies the list of events to wait on before the command will run.
+    pub fn wait(mut self, wait_list: &'b EventList) -> BufferCmd<'b, T> {
+        self.wait_list = Some(wait_list);
+        self
+    }
+
+    /// Specifies the destination for a new, optionally created event
+    /// associated with this command.
+    pub fn dest(mut self, dest_list: &'b mut EventList) -> BufferCmd<'b, T> {
+        self.dest_list = Some(dest_list);
+        self
+    }
+
+    /// Specifies a list of events to wait on before the command will run.
+    pub fn wait_opt(mut self, wait_list: Option<&'b EventList>) -> BufferCmd<'b, T> {
+        self.wait_list = wait_list;
+        self
+    }
+
+    /// Specifies a destination for a new, optionally created event
+    /// associated with this command.
+    pub fn dest_opt(mut self, dest_list: Option<&'b mut EventList>) -> BufferCmd<'b, T> {
+        self.dest_list = dest_list;
+        self
+    }
+
+    /// Enqueues this command.
+    pub fn enq(self) -> OclResult<()> {
+        match self.kind {
+            OpKind::Read { data } => { 
+                match self.shape {
+                    OpShape::Lin { offset } => {
+                        if offset >= self.mem_len { return OclError::err(
+                            "Buffer::read{{_async}}(): Offset out of range."); }
+                        if data.len() > self.mem_len - offset { return OclError::err(
+                            "Buffer::read{{_async}}(): Data length out of range."); }
+
+                        unsafe { core::enqueue_read_buffer(self.queue, self.obj_core, self.block, 
+                            offset, data, self.wait_list, self.dest_list) }
+                    },
+                    _ => unimplemented!(),
+                }
+            },
+            OpKind::Write { data } => {
+                match self.shape {
+                    OpShape::Lin { offset } => {
+                        // if offset >= self.mem_len { return OclError::err(
+                        //     "Buffer::write{{_async}}(): Offset out of range."); }
+                        // if data.len() > self.mem_len - offset { return OclError::err(
+                        //     "Buffer::write{{_async}}(): Data length out of range."); }
+
+                        // core::enqueue_write_obj_core(self.queue, self.obj_core, self.block, 
+                        //     offset, data, selfwait_list, self.dest_list)
+                        Ok(())
+                    },
+                    _ => unimplemented!(),
+                }
+            },
+            _ => unimplemented!(),
+        }
+
+    }
+}
 
 
 
@@ -309,6 +405,16 @@ impl<T: OclNum> Buffer<T> {
             vec: VecOption::Some(vec),
         }
     }
+
+
+    /// Returns a buffer command builder.
+    ///
+    /// Run `.enq()` to enqueue the command.
+    ///
+    pub fn cmd<'b>(&'b self) -> BufferCmd<'b, T> {
+        BufferCmd::new(&self.command_queue_obj_core, &self.obj_core, self.len)
+    }
+
 
     /// Enqueues reading `data.len() * mem::size_of::<T>()` bytes from the device 
     /// buffer into `data` with a remote offset of `offset`.

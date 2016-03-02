@@ -7,8 +7,8 @@ extern crate image;
 #[macro_use] extern crate ocl;
 
 use std::path::Path;
-use ocl::{Context, Queue, DeviceSpecifier, Program, Image, Sampler, Kernel,
-    ImageChannelOrder, ImageChannelDataType, MemObjectType, AddressingMode, FilterMode};
+use ocl::{Context, Queue, DeviceSpecifier, Program, Image, Sampler, Kernel};
+use ocl::enums::{ImageChannelOrder, ImageChannelDataType, AddressingMode, FilterMode, MemObjectType};
 
 const SAVE_IMAGES_TO_DISK: bool = false;
 static BEFORE_IMAGE_FILE_NAME: &'static str = "before_example_image.png";
@@ -72,8 +72,8 @@ fn main() {
         .device(device)
         .build(&context).unwrap();
 
-    let sup_img_formats = Image::supported_formats(&context, ocl::MEM_READ_WRITE, 
-        ocl::MemObjectType::Image2d).unwrap();
+    let sup_img_formats = Image::supported_formats(&context, ocl::flags::MEM_READ_WRITE, 
+        MemObjectType::Image2d).unwrap();
     println!("Image formats supported: {}.", sup_img_formats.len());
     // println!("Image Formats: {:#?}.", sup_img_formats);
 
@@ -99,7 +99,7 @@ fn main() {
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
-        .flags(ocl::MEM_READ_ONLY | ocl::MEM_HOST_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)
+        .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
         .build_with_data(&queue, &img).unwrap();
 
     let dst_image = Image::builder()
@@ -107,7 +107,7 @@ fn main() {
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
-        .flags(ocl::MEM_WRITE_ONLY | ocl::MEM_HOST_READ_ONLY | ocl::MEM_COPY_HOST_PTR)
+        .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
         .build_with_data(&queue, &img).unwrap();
 
     // Not sure why you'd bother creating a sampler on the host but here's how:

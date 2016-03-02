@@ -69,9 +69,8 @@ fn main_explained() {
     // (5) Read results from the device into our buffer's built-in vector:
     buffer.fill_vec();
 
-    // Check and print an element:
+    // Print an element:
     let final_val = buffer[rand_idx];
-    assert!((final_val - (orig_val + addend)).abs() < 0.0001);
     println!("The value at index [{}] was '{}' and is now '{}'!", 
         rand_idx, orig_val, final_val);
 }
@@ -122,7 +121,7 @@ fn main_exploded() {
     let physical_len = SimpleDims::from(&dims).padded_len(device.max_wg_size());
     let mut buffer_vec = vec![0.0f32; physical_len];
     let buffer = unsafe { Buffer::new_unchecked(
-        ocl::MEM_READ_WRITE | ocl::MEM_COPY_HOST_PTR,
+        ocl::flags::MEM_READ_WRITE | ocl::flags::MEM_COPY_HOST_PTR,
         physical_len, Some(&buffer_vec), &queue) };
 
     // For verification purposes:
@@ -145,11 +144,12 @@ fn main_exploded() {
         .enq().unwrap();
 
     // (5) Read results from the device into our buffer's [no longer] built-in vector:
-    unsafe { buffer.enqueue_read(Some(&queue), true, 0, &mut buffer_vec, None, None).unwrap(); }
+    // unsafe { buffer.enqueue_read(Some(&queue), true, 0, &mut buffer_vec, None, None).unwrap(); }
 
-    // Check and print an element:
+    unsafe { buffer.cmd().read(&mut buffer_vec).enq().unwrap(); }
+
+    // Print an element:
     let final_val = buffer_vec[rand_idx];
-    assert!((final_val - (orig_val + addend)).abs() < 0.0001);
     println!("The value at index [{}] was '{}' and is now '{}'!", 
         rand_idx, orig_val, final_val);
 }

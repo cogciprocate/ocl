@@ -66,7 +66,7 @@ fn main() {
 		core::get_platform_info(context.platform().clone(), PlatformInfo::Name).unwrap(),
 		core::get_platform_info(context.platform().clone(), PlatformInfo::Vendor).unwrap(),
 		core::get_platform_info(context.platform().clone(), PlatformInfo::Extensions).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 
@@ -265,7 +265,7 @@ fn main() {
 			core::get_device_info(&device, DeviceInfo::PrintfBufferSize).unwrap(),
 			core::get_device_info(&device, DeviceInfo::ImagePitchAlignment).unwrap(),
 			core::get_device_info(&device, DeviceInfo::ImageBaseAddressAlignment).unwrap(),
-			t = util::TAB,
+			t = util::colors::TAB,
 		);
     }
 
@@ -454,7 +454,7 @@ fn main() {
 		core::get_context_info(&context, ContextInfo::Devices).unwrap(),
 		core::get_context_info(&context, ContextInfo::Properties).unwrap(),
 		core::get_context_info(&context, ContextInfo::NumDevices).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
     //
@@ -498,7 +498,7 @@ fn main() {
 		core::get_command_queue_info(&queue, CommandQueueInfo::Device).unwrap(),
 		core::get_command_queue_info(&queue, CommandQueueInfo::ReferenceCount).unwrap(),
 		core::get_command_queue_info(&queue, CommandQueueInfo::Properties).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 
@@ -574,7 +574,7 @@ fn main() {
         core::get_mem_object_info(&buffer, MemInfo::Context).unwrap(),
         core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject).unwrap(),
         core::get_mem_object_info(&buffer, MemInfo::Offset).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 
@@ -626,7 +626,7 @@ fn main() {
  //        core::get_image_info(&image, ImageInfo::Buffer).unwrap(),
  //        core::get_image_info(&image, ImageInfo::NumMipLevels).unwrap(),
  //        core::get_image_info(&image, ImageInfo::NumSamples).unwrap(),
-	// 	t = util::TAB,
+	// 	t = util::colors::TAB,
 	// );
 
 
@@ -655,7 +655,7 @@ fn main() {
             b = begin,
             d = delim,
             e = end,
-            t = util::TAB,
+            t = util::colors::TAB,
         );
 
 		println!("{t}Image Mem:\n\
@@ -678,7 +678,7 @@ fn main() {
 	        core::get_mem_object_info(&buffer, MemInfo::Context).unwrap(),
 	        core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject).unwrap(),
 	        core::get_mem_object_info(&buffer, MemInfo::Offset).unwrap(),
-			t = util::TAB,
+			t = util::colors::TAB,
 		);
 
     // ##################################################
@@ -706,7 +706,7 @@ fn main() {
         core::get_sampler_info(&sampler, SamplerInfo::NormalizedCoords).unwrap(),
         core::get_sampler_info(&sampler, SamplerInfo::AddressingMode).unwrap(),
         core::get_sampler_info(&sampler, SamplerInfo::FilterMode).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
     // ##################################################
@@ -746,7 +746,7 @@ fn main() {
         core::get_program_info(&program, ProgramInfo::Binaries).unwrap(),
         core::get_program_info(&program, ProgramInfo::NumKernels).unwrap(),
         core::get_program_info(&program, ProgramInfo::KernelNames).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 	//
@@ -818,7 +818,7 @@ fn main() {
         core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildOptions).unwrap(),
         core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildLog).unwrap(),
         core::get_program_build_info(&program, &device, ProgramBuildInfo::BinaryType).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 	//
@@ -853,7 +853,7 @@ fn main() {
         core::get_kernel_info(&kernel, KernelInfo::Context).unwrap(),
         core::get_kernel_info(&kernel, KernelInfo::Program).unwrap(),
         core::get_kernel_info(&kernel, KernelInfo::Attributes).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
     //
@@ -908,7 +908,7 @@ fn main() {
         core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName).unwrap(),
         core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier).unwrap(),
         core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 	//
@@ -950,7 +950,7 @@ fn main() {
         // core::get_kernel_work_group_info(&kernel, &device, 
         // 	KernelWorkGroupInfo::GlobalWorkSize).unwrap(),
     	"[KernelWorkGroupInfo::GlobalWorkSize not avaliable in this configuration]",
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 	//
@@ -982,7 +982,7 @@ fn main() {
         core::get_event_info(&event, EventInfo::ReferenceCount).unwrap(),
         core::get_event_info(&event, EventInfo::CommandExecutionStatus).unwrap(),
         core::get_event_info(&event, EventInfo::Context).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 	//
@@ -1034,7 +1034,7 @@ fn main() {
         core::get_event_profiling_info(&event, ProfilingInfo::Submit).unwrap(),
         core::get_event_profiling_info(&event, ProfilingInfo::Start).unwrap(),
         core::get_event_profiling_info(&event, ProfilingInfo::End).unwrap(),
-		t = util::TAB,
+		t = util::colors::TAB,
 	);
 
 	//
