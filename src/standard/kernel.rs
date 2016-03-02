@@ -21,7 +21,7 @@ pub struct KernelCmd<'k> {
     lws: SimpleDims,
     wait_list: Option<&'k EventList>,
     dest_list: Option<&'k mut ClEventPtrNew>,
-    name: &'k str,
+    // name: &'k str,
 }
 
 impl<'k> KernelCmd<'k> {
@@ -86,7 +86,7 @@ impl<'k> KernelCmd<'k> {
         };
 
         core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(), 
-            gws, self.lws.to_work_size(), self.wait_list, self.dest_list, Some(self.name))
+            &gws, self.lws.to_work_size(), self.wait_list, self.dest_list)
     }
 }
 
@@ -110,7 +110,7 @@ impl<'k> KernelCmd<'k> {
 #[derive(Debug)]
 pub struct Kernel {
     obj_core: KernelCore,
-    name: String,
+    // name: String,
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
     command_queue_obj_core: CommandQueueCore,
@@ -130,7 +130,7 @@ impl Kernel {
 
         Ok(Kernel {
             obj_core: obj_core,
-            name: name,
+            // name: name,
             named_args: HashMap::with_capacity(5),
             arg_count: 0,
             command_queue_obj_core: queue.core_as_ref().clone(),
@@ -319,7 +319,7 @@ impl Kernel {
     pub fn cmd<'k>(&'k self) -> KernelCmd<'k> {
         KernelCmd { queue: &self.command_queue_obj_core, kernel: &self.obj_core, 
             gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
-            wait_list: None, dest_list: None, name: &self.name }
+            wait_list: None, dest_list: None }
     }
 
 
@@ -403,8 +403,8 @@ impl Kernel {
         };
 
         core::enqueue_kernel::<EventList>(&self.command_queue_obj_core, &self.obj_core,
-            self.gws.dim_count(), self.gwo.to_work_offset(), gws, self.lws.to_work_size(), 
-            None, None, Some(&self.name)) .expect("ocl::Kernel::enqueue")
+            self.gws.dim_count(), self.gwo.to_work_offset(), &gws, self.lws.to_work_size(), 
+            None, None) .expect("ocl::Kernel::enqueue")
     }
 
     /// Permanently changes the default queue.
@@ -512,17 +512,14 @@ impl Kernel {
     fn new_arg<T: OclNum>(&mut self, arg: KernelArg<T>) -> u32 {
         let arg_idx = self.arg_count;
 
-        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, 
-            arg,
-            Some(&self.name)
-        ).unwrap();
+        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg).unwrap();
 
         self.arg_count += 1;
         arg_idx
     } 
 
     fn set_arg<T: OclNum>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
-        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg, Some(&self.name))
+        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
     }
 
     pub fn core_as_ref(&self) -> &KernelCore {

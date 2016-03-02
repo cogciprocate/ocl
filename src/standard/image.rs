@@ -168,7 +168,6 @@ impl Image {
     ///
     /// The new queue must be associated with a valid device.
     ///
-    /// [UNSTABLE]: Likely to be removed in favor of the upcoming `::cmd` method.
     pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Image {
         self.command_queue_obj_core = queue.core_as_ref().clone();
         self

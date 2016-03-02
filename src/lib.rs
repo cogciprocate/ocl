@@ -85,6 +85,19 @@ pub mod flags {
 }
 
 pub mod enums {
-	//! Enumerators for information requests and settings.
-	pub use core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo, DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo, ContextInfoOrPropertiesPointerType, PartitionProperty, CommandQueueInfo, ChannelType, MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo, ProgramBuildInfo, BuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier, KernelArgAccessQualifier, KernelWorkGroupInfo, EventInfo, CommandType, CommandExecutionStatus, BufferCreateType, ProfilingInfo};
+	//! Enumerators for settings and information requests.
+
+	// API enums.
+	pub use core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo,
+		DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo,
+		ContextInfoOrPropertiesPointerType, PartitionProperty, CommandQueueInfo, ChannelType, 
+		MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo,
+		ProgramBuildInfo, BuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier, 
+		KernelArgAccessQualifier, KernelWorkGroupInfo, EventInfo, CommandType, 
+		CommandExecutionStatus, BufferCreateType, ProfilingInfo};
+	// Custom enums.
+	pub use core::{KernelArg, ContextProperty, PlatformInfoResult, DeviceInfoResult, 
+		ContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult, 
+		SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, 
+		KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
 }

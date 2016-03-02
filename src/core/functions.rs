@@ -374,7 +374,7 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 //
 // [NOTE]: Leave commented print statements intact until more `ContextProperties 
 // variants are implemented.
-pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, device_ids: &Vec<D>,
+pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, device_ids: &[D],
             pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
         ) -> OclResult<Context> 
 {
@@ -576,7 +576,7 @@ pub fn get_command_queue_info(queue: &CommandQueue, info_request: CommandQueueIn
 //============================================================================
 
 /// Returns a new buffer pointer with size (bytes): `len` * sizeof(T).
-pub fn create_buffer<T: OclNum>(
+pub unsafe fn create_buffer<T: OclNum>(
             context: &Context,
             flags: MemFlags,
             len: usize,
@@ -598,17 +598,17 @@ pub fn create_buffer<T: OclNum>(
         None => ptr::null_mut(),
     };
 
-    let buf_ptr = unsafe { cl_h::clCreateBuffer(
+    let buf_ptr = cl_h::clCreateBuffer(
         context.as_ptr(), 
         flags.bits() as cl_mem_flags,
         len * mem::size_of::<T>(),
         host_ptr, 
         &mut errcode,
-    ) };
+    );
     try!(errcode_try("create_buffer()", errcode));
     debug_assert!(!buf_ptr.is_null());
 
-    unsafe { Ok(Mem::from_fresh_ptr(buf_ptr)) }
+    Ok(Mem::from_fresh_ptr(buf_ptr))
 }
 
 /// [UNTESTED]
@@ -1149,7 +1149,7 @@ pub unsafe fn release_kernel(kernel: &Kernel) -> OclResult<()> {
 ///
 /// TODO: Remove `name` parameter and lookup name with `get_kernel_info` instead.
 pub fn set_kernel_arg<T: OclNum>(kernel: &Kernel, arg_index: u32, arg: KernelArg<T>,
-            name: Option<&str>) -> OclResult<()>
+        ) -> OclResult<()>
 {
     // [DEBUG] LEAVE THIS HERE:
     // println!("SET_KERNEL_ARG: KERNELARG: {:?}", arg);
@@ -1199,9 +1199,13 @@ pub fn set_kernel_arg<T: OclNum>(kernel: &Kernel, arg_index: u32, arg: KernelArg
             arg_value,
     ) };
 
-    let err_pre = format!("clSetKernelArg('{}'):", name.unwrap_or(""));
-
-    errcode_try(&err_pre, err)
+    if err != 0 {
+        let name = try!(get_kernel_name(&kernel));
+        let err_pre = format!("clSetKernelArg('{}'):", name);
+        errcode_try(&err_pre, err)
+    } else {
+        Ok(())
+    }
 } 
 
 /// Get kernel info.
@@ -1230,7 +1234,7 @@ pub fn get_kernel_info(obj: &Kernel, info_request: KernelInfo,
     ) };    
     // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
     errcode_try("clGetKernelInfo()", errcode)
-        .and(Ok(KernelInfoResult::TemporaryPlaceholderVariant(result)))
+        .and(KernelInfoResult::from_bytes(info_request, result))
 }
 
 /// Get kernel arg info.
@@ -2133,21 +2137,20 @@ pub fn enqueue_kernel<L: AsRef<EventList>>(
             kernel: &Kernel,
             work_dims: u32,
             global_work_offset: Option<[usize; 3]>,
-            global_work_dims: [usize; 3],
+            global_work_dims: &[usize; 3],
             local_work_dims: Option<[usize; 3]>,
             wait_list: Option<L>, 
             new_event: Option<&mut ClEventPtrNew>,
-            kernel_name: Option<&str>
+            // kernel_name: Option<&str>
         ) -> OclResult<()> 
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
     let gwo = resolve_work_dims(&global_work_offset);
-    let gws = &global_work_dims as *const size_t;
+    let gws = global_work_dims as *const size_t;
     let lws = resolve_work_dims(&local_work_dims);
 
-    unsafe {
-        let errcode = cl_h::clEnqueueNDRangeKernel(
+    let errcode = unsafe { cl_h::clEnqueueNDRangeKernel(
             command_queue.as_ptr(),
             kernel.as_ptr() as cl_kernel,
             work_dims,
@@ -2157,10 +2160,14 @@ pub fn enqueue_kernel<L: AsRef<EventList>>(
             wait_list_len,
             wait_list_ptr,
             new_event_ptr,
-        );
+    ) };
 
-        let errcode_pre = format!("clEnqueueNDRangeKernel('{}'):", kernel_name.unwrap_or(""));
+    if errcode != 0 {
+        let name = try!(get_kernel_name(&kernel));
+        let errcode_pre = format!("clEnqueueNDRangeKernel('{}'):", name);
         errcode_try(&errcode_pre, errcode)
+    } else {
+        Ok(())
     }
 }
 
@@ -2336,6 +2343,12 @@ pub fn get_first_platform() -> OclResult<PlatformId> {
     } else {
         Ok(platform_list[0].clone())
     }
+}
+
+/// Get a kernel name.
+pub fn get_kernel_name(kernel: &Kernel) -> OclResult<String> {
+    let result = try!(get_kernel_info(kernel, KernelInfo::FunctionName));
+    Ok(result.to_string())
 }
 
 /// Creates, builds, and returns a new program pointer from `src_strings`.

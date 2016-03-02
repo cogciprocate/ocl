@@ -92,7 +92,7 @@ fn main_explained() {
 #[allow(dead_code)]
 fn main_exploded() {
     use ocl::{Platform, Device, Context, DeviceSpecifier, Queue, Program,
-        Buffer, Kernel, SimpleDims};
+        Buffer, Kernel};
 
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -108,19 +108,24 @@ fn main_exploded() {
         .platform(platform)
         .devices(DeviceSpecifier::Single(device.clone()))
         .build().unwrap();
-    let queue = Queue::new(&context, device).unwrap();
     let program = Program::builder()
         .devices(&[device.clone()])
         .src(src)
         .build(&context).unwrap();
-    let dims = [500000];
+    let queue = Queue::new(&context, device).unwrap();
+    let dims = [500000]; 
+
+    // [NOTE]: At this point we could manually assemble a ProQue by calling:
+    // `ProQue::new(context, queue, program, Some(dims))`. One might want to do
+    // this when only one program and queue are all that's needed. Wrapping it
+    // up into a single struct makes passing it around much simpler.
 
     // (2) Create a `Buffer` with a built-in `Vec` (created separately here):
-    let physical_len = SimpleDims::from(&dims).padded_len(device.max_wg_size());
-    let mut buffer_vec = vec![0.0f32; physical_len];
+    // [NOTE]: If there were more than one dimension we'd use the product as the length.
+    let mut buffer_vec = vec![0.0f32; dims[0]];
     let buffer = unsafe { Buffer::new_unchecked(
         ocl::flags::MEM_READ_WRITE | ocl::flags::MEM_COPY_HOST_PTR,
-        physical_len, Some(&buffer_vec), &queue) };
+        dims[0], Some(&buffer_vec), &queue) };
 
     // For verification purposes:
     let (addend, rand_idx, orig_val) = (100.0f32, 200057, buffer_vec[200057]);
@@ -165,7 +170,67 @@ fn main_exploded() {
 /// module which sports an API equivalent to the OpenCL C API. If you've used
 /// OpenCL before, this will look the most familiar to you.
 ///
-#[allow(dead_code)]
+#[allow(dead_code, unused_variables, unused_mut)]
 fn main_cored() {
+    use std::ffi::CString;
+    use ocl::{self, core, flags};
+    use ocl::enums::KernelArg;
 
+    let src = r#"
+        __kernel void add(__global float* buffer, float addend) {
+            buffer[get_global_id(0)] += addend;
+        }
+    "#;
+
+    // (1) Define which platform and device(s) to use. Create a context,
+    // queue, and program then define some dims..
+    let platform_ids = core::get_platform_ids().unwrap();
+    let platform_id = platform_ids[0];
+    let device_ids = core::get_device_ids(&platform_id, 
+        Some(ocl::flags::DEVICE_TYPE_ALL), None).unwrap();
+    let device_id = device_ids[0];
+    let context_properties = ocl::ContextProperties::new().platform(platform_id);
+    let context = core::create_context(&Some(context_properties), 
+        &[device_id], None, None).unwrap();
+    let src_cstring = CString::new(src).unwrap();
+    let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
+    core::build_program(&program, &[device_id], &CString::new("").unwrap(), 
+        None, None).unwrap();
+    let queue = core::create_command_queue(&context, &device_id).unwrap();
+    let dims = [500000, 1, 1usize];
+
+    // (2) Create a `Buffer` with a built-in `Vec` (created separately here):
+    // Again, we're cheating on the length calculation.
+    let mut buffer_vec = vec![0.0f32; dims[0]];
+    let buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE | 
+        flags::MEM_COPY_HOST_PTR, dims[0], Some(&buffer_vec)).unwrap() };
+
+    // For verification purposes:
+    let (addend, rand_idx, orig_val) = (100.0f32, 200057, buffer_vec[200057]);
+
+    // (3) Create a kernel with arguments matching those in the source above:
+    let kernel = core::create_kernel(&program, "add").unwrap();
+    core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&buffer)).unwrap();
+    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(&addend)).unwrap();
+
+    // (4) Run the kernel (default parameters shown for elucidation purposes):
+    core::enqueue_kernel(&queue, &kernel, 1, None, &dims, 
+        None, None::<core::EventList>, None).unwrap();
+
+
+    // // (5) Read results from the device into our buffer's [no longer] built-in vector:
+    // buffer.cmd()
+    //     .queue(&queue)
+    //     .block(true)
+    //     .offset(0)
+    //     .read(&mut buffer_vec)
+    //     .ewait_opt(None)
+    //     .enew_opt(None)
+    //     .enq().unwrap(); 
+    
+
+    // // Print an element:
+    // let final_val = buffer_vec[rand_idx];
+    // println!("The value at index [{}] was '{}' and is now '{}'!", 
+    //     rand_idx, orig_val, final_val);
 }

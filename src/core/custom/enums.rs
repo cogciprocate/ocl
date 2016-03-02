@@ -36,7 +36,7 @@ use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
-use core::{OclNum, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo, Context, Mem, Sampler, CommandQueueProperties};
+use core::{OclNum, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo, Context, Mem, Sampler, CommandQueueProperties, KernelInfo};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -683,7 +683,7 @@ impl std::fmt::Display for ProgramBuildInfoResult {
 /// [UNSTABLE][INCOMPLETE] A kernel info result.
 pub enum KernelInfoResult {
     TemporaryPlaceholderVariant(Vec<u8>),
-    FunctionName(TemporaryPlaceholderType),
+    FunctionName(String),
     NumArgs(TemporaryPlaceholderType),
     ReferenceCount(TemporaryPlaceholderType),
     Context(TemporaryPlaceholderType),
@@ -693,15 +693,30 @@ pub enum KernelInfoResult {
 }
 
 impl KernelInfoResult {
+    pub fn from_bytes(request_param: KernelInfo, result_bytes: Vec<u8>
+            ) -> OclResult<KernelInfoResult>
+    {
+        Ok(match request_param {
+            // KernelInfo::MaxWorkGroupSize => {
+            //     let r0 = unsafe { util::bytes_to::<usize>(&result_bytes) };
+            //     let size = unsafe { util::bytes_into::<usize>(result_bytes) };
+            //     debug_assert_eq!(r0, size);
+            //     // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
+            //     KernelInfoResult::MaxWorkGroupSize(size)
+            // },
+            KernelInfo::FunctionName => {
+                KernelInfoResult::FunctionName(try!(String::from_utf8(result_bytes)))
+            },
+            _ => KernelInfoResult::TemporaryPlaceholderVariant(result_bytes),
+        })
+    }
+
     // TODO: IMPLEMENT THIS PROPERLY.
     pub fn to_string(&self) -> String {
         match self {
-            &KernelInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               to_string_retarded(v)
-            },
-            &KernelInfoResult::Error(ref err) => {
-               err.description().into()
-            },
+            &KernelInfoResult::TemporaryPlaceholderVariant(ref v) => to_string_retarded(v),
+            &KernelInfoResult::FunctionName(ref s) => s.clone(),
+            &KernelInfoResult::Error(ref err) => err.description().into(),
             _ => panic!("KernelInfoResult: Converting this variant to string not yet implemented."),
         }
     }

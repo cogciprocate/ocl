@@ -523,8 +523,7 @@ impl<T: OclNum> Buffer<T> {
                 queue: &Queue) -> Buffer<T> 
     {
         let obj_core = core::create_buffer(queue.context_core_as_ref(), flags, len,
-            host_ptr)
-            .expect("[FIXME: TEMPORARY]: Buffer::_new():");
+            host_ptr).expect("[FIXME: TEMPORARY]: Buffer::_new():");
 
         Buffer {
             obj_core: obj_core,
@@ -537,9 +536,8 @@ impl<T: OclNum> Buffer<T> {
     // Consolidated constructor for Buffers without vectors.
     /// [FIXME]: Return result.
     fn _new(len: usize, queue: &Queue) -> Buffer<T> {
-        let obj_core = core::create_buffer::<T>(queue.context_core_as_ref(),
-            core::MEM_READ_WRITE, len, None)
-            .expect("Buffer::_new()");
+        let obj_core = unsafe { core::create_buffer::<T>(queue.context_core_as_ref(),
+            core::MEM_READ_WRITE, len, None).expect("Buffer::_new()") };
 
         Buffer {            
             obj_core: obj_core,
@@ -552,9 +550,9 @@ impl<T: OclNum> Buffer<T> {
     // Consolidated constructor for Buffers with vectors.
     /// [FIXME]: Return result.
     fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let obj_core = core::create_buffer(queue.context_core_as_ref(), 
+        let obj_core = unsafe { core::create_buffer(queue.context_core_as_ref(), 
             core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec))
-            .expect("Buffer::_with_vec()");
+            .expect("Buffer::_with_vec()") };
 
         Buffer {        
             obj_core: obj_core,
@@ -947,7 +945,6 @@ impl<T: OclNum> Buffer<T> {
     /// not just for the one call. Changing the queue is cheap so feel free
     /// to change as often as needed.
     ///
-    /// [UNSTABLE]: Likely to be depricated in favor of `::cmd`.
     pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Buffer<T> {
         // [FIXME]: Set this up:
         // assert!(queue.device == self.queue.device);
