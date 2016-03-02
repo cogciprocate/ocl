@@ -50,6 +50,16 @@ pub enum OpKind<'b, T: 'b> {
     Copy { dst_buffer: &'b MemCore },
     Fill { pattern: &'b [T], pattern_size: usize },
     CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
+} 
+
+impl<'b, T: 'b> OpKind<'b, T> {
+    fn is_unspec(&'b self) -> bool {
+        if let &OpKind::Unspecified = self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 pub enum OpShape {
@@ -67,20 +77,20 @@ pub enum OpShape {
 
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
-pub struct BufferCmd<'b, T: 'b + OclNum, N: 'b + ClEventPtrNew> {
+pub struct BufferCmd<'b, T: 'b + OclNum> {
     queue: &'b CommandQueueCore,
     obj_core: &'b MemCore,
     block: bool,
     kind: OpKind<'b, T>,
     shape: OpShape,    
     wait_list: Option<&'b EventList>,
-    dest_list: Option<&'b mut N>,
+    dest_list: Option<&'b mut ClEventPtrNew>,
     mem_len: usize,
 }
 
-impl<'b, T: 'b + OclNum, N: 'b + ClEventPtrNew> BufferCmd<'b, T, N> {
+impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     pub fn new(queue: &'b CommandQueueCore, obj_core: &'b MemCore, mem_len: usize
-            ) -> BufferCmd<'b, T, N> 
+            ) -> BufferCmd<'b, T> 
     {
         BufferCmd {
             queue: queue,
@@ -95,14 +105,30 @@ impl<'b, T: 'b + OclNum, N: 'b + ClEventPtrNew> BufferCmd<'b, T, N> {
     }
 
     /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T, N> {
+    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T> {
         self.queue = queue.core_as_ref();
         self
     }
 
     /// Specifies whether or not to block thread until completion.
-    pub fn block(mut self, block: bool) -> BufferCmd<'b, T, N> {
+    pub fn block(mut self, block: bool) -> BufferCmd<'b, T> {
         self.block = block;
+        self
+    }
+
+    /// Sets the linear offset for an operation.
+    /// 
+    /// # Panics
+    ///
+    /// The 'shape' may not have already been set to rectangular by the 
+    /// `::rect` function.
+    pub fn offset(mut self, offset: usize)  -> BufferCmd<'b, T> {
+        if let OpShape::Rect { .. } = self.shape {
+            panic!("ocl::BufferCmd::offset(): This command builder has already been set to \
+                rectangular mode with '::rect`. You cannot call both '::offset' and '::rect'.");
+        }
+
+        self.shape = OpShape::Lin { offset: offset };
         self
     }
 
@@ -112,13 +138,17 @@ impl<'b, T: 'b + OclNum, N: 'b + ClEventPtrNew> BufferCmd<'b, T, N> {
     ///
     /// If block has been set to false, caller must ensure that the container
     /// referred to by `dst_data` lives until the call completes.
-    pub unsafe fn read(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T, N> {
+    pub unsafe fn read(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind
+            already set for this command.");
         self.kind = OpKind::Read { data: dst_data };
         self
     }
 
     /// Specifies that this command will be a write.
-    pub fn write(mut self, src_data: &'b [T]) -> BufferCmd<'b, T, N> {
+    pub fn write(mut self, src_data: &'b [T]) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind
+            already set for this command.");
         self.kind = OpKind::Write { data: src_data };
         self
     }
@@ -126,41 +156,73 @@ impl<'b, T: 'b + OclNum, N: 'b + ClEventPtrNew> BufferCmd<'b, T, N> {
     /// Specifies that this command will be a copy.
     ///
     /// If `.block(..)` has been set it will be ignored.
-    pub fn copy(mut self, dst_buffer: &'b Buffer<T>) -> BufferCmd<'b, T, N> {
+    pub fn copy(mut self, dst_buffer: &'b Buffer<T>) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind
+            already set for this command.");
         self.kind = OpKind::Copy { dst_buffer: dst_buffer.core_as_ref() }; 
         self
     }
 
-    /// Specifies that this command will be a copy.
+    /// Specifies that this command will be a copy to image.
     ///
     /// If `.block(..)` has been set it will be ignored.
-    pub fn fill(mut self, dst_buffer: &'b Buffer<T>) -> BufferCmd<'b, T, N> {
-        self.kind = OpKind::Copy { dst_buffer: dst_buffer.core_as_ref() }; 
+    pub fn copy_to_image(mut self, image: &'b MemCore, dst_origin: [usize; 3], 
+                region: [usize; 3]) -> BufferCmd<'b, T> 
+    {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind
+            already set for this command.");
+        self.kind = OpKind::CopyToImage { image: image, dst_origin: dst_origin, region: region }; 
         self
     }
 
+    /// Specifies that this command will be a fill.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    pub fn fill(mut self, pattern: &'b [T], pattern_size: usize) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind
+            already set for this command.");
+        self.kind = OpKind::Fill { pattern: pattern, pattern_size: pattern_size }; 
+        self
+    }
+
+    /// Specifies that this will be a rectangularly shaped operation 
+    /// (the default being linear).
+    ///
+    /// Only valid for 'read', 'write', and 'copy' modes. Will error if used
+    /// with 'fill' or 'copy to image'.
+    pub fn rect(mut self, src_origin: [usize; 3], dst_origin: [usize; 3], region: [usize; 3],
+                src_row_pitch: usize, src_slc_pitch: usize, dst_row_pitch: usize, 
+                dst_slc_pitch: usize) -> BufferCmd<'b, T>
+    {
+        self.shape = OpShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
+            region: region, src_row_pitch: src_row_pitch, src_slc_pitch: src_slc_pitch,
+            dst_row_pitch: dst_row_pitch, dst_slc_pitch: dst_slc_pitch };
+        self
+    }
+
+
     /// Specifies the list of events to wait on before the command will run.
-    pub fn waitl(mut self, wait_list: &'b EventList) -> BufferCmd<'b, T, N> {
+    pub fn ewait(mut self, wait_list: &'b EventList) -> BufferCmd<'b, T> {
         self.wait_list = Some(wait_list);
+        self
+    }
+
+    /// Specifies a list of events to wait on before the command will run.
+    pub fn ewait_opt(mut self, wait_list: Option<&'b EventList>) -> BufferCmd<'b, T> {
+        self.wait_list = wait_list;
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn newev(mut self, dest_list: &'b mut N) -> BufferCmd<'b, T, N> {
+    pub fn enew(mut self, dest_list: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
         self.dest_list = Some(dest_list);
-        self
-    }
-
-    /// Specifies a list of events to wait on before the command will run.
-    pub fn waitl_opt(mut self, wait_list: Option<&'b EventList>) -> BufferCmd<'b, T, N> {
-        self.wait_list = wait_list;
         self
     }
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command.
-    pub fn newev_opt(mut self, dest_list: Option<&'b mut N>) -> BufferCmd<'b, T, N> {
+    pub fn enew_opt(mut self, dest_list: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
         self.dest_list = dest_list;
         self
     }
@@ -441,7 +503,7 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// Run `.enq()` to enqueue the command.
     ///
-    pub fn cmd<'b, N: ClEventPtrNew>(&'b self) -> BufferCmd<'b, T, N> {
+    pub fn cmd<'b>(&'b self) -> BufferCmd<'b, T> {
         BufferCmd::new(&self.command_queue_obj_core, &self.obj_core, self.len)
     }
 
@@ -476,7 +538,7 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// Errors upon any OpenCL error.
     pub unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &mut [T],
-                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
+                wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         // assert!(offset < self.len(), "Buffer::read{{_async}}(): Offset out of range.");
         // assert!(data.len() <= self.len() - offset, 
@@ -522,7 +584,7 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// Errors upon any OpenCL error.
     pub fn enqueue_write(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &[T], 
-                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
+                wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {        
         // assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
         // assert!(data.len() <= self.len() - offset, 
@@ -592,7 +654,7 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// Errors if this Buffer contains no vector or upon any OpenCL error.
     pub unsafe fn enqueue_fill_vec(&mut self, block: bool, wait_list: Option<&EventList>, 
-                dest_list: Option<&mut EventList>) -> OclResult<()>
+                dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
@@ -627,7 +689,7 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// Errors if this Buffer contains no vector or upon any OpenCL error.
     pub fn enqueue_flush_vec(&mut self, block: bool, wait_list: Option<&EventList>, 
-                dest_list: Option<&mut EventList>) -> OclResult<()>
+                dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
@@ -880,7 +942,7 @@ impl<T: OclNum> Buffer<T> {
 
         let vec = self.vec.as_mut().expect("Buffer::print()");
 
-        unsafe { core::enqueue_read_buffer::<T, EventList, EventList>(
+        unsafe { core::enqueue_read_buffer::<T, EventList>(
             &self.command_queue_obj_core, &self.obj_core, true, idx_range.start, 
             &mut vec[idx_range.clone()], None, None).unwrap() };
         util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);

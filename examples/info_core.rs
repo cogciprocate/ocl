@@ -35,16 +35,14 @@ fn main() {
 		.gws(&dims)
         .arg_scl(10.0f32)
         .arg_buf(&buffer);
-    let mut event_list = EventList::new();
 
-    kernel.cmd().newev(&mut event_list).enq().unwrap();
+    let mut event_list = EventList::new();
+    kernel.cmd().enew(&mut event_list).enq().unwrap();
     event_list.wait();
 
     let mut event = Event::empty();
-    buffer.cmd().write(&[1.0; 10]).newev(&mut event).enq().unwrap();
+    buffer.cmd().write(&vec![0.0; dims[0]]).enew(&mut event).enq().unwrap();
     event.wait();
-
-    printlnc!(red: "{}", event);
 
 	println!("############### OpenCL [Default Platform] [Default Device] Info ################");
 	print!("\n");

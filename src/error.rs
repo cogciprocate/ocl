@@ -43,6 +43,22 @@ impl self::Error {
     pub fn errcode<T, S: Into<String>>(code: i32, desc: S) -> self::Result<T> {
         Err(Error::ErrCode(code, desc.into()))
     }
+
+    /// If this is a `String` variant, concatenate `txt` to the front of the
+    /// contained string. Otherwise, do nothing at all.
+    pub fn prepend<'s, S: AsRef<&'s str>>(&'s mut self, txt: S) {
+        match self {
+            &mut Error::String(ref mut string) => {
+                let old_string_copy = string.clone();
+                string.clear();
+                string.push_str(txt.as_ref());
+                string.push_str(&old_string_copy);
+            },
+            _ => (),
+        }
+    }
+
+    
 }
 
 impl std::error::Error for self::Error {

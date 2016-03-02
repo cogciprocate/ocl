@@ -9,7 +9,8 @@ use std::ops::{Deref, DerefMut};
 use error::{Result as OclResult};
 use standard::{self, Context, Queue, ImageBuilder, EventList};
 use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor, 
-    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, CommandQueue as CommandQueueCore};
+    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, CommandQueue as CommandQueueCore,
+    ClEventPtrNew};
 
 
 /// An Image. 
@@ -82,7 +83,7 @@ impl Image {
     ///
     pub unsafe fn enqueue_read<T>(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
                 region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &mut [T],
-                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
+                wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         let command_queue = match queue {
             Some(q) => q.core_as_ref(),
@@ -102,7 +103,7 @@ impl Image {
     /// for more detailed information.
     pub fn enqueue_write<T>(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
                 region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &[T], 
-                wait_list: Option<&EventList>, dest_list: Option<&mut EventList>) -> OclResult<()>
+                wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         let command_queue = match queue {
             Some(q) => q.core_as_ref(),

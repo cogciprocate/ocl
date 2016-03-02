@@ -75,7 +75,7 @@ impl EventList {
         &self.event_list_core
     }
 
-    // Returns a mutableb reference to the underlying `core` event list.
+    // Returns a mutable reference to the underlying `core` event list.
     pub fn core_as_mut(&mut self) -> &mut EventListCore {
         &mut self.event_list_core
     }
@@ -138,7 +138,8 @@ impl EventList {
     /// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
     /// is ever called.
     ///
-    /// TODO: Create a safer type wrapper for `callback_receiver`
+    /// TODO: Create a safer type wrapper for `callback_receiver`.
+    /// TODO: Move this method to `Event`.
     pub unsafe fn set_callback<T>(&self, 
                 // callback_receiver: extern fn (cl_event, i32, *mut c_void),
                 callback_receiver: Option<EventCallbackFn>,

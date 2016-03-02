@@ -13,64 +13,64 @@ use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, S
 
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
-pub struct KernelCmd<'k, N: 'k + ClEventPtrNew> {
+pub struct KernelCmd<'k> {
     queue: &'k CommandQueueCore,
     kernel: &'k KernelCore,
     gwo: SimpleDims,
     gws: SimpleDims,
     lws: SimpleDims,
     wait_list: Option<&'k EventList>,
-    dest_list: Option<&'k mut N>,
+    dest_list: Option<&'k mut ClEventPtrNew>,
     name: &'k str,
 }
 
-impl<'k, N: 'k + ClEventPtrNew> KernelCmd<'k, N> {
+impl<'k> KernelCmd<'k> {
     /// Specifies a queue to use for this call only.
-    pub fn queue<Q: AsRef<CommandQueueCore>>(mut self, queue: &'k Q) -> KernelCmd<'k, N> {
+    pub fn queue<Q: AsRef<CommandQueueCore>>(mut self, queue: &'k Q) -> KernelCmd<'k> {
         self.queue = queue.as_ref();
         self
     }
 
     /// Specifies a global work offset for this call only.
-     pub fn gwo<D: Into<SimpleDims>>(mut self, gwo: D) -> KernelCmd<'k, N> {
+     pub fn gwo<D: Into<SimpleDims>>(mut self, gwo: D) -> KernelCmd<'k> {
         self.gwo = gwo.into();
         self
     }
 
     /// Specifies a global work size for this call only.
-    pub fn gws<D: Into<SimpleDims>>(mut self, gws: D) -> KernelCmd<'k, N> {
+    pub fn gws<D: Into<SimpleDims>>(mut self, gws: D) -> KernelCmd<'k> {
         self.gws = gws.into();
         self
     }
 
     /// Specifies a local work size for this call only.
-    pub fn lws<D: Into<SimpleDims>>(mut self, lws: D) -> KernelCmd<'k, N> {
+    pub fn lws<D: Into<SimpleDims>>(mut self, lws: D) -> KernelCmd<'k> {
         self.lws = lws.into();
         self
     }
 
     /// Specifies the list of events to wait on before the command will run.
-    pub fn waitl(mut self, wait_list: &'k EventList) -> KernelCmd<'k, N> {
+    pub fn ewait(mut self, wait_list: &'k EventList) -> KernelCmd<'k> {
         self.wait_list = Some(wait_list);
         self
     }
 
-    /// Specifies the destination list for a new, optionally created event
-    /// associated with this command.
-    pub fn newev(mut self, new_event_list: &'k mut N) -> KernelCmd<'k, N> {
-        self.dest_list = Some(new_event_list);
+    /// Specifies a list of events to wait on before the command will run.
+    pub fn ewait_opt(mut self, wait_list: Option<&'k EventList>) -> KernelCmd<'k> {
+        self.wait_list = wait_list;
         self
     }
 
-    /// Specifies a list of events to wait on before the command will run.
-    pub fn waitl_opt(mut self, wait_list: Option<&'k EventList>) -> KernelCmd<'k, N> {
-        self.wait_list = wait_list;
+    /// Specifies the destination list or empty event for a new, optionally 
+    /// created event associated with this command.
+    pub fn enew(mut self, new_event_dest: &'k mut ClEventPtrNew) -> KernelCmd<'k> {
+        self.dest_list = Some(new_event_dest);
         self
     }
 
     /// Specifies a destination list for a new, optionally created event
     /// associated with this command.
-    pub fn newev_opt(mut self, new_event_list: Option<&'k mut N>) -> KernelCmd<'k, N> {
+    pub fn enew_opt(mut self, new_event_list: Option<&'k mut ClEventPtrNew>) -> KernelCmd<'k> {
         self.dest_list = new_event_list;
         self
     }
@@ -309,11 +309,19 @@ impl Kernel {
     }
 
 
-    pub fn cmd<'k, N: ClEventPtrNew>(&'k self) -> KernelCmd<'k, N> {
+    // pub fn cmd<'k, N: ClEventPtrNew>(&'k self) -> KernelCmd<'k, N> {
+    //     KernelCmd { queue: &self.command_queue_obj_core, kernel: &self.obj_core, 
+    //         gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
+    //         wait_list: None, dest_list: None, name: &self.name }
+    // }
+
+
+    pub fn cmd<'k>(&'k self) -> KernelCmd<'k> {
         KernelCmd { queue: &self.command_queue_obj_core, kernel: &self.obj_core, 
             gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
             wait_list: None, dest_list: None, name: &self.name }
     }
+
 
     // /// Enqueues kernel on the default command queue.
     // ///
@@ -394,7 +402,7 @@ impl Kernel {
                 .expect("ocl::Kernel::enqueue"),
         };
 
-        core::enqueue_kernel::<EventList, EventList>(&self.command_queue_obj_core, &self.obj_core,
+        core::enqueue_kernel::<EventList>(&self.command_queue_obj_core, &self.obj_core,
             self.gws.dim_count(), self.gwo.to_work_offset(), gws, self.lws.to_work_size(), 
             None, None, Some(&self.name)) .expect("ocl::Kernel::enqueue")
     }

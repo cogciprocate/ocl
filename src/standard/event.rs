@@ -127,6 +127,11 @@ impl DerefMut for Event {
 
 unsafe impl ClEventPtrNew for Event {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_h::cl_event> {
+        if !self.is_empty() {
+            return OclError::err("ocl::Event: Attempting to use a non-empty event as a new event
+                is not allowed. Please create a new, empty, event with ocl::Event::empty().");
+        }
+
         unsafe { 
             self.0 = Some(EventCore::null());
             Ok(self.0.as_mut().unwrap().as_ptr_mut())

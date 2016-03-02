@@ -61,14 +61,17 @@ fn main() {
 	    		.device(device)
 	    		.build(&context).unwrap();
 			let kernel = Kernel::new("multiply", &program, &queue).unwrap()
-					.gws(&dims)
-			        .arg_buf(&buffer)
-			        .arg_scl(10.0f32);
+				.gws(&dims)
+		        .arg_buf(&buffer)
+		        .arg_scl(10.0f32);
+			        
 			let mut event_list = EventList::new();
+			kernel.cmd().enew(&mut event_list).enq().unwrap();
+			event_list.wait();
 
-			kernel.cmd().newev(&mut event_list).enq().unwrap();
-			let event = event_list.last_clone().unwrap();
-			event_list.wait();			
+			let mut event = Event::empty();
+		    buffer.cmd().write(&vec![0.0; dims[0]]).enew(&mut event).enq().unwrap();
+		    event.wait();
 
 			// Print device info:
 			print_device_info(&device);

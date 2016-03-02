@@ -27,8 +27,6 @@ fn main() {
     main_explained();
     main_exploded();
     main_cored();
-
-    ////////// See the original file for more //////////
 }
 
 
@@ -139,8 +137,8 @@ fn main_exploded() {
         .gwo(kernel.get_gwo())
         .gws(&dims)
         .lws(kernel.get_lws())
-        .waitl_opt(None)
-        .newev_opt(None)
+        .ewait_opt(None)
+        .enew_opt(None)
         .enq().unwrap();
 
     // (5) Read results from the device into our buffer's [no longer] built-in vector:

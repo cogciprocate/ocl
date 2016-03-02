@@ -116,7 +116,7 @@ fn test_events() {
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
         // kernel.enqueue_events(None, Some(&mut kernel_event)).unwrap();
-        kernel.cmd().newev(&mut kernel_event).enq().unwrap();
+        kernel.cmd().enew(&mut kernel_event).enq().unwrap();
 
         let mut read_event = EventList::new();
         

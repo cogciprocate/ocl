@@ -100,7 +100,7 @@ fn main() {
 					let mut event_list = EventList::new();
 
 					// Change queues around just for fun:
-					kernel.cmd().newev(&mut event_list).enq().unwrap();
+					kernel.cmd().enew(&mut event_list).enq().unwrap();
 					kernel.set_queue(&queueball_th[1]).enqueue();
 					kernel.set_queue(&queueball_th[2]).enqueue();
 
