@@ -77,7 +77,7 @@ fn main() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.cmd().dest(&mut kernel_event).enq().unwrap();
+        kernel.cmd().newev(&mut kernel_event).enq().unwrap();
 
         let mut read_event = EventList::new();
         

@@ -139,15 +139,15 @@ fn main_exploded() {
         .gwo(kernel.get_gwo())
         .gws(&dims)
         .lws(kernel.get_lws())
-        .wait_opt(None)
-        .dest_opt(None)
+        .waitl_opt(None)
+        .newev_opt(None)
         .enq().unwrap();
 
     // (5) Read results from the device into our buffer's [no longer] built-in vector:
     // unsafe { buffer.enqueue_read(Some(&queue), true, 0, &mut buffer_vec, None, None).unwrap(); }
 
-    // unsafe { buffer.cmd().read(&mut buffer_vec).enq().unwrap(); }
-    unsafe { buffer.cmd().enq().unwrap(); }
+    unsafe { buffer.cmd().read(&mut buffer_vec).enq().unwrap(); }
+    // unsafe { buffer.cmd().enq().unwrap(); }
 
     // Print an element:
     let final_val = buffer_vec[rand_idx];

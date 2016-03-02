@@ -4,7 +4,7 @@ use std;
 use std::convert::Into;
 use std::collections::HashMap;
 use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
-    KernelInfo, KernelInfoResult};
+    KernelInfo, KernelInfoResult, ClEventPtrNew};
 use error::{Result as OclResult, Error as OclError};
 use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler};
 
@@ -13,65 +13,65 @@ use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, S
 
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
-pub struct KernelCmd<'k> {
+pub struct KernelCmd<'k, N: 'k + ClEventPtrNew> {
     queue: &'k CommandQueueCore,
     kernel: &'k KernelCore,
     gwo: SimpleDims,
     gws: SimpleDims,
     lws: SimpleDims,
     wait_list: Option<&'k EventList>,
-    dest_list: Option<&'k mut EventList>,
+    dest_list: Option<&'k mut N>,
     name: &'k str,
 }
 
-impl<'k> KernelCmd<'k> {
+impl<'k, N: 'k + ClEventPtrNew> KernelCmd<'k, N> {
     /// Specifies a queue to use for this call only.
-    pub fn queue<Q: AsRef<CommandQueueCore>>(mut self, queue: &'k Q) -> KernelCmd<'k> {
+    pub fn queue<Q: AsRef<CommandQueueCore>>(mut self, queue: &'k Q) -> KernelCmd<'k, N> {
         self.queue = queue.as_ref();
         self
     }
 
     /// Specifies a global work offset for this call only.
-     pub fn gwo<D: Into<SimpleDims>>(mut self, gwo: D) -> KernelCmd<'k> {
+     pub fn gwo<D: Into<SimpleDims>>(mut self, gwo: D) -> KernelCmd<'k, N> {
         self.gwo = gwo.into();
         self
     }
 
     /// Specifies a global work size for this call only.
-    pub fn gws<D: Into<SimpleDims>>(mut self, gws: D) -> KernelCmd<'k> {
+    pub fn gws<D: Into<SimpleDims>>(mut self, gws: D) -> KernelCmd<'k, N> {
         self.gws = gws.into();
         self
     }
 
     /// Specifies a local work size for this call only.
-    pub fn lws<D: Into<SimpleDims>>(mut self, lws: D) -> KernelCmd<'k> {
+    pub fn lws<D: Into<SimpleDims>>(mut self, lws: D) -> KernelCmd<'k, N> {
         self.lws = lws.into();
         self
     }
 
     /// Specifies the list of events to wait on before the command will run.
-    pub fn wait(mut self, wait_list: &'k EventList) -> KernelCmd<'k> {
+    pub fn waitl(mut self, wait_list: &'k EventList) -> KernelCmd<'k, N> {
         self.wait_list = Some(wait_list);
         self
     }
 
-    /// Specifies the destination for a new, optionally created event
+    /// Specifies the destination list for a new, optionally created event
     /// associated with this command.
-    pub fn dest(mut self, dest_list: &'k mut EventList) -> KernelCmd<'k> {
-        self.dest_list = Some(dest_list);
+    pub fn newev(mut self, new_event_list: &'k mut N) -> KernelCmd<'k, N> {
+        self.dest_list = Some(new_event_list);
         self
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn wait_opt(mut self, wait_list: Option<&'k EventList>) -> KernelCmd<'k> {
+    pub fn waitl_opt(mut self, wait_list: Option<&'k EventList>) -> KernelCmd<'k, N> {
         self.wait_list = wait_list;
         self
     }
 
-    /// Specifies a destination for a new, optionally created event
+    /// Specifies a destination list for a new, optionally created event
     /// associated with this command.
-    pub fn dest_opt(mut self, dest_list: Option<&'k mut EventList>) -> KernelCmd<'k> {
-        self.dest_list = dest_list;
+    pub fn newev_opt(mut self, new_event_list: Option<&'k mut N>) -> KernelCmd<'k, N> {
+        self.dest_list = new_event_list;
         self
     }
 
@@ -309,7 +309,7 @@ impl Kernel {
     }
 
 
-    pub fn cmd<'k>(&'k self) -> KernelCmd<'k> {
+    pub fn cmd<'k, N: ClEventPtrNew>(&'k self) -> KernelCmd<'k, N> {
         KernelCmd { queue: &self.command_queue_obj_core, kernel: &self.obj_core, 
             gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
             wait_list: None, dest_list: None, name: &self.name }

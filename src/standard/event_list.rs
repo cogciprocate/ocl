@@ -49,7 +49,7 @@ impl EventList {
         match self.event_list_core.get_clone(index) {
             Some(ev_res) => {
                 match ev_res {
-                    Ok(ev) => Some(Event::new(ev)),
+                    Ok(ev) => unsafe { Some(Event::from_core(ev)) },
                     Err(_) => None,
                 }
             },
@@ -62,7 +62,7 @@ impl EventList {
         match self.event_list_core.last_clone() {
             Some(ev_res) => {
                 match ev_res {
-                    Ok(ev) => Some(Event::new(ev)),
+                    Ok(ev) => unsafe { Some(Event::from_core(ev)) },
                     Err(_) => None,
                 }
             },

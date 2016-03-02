@@ -3,61 +3,82 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::convert::Into;
-use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult};
+use cl_h;
+use error::{Error as OclError, Result as OclResult};
+use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult,
+    ClEventPtrNew};
 
 
 /// An event representing a command or user created event.
 #[derive(Clone, Debug)]
-pub struct Event(EventCore);
+pub struct Event(Option<EventCore>);
 
 impl Event {
+    /// Creates a new, empty event which must be filled by a newly initiated
+    /// command.
+    pub fn empty() -> Event {
+        Event(None)
+    }
+
     /// Creates a new `Event` from a `EventCore`.
     ///
     /// ## Safety 
     ///
     /// Not meant to be called directly.
-    pub fn new(event_core: EventCore) -> Event {
-        Event(event_core)
+    pub unsafe fn from_core(event_core: EventCore) -> Event {
+        Event(Some(event_core))
     }
 
-    // /// Creates a new null `Event`.
-    // ///
-    // /// ## Safety 
-    // ///
-    // /// Don't use unless you know what you're doing.
-    // pub unsafe fn new_null() -> Event {
-    //  Event(EventCore::null())
-    // }
+       /// Waits for all events in list to complete.
+    pub fn wait(&self) {
+        assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
+        core::wait_for_event(self.0.as_ref().unwrap());
+    }
 
     /// Returns info about the event. 
     pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
-        match core::get_event_info(&self.0, info_kind) {
-            Ok(pi) => pi,
-            Err(err) => EventInfoResult::Error(Box::new(err)),
+        match self.0 {
+            Some(ref core) => { 
+                match core::get_event_info(core, info_kind) {
+                    Ok(pi) => pi,
+                    Err(err) => EventInfoResult::Error(Box::new(err)),
+                }
+            },
+            None => EventInfoResult::Error(Box::new(self.err_empty())),
         }
     }
 
     /// Returns info about the event. 
     pub fn profiling_info(&self, info_kind: ProfilingInfo) -> ProfilingInfoResult {
-        match core::get_event_profiling_info(&self.0, info_kind) {
-            Ok(pi) => pi,
-            Err(err) => ProfilingInfoResult::Error(Box::new(err)),
+        match self.0 {
+            Some(ref core) => {
+                match core::get_event_profiling_info(core, info_kind) {
+                    Ok(pi) => pi,
+                    Err(err) => ProfilingInfoResult::Error(Box::new(err)),
+                }
+            },
+            None => ProfilingInfoResult::Error(Box::new(self.err_empty())),
         }
     }
 
-    /// Returns a string containing a formatted list of event properties.
-    pub fn to_string(&self) -> String {
-        self.clone().into()
+    /// Returns the underlying `EventCore`.
+    pub fn core_as_ref(&self) -> Option<&EventCore> {
+        self.0.as_ref()
     }
 
     /// Returns the underlying `EventCore`.
-    pub fn core_as_ref(&self) -> &EventCore {
-        &self.0
+    pub fn core_as_mut(&mut self) -> Option<&mut EventCore> {
+        self.0.as_mut()
     }
 
-    /// Returns the underlying `EventCore`.
-    pub fn core_as_mut(&mut self) -> &mut EventCore {
-        &mut self.0
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_none()
+    }
+
+    fn err_empty(&self) -> OclError {
+        OclError::new("This `ocl::Event` is empty and cannot be used until \
+            filled by a command.")
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -83,9 +104,9 @@ impl std::fmt::Display for Event {
     }
 }
 
-impl AsRef<EventCore> for Event{
+impl AsRef<EventCore> for Event {
     fn as_ref(&self) -> &EventCore {
-        &self.0
+        self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::as_ref()")
     }
 }
 
@@ -93,13 +114,23 @@ impl Deref for Event {
     type Target = EventCore;
 
     fn deref(&self) -> &EventCore {
-        &self.0
+        self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::deref()")
     }
 }
 
 impl DerefMut for Event {
     fn deref_mut(&mut self) -> &mut EventCore {
-        &mut self.0
+        assert!(!self.is_empty(), "ocl::Event::deref_mut(): {}", self.err_empty());
+        self.0.as_mut().unwrap()
+    }
+}
+
+unsafe impl ClEventPtrNew for Event {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_h::cl_event> {
+        unsafe { 
+            self.0 = Some(EventCore::null());
+            Ok(self.0.as_mut().unwrap().as_ptr_mut())
+        }
     }
 }
 

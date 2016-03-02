@@ -9,7 +9,7 @@ use rand::distributions::{IndependentSample, Range as RandRange};
 use num::{FromPrimitive, ToPrimitive};
 
 use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, 
-    MemInfo, MemInfoResult};
+    MemInfo, MemInfoResult, ClEventPtrNew};
 use util;
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, BufferDims, EventList};
@@ -67,20 +67,20 @@ pub enum OpShape {
 
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
-pub struct BufferCmd<'b, T: 'b + OclNum> {
+pub struct BufferCmd<'b, T: 'b + OclNum, N: 'b + ClEventPtrNew> {
     queue: &'b CommandQueueCore,
     obj_core: &'b MemCore,
     block: bool,
     kind: OpKind<'b, T>,
     shape: OpShape,    
     wait_list: Option<&'b EventList>,
-    dest_list: Option<&'b mut EventList>,
+    dest_list: Option<&'b mut N>,
     mem_len: usize,
 }
 
-impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
+impl<'b, T: 'b + OclNum, N: 'b + ClEventPtrNew> BufferCmd<'b, T, N> {
     pub fn new(queue: &'b CommandQueueCore, obj_core: &'b MemCore, mem_len: usize
-            ) -> BufferCmd<'b, T> 
+            ) -> BufferCmd<'b, T, N> 
     {
         BufferCmd {
             queue: queue,
@@ -95,43 +95,72 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     }
 
     /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T> {
+    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T, N> {
         self.queue = queue.core_as_ref();
         self
     }
 
-    pub unsafe fn read(mut self, data: &'b mut [T]) -> BufferCmd<'b, T> {
-        self.kind = OpKind::Read { data: data };
+    /// Specifies whether or not to block thread until completion.
+    pub fn block(mut self, block: bool) -> BufferCmd<'b, T, N> {
+        self.block = block;
         self
     }
 
-    pub fn write(mut self, data: &'b [T]) -> BufferCmd<'b, T> {
-        self.kind = OpKind::Write { data: data };
+    /// Specifies that this command will be a read.
+    ///
+    /// ## Safety
+    ///
+    /// If block has been set to false, caller must ensure that the container
+    /// referred to by `dst_data` lives until the call completes.
+    pub unsafe fn read(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T, N> {
+        self.kind = OpKind::Read { data: dst_data };
         self
     }
 
-        /// Specifies the list of events to wait on before the command will run.
-    pub fn wait(mut self, wait_list: &'b EventList) -> BufferCmd<'b, T> {
+    /// Specifies that this command will be a write.
+    pub fn write(mut self, src_data: &'b [T]) -> BufferCmd<'b, T, N> {
+        self.kind = OpKind::Write { data: src_data };
+        self
+    }
+
+    /// Specifies that this command will be a copy.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    pub fn copy(mut self, dst_buffer: &'b Buffer<T>) -> BufferCmd<'b, T, N> {
+        self.kind = OpKind::Copy { dst_buffer: dst_buffer.core_as_ref() }; 
+        self
+    }
+
+    /// Specifies that this command will be a copy.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    pub fn fill(mut self, dst_buffer: &'b Buffer<T>) -> BufferCmd<'b, T, N> {
+        self.kind = OpKind::Copy { dst_buffer: dst_buffer.core_as_ref() }; 
+        self
+    }
+
+    /// Specifies the list of events to wait on before the command will run.
+    pub fn waitl(mut self, wait_list: &'b EventList) -> BufferCmd<'b, T, N> {
         self.wait_list = Some(wait_list);
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn dest(mut self, dest_list: &'b mut EventList) -> BufferCmd<'b, T> {
+    pub fn newev(mut self, dest_list: &'b mut N) -> BufferCmd<'b, T, N> {
         self.dest_list = Some(dest_list);
         self
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn wait_opt(mut self, wait_list: Option<&'b EventList>) -> BufferCmd<'b, T> {
+    pub fn waitl_opt(mut self, wait_list: Option<&'b EventList>) -> BufferCmd<'b, T, N> {
         self.wait_list = wait_list;
         self
     }
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command.
-    pub fn dest_opt(mut self, dest_list: Option<&'b mut EventList>) -> BufferCmd<'b, T> {
+    pub fn newev_opt(mut self, dest_list: Option<&'b mut N>) -> BufferCmd<'b, T, N> {
         self.dest_list = dest_list;
         self
     }
@@ -156,14 +185,13 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
             OpKind::Write { data } => {
                 match self.shape {
                     OpShape::Lin { offset } => {
-                        // if offset >= self.mem_len { return OclError::err(
-                        //     "Buffer::write{{_async}}(): Offset out of range."); }
-                        // if data.len() > self.mem_len - offset { return OclError::err(
-                        //     "Buffer::write{{_async}}(): Data length out of range."); }
+                        if offset >= self.mem_len { return OclError::err(
+                            "Buffer::write{{_async}}(): Offset out of range."); }
+                        if data.len() > self.mem_len - offset { return OclError::err(
+                            "Buffer::write{{_async}}(): Data length out of range."); }
 
-                        // core::enqueue_write_obj_core(self.queue, self.obj_core, self.block, 
-                        //     offset, data, selfwait_list, self.dest_list)
-                        Ok(())
+                        core::enqueue_write_buffer(self.queue, self.obj_core, self.block, 
+                            offset, data, self.wait_list, self.dest_list)
                     },
                     _ => unimplemented!(),
                 }
@@ -413,7 +441,7 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// Run `.enq()` to enqueue the command.
     ///
-    pub fn cmd<'b>(&'b self) -> BufferCmd<'b, T> {
+    pub fn cmd<'b, N: ClEventPtrNew>(&'b self) -> BufferCmd<'b, T, N> {
         BufferCmd::new(&self.command_queue_obj_core, &self.obj_core, self.len)
     }
 

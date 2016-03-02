@@ -2,9 +2,9 @@
 //!
 //! [UNDERGOING SOME REDESIGN]
 
-extern crate ocl;
+#[macro_use] extern crate ocl;
 
-use ocl::{Context, Queue, Buffer, Image, Sampler, Program, Kernel, EventList};
+use ocl::{Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 use ocl::util;
 
@@ -37,9 +37,14 @@ fn main() {
         .arg_buf(&buffer);
     let mut event_list = EventList::new();
 
-    kernel.cmd().dest(&mut event_list).enq().unwrap();
-    let event = event_list.last_clone().unwrap();
+    kernel.cmd().newev(&mut event_list).enq().unwrap();
     event_list.wait();
+
+    let mut event = Event::empty();
+    buffer.cmd().write(&[1.0; 10]).newev(&mut event).enq().unwrap();
+    event.wait();
+
+    printlnc!(red: "{}", event);
 
 	println!("############### OpenCL [Default Platform] [Default Device] Info ################");
 	print!("\n");

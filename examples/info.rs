@@ -66,7 +66,7 @@ fn main() {
 			        .arg_scl(10.0f32);
 			let mut event_list = EventList::new();
 
-			kernel.cmd().dest(&mut event_list).enq().unwrap();
+			kernel.cmd().newev(&mut event_list).enq().unwrap();
 			let event = event_list.last_clone().unwrap();
 			event_list.wait();			
 
