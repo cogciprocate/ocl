@@ -81,6 +81,7 @@ pub struct BufferCmd<'b, T: 'b + OclNum> {
     queue: &'b CommandQueueCore,
     obj_core: &'b MemCore,
     block: bool,
+    lock_block: bool,
     kind: OpKind<'b, T>,
     shape: OpShape,    
     wait_list: Option<&'b EventList>,
@@ -89,13 +90,17 @@ pub struct BufferCmd<'b, T: 'b + OclNum> {
 }
 
 impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
-    pub fn new(queue: &'b CommandQueueCore, obj_core: &'b MemCore, mem_len: usize
-            ) -> BufferCmd<'b, T> 
+    /// Returns a new buffer command builder associated with with the
+    /// memory object `obj_core` along with a default `queue` and `mem_len` 
+    /// (the length of the device side buffer).
+    fn new(queue: &'b CommandQueueCore, obj_core: &'b MemCore, mem_len: usize) 
+            -> BufferCmd<'b, T>
     {
         BufferCmd {
             queue: queue,
             obj_core: obj_core,
             block: true,
+            lock_block: false,
             kind: OpKind::Unspecified,
             shape: OpShape::Lin { offset: 0 },
             wait_list: None,
@@ -111,7 +116,15 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     }
 
     /// Specifies whether or not to block thread until completion.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if `::read` has already been called. Use `::read_async`
+    /// for a non-blocking read operation.
+    ///
     pub fn block(mut self, block: bool) -> BufferCmd<'b, T> {
+        assert!(!self.lock_block, "ocl::BufferCmd::block(): Blocking for this command has been \
+            disabled by the '::read' method. For non-blocking reads use '::read_async'.");
         self.block = block;
         self
     }
@@ -132,32 +145,70 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
         self
     }
 
-    /// Specifies that this command will be a read.
+    /// Specifies that this command will be a blocking read operation.
+    ///
+    /// After calling this method, the blocking state of this command will
+    /// be locked to true and a call to `::block` will cause a panic.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified.
+    ///
+    pub fn read(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
+            already set for this command.");
+        self.kind = OpKind::Read { data: dst_data };
+        self.block = true;
+        self.lock_block = true;
+        self
+    }
+
+    /// Specifies that this command will be a non-blocking, asynchronous read
+    /// operation.
+    ///
+    /// Sets the block mode to false automatically but it may still be freely
+    /// toggled back. If set back to `true` this method call becomes equivalent
+    /// to calling `::read`.
     ///
     /// ## Safety
     ///
-    /// If block has been set to false, caller must ensure that the container
-    /// referred to by `dst_data` lives until the call completes.
-    pub unsafe fn read(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
-        assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind
+    /// Caller must ensure that the container referred to by `dst_data` lives 
+    /// until the call completes.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub unsafe fn read_async(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
         self.kind = OpKind::Read { data: dst_data };
         self
     }
 
-    /// Specifies that this command will be a write.
+    /// Specifies that this command will be a write operation.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
     pub fn write(mut self, src_data: &'b [T]) -> BufferCmd<'b, T> {
-        assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = OpKind::Write { data: src_data };
         self
     }
 
-    /// Specifies that this command will be a copy.
+    /// Specifies that this command will be a copy operation.
     ///
     /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
     pub fn copy(mut self, dst_buffer: &'b Buffer<T>) -> BufferCmd<'b, T> {
-        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind \
             already set for this command.");
         self.kind = OpKind::Copy { dst_buffer: dst_buffer.core_as_ref() }; 
         self
@@ -166,10 +217,15 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     /// Specifies that this command will be a copy to image.
     ///
     /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
     pub fn copy_to_image(mut self, image: &'b MemCore, dst_origin: [usize; 3], 
                 region: [usize; 3]) -> BufferCmd<'b, T> 
     {
-        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind \
             already set for this command.");
         self.kind = OpKind::CopyToImage { image: image, dst_origin: dst_origin, region: region }; 
         self
@@ -178,8 +234,13 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     /// Specifies that this command will be a fill.
     ///
     /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
     pub fn fill(mut self, pattern: &'b [T], pattern_size: usize) -> BufferCmd<'b, T> {
-        assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind \
             already set for this command.");
         self.kind = OpKind::Fill { pattern: pattern, pattern_size: pattern_size }; 
         self
@@ -194,20 +255,25 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
                 src_row_pitch: usize, src_slc_pitch: usize, dst_row_pitch: usize, 
                 dst_slc_pitch: usize) -> BufferCmd<'b, T>
     {
+        if let OpShape::Lin { offset } = self.shape {
+            assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
+                set to linear mode with '::offset`. You cannot call both '::offset' and '::rect'.");
+        }
+
         self.shape = OpShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
             region: region, src_row_pitch: src_row_pitch, src_slc_pitch: src_slc_pitch,
             dst_row_pitch: dst_row_pitch, dst_slc_pitch: dst_slc_pitch };
         self
     }
 
-
-    /// Specifies the list of events to wait on before the command will run.
+    /// Specifies a list of events to wait on before the command will run.
     pub fn ewait(mut self, wait_list: &'b EventList) -> BufferCmd<'b, T> {
         self.wait_list = Some(wait_list);
         self
     }
 
-    /// Specifies a list of events to wait on before the command will run.
+    /// Specifies a list of events to wait on before the command will run or
+    /// resets it to `None`.
     pub fn ewait_opt(mut self, wait_list: Option<&'b EventList>) -> BufferCmd<'b, T> {
         self.wait_list = wait_list;
         self
@@ -221,7 +287,7 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     }
 
     /// Specifies a destination for a new, optionally created event
-    /// associated with this command.
+    /// associated with this command or resets it to `None`.
     pub fn enew_opt(mut self, dest_list: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
         self.dest_list = dest_list;
         self
@@ -232,11 +298,8 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
         match self.kind {
             OpKind::Read { data } => { 
                 match self.shape {
-                    OpShape::Lin { offset } => {
-                        if offset >= self.mem_len { return OclError::err(
-                            "Buffer::read{{_async}}(): Offset out of range."); }
-                        if data.len() > self.mem_len - offset { return OclError::err(
-                            "Buffer::read{{_async}}(): Data length out of range."); }
+                    OpShape::Lin { offset } => {                        
+                        try!(check_len(self.mem_len, data.len(), offset));
 
                         unsafe { core::enqueue_read_buffer(self.queue, self.obj_core, self.block, 
                             offset, data, self.wait_list, self.dest_list) }
@@ -247,11 +310,7 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
             OpKind::Write { data } => {
                 match self.shape {
                     OpShape::Lin { offset } => {
-                        if offset >= self.mem_len { return OclError::err(
-                            "Buffer::write{{_async}}(): Offset out of range."); }
-                        if data.len() > self.mem_len - offset { return OclError::err(
-                            "Buffer::write{{_async}}(): Data length out of range."); }
-
+                        try!(check_len(self.mem_len, data.len(), offset));
                         core::enqueue_write_buffer(self.queue, self.obj_core, self.block, 
                             offset, data, self.wait_list, self.dest_list)
                     },
@@ -262,8 +321,15 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),
         }
-
     }
+}
+
+fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
+    if offset >= mem_len { return OclError::err(
+        "ocl::Buffer::enq(): Offset out of range."); }
+    if data_len > (mem_len - offset) { return OclError::err(
+        "ocl::Buffer::enq(): Data length exceeds buffer length."); }
+    Ok(())
 }
 
 
@@ -537,6 +603,8 @@ impl<T: OclNum> Buffer<T> {
     /// The length of `data` must be less than the length of the buffer minus `offset`.
     ///
     /// Errors upon any OpenCL error.
+    ///
+    /// [UNSTABLE: Likely to be depricated in favor of `::cmd`.
     pub unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &mut [T],
                 wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
@@ -583,6 +651,8 @@ impl<T: OclNum> Buffer<T> {
     /// The length of `data` must be less than the length of the buffer minus `offset`.
     ///
     /// Errors upon any OpenCL error.
+    /// 
+    /// [UNSTABLE: Likely to be depricated in favor of `::cmd`.
     pub fn enqueue_write(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &[T], 
                 wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {        
@@ -721,6 +791,7 @@ impl<T: OclNum> Buffer<T> {
     /// # Panics [UPDATE ME]
     /// Panics if this Buffer contains no vector.
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
+    /// TODO: Consider adding to `BufferCmd`.
     pub fn set_all_to(&mut self, val: T) -> OclResult<()> {
         {
             let vec = try!(self.vec.as_mut());
@@ -739,6 +810,7 @@ impl<T: OclNum> Buffer<T> {
     /// Panics if this Buffer contains no vector.
     ///
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
+    /// TODO: Consider adding to `BufferCmd`.
     pub fn set_range_to(&mut self, val: T, range: Range<usize>) -> OclResult<()> {       
         {
             let vec = try!(self.vec.as_mut());
@@ -852,7 +924,7 @@ impl<T: OclNum> Buffer<T> {
     /// # Safety
     ///
     /// Assumes `self.vec` is a `VecOption::Vec` and that the index `idx` is within
-    /// bounds. Might eat all the laundry.
+    /// bounds. Can eat all the laundry.
     #[inline]
     pub unsafe fn get_unchecked_mut(&mut self, idx: usize) -> &mut T {      
         debug_assert!(self.vec.is_some() && idx < self.len);
@@ -875,6 +947,7 @@ impl<T: OclNum> Buffer<T> {
     /// not just for the one call. Changing the queue is cheap so feel free
     /// to change as often as needed.
     ///
+    /// [UNSTABLE]: Likely to be depricated in favor of `::cmd`.
     pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Buffer<T> {
         // [FIXME]: Set this up:
         // assert!(queue.device == self.queue.device);

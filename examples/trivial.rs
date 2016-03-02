@@ -142,10 +142,15 @@ fn main_exploded() {
         .enq().unwrap();
 
     // (5) Read results from the device into our buffer's [no longer] built-in vector:
-    // unsafe { buffer.enqueue_read(Some(&queue), true, 0, &mut buffer_vec, None, None).unwrap(); }
-
-    unsafe { buffer.cmd().read(&mut buffer_vec).enq().unwrap(); }
-    // unsafe { buffer.cmd().enq().unwrap(); }
+    buffer.cmd()
+        .queue(&queue)
+        .block(true)
+        .offset(0)
+        .read(&mut buffer_vec)
+        .ewait_opt(None)
+        .enew_opt(None)
+        .enq().unwrap(); 
+    
 
     // Print an element:
     let final_val = buffer_vec[rand_idx];
