@@ -2139,7 +2139,7 @@ pub fn enqueue_kernel<L: AsRef<EventList>>(
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: &[usize; 3],
             local_work_dims: Option<[usize; 3]>,
-            wait_list: Option<L>, 
+            wait_list: Option<&L>, 
             new_event: Option<&mut ClEventPtrNew>,
             // kernel_name: Option<&str>
         ) -> OclResult<()> 
