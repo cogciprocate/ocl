@@ -21,9 +21,7 @@ Breaking Changes
   the kernel function name. Instead it is queried when needed using
   `::get_kernel_info`.
 * `SimpleDims` has been renamed `SpatialDims` and many of its methods now
-  return `Result` types. Many new methods have been added which will attempt
-  to unwrap the results from other methods and are necessary for various
-  conversion-type traits.
+  return `Result` types.
 
 
 New Features

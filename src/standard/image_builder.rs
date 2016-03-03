@@ -140,7 +140,8 @@ impl ImageBuilder {
 	///
     pub fn dims<'a, D: Into<SpatialDims> + Clone>(&'a mut self, dims: D) -> &'a mut ImageBuilder {
         let dims: SpatialDims = dims.into();
-    	let size = dims.to_size();
+    	let size = dims.to_size().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
+            dimensions: {:?}", dims));
     	self.image_desc.image_width = size[0];
     	self.image_desc.image_height = size[1];
     	self.image_desc.image_depth = size[2];

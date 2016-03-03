@@ -20,7 +20,6 @@ mod event_list;
 mod spatial_dims;
 // mod work_dims;
 
-
 #[cfg(not(release))] pub use self::buffer::tests::BufferTest;
 pub use self::platform::Platform;
 pub use self::device::Device;
@@ -58,6 +57,7 @@ mod traits {
     use std::fmt::Debug;
     // use std::convert::Into;
     use num::{Num, ToPrimitive};
+    use error::{Result as OclResult};
     use super::{SpatialDims};
     use super::spatial_dims::to_usize;
 
@@ -74,47 +74,47 @@ mod traits {
     /// Types which have properties allowing them to be used to define the size
     /// of buffers.
     pub trait MemDims {
-        fn padded_buffer_len(&self, usize) -> usize;
+        fn padded_buffer_len(&self, usize) -> OclResult<usize>;
     }
 
     impl<'a, D> MemDims for &'a D where D: MemDims {
-        fn padded_buffer_len(&self, incr: usize) -> usize { (*self).padded_buffer_len(incr) }
+        fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> { (*self).padded_buffer_len(incr) }
     }
 
 
     impl<'a, D> MemDims for &'a (D, ) where D: Num + ToPrimitive + Debug + Copy {
-        fn padded_buffer_len(&self, incr: usize) -> usize {
+        fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
             SpatialDims::One(to_usize(self.0)).padded_buffer_len(incr)
         }
     }
 
     impl<'a, D> MemDims for &'a [D; 1] where D: Num + ToPrimitive + Debug + Copy {
-        fn padded_buffer_len(&self, incr: usize) -> usize {
+        fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
             SpatialDims::One(to_usize(self[0])).padded_buffer_len(incr)
         }
     }
 
     impl<'a, D> MemDims for &'a (D, D) where D: Num + ToPrimitive + Debug + Copy {
-        fn padded_buffer_len(&self, incr: usize) -> usize {
+        fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
             SpatialDims::Two(to_usize(self.0), to_usize(self.1)).padded_buffer_len(incr)
         }
     }
 
     impl<'a, D> MemDims for &'a [D; 2] where D: Num + ToPrimitive + Debug + Copy {
-        fn padded_buffer_len(&self, incr: usize) -> usize {
+        fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
             SpatialDims::Two(to_usize(self[0]), to_usize(self[1])).padded_buffer_len(incr)
         }
     }
 
     impl<'a, D> MemDims for &'a (D, D, D) where D: Num + ToPrimitive + Debug + Copy {
-        fn padded_buffer_len(&self, incr: usize) -> usize {
+        fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
             SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2))
                 .padded_buffer_len(incr)
         }
     }
 
     impl<'a, D> MemDims for &'a [D; 3] where D: Num + ToPrimitive + Debug + Copy {
-        fn padded_buffer_len(&self, incr: usize) -> usize {
+        fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
             SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2]))
                 .padded_buffer_len(incr)
         }

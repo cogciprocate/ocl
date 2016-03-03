@@ -249,8 +249,8 @@ impl ProQue {
 }
 
 impl MemDims for ProQue {
-    fn padded_buffer_len(&self, len: usize) -> usize {
-        self.dims_result().expect("ProQue::padded_buffer_len").padded_buffer_len(len)
+    fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
+        self.dims_result().expect("ProQue::padded_buffer_len").padded_buffer_len(incr)
     }
 }
 

@@ -443,7 +443,7 @@ impl<T: OclNum> Buffer<T> {
     /// one such as `.enqueue_flush_vec()`, `enqueue_fill_vec()`, etc. will panic.
     /// [FIXME]: Return result.
     pub fn new<D: MemDims>(dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size());
+        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         Buffer::_new(len, queue)
     }
 
@@ -451,7 +451,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
     pub fn with_vec<D: MemDims>(dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size());
+        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let vec: Vec<T> = std::iter::repeat(T::default()).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -462,7 +462,7 @@ impl<T: OclNum> Buffer<T> {
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
     pub fn with_vec_initialized_to<D: MemDims>(init_val: T, dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size());
+        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let vec: Vec<T> = std::iter::repeat(init_val).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -484,7 +484,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_shuffled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size());
+        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let vec: Vec<T> = shuffled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -502,7 +502,7 @@ impl<T: OclNum> Buffer<T> {
     pub fn with_vec_scrambled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size());
+        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let vec: Vec<T> = scrambled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -870,7 +870,7 @@ impl<T: OclNum> Buffer<T> {
     /// [FIXME]: Return result.
     pub unsafe fn resize<B: MemDims>(&mut self, new_dims: &B, queue: &Queue) {
         // self.release();
-        let new_len = new_dims.padded_buffer_len(queue.device().max_wg_size());
+        let new_len = new_dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
 
         match self.vec {
             VecOption::Some(ref mut vec) => {
