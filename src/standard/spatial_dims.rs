@@ -6,18 +6,20 @@ use std::ops::Index;
 // use std::mem;
 use num::{Num, ToPrimitive};
 use error::{Result as OclResult, Error as OclError};
-use standard::{BufferDims, WorkDims};
+use standard::{MemDims, WorkDims};
 use util;
 
 /// Specifies a size or offset in up to three dimensions.
 ///
-/// Custom types implementing `BufferDims` and `WorkDims` should be created to
+/// Custom types implementing `MemDims` and `WorkDims` should be created to
 /// express more complex relationships between data shape and work size.
 /// rather than using this one.
 ///
 /// [FIXME] TODO: Much more explaination needed as soon as conventions solidify.
 ///
-/// [UNSTABLE]: MAY BE RENAMED SOON. Candidates: (Dims, SpatialDims, Vec3, DimVec)
+/// [UNSTABLE]: This type and its methods may be renamed or otherwise changed
+/// at any time. This is still a work in progress.
+///
 #[derive(Clone, Debug, Copy)]
 pub enum SpatialDims {
     Unspecified,
@@ -132,9 +134,9 @@ impl SpatialDims {
     }
 }
 
-impl BufferDims for SpatialDims {
+impl MemDims for SpatialDims {
     fn padded_buffer_len(&self, incr: usize) -> usize {
-        self.try_padded_len(incr).expect("ocl::SpatialDims::<BufferDims>::padded_buffer_len()")
+        self.try_padded_len(incr).expect("ocl::SpatialDims::<MemDims>::padded_buffer_len()")
     }
 }
 

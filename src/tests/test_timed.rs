@@ -12,9 +12,9 @@ use standard::{ProQue, SpatialDims, Buffer, EventList};
 
 const DATASET_SIZE: usize = 10000;
 
-const KERNEL_RUN_ITERS: i32 = 8000;
-const BUFFER_READ_ITERS: i32 = 200;
-const KERNEL_AND_BUFFER_ITERS: i32 = 10000;
+const KERNEL_RUN_ITERS: i32 = 800;
+const BUFFER_READ_ITERS: i32 = 20;
+const KERNEL_AND_BUFFER_ITERS: i32 = 1000;
 
 const SCALAR: f32 = 1.0;
 const INIT_VAL_RANGE: (f32, f32) = (100.0, 200.0);

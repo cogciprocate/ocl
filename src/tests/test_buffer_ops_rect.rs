@@ -111,7 +111,8 @@ fn test_buffer_ops_rect() {
     //         assert!(vec_buf_1[i] == 0.0, "dst_vec: {}, idx: {}", vec_buf_1[i], i);
     //     }
     // }
-    panic!("SUCCESS!");
+    
+    // panic!("SUCCESS!");
 }
 
 

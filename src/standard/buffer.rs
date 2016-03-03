@@ -12,7 +12,7 @@ use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFl
     MemInfo, MemInfoResult, ClEventPtrNew};
 use util;
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, BufferDims, EventList};
+use standard::{Queue, MemDims, EventList};
 
 static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
     You must create this Buffer using 'Buffer::with_vec()' (et al.) in order to call this method.";
@@ -442,7 +442,7 @@ impl<T: OclNum> Buffer<T> {
     /// The returned Buffer contains no host side vector. Functions associated with
     /// one such as `.enqueue_flush_vec()`, `enqueue_fill_vec()`, etc. will panic.
     /// [FIXME]: Return result.
-    pub fn new<D: BufferDims>(dims: D, queue: &Queue) -> Buffer<T> {
+    pub fn new<D: MemDims>(dims: D, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(queue.device().max_wg_size());
         Buffer::_new(len, queue)
     }
@@ -450,7 +450,7 @@ impl<T: OclNum> Buffer<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
-    pub fn with_vec<D: BufferDims>(dims: D, queue: &Queue) -> Buffer<T> {
+    pub fn with_vec<D: MemDims>(dims: D, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(queue.device().max_wg_size());
         let vec: Vec<T> = std::iter::repeat(T::default()).take(len).collect();
 
@@ -461,7 +461,7 @@ impl<T: OclNum> Buffer<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
-    pub fn with_vec_initialized_to<D: BufferDims>(init_val: T, dims: D, queue: &Queue) -> Buffer<T> {
+    pub fn with_vec_initialized_to<D: MemDims>(init_val: T, dims: D, queue: &Queue) -> Buffer<T> {
         let len = dims.padded_buffer_len(queue.device().max_wg_size());
         let vec: Vec<T> = std::iter::repeat(init_val).take(len).collect();
 
@@ -481,7 +481,7 @@ impl<T: OclNum> Buffer<T> {
     /// Resulting values are not cryptographically secure.
     /// [FIXME]: Return result.
     // Note: vals.1 is inclusive.
-    pub fn with_vec_shuffled<D: BufferDims>(vals: (T, T), dims: D, queue: &Queue) 
+    pub fn with_vec_shuffled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
         let len = dims.padded_buffer_len(queue.device().max_wg_size());
@@ -499,7 +499,7 @@ impl<T: OclNum> Buffer<T> {
     /// Resulting values are not cryptographically secure.
     /// [FIXME]: Return result.
     // Note: vals.1 is exclusive.
-    pub fn with_vec_scrambled<D: BufferDims>(vals: (T, T), dims: D, queue: &Queue) 
+    pub fn with_vec_scrambled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
         let len = dims.padded_buffer_len(queue.device().max_wg_size());
@@ -868,7 +868,7 @@ impl<T: OclNum> Buffer<T> {
     /// [IMPORTANT]: You must manually reassign any kernel arguments which may have 
     /// had a reference to the (device side) buffer associated with this Buffer.
     /// [FIXME]: Return result.
-    pub unsafe fn resize<B: BufferDims>(&mut self, new_dims: &B, queue: &Queue) {
+    pub unsafe fn resize<B: MemDims>(&mut self, new_dims: &B, queue: &Queue) {
         // self.release();
         let new_len = new_dims.padded_buffer_len(queue.device().max_wg_size());
 

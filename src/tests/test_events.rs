@@ -65,7 +65,7 @@ fn test_events() {
     // ocl_pq.build_program(ProgramBuilder::new().src_file("cl/kernel_file.cl")).unwrap();
 
     // Set up data set size and work dimensions:
-    let data_set_size = 900000;
+    let data_set_size = 90000;
     let dims = SpatialDims::One(data_set_size);
 
     // Create source and result buffers (our data containers):

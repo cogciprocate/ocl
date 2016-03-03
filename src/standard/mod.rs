@@ -17,7 +17,7 @@ mod pro_que_builder;
 mod pro_que;
 mod event;
 mod event_list;
-mod simple_dims;
+mod spatial_dims;
 // mod work_dims;
 
 
@@ -39,8 +39,8 @@ pub use self::pro_que_builder::ProQueBuilder;
 pub use self::pro_que::ProQue;
 pub use self::event::Event;
 pub use self::event_list::EventList;
-pub use self::simple_dims::SpatialDims;
-pub use self::traits::BufferDims;
+pub use self::spatial_dims::SpatialDims;
+pub use self::traits::MemDims;
 pub use self::traits::WorkDims;
 
 
@@ -59,7 +59,7 @@ mod traits {
     // use std::convert::Into;
     use num::{Num, ToPrimitive};
     use super::{SpatialDims};
-    use super::simple_dims::to_usize;
+    use super::spatial_dims::to_usize;
 
 
     /// Types which have properties describing the amount of work to be done
@@ -73,47 +73,47 @@ mod traits {
 
     /// Types which have properties allowing them to be used to define the size
     /// of buffers.
-    pub trait BufferDims {
+    pub trait MemDims {
         fn padded_buffer_len(&self, usize) -> usize;
     }
 
-    impl<'a, D> BufferDims for &'a D where D: BufferDims {
+    impl<'a, D> MemDims for &'a D where D: MemDims {
         fn padded_buffer_len(&self, incr: usize) -> usize { (*self).padded_buffer_len(incr) }
     }
 
 
-    impl<'a, D> BufferDims for &'a (D, ) where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemDims for &'a (D, ) where D: Num + ToPrimitive + Debug + Copy {
         fn padded_buffer_len(&self, incr: usize) -> usize {
             SpatialDims::One(to_usize(self.0)).padded_buffer_len(incr)
         }
     }
 
-    impl<'a, D> BufferDims for &'a [D; 1] where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemDims for &'a [D; 1] where D: Num + ToPrimitive + Debug + Copy {
         fn padded_buffer_len(&self, incr: usize) -> usize {
             SpatialDims::One(to_usize(self[0])).padded_buffer_len(incr)
         }
     }
 
-    impl<'a, D> BufferDims for &'a (D, D) where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemDims for &'a (D, D) where D: Num + ToPrimitive + Debug + Copy {
         fn padded_buffer_len(&self, incr: usize) -> usize {
             SpatialDims::Two(to_usize(self.0), to_usize(self.1)).padded_buffer_len(incr)
         }
     }
 
-    impl<'a, D> BufferDims for &'a [D; 2] where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemDims for &'a [D; 2] where D: Num + ToPrimitive + Debug + Copy {
         fn padded_buffer_len(&self, incr: usize) -> usize {
             SpatialDims::Two(to_usize(self[0]), to_usize(self[1])).padded_buffer_len(incr)
         }
     }
 
-    impl<'a, D> BufferDims for &'a (D, D, D) where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemDims for &'a (D, D, D) where D: Num + ToPrimitive + Debug + Copy {
         fn padded_buffer_len(&self, incr: usize) -> usize {
             SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2))
                 .padded_buffer_len(incr)
         }
     }
 
-    impl<'a, D> BufferDims for &'a [D; 3] where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemDims for &'a [D; 3] where D: Num + ToPrimitive + Debug + Copy {
         fn padded_buffer_len(&self, incr: usize) -> usize {
             SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2]))
                 .padded_buffer_len(incr)

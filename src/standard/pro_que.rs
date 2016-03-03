@@ -4,7 +4,7 @@ use std::convert::Into;
 use std::ops::Deref;
 use core::OclNum;
 use standard::{Context, ProQueBuilder, Program, Queue, Kernel, Buffer,
-    BufferDims, SpatialDims, WorkDims};
+    MemDims, SpatialDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
 
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use 
@@ -248,7 +248,7 @@ impl ProQue {
     }
 }
 
-impl BufferDims for ProQue {
+impl MemDims for ProQue {
     fn padded_buffer_len(&self, len: usize) -> usize {
         self.dims_result().expect("ProQue::padded_buffer_len").padded_buffer_len(len)
     }

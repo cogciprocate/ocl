@@ -53,7 +53,7 @@ pub mod cl_h;
 
 pub use core::{OclNum, ImageFormat, ImageDescriptor, ContextProperties};
 #[cfg(not(release))] pub use standard::BufferTest;
-pub use standard::{Platform, Device, ContextBuilder, Context, BuildOpt, ProgramBuilder, Program, Queue, Kernel, Buffer, Image, ImageBuilder, ProQueBuilder, ProQue, SpatialDims, WorkDims, BufferDims, Event, EventList, DeviceSpecifier, Sampler};
+pub use standard::{Platform, Device, ContextBuilder, Context, BuildOpt, ProgramBuilder, Program, Queue, Kernel, Buffer, Image, ImageBuilder, ProQueBuilder, ProQue, SpatialDims, WorkDims, MemDims, Event, EventList, DeviceSpecifier, Sampler};
 pub use self::error::{Error, Result};
 
 pub mod flags {
