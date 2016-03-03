@@ -1671,7 +1671,7 @@ pub fn enqueue_fill_buffer<T: OclNum, L: AsRef<EventList>>(
 
 /// [UNTESTED]
 /// Copies the contents of one buffer to another.
-pub fn enqueue_copy_buffer<T: OclNum>(
+pub fn enqueue_copy_buffer<T: OclNum, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_buffer: &Mem,
             dst_buffer: &Mem,
