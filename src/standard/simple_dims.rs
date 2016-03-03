@@ -2,6 +2,7 @@
 // use std::convert::Into;
 use std::convert::From;
 use std::fmt::Debug;
+use std::ops::Index;
 use num::{Num, ToPrimitive};
 use error::{Result as OclResult, Error as OclError};
 use standard::{BufferDims, WorkDims};
@@ -133,6 +134,40 @@ impl WorkDims for SimpleDims {
     }
 }
 
+
+impl Index<usize> for SimpleDims {
+    type Output = usize;
+
+    fn index<'a>(&'a self, index: usize) -> &usize {
+        match self {
+            &SimpleDims::Unspecified => panic!("ocl::SimpleDims::index(): \
+                Cannot index. No dimensions have been specified."),
+            &SimpleDims::One(ref x) => {
+                assert!(index == 0, "ocl::SimpleDims::index(): Index: [{}], out of range. \
+                    Only one dimension avaliable.", index);
+                x
+            },
+            &SimpleDims::Two(ref x, ref y) => {                
+                match index {
+                    0 => x,
+                    1 => y,
+                    _ => panic!("ocl::SimpleDims::index(): Index: [{}], out of range. \
+                    Only two dimensions avaliable.", index),
+                }
+            },
+            &SimpleDims::Three(ref x, ref y, ref z) => {
+                match index {
+                    0 => x,
+                    1 => y,
+                    2 => z,
+                    _ => panic!("ocl::SimpleDims::index(): Index: [{}], out of range. \
+                    Only three dimensions avaliable.", index),
+                }
+            },
+        }
+    }
+}
+
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, )> for SimpleDims {
     fn from(val: (T, )) -> SimpleDims {
         SimpleDims::One(to_usize(val.0))
@@ -232,6 +267,7 @@ impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 3]> for SimpleDims {
         )
     }
 }
+
 
 #[inline]
 pub fn to_usize<T: Num + ToPrimitive + Debug + Copy>(val: T) -> usize {

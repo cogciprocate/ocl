@@ -234,14 +234,15 @@ impl ProQue {
     }
 
     /// Returns the current `dims` or panics.
-    pub fn dims(&self) -> SimpleDims {
-        self.dims_result().unwrap()
+    pub fn dims(&self) -> &SimpleDims {
+        self.dims_result().expect("ocl::ProQue::dims(): This ProQue has no dimensions set. 
+            Use `::set_dims` to set some or set them during building with `::dims`.")
     }
 
     /// Returns the current `dims` or an error.
-    pub fn dims_result(&self) -> OclResult<SimpleDims> {
+    pub fn dims_result(&self) -> OclResult<&SimpleDims> {
         match self.dims {
-            Some(ref dims) => Ok(dims.clone()),
+            Some(ref dims) => Ok(dims),
             None => OclError::err(DIMS_ERR_MSG),
         }
     }

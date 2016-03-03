@@ -47,7 +47,7 @@ pub enum OpKind<'b, T: 'b> {
     Unspecified,
     Read { data: &'b mut [T] },
     Write { data: &'b [T] },
-    Copy { dst_buffer: &'b MemCore },
+    Copy { dst_buffer: &'b MemCore, dst_offset: usize, len: usize },
     Fill { pattern: &'b [T], pattern_size: usize },
     CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
 } 
@@ -207,10 +207,16 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy(mut self, dst_buffer: &'b Buffer<T>) -> BufferCmd<'b, T> {
+    pub fn copy(mut self, dst_buffer: &'b Buffer<T>, dst_offset: usize, len: usize)
+            -> BufferCmd<'b, T> 
+    {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind \
             already set for this command.");
-        self.kind = OpKind::Copy { dst_buffer: dst_buffer.core_as_ref() }; 
+        self.kind = OpKind::Copy { 
+            dst_buffer: dst_buffer.core_as_ref(),
+            dst_offset: dst_offset,
+            len: len,
+        }; 
         self
     }
 
@@ -293,6 +299,11 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
         self
     }
 
+
+    // core::enqueue_copy_buffer::<f32, core::EventList>(&queue, &src_buffer, &dst_buffer, 
+    //     copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None::<&core::EventList>,
+    //     None).unwrap();
+
     /// Enqueues this command.
     pub fn enq(self) -> OclResult<()> {
         match self.kind {
@@ -313,6 +324,17 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
                         try!(check_len(self.mem_len, data.len(), offset));
                         core::enqueue_write_buffer(self.queue, self.obj_core, self.block, 
                             offset, data, self.wait_list, self.dest_list)
+                    },
+                    _ => unimplemented!(),
+                }
+            },
+            OpKind::Copy { dst_buffer, dst_offset, len } => {
+                match self.shape {
+                    OpShape::Lin { offset } => {
+                        try!(check_len(self.mem_len, len, offset));
+                        core::enqueue_copy_buffer::<f32, _>(self.queue, 
+                            self.obj_core, dst_buffer, offset, dst_offset, len, 
+                            self.wait_list, self.dest_list)
                     },
                     _ => unimplemented!(),
                 }

@@ -2,7 +2,6 @@
 const IDX: usize = 200007;
 const ADDEND: f32 = 10.0;
 
-#[allow(dead_code, unused_variables, unused_mut)]
 #[test]
 fn test_buffer_copy_core() {
     use std::ffi::CString;
@@ -40,9 +39,6 @@ fn test_buffer_copy_core() {
     let dst_buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE | 
         flags::MEM_COPY_HOST_PTR, dims[0], Some(&dst_buffer_vec)).unwrap() };
 
-    // Dst buffer val For verification purposes:
-    let orig_val = dst_buffer_vec[IDX];
-
     // Kernel:
     let kernel = core::create_kernel(&program, "add").unwrap();
     core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&src_buffer)).unwrap();
@@ -54,8 +50,9 @@ fn test_buffer_copy_core() {
 
     // Copy src_buffer to dst_buffer:
     let copy_range = (153, 150000);
-    core::enqueue_copy_buffer::<f32>(&queue, &src_buffer, &dst_buffer, copy_range.0, copy_range.0,
-        copy_range.1 - copy_range.0, None::<&core::EventList>, None).unwrap();
+    core::enqueue_copy_buffer::<f32, _>(&queue, &src_buffer, &dst_buffer, 
+        copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None::<&core::EventList>,
+        None).unwrap();
 
     // Read results from src_buffer:
     unsafe { core::enqueue_read_buffer(&queue, &src_buffer, true, 0, &mut src_buffer_vec, 
@@ -71,6 +68,48 @@ fn test_buffer_copy_core() {
             assert_eq!(dst_buffer_vec[i], ADDEND);
         } else {
             assert!(dst_buffer_vec[i] == 0.0, "dst_vec: {}, idx: {}", dst_buffer_vec[i], i);
+        }
+    }
+}
+
+#[test]
+fn test_buffer_copy_standard() {
+    use standard::ProQue;
+    let src = r#"
+        __kernel void add(__global float* buffer, float addend) {
+            buffer[get_global_id(0)] += addend;
+        }
+    "#;
+
+    let pro_que = ProQue::builder()
+        .src(src)
+        .dims([500000])
+        .build().unwrap();   
+
+    let mut src_buffer = pro_que.create_buffer::<f32>(true);
+    let mut dst_buffer = pro_que.create_buffer::<f32>(true);
+
+    let kernel = pro_que.create_kernel("add")
+        .arg_buf(&src_buffer)
+        .arg_scl(ADDEND);
+
+    kernel.enqueue();
+
+    // Copy src to dst:
+    let copy_range = (IDX, pro_que.dims()[0] - 100);
+    src_buffer.cmd().copy(&dst_buffer, copy_range.0, copy_range.1 - copy_range.0).enq().unwrap();
+
+    // Read both buffers from device.
+    src_buffer.fill_vec();
+    dst_buffer.fill_vec();
+
+    for i in 0..pro_que.dims()[0] {
+        assert_eq!(src_buffer[i], ADDEND);
+
+        if i >= copy_range.0 && i < copy_range.1 {
+            assert_eq!(dst_buffer[i], ADDEND);
+        } else {
+            assert!(dst_buffer[i] == 0.0, "dst_buf: {}, idx: {}", dst_buffer[i], i);
         }
     }
 }
