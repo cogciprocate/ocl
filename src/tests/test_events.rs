@@ -1,7 +1,7 @@
 
 use libc::c_void;
 use cl_h::{cl_event, cl_int};
-use standard::{ProgramBuilder, Buffer, SimpleDims, ProQue, EventList};
+use standard::{ProgramBuilder, Buffer, SpatialDims, ProQue, EventList};
 
 
 const PRINT_DEBUG: bool = false;
@@ -66,7 +66,7 @@ fn test_events() {
 
     // Set up data set size and work dimensions:
     let data_set_size = 900000;
-    let dims = SimpleDims::One(data_set_size);
+    let dims = SpatialDims::One(data_set_size);
 
     // Create source and result buffers (our data containers):
     let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());

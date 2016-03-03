@@ -1,5 +1,5 @@
 
-use standard::{Buffer, SimpleDims, ProQue};
+use standard::{Buffer, SpatialDims, ProQue};
 
 const PRINT_DEBUG: bool = false;
 
@@ -25,7 +25,7 @@ fn test_basics() {
     let ocl_pq = ProQue::builder().src(kernel_src).build().expect("ProQue build");
 
     // Set up our work dimensions / data set size:
-    let dims = SimpleDims::One(data_set_size);
+    let dims = SpatialDims::One(data_set_size);
 
     // Create an buffer (a local array + a remote buffer) as a data source:
     let source_buffer = Buffer::with_vec_scrambled((0.0f32, 20.0f32), &dims, &ocl_pq.queue());

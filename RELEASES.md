@@ -4,9 +4,9 @@ Version 0.8.0 (UNRELEASED)
 Breaking Changes
 ----------------
 * [`Buffer`] and [`Image`] have had their `::enqueue_***` methods modified to
-  accept an optional queue. When a queue is passed it will temporarily override
-  the default queue for that call only. The default queue can still be changed
-  permanently by calling `::set_queue` for either.
+  accept an optional queue. When a queue is passed it will temporarily
+  override the default queue for that call only. The default queue can still
+  be changed permanently by calling `::set_queue` for either.
 * The order of arguments for the `Buffer::enqueue_***` methods has been
   slightly changed for consistency.
 * `Queue::new_by_device_index` has been removed.
@@ -17,9 +17,13 @@ Breaking Changes
   command builder method.
 * The `device` argument for `Queue::new` is no longer optional.
 * `Context::new_by_index_and_type` has been removed.
-* `core::set_kernel_arg` and `::enqueue_kernel` no longer have an argument
-  for the kernel function name. Instead it is queried when needed using
+* `core::set_kernel_arg` and `::enqueue_kernel` no longer have an argument for
+  the kernel function name. Instead it is queried when needed using
   `::get_kernel_info`.
+* `SimpleDims` has been renamed `SpatialDims` and many of its methods now
+  return `Result` types. Many new methods have been added which will attempt
+  to unwrap the results from other methods and are necessary for various
+  conversion-type traits.
 
 
 New Features

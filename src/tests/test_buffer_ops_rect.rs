@@ -1,5 +1,6 @@
 
 const ADDEND: f32 = 10.0;
+const DIMS: [usize; 3] = [8, 8, 8];
 
 #[test]
 fn test_buffer_ops_rect() {
@@ -19,20 +20,20 @@ fn test_buffer_ops_rect() {
 
     let proque = ProQue::builder()
         .src(src)
-        .dims([8, 8, 8])
+        .dims(DIMS)
         .build().unwrap();   
 
     // SRC_BUFFER:
-    let mut vec_buf_0 = vec![0.0f32; proque.dims().linear_len()];
+    let mut vec_buf_0 = vec![0.0f32; proque.dims().to_len()];
     let buf_0 = unsafe { Buffer::new_unchecked(
         flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-        proque.dims().linear_len(), Some(&vec_buf_0), proque.queue()) };
+        proque.dims().to_len(), Some(&vec_buf_0), proque.queue()) };
 
     // DST_BUFFER:
-    // let mut vec_buf_1 = vec![0.0f32; proque.dims().linear_len()];
+    // let mut vec_buf_1 = vec![0.0f32; proque.dims().to_len()];
     // let buf_1 = unsafe { Buffer::new_unchecked(
     //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-    //     proque.dims().linear_len(), Some(&vec_buf_1), proque.queue()) };
+    //     proque.dims().to_len(), Some(&vec_buf_1), proque.queue()) };
 
     let kernel = proque.create_kernel("add")
         .arg_buf(&buf_0)
@@ -44,7 +45,7 @@ fn test_buffer_ops_rect() {
 
     buf_0.read(0, &mut vec_buf_0).unwrap();
 
-    for idx in 0..proque.dims().linear_len() {
+    for idx in 0..proque.dims().to_len() {
         // print!("[{:02}]", vec_buf_0[i]);
         // if i % 20 == 19 { print!("\n"); }
         assert!(vec_buf_0[idx] == ADDEND * kernel_runs as f32, 

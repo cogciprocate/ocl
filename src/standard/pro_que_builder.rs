@@ -2,7 +2,7 @@
 
 use std::convert::Into;
 use error::{Result as OclResult, Error as OclError};
-use standard::{Platform, Context, ProgramBuilder, Program, Queue, ProQue, SimpleDims, DeviceSpecifier};
+use standard::{Platform, Context, ProgramBuilder, Program, Queue, ProQue, SpatialDims, DeviceSpecifier};
 
 /// A builder for `ProQue`.
 pub struct ProQueBuilder {
@@ -10,7 +10,7 @@ pub struct ProQueBuilder {
     context: Option<Context>,
     device_idx: usize,
     program_builder: Option<ProgramBuilder>,
-    dims: Option<SimpleDims>,
+    dims: Option<SpatialDims>,
 }
 
 impl ProQueBuilder {
@@ -190,7 +190,7 @@ impl ProQueBuilder {
     ///
     /// Used if you want to do a quick and dirty `create_kernel` or 
     /// `create_buffer` directly on the `ProQue`.
-    pub fn dims<'p, D: Into<SimpleDims>>(&'p mut self, dims: D) -> &'p mut ProQueBuilder {
+    pub fn dims<'p, D: Into<SpatialDims>>(&'p mut self, dims: D) -> &'p mut ProQueBuilder {
         self.dims = Some(dims.into());
         self
     }

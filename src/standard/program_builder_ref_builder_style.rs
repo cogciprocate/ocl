@@ -11,7 +11,6 @@ use error::{Result as OclResult, Error as OclError};
 // use core::{DeviceId as DeviceIdCore};
 use standard::{Device, Context, Program};
 
-
 /// A build option.
 ///
 /// Strings intended for use either by the compiler as a command line switch

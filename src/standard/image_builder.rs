@@ -8,7 +8,7 @@
 // use core::OclNum;
 use std::convert::Into;
 use error::{Result as OclResult};
-use standard::{Context, Queue, Image, SimpleDims};
+use standard::{Context, Queue, Image, SpatialDims};
 use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType,
     ImageChannelOrder, ImageChannelDataType};
 
@@ -132,14 +132,14 @@ impl ImageBuilder {
 	/// ## Examples
 	///
 	/// * To set the dimensions of a 2d image use:
-	///   `SimpleDims::Two(width, height)`.
+	///   `SpatialDims::Two(width, height)`.
 	/// * To set the dimensions of a 2d image array use:
-	///   `SimpleDims::Three(width, height, array_length)`.
+	///   `SpatialDims::Three(width, height, array_length)`.
 	/// * To set the dimensions of a 3d image use:
-	///   `SimpleDims::Three(width, height, depth)`.
+	///   `SpatialDims::Three(width, height, depth)`.
 	///
-    pub fn dims<'a, D: Into<SimpleDims> + Clone>(&'a mut self, dims: D) -> &'a mut ImageBuilder {
-        let dims: SimpleDims = dims.into();
+    pub fn dims<'a, D: Into<SpatialDims> + Clone>(&'a mut self, dims: D) -> &'a mut ImageBuilder {
+        let dims: SpatialDims = dims.into();
     	let size = dims.to_size();
     	self.image_desc.image_width = size[0];
     	self.image_desc.image_height = size[1];

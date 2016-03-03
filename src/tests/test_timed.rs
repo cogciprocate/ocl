@@ -7,7 +7,7 @@
 // extern crate ocl;
 use std::time::Instant;
 
-use standard::{ProQue, SimpleDims, Buffer, EventList};
+use standard::{ProQue, SpatialDims, Buffer, EventList};
 
 
 const DATASET_SIZE: usize = 10000;
@@ -37,7 +37,7 @@ fn test_timed() {
     "#;
 
     // Create an all-in-one context, program, and command queue:
-    let ocl_pq = ProQue::builder().src(src).dims(SimpleDims::One(DATASET_SIZE))
+    let ocl_pq = ProQue::builder().src(src).dims(SpatialDims::One(DATASET_SIZE))
         .build().unwrap();
 
     // Create init and result buffers:

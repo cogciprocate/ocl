@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
     KernelInfo, KernelInfoResult, ClEventPtrNew};
 use error::{Result as OclResult, Error as OclError};
-use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler};
+use standard::{SpatialDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler};
 
 
 
@@ -16,9 +16,9 @@ use standard::{SimpleDims, Buffer, Image, EventList, Program, Queue, WorkDims, S
 pub struct KernelCmd<'k> {
     queue: &'k CommandQueueCore,
     kernel: &'k KernelCore,
-    gwo: SimpleDims,
-    gws: SimpleDims,
-    lws: SimpleDims,
+    gwo: SpatialDims,
+    gws: SpatialDims,
+    lws: SpatialDims,
     wait_list: Option<&'k EventList>,
     dest_list: Option<&'k mut ClEventPtrNew>,
     // name: &'k str,
@@ -32,19 +32,19 @@ impl<'k> KernelCmd<'k> {
     }
 
     /// Specifies a global work offset for this call only.
-     pub fn gwo<D: Into<SimpleDims>>(mut self, gwo: D) -> KernelCmd<'k> {
+     pub fn gwo<D: Into<SpatialDims>>(mut self, gwo: D) -> KernelCmd<'k> {
         self.gwo = gwo.into();
         self
     }
 
     /// Specifies a global work size for this call only.
-    pub fn gws<D: Into<SimpleDims>>(mut self, gws: D) -> KernelCmd<'k> {
+    pub fn gws<D: Into<SpatialDims>>(mut self, gws: D) -> KernelCmd<'k> {
         self.gws = gws.into();
         self
     }
 
     /// Specifies a local work size for this call only.
-    pub fn lws<D: Into<SimpleDims>>(mut self, lws: D) -> KernelCmd<'k> {
+    pub fn lws<D: Into<SpatialDims>>(mut self, lws: D) -> KernelCmd<'k> {
         self.lws = lws.into();
         self
     }
@@ -114,9 +114,9 @@ pub struct Kernel {
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
     command_queue_obj_core: CommandQueueCore,
-    gwo: SimpleDims,
-    gws: SimpleDims,
-    lws: SimpleDims,
+    gwo: SpatialDims,
+    gws: SpatialDims,
+    lws: SpatialDims,
 }
 
 impl Kernel {
@@ -134,9 +134,9 @@ impl Kernel {
             named_args: HashMap::with_capacity(5),
             arg_count: 0,
             command_queue_obj_core: queue.core_as_ref().clone(),
-            gwo: SimpleDims::Unspecified,
-            gws: SimpleDims::Unspecified,
-            lws: SimpleDims::Unspecified,
+            gwo: SpatialDims::Unspecified,
+            gws: SpatialDims::Unspecified,
+            lws: SpatialDims::Unspecified,
         })
     }
 
@@ -144,7 +144,7 @@ impl Kernel {
     ///
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// making a call to enqueue or building a queue command with `::cmd`.
-    pub fn gwo<D: Into<SimpleDims>>(mut self, gwo: D) -> Kernel {
+    pub fn gwo<D: Into<SpatialDims>>(mut self, gwo: D) -> Kernel {
         // let gwo = gwo.into();
 
         // if gwo.dim_count() == self.gws.dim_count() {
@@ -161,7 +161,7 @@ impl Kernel {
     ///
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// making a call to enqueue or building a queue command with `::cmd`.
-    pub fn gws<D: Into<SimpleDims>>(mut self, gws: D) -> Kernel {
+    pub fn gws<D: Into<SpatialDims>>(mut self, gws: D) -> Kernel {
         // if gws.dim_count() == self.gws.dim_count() {
         //     self.gws = gws;
         // } else {
@@ -176,7 +176,7 @@ impl Kernel {
     ///
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// making a call to enqueue or building a queue command with `::cmd`.
-    pub fn lws<D: Into<SimpleDims>>(mut self, lws: D) -> Kernel {
+    pub fn lws<D: Into<SpatialDims>>(mut self, lws: D) -> Kernel {
         // let lws = lws.into();
 
         // if lws.dim_count() == self.gws.dim_count() {
@@ -333,7 +333,7 @@ impl Kernel {
     // /// Specify `dest_list` to have a new event added to that list associated
     // /// with the completion of this kernel task.
     // ///
-    // pub fn enqueue_ndrange<D: Into<SimpleDims>>(&self, queue: Option<&Queue>,  
+    // pub fn enqueue_ndrange<D: Into<SpatialDims>>(&self, queue: Option<&Queue>,  
     //             gwo: Option<D>, gws: Option<D>, lws: Option<D>, wait_list: Option<&EventList>, 
     //             dest_list: Option<&mut EventList>) -> OclResult<()>
     // {
@@ -434,17 +434,17 @@ impl Kernel {
     }
 
     /// Returns the default global work offset.
-    pub fn get_gwo(&self) -> SimpleDims {
+    pub fn get_gwo(&self) -> SpatialDims {
         self.gwo.clone()
     }
 
     /// Returns the default global work size.
-    pub fn get_gws(&self) -> SimpleDims {
+    pub fn get_gws(&self) -> SpatialDims {
         self.gws.clone()
     }
 
     /// Returns the default local work size.
-    pub fn get_lws(&self) -> SimpleDims {
+    pub fn get_lws(&self) -> SpatialDims {
         self.lws.clone()
     }
 

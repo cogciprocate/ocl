@@ -24,6 +24,7 @@ pub enum Error {
     Nul(std::ffi::NulError),
     Io(std::io::Error),
     FromUtf8Error(std::string::FromUtf8Error),
+    UnspecifiedDimensions,
 }
 
 impl self::Error {
@@ -49,6 +50,7 @@ impl self::Error {
     pub fn prepend<'s, S: AsRef<&'s str>>(&'s mut self, txt: S) {
         match self {
             &mut Error::String(ref mut string) => {
+                string.reserve_exact(txt.as_ref().len());
                 let old_string_copy = string.clone();
                 string.clear();
                 string.push_str(txt.as_ref());
@@ -69,6 +71,8 @@ impl std::error::Error for self::Error {
             &Error::FromUtf8Error(ref err) => err.description(),
             &Error::ErrCode(_, ref desc) => &desc,
             &Error::String(ref desc) => &desc,
+            &Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
+                Please specify some dimensions.",
             // _ => panic!("OclError::description()"),
         }
     }

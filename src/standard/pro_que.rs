@@ -4,7 +4,7 @@ use std::convert::Into;
 use std::ops::Deref;
 use core::OclNum;
 use standard::{Context, ProQueBuilder, Program, Queue, Kernel, Buffer,
-    BufferDims, SimpleDims, WorkDims};
+    BufferDims, SpatialDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
 
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use 
@@ -12,7 +12,7 @@ static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions sp
 
 
 /// An all-in-one chimera of the `Program`, `Queue`, and (optionally) the 
-/// `Context` and `SimpleDims` types.
+/// `Context` and `SpatialDims` types.
 ///
 /// Handy when creating only a single context, program, and queue or when
 /// using a unique program build on each device.
@@ -37,7 +37,7 @@ pub struct ProQue {
     context: Context,
     queue: Queue,
     program: Program,
-    dims: Option<SimpleDims>,
+    dims: Option<SpatialDims>,
 }
 
 impl ProQue {
@@ -80,7 +80,7 @@ impl ProQue {
     /// from different devices or contexts will cause errors later on.
     ///
     /// [FIXME] TODO: DEPRICATE BUILDING THROUGH PROQUE.
-    pub fn new<D: Into<SimpleDims>>(context: Context, queue: Queue, program: Program,
+    pub fn new<D: Into<SpatialDims>>(context: Context, queue: Queue, program: Program,
                     dims: Option<D>) -> ProQue 
     {
         ProQue {
@@ -172,7 +172,7 @@ impl ProQue {
     // ///
     // /// Panics if the contained program has not been created / built or if
     // /// there is a problem creating the kernel.
-    // pub fn create_kernel_with_dims<D: Into<SimpleDims>>(&self, name: &str, gws: D) -> Kernel {
+    // pub fn create_kernel_with_dims<D: Into<SpatialDims>>(&self, name: &str, gws: D) -> Kernel {
     //     let program = match self.program {
     //         Some(ref prg) => prg,
     //         None => {
@@ -208,7 +208,7 @@ impl ProQue {
         }
     }
 
-    pub fn set_dims<S: Into<SimpleDims>>(&mut self, dims: S) {
+    pub fn set_dims<S: Into<SpatialDims>>(&mut self, dims: S) {
         self.dims = Some(dims.into());
     }
 
@@ -234,13 +234,13 @@ impl ProQue {
     }
 
     /// Returns the current `dims` or panics.
-    pub fn dims(&self) -> &SimpleDims {
+    pub fn dims(&self) -> &SpatialDims {
         self.dims_result().expect("ocl::ProQue::dims(): This ProQue has no dimensions set. 
             Use `::set_dims` to set some or set them during building with `::dims`.")
     }
 
     /// Returns the current `dims` or an error.
-    pub fn dims_result(&self) -> OclResult<&SimpleDims> {
+    pub fn dims_result(&self) -> OclResult<&SpatialDims> {
         match self.dims {
             Some(ref dims) => Ok(dims),
             None => OclError::err(DIMS_ERR_MSG),
@@ -269,9 +269,9 @@ impl WorkDims for ProQue {
 }
 
 impl Deref for ProQue {
-    type Target = SimpleDims;
+    type Target = SpatialDims;
 
-    fn deref(&self) -> &SimpleDims {
+    fn deref(&self) -> &SpatialDims {
         match self.dims {
             Some(ref dims) => dims,
             None => panic!(DIMS_ERR_MSG),
