@@ -3,6 +3,7 @@
 use std::convert::From;
 use std::fmt::Debug;
 use std::ops::Index;
+// use std::mem;
 use num::{Num, ToPrimitive};
 use error::{Result as OclResult, Error as OclError};
 use standard::{BufferDims, WorkDims};
@@ -97,14 +98,6 @@ impl SimpleDims {
 
 impl BufferDims for SimpleDims {
     fn padded_buffer_len(&self, incr: usize) -> usize {
-        // let simple_len = match self {
-        //     &SimpleDims::Unspecified => 0,
-        //     &SimpleDims::Three(d0, d1, d2) => d0 * d1 * d2,
-        //     &SimpleDims::Two(d0, d1) => d0 * d1,
-        //     &SimpleDims::One(d0) => d0,
-        // };
-        // let len = self.linear_len();
-        // util::padded_len(len, incr)
         self.padded_len(incr)
     }
 }

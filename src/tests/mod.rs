@@ -12,3 +12,4 @@ pub mod test_basics;
 pub mod test_events;
 pub mod test_trivial;
 pub mod test_buffer_copy;
+pub mod test_buffer_ops_rect;

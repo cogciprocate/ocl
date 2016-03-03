@@ -347,6 +347,22 @@ pub fn wrap_vals<T: OclNum + Integer>(vals: &[T], val_n: T) -> Vec<T> {
     vals.iter().map(|&v| v % val_n).collect()
 }
 
+// /// Converts a length in `T` to a size in bytes.
+// #[inline]
+// pub fn len_to_size<T>(len: usize) -> usize {
+//     len * mem::size_of::<T>()
+// }
+
+// /// Converts lengths in `T` to sizes in bytes for a `[usize; 3]`.
+// #[inline]
+// pub fn len3_to_size3<T>(lens: [usize; 3]) -> [usize; 3] {
+//     [len_to_size::<T>(lens[0]), len_to_size::<T>(lens[1]), len_to_size::<T>(lens[2])]
+// }
+
+// /// Converts lengths in `T` to sizes in bytes for a `&[usize]`.
+// pub fn lens_to_sizes<T>(lens: &[usize]) -> Vec<usize> {
+//     lens.iter().map(|len| len * mem::size_of::<T>()).collect()
+// }
 
 //=============================================================================
 //=========================== PRINTING FUNCTIONS ==============================

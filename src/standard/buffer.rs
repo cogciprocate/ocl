@@ -511,6 +511,8 @@ impl<T: OclNum> Buffer<T> {
     /// Creates a new Buffer with caller-managed buffer length, type, flags, and 
     /// initialization.
     ///
+    /// [DOCUMENTATION OUT OF DATE]
+    ///
     /// # Examples
     /// See `examples/buffer_unchecked.rs`.
     ///
@@ -541,6 +543,7 @@ impl<T: OclNum> Buffer<T> {
     /// or are unknown.
     ///
     /// [FIXME]: Return result.
+    /// [FIXME]: Update docs.
     pub unsafe fn new_unchecked(flags: MemFlags, len: usize, host_ptr: Option<&[T]>, 
                 queue: &Queue) -> Buffer<T> 
     {
@@ -705,7 +708,7 @@ impl<T: OclNum> Buffer<T> {
     /// The length of `data` must be less than the length of the buffer minus `offset`.
     ///
     /// Errors upon any OpenCL error.
-    pub fn read(&self, data: &mut [T], offset: usize) -> OclResult<()>
+    pub fn read(&self, offset: usize, data: &mut [T]) -> OclResult<()>
     {
         // Safe due to being a blocking read (right?).
         unsafe { self.enqueue_read(None, true, offset, data, None, None) }
@@ -721,7 +724,7 @@ impl<T: OclNum> Buffer<T> {
     /// The length of `data` must be less than the length of the buffer minus `offset`.
     ///
     /// Errors upon any OpenCL error.
-    pub fn write(&self, data: &[T], offset: usize) -> OclResult<()>
+    pub fn write(&self, offset: usize, data: &[T]) -> OclResult<()>
     {
         self.enqueue_write(None, true, offset, data, None, None)
     }
@@ -1227,7 +1230,7 @@ pub mod tests {
         // Throw caution to the wind (this is potentially unsafe).
         fn read_idx_direct(&self, idx: usize) -> T {
             let mut buffer = vec![Zero::zero()];
-            self.read(&mut buffer[0..1], idx).unwrap();
+            self.read(idx, &mut buffer[0..1]).unwrap();
             buffer[0]
         }
     }

@@ -1523,6 +1523,20 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclNum, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
+    let buffer_origin_bytes = [buffer_origin[0] * mem::size_of::<T>(), buffer_origin[1], buffer_origin[2]];
+    let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(), host_origin[1], host_origin[2]];
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];;
+    let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
+    let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
+    let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
+    let host_slc_pitch_bytes = host_slc_pitch * mem::size_of::<T>();
+
+    println!("buffer_origin_bytes: {:?}, host_origin_bytes: {:?}, region_bytes: {:?}",
+        buffer_origin_bytes, host_origin_bytes, region_bytes);
+    println!("buffer_row_pitch_bytes: {}, buffer_slc_pitch_bytes: {}, \
+        host_row_pitch_bytes: {}, host_slc_pitch_bytes: {}", 
+        buffer_row_pitch_bytes, buffer_slc_pitch_bytes, host_row_pitch_bytes, host_slc_pitch_bytes);
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -1530,13 +1544,13 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclNum, L: AsRef<EventList>>(
         command_queue.as_ptr(), 
         buffer.as_ptr(), 
         block as cl_uint,
-        &buffer_origin as *const _ as *const usize,
-        &host_origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
-        buffer_row_pitch,
-        buffer_slc_pitch,
-        host_row_pitch,
-        host_slc_pitch,
+        &buffer_origin_bytes as *const _ as *const usize,
+        &host_origin_bytes as *const _ as *const usize,
+        &region_bytes as *const _ as *const usize,
+        buffer_row_pitch_bytes,
+        buffer_slc_pitch_bytes,
+        host_row_pitch_bytes,
+        host_slc_pitch_bytes,
         data.as_ptr() as cl_mem, 
         wait_list_len,
         wait_list_ptr,
@@ -1603,6 +1617,11 @@ pub fn enqueue_write_buffer_rect<T: OclNum, L: AsRef<EventList>>(
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
+
+        // let src_row_pitch_bytes = src_row_pitch * mem::size_of::<T>();
+        // let src_slc_pitch_bytes = src_slc_pitch * mem::size_of::<T>();
+        // let dst_row_pitch_bytes = dst_row_pitch * mem::size_of::<T>();
+        // let dst_slc_pitch_bytes = dst_slc_pitch * mem::size_of::<T>();
 
     let errcode = unsafe { cl_h::clEnqueueWriteBufferRect(
         command_queue.as_ptr(), 
@@ -1709,7 +1728,7 @@ pub fn enqueue_copy_buffer<T: OclNum, L: AsRef<EventList>>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferRect.html)
 ///
-pub fn enqueue_copy_buffer_rect<L: AsRef<EventList>>(
+pub fn enqueue_copy_buffer_rect<T: OclNum, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_buffer: &Mem, 
             dst_buffer: &Mem, 
@@ -1727,6 +1746,11 @@ pub fn enqueue_copy_buffer_rect<L: AsRef<EventList>>(
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
 
+        let src_row_pitch_bytes = src_row_pitch * mem::size_of::<T>();
+        let src_slc_pitch_bytes = src_slc_pitch * mem::size_of::<T>();
+        let dst_row_pitch_bytes = dst_row_pitch * mem::size_of::<T>();
+        let dst_slc_pitch_bytes = dst_slc_pitch * mem::size_of::<T>();
+
     let errcode = unsafe { cl_h::clEnqueueCopyBufferRect(
         command_queue.as_ptr(), 
         src_buffer.as_ptr(), 
@@ -1734,10 +1758,10 @@ pub fn enqueue_copy_buffer_rect<L: AsRef<EventList>>(
         &src_origin as *const _ as *const usize,
         &dst_origin as *const _ as *const usize,
         &region as *const _ as *const usize,
-        src_row_pitch,
-        src_slc_pitch,
-        dst_row_pitch,
-        dst_slc_pitch,
+        src_row_pitch_bytes,
+        src_slc_pitch_bytes,
+        dst_row_pitch_bytes,
+        dst_slc_pitch_bytes,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
