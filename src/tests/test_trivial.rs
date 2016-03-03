@@ -1,30 +1,3 @@
-extern crate ocl;
-use ocl::ProQue;
-
-fn main() {
-    let src = r#"
-        __kernel void add(__global float* buffer, float addend) {
-            buffer[get_global_id(0)] += addend;
-        }
-    "#;
-
-    let pro_que = ProQue::builder()
-        .src(src)
-        .dims([500000])
-        .build().unwrap();   
-
-    let mut buffer = pro_que.create_buffer::<f32>(true);
-
-    let kernel = pro_que.create_kernel("add")
-        .arg_buf(&buffer)
-        .arg_scl(10.0f32);
-
-    kernel.enqueue();
-    buffer.fill_vec();
-
-    println!("The value at index [{}] is now '{}'!", 200007, buffer[200007]);
-}
-
 
 const IDX: usize = 200007;
 const ADDEND: f32 = 10.0;
@@ -39,7 +12,9 @@ const ADDEND: f32 = 10.0;
 /// more about what's going on under the hood.
 ///
 #[allow(dead_code)]
+#[test]
 fn main_explained() {
+    use standard::ProQue;
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
             buffer[get_global_id(0)] += addend;
@@ -93,8 +68,10 @@ fn main_explained() {
 /// See the function below this to take things a step deeper...
 ///
 #[allow(dead_code)]
+#[test]
 fn main_exploded() {
-    use ocl::{flags, Platform, Device, Context, DeviceSpecifier, Queue, Program,
+    use flags;
+    use standard::{Platform, Device, Context, DeviceSpecifier, Queue, Program,
         Buffer, Kernel};
 
     let src = r#"
@@ -172,10 +149,12 @@ fn main_exploded() {
 /// you've used OpenCL before, this will look the most familiar to you.
 ///
 #[allow(dead_code, unused_variables, unused_mut)]
+#[test]
 fn main_cored() {
     use std::ffi::CString;
-    use ocl::{self, core, flags};
-    use ocl::enums::KernelArg;
+    use core::{self, ContextProperties};
+    use flags;
+    use enums::KernelArg;
 
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -190,7 +169,7 @@ fn main_cored() {
     let device_ids = core::get_device_ids(&platform_id, 
         Some(flags::DEVICE_TYPE_ALL), None).unwrap();
     let device_id = device_ids[0];
-    let context_properties = ocl::ContextProperties::new().platform(platform_id);
+    let context_properties = ContextProperties::new().platform(platform_id);
     let context = core::create_context(&Some(context_properties), 
         &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();

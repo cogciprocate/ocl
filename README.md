@@ -61,12 +61,12 @@ fn main() {
 
     let kernel = pro_que.create_kernel("add")
         .arg_buf(&buffer)
-        .arg_scl(100.0f32);
+        .arg_scl(10.0f32);
 
     kernel.enqueue();
     buffer.fill_vec();
 
-    println!("The buffer element at [{}] is '{}'", 200057, buffer[200057]);
+    println!("The value at index [{}] is now '{}'!", 200007, buffer[200007]);
 }
 
 ////////// See the original file for more //////////

@@ -3,7 +3,7 @@ Version 0.8.0 (UNRELEASED)
 
 Breaking Changes
 ----------------
-* `Buffer` and `Image` have had their `::enqueue_***` methods modified to
+* [`Buffer`] and [`Image`] have had their `::enqueue_***` methods modified to
   accept an optional queue. When a queue is passed it will temporarily override
   the default queue for that call only. The default queue can still be changed
   permanently by calling `::set_queue` for either.
@@ -17,10 +17,14 @@ Breaking Changes
   command builder method.
 * The `device` argument for `Queue::new` is no longer optional.
 * `Context::new_by_index_and_type` has been removed.
+* `core::set_kernel_arg` and `::enqueue_kernel` no longer have an argument
+  for the kernel function name. Instead it is queried when needed using
+  `::get_kernel_info`.
 
 
 New Features
 ------------
+* Command builders for [`Kernel`], [`Buffer`], and [`Image`]
 * Most of the remaining functions in the `core` module have been implemented.
   Coverage is now about 98%.
 * [`Sampler`] has been added along with the appropriate methods on [`Kernel`]
