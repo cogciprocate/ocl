@@ -1474,11 +1474,13 @@ pub unsafe fn enqueue_read_buffer<T: OclNum, L: AsRef<EventList>>(
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
 
+    let offset_bytes = offset * mem::size_of::<T>();
+
     let errcode = cl_h::clEnqueueReadBuffer(
         command_queue.as_ptr(), 
         buffer.as_ptr(), 
         block as cl_uint, 
-        offset, 
+        offset_bytes, 
         (data.len() * mem::size_of::<T>()) as size_t, 
         data.as_ptr() as cl_mem, 
         wait_list_len,
@@ -1558,11 +1560,13 @@ pub fn enqueue_write_buffer<T: OclNum, L: AsRef<EventList>>(
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
 
+    let offset_bytes = offset * mem::size_of::<T>();
+
     let errcode = unsafe { cl_h::clEnqueueWriteBuffer(
         command_queue.as_ptr(),
         buffer.as_ptr(),
         block as cl_uint,
-        offset,
+        offset_bytes,
         (data.len() * mem::size_of::<T>()) as size_t,
         data.as_ptr() as cl_mem,
         wait_list_len,
@@ -1634,13 +1638,13 @@ pub fn enqueue_write_buffer_rect<T: OclNum, L: AsRef<EventList>>(
 /// device. The memory associated with pattern can be reused or freed after the
 /// function returns.
 ///
-pub fn enqueue_fill_buffer<T, L: AsRef<EventList>>(
+pub fn enqueue_fill_buffer<T: OclNum, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem,
             pattern: &[T],
             pattern_size: usize,
             offset: usize,
-            size: usize,
+            len: usize,
             wait_list: Option<&L>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
@@ -1648,13 +1652,16 @@ pub fn enqueue_fill_buffer<T, L: AsRef<EventList>>(
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
 
+    let offset_bytes = offset * mem::size_of::<T>();
+    let size_bytes = len * mem::size_of::<T>();
+
     let errcode = unsafe { cl_h::clEnqueueFillBuffer(
         command_queue.as_ptr(),
         buffer.as_ptr(), 
         &pattern as *const _ as *const c_void, 
         pattern_size,
-        offset,
-        size,
+        offset_bytes,
+        size_bytes,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -1664,27 +1671,34 @@ pub fn enqueue_fill_buffer<T, L: AsRef<EventList>>(
 
 /// [UNTESTED]
 /// Copies the contents of one buffer to another.
-#[allow(dead_code)]
 pub fn enqueue_copy_buffer<T: OclNum>(
             command_queue: &CommandQueue,
             src_buffer: &Mem,
             dst_buffer: &Mem,
             src_offset: usize,
             dst_offset: usize,
-            len_copy_bytes: usize,
+            len: usize,
+            wait_list: Option<&L>, 
+            new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
-    let errcode = unsafe {
-        cl_h::clEnqueueCopyBuffer(
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = try!(resolve_event_ptrs(wait_list, new_event));
+
+    let src_offset_bytes = src_offset * mem::size_of::<T>();
+    let dst_offset_bytes = dst_offset * mem::size_of::<T>();
+    let len_bytes = len * mem::size_of::<T>();
+
+    let errcode = unsafe { cl_h::clEnqueueCopyBuffer(
         command_queue.as_ptr(),
         src_buffer.as_ptr(),
         dst_buffer.as_ptr(),
-        src_offset,
-        dst_offset,
-        len_copy_bytes as usize,
-        0,
-        ptr::null(),
-        ptr::null_mut(),
+        src_offset_bytes,
+        dst_offset_bytes,
+        len_bytes,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
     ) };
     errcode_try("clEnqueueCopyBuffer()", errcode)
 }
@@ -1888,7 +1902,7 @@ pub fn enqueue_copy_image<L: AsRef<EventList>>(
 /// Enqueues a command to copy an image object to a buffer object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImageToBuffer.html)
-pub fn enqueue_copy_image_to_buffer<L: AsRef<EventList>>(
+pub fn enqueue_copy_image_to_buffer<T: OclNum, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_image: &Mem,
             dst_buffer: &Mem,
@@ -1902,13 +1916,15 @@ pub fn enqueue_copy_image_to_buffer<L: AsRef<EventList>>(
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
 
+    let dst_offset_bytes = dst_offset * mem::size_of::<T>();
+
     let errcode = unsafe { cl_h::clEnqueueCopyImageToBuffer(
         command_queue.as_ptr(),
         src_image.as_ptr(),
         dst_buffer.as_ptr(),
         &src_origin as *const _ as *const usize,
         &region as *const _ as *const usize,
-        dst_offset,
+        dst_offset_bytes,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -1920,7 +1936,7 @@ pub fn enqueue_copy_image_to_buffer<L: AsRef<EventList>>(
 /// Enqueues a command to copy a buffer object to an image object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferToImage.html)
-pub fn enqueue_copy_buffer_to_image<L: AsRef<EventList>>(
+pub fn enqueue_copy_buffer_to_image<T: OclNum, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_buffer: &Mem,
             dst_image: &Mem,
@@ -1934,11 +1950,13 @@ pub fn enqueue_copy_buffer_to_image<L: AsRef<EventList>>(
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
 
+    let src_offset_bytes = src_offset * mem::size_of::<T>();
+
     let errcode = unsafe { cl_h::clEnqueueCopyBufferToImage(
         command_queue.as_ptr(),
         src_buffer.as_ptr(),
         dst_image.as_ptr(),
-        src_offset,
+        src_offset_bytes,
         &dst_origin as *const _ as *const usize,
         &region as *const _ as *const usize,
         wait_list_len,
@@ -1971,7 +1989,7 @@ pub fn enqueue_copy_buffer_to_image<L: AsRef<EventList>>(
 /// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
 ///
 ///
-pub unsafe fn enqueue_map_buffer<T, L: AsRef<EventList>>(
+pub unsafe fn enqueue_map_buffer<T: OclNum, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem,
             block: bool,
@@ -1986,12 +2004,14 @@ pub unsafe fn enqueue_map_buffer<T, L: AsRef<EventList>>(
         try!(resolve_event_ptrs(wait_list, new_event));
     let mut errcode = 0i32;
 
+    let offset_bytes = offset * mem::size_of::<T>();
+
     let mapped_ptr = cl_h::clEnqueueMapBuffer(
         command_queue.as_ptr(),
         buffer.as_ptr(),
         block as cl_uint,
         map_flags.bits(),
-        offset,
+        offset_bytes,
         size,
         wait_list_len,
         wait_list_ptr,
