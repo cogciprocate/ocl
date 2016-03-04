@@ -1491,7 +1491,6 @@ pub unsafe fn enqueue_read_buffer<T: OclNum, L: AsRef<EventList>>(
     errcode_try("clEnqueueReadBuffer()", errcode)
 }
 
-/// [UNTESTED]
 /// Enqueues a command to read from a rectangular region from a buffer object to host memory.
 ///
 /// ## Safety
@@ -1595,7 +1594,6 @@ pub fn enqueue_write_buffer<T: OclNum, L: AsRef<EventList>>(
     errcode_try("clEnqueueWriteBuffer()", errcode)
 }
 
-/// [UNTESTED]
 /// Enqueues a command to write from a rectangular region from host memory to a buffer object.
 ///
 /// ## Official Documentation
@@ -1732,7 +1730,6 @@ pub fn enqueue_copy_buffer<T: OclNum, L: AsRef<EventList>>(
     errcode_try("clEnqueueCopyBuffer()", errcode)
 }
 
-/// [UNTESTED]
 /// Enqueues a command to copy a rectangular region from a buffer object to
 /// another buffer object.
 ///

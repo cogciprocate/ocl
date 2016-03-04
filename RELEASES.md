@@ -26,7 +26,9 @@ Breaking Changes
 
 New Features
 ------------
-* Command builders for [`Kernel`], [`Buffer`], and [`Image`]
+* Command builders for [`Kernel`], [`Buffer`], and [`Image`] can now be used
+  by calling `::cmd` on each.
+* Rectangular reads, writes, and copies are now wired up and have been tested.
 * Most of the remaining functions in the `core` module have been implemented.
   Coverage is now about 98%.
 * [`Sampler`] has been added along with the appropriate methods on [`Kernel`]
