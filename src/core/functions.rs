@@ -1531,11 +1531,14 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclNum, L: AsRef<EventList>>(
     let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
     let host_slc_pitch_bytes = host_slc_pitch * mem::size_of::<T>();
 
-    println!("buffer_origin_bytes: {:?}, host_origin_bytes: {:?}, region_bytes: {:?}",
-        buffer_origin_bytes, host_origin_bytes, region_bytes);
-    println!("buffer_row_pitch_bytes: {}, buffer_slc_pitch_bytes: {}, \
-        host_row_pitch_bytes: {}, host_slc_pitch_bytes: {}", 
-        buffer_row_pitch_bytes, buffer_slc_pitch_bytes, host_row_pitch_bytes, host_slc_pitch_bytes);
+    // DEBUG:
+    if false {
+        println!("buffer_origin_bytes: {:?}, host_origin_bytes: {:?}, region_bytes: {:?}",
+            buffer_origin_bytes, host_origin_bytes, region_bytes);
+        println!("buffer_row_pitch_bytes: {}, buffer_slc_pitch_bytes: {}, \
+            host_row_pitch_bytes: {}, host_slc_pitch_bytes: {}", 
+            buffer_row_pitch_bytes, buffer_slc_pitch_bytes, host_row_pitch_bytes, host_slc_pitch_bytes);
+    }
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));

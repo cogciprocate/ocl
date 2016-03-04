@@ -1,12 +1,100 @@
+//! Tests for the rectangularly shaped buffer operations: read, write, and copy.
+//!
+//! Runs both the core function and the 'standard' method call for each.
+
+use rand::{self, Rng};
+use core;
+use flags;
+use core::OclNum;
+use standard::{ProQue, Buffer};
 
 const ADDEND: f32 = 10.0;
-const DIMS: [usize; 3] = [8, 8, 8];
+const DIMS: [usize; 3] = [12, 12, 12];
+const TEST_ITERS: i32 = 220;
+const PRINT_ITERS_MAX: i32 = 3;
+const PRINT_SLICES_MAX: usize = 12;
+
+
+fn gen_region_origin(dims: &[usize; 3]) -> ([usize; 3], [usize; 3]) {
+    let mut rng = rand::weak_rng();
+
+    let region = [
+        rng.gen_range(1, dims[0] + 1),
+        rng.gen_range(1, dims[1] + 1),
+        rng.gen_range(1, dims[2] + 1),
+    ];
+
+    let origin = [
+        rng.gen_range(0, (dims[0] - region[0]) + 1),
+        rng.gen_range(0, (dims[1] - region[1]) + 1),
+        rng.gen_range(0, (dims[2] - region[2]) + 1),
+    ];
+
+    (region, origin)
+}
+
+fn within_region(coords: [usize; 3], region_ofs: [usize; 3], region_size: [usize; 3]) -> bool {
+    let mut within: bool = true;
+    for i in 0..3 {
+        within &= coords[i] >= region_ofs[i] && coords[i] < (region_ofs[i] + region_size[i]);
+    }
+    within
+}
+
+fn verify_vec_rect<T: OclNum>(origin: [usize; 3], region: [usize; 3], in_region_val: T, 
+            out_region_val: T, vec_dims: [usize; 3], vec: &[T], kernel_runs: i32) 
+{
+    let print = kernel_runs <= PRINT_ITERS_MAX;
+    let slices_to_print = PRINT_SLICES_MAX;
+
+    if print {
+        println!("Verifying run: '{}', origin: {:?}, region: {:?}, vec_dims: {:?}", kernel_runs,
+            origin, region, vec_dims);
+    }
+
+    for z in 0..vec_dims[2] {
+        for y in 0..vec_dims[1] {
+            for x in 0..vec_dims[0] {
+                let idx = (z * vec_dims[1] * vec_dims[0]) + 
+                    (y * vec_dims[0]) + x;
+
+                // Print:
+                if print && z < slices_to_print {
+                    if within_region([x, y, z], origin, region) {
+                        if vec[idx] == in_region_val {
+                            printc!(lime: "[{:02}]", vec[idx]);
+                        } else {
+                            printc!(red_bold: "[{:02}]", vec[idx]);
+                        }
+                    } else {
+                        if vec[idx] == out_region_val {
+                            printc!(dark_grey: "[{:02}]", vec[idx]); 
+                        } else {
+                            printc!(yellow: "[{:02}]", vec[idx]);
+                        }
+                    }
+                }
+
+                // Verify:
+                if within_region([x, y, z], origin, region) {
+                    assert!(vec[idx] == in_region_val, "vec[{}] should be '{}' but is '{}'", 
+                        idx, in_region_val, vec[idx]);
+                } else {
+                    assert!(vec[idx] == out_region_val, "vec[{}] should be '{}' but is '{}'", 
+                        idx, out_region_val, vec[idx]);
+                }
+            }
+            if print && z < slices_to_print { print!("\n"); }
+        }
+        if print && z < slices_to_print { print!("\n"); }
+    }
+    if print { print!("\n"); }
+}
+
+
 
 #[test]
 fn test_buffer_ops_rect() {
-    use core;
-    use flags;
-    use standard::{ProQue, Buffer};
 
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -24,121 +112,148 @@ fn test_buffer_ops_rect() {
         .build().unwrap();   
 
     // SRC_BUFFER:
-    let mut vec_buf_0 = vec![0.0f32; proque.dims().to_len().unwrap()];
-    let buf_0 = unsafe { Buffer::new_unchecked(
+    let mut vec = vec![0.0f32; proque.dims().to_len().unwrap()];
+    let buf = unsafe { Buffer::new_unchecked(
         flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-        proque.dims().to_len().unwrap(), Some(&vec_buf_0), proque.queue()) };
-
-    // DST_BUFFER:
-    // let mut vec_buf_1 = vec![0.0f32; proque.dims().to_len().unwrap()];
-    // let buf_1 = unsafe { Buffer::new_unchecked(
-    //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-    //     proque.dims().to_len().unwrap(), Some(&vec_buf_1), proque.queue()) };
+        proque.dims().to_len().unwrap(), Some(&vec), proque.queue()) };
 
     let kernel = proque.create_kernel("add")
-        .arg_buf(&buf_0)
+        .arg_buf(&buf)
         .arg_scl(ADDEND);
 
-    // Kernel run #1:
-    kernel.enqueue();
-    let mut kernel_runs = 1;
 
-    buf_0.read(0, &mut vec_buf_0).unwrap();
+    //========================================================================
+    //============================ Warm Up Run ===============================
+    //========================================================================
+    // Make sure that pro_que's dims are correct:
+    let dims = proque.dims().to_size().unwrap();
+    assert_eq!(DIMS, dims);
+
+    // Verify buffer and vector lengths:
+    let len = proque.dims().to_len().unwrap();
+    assert_eq!(buf.len(), len);
+    assert_eq!(vec.len(), len);
+
+    // KERNEL RUN #1 -- make sure everything's working normally:
+    kernel.enqueue();
+    let mut kernel_runs = 1i32;
+
+    // READ AND VERIFY #1 (LINEAR):
+    buf.read(0, &mut vec).unwrap();
 
     for idx in 0..proque.dims().to_len().unwrap() {
-        // print!("[{:02}]", vec_buf_0[i]);
+        // DEBUG:
+        // print!("[{:02}]", vec[i]);
         // if i % 20 == 19 { print!("\n"); }
-        assert!(vec_buf_0[idx] == ADDEND * kernel_runs as f32, 
-            "vec[{}]: {}", idx, vec_buf_0[idx]);
-    }    
-
-    // Kernel run #2:
-    kernel.enqueue();
-    kernel_runs += 1;
-
-    let buf_0_origin = [0, 0, 0];
-    let vec_buf_0_origin = [2, 3, 4];
-    let region_size = proque.dims().to_size().unwrap();
-    let read_region_size = [region_size[0] / 4, region_size[1] / 4, region_size[2] / 4];
-    // let read_region_size = region_size.clone();
-
-    println!("region_size: {:?}", region_size);
-    println!("vec_buf_0.len(): {}", vec_buf_0.len());
-
-    println!("buf_0 info: {}", buf_0);
-
-    unsafe { core::enqueue_read_buffer_rect(proque.queue(), &buf_0, true, 
-        buf_0_origin, vec_buf_0_origin, read_region_size.clone(), 
-        region_size[0], region_size[0] * region_size[1], 
-        region_size[0], region_size[0] * region_size[1], 
-        &mut vec_buf_0, None::<&core::EventList>, None).unwrap(); }
-
-    let slices_to_print = 8;
-
-    for z in 0..region_size[2] {
-        for y in 0..region_size[1] {
-            for x in 0..region_size[0] {
-                // let idx = (x * region_size[1] * region_size[2]) + 
-                //     (y * region_size[2]) + z;
-                let idx = (z * region_size[1] * region_size[0]) + 
-                    (y * region_size[0]) + x;
-                if z < slices_to_print {
-                    if vec_buf_0[idx] == ADDEND * kernel_runs as f32 {
-                        printc!(lime: "[{:02}]", vec_buf_0[idx]);
-                    } else {
-                        printc!(dark_grey: "[{:02}]", vec_buf_0[idx]);   
-                    }
-                } else {
-                    
-                }
-
-                // if x >= src_vec_origin[0] && x < (src_vec_origin[0] + read_region_size[0]) {
-                //     let idx = x * y * z;
-                //     print!("[{}]", vec_buf_0[idx]);
-                // }
-            }
-            if z < slices_to_print { print!("\n"); }
-        }
-        if z < slices_to_print { print!("\n"); }
+        assert!(vec[idx] == ADDEND * kernel_runs as f32, 
+            "vec[{}]: {}", idx, vec[idx]);
     }
 
-    // for i in 0..dims[0] {
-    //     assert_eq!(vec_buf_0[i], ADDEND);
+    print!("\n");
 
-    //     if i >= copy_range.0 && i < copy_range.1 {
-    //         assert_eq!(vec_buf_1[i], ADDEND);
-    //     } else {
-    //         assert!(vec_buf_1[i] == 0.0, "dst_vec: {}, idx: {}", vec_buf_1[i], i);
-    //     }
+    // Warm up the verify function:
+    verify_vec_rect([0, 0, 0], dims, ADDEND * kernel_runs as f32,
+        ADDEND * (kernel_runs - 1) as f32, dims, &vec, kernel_runs);
+
+    //========================================================================
+    //=============================== Read ===================================
+    //========================================================================
+    for _ in 0..TEST_ITERS {
+        // Generate a random size region and origin point:
+        let (read_region, vec_origin) = gen_region_origin(&dims);
+        // Buffer origin doesn't matter since it's all the same value host side:
+        let buf_origin = [0, 0, 0];
+        // Lengths of the two non-major dimensions.
+        let row_pitch = dims[0];
+        let slc_pitch = dims[0] * dims[1];
+
+        //====================================================================
+        //=============== `core::enqueue_read_buffer_rect()` =================
+        //====================================================================
+        // RUN KERNEL:
+        kernel.enqueue();
+        kernel_runs += 1;
+        let cur_val = ADDEND * kernel_runs as f32;
+        let old_val = ADDEND * (kernel_runs - 1) as f32;
+
+        // READ RANDOM REGION AND VERIFY:
+        unsafe { core::enqueue_read_buffer_rect(proque.queue(), &buf, true, 
+            buf_origin, vec_origin, read_region.clone(), row_pitch, slc_pitch, 
+            row_pitch, slc_pitch, &mut vec, None::<&core::EventList>, None).unwrap(); }
+        verify_vec_rect(vec_origin, read_region, cur_val, old_val, dims, &vec, kernel_runs);
+
+        // RESET AND VERIFY:
+        unsafe { core::enqueue_read_buffer_rect(proque.queue(), &buf, true, 
+            [0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch, row_pitch, slc_pitch,
+            &mut vec, None::<&core::EventList>, None).unwrap(); }
+        verify_vec_rect(vec_origin, read_region, cur_val, cur_val, dims, &vec, kernel_runs);
+
+        //====================================================================
+        //======================== `Buffer::cmd()` ===========================
+        //====================================================================
+        // RUN KERNEL:
+        kernel.enqueue();
+        kernel_runs += 1;
+        let cur_val = ADDEND * kernel_runs as f32;
+        let old_val = ADDEND * (kernel_runs - 1) as f32;
+
+        // READ RANDOM REGION AND VERIFY:
+        buf.cmd().read(&mut vec).rect(buf_origin, vec_origin, read_region.clone(), row_pitch,
+            slc_pitch, row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
+        verify_vec_rect(vec_origin, read_region, cur_val, old_val, dims, &vec, kernel_runs);
+
+        // RESET AND VERIFY
+        buf.cmd().read(&mut vec).rect([0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch,
+            row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
+        verify_vec_rect(vec_origin, read_region, cur_val, cur_val, dims, &vec, kernel_runs);
+    }
+
+
+    // for _ in 0..TEST_ITERS {
+    //     let (read_region, vec_origin) = gen_region_origin(&dims);
+    //     let buf_origin = [0, 0, 0];
+
+    //     kernel.enqueue();
+    //     kernel_runs += 1;
+
+    //     let row_pitch = dims[0];
+    //     let slc_pitch = dims[0] * dims[1];
+
+    //     // READ RANDOM REGION AND VERIFY
+    //     buf.cmd().read(&mut vec)
+    //         .rect(buf_origin, vec_origin, read_region.clone(), row_pitch, slc_pitch,
+    //             row_pitch, slc_pitch)
+    //         .queue(proque.queue()).block(true).enq().unwrap();
+
+    //     verify_vec_rect(vec_origin, read_region, cur_val,
+    //         old_val, dims, &vec, kernel_runs);
+
+    //     buf.cmd().read(&mut vec)
+    //         .rect([0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch,
+    //             row_pitch, slc_pitch)
+    //         .queue(proque.queue()).block(true).enq().unwrap();
+
+    //     verify_vec_rect(vec_origin, read_region, cur_val,
+    //         cur_val, dims, &vec, kernel_runs);
     // }
+
+
+    printlnc!(lime: "{} total test runs complete.\n", kernel_runs);
     
     // panic!("SUCCESS!");
+
+    // [DST_BUFFER]:
+    // let mut dst_vec = vec![0.0f32; proque.dims().to_len().unwrap()];
+    // let dst_buf = unsafe { Buffer::new_unchecked(
+    //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
+    //     proque.dims().to_len().unwrap(), Some(&vec_1), proque.queue()) };
+
 }
 
-
     // pub fn enqueue_copy_buffer_rect<L: AsRef<EventList>>(
-    //  command_queue: &CommandQueue, buf_0: &Mem, buf_1: &Mem, src_origin: [usize; 3],
+    //  command_queue: &CommandQueue, buf: &Mem, buf_1: &Mem, src_origin: [usize; 3],
     //  dst_origin: [usize; 3], region: [usize; 3], src_row_pitch: usize, src_slc_pitch: usize, 
     //  dst_row_pitch: usize, dst_slc_pitch: usize, wait_list: Option<&L>, new_event: Option<&mut ClEventPtrNew>,
     //  ) -> OclResult<()>
 
 
-
-
-    // // Copy src to dst:
-    // let copy_range = (IDX, proque.dims()[0] - 100);
-    // buf_0.cmd().copy(&buf_1, copy_range.0, copy_range.1 - copy_range.0).enq().unwrap();
-
-    // // Read both buffers from device.
-    // buf_0.fill_vec();
-    // buf_1.fill_vec();
-
-    // for i in 0..proque.dims()[0] {
-    //     assert_eq!(buf_0[i], ADDEND);
-
-    //     if i >= copy_range.0 && i < copy_range.1 {
-    //         assert_eq!(buf_1[i], ADDEND);
-    //     } else {
-    //         assert!(buf_1[i] == 0.0, "dst_buf: {}, idx: {}", buf_1[i], i);
-    //     }
-    // }

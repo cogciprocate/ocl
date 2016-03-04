@@ -38,7 +38,7 @@ macro_rules! printc {
 ///
 /// #### Usage
 /// 
-/// `printlnc!(dark_orange: "Number of baggies filled while walking dogs: {}", bag_count);`
+/// `printlnc!(orange: "Number of baggies filled while walking dogs: {}", bag_count);`
 ///
 /// See [`colorify!` docs](http://doc.cogciprocate.com/ocl/macro.colorify!.html)
 /// for a current list of colors.
@@ -61,7 +61,7 @@ macro_rules! colorify {
     (red_bold: $s:expr) => ( concat!("\x1b[1;31m", $s, "\x1b[0m") );
     (green: $s:expr) => ( concat!("\x1b[32m", $s, "\x1b[0m") );
     (green_bold: $s:expr) => ( concat!("\x1b[1;32m", $s, "\x1b[0m") );
-    (dark_orange: $s:expr) => ( concat!("\x1b[33m", $s, "\x1b[0m") );
+    (orange: $s:expr) => ( concat!("\x1b[33m", $s, "\x1b[0m") );
     (yellow_bold: $s:expr) => ( concat!("\x1b[1;33m", $s, "\x1b[0m") );
     (blue: $s:expr) => ( concat!("\x1b[34m", $s, "\x1b[0m") );
     (blue_bold: $s:expr) => ( concat!("\x1b[1;34m", $s, "\x1b[0m") );

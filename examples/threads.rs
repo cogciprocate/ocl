@@ -66,7 +66,7 @@ fn main() {
 	        	Queue::new(&context, device).unwrap(), 
 	        	Queue::new(&context, device).unwrap()];
 
-			printc!(dark_orange: "    Spawning threads... ");
+			printc!(orange: "    Spawning threads... ");
 
 			for i in 0..5 {
 				let thread_name = format!("{}:[D{}.I{}]", threads.len(), device_idx, i);

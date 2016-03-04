@@ -43,7 +43,7 @@ static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buf
     //             wait_list: Option<&L>, 
     //             new_event: Option<&mut E>,
 
-pub enum OpKind<'b, T: 'b> {
+pub enum CmdKind<'b, T: 'b> {
     Unspecified,
     Read { data: &'b mut [T] },
     Write { data: &'b [T] },
@@ -52,9 +52,9 @@ pub enum OpKind<'b, T: 'b> {
     CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
 } 
 
-impl<'b, T: 'b> OpKind<'b, T> {
+impl<'b, T: 'b> CmdKind<'b, T> {
     fn is_unspec(&'b self) -> bool {
-        if let &OpKind::Unspecified = self {
+        if let &CmdKind::Unspecified = self {
             true
         } else {
             false
@@ -62,7 +62,7 @@ impl<'b, T: 'b> OpKind<'b, T> {
     }
 }
 
-pub enum OpShape {
+pub enum DataShape {
     Lin { offset: usize },
     Rect { 
         src_origin: [usize; 3],
@@ -82,10 +82,10 @@ pub struct BufferCmd<'b, T: 'b + OclNum> {
     obj_core: &'b MemCore,
     block: bool,
     lock_block: bool,
-    kind: OpKind<'b, T>,
-    shape: OpShape,    
-    wait_list: Option<&'b EventList>,
-    dest_list: Option<&'b mut ClEventPtrNew>,
+    kind: CmdKind<'b, T>,
+    shape: DataShape,    
+    ewait: Option<&'b EventList>,
+    enew: Option<&'b mut ClEventPtrNew>,
     mem_len: usize,
 }
 
@@ -101,10 +101,10 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
             obj_core: obj_core,
             block: true,
             lock_block: false,
-            kind: OpKind::Unspecified,
-            shape: OpShape::Lin { offset: 0 },
-            wait_list: None,
-            dest_list: None,
+            kind: CmdKind::Unspecified,
+            shape: DataShape::Lin { offset: 0 },
+            ewait: None,
+            enew: None,
             mem_len: mem_len,
         }
     }
@@ -123,8 +123,10 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     /// for a non-blocking read operation.
     ///
     pub fn block(mut self, block: bool) -> BufferCmd<'b, T> {
-        assert!(!self.lock_block, "ocl::BufferCmd::block(): Blocking for this command has been \
-            disabled by the '::read' method. For non-blocking reads use '::read_async'.");
+        if !block && self.lock_block { 
+            panic!("ocl::BufferCmd::block(): Blocking for this command has been disabled by \
+                the '::read' method. For non-blocking reads use '::read_async'.");
+        }
         self.block = block;
         self
     }
@@ -136,12 +138,12 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     /// The 'shape' may not have already been set to rectangular by the 
     /// `::rect` function.
     pub fn offset(mut self, offset: usize)  -> BufferCmd<'b, T> {
-        if let OpShape::Rect { .. } = self.shape {
+        if let DataShape::Rect { .. } = self.shape {
             panic!("ocl::BufferCmd::offset(): This command builder has already been set to \
                 rectangular mode with '::rect`. You cannot call both '::offset' and '::rect'.");
         }
 
-        self.shape = OpShape::Lin { offset: offset };
+        self.shape = DataShape::Lin { offset: offset };
         self
     }
 
@@ -157,7 +159,7 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     pub fn read(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
-        self.kind = OpKind::Read { data: dst_data };
+        self.kind = CmdKind::Read { data: dst_data };
         self.block = true;
         self.lock_block = true;
         self
@@ -182,7 +184,7 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     pub unsafe fn read_async(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
-        self.kind = OpKind::Read { data: dst_data };
+        self.kind = CmdKind::Read { data: dst_data };
         self
     }
 
@@ -195,7 +197,7 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     pub fn write(mut self, src_data: &'b [T]) -> BufferCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
-        self.kind = OpKind::Write { data: src_data };
+        self.kind = CmdKind::Write { data: src_data };
         self
     }
 
@@ -212,7 +214,7 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind \
             already set for this command.");
-        self.kind = OpKind::Copy { 
+        self.kind = CmdKind::Copy { 
             dst_buffer: dst_buffer.core_as_ref(),
             dst_offset: dst_offset,
             len: len,
@@ -233,7 +235,7 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind \
             already set for this command.");
-        self.kind = OpKind::CopyToImage { image: image, dst_origin: dst_origin, region: region }; 
+        self.kind = CmdKind::CopyToImage { image: image, dst_origin: dst_origin, region: region }; 
         self
     }
 
@@ -248,7 +250,7 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     pub fn fill(mut self, pattern: &'b [T], pattern_size: usize) -> BufferCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind \
             already set for this command.");
-        self.kind = OpKind::Fill { pattern: pattern, pattern_size: pattern_size }; 
+        self.kind = CmdKind::Fill { pattern: pattern, pattern_size: pattern_size }; 
         self
     }
 
@@ -261,41 +263,41 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
                 src_row_pitch: usize, src_slc_pitch: usize, dst_row_pitch: usize, 
                 dst_slc_pitch: usize) -> BufferCmd<'b, T>
     {
-        if let OpShape::Lin { offset } = self.shape {
+        if let DataShape::Lin { offset } = self.shape {
             assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
                 set to linear mode with '::offset`. You cannot call both '::offset' and '::rect'.");
         }
 
-        self.shape = OpShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
+        self.shape = DataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
             region: region, src_row_pitch: src_row_pitch, src_slc_pitch: src_slc_pitch,
             dst_row_pitch: dst_row_pitch, dst_slc_pitch: dst_slc_pitch };
         self
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait(mut self, wait_list: &'b EventList) -> BufferCmd<'b, T> {
-        self.wait_list = Some(wait_list);
+    pub fn ewait(mut self, ewait: &'b EventList) -> BufferCmd<'b, T> {
+        self.ewait = Some(ewait);
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt(mut self, wait_list: Option<&'b EventList>) -> BufferCmd<'b, T> {
-        self.wait_list = wait_list;
+    pub fn ewait_opt(mut self, ewait: Option<&'b EventList>) -> BufferCmd<'b, T> {
+        self.ewait = ewait;
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew(mut self, dest_list: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
-        self.dest_list = Some(dest_list);
+    pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
+        self.enew = Some(enew);
         self
     }
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt(mut self, dest_list: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
-        self.dest_list = dest_list;
+    pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
+        self.enew = enew;
         self
     }
 
@@ -307,39 +309,49 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     /// Enqueues this command.
     pub fn enq(self) -> OclResult<()> {
         match self.kind {
-            OpKind::Read { data } => { 
+            CmdKind::Read { data } => { 
                 match self.shape {
-                    OpShape::Lin { offset } => {                        
+                    DataShape::Lin { offset } => {                        
                         try!(check_len(self.mem_len, data.len(), offset));
 
                         unsafe { core::enqueue_read_buffer(self.queue, self.obj_core, self.block, 
-                            offset, data, self.wait_list, self.dest_list) }
+                            offset, data, self.ewait, self.enew) }
                     },
-                    _ => unimplemented!(),
+                    DataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
+                            dst_row_pitch, dst_slc_pitch } => 
+                    {
+                        // Verify dims given.
+                        // try!(Ok(()));
+
+                        unsafe { core::enqueue_read_buffer_rect(self.queue, self.obj_core, 
+                            self.block, src_origin, dst_origin, region, src_row_pitch, 
+                            src_slc_pitch, dst_row_pitch, dst_slc_pitch, data, 
+                            self.ewait, self.enew) }
+                    }
                 }
             },
-            OpKind::Write { data } => {
+            CmdKind::Write { data } => {
                 match self.shape {
-                    OpShape::Lin { offset } => {
+                    DataShape::Lin { offset } => {
                         try!(check_len(self.mem_len, data.len(), offset));
                         core::enqueue_write_buffer(self.queue, self.obj_core, self.block, 
-                            offset, data, self.wait_list, self.dest_list)
+                            offset, data, self.ewait, self.enew)
                     },
                     _ => unimplemented!(),
                 }
             },
-            OpKind::Copy { dst_buffer, dst_offset, len } => {
+            CmdKind::Copy { dst_buffer, dst_offset, len } => {
                 match self.shape {
-                    OpShape::Lin { offset } => {
+                    DataShape::Lin { offset } => {
                         try!(check_len(self.mem_len, len, offset));
                         core::enqueue_copy_buffer::<f32, _>(self.queue, 
                             self.obj_core, dst_buffer, offset, dst_offset, len, 
-                            self.wait_list, self.dest_list)
+                            self.ewait, self.enew)
                     },
                     _ => unimplemented!(),
                 }
             },
-            OpKind::Unspecified => return OclError::err("ocl::BufferCmd::enq(): No operation \
+            CmdKind::Unspecified => return OclError::err("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),
         }
@@ -603,19 +615,19 @@ impl<T: OclNum> Buffer<T> {
     /// Setting `queue` to `None` will use the default queue set during creation.
     /// Otherwise, the queue passed will be used for this call only.
     ///
-    /// Will optionally wait for events in `wait_list` to finish 
+    /// Will optionally wait for events in `ewait` to finish 
     /// before reading. Will also optionally add a new event associated with
-    /// the read to `dest_list`.
+    /// the read to `enew`.
     ///
-    /// [UPDATE] If the `dest_list` event list is `None`, the read will be blocking, otherwise
+    /// [UPDATE] If the `enew` event list is `None`, the read will be blocking, otherwise
     /// returns immediately.
     ///
     /// # Safety
     ///
     /// Bad things will happen if the memory referred to by `data` is freed and
     /// reallocated before the read completes. It's up to the caller to make 
-    /// sure that the new event added to `dest_list` completes. Use 
-    /// 'dest_list.last()' right after the calling `::read_async` to get a.
+    /// sure that the new event added to `enew` completes. Use 
+    /// 'enew.last()' right after the calling `::read_async` to get a.
     /// reference to the event associated with the read. [NOTE: Improved ease
     /// of use is coming to the event api eventually]
     ///
@@ -629,7 +641,7 @@ impl<T: OclNum> Buffer<T> {
     ///
     /// [UNSTABLE: Likely to be depricated in favor of `::cmd`.
     pub unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &mut [T],
-                wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
+                ewait: Option<&EventList>, enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         // assert!(offset < self.len(), "Buffer::read{{_async}}(): Offset out of range.");
         // assert!(data.len() <= self.len() - offset, 
@@ -644,10 +656,10 @@ impl<T: OclNum> Buffer<T> {
             None => &self.command_queue_obj_core,
         };
 
-        // let blocking_read = dest_list.is_none();
+        // let blocking_read = enew.is_none();
         core::enqueue_read_buffer(command_queue, &self.obj_core, block, 
-            // offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
-            offset, data, wait_list, dest_list)
+            // offset, data, ewait.map(|el| el.core_as_ref()), enew.map(|el| el.core_as_mut()))
+            offset, data, ewait, enew)
     }
 
     /// Enqueues writing `data.len() * mem::size_of::<T>()` bytes from `data` to the 
@@ -656,16 +668,16 @@ impl<T: OclNum> Buffer<T> {
     /// Setting `queue` to `None` will use the default queue set during creation.
     /// Otherwise, the queue passed will be used for this call only.
     ///
-    /// Will optionally wait for events in `wait_list` to finish before writing. 
-    /// Will also optionally add a new event associated with the write to `dest_list`.
+    /// Will optionally wait for events in `ewait` to finish before writing. 
+    /// Will also optionally add a new event associated with the write to `enew`.
     ///
-    /// [UPDATE] If the `dest_list` event list is `None`, the write will be blocking, otherwise
+    /// [UPDATE] If the `enew` event list is `None`, the write will be blocking, otherwise
     /// returns immediately.
     ///
     /// # Data Integrity
     ///
     /// Ensure that the memory referred to by `data` is unmolested until the 
-    /// write completes if passing a `dest_list`.
+    /// write completes if passing a `enew`.
     ///
     /// # Errors
     ///
@@ -677,7 +689,7 @@ impl<T: OclNum> Buffer<T> {
     /// 
     /// [UNSTABLE: Likely to be depricated in favor of `::cmd`.
     pub fn enqueue_write(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &[T], 
-                wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
+                ewait: Option<&EventList>, enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {        
         // assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
         // assert!(data.len() <= self.len() - offset, 
@@ -692,10 +704,10 @@ impl<T: OclNum> Buffer<T> {
             None => &self.command_queue_obj_core,
         };
 
-        // let blocking_write = dest_list.is_none();
+        // let blocking_write = enew.is_none();
         core::enqueue_write_buffer(command_queue, &self.obj_core, block, 
-            // offset, data, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
-            offset, data, wait_list, dest_list)
+            // offset, data, ewait.map(|el| el.core_as_ref()), enew.map(|el| el.core_as_mut()))
+            offset, data, ewait, enew)
     }
 
     /// Reads `data.len() * mem::size_of::<T>()` bytes from the (remote) device buffer 
@@ -729,11 +741,11 @@ impl<T: OclNum> Buffer<T> {
         self.enqueue_write(None, true, offset, data, None, None)
     }
 
-    /// After waiting on events in `wait_list` to finish, reads the remote device 
-    /// data buffer into 'self.vec' and adds a new event to `dest_list`.
+    /// After waiting on events in `ewait` to finish, reads the remote device 
+    /// data buffer into 'self.vec' and adds a new event to `enew`.
     ///
     /// [UPDATE] Will block until the read is complete and the internal vector is filled if 
-    /// `dest_list` is `None`.
+    /// `enew` is `None`.
     ///
     /// # Safety 
     ///
@@ -746,14 +758,14 @@ impl<T: OclNum> Buffer<T> {
     /// # Errors
     ///
     /// Errors if this Buffer contains no vector or upon any OpenCL error.
-    pub unsafe fn enqueue_fill_vec(&mut self, block: bool, wait_list: Option<&EventList>, 
-                dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
+    pub unsafe fn enqueue_fill_vec(&mut self, block: bool, ewait: Option<&EventList>, 
+                enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
         core::enqueue_read_buffer(&self.command_queue_obj_core, &self.obj_core, block, 
-            // 0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
-            0, vec, wait_list, dest_list)
+            // 0, vec, ewait.map(|el| el.core_as_ref()), enew.map(|el| el.core_as_mut()))
+            0, vec, ewait, enew)
     }
 
     /// Reads the remote device data buffer into `self.vec` and blocks until completed.
@@ -768,27 +780,27 @@ impl<T: OclNum> Buffer<T> {
         unsafe { self.enqueue_fill_vec(true, None, None).expect("Buffer::fill_vec()"); }
     } 
 
-    /// After waiting on events in `wait_list` to finish, writes the contents of
-    /// 'self.vec' to the remote device data buffer and adds a new event to `dest_list`.
+    /// After waiting on events in `ewait` to finish, writes the contents of
+    /// 'self.vec' to the remote device data buffer and adds a new event to `enew`.
     ///
     /// # Data Integrity
     ///
     /// Ensure that this `Buffer` lives until until the write completes if 
-    /// passing a `dest_list`.
+    /// passing a `enew`.
     ///
-    /// [UPDATE] Will block until the write is complete if `dest_list` is None.
+    /// [UPDATE] Will block until the write is complete if `enew` is None.
     ///
     /// # Errors
     ///
     /// Errors if this Buffer contains no vector or upon any OpenCL error.
-    pub fn enqueue_flush_vec(&mut self, block: bool, wait_list: Option<&EventList>, 
-                dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
+    pub fn enqueue_flush_vec(&mut self, block: bool, ewait: Option<&EventList>, 
+                enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
         let vec = try!(self.vec.as_mut());
         core::enqueue_write_buffer(&self.command_queue_obj_core, &self.obj_core, block, 
-            // 0, vec, wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()))
-            0, vec, wait_list, dest_list)
+            // 0, vec, ewait.map(|el| el.core_as_ref()), enew.map(|el| el.core_as_mut()))
+            0, vec, ewait, enew)
     }
 
     /// Writes the contents of `self.vec` to the remote device data buffer and 

@@ -157,7 +157,7 @@ fn print_kernel_info(kernel: &Kernel) {
 
 
 fn print_event_list_info(event_list: &EventList) {
-	printlnc!(dark_orange: "{:?}", event_list);
+	printlnc!(orange: "{:?}", event_list);
 }
 
 

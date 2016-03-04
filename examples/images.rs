@@ -141,6 +141,6 @@ fn main() {
         printlnc!(lime: "Images saved as: '{}' and '{}'.", 
             BEFORE_IMAGE_FILE_NAME, AFTER_IMAGE_FILE_NAME);
     } else {
-        printlnc!(dark_orange: "Saving images to disk disabled. No files saved.");
+        printlnc!(orange: "Saving images to disk disabled. No files saved.");
     }
 }
