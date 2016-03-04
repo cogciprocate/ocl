@@ -121,8 +121,8 @@ pub use self::custom::structs::{ContextProperties};
 
 // pub const DEFAULT_DEVICE_TYPE: cl_h::cl_device_type = cl_h::CL_DEVICE_TYPE_DEFAULT;
 pub const DEVICES_MAX: u32 = 64;
-pub const DEFAULT_PLATFORM_IDX: usize = 0;
-pub const DEFAULT_DEVICE_IDX: usize = 0;
+// pub const DEFAULT_PLATFORM_IDX: usize = 0;
+// pub const DEFAULT_DEVICE_IDX: usize = 0;
 
 //=============================================================================
 //================================= TYPEDEFS ==================================
@@ -191,6 +191,12 @@ bitflags! {
     }
 }
 
+impl Default for DeviceType {
+    fn default() -> DeviceType {
+        DEVICE_TYPE_ALL
+    }
+}
+
 
 bitflags! {
 	/// cl_device_fp_config - bitfield
@@ -251,6 +257,12 @@ bitflags! {
 		const MEM_HOST_WRITE_ONLY = 1 << 7,
 		const MEM_HOST_READ_ONLY = 1 << 8,
 		const MEM_HOST_NO_ACCESS = 1 << 9,
+    }
+}
+
+impl Default for MemFlags {
+    fn default() -> MemFlags {
+        MEM_READ_WRITE
     }
 }
 

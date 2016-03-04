@@ -101,8 +101,8 @@ fn main() {
 
 					// Change queues around just for fun:
 					kernel.cmd().enew(&mut event_list).enq().unwrap();
-					kernel.set_queue(&queueball_th[1]).enqueue();
-					kernel.set_queue(&queueball_th[2]).enqueue();
+					kernel.set_queue(&queueball_th[1]).unwrap().enqueue();
+					kernel.set_queue(&queueball_th[2]).unwrap().enqueue();
 
 					// Sleep just so the results don't print too quickly.
 					thread::sleep(Duration::from_millis(500));

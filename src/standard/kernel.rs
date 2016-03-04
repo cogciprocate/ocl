@@ -270,23 +270,26 @@ impl Kernel {
     }    
 
     /// Modifies the kernel argument named: `name`.
+    ///
+    /// # Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_scl_named<T: OclNum>(&mut self, name: &'static str, scalar: T) 
-            -> OclResult<()> 
+    pub fn set_arg_scl_named<'a, T: OclNum>(&'a mut self, name: &'static str, scalar: T) 
+            -> OclResult<&'a mut Kernel>
     {
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         self.set_arg::<T>(arg_idx, KernelArg::Scalar(&scalar))
+            .and(Ok(self))
     }
 
     /// Modifies the kernel argument named: `name`.
+    ///
+    /// # Panics [FIXME]
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_buf_named<T: OclNum>(&mut self, name: &'static str, 
-                buffer_opt: Option<&Buffer<T>>)  -> OclResult<()>   
+    pub fn set_arg_buf_named<'a, T: OclNum>(&'a mut self, name: &'static str, 
+                buffer_opt: Option<&Buffer<T>>) -> OclResult<&'a mut Kernel>
     {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
-        // let arg_idx = self.named_args[name];
         let arg_idx = try!(self.resolve_named_arg_idx(name));
-
         match buffer_opt {
             Some(buffer) => {
                 self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
@@ -295,7 +298,38 @@ impl Kernel {
                 // let mem_core_null = unsafe { MemCore::null() };
                 self.set_arg::<T>(arg_idx, KernelArg::MemNull)
             },
-        }
+        }.and(Ok(self))
+    }
+
+    /// Modifies the kernel argument named: `name`.
+    ///
+    /// # Panics [FIXME]
+    // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
+    pub fn set_arg_img_named<'a, T: OclNum>(&'a mut self, name: &'static str, 
+                image_opt: Option<&Image>) -> OclResult<&'a mut Kernel>
+    {
+        //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
+        let arg_idx = try!(self.resolve_named_arg_idx(name));
+        match image_opt {
+            Some(buffer) => {
+                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
+            },
+            None => {
+                // let mem_core_null = unsafe { MemCore::null() };
+                self.set_arg::<T>(arg_idx, KernelArg::MemNull)
+            },
+        }.and(Ok(self))
+    }
+
+    /// Sets the value of a named sampler argument.
+    ///
+    /// # Panics [FIXME]
+    // [PLACEHOLDER] Set a named sampler argument
+    #[allow(unused_variables)]
+    pub fn set_arg_smp_named<'a, T: OclNum>(&'a mut self, name: &'static str, 
+                sampler_opt: Option<&Sampler>) -> OclResult<&'a mut Kernel>
+    {
+        unimplemented!();
     }
 
     fn resolve_named_arg_idx(&self, name: &'static str) -> OclResult<u32> {
@@ -316,6 +350,8 @@ impl Kernel {
     // }
 
 
+    /// Returns a command builder which is used to chain parameters of an
+    /// 'enqueue' command together.
     pub fn cmd<'k>(&'k self) -> KernelCmd<'k> {
         KernelCmd { queue: &self.command_queue_obj_core, kernel: &self.obj_core, 
             gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
@@ -423,9 +459,9 @@ impl Kernel {
     /// The new queue must be associated with a device associated with the
     /// kernel's program.
     ///
-    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Kernel {
+    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> OclResult<&'a mut Kernel> {
         self.command_queue_obj_core = queue.core_as_ref().clone();
-        self
+        Ok(self)
     }
 
     /// Returns the default `core::CommandQueue` for this kernel.

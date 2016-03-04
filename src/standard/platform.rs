@@ -1,6 +1,8 @@
 //! An OpenCL platform identifier.
 //!
-//! Documentation copied from [https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetPlatformInfo.html](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetPlatformInfo.html)
+//! Documentation copied from [https://www.khronos.org/registry/cl/sdk/1.2/doc
+//! s/man/xhtml/clGetPlatformInfo.html](https://www.khronos.org/registry/cl/sd
+//! k/1.2/docs/man/xhtml/clGetPlatformInfo.html)
 
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
@@ -59,13 +61,18 @@ impl Platform {
         }
     }
 
-    /// Returns the platform profile as a string. 
+    /// Returns the platform profile as a string.
     ///
-    /// Returns the profile name supported by the implementation. The profile name returned can be one of the following strings:
+    /// Returns the profile name supported by the implementation. The profile
+    /// name returned can be one of the following strings:
     ///
-    /// * FULL_PROFILE - if the implementation supports the OpenCL specification (functionality defined as part of the core specification and does not require any extensions to be supported).
+    /// * FULL_PROFILE - if the implementation supports the OpenCL
+    ///   specification (functionality defined as part of the core
+    ///   specification and does not require any extensions to be supported).
     /// 
-    /// * EMBEDDED_PROFILE - if the implementation supports the OpenCL embedded profile. The embedded profile is defined to be a subset for each version of OpenCL.
+    /// * EMBEDDED_PROFILE - if the implementation supports the OpenCL
+    ///   embedded profile. The embedded profile is defined to be a subset for
+    ///   each version of OpenCL.
     ///
     pub fn profile(&self) -> String {
         match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Profile) {
@@ -74,11 +81,13 @@ impl Platform {
         }
     }
 
-    /// Returns the platform driver version as a string. 
+    /// Returns the platform driver version as a string.
     ///
-    /// Returns the OpenCL version supported by the implementation. This version string has the following format:
+    /// Returns the OpenCL version supported by the implementation. This
+    /// version string has the following format:
     ///
-    /// * OpenCL<space><major_version.minor_version><space><platform-specific information>
+    /// * OpenCL<space><major_version.minor_version><space><platform-specific
+    ///   information>
     ///
     /// * The major_version.minor_version value returned will be 1.2.
     pub fn version(&self) -> String {
@@ -106,7 +115,10 @@ impl Platform {
 
     /// Returns the list of platform extensions as a string.
     ///
-    /// Returns a space-separated list of extension names (the extension names themselves do not contain any spaces) supported by the platform. Extensions defined here must be supported by all devices associated with this platform.
+    /// Returns a space-separated list of extension names (the extension names
+    /// themselves do not contain any spaces) supported by the platform.
+    /// Extensions defined here must be supported by all devices associated
+    /// with this platform.
     pub fn extensions(&self) -> String {
         match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Extensions) {
             Ok(pi) => pi.into(),
@@ -131,6 +143,12 @@ impl Platform {
 }
 
 unsafe impl ClPlatformIdPtr for Platform {}
+
+impl Default for Platform {
+    fn default() -> Platform {
+        Platform::first()
+    }
+}
 
 impl Into<String> for Platform {
     fn into(self) -> String {

@@ -9,7 +9,7 @@ repository = "https://github.com/cogciprocate/ocl_rust"
 readme = "README.md"
 keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT"
-exclude = ["target/*", "*.png"]
+exclude = ["target/*", "*.png", "bak/*"]
 
 # [dependencies.bitflags]
 # git = "https://github.com/rust-lang-nursery/bitflags.git"

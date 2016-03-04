@@ -117,10 +117,12 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
 
     /// Specifies whether or not to block thread until completion.
     ///
+    /// Ignored if this is a copy, fill, or copy to image operation.
+    ///
     /// # Panics
     ///
     /// Will panic if `::read` has already been called. Use `::read_async`
-    /// for a non-blocking read operation.
+    /// (unsafe) for a non-blocking read operation.
     ///
     pub fn block(mut self, block: bool) -> BufferCmd<'b, T> {
         if !block && self.lock_block { 
@@ -204,6 +206,10 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
     /// Specifies that this command will be a copy operation.
     ///
     /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// # Errors
+    ///
+    /// If this is a rectangular copy, `dst_offset` and `len` must be zero.
     ///
     /// # Panics
     ///
@@ -337,18 +343,42 @@ impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
                         core::enqueue_write_buffer(self.queue, self.obj_core, self.block, 
                             offset, data, self.ewait, self.enew)
                     },
-                    _ => unimplemented!(),
+                    DataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
+                            dst_row_pitch, dst_slc_pitch } => 
+                    {
+                        // Verify dims given.
+                        // try!(Ok(()));
+
+                        core::enqueue_write_buffer_rect(self.queue, self.obj_core, 
+                            self.block, src_origin, dst_origin, region, src_row_pitch, 
+                            src_slc_pitch, dst_row_pitch, dst_slc_pitch, data, 
+                            self.ewait, self.enew)
+                    }
                 }
             },
             CmdKind::Copy { dst_buffer, dst_offset, len } => {
                 match self.shape {
                     DataShape::Lin { offset } => {
                         try!(check_len(self.mem_len, len, offset));
-                        core::enqueue_copy_buffer::<f32, _>(self.queue, 
+                        core::enqueue_copy_buffer::<T, _>(self.queue, 
                             self.obj_core, dst_buffer, offset, dst_offset, len, 
                             self.ewait, self.enew)
                     },
-                    _ => unimplemented!(),
+                    DataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
+                            dst_row_pitch, dst_slc_pitch } => 
+                    {
+                        // Verify dims given.
+                        // try!(Ok(()));
+                        
+                        if dst_offset != 0 || len != 0 { return OclError::err(
+                            "ocl::BufferCmd::enq(): For 'rect' shaped copies, destination \
+                            offset and length must be zero. Use: \
+                            'cmd().copy(&{{buf_name}}, 0, 0)...'."); 
+                        }
+                        core::enqueue_copy_buffer_rect::<T, _>(self.queue, self.obj_core, dst_buffer,
+                        src_origin, dst_origin, region, src_row_pitch, src_slc_pitch, 
+                        dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
+                    },
                 }
             },
             CmdKind::Unspecified => return OclError::err("ocl::BufferCmd::enq(): No operation \
