@@ -13,7 +13,7 @@ use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
     ClEventPtrNew};
 
 
-/// An Image. 
+/// A section of device memory which represents one or many images.
 ///
 /// Use `::builder` for an easy way to create. [UNIMPLEMENTED]
 ///

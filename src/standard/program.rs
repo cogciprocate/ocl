@@ -7,7 +7,7 @@ use core::{self, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
 use standard::{ProgramBuilder, Context, Device};
 
-/// A program, sometimes referred to as a build.
+/// A program from which kernels can be created from.
 ///
 /// To use with multiple devices, create manually with `::from_parts()`.
 ///

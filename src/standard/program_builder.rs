@@ -12,7 +12,7 @@ use error::{Result as OclResult, Error as OclError};
 use standard::{Device, Context, Program};
 
 
-/// A build option.
+/// A build option used by ProgramBuilder.
 ///
 /// Strings intended for use either by the compiler as a command line switch
 /// or for inclusion in the final build source code.

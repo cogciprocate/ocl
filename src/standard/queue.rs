@@ -7,7 +7,8 @@ use core::{self, CommandQueue as CommandQueueCore, Context as ContextCore,
     CommandQueueInfo, CommandQueueInfoResult};
 use standard::{Context, Device};
 
-/// A command queue.
+/// A command queue which manages all actions taken on kernels, buffers, and
+/// images.
 ///
 /// # Destruction
 ///

@@ -92,7 +92,9 @@ impl<'k> KernelCmd<'k> {
 
 
 
-/// A kernel.
+/// A kernel which is the 'function' type.
+///
+/// Corresponds to code which must have already been compiled into a program.
 ///
 /// # Destruction
 /// 

@@ -6,7 +6,7 @@ use error::{Result as OclResult};
 use core::{self, Sampler as SamplerCore, AddressingMode, FilterMode, SamplerInfo, SamplerInfoResult};
 use standard::Context;
 
-/// An image sampler.
+/// An image sampler used to process images.
 pub struct Sampler(SamplerCore);
 
 impl Sampler {
