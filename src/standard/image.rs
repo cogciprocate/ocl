@@ -7,7 +7,7 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use error::{Result as OclResult};
-use standard::{self, Context, Queue, ImageBuilder, EventList};
+use standard::{self, Context, Queue, ImageBuilder, EventList, SpatialDims};
 use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor, 
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, CommandQueue as CommandQueueCore,
     ClEventPtrNew};
@@ -22,7 +22,8 @@ pub struct Image {
     // default_val: PhantomData<T,
     obj_core: MemCore,
     command_queue_obj_core: CommandQueueCore,
-    dims: [usize; 3],
+    // dims: [usize; 3],
+    dims: SpatialDims,
     pixel_bytes: usize,
 }
 
@@ -55,7 +56,7 @@ impl Image {
             image_data,
         )) };
 
-        let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth]; 
+        let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth].into(); 
 
         Ok(Image {
             // default_val: T::default(),
@@ -122,7 +123,7 @@ impl Image {
     /// Use `::enqueue_read` for the complete range of options.
     pub fn read<T>(&self, data: &mut [T]) -> OclResult<()> {
         // Safe because `block = true`:
-        unsafe { self.enqueue_read(None, true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None) }
+        unsafe { self.enqueue_read(None, true, [0, 0, 0], try!(self.dims.to_size()), 0, 0,  data, None, None) }
     }
 
     /// Writes from `data` to the device image buffer, blocking until complete.
@@ -132,7 +133,7 @@ impl Image {
     ///
     /// Use `::enqueue_write` for the complete range of options.
     pub fn write<T>(&self, data: &[T]) -> OclResult<()> {
-        self.enqueue_write(None, true, [0, 0, 0], self.dims.clone(), 0, 0,  data, None, None)
+        self.enqueue_write(None, true, [0, 0, 0], try!(self.dims.to_size()), 0, 0,  data, None, None)
     }
 
     /// Returns the core image object pointer.
@@ -173,6 +174,12 @@ impl Image {
         self
     }
 
+    /// Returns this image's dimensions.
+    pub fn dims(&self) -> &SpatialDims {
+        &self.dims
+    }
+
+    /// Format image info.
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Image")
             .field("ElementSize", &self.info(ImageInfo::ElementSize))
@@ -188,6 +195,7 @@ impl Image {
             .finish()
     }
 
+    /// Format image mem info.
     fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Mem")
             .field("Type", &self.mem_info(MemInfo::Type))

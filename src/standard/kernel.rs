@@ -220,6 +220,13 @@ impl Kernel {
         self
     }
 
+    /// Adds a new argument specifying the value: `vector` (builder-style). Argument 
+    /// is added to the bottom of the argument order.
+    pub fn arg_vec<T: OclNum>(mut self, vector: &[T]) -> Kernel {
+        self.new_arg_vec(Some(vector));
+        self
+    }
+
     /// Adds a new argument specifying the allocation of a local variable of size
     /// `length * sizeof(T)` bytes (builder_style).
     ///
@@ -533,11 +540,19 @@ impl Kernel {
     // Non-builder-style version of `::arg_scl()`.
     fn new_arg_scl<T: OclNum>(&mut self, scalar_opt: Option<T>) -> u32 {
         let scalar = match scalar_opt {
-            Some(scl) => scl,
+            Some(s) => s,
             None => Default::default(),
         };
 
         self.new_arg::<T>(KernelArg::Scalar(&scalar))
+    }
+
+    // Non-builder-style version of `::arg_vec()`.
+    fn new_arg_vec<T: OclNum>(&mut self, vector_opt: Option<&[T]>) -> u32 {
+        match vector_opt {
+            Some(v) => self.new_arg::<T>(KernelArg::Vector(v)),
+            None => self.new_arg::<T>(KernelArg::Vector(&[Default::default(); 4])),
+        }
     }
 
     // Non-builder-style version of `::arg_loc()`.

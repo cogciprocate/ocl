@@ -9,33 +9,25 @@ use standard::{ProQue, Image, Sampler};
 use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
 use tests;
 
-const ADDEND: [f32; 4] = [0.1; 4];
+const ADDEND: [i32; 4] = [1; 4];
 const DIMS: [usize; 3] = [12, 12, 12];
 const TEST_ITERS: i32 = 220;
 const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 12;
 
 #[test]
-fn test_image_ops_rect() {
+fn test_image_ops() {
     let src = r#"
-        // Unused... here for comparison purposes:
-        __constant sampler_t sampler_const = 
-            CLK_NORMALIZED_COORDS_FALSE | 
-            CLK_ADDRESS_NONE | 
-            CLK_FILTER_NEAREST;
-
-        __kernel void increase_blue(
+        __kernel void add(
                     sampler_t sampler_host,
-                    image2d_t src_image,
-                    image2d_t dst_image)
+                    __private int4 addend,
+                    read_only image3d_t img_src,
+                    write_only image3d_t img_dst)
         {
-            int2 coord = (int2)(get_global_id(0), get_global_id(1));
-
-            float4 pixel = read_imagef(src_image, sampler_host, coord);
-
-            pixel += (float4)(0.0, 0.0, 0.5, 0.0);
-
-            write_imagef(dst_image, coord, pixel);
+            int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
+            int4 pixel = read_imagei(img_src, sampler_host, coord);
+            pixel += addend;
+            write_imagei(img_dst, coord, pixel);
         }
     "#;
 
@@ -46,61 +38,70 @@ fn test_image_ops_rect() {
 
     let sampler = Sampler::new(proque.context(), true, AddressingMode::None, FilterMode::Nearest).unwrap();
 
-    let mut vec = vec![0.0f32; proque.dims().to_len().unwrap()];
-    let img = Image::builder()
+
+    // Source and destination images and a vec to shuffle data:
+    let mut vec = vec![0i32; proque.dims().to_len().unwrap()];
+    let img_src = Image::builder()
         .channel_order(ImageChannelOrder::Rgba)
-        .channel_data_type(ImageChannelDataType::Float)
+        .channel_data_type(ImageChannelDataType::UnsignedInt32)
         .image_type(MemObjectType::Image3d)
         .dims(proque.dims())
-        .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
+        .flags(flags::MEM_READ_ONLY | flags::MEM_HOST_WRITE_ONLY | flags::MEM_COPY_HOST_PTR)
+        .build_with_data(proque.queue(), &vec).unwrap();
+    let img_dst = Image::builder()
+        .channel_order(ImageChannelOrder::Rgba)
+        .channel_data_type(ImageChannelDataType::UnsignedInt32)
+        .image_type(MemObjectType::Image3d)
+        .dims(proque.dims())
+        .flags(flags::MEM_WRITE_ONLY | flags::MEM_HOST_READ_ONLY | flags::MEM_COPY_HOST_PTR)
         .build_with_data(proque.queue(), &vec).unwrap();
 
     let kernel_add = proque.create_kernel("add")
-        .arg_img(&img)
-        // .arg_scl(ADDEND);
-    ;
+        .arg_smp(&sampler)
+        .arg_vec(&ADDEND)
+        .arg_img(&img_src)
+        .arg_img(&img_dst);
 
+    //========================================================================
+    //========================================================================
+    //============================ Warm Up Run ===============================
+    //========================================================================
+    //========================================================================
+    // Make sure that pro_que's dims are correct:
+    let dims = proque.dims().to_size().unwrap();
+    assert_eq!(DIMS, dims);
 
+    // Verify image and vector lengths:
+    let len = proque.dims().to_len().unwrap();
+    assert_eq!(img_src.dims().to_len().unwrap(), len);
+    assert_eq!(img_dst.dims().to_len().unwrap(), len);
+    assert_eq!(vec.len(), len);
 
+    println!("\n\nAAAA\n ");
 
+    // KERNEL RUN #1 -- make sure everything's working normally:
+    kernel_add.enqueue();
+    let mut ttl_runs = 1i32;
 
+    println!("\n\nBBBB\n ");
 
+    // READ AND VERIFY #1 (LINEAR):
+    img_dst.read(&mut vec).unwrap();
 
+    println!("\n\nCCCC\n ");
 
-    // //========================================================================
-    // //========================================================================
-    // //============================ Warm Up Run ===============================
-    // //========================================================================
-    // //========================================================================
-    // // Make sure that pro_que's dims are correct:
-    // let dims = proque.dims().to_size().unwrap();
-    // assert_eq!(DIMS, dims);
+    for idx in 0..proque.dims().to_len().unwrap() {
+        // DEBUG:
+        // print!("[{:02}]", vec[i]);
+        // if i % 20 == 19 { print!("\n"); }
+        assert!(vec[idx] == ADDEND[0] * ttl_runs, "vec[{}]: {}", idx, vec[idx]);
+    }
 
-    // // Verify image and vector lengths:
-    // let len = proque.dims().to_len().unwrap();
-    // assert_eq!(img.len(), len);
-    // assert_eq!(vec.len(), len);
+    print!("\n");
 
-    // // KERNEL RUN #1 -- make sure everything's working normally:
-    // kernel_add.enqueue();
-    // let mut ttl_runs = 1i32;
-
-    // // READ AND VERIFY #1 (LINEAR):
-    // img.read(0, &mut vec).unwrap();
-
-    // for idx in 0..proque.dims().to_len().unwrap() {
-    //     // DEBUG:
-    //     // print!("[{:02}]", vec[i]);
-    //     // if i % 20 == 19 { print!("\n"); }
-    //     assert!(vec[idx] == ADDEND * ttl_runs as f32, 
-    //         "vec[{}]: {}", idx, vec[idx]);
-    // }
-
-    // print!("\n");
-
-    // // Warm up the verify function:
-    // tests::verify_vec_rect([0, 0, 0], dims, ADDEND * ttl_runs as f32,
-    //     ADDEND * (ttl_runs - 1) as f32, dims, &vec, ttl_runs, false);
+    // Warm up the verify function:
+    tests::verify_vec_rect([0, 0, 0], dims, ADDEND[0] * ttl_runs,
+        ADDEND[0] * (ttl_runs - 1), dims, &vec, ttl_runs, false);
 
     // //========================================================================
     // //========================================================================

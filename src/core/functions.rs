@@ -388,7 +388,7 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 ///
 /// [FIXME]: Incomplete implementation. Callback and userdata unimplemented.
 /// [FIXME]: Properties disabled.
-///
+/// [FIXME]: Verify OpenCL Version on property.
 //
 // [NOTE]: Leave commented print statements intact until more `ContextProperties 
 // variants are implemented.
@@ -1545,7 +1545,7 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclNum, L: AsRef<EventList>>(
         buffer_origin[1], buffer_origin[2]];
     let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(), 
         host_origin[1], host_origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];;
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
     let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
     let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
     let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
@@ -1644,7 +1644,7 @@ pub fn enqueue_write_buffer_rect<T: OclNum, L: AsRef<EventList>>(
         buffer_origin[1], buffer_origin[2]];
     let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(), 
         host_origin[1], host_origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];;
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
     let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
     let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
     let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
@@ -1776,7 +1776,7 @@ pub fn enqueue_copy_buffer_rect<T: OclNum, L: AsRef<EventList>>(
         src_origin[1], src_origin[2]];
     let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(), 
         dst_origin[1], dst_origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];;
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
     let src_row_pitch_bytes = src_row_pitch * mem::size_of::<T>();
     let src_slc_pitch_bytes = src_slc_pitch * mem::size_of::<T>();
     let dst_row_pitch_bytes = dst_row_pitch * mem::size_of::<T>();
@@ -1826,6 +1826,11 @@ pub unsafe fn enqueue_read_image<T, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
+    let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    let row_pitch_bytes = row_pitch * mem::size_of::<T>();
+    let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -1833,10 +1838,10 @@ pub unsafe fn enqueue_read_image<T, L: AsRef<EventList>>(
         command_queue.as_ptr(),
         image.as_ptr(),
         block as cl_uint,
-        &origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
-        row_pitch,
-        slc_pitch,
+        &origin_bytes as *const _ as *const usize,
+        &region_bytes as *const _ as *const usize,
+        row_pitch_bytes,
+        slc_pitch_bytes,
         data.as_ptr() as cl_mem,
         wait_list_len,
         wait_list_ptr,
@@ -1862,6 +1867,11 @@ pub fn enqueue_write_image<T, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
+    let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    let input_row_pitch_bytes = input_row_pitch * mem::size_of::<T>();
+    let input_slc_pitch_bytes = input_slc_pitch * mem::size_of::<T>();
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -1869,10 +1879,10 @@ pub fn enqueue_write_image<T, L: AsRef<EventList>>(
         command_queue.as_ptr(),
         image.as_ptr(),
         block as cl_uint,
-        &origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
-        input_row_pitch,
-        input_slc_pitch,
+        &origin_bytes as *const _ as *const usize,
+        &region_bytes as *const _ as *const usize,
+        input_row_pitch_bytes,
+        input_slc_pitch_bytes,
         data.as_ptr() as cl_mem,
         wait_list_len,
         wait_list_ptr,
@@ -1905,6 +1915,9 @@ pub fn enqueue_fill_image<T, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
+    let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -1912,8 +1925,8 @@ pub fn enqueue_fill_image<T, L: AsRef<EventList>>(
         command_queue.as_ptr(),
         image.as_ptr(), 
         color as *const _ as *const c_void, 
-        &origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
+        &origin_bytes as *const _ as *const usize,
+        &region_bytes as *const _ as *const usize,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -1936,6 +1949,10 @@ pub fn enqueue_copy_image<L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
+    let src_origin_bytes = [src_origin[0] * mem::size_of::<T>(), src_origin[1], src_origin[2]];
+    let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(), dst_origin[1], dst_origin[2]];
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -1943,8 +1960,8 @@ pub fn enqueue_copy_image<L: AsRef<EventList>>(
         command_queue.as_ptr(),
         src_image.as_ptr(),
         dst_image.as_ptr(),
-        &src_origin as *const _ as *const usize,
-        &dst_origin as *const _ as *const usize,
+        &src_origin_bytes as *const _ as *const usize,
+        &dst_origin_bytes as *const _ as *const usize,
         &region as *const _ as *const usize,
         wait_list_len,
         wait_list_ptr,
@@ -1968,17 +1985,19 @@ pub fn enqueue_copy_image_to_buffer<T: OclNum, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
+    let src_origin_bytes = [src_origin[0] * mem::size_of::<T>(), src_origin[1], src_origin[2]];
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    let dst_offset_bytes = dst_offset * mem::size_of::<T>();
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
-
-    let dst_offset_bytes = dst_offset * mem::size_of::<T>();
 
     let errcode = unsafe { cl_h::clEnqueueCopyImageToBuffer(
         command_queue.as_ptr(),
         src_image.as_ptr(),
         dst_buffer.as_ptr(),
-        &src_origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
+        &src_origin_bytes as *const _ as *const usize,
+        &region_bytes as *const _ as *const usize,
         dst_offset_bytes,
         wait_list_len,
         wait_list_ptr,
@@ -2002,18 +2021,20 @@ pub fn enqueue_copy_buffer_to_image<T: OclNum, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
+    let src_offset_bytes = src_offset * mem::size_of::<T>();
+    let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(), dst_origin[1], dst_origin[2]];
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
-
-    let src_offset_bytes = src_offset * mem::size_of::<T>();
 
     let errcode = unsafe { cl_h::clEnqueueCopyBufferToImage(
         command_queue.as_ptr(),
         src_buffer.as_ptr(),
         dst_image.as_ptr(),
         src_offset_bytes,
-        &dst_origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
+        &dst_origin_bytes as *const _ as *const usize,
+        &region_bytes as *const _ as *const usize,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -2058,11 +2079,12 @@ pub unsafe fn enqueue_map_buffer<T: OclNum, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<*mut c_void> 
 {
+    let offset_bytes = offset * mem::size_of::<T>();
+    let size_bytes = size * mem::size_of::<T>();
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
     let mut errcode = 0i32;
-
-    let offset_bytes = offset * mem::size_of::<T>();
 
     let mapped_ptr = cl_h::clEnqueueMapBuffer(
         command_queue.as_ptr(),
@@ -2117,6 +2139,11 @@ pub unsafe fn enqueue_map_image<T, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<*mut c_void> 
 {
+    let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
+    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    let row_pitch_bytes = row_pitch * mem::size_of::<T>();
+    let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
     let mut errcode = 0i32;
@@ -2126,10 +2153,10 @@ pub unsafe fn enqueue_map_image<T, L: AsRef<EventList>>(
         image.as_ptr(),
         block as cl_uint,
         map_flags.bits(),
-        &origin as *const _ as *const usize,
-        &region as *const _ as *const usize,
-        row_pitch,
-        slc_pitch,
+        &origin_bytes as *const _ as *const usize,
+        &region_bytes as *const _ as *const usize,
+        row_pitch_bytes,
+        slc_pitch_bytes,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
