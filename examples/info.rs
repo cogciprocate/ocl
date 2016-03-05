@@ -67,11 +67,11 @@ fn main() {
 			        
 			let mut event_list = EventList::new();
 			kernel.cmd().enew(&mut event_list).enq().unwrap();
-			event_list.wait();
+			event_list.wait().unwrap();
 
 			let mut event = Event::empty();
 		    buffer.cmd().write(&vec![0.0; dims[0]]).enew(&mut event).enq().unwrap();
-		    event.wait();
+		    event.wait().unwrap();
 
 			// Print device info:
 			print_device_info(&device);

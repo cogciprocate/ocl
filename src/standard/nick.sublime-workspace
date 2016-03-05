@@ -4,6 +4,22 @@
 		"selected_items":
 		[
 			[
+				"Devic",
+				"DeviceSpecifier Enum (device_specifier.rs) : pub enum DeviceSpecifier {               "
+			],
+			[
+				"Devi",
+				"DeviceSpecifier Enum (device_specifier.rs) : pub enum DeviceSpecifier {               "
+			],
+			[
+				"Dev",
+				"DeviceSpecifier Enum (device_specifier.rs) : pub enum DeviceSpecifier {               "
+			],
+			[
+				"DEVICE_TYPE",
+				"DEVICE_TYPE_ALL"
+			],
+			[
 				"kerne",
 				"kernel_runs Let (test_buffer_ops_rect.rs) : let mut kernel_runs = 1i32              "
 			],
@@ -127,23 +143,55 @@
 			"file": "/home/nick/projects/ocl/src/core/functions.rs",
 			"settings":
 			{
-				"buffer_size": 94411,
+				"buffer_size": 94454,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "buffer.rs",
+			"file": "/home/nick/.config/sublime-text-3/Packages/User/Monokai Extended/Monokai Extended.tmTheme",
 			"settings":
 			{
-				"buffer_size": 47445,
+				"buffer_size": 41355,
 				"line_ending": "Unix"
 			}
 		},
 		{
-			"file": "/home/nick/projects/ocl/src/tests/test_buffer_ops_rect.rs",
+			"file": "/home/nick/.config/sublime-text-3/Packages/User/Default (Linux).sublime-keymap",
 			"settings":
 			{
-				"buffer_size": 12281,
+				"buffer_size": 124,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "program_builder.rs",
+			"settings":
+			{
+				"buffer_size": 10805,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "program.rs",
+			"settings":
+			{
+				"buffer_size": 4065,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "kernel.rs",
+			"settings":
+			{
+				"buffer_size": 21678,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "queue.rs",
+			"settings":
+			{
+				"buffer_size": 5039,
 				"line_ending": "Unix"
 			}
 		}
@@ -176,7 +224,7 @@
 			],
 			[
 				"Packages/Rust/Cargo.sublime-build",
-				"Test"
+				""
 			]
 		],
 		[
@@ -244,13 +292,17 @@
 			]
 		]
 	],
-	"build_varint": "Test",
+	"build_varint": "",
 	"command_palette":
 	{
-		"height": 392.0,
-		"last_filter": "",
+		"height": 117.0,
+		"last_filter": "install",
 		"selected_items":
 		[
+			[
+				"install",
+				"Package Control: Install Package"
+			],
 			[
 				"Package Control: inst",
 				"Package Control: Install Package"
@@ -262,10 +314,6 @@
 			[
 				"remove",
 				"Package Control: Remove Package"
-			],
-			[
-				"install",
-				"Package Control: Install Package"
 			],
 			[
 				"instal",
@@ -295,28 +343,70 @@
 	[
 		"/home/nick/projects",
 		"/home/nick/projects/ocl",
+		"/home/nick/projects/ocl/examples",
 		"/home/nick/projects/ocl/src",
 		"/home/nick/projects/ocl/src/core",
+		"/home/nick/projects/ocl/src/core/custom",
 		"/home/nick/projects/ocl/src/standard",
 		"/home/nick/projects/ocl/src/tests"
 	],
 	"file_history":
 	[
-		"/home/nick/.config/sublime-text-3/Packages/RustAutoComplete/Preferences.sublime-settings",
+		"/home/nick/projects/ocl/src/core/functions.rs",
 		"/home/nick/.config/sublime-text-3/Packages/User/Preferences.sublime-settings",
-		"/home/nick/projects/ocl/Cargo.toml",
+		"/home/nick/projects/ocl/src/standard/sampler.rs",
+		"/home/nick/projects/ocl/src/standard/image.rs",
+		"/home/nick/projects/ocl/src/standard/buffer_cmd.rs",
+		"/home/nick/projects/ocl/src/lib.rs",
+		"/home/nick/projects/ocl/src/standard/buffer.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/mod.rs",
+		"/home/nick/projects/ocl/src/standard/kernel.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/buffer_cmd.rs",
+		"/home/nick/projects/ocl/src/util.rs",
+		"/home/nick/projects/ocl/src/core/mod.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/examples/trivial.rs",
+		"/home/nick/projects/ocl/src/standard/image_builder.rs",
+		"/home/nick/projects/bismit/src/cmn/mod.rs",
+		"/home/nick/projects/bismit/src/cmn/slice_dims.rs",
+		"/home/nick/projects/bismit/src/cmn/cortical_dims.rs",
+		"/home/nick/projects/bismit/src/map/area_map.rs",
+		"/home/nick/src/github.com/cogciprocate/bismit/src/map/slice_map.rs",
+		"/home/nick/src/github.com/cogciprocate/bismit/src/cortex.rs",
+		"/home/nick/src/github.com/cogciprocate/bismit/src/map/area_map.rs",
+		"/home/nick/src/github.com/cogciprocate/bismit/src/axon_space.rs",
+		"/home/nick/src/github.com/cogciprocate/bismit/src/cmn/mod.rs",
+		"/home/nick/projects/ocl/src/standard/device.rs",
+		"/home/nick/projects/ocl/src/standard/device_specifier.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/device_specifier.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/examples/images.rs",
+		"/home/nick/projects/ocl/examples/events.rs",
+		"/home/nick/projects/ocl/examples/trivial.rs",
+		"/home/nick/projects/ocl/src/standard/mod.rs",
 		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/tests/test_buffer_ops_rect.rs",
+		"/home/nick/.config/sublime-text-3/Packages/Default/Preferences.sublime-settings",
+		"/home/nick/projects/ocl/RELEASES.md",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/buffer.rs",
+		"/home/nick/projects/ocl/src/tests/test_buffer_ops_rect.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/kernel.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/examples/threads.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/examples/timed.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/examples/events.rs",
+		"/home/nick/projects/ocl/examples/timed.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/tests/test_timed.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/tests/test_events.rs",
+		"/home/nick/projects/ocl/examples/info.rs",
+		"/home/nick/projects/ocl/examples/basics.rs",
+		"/home/nick/projects/ocl/src/tests/test_events.rs",
+		"/home/nick/projects/ocl/src/tests/test_timed.rs",
+		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/platform.rs",
+		"/home/nick/projects/ocl/src/standard/platform.rs",
+		"/home/nick/.config/sublime-text-3/Packages/RustAutoComplete/Preferences.sublime-settings",
+		"/home/nick/projects/ocl/Cargo.toml",
 		"/home/nick/projects/ocl/src/cl_h.rs",
 		"/home/nick/.config/sublime-text-3/Packages/User/RustAutoComplete.sublime-settings",
-		"/home/nick/.config/sublime-text-3/Packages/Default/Preferences.sublime-settings",
 		"/home/nick/projects/ocl/src/standard/spatial_dims.rs",
-		"/home/nick/projects/ocl/src/tests/test_buffer_ops_rect.rs",
-		"/home/nick/projects/ocl/src/standard/buffer.rs",
-		"/home/nick/projects/ocl/src/util.rs",
 		"/home/nick/projects/ocl/examples/images.rs",
-		"/home/nick/projects/ocl/examples/info.rs",
 		"/home/nick/projects/ocl/examples/threads.rs",
-		"/home/nick/projects/ocl/RELEASES.md",
 		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/image_builder.rs",
 		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/spatial_dims.rs",
 		"/home/nick/projects/all_projects.sublime-project",
@@ -324,20 +414,13 @@
 		"/home/nick/src/github.com/cogciprocate/bismit/src/<std macros>",
 		"/home/nick/src/github.com/cogciprocate/bismit/src/cmn/cortical_dims.rs:232:1: 232:2/home/nick/src/github.com/cogciprocate/bismit/src/cmn/cortical_dims.rs",
 		"/home/nick/src/github.com/cogciprocate/bismit/src/cmn/<std macros>",
-		"/home/nick/projects/ocl/src/tests/test_timed.rs",
-		"/home/nick/projects/ocl/src/tests/test_events.rs",
-		"/home/nick/projects/ocl/src/core/functions.rs",
 		"/home/nick/projects/ocl/src/standard/simple_dims.rs",
 		"/home/nick/src/github.com/cogciprocate/ocl_rust/src/standard/simple_dims.rs",
 		"/home/nick/projects/bismit/src/axon_space.rs",
-		"/home/nick/projects/bismit/src/cmn/cortical_dims.rs",
-		"/home/nick/projects/bismit/src/cmn/slice_dims.rs",
 		"/home/nick/projects/bismit/src/map/slice_map.rs",
 		"/home/nick/projects/bismit/src/tests/automated.rs",
 		"/home/nick/projects/bismit/src/tests/kernels.rs",
 		"/home/nick/projects/bismit/src/tests/util.rs",
-		"/home/nick/projects/ocl/src/lib.rs",
-		"/home/nick/projects/ocl/src/standard/mod.rs",
 		"/home/nick/projects/ocl/src/standard/pro_que.rs",
 		"/home/nick/.config/sublime-text-3/Packages/User/Default (Linux).sublime-keymap",
 		"/home/nick/projects/ocl/src/tests/test_basics.rs",
@@ -348,8 +431,6 @@
 		"/home/nick/projects/bismit/src/sensory_filter.rs",
 		"/home/nick/projects/bismit/src/spiny_stellates.rs",
 		"/home/nick/projects/bismit/src/synapses.rs",
-		"/home/nick/projects/ocl/src/standard/image_builder.rs",
-		"/home/nick/projects/ocl/src/standard/kernel.rs",
 		"/home/nick/projects/ocl/src/standard/pro_que_builder.rs",
 		"/home/nick/projects/ocl/src/error.rs",
 		"/home/nick/projects/ocl/src/standard/program_builder_ref_builder_style.rs",
@@ -364,7 +445,6 @@
 		"/home/nick/projects/ocl/src/tests/mod.rs",
 		"/home/nick/projects/ocl/src/tests/test_buffer_copy.rs",
 		"/home/nick/projects/ocl/src/tests/test_trivial.rs",
-		"/home/nick/projects/ocl/examples/trivial.rs",
 		"/home/nick/.config/sublime-text-3/Packages/Default/Default (Linux).sublime-keymap",
 		"/home/nick/projects/ocl/README.md",
 		"/home/nick/.config/sublime-text-3/Packages/Rust/RustComment.tmPreferences",
@@ -390,6 +470,30 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"<key>",
+			"<key>findHighlight</key>",
+			"()\"",
+			"Buffer ",
+			"ImageFormat",
+			"Program",
+			"mut self",
+			"self.",
+			"mut self, ",
+			"mut self",
+			"DeviceSpecifier",
+			"DataShape",
+			"highlight",
+			"CmdKind",
+			"/// # Panics",
+			"#",
+			"write",
+			"copy",
+			"&'a mut Kernel",
+			"kernel_runs",
+			"kernel",
+			"&'a mut Kernel",
+			".set_arg_buf_named",
+			"fn enqueue",
 			"_bytes",
 			"host_",
 			"buffer_",
@@ -468,6 +572,19 @@
 		"regex": false,
 		"replace_history":
 		[
+			"\"",
+			"self",
+			"",
+			"BufferCmdDataShape",
+			"BufferCmdKind",
+			"/// ## Panics",
+			"##",
+			"copy",
+			"OclResult<&'a mut Kernel>",
+			"ttl_runs",
+			"kernel_eq",
+			"kernel_add",
+			"OclResult<&'a mut Kernel>",
 			"_size",
 			"dst_",
 			"src_",
@@ -530,12 +647,12 @@
 		"show_context": true,
 		"use_buffer2": true,
 		"whole_word": false,
-		"wrap": false
+		"wrap": true
 	},
 	"groups":
 	[
 		{
-			"selected": 2,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -544,15 +661,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 94411,
+						"buffer_size": 94454,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								53887,
-								53887
+								9653,
+								9653
 							]
 						],
 						"settings":
@@ -562,57 +679,83 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 29513.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"file": "buffer.rs",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 47445,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								3837,
-								3837
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Rust/Rust.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 3.0,
-						"translation.y": 1884.0,
+						"translation.y": 3860.0,
 						"zoom_level": 1.0
 					},
 					"stack_index": 1,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
-					"file": "/home/nick/projects/ocl/src/tests/test_buffer_ops_rect.rs",
+					"buffer": 1,
+					"file": "/home/nick/.config/sublime-text-3/Packages/User/Monokai Extended/Monokai Extended.tmTheme",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 12281,
+						"buffer_size": 41355,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2481,
-								2481
+								996,
+								996
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/XML/XML.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 292.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/home/nick/.config/sublime-text-3/Packages/User/Default (Linux).sublime-keymap",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 124,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								117,
+								117
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "program_builder.rs",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 10805,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1563,
+								1563
 							]
 						],
 						"settings":
@@ -622,10 +765,100 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 765.0,
+						"translation.y": 612.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "program.rs",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4065,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								368,
+								368
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Rust/Rust.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "kernel.rs",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 21678,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3216,
+								3216
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Rust/Rust.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1377.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "queue.rs",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5039,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								421,
+								421
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Rust/Rust.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
 					"type": "text"
 				}
 			]
@@ -664,7 +897,7 @@
 	"menu_visible": true,
 	"output.exec":
 	{
-		"height": 206.0
+		"height": 300.0
 	},
 	"output.find_results":
 	{
@@ -716,7 +949,7 @@
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 291.0,
+	"side_bar_width": 272.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{

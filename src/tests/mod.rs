@@ -6,7 +6,7 @@
 //! TODO: port some of bismit's tests over.
 //!
 //!
-pub mod build_error;
+pub mod test_build_error;
 pub mod test_timed;
 pub mod test_basics;
 pub mod test_events;

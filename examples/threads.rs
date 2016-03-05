@@ -108,7 +108,7 @@ fn main() {
 					thread::sleep(Duration::from_millis(500));
 
 					// Basically redundant in this situation.
-					event_list.wait();
+					event_list.wait().unwrap();
 
 					// Again, just playing with queues...
 					buffer.set_queue(&queueball_th[2]).fill_vec();

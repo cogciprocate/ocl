@@ -149,8 +149,8 @@ fn main() {
     ocl_pq.queue().finish();    
     print_elapsed("queue finished", kern_buf_start);
 
-    kern_events.wait();
-    buf_events.wait();
+    kern_events.wait().unwrap();
+    buf_events.wait().unwrap();
 
     verify_results(&buffer_init, &buffer_result, 
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);

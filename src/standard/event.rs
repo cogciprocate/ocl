@@ -30,9 +30,9 @@ impl Event {
     }
 
        /// Waits for all events in list to complete.
-    pub fn wait(&self) {
+    pub fn wait(&self) -> OclResult<()> {
         assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
-        core::wait_for_event(self.0.as_ref().unwrap());
+        core::wait_for_event(self.0.as_ref().unwrap())
     }
 
     /// Returns info about the event. 
