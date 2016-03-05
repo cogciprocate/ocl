@@ -7,7 +7,7 @@ extern crate image;
 #[macro_use] extern crate ocl;
 
 use std::path::Path;
-use ocl::{Context, Queue, DeviceSpecifier, Program, Image, Sampler, Kernel};
+use ocl::{Context, Queue, Device, Program, Image, Sampler, Kernel};
 use ocl::enums::{ImageChannelOrder, ImageChannelDataType, AddressingMode, FilterMode, MemObjectType};
 
 const SAVE_IMAGES_TO_DISK: bool = false;
@@ -63,7 +63,7 @@ fn main() {
         img.save(&Path::new(BEFORE_IMAGE_FILE_NAME)).unwrap();
     }
 
-    let context = Context::builder().devices(DeviceSpecifier::First).build().unwrap();
+    let context = Context::builder().devices(Device::specifier().first()).build().unwrap();
     let device = context.devices()[0];
     let queue = Queue::new(&context, device).unwrap();
 

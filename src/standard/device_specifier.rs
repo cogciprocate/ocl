@@ -32,6 +32,34 @@ pub enum DeviceSpecifier {
 }
 
 impl DeviceSpecifier {
+    pub fn all(self) -> DeviceSpecifier {
+        DeviceSpecifier::All
+    }
+
+    pub fn first(self) -> DeviceSpecifier {
+        DeviceSpecifier::First
+    }
+
+    pub fn single(self, device: Device) -> DeviceSpecifier {
+        DeviceSpecifier::Single(device)
+    }
+
+    pub fn list(self, list: Vec<Device>) -> DeviceSpecifier {
+        DeviceSpecifier::List(list)
+    }
+
+    pub fn indices(self, indices: Vec<usize>) -> DeviceSpecifier {
+        DeviceSpecifier::Indices(indices)
+    }
+
+    pub fn wrapping_indices(self, windices: Vec<usize>) -> DeviceSpecifier {
+        DeviceSpecifier::WrappingIndices(windices)
+    }
+
+    pub fn type_flags(self, flags: DeviceType) -> DeviceSpecifier {
+        DeviceSpecifier::TypeFlags(flags)
+    }
+
     /// Returns the list of devices matching the parameters specified by this `DeviceSpecifier`
     ///
     /// ## Panics
@@ -88,5 +116,11 @@ impl DeviceSpecifier {
                 Device::list(&platform, Some(flags))
             },
         })
+    }
+}
+
+impl Default for DeviceSpecifier {
+    fn default() -> DeviceSpecifier {
+        DeviceSpecifier::All
     }
 }

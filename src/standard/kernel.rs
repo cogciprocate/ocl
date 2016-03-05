@@ -10,7 +10,6 @@ use standard::{SpatialDims, Buffer, Image, EventList, Program, Queue, WorkDims, 
 
 
 
-
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
 pub struct KernelCmd<'k> {

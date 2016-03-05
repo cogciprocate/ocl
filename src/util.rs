@@ -12,7 +12,7 @@ use std::iter;
 use num::Integer;
 use error::{Result as OclResult, Error as OclError};
 
-use super::OclNum;
+use core::OclNum;
 
 //=============================================================================
 //================================= MACROS ====================================

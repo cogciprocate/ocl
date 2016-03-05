@@ -94,7 +94,7 @@ fn main_explained() {
 ///
 #[allow(dead_code)]
 fn main_exploded() {
-    use ocl::{flags, Platform, Device, Context, DeviceSpecifier, Queue, Program,
+    use ocl::{flags, Platform, Device, Context, Queue, Program,
         Buffer, Kernel};
 
     let src = r#"
@@ -109,7 +109,7 @@ fn main_exploded() {
     let device = Device::first(&platform);
     let context = Context::builder()
         .platform(platform)
-        .devices(DeviceSpecifier::Single(device.clone()))
+        .devices(Device::specifier().single(device.clone()))
         .build().unwrap();
     let program = Program::builder()
         .devices(&[device.clone()])
@@ -190,7 +190,7 @@ fn main_cored() {
     let device_ids = core::get_device_ids(&platform_id, 
         Some(flags::DEVICE_TYPE_ALL), None).unwrap();
     let device_id = device_ids[0];
-    let context_properties = ocl::ContextProperties::new().platform(platform_id);
+    let context_properties = ocl::build::ContextProperties::new().platform(platform_id);
     let context = core::create_context(&Some(context_properties), 
         &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();

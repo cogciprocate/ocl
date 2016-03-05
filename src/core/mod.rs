@@ -4,59 +4,69 @@
 //!
 //! *The layer between the metal and the soft fuzzy parts...*
 //!
-//! Allows access to OpenCL FFI functions with a minimal layer of abstraction, providing both safety and convenience. Using functions in this module is only recommended for use when functionality has not yet been implemented on the 'standard' ocl interfaces, although the 'core' and 'standard' interfaces are all completely interoperable (and generally feature-equivalent).
-//! 
-//! Object pointers can be shared between threads (except for kernel -- see the official [`clSetKernelArg`] documentation for details). 
+//! Allows access to OpenCL FFI functions with a minimal layer of abstraction,
+//! providing both safety and convenience. Using functions in this module is
+//! only recommended for use when functionality has not yet been implemented
+//! on the 'standard' ocl interfaces, although the 'core' and 'standard'
+//! interfaces are all completely interoperable (and generally feature-
+//! equivalent).
 //!
 //! ## Even Lower Level: [`cl_h`]
 //!
-//! If there's still something missing or for some reason you need direct FFI access, use the functions in the [`cl_h`] module. The pointers used by [`cl_h`] functions can be wrapped in [`core`] wrappers (PlatformIdRaw, ContextRaw, etc.) and passed to [`core`] module functions and likewise the other way around (using, for example: [`EventRaw::as_ptr`]).
+//! If there's still something missing or for some reason you need direct FFI
+//! access, use the functions in the [`cl_h`] module. The pointers used by
+//! [`cl_h`] functions can be wrapped in [`core`] wrappers (PlatformIdRaw,
+//! ContextRaw, etc.) and passed to [`core`] module functions and likewise the
+//! other way around (using, for example: [`EventRaw::as_ptr`]).
 //!
-//! # Performance
+//! ## Performance
 //!
-//! Performance between all three interface layers, [`cl_h`], [`core`], and the 'standard' types, is identical or virtually identical for non-trival uses (if not, please file an issue).
+//! Performance between all three interface layers, [`cl_h`], [`core`], and
+//! the 'standard' types, is identical or virtually identical (if not, please
+//! file an issue).
 //!
 //! ## Safety
 //!
-//! At the time of writing, some functions still *may* break Rust's usual safety promises and have not been 100% comprehensively evaluated and tested. Please file an [issue] if you discover something!
-//!
-//! ## Panics
-//!
-//! [FIXME]: NEEDS UPDATE:
-//! All [update: very few] functions will panic upon OpenCL error. This will be changing over time. Certain errors will eventually be returned as an [`Error`] type instead.
+//! At the time of writing, some functions still *may* break Rust's usual
+//! safety promises and have not been 100% comprehensively evaluated and
+//! tested. Please file an [issue] if you discover something!
 //!
 //! ## More Documentation
 //!
-//! As most of the functions here are minimally documented, please refer to the
-//! official OpenCL documentation linked below. Although there isn't a precise 
-//! 1:1 parameter mapping between the `core` and original functions,
-//! it's close enough to help sort out any questions you may have until a
-//! more thorough documentation pass can be made. View the source code in 
+//! As most of the functions here are minimally documented, please refer to
+//! the official OpenCL documentation linked below. Although there isn't a
+//! precise 1:1 parameter mapping between the `core` and original functions,
+//! it's close enough to help sort out any questions you may have until a more
+//! thorough documentation pass can be made. View the source code in
 //! [`src/core/functions.rs`] for more mapping details.
 //!
-//! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
+//! [OpenCL 1.2 SDK Reference:
+//! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
 //!
 //! ## Help Wanted
 //!
-//! Please help complete coverage of any FFI functions you may need by filing an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull request](https://github.com/cogciprocate/ocl/pulls). 
+//! Please help complete coverage of any FFI functions you may need by filing
+//! an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull
+//! request](https://github.com/cogciprocate/ocl/pulls).
 //!
-//! [STATUS]: <br/>
-//! Coverage of core stuff: 100%. <br/>
-//! Coverage of peripheral stuff: 90%. <br/>
+//! [STATUS]: <br/> Coverage of core stuff: 100%. <br/> Coverage of peripheral
+//! stuff: 90%. <br/>
 //!
 //! ## `core` Stands Alone
 //!	
-//! This module may eventually be moved to its own separate crate (with its dependencies `cl_h` and `error`).
+//! This module may eventually be moved to its own separate crate (with its
+//! dependencies `cl_h` and `error`).
 //!
 //! TODO: Reorganize sub-modules.
 //!
-//! [issue]: https://github.com/cogciprocate/ocl/issues
-//! [`cl_h`]: /ocl/cl_h/index.html
-//! [`core`]: /ocl/core/index.html
-//! [`Error`]: /ocl/enum.Error.html
-//! [`EventRaw::as_ptr`]: /ocl/core/struct.EventRaw.html#method.as_ptr
-//! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
-//! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
+//! [issue]: https://github.com/cogciprocate/ocl/issues [`cl_h`]:
+//! /ocl/cl_h/index.html [`core`]: /ocl/core/index.html [`Error`]:
+//! /ocl/enum.Error.html [`EventRaw::as_ptr`]:
+//! /ocl/core/struct.EventRaw.html#method.as_ptr [`clSetKernelArg`]: https://w
+//! ww.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
+//! [OpenCL 1.2 SDK Reference:
+//! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]:
+//! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/core/functions.rs`]: /src/ocl/src/core/functions.rs.html
 
 // https://github.com/cogciprocate/ocl/blob/master/src/core/functions.rs

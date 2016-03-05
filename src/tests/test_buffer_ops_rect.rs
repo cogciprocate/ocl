@@ -338,7 +338,7 @@ fn test_buffer_ops_rect() {
         kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enqueue();
 
         // Set all of `vec_src` to equal the 'next' value. This will be our
-        // 'in- region' value and will be written to the device before copying.
+        // 'in-region' value and will be written to the device before copying.
         for ele in vec_src.iter_mut() { *ele = nxt_val }
 
         // Write the source vec to the source buf:
@@ -369,7 +369,7 @@ fn test_buffer_ops_rect() {
         kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enqueue();
 
         // Set all of `vec_src` to equal the 'next' value. This will be our
-        // 'in- region' value and will be written to the device before copying.
+        // 'in-region' value and will be written to the device before copying.
         for ele in vec_src.iter_mut() { *ele = nxt_val }
 
         // Write the source vec to the source buf:

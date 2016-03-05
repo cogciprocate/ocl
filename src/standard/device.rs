@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use std::error::Error;
 use error::{Error as OclError, Result as OclResult};
-use standard::{Platform};
+use standard::{Platform, DeviceSpecifier};
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
 use util;
 
@@ -21,6 +21,12 @@ impl Device {
         let first_core = core::get_device_ids(platform, None, None)
             .expect("ocl::Device::first: Error retrieving device list");
         Device(first_core[0])
+    }
+
+    /// Returns a `DeviceSpecifier` useful for precisely specifying a set
+    /// of devices.
+    pub fn specifier() -> DeviceSpecifier {
+        DeviceSpecifier::default()
     }
     
     /// Resolves a list of indexes into a list of valid devices.
