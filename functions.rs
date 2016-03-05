@@ -47,8 +47,6 @@ static SDK_DOCS_URL_SUF: &'static str = ".html";
 //============================================================================
 //============================================================================
 
-// https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html
-
 /// Converts the `cl_int` errcode into a string containing the associated
 /// constant name.
 fn errcode_string(errcode: cl_int) -> String {
@@ -86,11 +84,6 @@ fn errcode_try(cl_fn_name: &str, fn_info: &str, errcode: cl_int) -> OclResult<()
         )
     }
 }
-
-// /// Evaluates `errcode` and panics with a failure message if it is not 0.
-// fn errcode_assert(message: &str, errcode: cl_int) {
-//     errcode_try(message, "", errcode).unwrap();
-// }
 
 /// Maps options of slices to pointers and a length.
 fn resolve_event_ptrs<L: AsRef<EventList>>(wait_list: Option<L>, 
@@ -152,8 +145,6 @@ fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
         &None => 0 as *const size_t,
     }
 }
-
-
 
 /// If the program pointed to by `cl_program` for any of the devices listed in 
 /// `device_ids` has a build log of any length, it will be returned as an 
@@ -222,7 +213,6 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) 
 //============================================================================
 
 /// Returns a list of available platforms as 'core' objects.
-// TODO: Get rid of manual vec allocation now that PlatformId implements Clone.
 pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
     let mut num_platforms = 0 as cl_uint;
     
@@ -340,10 +330,6 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
 }
 
 /// Returns information about a device.
-///
-/// ## Stability (or lack thereof)
-///
-/// Currently returning only one (temporary) variant.
 ///
 #[allow(unused_variables)]
 pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, info_request: DeviceInfo,
@@ -676,8 +662,9 @@ pub fn create_sub_buffer(
 }
 
 /// Returns a new image (mem) pointer.
+///
 // [WORK IN PROGRESS]
-pub fn create_image<T>(
+pub unsafe fn create_image<T>(
             context: &Context,
             flags: MemFlags,
             format: &ImageFormat,
@@ -692,25 +679,25 @@ pub fn create_image<T>(
     
     let host_ptr = match data {
         Some(d) => {
-            // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE
+            // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE WITH FORMAT/DESC
             // assert!(d.len() == len, "ocl::create_image(): Data length mismatch.");
             d.as_ptr() as cl_mem
         },
         None => ptr::null_mut(),
     };
 
-    let image_ptr = unsafe { cl_h::clCreateImage(
+    let image_ptr = cl_h::clCreateImage(
         context.as_ptr(),
         flags.bits() as cl_mem_flags,
         &format.to_raw() as *const cl_image_format,
         &desc.to_raw() as *const cl_image_desc,
         host_ptr,
         &mut errcode as *mut cl_int,
-    ) }; 
+    ); 
     try!(errcode_try("clCreateImage", "", errcode));
     debug_assert!(!image_ptr.is_null());
 
-    unsafe { Ok(Mem::from_fresh_ptr(image_ptr)) }
+    Ok(Mem::from_fresh_ptr(image_ptr))
 }
 
 /// Increments the reference counter of a mem object.
@@ -1911,7 +1898,7 @@ pub fn enqueue_write_image<T, L: AsRef<EventList>>(
 pub fn enqueue_fill_image<T, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             image: &Mem,
-            fill_color: [T; 4],
+            color: &[T],
             origin: [usize; 3],
             region: [usize; 3],
             wait_list: Option<&L>, 
@@ -1924,7 +1911,7 @@ pub fn enqueue_fill_image<T, L: AsRef<EventList>>(
     let errcode = unsafe { cl_h::clEnqueueFillImage(
         command_queue.as_ptr(),
         image.as_ptr(), 
-        &fill_color as *const _ as *const c_void, 
+        color as *const _ as *const c_void, 
         &origin as *const _ as *const usize,
         &region as *const _ as *const usize,
         wait_list_len,
