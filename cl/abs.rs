@@ -193,7 +193,7 @@ impl Clone for Context {
 
 impl Drop for Context {
 	fn drop(&mut self) {
-		unsafe { core::release_context(self).unwrap(); }
+		unsafe { core::release_context(self).ok(); }
 	}
 }
 
@@ -228,7 +228,7 @@ impl Clone for CommandQueue {
 
 impl Drop for CommandQueue {
 	fn drop(&mut self) {
-		unsafe { core::release_command_queue(self).unwrap(); }
+		unsafe { core::release_command_queue(self).ok(); }
 	}
 }
 
@@ -273,7 +273,7 @@ impl Clone for Mem {
 
 impl Drop for Mem {
 	fn drop(&mut self) {
-		unsafe { core::release_mem_object(self).unwrap(); }
+		unsafe { core::release_mem_object(self).ok(); }
 	}
 }
 
@@ -308,7 +308,7 @@ impl Clone for Program {
 
 impl Drop for Program {
 	fn drop(&mut self) {
-		unsafe { core::release_program(self).unwrap(); }
+		unsafe { core::release_program(self).ok(); }
 	}
 }
 
@@ -358,7 +358,7 @@ impl Clone for Kernel {
 
 impl Drop for Kernel {
 	fn drop(&mut self) {
-		unsafe { core::release_kernel(self).unwrap(); }
+		unsafe { core::release_kernel(self).ok(); }
 	}
 }
 
@@ -443,7 +443,7 @@ impl Clone for Event {
 impl Drop for Event {
 	fn drop(&mut self) {
 		if self.is_valid() {
-			unsafe { core::release_event(self).expect("core::Event::drop"); }
+			unsafe { core::release_event(self).ok(); }
 		}
 	}
 }
@@ -601,7 +601,7 @@ impl Drop for EventList {
 	fn drop(&mut self) {
 		if DEBUG_PRINT { print!("Dropping events... "); }
 		for event_ptr in self.event_ptrs.iter() {
-			unsafe { core::release_event(&EventRefWrapper(event_ptr)).expect("core::EventList::drop"); }
+			unsafe { core::release_event(&EventRefWrapper(event_ptr)).ok(); }
 			if DEBUG_PRINT { print!("{{.}}"); }
 		}
 		if DEBUG_PRINT { print!("\n"); }
@@ -646,7 +646,7 @@ impl Clone for Sampler {
 
 impl Drop for Sampler {
 	fn drop(&mut self) {
-		unsafe { core::release_sampler(self).unwrap(); }
+		unsafe { core::release_sampler(self).ok(); }
 	}
 }
 
