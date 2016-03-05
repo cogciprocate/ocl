@@ -1,7 +1,9 @@
 //! Generates an image (currently a diagonal reddish stripe) then runs it
 //! through the kernel, increasing the blue channel for the entire image.
 //!
-//! Optionally saves for viewing, fiddle with consts/statics below.
+//!
+//! Enable saving to disk by setting `SAVE_IMAGES_TO_DISK` to `true` and 
+//! change the file paths/names if desired.
 
 extern crate image;
 #[macro_use] extern crate ocl;
@@ -141,6 +143,7 @@ fn main() {
         printlnc!(lime: "Images saved as: '{}' and '{}'.", 
             BEFORE_IMAGE_FILE_NAME, AFTER_IMAGE_FILE_NAME);
     } else {
-        printlnc!(orange: "Saving images to disk disabled. No files saved.");
+        printlnc!(orange: "Saving images to disk disabled. \
+            Enable by setting 'SAVE_IMAGES_TO_DISK' to 'true'.");
     }
 }

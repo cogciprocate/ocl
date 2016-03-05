@@ -8,7 +8,7 @@
 // use core::OclNum;
 use std::convert::Into;
 use error::{Result as OclResult};
-use standard::{Context, Queue, Image, SpatialDims};
+use standard::{Context, Queue, Image, SpatialDims, MemDims};
 use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType,
     ImageChannelOrder, ImageChannelDataType};
 
@@ -138,13 +138,13 @@ impl ImageBuilder {
 	/// * To set the dimensions of a 3d image use:
 	///   `SpatialDims::Three(width, height, depth)`.
 	///
-    pub fn dims<'a, D: Into<SpatialDims> + Clone>(&'a mut self, dims: D) -> &'a mut ImageBuilder {
-        let dims: SpatialDims = dims.into();
-    	let size = dims.to_size().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
-            dimensions: {:?}", dims));
-    	self.image_desc.image_width = size[0];
-    	self.image_desc.image_height = size[1];
-    	self.image_desc.image_depth = size[2];
+    pub fn dims<'a, D: MemDims>(&'a mut self, dims: D) -> &'a mut ImageBuilder {
+        let dims = dims.to_size();
+    	// let size = dims.to_size().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
+     //        dimensions: {:?}", dims));
+    	self.image_desc.image_width = dims[0];
+    	self.image_desc.image_height = dims[1];
+    	self.image_desc.image_depth = dims[2];
     	self
 	}
 

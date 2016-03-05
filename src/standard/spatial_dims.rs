@@ -138,6 +138,9 @@ impl MemDims for SpatialDims {
     fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
         self.try_to_padded_len(incr)
     }
+    fn to_size(&self) -> [usize; 3] { 
+        self.to_size().expect("SpatialDims::<MemDims>::to_size()")
+    }
 }
 
 impl WorkDims for SpatialDims {

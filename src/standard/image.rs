@@ -47,13 +47,13 @@ impl Image {
         // let flags = core::flag::READ_WRITE;
         // let host_ptr: cl_mem = 0 as cl_mem;
 
-        let obj_core = try!(core::create_image(
+        let obj_core = unsafe { try!(core::create_image(
             queue.context_core_as_ref(),
             flags,
             &image_format,
             &image_desc,
             image_data,
-        ));
+        )) };
 
         let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth]; 
 

@@ -45,8 +45,7 @@ pub enum BufferCmdDataShape {
     },
 }
 
-/// A kernel command builder used to queue a kernel with a mix of default
-/// and optionally specified arguments.
+/// A buffer command builder used to enqueue reads, writes, fills, and copies.
 pub struct BufferCmd<'b, T: 'b + OclNum> {
     queue: &'b CommandQueueCore,
     obj_core: &'b MemCore,

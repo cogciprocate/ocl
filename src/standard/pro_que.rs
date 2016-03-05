@@ -18,7 +18,7 @@ static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions sp
 /// using a unique program build on each device.
 ///
 /// All `ProQue` functionality is also provided separately by the `Context`, `Queue`, 
-/// and `Program` types.
+/// `Program`, and `SpatialDims` types.
 /// 
 /// # Creation
 /// There are two ways to create a `ProQue`:
@@ -252,6 +252,10 @@ impl MemDims for ProQue {
     fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
         self.dims_result().expect("ProQue::padded_buffer_len").padded_buffer_len(incr)
     }
+    fn to_size(&self) -> [usize; 3] { 
+        self.dims_result().expect("ProQue::padded_buffer_len")
+            .to_size().expect("ProQue::padded_buffer_len")
+    }
 }
 
 impl WorkDims for ProQue {
@@ -268,13 +272,37 @@ impl WorkDims for ProQue {
     }
 }
 
-impl Deref for ProQue {
-    type Target = SpatialDims;
+// impl Deref for ProQue {
+//     type Target = SpatialDims;
 
-    fn deref(&self) -> &SpatialDims {
-        match self.dims {
-            Some(ref dims) => dims,
-            None => panic!(DIMS_ERR_MSG),
-        }
+//     fn deref(&self) -> &SpatialDims {
+//         match self.dims {
+//             Some(ref dims) => dims,
+//             None => panic!(DIMS_ERR_MSG),
+//         }
+//     }
+// }
+
+// impl Deref for ProQue {
+//     type Target = Context;
+
+//     fn deref(&self) -> &Context {
+//         &self.context
+//     }
+// }
+
+// impl Deref for ProQue {
+//     type Target = Program;
+
+//     fn deref(&self) -> &Program {
+//         &self.program
+//     }
+// }
+
+impl Deref for ProQue {
+    type Target = Queue;
+
+    fn deref(&self) -> &Queue {
+        &self.queue
     }
 }
