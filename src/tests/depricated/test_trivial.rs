@@ -29,7 +29,7 @@ fn main_explained() {
         .build().unwrap();   
 
     // (2) Create a `Buffer` with a built-in `Vec`:
-    let mut buffer = pro_que.create_buffer::<f32>(true);
+    let mut buffer = pro_que.create_buffer::<f32>();
 
     // For printing purposes:
     let orig_val = buffer[IDX];

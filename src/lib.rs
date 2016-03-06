@@ -55,6 +55,7 @@ pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Im
 	EventList, Sampler, SpatialDims, ProQue};
 pub use self::error::{Error, Result};
 
+
 pub mod traits {
 	//! Commonly used traits.
 	pub use standard::{WorkDims, MemDims};
@@ -67,7 +68,7 @@ pub mod build {
 	pub use standard::{ContextBuilder, BuildOpt, ProgramBuilder, ImageBuilder, ProQueBuilder,
 		BufferCmd, DeviceSpecifier};
 	pub use core::{ImageFormat, ImageDescriptor, ContextProperties};
-	#[cfg(not(release))] pub use standard::BufferTest;
+	// #[cfg(not(release))] pub use standard::BufferTest;
 }
 
 pub mod flags {

@@ -13,7 +13,7 @@ const DIMS: [usize; 3] = [20, 20, 20];
 const TEST_ITERS: i32 = 30;
 
 #[test]
-fn test_image_ops() {
+fn image_ops() {
     let src = r#"
         __kernel void add(
                     sampler_t sampler_host,

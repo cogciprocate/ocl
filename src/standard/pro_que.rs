@@ -198,14 +198,11 @@ impl ProQue {
     /// This `ProQue` must have been pre-configured with default dimensions
     // to use this method. Otherwise, use Buffer::new(), etc.
     ///
-    pub fn create_buffer<T: OclPrm>(&self, with_vec: bool) -> Buffer<T> {
+    pub fn create_buffer<T: OclPrm>(&self) -> Buffer<T> {
         let dims = self.dims_result().expect("ocl::ProQue::create_buffer");
-
-        if with_vec {
-            Buffer::with_vec(&dims, &self.queue)
-        } else {
-            Buffer::new(&dims, &self.queue)
-        }
+        let buf = Buffer::<T>::new(&dims, &self.queue);
+        buf.cmd().fill(&[Default::default()]).enq().expect("ocl::ProQue::create_buffer");
+        buf
     }
 
     pub fn set_dims<S: Into<SpatialDims>>(&mut self, dims: S) {

@@ -7,7 +7,8 @@ extern crate libc;
 extern crate ocl;
 
 use libc::c_void;
-use ocl::{ProQue, Program, Buffer, EventList};
+use ocl::{util, core, ProQue, Program, Buffer, EventList};
+// use ocl::traits::{BufferExtras};
 use ocl::cl_h::{cl_event, cl_int};
 
 // How many iterations we wish to run:
@@ -35,8 +36,15 @@ fn main() {
     let dims = [900000];
 
     // Create source and result buffers (our data containers):
-    let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
-    let mut result_buffer = Buffer::with_vec(&dims, &ocl_pq.queue());
+    // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
+    let vec_seed = util::scrambled_vec((0u32, 500u32), ocl_pq.dims().to_len().unwrap());
+    let seed_buffer = Buffer::newer_new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_seed)).unwrap();
+
+    // let mut result_buffer = Buffer::with_vec(&dims, &ocl_pq.queue());
+    let mut vec_result = vec![0.0f32; dims[0]];
+    let mut result_buffer = Buffer::<f32>::newer_new(ocl_pq.queue(), None, 
+        ocl_pq.dims(), None).unwrap();
 
     // Our arbitrary addend:
     let addend = 11u32;
@@ -82,7 +90,9 @@ fn main() {
         let mut read_event = EventList::new();
         
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
-        unsafe { result_buffer.enqueue_fill_vec(false, None, Some(&mut read_event)).unwrap(); }
+        // unsafe { result_buffer.enqueue_fill_vec(false, None, Some(&mut read_event)).unwrap(); }
+        unsafe { result_buffer.cmd().read_async(&mut vec_result)
+            .enew(&mut read_event).enq().unwrap(); }
     
         // Clone event list just for fun:
         let read_event = read_event.clone();

@@ -1,57 +1,16 @@
 //! Interfaces to a buffer.
 
 use std;
-use std::ops::{Deref, DerefMut, Range, RangeFull, Index, IndexMut};
-use std::default::Default;
-use std::slice::{Iter, IterMut};
-use rand;
-use rand::distributions::{IndependentSample, Range as RandRange};
-use num::{FromPrimitive, ToPrimitive};
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 
 use core::{self, OclPrm, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, 
     MemInfo, MemInfoResult, ClEventPtrNew};
-use util;
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, MemDims, EventList, BufferCmd};
-
-static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buffer. \
-    You must create this Buffer using 'Buffer::with_vec()' (et al.) in order to call this method.";
-
-// An option type mainly just for convenient error handling.
-#[derive(Debug, Clone)]
-enum VecOption<T> {
-    None,
-    Some(Vec<T>),
-}
-
-impl<T> VecOption<T> {
-    fn as_ref(&self) -> OclResult<&Vec<T>> {
-        match self {
-            &VecOption::Some(ref vec) => {
-                Ok(vec)
-            },
-            &VecOption::None => Err(OclError::new(VEC_OPT_ERR_MSG)),
-        }
-    }
-
-    fn as_mut(&mut self) -> OclResult<&mut Vec<T>> {
-        match self {
-            &mut VecOption::Some(ref mut vec) => {
-                Ok(vec)
-            },
-            &mut VecOption::None => Err(OclError::new(VEC_OPT_ERR_MSG)),
-        }
-    }
-
-    fn is_some(&self) -> bool {
-        if let &VecOption::None = self { false } else { true }
-    }
-}
+use standard::{Queue, MemDims, EventList, BufferCmd, SpatialDims};
 
 
-
-
-/// A buffer with an optional built-in vector. 
+/// A chunk of memory physically located on a device, such as a GPU.
 ///
 /// Data is stored both remotely in a memory buffer on the device associated with 
 /// `queue` and optionally in a vector (`self.vec`) in host (local) memory for 
@@ -79,8 +38,10 @@ pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
     // queue: Queue,
     command_queue_obj_core: CommandQueueCore,
+    dims: SpatialDims,
     len: usize,
-    vec: VecOption<T>,
+    _data: PhantomData<T>,
+    // vec: VecOption<T>,
 }
 
 impl<T: OclPrm> Buffer<T> {
@@ -98,70 +59,29 @@ impl<T: OclPrm> Buffer<T> {
     /// one such as `.enqueue_flush_vec()`, `enqueue_fill_vec()`, etc. will panic.
     /// [FIXME]: Return result.
     pub fn new<D: MemDims>(dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
-        Buffer::_new(len, queue)
+        // let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+        let dims: SpatialDims = dims.to_size().into();  
+        let len = dims.to_len().expect("Buffer::new()");
+        Buffer::_new(dims, len, queue)
     }
 
-    /// Creates a new read/write Buffer with a host side working copy of data.
-    /// Host vector and device buffer are initialized with a sensible default value.
-    /// [FIXME]: Return result.
-    pub fn with_vec<D: MemDims>(dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
-        let vec: Vec<T> = std::iter::repeat(T::default()).take(len).collect();
-
-        Buffer::_with_vec(vec, queue)
-    }
-
-    /// [UNSTABLE]: Convenience method.
-    /// Creates a new read/write Buffer with a host side working copy of data.
-    /// Host vector and device buffer are initialized with the value, `init_val`.
-    /// [FIXME]: Return result.
-    pub fn with_vec_initialized_to<D: MemDims>(init_val: T, dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
-        let vec: Vec<T> = std::iter::repeat(init_val).take(len).collect();
-
-        Buffer::_with_vec(vec, queue)
-    }
-
-    /// [UNSTABLE]: Convenience method.
-    /// Creates a new read/write Buffer with a vector initialized with a series of 
-    /// integers ranging from `vals.0` to `vals.1` (closed) which are shuffled 
-    /// randomly.
-    ///
-    /// Note: Even if the Buffer type is a floating point type, the values returned
-    /// will still be integral values (e.g.: 1.0, 2.0, 3.0, etc.).
-    ///
-    /// ## Security
-    ///
-    /// Resulting values are not cryptographically secure.
-    /// [FIXME]: Return result.
-    // Note: vals.1 is inclusive.
-    pub fn with_vec_shuffled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) 
-            -> Buffer<T> 
+    pub fn newer_new<D: MemDims>(queue: &Queue, flags: Option<MemFlags>, dims: D, host_ptr: Option<&[T]>) 
+            -> OclResult<Buffer<T>>
     {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
-        let vec: Vec<T> = shuffled_vec(len, vals);
+        let flags = flags.unwrap_or(core::MEM_READ_WRITE);
+        let dims: SpatialDims = dims.to_size().into();
+        let len = try!(dims.to_len());
+        let obj_core = unsafe { try!(core::create_buffer(queue.context_core_as_ref(), flags, len,
+            host_ptr)) };
 
-        Buffer::_with_vec(vec, queue)
+        Ok( Buffer {
+            obj_core: obj_core,
+            command_queue_obj_core: queue.core_as_ref().clone(),
+            dims: dims,
+            len: len,
+            _data: PhantomData,
+        })
     }
-
-    /// [UNSTABLE]: Convenience method.
-    /// Creates a new read/write Buffer with a vector initialized with random values 
-    /// within the (half-open) range `vals.0..vals.1`.
-    ///
-    /// ## Security
-    ///
-    /// Resulting values are not cryptographically secure.
-    /// [FIXME]: Return result.
-    // Note: vals.1 is exclusive.
-    pub fn with_vec_scrambled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) 
-            -> Buffer<T> 
-    {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
-        let vec: Vec<T> = scrambled_vec(len, vals);
-
-        Buffer::_with_vec(vec, queue)
-    }   
 
     /// Creates a new Buffer with caller-managed buffer length, type, flags, and 
     /// initialization.
@@ -199,49 +119,39 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// [FIXME]: Return result.
     /// [FIXME]: Update docs.
-    pub unsafe fn new_unchecked(flags: MemFlags, len: usize, host_ptr: Option<&[T]>, 
-                queue: &Queue) -> Buffer<T> 
+    pub unsafe fn new_unchecked<S>(flags: MemFlags, dims: S, host_ptr: Option<&[T]>, 
+                queue: &Queue) -> Buffer<T> where S: Into<SpatialDims>
     {
+        let dims = dims.into();
+        let len = dims.to_len().expect("Buffer::_new()");
         let obj_core = core::create_buffer(queue.context_core_as_ref(), flags, len,
             host_ptr).expect("[FIXME: TEMPORARY]: Buffer::_new():");
 
         Buffer {
             obj_core: obj_core,
             command_queue_obj_core: queue.core_as_ref().clone(),
+            dims: dims,
             len: len,
-            vec: VecOption::None,
+            _data: PhantomData,
+            // vec: VecOption::None,
         }
     }
 
     // Consolidated constructor for Buffers without vectors.
     /// [FIXME]: Return result.
-    fn _new(len: usize, queue: &Queue) -> Buffer<T> {
+    fn _new(dims: SpatialDims, len: usize, queue: &Queue) -> Buffer<T> {
         let obj_core = unsafe { core::create_buffer::<T>(queue.context_core_as_ref(),
             core::MEM_READ_WRITE, len, None).expect("Buffer::_new()") };
 
         Buffer {            
             obj_core: obj_core,
             command_queue_obj_core: queue.core_as_ref().clone(),
+            dims: dims,
             len: len,
-            vec: VecOption::None,
+            _data: PhantomData,
+            // vec: VecOption::None,
         }
     }
-
-    // Consolidated constructor for Buffers with vectors.
-    /// [FIXME]: Return result.
-    fn _with_vec(mut vec: Vec<T>, queue: &Queue) -> Buffer<T> {
-        let obj_core = unsafe { core::create_buffer(queue.context_core_as_ref(), 
-            core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR, vec.len(), Some(&mut vec))
-            .expect("Buffer::_with_vec()") };
-
-        Buffer {        
-            obj_core: obj_core,
-            command_queue_obj_core: queue.core_as_ref().clone(),
-            len: vec.len(), 
-            vec: VecOption::Some(vec),
-        }
-    }
-
 
     /// Returns a buffer command builder used to read, write, copy, etc.
     ///
@@ -283,7 +193,7 @@ impl<T: OclPrm> Buffer<T> {
     /// Errors upon any OpenCL error.
     ///
     /// [UNSTABLE: Likely to be depricated in favor of `::cmd`.
-    pub unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &mut [T],
+    unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &mut [T],
                 ewait: Option<&EventList>, enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         // assert!(offset < self.len(), "Buffer::read{{_async}}(): Offset out of range.");
@@ -331,7 +241,7 @@ impl<T: OclPrm> Buffer<T> {
     /// Errors upon any OpenCL error.
     /// 
     /// [UNSTABLE: Likely to be depricated in favor of `::cmd`.
-    pub fn enqueue_write(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &[T], 
+    fn enqueue_write(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &[T], 
                 ewait: Option<&EventList>, enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {        
         // assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
@@ -363,10 +273,10 @@ impl<T: OclPrm> Buffer<T> {
     /// The length of `data` must be less than the length of the buffer minus `offset`.
     ///
     /// Errors upon any OpenCL error.
-    pub fn read(&self, offset: usize, data: &mut [T]) -> OclResult<()>
+    pub fn read(&self, data: &mut [T])
     {
         // Safe due to being a blocking read (right?).
-        unsafe { self.enqueue_read(None, true, offset, data, None, None) }
+        unsafe { self.enqueue_read(None, true, 0, data, None, None).expect("ocl::Buffer::read()") }
     }
 
     /// Writes `data.len() * mem::size_of::<T>()` bytes from `data` to the (remote) 
@@ -379,127 +289,15 @@ impl<T: OclPrm> Buffer<T> {
     /// The length of `data` must be less than the length of the buffer minus `offset`.
     ///
     /// Errors upon any OpenCL error.
-    pub fn write(&self, offset: usize, data: &[T]) -> OclResult<()>
+    pub fn write(&self, data: &[T])
     {
-        self.enqueue_write(None, true, offset, data, None, None)
+        self.enqueue_write(None, true, 0, data, None, None).expect("ocl::Buffer::read()")
     }
-
-    /// After waiting on events in `ewait` to finish, reads the remote device 
-    /// data buffer into 'self.vec' and adds a new event to `enew`.
-    ///
-    /// [UPDATE] Will block until the read is complete and the internal vector is filled if 
-    /// `enew` is `None`.
-    ///
-    /// ## Safety 
-    ///
-    /// Currently up to the caller to ensure this `Buffer` lives long enough
-    /// for the read to complete.
-    ///
-    /// TODO: Keep an internal eventlist to track pending reads and cancel them
-    /// if this `Buffer` is destroyed beforehand.
-    ///
-    /// ## Errors
-    ///
-    /// Errors if this Buffer contains no vector or upon any OpenCL error.
-    pub unsafe fn enqueue_fill_vec(&mut self, block: bool, ewait: Option<&EventList>, 
-                enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
-    {
-        debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
-        let vec = try!(self.vec.as_mut());
-        core::enqueue_read_buffer(&self.command_queue_obj_core, &self.obj_core, block, 
-            // 0, vec, ewait.map(|el| el.core_as_ref()), enew.map(|el| el.core_as_mut()))
-            0, vec, ewait, enew)
-    }
-
-    /// Reads the remote device data buffer into `self.vec` and blocks until completed.
-    ///
-    /// Equivalent to `.enqueue_fill_vec(true, None, None)`.
-    ///
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector or upon any OpenCL error.
-    pub fn fill_vec(&mut self) {
-        // Safe due to being a blocking read (right?).
-        unsafe { self.enqueue_fill_vec(true, None, None).expect("Buffer::fill_vec()"); }
-    } 
-
-    /// After waiting on events in `ewait` to finish, writes the contents of
-    /// 'self.vec' to the remote device data buffer and adds a new event to `enew`.
-    ///
-    /// ## Data Integrity
-    ///
-    /// Ensure that this `Buffer` lives until until the write completes if 
-    /// passing a `enew`.
-    ///
-    /// [UPDATE] Will block until the write is complete if `enew` is None.
-    ///
-    /// ## Errors
-    ///
-    /// Errors if this Buffer contains no vector or upon any OpenCL error.
-    pub fn enqueue_flush_vec(&mut self, block: bool, ewait: Option<&EventList>, 
-                enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
-    {
-        debug_assert!(self.vec.as_ref().unwrap().len() == self.len());
-        let vec = try!(self.vec.as_mut());
-        core::enqueue_write_buffer(&self.command_queue_obj_core, &self.obj_core, block, 
-            // 0, vec, ewait.map(|el| el.core_as_ref()), enew.map(|el| el.core_as_mut()))
-            0, vec, ewait, enew)
-    }
-
-    /// Writes the contents of `self.vec` to the remote device data buffer and 
-    /// blocks until completed. 
-    ///
-    /// Equivalent to `.enqueue_flush_vec(true, None, None)`.
-    ///
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector or upon any OpenCL error.
-    pub fn flush_vec(&mut self) {
-        self.enqueue_flush_vec(true, None, None).expect("Buffer::flush_vec()");
-    }  
 
     /// Blocks the current thread until the underlying command queue has
     /// completed all commands.
     pub fn wait(&self) {
         core::finish(&self.command_queue_obj_core).unwrap();
-    }
-
-    /// [UNSTABLE]: Convenience method.
-    ///
-    /// ## Panics [UPDATE ME]
-    /// Panics if this Buffer contains no vector.
-    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    /// TODO: Consider adding to `BufferCmd`.
-    pub fn set_all_to(&mut self, val: T) -> OclResult<()> {
-        {
-            let vec = try!(self.vec.as_mut());
-            for ele in vec.iter_mut() {
-                *ele = val;
-            }
-        }
-
-        self.enqueue_flush_vec(true, None, None)
-    }
-
-    /// [UNSTABLE]: Convenience method.
-    ///
-    /// ## Panics [UPDATE ME]
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    /// TODO: Consider adding to `BufferCmd`.
-    pub fn set_range_to(&mut self, val: T, range: Range<usize>) -> OclResult<()> {       
-        {
-            let vec = try!(self.vec.as_mut());
-            // for idx in range {
-                // self.vec[idx] = val;
-            for ele in vec[range].iter_mut() {
-                *ele = val;
-            }
-        }
-
-        self.enqueue_flush_vec(true, None, None)
     }
 
     /// Returns the length of the Buffer.
@@ -510,104 +308,9 @@ impl<T: OclPrm> Buffer<T> {
     /// created.
     #[inline]
     pub fn len(&self) -> usize {
-        debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
-            else { self.len }) == self.len);
+        // debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
+        //     else { self.len }) == self.len);
         self.len
-    }
-
-    /// Resizes Buffer. Recreates device side buffer and dangles any references 
-    /// kernels may have had to the old buffer.
-    ///
-    /// ## Safety
-    ///
-    /// [IMPORTANT]: You must manually reassign any kernel arguments which may have 
-    /// had a reference to the (device side) buffer associated with this Buffer.
-    /// [FIXME]: Return result.
-    pub unsafe fn resize<B: MemDims>(&mut self, new_dims: &B, queue: &Queue) {
-        // self.release();
-        let new_len = new_dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
-
-        match self.vec {
-            VecOption::Some(ref mut vec) => {
-                vec.resize(new_len, T::default());
-                self.obj_core = core::create_buffer(queue.context_core_as_ref(), 
-                    core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR, self.len, Some(vec))
-                    .expect("[FIXME: TEMPORARY]: Buffer::_resize()");
-            },
-            VecOption::None => {
-                self.len = new_len;
-                // let vec: Vec<T> = std::iter::repeat(T::default()).take(new_len).collect();
-                self.obj_core = core::create_buffer::<T>(queue.context_core_as_ref(), 
-                    core::MEM_READ_WRITE, self.len, None)
-                    .expect("[FIXME: TEMPORARY]: Buffer::_resize()");
-            },
-        };
-    }
-
-    // /// Decrements the reference count associated with the previous buffer object, 
-    // /// `self.obj_core`.
-    // pub fn release(&mut self) {
-    //     core::release_mem_object(self.obj_core).unwrap();
-    // }
-
-    /// Returns a reference to the local vector associated with this buffer.
-    ///
-    /// Contents of this vector may change during use due to previously enqueued
-    /// reads. ([FIXME]: Is this a safety issue?)
-    ///
-    /// ## Failures
-    ///
-    /// [FIXME: UPDATE DOC] Returns an error if this buffer contains no vector.
-    #[inline]
-    pub fn vec(&self) -> &Vec<T> {
-        self.vec.as_ref().expect("Buffer::vec()")
-    }
-
-    /// Returns a mutable reference to the local vector associated with this buffer.
-    ///
-    /// Contents of this vector may change during use due to previously enqueued
-    /// read.
-    /// 
-    /// ## Failures
-    ///
-    /// [FIXME: UPDATE DOC] Returns an error if this buffer contains no vector.
-    ///
-    /// ## Safety
-    ///
-    /// Could cause data collisions, etc. May not be unsafe strictly speaking
-    /// (is it?) but marked as such to alert the caller to any potential 
-    /// synchronization issues from previously enqueued reads.
-    #[inline]
-    pub unsafe fn vec_mut(&mut self) -> &mut Vec<T> {
-        self.vec.as_mut().expect("Buffer::vec_mut()")
-    }
-
-    /// Returns an immutable reference to the value located at index `idx`, bypassing 
-    /// bounds and enum variant checks.
-    ///
-    /// ## Safety
-    ///
-    /// Assumes `self.vec` is a `VecOption::Vec` and that the index `idx` is within
-    /// the vector bounds.
-    #[inline]
-    pub unsafe fn get_unchecked(&self, idx: usize) -> &T {
-        debug_assert!(self.vec.is_some() && idx < self.len);
-        let vec_ptr: *const Vec<T> = &self.vec as *const VecOption<T> as *const Vec<T>;
-        (*vec_ptr).get_unchecked(idx) 
-    }
-
-    /// Returns a mutable reference to the value located at index `idx`, bypassing 
-    /// bounds and enum variant checks.
-    ///
-    /// ## Safety
-    ///
-    /// Assumes `self.vec` is a `VecOption::Vec` and that the index `idx` is within
-    /// bounds. Can eat all the laundry.
-    #[inline]
-    pub unsafe fn get_unchecked_mut(&mut self, idx: usize) -> &mut T {      
-        debug_assert!(self.vec.is_some() && idx < self.len);
-        let vec_ptr_mut: *mut Vec<T> = &mut self.vec as *mut VecOption<T> as *mut Vec<T>;
-        (*vec_ptr_mut).get_unchecked_mut(idx) 
     }
 
     /// Returns a copy of the core buffer object reference.
@@ -634,80 +337,15 @@ impl<T: OclPrm> Buffer<T> {
         self
     }
 
-    /// Returns an iterator to a contained vector.
-    ///
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    pub fn iter<'a>(&'a self) -> Iter<'a, T> {
-        self.vec.as_ref().expect("Buffer::iter()").iter()
-    }
-
-    /// Returns a mutable iterator to a contained vector.
-    ///
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    pub fn iter_mut<'a>(&'a mut self) -> IterMut<'a, T> {
-        self.vec.as_mut().expect("Buffer::iter()").iter_mut()
-    }
-
-
-    /// [UNSTABLE]: Convenience method.
-    ///
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    pub fn print_simple(&mut self) {
-        self.print(1, None, None, true);
-    }
-
-    /// [UNSTABLE]: Convenience method. 
-    ///
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    pub fn print_val_range(&mut self, every: usize, val_range: Option<(T, T)>,) {
-        self.print(every, val_range, None, true);
-    }
-
-    /// [UNSTABLE]: Convenience/debugging method. May be moved/renamed/deleted.
-    /// [FIXME]: CREATE AN EMPTY VECTOR FOR PRINTING IF NONE EXISTS INSTEAD
-    /// OF PANICING.
-    ///
-    ///
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
-    pub fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
-                idx_range_opt: Option<Range<usize>>, zeros: bool)
-    {
-        let idx_range = match idx_range_opt.clone() {
-            Some(r) => r,
-            None => 0..self.len(),
-        };
-
-        let vec = self.vec.as_mut().expect("Buffer::print()");
-
-        unsafe { core::enqueue_read_buffer::<T, EventList>(
-            &self.command_queue_obj_core, &self.obj_core, true, idx_range.start, 
-            &mut vec[idx_range.clone()], None, None).unwrap() };
-        util::print_slice(&vec[..], every, val_range, idx_range_opt, zeros);
-
-    }
-
     /// Returns info about this buffer.
-    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
+    fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
         match core::get_mem_object_info(&self.obj_core, info_kind) {
             Ok(res) => res,
             Err(err) => MemInfoResult::Error(Box::new(err)),
         }        
     }
 
-    pub fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Buffer Mem")
             .field("Type", &self.mem_info(MemInfo::Type))
             .field("Flags", &self.mem_info(MemInfo::Flags))
@@ -742,192 +380,3 @@ impl<T: OclPrm> std::fmt::Display for Buffer<T> {
     }
 }
 
-
-impl<T: OclPrm> Index<usize> for Buffer<T> {
-    type Output = T;
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    #[inline]
-    fn index<'a>(&'a self, index: usize) -> &'a T {
-        &self.vec.as_ref().expect("Buffer::index()")[..][index]
-    }
-}
-
-impl<T: OclPrm> IndexMut<usize> for Buffer<T> {
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    #[inline]
-    fn index_mut<'a>(&'a mut self, index: usize) -> &'a mut T {
-        &mut self.vec.as_mut().expect("Buffer::index_mut()")[..][index]
-    }
-}
-
-impl<'b, T: OclPrm> Index<&'b usize> for Buffer<T> {
-    type Output = T;
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    #[inline]
-    fn index<'a>(&'a self, index: &'b usize) -> &'a T {
-        &self.vec.as_ref().expect("Buffer::index()")[..][*index]
-    }
-}
-
-impl<'b, T: OclPrm> IndexMut<&'b usize> for Buffer<T> {
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    #[inline]
-    fn index_mut<'a>(&'a mut self, index: &'b usize) -> &'a mut T {
-        &mut self.vec.as_mut().expect("Buffer::index_mut()")[..][*index]
-    }
-}
-
-impl<T: OclPrm> Index<Range<usize>> for Buffer<T> {
-    type Output = [T];
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    #[inline]
-    fn index<'a>(&'a self, range: Range<usize>) -> &'a [T] {
-        &self.vec.as_ref().expect("Buffer::index()")[range]
-    }
-}
-
-impl<T: OclPrm> IndexMut<Range<usize>> for Buffer<T> {
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    #[inline]
-    fn index_mut<'a>(&'a mut self, range: Range<usize>) -> &'a mut [T] {
-        &mut self.vec.as_mut().expect("Buffer::index_mut()")[range]
-    }
-}
-
-impl<T: OclPrm> Index<RangeFull> for Buffer<T> {
-    type Output = [T];
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    #[inline]
-    fn index<'a>(&'a self, range: RangeFull) -> &'a [T] {
-        &self.vec.as_ref().expect("Buffer::index()")[range]
-    }
-}
-
-impl<T: OclPrm> IndexMut<RangeFull> for Buffer<T> {
-    /// ## Panics
-    ///
-    /// Panics if this Buffer contains no vector.
-    ///
-    #[inline]
-    fn index_mut<'a>(&'a mut self, range: RangeFull) -> &'a mut [T] {
-        &mut self.vec.as_mut().expect("Buffer::index_mut()")[range]
-    }
-}
-
-/// Returns a vector with length `size` containing random values in the (half-open)
-/// range `[vals.0, vals.1)`.
-pub fn scrambled_vec<T: OclPrm>(size: usize, vals: (T, T)) -> Vec<T> {
-    assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
-    assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
-    let mut rng = rand::weak_rng();
-    let range = RandRange::new(vals.0, vals.1);
-
-    (0..size).map(|_| range.ind_sample(&mut rng)).take(size as usize).collect()
-}
-
-/// Returns a vector with length `size` which is first filled with each integer value
-/// in the (inclusive) range `[vals.0, vals.1]`. If `size` is greater than the 
-/// number of integers in the aforementioned range, the integers will repeat. After
-/// being filled with `size` values, the vector is shuffled and the order of its
-/// values is randomized.
-pub fn shuffled_vec<T: OclPrm>(size: usize, vals: (T, T)) -> Vec<T> {
-    let mut vec: Vec<T> = Vec::with_capacity(size);
-    assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
-    assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
-    let min = vals.0.to_i64().expect("\nbuffer::shuffled_vec(), min");
-    let max = vals.1.to_i64().expect("\nbuffer::shuffled_vec(), max") + 1;
-    let mut range = (min..max).cycle();
-
-    for _ in 0..size {
-        vec.push(FromPrimitive::from_i64(range.next().expect("\nbuffer::shuffled_vec(), range")).expect("\nbuffer::shuffled_vec(), from_usize"));
-    }
-
-    shuffle_vec(&mut vec);
-    vec
-}
-
-
-/// Shuffles the values in a vector using a single pass of Fisher-Yates with a
-/// weak (not cryptographically secure) random number generator.
-pub fn shuffle_vec<T: OclPrm>(vec: &mut Vec<T>) {
-    let len = vec.len();
-    let mut rng = rand::weak_rng();
-    let mut ridx: usize;
-    let mut tmp: T;
-
-    for i in 0..len {
-        ridx = RandRange::new(i, len).ind_sample(&mut rng);
-        tmp = vec[i];
-        vec[i] = vec[ridx];
-        vec[ridx] = tmp;
-    }
-}
-
-
-// #[cfg(test)]
-#[cfg(not(release))]
-pub mod tests {
-    use super::Buffer;
-    use core::OclPrm;
-    use std::num::Zero;
-
-    /// Test functions available to external crates.
-    pub trait BufferTest<T> {
-        fn read_idx_direct(&self, idx: usize) -> T;
-    }
-
-    impl<T: OclPrm> BufferTest<T> for Buffer<T> {
-        // Throw caution to the wind (this is potentially unsafe).
-        fn read_idx_direct(&self, idx: usize) -> T {
-            let mut buffer = vec![Zero::zero()];
-            self.read(idx, &mut buffer[0..1]).unwrap();
-            buffer[0]
-        }
-    }
-}
-
-
-
-// impl<T> IntoIterator for Buffer<T> {
-//     type Item = T;
-//     type IntoIter = ::std::vec::IntoIter<T>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//      match self.vec {
-//          VecOption::Some(vec) => vec.into_iter(),
-//          VecOption::None => panic!("Buffer::into_iter(): Cannot iterate over a Buffer that
-//              does not contain a built-in vector. Try creating your Buffer with ::with_vec()."),
-//      }
-//     }
-// }
-
-
-// impl<T: OclPrm> Display for Buffer<T> {
-//     fn fmt(&self, fmtr: &mut Formatter) -> FmtResult {
-//      // self.print(1, None, None, true)
-//      let mut tmp_vec = Vec::with_capacity(self.vec.len());
-//      self.enqueue_read(&mut tmp_vec[..], 0);
-//      fmt::fmt_vec(fmtr.buf, &tmp_vec[..], 1, None, None, true)
-//  }
-// }

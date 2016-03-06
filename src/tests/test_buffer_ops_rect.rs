@@ -3,7 +3,7 @@
 //! Runs both the core function and the 'standard' method call for each.
 
 use core;
-use flags;
+// use flags;
 use standard::{ProQue, Buffer};
 use tests;
 
@@ -12,7 +12,7 @@ const DIMS: [usize; 3] = [12, 12, 12];
 const TEST_ITERS: i32 = 220;
 
 #[test]
-fn test_buffer_ops_rect() {
+fn buffer_ops_rect() {
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
             uint idx = (get_global_id(0) * get_global_size(1) * get_global_size(2)) +
@@ -38,9 +38,11 @@ fn test_buffer_ops_rect() {
 
     // SRC_BUFFER:
     let mut vec = vec![0.0f32; proque.dims().to_len().unwrap()];
-    let buf = unsafe { Buffer::new_unchecked(
-        flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-        proque.dims().to_len().unwrap(), Some(&vec), proque.queue()) };
+    // let buf = unsafe { Buffer::new_unchecked(
+    //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
+    //     proque.dims().to_len().unwrap(), Some(&vec), proque.queue()) };
+    let buf = Buffer::newer_new(proque.queue(), Some(core::MEM_READ_WRITE | 
+        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec)).unwrap();
 
     let kernel_add = proque.create_kernel("add")
         .arg_buf(&buf)
@@ -66,7 +68,7 @@ fn test_buffer_ops_rect() {
     let mut ttl_runs = 1i32;
 
     // READ AND VERIFY #1 (LINEAR):
-    buf.read(0, &mut vec).unwrap();
+    buf.read(&mut vec);
 
     for idx in 0..proque.dims().to_len().unwrap() {
         // DEBUG:
@@ -221,15 +223,19 @@ fn test_buffer_ops_rect() {
     //========================================================================
     // Source Buffer:
     let mut vec_src = vec![0.0f32; proque.dims().to_len().unwrap()];
-    let buf_src = unsafe { Buffer::new_unchecked(
-        flags::MEM_READ_ONLY | flags::MEM_HOST_WRITE_ONLY | flags::MEM_COPY_HOST_PTR,
-        proque.dims().to_len().unwrap(), Some(&vec_src), proque.queue()) };
+    // let buf_src = unsafe { Buffer::new_unchecked(
+    //     flags::MEM_READ_ONLY | flags::MEM_HOST_WRITE_ONLY | flags::MEM_COPY_HOST_PTR,
+    //     proque.dims().to_len().unwrap(), Some(&vec_src), proque.queue()) };
+    let buf_src = Buffer::newer_new(proque.queue(), Some(core::MEM_READ_WRITE | 
+        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src)).unwrap();
 
     // Destination Buffer:
     let mut vec_dst = vec![0.0f32; proque.dims().to_len().unwrap()];
-    let buf_dst = unsafe { Buffer::new_unchecked(
-        flags::MEM_WRITE_ONLY | flags::MEM_HOST_READ_ONLY | flags::MEM_COPY_HOST_PTR,
-        proque.dims().to_len().unwrap(), Some(&vec_dst), proque.queue()) };
+    // let buf_dst = unsafe { Buffer::new_unchecked(
+    //     flags::MEM_WRITE_ONLY | flags::MEM_HOST_READ_ONLY | flags::MEM_COPY_HOST_PTR,
+    //     proque.dims().to_len().unwrap(), Some(&vec_dst), proque.queue()) };
+    let buf_dst = Buffer::newer_new(proque.queue(), Some(core::MEM_READ_WRITE | 
+        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_dst)).unwrap();
 
     // Source origin doesn't matter for this:
     let src_origin = [0, 0, 0];

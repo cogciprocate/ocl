@@ -3,7 +3,7 @@ const IDX: usize = 200007;
 const ADDEND: f32 = 10.0;
 
 #[test]
-fn test_buffer_copy_core() {
+fn buffer_copy_core() {
     use std::ffi::CString;
     use core::{self, ContextProperties};
     use flags;
@@ -73,7 +73,7 @@ fn test_buffer_copy_core() {
 }
 
 #[test]
-fn test_buffer_copy_standard() {
+fn buffer_copy_standard() {
     use standard::ProQue;
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -86,8 +86,10 @@ fn test_buffer_copy_standard() {
         .dims([500000])
         .build().unwrap();   
 
-    let mut src_buffer = pro_que.create_buffer::<f32>(true);
-    let mut dst_buffer = pro_que.create_buffer::<f32>(true);
+    let src_buffer = pro_que.create_buffer::<f32>();
+    let mut src_vec = vec![0.0f32; src_buffer.len()];
+    let dst_buffer = pro_que.create_buffer::<f32>();
+    let mut dst_vec = vec![0.0f32; dst_buffer.len()];
 
     let kernel = pro_que.create_kernel("add")
         .arg_buf(&src_buffer)
@@ -100,16 +102,16 @@ fn test_buffer_copy_standard() {
     src_buffer.cmd().copy(&dst_buffer, copy_range.0, copy_range.1 - copy_range.0).enq().unwrap();
 
     // Read both buffers from device.
-    src_buffer.fill_vec();
-    dst_buffer.fill_vec();
+    src_buffer.read(&mut src_vec);
+    dst_buffer.read(&mut dst_vec);
 
     for i in 0..pro_que.dims()[0] {
-        assert_eq!(src_buffer[i], ADDEND);
+        assert_eq!(src_vec[i], ADDEND);
 
         if i >= copy_range.0 && i < copy_range.1 {
-            assert_eq!(dst_buffer[i], ADDEND);
+            assert_eq!(dst_vec[i], ADDEND);
         } else {
-            assert!(dst_buffer[i] == 0.0, "dst_buf: {}, idx: {}", dst_buffer[i], i);
+            assert!(dst_vec[i] == 0.0, "dst_buf: {}, idx: {}", dst_vec[i], i);
         }
     }
 }

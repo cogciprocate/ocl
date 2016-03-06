@@ -7,6 +7,8 @@
 // extern crate ocl;
 use std::time::Instant;
 
+use util;
+use core;
 use standard::{ProQue, SpatialDims, Buffer, EventList};
 
 
@@ -23,7 +25,7 @@ const PRINT_SOME_RESULTS: bool = true;
 const RESULTS_TO_PRINT: usize = 5;
 
 #[test]
-fn test_timed() {
+fn timed() {
     // Define a kernel:
     let src = r#"
         __kernel void add(
@@ -41,9 +43,15 @@ fn test_timed() {
         .build().unwrap();
 
     // Create init and result buffers:
-    let buffer_init: Buffer<f32> = Buffer::with_vec_scrambled(
-         INIT_VAL_RANGE, &ocl_pq, &ocl_pq.queue());
-    let mut buffer_result: Buffer<f32> = Buffer::with_vec(&ocl_pq, &ocl_pq.queue());
+    // let buffer_init: Buffer<f32> = Buffer::with_vec_scrambled(
+    //      INIT_VAL_RANGE, &ocl_pq, &ocl_pq.queue());
+    let vec = util::scrambled_vec(INIT_VAL_RANGE, DATASET_SIZE);
+    let buffer_init = Buffer::newer_new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+        core::MEM_COPY_HOST_PTR), ocl_pq.dims(), Some(&vec)).unwrap();
+    // let mut buffer_result: Buffer<f32> = Buffer::with_vec(&ocl_pq, ocl_pq.queue());
+    let mut vec_result = vec![0.0f32; DATASET_SIZE];
+    let mut buffer_result = Buffer::<f32>::newer_new(ocl_pq.queue(), None, 
+        ocl_pq.dims(), None).unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
     let mut kern = ocl_pq.create_kernel("add")
@@ -91,7 +99,7 @@ fn test_timed() {
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
-        buffer_result.fill_vec();
+        buffer_result.read(&mut vec_result);
     }
 
     print_elapsed("queue unfinished", buffer_start);
@@ -111,7 +119,7 @@ fn test_timed() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enqueue();
-        buffer_result.fill_vec();
+        buffer_result.read(&mut vec_result);
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
@@ -134,7 +142,9 @@ fn test_timed() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.cmd().ewait(&buf_events).enew(&mut kern_events).enq().unwrap();
-        unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), Some(&mut buf_events)).unwrap(); }
+        // unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), Some(&mut buf_events)).unwrap(); }
+        unsafe { buffer_result.cmd().read_async(&mut vec_result)
+            .ewait(&kern_events).enew(&mut buf_events).enq().unwrap() }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);

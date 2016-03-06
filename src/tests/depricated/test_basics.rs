@@ -4,7 +4,7 @@ use standard::{Buffer, SpatialDims, ProQue};
 const PRINT_DEBUG: bool = false;
 
 #[test]
-fn test_basics() {
+fn basics() {
     // Set our data set size and coefficent to arbitrary values:
     let data_set_size = 900000;
     let coeff = 5432.1;

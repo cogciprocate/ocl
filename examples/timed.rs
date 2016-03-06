@@ -8,7 +8,8 @@
 extern crate ocl;
 use std::time::Instant;
 
-use ocl::{ProQue, Buffer, EventList};
+use ocl::{util, core, ProQue, Buffer, EventList};
+// use ocl::traits::{BufferExtras};
 
 
 const DATASET_SIZE: usize = 10000;
@@ -39,20 +40,24 @@ fn main() {
         }
     "#;
 
-    // Set our work dimensions / data set size to something arbitrary:
-    let dims = [DATASET_SIZE];
-
     // Create an all-in-one context, program, and command queue:
-    let ocl_pq = ProQue::builder().src(src).build().unwrap();
+    let ocl_pq = ProQue::builder().src(src).dims([DATASET_SIZE]).build().unwrap();
 
     // Create init and result buffers:
-    let buffer_init: Buffer<f32> = Buffer::with_vec_scrambled(
-         INIT_VAL_RANGE, &dims, &ocl_pq.queue());
-    let mut buffer_result: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
+    // let vec_init: Buffer<f32> = Buffer::with_vec_scrambled(
+    //      INIT_VAL_RANGE, &dims, &ocl_pq.queue());
+    // let mut buffer_result: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
+    let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len().unwrap());
+    let buffer_init = Buffer::newer_new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_init)).unwrap();
+
+    let mut vec_result = vec![0.0f32; DATASET_SIZE];
+    let buffer_result = Buffer::<f32>::newer_new(ocl_pq.queue(), None, 
+        ocl_pq.dims(), None).unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
     let mut kern = ocl_pq.create_kernel("add")
-        .gws(&dims)
+        .gws(ocl_pq.dims().clone())
         .arg_buf_named("source", Some(&buffer_init))
         .arg_scl(SCALAR)
         .arg_buf(&buffer_result);
@@ -97,14 +102,15 @@ fn main() {
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
-        buffer_result.fill_vec();
+        // buffer_result.fill_vec();
+        buffer_result.cmd().read(&mut vec_result).enq().unwrap()
     }
 
     print_elapsed("queue unfinished", buffer_start);
     ocl_pq.queue().finish();    
     print_elapsed("queue finished", buffer_start);
 
-    verify_results(&buffer_init, &buffer_result, KERNEL_RUN_ITERS);
+    verify_results(&vec_init, &vec_result, KERNEL_RUN_ITERS);
 
     // ##################################################
     // ########### KERNEL & BUFFER BLOCKING #############
@@ -117,14 +123,15 @@ fn main() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enqueue();
-        buffer_result.fill_vec();
+        // buffer_result.fill_vec();
+        buffer_result.cmd().read(&mut vec_result).enq().unwrap();
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
     ocl_pq.queue().finish();    
     print_elapsed("queue finished", kern_buf_start);
 
-    verify_results(&buffer_init, &buffer_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
+    verify_results(&vec_init, &vec_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 
     // ##################################################
     // ######### KERNEL & BUFFER NON-BLOCKING ###########
@@ -141,8 +148,10 @@ fn main() {
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.cmd().ewait(&buf_events).enew(&mut kern_events).enq().unwrap();
-        unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), 
-            Some(&mut buf_events)).unwrap(); }
+        // unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), 
+        //     Some(&mut buf_events)).unwrap(); }
+        buffer_result.cmd().read(&mut vec_result).ewait(&kern_events)
+            .enew(&mut buf_events).enq().unwrap();
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
@@ -152,7 +161,7 @@ fn main() {
     kern_events.wait().unwrap();
     buf_events.wait().unwrap();
 
-    verify_results(&buffer_init, &buffer_result, 
+    verify_results(&vec_init, &vec_result, 
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 
     // ##################################################
@@ -169,14 +178,16 @@ fn main() {
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.cmd().enew(&mut kern_events).enq().unwrap();
-        unsafe { buffer_result.enqueue_fill_vec(false, None, Some(&mut buf_events)).unwrap(); }
+        unsafe { buffer_result.cmd().read_async(&mut vec_result).enew(&mut buf_events).enq().unwrap() }
+        // unsafe { buffer_result.cmd().read(&mut vec_result).ewait(&kern_events)
+        //     .enew(&mut buf_events).enq().unwrap(); }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
     ocl_pq.queue().finish();    
     print_elapsed("queue finished", kern_buf_start);
 
-    verify_results(&buffer_init, &buffer_result, 
+    verify_results(&vec_init, &vec_result, 
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 }
 
@@ -189,7 +200,7 @@ fn print_elapsed(title: &str, start: Instant) {
 }
 
 
-fn verify_results(buffer_init: &Buffer<f32>, buffer_result: &Buffer<f32>, iters: i32) {
+fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) {
     print!("\nVerifying result values... ");
     if PRINT_SOME_RESULTS { print!("(printing {})\n", RESULTS_TO_PRINT); }
 
@@ -197,15 +208,15 @@ fn verify_results(buffer_init: &Buffer<f32>, buffer_result: &Buffer<f32>, iters:
     let margin_of_error = 0.1 as f32;
 
     for idx in 0..DATASET_SIZE {
-        let correct = buffer_init[idx] + (iters as f32 * SCALAR);
-        // let correct = buffer_init[i] + SCALAR;
-        assert!((correct - buffer_result[idx]).abs() < margin_of_error, 
+        let correct = vec_init[idx] + (iters as f32 * SCALAR);
+        // let correct = vec_init[i] + SCALAR;
+        assert!((correct - vec_result[idx]).abs() < margin_of_error, 
             "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}", 
-            idx, buffer_init[idx], correct, margin_of_error, buffer_result[idx]);
+            idx, vec_init[idx], correct, margin_of_error, vec_result[idx]);
 
         if PRINT_SOME_RESULTS && (idx % (DATASET_SIZE / RESULTS_TO_PRINT)) == 0  {
-            println!("    [{}]: init: {}, correct: {}, result: {}", idx, buffer_init[idx],
-                correct, buffer_result[idx]);
+            println!("    [{}]: init: {}, correct: {}, result: {}", idx, vec_init[idx],
+                correct, vec_result[idx]);
         }
     }
 

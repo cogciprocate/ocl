@@ -52,7 +52,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 
 
 #[test]
-fn test_events() {
+fn events() {
     // Create a context, program, & queue:
     // let mut pb = ProgramBuilder::new();
     // pb.src_file("cl/kernel_file.cl");

@@ -13,27 +13,27 @@ fn main() {
         .dims([500000])
         .build().unwrap();   
 
-    let mut buffer = pro_que.create_buffer::<f32>(true);
+    let buffer = pro_que.create_buffer::<f32>();
 
     let kernel = pro_que.create_kernel("add")
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
     kernel.enqueue();
-    buffer.fill_vec();
+    let mut vec = vec![0.0f32; buffer.len()];
+    buffer.read(&mut vec);
 
-    println!("The value at index [{}] is now '{}'!", 200007, buffer[200007]);
+    println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
+
+    main_explained();
+    main_exploded();
+    main_cored();
 }
 
 
-const IDX: usize = 200007;
-const ADDEND: f32 = 10.0;
-
 /// Expanded version with explanations.
 ///
-/// This function is identical to the following two in all but looks :) It
-/// only differs from the first function in that it prints an 'original' value
-/// (this was cut from the first just for simplicity).
+/// This function is identical to the following two in all but looks :)
 ///
 /// Continue along to the next few functions after this to see a little bit
 /// more about what's going on under the hood.
@@ -53,26 +53,23 @@ fn main_explained() {
         .dims([500000])
         .build().unwrap();   
 
-    // (2) Create a `Buffer` with a built-in `Vec`:
-    let mut buffer = pro_que.create_buffer::<f32>(true);
-
-    // For printing purposes:
-    let orig_val = buffer[IDX];
+    // (2) Create a `Buffer`:
+    let buffer = pro_que.create_buffer::<f32>();
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = pro_que.create_kernel("add")
         .arg_buf(&buffer)
-        .arg_scl(ADDEND);
+        .arg_scl(10.0f32);
 
     // (4) Run the kernel:
     kernel.enqueue();
 
-    // (5) Read results from the device into our buffer's built-in vector:
-    buffer.fill_vec();
+    // (5) Read results from the device into a vector:
+    let mut vec = vec![0.0f32; buffer.len()];
+    buffer.read(&mut vec);
 
     // Print an element:
-    println!("The value at index [{}] was '{}' and is now '{}'!", 
-        IDX, orig_val, buffer[IDX]);
+    println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
 }
 
 
@@ -122,22 +119,19 @@ fn main_exploded() {
     // do this when only one program and queue are all that's needed. Wrapping
     // it up into a single struct makes passing it around much simpler.
 
-    // (2) Create a `Buffer` with a built-in `Vec` (created separately here):
-    // [NOTE]: If there were more than one dimension we'd use the product as
-    // the length.
-    let mut buffer_vec = vec![0.0f32; dims[0]];
-    let buffer = unsafe { Buffer::new_unchecked(
-        flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-        dims[0], Some(&buffer_vec), &queue) };
-
-    // For verification purposes:
-    let orig_val = buffer_vec[IDX];
+    // (2) Create a `Buffer`:
+    let mut vec = vec![0.0f32; dims[0]];
+    // let buffer = unsafe { Buffer::new_unchecked(
+    //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
+    //     dims, Some(&vec), &queue) };
+    let buffer = Buffer::<f32>::newer_new(&queue, 
+        Some(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR), dims, Some(&vec)).unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = Kernel::new("add", &program, &queue).unwrap()
         .gws(&dims)
         .arg_buf(&buffer)
-        .arg_scl(ADDEND);
+        .arg_scl(10.0f32);
 
     // (4) Run the kernel (default parameters shown for demonstration purposes):
     kernel.cmd()
@@ -149,19 +143,18 @@ fn main_exploded() {
         .enew_opt(None)
         .enq().unwrap();
 
-    // (5) Read results from the device into our buffer's [no longer] built-in vector:
+    // (5) Read results from the device into a vector:
     buffer.cmd()
         .queue(&queue)
         .block(true)
         .offset(0)
-        .read(&mut buffer_vec)
+        .read(&mut vec)
         .ewait_opt(None)
         .enew_opt(None)
         .enq().unwrap(); 
     
     // Print an element:
-    println!("The value at index [{}] was '{}' and is now '{}'!", 
-        IDX, orig_val, buffer_vec[IDX]);
+    println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
 }
 
 
@@ -170,6 +163,9 @@ fn main_exploded() {
 /// This version does the same thing as the others but instead using the
 /// `core` module which sports an API equivalent to the OpenCL C API. If
 /// you've used OpenCL before, this will look the most familiar to you.
+///
+/// All 'standard' types such as those used above, `Buffer`, `Kernel` etc,
+/// make all of their calls to core just as in the function below...
 ///
 #[allow(dead_code, unused_variables, unused_mut)]
 fn main_cored() {
@@ -200,29 +196,24 @@ fn main_cored() {
     let queue = core::create_command_queue(&context, &device_id).unwrap();
     let dims = [500000, 1, 1usize];
 
-    // (2) Create a `Buffer` with a built-in `Vec` (created separately here):
-    // Again, we're cheating on the length calculation.
-    let mut buffer_vec = vec![0.0f32; dims[0]];
+    // (2) Create a `Buffer`:
+    let mut vec = vec![0.0f32; dims[0]];
     let buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE | 
-        flags::MEM_COPY_HOST_PTR, dims[0], Some(&buffer_vec)).unwrap() };
-
-    // For verification purposes:
-    let orig_val = buffer_vec[IDX];
+        flags::MEM_COPY_HOST_PTR, dims[0], Some(&vec)).unwrap() };
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = core::create_kernel(&program, "add").unwrap();
     core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&buffer)).unwrap();
-    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(&ADDEND)).unwrap();
+    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(&10.0f32)).unwrap();
 
     // (4) Run the kernel (default parameters shown for elucidation purposes):
     core::enqueue_kernel(&queue, &kernel, 1, None, &dims, 
         None, None::<&core::EventList>, None).unwrap();
 
-    // (5) Read results from the device into our buffer's [no longer] built-in vector:
-     unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut buffer_vec, 
+    // (5) Read results from the device into a vector:
+    unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec, 
         None::<&core::EventList>, None).unwrap() };    
 
     // Print an element:
-    println!("The value at index [{}] was '{}' and is now '{}'!", 
-        IDX, orig_val, buffer_vec[IDX]);
+    println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
 }

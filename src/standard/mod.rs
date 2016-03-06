@@ -22,7 +22,7 @@ mod event_list;
 mod spatial_dims;
 // mod work_dims;
 
-#[cfg(not(release))] pub use self::buffer::tests::BufferTest;
+// #[cfg(not(release))] pub use self::buffer::tests::BufferTest;
 pub use self::platform::Platform;
 pub use self::device::Device;
 pub use self::device_specifier::DeviceSpecifier;
@@ -32,7 +32,7 @@ pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::Program;
 pub use self::queue::Queue;
 pub use self::kernel::Kernel;
-pub use self::buffer::{Buffer};
+pub use self::buffer::Buffer;
 pub use self::buffer_cmd::{BufferCmd, BufferCmdKind, BufferCmdDataShape};
 pub use self::image_builder::ImageBuilder;
 pub use self::image::Image;

@@ -126,7 +126,7 @@ fn print_buffer_info<T: OclPrm>(buffer: &Buffer<T>) {
 }
 
 
-fn print_image_info<P>(image: &Image<P>) {
+fn print_image_info<S: OclPrm>(image: &Image<S>) {
 	printlnc!(peach: "{}", image);
 }
 

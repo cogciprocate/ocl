@@ -7,13 +7,10 @@
 //!
 //!
 pub mod test_build_error;
-pub mod test_timed;
-pub mod test_basics;
-pub mod test_events;
-pub mod test_trivial;
 pub mod test_buffer_copy;
 pub mod test_buffer_ops_rect;
 pub mod test_image_ops;
+pub mod test_fill;
 
 use rand::{self, Rng};
 use error::{Error as OclError, Result as OclResult};

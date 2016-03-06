@@ -1669,42 +1669,31 @@ pub fn enqueue_write_buffer_rect<T: OclPrm, L: AsRef<EventList>>(
     errcode_try("clEnqueueWriteBufferRect", "", errcode)
 }
 
-/// [UNTESTED]
 /// Enqueues a command to fill a buffer object with a pattern of a given pattern size.
 ///
 /// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
-///
-/// A pointer to the data pattern of size pattern_size in bytes. pattern will be
-/// used to fill a region in buffer starting at offset and is size bytes in size.
-/// The data pattern must be a scalar or vector integer or floating-point data
-/// type. For example, if buffer is to be filled with a pattern of float4 values,
-/// then pattern will be a pointer to a cl_float4 value and pattern_size will be
-/// sizeof(cl_float4). The maximum value of pattern_size is the size of the
-/// largest integer or floating-point vector data type supported by the OpenCL
-/// device. The memory associated with pattern can be reused or freed after the
-/// function returns.
 ///
 pub fn enqueue_fill_buffer<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem,
             pattern: &[T],
-            pattern_size: usize,
             offset: usize,
             len: usize,
             wait_list: Option<&L>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
-    let (wait_list_len, wait_list_ptr, new_event_ptr) 
-        = try!(resolve_event_ptrs(wait_list, new_event));
-
+    let pattern_size = pattern.len() * mem::size_of::<T>();
     let offset_bytes = offset * mem::size_of::<T>();
     let size_bytes = len * mem::size_of::<T>();
+
+    let (wait_list_len, wait_list_ptr, new_event_ptr) 
+        = try!(resolve_event_ptrs(wait_list, new_event));
 
     let errcode = unsafe { cl_h::clEnqueueFillBuffer(
         command_queue.as_ptr(),
         buffer.as_ptr(), 
-        &pattern as *const _ as *const c_void, 
+        pattern as *const _ as *const c_void, 
         pattern_size,
         offset_bytes,
         size_bytes,

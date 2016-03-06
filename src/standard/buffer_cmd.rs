@@ -17,7 +17,7 @@ pub enum BufferCmdKind<'b, T: 'b> {
     Read { data: &'b mut [T] },
     Write { data: &'b [T] },
     Copy { dst_buffer: &'b MemCore, dst_offset: usize, len: usize },
-    Fill { pattern: &'b [T], pattern_size: usize },
+    Fill { pattern: &'b [T] },
     CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
 } 
 
@@ -32,6 +32,9 @@ impl<'b, T: 'b> BufferCmdKind<'b, T> {
 }
 
 /// The 'shape' of the data to be processed, whether one or multi-dimensional.
+/// 
+/// Should really be called dimensionality or something.
+///
 pub enum BufferCmdDataShape {
     Lin { offset: usize },
     Rect { 
@@ -222,10 +225,10 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn fill(mut self, pattern: &'b [T], pattern_size: usize) -> BufferCmd<'b, T> {
+    pub fn fill(mut self, pattern: &'b [T]) -> BufferCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind \
             already set for this command.");
-        self.kind = BufferCmdKind::Fill { pattern: pattern, pattern_size: pattern_size }; 
+        self.kind = BufferCmdKind::Fill { pattern: pattern }; 
         self
     }
 
@@ -350,6 +353,19 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                     },
                 }
             },
+            BufferCmdKind::Fill { pattern } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        try!(check_len(self.mem_len, pattern.len(), offset));
+                        core::enqueue_fill_buffer(self.queue, self.obj_core, pattern, 
+                            offset, self.mem_len, self.ewait, self.enew)
+                    },
+                    BufferCmdDataShape::Rect { .. } => {
+                        return OclError::err("ocl::BufferCmd::enq(): Rectangular fill is not a \
+                            valid operation. Please use the default shape, linear.");
+                    }
+                }
+            }
             BufferCmdKind::Unspecified => return OclError::err("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),

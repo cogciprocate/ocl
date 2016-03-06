@@ -90,7 +90,11 @@ fn main() {
 				print!("{}, ", thread_name);
 
 				let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
-					let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
+					// let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
+					let mut buffer = Buffer::<f32>::newer_new(&queueball_th[0], None, 
+				        &dims_th, None).unwrap();
+					let mut vec = vec![0.0f32; buffer.len()];
+				    
 					let mut kernel = Kernel::new("add", &program_th, &queueball_th[0]).unwrap()
 						.gws(&dims_th)
 				        .arg_buf(&buffer)
@@ -111,13 +115,13 @@ fn main() {
 					event_list.wait().unwrap();
 
 					// Again, just playing with queues...
-					buffer.set_queue(&queueball_th[2]).fill_vec();
-					buffer.set_queue(&queueball_th[1]).fill_vec();
-					buffer.set_queue(&queueball_th[0]).fill_vec();
+					// buffer.set_queue(&queueball_th[2]).fill_vec();
+					// buffer.set_queue(&queueball_th[1]).fill_vec();
+					// buffer.set_queue(&queueball_th[0]).fill_vec();
 
 					// Print results (won't appear until later):
 					let check_idx = data_set_size / 2;
-					print!("{{{}}}={}, ", &thread_name, buffer[check_idx]);
+					print!("{{{}}}={}, ", &thread_name, vec[check_idx]);
 			    }).expect("Error creating thread");
 
 			    threads.push(th);
