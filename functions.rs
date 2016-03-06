@@ -25,7 +25,7 @@ use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id,
     cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, 
     cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 use error::{Error as OclError, Result as OclResult};
-use core::{self, OclNum, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, 
+use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, 
     ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, 
     ClEventPtrNew, Event, EventList, Sampler, KernelArg, DeviceType, ImageFormat, 
     ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, 
@@ -594,7 +594,7 @@ pub fn get_command_queue_info(queue: &CommandQueue, info_request: CommandQueueIn
 //============================================================================
 
 /// Returns a new buffer pointer with size (bytes): `len` * sizeof(T).
-pub unsafe fn create_buffer<T: OclNum>(
+pub unsafe fn create_buffer<T: OclPrm>(
             context: &Context,
             flags: MemFlags,
             len: usize,
@@ -810,8 +810,8 @@ pub fn get_image_info(obj: &Mem, info_request: ImageInfo) -> OclResult<(ImageInf
         0 as *mut size_t,
     ) };    
     // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
-    errcode_try("clGetImageInfo", "", errcode)
-        .and(Ok(ImageInfoResult::TemporaryPlaceholderVariant(result)))
+    try!(errcode_try("clGetImageInfo", "", errcode));
+    ImageInfoResult::from_bytes(info_request, result)
 }
 
 /// [UNIMPLEMENTED]
@@ -1168,7 +1168,7 @@ pub unsafe fn release_kernel(kernel: &Kernel) -> OclResult<()> {
 /// [FIXME: Remove] `kernel_name` is for error reporting and is optional but highly recommended.
 ///
 /// TODO: Remove `name` parameter and lookup name with `get_kernel_info` instead.
-pub fn set_kernel_arg<T: OclNum>(kernel: &Kernel, arg_index: u32, arg: KernelArg<T>,
+pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg<T>,
         ) -> OclResult<()>
 {
     // [DEBUG] LEAVE THIS HERE:
@@ -1480,7 +1480,7 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 ///
 /// [`core::EventList::get_clone`]: http://doc.cogciprocate.com/ocl/core/struct.EventList.html#method.last_clone
 ///
-pub unsafe fn enqueue_read_buffer<T: OclNum, L: AsRef<EventList>>(
+pub unsafe fn enqueue_read_buffer<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
             block: bool,
@@ -1525,7 +1525,7 @@ pub unsafe fn enqueue_read_buffer<T: OclNum, L: AsRef<EventList>>(
 ///
 /// [`core::EventList::get_clone`]: http://doc.cogciprocate.com/ocl/core/struct.EventList.html#method.last_clone
 ///
-pub unsafe fn enqueue_read_buffer_rect<T: OclNum, L: AsRef<EventList>>(
+pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
             block: bool,
@@ -1584,7 +1584,7 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclNum, L: AsRef<EventList>>(
 
 /// Enqueues a write from host memory, `data`, to device memory referred to by
 /// `buffer`.
-pub fn enqueue_write_buffer<T: OclNum, L: AsRef<EventList>>(
+pub fn enqueue_write_buffer<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
             block: bool,
@@ -1621,7 +1621,7 @@ pub fn enqueue_write_buffer<T: OclNum, L: AsRef<EventList>>(
 ///
 /// [SDK - clEnqueueWriteBufferRect]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteBufferRect.html
 ///
-pub fn enqueue_write_buffer_rect<T: OclNum, L: AsRef<EventList>>(
+pub fn enqueue_write_buffer_rect<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
             block: bool,
@@ -1684,7 +1684,7 @@ pub fn enqueue_write_buffer_rect<T: OclNum, L: AsRef<EventList>>(
 /// device. The memory associated with pattern can be reused or freed after the
 /// function returns.
 ///
-pub fn enqueue_fill_buffer<T: OclNum, L: AsRef<EventList>>(
+pub fn enqueue_fill_buffer<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem,
             pattern: &[T],
@@ -1717,7 +1717,7 @@ pub fn enqueue_fill_buffer<T: OclNum, L: AsRef<EventList>>(
 
 /// [UNTESTED]
 /// Copies the contents of one buffer to another.
-pub fn enqueue_copy_buffer<T: OclNum, L: AsRef<EventList>>(
+pub fn enqueue_copy_buffer<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_buffer: &Mem,
             dst_buffer: &Mem,
@@ -1754,7 +1754,7 @@ pub fn enqueue_copy_buffer<T: OclNum, L: AsRef<EventList>>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferRect.html)
 ///
-pub fn enqueue_copy_buffer_rect<T: OclNum, L: AsRef<EventList>>(
+pub fn enqueue_copy_buffer_rect<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_buffer: &Mem, 
             dst_buffer: &Mem, 
@@ -1826,8 +1826,8 @@ pub unsafe fn enqueue_read_image<T, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
-    let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    // let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
+    // let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
     let row_pitch_bytes = row_pitch * mem::size_of::<T>();
     let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
 
@@ -1838,8 +1838,8 @@ pub unsafe fn enqueue_read_image<T, L: AsRef<EventList>>(
         command_queue.as_ptr(),
         image.as_ptr(),
         block as cl_uint,
-        &origin_bytes as *const _ as *const usize,
-        &region_bytes as *const _ as *const usize,
+        &origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
         row_pitch_bytes,
         slc_pitch_bytes,
         data.as_ptr() as cl_mem,
@@ -1867,8 +1867,8 @@ pub fn enqueue_write_image<T, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
-    let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    // let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
+    // let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
     let input_row_pitch_bytes = input_row_pitch * mem::size_of::<T>();
     let input_slc_pitch_bytes = input_slc_pitch * mem::size_of::<T>();
 
@@ -1879,8 +1879,8 @@ pub fn enqueue_write_image<T, L: AsRef<EventList>>(
         command_queue.as_ptr(),
         image.as_ptr(),
         block as cl_uint,
-        &origin_bytes as *const _ as *const usize,
-        &region_bytes as *const _ as *const usize,
+        &origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
         input_row_pitch_bytes,
         input_slc_pitch_bytes,
         data.as_ptr() as cl_mem,
@@ -1915,8 +1915,8 @@ pub fn enqueue_fill_image<T, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
-    let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    // let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
+    // let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
@@ -1925,8 +1925,8 @@ pub fn enqueue_fill_image<T, L: AsRef<EventList>>(
         command_queue.as_ptr(),
         image.as_ptr(), 
         color as *const _ as *const c_void, 
-        &origin_bytes as *const _ as *const usize,
-        &region_bytes as *const _ as *const usize,
+        &origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -1938,7 +1938,7 @@ pub fn enqueue_fill_image<T, L: AsRef<EventList>>(
 /// Enqueues a command to copy image objects.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImage.html)
-pub fn enqueue_copy_image<L: AsRef<EventList>>(
+pub fn enqueue_copy_image<T, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_image: &Mem,
             dst_image: &Mem,
@@ -1949,9 +1949,9 @@ pub fn enqueue_copy_image<L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
-    let src_origin_bytes = [src_origin[0] * mem::size_of::<T>(), src_origin[1], src_origin[2]];
-    let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(), dst_origin[1], dst_origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    // let src_origin_bytes = [src_origin[0] * mem::size_of::<T>(), src_origin[1], src_origin[2]];
+    // let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(), dst_origin[1], dst_origin[2]];
+    // let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
@@ -1960,8 +1960,8 @@ pub fn enqueue_copy_image<L: AsRef<EventList>>(
         command_queue.as_ptr(),
         src_image.as_ptr(),
         dst_image.as_ptr(),
-        &src_origin_bytes as *const _ as *const usize,
-        &dst_origin_bytes as *const _ as *const usize,
+        &src_origin as *const _ as *const usize,
+        &dst_origin as *const _ as *const usize,
         &region as *const _ as *const usize,
         wait_list_len,
         wait_list_ptr,
@@ -1974,7 +1974,7 @@ pub fn enqueue_copy_image<L: AsRef<EventList>>(
 /// Enqueues a command to copy an image object to a buffer object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImageToBuffer.html)
-pub fn enqueue_copy_image_to_buffer<T: OclNum, L: AsRef<EventList>>(
+pub fn enqueue_copy_image_to_buffer<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_image: &Mem,
             dst_buffer: &Mem,
@@ -1985,8 +1985,8 @@ pub fn enqueue_copy_image_to_buffer<T: OclNum, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
-    let src_origin_bytes = [src_origin[0] * mem::size_of::<T>(), src_origin[1], src_origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    // let src_origin_bytes = [src_origin[0] * mem::size_of::<T>(), src_origin[1], src_origin[2]];
+    // let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
     let dst_offset_bytes = dst_offset * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
@@ -1996,8 +1996,8 @@ pub fn enqueue_copy_image_to_buffer<T: OclNum, L: AsRef<EventList>>(
         command_queue.as_ptr(),
         src_image.as_ptr(),
         dst_buffer.as_ptr(),
-        &src_origin_bytes as *const _ as *const usize,
-        &region_bytes as *const _ as *const usize,
+        &src_origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
         dst_offset_bytes,
         wait_list_len,
         wait_list_ptr,
@@ -2010,7 +2010,7 @@ pub fn enqueue_copy_image_to_buffer<T: OclNum, L: AsRef<EventList>>(
 /// Enqueues a command to copy a buffer object to an image object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferToImage.html)
-pub fn enqueue_copy_buffer_to_image<T: OclNum, L: AsRef<EventList>>(
+pub fn enqueue_copy_buffer_to_image<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             src_buffer: &Mem,
             dst_image: &Mem,
@@ -2022,8 +2022,8 @@ pub fn enqueue_copy_buffer_to_image<T: OclNum, L: AsRef<EventList>>(
         ) -> OclResult<()> 
 {
     let src_offset_bytes = src_offset * mem::size_of::<T>();
-    let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(), dst_origin[1], dst_origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    // let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(), dst_origin[1], dst_origin[2]];
+    // let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) 
         = try!(resolve_event_ptrs(wait_list, new_event));
@@ -2033,8 +2033,8 @@ pub fn enqueue_copy_buffer_to_image<T: OclNum, L: AsRef<EventList>>(
         src_buffer.as_ptr(),
         dst_image.as_ptr(),
         src_offset_bytes,
-        &dst_origin_bytes as *const _ as *const usize,
-        &region_bytes as *const _ as *const usize,
+        &dst_origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -2068,7 +2068,7 @@ pub fn enqueue_copy_buffer_to_image<T: OclNum, L: AsRef<EventList>>(
 /// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
 ///
 ///
-pub unsafe fn enqueue_map_buffer<T: OclNum, L: AsRef<EventList>>(
+pub unsafe fn enqueue_map_buffer<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
             buffer: &Mem,
             block: bool,
@@ -2092,7 +2092,7 @@ pub unsafe fn enqueue_map_buffer<T: OclNum, L: AsRef<EventList>>(
         block as cl_uint,
         map_flags.bits(),
         offset_bytes,
-        size,
+        size_bytes,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -2139,8 +2139,8 @@ pub unsafe fn enqueue_map_image<T, L: AsRef<EventList>>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<*mut c_void> 
 {
-    let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
-    let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
+    // let origin_bytes = [origin[0] * mem::size_of::<T>(), origin[1], origin[2]];
+    // let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
     let row_pitch_bytes = row_pitch * mem::size_of::<T>();
     let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
 
@@ -2153,8 +2153,8 @@ pub unsafe fn enqueue_map_image<T, L: AsRef<EventList>>(
         image.as_ptr(),
         block as cl_uint,
         map_flags.bits(),
-        &origin_bytes as *const _ as *const usize,
-        &region_bytes as *const _ as *const usize,
+        &origin as *const _ as *const usize,
+        &region as *const _ as *const usize,
         row_pitch_bytes,
         slc_pitch_bytes,
         wait_list_len,
