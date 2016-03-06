@@ -16,10 +16,11 @@ pub mod test_buffer_ops_rect;
 pub mod test_image_ops;
 
 use rand::{self, Rng};
-use core::OclNum;
+use error::{Error as OclError, Result as OclResult};
+use core::OclPrm;
 
-const PRINT_ITERS_MAX: i32 = 3;
-const PRINT_SLICES_MAX: usize = 12;
+const PRINT_ITERS_MAX: i32 = 0;
+const PRINT_SLICES_MAX: usize = 0;
 
 fn gen_region_origin(dims: &[usize; 3]) -> ([usize; 3], [usize; 3]) {
     let mut rng = rand::weak_rng();
@@ -36,7 +37,7 @@ fn gen_region_origin(dims: &[usize; 3]) -> ([usize; 3], [usize; 3]) {
         rng.gen_range(0, (dims[2] - region[2]) + 1),
     ];
 
-    (region, origin)
+    (origin, region)
 }
 
 fn within_region(coords: [usize; 3], region_ofs: [usize; 3], region_size: [usize; 3]) -> bool {
@@ -47,11 +48,13 @@ fn within_region(coords: [usize; 3], region_ofs: [usize; 3], region_size: [usize
     within
 }
 
-fn verify_vec_rect<T: OclNum>(origin: [usize; 3], region: [usize; 3], in_region_val: T, 
-            out_region_val: T, vec_dims: [usize; 3], vec: &[T], ttl_runs: i32, print: bool) 
+fn verify_vec_rect<T: OclPrm>(origin: [usize; 3], region: [usize; 3], in_region_val: T, 
+            out_region_val: T, vec_dims: [usize; 3], ele_per_coord: usize, vec: &[T], 
+            ttl_runs: i32, print: bool) -> OclResult<()>
 {
     let print = print && ttl_runs <= PRINT_ITERS_MAX; 
     let slices_to_print = PRINT_SLICES_MAX;
+    let mut result = Ok(());
 
     if print {
         println!("Verifying run: '{}', origin: {:?}, region: {:?}, vec_dims: {:?}", ttl_runs,
@@ -61,33 +64,48 @@ fn verify_vec_rect<T: OclNum>(origin: [usize; 3], region: [usize; 3], in_region_
     for z in 0..vec_dims[2] {
         for y in 0..vec_dims[1] {
             for x in 0..vec_dims[0] {
-                let idx = (z * vec_dims[1] * vec_dims[0]) + 
-                    (y * vec_dims[0]) + x;
+                let idz = (z * vec_dims[1] * vec_dims[0]) + 
+                    (y * vec_dims[0]) + (x * ele_per_coord);
 
-                // Print:
-                if print && z < slices_to_print {
-                    if within_region([x, y, z], origin, region) {
-                        if vec[idx] == in_region_val {
-                            printc!(lime: "[{:02}]", vec[idx]);
+                for id in 0..ele_per_coord {
+                    let idx = idz + id;
+                    // Print:
+                    if print && z < slices_to_print {
+                        if within_region([x, y, z], origin, region) {
+                            if vec[idx] == in_region_val {
+                                printc!(lime: "[{:02}]", vec[idx]);
+                            } else {
+                                printc!(red_bold: "[{:02}]", vec[idx]);
+                            }
                         } else {
-                            printc!(red_bold: "[{:02}]", vec[idx]);
-                        }
-                    } else {
-                        if vec[idx] == out_region_val {
-                            printc!(dark_grey: "[{:02}]", vec[idx]); 
-                        } else {
-                            printc!(yellow: "[{:02}]", vec[idx]);
+                            if vec[idx] == out_region_val {
+                                printc!(dark_grey: "[{:02}]", vec[idx]); 
+                            } else {
+                                printc!(yellow: "[{:02}]", vec[idx]);
+                            }
                         }
                     }
-                }
 
-                // Verify:
-                if within_region([x, y, z], origin, region) {
-                    assert!(vec[idx] == in_region_val, "vec[{}] should be '{}' but is '{}'", 
-                        idx, in_region_val, vec[idx]);
-                } else {
-                    assert!(vec[idx] == out_region_val, "vec[{}] should be '{}' but is '{}'", 
-                        idx, out_region_val, vec[idx]);
+                    // Verify:
+                    if result.is_ok() {
+                        if within_region([x, y, z], origin, region) {
+                            // assert!(vec[idx] == in_region_val, 
+                            //     "vec[{}] should be '{}' but is '{}'", 
+                            //     idx, in_region_val, vec[idx]);
+                            if vec[idx] != in_region_val { 
+                                result = OclError::err(format!("vec[{}] should be '{}' but is '{}'",
+                                    idx, in_region_val, vec[idx]));
+                            }
+                        } else {
+                            // assert!(vec[idx] == out_region_val, 
+                            //     "vec[{}] should be '{}' but is '{}'", 
+                            //     idx, out_region_val, vec[idx]);
+                            if vec[idx] != out_region_val {
+                                result = OclError::err(format!("vec[{}] should be '{}' but is '{}'", 
+                                    idx, out_region_val, vec[idx]));
+                            }
+                        }
+                    }
                 }
             }
             if print && z < slices_to_print { print!("\n"); }
@@ -95,6 +113,8 @@ fn verify_vec_rect<T: OclNum>(origin: [usize; 3], region: [usize; 3], in_region_
         if print && z < slices_to_print { print!("\n"); }
     }
     if print { print!("\n"); }
+
+    result
 }
 
 

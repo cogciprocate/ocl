@@ -2,7 +2,7 @@
 
 #![allow(dead_code, unused_variables, unused_mut)]
 
-use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, ClEventPtrNew};
+use core::{self, OclPrm, Mem as MemCore, CommandQueue as CommandQueueCore, ClEventPtrNew};
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, EventList, Image};
 
@@ -15,16 +15,16 @@ use standard::{Queue, EventList, Image};
 // }
 
 /// The type of operation to be performed by a command.
-pub enum ImageCmdKind<'b, T: 'b> {
+pub enum ImageCmdKind<'b, S: 'b> {
     Unspecified,
-    Read { data: &'b mut [T] },
-    Write { data: &'b [T] },
-    Fill { color: &'b [T] },
+    Read { data: &'b mut [S] },
+    Write { data: &'b [S] },
+    Fill { color: &'b [S] },
     Copy { dst_image: &'b MemCore, dst_origin: [usize; 3] },
-    CopyToBuffer { buffer: &'b MemCore, dst_offset: usize },
+    CopyToBuffer { buffer: &'b MemCore, dst_origin: usize },
 } 
 
-impl<'b, T: 'b> ImageCmdKind<'b, T> {
+impl<'b, S: 'b> ImageCmdKind<'b, S> {
     fn is_unspec(&'b self) -> bool {
         if let &ImageCmdKind::Unspecified = self {
             true
@@ -37,7 +37,7 @@ impl<'b, T: 'b> ImageCmdKind<'b, T> {
 /// An image command builder for enqueuing reads, writes, fills, and copies.
 ///
 /// [FIXME]: Fills not yet implemented.
-pub struct ImageCmd<'b, T: 'b + OclNum> {
+pub struct ImageCmd<'b, S: 'b + OclPrm> {
     queue: &'b CommandQueueCore,
     obj_core: &'b MemCore,
     block: bool,
@@ -46,19 +46,19 @@ pub struct ImageCmd<'b, T: 'b + OclNum> {
     region: [usize; 3],
     // row_pitch: usize,
     // slc_pitch: usize,
-    kind: ImageCmdKind<'b, T>,
+    kind: ImageCmdKind<'b, S>,
     // shape: ImageCmdDataShape,    
     ewait: Option<&'b EventList>,
     enew: Option<&'b mut ClEventPtrNew>,
     mem_dims: [usize; 3],
 }
 
-impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
+impl<'b, S: 'b + OclPrm> ImageCmd<'b, S> {
     /// Returns a new image command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `mem_len` 
     /// (the length of the device side image).
     pub fn new(queue: &'b CommandQueueCore, obj_core: &'b MemCore, dims: [usize; 3]) 
-            -> ImageCmd<'b, T>
+            -> ImageCmd<'b, S>
     {
         ImageCmd {
             queue: queue,
@@ -76,7 +76,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     }
 
     /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'b Queue) -> ImageCmd<'b, T> {
+    pub fn queue(mut self, queue: &'b Queue) -> ImageCmd<'b, S> {
         self.queue = queue.core_as_ref();
         self
     }
@@ -90,7 +90,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     /// Will panic if `::read` has already been called. Use `::read_async`
     /// (unsafe) for a non-blocking read operation.
     ///
-    pub fn block(mut self, block: bool) -> ImageCmd<'b, T> {
+    pub fn block(mut self, block: bool) -> ImageCmd<'b, S> {
         if !block && self.lock_block { 
             panic!("ocl::ImageCmd::block(): Blocking for this command has been disabled by \
                 the '::read' method. For non-blocking reads use '::read_async'.");
@@ -107,7 +107,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// The 'shape' may not have already been set to rectangular by the 
     /// `::rect` function.
-    pub fn origin(mut self, origin: [usize; 3]) -> ImageCmd<'b, T> {
+    pub fn origin(mut self, origin: [usize; 3]) -> ImageCmd<'b, S> {
         self.origin = origin;
         self
     }
@@ -123,7 +123,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// [FIXME]: Probably delay checking this until enq().
     ///
-    pub fn region(mut self, region: [usize; 3]) -> ImageCmd<'b, T> {
+    pub fn region(mut self, region: [usize; 3]) -> ImageCmd<'b, S> {
         self.region = region;
         self
     }
@@ -146,7 +146,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// [FIXME]: Remove this or figure out if it's necessary at all.
     ///
-    pub unsafe fn pitch(mut self, row_pitch: usize, slc_pitch: usize) -> ImageCmd<'b, T> {
+    pub unsafe fn pitch(mut self, row_pitch: usize, slc_pitch: usize) -> ImageCmd<'b, S> {
         unimplemented!();        
     }
 
@@ -160,7 +160,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified.
     ///
-    pub fn read(mut self, dst_data: &'b mut [T]) -> ImageCmd<'b, T> {
+    pub fn read(mut self, dst_data: &'b mut [S]) -> ImageCmd<'b, S> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::read(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Read { data: dst_data };
@@ -185,7 +185,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub unsafe fn read_async(mut self, dst_data: &'b mut [T]) -> ImageCmd<'b, T> {
+    pub unsafe fn read_async(mut self, dst_data: &'b mut [S]) -> ImageCmd<'b, S> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::read(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Read { data: dst_data };
@@ -198,7 +198,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn write(mut self, src_data: &'b [T]) -> ImageCmd<'b, T> {
+    pub fn write(mut self, src_data: &'b [S]) -> ImageCmd<'b, S> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::write(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Write { data: src_data };
@@ -211,13 +211,13 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// ## Errors
     ///
-    /// If this is a rectangular copy, `dst_offset` and `len` must be zero.
+    /// If this is a rectangular copy, `dst_origin` and `len` must be zero.
     ///
     /// ## Panics
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy(mut self, dst_image: &'b Image, dst_origin: [usize; 3]) -> ImageCmd<'b, T> {
+    pub fn copy(mut self, dst_image: &'b Image<S>, dst_origin: [usize; 3]) -> ImageCmd<'b, S> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::copy(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Copy { 
@@ -235,10 +235,10 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy_to_buffer(mut self, buffer: &'b MemCore, dst_offset: usize) -> ImageCmd<'b, T> {
+    pub fn copy_to_buffer(mut self, buffer: &'b MemCore, dst_origin: usize) -> ImageCmd<'b, S> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::copy_to_buffer(): Operation kind \
             already set for this command.");
-        self.kind = ImageCmdKind::CopyToBuffer { buffer: buffer, dst_offset: dst_offset }; 
+        self.kind = ImageCmdKind::CopyToBuffer { buffer: buffer, dst_origin: dst_origin }; 
         self
     }
 
@@ -250,7 +250,7 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn fill(mut self, color: &'b [T]) -> ImageCmd<'b, T> {
+    pub fn fill(mut self, color: &'b [S]) -> ImageCmd<'b, S> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::fill(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Fill { color: color }; 
@@ -258,28 +258,28 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait(mut self, ewait: &'b EventList) -> ImageCmd<'b, T> {
+    pub fn ewait(mut self, ewait: &'b EventList) -> ImageCmd<'b, S> {
         self.ewait = Some(ewait);
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt(mut self, ewait: Option<&'b EventList>) -> ImageCmd<'b, T> {
+    pub fn ewait_opt(mut self, ewait: Option<&'b EventList>) -> ImageCmd<'b, S> {
         self.ewait = ewait;
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> ImageCmd<'b, T> {
+    pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> ImageCmd<'b, S> {
         self.enew = Some(enew);
         self
     }
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> ImageCmd<'b, T> {
+    pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> ImageCmd<'b, S> {
         self.enew = enew;
         self
     }
@@ -298,51 +298,17 @@ impl<'b, T: 'b + OclNum> ImageCmd<'b, T> {
                 unsafe { core::enqueue_read_image(self.queue, self.obj_core, self.block, 
                     self.origin, self.region, row_pitch, slc_pitch, data, self.ewait, self.enew) }
             },
-            // ImageCmdKind::Write { data } => {
-            //     match self.shape {
-            //         ImageCmdDataShape::Lin { offset } => {
-            //             try!(check_len(self.mem_len, data.len(), offset));
-            //             core::enqueue_write_image(self.queue, self.obj_core, self.block, 
-            //                 offset, data, self.ewait, self.enew)
-            //         },
-            //         ImageCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
-            //                 dst_row_pitch, dst_slc_pitch } => 
-            //         {
-            //             // Verify dims given.
-            //             // try!(Ok(()));
+            ImageCmdKind::Write { data } => {
+                let row_pitch = self.mem_dims[0];
+                let slc_pitch = self.mem_dims[0] * self.mem_dims[1];
 
-            //             core::enqueue_write_image_rect(self.queue, self.obj_core, 
-            //                 self.block, src_origin, dst_origin, region, src_row_pitch, 
-            //                 src_slc_pitch, dst_row_pitch, dst_slc_pitch, data, 
-            //                 self.ewait, self.enew)
-            //         }
-            //     }
-            // },
-            // ImageCmdKind::Copy { dst_image, dst_offset, len } => {
-            //     match self.shape {
-            //         ImageCmdDataShape::Lin { offset } => {
-            //             try!(check_len(self.mem_len, len, offset));
-            //             core::enqueue_copy_image::<T, _>(self.queue, 
-            //                 self.obj_core, dst_image, offset, dst_offset, len, 
-            //                 self.ewait, self.enew)
-            //         },
-            //         ImageCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
-            //                 dst_row_pitch, dst_slc_pitch } => 
-            //         {
-            //             // Verify dims given.
-            //             // try!(Ok(()));
-                        
-            //             if dst_offset != 0 || len != 0 { return OclError::err(
-            //                 "ocl::ImageCmd::enq(): For 'rect' shaped copies, destination \
-            //                 offset and length must be zero. Ex.: \
-            //                 'cmd().copy(&{{buf_name}}, 0, 0)..'.");
-            //             }
-            //             core::enqueue_copy_image_rect::<T, _>(self.queue, self.obj_core, dst_image,
-            //             src_origin, dst_origin, region, src_row_pitch, src_slc_pitch, 
-            //             dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
-            //         },
-            //     }
-            // },
+                core::enqueue_write_image(self.queue, self.obj_core, self.block, 
+                    self.origin, self.region, row_pitch, slc_pitch, data, self.ewait, self.enew)
+            },
+            ImageCmdKind::Copy { dst_image, dst_origin } => {
+                core::enqueue_copy_image::<S, _>(self.queue, self.obj_core, dst_image, self.origin,
+                    dst_origin, self.region, self.ewait, self.enew)
+            },
             ImageCmdKind::Unspecified => return OclError::err("ocl::ImageCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),

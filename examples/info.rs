@@ -12,7 +12,7 @@
 #[macro_use] extern crate ocl;
 
 use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
-use ocl::core::{ProgramInfo, OclNum};
+use ocl::core::{ProgramInfo, OclPrm};
 
 const PRINT_DETAILED: bool = true;
 // Overrides above for device and program:
@@ -52,7 +52,7 @@ fn main() {
 	    	
 			let queue = Queue::new(&context, device).unwrap();
 			let buffer = Buffer::<f32>::new(&dims, &queue);
-			let image = Image::builder()
+			let image = Image::<u8>::builder()
 				.dims(dims)
 				.build(&queue).unwrap();
 			let sampler = Sampler::with_defaults(&context).unwrap();
@@ -121,12 +121,12 @@ fn print_queue_info(queue: &Queue) {
 }
 
 
-fn print_buffer_info<T: OclNum>(buffer: &Buffer<T>) {
+fn print_buffer_info<T: OclPrm>(buffer: &Buffer<T>) {
 	printlnc!(royal_blue: "{}", buffer);
 }
 
 
-fn print_image_info(image: &Image) {
+fn print_image_info<P>(image: &Image<P>) {
 	printlnc!(peach: "{}", image);
 }
 

@@ -8,7 +8,7 @@ use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use num::{FromPrimitive, ToPrimitive};
 
-use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, 
+use core::{self, OclPrm, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, 
     MemInfo, MemInfoResult, ClEventPtrNew};
 use util;
 use error::{Error as OclError, Result as OclResult};
@@ -74,7 +74,7 @@ impl<T> VecOption<T> {
 // TODO: Check that type size (sizeof(T)) is <= the maximum supported by device.
 // TODO: Consider integrating an event list to help coordinate pending reads/writes.
 #[derive(Debug, Clone)]
-pub struct Buffer<T: OclNum> {
+pub struct Buffer<T: OclPrm> {
     // vec: Vec<T>,
     obj_core: MemCore,
     // queue: Queue,
@@ -83,7 +83,7 @@ pub struct Buffer<T: OclNum> {
     vec: VecOption<T>,
 }
 
-impl<T: OclNum> Buffer<T> {
+impl<T: OclPrm> Buffer<T> {
     /// Creates a new read/write Buffer with dimensions: `dims` which will use the 
     /// command queue: `queue` (and its associated device and context) for all operations.
     ///
@@ -722,7 +722,7 @@ impl<T: OclNum> Buffer<T> {
     }
 }
 
-impl<T: OclNum> Deref for Buffer<T> {
+impl<T: OclPrm> Deref for Buffer<T> {
     type Target = MemCore;
 
     fn deref(&self) -> &MemCore {
@@ -730,20 +730,20 @@ impl<T: OclNum> Deref for Buffer<T> {
     }
 }
 
-impl<T: OclNum> DerefMut for Buffer<T> {
+impl<T: OclPrm> DerefMut for Buffer<T> {
     fn deref_mut(&mut self) -> &mut MemCore {
         &mut self.obj_core
     }
 }
 
-impl<T: OclNum> std::fmt::Display for Buffer<T> {
+impl<T: OclPrm> std::fmt::Display for Buffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_mem_info(f)
     }
 }
 
 
-impl<T: OclNum> Index<usize> for Buffer<T> {
+impl<T: OclPrm> Index<usize> for Buffer<T> {
     type Output = T;
     /// ## Panics
     ///
@@ -755,7 +755,7 @@ impl<T: OclNum> Index<usize> for Buffer<T> {
     }
 }
 
-impl<T: OclNum> IndexMut<usize> for Buffer<T> {
+impl<T: OclPrm> IndexMut<usize> for Buffer<T> {
     /// ## Panics
     ///
     /// Panics if this Buffer contains no vector.
@@ -766,7 +766,7 @@ impl<T: OclNum> IndexMut<usize> for Buffer<T> {
     }
 }
 
-impl<'b, T: OclNum> Index<&'b usize> for Buffer<T> {
+impl<'b, T: OclPrm> Index<&'b usize> for Buffer<T> {
     type Output = T;
     /// ## Panics
     ///
@@ -778,7 +778,7 @@ impl<'b, T: OclNum> Index<&'b usize> for Buffer<T> {
     }
 }
 
-impl<'b, T: OclNum> IndexMut<&'b usize> for Buffer<T> {
+impl<'b, T: OclPrm> IndexMut<&'b usize> for Buffer<T> {
     /// ## Panics
     ///
     /// Panics if this Buffer contains no vector.
@@ -789,7 +789,7 @@ impl<'b, T: OclNum> IndexMut<&'b usize> for Buffer<T> {
     }
 }
 
-impl<T: OclNum> Index<Range<usize>> for Buffer<T> {
+impl<T: OclPrm> Index<Range<usize>> for Buffer<T> {
     type Output = [T];
     /// ## Panics
     ///
@@ -801,7 +801,7 @@ impl<T: OclNum> Index<Range<usize>> for Buffer<T> {
     }
 }
 
-impl<T: OclNum> IndexMut<Range<usize>> for Buffer<T> {
+impl<T: OclPrm> IndexMut<Range<usize>> for Buffer<T> {
     /// ## Panics
     ///
     /// Panics if this Buffer contains no vector.
@@ -812,7 +812,7 @@ impl<T: OclNum> IndexMut<Range<usize>> for Buffer<T> {
     }
 }
 
-impl<T: OclNum> Index<RangeFull> for Buffer<T> {
+impl<T: OclPrm> Index<RangeFull> for Buffer<T> {
     type Output = [T];
     /// ## Panics
     ///
@@ -824,7 +824,7 @@ impl<T: OclNum> Index<RangeFull> for Buffer<T> {
     }
 }
 
-impl<T: OclNum> IndexMut<RangeFull> for Buffer<T> {
+impl<T: OclPrm> IndexMut<RangeFull> for Buffer<T> {
     /// ## Panics
     ///
     /// Panics if this Buffer contains no vector.
@@ -837,7 +837,7 @@ impl<T: OclNum> IndexMut<RangeFull> for Buffer<T> {
 
 /// Returns a vector with length `size` containing random values in the (half-open)
 /// range `[vals.0, vals.1)`.
-pub fn scrambled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
+pub fn scrambled_vec<T: OclPrm>(size: usize, vals: (T, T)) -> Vec<T> {
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
     assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
     let mut rng = rand::weak_rng();
@@ -851,7 +851,7 @@ pub fn scrambled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
 /// number of integers in the aforementioned range, the integers will repeat. After
 /// being filled with `size` values, the vector is shuffled and the order of its
 /// values is randomized.
-pub fn shuffled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
+pub fn shuffled_vec<T: OclPrm>(size: usize, vals: (T, T)) -> Vec<T> {
     let mut vec: Vec<T> = Vec::with_capacity(size);
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
     assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
@@ -870,7 +870,7 @@ pub fn shuffled_vec<T: OclNum>(size: usize, vals: (T, T)) -> Vec<T> {
 
 /// Shuffles the values in a vector using a single pass of Fisher-Yates with a
 /// weak (not cryptographically secure) random number generator.
-pub fn shuffle_vec<T: OclNum>(vec: &mut Vec<T>) {
+pub fn shuffle_vec<T: OclPrm>(vec: &mut Vec<T>) {
     let len = vec.len();
     let mut rng = rand::weak_rng();
     let mut ridx: usize;
@@ -889,7 +889,7 @@ pub fn shuffle_vec<T: OclNum>(vec: &mut Vec<T>) {
 #[cfg(not(release))]
 pub mod tests {
     use super::Buffer;
-    use core::OclNum;
+    use core::OclPrm;
     use std::num::Zero;
 
     /// Test functions available to external crates.
@@ -897,7 +897,7 @@ pub mod tests {
         fn read_idx_direct(&self, idx: usize) -> T;
     }
 
-    impl<T: OclNum> BufferTest<T> for Buffer<T> {
+    impl<T: OclPrm> BufferTest<T> for Buffer<T> {
         // Throw caution to the wind (this is potentially unsafe).
         fn read_idx_direct(&self, idx: usize) -> T {
             let mut buffer = vec![Zero::zero()];
@@ -923,7 +923,7 @@ pub mod tests {
 // }
 
 
-// impl<T: OclNum> Display for Buffer<T> {
+// impl<T: OclPrm> Display for Buffer<T> {
 //     fn fmt(&self, fmtr: &mut Formatter) -> FmtResult {
 //      // self.print(1, None, None, true)
 //      let mut tmp_vec = Vec::with_capacity(self.vec.len());

@@ -74,7 +74,7 @@ fn main() {
         .device(device)
         .build(&context).unwrap();
 
-    let sup_img_formats = Image::supported_formats(&context, ocl::flags::MEM_READ_WRITE, 
+    let sup_img_formats = Image::<u8>::supported_formats(&context, ocl::flags::MEM_READ_WRITE, 
         MemObjectType::Image2d).unwrap();
     println!("Image formats supported: {}.", sup_img_formats.len());
     // println!("Image Formats: {:#?}.", sup_img_formats);
@@ -96,7 +96,7 @@ fn main() {
     // 
     // Will probably be some automation for this in the future.
     //
-    let src_image = Image::builder()
+    let src_image = Image::<u8>::builder()
         .channel_order(ImageChannelOrder::Rgba)
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)
@@ -104,7 +104,7 @@ fn main() {
         .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
         .build_with_data(&queue, &img).unwrap();
 
-    let dst_image = Image::builder()
+    let dst_image = Image::<u8>::builder()
         .channel_order(ImageChannelOrder::Rgba)
         .channel_data_type(ImageChannelDataType::UnormInt8)
         .image_type(MemObjectType::Image2d)

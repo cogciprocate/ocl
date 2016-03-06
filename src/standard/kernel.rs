@@ -3,7 +3,7 @@
 use std;
 use std::convert::Into;
 use std::collections::HashMap;
-use core::{self, OclNum, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
+use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
     KernelInfo, KernelInfoResult, ClEventPtrNew};
 use error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler};
@@ -192,7 +192,7 @@ impl Kernel {
     /// Adds a new argument to the kernel specifying the buffer object represented
     /// by 'buffer' (builder-style). Argument is added to the bottom of the argument 
     /// order.
-    pub fn arg_buf<T: OclNum>(mut self, buffer: &Buffer<T>) -> Kernel {
+    pub fn arg_buf<T: OclPrm>(mut self, buffer: &Buffer<T>) -> Kernel {
         self.new_arg_buf(Some(buffer));
         self
     }
@@ -200,7 +200,7 @@ impl Kernel {
     /// Adds a new argument to the kernel specifying the image object represented
     /// by 'image' (builder-style). Argument is added to the bottom of the argument 
     /// order.
-    pub fn arg_img(mut self, image: &Image) -> Kernel {
+    pub fn arg_img<P: OclPrm>(mut self, image: &Image<P>) -> Kernel {
         self.new_arg_img(Some(image));
         self
     }
@@ -215,14 +215,14 @@ impl Kernel {
 
     /// Adds a new argument specifying the value: `scalar` (builder-style). Argument 
     /// is added to the bottom of the argument order.
-    pub fn arg_scl<T: OclNum>(mut self, scalar: T) -> Kernel {
+    pub fn arg_scl<T: OclPrm>(mut self, scalar: T) -> Kernel {
         self.new_arg_scl(Some(scalar));
         self
     }
 
     /// Adds a new argument specifying the value: `vector` (builder-style). Argument 
     /// is added to the bottom of the argument order.
-    pub fn arg_vec<T: OclNum>(mut self, vector: &[T]) -> Kernel {
+    pub fn arg_vec<T: OclPrm>(mut self, vector: &[T]) -> Kernel {
         self.new_arg_vec(Some(vector));
         self
     }
@@ -232,7 +232,7 @@ impl Kernel {
     ///
     /// Local variables are used to share data between work items in the same 
     /// workgroup.
-    pub fn arg_loc<T: OclNum>(mut self, length: usize) -> Kernel {
+    pub fn arg_loc<T: OclPrm>(mut self, length: usize) -> Kernel {
         self.new_arg_loc::<T>(length);
         self
     }
@@ -241,8 +241,18 @@ impl Kernel {
     /// (builder-style).
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-    pub fn arg_scl_named<T: OclNum>(mut self, name: &'static str, scalar_opt: Option<T>) -> Kernel {
+    pub fn arg_scl_named<T: OclPrm>(mut self, name: &'static str, scalar_opt: Option<T>) -> Kernel {
         let arg_idx = self.new_arg_scl(scalar_opt);
+        self.named_args.insert(name, arg_idx);
+        self
+    }
+
+    /// Adds a new named argument (in order) specifying the value: `vector` 
+    /// (builder-style).
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
+    pub fn arg_vec_named<T: OclPrm>(mut self, name: &'static str, vector_opt: Option<&[T]>) -> Kernel {
+        let arg_idx = self.new_arg_vec(vector_opt);
         self.named_args.insert(name, arg_idx);
         self
     }
@@ -251,7 +261,7 @@ impl Kernel {
     /// 'buffer' (builder-style). Argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-    pub fn arg_buf_named<T: OclNum>(mut self, name: &'static str, buffer_opt: Option<&Buffer<T>>) -> Kernel {
+    pub fn arg_buf_named<T: OclPrm>(mut self, name: &'static str, buffer_opt: Option<&Buffer<T>>) -> Kernel {
         let arg_idx = self.new_arg_buf(buffer_opt);
         self.named_args.insert(name, arg_idx);
         self
@@ -261,7 +271,7 @@ impl Kernel {
     /// 'image' (builder-style). Argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-    pub fn arg_img_named(mut self, name: &'static str, image_opt: Option<&Image>) -> Kernel {
+    pub fn arg_img_named<P: OclPrm>(mut self, name: &'static str, image_opt: Option<&Image<P>>) -> Kernel {
         let arg_idx = self.new_arg_img(image_opt);
         self.named_args.insert(name, arg_idx);
         self
@@ -281,7 +291,7 @@ impl Kernel {
     ///
     /// # Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_scl_named<'a, T: OclNum>(&'a mut self, name: &'static str, scalar: T) 
+    pub fn set_arg_scl_named<'a, T: OclPrm>(&'a mut self, name: &'static str, scalar: T) 
             -> OclResult<&'a mut Kernel>
     {
         let arg_idx = try!(self.resolve_named_arg_idx(name));
@@ -292,8 +302,20 @@ impl Kernel {
     /// Modifies the kernel argument named: `name`.
     ///
     /// # Panics [FIXME]
+    // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
+    pub fn set_arg_vec_named<'a, T: OclPrm>(&'a mut self, name: &'static str, vector: &[T]) 
+            -> OclResult<&'a mut Kernel>
+    {
+        let arg_idx = try!(self.resolve_named_arg_idx(name));
+        self.set_arg::<T>(arg_idx, KernelArg::Vector(vector))
+            .and(Ok(self))
+    }
+
+    /// Modifies the kernel argument named: `name`.
+    ///
+    /// # Panics [FIXME]
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_buf_named<'a, T: OclNum>(&'a mut self, name: &'static str, 
+    pub fn set_arg_buf_named<'a, T: OclPrm>(&'a mut self, name: &'static str, 
                 buffer_opt: Option<&Buffer<T>>) -> OclResult<&'a mut Kernel>
     {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
@@ -313,8 +335,8 @@ impl Kernel {
     ///
     /// # Panics [FIXME]
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_img_named<'a, T: OclNum>(&'a mut self, name: &'static str, 
-                image_opt: Option<&Image>) -> OclResult<&'a mut Kernel>
+    pub fn set_arg_img_named<'a, P: OclPrm, T: OclPrm>(&'a mut self, name: &'static str, 
+                image_opt: Option<&Image<P>>) -> OclResult<&'a mut Kernel>
     {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
@@ -334,7 +356,7 @@ impl Kernel {
     /// # Panics [FIXME]
     // [PLACEHOLDER] Set a named sampler argument
     #[allow(unused_variables)]
-    pub fn set_arg_smp_named<'a, T: OclNum>(&'a mut self, name: &'static str, 
+    pub fn set_arg_smp_named<'a, T: OclPrm>(&'a mut self, name: &'static str, 
                 sampler_opt: Option<&Sampler>) -> OclResult<&'a mut Kernel>
     {
         unimplemented!();
@@ -499,7 +521,7 @@ impl Kernel {
     }    
 
     // Non-builder-style version of `::arg_buf()`.
-    fn new_arg_buf<T: OclNum>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {        
+    fn new_arg_buf<T: OclPrm>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {        
         match buffer_opt {
             Some(buffer) => {
                 self.new_arg::<T>(KernelArg::Mem(buffer))
@@ -512,7 +534,7 @@ impl Kernel {
     }
 
     // Non-builder-style version of `::arg_img()`.
-    fn new_arg_img(&mut self, image_opt: Option<&Image>) -> u32 {        
+    fn new_arg_img<P: OclPrm>(&mut self, image_opt: Option<&Image<P>>) -> u32 {        
         match image_opt {
             Some(image) => {
                 // Type is ignored:
@@ -538,7 +560,7 @@ impl Kernel {
     }
 
     // Non-builder-style version of `::arg_scl()`.
-    fn new_arg_scl<T: OclNum>(&mut self, scalar_opt: Option<T>) -> u32 {
+    fn new_arg_scl<T: OclPrm>(&mut self, scalar_opt: Option<T>) -> u32 {
         let scalar = match scalar_opt {
             Some(s) => s,
             None => Default::default(),
@@ -548,7 +570,7 @@ impl Kernel {
     }
 
     // Non-builder-style version of `::arg_vec()`.
-    fn new_arg_vec<T: OclNum>(&mut self, vector_opt: Option<&[T]>) -> u32 {
+    fn new_arg_vec<T: OclPrm>(&mut self, vector_opt: Option<&[T]>) -> u32 {
         match vector_opt {
             Some(v) => self.new_arg::<T>(KernelArg::Vector(v)),
             None => self.new_arg::<T>(KernelArg::Vector(&[Default::default(); 4])),
@@ -556,12 +578,12 @@ impl Kernel {
     }
 
     // Non-builder-style version of `::arg_loc()`.
-    fn new_arg_loc<T: OclNum>(&mut self, length: usize) -> u32 {
+    fn new_arg_loc<T: OclPrm>(&mut self, length: usize) -> u32 {
         self.new_arg::<T>(KernelArg::Local(&length))
     } 
 
     // Adds a new argument to the kernel and returns the index.
-    fn new_arg<T: OclNum>(&mut self, arg: KernelArg<T>) -> u32 {
+    fn new_arg<T: OclPrm>(&mut self, arg: KernelArg<T>) -> u32 {
         let arg_idx = self.arg_count;
 
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg).unwrap();
@@ -570,7 +592,7 @@ impl Kernel {
         arg_idx
     } 
 
-    fn set_arg<T: OclNum>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
+    fn set_arg<T: OclPrm>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
     }
 

@@ -2,7 +2,7 @@
 
 use std::convert::Into;
 use std::ops::Deref;
-use core::OclNum;
+use core::OclPrm;
 use standard::{Context, ProQueBuilder, Program, Queue, Kernel, Buffer,
     MemDims, SpatialDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
@@ -198,7 +198,7 @@ impl ProQue {
     /// This `ProQue` must have been pre-configured with default dimensions
     // to use this method. Otherwise, use Buffer::new(), etc.
     ///
-    pub fn create_buffer<T: OclNum>(&self, with_vec: bool) -> Buffer<T> {
+    pub fn create_buffer<T: OclPrm>(&self, with_vec: bool) -> Buffer<T> {
         let dims = self.dims_result().expect("ocl::ProQue::create_buffer");
 
         if with_vec {

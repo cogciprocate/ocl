@@ -80,7 +80,7 @@ fn test_buffer_ops_rect() {
 
     // Warm up the verify function:
     tests::verify_vec_rect([0, 0, 0], dims, ADDEND * ttl_runs as f32,
-        ADDEND * (ttl_runs - 1) as f32, dims, &vec, ttl_runs, false);
+        ADDEND * (ttl_runs - 1) as f32, dims, 1, &vec, ttl_runs, false).unwrap();
 
     //========================================================================
     //========================================================================
@@ -95,7 +95,7 @@ fn test_buffer_ops_rect() {
 
     for _ in 0..TEST_ITERS {
         // Generate a random size region and origin point:
-        let (read_region, vec_origin) = tests::gen_region_origin(&dims);
+        let (vec_origin, read_region) = tests::gen_region_origin(&dims);
 
         //====================================================================
         //=============== `core::enqueue_read_buffer_rect()` =================
@@ -117,7 +117,8 @@ fn test_buffer_ops_rect() {
             row_pitch, slc_pitch, &mut vec, None::<&core::EventList>, None).unwrap(); }
 
         // Verify:
-        tests::verify_vec_rect(vec_origin, read_region, cur_val, old_val, dims, &vec, ttl_runs, false);
+        tests::verify_vec_rect(vec_origin, read_region, cur_val, old_val, 
+            dims, 1, &vec, ttl_runs, false).unwrap();
 
         //====================================================================
         //================== `Buffer::cmd().read().rect()` ===================
@@ -137,7 +138,8 @@ fn test_buffer_ops_rect() {
             slc_pitch, row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
 
         // Verify:
-        tests::verify_vec_rect(vec_origin, read_region, cur_val, old_val, dims, &vec, ttl_runs, false);
+        tests::verify_vec_rect(vec_origin, read_region, cur_val, old_val, 
+            dims, 1, &vec, ttl_runs, false).unwrap();
     }
 
     //========================================================================
@@ -163,7 +165,7 @@ fn test_buffer_ops_rect() {
     for _ in 0..TEST_ITERS {
         // Generate a random size region and origin point. For the write test
         // it's the buf origin we care about, not the vec.
-        let (read_region, buf_origin) = tests::gen_region_origin(&dims);
+        let (buf_origin, read_region) = tests::gen_region_origin(&dims);
 
         //====================================================================
         //=============== `core::enqueue_write_buffer_rect()` ================
@@ -186,7 +188,8 @@ fn test_buffer_ops_rect() {
             [0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch, row_pitch, slc_pitch,
             &mut vec, None::<&core::EventList>, None).unwrap(); }
         // Verify that our random region was in fact written correctly:
-        tests::verify_vec_rect(buf_origin, read_region, nxt_val, cur_val, dims, &vec, ttl_runs, true);
+        tests::verify_vec_rect(buf_origin, read_region, nxt_val, cur_val, 
+            dims, 1, &vec, ttl_runs, true).unwrap();
 
         //====================================================================
         //================= `Buffer::cmd().write().rect()` ===================
@@ -207,7 +210,8 @@ fn test_buffer_ops_rect() {
         buf.cmd().read(&mut vec).rect([0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch,
             row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
         // Verify that our random region was in fact written correctly:
-        tests::verify_vec_rect(buf_origin, read_region, nxt_val, cur_val, dims, &vec, ttl_runs, true);
+        tests::verify_vec_rect(buf_origin, read_region, nxt_val, cur_val, 
+            dims, 1, &vec, ttl_runs, true).unwrap();
     }
 
     //========================================================================
@@ -243,7 +247,7 @@ fn test_buffer_ops_rect() {
         // Generate a random size region and origin point. For the copy test
         // it's the dst origin we care about, not the src. Each vector+buffer
         // combo now holds the same value.
-        let (read_region, dst_origin) = tests::gen_region_origin(&dims);
+        let (dst_origin, read_region) = tests::gen_region_origin(&dims);
 
         //====================================================================
         //=============== `core::enqueue_copy_buffer_rect()` ================
@@ -274,7 +278,8 @@ fn test_buffer_ops_rect() {
             [0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch, row_pitch, slc_pitch,
             &mut vec_dst, None::<&core::EventList>, None).unwrap(); }
         // Verify that our random region was in fact written correctly:
-        tests::verify_vec_rect(dst_origin, read_region, nxt_val, cur_val, dims, &vec_dst, ttl_runs, true);
+        tests::verify_vec_rect(dst_origin, read_region, nxt_val, cur_val, 
+            dims, 1, &vec_dst, ttl_runs, true).unwrap();
 
         //====================================================================
         //================= `Buffer::cmd().copy().rect()` ===================
@@ -302,7 +307,8 @@ fn test_buffer_ops_rect() {
         buf_dst.cmd().read(&mut vec_dst).rect([0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch,
             row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
         // Verify that our random region was in fact written correctly:
-        tests::verify_vec_rect(dst_origin, read_region, nxt_val, cur_val, dims, &vec_dst, ttl_runs, true);
+        tests::verify_vec_rect(dst_origin, read_region, nxt_val, cur_val, 
+            dims, 1, &vec_dst, ttl_runs, true).unwrap();
     }
 
 

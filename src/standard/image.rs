@@ -5,10 +5,12 @@
 #![allow(dead_code, unused_imports)]
 
 use std;
+use std::mem;
 use std::ops::{Deref, DerefMut};
-use error::{Result as OclResult};
-use standard::{self, Context, Queue, ImageBuilder, EventList, SpatialDims};
-use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor, 
+use std::marker::PhantomData;
+use error::{Error as OclError, Result as OclResult};
+use standard::{self, Context, Queue, ImageBuilder, EventList, SpatialDims, ImageCmd};
+use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor, 
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, CommandQueue as CommandQueueCore,
     ClEventPtrNew};
 
@@ -18,21 +20,19 @@ use core::{self, OclNum, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
 /// Use `::builder` for an easy way to create. [UNIMPLEMENTED]
 ///
 #[derive(Clone, Debug)]
-pub struct Image {
-    // default_val: PhantomData<T,
+pub struct Image<S: OclPrm> {
     obj_core: MemCore,
     command_queue_obj_core: CommandQueueCore,
-    // dims: [usize; 3],
     dims: SpatialDims,
-    pixel_bytes: usize,
+    pixel_elements: usize,
+    _pixel: PhantomData<S>
 }
 
-impl Image {
+impl<S: OclPrm> Image<S> {
     /// Returns an `ImageBuilder`. This is the recommended method to create
     // a new `Image`.
-    pub fn builder() -> ImageBuilder {
+    pub fn builder() -> ImageBuilder<S> {
         ImageBuilder::new()
-        // ImageBuilder::new()
     }
 
     /// Returns a list of supported image formats.
@@ -42,12 +42,9 @@ impl Image {
     }
 
     /// Returns a new `Image`.
-    pub fn new<T>(queue: &Queue, flags: MemFlags, image_format: ImageFormat,
-            image_desc: ImageDescriptor, image_data: Option<&[T]>) -> OclResult<Image>
+    pub fn new(queue: &Queue, flags: MemFlags, image_format: ImageFormat,
+            image_desc: ImageDescriptor, image_data: Option<&[S]>) -> OclResult<Image<S>>
     {
-        // let flags = core::flag::READ_WRITE;
-        // let host_ptr: cl_mem = 0 as cl_mem;
-
         let obj_core = unsafe { try!(core::create_image(
             queue.context_core_as_ref(),
             flags,
@@ -56,15 +53,33 @@ impl Image {
             image_data,
         )) };
 
+        let pixel_elements = match try!(core::get_image_info(&obj_core, ImageInfo::ElementSize)) {
+            ImageInfoResult::ElementSize(s) => s / mem::size_of::<S>(),
+            ImageInfoResult::Error(err) => return Err(*err),
+            _ => return OclError::err("ocl::Image::element_len(): \
+                Unexpected 'ImageInfoResult' variant."),
+        };
+
         let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth].into(); 
 
-        Ok(Image {
-            // default_val: T::default(),
+        let new_img = Image {
             obj_core: obj_core,
             command_queue_obj_core: queue.core_as_ref().clone(),
             dims: dims,
-            pixel_bytes: 4,
-        })
+            pixel_elements: pixel_elements,
+            _pixel: PhantomData,
+        };
+
+        Ok(new_img)
+    }
+
+    /// Returns an image command builder used to read, write, copy, etc.
+    ///
+    /// Run `.enq()` to enqueue the command.
+    ///
+    pub fn cmd<'b>(&'b self) -> ImageCmd<'b, S> {
+        ImageCmd::new(&self.command_queue_obj_core, &self.obj_core, 
+            self.dims.to_size().expect("ocl::Image::cmd"))
     }
 
     /// Reads from the device image buffer into `data`.
@@ -82,8 +97,8 @@ impl Image {
     /// for more detailed information.
     /// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
     ///
-    pub unsafe fn enqueue_read<T>(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
-                region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &mut [T],
+    pub unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
+                region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &mut [S],
                 wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         let command_queue = match queue {
@@ -102,8 +117,8 @@ impl Image {
     ///
     /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteImage.html)
     /// for more detailed information.
-    pub fn enqueue_write<T>(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
-                region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &[T], 
+    pub fn enqueue_write(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
+                region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &[S], 
                 wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         let command_queue = match queue {
@@ -121,7 +136,7 @@ impl Image {
     /// alligned without pitch or offset of any kind.
     ///
     /// Use `::enqueue_read` for the complete range of options.
-    pub fn read<T>(&self, data: &mut [T]) -> OclResult<()> {
+    pub fn read(&self, data: &mut [S]) -> OclResult<()> {
         // Safe because `block = true`:
         unsafe { self.enqueue_read(None, true, [0, 0, 0], try!(self.dims.to_size()), 0, 0,  data, None, None) }
     }
@@ -132,13 +147,25 @@ impl Image {
     /// alligned without pitch or offset of any kind.
     ///
     /// Use `::enqueue_write` for the complete range of options.
-    pub fn write<T>(&self, data: &[T]) -> OclResult<()> {
+    pub fn write(&self, data: &[S]) -> OclResult<()> {
         self.enqueue_write(None, true, [0, 0, 0], try!(self.dims.to_size()), 0, 0,  data, None, None)
     }
 
     /// Returns the core image object pointer.
     pub fn core_as_ref(&self) -> &MemCore {
         &self.obj_core
+    }
+
+    /// Returns the length of an element.
+    pub fn pixel_elements(&self) -> usize {
+        // match self.info(ImageInfo::ElementSize) {
+        //     ImageInfoResult::ElementSize(s) => Ok(s / mem::size_of::<S>()),
+        //     // ImageInfoResult::Error(err) => panic!("ocl::Image::element_len: {}", err.description()),
+        //     // _ => panic!("ocl::Image::element_len: Unexpected 'ImageInfoResult' variant."),
+        //     ImageInfoResult::Error(err) => Err(*err),
+        //     _ => OclError::err("ocl::Image::element_len(): Unexpected 'ImageInfoResult' variant."),
+        // }
+        self.pixel_elements
     }
 
     /// Get information about this image.
@@ -169,7 +196,7 @@ impl Image {
     ///
     /// The new queue must be associated with a valid device.
     ///
-    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Image {
+    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Image<S> {
         self.command_queue_obj_core = queue.core_as_ref().clone();
         self
     }
@@ -177,6 +204,10 @@ impl Image {
     /// Returns this image's dimensions.
     pub fn dims(&self) -> &SpatialDims {
         &self.dims
+    }
+
+    pub fn pixel_count(&self) -> usize {
+        self.dims.to_len().expect("ocl::Image::pixel_count")
     }
 
     /// Format image info.
@@ -213,7 +244,7 @@ impl Image {
 
 
 
-impl std::fmt::Display for Image {
+impl<S: OclPrm> std::fmt::Display for Image<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         try!(self.fmt_info(f));
         try!(write!(f, " ")); 
@@ -222,7 +253,7 @@ impl std::fmt::Display for Image {
 }
 
 
-impl Deref for Image {
+impl<S: OclPrm> Deref for Image<S> {
     type Target = MemCore;
 
     fn deref(&self) -> &MemCore {
@@ -230,7 +261,7 @@ impl Deref for Image {
     }
 }
 
-impl DerefMut for Image {
+impl<S: OclPrm> DerefMut for Image<S> {
     fn deref_mut(&mut self) -> &mut MemCore {
         &mut self.obj_core
     }

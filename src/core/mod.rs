@@ -154,13 +154,13 @@ pub type UserDataPtr = *mut libc::c_void;
 ///
 /// TODO: Ensure various types of image color data are encompassed by this 
 /// definition.
-pub trait OclNum: 
+pub trait OclPrm: 
     Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-impl<T> OclNum for T where T: 
+impl<T> OclPrm for T where T: 
     Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-// impl<'a, T> OclNum for &'a T where T: 
+// impl<'a, T> OclPrm for &'a T where T: 
 //     Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 

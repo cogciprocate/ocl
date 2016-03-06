@@ -27,7 +27,7 @@ fn main() {
 		.build(&context).unwrap();
     let queue = Queue::new(&context, device).unwrap();
     let buffer = Buffer::<f32>::new(&dims, &queue);
-	let image = Image::builder()
+	let image = Image::<u8>::builder()
 		.dims(&dims)
 		.build(&queue).unwrap();
 	let sampler = Sampler::with_defaults(&context).unwrap();

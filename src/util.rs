@@ -12,7 +12,7 @@ use std::iter;
 use num::Integer;
 use error::{Result as OclResult, Error as OclError};
 
-use core::OclNum;
+use core::OclPrm;
 
 //=============================================================================
 //================================= MACROS ====================================
@@ -343,7 +343,7 @@ pub fn vec_remove_rebuild<T: Clone>(orig_vec: &mut Vec<T>, remove_list: &[usize]
 }
 
 /// Wraps (`%`) each value in the list `vals` if it equals or exceeds `val_n`.
-pub fn wrap_vals<T: OclNum + Integer>(vals: &[T], val_n: T) -> Vec<T> {
+pub fn wrap_vals<T: OclPrm + Integer>(vals: &[T], val_n: T) -> Vec<T> {
     vals.iter().map(|&v| v % val_n).collect()
 }
 
@@ -381,7 +381,7 @@ pub fn print_bytes_as_hex(bytes: &Vec<u8>) {
 #[allow(unused_assignments, unused_variables)]
 /// [UNSTABLE]: MAY BE REMOVED AT ANY TIME
 /// Prints a vector to stdout. Used for debugging.
-pub fn print_slice<T: OclNum>(
+pub fn print_slice<T: OclPrm>(
             vec: &[T], 
             every: usize, 
             val_range: Option<(T, T)>, 
@@ -517,13 +517,13 @@ pub fn print_slice<T: OclNum>(
 }
 
 
-pub fn print_simple<T: OclNum>(slice: &[T]) {
+pub fn print_simple<T: OclPrm>(slice: &[T]) {
     print_slice(slice, 1, None, None, true);
 }
 
 
 
-pub fn print_val_range<T: OclNum>(slice: &[T], every: usize, val_range: Option<(T, T)>) {
+pub fn print_val_range<T: OclPrm>(slice: &[T], every: usize, val_range: Option<(T, T)>) {
     print_slice(slice, every, val_range, None, true);
 }
 

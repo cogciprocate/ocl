@@ -36,7 +36,8 @@ use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
-use core::{OclNum, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo, Context, Mem, Sampler, CommandQueueProperties, KernelInfo};
+use core::{OclPrm, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo, Context, Mem, 
+    Sampler, CommandQueueProperties, KernelInfo, ImageInfo, ImageFormat};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -63,7 +64,7 @@ pub type TemporaryPlaceholderType = ();
 /// 
 /// [SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 #[derive(Debug)]
-pub enum KernelArg<'a, T: 'a + OclNum> {
+pub enum KernelArg<'a, T: 'a + OclPrm> {
     /// Type `T` is ignored.
     Mem(&'a Mem),
     /// Type `T` is ignored.
@@ -514,27 +515,40 @@ impl std::fmt::Display for MemInfoResult {
 /// [UNSTABLE][INCOMPLETE] An image info result.
 pub enum ImageInfoResult {
     TemporaryPlaceholderVariant(Vec<u8>),
-    Format(TemporaryPlaceholderType),
-    ElementSize(TemporaryPlaceholderType),
-    RowPitch(TemporaryPlaceholderType),
-    SlicePitch(TemporaryPlaceholderType),
-    Width(TemporaryPlaceholderType),
-    Height(TemporaryPlaceholderType),
-    Depth(TemporaryPlaceholderType),
-    ArraySize(TemporaryPlaceholderType),
-    Buffer(TemporaryPlaceholderType),
-    NumMipLevels(TemporaryPlaceholderType),
-    NumSamples(TemporaryPlaceholderType),
+    Format(ImageFormat),
+    ElementSize(usize),
+    RowPitch(usize),
+    SlicePitch(usize),
+    Width(usize),
+    Height(usize),
+    Depth(usize),
+    ArraySize(usize),
+    Buffer(Mem),
+    NumMipLevels(u32),
+    NumSamples(u32),
     Error(Box<OclError>),
 }
 
 impl ImageInfoResult {
     // TODO: IMPLEMENT THIS PROPERLY.
+    pub fn from_bytes(request_param: ImageInfo, result_bytes: Vec<u8>
+            ) -> OclResult<ImageInfoResult>
+    {
+        Ok(match request_param {
+            ImageInfo::ElementSize => {
+                let size = unsafe { util::bytes_into::<usize>(result_bytes) };
+                ImageInfoResult::ElementSize(size)
+            },
+            _ => ImageInfoResult::TemporaryPlaceholderVariant(result_bytes),
+        })
+    }
+
     pub fn to_string(&self) -> String {
         match self {
             &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
             },
+            &ImageInfoResult::ElementSize(s) => s.to_string(),
             &ImageInfoResult::Error(ref err) => {
                err.description().into()
             },

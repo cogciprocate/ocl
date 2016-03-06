@@ -1,4 +1,4 @@
-use core::{self, OclNum, Mem as MemCore, CommandQueue as CommandQueueCore, ClEventPtrNew};
+use core::{self, OclPrm, Mem as MemCore, CommandQueue as CommandQueueCore, ClEventPtrNew};
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, EventList, Buffer};
 
@@ -46,7 +46,7 @@ pub enum BufferCmdDataShape {
 }
 
 /// A buffer command builder used to enqueue reads, writes, fills, and copies.
-pub struct BufferCmd<'b, T: 'b + OclNum> {
+pub struct BufferCmd<'b, T: 'b + OclPrm> {
     queue: &'b CommandQueueCore,
     obj_core: &'b MemCore,
     block: bool,
@@ -58,7 +58,7 @@ pub struct BufferCmd<'b, T: 'b + OclNum> {
     mem_len: usize,
 }
 
-impl<'b, T: 'b + OclNum> BufferCmd<'b, T> {
+impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     /// Returns a new buffer command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `mem_len` 
     /// (the length of the device side buffer).

@@ -5,24 +5,26 @@
 #![allow(dead_code, unused_imports)]
 
 // use std::default::Default;
-// use core::OclNum;
+// use core::OclPrm;
 use std::convert::Into;
+use std::marker::PhantomData;
 use error::{Result as OclResult};
-use standard::{Context, Queue, Image, SpatialDims, MemDims};
-use core::{self, OclNum, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType,
+use core::{self, OclPrm, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType,
     ImageChannelOrder, ImageChannelDataType};
+use standard::{Context, Queue, Image, SpatialDims, MemDims};
 
 
 
 /// A builder for `Image`. 
-pub struct ImageBuilder {
+pub struct ImageBuilder<S: OclPrm> {
     flags: MemFlags,
     image_format: ImageFormat,
     image_desc: ImageDescriptor, 
-    // image_data: Option<&'a [T]>,
+    _pixel: PhantomData<S>,
+    // image_data: Option<&'a [S]>,
 }
 
-impl ImageBuilder {
+impl<S: OclPrm> ImageBuilder<S> {
 	/// Returns a new `ImageBuilder` with very basic defaults.
 	///
 	/// # Defaults
@@ -52,19 +54,20 @@ impl ImageBuilder {
     /// Some descriptions here are adapted from various SDK docs.
 	/// 
     /// [official SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html
-    pub fn new() -> ImageBuilder {
+    pub fn new() -> ImageBuilder<S> {
         ImageBuilder { 
         	flags: core::MEM_READ_WRITE,
         	image_format: ImageFormat::new_rgba(),
         	image_desc: ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None),
+            _pixel: PhantomData,
         	// image_data: None,
         }
     }
 
     /// Builds with no host side image data memory specified and returns a 
 	/// new `Image`.
-    pub fn build(&self, queue: &Queue) -> OclResult<Image> {
-        Image::new::<usize>(queue, self.flags, self.image_format.clone(), self.image_desc.clone(), 
+    pub fn build(&self, queue: &Queue) -> OclResult<Image<S>> {
+        Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(), 
         	None)
     }
 
@@ -78,17 +81,17 @@ impl ImageBuilder {
     /// flags. See the [official SDK docs] for more info.
     ///
     /// [official SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html
-    pub fn build_with_data<T>(&self, queue: &Queue, image_data: &[T]) -> OclResult<Image> {
+    pub fn build_with_data(&self, queue: &Queue, image_data: &[S]) -> OclResult<Image<S>> {
         Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(), 
         	Some(image_data))
     }
 
-    pub fn channel_order<'a>(&'a mut self, order: ImageChannelOrder) -> &'a mut ImageBuilder {
+    pub fn channel_order<'a>(&'a mut self, order: ImageChannelOrder) -> &'a mut ImageBuilder<S> {
         self.image_format.channel_order = order;
         self
     }
 
-    pub fn channel_data_type<'a>(&'a mut self, data_type: ImageChannelDataType) -> &'a mut ImageBuilder {
+    pub fn channel_data_type<'a>(&'a mut self, data_type: ImageChannelDataType) -> &'a mut ImageBuilder<S> {
         self.image_format.channel_data_type = data_type;
         self
     }
@@ -99,7 +102,7 @@ impl ImageBuilder {
 	/// Describes the image type and must be either `Image1d`, `Image1dBuffer`,
 	/// `Image1dArray`, `Image2d`, `Image2dArray`, or `Image3d`.
 	///
-    pub fn image_type<'a>(&'a mut self, image_type: MemObjectType) -> &'a mut ImageBuilder {
+    pub fn image_type<'a>(&'a mut self, image_type: MemObjectType) -> &'a mut ImageBuilder<S> {
     	self.image_desc.image_type = image_type;
     	self
     }
@@ -138,7 +141,7 @@ impl ImageBuilder {
 	/// * To set the dimensions of a 3d image use:
 	///   `SpatialDims::Three(width, height, depth)`.
 	///
-    pub fn dims<'a, D: MemDims>(&'a mut self, dims: D) -> &'a mut ImageBuilder {
+    pub fn dims<'a, D: MemDims>(&'a mut self, dims: D) -> &'a mut ImageBuilder<S> {
         let dims = dims.to_size();
     	// let size = dims.to_size().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
      //        dimensions: {:?}", dims));
@@ -157,7 +160,7 @@ impl ImageBuilder {
 	/// Note that reading and writing 2D image arrays from a kernel with
 	/// image_array_size = 1 may be lower performance than 2D images.
 	///
-    pub fn array_size<'a>(&'a mut self, array_size: usize) -> &'a mut ImageBuilder {
+    pub fn array_size<'a>(&'a mut self, array_size: usize) -> &'a mut ImageBuilder<S> {
     	self.image_desc.image_array_size = array_size;
     	self
     }
@@ -171,7 +174,7 @@ impl ImageBuilder {
     /// If image_row_pitch is not 0, it must be a multiple of the image element
     /// size in bytes.
     ///
-    pub fn row_pitch<'a>(&'a mut self, row_pitch: usize) -> &'a mut ImageBuilder {
+    pub fn row_pitch<'a>(&'a mut self, row_pitch: usize) -> &'a mut ImageBuilder<S> {
     	self.image_desc.image_row_pitch = row_pitch;
     	self
     }
@@ -189,7 +192,7 @@ impl ImageBuilder {
     /// image_row_pitch for a 1D image array. If image_slice_pitch is not 0, it
     /// must be a multiple of the image_row_pitch.
     ///
-    pub fn slc_pitch<'a>(&'a mut self, slc_pitch: usize) -> &'a mut ImageBuilder {
+    pub fn slc_pitch<'a>(&'a mut self, slc_pitch: usize) -> &'a mut ImageBuilder<S> {
     	self.image_desc.image_slice_pitch = slc_pitch;
         self
     }
@@ -205,7 +208,7 @@ impl ImageBuilder {
     /// image_width * size of element in bytes must be ≤ size of buffer object
     /// data store.
     ///
-	pub fn buffer_sync<'a>(&'a mut self, buffer: MemCore) -> &'a mut ImageBuilder {
+	pub fn buffer_sync<'a>(&'a mut self, buffer: MemCore) -> &'a mut ImageBuilder<S> {
         self.image_desc.buffer = Some(buffer);
         self
     }
@@ -221,7 +224,7 @@ impl ImageBuilder {
     /// ```
     ///
     /// Defaults to `core::MEM_READ_WRITE` if not set.
-    pub fn flags<'a>(&'a mut self, flags: MemFlags) -> &'a mut ImageBuilder {
+    pub fn flags<'a>(&'a mut self, flags: MemFlags) -> &'a mut ImageBuilder<S> {
         self.flags = flags;
         self
     }
@@ -237,7 +240,7 @@ impl ImageBuilder {
     ///    channel_data_type: ImageChannelDataType::SnormInt8,
     /// }
     /// ```
-    pub fn image_format<'a>(&'a mut self, image_format: ImageFormat) -> &'a mut ImageBuilder {
+    pub fn image_format<'a>(&'a mut self, image_format: ImageFormat) -> &'a mut ImageBuilder<S> {
         self.image_format = image_format;
         self
     }
@@ -276,7 +279,7 @@ impl ImageBuilder {
     /// 
     /// Setting this overwrites any previously set type, dimensions, array size, pitch, etc.
     /// 
-    pub unsafe fn image_desc<'a>(&'a mut self, image_desc: ImageDescriptor) -> &'a mut ImageBuilder {
+    pub unsafe fn image_desc<'a>(&'a mut self, image_desc: ImageDescriptor) -> &'a mut ImageBuilder<S> {
         self.image_desc = image_desc;
         self
     }

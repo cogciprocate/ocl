@@ -22,6 +22,7 @@ Breaking Changes
   `::get_kernel_info`.
 * `SimpleDims` has been renamed `SpatialDims` and many of its methods now
   return `Result` types.
+* `OclNum` has been renamed `OclPrmtv`
 
 
 New Features
