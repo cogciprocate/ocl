@@ -4,9 +4,10 @@ use std;
 use std::convert::Into;
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
-    KernelInfo, KernelInfoResult, ClEventPtrNew};
+    KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
+    KernelWorkGroupInfoResult, ClEventPtrNew};
 use error::{Result as OclResult, Error as OclError};
-use standard::{SpatialDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler};
+use standard::{SpatialDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler, Device};
 
 
 
@@ -625,6 +626,24 @@ impl Kernel {
         }        
     }
 
+    /// Returns info about this kernel.
+    pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
+        match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
+            Ok(res) => res,
+            Err(err) => KernelArgInfoResult::Error(Box::new(err)),
+        }        
+    }
+
+    /// Returns info about this kernel.
+    pub fn wg_info(&self, device: &Device, info_kind: KernelWorkGroupInfo) 
+            -> KernelWorkGroupInfoResult 
+    {
+        match core::get_kernel_work_group_info(&self.obj_core, device, info_kind) {
+            Ok(res) => res,
+            Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
+        }        
+    }
+
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Kernel")
             .field("FunctionName", &self.info(KernelInfo::FunctionName))
@@ -634,6 +653,26 @@ impl Kernel {
             .field("Attributes", &self.info(KernelInfo::Attributes))
             .finish()
     }
+
+    // fn fmt_arg_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    //     f.debug_struct("Kernel")
+    //         .field("FunctionName", &self.info(KernelInfo::FunctionName))
+    //         .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
+    //         .field("Context", &self.info(KernelInfo::Context))
+    //         .field("Program", &self.info(KernelInfo::Program))
+    //         .field("Attributes", &self.info(KernelInfo::Attributes))
+    //         .finish()
+    // }
+
+    // fn fmt_wg_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    //     f.debug_struct("Kernel")
+    //         .field("FunctionName", &self.info(KernelInfo::FunctionName))
+    //         .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
+    //         .field("Context", &self.info(KernelInfo::Context))
+    //         .field("Program", &self.info(KernelInfo::Program))
+    //         .field("Attributes", &self.info(KernelInfo::Attributes))
+    //         .finish()
+    // }
 }
 
 

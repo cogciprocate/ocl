@@ -168,22 +168,6 @@ impl<S: OclPrm> Image<S> {
         self.pixel_elements
     }
 
-    /// Get information about this image.
-    pub fn info(&self, info_kind: ImageInfo) -> ImageInfoResult {
-        match core::get_image_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => ImageInfoResult::Error(Box::new(err)),
-        }   
-    }
-
-    /// Returns info about this image's memory.
-    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
-        match core::get_mem_object_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => MemInfoResult::Error(Box::new(err)),
-        }        
-    }
-
     /// Changes the default queue.
     ///
     /// Returns a ref for chaining i.e.:
@@ -208,6 +192,22 @@ impl<S: OclPrm> Image<S> {
 
     pub fn pixel_count(&self) -> usize {
         self.dims.to_len()
+    }
+
+    /// Get information about this image.
+    pub fn info(&self, info_kind: ImageInfo) -> ImageInfoResult {
+        match core::get_image_info(&self.obj_core, info_kind) {
+            Ok(res) => res,
+            Err(err) => ImageInfoResult::Error(Box::new(err)),
+        }   
+    }
+
+    /// Returns info about this image's memory.
+    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
+        match core::get_mem_object_info(&self.obj_core, info_kind) {
+            Ok(res) => res,
+            Err(err) => MemInfoResult::Error(Box::new(err)),
+        }        
     }
 
     /// Format image info.

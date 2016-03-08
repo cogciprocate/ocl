@@ -85,6 +85,7 @@ fn main() {
 				print_sampler_info(&sampler);
 				print_program_info(&program);
 				print_kernel_info(&kernel);
+				print_kernel_arg_info(&kernel);
 				print_event_list_info(&event_list);
 				print_event_info(&event);
 			}
@@ -154,7 +155,6 @@ fn print_program_info(program: &Program) {
 fn print_kernel_info(kernel: &Kernel) {
 	printlnc!(green: "{}", kernel);
 }
-
 
 fn print_event_list_info(event_list: &EventList) {
 	printlnc!(orange: "{:?}", event_list);

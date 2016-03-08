@@ -8,6 +8,7 @@ use std::convert::Into;
 // use std::collections::str::FromUtf8Error;
 // use std::ffi;
 
+use cl_h::Status;
 /// `ocl::Error` result type.
 pub type Result<T> = std::result::Result<T, self::Error>;
 
@@ -19,7 +20,7 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 ///
 pub enum Error {
     // description: String,
-    ErrCode(i32, String),
+    Status(Status, String),
     String(String),
     Nul(std::ffi::NulError),
     Io(std::io::Error),
@@ -41,8 +42,8 @@ impl self::Error {
 
     /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the 
     /// given error code and description.
-    pub fn errcode<T, S: Into<String>>(code: i32, desc: S) -> self::Result<T> {
-        Err(Error::ErrCode(code, desc.into()))
+    pub fn status<T, S: Into<String>>(status: Status, desc: S) -> self::Result<T> {
+        Err(Error::Status(status, desc.into()))
     }
 
     /// If this is a `String` variant, concatenate `txt` to the front of the
@@ -69,7 +70,7 @@ impl std::error::Error for self::Error {
             &Error::Nul(ref err) => err.description(),
             &Error::Io(ref err) => err.description(),
             &Error::FromUtf8Error(ref err) => err.description(),
-            &Error::ErrCode(_, ref desc) => &desc,
+            &Error::Status(_, ref desc) => &desc,
             &Error::String(ref desc) => &desc,
             &Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
                 Please specify some dimensions.",

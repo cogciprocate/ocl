@@ -119,9 +119,13 @@ pub mod enums {
 		ProgramBuildInfo, BuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier, 
 		KernelArgAccessQualifier, KernelWorkGroupInfo, EventInfo, CommandType, 
 		CommandExecutionStatus, BufferCreateType, ProfilingInfo};
+
 	// Custom enums.
 	pub use core::{KernelArg, ContextProperty, PlatformInfoResult, DeviceInfoResult, 
 		ContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult, 
 		SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, 
 		KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
+
+	// Error status.
+	pub use cl_h::Status;
 }

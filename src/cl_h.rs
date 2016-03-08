@@ -109,7 +109,7 @@ pub struct cl_buffer_region {
 enum_from_primitive! {
     /// TODO: MOVE ME AND LEAVE CONSTS AS THEY WERE.
     #[repr(C)]
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Clone)]
     pub enum Status {
         CL_SUCCESS                                      = 0,
         CL_DEVICE_NOT_FOUND                             = -1,
