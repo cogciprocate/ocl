@@ -37,7 +37,8 @@ use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
 use core::{OclPrm, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo, Context, Mem, 
-    Sampler, CommandQueueProperties, KernelInfo, ImageInfo, ImageFormat};
+    Sampler, CommandQueueProperties, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, ImageInfo,
+    ImageFormat};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -762,6 +763,24 @@ pub enum KernelArgInfoResult {
 }
 
 impl KernelArgInfoResult {
+    pub fn from_bytes(request_param: KernelArgInfo, result_bytes: Vec<u8>
+            ) -> OclResult<KernelArgInfoResult>
+    {
+        Ok(match request_param {
+            // KernelArgInfo::MaxWorkGroupSize => {
+            //     let r0 = unsafe { util::bytes_to::<usize>(&result_bytes) };
+            //     let size = unsafe { util::bytes_into::<usize>(result_bytes) };
+            //     debug_assert_eq!(r0, size);
+            //     // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
+            //     KernelArgInfoResult::MaxWorkGroupSize(size)
+            // },
+            // KernelArgInfo::FunctionName => {
+            //     KernelArgInfoResult::FunctionName(try!(String::from_utf8(result_bytes)))
+            // },
+            _ => KernelArgInfoResult::TemporaryPlaceholderVariant(result_bytes),
+        })
+    }
+
     // TODO: IMPLEMENT THIS PROPERLY.
     pub fn to_string(&self) -> String {
         match self {
@@ -793,16 +812,31 @@ impl std::fmt::Display for KernelArgInfoResult {
 /// [UNSTABLE][INCOMPLETE] A kernel work groups info result.
 pub enum KernelWorkGroupInfoResult {
     TemporaryPlaceholderVariant(Vec<u8>),
-    WorkGroupSize(TemporaryPlaceholderType),
-    CompileWorkGroupSize(TemporaryPlaceholderType),
-    LocalMemSize(TemporaryPlaceholderType),
-    PreferredWorkGroupSizeMultiple(TemporaryPlaceholderType),
-    PrivateMemSize(TemporaryPlaceholderType),
-    GlobalWorkSize(TemporaryPlaceholderType),
+    WorkGroupSize(usize),
+    CompileWorkGroupSize([usize; 3]),
+    LocalMemSize(u64),
+    PreferredWorkGroupSizeMultiple(usize),
+    PrivateMemSize(u64),
+    GlobalWorkSize([usize; 3]),
     Error(Box<OclError>),
 }
 
 impl KernelWorkGroupInfoResult {
+    pub fn from_bytes(request_param: KernelWorkGroupInfo, result_bytes: Vec<u8>
+            ) -> OclResult<KernelWorkGroupInfoResult>
+    {
+        Ok(match request_param {
+            KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple => {
+                let size = unsafe { util::bytes_into::<usize>(result_bytes) };
+                KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(size)
+            },
+            // KernelWorkGroupInfo::FunctionName => {
+            //     KernelWorkGroupInfoResult::FunctionName(try!(String::from_utf8(result_bytes)))
+            // },
+            _ => KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(result_bytes),
+        })
+    }
+    
     // TODO: IMPLEMENT THIS PROPERLY.
     pub fn to_string(&self) -> String {
         match self {

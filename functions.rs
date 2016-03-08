@@ -47,14 +47,14 @@ static SDK_DOCS_URL_SUF: &'static str = ".html";
 //============================================================================
 //============================================================================
 
-/// Converts the `cl_int` errcode into a string containing the associated
-/// constant name.
-fn errcode_string(errcode: cl_int) -> String {
-    match Status::from_i32(errcode) {
-        Some(cls) => format!("{:?}", cls),
-        None => format!("[Unknown Error Code: {}]", errcode as i64),
-    }
-}
+// /// Converts the `cl_int` errcode into a string containing the associated
+// /// constant name.
+// fn errcode_string(errcode: cl_int) -> String {
+//     match Status::from_i32(errcode) {
+//         Some(cls) => format!("{:?}", cls),
+//         None => format!("[Unknown Error Code: {}]", errcode as i64),
+//     }
+// }
 
 /// Evaluates `errcode` and returns an `Err` with a failure message if it is
 /// not 0.
@@ -66,20 +66,25 @@ fn errcode_try(cl_fn_name: &str, fn_info: &str, errcode: cl_int) -> OclResult<()
     if errcode == cl_h::Status::CL_SUCCESS as cl_int {
         Ok(())
     } else {
+        let status = match Status::from_i32(errcode) {
+            Some(s) => s,
+            None => panic!("ocl::core::errcode_try(): Invalid error code: '{}'. Aborting.", errcode),
+        };
+
         let fn_info_string = if fn_info.len() != 0 {
             format!("(\"{}\")", fn_info)
         } else {
             String::with_capacity(0)
         };
 
-        OclError::errcode(errcode, 
+        OclError::status(status.clone(), 
             format!("\n\n\
                 ################################ OPENCL ERROR ############################### \
                 \n\nError executing function: {}{}  \
-                \n\nStatus error code: {} ({})  \
+                \n\nStatus error code: {:?} ({})  \
                 \n\nPlease visit the following url for more information: \n\n{}{}{}  \n\n\
                 ############################################################################# \n",
-                cl_fn_name, fn_info_string, errcode_string(errcode), errcode, 
+                cl_fn_name, fn_info_string, status, errcode, 
                 SDK_DOCS_URL_PRE, cl_fn_name, SDK_DOCS_URL_SUF)
         )
     }
@@ -1284,7 +1289,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, info_request: KernelArg
     ) };    
     // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
     errcode_try("clGetKernelArgInfo", "", errcode)
-        .and(Ok(KernelArgInfoResult::TemporaryPlaceholderVariant(result)))
+        .and(KernelArgInfoResult::from_bytes(info_request, result))
 }
 
 /// Get kernel work group info.
@@ -1315,7 +1320,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
     ) };    
     // println!("GET_COMMAND_QUEUE_INFO(): errcode: {}, result: {:?}", errcode, result);
     errcode_try("clGetKernelWorkGroupInfo", "", errcode)
-        .and(Ok(KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(result)))
+        .and(KernelWorkGroupInfoResult::from_bytes(info_request, result))
 }
 
 //============================================================================
