@@ -7,7 +7,8 @@ use ocl::{util, core, ProQue, Buffer};
 const RESULTS_TO_PRINT: usize = 20;
 
 // Our arbitrary data set size and coefficent:
-const DATA_SET_SIZE: usize = 900000;
+// const DATA_SET_SIZE: usize = 2 << 20;
+const DATA_SET_SIZE: usize = 1024;
 const COEFF: f32 = 5432.1;
 
 // Our kernel source code:
@@ -54,7 +55,7 @@ fn main() {
         .arg_buf(&mut result_buffer);
 
     // Enqueue kernel:
-    kern.enqueue();
+    kern.enq().expect("[FIXME]: HANDLE ME!");
 
     // Read results from the device into result_buffer's local vector:
     // result_buffer.fill_vec();

@@ -27,7 +27,7 @@ static SRC: &'static str = r#"
 "#;
 
 fn main() {
-	let dims = [1000];
+	let dims = [2048];
 	let platforms = Platform::list();
 
 	println!("Looping through avaliable platforms ({}):", platforms.len());
@@ -44,14 +44,19 @@ fn main() {
 			.device_list(devices.clone())
 			.build().unwrap();
 
-		print_platform_info(&platform); 
+		print_platform_info(&platform);
+
+		for device in devices.iter() {
+			// Print device info:
+			print_device_info(device);
+		}
 
     	// Loop through each device
     	for d_idx in 0..devices.len() {
     		let device = devices[d_idx];
 	    	
 			let queue = Queue::new(&context, device).unwrap();
-			let buffer = Buffer::<f32>::new(&dims, &queue);
+			let buffer = Buffer::<f32>::newer_new(&queue, None, &dims, None).unwrap();
 			let image = Image::<u8>::builder()
 				.dims(dims)
 				.build(&queue).unwrap();
@@ -73,11 +78,8 @@ fn main() {
 		    buffer.cmd().write(&vec![0.0; dims[0]]).enew(&mut event).enq().unwrap();
 		    event.wait().unwrap();
 
-			// Print device info:
-			print_device_info(&device);
-
 			// Print all the rest (just once):
-			if (d_idx == devices.len() - 1) && (p_idx == platforms.len() - 1) {
+			if (d_idx == 0) && (p_idx == 0) {
 				print_context_info(&context);
 				print_queue_info(&queue);
 				print_buffer_info(&buffer);
@@ -85,7 +87,6 @@ fn main() {
 				print_sampler_info(&sampler);
 				print_program_info(&program);
 				print_kernel_info(&kernel);
-				print_kernel_arg_info(&kernel);
 				print_event_list_info(&event_list);
 				print_event_info(&event);
 			}
@@ -155,6 +156,7 @@ fn print_program_info(program: &Program) {
 fn print_kernel_info(kernel: &Kernel) {
 	printlnc!(green: "{}", kernel);
 }
+
 
 fn print_event_list_info(event_list: &EventList) {
 	printlnc!(orange: "{:?}", event_list);

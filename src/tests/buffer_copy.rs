@@ -95,15 +95,15 @@ fn buffer_copy_standard() {
         .arg_buf(&src_buffer)
         .arg_scl(ADDEND);
 
-    kernel.enqueue();
+    kernel.enq().expect("[FIXME]: HANDLE ME!");
 
     // Copy src to dst:
     let copy_range = (IDX, pro_que.dims()[0] - 100);
     src_buffer.cmd().copy(&dst_buffer, copy_range.0, copy_range.1 - copy_range.0).enq().unwrap();
 
     // Read both buffers from device.
-    src_buffer.read(&mut src_vec);
-    dst_buffer.read(&mut dst_vec);
+    src_buffer.read(&mut src_vec).enq().unwrap();
+    dst_buffer.read(&mut dst_vec).enq().unwrap();
 
     for i in 0..pro_que.dims()[0] {
         assert_eq!(src_vec[i], ADDEND);

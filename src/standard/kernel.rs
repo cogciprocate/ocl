@@ -115,7 +115,8 @@ pub struct Kernel {
     // name: String,
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
-    command_queue_obj_core: CommandQueueCore,
+    // command_queue_obj_core: CommandQueueCore,
+    queue: Queue,
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
@@ -152,7 +153,8 @@ impl Kernel {
             // name: name,
             named_args: HashMap::with_capacity(5),
             arg_count: 0,
-            command_queue_obj_core: queue.core_as_ref().clone(),
+            // command_queue_obj_core: queue.core_as_ref().clone(),
+            queue: queue.clone(),
             gwo: SpatialDims::Unspecified,
             gws: SpatialDims::Unspecified,
             lws: SpatialDims::Unspecified,
@@ -380,33 +382,6 @@ impl Kernel {
         unimplemented!();
     }
 
-    fn resolve_named_arg_idx(&self, name: &'static str) -> OclResult<u32> {
-        match self.named_args.get(name) {
-            Some(&ai) => Ok(ai),
-            None => {
-                OclError::err(format!("Kernel::set_arg_scl_named(): Invalid argument \
-                    name: '{}'.", name))
-            },
-        }
-    }
-
-
-    // pub fn cmd<'k, N: ClEventPtrNew>(&'k self) -> KernelCmd<'k, N> {
-    //     KernelCmd { queue: &self.command_queue_obj_core, kernel: &self.obj_core, 
-    //         gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
-    //         wait_list: None, dest_list: None, name: &self.name }
-    // }
-
-
-    /// Returns a command builder which is used to chain parameters of an
-    /// 'enqueue' command together.
-    pub fn cmd<'k>(&'k self) -> KernelCmd<'k> {
-        KernelCmd { queue: &self.command_queue_obj_core, kernel: &self.obj_core, 
-            gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
-            wait_list: None, dest_list: None }
-    }
-
-
     // /// Enqueues kernel on the default command queue.
     // ///
     // /// Specify `queue` to use a non-default queue.
@@ -482,20 +457,36 @@ impl Kernel {
         let gws = match self.gws.to_work_size() {
             Some(gws) => gws,
             None => OclError::err("Global Work Size ('gws') cannot be left unspecified. \
-                Set a default for the kernel before calling with '::set_queue'.")
+                Set a default for the kernel before calling with '::set_default_queue'.")
                 .expect("ocl::Kernel::enqueue"),
         };
 
-        core::enqueue_kernel::<EventList>(&self.command_queue_obj_core, &self.obj_core,
+        core::enqueue_kernel::<EventList>(&self.queue, &self.obj_core,
             self.gws.dim_count(), self.gwo.to_work_offset(), &gws, self.lws.to_work_size(), 
             None, None) .expect("ocl::Kernel::enqueue")
     }
 
-    /// Permanently changes the default queue.
+    /// Returns a command builder which is used to chain parameters of an
+    /// 'enqueue' command together.
+    pub fn cmd<'k>(&'k self) -> KernelCmd<'k> {
+        KernelCmd { queue: &self.queue, kernel: &self.obj_core, 
+            gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(), 
+            wait_list: None, dest_list: None }
+    }
+
+    /// Enqueues this kernel on the default queue and returns the result.
+    ///
+    /// Shorthand for `.cmd().enq()`
+    ///
+    pub fn enq<'k>(&'k self) -> OclResult<()> {
+        self.cmd().enq()
+    }
+
+    /// Changes the default queue.
     ///
     /// Returns a ref for chaining i.e.:
     ///
-    /// `kernel.set_queue(queue).enqueue(....);`
+    /// `kernel.set_default_queue(queue).enqueue(....);`
     ///
     /// Even when used as above, the queue is changed permanently,
     /// not just for the one call. Changing the queue is cheap so feel free
@@ -507,14 +498,15 @@ impl Kernel {
     /// The new queue must be associated with a device associated with the
     /// kernel's program.
     ///
-    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> OclResult<&'a mut Kernel> {
-        self.command_queue_obj_core = queue.core_as_ref().clone();
+    pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> OclResult<&'a mut Kernel> {
+        // self.command_queue_obj_core = queue.core_as_ref().clone();
+        self.queue = queue.clone();
         Ok(self)
     }
 
     /// Returns the default `core::CommandQueue` for this kernel.
-    pub fn get_queue(&self) -> &CommandQueueCore {
-        &self.command_queue_obj_core
+    pub fn default_queue(&self) -> &Queue {
+        &self.queue
     }
 
     /// Returns the default global work offset.
@@ -536,7 +528,80 @@ impl Kernel {
     #[inline]
     pub fn arg_count(&self) -> u32 {
         self.arg_count
-    }    
+    }
+
+    pub fn core_as_ref(&self) -> &KernelCore {
+        &self.obj_core
+    }
+
+    /// Returns info about this kernel.
+    pub fn info(&self, info_kind: KernelInfo) -> KernelInfoResult {
+        match core::get_kernel_info(&self.obj_core, info_kind) {
+            Ok(res) => res,
+            Err(err) => KernelInfoResult::Error(Box::new(err)),
+        }        
+    }
+
+    /// Returns info about this kernel.
+    pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
+        match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
+            Ok(res) => res,
+            Err(err) => KernelArgInfoResult::Error(Box::new(err)),
+        }        
+    }
+
+    /// Returns info about this kernel.
+    pub fn wg_info(&self, device: &Device, info_kind: KernelWorkGroupInfo) 
+            -> KernelWorkGroupInfoResult 
+    {
+        match core::get_kernel_work_group_info(&self.obj_core, device, info_kind) {
+            Ok(res) => res,
+            Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
+        }        
+    }
+
+    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Kernel")
+            .field("FunctionName", &self.info(KernelInfo::FunctionName))
+            .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
+            .field("Context", &self.info(KernelInfo::Context))
+            .field("Program", &self.info(KernelInfo::Program))
+            .field("Attributes", &self.info(KernelInfo::Attributes))
+            .finish()
+    }
+
+    // fn fmt_arg_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    //     f.debug_struct("Kernel")
+    //         .field("FunctionName", &self.info(KernelInfo::FunctionName))
+    //         .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
+    //         .field("Context", &self.info(KernelInfo::Context))
+    //         .field("Program", &self.info(KernelInfo::Program))
+    //         .field("Attributes", &self.info(KernelInfo::Attributes))
+    //         .finish()
+    // }
+
+    fn fmt_wg_info(&self, f: &mut std::fmt::Formatter, device: &Device) -> std::fmt::Result {
+        f.debug_struct("WorkGroup")
+            .field("WorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize))
+            .field("CompileWorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize))
+            .field("LocalMemSize", &self.wg_info(device, KernelWorkGroupInfo::LocalMemSize))
+            .field("PreferredWorkGroupSizeMultiple", 
+                &self.wg_info(device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple))
+            .field("PrivateMemSize", &self.wg_info(device, KernelWorkGroupInfo::PrivateMemSize))
+            // .field("GlobalWorkSize", &self.wg_info(device, KernelWorkGroupInfo::GlobalWorkSize))
+            .finish()
+    }
+
+
+        fn resolve_named_arg_idx(&self, name: &'static str) -> OclResult<u32> {
+        match self.named_args.get(name) {
+            Some(&ai) => Ok(ai),
+            None => {
+                OclError::err(format!("Kernel::set_arg_scl_named(): Invalid argument \
+                    name: '{}'.", name))
+            },
+        }
+    }
 
     // Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T: OclPrm>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {        
@@ -613,73 +678,16 @@ impl Kernel {
     fn set_arg<T: OclPrm>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
     }
-
-    pub fn core_as_ref(&self) -> &KernelCore {
-        &self.obj_core
-    }
-
-    /// Returns info about this kernel.
-    pub fn info(&self, info_kind: KernelInfo) -> KernelInfoResult {
-        match core::get_kernel_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => KernelInfoResult::Error(Box::new(err)),
-        }        
-    }
-
-    /// Returns info about this kernel.
-    pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
-        match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
-            Ok(res) => res,
-            Err(err) => KernelArgInfoResult::Error(Box::new(err)),
-        }        
-    }
-
-    /// Returns info about this kernel.
-    pub fn wg_info(&self, device: &Device, info_kind: KernelWorkGroupInfo) 
-            -> KernelWorkGroupInfoResult 
-    {
-        match core::get_kernel_work_group_info(&self.obj_core, device, info_kind) {
-            Ok(res) => res,
-            Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
-        }        
-    }
-
-    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("Kernel")
-            .field("FunctionName", &self.info(KernelInfo::FunctionName))
-            .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
-            .field("Context", &self.info(KernelInfo::Context))
-            .field("Program", &self.info(KernelInfo::Program))
-            .field("Attributes", &self.info(KernelInfo::Attributes))
-            .finish()
-    }
-
-    // fn fmt_arg_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    //     f.debug_struct("Kernel")
-    //         .field("FunctionName", &self.info(KernelInfo::FunctionName))
-    //         .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
-    //         .field("Context", &self.info(KernelInfo::Context))
-    //         .field("Program", &self.info(KernelInfo::Program))
-    //         .field("Attributes", &self.info(KernelInfo::Attributes))
-    //         .finish()
-    // }
-
-    // fn fmt_wg_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    //     f.debug_struct("Kernel")
-    //         .field("FunctionName", &self.info(KernelInfo::FunctionName))
-    //         .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
-    //         .field("Context", &self.info(KernelInfo::Context))
-    //         .field("Program", &self.info(KernelInfo::Program))
-    //         .field("Attributes", &self.info(KernelInfo::Attributes))
-    //         .finish()
-    // }
 }
 
 
 
 impl std::fmt::Display for Kernel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_info(f)
+        // self.fmt_info(f)
+        try!(self.fmt_info(f));
+        try!(write!(f, " "));
+        self.fmt_wg_info(f, &self.queue.device())
     }
 }
 

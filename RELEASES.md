@@ -3,6 +3,17 @@ Version 0.8.0 (UNRELEASED)
 
 Breaking Changes
 ----------------
+
+
+* `Buffer`:
+    * removed tons of stuff (fill, flush, etc.)
+    * `set_queue` renamed `::set_default_queue`
+    * read/write redesigned
+    * no longer pads
+* `Image`: same story with read_write
+
+
+
 * [`Buffer`] and [`Image`] have had their `::enqueue_***` methods modified to
   accept an optional queue. When a queue is passed it will temporarily
   override the default queue for that call only. The default queue can still

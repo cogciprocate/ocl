@@ -2,7 +2,7 @@
 
 #![allow(dead_code, unused_variables, unused_mut)]
 
-use core::{self, OclPrm, Mem as MemCore, CommandQueue as CommandQueueCore, ClEventPtrNew};
+use core::{self, OclPrm, Mem as MemCore, ClEventPtrNew};
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, EventList, Image};
 
@@ -38,7 +38,8 @@ impl<'b, S: 'b> ImageCmdKind<'b, S> {
 ///
 /// [FIXME]: Fills not yet implemented.
 pub struct ImageCmd<'b, S: 'b + OclPrm> {
-    queue: &'b CommandQueueCore,
+    // queue: &'b CommandQueueCore,
+    queue: &'b Queue,
     obj_core: &'b MemCore,
     block: bool,
     lock_block: bool,
@@ -57,7 +58,7 @@ impl<'b, S: 'b + OclPrm> ImageCmd<'b, S> {
     /// Returns a new image command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `to_len` 
     /// (the length of the device side image).
-    pub fn new(queue: &'b CommandQueueCore, obj_core: &'b MemCore, dims: [usize; 3]) 
+    pub fn new(queue: &'b Queue, obj_core: &'b MemCore, dims: [usize; 3]) 
             -> ImageCmd<'b, S>
     {
         ImageCmd {
@@ -77,7 +78,7 @@ impl<'b, S: 'b + OclPrm> ImageCmd<'b, S> {
 
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'b Queue) -> ImageCmd<'b, S> {
-        self.queue = queue.core_as_ref();
+        self.queue = queue;
         self
     }
 

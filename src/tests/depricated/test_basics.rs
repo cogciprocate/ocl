@@ -42,7 +42,7 @@ fn basics() {
     ;
 
     // Enqueue kernel depending on and creating no events:
-    kernel.enqueue();
+    kernel.enq().expect("[FIXME]: HANDLE ME!");
 
     // Read results:
     result_buffer.fill_vec();

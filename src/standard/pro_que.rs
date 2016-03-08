@@ -200,7 +200,7 @@ impl ProQue {
     ///
     pub fn create_buffer<T: OclPrm>(&self) -> Buffer<T> {
         let dims = self.dims_result().expect("ocl::ProQue::create_buffer");
-        let buf = Buffer::<T>::new(&dims, &self.queue);
+        let buf = Buffer::<T>::newer_new(&self.queue, None, &dims, None).expect("ocl::ProQue::create_buffer");
         buf.cmd().fill(&[Default::default()], None).enq().expect("ocl::ProQue::create_buffer");
         buf
     }

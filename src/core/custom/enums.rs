@@ -840,6 +840,7 @@ impl KernelWorkGroupInfoResult {
     // TODO: IMPLEMENT THIS PROPERLY.
     pub fn to_string(&self) -> String {
         match self {
+            &KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => s.to_string(),
             &KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(ref v) => {
                to_string_retarded(v)
             },

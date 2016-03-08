@@ -17,7 +17,7 @@ fn fill() {
     let buffer = pro_que.create_buffer::<f32>();
 
     let mut vec = vec![0.0f32; buffer.len()];
-    buffer.read(&mut vec);
+    buffer.read(&mut vec).enq().unwrap();
 
     for &ele in vec.iter() {
         assert_eq!(ele, 0.0f32);
@@ -27,9 +27,9 @@ fn fill() {
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    kernel.enqueue();
+    kernel.enq().expect("[FIXME]: HANDLE ME!");
 
-    buffer.read(&mut vec);
+    buffer.read(&mut vec).enq().unwrap();
 
     for &ele in vec.iter() {
         assert_eq!(ele, 10.0f32);

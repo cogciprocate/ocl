@@ -87,15 +87,15 @@ fn image_ops() {
     assert_eq!(img_src.dims().to_len(), len);
     assert_eq!(img_dst.dims().to_len(), len);
 
-    let pixel_elements = img_src.pixel_elements();
-    assert_eq!(vec.len(), len * pixel_elements);
+    let pixel_element_len = img_src.pixel_element_len();
+    assert_eq!(vec.len(), len * pixel_element_len);
 
     // KERNEL RUN #1 -- make sure everything's working normally:
-    kernel_add.enqueue();
+    kernel_add.enq().expect("[FIXME]: HANDLE ME!");
     let mut ttl_runs = 1i32;
 
     // READ AND VERIFY #1 (LINEAR):
-    img_dst.read(&mut vec).unwrap();
+    img_dst.read(&mut vec).enq().unwrap();
 
     for idx in 0..proque.dims().to_len() {
         assert!(vec[idx] == ADDEND[0] * ttl_runs, "vec[{}]: {}", idx, vec[idx]);
@@ -105,7 +105,7 @@ fn image_ops() {
 
     // Warm up the verify function:
     tests::verify_vec_rect([0, 0, 0], dims, ADDEND[0] * ttl_runs,
-        ADDEND[0] * (ttl_runs - 1), dims, pixel_elements, &vec, ttl_runs, false).unwrap();
+        ADDEND[0] * (ttl_runs - 1), dims, pixel_element_len, &vec, ttl_runs, false).unwrap();
 
     //========================================================================
     //========================================================================
@@ -117,7 +117,7 @@ fn image_ops() {
         let (region, origin) = (dims, [0, 0, 0]);
 
         //====================================================================
-        //=============== `core::enqueue_read_image_rect()` =================
+        //=================== `core::enqueue_..._image()` ====================
         //====================================================================
 
         // Write to src:
@@ -126,7 +126,7 @@ fn image_ops() {
             &vec, None::<&core::EventList>, None).unwrap();
 
         // Add from src to dst:
-        kernel_add.enqueue();
+        kernel_add.enq().expect("[FIXME]: HANDLE ME!");
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
 
@@ -137,14 +137,14 @@ fn image_ops() {
 
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val, 
-            dims, pixel_elements, &vec, ttl_runs, true).unwrap();
+            dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
   
 
         // Run kernel:
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
         let cur_pixel = [cur_val, cur_val, cur_val, cur_val];
-        kernel_fill_src.set_arg_vec_named("pixel", &cur_pixel).unwrap().enqueue();
+        kernel_fill_src.set_arg_vec_named("pixel", &cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         core::enqueue_copy_image::<i32, _>(proque.queue(), &img_src, &img_dst, 
             origin, origin, region, None::<&core::EventList>, None).unwrap();
@@ -156,10 +156,10 @@ fn image_ops() {
 
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val, 
-            dims, pixel_elements, &vec, ttl_runs, true).unwrap();
+            dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
 
         //====================================================================
-        //================== `Image::cmd().read().rect()` ===================
+        //========================= `Image::cmd()...` ========================
         //====================================================================
         // Write to src:
         // core::enqueue_write_image(proque.queue(), &img_src, true, 
@@ -169,7 +169,7 @@ fn image_ops() {
         img_src.cmd().write(&vec).enq().unwrap();
 
         // Add from src to dst:
-        kernel_add.enqueue();
+        kernel_add.enq().expect("[FIXME]: HANDLE ME!");
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
 
@@ -178,14 +178,14 @@ fn image_ops() {
 
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val, 
-            dims, pixel_elements, &vec, ttl_runs, true).unwrap();
+            dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
   
 
         // Run kernel:
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
         let cur_pixel = [cur_val, cur_val, cur_val, cur_val];
-        kernel_fill_src.set_arg_vec_named("pixel", &cur_pixel).unwrap().enqueue();
+        kernel_fill_src.set_arg_vec_named("pixel", &cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         img_src.cmd().copy(&img_dst, origin).enq().unwrap();
 
@@ -194,7 +194,7 @@ fn image_ops() {
 
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val, 
-            dims, pixel_elements, &vec, ttl_runs, true).unwrap();
+            dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
 
     }
 

@@ -5,7 +5,9 @@
 #[macro_use] extern crate ocl;
 
 use ocl::{Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
+use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, 
+	SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
+	EventInfo, ProfilingInfo};
 use ocl::util;
 
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -26,7 +28,7 @@ fn main() {
 		.src(SRC)
 		.build(&context).unwrap();
     let queue = Queue::new(&context, device).unwrap();
-    let buffer = Buffer::<f32>::new(&dims, &queue);
+    let buffer = Buffer::<f32>::newer_new(&queue, None, &dims, None).unwrap();
 	let image = Image::<u8>::builder()
 		.dims(&dims)
 		.build(&queue).unwrap();

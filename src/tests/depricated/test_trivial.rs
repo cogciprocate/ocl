@@ -40,7 +40,7 @@ fn main_explained() {
         .arg_scl(ADDEND);
 
     // (4) Run the kernel:
-    kernel.enqueue();
+    kernel.enq().expect("[FIXME]: HANDLE ME!");
 
     // (5) Read results from the device into our buffer's built-in vector:
     buffer.fill_vec();
@@ -103,9 +103,8 @@ fn main_exploded() {
     // [NOTE]: If there were more than one dimension we'd use the product as
     // the length.
     let mut buffer_vec = vec![0.0f32; dims[0]];
-    let buffer = unsafe { Buffer::new_unchecked(
-        flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-        dims[0], Some(&buffer_vec), &queue) };
+    let buffer = Buffer::newer_new(&queue, Some(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR),
+        dims[0], Some(&buffer_vec));
 
     // For verification purposes:
     let orig_val = buffer_vec[IDX];

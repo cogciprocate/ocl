@@ -19,9 +19,9 @@ fn main() {
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    kernel.enqueue();
+    kernel.enq().expect("[FIXME]: HANDLE ME!");
     let mut vec = vec![0.0f32; buffer.len()];
-    buffer.read(&mut vec);
+    buffer.read(&mut vec).enq().unwrap();
 
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
 
@@ -62,11 +62,11 @@ fn main_explained() {
         .arg_scl(10.0f32);
 
     // (4) Run the kernel:
-    kernel.enqueue();
+    kernel.enq().expect("[FIXME]: HANDLE ME!");
 
     // (5) Read results from the device into a vector:
     let mut vec = vec![0.0f32; buffer.len()];
-    buffer.read(&mut vec);
+    buffer.read(&mut vec).enq().unwrap();
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);

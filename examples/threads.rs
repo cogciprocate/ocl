@@ -105,8 +105,8 @@ fn main() {
 
 					// Change queues around just for fun:
 					kernel.cmd().enew(&mut event_list).enq().unwrap();
-					kernel.set_queue(&queueball_th[1]).unwrap().enqueue();
-					kernel.set_queue(&queueball_th[2]).unwrap().enqueue();
+					kernel.set_default_queue(&queueball_th[1]).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+					kernel.set_default_queue(&queueball_th[2]).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
 					// Sleep just so the results don't print too quickly.
 					thread::sleep(Duration::from_millis(500));
@@ -115,9 +115,9 @@ fn main() {
 					event_list.wait().unwrap();
 
 					// Again, just playing with queues...
-					// buffer.set_queue(&queueball_th[2]).fill_vec();
-					// buffer.set_queue(&queueball_th[1]).fill_vec();
-					// buffer.set_queue(&queueball_th[0]).fill_vec();
+					// buffer.set_default_queue(&queueball_th[2]).fill_vec();
+					// buffer.set_default_queue(&queueball_th[1]).fill_vec();
+					// buffer.set_default_queue(&queueball_th[0]).fill_vec();
 
 					// Print results (won't appear until later):
 					let check_idx = data_set_size / 2;

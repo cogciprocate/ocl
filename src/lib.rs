@@ -30,13 +30,12 @@
 //! [`Result`]: http://docs.cogciprocate.com/ocl/type.Result.html
 //! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
+// #![allow(unused_features)]
+
 // #![warn(missing_docs)]
 #![feature(zero_one)]
-
-// For some reason have to have this to supress the warning (TODO: figure out
-// how to conditionally allow [feature(time2)] for cfg(test) only).
-#![allow(unused_features)]
-#![feature(time2)]
+// #![feature(time2)]
+// #![feature(question_mark)]
 
 #[macro_use] extern crate enum_primitive;
 #[macro_use] extern crate bitflags;

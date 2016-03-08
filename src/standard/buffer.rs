@@ -4,10 +4,387 @@ use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
-use core::{self, OclPrm, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, 
+use core::{self, OclPrm, Mem as MemCore, MemFlags, 
     MemInfo, MemInfoResult, ClEventPtrNew};
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, MemLen, EventList, BufferCmd, SpatialDims};
+use standard::{Queue, MemLen, EventList, SpatialDims};
+
+
+fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
+    if offset >= mem_len { return OclError::err(format!(
+        "ocl::Buffer::enq(): Offset out of range. (mem_len: {}, data_len: {}, offset: {}", 
+        mem_len, data_len, offset)); }
+    if data_len > (mem_len - offset) { return OclError::err(
+        "ocl::Buffer::enq(): Data length exceeds buffer length."); }
+    Ok(())
+}
+
+/// The type of operation to be performed by a command.
+pub enum BufferCmdKind<'b, T: 'b> {
+    Unspecified,
+    Read { data: &'b mut [T] },
+    Write { data: &'b [T] },
+    Copy { dst_buffer: &'b MemCore, dst_offset: usize, len: usize },
+    Fill { pattern: &'b [T], len: Option<usize> },
+    CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
+} 
+
+impl<'b, T: 'b> BufferCmdKind<'b, T> {
+    fn is_unspec(&'b self) -> bool {
+        if let &BufferCmdKind::Unspecified = self {
+            true
+        } else {
+            false
+        }
+    }
+}
+
+/// The 'shape' of the data to be processed, whether one or multi-dimensional.
+/// 
+/// Should really be called dimensionality or something.
+///
+pub enum BufferCmdDataShape {
+    Lin { offset: usize },
+    Rect { 
+        src_origin: [usize; 3],
+        dst_origin: [usize; 3],
+        region: [usize; 3],
+        src_row_pitch: usize,
+        src_slc_pitch: usize,
+        dst_row_pitch: usize,
+        dst_slc_pitch: usize,
+    },
+}
+
+/// A buffer command builder used to enqueue reads, writes, fills, and copies.
+pub struct BufferCmd<'b, T: 'b + OclPrm> {
+    // queue: &'b CommandQueueCore,
+    queue: &'b Queue,
+    obj_core: &'b MemCore,
+    block: bool,
+    lock_block: bool,
+    kind: BufferCmdKind<'b, T>,
+    shape: BufferCmdDataShape,    
+    ewait: Option<&'b EventList>,
+    enew: Option<&'b mut ClEventPtrNew>,
+    mem_len: usize,
+}
+
+impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
+    /// Returns a new buffer command builder associated with with the
+    /// memory object `obj_core` along with a default `queue` and `mem_len` 
+    /// (the length of the device side buffer).
+    pub fn new(queue: &'b Queue, obj_core: &'b MemCore, mem_len: usize) 
+            -> BufferCmd<'b, T>
+    {
+        BufferCmd {
+            queue: queue,
+            obj_core: obj_core,
+            block: true,
+            lock_block: false,
+            kind: BufferCmdKind::Unspecified,
+            shape: BufferCmdDataShape::Lin { offset: 0 },
+            ewait: None,
+            enew: None,
+            mem_len: mem_len,
+        }
+    }
+
+    /// Specifies a queue to use for this call only.
+    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T> {
+        self.queue = queue;
+        self
+    }
+
+    /// Specifies whether or not to block thread until completion.
+    ///
+    /// Ignored if this is a copy, fill, or copy to image operation.
+    ///
+    /// # Panics
+    ///
+    /// Will panic if `::read` has already been called. Use `::read_async`
+    /// (unsafe) for a non-blocking read operation.
+    ///
+    pub fn block(mut self, block: bool) -> BufferCmd<'b, T> {
+        if !block && self.lock_block { 
+            panic!("ocl::BufferCmd::block(): Blocking for this command has been disabled by \
+                the '::read' method. For non-blocking reads use '::read_async'.");
+        }
+        self.block = block;
+        self
+    }
+
+    /// Sets the linear offset for an operation.
+    /// 
+    /// # Panics
+    ///
+    /// The 'shape' may not have already been set to rectangular by the 
+    /// `::rect` function.
+    pub fn offset(mut self, offset: usize)  -> BufferCmd<'b, T> {
+        if let BufferCmdDataShape::Rect { .. } = self.shape {
+            panic!("ocl::BufferCmd::offset(): This command builder has already been set to \
+                rectangular mode with '::rect`. You cannot call both '::offset' and '::rect'.");
+        }
+
+        self.shape = BufferCmdDataShape::Lin { offset: offset };
+        self
+    }
+
+    /// Specifies that this command will be a blocking read operation.
+    ///
+    /// After calling this method, the blocking state of this command will
+    /// be locked to true and a call to `::block` will cause a panic.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified.
+    ///
+    pub fn read(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::Read { data: dst_data };
+        self.block = true;
+        self.lock_block = true;
+        self
+    }
+
+    /// Specifies that this command will be a non-blocking, asynchronous read
+    /// operation.
+    ///
+    /// Sets the block mode to false automatically but it may still be freely
+    /// toggled back. If set back to `true` this method call becomes equivalent
+    /// to calling `::read`.
+    ///
+    /// ## Safety
+    ///
+    /// Caller must ensure that the container referred to by `dst_data` lives 
+    /// until the call completes.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub unsafe fn read_async(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::Read { data: dst_data };
+        self
+    }
+
+    /// Specifies that this command will be a write operation.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn write(mut self, src_data: &'b [T]) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::Write { data: src_data };
+        self
+    }
+
+    /// Specifies that this command will be a copy operation.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// # Errors
+    ///
+    /// If this is a rectangular copy, `dst_offset` and `len` must be zero.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn copy(mut self, dst_buffer: &'b Buffer<T>, dst_offset: usize, len: usize)
+            -> BufferCmd<'b, T> 
+    {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::Copy { 
+            dst_buffer: dst_buffer.core_as_ref(),
+            dst_offset: dst_offset,
+            len: len,
+        }; 
+        self
+    }
+
+    /// Specifies that this command will be a copy to image.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn copy_to_image(mut self, image: &'b MemCore, dst_origin: [usize; 3], 
+                region: [usize; 3]) -> BufferCmd<'b, T> 
+    {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::CopyToImage { image: image, dst_origin: dst_origin, region: region }; 
+        self
+    }
+
+    /// Specifies that this command will be a fill.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// # Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn fill(mut self, pattern: &'b [T], len: Option<usize>) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::Fill { pattern: pattern, len: len }; 
+        self
+    }
+
+    /// Specifies that this will be a rectangularly shaped operation 
+    /// (the default being linear).
+    ///
+    /// Only valid for 'read', 'write', and 'copy' modes. Will error if used
+    /// with 'fill' or 'copy to image'.
+    pub fn rect(mut self, src_origin: [usize; 3], dst_origin: [usize; 3], region: [usize; 3],
+                src_row_pitch: usize, src_slc_pitch: usize, dst_row_pitch: usize, 
+                dst_slc_pitch: usize) -> BufferCmd<'b, T>
+    {
+        if let BufferCmdDataShape::Lin { offset } = self.shape {
+            assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
+                set to linear mode with '::offset`. You cannot call both '::offset' and '::rect'.");
+        }
+
+        self.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
+            region: region, src_row_pitch: src_row_pitch, src_slc_pitch: src_slc_pitch,
+            dst_row_pitch: dst_row_pitch, dst_slc_pitch: dst_slc_pitch };
+        self
+    }
+
+    /// Specifies a list of events to wait on before the command will run.
+    pub fn ewait(mut self, ewait: &'b EventList) -> BufferCmd<'b, T> {
+        self.ewait = Some(ewait);
+        self
+    }
+
+    /// Specifies a list of events to wait on before the command will run or
+    /// resets it to `None`.
+    pub fn ewait_opt(mut self, ewait: Option<&'b EventList>) -> BufferCmd<'b, T> {
+        self.ewait = ewait;
+        self
+    }
+
+    /// Specifies the destination for a new, optionally created event
+    /// associated with this command.
+    pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
+        self.enew = Some(enew);
+        self
+    }
+
+    /// Specifies a destination for a new, optionally created event
+    /// associated with this command or resets it to `None`.
+    pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
+        self.enew = enew;
+        self
+    }
+
+
+    // core::enqueue_copy_buffer::<f32, core::EventList>(&queue, &src_buffer, &dst_buffer, 
+    //     copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None::<&core::EventList>,
+    //     None).unwrap();
+
+    /// Enqueues this command.
+    pub fn enq(self) -> OclResult<()> {
+        match self.kind {
+            BufferCmdKind::Read { data } => { 
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {                        
+                        try!(check_len(self.mem_len, data.len(), offset));
+
+                        unsafe { core::enqueue_read_buffer(self.queue, self.obj_core, self.block, 
+                            offset, data, self.ewait, self.enew) }
+                    },
+                    BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
+                            dst_row_pitch, dst_slc_pitch } => 
+                    {
+                        // Verify dims given.
+                        // try!(Ok(()));
+
+                        unsafe { core::enqueue_read_buffer_rect(self.queue, self.obj_core, 
+                            self.block, src_origin, dst_origin, region, src_row_pitch, 
+                            src_slc_pitch, dst_row_pitch, dst_slc_pitch, data, 
+                            self.ewait, self.enew) }
+                    }
+                }
+            },
+            BufferCmdKind::Write { data } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        try!(check_len(self.mem_len, data.len(), offset));
+                        core::enqueue_write_buffer(self.queue, self.obj_core, self.block, 
+                            offset, data, self.ewait, self.enew)
+                    },
+                    BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
+                            dst_row_pitch, dst_slc_pitch } => 
+                    {
+                        // Verify dims given.
+                        // try!(Ok(()));
+
+                        core::enqueue_write_buffer_rect(self.queue, self.obj_core, 
+                            self.block, src_origin, dst_origin, region, src_row_pitch, 
+                            src_slc_pitch, dst_row_pitch, dst_slc_pitch, data, 
+                            self.ewait, self.enew)
+                    }
+                }
+            },
+            BufferCmdKind::Copy { dst_buffer, dst_offset, len } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        try!(check_len(self.mem_len, len, offset));
+                        core::enqueue_copy_buffer::<T, _>(self.queue, 
+                            self.obj_core, dst_buffer, offset, dst_offset, len, 
+                            self.ewait, self.enew)
+                    },
+                    BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
+                            dst_row_pitch, dst_slc_pitch } => 
+                    {
+                        // Verify dims given.
+                        // try!(Ok(()));
+                        
+                        if dst_offset != 0 || len != 0 { return OclError::err(
+                            "ocl::BufferCmd::enq(): For 'rect' shaped copies, destination \
+                            offset and length must be zero. Ex.: \
+                            'cmd().copy(&{{buf_name}}, 0, 0)..'.");
+                        }
+                        core::enqueue_copy_buffer_rect::<T, _>(self.queue, self.obj_core, dst_buffer,
+                        src_origin, dst_origin, region, src_row_pitch, src_slc_pitch, 
+                        dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
+                    },
+                }
+            },
+            BufferCmdKind::Fill { pattern, len } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        let len = match len {
+                            Some(l) => l,
+                            None => self.mem_len,
+                        };
+                        try!(check_len(self.mem_len, pattern.len() * len, offset));
+                        core::enqueue_fill_buffer(self.queue, self.obj_core, pattern, 
+                            offset, len, self.ewait, self.enew)
+                    },
+                    BufferCmdDataShape::Rect { .. } => {
+                        return OclError::err("ocl::BufferCmd::enq(): Rectangular fill is not a \
+                            valid operation. Please use the default shape, linear.");
+                    }
+                }
+            }
+            BufferCmdKind::Unspecified => return OclError::err("ocl::BufferCmd::enq(): No operation \
+                specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
+            _ => unimplemented!(),
+        }
+    }
+}
 
 
 /// A chunk of memory physically located on a device, such as a GPU.
@@ -36,8 +413,8 @@ use standard::{Queue, MemLen, EventList, BufferCmd, SpatialDims};
 pub struct Buffer<T: OclPrm> {
     // vec: Vec<T>,
     obj_core: MemCore,
-    // queue: Queue,
-    command_queue_obj_core: CommandQueueCore,
+    queue: Queue,
+    // command_queue_obj_core: CommandQueueCore,
     dims: SpatialDims,
     len: usize,
     _data: PhantomData<T>,
@@ -45,27 +422,7 @@ pub struct Buffer<T: OclPrm> {
 }
 
 impl<T: OclPrm> Buffer<T> {
-    /// Creates a new read/write Buffer with dimensions: `dims` which will use the 
-    /// command queue: `queue` (and its associated device and context) for all operations.
-    ///
-    /// The device side buffer will be allocated a size based on the maximum workgroup 
-    /// size of the device. This helps ensure that kernels do not attempt to read 
-    /// from or write to memory beyond the length of the buffer (see crate level 
-    /// documentation for more details about how dimensions are used). The buffer
-    /// will be initialized with a sensible default value (probably `0`).
-    ///
-    /// ## Other Method Panics
-    /// The returned Buffer contains no host side vector. Functions associated with
-    /// one such as `.enqueue_flush_vec()`, `enqueue_fill_vec()`, etc. will panic.
-    /// [FIXME]: Return result.
-    pub fn new<D: MemLen>(dims: D, queue: &Queue) -> Buffer<T> {
-        let dims: SpatialDims = dims.to_lens().into(); 
-        // let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
-        let len = dims.to_len();
-        Buffer::_new(dims, len, queue)
-    }
-
-    pub fn newer_new<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, host_ptr: Option<&[T]>) 
+    pub fn newer_new<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, data: Option<&[T]>) 
             -> OclResult<Buffer<T>>
     {
         let flags = flags.unwrap_or(core::MEM_READ_WRITE);
@@ -73,87 +430,16 @@ impl<T: OclPrm> Buffer<T> {
         // let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let len = dims.to_len();
         let obj_core = unsafe { try!(core::create_buffer(queue.context_core_as_ref(), flags, len,
-            host_ptr)) };
+            data)) };
 
         Ok( Buffer {
             obj_core: obj_core,
-            command_queue_obj_core: queue.core_as_ref().clone(),
+            // command_queue_obj_core: queue.core_as_ref().clone(),
+            queue: queue.clone(),
             dims: dims,
             len: len,
             _data: PhantomData,
         })
-    }
-
-    /// Creates a new Buffer with caller-managed buffer length, type, flags, and 
-    /// initialization.
-    ///
-    /// - Does not optimize size. 
-    ///
-    /// [DOCUMENTATION OUT OF DATE]
-    ///
-    /// ## Examples
-    /// See `examples/buffer_unchecked.rs`.
-    ///
-    /// ## Parameter Reference Documentation
-    /// Refer to the following page for information about how to configure flags and
-    /// other options for the buffer.
-    /// [https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html)
-    ///
-    /// ## Safety
-    /// No creation time checks are made to help prevent device buffer overruns, 
-    /// etc. Caller should be sure to initialize the device side memory with a 
-    /// write. Any host side memory pointed to by `host_ptr` is at even greater
-    /// risk if used with `CL_MEM_USE_HOST_PTR` (see below).
-    ///
-    /// [IMPORTANT] Practically every read and write to an Buffer created in this way is
-    /// potentially unsafe. Because `.enqueue_read()` and `.enqueue_write()` do not require an 
-    /// unsafe block, their implied promises about safety may be broken at any time.
-    ///
-    /// *You need to know what you're doing and be extra careful using an Buffer created 
-    /// with this method because it badly breaks Rust's usual safety promises even
-    /// outside of an unsafe block.*
-    ///
-    /// **This is horribly un-idiomatic Rust. You have been warned.**
-    ///
-    /// NOTE: The above important warnings probably only apply to buffers created with 
-    /// the `CL_MEM_USE_HOST_PTR` flag because the memory is considered 'pinned' but 
-    /// there may also be implementation specific issues which haven't been considered 
-    /// or are unknown.
-    ///
-    /// [FIXME]: Return result.
-    /// [FIXME]: Update docs.
-    pub unsafe fn new_unchecked<S>(flags: MemFlags, dims: S, host_ptr: Option<&[T]>, 
-                queue: &Queue) -> Buffer<T> where S: Into<SpatialDims>
-    {
-        let dims = dims.into();
-        let len = dims.to_len();
-        let obj_core = core::create_buffer(queue.context_core_as_ref(), flags, len,
-            host_ptr).expect("[FIXME: TEMPORARY]: Buffer::_new():");
-
-        Buffer {
-            obj_core: obj_core,
-            command_queue_obj_core: queue.core_as_ref().clone(),
-            dims: dims,
-            len: len,
-            _data: PhantomData,
-            // vec: VecOption::None,
-        }
-    }
-
-    // Consolidated constructor for Buffers without vectors.
-    /// [FIXME]: Return result.
-    fn _new(dims: SpatialDims, len: usize, queue: &Queue) -> Buffer<T> {
-        let obj_core = unsafe { core::create_buffer::<T>(queue.context_core_as_ref(),
-            core::MEM_READ_WRITE, len, None).expect("Buffer::_new()") };
-
-        Buffer {            
-            obj_core: obj_core,
-            command_queue_obj_core: queue.core_as_ref().clone(),
-            dims: dims,
-            len: len,
-            _data: PhantomData,
-            // vec: VecOption::None,
-        }
     }
 
     /// Returns a buffer command builder used to read, write, copy, etc.
@@ -161,154 +447,31 @@ impl<T: OclPrm> Buffer<T> {
     /// Run `.enq()` to enqueue the command.
     ///
     pub fn cmd<'b>(&'b self) -> BufferCmd<'b, T> {
-        BufferCmd::new(&self.command_queue_obj_core, &self.obj_core, self.len)
+        BufferCmd::new(&self.queue, &self.obj_core, self.len)
     }
 
-
-    /// Enqueues reading `data.len() * mem::size_of::<T>()` bytes from the device 
-    /// buffer into `data` with a remote offset of `offset`.
+    /// Returns a buffer command builder used to read.
     ///
-    /// Setting `queue` to `None` will use the default queue set during creation.
-    /// Otherwise, the queue passed will be used for this call only.
+    /// Run `.enq()` to enqueue the command.
     ///
-    /// Will optionally wait for events in `ewait` to finish 
-    /// before reading. Will also optionally add a new event associated with
-    /// the read to `enew`.
-    ///
-    /// [UPDATE] If the `enew` event list is `None`, the read will be blocking, otherwise
-    /// returns immediately.
-    ///
-    /// ## Safety
-    ///
-    /// Bad things will happen if the memory referred to by `data` is freed and
-    /// reallocated before the read completes. It's up to the caller to make 
-    /// sure that the new event added to `enew` completes. Use 
-    /// 'enew.last()' right after the calling `::read_async` to get a.
-    /// reference to the event associated with the read. [NOTE: Improved ease
-    /// of use is coming to the event api eventually]
-    ///
-    /// ## Errors
-    ///
-    /// `offset` must be less than the length of the buffer.
-    ///
-    /// The length of `data` must be less than the length of the buffer minus `offset`.
-    ///
-    /// Errors upon any OpenCL error.
-    ///
-    /// [UNSTABLE: Likely to be depricated in favor of `::cmd`.
-    unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &mut [T],
-                ewait: Option<&EventList>, enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
-    {
-        // assert!(offset < self.len(), "Buffer::read{{_async}}(): Offset out of range.");
-        // assert!(data.len() <= self.len() - offset, 
-        //     "Buffer::read{{_async}}(): Data length out of range.");
-        if offset >= self.len() { 
-            return OclError::err("Buffer::read{{_async}}(): Offset out of range."); }
-        if data.len() > self.len() - offset {
-            return OclError::err("Buffer::read{{_async}}(): Data length out of range."); }
-
-        let command_queue = match queue {
-            Some(q) => q.core_as_ref(),
-            None => &self.command_queue_obj_core,
-        };
-
-        // let blocking_read = enew.is_none();
-        core::enqueue_read_buffer(command_queue, &self.obj_core, block, 
-            // offset, data, ewait.map(|el| el.core_as_ref()), enew.map(|el| el.core_as_mut()))
-            offset, data, ewait, enew)
+    pub fn read<'b>(&'b self, data: &'b mut [T]) -> BufferCmd<'b, T> {
+        self.cmd().read(data)
     }
 
-    /// Enqueues writing `data.len() * mem::size_of::<T>()` bytes from `data` to the 
-    /// device buffer with a remote offset of `offset`.
+    /// Returns a buffer command builder used to write.
     ///
-    /// Setting `queue` to `None` will use the default queue set during creation.
-    /// Otherwise, the queue passed will be used for this call only.
+    /// Run `.enq()` to enqueue the command.
     ///
-    /// Will optionally wait for events in `ewait` to finish before writing. 
-    /// Will also optionally add a new event associated with the write to `enew`.
-    ///
-    /// [UPDATE] If the `enew` event list is `None`, the write will be blocking, otherwise
-    /// returns immediately.
-    ///
-    /// ## Data Integrity
-    ///
-    /// Ensure that the memory referred to by `data` is unmolested until the 
-    /// write completes if passing a `enew`.
-    ///
-    /// ## Errors
-    ///
-    /// `offset` must be less than the length of the buffer.
-    ///
-    /// The length of `data` must be less than the length of the buffer minus `offset`.
-    ///
-    /// Errors upon any OpenCL error.
-    /// 
-    /// [UNSTABLE: Likely to be depricated in favor of `::cmd`.
-    fn enqueue_write(&self, queue: Option<&Queue>, block: bool, offset: usize, data: &[T], 
-                ewait: Option<&EventList>, enew: Option<&mut ClEventPtrNew>) -> OclResult<()>
-    {        
-        // assert!(offset < self.len(), "Buffer::write{{_async}}(): Offset out of range.");
-        // assert!(data.len() <= self.len() - offset, 
-        //     "Buffer::write{{_async}}(): Data length out of range.");
-        if offset >= self.len() { 
-            return OclError::err("Buffer::write{{_async}}(): Offset out of range."); }
-        if data.len() > self.len() - offset {
-            return OclError::err("Buffer::write{{_async}}(): Data length out of range."); }
-
-        let command_queue = match queue {
-            Some(q) => q.core_as_ref(),
-            None => &self.command_queue_obj_core,
-        };
-
-        // let blocking_write = enew.is_none();
-        core::enqueue_write_buffer(command_queue, &self.obj_core, block, 
-            // offset, data, ewait.map(|el| el.core_as_ref()), enew.map(|el| el.core_as_mut()))
-            offset, data, ewait, enew)
-    }
-
-    /// Reads `data.len() * mem::size_of::<T>()` bytes from the (remote) device buffer 
-    /// into `data` with a remote offset of `offset` and blocks until complete.
-    ///
-    /// ## Errors
-    ///
-    /// `offset` must be less than the length of the buffer.
-    ///
-    /// The length of `data` must be less than the length of the buffer minus `offset`.
-    ///
-    /// Errors upon any OpenCL error.
-    pub fn read(&self, data: &mut [T])
-    {
-        // Safe due to being a blocking read (right?).
-        unsafe { self.enqueue_read(None, true, 0, data, None, None).expect("ocl::Buffer::read()") }
-    }
-
-    /// Writes `data.len() * mem::size_of::<T>()` bytes from `data` to the (remote) 
-    /// device buffer with a remote offset of `offset` and blocks until complete.
-    ///
-    /// ## Panics
-    ///
-    /// `offset` must be less than the length of the buffer.
-    ///
-    /// The length of `data` must be less than the length of the buffer minus `offset`.
-    ///
-    /// Errors upon any OpenCL error.
-    pub fn write(&self, data: &[T])
-    {
-        self.enqueue_write(None, true, 0, data, None, None).expect("ocl::Buffer::read()")
-    }
-
-    /// Blocks the current thread until the underlying command queue has
-    /// completed all commands.
-    pub fn wait(&self) {
-        core::finish(&self.command_queue_obj_core).unwrap();
+    pub fn write<'b>(&'b self, data: &'b [T]) -> BufferCmd<'b, T> {
+        self.cmd().write(data)
     }
 
     /// Returns the length of the Buffer.
     ///
-    /// This is the length of both the device side buffer and the host side vector,
-    /// if any. This may not agree with desired dataset size because it will have been
-    /// rounded up to the nearest maximum workgroup size of the device on which it was
-    /// created.
+    // /// This is the length of both the device side buffer and the host side vector,
+    // /// if any. This may not agree with desired dataset size because it will have been
+    // /// rounded up to the nearest maximum workgroup size of the device on which it was
+    // /// created.
     #[inline]
     pub fn len(&self) -> usize {
         // debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
@@ -316,38 +479,44 @@ impl<T: OclPrm> Buffer<T> {
         self.len
     }
 
-    /// Returns a copy of the core buffer object reference.
-    pub fn core_as_ref(&self) -> &MemCore {
-        &self.obj_core
-    }
-
-    /// Changes the default queue used by this Buffer for reads and writes, etc.
-    ///
-    /// Returns a ref for chaining i.e.:
-    ///
-    /// `buffer.set_queue(queue).flush_vec(....);`
-    ///
-    /// [NOTE]: Even when used as above, the queue is changed permanently,
-    /// not just for the one call. Changing the queue is cheap so feel free
-    /// to change as often as needed.
-    ///
-    pub fn set_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Buffer<T> {
-        // [FIXME]: Set this up:
-        // assert!(queue.device == self.queue.device);
-        // [/FIXME]
-
-        self.command_queue_obj_core = queue.core_as_ref().clone();
-        self
-    }
-
-    /// Returns info about this buffer.
-    fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
+    /// Returns info about the underlying memory object.
+    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
         match core::get_mem_object_info(&self.obj_core, info_kind) {
             Ok(res) => res,
             Err(err) => MemInfoResult::Error(Box::new(err)),
         }        
     }
 
+    /// Changes the default queue used by this Buffer for reads and writes, etc.
+    ///
+    /// Returns a ref for chaining i.e.:
+    ///
+    /// `buffer.set_default_queue(queue).read(....);`
+    ///
+    /// [NOTE]: Even when used as above, the queue is changed permanently,
+    /// not just for the one call. Changing the queue is cheap so feel free
+    /// to change as often as needed.
+    ///
+    pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Buffer<T> {
+        // [FIXME]: Set this up:
+        // assert!(queue.device == self.queue.device);
+        // [/FIXME]
+
+        self.queue = queue.clone();
+        self
+    }
+
+    /// Returns a reference to the default queue.
+    pub fn default_queue(&self) -> &Queue {
+        &self.queue
+    }
+
+    /// Returns a copy of the core memory object reference.
+    pub fn core_as_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+
+    // Formats memory info.
     fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Buffer Mem")
             .field("Type", &self.mem_info(MemInfo::Type))

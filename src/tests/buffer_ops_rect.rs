@@ -64,11 +64,11 @@ fn buffer_ops_rect() {
     assert_eq!(vec.len(), len);
 
     // KERNEL RUN #1 -- make sure everything's working normally:
-    kernel_add.enqueue();
+    kernel_add.enq().expect("[FIXME]: HANDLE ME!");
     let mut ttl_runs = 1i32;
 
     // READ AND VERIFY #1 (LINEAR):
-    buf.read(&mut vec);
+    buf.read(&mut vec).enq().unwrap();
 
     for idx in 0..proque.dims().to_len() {
         // DEBUG:
@@ -108,7 +108,7 @@ fn buffer_ops_rect() {
             &mut vec, None::<&core::EventList>, None).unwrap(); }
 
         // Run kernel:
-        kernel_add.enqueue();
+        kernel_add.enq().expect("[FIXME]: HANDLE ME!");
         ttl_runs += 1;
         let cur_val = ADDEND * ttl_runs as f32;
         let old_val = ADDEND * (ttl_runs - 1) as f32;
@@ -130,7 +130,7 @@ fn buffer_ops_rect() {
             row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
 
         // Run kernel:
-        kernel_add.enqueue();
+        kernel_add.enq().expect("[FIXME]: HANDLE ME!");
         ttl_runs += 1;
         let cur_val = ADDEND * ttl_runs as f32;
         let old_val = ADDEND * (ttl_runs - 1) as f32;
@@ -176,7 +176,7 @@ fn buffer_ops_rect() {
         ttl_runs += 1;
         let cur_val = ADDEND * ttl_runs as f32;
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
-        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enqueue();
+        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         // Write `next_val` to all of `vec`. This will be our 'in-region' value:
         for ele in vec.iter_mut() { *ele = nxt_val }
@@ -200,7 +200,7 @@ fn buffer_ops_rect() {
         ttl_runs += 1;
         let cur_val = ADDEND * ttl_runs as f32;
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
-        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enqueue();
+        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         // Write `next_val` to all of `vec`. This will be our 'in-region' value:
         for ele in vec.iter_mut() { *ele = nxt_val }
@@ -264,7 +264,7 @@ fn buffer_ops_rect() {
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
 
         // Reset destination buffer to current val:
-        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enqueue();
+        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         // Set all of `vec_src` to equal the 'next' value. This will be our
         // 'in-region' value and will be written to the device before copying.
@@ -296,7 +296,7 @@ fn buffer_ops_rect() {
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
 
         // Reset destination buffer to current val:
-        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enqueue();
+        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         // Set all of `vec_src` to equal the 'next' value. This will be our
         // 'in-region' value and will be written to the device before copying.

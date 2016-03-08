@@ -131,9 +131,9 @@ fn main() {
 
     // print!("\n");
     printlnc!(royal_blue: "Attempting to blue-ify the image...");
-    kernel.enqueue();
+    kernel.enq().expect("[FIXME]: HANDLE ME!");
 
-    dst_image.read(&mut img).unwrap();
+    dst_image.read(&mut img).enq().unwrap();
 
     // print!("\n");
     printlnc!(dark_grey: "Pixel after: [0..16]: {:?}", &img[(0, 0)]);

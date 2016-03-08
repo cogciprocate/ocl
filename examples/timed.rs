@@ -4,7 +4,6 @@
 // running tests, increase `DATASET_SIZE`, and the `*_ITERS` consts.
 // The other consts can be anything at all
 
-#![feature(time2)]
 extern crate ocl;
 use std::time::Instant;
 
@@ -74,14 +73,14 @@ fn main() {
     let kern_start = Instant::now();
 
     // Enqueue kernel the first time:
-    kern.enqueue();
+    kern.enq().expect("[FIXME]: HANDLE ME!");
 
     // Set kernel source buffer to the same as result:
     kern.set_arg_buf_named("source", Some(&buffer_result)).unwrap();
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {
-        kern.enqueue();
+        kern.enq().expect("[FIXME]: HANDLE ME!");
     }
 
     // Wait for all kernels to run:
@@ -122,7 +121,7 @@ fn main() {
     let kern_buf_start = Instant::now();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enqueue();
+        kern.enq().expect("[FIXME]: HANDLE ME!");
         // buffer_result.fill_vec();
         buffer_result.cmd().read(&mut vec_result).enq().unwrap();
     }
@@ -193,7 +192,7 @@ fn main() {
 
 
 fn print_elapsed(title: &str, start: Instant) {
-    let time_elapsed = Instant::now().duration_from_earlier(start);
+    let time_elapsed = Instant::now().duration_since(start);
     let elapsed_ms = time_elapsed.subsec_nanos() / 1000000;
     let separator = if title.len() > 0 { ": " } else { "" };
     println!("    {}{}: {}.{:03}", title, separator, time_elapsed.as_secs(), elapsed_ms);
