@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut};
 use core::{self, OclPrm, Mem as MemCore, CommandQueue as CommandQueueCore, MemFlags, 
     MemInfo, MemInfoResult, ClEventPtrNew};
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, MemDims, EventList, BufferCmd, SpatialDims};
+use standard::{Queue, MemLen, EventList, BufferCmd, SpatialDims};
 
 
 /// A chunk of memory physically located on a device, such as a GPU.
@@ -58,19 +58,20 @@ impl<T: OclPrm> Buffer<T> {
     /// The returned Buffer contains no host side vector. Functions associated with
     /// one such as `.enqueue_flush_vec()`, `enqueue_fill_vec()`, etc. will panic.
     /// [FIXME]: Return result.
-    pub fn new<D: MemDims>(dims: D, queue: &Queue) -> Buffer<T> {
-        // let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
-        let dims: SpatialDims = dims.to_size().into();  
-        let len = dims.to_len().expect("Buffer::new()");
+    pub fn new<D: MemLen>(dims: D, queue: &Queue) -> Buffer<T> {
+        let dims: SpatialDims = dims.to_lens().into(); 
+        // let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+        let len = dims.to_len();
         Buffer::_new(dims, len, queue)
     }
 
-    pub fn newer_new<D: MemDims>(queue: &Queue, flags: Option<MemFlags>, dims: D, host_ptr: Option<&[T]>) 
+    pub fn newer_new<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, host_ptr: Option<&[T]>) 
             -> OclResult<Buffer<T>>
     {
         let flags = flags.unwrap_or(core::MEM_READ_WRITE);
-        let dims: SpatialDims = dims.to_size().into();
-        let len = try!(dims.to_len());
+        let dims: SpatialDims = dims.to_lens().into();
+        // let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+        let len = dims.to_len();
         let obj_core = unsafe { try!(core::create_buffer(queue.context_core_as_ref(), flags, len,
             host_ptr)) };
 
@@ -85,6 +86,8 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Creates a new Buffer with caller-managed buffer length, type, flags, and 
     /// initialization.
+    ///
+    /// - Does not optimize size. 
     ///
     /// [DOCUMENTATION OUT OF DATE]
     ///
@@ -123,7 +126,7 @@ impl<T: OclPrm> Buffer<T> {
                 queue: &Queue) -> Buffer<T> where S: Into<SpatialDims>
     {
         let dims = dims.into();
-        let len = dims.to_len().expect("Buffer::_new()");
+        let len = dims.to_len();
         let obj_core = core::create_buffer(queue.context_core_as_ref(), flags, len,
             host_ptr).expect("[FIXME: TEMPORARY]: Buffer::_new():");
 

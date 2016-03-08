@@ -58,7 +58,7 @@ pub use self::error::{Error, Result};
 
 pub mod traits {
 	//! Commonly used traits.
-	pub use standard::{WorkDims, MemDims};
+	pub use standard::{WorkDims, MemLen};
 	pub use core::OclPrm;
 }
 

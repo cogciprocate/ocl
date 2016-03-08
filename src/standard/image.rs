@@ -79,7 +79,7 @@ impl<S: OclPrm> Image<S> {
     ///
     pub fn cmd<'b>(&'b self) -> ImageCmd<'b, S> {
         ImageCmd::new(&self.command_queue_obj_core, &self.obj_core, 
-            self.dims.to_size().expect("ocl::Image::cmd"))
+            self.dims.to_lens().expect("ocl::Image::cmd"))
     }
 
     /// Reads from the device image buffer into `data`.
@@ -138,7 +138,7 @@ impl<S: OclPrm> Image<S> {
     /// Use `::enqueue_read` for the complete range of options.
     pub fn read(&self, data: &mut [S]) -> OclResult<()> {
         // Safe because `block = true`:
-        unsafe { self.enqueue_read(None, true, [0, 0, 0], try!(self.dims.to_size()), 0, 0,  data, None, None) }
+        unsafe { self.enqueue_read(None, true, [0, 0, 0], try!(self.dims.to_lens()), 0, 0,  data, None, None) }
     }
 
     /// Writes from `data` to the device image buffer, blocking until complete.
@@ -148,7 +148,7 @@ impl<S: OclPrm> Image<S> {
     ///
     /// Use `::enqueue_write` for the complete range of options.
     pub fn write(&self, data: &[S]) -> OclResult<()> {
-        self.enqueue_write(None, true, [0, 0, 0], try!(self.dims.to_size()), 0, 0,  data, None, None)
+        self.enqueue_write(None, true, [0, 0, 0], try!(self.dims.to_lens()), 0, 0,  data, None, None)
     }
 
     /// Returns the core image object pointer.
@@ -207,7 +207,7 @@ impl<S: OclPrm> Image<S> {
     }
 
     pub fn pixel_count(&self) -> usize {
-        self.dims.to_len().expect("ocl::Image::pixel_count")
+        self.dims.to_len()
     }
 
     /// Format image info.

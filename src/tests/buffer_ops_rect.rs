@@ -37,7 +37,7 @@ fn buffer_ops_rect() {
         .build().unwrap();   
 
     // SRC_BUFFER:
-    let mut vec = vec![0.0f32; proque.dims().to_len().unwrap()];
+    let mut vec = vec![0.0f32; proque.dims().to_len()];
     // let buf = unsafe { Buffer::new_unchecked(
     //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec), proque.queue()) };
@@ -55,11 +55,11 @@ fn buffer_ops_rect() {
     //========================================================================
     //========================================================================
     // Make sure that pro_que's dims are correct:
-    let dims = proque.dims().to_size().unwrap();
+    let dims = proque.dims().to_lens().unwrap();
     assert_eq!(DIMS, dims);
 
     // Verify buffer and vector lengths:
-    let len = proque.dims().to_len().unwrap();
+    let len = proque.dims().to_len();
     assert_eq!(buf.len(), len);
     assert_eq!(vec.len(), len);
 
@@ -70,7 +70,7 @@ fn buffer_ops_rect() {
     // READ AND VERIFY #1 (LINEAR):
     buf.read(&mut vec);
 
-    for idx in 0..proque.dims().to_len().unwrap() {
+    for idx in 0..proque.dims().to_len() {
         // DEBUG:
         // print!("[{:02}]", vec[i]);
         // if i % 20 == 19 { print!("\n"); }
@@ -222,7 +222,7 @@ fn buffer_ops_rect() {
     //========================================================================
     //========================================================================
     // Source Buffer:
-    let mut vec_src = vec![0.0f32; proque.dims().to_len().unwrap()];
+    let mut vec_src = vec![0.0f32; proque.dims().to_len()];
     // let buf_src = unsafe { Buffer::new_unchecked(
     //     flags::MEM_READ_ONLY | flags::MEM_HOST_WRITE_ONLY | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec_src), proque.queue()) };
@@ -230,7 +230,7 @@ fn buffer_ops_rect() {
         core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src)).unwrap();
 
     // Destination Buffer:
-    let mut vec_dst = vec![0.0f32; proque.dims().to_len().unwrap()];
+    let mut vec_dst = vec![0.0f32; proque.dims().to_len()];
     // let buf_dst = unsafe { Buffer::new_unchecked(
     //     flags::MEM_WRITE_ONLY | flags::MEM_HOST_READ_ONLY | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec_dst), proque.queue()) };

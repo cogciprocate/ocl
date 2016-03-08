@@ -8,12 +8,12 @@ static VEC_OPT_ERR_MSG: &'static str = "No host side vector defined for this Buf
 
 
 pub trait BufferExtras<T: OclPrm> {
-    fn with_vec_initialized_to<D: MemDims>(init_val: T, dims: D, queue: &Queue) -> Buffer<T>;
-    fn with_vec_shuffled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) -> Buffer<T>;
-    fn with_vec_scrambled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) -> Buffer<T>;
-    fn set_all_to(&mut self, val: T) -> OclResult<()>;
+    fn with_vec_initialized_to<D: MemLen>(init_val: T, dims: D, queue: &Queue) -> Buffer<T>;
+    fn with_vec_shuffled<D: MemLen>(vals: (T, T), dims: D, queue: &Queue) -> Buffer<T>;
+    fn with_vec_scrambled<D: MemLen>(vals: (T, T), dims: D, queue: &Queue) -> Buffer<T>;
+    fn.cmd().fill([&mut self, val: T]).enq() -> OclResult<()>;
     fn set_range_to(&mut self, val: T, range: Range<usize>) -> OclResult<()>;
-    unsafe fn resize<B: MemDims>(&mut self, new_dims: &B, queue: &Queue);
+    unsafe fn resize<B: MemLen>(&mut self, new_dims: &B, queue: &Queue);
     fn print_simple(&mut self);
     fn print_val_range(&mut self, every: usize, val_range: Option<(T, T)>,);
     fn print(&mut self, every: usize, val_range: Option<(T, T)>, 
@@ -59,8 +59,8 @@ impl<T> VecOption<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with a sensible default value.
     /// [FIXME]: Return result.
-    pub fn with_vec<D: MemDims>(dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+    pub fn with_vec<D: MemLen>(dims: D, queue: &Queue) -> Buffer<T> {
+        let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let vec: Vec<T> = std::iter::repeat(T::default()).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -246,8 +246,8 @@ impl<T: OclPrm> BufferExtras<T> for Buffer<T> {
     /// Creates a new read/write Buffer with a host side working copy of data.
     /// Host vector and device buffer are initialized with the value, `init_val`.
     /// [FIXME]: Return result.
-    fn with_vec_initialized_to<D: MemDims>(init_val: T, dims: D, queue: &Queue) -> Buffer<T> {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+    fn with_vec_initialized_to<D: MemLen>(init_val: T, dims: D, queue: &Queue) -> Buffer<T> {
+        let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let vec: Vec<T> = std::iter::repeat(init_val).take(len).collect();
 
         Buffer::_with_vec(vec, queue)
@@ -266,10 +266,10 @@ impl<T: OclPrm> BufferExtras<T> for Buffer<T> {
     /// Resulting values are not cryptographically secure.
     /// [FIXME]: Return result.
     // Note: vals.1 is inclusive.
-    fn with_vec_shuffled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) 
+    fn with_vec_shuffled<D: MemLen>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+        let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let vec: Vec<T> = util::shuffled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -284,10 +284,10 @@ impl<T: OclPrm> BufferExtras<T> for Buffer<T> {
     /// Resulting values are not cryptographically secure.
     /// [FIXME]: Return result.
     // Note: vals.1 is exclusive.
-    fn with_vec_scrambled<D: MemDims>(vals: (T, T), dims: D, queue: &Queue) 
+    fn with_vec_scrambled<D: MemLen>(vals: (T, T), dims: D, queue: &Queue) 
             -> Buffer<T> 
     {
-        let len = dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+        let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
         let vec: Vec<T> = util::scrambled_vec(len, vals);
 
         Buffer::_with_vec(vec, queue)
@@ -299,7 +299,7 @@ impl<T: OclPrm> BufferExtras<T> for Buffer<T> {
     /// Panics if this Buffer contains no vector.
     /// [FIXME]: GET WORKING EVEN WITH NO CONTAINED VECTOR
     /// TODO: Consider adding to `BufferCmd`.
-    fn set_all_to(&mut self, val: T) -> OclResult<()> {
+    fn.cmd().fill([&mut self, val: T]).enq() -> OclResult<()> {
         {
             let vec = try!(self.vec.as_mut());
             for ele in vec.iter_mut() {
@@ -339,9 +339,9 @@ impl<T: OclPrm> BufferExtras<T> for Buffer<T> {
     /// [IMPORTANT]: You must manually reassign any kernel arguments which may have 
     /// had a reference to the (device side) buffer associated with this Buffer.
     /// [FIXME]: Return result.
-    unsafe fn resize<B: MemDims>(&mut self, new_dims: &B, queue: &Queue) {
+    unsafe fn resize<B: MemLen>(&mut self, new_dims: &B, queue: &Queue) {
         // self.release();
-        let new_len = new_dims.padded_buffer_len(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+        let new_len = new_dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
 
         match self.vec {
             VecOption::Some(ref mut vec) => {

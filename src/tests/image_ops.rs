@@ -44,7 +44,7 @@ fn image_ops() {
 
     let sampler = Sampler::new(proque.context(), true, AddressingMode::None, FilterMode::Nearest).unwrap();
 
-    let mut vec = vec![0i32; proque.dims().to_len().unwrap() * ADDEND.len()];
+    let mut vec = vec![0i32; proque.dims().to_len() * ADDEND.len()];
 
     // Source and destination images and a vec to shuffle data:
     let img_src = Image::<i32>::builder()
@@ -79,13 +79,13 @@ fn image_ops() {
     //========================================================================
     //========================================================================
     // Make sure that pro_que's dims are correct:
-    let dims = proque.dims().to_size().unwrap();
+    let dims = proque.dims().to_lens().unwrap();
     assert_eq!(DIMS, dims);
 
     // Verify image and vector lengths:
-    let len = proque.dims().to_len().unwrap();
-    assert_eq!(img_src.dims().to_len().unwrap(), len);
-    assert_eq!(img_dst.dims().to_len().unwrap(), len);
+    let len = proque.dims().to_len();
+    assert_eq!(img_src.dims().to_len(), len);
+    assert_eq!(img_dst.dims().to_len(), len);
 
     let pixel_elements = img_src.pixel_elements();
     assert_eq!(vec.len(), len * pixel_elements);
@@ -97,7 +97,7 @@ fn image_ops() {
     // READ AND VERIFY #1 (LINEAR):
     img_dst.read(&mut vec).unwrap();
 
-    for idx in 0..proque.dims().to_len().unwrap() {
+    for idx in 0..proque.dims().to_len() {
         assert!(vec[idx] == ADDEND[0] * ttl_runs, "vec[{}]: {}", idx, vec[idx]);
     }
 

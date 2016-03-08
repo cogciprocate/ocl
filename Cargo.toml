@@ -15,7 +15,6 @@ exclude = ["target/*", "*.png", "bak/*"]
 # git = "https://github.com/rust-lang-nursery/bitflags.git"
 
 [dependencies]
-# find_folder = "*"
 rand = "0.3"
 num = "0.1"
 libc = "0.2"
@@ -25,6 +24,7 @@ bitflags = "0.5"
 [dev-dependencies]
 # time = "*"
 image = "0.7"
+find_folder = "*"
 
 [profile.test]
 opt-level = 0

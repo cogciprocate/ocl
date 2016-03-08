@@ -2,7 +2,7 @@
 
 use std::io::Read;
 use std::fs::File;
-use std::path::Path;
+use std::path::PathBuf;
 use std::ffi::{CString};
 use std::collections::HashSet;
 use std::convert::Into;
@@ -61,6 +61,7 @@ impl BuildOpt {
 pub struct ProgramBuilder {
     options: Vec<BuildOpt>,
     src_file_names: Vec<String>,
+    src_files: Vec<PathBuf>,
     // device_idxs: Vec<usize>,
     devices: Vec<Device>,
     // embedded_kernel_source: Vec<String>,
@@ -71,7 +72,8 @@ impl ProgramBuilder {
     pub fn new() -> ProgramBuilder {
         ProgramBuilder {
             options: Vec::with_capacity(64),
-            src_file_names: Vec::with_capacity(32),
+            src_file_names: Vec::with_capacity(16),
+            src_files: Vec::with_capacity(16),
             // device_idxs: Vec::with_capacity(8),
             devices: Vec::with_capacity(8),
             // embedded_kernel_source: Vec::with_capacity(32),
@@ -134,9 +136,15 @@ impl ProgramBuilder {
         self
     }
 
+    // /// Adds a kernel file to the list of included sources.
+    // pub fn src_file_name<S: Into<String>>(mut self, file_name: S) -> ProgramBuilder {
+    //     self.src_file_names.push(file_name.into());
+    //     self
+    // }   
+
     /// Adds a kernel file to the list of included sources.
-    pub fn src_file<S: Into<String>>(mut self, file_name: S) -> ProgramBuilder {
-        self.src_file_names.push(file_name.into());
+    pub fn src_file<P: Into<PathBuf>>(mut self, file_path: P) -> ProgramBuilder {
+        self.src_files.push(file_path.into());
         self
     }   
 
@@ -288,22 +296,24 @@ impl ProgramBuilder {
     /// - core source from `self.embedded_kernel_source`
     pub fn get_src_strings(&self) -> OclResult<Vec<CString>> {
         let mut src_strings: Vec<CString> = Vec::with_capacity(64);
-        let mut src_file_history: HashSet<&String> = HashSet::with_capacity(64);
+        // let mut src_file_history: HashSet<&String> = HashSet::with_capacity(64);
+        let mut src_file_history: HashSet<PathBuf> = HashSet::with_capacity(64);
 
         src_strings.extend_from_slice(&try!(self.get_kernel_includes()));
 
-        for kfn in self.get_src_file_names().iter().rev() {
-            let mut src_str: Vec<u8> = Vec::with_capacity(100000);
+        // for kfn in self.get_src_file_names().iter().rev() {
+        for srcpath in self.src_files.iter().rev() {
+            let mut src_bytes: Vec<u8> = Vec::with_capacity(100000);
 
-            if src_file_history.contains(kfn) { continue; }
-            src_file_history.insert(&kfn);
+            if src_file_history.contains(srcpath) { continue; }
+            src_file_history.insert(srcpath.clone());
 
-            let valid_kfp = Path::new(kfn);
-            let mut src_file = try!(File::open(&valid_kfp));
+            // let valid_kfp = Path::new(kfn);
+            let mut src_file_handle = try!(File::open(srcpath));
 
-            try!(src_file.read_to_end(&mut src_str));
-            src_str.shrink_to_fit();
-            src_strings.push(try!(CString::new(src_str)));
+            try!(src_file_handle.read_to_end(&mut src_bytes));
+            src_bytes.shrink_to_fit();
+            src_strings.push(try!(CString::new(src_bytes)));
         }
 
         src_strings.extend_from_slice(&try!(self.get_kernel_includes_eof()));

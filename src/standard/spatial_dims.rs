@@ -6,12 +6,12 @@ use std::ops::Index;
 // use std::mem;
 use num::{Num, ToPrimitive};
 use error::{Result as OclResult, Error as OclError};
-use standard::{MemDims, WorkDims};
+use standard::{MemLen, WorkDims};
 use util;
 
 /// Specifies a size or offset in up to three dimensions.
 ///
-/// Custom types implementing `MemDims` and `WorkDims` should be created to
+/// Custom types implementing `MemLen` and `WorkDims` should be created to
 /// express more complex relationships between data shape and work size.
 /// rather than using this one.
 ///
@@ -68,7 +68,7 @@ impl SpatialDims {
     }
 
     /// Returns a 3D size or an error.
-    pub fn to_size(&self) -> OclResult<[usize; 3]> {
+    pub fn to_lens(&self) -> OclResult<[usize; 3]> {
         match self {
             &SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
             &SpatialDims::One(x) => Ok([x, 1, 1]),
@@ -89,26 +89,26 @@ impl SpatialDims {
 
     /// Returns the product of all contained dimensional values (equivalent to
     /// a length, area, or volume depending on how many dimensions) or an
-    /// error.
-    pub fn to_len(&self) -> OclResult<usize> {
+    /// zero.
+    pub fn to_len(&self) -> usize {
         match self {
-            &SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
-            &SpatialDims::Three(d0, d1, d2) => Ok(d0 * d1 * d2),
-            &SpatialDims::Two(d0, d1) => Ok(d0 * d1),
-            &SpatialDims::One(d0) => Ok(d0),
+            &SpatialDims::Unspecified => 0,
+            &SpatialDims::Three(d0, d1, d2) => d0 * d1 * d2,
+            &SpatialDims::Two(d0, d1) => d0 * d1,
+            &SpatialDims::One(d0) => d0,
         }
     }
 
 
     // /// Returns a 3D size.
-    // pub fn to_size(&self) -> [usize; 3] {
+    // pub fn to_lens(&self) -> [usize; 3] {
     //     // match self {
     //     //     &SpatialDims::Unspecified => 
     //     //     &SpatialDims::One(x) => [x, 1, 1],
     //     //     &SpatialDims::Two(x, y) => [x, y, 1],
     //     //     &SpatialDims::Three(x, y, z) => [x, y, z],
     //     // }
-    //     self.to_size().expect("ocl::SpatialDims::to_size()")
+    //     self.to_lens().expect("ocl::SpatialDims::to_lens()")
     // }
 
     // /// Returns 3D offset.
@@ -130,17 +130,21 @@ impl SpatialDims {
 
     /// Takes the length and rounds it up to the nearest `incr` or an error.
     pub fn try_to_padded_len(&self, incr: usize) -> OclResult<usize> {
-        Ok(util::padded_len(try!(self.to_len()), incr))
+        Ok(util::padded_len(self.to_len(), incr))
     }
 }
 
-impl MemDims for SpatialDims {
-    fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
-        self.try_to_padded_len(incr)
+impl MemLen for SpatialDims {
+    fn to_len_padded(&self, incr: usize) -> usize {
+        self.try_to_padded_len(incr).expect("ocl::SpatialDims::to_len_padded()")
+    }
+
+    fn to_len(&self) -> usize {
+        self.to_len()
     }
     
-    fn to_size(&self) -> [usize; 3] { 
-        self.to_size().expect("SpatialDims::<MemDims>::to_size()")
+    fn to_lens(&self) -> [usize; 3] { 
+        self.to_lens().expect("SpatialDims::<MemLen>::to_lens()")
     }
 }
 
@@ -157,7 +161,7 @@ impl WorkDims for SpatialDims {
         //     &SpatialDims::Two(x, y) => Some([x, y, 1]),
         //     &SpatialDims::Three(x, y, z) => Some([x, y, z]),
         // }
-        self.to_size().ok()
+        self.to_lens().ok()
     }
 
     fn to_work_offset(&self) -> Option<[usize; 3]> {

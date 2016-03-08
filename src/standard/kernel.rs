@@ -120,6 +120,23 @@ pub struct Kernel {
     lws: SpatialDims,
 }
 
+// ######### IMPLEMENT THIS #########
+// extern crate fnv;
+
+// use std::collections::HashMap;
+// use std::hash::BuildHasherDefault;
+// use fnv::FnvHasher;
+
+// type MyHasher = BuildHasherDefault<FnvHasher>;
+
+// fn main() {
+//     let mut map: HashMap<_, _, MyHasher> = HashMap::default();
+//     map.insert(1, "Hello");
+//     map.insert(2, ", world!");
+//     println!("{:?}", map);
+// }
+
+
 impl Kernel {
     /// Returns a new kernel.
     // TODO: Implement proper error handling (return result etc.).

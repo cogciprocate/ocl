@@ -17,8 +17,8 @@ pub struct Device(DeviceIdCore);
 
 impl Device {
     /// Returns the first available device on a platform
-    pub fn first(platform: &Platform) -> Device {
-        let first_core = core::get_device_ids(platform, None, None)
+    pub fn first(platform: Platform) -> Device {
+        let first_core = core::get_device_ids(&platform, None, None)
             .expect("ocl::Device::first: Error retrieving device list");
         Device(first_core[0])
     }

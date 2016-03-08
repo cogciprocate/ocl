@@ -47,7 +47,7 @@ fn main() {
     // let vec_init: Buffer<f32> = Buffer::with_vec_scrambled(
     //      INIT_VAL_RANGE, &dims, &ocl_pq.queue());
     // let mut buffer_result: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
-    let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len().unwrap());
+    let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
     let buffer_init = Buffer::newer_new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
         core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_init)).unwrap();
 

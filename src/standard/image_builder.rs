@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 use error::{Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, ImageFormat, ImageDescriptor, MemObjectType,
     ImageChannelOrder, ImageChannelDataType};
-use standard::{Context, Queue, Image, SpatialDims, MemDims};
+use standard::{Context, Queue, Image, SpatialDims, MemLen};
 
 
 
@@ -141,9 +141,9 @@ impl<S: OclPrm> ImageBuilder<S> {
 	/// * To set the dimensions of a 3d image use:
 	///   `SpatialDims::Three(width, height, depth)`.
 	///
-    pub fn dims<'a, D: MemDims>(&'a mut self, dims: D) -> &'a mut ImageBuilder<S> {
-        let dims = dims.to_size();
-    	// let size = dims.to_size().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
+    pub fn dims<'a, D: MemLen>(&'a mut self, dims: D) -> &'a mut ImageBuilder<S> {
+        let dims = dims.to_lens();
+    	// let size = dims.to_lens().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
      //        dimensions: {:?}", dims));
     	self.image_desc.image_width = dims[0];
     	self.image_desc.image_height = dims[1];

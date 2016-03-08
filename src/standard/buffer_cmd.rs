@@ -4,8 +4,9 @@ use standard::{Queue, EventList, Buffer};
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
-    if offset >= mem_len { return OclError::err(
-        "ocl::Buffer::enq(): Offset out of range."); }
+    if offset >= mem_len { return OclError::err(format!(
+        "ocl::Buffer::enq(): Offset out of range. (mem_len: {}, data_len: {}, offset: {}", 
+        mem_len, data_len, offset)); }
     if data_len > (mem_len - offset) { return OclError::err(
         "ocl::Buffer::enq(): Data length exceeds buffer length."); }
     Ok(())
@@ -17,7 +18,7 @@ pub enum BufferCmdKind<'b, T: 'b> {
     Read { data: &'b mut [T] },
     Write { data: &'b [T] },
     Copy { dst_buffer: &'b MemCore, dst_offset: usize, len: usize },
-    Fill { pattern: &'b [T] },
+    Fill { pattern: &'b [T], len: Option<usize> },
     CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
 } 
 
@@ -225,10 +226,10 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn fill(mut self, pattern: &'b [T]) -> BufferCmd<'b, T> {
+    pub fn fill(mut self, pattern: &'b [T], len: Option<usize>) -> BufferCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind \
             already set for this command.");
-        self.kind = BufferCmdKind::Fill { pattern: pattern }; 
+        self.kind = BufferCmdKind::Fill { pattern: pattern, len: len }; 
         self
     }
 
@@ -353,12 +354,16 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                     },
                 }
             },
-            BufferCmdKind::Fill { pattern } => {
+            BufferCmdKind::Fill { pattern, len } => {
                 match self.shape {
                     BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.mem_len, pattern.len(), offset));
+                        let len = match len {
+                            Some(l) => l,
+                            None => self.mem_len,
+                        };
+                        try!(check_len(self.mem_len, pattern.len() * len, offset));
                         core::enqueue_fill_buffer(self.queue, self.obj_core, pattern, 
-                            offset, self.mem_len, self.ewait, self.enew)
+                            offset, len, self.ewait, self.enew)
                     },
                     BufferCmdDataShape::Rect { .. } => {
                         return OclError::err("ocl::BufferCmd::enq(): Rectangular fill is not a \

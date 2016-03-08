@@ -4,11 +4,11 @@ use std::convert::Into;
 use std::ops::Deref;
 use core::OclPrm;
 use standard::{Context, ProQueBuilder, Program, Queue, Kernel, Buffer,
-    MemDims, SpatialDims, WorkDims};
+    MemLen, SpatialDims, WorkDims};
 use error::{Result as OclResult, Error as OclError};
 
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use 
-    'ProQue::builder().dims(__)...' or 'my_pro_que.set_dims(__)' to specify.";
+    'ProQue::builder().dims(__)...' or '{{a_pro_que}}.set_dims(__)' to specify.";
 
 
 /// An all-in-one chimera of the `Program`, `Queue`, and (optionally) the 
@@ -201,7 +201,7 @@ impl ProQue {
     pub fn create_buffer<T: OclPrm>(&self) -> Buffer<T> {
         let dims = self.dims_result().expect("ocl::ProQue::create_buffer");
         let buf = Buffer::<T>::new(&dims, &self.queue);
-        buf.cmd().fill(&[Default::default()]).enq().expect("ocl::ProQue::create_buffer");
+        buf.cmd().fill(&[Default::default()], None).enq().expect("ocl::ProQue::create_buffer");
         buf
     }
 
@@ -245,13 +245,16 @@ impl ProQue {
     }
 }
 
-impl MemDims for ProQue {
-    fn padded_buffer_len(&self, incr: usize) -> OclResult<usize> {
-        self.dims_result().expect("ProQue::padded_buffer_len").padded_buffer_len(incr)
+impl MemLen for ProQue {
+    fn to_len(&self) -> usize {
+        self.dims().to_len()
     }
-    fn to_size(&self) -> [usize; 3] { 
-        self.dims_result().expect("ProQue::padded_buffer_len")
-            .to_size().expect("ProQue::padded_buffer_len")
+    fn to_len_padded(&self, incr: usize) -> usize {
+        self.dims().to_len_padded(incr)
+    }
+    fn to_lens(&self) -> [usize; 3] { 
+        self.dims_result().expect("ocl::ProQue::to_lens()")
+            .to_lens().expect("ocl::ProQue::to_lens()")
     }
 }
 

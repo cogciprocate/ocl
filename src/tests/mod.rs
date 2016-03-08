@@ -6,11 +6,11 @@
 //! TODO: port some of bismit's tests over.
 //!
 //!
-pub mod test_build_error;
-pub mod test_buffer_copy;
-pub mod test_buffer_ops_rect;
-pub mod test_image_ops;
-pub mod test_fill;
+pub mod build_error;
+pub mod buffer_copy;
+pub mod buffer_ops_rect;
+pub mod image_ops;
+pub mod buffer_fill;
 
 use rand::{self, Rng};
 use error::{Error as OclError, Result as OclResult};

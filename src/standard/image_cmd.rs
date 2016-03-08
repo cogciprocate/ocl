@@ -6,10 +6,10 @@ use core::{self, OclPrm, Mem as MemCore, CommandQueue as CommandQueueCore, ClEve
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, EventList, Image};
 
-// fn check_size(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
-//     if offset >= mem_len { return OclError::err(
+// fn check_size(to_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
+//     if offset >= to_len { return OclError::err(
 //         "ocl::Image::enq(): Offset out of range."); }
-//     if data_len > (mem_len - offset) { return OclError::err(
+//     if data_len > (to_len - offset) { return OclError::err(
 //         "ocl::Image::enq(): Data length exceeds image length."); }
 //     Ok(())
 // }
@@ -55,7 +55,7 @@ pub struct ImageCmd<'b, S: 'b + OclPrm> {
 
 impl<'b, S: 'b + OclPrm> ImageCmd<'b, S> {
     /// Returns a new image command builder associated with with the
-    /// memory object `obj_core` along with a default `queue` and `mem_len` 
+    /// memory object `obj_core` along with a default `queue` and `to_len` 
     /// (the length of the device side image).
     pub fn new(queue: &'b CommandQueueCore, obj_core: &'b MemCore, dims: [usize; 3]) 
             -> ImageCmd<'b, S>
@@ -290,7 +290,7 @@ impl<'b, S: 'b + OclPrm> ImageCmd<'b, S> {
     pub fn enq(self) -> OclResult<()> {
         match self.kind {
             ImageCmdKind::Read { data } => { 
-                // try!(check_len(self.mem_len, data.len(), offset));
+                // try!(check_len(self.to_len, data.len(), offset));
 
                 let row_pitch = self.mem_dims[0];
                 let slc_pitch = self.mem_dims[0] * self.mem_dims[1];
