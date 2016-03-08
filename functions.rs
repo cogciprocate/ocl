@@ -39,7 +39,7 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     BufferCreateType};
 
 static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
-static SDK_DOCS_URL_SUF: &'static str = ".html";
+static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
 
 //============================================================================
 //============================================================================
