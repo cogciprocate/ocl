@@ -46,11 +46,11 @@ fn timed() {
     // let buffer_init: Buffer<f32> = Buffer::with_vec_scrambled(
     //      INIT_VAL_RANGE, &ocl_pq, &ocl_pq.queue());
     let vec = util::scrambled_vec(INIT_VAL_RANGE, DATASET_SIZE);
-    let buffer_init = Buffer::newer_new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+    let buffer_init = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
         core::MEM_COPY_HOST_PTR), ocl_pq.dims(), Some(&vec)).unwrap();
     // let mut buffer_result: Buffer<f32> = Buffer::with_vec(&ocl_pq, ocl_pq.queue());
     let mut vec_result = vec![0.0f32; DATASET_SIZE];
-    let mut buffer_result = Buffer::<f32>::newer_new(ocl_pq.queue(), None, 
+    let mut buffer_result = Buffer::<f32>::new(ocl_pq.queue(), None, 
         ocl_pq.dims(), None).unwrap();
 
     // Create a kernel with arguments matching those in the kernel:

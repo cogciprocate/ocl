@@ -103,7 +103,7 @@ fn main_exploded() {
     // [NOTE]: If there were more than one dimension we'd use the product as
     // the length.
     let mut buffer_vec = vec![0.0f32; dims[0]];
-    let buffer = Buffer::newer_new(&queue, Some(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR),
+    let buffer = Buffer::new(&queue, Some(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR),
         dims[0], Some(&buffer_vec));
 
     // For verification purposes:

@@ -41,7 +41,7 @@ fn main() {
     //     Buffer::with_vec_scrambled((0.0, 20.0), ocl_pq.dims(), &ocl_pq.queue());
 
     let vec_source = util::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
-    let source_buffer = Buffer::newer_new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+    let source_buffer = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
         core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_source)).unwrap();
 
     // Create another empty buffer for results (using ocl_pq for fun):

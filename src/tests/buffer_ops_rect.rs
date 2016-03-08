@@ -41,7 +41,7 @@ fn buffer_ops_rect() {
     // let buf = unsafe { Buffer::new_unchecked(
     //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec), proque.queue()) };
-    let buf = Buffer::newer_new(proque.queue(), Some(core::MEM_READ_WRITE | 
+    let buf = Buffer::new(proque.queue(), Some(core::MEM_READ_WRITE | 
         core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec)).unwrap();
 
     let kernel_add = proque.create_kernel("add")
@@ -226,7 +226,7 @@ fn buffer_ops_rect() {
     // let buf_src = unsafe { Buffer::new_unchecked(
     //     flags::MEM_READ_ONLY | flags::MEM_HOST_WRITE_ONLY | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec_src), proque.queue()) };
-    let buf_src = Buffer::newer_new(proque.queue(), Some(core::MEM_READ_WRITE | 
+    let buf_src = Buffer::new(proque.queue(), Some(core::MEM_READ_WRITE | 
         core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src)).unwrap();
 
     // Destination Buffer:
@@ -234,7 +234,7 @@ fn buffer_ops_rect() {
     // let buf_dst = unsafe { Buffer::new_unchecked(
     //     flags::MEM_WRITE_ONLY | flags::MEM_HOST_READ_ONLY | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec_dst), proque.queue()) };
-    let buf_dst = Buffer::newer_new(proque.queue(), Some(core::MEM_READ_WRITE | 
+    let buf_dst = Buffer::new(proque.queue(), Some(core::MEM_READ_WRITE | 
         core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_dst)).unwrap();
 
     // Source origin doesn't matter for this:

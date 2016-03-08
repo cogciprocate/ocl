@@ -40,7 +40,6 @@ impl<'b, E: 'b> ImageCmdKind<'b, E> {
 ///
 /// [FIXME]: Fills not yet implemented.
 pub struct ImageCmd<'b, E: 'b + OclPrm> {
-    // queue: &'b CommandQueueCore,
     queue: &'b Queue,
     obj_core: &'b MemCore,
     block: bool,
@@ -50,7 +49,6 @@ pub struct ImageCmd<'b, E: 'b + OclPrm> {
     // row_pitch: usize,
     // slc_pitch: usize,
     kind: ImageCmdKind<'b, E>,
-    // shape: ImageCmdDataShape,    
     ewait: Option<&'b EventList>,
     enew: Option<&'b mut ClEventPtrNew>,
     mem_dims: [usize; 3],
@@ -71,7 +69,6 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
             origin: [0, 0, 0],
             region: dims,
             kind: ImageCmdKind::Unspecified,
-            // shape: ImageCmdDataShape::Lin { offset: 0 },
             ewait: None,
             enew: None,
             mem_dims: dims,
@@ -328,7 +325,6 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
 #[derive(Clone, Debug)]
 pub struct Image<E: OclPrm> {
     obj_core: MemCore,
-    // command_queue_obj_core: CommandQueueCore,
     queue: Queue,
     dims: SpatialDims,
     pixel_element_len: usize,
@@ -337,7 +333,7 @@ pub struct Image<E: OclPrm> {
 
 impl<E: OclPrm> Image<E> {
     /// Returns an `ImageBuilder`. This is the recommended method to create
-    // a new `Image`.
+    /// a new `Image`.
     pub fn builder() -> ImageBuilder<E> {
         ImageBuilder::new()
     }
@@ -371,7 +367,6 @@ impl<E: OclPrm> Image<E> {
 
         let new_img = Image {
             obj_core: obj_core,
-            // command_queue_obj_core: queue.core_as_ref().clone(),
             queue: queue.clone(),
             dims: dims,
             pixel_element_len: pixel_element_len,

@@ -56,7 +56,7 @@ fn main() {
     		let device = devices[d_idx];
 	    	
 			let queue = Queue::new(&context, device).unwrap();
-			let buffer = Buffer::<f32>::newer_new(&queue, None, &dims, None).unwrap();
+			let buffer = Buffer::<f32>::new(&queue, None, &dims, None).unwrap();
 			let image = Image::<u8>::builder()
 				.dims(dims)
 				.build(&queue).unwrap();

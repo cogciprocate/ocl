@@ -411,18 +411,15 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 // TODO: Consider integrating an event list to help coordinate pending reads/writes.
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclPrm> {
-    // vec: Vec<T>,
     obj_core: MemCore,
     queue: Queue,
-    // command_queue_obj_core: CommandQueueCore,
     dims: SpatialDims,
     len: usize,
     _data: PhantomData<T>,
-    // vec: VecOption<T>,
 }
 
 impl<T: OclPrm> Buffer<T> {
-    pub fn newer_new<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, data: Option<&[T]>) 
+    pub fn new<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, data: Option<&[T]>) 
             -> OclResult<Buffer<T>>
     {
         let flags = flags.unwrap_or(core::MEM_READ_WRITE);
@@ -434,7 +431,6 @@ impl<T: OclPrm> Buffer<T> {
 
         Ok( Buffer {
             obj_core: obj_core,
-            // command_queue_obj_core: queue.core_as_ref().clone(),
             queue: queue.clone(),
             dims: dims,
             len: len,

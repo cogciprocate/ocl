@@ -21,7 +21,6 @@ pub struct KernelCmd<'k> {
     lws: SpatialDims,
     wait_list: Option<&'k EventList>,
     dest_list: Option<&'k mut ClEventPtrNew>,
-    // name: &'k str,
 }
 
 impl<'k> KernelCmd<'k> {
@@ -112,10 +111,8 @@ impl<'k> KernelCmd<'k> {
 #[derive(Debug)]
 pub struct Kernel {
     obj_core: KernelCore,
-    // name: String,
     named_args: HashMap<&'static str, u32>,
     arg_count: u32,
-    // command_queue_obj_core: CommandQueueCore,
     queue: Queue,
     gwo: SpatialDims,
     gws: SpatialDims,
@@ -166,14 +163,6 @@ impl Kernel {
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// making a call to enqueue or building a queue command with `::cmd`.
     pub fn gwo<D: Into<SpatialDims>>(mut self, gwo: D) -> Kernel {
-        // let gwo = gwo.into();
-
-        // if gwo.dim_count() == self.gws.dim_count() {
-        //     self.gwo = gwo;
-        // } else {
-        //     panic!("ocl::Kernel::gwo(): Work size mismatch.");
-        // }
-
         self.gwo = gwo.into();
         self
     }
@@ -183,12 +172,6 @@ impl Kernel {
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// making a call to enqueue or building a queue command with `::cmd`.
     pub fn gws<D: Into<SpatialDims>>(mut self, gws: D) -> Kernel {
-        // if gws.dim_count() == self.gws.dim_count() {
-        //     self.gws = gws;
-        // } else {
-        //     panic!("ocl::Kernel::gws(): Work size mismatch.");
-        // }
-
         self.gws = gws.into();
         self
     }
@@ -198,13 +181,6 @@ impl Kernel {
     /// Used when enqueuing kernel commands. Superseded if specified while
     /// making a call to enqueue or building a queue command with `::cmd`.
     pub fn lws<D: Into<SpatialDims>>(mut self, lws: D) -> Kernel {
-        // let lws = lws.into();
-
-        // if lws.dim_count() == self.gws.dim_count() {
-        //     self.lws = lws;
-        // } else {
-        //     panic!("ocl::Kernel::lws(): Work size mismatch.");
-        // }
         self.lws = lws.into();
         self
     }
@@ -345,7 +321,6 @@ impl Kernel {
                 self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
             },
             None => {
-                // let mem_core_null = unsafe { MemCore::null() };
                 self.set_arg::<T>(arg_idx, KernelArg::MemNull)
             },
         }.and(Ok(self))
@@ -365,7 +340,6 @@ impl Kernel {
                 self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
             },
             None => {
-                // let mem_core_null = unsafe { MemCore::null() };
                 self.set_arg::<T>(arg_idx, KernelArg::MemNull)
             },
         }.and(Ok(self))
@@ -380,90 +354,6 @@ impl Kernel {
                 sampler_opt: Option<&Sampler>) -> OclResult<&'a mut Kernel>
     {
         unimplemented!();
-    }
-
-    // /// Enqueues kernel on the default command queue.
-    // ///
-    // /// Specify `queue` to use a non-default queue.
-    // ///
-    // /// Execution of the kernel on the device will not occur until the events
-    // /// in `wait_list` have completed if it is specified. 
-    // ///
-    // /// Specify `dest_list` to have a new event added to that list associated
-    // /// with the completion of this kernel task.
-    // ///
-    // pub fn enqueue_ndrange<D: Into<SpatialDims>>(&self, queue: Option<&Queue>,  
-    //             gwo: Option<D>, gws: Option<D>, lws: Option<D>, wait_list: Option<&EventList>, 
-    //             dest_list: Option<&mut EventList>) -> OclResult<()>
-    // {
-    //     let queue = match queue {
-    //         Some(q) => q.core_as_ref(),
-    //         None => &self.command_queue_obj_core,
-    //     };
-
-    //     // If offset/size is passed, use passed value, if not use stored default:
-    //     let gwo = gwo.map(|gwo| gwo.into()).unwrap_or(self.gwo);
-    //     let gws = gws.map(|gws| gws.into()).unwrap_or(self.gws);
-    //     let lws = lws.map(|lws| lws.into()).unwrap_or(self.lws);
-
-    //     let dim_count = gws.dim_count();
-
-    //     // If gws is still `None` we cannot continue.
-    //     let gws = match gws.to_work_size() {
-    //         Some(gws) => gws,
-    //         None => return OclError::err("ocl::Kernel::enqueue_ndrange: Global Work Size ('gws') \
-    //             cannot be left unspecified. Set a default for the kernel or pass a valid
-    //             parameter."),
-    //     };
-
-    //     let wait_list = wait_list.map(|el| el.core_as_ref());
-    //     let dest_list = dest_list.map(|el| el.core_as_mut());
-
-    //     core::enqueue_kernel(queue, &self.obj_core, dim_count, gwo.to_work_offset(), 
-    //         gws, lws.to_work_size(), wait_list, dest_list, Some(&self.name))
-    // }
-
-    // /// Enqueues kernel on the default command queue.
-    // ///
-    // /// Specify `queue` to use a non-default queue.
-    // ///
-    // /// Execution of the kernel on the device will not occur until the events
-    // /// in `wait_list` have completed if it is specified. 
-    // ///
-    // /// Specify `dest_list` to have a new event added to that list associated
-    // /// with the completion of this kernel task.
-    // ///
-    // pub fn enqueue_events(&self, wait_list: Option<&EventList>, 
-    //                 dest_list: Option<&mut EventList>) -> OclResult<()>
-    // {
-    //     core::enqueue_kernel(&self.command_queue_obj_core, &self.obj_core, self.gws.dim_count(), 
-    //         self.gwo.to_work_offset(), self.gws.to_work_size().unwrap(), self.lws.to_work_size(), 
-    //         wait_list.map(|el| el.core_as_ref()), dest_list.map(|el| el.core_as_mut()), Some(&self.name))
-    // }
-
-    /// Enqueues kernel on the default command queue using only default
-    /// parameters, panicing instead of returning a result upon error.
-    ///
-    /// Equivalent to `::cmd().enq()` except for error handling.
-    ///
-    /// # Panics
-    /// 
-    /// Panics on anything that would normally return an error. Use
-    /// `::cmd().enq()` to get a result instead.
-    ///
-    #[inline]
-    pub fn enqueue(&self) {
-        // If gws is still `None` we cannot continue.
-        let gws = match self.gws.to_work_size() {
-            Some(gws) => gws,
-            None => OclError::err("Global Work Size ('gws') cannot be left unspecified. \
-                Set a default for the kernel before calling with '::set_default_queue'.")
-                .expect("ocl::Kernel::enqueue"),
-        };
-
-        core::enqueue_kernel::<EventList>(&self.queue, &self.obj_core,
-            self.gws.dim_count(), self.gwo.to_work_offset(), &gws, self.lws.to_work_size(), 
-            None, None) .expect("ocl::Kernel::enqueue")
     }
 
     /// Returns a command builder which is used to chain parameters of an
@@ -610,7 +500,6 @@ impl Kernel {
                 self.new_arg::<T>(KernelArg::Mem(buffer))
             },
             None => {
-                // let mem_core_null = unsafe { MemCore::null() };
                 self.new_arg::<T>(KernelArg::MemNull)
             },
         }
@@ -684,7 +573,6 @@ impl Kernel {
 
 impl std::fmt::Display for Kernel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // self.fmt_info(f)
         try!(self.fmt_info(f));
         try!(write!(f, " "));
         self.fmt_wg_info(f, &self.queue.device())

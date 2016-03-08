@@ -124,7 +124,7 @@ fn main_exploded() {
     // let buffer = unsafe { Buffer::new_unchecked(
     //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
     //     dims, Some(&vec), &queue) };
-    let buffer = Buffer::<f32>::newer_new(&queue, 
+    let buffer = Buffer::<f32>::new(&queue, 
         Some(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR), dims, Some(&vec)).unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:
