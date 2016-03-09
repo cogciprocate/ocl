@@ -116,7 +116,7 @@ impl ContextBuilder {
     /// Specifies a `DeviceSpecifer` which specifies how specifically
     /// the relevant devices shall be specified.
     ///
-    /// See [`DeviceSpecifier`](/ocl/enum.DeviceSpecifier.html) for actually
+    /// See [`DeviceSpecifier`](/ocl/ocl/enum.DeviceSpecifier.html) for actually
     /// useful documentation.
     ///
     /// ## Panics
@@ -155,7 +155,7 @@ pub struct Context {
 }
 
 impl Context {
-    /// Returns a [`ContextBuilder`](/ocl/struct.ContextBuilder.html).
+    /// Returns a [`ContextBuilder`](/ocl/ocl/struct.ContextBuilder.html).
     ///
     /// This is the preferred way to create a Context.
     pub fn builder() -> ContextBuilder {

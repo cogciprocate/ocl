@@ -8,7 +8,7 @@
 //! [FIXME]: 1.2 implementation not 100% complete.
 //! 
 //!
-//! [`core`]: /ocl/core/index.html
+//! [`core`]: /ocl/ocl/core/index.html
 //!
 
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]

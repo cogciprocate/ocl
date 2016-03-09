@@ -3,7 +3,7 @@ name = "ocl"
 version = "0.8.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."
-documentation = "http://doc.cogciprocate.com/ocl/index.html"
+documentation = "http://doc.cogciprocate.com/ocl/ocl/index.html"
 homepage = "https://github.com/cogciprocate/ocl_rust"
 repository = "https://github.com/cogciprocate/ocl_rust"
 readme = "README.md"
@@ -25,6 +25,9 @@ bitflags = "0.5"
 # time = "*"
 image = "0.7"
 find_folder = "*"
+
+[dev-dependencies.colorify]
+path = "/home/nick/projects/colorify"
 
 [profile.test]
 opt-level = 0

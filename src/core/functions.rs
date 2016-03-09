@@ -1483,7 +1483,7 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 /// an event list as `new_event`).
 ///
 ///
-/// [`core::EventList::get_clone`]: http://doc.cogciprocate.com/ocl/core/struct.EventList.html#method.last_clone
+/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
@@ -1528,7 +1528,7 @@ pub unsafe fn enqueue_read_buffer<T: OclPrm, L: AsRef<EventList>>(
 /// [SDK - clEnqueueReadBufferRect](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html)
 ///
 ///
-/// [`core::EventList::get_clone`]: http://doc.cogciprocate.com/ocl/core/struct.EventList.html#method.last_clone
+/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, L: AsRef<EventList>>(
             command_queue: &CommandQueue,
@@ -1804,7 +1804,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, L: AsRef<EventList>>(
 /// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
 /// an event list as `new_event`).
 ///
-/// [`core::EventList::get_clone`]: http://doc.cogciprocate.com/ocl/core/struct.EventList.html#method.last_clone
+/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
 // pub unsafe fn enqueue_read_image<T>(
 pub unsafe fn enqueue_read_image<T, L: AsRef<EventList>>(
@@ -2059,7 +2059,7 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm, L: AsRef<EventList>>(
 /// 
 /// TODO: Return a new wrapped type representing the newly mapped memory.
 ///
-/// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
+/// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
 ///
 ///
 pub unsafe fn enqueue_map_buffer<T: OclPrm, L: AsRef<EventList>>(
@@ -2117,7 +2117,7 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm, L: AsRef<EventList>>(
 /// 
 /// TODO: Return a new wrapped type representing the newly mapped memory.
 ///
-/// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
+/// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
 ///
 ///
 pub unsafe fn enqueue_map_image<T, L: AsRef<EventList>>(

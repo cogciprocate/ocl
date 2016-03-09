@@ -1,6 +1,6 @@
 # ocl
 
-#### [Documentation](http://doc.cogciprocate.com/ocl/) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
+#### [Documentation](http://doc.cogciprocate.com/ocl/ocl/) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
 
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
 
@@ -130,7 +130,7 @@ by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Gro
 
 [OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
 [AMD]: https://software.intel.com/en-us/intel-opencl/download
-[`core`]: http://docs.cogciprocate.com/ocl/core/index.html
+[`core`]: http://docs.cogciprocate.com/ocl/ocl/core/index.html
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [`examples`]: https://github.com/cogciprocate/ocl/tree/master/examples

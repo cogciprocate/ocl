@@ -318,5 +318,5 @@ fn buffer_ops_rect() {
     }
 
 
-    printlnc!(lime: "{} total test runs complete.\n", ttl_runs);
+    println!("{} total test runs complete.\n", ttl_runs);
 }

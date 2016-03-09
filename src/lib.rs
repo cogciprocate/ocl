@@ -25,9 +25,9 @@
 
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues
-//! [`core`]: http://docs.cogciprocate.com/ocl/core/index.html
-//! [`cl_h`]: http://docs.cogciprocate.com/ocl/cl_h/index.html
-//! [`Result`]: http://docs.cogciprocate.com/ocl/type.Result.html
+//! [`core`]: /ocl/ocl/core/index.html
+//! [`cl_h`]: /ocl/ocl/cl_h/index.html
+//! [`Result`]: /ocl/ocl/type.Result.html
 //! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
 // #![allow(unused_features)]
@@ -43,7 +43,7 @@ extern crate libc;
 extern crate num;
 extern crate rand;
 
-#[macro_use] pub mod util;
+pub mod util;
 #[cfg(test)] mod tests;
 mod standard;
 mod error;

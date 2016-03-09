@@ -50,7 +50,7 @@ New Features
   150)` or `[5, 1, 7]` or just `[250]`).
 
 
-[`Sampler`]: http://doc.cogciprocate.com/ocl/struct.Sampler.html
+[`Sampler`]: http://doc.cogciprocate.com/ocl/ocl/struct.Sampler.html
 
 
 Version 0.7.0 (2016-02-27)
@@ -87,7 +87,7 @@ New Features
   documentation along with [`examples/image.rs`].
 
 
-[`ImageBuilder`]: http://docs.cogciprocate.com/ocl/struct.ImageBuilder.html
+[`ImageBuilder`]: http://docs.cogciprocate.com/ocl/ocl/struct.ImageBuilder.html
 [`examples/image.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/image.rs
 
 
@@ -123,8 +123,8 @@ New Features
   and leak-free destruction.
 
 
-[0.6doc]: http://doc.cogciprocate.com/ocl/
-[`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
+[0.6doc]: http://doc.cogciprocate.com/ocl/ocl/
+[`raw`]: http://docs.cogciprocate.com/ocl/ocl/raw/index.html
 
 
 Version 0.5.0 (2016-02-15)
@@ -192,20 +192,20 @@ New Types
 * [`Image`] is still a newborn.
 
 
-[0.5doc]: http://doc.cogciprocate.com/ocl/
+[0.5doc]: http://doc.cogciprocate.com/ocl/ocl/
 [0.5ba]: https://github.com/cogciprocate/ocl/blob/master/examples/basics.rs
-[`Buffer`]: http://docs.cogciprocate.com/ocl/struct.Buffer.html
-[`Image`]: http://docs.cogciprocate.com/ocl/struct.Image.html
-[`raw`]: http://docs.cogciprocate.com/ocl/raw/index.html
-[`ProQueBuilder`]: http://docs.cogciprocate.com/ocl/struct.ProQueBuilder.html
-[`ProQue`]: http://docs.cogciprocate.com/ocl/struct.ProQue.html
-['ProQue::builder']: http://docs.cogciprocate.com/ocl/struct.ProQue.html#method.builder
-[`ProgramBuilder`]: http://docs.cogciprocate.com/ocl/struct.ProgramBuilder.html
-[`Program`]: http://docs.cogciprocate.com/ocl/struct.Program.html
-[`Kernel`]: http://docs.cogciprocate.com/ocl/struct.Kernel.html
-[`SimpleDims`]: http://doc.cogciprocate.com/ocl/enum.SimpleDims.html
-[`WorkDims`]: http://doc.cogciprocate.com/ocl/enum.WorkDims.html
-[`DeviceType`]: http://doc.cogciprocate.com/ocl/raw/struct.DeviceType.html
+[`Buffer`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html
+[`Image`]: http://docs.cogciprocate.com/ocl/ocl/struct.Image.html
+[`raw`]: http://docs.cogciprocate.com/ocl/ocl/raw/index.html
+[`ProQueBuilder`]: http://docs.cogciprocate.com/ocl/ocl/struct.ProQueBuilder.html
+[`ProQue`]: http://docs.cogciprocate.com/ocl/ocl/struct.ProQue.html
+['ProQue::builder']: http://docs.cogciprocate.com/ocl/ocl/struct.ProQue.html#method.builder
+[`ProgramBuilder`]: http://docs.cogciprocate.com/ocl/ocl/struct.ProgramBuilder.html
+[`Program`]: http://docs.cogciprocate.com/ocl/ocl/struct.Program.html
+[`Kernel`]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html
+[`SimpleDims`]: http://doc.cogciprocate.com/ocl/ocl/enum.SimpleDims.html
+[`WorkDims`]: http://doc.cogciprocate.com/ocl/ocl/enum.WorkDims.html
+[`DeviceType`]: http://doc.cogciprocate.com/ocl/ocl/raw/struct.DeviceType.html
 
 <br/><br/>
 *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission by Khronos.”*

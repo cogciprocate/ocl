@@ -196,5 +196,5 @@ fn image_ops() {
 
     }
 
-    printlnc!(lime: "{} total test runs complete.\n", ttl_runs);
+    println!("{} total test runs complete.\n", ttl_runs);
 }

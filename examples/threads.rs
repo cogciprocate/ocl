@@ -10,7 +10,8 @@
 #![allow(unused_imports, unused_variables, dead_code, unused_mut)]
 
 extern crate rand;
-#[macro_use] extern crate ocl;
+extern crate ocl;
+#[macro_use] extern crate colorify;
 
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc;

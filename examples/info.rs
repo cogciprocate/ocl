@@ -9,7 +9,8 @@
 //!
 //! 
 
-#[macro_use] extern crate ocl;
+extern crate ocl;
+#[macro_use] extern crate colorify;
 
 use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{ProgramInfo, OclPrm};

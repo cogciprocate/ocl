@@ -342,7 +342,7 @@ impl Deref for ProQue {
 
 
     // / Creates a new queue on the device with `device_idx` (see 
-    // / [`Queue`](http://docs.cogciprocate.com/ocl/struct.Queue.html) 
+    // / [`Queue`](/ocl/ocl/struct.Queue.html) 
     // / documentation) and returns a new Program/Queue hybrid.
     // /
     // / `::build_program` must be called before this ProQue can be used.

@@ -72,15 +72,19 @@ fn verify_vec_rect<T: OclPrm>(origin: [usize; 3], region: [usize; 3], in_region_
                     if print && z < slices_to_print {
                         if within_region([x, y, z], origin, region) {
                             if vec[idx] == in_region_val {
-                                printc!(lime: "[{:02}]", vec[idx]);
+                                // printc!(lime: "[{:02}]", vec[idx]);
+                                print!("[{:02}]", vec[idx]);
                             } else {
-                                printc!(red_bold: "[{:02}]", vec[idx]);
+                                // printc!(red_bold: "[{:02}]", vec[idx]);
+                                print!("[{:02}]", vec[idx]);
                             }
                         } else {
                             if vec[idx] == out_region_val {
-                                printc!(dark_grey: "[{:02}]", vec[idx]); 
+                                // printc!(dark_grey: "[{:02}]", vec[idx]); 
+                                print!("[{:02}]", vec[idx]); 
                             } else {
-                                printc!(yellow: "[{:02}]", vec[idx]);
+                                // printc!(yellow: "[{:02}]", vec[idx]);
+                                print!("[{:02}]", vec[idx]);
                             }
                         }
                     }

@@ -805,7 +805,7 @@ impl<E: OclPrm> DerefMut for Image<E> {
     // ///
     // /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadImage.html)
     // /// for more detailed information.
-    // /// [`EventList::get_clone`]: http://doc.cogciprocate.com/ocl/struct.EventList.html#method.last_clone
+    // /// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
     // ///
     // pub unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3], 
     //             region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &mut [E],

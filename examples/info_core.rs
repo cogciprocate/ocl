@@ -2,7 +2,8 @@
 //!
 //! [UNDERGOING SOME REDESIGN]
 
-#[macro_use] extern crate ocl;
+extern crate ocl;
+#[macro_use] extern crate colorify;
 
 use ocl::{Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, 

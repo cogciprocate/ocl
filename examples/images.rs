@@ -6,7 +6,8 @@
 //! change the file paths/names if desired.
 
 extern crate image;
-#[macro_use] extern crate ocl;
+extern crate ocl;
+#[macro_use] extern crate colorify;
 
 use std::path::Path;
 use ocl::{Context, Queue, Device, Program, Image, Sampler, Kernel};

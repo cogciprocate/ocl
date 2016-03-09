@@ -60,14 +60,14 @@
 //! TODO: Reorganize sub-modules.
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues [`cl_h`]:
-//! /ocl/cl_h/index.html [`core`]: /ocl/core/index.html [`Error`]:
-//! /ocl/enum.Error.html [`EventRaw::as_ptr`]:
-//! /ocl/core/struct.EventRaw.html#method.as_ptr [`clSetKernelArg`]: https://w
+//! /ocl/ocl/cl_h/index.html [`core`]: /ocl/ocl/core/index.html [`Error`]:
+//! /ocl/ocl/enum.Error.html [`EventRaw::as_ptr`]:
+//! /ocl/ocl/core/struct.EventRaw.html#method.as_ptr [`clSetKernelArg`]: https://w
 //! ww.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 //! [OpenCL 1.2 SDK Reference:
 //! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]:
 //! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
-//! [`src/core/functions.rs`]: /src/ocl/src/core/functions.rs.html
+//! [`src/core/functions.rs`]: /ocl/src/ocl/src/core/functions.rs.html
 
 // https://github.com/cogciprocate/ocl/blob/master/src/core/functions.rs
 
