@@ -47,8 +47,8 @@ use ocl::ProQue;
 
 fn main() {
     let src = r#"
-        __kernel void add(__global float* buffer, float addend) {
-            buffer[get_global_id(0)] += addend;
+        __kernel void add(__global float* buffer, float scalar) {
+            buffer[get_global_id(0)] += scalar;
         }
     "#;
 
@@ -70,8 +70,7 @@ fn main() {
 
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
 }
-
-////////// See the original file for more //////////
+///////////// See the original file for more /////////////
 ```
 
 See the the remainder of [`examples/trivial.rs`] for much more information and

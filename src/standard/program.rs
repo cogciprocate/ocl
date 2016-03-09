@@ -11,9 +11,7 @@ use std::convert::Into;
 use error::{Result as OclResult, Error as OclError};
 use core::{self, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
-use standard::{Context, Device};
-
-
+use standard::{Context, Device, DeviceSpecifier};
 
 
 /// A build option used by ProgramBuilder.
@@ -67,7 +65,8 @@ pub struct ProgramBuilder {
     src_file_names: Vec<String>,
     src_files: Vec<PathBuf>,
     // device_idxs: Vec<usize>,
-    devices: Vec<Device>,
+    // devices: Vec<Device>,
+    device_spec: Option<DeviceSpecifier>,
     // embedded_kernel_source: Vec<String>,
 }
 
@@ -79,7 +78,8 @@ impl ProgramBuilder {
             src_file_names: Vec::with_capacity(16),
             src_files: Vec::with_capacity(16),
             // device_idxs: Vec::with_capacity(8),
-            devices: Vec::with_capacity(8),
+            // devices: Vec::with_capacity(8),
+            device_spec: None,
             // embedded_kernel_source: Vec::with_capacity(32),
         }
     }
@@ -107,13 +107,18 @@ impl ProgramBuilder {
     pub fn build(&self, context: &Context) -> OclResult<Program> {
         // let mut device_list: Vec<Device> = self.devices.iter().map(|d| d.clone()).collect();
         // device_list.extend_from_slice(&context.resolve_wrapping_device_idxs(&self.device_idxs));
-        let device_list = &self.devices;
+        // let device_list = &self.devices;
+
+        let device_list = match self.device_spec {
+            Some(ref ds) => try!(ds.to_device_list(context.platform())),
+            None => vec![],
+        };
 
         if device_list.len() == 0 {
             return OclError::err("ocl::ProgramBuilder::build: No devices found.");
         }
 
-        Program::from_parts(
+        Program::new(
             try!(self.get_src_strings().map_err(|e| e.to_string())), 
             try!(self.get_compiler_options().map_err(|e| e.to_string())), 
             context, 
@@ -178,17 +183,25 @@ impl ProgramBuilder {
     //     self
     // }
 
-    /// Specify a list of devices to build this program on. The devices must be 
-    /// associated with the context passed to `::build` later on.
-    pub fn devices<D: AsRef<[Device]>>(mut self, devices: D) -> ProgramBuilder {
-        self.devices.extend_from_slice(devices.as_ref());
-        self
-    }
+    // /// Specify a list of devices to build this program on. The devices must be 
+    // /// associated with the context passed to `::build` later on.
+    // pub fn devices<D: AsRef<[Device]>>(mut self, devices: D) -> ProgramBuilder {
+    //     self.devices.extend_from_slice(devices.as_ref());
+    //     self
+    // }
 
-    /// Specify a list of devices to build this program on. The devices must be 
-    /// associated with the context passed to `::build` later on.
-    pub fn device(mut self, device: Device) -> ProgramBuilder {
-        self.devices.push(device);
+    // /// Specify a list of devices to build this program on. The devices must be 
+    // /// associated with the context passed to `::build` later on.
+    // pub fn device(mut self, device: Device) -> ProgramBuilder {
+    //     self.devices.push(device);
+    //     self
+    // }
+
+    pub fn devices<D: Into<DeviceSpecifier>>(mut self, device_spec: D) 
+            -> ProgramBuilder 
+    {
+        assert!(self.device_spec.is_none(), "ocl::ProgramBuilder::devices(): Devices already specified");
+        self.device_spec = Some(device_spec.into());
         self
     }
 
@@ -213,12 +226,17 @@ impl ProgramBuilder {
         &self.src_file_names
     }
 
-    // Returns the list of devices with which this `ProgramBuilder` is
-    // configured to build on.
-    pub fn get_devices(&self) -> &[Device] {
-        &self.devices[..]
-    }
+    // // Returns the list of devices with which this `ProgramBuilder` is
+    // // configured to build on.
+    // pub fn get_devices(&self) -> &[Device] {
+    //     &self.devices[..]
+    // }
 
+    // Returns the devices with which this `ProgramBuilder` is configured to
+    // build on.
+    pub fn get_device_spec(&self) -> &Option<DeviceSpecifier> {
+        &self.device_spec
+    }
 
     /// Parses `self.options` for options intended for inclusion at the beginning of 
     /// the final program source and returns them as a list of strings.
@@ -350,29 +368,25 @@ impl Program {
         ProgramBuilder::new()
     }
 
-    /// Returns a new program.
-    pub fn new(program_builder: ProgramBuilder, context: &Context, device_idxs: Vec<usize>
-            ) -> OclResult<Program> 
-    {
-        let device_ids = context.resolve_wrapping_device_idxs(&device_idxs);
+    // /// Returns a new program.
+    // pub fn new(program_builder: ProgramBuilder, context: &Context, device_idxs: Vec<usize>
+    //         ) -> OclResult<Program> 
+    // {
+    //     let device_ids = context.resolve_wrapping_device_idxs(&device_idxs);
 
-        Program::from_parts(
-            try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
-            try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
-            context, 
-            &device_ids)
-    }
+    //     Program::new(
+    //         try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
+    //         try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
+    //         context, 
+    //         &device_ids)
+    // }
 
     /// Returns a new program built from pre-created build components and device
     /// list.
     // [SOMEDAY TODO]: Keep track of line number range for each kernel string and print 
     // out during build failure.
-    pub fn from_parts(
-                src_strings: Vec<CString>, 
-                cmplr_opts: CString, 
-                context_obj_core: &ContextCore, 
-                device_ids: &[Device],
-            ) -> OclResult<Program> 
+    pub fn new(src_strings: Vec<CString>, cmplr_opts: CString, context_obj_core: &ContextCore,
+                device_ids: &[Device]) -> OclResult<Program>
     {
         let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts, 
              device_ids).map_err(|e| e.to_string()));

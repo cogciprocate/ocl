@@ -3,8 +3,8 @@ use ocl::ProQue;
 
 fn main() {
     let src = r#"
-        __kernel void add(__global float* buffer, float addend) {
-            buffer[get_global_id(0)] += addend;
+        __kernel void add(__global float* buffer, float scalar) {
+            buffer[get_global_id(0)] += scalar;
         }
     "#;
 
@@ -25,6 +25,10 @@ fn main() {
     buffer.read(&mut vec).enq().unwrap();
 
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
+
+    main_explained();
+    main_exploded();
+    main_cored();
 }
 
 
@@ -38,8 +42,8 @@ fn main() {
 #[allow(dead_code)]
 fn main_explained() {
     let src = r#"
-        __kernel void add(__global float* buffer, float addend) {
-            buffer[get_global_id(0)] += addend;
+        __kernel void add(__global float* buffer, float scalar) {
+            buffer[get_global_id(0)] += scalar;
         }
     "#;
 
@@ -92,8 +96,8 @@ fn main_exploded() {
         Buffer, Kernel};
 
     let src = r#"
-        __kernel void add(__global float* buffer, float addend) {
-            buffer[get_global_id(0)] += addend;
+        __kernel void add(__global float* buffer, float scalar) {
+            buffer[get_global_id(0)] += scalar;
         }
     "#;
 
@@ -106,7 +110,7 @@ fn main_exploded() {
         .devices(device.clone())
         .build().unwrap();
     let program = Program::builder()
-        .devices(&[device.clone()])
+        .devices(device)
         .src(src)
         .build(&context).unwrap();
     let queue = Queue::new(&context, device).unwrap();
@@ -118,11 +122,8 @@ fn main_exploded() {
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];
-    // let buffer = unsafe { Buffer::new_unchecked(
-    //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-    //     dims, Some(&vec), &queue) };
-    let buffer = Buffer::<f32>::new(&queue, 
-        Some(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR), dims, Some(&vec)).unwrap();
+    let buffer = Buffer::<f32>::new(&queue, Some(flags::MEM_READ_WRITE | 
+        flags::MEM_COPY_HOST_PTR), dims, Some(&vec)).unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = Kernel::new("add", &program, &queue).unwrap()
@@ -167,12 +168,13 @@ fn main_exploded() {
 #[allow(dead_code, unused_variables, unused_mut)]
 fn main_cored() {
     use std::ffi::CString;
-    use ocl::{self, core, flags};
+    use ocl::{core, flags};
     use ocl::enums::KernelArg;
+    use ocl::build::ContextProperties;
 
     let src = r#"
-        __kernel void add(__global float* buffer, float addend) {
-            buffer[get_global_id(0)] += addend;
+        __kernel void add(__global float* buffer, float scalar) {
+            buffer[get_global_id(0)] += scalar;
         }
     "#;
 
@@ -183,7 +185,7 @@ fn main_cored() {
     let device_ids = core::get_device_ids(&platform_id, 
         Some(flags::DEVICE_TYPE_ALL), None).unwrap();
     let device_id = device_ids[0];
-    let context_properties = ocl::build::ContextProperties::new().platform(platform_id);
+    let context_properties = ContextProperties::new().platform(platform_id);
     let context = core::create_context(&Some(context_properties), 
         &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();
@@ -191,7 +193,7 @@ fn main_cored() {
     core::build_program(&program, &[device_id], &CString::new("").unwrap(), 
         None, None).unwrap();
     let queue = core::create_command_queue(&context, &device_id).unwrap();
-    let dims = [2 << 20, 1, 1usize];
+    let dims = [2 << 20, 1, 1];
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];

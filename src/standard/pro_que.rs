@@ -4,7 +4,7 @@ use std::convert::Into;
 use std::ops::Deref;
 use error::{Result as OclResult, Error as OclError};
 use core::OclPrm;
-use standard::{Platform, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
+use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
     MemLen, SpatialDims, WorkDims, DeviceSpecifier};
 
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use 
@@ -15,7 +15,8 @@ static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions sp
 pub struct ProQueBuilder {
     platform: Option<Platform>,
     context: Option<Context>,
-    device_idx: usize,
+    // device_idx: usize,
+    device_spec: Option<DeviceSpecifier>,
     program_builder: Option<ProgramBuilder>,
     dims: Option<SpatialDims>,
 }
@@ -33,7 +34,8 @@ impl ProQueBuilder {
         ProQueBuilder { 
             platform: None,
             context: None,
-            device_idx: 0,
+            // device_idx: 0,
+            device_spec: None,
             program_builder: None,
             dims: None,
         }
@@ -62,7 +64,24 @@ impl ProQueBuilder {
                     platform and context cannot both be set.");
                 plt.clone()
             },
-            None => Platform::list()[0].clone(),
+            None => Platform::default(),
+        };
+
+
+        // Resolve the device and ensure only one was specified.
+        let device = match self.device_spec {
+            Some(ref ds) => {
+                let device_list = try!(ds.to_device_list(Some(platform)));
+
+                if device_list.len() == 1 {
+                    device_list[0]
+                } else {
+                    return OclError::err(format!("Invalid number of devices specified ({}). Each 'ProQue' \
+                        can only be associated with a single device. Use 'Context', 'Program', and \
+                        'Queue' separately for multi-device configurations.", device_list.len()));
+                }
+            },
+            None => Device::first(platform),
         };
 
         // If no context was set, creates one using the above platform and
@@ -72,16 +91,16 @@ impl ProQueBuilder {
             None => {
                 try!(Context::builder()
                     .platform(platform)
-                    .devices(DeviceSpecifier::Indices(vec![self.device_idx]))
+                    .devices(device)
                     .build())
             },
         };
 
-        let device = context.get_device_by_wrapping_index(self.device_idx);
+        // let device = context.get_device_by_wrapping_index(self.device_idx);
 
         let queue = try!(Queue::new(&context, device));
 
-        let program = try!(Program::from_parts(
+        let program = try!(Program::new(
             try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
             try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
             &context, 
@@ -113,17 +132,30 @@ impl ProQueBuilder {
         self
     }
 
-    /// Sets a device index to be used and returns the `ProQueBuilder`.
+    /// Sets a device or devices to be used and returns a `ProQueBuilder`
+    /// reference.
     ///
-    /// Defaults to `0`, the first available.
+    /// Must specify only a single device.
     ///
-    /// This index WILL round robin, in other words, it cannot be invalid.
-    /// If you need to guarantee a certain device, create your parts without
-    /// using this builder and just call `ProQue::new` directly.
-    pub fn device_idx<'p>(&'p mut self, device_idx: usize) -> &'p mut ProQueBuilder {
-        self.device_idx = device_idx;
+    pub fn device<'p, D: Into<DeviceSpecifier>>(&'p mut self, device_spec: D) 
+            -> &'p mut ProQueBuilder
+    {
+        assert!(self.device_spec.is_none(), "ocl::ProQue::devices: Devices already specified");
+        self.device_spec = Some(device_spec.into());
         self
     }
+
+    // /// Sets a device index to be used and returns the `ProQueBuilder`.
+    // ///
+    // /// Defaults to `0`, the first available.
+    // ///
+    // /// This index WILL round robin, in other words, it cannot be invalid.
+    // /// If you need to guarantee a certain device, create your parts without
+    // /// using this builder and just call `ProQue::new` directly.
+    // pub fn device_idx<'p>(&'p mut self, device_idx: usize) -> &'p mut ProQueBuilder {
+    //     self.device_idx = device_idx;
+    //     self
+    // }
 
     /// Adds some source code to be compiled and returns the `ProQueBuilder`.
     ///
@@ -159,7 +191,7 @@ impl ProQueBuilder {
             'ProgramBuilder' using this method after one has already been set or after '::src' has \
             been called.");
 
-        assert!(program_builder.get_devices().len() == 0, "ProQueBuilder::prog_bldr(): The \
+        assert!(program_builder.get_device_spec().is_none(), "ProQueBuilder::prog_bldr(): The \
             'ProgramBuilder' passed may not have any device indexes set as they will be unused. \
             See 'ProQueBuilder' documentation for more information.");
 
@@ -394,7 +426,7 @@ impl Deref for ProQue {
     //             documentation for more information.");
     //     }
         
-    //     self.program = Some(try!(Program::from_parts(
+    //     self.program = Some(try!(Program::new(
     //         try!(builder.get_src_strings().map_err(|e| e.to_string())), 
     //         try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
     //         self.queue.context_core_as_ref(), 

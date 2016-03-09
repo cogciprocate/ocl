@@ -25,7 +25,7 @@ fn main() {
 	let context = Context::builder().build().unwrap();
 	let device = context.get_device_by_wrapping_index(0);
 	let program = Program::builder()
-		.device(device)
+		.devices(device)
 		.src(SRC)
 		.build(&context).unwrap();
     let queue = Queue::new(&context, device).unwrap();

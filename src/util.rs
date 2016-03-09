@@ -379,14 +379,14 @@ pub fn shuffled_vec<T: OclPrm>(vals: (T, T), size: usize) -> Vec<T> {
         vec.push(FromPrimitive::from_i64(range.next().expect("\nbuffer::shuffled_vec(), range")).expect("\nbuffer::shuffled_vec(), from_usize"));
     }
 
-    shuffle_vec(&mut vec);
+    shuffle(&mut vec);
     vec
 }
 
 
 /// Shuffles the values in a vector using a single pass of Fisher-Yates with a
 /// weak (not cryptographically secure) random number generator.
-pub fn shuffle_vec<T: OclPrm>(vec: &mut Vec<T>) {
+pub fn shuffle<T: OclPrm>(vec: &mut [T]) {
     let len = vec.len();
     let mut rng = rand::weak_rng();
     let mut ridx: usize;
@@ -588,10 +588,10 @@ mod tests {
 
     #[test]
     fn remove_rebuild() {
-        let mut primary_vals: Vec<u32> = (0..(2 << 22)).map(|v| v).collect();
+        let mut primary_vals: Vec<u32> = (0..(2 << 18)).map(|v| v).collect();
         let orig_len = primary_vals.len();
 
-        let mut bad_indices: Vec<usize> = Vec::<usize>::with_capacity(2 << 20);
+        let mut bad_indices: Vec<usize> = Vec::<usize>::with_capacity(2 << 16);
         let mut idx = 0;
 
         // Mark every whateverth value 'bad':

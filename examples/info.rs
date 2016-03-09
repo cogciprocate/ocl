@@ -63,7 +63,7 @@ fn main() {
 			let sampler = Sampler::with_defaults(&context).unwrap();
 	    	let program = Program::builder()
 	    		.src(SRC)
-	    		.device(device)
+	    		.devices(device)
 	    		.build(&context).unwrap();
 			let kernel = Kernel::new("multiply", &program, &queue).unwrap()
 				.gws(&dims)

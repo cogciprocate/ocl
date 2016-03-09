@@ -71,7 +71,7 @@ fn main() {
 
     let program = Program::builder()
         .src(KERNEL_SRC)
-        .device(device)
+        .devices(device)
         .build(&context).unwrap();
 
     let sup_img_formats = Image::<u8>::supported_formats(&context, ocl::flags::MEM_READ_WRITE, 
@@ -81,18 +81,17 @@ fn main() {
 
     let dims = img.dimensions();
 
-    // When mapping settings from `image` crate:
-    // 
-    // Map `ImageChannelOrder` roughly like this:
-    // image::Rgba => ImageChannelOrder::Rgba
-    // image::Rgb  => ImageChannelOrder::Rgb
-    // image::Luma => ImageChannelOrder::Luminance
-    // image::LumaA => Not sure
+    // [NOTE]: When mapping settings from `image` crate, map
+    // `ImageChannelOrder` roughly like this:
+    // * image::Rgba => ImageChannelOrder::Rgba
+    // * image::Rgb  => ImageChannelOrder::Rgb
+    // * image::Luma => ImageChannelOrder::Luminance
+    // * image::LumaA => Not sure
     //
     // Then just map your primitive type with ImageChannelDataType i.e.:
-    // u8 => ImageChannelDataType::UnormInt8
-    // f32 => ImageChannelDataType::Float
-    // etc.
+    // * u8 => ImageChannelDataType::UnormInt8
+    // * f32 => ImageChannelDataType::Float
+    // * etc.
     // 
     // Will probably be some automation for this in the future.
     //
@@ -130,7 +129,7 @@ fn main() {
     printlnc!(dark_grey: "Pixel before: [0..16]: {:?}", &img[(0, 0)]);
 
     printlnc!(royal_blue: "Attempting to blue-ify the image...");
-    kernel.enq().expect("[FIXME]: HANDLE ME!");
+    kernel.enq().unwrap();
 
     dst_image.read(&mut img).enq().unwrap();
 

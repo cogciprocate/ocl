@@ -54,7 +54,7 @@ fn main() {
 
     		// Make a context to share around:
     		let context = Context::builder().build().unwrap();
-    		let program = Program::builder().src(SRC).device(device)
+    		let program = Program::builder().src(SRC).devices(device)
     			.build(&context).unwrap();
 
     		// Make a few different queues for the hell of it:

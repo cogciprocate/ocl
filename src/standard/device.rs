@@ -5,6 +5,7 @@ use std;
 use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use std::error::Error;
+// use std::borrow::Borrow;
 use error::{Error as OclError, Result as OclResult};
 use standard::Platform;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
@@ -133,6 +134,12 @@ impl Default for DeviceSpecifier {
     }
 }
 
+impl From<usize> for DeviceSpecifier {
+    fn from(index: usize) -> DeviceSpecifier {
+        DeviceSpecifier::WrappingIndices(vec![index])
+    }
+}
+
 impl<'a> From<&'a [usize]> for DeviceSpecifier {
     fn from(indices: &'a [usize]) -> DeviceSpecifier {
         DeviceSpecifier::WrappingIndices(indices.into())
@@ -141,15 +148,29 @@ impl<'a> From<&'a [usize]> for DeviceSpecifier {
 
 impl<'a> From<&'a Vec<usize>> for DeviceSpecifier {
     fn from(indices: &'a Vec<usize>) -> DeviceSpecifier {
-        DeviceSpecifier::Indices(indices.clone())
+        DeviceSpecifier::WrappingIndices(indices.clone())
     }
 }
+
+// impl<'a, T> Borrow<T> for &'a T where T: ?Sized
+
+// impl<'a, B> From<B> for DeviceSpecifier where B: Borrow<usize> {
+//     fn from(indices: B) -> DeviceSpecifier {
+//         DeviceSpecifier::WrappingIndices(indices.clone())
+//     }
+// }
 
 impl<'a> From<&'a [Device]> for DeviceSpecifier {
     fn from(devices: &'a [Device]) -> DeviceSpecifier {
         DeviceSpecifier::List(devices.into())
     }
 }
+
+// impl<'a> From<&'a [Device; 1]> for DeviceSpecifier {
+//     fn from(devices: &'a [Device; 1]) -> DeviceSpecifier {
+//         DeviceSpecifier::List(devices.into())
+//     }
+// }
 
 impl<'a> From<&'a Vec<Device>> for DeviceSpecifier {
     fn from(devices: &'a Vec<Device>) -> DeviceSpecifier {
@@ -160,6 +181,12 @@ impl<'a> From<&'a Vec<Device>> for DeviceSpecifier {
 impl From<Device> for DeviceSpecifier {
     fn from(device: Device) -> DeviceSpecifier {
         DeviceSpecifier::Single(device)
+    }
+}
+
+impl<'a> From<&'a Device> for DeviceSpecifier {
+    fn from(device: &'a Device) -> DeviceSpecifier {
+        DeviceSpecifier::Single(device.clone())
     }
 }
 

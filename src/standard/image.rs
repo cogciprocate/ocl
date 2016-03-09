@@ -1,6 +1,5 @@
 //! An OpenCL Image.
 //!
-//! TODO: Implement types for each pixel format.
 
 use std;
 use std::mem;
@@ -26,7 +25,7 @@ pub struct ImageBuilder<S: OclPrm> {
 impl<S: OclPrm> ImageBuilder<S> {
     /// Returns a new `ImageBuilder` with very basic defaults.
     ///
-    /// # Defaults
+    /// ## Defaults
     ///
     /// Flags: 
     /// ```notest
@@ -46,7 +45,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None)
     /// ```
     ///
-    /// # Reference
+    /// ## Reference
     ///
     /// See the [official SDK documentation] for more information.
     ///
@@ -287,6 +286,7 @@ impl<S: OclPrm> ImageBuilder<S> {
 
 
 /// The type of operation to be performed by a command.
+#[derive(Debug)]
 pub enum ImageCmdKind<'b, E: 'b> {
     Unspecified,
     Read { data: &'b mut [E] },
@@ -308,6 +308,23 @@ impl<'b, E: 'b> ImageCmdKind<'b, E> {
 
 /// An image command builder for enqueuing reads, writes, fills, and copies.
 ///
+/// ## Examples
+///
+/// ```notest
+/// // Copies one image to another:
+/// src_image.cmd().copy(&dst_image, [0, 0, 0]).enq().unwrap();
+///
+/// // Writes from a vector to an image, waiting on an event:
+/// image.write(&src_vec).ewait(&event).enq().unwrap();
+///
+/// // Reads from a image into a vector, waiting on an event list and 
+/// // filling a new empty event:
+/// image.read(&dst_vec).ewait(&event_list).enew(&empty_event).enq().unwrap();
+///
+/// // Reads without blocking:
+/// image.cmd().read_async(&dst_vec).enew(&empty_event).enq().unwrap();
+/// ```
+///
 /// [FIXME]: Fills not yet implemented.
 #[allow(dead_code)]
 pub struct ImageCmd<'b, E: 'b + OclPrm> {
@@ -317,14 +334,15 @@ pub struct ImageCmd<'b, E: 'b + OclPrm> {
     lock_block: bool,
     origin: [usize; 3],
     region: [usize; 3],
-    // row_pitch: usize,
-    // slc_pitch: usize,
+    row_pitch: usize,
+    slc_pitch: usize,
     kind: ImageCmdKind<'b, E>,
     ewait: Option<&'b EventList>,
     enew: Option<&'b mut ClEventPtrNew>,
     mem_dims: [usize; 3],
 }
 
+/// [UNSTABLE]: All methods still in a state of adjustifulsomeness.
 impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     /// Returns a new image command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `to_len` 
@@ -339,6 +357,8 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
             lock_block: false,
             origin: [0, 0, 0],
             region: dims,
+            row_pitch: 0,
+            slc_pitch: 0,
             kind: ImageCmdKind::Unspecified,
             ewait: None,
             enew: None,
@@ -563,19 +583,14 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
         match self.kind {
             ImageCmdKind::Read { data } => { 
                 // try!(check_len(self.to_len, data.len(), offset));
-
-                let row_pitch = self.mem_dims[0];
-                let slc_pitch = self.mem_dims[0] * self.mem_dims[1];
-
                 unsafe { core::enqueue_read_image(self.queue, self.obj_core, self.block, 
-                    self.origin, self.region, row_pitch, slc_pitch, data, self.ewait, self.enew) }
+                    self.origin, self.region, self.row_pitch, self.slc_pitch, data, self.ewait, 
+                    self.enew) }
             },
             ImageCmdKind::Write { data } => {
-                let row_pitch = self.mem_dims[0];
-                let slc_pitch = self.mem_dims[0] * self.mem_dims[1];
-
                 core::enqueue_write_image(self.queue, self.obj_core, self.block, 
-                    self.origin, self.region, row_pitch, slc_pitch, data, self.ewait, self.enew)
+                    self.origin, self.region, self.row_pitch, self.slc_pitch, data, self.ewait, 
+                    self.enew)
             },
             ImageCmdKind::Copy { dst_image, dst_origin } => {
                 core::enqueue_copy_image::<E, _>(self.queue, self.obj_core, dst_image, self.origin,

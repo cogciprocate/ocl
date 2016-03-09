@@ -15,8 +15,8 @@
 //!
 //! If there's still something missing or for some reason you need direct FFI
 //! access, use the functions in the [`cl_h`] module. The pointers used by
-//! [`cl_h`] functions can be wrapped in [`core`] wrappers (PlatformIdRaw,
-//! ContextRaw, etc.) and passed to [`core`] module functions and likewise the
+//! [`cl_h`] functions can be wrapped in [`core`] wrappers (core::PlatformId,
+//! core::Context, etc.) and passed to [`core`] module functions. Likewise the
 //! other way around (using, for example: [`EventRaw::as_ptr`]).
 //!
 //! ## Performance
@@ -59,14 +59,13 @@
 //!
 //! TODO: Reorganize sub-modules.
 //!
-//! [issue]: https://github.com/cogciprocate/ocl/issues [`cl_h`]:
-//! /ocl/ocl/cl_h/index.html [`core`]: /ocl/ocl/core/index.html [`Error`]:
-//! /ocl/ocl/enum.Error.html [`EventRaw::as_ptr`]:
-//! /ocl/ocl/core/struct.EventRaw.html#method.as_ptr [`clSetKernelArg`]: https://w
-//! ww.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
-//! [OpenCL 1.2 SDK Reference:
-//! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]:
-//! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
+//! [issue]: https://github.com/cogciprocate/ocl/issues 
+//! [`cl_h`]: /ocl/ocl/cl_h/index.html 
+//! [`core`]: /ocl/ocl/core/index.html 
+//! [`Error`]: /ocl/ocl/enum.Error.html
+//! [`EventRaw::as_ptr`]: /ocl/ocl/core/struct.EventRaw.html#method.as_ptr
+//! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
+//! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/core/functions.rs`]: /ocl/src/ocl/src/core/functions.rs.html
 
 // https://github.com/cogciprocate/ocl/blob/master/src/core/functions.rs

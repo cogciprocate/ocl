@@ -11,8 +11,8 @@ use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType,
 use tests;
 
 const ADDEND: [i32; 4] = [1; 4];
-const DIMS: [usize; 3] = [64, 16, 16];
-const TEST_ITERS: i32 = 30;
+const DIMS: [usize; 3] = [64, 128, 4];
+const TEST_ITERS: i32 = 4;
 
 #[test]
 fn image_ops() {
@@ -44,7 +44,7 @@ fn image_ops() {
         .dims(DIMS)
         .build().unwrap();   
 
-    let sampler = Sampler::new(proque.context(), true, AddressingMode::None, FilterMode::Nearest).unwrap();
+    let sampler = Sampler::new(proque.context(), false, AddressingMode::None, FilterMode::Nearest).unwrap();
 
     let mut vec = vec![0i32; proque.dims().to_len() * ADDEND.len()];
 
@@ -65,6 +65,7 @@ fn image_ops() {
         .build_with_data(proque.queue(), &vec).unwrap();
 
     let kernel_add = proque.create_kernel("add").unwrap()
+        // .gws(DIMS)
         .arg_smp(&sampler)
         .arg_vec(&ADDEND)
         .arg_img(&img_src)
@@ -83,6 +84,7 @@ fn image_ops() {
     // Make sure that pro_que's dims are correct:
     let dims = proque.dims().to_lens().unwrap();
     assert_eq!(DIMS, dims);
+    assert_eq!(DIMS, kernel_add.get_gws().to_lens().unwrap());
 
     // Verify image and vector lengths:
     let len = proque.dims().to_len();
@@ -93,13 +95,14 @@ fn image_ops() {
     assert_eq!(vec.len(), len * pixel_element_len);
 
     // KERNEL RUN #1 -- make sure everything's working normally:
-    kernel_add.enq().expect("[FIXME]: HANDLE ME!");
+    kernel_add.enq().unwrap();
     let mut ttl_runs = 1i32;
 
     // READ AND VERIFY #1 (LINEAR):
     img_dst.read(&mut vec).enq().unwrap();
 
-    for idx in 0..proque.dims().to_len() {
+    // Verify that the `verify_vec_rect` function isn't letting something slip:
+    for idx in 0..vec.len() {
         assert!(vec[idx] == ADDEND[0] * ttl_runs, "vec[{}]: {}", idx, vec[idx]);
     }
 
@@ -107,7 +110,7 @@ fn image_ops() {
 
     // Warm up the verify function:
     tests::verify_vec_rect([0, 0, 0], dims, ADDEND[0] * ttl_runs,
-        ADDEND[0] * (ttl_runs - 1), dims, pixel_element_len, &vec, ttl_runs, false).unwrap();
+        ADDEND[0] * (ttl_runs - 1), dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
 
     //========================================================================
     //========================================================================

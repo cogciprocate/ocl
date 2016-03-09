@@ -59,7 +59,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
         let mut errors_found = 0;
 
         for idx in 0..data_set_size {
-            // [FIXME]: FAILING ON OSX
+            // [FIXME]: Reportedly failing on OSX:
             assert_eq!((*result_vec)[idx], 
              ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
 

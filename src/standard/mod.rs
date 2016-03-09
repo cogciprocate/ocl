@@ -31,7 +31,7 @@ pub use self::context::{Context, ContextBuilder};
 // pub use self::program_builder::{ProgramBuilder, BuildOpt};
 pub use self::program::{Program, ProgramBuilder, BuildOpt};
 pub use self::queue::Queue;
-pub use self::kernel::Kernel;
+pub use self::kernel::{Kernel, KernelCmd};
 pub use self::buffer::{Buffer, BufferCmd, BufferCmdKind, BufferCmdDataShape};
 // pub use self::buffer_cmd::{BufferCmd, BufferCmdKind, BufferCmdDataShape};
 // pub use self::image_builder::ImageBuilder;

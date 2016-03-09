@@ -66,14 +66,14 @@ fn main() {
     let kern_start = Instant::now();
 
     // Enqueue kernel the first time:
-    kern.enq().expect("[FIXME]: HANDLE ME!");
+    kern.enq().unwrap();
 
     // Set kernel source buffer to the same as result:
     kern.set_arg_buf_named("source", Some(&buffer_result)).unwrap();
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {
-        kern.enq().expect("[FIXME]: HANDLE ME!");
+        kern.enq().unwrap();
     }
 
     // Wait for all kernels to run:
@@ -113,7 +113,7 @@ fn main() {
     let kern_buf_start = Instant::now();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enq().expect("[FIXME]: HANDLE ME!");
+        kern.enq().unwrap();
         buffer_result.cmd().read(&mut vec_result).enq().unwrap();
     }
 

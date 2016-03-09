@@ -89,30 +89,6 @@ impl ContextBuilder {
         self
     }
 
-    // /// Specifies a device.
-    // ///
-    // /// ## Panics
-    // ///
-    // /// Panics if any devices have already been specified.
-    // ///
-    // pub fn device<'a>(&'a mut self, device: Device) -> &'a mut ContextBuilder {
-    //  assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device: Devices already specified");
-    //  self.device_spec = Some(DeviceSpecifier::Single(device));
-    //  self
-    // }
-
-    // /// Specifies a list of devices.
-    // ///
-    // /// ## Panics
-    // ///
-    // /// Panics if any devices have already been specified.
-    // ///
-    // pub fn device_list<'a>(&'a mut self, devices: Vec<Device>) -> &'a mut ContextBuilder {
-    //     assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device_list: Devices already specified");
-    //     self.device_spec = Some(DeviceSpecifier::List(devices));
-    //     self
-    // }
-
     /// Specifies a `DeviceSpecifer` which specifies how specifically
     /// the relevant devices shall be specified.
     ///
@@ -211,6 +187,106 @@ impl Context {
             devices: device_list,
         })
     }
+
+    /// Resolves the zero-based device index into a list of Devices.
+    pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
+        Device::resolve_idxs_wrap(idxs, &self.devices)
+    }
+
+    /// Returns a device by its ordinal count within this context.
+    ///
+    /// Round-robins (%) to the next valid device.
+    ///
+    pub fn get_device_by_wrapping_index(&self, index: usize) -> Device {
+        // [FIXME]: FIGURE OUT HOW TO DO THIS CORRECTLY
+        let indices = [index; 1];
+        self.resolve_wrapping_device_idxs(&indices)[0].clone()
+    }
+
+    /// Returns info about the platform associated with the context.
+    pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
+        // match core::get_platform_info(self.platform_id_core.clone(), info_kind) {
+        match core::get_platform_info(self.platform().clone(), info_kind) {
+            Ok(pi) => pi,
+            Err(err) => PlatformInfoResult::Error(Box::new(err)),
+        }
+    }
+
+    /// Returns info about a device associated with the context.
+    pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> DeviceInfoResult {
+        let device = match self.devices.get(index) {
+            Some(d) => d,
+            None => {
+                return DeviceInfoResult::Error(Box::new(
+                    OclError::new("Context::device_info: Invalid device index")));
+            },
+        };
+
+        match core::get_device_info(device, info_kind) {
+            Ok(pi) => pi,
+            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+        }
+    }
+
+    /// Returns info about the context. 
+    pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
+        match core::get_context_info(&self.obj_core, info_kind) {
+            Ok(pi) => pi,
+            Err(err) => ContextInfoResult::Error(Box::new(err)),
+        }
+    }
+
+    /// Returns a string containing a formatted list of context properties.
+    pub fn to_string(&self) -> String {
+        String::new()
+    }
+
+    /// Returns the current context as a `*mut libc::c_void`.
+    pub fn core_as_ref(&self) -> &ContextCore {
+        &self.obj_core
+    }
+
+    /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
+    pub fn devices(&self) -> &[Device] {
+        &self.devices[..]
+    }
+
+    /// Returns the platform our context is associated with.
+    pub fn platform(&self) -> Option<Platform> {
+        self.platform.clone()
+    }
+
+    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Context")
+            .field("ReferenceCount", &self.info(ContextInfo::ReferenceCount))
+            .field("Devices", &self.info(ContextInfo::Devices))
+            .field("Properties", &self.info(ContextInfo::Properties))
+            .field("NumDevices", &self.info(ContextInfo::NumDevices))
+            .finish()
+    }
+}
+
+impl std::fmt::Display for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.fmt_info(f)
+    }
+}
+
+impl Deref for Context {
+    type Target = ContextCore;
+
+    fn deref(&self) -> &ContextCore {
+        &self.obj_core
+    }
+}
+
+impl DerefMut for Context {
+    fn deref_mut(&mut self) -> &mut ContextCore {
+        &mut self.obj_core
+    }
+}
+
+
 
     // /// [UNSTABLE]: About to be moved to builder
     // /// [UNTESTED] Returns a newly created context.
@@ -335,24 +411,6 @@ impl Context {
     //     })
     // }
 
-    /// Resolves the zero-based device index into a list of Devices.
-    pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
-        // let selected_idxs = match device_idxs.len() {
-        //     0 => vec![0],
-        //     _ => Vec::from(device_idxs),
-        // };
-
-        // let mut valid_devices = Vec::with_capacity(selected_idxs.len());
-
-        // for selected_idx in selected_idxs {
-        //     let valid_idx = selected_idx % self.devices.len();
-        //     valid_devices.push(self.devices[valid_idx].clone());
-        // }
-
-        // valid_devices
-
-        Device::resolve_idxs_wrap(idxs, &self.devices)
-    }
 
     // /// Returns a list of valid devices regardless of whether or not the indexes 
     // /// passed are valid by performing a modulo operation on them and letting them
@@ -368,95 +426,28 @@ impl Context {
     //     valid_devices
     // }
 
-    /// Returns a device by its ordinal count within this context.
-    ///
-    /// Round-robins (%) to the next valid device.
-    ///
-    pub fn get_device_by_wrapping_index(&self, index: usize) -> Device {
-        // [FIXME]: FIGURE OUT HOW TO DO THIS CORRECTLY
-        let indices = [index; 1];
-        self.resolve_wrapping_device_idxs(&indices)[0].clone()
-    }
 
-    /// Returns info about the platform associated with the context.
-    pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
-        // match core::get_platform_info(self.platform_id_core.clone(), info_kind) {
-        match core::get_platform_info(self.platform().clone(), info_kind) {
-            Ok(pi) => pi,
-            Err(err) => PlatformInfoResult::Error(Box::new(err)),
-        }
-    }
 
-    /// Returns info about a device associated with the context.
-    pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> DeviceInfoResult {
-        let device = match self.devices.get(index) {
-            Some(d) => d,
-            None => {
-                return DeviceInfoResult::Error(Box::new(
-                    OclError::new("Context::device_info: Invalid device index")));
-            },
-        };
+    // /// Specifies a device.
+    // ///
+    // /// ## Panics
+    // ///
+    // /// Panics if any devices have already been specified.
+    // ///
+    // pub fn device<'a>(&'a mut self, device: Device) -> &'a mut ContextBuilder {
+    //  assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device: Devices already specified");
+    //  self.device_spec = Some(DeviceSpecifier::Single(device));
+    //  self
+    // }
 
-        match core::get_device_info(device, info_kind) {
-            Ok(pi) => pi,
-            Err(err) => DeviceInfoResult::Error(Box::new(err)),
-        }
-    }
-
-    /// Returns info about the context. 
-    pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
-        match core::get_context_info(&self.obj_core, info_kind) {
-            Ok(pi) => pi,
-            Err(err) => ContextInfoResult::Error(Box::new(err)),
-        }
-    }
-
-    /// Returns a string containing a formatted list of context properties.
-    pub fn to_string(&self) -> String {
-        String::new()
-    }
-
-    /// Returns the current context as a `*mut libc::c_void`.
-    pub fn core_as_ref(&self) -> &ContextCore {
-        &self.obj_core
-    }
-
-    /// Returns a list of `*mut libc::c_void` corresponding to devices valid for use in this context.
-    pub fn devices(&self) -> &[Device] {
-        &self.devices[..]
-    }
-
-    /// Returns the platform our context is associated with.
-    pub fn platform(&self) -> &Option<Platform> {
-        &self.platform
-    }
-
-    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("Context")
-            .field("ReferenceCount", &self.info(ContextInfo::ReferenceCount))
-            .field("Devices", &self.info(ContextInfo::Devices))
-            .field("Properties", &self.info(ContextInfo::Properties))
-            .field("NumDevices", &self.info(ContextInfo::NumDevices))
-            .finish()
-    }
-}
-
-impl std::fmt::Display for Context {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_info(f)
-    }
-}
-
-impl Deref for Context {
-    type Target = ContextCore;
-
-    fn deref(&self) -> &ContextCore {
-        &self.obj_core
-    }
-}
-
-impl DerefMut for Context {
-    fn deref_mut(&mut self) -> &mut ContextCore {
-        &mut self.obj_core
-    }
-}
+    // /// Specifies a list of devices.
+    // ///
+    // /// ## Panics
+    // ///
+    // /// Panics if any devices have already been specified.
+    // ///
+    // pub fn device_list<'a>(&'a mut self, devices: Vec<Device>) -> &'a mut ContextBuilder {
+    //     assert!(self.device_spec.is_none(), "ocl::ContextBuilder::device_list: Devices already specified");
+    //     self.device_spec = Some(DeviceSpecifier::List(devices));
+    //     self
+    // }

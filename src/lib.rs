@@ -65,7 +65,8 @@ pub mod build {
 	//! Builders and associated settings-related types.
 
 	pub use standard::{ContextBuilder, BuildOpt, ProgramBuilder, ImageBuilder, ProQueBuilder,
-		BufferCmd, DeviceSpecifier};
+		DeviceSpecifier, BufferCmd, BufferCmdKind, BufferCmdDataShape, 
+		ImageCmd, ImageCmdKind, KernelCmd};
 	pub use core::{ImageFormat, ImageDescriptor, ContextProperties};
 	// #[cfg(not(release))] pub use standard::BufferTest;
 }

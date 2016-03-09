@@ -57,8 +57,29 @@ pub enum BufferCmdDataShape {
 }
 
 /// A buffer command builder used to enqueue reads, writes, fills, and copies.
+///
+/// Create one using `Buffer::cmd` or with shortcut methods such as
+/// `Buffer::read` and `Buffer::write`.
+///
+/// ## Examples
+///
+/// ```notest
+/// // Copies one buffer to another:
+/// src_buffer.cmd().copy(&dst_buffer, 0, dst_buffer.len()).enq().unwrap();
+///
+/// // Writes from a vector to an buffer, waiting on an event:
+/// buffer.write(&src_vec).ewait(&event).enq().unwrap();
+///
+/// // Reads from a buffer into a vector, waiting on an event list and 
+/// // filling a new empty event:
+/// buffer.read(&dst_vec).ewait(&event_list).enew(&empty_event).enq().unwrap();
+///
+/// // Reads without blocking:
+/// buffer.cmd().read_async(&dst_vec).enew(&empty_event).enq().unwrap();
+///
+/// ```
+///
 pub struct BufferCmd<'b, T: 'b + OclPrm> {
-    // queue: &'b CommandQueueCore,
     queue: &'b Queue,
     obj_core: &'b MemCore,
     block: bool,
@@ -70,6 +91,7 @@ pub struct BufferCmd<'b, T: 'b + OclPrm> {
     mem_len: usize,
 }
 
+/// [UNSTABLE]: All methods still in a state of tweakification.
 impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     /// Returns a new buffer command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `mem_len` 
@@ -100,7 +122,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// Ignored if this is a copy, fill, or copy to image operation.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// Will panic if `::read` has already been called. Use `::read_async`
     /// (unsafe) for a non-blocking read operation.
@@ -116,7 +138,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 
     /// Sets the linear offset for an operation.
     /// 
-    /// # Panics
+    /// ## Panics
     ///
     /// The 'shape' may not have already been set to rectangular by the 
     /// `::rect` function.
@@ -135,7 +157,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     /// After calling this method, the blocking state of this command will
     /// be locked to true and a call to `::block` will cause a panic.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// The command operation kind must not have already been specified.
     ///
@@ -160,7 +182,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     /// Caller must ensure that the container referred to by `dst_data` lives 
     /// until the call completes.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// The command operation kind must not have already been specified
     ///
@@ -173,7 +195,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 
     /// Specifies that this command will be a write operation.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// The command operation kind must not have already been specified
     ///
@@ -188,11 +210,11 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// If `.block(..)` has been set it will be ignored.
     ///
-    /// # Errors
+    /// ## Errors
     ///
     /// If this is a rectangular copy, `dst_offset` and `len` must be zero.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// The command operation kind must not have already been specified
     ///
@@ -213,7 +235,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// If `.block(..)` has been set it will be ignored.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// The command operation kind must not have already been specified
     ///
@@ -230,7 +252,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// If `.block(..)` has been set it will be ignored.
     ///
-    /// # Panics
+    /// ## Panics
     ///
     /// The command operation kind must not have already been specified
     ///
@@ -389,26 +411,9 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 
 /// A chunk of memory physically located on a device, such as a GPU.
 ///
-/// Data is stored both remotely in a memory buffer on the device associated with 
-/// `queue` and optionally in a vector (`self.vec`) in host (local) memory for 
-/// convenient use as a workspace etc.
+/// Data is stored remotely in a memory buffer on the device associated with 
+/// `queue`.
 ///
-/// The host side vector must be manually synchronized with the device side buffer 
-/// using `::fill_vec`, `::flush_vec`, etc. Data within the contained vector 
-/// should generally be considered stale except immediately after a fill/flush 
-/// (exception: pinned memory).
-///
-/// Fill/flush methods are for convenience and are equivalent to the psuedocode: 
-/// read_into(self.vec) and write_from(self.vec).
-///
-/// ## Stability
-///
-/// Read/write/fill/flush methods will eventually be returning a result instead of
-/// panicing upon error.
-///
-// TODO: Return result for reads and writes instead of panicing.
-// TODO: Check that type size (sizeof(T)) is <= the maximum supported by device.
-// TODO: Consider integrating an event list to help coordinate pending reads/writes.
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
@@ -419,6 +424,9 @@ pub struct Buffer<T: OclPrm> {
 }
 
 impl<T: OclPrm> Buffer<T> {
+    /// Creates a new buffer
+    ///
+    /// [UNSTABLE]: New method, arguments still in a state of flux.
     pub fn new<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, data: Option<&[T]>) 
             -> OclResult<Buffer<T>>
     {
@@ -445,6 +453,9 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Run `.enq()` to enqueue the command.
     ///
+    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html) 
+    /// for more info.
+    ///
     pub fn cmd<'b>(&'b self) -> BufferCmd<'b, T> {
         BufferCmd::new(&self.queue, &self.obj_core, self.len)
     }
@@ -452,6 +463,9 @@ impl<T: OclPrm> Buffer<T> {
     /// Returns a buffer command builder used to read.
     ///
     /// Run `.enq()` to enqueue the command.
+    ///
+    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html) 
+    /// for more info.
     ///
     pub fn read<'b>(&'b self, data: &'b mut [T]) -> BufferCmd<'b, T> {
         self.cmd().read(data)
@@ -461,16 +475,14 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Run `.enq()` to enqueue the command.
     ///
+    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html) 
+    /// for more info.
+    ///
     pub fn write<'b>(&'b self, data: &'b [T]) -> BufferCmd<'b, T> {
         self.cmd().write(data)
     }
 
     /// Returns the length of the Buffer.
-    ///
-    // /// This is the length of both the device side buffer and the host side vector,
-    // /// if any. This may not agree with desired dataset size because it will have been
-    // /// rounded up to the nearest maximum workgroup size of the device on which it was
-    // /// created.
     #[inline]
     pub fn len(&self) -> usize {
         // debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() } 
@@ -490,11 +502,9 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Returns a ref for chaining i.e.:
     ///
-    /// `buffer.set_default_queue(queue).read(....);`
+    /// ## Example
     ///
-    /// [NOTE]: Even when used as above, the queue is changed permanently,
-    /// not just for the one call. Changing the queue is cheap so feel free
-    /// to change as often as needed.
+    /// `buffer.set_default_queue(queue).read(....);`
     ///
     pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Buffer<T> {
         // [FIXME]: Set this up:
@@ -510,12 +520,12 @@ impl<T: OclPrm> Buffer<T> {
         &self.queue
     }
 
-    /// Returns a copy of the core memory object reference.
+    /// Returns a reference to the core memory object.
     pub fn core_as_ref(&self) -> &MemCore {
         &self.obj_core
     }
 
-    // Formats memory info.
+    /// Formats memory info.
     fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Buffer Mem")
             .field("Type", &self.mem_info(MemInfo::Type))
