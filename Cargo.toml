@@ -22,9 +22,8 @@ enum_primitive = "0.1"
 bitflags = "0.5"
 
 [dev-dependencies]
-# time = "*"
 image = "0.7"
-find_folder = "*"
+find_folder = "0.3"
 colorify = "0.1"
 
 

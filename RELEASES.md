@@ -1,4 +1,4 @@
-Version 0.8.0 (UNRELEASED)
+Version 0.8.0 (2016-03-09)
 ==========================
 
 Breaking Changes
