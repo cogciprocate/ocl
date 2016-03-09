@@ -831,7 +831,6 @@ pub fn set_mem_object_destructor_callback() -> OclResult<()> {
 //============================= Sampler APIs =================================
 //============================================================================
 
-/// [UNTESTED]
 /// Creates and returns a new sampler object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSampler.html)
@@ -1795,7 +1794,6 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, L: AsRef<EventList>>(
 }
 
 
-/// [UNTESTED] 
 /// Reads an image from device to host memory.
 ///
 /// ## Safety
@@ -1844,7 +1842,7 @@ pub unsafe fn enqueue_read_image<T, L: AsRef<EventList>>(
     errcode_try("clEnqueueReadImage", "", errcode)
 }
 
-/// [UNTESTED]
+
 /// Enqueues a command to write to an image or image array object from host memory.
 ///
 /// TODO: Size check (rather than leaving it to API).
@@ -1928,7 +1926,7 @@ pub fn enqueue_fill_image<T, L: AsRef<EventList>>(
     errcode_try("clEnqueueFillImage", "", errcode)
 }
 
-/// [UNTESTED]
+
 /// Enqueues a command to copy image objects.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImage.html)
@@ -2036,7 +2034,8 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm, L: AsRef<EventList>>(
     errcode_try("clEnqueueCopyBufferToImage", "", errcode)
 }
 
-/// [UNTESTED] Enqueues a command to map a region of the buffer object given
+/// [UNTESTED] 
+/// Enqueues a command to map a region of the buffer object given
 /// by `buffer` into the host address space and returns a pointer to this
 /// mapped region.
 ///

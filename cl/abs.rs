@@ -69,15 +69,18 @@ const DEBUG_PRINT: bool = false;
 //================================== TRAITS ===================================
 //=============================================================================
 
+/// Types with a mutable pointer to a new, null raw event pointer.
 pub unsafe trait ClEventPtrNew {
 	fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
 }
 
+/// Types with a reference to a raw event pointer.
 pub trait ClEventRef<'e> {
 	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
 	// unsafe fn as_ptr_mut(&mut self) -> &mut cl_event;
 }
 
+/// Types with a reference to a raw platform_id pointer.
 pub unsafe trait ClPlatformIdPtr: Sized {
 	unsafe fn as_ptr(&self) -> cl_platform_id {
 		debug_assert!(mem::size_of_val(self) == mem::size_of::<PlatformId>());
@@ -87,6 +90,7 @@ pub unsafe trait ClPlatformIdPtr: Sized {
 	}
 }
 
+/// Types with a reference to a raw device_id pointer.
 pub unsafe trait ClDeviceIdPtr: Sized {
 	unsafe fn as_ptr(&self) -> cl_device_id {
 		debug_assert!(mem::size_of_val(self) == mem::size_of::<DeviceId>());
@@ -100,6 +104,8 @@ pub unsafe trait ClDeviceIdPtr: Sized {
 //=================================== TYPES ===================================
 //=============================================================================
 
+/// Wrapper used by `EventList` to send event pointers to core functions
+/// cheaply.
 pub struct EventRefWrapper<'e>(&'e cl_event);
 
 impl<'e> ClEventRef<'e> for EventRefWrapper<'e> {
