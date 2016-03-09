@@ -19,7 +19,7 @@ static SRC: &'static str = r#"
 "#;
 
 fn main() {
-	let dims = [1000, 100, 10];
+	let dims = [1024, 64, 16];
 
 	let context = Context::builder().build().unwrap();
 	let device = context.get_device_by_wrapping_index(0);

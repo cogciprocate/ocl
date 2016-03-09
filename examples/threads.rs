@@ -28,7 +28,7 @@ static SRC: &'static str = r#"
 
 fn main() {
 	let mut rng = rand::weak_rng();
-	let data_set_size = 1000;
+	let data_set_size = 1024;
 	let dims = [data_set_size];
 	let mut threads = Vec::new();
 

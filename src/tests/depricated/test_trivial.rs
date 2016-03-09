@@ -35,7 +35,7 @@ fn main_explained() {
     let orig_val = buffer[IDX];
 
     // (3) Create a kernel with arguments matching those in the source above:
-    let kernel = pro_que.create_kernel("add")
+    let kernel = pro_que.create_kernel("add").expect("[FIXME]: HANDLE ME")
         .arg_buf(&buffer)
         .arg_scl(ADDEND);
 

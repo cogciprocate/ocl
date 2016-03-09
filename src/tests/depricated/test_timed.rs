@@ -54,7 +54,7 @@ fn timed() {
         ocl_pq.dims(), None).unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
-    let mut kern = ocl_pq.create_kernel("add")
+    let mut kern = ocl_pq.create_kernel("add").expect("[FIXME]: HANDLE ME")
         .arg_buf_named("source", Some(&buffer_init))
         .arg_scl(SCALAR)
         .arg_buf(&buffer_result);

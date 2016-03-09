@@ -429,13 +429,16 @@ impl<T: OclPrm> Buffer<T> {
         let obj_core = unsafe { try!(core::create_buffer(queue.context_core_as_ref(), flags, len,
             data)) };
 
-        Ok( Buffer {
+        let buf = Buffer {
             obj_core: obj_core,
             queue: queue.clone(),
             dims: dims,
             len: len,
             _data: PhantomData,
-        })
+        };
+        
+        if data.is_none() { try!(buf.cmd().fill(&[Default::default()], None).enq()); }
+        Ok(buf)
     }
 
     /// Returns a buffer command builder used to read, write, copy, etc.

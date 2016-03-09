@@ -76,7 +76,7 @@ fn events() {
     let addend = 10u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel("add_scalar")
+    let mut kernel = ocl_pq.create_kernel("add_scalar").expect("[FIXME]: HANDLE ME")
         .gws(dims.clone())
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)

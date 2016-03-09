@@ -10,24 +10,21 @@ fn main() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims([500000])
-        .build().unwrap();   
+        .dims([2 << 20])
+        .build().unwrap();
 
-    let buffer = pro_que.create_buffer::<f32>();
+    let buffer = pro_que.create_buffer::<f32>().unwrap();
 
-    let kernel = pro_que.create_kernel("add")
+    let kernel = pro_que.create_kernel("add").unwrap()
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    kernel.enq().expect("[FIXME]: HANDLE ME!");
+    kernel.enq().unwrap();
+
     let mut vec = vec![0.0f32; buffer.len()];
     buffer.read(&mut vec).enq().unwrap();
 
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
-
-    main_explained();
-    main_exploded();
-    main_cored();
 }
 
 
@@ -50,19 +47,19 @@ fn main_explained() {
     // buffer dimensions:
     let pro_que = ProQue::builder()
         .src(src)
-        .dims([500000])
+        .dims([2 << 20])
         .build().unwrap();   
 
     // (2) Create a `Buffer`:
-    let buffer = pro_que.create_buffer::<f32>();
+    let buffer = pro_que.create_buffer::<f32>().unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:
-    let kernel = pro_que.create_kernel("add")
+    let kernel = pro_que.create_kernel("add").unwrap()
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
     // (4) Run the kernel:
-    kernel.enq().expect("[FIXME]: HANDLE ME!");
+    kernel.enq().unwrap();
 
     // (5) Read results from the device into a vector:
     let mut vec = vec![0.0f32; buffer.len()];
@@ -113,7 +110,7 @@ fn main_exploded() {
         .src(src)
         .build(&context).unwrap();
     let queue = Queue::new(&context, device).unwrap();
-    let dims = [500000];
+    let dims = [2 << 20];
     // [NOTE]: At this point we could manually assemble a ProQue by calling:
     // `ProQue::new(context, queue, program, Some(dims))`. One might want to
     // do this when only one program and queue are all that's needed. Wrapping
@@ -194,7 +191,7 @@ fn main_cored() {
     core::build_program(&program, &[device_id], &CString::new("").unwrap(), 
         None, None).unwrap();
     let queue = core::create_command_queue(&context, &device_id).unwrap();
-    let dims = [500000, 1, 1usize];
+    let dims = [2 << 20, 1, 1usize];
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];

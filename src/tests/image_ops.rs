@@ -9,7 +9,7 @@ use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType,
 use tests;
 
 const ADDEND: [i32; 4] = [1; 4];
-const DIMS: [usize; 3] = [20, 20, 20];
+const DIMS: [usize; 3] = [16, 16, 16];
 const TEST_ITERS: i32 = 30;
 
 #[test]
@@ -62,13 +62,13 @@ fn image_ops() {
         .flags(flags::MEM_WRITE_ONLY | flags::MEM_COPY_HOST_PTR)
         .build_with_data(proque.queue(), &vec).unwrap();
 
-    let kernel_add = proque.create_kernel("add")
+    let kernel_add = proque.create_kernel("add").unwrap()
         .arg_smp(&sampler)
         .arg_vec(&ADDEND)
         .arg_img(&img_src)
         .arg_img(&img_dst);
 
-    let mut kernel_fill_src = proque.create_kernel("fill")
+    let mut kernel_fill_src = proque.create_kernel("fill").unwrap()
         .arg_smp(&sampler)
         .arg_vec_named::<i32>("pixel", None)
         .arg_img(&img_src);

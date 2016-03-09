@@ -10,7 +10,6 @@ extern crate find_folder;
 use libc::c_void;
 use find_folder::Search;
 use ocl::{util, core, ProQue, Program, Buffer, EventList};
-// use ocl::traits::{BufferExtras};
 use ocl::cl_h::{cl_event, cl_int};
 
 // How many iterations we wish to run:
@@ -21,8 +20,6 @@ const PRINT_DEBUG: bool = true;
 const RESULTS_TO_PRINT: usize = 5;
 
 struct TestEventsStuff {
-    // seed_env: *const Buffer<u32>, 
-    // res_env: *const Buffer<u32>, 
     seed_vec: *const Vec<u32>, 
     result_vec: *const Vec<u32>, 
     data_set_size: usize,
@@ -32,7 +29,7 @@ struct TestEventsStuff {
 
 fn main() {
     // Set up data set size and work dimensions:
-    let dims = [900000];
+    let dims = [2 << 20];
 
     // Get a path for our program source:
     let src_file = Search::ParentsThenKids(3, 3).for_folder("cl").unwrap().join("kernel_file.cl");
@@ -58,7 +55,7 @@ fn main() {
     let addend = 11u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel("add_scalar")
+    let mut kernel = ocl_pq.create_kernel("add_scalar").unwrap()
         .gws(&dims)
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)

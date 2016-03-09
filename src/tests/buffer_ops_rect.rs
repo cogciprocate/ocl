@@ -8,7 +8,7 @@ use standard::{ProQue, Buffer};
 use tests;
 
 const ADDEND: f32 = 10.0;
-const DIMS: [usize; 3] = [12, 12, 12];
+const DIMS: [usize; 3] = [16, 16, 16];
 const TEST_ITERS: i32 = 220;
 
 #[test]
@@ -44,7 +44,7 @@ fn buffer_ops_rect() {
     let buf = Buffer::new(proque.queue(), Some(core::MEM_READ_WRITE | 
         core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec)).unwrap();
 
-    let kernel_add = proque.create_kernel("add")
+    let kernel_add = proque.create_kernel("add").unwrap()
         .arg_buf(&buf)
         .arg_scl(ADDEND);
 
@@ -151,7 +151,7 @@ fn buffer_ops_rect() {
     //========================================================================
     // Prepare a kernel which will write a single value to the entire buffer
     // and which can be updated on each run (to act as a 'reset').
-    let mut kernel_eq = proque.create_kernel("eq")
+    let mut kernel_eq = proque.create_kernel("eq").unwrap()
     .arg_buf_named("buf", Some(&buf))
     .arg_scl_named("val", Some(0.0f32));
 

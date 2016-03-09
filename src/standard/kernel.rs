@@ -369,6 +369,9 @@ impl Kernel {
     /// Shorthand for `.cmd().enq()`
     ///
     pub fn enq<'k>(&'k self) -> OclResult<()> {
+        // core::enqueue_kernel::<EventList>(&self.queue, &self.obj_core,
+        //     self.gws.dim_count(), self.gwo.to_work_offset(), &self.gws.to_lens().unwrap(), self.lws.to_work_size(), 
+        //     None, None)
         self.cmd().enq()
     }
 

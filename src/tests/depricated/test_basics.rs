@@ -34,7 +34,7 @@ fn basics() {
     let mut result_buffer = Buffer::<f32>::with_vec(&dims, &ocl_pq.queue());
 
     // Create a kernel with three arguments corresponding to those in the kernel:
-    let kernel = ocl_pq.create_kernel("multiply_by_scalar")
+    let kernel = ocl_pq.create_kernel("multiply_by_scalar").expect("[FIXME]: HANDLE ME")
         .gws(dims.clone())
         .arg_buf(&source_buffer)
         .arg_scl(coeff)

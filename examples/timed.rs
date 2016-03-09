@@ -11,7 +11,7 @@ use ocl::{util, core, ProQue, Buffer, EventList};
 // use ocl::traits::{BufferExtras};
 
 
-const DATASET_SIZE: usize = 10000;
+const DATASET_SIZE: usize = 2 << 12;
 
 const KERNEL_RUN_ITERS: i32 = 800;
 const BUFFER_READ_ITERS: i32 = 20;
@@ -55,7 +55,7 @@ fn main() {
         ocl_pq.dims(), None).unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
-    let mut kern = ocl_pq.create_kernel("add")
+    let mut kern = ocl_pq.create_kernel("add").unwrap()
         .gws(ocl_pq.dims().clone())
         .arg_buf_named("source", Some(&buffer_init))
         .arg_scl(SCALAR)
@@ -183,7 +183,7 @@ fn main() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();    
+    ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
 
     verify_results(&vec_init, &vec_result, 

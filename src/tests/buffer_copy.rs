@@ -1,6 +1,7 @@
 
 const IDX: usize = 200007;
 const ADDEND: f32 = 10.0;
+const DATASET_SIZE: usize = 2 << 20;
 
 #[test]
 fn buffer_copy_core() {
@@ -28,7 +29,7 @@ fn buffer_copy_core() {
     core::build_program(&program, &[device_id], &CString::new("").unwrap(), 
         None, None).unwrap();
     let queue = core::create_command_queue(&context, &device_id).unwrap();
-    let dims = [500000, 1, 1usize];
+    let dims = [DATASET_SIZE, 1, 1usize];
 
     // Source buffer:
     let mut src_buffer_vec = vec![0.0f32; dims[0]];
@@ -83,15 +84,15 @@ fn buffer_copy_standard() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims([500000])
+        .dims([DATASET_SIZE])
         .build().unwrap();   
 
-    let src_buffer = pro_que.create_buffer::<f32>();
+    let src_buffer = pro_que.create_buffer::<f32>().unwrap();
     let mut src_vec = vec![0.0f32; src_buffer.len()];
-    let dst_buffer = pro_que.create_buffer::<f32>();
+    let dst_buffer = pro_que.create_buffer::<f32>().unwrap();
     let mut dst_vec = vec![0.0f32; dst_buffer.len()];
 
-    let kernel = pro_que.create_kernel("add")
+    let kernel = pro_que.create_kernel("add").unwrap()
         .arg_buf(&src_buffer)
         .arg_scl(ADDEND);
 
