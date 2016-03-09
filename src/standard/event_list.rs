@@ -93,9 +93,9 @@ impl EventList {
                     callback_receiver, user_data as *mut _ as *mut c_void)
     }
 
-    pub fn clear_completed(&mut self) -> OclResult<()> {
-        self.event_list_core.clear_completed()
-    }
+    // pub fn clear_completed(&mut self) -> OclResult<()> {
+    //     self.event_list_core.clear_completed()
+    // }
 
     /// Returns the number of events in the list.
     pub fn len(&self) -> usize {
@@ -115,7 +115,6 @@ impl EventList {
     /// Waits for all events in list to complete.
     pub fn wait(&self) -> OclResult<()> {
         if self.event_list_core.len() > 0 {
-            // let event_list_core = self.event_list_core();
             core::wait_for_events(self.event_list_core.count(), &self.event_list_core)
         } else {
             Ok(())

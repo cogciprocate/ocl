@@ -1,8 +1,8 @@
-// Timed kernel and buffer tests / benchmarks.
-//
-// Manipulate the consts below to fiddle with parameters. To create longer 
-// running tests, increase `DATASET_SIZE`, and the `*_ITERS` consts.
-// The other consts can be anything at all
+//! Timed kernel and buffer tests / benchmarks / examples.
+//!
+//! Manipulate the consts below to fiddle with parameters. To create longer
+//! running tests, increase `DATASET_SIZE`, and the `*_ITERS` consts. The
+//! other consts can be anything at all.
 
 extern crate ocl;
 use std::time::Instant;
@@ -170,6 +170,9 @@ fn main() {
     print_elapsed("queue unfinished", kern_buf_start);
     ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
+
+    kern_events.wait().unwrap();
+    buf_events.wait().unwrap();
 
     verify_results(&vec_init, &vec_result, 
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);

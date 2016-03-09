@@ -519,6 +519,8 @@ impl EventList {
 	///
 	/// TODO: TEST THIS
     pub fn clear_completed(&mut self) -> OclResult<()> {
+    	if self.len() < 16 { return Ok(()) }
+
         let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_LEN);
         let mut idx = 0;
 
@@ -539,7 +541,7 @@ impl EventList {
 			}
 		}
 
-       	try!(util::vec_remove_rebuild(&mut self.event_ptrs, &cmpltd_events[..], 3));
+       	try!(util::vec_remove_rebuild(&mut self.event_ptrs, &cmpltd_events[..], 2));
 
         if EL_CLEAR_AUTO {
             self.clear_counter = EL_CLEAR_INTERVAL;

@@ -103,7 +103,7 @@ fn main_exploded() {
     let device = Device::first(platform);
     let context = Context::builder()
         .platform(platform)
-        .devices(Device::specifier().single(device.clone()))
+        .devices(device.clone())
         .build().unwrap();
     let program = Program::builder()
         .devices(&[device.clone()])

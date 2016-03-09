@@ -1,5 +1,7 @@
 //! Tests various image operations.
 //!
+//! TODO: Test fill and copy to buffer.
+//!
 //! Runs both the core function and the 'standard' method call for each.
 
 use core;
@@ -9,7 +11,7 @@ use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType,
 use tests;
 
 const ADDEND: [i32; 4] = [1; 4];
-const DIMS: [usize; 3] = [16, 16, 16];
+const DIMS: [usize; 3] = [64, 16, 16];
 const TEST_ITERS: i32 = 30;
 
 #[test]
@@ -162,10 +164,6 @@ fn image_ops() {
         //========================= `Image::cmd()...` ========================
         //====================================================================
         // Write to src:
-        // core::enqueue_write_image(proque.queue(), &img_src, true, 
-        //     origin, region, 0, 0,
-        //     &vec, None::<&core::EventList>, None).unwrap();
-
         img_src.cmd().write(&vec).enq().unwrap();
 
         // Add from src to dst:

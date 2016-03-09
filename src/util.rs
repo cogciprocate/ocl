@@ -294,7 +294,7 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 ///
 /// Should be perfectly safe, just need to test it a bit.
 ///
-pub fn vec_remove_rebuild<T: Clone>(orig_vec: &mut Vec<T>, remove_list: &[usize], 
+pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &[usize], 
                 rebuild_threshold: usize) -> OclResult<()> {
     if remove_list.len() > orig_vec.len() { 
         return OclError::err("ocl::util::vec_remove_rebuild: Remove list is longer than source
@@ -305,39 +305,39 @@ pub fn vec_remove_rebuild<T: Clone>(orig_vec: &mut Vec<T>, remove_list: &[usize]
     // If the list is below threshold
     if remove_list.len() <= rebuild_threshold {
         for &idx in remove_list.iter().rev() {
-            if idx >= orig_len { 
+            if idx < orig_len { 
+                 orig_vec.remove(idx);
+            } else {
                 return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
                 at least one out of range index: [{}] ('orig_vec.len()': {}).", idx, orig_len));
             }
-            orig_vec.remove(idx);
         }
     } else {
         unsafe {
-            let new_len = orig_len - remove_list.len();
-            let cap = orig_vec.capacity();
-            let ptr = orig_vec.as_mut_ptr();
-            
-            let mut new_vec: Vec<T> = Vec::from_raw_parts(ptr, 0, cap);
-            let mut remove_markers: Vec<bool> = iter::repeat(false).take(orig_len).collect();
+            let mut remove_markers: Vec<bool> = iter::repeat(true).take(orig_len).collect();
 
             // Build a sparse list of which elements to remove:
             for &idx in remove_list.iter() {
-                if idx >= orig_len { 
+                if idx < orig_len { 
+                    *remove_markers.get_unchecked_mut(idx) = false;
+                } else {
                     return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
                     at least one out of range index: [{}] ('orig_vec.len()': {}).", idx, orig_len));
                 }
-                *remove_markers.get_unchecked_mut(idx) = true;
             }
+
+            let mut new_len = 0usize;
 
             // Iterate through remove_markers and orig_vec, pushing when the marker is false:
             for idx in 0..orig_len {
-                if !(*remove_markers.get_unchecked(idx)) {
-                    new_vec.push((*orig_vec.get_unchecked(idx)).clone());
+                if *remove_markers.get_unchecked(idx) {
+                    *orig_vec.get_unchecked_mut(new_len) = *orig_vec.get_unchecked(idx);
+                    new_len += 1;
                 }
             }
 
-            debug_assert_eq!(new_len, new_vec.len());
-            mem::forget(orig_vec);
+            debug_assert_eq!(new_len, orig_len - remove_list.len());
+            orig_vec.set_len(new_len);
         }
     }
 
@@ -582,3 +582,40 @@ pub fn print_val_range<T: OclPrm>(slice: &[T], every: usize, val_range: Option<(
 }
 
 
+#[cfg(test)]
+mod tests {
+    // use std::iter;
+
+    #[test]
+    fn remove_rebuild() {
+        let mut primary_vals: Vec<u32> = (0..(2 << 22)).map(|v| v).collect();
+        let orig_len = primary_vals.len();
+
+        let mut bad_indices: Vec<usize> = Vec::<usize>::with_capacity(2 << 20);
+        let mut idx = 0;
+
+        // Mark every whateverth value 'bad':
+        for &val in primary_vals.iter() {
+            if (val % 19 == 0) || (val % 31 == 0) || (val % 107 == 0) {
+                bad_indices.push(idx);
+            }
+
+            idx += 1;
+        }
+
+        println!("util::tests::remove_rebuild(): bad_indices: {}", bad_indices.len());
+     
+        // Remove the bad values:
+        super::vec_remove_rebuild(&mut primary_vals, &bad_indices[..], 3)
+            .expect("util::tests::remove_rebuild()");
+
+        // Check:
+        for &val in primary_vals.iter() {
+            if (val % 19 == 0) || (val % 31 == 0) || (val % 107 == 0) {
+                panic!("util::tests::remove_rebuild(): Value: '{}' found in list!", val);
+            }
+        }
+
+        assert_eq!(orig_len, primary_vals.len() + bad_indices.len());
+    }
+}

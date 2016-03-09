@@ -2,49 +2,48 @@
 
 mod platform;
 mod device;
-mod device_specifier;
-mod context_builder;
+// mod device_specifier;
+// mod context_builder;
 mod context;
-mod program_builder;
+// mod program_builder;
 mod program;
 mod kernel;
 mod queue;
 mod buffer;
 // mod buffer_cmd;
-mod image_builder;
+// mod image_builder;
 mod image;
 // mod image_cmd;
 mod sampler;
-mod pro_que_builder;
+// mod pro_que_builder;
 mod pro_que;
 mod event;
-mod event_list;
+// mod event_list;
 mod spatial_dims;
 // mod work_dims;
 
 // #[cfg(not(release))] pub use self::buffer::tests::BufferTest;
 pub use self::platform::Platform;
-pub use self::device::Device;
-pub use self::device_specifier::DeviceSpecifier;
-pub use self::context_builder::ContextBuilder;
-pub use self::context::Context;
-pub use self::program_builder::{ProgramBuilder, BuildOpt};
-pub use self::program::Program;
+pub use self::device::{Device, DeviceSpecifier};
+// pub use self::device_specifier::DeviceSpecifier;
+// pub use self::context_builder::ContextBuilder;
+pub use self::context::{Context, ContextBuilder};
+// pub use self::program_builder::{ProgramBuilder, BuildOpt};
+pub use self::program::{Program, ProgramBuilder, BuildOpt};
 pub use self::queue::Queue;
 pub use self::kernel::Kernel;
 pub use self::buffer::{Buffer, BufferCmd, BufferCmdKind, BufferCmdDataShape};
 // pub use self::buffer_cmd::{BufferCmd, BufferCmdKind, BufferCmdDataShape};
-pub use self::image_builder::ImageBuilder;
-pub use self::image::{Image, ImageCmd, ImageCmdKind};
+// pub use self::image_builder::ImageBuilder;
+pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};
 // pub use self::image_cmd::{ImageCmd, ImageCmdKind};
 pub use self::sampler::Sampler;
-pub use self::pro_que_builder::ProQueBuilder;
-pub use self::pro_que::ProQue;
-pub use self::event::Event;
-pub use self::event_list::EventList;
+// pub use self::pro_que_builder::ProQueBuilder;
+pub use self::pro_que::{ProQue, ProQueBuilder};
+pub use self::event::{Event, EventList};
+// pub use self::event_list::EventList;
 pub use self::spatial_dims::SpatialDims;
-pub use self::traits::MemLen;
-pub use self::traits::WorkDims;
+pub use self::traits::{MemLen, WorkDims};
 
 
 //=============================================================================

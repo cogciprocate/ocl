@@ -19,6 +19,7 @@ const PRINT_DEBUG: bool = true;
 // How many results to print from each iteration:
 const RESULTS_TO_PRINT: usize = 5;
 
+
 struct TestEventsStuff {
     seed_vec: *const Vec<u32>, 
     result_vec: *const Vec<u32>, 
@@ -26,6 +27,60 @@ struct TestEventsStuff {
     addend: u32, 
     itr: usize,
 }
+
+
+// Callback for `test_events()`.
+//
+// Yeah it's ugly.
+extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data: *mut c_void) {
+    let buncha_stuff = user_data as *const TestEventsStuff;    
+
+    unsafe {
+        let seed_vec: *const Vec<u32> = (*buncha_stuff).seed_vec as *const Vec<u32>;
+        let result_vec: *const Vec<u32> = (*buncha_stuff).result_vec as *const Vec<u32>;
+        let data_set_size: usize = (*buncha_stuff).data_set_size;
+        let addend: u32 = (*buncha_stuff).addend;
+        let itr: usize = (*buncha_stuff).itr;
+        
+        if PRINT_DEBUG { println!("\nEvent: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
+                 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
+
+        for idx in 0..data_set_size {
+            assert_eq!((*result_vec)[idx], 
+                ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
+
+            if PRINT_DEBUG && (idx < RESULTS_TO_PRINT) {
+                let correct_result = (*seed_vec)[idx] + (((itr + 1) as u32) * addend);
+                print!("correct_result: {}, result_vec[{idx}]:{}\n",
+                    correct_result, (*result_vec)[idx], idx = idx);
+            }
+        }
+
+        let mut errors_found = 0;
+
+        for idx in 0..data_set_size {
+            // [FIXME]: FAILING ON OSX
+            assert_eq!((*result_vec)[idx], 
+             ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
+
+            if PRINT_DEBUG {
+                let correct_result = (*seed_vec)[idx] + (((itr + 1) as u32) * addend);
+
+                if (*result_vec)[idx] != correct_result {
+                    print!("correct_result:{}, result_vec[{idx}]:{}\n",
+                        correct_result, (*result_vec)[idx], idx = idx);
+
+                    errors_found += 1;
+                }
+            }
+        }
+
+        if PRINT_DEBUG { 
+            if errors_found > 0 { print!("TOTAL ERRORS FOUND: {}\n", errors_found); }
+        }
+    }
+}
+
 
 fn main() {
     // Set up data set size and work dimensions:
@@ -116,56 +171,3 @@ fn main() {
     ocl_pq.queue().finish();
 }
 
-
-
-// Callback for `test_events()`.
-//
-// Yeah it's ugly.
-extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data: *mut c_void) {
-    let buncha_stuff = user_data as *const TestEventsStuff;    
-
-    unsafe {
-        let seed_vec: *const Vec<u32> = (*buncha_stuff).seed_vec as *const Vec<u32>;
-        let result_vec: *const Vec<u32> = (*buncha_stuff).result_vec as *const Vec<u32>;
-        let data_set_size: usize = (*buncha_stuff).data_set_size;
-        let addend: u32 = (*buncha_stuff).addend;
-        let itr: usize = (*buncha_stuff).itr;
-        
-        if PRINT_DEBUG { println!("\nEvent: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
-                 addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
-
-        for idx in 0..data_set_size {
-            assert_eq!((*result_vec)[idx], 
-                ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
-
-            if PRINT_DEBUG && (idx < RESULTS_TO_PRINT) {
-                let correct_result = (*seed_vec)[idx] + (((itr + 1) as u32) * addend);
-                print!("correct_result: {}, result_vec[{idx}]:{}\n",
-                    correct_result, (*result_vec)[idx], idx = idx);
-            }
-        }
-
-        let mut errors_found = 0;
-
-        for idx in 0..data_set_size {
-            // [FIXME]: FAILING ON OSX
-            assert_eq!((*result_vec)[idx], 
-             ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
-
-            if PRINT_DEBUG {
-                let correct_result = (*seed_vec)[idx] + (((itr + 1) as u32) * addend);
-
-                if (*result_vec)[idx] != correct_result {
-                    print!("correct_result:{}, result_vec[{idx}]:{}\n",
-                        correct_result, (*result_vec)[idx], idx = idx);
-
-                    errors_found += 1;
-                }
-            }
-        }
-
-        if PRINT_DEBUG { 
-            if errors_found > 0 { print!("TOTAL ERRORS FOUND: {}\n", errors_found); }
-        }
-    }
-}

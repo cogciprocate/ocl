@@ -71,8 +71,7 @@ fn main_explained() {
 #[test]
 fn main_exploded() {
     use flags;
-    use standard::{Platform, Device, Context, DeviceSpecifier, Queue, Program,
-        Buffer, Kernel};
+    use standard::{Platform, Device, Context, Queue, Program, Buffer, Kernel};
 
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -86,7 +85,7 @@ fn main_exploded() {
     let device = Device::first(&platform);
     let context = Context::builder()
         .platform(platform)
-        .devices(DeviceSpecifier::Single(device.clone()))
+        .devices(device.clone())
         .build().unwrap();
     let program = Program::builder()
         .devices(&[device.clone()])

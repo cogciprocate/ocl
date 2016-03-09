@@ -41,7 +41,7 @@ fn main() {
     	// [NOTE]: A new context can also be created for each device if desired.
     	let context = Context::builder()
 			.platform(platform.clone())
-			.device_list(devices.clone())
+			.devices(&devices)
 			.build().unwrap();
 
 		print_platform_info(&platform);
