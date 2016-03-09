@@ -8,15 +8,11 @@ extern crate ocl;
 use std::time::Instant;
 
 use ocl::{util, core, ProQue, Buffer, EventList};
-// use ocl::traits::{BufferExtras};
-
 
 const DATASET_SIZE: usize = 2 << 12;
 
 const KERNEL_RUN_ITERS: i32 = 800;
 const BUFFER_READ_ITERS: i32 = 20;
-// const KERNEL_RUN_ITERS: i32 = 100;
-// const BUFFER_READ_ITERS: i32 = 100;
 const KERNEL_AND_BUFFER_ITERS: i32 = 1000;
 
 const SCALAR: f32 = 1.0;
@@ -42,10 +38,7 @@ fn main() {
     // Create an all-in-one context, program, and command queue:
     let ocl_pq = ProQue::builder().src(src).dims([DATASET_SIZE]).build().unwrap();
 
-    // Create init and result buffers:
-    // let vec_init: Buffer<f32> = Buffer::with_vec_scrambled(
-    //      INIT_VAL_RANGE, &dims, &ocl_pq.queue());
-    // let mut buffer_result: Buffer<f32> = Buffer::with_vec(&dims, &ocl_pq.queue());
+    // Create init and result buffers and vectors:
     let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
     let buffer_init = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
         core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_init)).unwrap();
@@ -101,7 +94,6 @@ fn main() {
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
-        // buffer_result.fill_vec();
         buffer_result.cmd().read(&mut vec_result).enq().unwrap()
     }
 
@@ -122,7 +114,6 @@ fn main() {
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enq().expect("[FIXME]: HANDLE ME!");
-        // buffer_result.fill_vec();
         buffer_result.cmd().read(&mut vec_result).enq().unwrap();
     }
 
@@ -144,11 +135,8 @@ fn main() {
     let mut kern_events = EventList::new();
     let mut buf_events = EventList::new();
 
-
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.cmd().ewait(&buf_events).enew(&mut kern_events).enq().unwrap();
-        // unsafe { buffer_result.enqueue_fill_vec(false, Some(&kern_events), 
-        //     Some(&mut buf_events)).unwrap(); }
         buffer_result.cmd().read(&mut vec_result).ewait(&kern_events)
             .enew(&mut buf_events).enq().unwrap();
     }
@@ -158,7 +146,9 @@ fn main() {
     print_elapsed("queue finished", kern_buf_start);
 
     kern_events.wait().unwrap();
+    kern_events.clear_completed().unwrap();
     buf_events.wait().unwrap();
+    buf_events.clear_completed().unwrap();
 
     verify_results(&vec_init, &vec_result, 
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
@@ -172,14 +162,9 @@ fn main() {
 
     let kern_buf_start = Instant::now();
 
-    // let mut kern_events = EventList::new();
-    // let mut buf_events = EventList::new();
-
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.cmd().enew(&mut kern_events).enq().unwrap();
         unsafe { buffer_result.cmd().read_async(&mut vec_result).enew(&mut buf_events).enq().unwrap() }
-        // unsafe { buffer_result.cmd().read(&mut vec_result).ewait(&kern_events)
-        //     .enew(&mut buf_events).enq().unwrap(); }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
@@ -208,7 +193,6 @@ fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) {
 
     for idx in 0..DATASET_SIZE {
         let correct = vec_init[idx] + (iters as f32 * SCALAR);
-        // let correct = vec_init[i] + SCALAR;
         assert!((correct - vec_result[idx]).abs() < margin_of_error, 
             "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}", 
             idx, vec_init[idx], correct, margin_of_error, vec_result[idx]);

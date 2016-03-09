@@ -38,8 +38,7 @@ static KERNEL_SRC: &'static str = r#"
     }
 "#;
 
-/// Mostly stolen from `https://github.com/PistonDevelopers/image`.
-///
+
 /// Generates a diagonal reddish stripe and a grey background.
 fn generate_image() -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
     let img = image::ImageBuffer::from_fn(512, 512, |x, y| {
@@ -129,13 +128,11 @@ fn main() {
     println!("Printing the first pixel of the image (each value is a component, RGBA): ");
     printlnc!(dark_grey: "Pixel before: [0..16]: {:?}", &img[(0, 0)]);
 
-    // print!("\n");
     printlnc!(royal_blue: "Attempting to blue-ify the image...");
     kernel.enq().expect("[FIXME]: HANDLE ME!");
 
     dst_image.read(&mut img).enq().unwrap();
 
-    // print!("\n");
     printlnc!(dark_grey: "Pixel after: [0..16]: {:?}", &img[(0, 0)]);
     
     if SAVE_IMAGES_TO_DISK {

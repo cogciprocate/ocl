@@ -32,7 +32,7 @@ Add:
 
 ```rust
 [dependencies] 
-ocl = "0.7"
+ocl = "0.8"
 ```
 
 to your project's `Cargo.toml`.
@@ -54,19 +54,21 @@ fn main() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims([500000])
-        .build().unwrap();   
+        .dims([2 << 20])
+        .build().unwrap();
 
-    let mut buffer = pro_que.create_buffer::<f32>(true);
+    let buffer = pro_que.create_buffer::<f32>().unwrap();
 
-    let kernel = pro_que.create_kernel("add")
+    let kernel = pro_que.create_kernel("add").unwrap()
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    kernel.enqueue();
-    buffer.fill_vec();
+    kernel.enq().unwrap();
 
-    println!("The value at index [{}] is now '{}'!", 200007, buffer[200007]);
+    let mut vec = vec![0.0f32; buffer.len()];
+    buffer.read(&mut vec).enq().unwrap();
+
+    println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
 }
 
 ////////// See the original file for more //////////

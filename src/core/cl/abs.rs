@@ -512,15 +512,6 @@ impl EventList {
 
 	/// Clones the last event.
 	pub fn last_clone(&self) -> Option<OclResult<Event>> {
-		// match self.event_ptrs.last() {
-		// 	Some(ptr) => {
-		// 		unsafe { 
-		// 			Some(Event::from_cloned_ptr(*ptr))
-		// 		}
-		// 	},
-		// 	None => None,
-		// }
-
 		self.event_ptrs.last().map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) } )
 	}
 
@@ -556,6 +547,26 @@ impl EventList {
 
         Ok(())
     }
+
+
+    // /// Merges the copied contents of this list and another into a new list and returns it.
+    // pub fn union(&self, other_list: &EventList) -> EventList {
+    //     let new_cap = other_list.events().len() + self.events.len() + EXTRA_CAPACITY;
+
+    //     let mut new_list = EventList {
+    //         events: Vec::with_capacity(new_cap),
+    //         clear_counter: 0,
+    //     };
+
+    //     new_list.events.extend(self.events().iter().cloned());
+    //     new_list.events.extend(other_list.events().iter().cloned());
+
+    //     if AUTO_CLEAR {
+    //         new_list.clear_completed();
+    //     }
+
+    //     new_list
+    // }
 
     /// Counts down the auto-list-clear counter.
     fn decr_counter(&mut self) {
@@ -596,7 +607,6 @@ impl Clone for EventList {
 	}
 }
 
-
 impl Drop for EventList {
 	fn drop(&mut self) {
 		if DEBUG_PRINT { print!("Dropping events... "); }
@@ -614,7 +624,6 @@ impl AsRef<EventList> for EventList {
     }
 }
 
-// unsafe impl EventListPtr for Event {}
 unsafe impl Sync for EventList {}
 unsafe impl Send for EventList {}
 

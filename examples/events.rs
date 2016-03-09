@@ -75,8 +75,6 @@ fn main() {
         // which will persist until all of the commands have completed (as long as
         // we are sure to allow the queue to finish before returning).
         buncha_stuffs.push(TestEventsStuff {
-            // seed_env: &seed_buffer as *const Buffer<u32>,
-            // res_env: &result_buffer as *const Buffer<u32>, 
             seed_vec: &seed_vec as *const Vec<u32>,
             result_vec: &result_vec as *const Vec<u32>, 
             data_set_size: dims[0], 
@@ -97,7 +95,6 @@ fn main() {
         let mut read_event = EventList::new();
         
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
-        // unsafe { result_buffer.enqueue_fill_vec(false, None, Some(&mut read_event)).unwrap(); }
         unsafe { result_buffer.cmd().read_async(&mut result_vec)
             .enew(&mut read_event).enq().unwrap(); }
     
@@ -110,16 +107,12 @@ fn main() {
             if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...", 
                 last_idx, itr); }
             read_event.set_callback(Some(_test_events_verify_result), 
-                // &mut buncha_stuffs[last_idx] as *mut _ as *mut c_void);
                 &mut buncha_stuffs[last_idx]).unwrap();
         }
-
-        // if PRINT_DEBUG { println!("Releasing read_event [i:{}]...", itr); }
-        // // Decrement reference count. Will still complete before releasing.
-        // read_event.release_all();
     }
 
-    // Wait for all queued tasks to finish so that verify_result() will be called:
+    // Wait for all queued tasks to finish so that verify_result() will be
+    // called before returning:
     ocl_pq.queue().finish();
 }
 
@@ -132,8 +125,6 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
     let buncha_stuff = user_data as *const TestEventsStuff;    
 
     unsafe {
-        // let seed_buffer: *const Buffer<u32> = (*buncha_stuff).seed_env as *const Buffer<u32>;
-        // let result_buffer: *const Buffer<u32> = (*buncha_stuff).res_env as *const Buffer<u32>;
         let seed_vec: *const Vec<u32> = (*buncha_stuff).seed_vec as *const Vec<u32>;
         let result_vec: *const Vec<u32> = (*buncha_stuff).result_vec as *const Vec<u32>;
         let data_set_size: usize = (*buncha_stuff).data_set_size;
@@ -157,9 +148,9 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
         let mut errors_found = 0;
 
         for idx in 0..data_set_size {
-            // [FIXME]: FAILING ON OSX -- TEMPORARLY COMMENTING OUT
-            // assert_eq!((*result_vec)[idx], 
-            //  ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
+            // [FIXME]: FAILING ON OSX
+            assert_eq!((*result_vec)[idx], 
+             ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
 
             if PRINT_DEBUG {
                 let correct_result = (*seed_vec)[idx] + (((itr + 1) as u32) * addend);
