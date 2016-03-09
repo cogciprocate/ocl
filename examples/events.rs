@@ -84,7 +84,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 
 fn main() {
     // Set up data set size and work dimensions:
-    let dims = [2 << 20];
+    let dims = [2 << 17];
 
     // Get a path for our program source:
     let src_file = Search::ParentsThenKids(3, 3).for_folder("cl").unwrap().join("kernel_file.cl");

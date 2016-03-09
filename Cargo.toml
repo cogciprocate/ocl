@@ -25,9 +25,8 @@ bitflags = "0.5"
 # time = "*"
 image = "0.7"
 find_folder = "*"
+colorify = "0.1"
 
-[dev-dependencies.colorify]
-path = "/home/nick/projects/colorify"
 
 [profile.test]
 opt-level = 0
