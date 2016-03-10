@@ -26,21 +26,17 @@ To provide:
 ## Installation
 
 Ensure that an OpenCL library is installed for your platform and that `clinfo`
-or some other diagnostic command will run.
-
-Add:
+or some other diagnostic command will run. Add the following to your project's
+`Cargo.toml`:
 
 ```rust
 [dependencies] 
 ocl = "0.8"
 ```
 
-to your project's `Cargo.toml`.
-
-
 ## Example 
 
-From 'examples/trivial.rs':
+From [`examples/trivial.rs`]:
 ```rust
 extern crate ocl;
 use ocl::ProQue;
@@ -73,8 +69,7 @@ fn main() {
 ///////////// See the original file for more /////////////
 ```
 
-See the the remainder of [`examples/trivial.rs`] for much more information and
-explanation.
+See the the remainder of [`examples/trivial.rs`] for much more.
 
 
 #### Diving Deeper
