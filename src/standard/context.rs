@@ -320,7 +320,7 @@ impl DerefMut for Context {
     // ///
     // /// # Examples
     // /// 
-    // /// ```notest
+    // /// ```text
     // /// // use ocl;
     // ///
     // /// fn main() {
@@ -332,7 +332,7 @@ impl DerefMut for Context {
     // /// ```
     // ///
     // ///
-    // /// ```notest
+    // /// ```text
     // /// // use ocl;
     // /// 
     // /// fn main() {

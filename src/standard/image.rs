@@ -27,21 +27,24 @@ impl<S: OclPrm> ImageBuilder<S> {
     ///
     /// ## Defaults
     ///
-    /// Flags: 
-    /// ```notest
+    /// * Flags: 
+    ///
+    /// ```text
     /// ocl::MEM_READ_WRITE
     /// ```
     ///
-    /// Image Format:
-    /// ```notest
+    /// * Image Format:
+    ///
+    /// ```text
     /// ocl::ImageFormat {
     ///    channel_order: ocl::ImageChannelOrder::Rgba,
     ///    channel_data_type: ocl::ImageChannelDataType::SnormInt8,
     /// }
     /// ```
     ///
-    /// Descriptor (stores everything else - width, height, pitch, etc.):
-    /// ```notest
+    /// * Descriptor (stores everything else - width, height, pitch, etc.):
+    ///
+    /// ```text
     /// ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None)
     /// ```
     ///
@@ -172,7 +175,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// If image_row_pitch is not 0, it must be a multiple of the image element
     /// size in bytes.
     ///
-    pub fn row_pitch<'a>(&'a mut self, row_pitch: usize) -> &'a mut ImageBuilder<S> {
+    pub fn row_pitch_bytes<'a>(&'a mut self, row_pitch: usize) -> &'a mut ImageBuilder<S> {
         self.image_desc.image_row_pitch = row_pitch;
         self
     }
@@ -190,7 +193,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// image_row_pitch for a 1D image array. If image_slice_pitch is not 0, it
     /// must be a multiple of the image_row_pitch.
     ///
-    pub fn slc_pitch<'a>(&'a mut self, slc_pitch: usize) -> &'a mut ImageBuilder<S> {
+    pub fn slc_pitch_bytes<'a>(&'a mut self, slc_pitch: usize) -> &'a mut ImageBuilder<S> {
         self.image_desc.image_slice_pitch = slc_pitch;
         self
     }
@@ -217,7 +220,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// Setting this overwrites any previously set flags. To combine them,
     /// use the bitwise or operator (`|`), for example:
     ///
-    /// ```notest
+    /// ```text
     /// ocl::Image::builder().flags(ocl::MEM_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)...
     /// ```
     ///
@@ -232,7 +235,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     ///
     /// If unspecified, defaults to: 
     ///
-    /// ```notest
+    /// ```text
     /// ImageFormat {
     ///    channel_order: ImageChannelOrder::Rgba,
     ///    channel_data_type: ImageChannelDataType::SnormInt8,
@@ -248,7 +251,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     ///
     /// If unspecified (not recommended), defaults to: 
     ///
-    /// ```notest
+    /// ```text
     /// ImageDescriptor {
     ///     image_type: MemObjectType::Image1d,
     ///     image_width: 0,
@@ -266,7 +269,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// If you are unsure, just set the first four by using 
     /// `ImageDescriptor::new`. Ex.:
     /// 
-    /// ```notest
+    /// ```text
     /// ocl::Image::builder()
     ///    .image_desc(ocl::ImageDescriptor::new(
     ///       ocl::MemObjectType::Image2d, 1280, 800, 1))
@@ -310,7 +313,8 @@ impl<'b, E: 'b> ImageCmdKind<'b, E> {
 ///
 /// ## Examples
 ///
-/// ```notest
+/// ```text
+///
 /// // Copies one image to another:
 /// src_image.cmd().copy(&dst_image, [0, 0, 0]).enq().unwrap();
 ///
@@ -323,6 +327,7 @@ impl<'b, E: 'b> ImageCmdKind<'b, E> {
 ///
 /// // Reads without blocking:
 /// image.cmd().read_async(&dst_vec).enew(&empty_event).enq().unwrap();
+///
 /// ```
 ///
 /// [FIXME]: Fills not yet implemented.

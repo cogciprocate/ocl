@@ -719,7 +719,7 @@ pub unsafe fn release_mem_object(mem: &Mem) -> OclResult<()> {
 ///
 /// # Example
 /// 
-/// ```notest
+/// ```text
 /// let context = Context::builder().build().unwrap();
 /// 
 /// let img_fmts = core::get_supported_image_formats(context, 

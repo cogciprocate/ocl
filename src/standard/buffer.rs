@@ -63,7 +63,7 @@ pub enum BufferCmdDataShape {
 ///
 /// ## Examples
 ///
-/// ```notest
+/// ```text
 /// // Copies one buffer to another:
 /// src_buffer.cmd().copy(&dst_buffer, 0, dst_buffer.len()).enq().unwrap();
 ///
