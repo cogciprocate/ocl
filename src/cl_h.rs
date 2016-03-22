@@ -574,7 +574,7 @@ pub const CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
 #[cfg_attr(target_os = "macos", link(name = "OpenCL", kind = "framework"))]
-#[cfg_attr(target_os = "windows"), link(name = "OpenCL")]
+#[cfg_attr(target_os = "windows", link(name = "OpenCL"))]
 #[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
 extern "C" {
     // Platform API
