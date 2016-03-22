@@ -108,7 +108,7 @@ fn print_device_info(device: &Device) {
 		printlnc!(teal: "{}", device);
 	} else {
 		if !PRINT_DETAILED { print!("{t}", t = TAB); } 
-		printlnc!(teal: "Device (terse) {{ Name: {}, Verdor: {} }}", device.name(), device.vendor());
+		printlnc!(teal: "Device (terse) {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());
 	}
 }
 
