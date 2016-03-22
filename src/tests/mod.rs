@@ -13,6 +13,7 @@ pub mod buffer_ops_rect;
 pub mod image_ops;
 pub mod buffer_fill;
 pub mod clear_completed;
+pub mod concurrent; 
 
 use rand::{self, Rng};
 use error::{Error as OclError, Result as OclResult};
