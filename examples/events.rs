@@ -87,7 +87,7 @@ fn main() {
     let dims = [2 << 17];
 
     // Get a path for our program source:
-    let src_file = Search::ParentsThenKids(3, 3).for_folder("cl").unwrap().join("kernel_file.cl");
+    let src_file = Search::ParentsThenKids(3, 3).for_folder("examples").unwrap().join("cl/kernel_file.cl");
 
     // Create a context, program, & queue: 
     let ocl_pq = ProQue::builder()
