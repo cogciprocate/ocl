@@ -287,7 +287,7 @@ impl ProgramBuilder {
     pub fn get_compiler_options(&self) -> OclResult<CString> {
         let mut opts: Vec<String> = Vec::with_capacity(64);
 
-        opts.push(" ".to_string());
+        opts.push(" ".to_owned());
 
         for option in self.options.iter() {         
             match option {

@@ -183,11 +183,12 @@ impl PlatformInfoResult {
         })
     }
 
-    pub fn to_string(&self) -> String {
-        self.as_str().to_string()
-    }
+    // // IMPLEMENTED AUTOMATICALLY VIA `Display`
+    // pub fn to_string(&self) -> String {
+    //     self.as_str().to_string()
+    // }
 
-    pub fn as_str(&self) -> &str {
+    fn as_str(&self) -> &str {
         match self {
             &PlatformInfoResult::Profile(ref s) => s,
             &PlatformInfoResult::Version(ref s) => s,
@@ -207,7 +208,7 @@ impl Into<String> for PlatformInfoResult {
             PlatformInfoResult::Name(string) => string,
             PlatformInfoResult::Vendor(string) => string,
             PlatformInfoResult::Extensions(string) => string,
-            PlatformInfoResult::Error(err) => (*err).description().to_string(),
+            PlatformInfoResult::Error(err) => String::from((*err).description()),
         }
     }
 }
