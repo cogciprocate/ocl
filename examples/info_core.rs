@@ -5,10 +5,11 @@
 extern crate ocl;
 #[macro_use] extern crate colorify;
 
+use ocl::Error as OclError;
 use ocl::{Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, 
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
-    EventInfo, ProfilingInfo};
+    EventInfo, ProfilingInfo, KernelArgInfoResult, KernelWorkGroupInfoResult};
 use ocl::util;
 
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -750,7 +751,8 @@ fn main() {
         core::get_program_info(&program, ProgramInfo::Devices).unwrap(),
         core::get_program_info(&program, ProgramInfo::Source).unwrap(),
         core::get_program_info(&program, ProgramInfo::BinarySizes).unwrap(),
-        core::get_program_info(&program, ProgramInfo::Binaries).unwrap(),
+        //core::get_program_info(&program, ProgramInfo::Binaries).unwrap(),
+        "n/a",
         core::get_program_info(&program, ProgramInfo::NumKernels).unwrap(),
         core::get_program_info(&program, ProgramInfo::KernelNames).unwrap(),
         t = util::colors::TAB,
@@ -910,11 +912,16 @@ fn main() {
             {t}TypeQualifier: {}\n\
             {t}Name: {}\n\
         ",
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier).unwrap(),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier).unwrap(),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName).unwrap(),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier).unwrap(),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name).unwrap(),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier)
+            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier)
+            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName)
+            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier)
+            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name)
+            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
         t = util::colors::TAB,
     );
 
@@ -944,16 +951,16 @@ fn main() {
             {t}PrivateMemSize: {}\n\
             {t}GlobalWorkSize: {}\n\
         ",
-        core::get_kernel_work_group_info(&kernel, &device, 
-            KernelWorkGroupInfo::WorkGroupSize).unwrap(),
-        core::get_kernel_work_group_info(&kernel, &device, 
-            KernelWorkGroupInfo::CompileWorkGroupSize).unwrap(),
-        core::get_kernel_work_group_info(&kernel, &device, 
-            KernelWorkGroupInfo::LocalMemSize).unwrap(),
-        core::get_kernel_work_group_info(&kernel, &device, 
-            KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple).unwrap(),
-        core::get_kernel_work_group_info(&kernel, &device, 
-            KernelWorkGroupInfo::PrivateMemSize).unwrap(),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::WorkGroupSize)
+            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::CompileWorkGroupSize)
+            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::LocalMemSize)
+            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple)
+            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PrivateMemSize)
+            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
         // core::get_kernel_work_group_info(&kernel, &device, 
         //  KernelWorkGroupInfo::GlobalWorkSize).unwrap(),
         "[KernelWorkGroupInfo::GlobalWorkSize not avaliable in this configuration]",
