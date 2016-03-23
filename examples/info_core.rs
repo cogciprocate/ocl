@@ -9,7 +9,7 @@ use ocl::Error as OclError;
 use ocl::{Platform, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, 
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
-    EventInfo, ProfilingInfo, ContextInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult};
+    EventInfo, ProfilingInfo, KernelArgInfoResult, KernelWorkGroupInfoResult};
 use ocl::util;
 
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -461,10 +461,10 @@ fn main() {
             {t}Properties: {}\n\
             {t}Device Count: {}\n\
         ",
-        core::get_context_info(&context, ContextInfo::ReferenceCount).unwrap_or(ContextInfoResult::TemporaryPlaceholderVariant(vec![])),
-        core::get_context_info(&context, ContextInfo::Devices).unwrap_or(ContextInfoResult::TemporaryPlaceholderVariant(vec![])),
-        core::get_context_info(&context, ContextInfo::Properties).unwrap_or(ContextInfoResult::TemporaryPlaceholderVariant(vec![])),
-        core::get_context_info(&context, ContextInfo::NumDevices).unwrap_or(ContextInfoResult::TemporaryPlaceholderVariant(vec![])),
+        core::get_context_info(&context, ContextInfo::ReferenceCount),
+        core::get_context_info(&context, ContextInfo::Devices),
+        core::get_context_info(&context, ContextInfo::Properties),
+        core::get_context_info(&context, ContextInfo::NumDevices),
         t = util::colors::TAB,
     );
 

@@ -230,10 +230,11 @@ impl Context {
 
     /// Returns info about the context. 
     pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
-        match core::get_context_info(&self.obj_core, info_kind) {
-            Ok(pi) => pi,
-            Err(err) => ContextInfoResult::Error(Box::new(err)),
-        }
+        // match core::get_context_info(&self.obj_core, info_kind) {
+        //     Ok(pi) => pi,
+        //     Err(err) => ContextInfoResult::Error(Box::new(err)),
+        // }
+        core::get_context_info(&self.obj_core, info_kind)
     }
 
     /// Returns a string containing a formatted list of context properties.

@@ -60,8 +60,17 @@ pub type TemporaryPlaceholderType = ();
 /// The `Mem`, `Sampler`, `Scalar`, and `Local` variants are tested and will
 /// work perfectly well.
 ///
-/// * `Vector`: The `Vector` variant is poorly tested and probably a bit platform dependent. Use at your own risk.
-/// * `UnsafePointer`: Really know what you're doing when using the `UnsafePointer` variant. Setting its properties, `size` and `value`, incorrectly can cause bugs, crashes, and data integrity issues that are very hard to track down. This is due to the fact that the pointer value is intended to be a pointer to a memory structure in YOUR programs memory, NOT a copy of an OpenCL object pointer (such as a `cl_h::cl_mem` for example, which is itself a `*mut libc::c_void`). This is made more complicated by the fact that the pointer can also be a pointer to a scalar (ex: `*const u32`, etc.). See the [SDK docs] for more details.
+/// * `Vector`: The `Vector` variant is poorly tested and probably a bit
+///   platform dependent. Use at your own risk.
+/// * `UnsafePointer`: Really know what you're doing when using the
+///   `UnsafePointer` variant. Setting its properties, `size` and `value`,
+///   incorrectly can cause bugs, crashes, and data integrity issues that are
+///   very hard to track down. This is due to the fact that the pointer value
+///   is intended to be a pointer to a memory structure in YOUR programs
+///   memory, NOT a copy of an OpenCL object pointer (such as a `cl_h::cl_mem`
+///   for example, which is itself a `*mut libc::c_void`). This is made more
+///   complicated by the fact that the pointer can also be a pointer to a
+///   scalar (ex: `*const u32`, etc.). See the [SDK docs] for more details.
 /// 
 /// [SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 #[derive(Debug)]
@@ -83,14 +92,7 @@ pub enum KernelArg<'a, T: 'a + OclPrm> {
     UnsafePointer { size: size_t, value: *const c_void },
 }
 
-    // /// cl_context_info + cl_context_properties
-    // #[repr(C)]
-    // #[derive(Clone, Copy, Debug, PartialEq)]
-    // pub enum ContextInfoOrPropertiesPointerType {
-    //     Platform = cl_h::CL_CONTEXT_PLATFORM as isize,
-    //     InteropUserSync = cl_h::CL_CONTEXT_INTEROP_USER_SYNC as isize,
-    // }
-//   
+
 // cl_context_properties enum  Property value  Description
 //
 // CL_CONTEXT_PLATFORM cl_platform_id  Specifies the platform to use.
@@ -100,27 +102,45 @@ pub enum KernelArg<'a, T: 'a + OclPrm> {
 // to the specific sections in the OpenCL 1.2 extension specification that
 // describe sharing with other APIs for restrictions on using this flag.
 //
-//    - If CL_CONTEXT_INTEROP_USER_ SYNC is not specified, a default of CL_FALSE is assumed.
+//    - If CL_CONTEXT_INTEROP_USER_ SYNC is not specified, a default of
+//      CL_FALSE is assumed.
 //
-// CL_CONTEXT_D3D10_DEVICE_KHR ID3D10Device*   If the cl_khr_d3d10_sharing extension is enabled, specifies the ID3D10Device* to use for Direct3D 10 interoperability. The default value is NULL.
+// CL_CONTEXT_D3D10_DEVICE_KHR ID3D10Device*   If the cl_khr_d3d10_sharing
+// extension is enabled, specifies the ID3D10Device* to use for Direct3D 10
+// interoperability. The default value is NULL.
 //
-// CL_GL_CONTEXT_KHR   0, OpenGL context handle    OpenGL context to associated the OpenCL context with (available if the cl_khr_gl_sharing extension is enabled)
+// CL_GL_CONTEXT_KHR   0, OpenGL context handle    OpenGL context to
+// associated the OpenCL context with (available if the cl_khr_gl_sharing
+// extension is enabled)
 //
-// CL_EGL_DISPLAY_KHR  EGL_NO_DISPLAY, EGLDisplay handle   EGLDisplay an OpenGL context was created with respect to (available if the cl_khr_gl_sharing extension is enabled)
+// CL_EGL_DISPLAY_KHR  EGL_NO_DISPLAY, EGLDisplay handle   EGLDisplay an
+// OpenGL context was created with respect to (available if the
+// cl_khr_gl_sharing extension is enabled)
 //
-// CL_GLX_DISPLAY_KHR  None, X handle  X Display an OpenGL context was created with respect to (available if the cl_khr_gl_sharing extension is enabled)
+// CL_GLX_DISPLAY_KHR  None, X handle  X Display an OpenGL context was created
+// with respect to (available if the cl_khr_gl_sharing extension is enabled)
 //
-// CL_CGL_SHAREGROUP_KHR   0, CGL share group handle   CGL share group to associate the OpenCL context with (available if the cl_khr_gl_sharing extension is enabled)
+// CL_CGL_SHAREGROUP_KHR   0, CGL share group handle   CGL share group to
+// associate the OpenCL context with (available if the cl_khr_gl_sharing
+// extension is enabled)
 //
-// CL_WGL_HDC_KHR  0, HDC handle   HDC an OpenGL context was created with respect to (available if the cl_khr_gl_sharing extension is enabled)
+// CL_WGL_HDC_KHR  0, HDC handle   HDC an OpenGL context was created with
+// respect to (available if the cl_khr_gl_sharing extension is enabled)
 //
-// CL_CONTEXT_ADAPTER_D3D9_KHR IDirect3DDevice9 *  Specifies an IDirect3DDevice9 to use for D3D9 interop (if the cl_khr_dx9_media_sharing extension is supported).
+// CL_CONTEXT_ADAPTER_D3D9_KHR IDirect3DDevice9 *  Specifies an
+// IDirect3DDevice9 to use for D3D9 interop (if the cl_khr_dx9_media_sharing
+// extension is supported).
 //
-// CL_CONTEXT_ADAPTER_D3D9EX_KHR   IDirect3DDeviceEx*  Specifies an IDirect3DDevice9Ex to use for D3D9 interop (if the cl_khr_dx9_media_sharing extension is supported).
+// CL_CONTEXT_ADAPTER_D3D9EX_KHR   IDirect3DDeviceEx*  Specifies an
+// IDirect3DDevice9Ex to use for D3D9 interop (if the cl_khr_dx9_media_sharing
+// extension is supported).
 //
-// CL_CONTEXT_ADAPTER_DXVA_KHR IDXVAHD_Device *    Specifies an IDXVAHD_Device to use for DXVA interop (if the cl_khr_dx9_media_sharing extension is supported).
+// CL_CONTEXT_ADAPTER_DXVA_KHR IDXVAHD_Device *    Specifies an IDXVAHD_Device
+// to use for DXVA interop (if the cl_khr_dx9_media_sharing extension is
+// supported).
 //
-// CL_CONTEXT_D3D11_DEVICE_KHR ID3D11Device *  Specifies the ID3D11Device * to use for Direct3D 11 interoperability. The default value is NULL.
+// CL_CONTEXT_D3D11_DEVICE_KHR ID3D11Device *  Specifies the ID3D11Device * to
+// use for Direct3D 11 interoperability. The default value is NULL.
 //
 #[derive(Clone, Debug)]
 pub enum ContextProperty {
@@ -137,6 +157,7 @@ pub enum ContextProperty {
     AdapterDxvaKhr(TemporaryPlaceholderType),
     D3d11DeviceKhr(TemporaryPlaceholderType),
 }
+
 
 /// Platform info result.
 ///
@@ -224,6 +245,7 @@ impl std::fmt::Display for PlatformInfoResult {
         write!(f, "{}", self.as_str())
     }
 }
+
 
 /// A device info result.
 ///
@@ -384,27 +406,30 @@ pub enum ContextInfoResult {
 }
 
 impl ContextInfoResult {
-    pub fn new(request_param: ContextInfo, result: Vec<u8>) -> OclResult<ContextInfoResult> {
-        Ok(match request_param {
-            ContextInfo::ReferenceCount => {
-                ContextInfoResult::ReferenceCount(util::bytes_to_u32(&result))
-            },
-            ContextInfo::Devices => {
-                ContextInfoResult::Devices(
-                    unsafe { util::bytes_into_vec::<DeviceId>(result) }
-                )
-            },
-            ContextInfo::Properties => {
-                // unsafe { ContextInfoResult::Properties(
-                //     ContextInfoOrPropertiesPointerType.from_u32(util::bytes_into::
-                //         <cl_h::cl_context_properties>(result))
-                // ) }
-                ContextInfoResult::Properties(result)
-            },
-            ContextInfo::NumDevices => {
-                ContextInfoResult::NumDevices(util::bytes_to_u32(&result))
-            },
-        })
+    pub fn new(request_param: ContextInfo, result: OclResult<Vec<u8>>) -> ContextInfoResult {
+        match result {
+            Ok(result) => { match request_param {
+                ContextInfo::ReferenceCount => {
+                    ContextInfoResult::ReferenceCount(util::bytes_to_u32(&result))
+                },
+                ContextInfo::Devices => {
+                    ContextInfoResult::Devices(
+                        unsafe { util::bytes_into_vec::<DeviceId>(result) }
+                    )
+                },
+                ContextInfo::Properties => {
+                    // unsafe { ContextInfoResult::Properties(
+                    //     ContextInfoOrPropertiesPointerType.from_u32(util::bytes_into::
+                    //         <cl_h::cl_context_properties>(result))
+                    // ) }
+                    ContextInfoResult::Properties(result)
+                },
+                ContextInfo::NumDevices => {
+                    ContextInfoResult::NumDevices(util::bytes_to_u32(&result))
+                },
+            } }
+            Err(err) => ContextInfoResult::Error(Box::new(err)),
+        }
     }
 
     pub fn to_string(&self) -> String {
@@ -429,6 +454,7 @@ impl std::fmt::Display for ContextInfoResult {
         write!(f, "{}", &self.to_string())
     }
 }
+
 
 
 /// [UNSTABLE][INCOMPLETE] A command queue info result.
@@ -484,6 +510,7 @@ pub enum MemInfoResult {
     Offset(TemporaryPlaceholderType),
     Error(Box<OclError>),
 }
+
 
 impl MemInfoResult {
     // TODO: IMPLEMENT THIS PROPERLY.
