@@ -23,14 +23,15 @@ fn concurrent() {
 	println!("Listing platforms 5 times...");
 
 	for i in 0..5 {
-		let thread_name = format!("Thread_{}", i);
+		let thread_name = format!("[thread_{}]", i);
 
 		let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
 			let platforms = Platform::list();
-		}).expect("Error creating thread");
+		}).expect("Error creating {}", &thread_name);
 
 		threads.push(th);
 	}
+
 
 	for th in threads.into_iter() {
 		if let Err(e) = th.join() { println!("Error joining thread: '{:?}'", e); }
