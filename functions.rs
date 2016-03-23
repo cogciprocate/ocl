@@ -44,22 +44,10 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
 //============================================================================
 //============================================================================
 
-/// Evaluates `errcode` and returns an `Err` with a failure message if it is
-/// not 0.
-///
-/// [NAME?]: Is this an idiomatic name for this function?
+/// [DEPRICATED] Evaluates `errcode` and returns an `Err` with a failure
+/// message if it is not 0.
 ///
 fn errcode_try(cl_fn_name: &'static str, fn_info: &str, errcode: cl_int) -> OclResult<()> {
-    // let status = match Status::from_i32(errcode) {
-    //     Some(s) => s,
-    //     None => panic!("ocl::core::errcode_try(): Invalid error code: '{}'. Aborting.", errcode),
-    // };
-
-    // if let Status::CL_SUCCESS = status {
-    //     Ok(())
-    // } else {        
-    //     OclError::err_status(status, cl_fn_name, fn_info)
-    // }
     OclError::err_status(errcode, cl_fn_name, fn_info)
 }
 
