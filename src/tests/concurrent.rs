@@ -1,3 +1,7 @@
+//! Checks to make sure that the platform can be used concurrently.
+//!
+//! This generally fails on NVidia hardware.
+
 #![allow(unused_imports, unused_variables, dead_code, unused_mut)]
 
 use std::thread::{self, JoinHandle};
@@ -13,16 +17,18 @@ static SRC: &'static str = r#"
     }
 "#;
 
+const THREAD_COUNT: u32 = 2;
+
 #[test]
 fn concurrent() {
 	let mut rng = rand::weak_rng();
 	let data_set_size = 2 << 10;
 	let dims = [data_set_size];
-	let mut threads = Vec::new();
+	let threads = Vec::with_capacity(THREAD_COUNT);
 
-	println!("Listing platforms 5 times...");
+	println!("Listing platforms {} times...", THREAD_COUNT);
 
-	for i in 0..5 {
+	for i in 0..THREAD_COUNT {
 		let thread_name = format!("[thread_{}]", i);
 
 		let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
@@ -34,13 +40,14 @@ fn concurrent() {
 
 
 	for th in threads.into_iter() {
-		if let Err(e) = th.join() { println!("Error joining thread: '{:?}'", e); }
+		let th_name = String::from(th.thread().name().unwrap_or(""));
+		if let Err(e) = th.join() { panic!("Error joining thread: '{:?}'", th_name); }
 	}
-
-	println!("Done.");
+	
+	println!("Donesky.");
 }
 
-
+// UNUSED
 fn main_from_example() {
 	let mut rng = rand::weak_rng();
 	let data_set_size = 2 << 10;
