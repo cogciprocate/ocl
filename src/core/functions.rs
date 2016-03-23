@@ -15,9 +15,9 @@ use std::io::Read;
 use std::ffi::CString;
 use std::iter;
 use libc::{size_t, c_void};
-use num::{FromPrimitive};
+use num::FromPrimitive;
 
-use cl_h::{self, Status, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, 
+use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, 
     cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, 
     cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, 
     cl_mem_flags, cl_mem_object_type, cl_buffer_create_type, cl_event, cl_program, 
@@ -44,50 +44,23 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
 //============================================================================
 //============================================================================
 
-// /// Converts the `cl_int` errcode into a string containing the associated
-// /// constant name.
-// fn errcode_string(errcode: cl_int) -> String {
-//     match Status::from_i32(errcode) {
-//         Some(cls) => format!("{:?}", cls),
-//         None => format!("[Unknown Error Code: {}]", errcode as i64),
-//     }
-// }
-
 /// Evaluates `errcode` and returns an `Err` with a failure message if it is
 /// not 0.
 ///
 /// [NAME?]: Is this an idiomatic name for this function?
 ///
-/// TODO: Possibly convert this to a macro of some sort.
 fn errcode_try(cl_fn_name: &'static str, fn_info: &str, errcode: cl_int) -> OclResult<()> {
-    let status = match Status::from_i32(errcode) {
-        Some(s) => s,
-        None => panic!("ocl::core::errcode_try(): Invalid error code: '{}'. Aborting.", errcode),
-    };
+    // let status = match Status::from_i32(errcode) {
+    //     Some(s) => s,
+    //     None => panic!("ocl::core::errcode_try(): Invalid error code: '{}'. Aborting.", errcode),
+    // };
 
-    // if errcode == cl_h::Status::CL_SUCCESS as cl_int {
+    // if let Status::CL_SUCCESS = status {
     //     Ok(())
-    if let Status::CL_SUCCESS = status {
-        Ok(())
-    } else {        
-        // let fn_info_string = if fn_info.len() != 0 {
-        //     format!("(\"{}\")", fn_info)
-        // } else {
-        //     String::with_capacity(0)
-        // };
-
-        // OclError::status(status.clone(), 
-        //     format!("\n\n\
-        //         ################################ OPENCL ERROR ############################### \
-        //         \n\nError executing function: {}{}  \
-        //         \n\nStatus error code: {:?} ({})  \
-        //         \n\nPlease visit the following url for more information: \n\n{}{}{}  \n\n\
-        //         ############################################################################# \n",
-        //         cl_fn_name, fn_info_string, status, errcode, 
-        //         SDK_DOCS_URL_PRE, cl_fn_name, SDK_DOCS_URL_SUF)
-        // )
-        OclError::err_status(status, cl_fn_name, fn_info)
-    }
+    // } else {        
+    //     OclError::err_status(status, cl_fn_name, fn_info)
+    // }
+    OclError::err_status(errcode, cl_fn_name, fn_info)
 }
 
 /// Maps options of slices to pointers and a length.
