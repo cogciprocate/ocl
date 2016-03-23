@@ -13,6 +13,11 @@ perform on a par with the C++ bindings.
 Interfaces are still mildly unstable. Changes are now being documented in
 [RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md).
 
+Due to buggy and/or intentionally crippled drivers, functionality involving
+multiple host threads, multiple devices, or asynchronous callbacks may not
+work on NVIDIA hardware. Until NVIDIA's implementation is corrected, tests and
+examples involving multiple asynchronous tasks will fail on that platform.
+
 
 ## Goals
 
