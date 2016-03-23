@@ -77,7 +77,13 @@ impl self::Error {
         }
     }
 
-    
+    /// Returns the error status const code name or nothing.
+    pub fn status_code(&self) -> String {
+        match self {
+            &Error::Status { ref status, .. } => format!("{:?}", status),
+            _ => String::from(""),
+        }
+    }    
 }
 
 impl std::error::Error for self::Error {

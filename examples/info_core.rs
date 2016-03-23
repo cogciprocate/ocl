@@ -705,7 +705,7 @@ fn main() {
     //     FilterMode = cl_h::CL_SAMPLER_FILTER_MODE as isize,
     // }
 
-    println!("[UNIMPLEMENTED] Sampler:\n\
+    println!("Sampler:\n\
             {t}ReferenceCount: {}\n\
             {t}Context: {}\n\
             {t}NormalizedCoords: {}\n\
