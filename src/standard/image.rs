@@ -647,7 +647,7 @@ impl<E: OclPrm> Image<E> {
             image_data,
         )) };
 
-        let pixel_element_len = match try!(core::get_image_info(&obj_core, ImageInfo::ElementSize)) {
+        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<E>(),
             ImageInfoResult::Error(err) => return Err(*err),
             _ => return OclError::err("ocl::Image::element_len(): \
@@ -737,18 +737,20 @@ impl<E: OclPrm> Image<E> {
 
     /// Get information about this image.
     pub fn info(&self, info_kind: ImageInfo) -> ImageInfoResult {
-        match core::get_image_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => ImageInfoResult::Error(Box::new(err)),
-        }   
+        // match core::get_image_info(&self.obj_core, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => ImageInfoResult::Error(Box::new(err)),
+        // }   
+        core::get_image_info(&self.obj_core, info_kind)
     }
 
     /// Returns info about this image's memory.
     pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
-        match core::get_mem_object_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => MemInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_mem_object_info(&self.obj_core, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => MemInfoResult::Error(Box::new(err)),
+        // }
+        core::get_mem_object_info(&self.obj_core, info_kind)
     }
 
     /// Returns the core image object reference.

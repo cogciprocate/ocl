@@ -408,20 +408,22 @@ impl Program {
 
     /// Returns info about this program.
     pub fn info(&self, info_kind: ProgramInfo) -> ProgramInfoResult {
-        match core::get_program_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => ProgramInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_program_info(&self.obj_core, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => ProgramInfoResult::Error(Box::new(err)),
+        // }        
+        core::get_program_info(&self.obj_core, info_kind)
     }
 
     /// Returns info about this program's build.
     ///
     /// TODO: Check that device is valid.
     pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo) -> ProgramBuildInfoResult {
-        match core::get_program_build_info(&self.obj_core, &device, info_kind) {
-            Ok(res) => res,
-            Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_program_build_info(&self.obj_core, &device, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
+        // }        
+        core::get_program_build_info(&self.obj_core, &device, info_kind)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

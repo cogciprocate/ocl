@@ -57,10 +57,11 @@ impl Sampler {
 
 	/// Returns various kinds of information about the sampler.
 	pub fn info(&self, info_kind: SamplerInfo) -> SamplerInfoResult {
-        match core::get_sampler_info(&self.0, info_kind) {
-            Ok(res) => res,
-            Err(err) => SamplerInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_sampler_info(&self.0, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => SamplerInfoResult::Error(Box::new(err)),
+        // }        
+        core::get_sampler_info(&self.0, info_kind)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

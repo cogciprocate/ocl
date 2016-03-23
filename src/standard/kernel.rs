@@ -427,28 +427,31 @@ impl Kernel {
 
     /// Returns info about this kernel.
     pub fn info(&self, info_kind: KernelInfo) -> KernelInfoResult {
-        match core::get_kernel_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => KernelInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_kernel_info(&self.obj_core, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => KernelInfoResult::Error(Box::new(err)),
+        // }        
+        core::get_kernel_info(&self.obj_core, info_kind)
     }
 
     /// Returns info about this kernel.
     pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
-        match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
-            Ok(res) => res,
-            Err(err) => KernelArgInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => KernelArgInfoResult::Error(Box::new(err)),
+        // }        
+        core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind)
     }
 
     /// Returns info about this kernel.
     pub fn wg_info(&self, device: &Device, info_kind: KernelWorkGroupInfo) 
             -> KernelWorkGroupInfoResult 
     {
-        match core::get_kernel_work_group_info(&self.obj_core, device, info_kind) {
-            Ok(res) => res,
-            Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_kernel_work_group_info(&self.obj_core, device, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
+        // }        
+        core::get_kernel_work_group_info(&self.obj_core, device, info_kind)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

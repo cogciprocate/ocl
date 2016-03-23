@@ -492,10 +492,11 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Returns info about the underlying memory object.
     pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
-        match core::get_mem_object_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => MemInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_mem_object_info(&self.obj_core, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => MemInfoResult::Error(Box::new(err)),
+        // }        
+        core::get_mem_object_info(&self.obj_core, info_kind)
     }
 
     /// Changes the default queue used by this Buffer for reads and writes, etc.

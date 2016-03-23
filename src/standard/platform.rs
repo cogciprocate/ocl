@@ -55,10 +55,11 @@ impl Platform {
 
     /// Returns info about the platform. 
     pub fn info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
-        match core::get_platform_info(Some(self.0.clone()), info_kind) {
-            Ok(pi) => pi,
-            Err(err) => PlatformInfoResult::Error(Box::new(err)),
-        }
+        // match core::get_platform_info(Some(self.0.clone()), info_kind) {
+        //     Ok(pi) => pi,
+        //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
+        // }
+        core::get_platform_info(Some(self.0.clone()), info_kind)
     }
 
     /// Returns the platform profile as a string.
@@ -75,10 +76,11 @@ impl Platform {
     ///   each version of OpenCL.
     ///
     pub fn profile(&self) -> String {
-        match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Profile) {
-            Ok(pi) => pi.into(),
-            Err(err) => err.into(),
-        }
+        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Profile) {
+        //     Ok(pi) => pi.into(),
+        //     Err(err) => err.into(),
+        // }
+        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Profile).into()
     }
 
     /// Returns the platform driver version as a string.
@@ -91,26 +93,29 @@ impl Platform {
     ///
     /// * The major_version.minor_version value returned will be 1.2.
     pub fn version(&self) -> String {
-        match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version) {
-            Ok(pi) => pi.into(),
-            Err(err) => err.into(),
-        }
+        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version) {
+        //     Ok(pi) => pi.into(),
+        //     Err(err) => err.into(),
+        // }
+        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version).into()
     }
 
     /// Returns the platform name as a string.
     pub fn name(&self) -> String {
-        match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Name) {
-            Ok(pi) => pi.into(),
-            Err(err) => err.into(),
-        }
+        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Name) {
+        //     Ok(pi) => pi.into(),
+        //     Err(err) => err.into(),
+        // }
+        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Name).into()
     }
 
     /// Returns the platform vendor as a string.
     pub fn vendor(&self) -> String {
-        match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Vendor) {
-            Ok(pi) => pi.into(),
-            Err(err) => err.into(),
-        }
+        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Vendor) {
+        //     Ok(pi) => pi.into(),
+        //     Err(err) => err.into(),
+        // }
+        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Vendor).into()
     }
 
     /// Returns the list of platform extensions as a string.
@@ -120,10 +125,11 @@ impl Platform {
     /// Extensions defined here must be supported by all devices associated
     /// with this platform.
     pub fn extensions(&self) -> String {
-        match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Extensions) {
-            Ok(pi) => pi.into(),
-            Err(err) => err.into(),
-        }
+        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Extensions) {
+        //     Ok(pi) => pi.into(),
+        //     Err(err) => err.into(),
+        // }
+        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Extensions).into()
     }
 
     /// Returns a reference to the underlying `PlatformIdCore`.

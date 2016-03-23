@@ -36,9 +36,10 @@ use std;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
-use core::{OclPrm, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo, Context, Mem, 
-    Sampler, CommandQueueProperties, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, ImageInfo,
-    ImageFormat};
+use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, 
+    ContextInfo, Context, 
+    CommandQueueInfo, Mem, MemInfo, Sampler, SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, 
+    KernelArgInfo, KernelWorkGroupInfo, ImageInfo, ImageFormat, EventInfo, ProfilingInfo};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -172,15 +173,15 @@ pub enum PlatformInfoResult {
 }
 
 impl PlatformInfoResult {
-    pub fn from_bytes(request_param: PlatformInfo, result_string: Vec<u8>
-                ) -> OclResult<PlatformInfoResult> 
+    pub fn from_bytes(request: PlatformInfo, result: OclResult<Vec<u8>>) 
+            -> PlatformInfoResult
     {
         // match result_string {
         //     Ok(rs) => {
         //         // let string = String::from_utf8(result_string).expect("FIXME: src/core/custom/enums.rs");
         //         let string = try!(String::from_utf8(rs));
 
-        //         Ok(match request_param {
+        //         Ok(match request {
         //             PlatformInfo::Profile => PlatformInfoResult::Profile(string),
         //             PlatformInfo::Version => PlatformInfoResult::Version(string),
         //             PlatformInfo::Name => PlatformInfoResult::Name(string),
@@ -193,32 +194,24 @@ impl PlatformInfoResult {
         //     }
         // }
 
-        let string = try!(String::from_utf8(result_string));
+        match result {
+            Ok(result) => { 
+                let string = match String::from_utf8(result) {
+                    Ok(s) => s,
+                    Err(err) => return PlatformInfoResult::Error(Box::new(OclError::from(err))),
+                };
 
-        Ok(match request_param {
-            PlatformInfo::Profile => PlatformInfoResult::Profile(string),
-            PlatformInfo::Version => PlatformInfoResult::Version(string),
-            PlatformInfo::Name => PlatformInfoResult::Name(string),
-            PlatformInfo::Vendor => PlatformInfoResult::Vendor(string),
-            PlatformInfo::Extensions => PlatformInfoResult::Extensions(string),
-        })
+                match request {
+                    PlatformInfo::Profile => PlatformInfoResult::Profile(string),
+                    PlatformInfo::Version => PlatformInfoResult::Version(string),
+                    PlatformInfo::Name => PlatformInfoResult::Name(string),
+                    PlatformInfo::Vendor => PlatformInfoResult::Vendor(string),
+                    PlatformInfo::Extensions => PlatformInfoResult::Extensions(string),
+                } 
+            }
+            Err(err) => PlatformInfoResult::Error(Box::new(err)),
+        }
     }
-
-    // // IMPLEMENTED AUTOMATICALLY VIA `Display`
-    // pub fn to_string(&self) -> String {
-    //     self.as_str().to_string()
-    // }
-
-    // fn as_str(&self) -> &str {
-    //     match self {
-    //         &PlatformInfoResult::Profile(ref s) => s,
-    //         &PlatformInfoResult::Version(ref s) => s,
-    //         &PlatformInfoResult::Name(ref s) => s,
-    //         &PlatformInfoResult::Vendor(ref s) => s,
-    //         &PlatformInfoResult::Extensions(ref s) => s,
-    //         &PlatformInfoResult::Error(ref err) => err.description(),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for PlatformInfoResult {
@@ -229,7 +222,6 @@ impl std::fmt::Debug for PlatformInfoResult {
 
 impl std::fmt::Display for PlatformInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", self.as_str())
         match self {
             &PlatformInfoResult::Profile(ref s) => write!(f, "{}", s),
             &PlatformInfoResult::Version(ref s) => write!(f, "{}", s),
@@ -249,7 +241,6 @@ impl Into<String> for PlatformInfoResult {
             PlatformInfoResult::Name(string) => string,
             PlatformInfoResult::Vendor(string) => string,
             PlatformInfoResult::Extensions(string) => string,
-            // PlatformInfoResult::Error(err) => String::from((*err).description()),
             PlatformInfoResult::Error(err) => err.status_code(),
         }
     }
@@ -342,34 +333,23 @@ pub enum DeviceInfoResult {
 }
 
 impl DeviceInfoResult {
-    pub fn from_bytes(request_param: DeviceInfo, result_bytes: Vec<u8>) 
-            -> OclResult<DeviceInfoResult>
+    pub fn from_bytes(request: DeviceInfo, result: OclResult<Vec<u8>>) 
+            -> DeviceInfoResult
     {
-        Ok(match request_param {
+        match result {
+            Ok(result) => { match request {
             DeviceInfo::MaxWorkGroupSize => {
-                let r0 = unsafe { util::bytes_to::<usize>(&result_bytes) };
-                let size = unsafe { util::bytes_into::<usize>(result_bytes) };
+                let r0 = unsafe { util::bytes_to::<usize>(&result) };
+                let size = unsafe { util::bytes_into::<usize>(result) };
                 debug_assert_eq!(r0, size);
                 // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
                 DeviceInfoResult::MaxWorkGroupSize(size)
             },
-            _ => DeviceInfoResult::TemporaryPlaceholderVariant(result_bytes),
-        })
+            _ => DeviceInfoResult::TemporaryPlaceholderVariant(result),
+        } }
+            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+        }
     }
-
-    // // [FIXME]: THIS IS A JANKY MOFO (a what?).
-    // // NOTE: Interestingly, this actually works sorta decently as long as there
-    // // isn't a 4, 8, or 24 character string. Ummm, yeah. Fix this.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //             // TEMPORARY (and retarded):
-    //             to_string_retarded(v)
-    //         },
-    //         &DeviceInfoResult::MaxWorkGroupSize(size) => size.to_string(),
-    //         r @ _ => panic!("DeviceInfoResult: Converting '{:?}' to string not yet implemented.", r),
-    //     }
-    // }
 }
 
 // // DON'T REIMPLEMENT THIS UNTIL ALL THE VARIANTS ARE WORKING
@@ -384,7 +364,6 @@ impl DeviceInfoResult {
 impl std::fmt::Display for DeviceInfoResult {
     /// [INCOMPLETE]: TEMPORARY
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
                 // TEMPORARY (and retarded):
@@ -417,9 +396,9 @@ pub enum ContextInfoResult {
 }
 
 impl ContextInfoResult {
-    pub fn new(request_param: ContextInfo, result: OclResult<Vec<u8>>) -> ContextInfoResult {
+    pub fn from_bytes(request: ContextInfo, result: OclResult<Vec<u8>>) -> ContextInfoResult {
         match result {
-            Ok(result) => { match request_param {
+            Ok(result) => { match request {
                 ContextInfo::ReferenceCount => {
                     ContextInfoResult::ReferenceCount(util::bytes_to_u32(&result))
                 },
@@ -442,16 +421,6 @@ impl ContextInfoResult {
             Err(err) => ContextInfoResult::Error(Box::new(err)),
         }
     }
-
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &ContextInfoResult::ReferenceCount(ref count) => count.to_string(),
-    //         &ContextInfoResult::Devices(ref vec) => format!("{:?}", vec),
-    //         &ContextInfoResult::Properties(ref props) => format!("{:?}", props),
-    //         &ContextInfoResult::NumDevices(ref num) => num.to_string(),
-    //         &ContextInfoResult::Error(ref err) => err.status_code(),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for ContextInfoResult {
@@ -462,7 +431,6 @@ impl std::fmt::Debug for ContextInfoResult {
 
 impl std::fmt::Display for ContextInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &ContextInfoResult::ReferenceCount(ref count) => write!(f, "{}", count),
             &ContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
@@ -492,21 +460,34 @@ pub enum CommandQueueInfoResult {
 }
 
 impl CommandQueueInfoResult {
-    pub fn from_bytes() {
-
+    pub fn from_bytes(request: CommandQueueInfo, result: OclResult<Vec<u8>>) 
+            -> CommandQueueInfoResult 
+    {
+        match result {
+            Ok(result) => { match request {
+                _ => CommandQueueInfoResult::TemporaryPlaceholderVariant(result),
+                // CommandQueueInfo::ReferenceCount => {
+                //     CommandQueueInfoResult::ReferenceCount(util::bytes_to_u32(&result))
+                // },
+                // CommandQueueInfo::Devices => {
+                //     CommandQueueInfoResult::Devices(
+                //         unsafe { util::bytes_into_vec::<DeviceId>(result) }
+                //     )
+                // },
+                // CommandQueueInfo::Properties => {
+                //     // unsafe { CommandQueueInfoResult::Properties(
+                //     //     CommandQueueInfoOrPropertiesPointerType.from_u32(util::bytes_into::
+                //     //         <cl_h::cl_context_properties>(result))
+                //     // ) }
+                //     CommandQueueInfoResult::Properties(result)
+                // },
+                // CommandQueueInfo::NumDevices => {
+                //     CommandQueueInfoResult::NumDevices(util::bytes_to_u32(&result))
+                // },
+            } }
+            Err(err) => CommandQueueInfoResult::Error(Box::new(err)),
+        }
     }
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &CommandQueueInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for CommandQueueInfoResult {
@@ -517,14 +498,10 @@ impl std::fmt::Debug for CommandQueueInfoResult {
 
 impl std::fmt::Display for CommandQueueInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            // &CommandQueueInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &CommandQueueInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -556,21 +533,16 @@ pub enum MemInfoResult {
 
 
 impl MemInfoResult {
-    pub fn from_bytes() {
-
+    pub fn from_bytes(request: MemInfo, result: OclResult<Vec<u8>>) 
+            -> MemInfoResult 
+    {
+        match result {
+            Ok(result) => { match request {
+                _ => MemInfoResult::TemporaryPlaceholderVariant(result),
+            } }
+            Err(err) => MemInfoResult::Error(Box::new(err)),
+        }
     }
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &MemInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for MemInfoResult {
@@ -581,14 +553,10 @@ impl std::fmt::Debug for MemInfoResult {
 
 impl std::fmt::Display for MemInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            // &MemInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &MemInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -622,30 +590,19 @@ pub enum ImageInfoResult {
 
 impl ImageInfoResult {
     // TODO: IMPLEMENT THIS PROPERLY.
-    pub fn from_bytes(request_param: ImageInfo, result_bytes: Vec<u8>
-            ) -> OclResult<ImageInfoResult>
+    pub fn from_bytes(request: ImageInfo, result: OclResult<Vec<u8>>) -> ImageInfoResult
     {
-        Ok(match request_param {
-            ImageInfo::ElementSize => {
-                let size = unsafe { util::bytes_into::<usize>(result_bytes) };
-                ImageInfoResult::ElementSize(size)
-            },
-            _ => ImageInfoResult::TemporaryPlaceholderVariant(result_bytes),
-        })
+        match result {
+            Ok(result) => { match request {
+                ImageInfo::ElementSize => {
+                    let size = unsafe { util::bytes_into::<usize>(result) };
+                    ImageInfoResult::ElementSize(size)
+                },
+                _ => ImageInfoResult::TemporaryPlaceholderVariant(result),
+            } }
+            Err(err) => ImageInfoResult::Error(Box::new(err)),
+        }
     }
-
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &ImageInfoResult::ElementSize(s) => s.to_string(),
-    //         &ImageInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for ImageInfoResult {
@@ -656,15 +613,11 @@ impl std::fmt::Debug for ImageInfoResult {
 
 impl std::fmt::Display for ImageInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
             &ImageInfoResult::ElementSize(s) => write!(f, "{}", s),
-            // &ImageInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &ImageInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -690,21 +643,16 @@ pub enum SamplerInfoResult {
 }
 
 impl SamplerInfoResult {
-    pub fn from_bytes() {
-
+    pub fn from_bytes(request: SamplerInfo, result: OclResult<Vec<u8>>) 
+            -> SamplerInfoResult 
+    {
+        match result {
+            Ok(result) => { match request {
+                _ => SamplerInfoResult::TemporaryPlaceholderVariant(result),
+            } }
+            Err(err) => SamplerInfoResult::Error(Box::new(err)),
+        }
     }
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &SamplerInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for SamplerInfoResult {
@@ -715,14 +663,10 @@ impl std::fmt::Debug for SamplerInfoResult {
 
 impl std::fmt::Display for SamplerInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            // &SamplerInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &SamplerInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -753,21 +697,16 @@ pub enum ProgramInfoResult {
 }
 
 impl ProgramInfoResult {
-    pub fn from_bytes() {
-
+    pub fn from_bytes(request: ProgramInfo, result: OclResult<Vec<u8>>) 
+            -> ProgramInfoResult 
+    {
+        match result {
+            Ok(result) => { match request {
+                _ => ProgramInfoResult::TemporaryPlaceholderVariant(result),
+            } }
+            Err(err) => ProgramInfoResult::Error(Box::new(err)),
+        }
     }
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &ProgramInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for ProgramInfoResult {
@@ -778,14 +717,10 @@ impl std::fmt::Debug for ProgramInfoResult {
 
 impl std::fmt::Display for ProgramInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            // &ProgramInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &ProgramInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -810,21 +745,16 @@ pub enum ProgramBuildInfoResult {
 }
 
 impl ProgramBuildInfoResult {
-    pub fn from_bytes() {
-
+    pub fn from_bytes(request: ProgramBuildInfo, result: OclResult<Vec<u8>>) 
+            -> ProgramBuildInfoResult 
+    {
+        match result {
+            Ok(result) => { match request {
+                _ => ProgramBuildInfoResult::TemporaryPlaceholderVariant(result),
+            } }
+            Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
+        }
     }
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &ProgramBuildInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &ProgramBuildInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("ProgramBuildInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for ProgramBuildInfoResult {
@@ -835,14 +765,10 @@ impl std::fmt::Debug for ProgramBuildInfoResult {
 
 impl std::fmt::Display for ProgramBuildInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &ProgramBuildInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            // &ProgramBuildInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("ProgramBuildInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -870,33 +796,31 @@ pub enum KernelInfoResult {
 }
 
 impl KernelInfoResult {
-    pub fn from_bytes(request_param: KernelInfo, result_bytes: Vec<u8>
-            ) -> OclResult<KernelInfoResult>
+    pub fn from_bytes(request: KernelInfo, result: OclResult<Vec<u8>>)
+            -> KernelInfoResult
     {
-        Ok(match request_param {
-            // KernelInfo::MaxWorkGroupSize => {
-            //     let r0 = unsafe { util::bytes_to::<usize>(&result_bytes) };
-            //     let size = unsafe { util::bytes_into::<usize>(result_bytes) };
-            //     debug_assert_eq!(r0, size);
-            //     // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
-            //     KernelInfoResult::MaxWorkGroupSize(size)
-            // },
-            KernelInfo::FunctionName => {
-                KernelInfoResult::FunctionName(try!(String::from_utf8(result_bytes)))
-            },
-            _ => KernelInfoResult::TemporaryPlaceholderVariant(result_bytes),
-        })
-    }
+        match result {
+            Ok(result) => match request {
+                // KernelInfo::MaxWorkGroupSize => {
+                //     let r0 = unsafe { util::bytes_to::<usize>(&result) };
+                //     let size = unsafe { util::bytes_into::<usize>(result) };
+                //     debug_assert_eq!(r0, size);
+                //     // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
+                //     KernelInfoResult::MaxWorkGroupSize(size)
+                // },
+                KernelInfo::FunctionName => {
+                    let string = match String::from_utf8(result) {
+                        Ok(s) => s,
+                        Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
+                    };
 
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &KernelInfoResult::TemporaryPlaceholderVariant(ref v) => to_string_retarded(v),
-    //         &KernelInfoResult::FunctionName(ref s) => s.clone(),
-    //         &KernelInfoResult::Error(ref err) => err.description().into(),
-    //         _ => panic!("KernelInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
+                    KernelInfoResult::FunctionName(string)
+                },
+                _ => KernelInfoResult::TemporaryPlaceholderVariant(result),
+            },
+            Err(err) => KernelInfoResult::Error(Box::new(err)),
+        }
+    }
 }
 
 impl std::fmt::Debug for KernelInfoResult {
@@ -907,11 +831,9 @@ impl std::fmt::Debug for KernelInfoResult {
 
 impl std::fmt::Display for KernelInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &KernelInfoResult::TemporaryPlaceholderVariant(ref v) => write!(f, "{}", to_string_retarded(v)),
             &KernelInfoResult::FunctionName(ref s) => write!(f, "{}", s),
-            // &KernelInfoResult::Error(ref err) => write!(f, "{}", err.description()),
             &KernelInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("KernelInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -938,36 +860,26 @@ pub enum KernelArgInfoResult {
 }
 
 impl KernelArgInfoResult {
-    pub fn from_bytes(request_param: KernelArgInfo, result_bytes: Vec<u8>
-            ) -> OclResult<KernelArgInfoResult>
+    pub fn from_bytes(request: KernelArgInfo, result: OclResult<Vec<u8>>) 
+            -> KernelArgInfoResult
     {
-        Ok(match request_param {
-            // KernelArgInfo::MaxWorkGroupSize => {
-            //     let r0 = unsafe { util::bytes_to::<usize>(&result_bytes) };
-            //     let size = unsafe { util::bytes_into::<usize>(result_bytes) };
-            //     debug_assert_eq!(r0, size);
-            //     // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
-            //     KernelArgInfoResult::MaxWorkGroupSize(size)
-            // },
-            // KernelArgInfo::FunctionName => {
-            //     KernelArgInfoResult::FunctionName(try!(String::from_utf8(result_bytes)))
-            // },
-            _ => KernelArgInfoResult::TemporaryPlaceholderVariant(result_bytes),
-        })
+        match result {
+            Ok(result) => match request {
+                // KernelArgInfo::MaxWorkGroupSize => {
+                //     let r0 = unsafe { util::bytes_to::<usize>(&result) };
+                //     let size = unsafe { util::bytes_into::<usize>(result) };
+                //     debug_assert_eq!(r0, size);
+                //     // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
+                //     KernelArgInfoResult::MaxWorkGroupSize(size)
+                // },
+                // KernelArgInfo::FunctionName => {
+                //     KernelArgInfoResult::FunctionName(try!(String::from_utf8(result)))
+                // },
+                _ => KernelArgInfoResult::TemporaryPlaceholderVariant(result),
+            },
+            Err(err) => KernelArgInfoResult::Error(Box::new(err)),
+        }
     }
-
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &KernelArgInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &KernelArgInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("KernelArgInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for KernelArgInfoResult {
@@ -978,14 +890,10 @@ impl std::fmt::Debug for KernelArgInfoResult {
 
 impl std::fmt::Display for KernelArgInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &KernelArgInfoResult::TemporaryPlaceholderVariant(ref v) => {
                 write!(f, "{}", to_string_retarded(v))
             },
-            // &KernelArgInfoResult::Error(ref err) => {
-            //     write!(f, "{}", err.description())
-            // },
             &KernelArgInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("KernelArgInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -1013,34 +921,23 @@ pub enum KernelWorkGroupInfoResult {
 }
 
 impl KernelWorkGroupInfoResult {
-    pub fn from_bytes(request_param: KernelWorkGroupInfo, result_bytes: Vec<u8>
-            ) -> OclResult<KernelWorkGroupInfoResult>
+    pub fn from_bytes(request: KernelWorkGroupInfo, result: OclResult<Vec<u8>>) 
+            -> KernelWorkGroupInfoResult
     {
-        Ok(match request_param {
-            KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple => {
-                let size = unsafe { util::bytes_into::<usize>(result_bytes) };
-                KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(size)
+        match result {
+            Ok(result) => match request {
+                KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple => {
+                    let size = unsafe { util::bytes_into::<usize>(result) };
+                    KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(size)
+                },
+                // KernelWorkGroupInfo::FunctionName => {
+                //     KernelWorkGroupInfoResult::FunctionName(try!(String::from_utf8(result)))
+                // },
+                _ => KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(result),
             },
-            // KernelWorkGroupInfo::FunctionName => {
-            //     KernelWorkGroupInfoResult::FunctionName(try!(String::from_utf8(result_bytes)))
-            // },
-            _ => KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(result_bytes),
-        })
+            Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
+        }
     }
-    
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => s.to_string(),
-    //         &KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &KernelWorkGroupInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("KernelWorkGroupInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for KernelWorkGroupInfoResult {
@@ -1051,15 +948,11 @@ impl std::fmt::Debug for KernelWorkGroupInfoResult {
 
 impl std::fmt::Display for KernelWorkGroupInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => write!(f, "{}", s),
             &KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            // &KernelWorkGroupInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("KernelWorkGroupInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -1086,21 +979,16 @@ pub enum EventInfoResult {
 }
 
 impl EventInfoResult {
-    pub fn from_bytes() {
-
+    pub fn from_bytes(request: EventInfo, result: OclResult<Vec<u8>>) 
+            -> EventInfoResult 
+    {
+        match result {
+            Ok(result) => { match request {
+                _ => EventInfoResult::TemporaryPlaceholderVariant(result),
+            } }
+            Err(err) => EventInfoResult::Error(Box::new(err)),
+        }
     }
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &EventInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &EventInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("EventInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for EventInfoResult {
@@ -1111,14 +999,10 @@ impl std::fmt::Debug for EventInfoResult {
 
 impl std::fmt::Display for EventInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &EventInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            // &EventInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &EventInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("EventInfoResult: Converting this variant to string not yet implemented."),
         }
@@ -1144,21 +1028,16 @@ pub enum ProfilingInfoResult {
 }
 
 impl ProfilingInfoResult {
-    pub fn from_bytes() {
-
+    pub fn from_bytes(request: ProfilingInfo, result: OclResult<Vec<u8>>) 
+            -> ProfilingInfoResult 
+    {
+        match result {
+            Ok(result) => { match request {
+                _ => ProfilingInfoResult::TemporaryPlaceholderVariant(result),
+            } }
+            Err(err) => ProfilingInfoResult::Error(Box::new(err)),
+        }
     }
-    // // TODO: IMPLEMENT THIS PROPERLY.
-    // pub fn to_string(&self) -> String {
-    //     match self {
-    //         &ProfilingInfoResult::TemporaryPlaceholderVariant(ref v) => {
-    //            to_string_retarded(v)
-    //         },
-    //         &ProfilingInfoResult::Error(ref err) => {
-    //            err.description().into()
-    //         },
-    //         _ => panic!("ProfilingInfoResult: Converting this variant to string not yet implemented."),
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for ProfilingInfoResult {
@@ -1169,14 +1048,10 @@ impl std::fmt::Debug for ProfilingInfoResult {
 
 impl std::fmt::Display for ProfilingInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        // write!(f, "{}", &self.to_string())
         match self {
             &ProfilingInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            // &ProfilingInfoResult::Error(ref err) => {
-            //    write!(f, "{}", err.description())
-            // },
             &ProfilingInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("ProfilingInfoResult: Converting this variant to string not yet implemented."),
         }

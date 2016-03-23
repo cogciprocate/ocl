@@ -111,10 +111,11 @@ impl Queue {
 
     /// Returns info about this queue.
     pub fn info(&self, info_kind: CommandQueueInfo) -> CommandQueueInfoResult {
-        match core::get_command_queue_info(&self.obj_core, info_kind) {
-            Ok(res) => res,
-            Err(err) => CommandQueueInfoResult::Error(Box::new(err)),
-        }        
+        // match core::get_command_queue_info(&self.obj_core, info_kind) {
+        //     Ok(res) => res,
+        //     Err(err) => CommandQueueInfoResult::Error(Box::new(err)),
+        // }        
+        core::get_command_queue_info(&self.obj_core, info_kind)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

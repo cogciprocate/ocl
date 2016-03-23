@@ -308,18 +308,20 @@ impl Device {
 
     /// Returns the device name.
     pub fn name(&self) -> String {
-        match core::get_device_info(&self.0, DeviceInfo::Name) {
-            Ok(pi) => pi.into(),
-            Err(err) => err.into(),
-        }
+        // match core::get_device_info(&self.0, DeviceInfo::Name) {
+        //     Ok(pi) => pi.into(),
+        //     Err(err) => err.into(),
+        // }
+        core::get_device_info(&self.0, DeviceInfo::Name).into()
     }
 
     /// Returns the device vendor as a string.
     pub fn vendor(&self) -> String {
-        match core::get_device_info(&self.0, DeviceInfo::Vendor) {
-            Ok(pi) => pi.into(),
-            Err(err) => err.into(),
-        }
+        // match core::get_device_info(&self.0, DeviceInfo::Vendor) {
+        //     Ok(pi) => pi.into(),
+        //     Err(err) => err.into(),
+        // }
+        core::get_device_info(&self.0, DeviceInfo::Vendor).into()
     }
 
     /// Returns the maximum workgroup size.
@@ -333,10 +335,11 @@ impl Device {
 
     /// Returns info about the device. 
     pub fn info(&self, info_kind: DeviceInfo) -> DeviceInfoResult {
-        match core::get_device_info(&self.0, info_kind) {
-            Ok(pi) => pi,
-            Err(err) => DeviceInfoResult::Error(Box::new(err)),
-        }
+        // match core::get_device_info(&self.0, info_kind) {
+        //     Ok(pi) => pi,
+        //     Err(err) => DeviceInfoResult::Error(Box::new(err)),
+        // }
+        core::get_device_info(&self.0, info_kind)
     }
 
     /// Returns a string containing a formatted list of device properties.

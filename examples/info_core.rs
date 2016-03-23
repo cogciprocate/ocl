@@ -5,11 +5,11 @@
 extern crate ocl;
 #[macro_use] extern crate colorify;
 
-use ocl::Error as OclError;
+// use ocl::Error as OclError;
 use ocl::{Platform, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, 
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
-    EventInfo, ProfilingInfo, KernelArgInfoResult, KernelWorkGroupInfoResult};
+    EventInfo, ProfilingInfo};
 use ocl::util;
 
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -71,11 +71,11 @@ fn main() {
             {t}Vendor: {}\n\
             {t}Extensions: {}\n\
         ",
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Profile).unwrap(),
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Version).unwrap(),
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Name).unwrap(),
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Vendor).unwrap(),
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Extensions).unwrap(),
+        core::get_platform_info(context.platform().clone(), PlatformInfo::Profile),
+        core::get_platform_info(context.platform().clone(), PlatformInfo::Version),
+        core::get_platform_info(context.platform().clone(), PlatformInfo::Name),
+        core::get_platform_info(context.platform().clone(), PlatformInfo::Vendor),
+        core::get_platform_info(context.platform().clone(), PlatformInfo::Extensions),
         t = util::colors::TAB,
     );
 
@@ -119,7 +119,6 @@ fn main() {
     // for device in context.devices().iter() {
     for device_idx in 0..context.devices().len() {
         let device = context.devices()[device_idx].clone();
-        use ocl::enums::DeviceInfoResult;
 
         println!("Device[{}]: \n\
                 {t}Type: {}\n\
@@ -200,82 +199,82 @@ fn main() {
                 {t}ImageBaseAddressAlignment: {}\n\
             ",
             device_idx,
-            core::get_device_info(&device, DeviceInfo::Type).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::VendorId).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxComputeUnits).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxWorkItemDimensions).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxWorkGroupSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxWorkItemSizes).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthChar).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthShort).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthInt).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthLong).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthFloat).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthDouble).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxClockFrequency).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::AddressBits).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxReadImageArgs).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxWriteImageArgs).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxMemAllocSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Image2dMaxWidth).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Image2dMaxHeight).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Image3dMaxWidth).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Image3dMaxHeight).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Image3dMaxDepth).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ImageSupport).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxParameterSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxSamplers).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MemBaseAddrAlign).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MinDataTypeAlignSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::SingleFpConfig).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::GlobalMemCacheType).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::GlobalMemCachelineSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::GlobalMemCacheSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::GlobalMemSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxConstantBufferSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::MaxConstantArgs).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::LocalMemType).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::LocalMemSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ErrorCorrectionSupport).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ProfilingTimerResolution).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::EndianLittle).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Available).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::CompilerAvailable).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ExecutionCapabilities).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::QueueProperties).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Name).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Vendor).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::DriverVersion).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Profile).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Version).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Extensions).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::Platform).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::DoubleFpConfig).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::HalfFpConfig).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthHalf).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::HostUnifiedMemory).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::NativeVectorWidthChar).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::NativeVectorWidthShort).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::NativeVectorWidthInt).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::NativeVectorWidthLong).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::NativeVectorWidthFloat).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::NativeVectorWidthDouble).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::NativeVectorWidthHalf).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::OpenclCVersion).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::LinkerAvailable).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::BuiltInKernels).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ImageMaxBufferSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ImageMaxArraySize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ParentDevice).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PartitionMaxSubDevices).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PartitionProperties).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PartitionAffinityDomain).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PartitionType).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ReferenceCount).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PreferredInteropUserSync).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::PrintfBufferSize).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ImagePitchAlignment).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
-            core::get_device_info(&device, DeviceInfo::ImageBaseAddressAlignment).unwrap_or(DeviceInfoResult::TemporaryPlaceholderVariant(vec![])),
+            core::get_device_info(&device, DeviceInfo::Type),
+            core::get_device_info(&device, DeviceInfo::VendorId),
+            core::get_device_info(&device, DeviceInfo::MaxComputeUnits),
+            core::get_device_info(&device, DeviceInfo::MaxWorkItemDimensions),
+            core::get_device_info(&device, DeviceInfo::MaxWorkGroupSize),
+            core::get_device_info(&device, DeviceInfo::MaxWorkItemSizes),
+            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthChar),
+            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthShort),
+            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthInt),
+            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthLong),
+            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthFloat),
+            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthDouble),
+            core::get_device_info(&device, DeviceInfo::MaxClockFrequency),
+            core::get_device_info(&device, DeviceInfo::AddressBits),
+            core::get_device_info(&device, DeviceInfo::MaxReadImageArgs),
+            core::get_device_info(&device, DeviceInfo::MaxWriteImageArgs),
+            core::get_device_info(&device, DeviceInfo::MaxMemAllocSize),
+            core::get_device_info(&device, DeviceInfo::Image2dMaxWidth),
+            core::get_device_info(&device, DeviceInfo::Image2dMaxHeight),
+            core::get_device_info(&device, DeviceInfo::Image3dMaxWidth),
+            core::get_device_info(&device, DeviceInfo::Image3dMaxHeight),
+            core::get_device_info(&device, DeviceInfo::Image3dMaxDepth),
+            core::get_device_info(&device, DeviceInfo::ImageSupport),
+            core::get_device_info(&device, DeviceInfo::MaxParameterSize),
+            core::get_device_info(&device, DeviceInfo::MaxSamplers),
+            core::get_device_info(&device, DeviceInfo::MemBaseAddrAlign),
+            core::get_device_info(&device, DeviceInfo::MinDataTypeAlignSize),
+            core::get_device_info(&device, DeviceInfo::SingleFpConfig),
+            core::get_device_info(&device, DeviceInfo::GlobalMemCacheType),
+            core::get_device_info(&device, DeviceInfo::GlobalMemCachelineSize),
+            core::get_device_info(&device, DeviceInfo::GlobalMemCacheSize),
+            core::get_device_info(&device, DeviceInfo::GlobalMemSize),
+            core::get_device_info(&device, DeviceInfo::MaxConstantBufferSize),
+            core::get_device_info(&device, DeviceInfo::MaxConstantArgs),
+            core::get_device_info(&device, DeviceInfo::LocalMemType),
+            core::get_device_info(&device, DeviceInfo::LocalMemSize),
+            core::get_device_info(&device, DeviceInfo::ErrorCorrectionSupport),
+            core::get_device_info(&device, DeviceInfo::ProfilingTimerResolution),
+            core::get_device_info(&device, DeviceInfo::EndianLittle),
+            core::get_device_info(&device, DeviceInfo::Available),
+            core::get_device_info(&device, DeviceInfo::CompilerAvailable),
+            core::get_device_info(&device, DeviceInfo::ExecutionCapabilities),
+            core::get_device_info(&device, DeviceInfo::QueueProperties),
+            core::get_device_info(&device, DeviceInfo::Name),
+            core::get_device_info(&device, DeviceInfo::Vendor),
+            core::get_device_info(&device, DeviceInfo::DriverVersion),
+            core::get_device_info(&device, DeviceInfo::Profile),
+            core::get_device_info(&device, DeviceInfo::Version),
+            core::get_device_info(&device, DeviceInfo::Extensions),
+            core::get_device_info(&device, DeviceInfo::Platform),
+            core::get_device_info(&device, DeviceInfo::DoubleFpConfig),
+            core::get_device_info(&device, DeviceInfo::HalfFpConfig),
+            core::get_device_info(&device, DeviceInfo::PreferredVectorWidthHalf),
+            core::get_device_info(&device, DeviceInfo::HostUnifiedMemory),
+            core::get_device_info(&device, DeviceInfo::NativeVectorWidthChar),
+            core::get_device_info(&device, DeviceInfo::NativeVectorWidthShort),
+            core::get_device_info(&device, DeviceInfo::NativeVectorWidthInt),
+            core::get_device_info(&device, DeviceInfo::NativeVectorWidthLong),
+            core::get_device_info(&device, DeviceInfo::NativeVectorWidthFloat),
+            core::get_device_info(&device, DeviceInfo::NativeVectorWidthDouble),
+            core::get_device_info(&device, DeviceInfo::NativeVectorWidthHalf),
+            core::get_device_info(&device, DeviceInfo::OpenclCVersion),
+            core::get_device_info(&device, DeviceInfo::LinkerAvailable),
+            core::get_device_info(&device, DeviceInfo::BuiltInKernels),
+            core::get_device_info(&device, DeviceInfo::ImageMaxBufferSize),
+            core::get_device_info(&device, DeviceInfo::ImageMaxArraySize),
+            core::get_device_info(&device, DeviceInfo::ParentDevice),
+            core::get_device_info(&device, DeviceInfo::PartitionMaxSubDevices),
+            core::get_device_info(&device, DeviceInfo::PartitionProperties),
+            core::get_device_info(&device, DeviceInfo::PartitionAffinityDomain),
+            core::get_device_info(&device, DeviceInfo::PartitionType),
+            core::get_device_info(&device, DeviceInfo::ReferenceCount),
+            core::get_device_info(&device, DeviceInfo::PreferredInteropUserSync),
+            core::get_device_info(&device, DeviceInfo::PrintfBufferSize),
+            core::get_device_info(&device, DeviceInfo::ImagePitchAlignment),
+            core::get_device_info(&device, DeviceInfo::ImageBaseAddressAlignment),
             t = util::colors::TAB,
         );
     }
@@ -484,10 +483,10 @@ fn main() {
   //               Properties: {}{d}\
   //               Device Count: {}{e}\
   //           ",
-  //           core::get_context_info(&self.obj_core, ContextInfo::ReferenceCount).unwrap(),
-  //           core::get_context_info(&self.obj_core, ContextInfo::Devices).unwrap(),
-  //           core::get_context_info(&self.obj_core, ContextInfo::Properties).unwrap(),
-  //           core::get_context_info(&self.obj_core, ContextInfo::NumDevices).unwrap(),
+  //           core::get_context_info(&self.obj_core, ContextInfo::ReferenceCount),
+  //           core::get_context_info(&self.obj_core, ContextInfo::Devices),
+  //           core::get_context_info(&self.obj_core, ContextInfo::Properties),
+  //           core::get_context_info(&self.obj_core, ContextInfo::NumDevices),
   //           b = begin,
   //           d = delim,
   //           e = end,
@@ -505,10 +504,10 @@ fn main() {
             {t}ReferenceCount: {}\n\
             {t}Properties: {}\n\
         ",
-        core::get_command_queue_info(&queue, CommandQueueInfo::Context).unwrap(),
-        core::get_command_queue_info(&queue, CommandQueueInfo::Device).unwrap(),
-        core::get_command_queue_info(&queue, CommandQueueInfo::ReferenceCount).unwrap(),
-        core::get_command_queue_info(&queue, CommandQueueInfo::Properties).unwrap(),
+        core::get_command_queue_info(&queue, CommandQueueInfo::Context),
+        core::get_command_queue_info(&queue, CommandQueueInfo::Device),
+        core::get_command_queue_info(&queue, CommandQueueInfo::ReferenceCount),
+        core::get_command_queue_info(&queue, CommandQueueInfo::Properties),
         t = util::colors::TAB,
     );
 
@@ -576,15 +575,15 @@ fn main() {
             {t}AssociatedMemobject: {}\n\
             {t}Offset: {}\n\
         ",
-        core::get_mem_object_info(&buffer, MemInfo::Type).unwrap(),
-        core::get_mem_object_info(&buffer, MemInfo::Flags).unwrap(),
-        core::get_mem_object_info(&buffer, MemInfo::Size).unwrap(),
-        core::get_mem_object_info(&buffer, MemInfo::HostPtr).unwrap(),
-        core::get_mem_object_info(&buffer, MemInfo::MapCount).unwrap(),
-        core::get_mem_object_info(&buffer, MemInfo::ReferenceCount).unwrap(),
-        core::get_mem_object_info(&buffer, MemInfo::Context).unwrap(),
-        core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject).unwrap(),
-        core::get_mem_object_info(&buffer, MemInfo::Offset).unwrap(),
+        core::get_mem_object_info(&buffer, MemInfo::Type),
+        core::get_mem_object_info(&buffer, MemInfo::Flags),
+        core::get_mem_object_info(&buffer, MemInfo::Size),
+        core::get_mem_object_info(&buffer, MemInfo::HostPtr),
+        core::get_mem_object_info(&buffer, MemInfo::MapCount),
+        core::get_mem_object_info(&buffer, MemInfo::ReferenceCount),
+        core::get_mem_object_info(&buffer, MemInfo::Context),
+        core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject),
+        core::get_mem_object_info(&buffer, MemInfo::Offset),
         t = util::colors::TAB,
     );
 
@@ -653,23 +652,23 @@ fn main() {
                 {t}NumMipLevels: {}{d}\
                 {t}NumSamples: {}{e}\
             ",
-            core::get_image_info(&image, ImageInfo::ElementSize).unwrap(),
-            core::get_image_info(&image, ImageInfo::RowPitch).unwrap(),
-            core::get_image_info(&image, ImageInfo::SlicePitch).unwrap(),
-            core::get_image_info(&image, ImageInfo::Width).unwrap(),
-            core::get_image_info(&image, ImageInfo::Height).unwrap(),
-            core::get_image_info(&image, ImageInfo::Depth).unwrap(),
-            core::get_image_info(&image, ImageInfo::ArraySize).unwrap(),
-            core::get_image_info(&image, ImageInfo::Buffer).unwrap(),
-            core::get_image_info(&image, ImageInfo::NumMipLevels).unwrap(),
-            core::get_image_info(&image, ImageInfo::NumSamples).unwrap(),
+            core::get_image_info(&image, ImageInfo::ElementSize),
+            core::get_image_info(&image, ImageInfo::RowPitch),
+            core::get_image_info(&image, ImageInfo::SlicePitch),
+            core::get_image_info(&image, ImageInfo::Width),
+            core::get_image_info(&image, ImageInfo::Height),
+            core::get_image_info(&image, ImageInfo::Depth),
+            core::get_image_info(&image, ImageInfo::ArraySize),
+            core::get_image_info(&image, ImageInfo::Buffer),
+            core::get_image_info(&image, ImageInfo::NumMipLevels),
+            core::get_image_info(&image, ImageInfo::NumSamples),
             b = begin,
             d = delim,
             e = end,
             t = util::colors::TAB,
         );
 
-        println!("{t}Image Mem:\n\
+        println!("{t}Image Memory:\n\
                 {t}{t}Type: {}\n\
                 {t}{t}Flags: {}\n\
                 {t}{t}Size: {}\n\
@@ -680,15 +679,15 @@ fn main() {
                 {t}{t}AssociatedMemobject: {}\n\
                 {t}{t}Offset: {}\n\
             ",
-            core::get_mem_object_info(&buffer, MemInfo::Type).unwrap(),
-            core::get_mem_object_info(&buffer, MemInfo::Flags).unwrap(),
-            core::get_mem_object_info(&buffer, MemInfo::Size).unwrap(),
-            core::get_mem_object_info(&buffer, MemInfo::HostPtr).unwrap(),
-            core::get_mem_object_info(&buffer, MemInfo::MapCount).unwrap(),
-            core::get_mem_object_info(&buffer, MemInfo::ReferenceCount).unwrap(),
-            core::get_mem_object_info(&buffer, MemInfo::Context).unwrap(),
-            core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject).unwrap(),
-            core::get_mem_object_info(&buffer, MemInfo::Offset).unwrap(),
+            core::get_mem_object_info(&buffer, MemInfo::Type),
+            core::get_mem_object_info(&buffer, MemInfo::Flags),
+            core::get_mem_object_info(&buffer, MemInfo::Size),
+            core::get_mem_object_info(&buffer, MemInfo::HostPtr),
+            core::get_mem_object_info(&buffer, MemInfo::MapCount),
+            core::get_mem_object_info(&buffer, MemInfo::ReferenceCount),
+            core::get_mem_object_info(&buffer, MemInfo::Context),
+            core::get_mem_object_info(&buffer, MemInfo::AssociatedMemobject),
+            core::get_mem_object_info(&buffer, MemInfo::Offset),
             t = util::colors::TAB,
         );
 
@@ -712,11 +711,11 @@ fn main() {
             {t}AddressingMode: {}\n\
             {t}FilterMode: {}\n\
         ",
-        core::get_sampler_info(&sampler, SamplerInfo::ReferenceCount).unwrap(),
-        core::get_sampler_info(&sampler, SamplerInfo::Context).unwrap(),
-        core::get_sampler_info(&sampler, SamplerInfo::NormalizedCoords).unwrap(),
-        core::get_sampler_info(&sampler, SamplerInfo::AddressingMode).unwrap(),
-        core::get_sampler_info(&sampler, SamplerInfo::FilterMode).unwrap(),
+        core::get_sampler_info(&sampler, SamplerInfo::ReferenceCount),
+        core::get_sampler_info(&sampler, SamplerInfo::Context),
+        core::get_sampler_info(&sampler, SamplerInfo::NormalizedCoords),
+        core::get_sampler_info(&sampler, SamplerInfo::AddressingMode),
+        core::get_sampler_info(&sampler, SamplerInfo::FilterMode),
         t = util::colors::TAB,
     );
 
@@ -748,16 +747,16 @@ fn main() {
             {t}NumKernels: {}\n\
             {t}KernelNames: {}\n\
         ",
-        core::get_program_info(&program, ProgramInfo::ReferenceCount).unwrap(),
-        core::get_program_info(&program, ProgramInfo::Context).unwrap(),
-        core::get_program_info(&program, ProgramInfo::NumDevices).unwrap(),
-        core::get_program_info(&program, ProgramInfo::Devices).unwrap(),
-        core::get_program_info(&program, ProgramInfo::Source).unwrap(),
-        core::get_program_info(&program, ProgramInfo::BinarySizes).unwrap(),
-        //core::get_program_info(&program, ProgramInfo::Binaries).unwrap(),
+        core::get_program_info(&program, ProgramInfo::ReferenceCount),
+        core::get_program_info(&program, ProgramInfo::Context),
+        core::get_program_info(&program, ProgramInfo::NumDevices),
+        core::get_program_info(&program, ProgramInfo::Devices),
+        core::get_program_info(&program, ProgramInfo::Source),
+        core::get_program_info(&program, ProgramInfo::BinarySizes),
+        //core::get_program_info(&program, ProgramInfo::Binaries),
         "n/a",
-        core::get_program_info(&program, ProgramInfo::NumKernels).unwrap(),
-        core::get_program_info(&program, ProgramInfo::KernelNames).unwrap(),
+        core::get_program_info(&program, ProgramInfo::NumKernels),
+        core::get_program_info(&program, ProgramInfo::KernelNames),
         t = util::colors::TAB,
     );
 
@@ -826,10 +825,10 @@ fn main() {
             {t}BuildLog: {}\n\
             {t}BinaryType: {}\n\
         ",
-        core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildStatus).unwrap(),
-        core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildOptions).unwrap(),
-        core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildLog).unwrap(),
-        core::get_program_build_info(&program, &device, ProgramBuildInfo::BinaryType).unwrap(),
+        core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildStatus),
+        core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildOptions),
+        core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildLog),
+        core::get_program_build_info(&program, &device, ProgramBuildInfo::BinaryType),
         t = util::colors::TAB,
     );
 
@@ -859,12 +858,12 @@ fn main() {
             {t}Program: {}\n\
             {t}Attributes: {}\n\
         ",
-        core::get_kernel_info(&kernel, KernelInfo::FunctionName).unwrap(),
-        core::get_kernel_info(&kernel, KernelInfo::NumArgs).unwrap(),
-        core::get_kernel_info(&kernel, KernelInfo::ReferenceCount).unwrap(),
-        core::get_kernel_info(&kernel, KernelInfo::Context).unwrap(),
-        core::get_kernel_info(&kernel, KernelInfo::Program).unwrap(),
-        core::get_kernel_info(&kernel, KernelInfo::Attributes).unwrap(),
+        core::get_kernel_info(&kernel, KernelInfo::FunctionName),
+        core::get_kernel_info(&kernel, KernelInfo::NumArgs),
+        core::get_kernel_info(&kernel, KernelInfo::ReferenceCount),
+        core::get_kernel_info(&kernel, KernelInfo::Context),
+        core::get_kernel_info(&kernel, KernelInfo::Program),
+        core::get_kernel_info(&kernel, KernelInfo::Attributes),
         t = util::colors::TAB,
     );
 
@@ -908,23 +907,18 @@ fn main() {
     //     Name = cl_h::CL_KERNEL_ARG_NAME as isize,
     // }
 
-    println!("KernelArgInfo:\n\
+    println!("Kernel Argument [0]:\n\
             {t}AddressQualifier: {}\n\
             {t}AccessQualifier: {}\n\
             {t}TypeName: {}\n\
             {t}TypeQualifier: {}\n\
             {t}Name: {}\n\
         ",
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier)
-            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier)
-            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName)
-            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier)
-            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name)
-            .unwrap_or(KernelArgInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name),
         t = util::colors::TAB,
     );
 
@@ -954,16 +948,11 @@ fn main() {
             {t}PrivateMemSize: {}\n\
             {t}GlobalWorkSize: {}\n\
         ",
-        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::WorkGroupSize)
-            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
-        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::CompileWorkGroupSize)
-            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
-        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::LocalMemSize)
-            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
-        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple)
-            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
-        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PrivateMemSize)
-            .unwrap_or(KernelWorkGroupInfoResult::Error(Box::new(OclError::new("")))),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::WorkGroupSize),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::CompileWorkGroupSize),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::LocalMemSize),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple),
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PrivateMemSize),
         // core::get_kernel_work_group_info(&kernel, &device, 
         //  KernelWorkGroupInfo::GlobalWorkSize).unwrap(),
         "[KernelWorkGroupInfo::GlobalWorkSize not avaliable in this configuration]",
@@ -987,18 +976,18 @@ fn main() {
     //     Context = cl_h::CL_EVENT_CONTEXT as isize,
     // }
 
-    println!("EventInfo:\n\
+    println!("Event:\n\
             {t}CommandQueue: {}\n\
             {t}CommandType: {}\n\
             {t}ReferenceCount: {}\n\
             {t}CommandExecutionStatus: {}\n\
             {t}Context: {}\n\
         ",
-        core::get_event_info(&event, EventInfo::CommandQueue).unwrap(),
-        core::get_event_info(&event, EventInfo::CommandType).unwrap(),
-        core::get_event_info(&event, EventInfo::ReferenceCount).unwrap(),
-        core::get_event_info(&event, EventInfo::CommandExecutionStatus).unwrap(),
-        core::get_event_info(&event, EventInfo::Context).unwrap(),
+        core::get_event_info(&event, EventInfo::CommandQueue),
+        core::get_event_info(&event, EventInfo::CommandType),
+        core::get_event_info(&event, EventInfo::ReferenceCount),
+        core::get_event_info(&event, EventInfo::CommandExecutionStatus),
+        core::get_event_info(&event, EventInfo::Context),
         t = util::colors::TAB,
     );
 
@@ -1019,11 +1008,11 @@ fn main() {
  //                CommandExecutionStatus: {}{d}\
  //                Context: {}{e}\
  //            ",
- //            core::get_event_info(&self.0, EventInfo::CommandQueue).unwrap(),
- //            core::get_event_info(&self.0, EventInfo::CommandType).unwrap(),
- //            core::get_event_info(&self.0, EventInfo::ReferenceCount).unwrap(),
- //            core::get_event_info(&self.0, EventInfo::CommandExecutionStatus).unwrap(),
- //            core::get_event_info(&self.0, EventInfo::Context).unwrap(),
+ //            core::get_event_info(&self.0, EventInfo::CommandQueue),
+ //            core::get_event_info(&self.0, EventInfo::CommandType),
+ //            core::get_event_info(&self.0, EventInfo::ReferenceCount),
+ //            core::get_event_info(&self.0, EventInfo::CommandExecutionStatus),
+ //            core::get_event_info(&self.0, EventInfo::Context),
  //            b = begin,
  //            d = delim,
  //            e = end,
@@ -1041,16 +1030,16 @@ fn main() {
     //     End = cl_h::CL_PROFILING_COMMAND_END as isize,
     // }
 
-    println!("ProfilingInfo:\n\
+    println!("Event Profiling:\n\
             {t}Queued: {}\n\
             {t}Submit: {}\n\
             {t}Start: {}\n\
             {t}End: {}\n\
         ",
-        core::get_event_profiling_info(&event, ProfilingInfo::Queued).unwrap(),
-        core::get_event_profiling_info(&event, ProfilingInfo::Submit).unwrap(),
-        core::get_event_profiling_info(&event, ProfilingInfo::Start).unwrap(),
-        core::get_event_profiling_info(&event, ProfilingInfo::End).unwrap(),
+        core::get_event_profiling_info(&event, ProfilingInfo::Queued),
+        core::get_event_profiling_info(&event, ProfilingInfo::Submit),
+        core::get_event_profiling_info(&event, ProfilingInfo::Start),
+        core::get_event_profiling_info(&event, ProfilingInfo::End),
         t = util::colors::TAB,
     );
 

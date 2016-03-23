@@ -206,10 +206,11 @@ impl Context {
     /// Returns info about the platform associated with the context.
     pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
         // match core::get_platform_info(self.platform_id_core.clone(), info_kind) {
-        match core::get_platform_info(self.platform().clone(), info_kind) {
-            Ok(pi) => pi,
-            Err(err) => PlatformInfoResult::Error(Box::new(err)),
-        }
+        // match core::get_platform_info(self.platform().clone(), info_kind) {
+        //     Ok(pi) => pi,
+        //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
+        // }
+        core::get_platform_info(self.platform().clone(), info_kind)
     }
 
     /// Returns info about a device associated with the context.
@@ -222,10 +223,11 @@ impl Context {
             },
         };
 
-        match core::get_device_info(device, info_kind) {
-            Ok(pi) => pi,
-            Err(err) => DeviceInfoResult::Error(Box::new(err)),
-        }
+        // match core::get_device_info(device, info_kind) {
+        //     Ok(pi) => pi,
+        //     Err(err) => DeviceInfoResult::Error(Box::new(err)),
+        // }
+        core::get_device_info(device, info_kind)
     }
 
     /// Returns info about the context. 

@@ -39,10 +39,11 @@ impl Event {
     pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
         match self.0 {
             Some(ref core) => { 
-                match core::get_event_info(core, info_kind) {
-                    Ok(pi) => pi,
-                    Err(err) => EventInfoResult::Error(Box::new(err)),
-                }
+                // match core::get_event_info(core, info_kind) {
+                //     Ok(pi) => pi,
+                //     Err(err) => EventInfoResult::Error(Box::new(err)),
+                // }
+                core::get_event_info(core, info_kind)
             },
             None => EventInfoResult::Error(Box::new(self.err_empty())),
         }
@@ -52,10 +53,11 @@ impl Event {
     pub fn profiling_info(&self, info_kind: ProfilingInfo) -> ProfilingInfoResult {
         match self.0 {
             Some(ref core) => {
-                match core::get_event_profiling_info(core, info_kind) {
-                    Ok(pi) => pi,
-                    Err(err) => ProfilingInfoResult::Error(Box::new(err)),
-                }
+                // match core::get_event_profiling_info(core, info_kind) {
+                //     Ok(pi) => pi,
+                //     Err(err) => ProfilingInfoResult::Error(Box::new(err)),
+                // }
+                core::get_event_profiling_info(core, info_kind)
             },
             None => ProfilingInfoResult::Error(Box::new(self.err_empty())),
         }
