@@ -38,9 +38,6 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, 
     BufferCreateType};
 
-static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
-static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
-
 //============================================================================
 //============================================================================
 //=========================== SUPPORT FUNCTIONS ==============================
@@ -62,31 +59,34 @@ static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
 /// [NAME?]: Is this an idiomatic name for this function?
 ///
 /// TODO: Possibly convert this to a macro of some sort.
-fn errcode_try(cl_fn_name: &str, fn_info: &str, errcode: cl_int) -> OclResult<()> {
-    if errcode == cl_h::Status::CL_SUCCESS as cl_int {
+fn errcode_try(cl_fn_name: &'static str, fn_info: &str, errcode: cl_int) -> OclResult<()> {
+    let status = match Status::from_i32(errcode) {
+        Some(s) => s,
+        None => panic!("ocl::core::errcode_try(): Invalid error code: '{}'. Aborting.", errcode),
+    };
+
+    // if errcode == cl_h::Status::CL_SUCCESS as cl_int {
+    //     Ok(())
+    if let Status::CL_SUCCESS = status {
         Ok(())
-    } else {
-        let status = match Status::from_i32(errcode) {
-            Some(s) => s,
-            None => panic!("ocl::core::errcode_try(): Invalid error code: '{}'. Aborting.", errcode),
-        };
+    } else {        
+        // let fn_info_string = if fn_info.len() != 0 {
+        //     format!("(\"{}\")", fn_info)
+        // } else {
+        //     String::with_capacity(0)
+        // };
 
-        let fn_info_string = if fn_info.len() != 0 {
-            format!("(\"{}\")", fn_info)
-        } else {
-            String::with_capacity(0)
-        };
-
-        OclError::status(status.clone(), 
-            format!("\n\n\
-                ################################ OPENCL ERROR ############################### \
-                \n\nError executing function: {}{}  \
-                \n\nStatus error code: {:?} ({})  \
-                \n\nPlease visit the following url for more information: \n\n{}{}{}  \n\n\
-                ############################################################################# \n",
-                cl_fn_name, fn_info_string, status, errcode, 
-                SDK_DOCS_URL_PRE, cl_fn_name, SDK_DOCS_URL_SUF)
-        )
+        // OclError::status(status.clone(), 
+        //     format!("\n\n\
+        //         ################################ OPENCL ERROR ############################### \
+        //         \n\nError executing function: {}{}  \
+        //         \n\nStatus error code: {:?} ({})  \
+        //         \n\nPlease visit the following url for more information: \n\n{}{}{}  \n\n\
+        //         ############################################################################# \n",
+        //         cl_fn_name, fn_info_string, status, errcode, 
+        //         SDK_DOCS_URL_PRE, cl_fn_name, SDK_DOCS_URL_SUF)
+        // )
+        OclError::err_status(status, cl_fn_name, fn_info)
     }
 }
 
@@ -489,7 +489,7 @@ pub unsafe fn release_context(context: &Context) -> OclResult<()> {
 /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
 /// in in the `verify_context()` documentation below.
 pub fn get_context_info(context: &Context, request_param: ContextInfo,
-        ) -> OclResult<(ContextInfoResult)>
+        ) -> ContextInfoResult
 {
    let mut result_size: size_t = 0;
 
@@ -500,7 +500,10 @@ pub fn get_context_info(context: &Context, request_param: ContextInfo,
         0 as *mut c_void,
         &mut result_size as *mut usize,
     ) };
-    try!(errcode_try("clGetContextInfo", "", errcode));
+
+    if let Err(err) = errcode_try("clGetContextInfo", "", errcode) {
+        return ContextInfoResult::Error(Box::new(err));
+    }
 
     // Check for invalid context pointer (a potentially hard to track down bug)
     // using ridiculous and probably platform-specific logic [if the `Devices` 
@@ -509,10 +512,11 @@ pub fn get_context_info(context: &Context, request_param: ContextInfo,
         let err_if_zero_result_size = request_param as cl_context_info == cl_h::CL_CONTEXT_DEVICES;
 
         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-            return OclError::err("\n\nocl::core::context_info(): Possible invalid context detected. \n\
+            return ContextInfoResult::Error(Box::new(OclError::new("\n\nocl::core::context_info(): \
+                Possible invalid context detected. \n\
                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
                 invalid context object. If not, please file an issue at: \n\
-                https://github.com/cogciprocate/ocl/issues.\n\n");
+                https://github.com/cogciprocate/ocl/issues.\n\n")));
         }
     }
 
@@ -525,8 +529,9 @@ pub fn get_context_info(context: &Context, request_param: ContextInfo,
         result.as_mut_ptr() as *mut c_void,
         0 as *mut usize,
     ) };
-    errcode_try("clGetContextInfo", "", errcode).and(
-        ContextInfoResult::new(request_param, result))
+
+    let result = errcode_try("clGetContextInfo", "", errcode).and(Ok(result));
+    ContextInfoResult::new(request_param, result)
 }
 
 //============================================================================
@@ -2514,9 +2519,19 @@ pub fn get_event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<Comman
 ///
 /// # Assumptions
 ///
-/// Some (most?/all?) OpenCL implementations do not correctly error if non-context pointers are passed. This function relies on the fact that passing the `CL_CONTEXT_DEVICES` as the `param_name` to `clGetContextInfo` will (at least on my AMD implementation) often return a huge result size if `context` is not actually a `cl_context` pointer due to the fact that it's reading from some random memory location on non-context structs. Also checks for zero because a context must have at least one device (true?). Should probably choose a value lower than 10kB because it seems unlikely any result would be that big but w/e.
+/// Some (most?/all?) OpenCL implementations do not correctly error if non-
+/// context pointers are passed. This function relies on the fact that passing
+/// the `CL_CONTEXT_DEVICES` as the `param_name` to `clGetContextInfo` will
+/// (at least on my AMD implementation) often return a huge result size if
+/// `context` is not actually a `cl_context` pointer due to the fact that it's
+/// reading from some random memory location on non-context structs. Also
+/// checks for zero because a context must have at least one device (true?).
+/// Should probably choose a value lower than 10kB because it seems unlikely
+/// any result would be that big but w/e.
 ///
-/// [UPDATE]: This function may no longer be necessary now that the core pointers have wrappers but it still prevents a hard to track down bug so leaving it intact for now.
+/// [UPDATE]: This function may no longer be necessary now that the core
+/// pointers have wrappers but it still prevents a hard to track down bug so
+/// it will stay intact for now.
 ///
 #[inline]
 pub fn verify_context(context: &Context) -> OclResult<()> {
@@ -2524,7 +2539,10 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
     if cfg!(release) {
         Ok(())
     } else {
-        get_context_info(context, ContextInfo::Devices).and(Ok(()))
+        match get_context_info(context, ContextInfo::Devices) {
+            ContextInfoResult::Error(err) => Err(*err),
+            _ => Ok(()),
+        }
     }
 }
 
