@@ -27,7 +27,7 @@ fn concurrent() {
 
 		let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
 			let platforms = Platform::list();
-		}).expect("Error creating {}", &thread_name);
+		}).expect(&format!("Error creating {}", &thread_name));
 
 		threads.push(th);
 	}
@@ -36,6 +36,8 @@ fn concurrent() {
 	for th in threads.into_iter() {
 		if let Err(e) = th.join() { println!("Error joining thread: '{:?}'", e); }
 	}
+
+	println!("Done.");
 }
 
 
