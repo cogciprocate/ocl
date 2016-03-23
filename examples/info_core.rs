@@ -6,10 +6,10 @@ extern crate ocl;
 #[macro_use] extern crate colorify;
 
 use ocl::Error as OclError;
-use ocl::{Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
+use ocl::{Platform, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, 
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
-    EventInfo, ProfilingInfo, KernelArgInfoResult, KernelWorkGroupInfoResult};
+    EventInfo, ProfilingInfo, ContextInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult};
 use ocl::util;
 
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -23,7 +23,10 @@ static SRC: &'static str = r#"
 fn main() {
     let dims = [1024, 64, 16];
 
-    let context = Context::builder().build().unwrap();
+    let platforms = Platform::list();
+    let platform = platforms[platforms.len() - 1];
+
+    let context = Context::builder().platform(platform).build().unwrap();
     let device = context.get_device_by_wrapping_index(0);
     let program = Program::builder()
         .devices(device)
@@ -458,10 +461,10 @@ fn main() {
             {t}Properties: {}\n\
             {t}Device Count: {}\n\
         ",
-        core::get_context_info(&context, ContextInfo::ReferenceCount).unwrap(),
-        core::get_context_info(&context, ContextInfo::Devices).unwrap(),
-        core::get_context_info(&context, ContextInfo::Properties).unwrap(),
-        core::get_context_info(&context, ContextInfo::NumDevices).unwrap(),
+        core::get_context_info(&context, ContextInfo::ReferenceCount).unwrap_or(ContextInfoResult::TemporaryPlaceholderVariant(vec![])),
+        core::get_context_info(&context, ContextInfo::Devices).unwrap_or(ContextInfoResult::TemporaryPlaceholderVariant(vec![])),
+        core::get_context_info(&context, ContextInfo::Properties).unwrap_or(ContextInfoResult::TemporaryPlaceholderVariant(vec![])),
+        core::get_context_info(&context, ContextInfo::NumDevices).unwrap_or(ContextInfoResult::TemporaryPlaceholderVariant(vec![])),
         t = util::colors::TAB,
     );
 

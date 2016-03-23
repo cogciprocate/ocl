@@ -24,7 +24,7 @@ fn concurrent() {
 	let mut rng = rand::weak_rng();
 	let data_set_size = 2 << 10;
 	let dims = [data_set_size];
-	let threads = Vec::with_capacity(THREAD_COUNT);
+	let mut threads = Vec::with_capacity(THREAD_COUNT as usize);
 
 	println!("Listing platforms {} times...", THREAD_COUNT);
 

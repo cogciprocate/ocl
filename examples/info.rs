@@ -78,8 +78,8 @@ fn main() {
 		    buffer.cmd().write(&vec![0.0; dims[0]]).enew(&mut event).enq().unwrap();
 		    event.wait().unwrap();
 
-			// Print all but device (just once):
-			if (d_idx == 0) && (p_idx == 0) {
+			// Print all but device (just once per platform):
+			if d_idx == 0 {
 				print_context_info(&context);
 				print_queue_info(&queue);
 				print_buffer_info(&buffer);
