@@ -16,6 +16,7 @@ use std::ffi::CString;
 use std::iter;
 use std::thread;
 use std::time::Duration;
+use std::env;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
@@ -169,7 +170,6 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) 
     Ok(())
 }
 
-
 //============================================================================
 //============================================================================
 //======================= OPENCL FUNCTION WRAPPERS ===========================
@@ -189,9 +189,10 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
         cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) 
     };
 
-    // [HOPEFULLY TEMPORARY] Hacky attempt to solve Windows (NVIDIA?) problems:
-    if errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
-        println!("CL_PLATFORM_NOT_FOUND_KHR... looping 1000 times...");
+    // [TEMPORARY] Not sure if this is precisely a windows problem or what.
+    // Hacky attempt to solve Windows (NVIDIA?) problems:
+    if cfg!(target_os = "windows") && errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
+        println!("CL_PLATFORM_NOT_FOUND_KHR... looping until platform list is available...");
         let mut max_iters = 1000;
 
         while errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
@@ -207,9 +208,9 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 
             max_iters -= 1;
         }
-    } else {
-        try!(errcode_try("clGetPlatformIDs", "", errcode));
     }
+
+    try!(errcode_try("clGetPlatformIDs", "", errcode));
 
     // If no platforms are found, return an empty vec directly:
     if num_platforms == 0 {
@@ -2584,14 +2585,30 @@ pub unsafe fn get_extension_function_address_for_platform(platform: &PlatformId,
 // MANY OF THESE NEED TO BE MORPHED INTO THE MORE GENERAL VERSIONS AND MOVED UP
 
 
+/// Returns the default platform if set by an environment variable or config
+/// file.
+pub fn default_platform_idx() -> usize {
+    match env::var("OCL_DEFAULT_PLATFORM_IDX") {
+        Ok(s) => s.parse::<usize>().unwrap_or(0),
+        Err(_) => 0,
+    }
+}
+
 /// Get the first platform.
-pub fn get_first_platform() -> OclResult<PlatformId> {
+pub fn default_platform() -> OclResult<PlatformId> {
     let platform_list = try!(get_platform_ids());
 
     if platform_list.len() == 0 {
         OclError::err("No platforms found!")
     } else {
-        Ok(platform_list[0].clone())
+        let default_platform_idx = default_platform_idx();
+        if default_platform_idx > platform_list.len() - 1 {
+            OclError::err(format!("The default platform set by the environment variable \
+                'OCL_DEFAULT_PLATFORM_IDX' has an index which is out of range \
+                (index: [{}], max: [{}]).", default_platform_idx, platform_list.len() - 1))
+        } else {
+            Ok(platform_list[default_platform_idx].clone())
+        }
     }
 }
 

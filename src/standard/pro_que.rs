@@ -102,15 +102,13 @@ impl ProQueBuilder {
             },
         };
 
-        // let device = context.get_device_by_wrapping_index(self.device_idx);
-
         let queue = try!(Queue::new(&context, device));
 
-        println!("PROQUEBUILDER: About to load SRC_STRINGS.");
+        // println!("PROQUEBUILDER: About to load SRC_STRINGS.");
         let src_strings = try!(program_builder.get_src_strings().map_err(|e| e.to_string()));
-        println!("PROQUEBUILDER: About to load CMPLR_OPTS.");
+        // println!("PROQUEBUILDER: About to load CMPLR_OPTS.");
         let cmplr_opts = try!(program_builder.get_compiler_options().map_err(|e| e.to_string()));
-        println!("PROQUEBUILDER: All done.");
+        // println!("PROQUEBUILDER: All done.");
 
         let program = try!(Program::new(
             src_strings, 

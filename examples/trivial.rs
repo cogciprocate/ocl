@@ -103,7 +103,7 @@ fn main_exploded() {
 
     // (1) Define which platform and device(s) to use. Create a context,
     // queue, and program then define some dims (compare to step 1 above).
-    let platform = Platform::first();
+    let platform = Platform::default();
     let device = Device::first(platform);
     let context = Context::builder()
         .platform(platform)
@@ -180,8 +180,7 @@ fn main_cored() {
 
     // (1) Define which platform and device(s) to use. Create a context,
     // queue, and program then define some dims..
-    let platform_ids = core::get_platform_ids().unwrap();
-    let platform_id = platform_ids[0];
+    let platform_id = core::default_platform().unwrap();
     let device_ids = core::get_device_ids(&platform_id, 
         Some(flags::DEVICE_TYPE_ALL), None).unwrap();
     let device_id = device_ids[0];

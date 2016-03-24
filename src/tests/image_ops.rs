@@ -140,6 +140,9 @@ fn image_ops() {
             origin, region, 0, 0,
             &mut vec, None::<&core::EventList>, None).unwrap(); }
 
+        // Just to make sure read is complete:
+        proque.queue().finish();
+
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val, 
             dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
@@ -159,6 +162,9 @@ fn image_ops() {
             origin, region, 0, 0,
             &mut vec, None::<&core::EventList>, None).unwrap(); }
 
+        // Just to make sure read is complete:
+        proque.queue().finish();
+
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val, 
             dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
@@ -175,7 +181,7 @@ fn image_ops() {
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
 
         // // Read into vec:
-        img_dst.cmd().read(&mut vec).enq().unwrap();        
+        img_dst.cmd().read(&mut vec).enq().unwrap();
 
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val, 

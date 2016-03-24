@@ -79,7 +79,7 @@ impl DeviceSpecifier {
     pub fn to_device_list(&self, platform: Option<Platform>) -> OclResult<Vec<Device>> {
         let platform = match platform {
             Some(p) => p.clone(),
-            None => Platform::first(),
+            None => Platform::default(),
         };
 
         Ok(match self {

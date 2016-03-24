@@ -23,16 +23,17 @@ impl Platform {
         list_core.into_iter().map(|pr| Platform::new(pr) ).collect()
     }
 
-    /// Returns the first available platform on the host machine.
-    pub fn first() -> Platform {
-        let list_core = core::get_platform_ids()
-            .expect("Platform::default: Error retrieving platform");
+    // /// Returns the first available platform on the host machine.
+    // pub fn first() -> Platform {
+    //     let list_core = core::get_platform_ids()
+    //         .expect("Platform::default: Error retrieving platform");
 
-        // let first_idx = list_core.len() - 1;
-        let first_idx = 0;
+    //     // let first_idx = list_core.len() - 1;
+    //     let first_idx = 0;
 
-        Platform::new(list_core[first_idx].clone())
-    }
+    //     Platform::new(list_core[first_idx].clone());
+    //     panic!("Platform::default(): This method has been depricated. Please use 'Platform::default()'");
+    // }
 
     /// Creates a new `Platform` from a `PlatformIdCore`.
     ///
@@ -155,7 +156,14 @@ unsafe impl ClPlatformIdPtr for Platform {}
 
 impl Default for Platform {
     fn default() -> Platform {
-        Platform::first()
+        // let list_core = core::get_platform_ids()
+        //     .expect("Platform::default: Error retrieving platform");
+
+        // // let first_idx = list_core.len() - 1;
+        // let first_idx = 0;
+
+        let dflt_plat_core = core::default_platform().expect("Platform::default()");
+        Platform::new(dflt_plat_core)
     }
 }
 

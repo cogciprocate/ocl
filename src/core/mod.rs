@@ -107,8 +107,8 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     enqueue_unmap_mem_object, enqueue_migrate_mem_objects, enqueue_kernel,
     enqueue_task, enqueue_native_kernel, enqueue_marker_with_wait_list,
     enqueue_barrier_with_wait_list, get_extension_function_address_for_platform,
-    wait_for_event, get_event_status, 
-    program_build_err, verify_context, get_first_platform};
+    wait_for_event, get_event_status, default_platform_idx,
+    program_build_err, verify_context, default_platform };
 
 pub use self::cl::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event,

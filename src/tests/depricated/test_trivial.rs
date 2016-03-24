@@ -81,7 +81,7 @@ fn main_exploded() {
 
     // (1) Define which platform and device(s) to use. Create a context,
     // queue, and program then define some dims (compare to step 1 above).
-    let platform = Platform::first();
+    let platform = Platform::default();
     let device = Device::first(&platform);
     let context = Context::builder()
         .platform(platform)

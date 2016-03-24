@@ -54,7 +54,7 @@ impl ContextBuilder {
             None => {
                 let platform = match self.platform {
                     Some(ref plat) => plat.clone(),
-                    None => Platform::new(try!(core::get_first_platform())),
+                    None => Platform::default(),
                 };
                 Some(ContextProperties::new().platform::<PlatformIdCore>(platform.into()))
             },
