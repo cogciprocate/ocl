@@ -240,7 +240,7 @@ impl Device {
     ///
     /// `devices` is the set of all indexable devices.
     ///
-    /// Wraps indexes around (`%`) so that every index is valid.
+    /// Wraps indexes around using modulo (`%`) so that every index is valid.
     ///
     pub fn resolve_idxs_wrap(idxs: &[usize], devices: &[Device]) -> Vec<Device> {
         let valid_idxs = util::wrap_vals(idxs, devices.len());

@@ -19,8 +19,7 @@ fn buffer_copy_core() {
     // let platform_ids = core::get_platform_ids().unwrap();
     // let platform_id = platform_ids[0];
     let platform_id = core::default_platform().unwrap();
-    let device_ids = core::get_device_ids(&platform_id, 
-        Some(flags::DEVICE_TYPE_ALL), None).unwrap();
+    let device_ids = core::get_device_ids(&platform_id, None, None).unwrap();
     let device_id = device_ids[0];
     let context_properties = ContextProperties::new().platform(platform_id);
     let context = core::create_context(&Some(context_properties), 
