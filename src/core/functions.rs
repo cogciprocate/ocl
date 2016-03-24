@@ -17,6 +17,7 @@ use std::iter;
 use std::thread;
 use std::time::Duration;
 use std::env;
+use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
@@ -40,6 +41,8 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, 
     EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, 
     BufferCreateType};
+
+const PRINT_DEBUG: bool = false;
 
 //============================================================================
 //============================================================================
@@ -2385,7 +2388,7 @@ pub fn enqueue_migrate_mem_objects<L: AsRef<EventList>>(
 /// Work dimension/offset sizes *may* eventually be wrapped up in specialized types.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueNDRangeKernel.html)
-pub fn enqueue_kernel<L: AsRef<EventList>>(
+pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
             command_queue: &CommandQueue,
             kernel: &Kernel,
             work_dims: u32,
@@ -2397,11 +2400,43 @@ pub fn enqueue_kernel<L: AsRef<EventList>>(
             // kernel_name: Option<&str>
         ) -> OclResult<()> 
 {
+    if PRINT_DEBUG { 
+        println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
+    }
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
+
+    if PRINT_DEBUG { println!("Resolving global work offset: {:?}...", global_work_offset); }
     let gwo = resolve_work_dims(&global_work_offset);
+
+    if PRINT_DEBUG { println!("Assigning global work size: {:?}...", global_work_dims); }
     let gws = global_work_dims as *const size_t;
+
+    if PRINT_DEBUG { println!("Resolving local work size: {:?}...", local_work_dims); }
     let lws = resolve_work_dims(&local_work_dims);
+
+    if PRINT_DEBUG { println!("Preparing to print all details..."); }
+
+    if PRINT_DEBUG {
+        println!("core::enqueue_kernel('{}'): \
+            work_dims: {}, \
+            gwo: {:?}, \
+            gws: {:?}, \
+            lws: {:?}, \
+            wait_list_len: {}, \
+            wait_list_ptr: {:?}, \
+            new_event_ptr: {:?}, \
+            ",
+            get_kernel_name(&kernel),
+            work_dims,
+            global_work_offset,
+            global_work_dims,
+            local_work_dims,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        );
+    }
 
     let errcode = unsafe { cl_h::clEnqueueNDRangeKernel(
             command_queue.as_ptr(),
@@ -2414,6 +2449,8 @@ pub fn enqueue_kernel<L: AsRef<EventList>>(
             wait_list_ptr,
             new_event_ptr,
     ) };
+
+    println!("Enqueue complete with status: {}.", errcode);
 
     if errcode != 0 {
         let name = get_kernel_name(&kernel);

@@ -11,6 +11,7 @@ use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore,
 use error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler, Device};
 
+const PRINT_DEBUG: bool = false;
 
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
@@ -85,6 +86,11 @@ impl<'k> KernelCmd<'k> {
             None => return OclError::err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
                 cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
         };
+
+        if PRINT_DEBUG { 
+            println!("Enqueuing kernel: '{}'...", 
+                core::get_kernel_info(self.kernel, KernelInfo::FunctionName));
+        }
 
         core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(), 
             &gws, self.lws.to_work_size(), self.wait_list, self.dest_list)

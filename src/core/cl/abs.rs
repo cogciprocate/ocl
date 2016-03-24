@@ -44,7 +44,7 @@
 
 use std::mem;
 // use std::ptr;
-// use std::fmt::Debug;
+use std::fmt::Debug;
 use std::marker::Sized;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program, 
@@ -70,7 +70,7 @@ const DEBUG_PRINT: bool = false;
 //=============================================================================
 
 /// Types with a mutable pointer to a new, null raw event pointer.
-pub unsafe trait ClEventPtrNew {
+pub unsafe trait ClEventPtrNew: Debug {
 	fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
 }
 
