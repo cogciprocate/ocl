@@ -106,9 +106,15 @@ impl ProQueBuilder {
 
         let queue = try!(Queue::new(&context, device));
 
+        println!("PROQUEBUILDER: About to load SRC_STRINGS.");
+        let src_strings = try!(program_builder.get_src_strings().map_err(|e| e.to_string()));
+        println!("PROQUEBUILDER: About to load CMPLR_OPTS.");
+        let cmplr_opts = try!(program_builder.get_compiler_options().map_err(|e| e.to_string()));
+        println!("PROQUEBUILDER: All done.");
+
         let program = try!(Program::new(
-            try!(program_builder.get_src_strings().map_err(|e| e.to_string())), 
-            try!(program_builder.get_compiler_options().map_err(|e| e.to_string())), 
+            src_strings, 
+            cmplr_opts, 
             &context, 
             &vec![device],
         ));
