@@ -188,6 +188,11 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
     };
     try!(errcode_try("clGetPlatformIDs", "", errcode));
 
+    // If no platforms are found, return an empty vec directly:
+    if num_platforms == 0 {
+        return Ok(vec![]);
+    }
+
     // Create a vec with the appropriate size:
     let mut null_vec: Vec<usize> = iter::repeat(0).take(num_platforms as usize).collect();
     let (ptr, len, cap) = (null_vec.as_mut_ptr(), null_vec.len(), null_vec.capacity());
@@ -219,7 +224,7 @@ pub fn get_platform_info<P: ClPlatformIdPtr>(platform: Option<P>, request: Platf
         None => ptr::null_mut() as cl_platform_id,
     };
 
-    let mut size = 0 as size_t;
+    let mut result_size = 0 as size_t;
 
     let errcode = unsafe {
         cl_h::clGetPlatformInfo(
@@ -227,21 +232,26 @@ pub fn get_platform_info<P: ClPlatformIdPtr>(platform: Option<P>, request: Platf
             request as cl_platform_info,
             0 as size_t,
             ptr::null_mut(),
-            &mut size as *mut size_t,
+            &mut result_size as *mut size_t,
         )
     };
 
     if let Err(err) = errcode_try("clGetPlatformInfo", "", errcode) {
         return PlatformInfoResult::Error(Box::new(err));
     }
+
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return PlatformInfoResult::from_bytes(request, Ok(vec![]));
+    }
         
-    let mut result: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
+    let mut result: Vec<u8> = iter::repeat(32u8).take(result_size as usize).collect();
 
     let errcode = unsafe {
         cl_h::clGetPlatformInfo(
             platform_ptr,
             request as cl_platform_info,
-            size as size_t,
+            result_size as size_t,
             result.as_mut_ptr() as *mut c_void,
             ptr::null_mut() as *mut size_t,
         )
@@ -306,27 +316,32 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
 pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo,
         ) -> DeviceInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetDeviceInfo(
         device.as_ptr() as cl_device_id,
         request as cl_device_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
-    // try!(errcode_try("clGetDeviceInfo", "", errcode));
 
+    // try!(errcode_try("clGetDeviceInfo", "", errcode));
     if let Err(err) = errcode_try("clGetDeviceInfo", "", errcode) {
         return DeviceInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return DeviceInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetDeviceInfo(
         device.as_ptr() as cl_device_id,
         request as cl_device_info,
-        info_value_size  as size_t,
+        result_size  as size_t,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };
@@ -493,6 +508,11 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
         }
     }
 
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return ContextInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetContextInfo(   
@@ -548,14 +568,14 @@ pub unsafe fn release_command_queue(queue: &CommandQueue) -> OclResult<()> {
 pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
         ) -> CommandQueueInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetCommandQueueInfo(
         queue.as_ptr() as cl_command_queue,
         request as cl_command_queue_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetCommandQueueInfo", "", errcode));
@@ -563,12 +583,17 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
         return CommandQueueInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return CommandQueueInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetCommandQueueInfo(
         queue.as_ptr() as cl_command_queue,
         request as cl_command_queue_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) }; 
@@ -728,6 +753,11 @@ pub fn get_supported_image_formats(
     ) };
     try!(errcode_try("clGetSupportedImageFormats", "", errcode));
 
+    // If no formats found, return an empty list directly:
+    if num_image_formats == 0 {
+        return Ok(vec![]);
+    }
+
     let mut image_formats: Vec<cl_image_format> = (0..(num_image_formats as usize)).map(|_| {
            ImageFormat::new_raw()
         } ).collect();
@@ -750,26 +780,32 @@ pub fn get_supported_image_formats(
 
 /// Get mem object info.
 pub fn get_mem_object_info(obj: &Mem, request: MemInfo) -> MemInfoResult {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetMemObjectInfo(
         obj.as_ptr() as cl_mem,
         request as cl_mem_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
+
     // try!(errcode_try("clGetMemObjectInfo", "", errcode));
     if let Err(err) = errcode_try("clGetMemObjectInfo", "", errcode) {
         return MemInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return MemInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetMemObjectInfo(
         obj.as_ptr() as cl_mem,
         request as cl_mem_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -783,14 +819,14 @@ pub fn get_mem_object_info(obj: &Mem, request: MemInfo) -> MemInfoResult {
 
 /// Get image info.
 pub fn get_image_info(obj: &Mem, request: ImageInfo) -> ImageInfoResult {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetImageInfo(
         obj.as_ptr() as cl_mem,
         request as cl_image_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetImageInfo", "", errcode));
@@ -798,12 +834,17 @@ pub fn get_image_info(obj: &Mem, request: ImageInfo) -> ImageInfoResult {
         return ImageInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return ImageInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetImageInfo(
         obj.as_ptr() as cl_mem,
         request as cl_image_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -862,14 +903,14 @@ pub unsafe fn release_sampler(sampler: &Sampler) -> OclResult<()> {
 pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
     ) -> SamplerInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetSamplerInfo(
         obj.as_ptr() as cl_sampler,
         request as cl_sampler_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetSamplerInfo", "", errcode));
@@ -877,12 +918,17 @@ pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
         return SamplerInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return SamplerInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetSamplerInfo(
         obj.as_ptr() as cl_sampler,
         request as cl_sampler_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -1071,14 +1117,14 @@ pub fn unload_platform_compiler(platform: &PlatformId) -> OclResult<()> {
 
 /// Get program info.
 pub fn get_program_info(obj: &Program, request: ProgramInfo) -> ProgramInfoResult {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetProgramInfo(
         obj.as_ptr() as cl_program,
         request as cl_program_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetProgramInfo", "", errcode));
@@ -1086,12 +1132,17 @@ pub fn get_program_info(obj: &Program, request: ProgramInfo) -> ProgramInfoResul
         return ProgramInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return ProgramInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetProgramInfo(
         obj.as_ptr() as cl_program,
         request as cl_program_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -1106,7 +1157,7 @@ pub fn get_program_info(obj: &Program, request: ProgramInfo) -> ProgramInfoResul
 pub fn get_program_build_info<D: ClDeviceIdPtr>(obj: &Program, device_obj: &D, 
             request: ProgramBuildInfo) -> ProgramBuildInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetProgramBuildInfo(
         obj.as_ptr() as cl_program,
@@ -1114,7 +1165,7 @@ pub fn get_program_build_info<D: ClDeviceIdPtr>(obj: &Program, device_obj: &D,
         request as cl_program_build_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetProgramBuildInfo", "", errcode));
@@ -1122,13 +1173,18 @@ pub fn get_program_build_info<D: ClDeviceIdPtr>(obj: &Program, device_obj: &D,
         return ProgramBuildInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return ProgramBuildInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetProgramBuildInfo(
         obj.as_ptr() as cl_program,
         device_obj.as_ptr() as cl_device_id,
         request as cl_program_build_info,
-        info_value_size as size_t,
+        result_size as size_t,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -1250,14 +1306,14 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
 pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
         ) -> KernelInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetKernelInfo(
         obj.as_ptr() as cl_kernel,
         request as cl_kernel_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetKernelInfo", "", errcode));
@@ -1265,12 +1321,17 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
         return KernelInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return KernelInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetKernelInfo(
         obj.as_ptr() as cl_kernel,
         request as cl_kernel_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -1286,7 +1347,7 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
 pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         ) -> KernelArgInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetKernelArgInfo(
         obj.as_ptr() as cl_kernel,
@@ -1294,7 +1355,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         request as cl_kernel_arg_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetKernelArgInfo", "", errcode));
@@ -1302,13 +1363,18 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         return KernelArgInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return KernelArgInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetKernelArgInfo(
         obj.as_ptr() as cl_kernel,
         arg_index as cl_uint,
         request as cl_kernel_arg_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -1324,7 +1390,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
 pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D, 
             request: KernelWorkGroupInfo) -> KernelWorkGroupInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetKernelWorkGroupInfo(
         obj.as_ptr() as cl_kernel,
@@ -1332,7 +1398,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
         request as cl_kernel_work_group_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetKernelWorkGroupInfo", "", errcode));
@@ -1340,13 +1406,18 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
         return KernelWorkGroupInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return KernelWorkGroupInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetKernelWorkGroupInfo(
         obj.as_ptr() as cl_kernel,
         device_obj.as_ptr() as cl_device_id,
         request as cl_kernel_work_group_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -1377,14 +1448,14 @@ pub fn wait_for_events(num_events: u32, event_list: &EventList) -> OclResult<()>
 pub fn get_event_info(event: &Event, request: EventInfo,
         ) -> EventInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetEventInfo(
         *event.as_ptr_ref(),
         request as cl_event_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetEventInfo", "", errcode));
@@ -1392,12 +1463,17 @@ pub fn get_event_info(event: &Event, request: EventInfo,
         return EventInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return EventInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetEventInfo(
         *event.as_ptr_ref(),
         request as cl_event_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };   
@@ -1461,7 +1537,7 @@ pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
 pub fn get_event_profiling_info(event: &Event, request: ProfilingInfo,
         ) -> ProfilingInfoResult
 {
-    let mut info_value_size: size_t = 0;
+    let mut result_size: size_t = 0;
     let event: cl_event = unsafe { *event.as_ptr_ref() };
 
     let errcode = unsafe { cl_h::clGetEventProfilingInfo(
@@ -1469,7 +1545,7 @@ pub fn get_event_profiling_info(event: &Event, request: ProfilingInfo,
         request as cl_profiling_info,
         0 as size_t,
         0 as *mut c_void,
-        &mut info_value_size as *mut size_t,
+        &mut result_size as *mut size_t,
     ) };
 
     // try!(errcode_try("clGetEventProfilingInfo", "", errcode));
@@ -1477,12 +1553,17 @@ pub fn get_event_profiling_info(event: &Event, request: ProfilingInfo,
         return ProfilingInfoResult::Error(Box::new(err));
     }
 
-    let mut result: Vec<u8> = iter::repeat(0u8).take(info_value_size).collect();
+    // If result size is zero, return an empty info result directly:
+    if result_size == 0 {
+        return ProfilingInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { cl_h::clGetEventProfilingInfo(
         event,
         request as cl_profiling_info,
-        info_value_size,
+        result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };    
@@ -2620,7 +2701,7 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
 // /// alternatively return a generic type and just blindly cast to it.
 // #[allow(dead_code, unused_variables)] 
 // pub fn device_info(device_id: &DeviceId, info_type: cl_device_info) -> String {
-//     let mut info_value_size: usize = 0;
+//     let mut result_size: usize = 0;
 
 //     let errcode = unsafe { 
 //         cl_h::clGetDeviceInfo(
@@ -2628,7 +2709,7 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
 //             cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE,
 //             mem::size_of::<usize>() as usize,
 //             0 as cl_device_id,
-//             &mut info_value_size as *mut usize,
+//             &mut result_size as *mut usize,
 //         ) 
 //     }; 
 
