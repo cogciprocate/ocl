@@ -28,7 +28,9 @@ impl Platform {
         let list_core = core::get_platform_ids()
             .expect("Platform::default: Error retrieving platform");
 
-        Platform::new(list_core[0].clone())
+        let first_idx = list_core.len() - 1;
+
+        Platform::new(list_core[first_idx].clone())
     }
 
     /// Creates a new `Platform` from a `PlatformIdCore`.
