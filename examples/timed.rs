@@ -3,6 +3,10 @@
 //! Manipulate the consts below to fiddle with parameters. To create longer
 //! running tests, increase `DATASET_SIZE`, and the `*_ITERS` consts. The
 //! other consts can be anything at all.
+//!
+//! Due to buggy and/or intentionally crippled drivers, this example may not
+//! work on NVIDIA hardware. Until NVIDIA's implementation is corrected this
+//! example will likely fail on that platform.
 
 extern crate ocl;
 use std::time::Instant;

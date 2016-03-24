@@ -1,6 +1,9 @@
 //! This is more of a test than anything but put here as an example of how
 //! you could use custom event callbacks.
 //!
+//! Due to buggy and/or intentionally crippled drivers, this example may not
+//! work on NVIDIA hardware. Until NVIDIA's implementation is corrected this
+//! example will likely fail on that platform.
 //! 
 
 extern crate libc;

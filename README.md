@@ -16,7 +16,8 @@ Interfaces are still mildly unstable. Changes are now being documented in
 Due to buggy and/or intentionally crippled drivers, functionality involving
 multiple host threads, multiple devices, or asynchronous callbacks may not
 work on NVIDIA hardware. Until NVIDIA's implementation is corrected, tests and
-examples involving multiple asynchronous tasks will fail on that platform.
+examples involving multiple asynchronous tasks will likely fail on that
+platform. 
 
 
 ## Goals

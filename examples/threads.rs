@@ -2,6 +2,10 @@
 //!
 //! Much of this is just testing stuff out and not really practical.
 //!
+//! Due to buggy and/or intentionally crippled drivers, this example may not
+//! work on NVIDIA hardware. Until NVIDIA's implementation is corrected this
+//! example will likely fail on that platform.
+//!
 //! [WORK IN PROGRESS]
 //!
 //! TODO: Have threads swap stuff around for fun.

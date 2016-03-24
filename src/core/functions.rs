@@ -189,7 +189,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
         cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) 
     };
 
-    // HACKY ATTEMPT TO SOLVE WINDOWS-NVIDIA ISSUES:
+    // [HOPEFULLY TEMPORARY] Hacky attempt to solve Windows (NVIDIA?) problems:
     if errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
         println!("CL_PLATFORM_NOT_FOUND_KHR... looping 1000 times...");
         let mut max_iters = 1000;
