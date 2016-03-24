@@ -2450,7 +2450,7 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
             new_event_ptr,
     ) };
 
-    println!("Enqueue complete with status: {}.", errcode);
+    if PRINT_DEBUG { println!("Enqueue complete with status: {}.", errcode); }
 
     if errcode != 0 {
         let name = get_kernel_name(&kernel);
