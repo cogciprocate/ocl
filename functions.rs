@@ -301,7 +301,7 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
     //     None => try!(get_first_platform()).as_ptr(),
     // } };
 
-    let device_types = device_types.unwrap_or(core::DEVICE_TYPE_ALL);
+    let device_types = device_types.unwrap_or(try!(default_device_type()));
     let mut devices_available: cl_uint = 0;
 
     let devices_max = match devices_max {
@@ -2594,7 +2594,7 @@ pub fn default_platform_idx() -> usize {
     }
 }
 
-/// Get the first platform.
+/// Returns the default or first platform.
 pub fn default_platform() -> OclResult<PlatformId> {
     let platform_list = try!(get_platform_ids());
 
@@ -2612,11 +2612,32 @@ pub fn default_platform() -> OclResult<PlatformId> {
     }
 }
 
+/// Returns the default device type bitflags as specified by environment
+/// variable or `DEVICE_TYPE_ALL`.
+pub fn default_device_type() -> OclResult<DeviceType> {
+    match env::var("OCL_DEFAULT_DEVICE_TYPE") {
+        Ok(ref s) => match s.trim() {
+            "DEFAULT" => Ok(core::DEVICE_TYPE_DEFAULT),
+            "CPU" => Ok(core::DEVICE_TYPE_CPU),
+            "GPU" => Ok(core::DEVICE_TYPE_GPU),
+            "ACCELERATOR" => Ok(core::DEVICE_TYPE_ACCELERATOR),
+            "CUSTOM" => Ok(core::DEVICE_TYPE_CUSTOM),
+            "ALL" => Ok(core::DEVICE_TYPE_ALL),
+            _ => OclError::err(format!("The default device type set by the environment variable \
+                'OCL_DEFAULT_DEVICE_TYPE': ('{}') is invalid. Valid types are: 'DEFAULT', 'CPU', \
+                'GPU', 'ACCELERATOR', 'CUSTOM', and 'ALL'.", s)),
+        },
+        Err(_) => Ok(core::DEVICE_TYPE_ALL),
+    }
+}
+
+
 /// Get a kernel name.
 pub fn get_kernel_name(kernel: &Kernel) -> String {
     let result = get_kernel_info(kernel, KernelInfo::FunctionName);
     result.into()
 }
+
 
 /// Creates, builds, and returns a new program pointer from `src_strings`.
 ///
