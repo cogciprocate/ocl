@@ -38,6 +38,7 @@ fn main() {
 	let mut threads = Vec::new();
 
 	let platforms = Platform::list();
+	// let platforms = &platforms_all[(platforms_all.len() - 1)..platforms_all.len()];
 
 	println!("Looping through avaliable platforms ({}):", platforms.len());
 
@@ -48,6 +49,8 @@ fn main() {
 
     	let devices = Device::list_all(platform);
 
+    	println!("DEVICES: {:?}", devices);
+
     	// Loop through each device:
     	for device_idx in 0..devices.len() {
     		// Choose a device at random: 
@@ -57,9 +60,9 @@ fn main() {
     		printlnc!(royal_blue: "Device[{}]: {} ({})", device_idx, device.name(), device.vendor());
 
     		// Make a context to share around:
-    		let context = Context::builder().build().unwrap();
+    		let context = Context::builder().platform(*platform).build().unwrap();
     		let program = Program::builder().src(SRC).devices(device)
-    			.build(&context).unwrap();
+    			.build(&context).expect("Program Build");
 
     		// Make a few different queues for the hell of it:
 	        // let queueball = vec![Queue::new_by_device_index(&context, None),

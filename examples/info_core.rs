@@ -21,10 +21,15 @@ static SRC: &'static str = r#"
 "#;
 
 fn main() {
-    let dims = [1024, 64, 16];
-
     let platforms = Platform::list();
-    let platform = platforms[platforms.len() - 1];
+    // let platform = platforms[platforms.len() - 1];
+    for platform in platforms.iter() {
+        print_platform(platform.clone());
+    }
+}
+
+fn print_platform(platform: Platform) {
+    let dims = [1024, 64, 16];
 
     let context = Context::builder().platform(platform).build().unwrap();
     let device = context.get_device_by_wrapping_index(0);
