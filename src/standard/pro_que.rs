@@ -57,14 +57,20 @@ impl ProQueBuilder {
                 'ProQueBuilder' and 'ProgramBuilder' documentation for more information."),
         };
 
-        // If no platform was set, uses the first available.
+        // If no platform is set or no context platform is set, use the first available:
         let platform = match self.platform {
             Some(ref plt) => {
                 assert!(self.context.is_none(), "ocl::ProQueBuilder::build: \
                     platform and context cannot both be set.");
                 plt.clone()
             },
-            None => Platform::default(),
+            None => match &self.context {
+                &Some(ref context) => match context.platform() {
+                    Some(platform) => platform,
+                    None => Platform::default(),
+                },
+                &None => Platform::default(),
+            },
         };
 
 
