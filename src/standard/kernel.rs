@@ -460,6 +460,10 @@ impl Kernel {
         core::get_kernel_work_group_info(&self.obj_core, device, info_kind)
     }
 
+    pub fn name(&self) -> String {
+        core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName).into()
+    }
+
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Kernel")
             .field("FunctionName", &self.info(KernelInfo::FunctionName))
