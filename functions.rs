@@ -14,6 +14,8 @@ use std::mem;
 use std::io::Read;
 use std::ffi::CString;
 use std::iter;
+use std::thread;
+use std::time::Duration;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
@@ -186,7 +188,28 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
     let mut errcode: cl_int = unsafe { 
         cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) 
     };
-    try!(errcode_try("clGetPlatformIDs", "", errcode));
+
+    // HACKY ATTEMPT TO SOLVE WINDOWS-NVIDIA ISSUES:
+    if errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
+        println!("CL_PLATFORM_NOT_FOUND_KHR... looping 1000 times...");
+        let mut max_iters = 1000;
+
+        while errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
+            if max_iters == 0 {
+                return OclError::err("core::get_platform_ids(): 1000 loops complete to no avail!")
+            }
+
+            thread::sleep(Duration::from_millis(100));
+            // Get a count of available platforms:
+            errcode = unsafe { 
+                cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) 
+            };
+
+            max_iters -= 1;
+        }
+    } else {
+        try!(errcode_try("clGetPlatformIDs", "", errcode));
+    }
 
     // If no platforms are found, return an empty vec directly:
     if num_platforms == 0 {
