@@ -127,14 +127,14 @@ impl ProgramBuilder {
 
     /// Adds a build option containing a compiler command line definition.
     /// Formatted as `-D {name}={val}`.
-    pub fn cmplr_def(mut self, name: &'static str, val: i32) -> ProgramBuilder {
+    pub fn cmplr_def<S: Into<String>>(mut self, name: S, val: i32) -> ProgramBuilder {
         self.options.push(BuildOpt::cmplr_def(name, val));
         self
     }
 
     /// Adds a build option containing a core compiler command line parameter. 
     /// Formatted as `{co}` (exact text).
-    pub fn cmplr_opt(mut self, co: &'static str) -> ProgramBuilder {
+    pub fn cmplr_opt<S: Into<String>>(mut self, co: S) -> ProgramBuilder {
         self.options.push(BuildOpt::cmplr_opt(co));
         self
     }
