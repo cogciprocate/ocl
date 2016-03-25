@@ -848,7 +848,8 @@ extern "C" {
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clUnloadPlatformCompiler(cl_platform_id /* platform */) CL_API_SUFFIX__VERSION_1_2;
     // //################## NEW 1.2 ###################
-    pub fn clUnloadPlatformCompiler(platform: cl_platform_id) -> cl_int;
+    // [DISABLED DUE TO PLATFORM INCOMPATABILITY]
+    // pub fn clUnloadPlatformCompiler(platform: cl_platform_id) -> cl_int;
 
     pub fn clGetProgramInfo(program: cl_program,
                         param_name: cl_program_info,

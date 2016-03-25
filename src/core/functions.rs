@@ -1135,12 +1135,13 @@ pub fn link_program() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED]
-/// Unloads a platform compiler.
-pub fn unload_platform_compiler(platform: &PlatformId) -> OclResult<()> {
-    unsafe { errcode_try("clUnloadPlatformCompiler", "", 
-        cl_h::clUnloadPlatformCompiler(platform.as_ptr())) }
-}
+// [DISABLED DUE TO PLATFORM INCOMPATABILITY]
+// /// [UNTESTED]
+// /// Unloads a platform compiler.
+// pub fn unload_platform_compiler(platform: &PlatformId) -> OclResult<()> {
+//     unsafe { errcode_try("clUnloadPlatformCompiler", "", 
+//         cl_h::clUnloadPlatformCompiler(platform.as_ptr())) }
+// }
 
 /// Get program info.
 pub fn get_program_info(obj: &Program, request: ProgramInfo) -> ProgramInfoResult {
