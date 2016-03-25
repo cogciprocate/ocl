@@ -71,8 +71,7 @@
 // https://github.com/cogciprocate/ocl/blob/master/src/core/functions.rs
 
 mod functions;
-mod cl;
-mod custom;
+mod types;
 
 use std::fmt::{Display, Debug};
 use std::num::{Zero, One};
@@ -110,19 +109,17 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     wait_for_event, get_event_status, default_platform_idx,
     program_build_err, verify_context, default_platform, default_device_type };
 
-pub use self::cl::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
+pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event,
     EventList, Sampler};
 
-pub use self::cl::structs::{ImageFormat, ImageDescriptor, BufferRegion};
+pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion};
 
-pub use self::custom::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
+pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
     ContextInfoResult, ContextProperty, CommandQueueInfoResult, MemInfoResult,
     ImageInfoResult, SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult,
     KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
     EventInfoResult, ProfilingInfoResult};
-
-pub use self::custom::structs::{ContextProperties};
 
 //=============================================================================
 //================================ CONSTANTS ==================================
