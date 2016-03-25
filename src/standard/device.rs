@@ -11,6 +11,7 @@ use standard::Platform;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
 use util;
 
+const DEBUG_PRINT: bool = true;
 
 /// Specifies [what boils down to] a list of devices.
 ///
@@ -255,7 +256,10 @@ impl Device {
     pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> Vec<Device> {
         let list_core = core::get_device_ids(platform.as_core(), device_types, None)
             .expect("Device::list: Error retrieving device list");
-        list_core.into_iter().map(|pr| Device(pr) ).collect()
+        let list = list_core.into_iter().map(|pr| Device(pr) ).collect();
+        if DEBUG_PRINT { println!("\nDevices::list(): device_types: {:?} -> list: {:?}", 
+            device_types, list); }
+        list
     }
 
     /// Returns a list of all devices avaliable for a given `platform`.
@@ -289,7 +293,10 @@ impl Device {
     pub fn list_select_wrap(platform: &Platform, device_types: Option<DeviceType>,
             idxs: &[usize]) -> Vec<Device> 
     {
-        Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types))
+        let list = Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types));
+        if DEBUG_PRINT { println!("\nDevices::list_select_wrap(): device_types: {:?} \
+            -> list: {:?}", device_types, list); }
+        list
     }
 
     // /// Creates a new `Device` from a `DeviceIdCore`.
