@@ -295,7 +295,7 @@ impl Kernel {
             -> OclResult<&'a mut Kernel>
     {
         let arg_idx = try!(self.resolve_named_arg_idx(name));
-        self.set_arg::<T>(arg_idx, KernelArg::Scalar(&scalar))
+        self.set_arg::<T>(arg_idx, KernelArg::Scalar(scalar))
             .and(Ok(self))
     }
 
@@ -552,7 +552,7 @@ impl Kernel {
             None => Default::default(),
         };
 
-        self.new_arg::<T>(KernelArg::Scalar(&scalar))
+        self.new_arg::<T>(KernelArg::Scalar(scalar))
     }
 
     /// Non-builder-style version of `::arg_vec()`.

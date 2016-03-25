@@ -1291,10 +1291,10 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
             // (smplr.as_ptr() as *mut c_void) as *const c_void)
             smplr_core_ref as *const _ as *const c_void
         ),
-        KernelArg::Scalar(scalar_ref) => (
+        KernelArg::Scalar(ref scalar) => (
             mem::size_of::<T>() as size_t, 
             // scalar as *const _ as *const c_void
-            scalar_ref as *const T as *const c_void
+            scalar as *const T as *const c_void
         ),
         KernelArg::Vector(slice)=> (
             (mem::size_of::<T>() * slice.len()) as size_t,

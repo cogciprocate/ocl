@@ -43,7 +43,7 @@ fn buffer_copy_core() {
     // Kernel:
     let kernel = core::create_kernel(&program, "add").unwrap();
     core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&src_buffer)).unwrap();
-    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(&ADDEND)).unwrap();
+    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(ADDEND)).unwrap();
 
     // Run the kernel:
     core::enqueue_kernel(&queue, &kernel, 1, None, &dims, 

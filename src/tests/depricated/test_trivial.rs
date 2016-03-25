@@ -188,7 +188,7 @@ fn main_cored() {
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = core::create_kernel(&program, "add").unwrap();
     core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&buffer)).unwrap();
-    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(&ADDEND)).unwrap();
+    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(ADDEND)).unwrap();
 
     // (4) Run the kernel (default parameters shown for elucidation purposes):
     core::enqueue_kernel(&queue, &kernel, 1, None, &dims, 
