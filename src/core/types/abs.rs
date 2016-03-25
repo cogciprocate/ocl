@@ -2,7 +2,8 @@
 //!
 //! ### Reference
 //! 
-//! The following table describes abstract data types supported by OpenCL (from [SDK]):
+//! The following table describes abstract data types supported by OpenCL
+//! (from [SDK]):
 //!
 //! * cl_platform_id: The ID for a platform.
 //! * cl_device_id: The ID for a device.
@@ -22,21 +23,18 @@
 //! ### Who cares. Why bother?
 //!
 //! These types ensure as best they can that stored pointers to any of the
-//! above objects will be valid until that pointer is dropped by the Rust 
+//! above objects will be valid until that pointer is dropped by the Rust
 //! runtime (which obviously is not a 100% guarantee).
 //!
-//! What this means is that you can share, clone, store, and throw away these 
-//! types, and
-//! any types that contain them, among multiple threads, for as long as you'd 
-//! like, with an insignificant amount of overhead, without having to worry
-//! about the dangers of dereferencing those types later on. As good as the 
-//! OpenCL library
-//! generally is about this, it fails in many cases to provide complete
-//! protection against segfaults due to dereferencing old pointers.
+//! What this means is that you can share, clone, store, and throw away these
+//! types, and any types that contain them, among multiple threads, for as
+//! long as you'd like, with an insignificant amount of overhead, without
+//! having to worry about the dangers of dereferencing those types later on.
+//! As good as the OpenCL library generally is about this, it fails in many
+//! cases to provide complete protection against segfaults due to
+//! dereferencing old pointers particularly on certain *ahem* platforms.
 //!
-//! 
-//! 
-//! So... whatever...
+//!
 //!
 //! 
 //!
