@@ -193,23 +193,26 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
     };
 
     // [TEMPORARY] Not sure if this is precisely a windows problem or what.
-    // Hacky attempt to solve Windows (NVIDIA?) problems:
+    // Hacky attempt to solve Windows ICD problems:
     if cfg!(target_os = "windows") && errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
-        println!("CL_PLATFORM_NOT_FOUND_KHR... looping until platform list is available...");
-        let mut max_iters = 1000;
+        // println!("CL_PLATFORM_NOT_FOUND_KHR... looping until platform list is available...");
+        let sleep_ms = 2000;
+        let mut iters_rmng = 5;
 
         while errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
-            if max_iters == 0 {
-                return OclError::err("core::get_platform_ids(): 1000 loops complete to no avail!")
+            if iters_rmng == 0 {
+                return OclError::err(format!("core::get_platform_ids(): \
+                    CL_PLATFORM_NOT_FOUND_KHR... Unable to get platform id list after {} \
+                    seconds of waiting.", (iters_rmng * sleep_ms) / 1000));
             }
 
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(200));
             // Get a count of available platforms:
             errcode = unsafe { 
                 cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) 
             };
 
-            max_iters -= 1;
+            iters_rmng -= 1;
         }
     }
 
