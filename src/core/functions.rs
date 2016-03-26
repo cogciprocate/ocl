@@ -42,9 +42,9 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, 
     BufferCreateType};
 
-const PRINT_DEBUG: bool = true;
-const PRINT_KERNEL_DEBUG: bool = PRINT_DEBUG && true;
-const KERNEL_DEBUG_SLEEP: bool = true;
+// const PRINT_DEBUG: bool = true;
+// const KERNEL_DEBUG_PRINT: bool = PRINT_DEBUG && true;
+// const KERNEL_DEBUG_SLEEP: bool = true;
 
 //============================================================================
 //============================================================================
@@ -2434,24 +2434,24 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
         #[allow(unused_imports)] use std::time::Duration;
     }
 
-    if PRINT_KERNEL_DEBUG { 
+    if cfg!(kernel_debug_print) { 
         println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
     }
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
 
-    if PRINT_KERNEL_DEBUG { println!("Resolving global work offset: {:?}...", global_work_offset); }
+    if cfg!(kernel_debug_print) { println!("Resolving global work offset: {:?}...", global_work_offset); }
     let gwo = resolve_work_dims(&global_work_offset);
 
-    if PRINT_KERNEL_DEBUG { println!("Assigning global work size: {:?}...", global_work_dims); }
+    if cfg!(kernel_debug_print) { println!("Assigning global work size: {:?}...", global_work_dims); }
     let gws = global_work_dims as *const size_t;
 
-    if PRINT_KERNEL_DEBUG { println!("Resolving local work size: {:?}...", local_work_dims); }
+    if cfg!(kernel_debug_print) { println!("Resolving local work size: {:?}...", local_work_dims); }
     let lws = resolve_work_dims(&local_work_dims);
 
-    if PRINT_KERNEL_DEBUG { println!("Preparing to print all details..."); }
+    if cfg!(kernel_debug_print) { println!("Preparing to print all details..."); }
 
-    if PRINT_KERNEL_DEBUG {
+    if cfg!(kernel_debug_print) {
         println!("core::enqueue_kernel('{}'): \
             work_dims: {}, \
             gwo: {:?}, \
@@ -2484,10 +2484,10 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
             new_event_ptr,
     ) };
 
-    if PRINT_KERNEL_DEBUG { println!("Enqueue complete with status: {}.", errcode); }
+    if cfg!(kernel_debug_print) { println!("Enqueue complete with status: {}.", errcode); }
 
     if !cfg!(release) {
-        if KERNEL_DEBUG_SLEEP { thread::sleep(Duration::from_millis(500)); }
+        if cfg!(kernel_debug_sleep) { thread::sleep(Duration::from_millis(500)); }
     }
 
     if errcode != 0 {
