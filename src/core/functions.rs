@@ -42,9 +42,10 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, 
     BufferCreateType};
 
-// const PRINT_DEBUG: bool = true;
-// const KERNEL_DEBUG_PRINT: bool = PRINT_DEBUG && true;
-// const KERNEL_DEBUG_SLEEP: bool = true;
+#[cfg(feature="kernel_debug_sleep")] use std::thread;
+#[cfg(feature="kernel_debug_sleep")] use std::time::Duration;
+#[cfg(feature="kernel_debug_sleep")] 
+const KERNEL_DEBUG_SLEEP_DURATION: Duration = Duration::from_millis(150);
 
 //============================================================================
 //============================================================================
@@ -2433,8 +2434,6 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
     //     #[allow(unused_imports)] use std::thread;
     //     #[allow(unused_imports)] use std::time::Duration;
     // }
-    #[cfg(feature="kernel_debug_sleep")] use std::thread;
-    #[cfg(feature="kernel_debug_sleep")] use std::time::Duration;
 
     // #[cfg(feature="kernel_debug_print")] 
     // println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
@@ -2493,7 +2492,7 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
     ) };
 
     #[cfg(feature="kernel_debug_print")] println!("Enqueue complete with status: {}.", errcode);
-    #[cfg(feature="kernel_debug_sleep")] thread::sleep(Duration::from_millis(500));
+    #[cfg(feature="kernel_debug_sleep")] thread::sleep(KERNEL_DEBUG_SLEEP_DURATION);
 
     if errcode != 0 {
         let name = get_kernel_name(&kernel);
