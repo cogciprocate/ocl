@@ -42,7 +42,7 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, 
     BufferCreateType};
 
-const PRINT_DEBUG: bool = false;
+const PRINT_DEBUG: bool = true;
 const PRINT_KERNEL_DEBUG: bool = PRINT_DEBUG && true;
 const KERNEL_DEBUG_SLEEP: bool = true;
 
@@ -2485,7 +2485,7 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
     ) };
 
     if PRINT_KERNEL_DEBUG { println!("Enqueue complete with status: {}.", errcode); }
-    
+
     if !cfg!(release) {
         if KERNEL_DEBUG_SLEEP { thread::sleep(Duration::from_millis(500)); }
     }
