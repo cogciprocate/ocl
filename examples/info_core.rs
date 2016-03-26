@@ -6,12 +6,13 @@ extern crate ocl;
 #[macro_use] extern crate colorify;
 
 // use ocl::Error as OclError;
-use ocl::{Platform, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
+use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, 
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
     EventInfo, ProfilingInfo};
 use ocl::util;
 
+const DIMS: [usize; 3] = [1024, 64, 16];
 const INFO_FORMAT_MULTILINE: bool = true;
 
 static SRC: &'static str = r#"
@@ -29,22 +30,25 @@ fn main() {
 }
 
 fn print_platform(platform: Platform) {
-    let dims = [1024, 64, 16];
+    for device in Device::list_all(&platform) {
+        print_platform_device(platform.clone(), device);
+    }
+}
 
-    let context = Context::builder().platform(platform).build().unwrap();
-    let device = context.get_device_by_wrapping_index(0);
+fn print_platform_device(platform: Platform, device: Device) {
+    let context = Context::builder().platform(platform).devices(device).build().unwrap();
     let program = Program::builder()
         .devices(device)
         .src(SRC)
         .build(&context).unwrap();
     let queue = Queue::new(&context, device).unwrap();
-    let buffer = Buffer::<f32>::new(&queue, None, &dims, None).unwrap();
+    let buffer = Buffer::<f32>::new(&queue, None, &DIMS, None).unwrap();
     let image = Image::<u8>::builder()
-        .dims(&dims)
+        .dims(&DIMS)
         .build(&queue).unwrap();
     let sampler = Sampler::with_defaults(&context).unwrap();
         let kernel = Kernel::new("multiply", &program, &queue).unwrap()
-        .gws(&dims)
+        .gws(&DIMS)
         .arg_scl(10.0f32)
         .arg_buf(&buffer);
 
@@ -53,10 +57,10 @@ fn print_platform(platform: Platform) {
     event_list.wait().unwrap();
 
     let mut event = Event::empty();
-    buffer.cmd().write(&vec![0.0; dims[0]]).enew(&mut event).enq().unwrap();
+    buffer.cmd().write(&vec![0.0; DIMS[0]]).enew(&mut event).enq().unwrap();
     event.wait().unwrap();
 
-    println!("############### OpenCL [Default Platform] [Default Device] Info ################");
+    println!("############### OpenCL Platform-Device Full Info ################");
     print!("\n");
 
     let (begin, delim, end) = if INFO_FORMAT_MULTILINE {

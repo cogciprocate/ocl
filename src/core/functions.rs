@@ -122,51 +122,72 @@ fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 /// `device_ids` has a build log of any length, it will be returned as an 
 /// errcode result.
 ///
-pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) -> OclResult<()> {
-    let mut size = 0 as size_t;
+pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids: &[D]) -> OclResult<()> {
+    // let mut size = 0 as size_t;
 
     if device_ids.len() == 0 {
         return OclError::err("ocl::core::program_build_err(): Device list is empty. Aborting.");
     }
 
+    // [DEBUG]:
+    // println!("ocl::core::program_build_err(): device_ids: {:?}", device_ids);
+
     for device_id in device_ids.iter() {
-        unsafe {
-            let name = cl_h::CL_PROGRAM_BUILD_LOG as cl_program_build_info;
+        // unsafe {
+        //     let name = cl_h::CL_PROGRAM_BUILD_LOG as cl_program_build_info;
 
-            let mut errcode = cl_h::clGetProgramBuildInfo(
-                program.as_ptr(),
-                device_id.as_ptr(),
-                name,
-                0,
-                ptr::null_mut(),
-                &mut size,
-            );
-            try!(errcode_try("clGetProgramBuildInfo", "", errcode));
+        //     let mut errcode = cl_h::clGetProgramBuildInfo(
+        //         program.as_ptr(),
+        //         device_id.as_ptr(),
+        //         name,
+        //         0,
+        //         ptr::null_mut(),
+        //         &mut size,
+        //     );
+        //     try!(errcode_try("clGetProgramBuildInfo", "program_build_err()", errcode));
 
-            let mut pbi: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
+        //     let mut pbi: Vec<u8> = iter::repeat(32u8).take(size as usize).collect();
 
-            errcode = cl_h::clGetProgramBuildInfo(
-                program.as_ptr(),
-                device_id.as_ptr(),
-                name,
-                size,
-                pbi.as_mut_ptr() as *mut c_void,
-                ptr::null_mut(),
-            );
-            try!(errcode_try("clGetProgramBuildInfo", "", errcode));
+        //     errcode = cl_h::clGetProgramBuildInfo(
+        //         program.as_ptr(),
+        //         device_id.as_ptr(),
+        //         name,
+        //         size,
+        //         pbi.as_mut_ptr() as *mut c_void,
+        //         ptr::null_mut(),
+        //     );
+        //     try!(errcode_try("clGetProgramBuildInfo", "program_build_err()", errcode));
 
-            if size > 1 {
-                let pbi_nonull = try!(String::from_utf8(pbi));
-                let pbi_errcode_string = format!(
-                    "\n\n\
-                    ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\
-                    \n\n{}\n\
-                    ###############################################################################\
-                    \n\n",
-                    pbi_nonull);
+        //     if size > 1 {
+        //         let pbi_nonull = try!(String::from_utf8(pbi));
+        //         let pbi_errcode_string = format!(
+        //             "\n\n\
+        //             ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\
+        //             \n\n{}\n\
+        //             ###############################################################################\
+        //             \n\n",
+        //             pbi_nonull);
 
-                return OclError::err(pbi_errcode_string);
-            }
+        //         return OclError::err(pbi_errcode_string);
+        //     }
+        // }
+
+        match get_program_build_info(program, device_id, ProgramBuildInfo::BuildLog) {
+            ProgramBuildInfoResult::BuildLog(log) => {
+                if log.len() > 1 {
+                    let log_readable = format!(
+                        "\n\n\
+                        ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\
+                        \n\n{}\n\
+                        ###############################################################################\
+                        \n\n",
+                        log);
+
+                    return OclError::err(log_readable);
+                }
+            },
+            ProgramBuildInfoResult::Error(err) => return Err(*err),
+            _ => panic!("ocl::core::program_build_err(): Unexpected 'ProgramBuildInfoResult' variant."),
         }
     }
 
@@ -1074,7 +1095,7 @@ impl UserDataPh {
 /// Builds a program.
 ///
 /// Callback functions are not yet supported.
-pub fn build_program<D: ClDeviceIdPtr>(
+pub fn build_program<D: ClDeviceIdPtr + Debug>(
             program: &Program,
             devices: &[D],
             options: &CString,
@@ -1100,9 +1121,9 @@ pub fn build_program<D: ClDeviceIdPtr>(
         options.as_ptr() as *const i8,
         pfn_notify,
         user_data,
-    ) };  
+    ) };    
 
-    if errcode < 0 {
+    if errcode == cl_h::Status::CL_BUILD_PROGRAM_FAILURE as i32 {
         program_build_err(program, devices)
     } else {
         try!(errcode_try("clBuildProgram", "", errcode));
@@ -1185,10 +1206,12 @@ pub fn get_program_info(obj: &Program, request: ProgramInfo) -> ProgramInfoResul
 }
 
 /// Get program build info.
-pub fn get_program_build_info<D: ClDeviceIdPtr>(obj: &Program, device_obj: &D, 
+pub fn get_program_build_info<D: ClDeviceIdPtr + Debug>(obj: &Program, device_obj: &D, 
             request: ProgramBuildInfo) -> ProgramBuildInfoResult
 {
     let mut result_size: size_t = 0;
+
+    // println!("ocl::core::get_program_build_info(): device_obj: {:?}", device_obj);
 
     let errcode = unsafe { cl_h::clGetProgramBuildInfo(
         obj.as_ptr() as cl_program,
@@ -2684,7 +2707,7 @@ pub fn get_kernel_name(kernel: &Kernel) -> String {
 ///
 /// TODO: Break out create and build parts into requisite functions then call
 /// from here.
-pub fn create_build_program<D: ClDeviceIdPtr>(
+pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
             context: &Context, 
             src_strings: &Vec<CString>,
             cmplr_opts: &CString,

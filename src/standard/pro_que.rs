@@ -10,6 +10,7 @@ use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use 
     'ProQue::builder().dims(__)...' or '{{a_pro_que}}.set_dims(__)' to specify.";
 
+const DEBUG_PRINT: bool = false;
 
 /// A builder for `ProQue`.
 pub struct ProQueBuilder {
@@ -90,6 +91,8 @@ impl ProQueBuilder {
             None => Device::first(platform),
         };
 
+        if DEBUG_PRINT { println!("ProQue::build(): device: {:?}", device); }
+
         // If no context was set, creates one using the above platform and
         // the pre-set device index (default [0]).
         let context = match self.context {
@@ -101,6 +104,8 @@ impl ProQueBuilder {
                     .build())
             },
         };
+
+        if DEBUG_PRINT { println!("ProQue::build(): context.devices(): {:?}", context.devices()); }
 
         let queue = try!(Queue::new(&context, device));
 

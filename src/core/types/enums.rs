@@ -739,7 +739,7 @@ pub enum ProgramBuildInfoResult {
     TemporaryPlaceholderVariant(Vec<u8>),
     BuildStatus(TemporaryPlaceholderType),
     BuildOptions(TemporaryPlaceholderType),
-    BuildLog(TemporaryPlaceholderType),
+    BuildLog(String),
     BinaryType(TemporaryPlaceholderType),
     Error(Box<OclError>),
 }
@@ -750,6 +750,14 @@ impl ProgramBuildInfoResult {
     {
         match result {
             Ok(result) => { match request {
+                ProgramBuildInfo::BuildLog => {
+                    let string = match String::from_utf8(result) {
+                        Ok(s) => s,
+                        Err(err) => return ProgramBuildInfoResult::Error(Box::new(OclError::from(err))),
+                    };
+
+                    ProgramBuildInfoResult::BuildLog(string)
+                },
                 _ => ProgramBuildInfoResult::TemporaryPlaceholderVariant(result),
             } }
             Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
@@ -769,6 +777,7 @@ impl std::fmt::Display for ProgramBuildInfoResult {
             &ProgramBuildInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
+            &ProgramBuildInfoResult::BuildLog(ref s) => write!(f, "{}", s),
             &ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("ProgramBuildInfoResult: Converting this variant to string not yet implemented."),
         }
