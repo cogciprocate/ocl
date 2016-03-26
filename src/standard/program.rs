@@ -153,7 +153,10 @@ impl ProgramBuilder {
 
     /// Adds a kernel file to the list of included sources.
     pub fn src_file<P: Into<PathBuf>>(mut self, file_path: P) -> ProgramBuilder {
-        self.src_files.push(file_path.into());
+        let file_path = file_path.into();
+        assert!(file_path.is_file(), "ProgramBuilder::src_file(): Source file error: \
+            '{}' does not exist.", file_path.display());
+        self.src_files.push(file_path);
         self
     }   
 
@@ -197,6 +200,8 @@ impl ProgramBuilder {
     //     self
     // }
 
+    /// Specify a list of devices to build this program on. The devices must be 
+    /// associated with the context passed to `::build` later on.
     pub fn devices<D: Into<DeviceSpecifier>>(mut self, device_spec: D) 
             -> ProgramBuilder 
     {
@@ -314,23 +319,20 @@ impl ProgramBuilder {
     ///
     /// Order of inclusion:
     /// - includes from `::get_kernel_includes()`
-    /// - source from files listed in `self.src_file_names` in reverse order
+    /// - source from files listed in `self.src_file_names`
     /// - core source from `self.embedded_kernel_source`
     pub fn get_src_strings(&self) -> OclResult<Vec<CString>> {
         let mut src_strings: Vec<CString> = Vec::with_capacity(64);
-        // let mut src_file_history: HashSet<&String> = HashSet::with_capacity(64);
         let mut src_file_history: HashSet<PathBuf> = HashSet::with_capacity(64);
 
         src_strings.extend_from_slice(&try!(self.get_kernel_includes()));
 
-        // for kfn in self.get_src_file_names().iter().rev() {
-        for srcpath in self.src_files.iter().rev() {
+        for srcpath in self.src_files.iter() {
             let mut src_bytes: Vec<u8> = Vec::with_capacity(100000);
 
             if src_file_history.contains(srcpath) { continue; }
             src_file_history.insert(srcpath.clone());
 
-            // let valid_kfp = Path::new(kfn);
             let mut src_file_handle = try!(File::open(srcpath));
 
             try!(src_file_handle.read_to_end(&mut src_bytes));
