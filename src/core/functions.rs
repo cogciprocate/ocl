@@ -2429,48 +2429,56 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
             // kernel_name: Option<&str>
         ) -> OclResult<()> 
 {
-    if !cfg!(release) {
-        #[allow(unused_imports)] use std::thread;
-        #[allow(unused_imports)] use std::time::Duration;
-    }
+    // if !cfg!(release) {
+    //     #[allow(unused_imports)] use std::thread;
+    //     #[allow(unused_imports)] use std::time::Duration;
+    // }
+    #[cfg(feature="kernel_debug_sleep")] use std::thread;
+    #[cfg(feature="kernel_debug_sleep")] use std::time::Duration;
 
-    if cfg!(kernel_debug_print) { 
-        println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
-    }
+    // #[cfg(feature="kernel_debug_print")] 
+    // println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
 
-    if cfg!(kernel_debug_print) { println!("Resolving global work offset: {:?}...", global_work_offset); }
+    // #[cfg(feature="kernel_debug_print")] 
+    // println!("Resolving global work offset: {:?}...", global_work_offset);
+
     let gwo = resolve_work_dims(&global_work_offset);
 
-    if cfg!(kernel_debug_print) { println!("Assigning global work size: {:?}...", global_work_dims); }
+    // #[cfg(feature="kernel_debug_print")] 
+    // println!("Assigning global work size: {:?}...", global_work_dims);
+
     let gws = global_work_dims as *const size_t;
 
-    if cfg!(kernel_debug_print) { println!("Resolving local work size: {:?}...", local_work_dims); }
+    // #[cfg(feature="kernel_debug_print")] 
+    // println!("Resolving local work size: {:?}...", local_work_dims);
+
     let lws = resolve_work_dims(&local_work_dims);
 
-    if cfg!(kernel_debug_print) { println!("Preparing to print all details..."); }
+    // #[cfg(feature="kernel_debug_print")] 
+    // println!("Preparing to print all details...");
 
-    if cfg!(kernel_debug_print) {
-        println!("core::enqueue_kernel('{}'): \
-            work_dims: {}, \
-            gwo: {:?}, \
-            gws: {:?}, \
-            lws: {:?}, \
-            wait_list_len: {}, \
-            wait_list_ptr: {:?}, \
-            new_event_ptr: {:?}, \
-            ",
-            get_kernel_name(&kernel),
-            work_dims,
-            global_work_offset,
-            global_work_dims,
-            local_work_dims,
-            wait_list_len,
-            wait_list_ptr,
-            new_event_ptr,
-        );
-    }
+    #[cfg(feature="kernel_debug_print")]
+    println!("core::enqueue_kernel('{}'): \
+        work_dims: {}, \
+        gwo: {:?}, \
+        gws: {:?}, \
+        lws: {:?}, \
+        wait_list_len: {}, \
+        wait_list_ptr: {:?}, \
+        new_event_ptr: {:?}, \
+        ",
+        get_kernel_name(&kernel),
+        work_dims,
+        global_work_offset,
+        global_work_dims,
+        local_work_dims,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    );
 
     let errcode = unsafe { cl_h::clEnqueueNDRangeKernel(
             command_queue.as_ptr(),
@@ -2484,11 +2492,8 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
             new_event_ptr,
     ) };
 
-    if cfg!(kernel_debug_print) { println!("Enqueue complete with status: {}.", errcode); }
-
-    if !cfg!(release) {
-        if cfg!(kernel_debug_sleep) { thread::sleep(Duration::from_millis(500)); }
-    }
+    #[cfg(feature="kernel_debug_print")] println!("Enqueue complete with status: {}.", errcode);
+    #[cfg(feature="kernel_debug_sleep")] thread::sleep(Duration::from_millis(500));
 
     if errcode != 0 {
         let name = get_kernel_name(&kernel);

@@ -30,12 +30,10 @@
 //! [`Result`]: /ocl/ocl/type.Result.html
 //! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
-// #![allow(unused_features)]
-
 // #![warn(missing_docs)]
 #![feature(zero_one)]
-// #![feature(time2)]
-// #![feature(question_mark)]
+#![feature(question_mark)]
+#![feature(stmt_expr_attributes)]
 
 #[macro_use] extern crate enum_primitive;
 #[macro_use] extern crate bitflags;

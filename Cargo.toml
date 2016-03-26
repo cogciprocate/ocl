@@ -11,8 +11,9 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT"
 exclude = ["target/*", "*.png", "bak/*"]
 
-# [features]
-# kernel_debug_sleep = []
+[features]
+kernel_debug_print = []
+kernel_debug_sleep = []
 
 # [dependencies.bitflags]
 # git = "https://github.com/rust-lang-nursery/bitflags.git"
