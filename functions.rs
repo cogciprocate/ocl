@@ -43,6 +43,8 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     BufferCreateType};
 
 const PRINT_DEBUG: bool = false;
+const PRINT_KERNEL_DEBUG: bool = PRINT_DEBUG && true;
+const KERNEL_DEBUG_SLEEP: bool = true;
 
 //============================================================================
 //============================================================================
@@ -2427,24 +2429,29 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
             // kernel_name: Option<&str>
         ) -> OclResult<()> 
 {
-    if PRINT_DEBUG { 
+    if !cfg!(release) {
+        #[allow(unused_imports)] use std::thread;
+        #[allow(unused_imports)] use std::time::Duration;
+    }
+
+    if PRINT_KERNEL_DEBUG { 
         println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
     }
     let (wait_list_len, wait_list_ptr, new_event_ptr) = 
         try!(resolve_event_ptrs(wait_list, new_event));
 
-    if PRINT_DEBUG { println!("Resolving global work offset: {:?}...", global_work_offset); }
+    if PRINT_KERNEL_DEBUG { println!("Resolving global work offset: {:?}...", global_work_offset); }
     let gwo = resolve_work_dims(&global_work_offset);
 
-    if PRINT_DEBUG { println!("Assigning global work size: {:?}...", global_work_dims); }
+    if PRINT_KERNEL_DEBUG { println!("Assigning global work size: {:?}...", global_work_dims); }
     let gws = global_work_dims as *const size_t;
 
-    if PRINT_DEBUG { println!("Resolving local work size: {:?}...", local_work_dims); }
+    if PRINT_KERNEL_DEBUG { println!("Resolving local work size: {:?}...", local_work_dims); }
     let lws = resolve_work_dims(&local_work_dims);
 
-    if PRINT_DEBUG { println!("Preparing to print all details..."); }
+    if PRINT_KERNEL_DEBUG { println!("Preparing to print all details..."); }
 
-    if PRINT_DEBUG {
+    if PRINT_KERNEL_DEBUG {
         println!("core::enqueue_kernel('{}'): \
             work_dims: {}, \
             gwo: {:?}, \
@@ -2477,7 +2484,11 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
             new_event_ptr,
     ) };
 
-    if PRINT_DEBUG { println!("Enqueue complete with status: {}.", errcode); }
+    if PRINT_KERNEL_DEBUG { println!("Enqueue complete with status: {}.", errcode); }
+    
+    if !cfg!(release) {
+        if KERNEL_DEBUG_SLEEP { thread::sleep(Duration::from_millis(500)); }
+    }
 
     if errcode != 0 {
         let name = get_kernel_name(&kernel);
