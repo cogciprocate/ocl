@@ -2,14 +2,14 @@
 
 //! Thin wrappers for the OpenCL FFI functions and types.
 //!
-//! *The layer between the metal and the soft fuzzy parts...*
+//! *The layer between the hard rough and the soft furry parts...*
 //!
 //! Allows access to OpenCL FFI functions with a minimal layer of abstraction,
 //! providing both safety and convenience. Using functions in this module is
 //! only recommended for use when functionality has not yet been implemented
-//! on the 'standard' ocl interfaces, although the 'core' and 'standard'
-//! interfaces are all completely interoperable (and generally feature-
-//! equivalent).
+//! on the 'standard' ocl interfaces. The 'core' and 'standard' interfaces are
+//! all completely interoperable, and generally feature-equivalent.
+//!
 //!
 //! ## Even Lower Level: [`cl_h`]
 //!
@@ -19,11 +19,13 @@
 //! core::Context, etc.) and passed to [`core`] module functions. Likewise the
 //! other way around (using, for example: [`EventRaw::as_ptr`]).
 //!
+//!
 //! ## Performance
 //!
 //! Performance between all three interface layers, [`cl_h`], [`core`], and
 //! the 'standard' types, is identical or virtually identical (if not, please
 //! file an issue).
+//!
 //!
 //! ## Safety
 //!
@@ -31,17 +33,31 @@
 //! safety promises and have not been 100% comprehensively evaluated and
 //! tested. Please file an [issue] if you discover something!
 //!
+//!
+//! ## Length vs Size
+//!
+//! No, not that...
+//!
+//! Quantifiers passed to functions in the OpenCL API are generally expressed
+//! in terms of bytes where units passed to functions in this module are
+//! expected to be `bytes / sizeof(T)`, corresponding with units returned by
+//! the ubiquitous `.len()` method. The suffix '_size' or '_bytes' is
+//! generally used when a parameter deviates from this convention.
+//!
+//!
 //! ## More Documentation
 //!
 //! As most of the functions here are minimally documented, please refer to
 //! the official OpenCL documentation linked below. Although there isn't a
 //! precise 1:1 parameter mapping between the `core` and original functions,
-//! it's close enough to help sort out any questions you may have until a more
-//! thorough documentation pass can be made. View the source code in
-//! [`src/core/functions.rs`] for more mapping details.
+//! it's close enough (modulo the size/len difference discussed above) to help
+//! sort out any questions you may have until a more thorough documentation
+//! pass can be made. View the source code in [`src/core/functions.rs`] for
+//! more mapping details.
 //!
 //! [OpenCL 1.2 SDK Reference:
 //! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
+//!
 //!
 //! ## Help Wanted
 //!
@@ -52,12 +68,12 @@
 //! [STATUS]: <br/> Coverage of core stuff: 100%. <br/> Coverage of peripheral
 //! stuff: 90%. <br/>
 //!
+//!
 //! ## `core` Stands Alone
 //!	
 //! This module may eventually be moved to its own separate crate (with its
 //! dependencies `cl_h` and `error`).
 //!
-//! TODO: Reorganize sub-modules.
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues 
 //! [`cl_h`]: /ocl/ocl/cl_h/index.html 
@@ -67,8 +83,6 @@
 //! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 //! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/core/functions.rs`]: /ocl/src/ocl/src/core/functions.rs.html
-
-// https://github.com/cogciprocate/ocl/blob/master/src/core/functions.rs
 
 mod functions;
 mod types;
@@ -146,15 +160,17 @@ pub type UserDataPtr = *mut libc::c_void;
 
 /// [POSSIBLY INCOMPLETE] A number compatible with OpenCL.
 /// 
-/// TODO: Clean this up.
+/// TODO: Clean up and evaluate.
 ///
 /// TODO: Ensure various types of image color data are encompassed by this 
 /// definition.
 pub trait OclPrm: 
-    Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+    Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + 
+    Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 impl<T> OclPrm for T where T: 
-    Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+    Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + 
+    Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 // impl<'a, T> OclPrm for &'a T where T: 
 //     Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
@@ -181,11 +197,17 @@ impl<T> OclPrm for T where T:
 bitflags! {
 	/// cl_device_type - bitfield 
     ///
-    /// - `CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
-    /// - `CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor. The host processor runs the OpenCL implementations and is a single or multi-core CPU.
-    /// - `CL_DEVICE_TYPE_GPU`: An OpenCL device that is a GPU. By this we mean that the device can also be used to accelerate a 3D API such as OpenGL or DirectX.
-    /// - `CL_DEVICE_TYPE_ACCELERATOR`: Dedicated OpenCL accelerators (for example the IBM CELL Blade). These devices communicate with the host processor using a peripheral interconnect such as PCIe.
-    /// - `CL_DEVICE_TYPE_ALL`: A union of all flags.
+    /// * `CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
+    /// * `CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor.
+    ///   The host processor runs the OpenCL implementations and is a single
+    ///   or multi-core CPU.
+    /// * `CL_DEVICE_TYPE_GPU`: An OpenCL device that is a GPU. By this we
+    ///   mean that the device can also be used to accelerate a 3D API such as
+    ///   OpenGL or DirectX.
+    /// * `CL_DEVICE_TYPE_ACCELERATOR`: Dedicated OpenCL accelerators (for
+    ///   example the IBM CELL Blade). These devices communicate with the host
+    ///   processor using a peripheral interconnect such as PCIe.
+    /// * `CL_DEVICE_TYPE_ALL`: A union of all flags.
     ///
     pub flags DeviceType: u64 {
 		const DEVICE_TYPE_DEFAULT = 1 << 0,
