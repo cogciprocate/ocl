@@ -31,9 +31,9 @@
 //! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
 // #![warn(missing_docs)]
-#![feature(zero_one)]
-#![feature(question_mark)]
-#![feature(stmt_expr_attributes)]
+// #![feature(zero_one)]
+// #![feature(question_mark)]
+// #![feature(stmt_expr_attributes)]
 
 #[macro_use] extern crate enum_primitive;
 #[macro_use] extern crate bitflags;
