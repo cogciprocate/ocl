@@ -14,8 +14,10 @@ use std::mem;
 use std::io::Read;
 use std::ffi::CString;
 use std::iter;
-#[cfg(any(feature="kernel_debug_sleep", target_os="windows"))] use std::thread;
-#[cfg(any(feature="kernel_debug_sleep", target_os="windows"))] use std::time::Duration;
+// #[cfg(any(feature="kernel_debug_sleep", target_os="windows"))] use std::thread;
+// #[cfg(any(feature="kernel_debug_sleep", target_os="windows"))] use std::time::Duration;
+use std::thread;
+use std::time::Duration;
 use std::env;
 use std::fmt::Debug;
 use libc::{size_t, c_void};
@@ -42,7 +44,7 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, 
     BufferCreateType};
 
-#[cfg(feature="kernel_debug_sleep")] 
+// #[cfg(feature="kernel_debug_sleep")] 
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
 
 //============================================================================
@@ -229,7 +231,9 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
             }
 
             // Sleep to allow the ICD to refresh or whatever it does:
-            #[cfg(target_os="windows")] thread::sleep(Duration::from_millis(sleep_ms));
+            if cfg!(target_os="windows") {
+                thread::sleep(Duration::from_millis(sleep_ms));
+            }
 
             // Get a count of available platforms:
             errcode = unsafe { 
@@ -2459,25 +2463,27 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
     // #[cfg(feature="kernel_debug_print")] 
     // println!("Preparing to print all details...");
 
-    #[cfg(feature="kernel_debug_print")]
-    print!("core::enqueue_kernel('{}': \
-        work_dims: {}, \
-        gwo: {:?}, \
-        gws: {:?}, \
-        lws: {:?}, \
-        wait_list_len: {}, \
-        wait_list_ptr: {:?}, \
-        new_event_ptr: {:?}) \
-        ",
-        get_kernel_name(&kernel),
-        work_dims,
-        global_work_offset,
-        global_work_dims,
-        local_work_dims,
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr,
-    );
+    // #[cfg(feature="kernel_debug_print")]
+    if cfg!(feature="kernel_debug_print") {
+        print!("core::enqueue_kernel('{}': \
+            work_dims: {}, \
+            gwo: {:?}, \
+            gws: {:?}, \
+            lws: {:?}, \
+            wait_list_len: {}, \
+            wait_list_ptr: {:?}, \
+            new_event_ptr: {:?}) \
+            ",
+            get_kernel_name(&kernel),
+            work_dims,
+            global_work_offset,
+            global_work_dims,
+            local_work_dims,
+            wait_list_len,
+            wait_list_ptr,
+            new_event_ptr,
+        );
+    }
 
 
     let errcode = unsafe { cl_h::clEnqueueNDRangeKernel(
@@ -2492,9 +2498,10 @@ pub fn enqueue_kernel<L: AsRef<EventList> + Debug>(
             new_event_ptr,
     ) };
 
-    #[cfg(feature="kernel_debug_print")] println!("-> Status: {}.", errcode);
-    #[cfg(feature="kernel_debug_sleep")]
-    thread::sleep(Duration::from_millis(KERNEL_DEBUG_SLEEP_DURATION_MS));
+    if cfg!(feature="kernel_debug_print") { println!("-> Status: {}.", errcode); }
+    if cfg!(feature="kernel_debug_sleep") {
+        thread::sleep(Duration::from_millis(KERNEL_DEBUG_SLEEP_DURATION_MS));
+    }
 
     if errcode != 0 {
         let name = get_kernel_name(&kernel);
