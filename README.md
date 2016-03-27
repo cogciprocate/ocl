@@ -13,12 +13,6 @@ perform on a par with the C++ bindings.
 Interfaces are still mildly unstable. Changes are now being documented in
 [RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md).
 
-Due to buggy and/or intentionally crippled drivers, functionality involving
-multiple host threads, multiple devices, or asynchronous callbacks may not
-work on NVIDIA hardware. Until NVIDIA's implementation is corrected, tests and
-examples involving multiple asynchronous tasks will likely fail on that
-platform. 
-
 
 ## Goals
 
@@ -119,7 +113,16 @@ happens.
 
 *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1`
 exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in
-case it's not already done (AMD drivers sometimes don't create this link).  Intel also has [OpenCL libraries for your CPU] if you're having trouble getting your GPU to work (AMD used to have some for CPUs too, can't find them anymore).
+case it's not already done (AMD drivers sometimes don't create this link).
+Intel also has [OpenCL libraries for your CPU] if you're having trouble
+getting your GPU to work (AMD used to have some for CPUs too, can't find them
+anymore).
+
+Due to buggy and/or intentionally crippled drivers, functionality involving
+multiple host threads, multiple devices, or asynchronous callbacks may not
+work on NVIDIA hardware. Until NVIDIA's implementation is corrected, tests and
+examples involving multiple asynchronous tasks may occasionally fail on that
+platform.
 
 Please ask questions and provide feedback by opening an
 [issue].
