@@ -167,12 +167,6 @@ impl<'a> From<&'a [Device]> for DeviceSpecifier {
     }
 }
 
-// impl<'a> From<&'a [Device; 1]> for DeviceSpecifier {
-//     fn from(devices: &'a [Device; 1]) -> DeviceSpecifier {
-//         DeviceSpecifier::List(devices.into())
-//     }
-// }
-
 impl<'a> From<&'a Vec<Device>> for DeviceSpecifier {
     fn from(devices: &'a Vec<Device>) -> DeviceSpecifier {
         DeviceSpecifier::List(devices.clone())
@@ -216,13 +210,14 @@ impl Device {
         DeviceSpecifier::default()
     }
     
-    /// Resolves a list of indexes into a list of valid devices.
+    /// Resolves a list of indices into a list of valid devices.
     ///
     /// `devices` is the set of all indexable devices.
     ///
     /// # Errors
     ///
-    /// All indices in `idxs` must be valid.
+    /// All indices in `idxs` must be valid. Use `resolve_idxs_wrap` for index
+    /// lists which may contain out of bounds indices.
     ///
     pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclResult<Vec<Device>> {
         // idxs.iter().map(|&idx| devices.get(idx)).collect()
@@ -237,11 +232,11 @@ impl Device {
         Ok(result)
     }
 
-    /// Resolves a list of indexes into a list of valid devices.
+    /// Resolves a list of indices into a list of valid devices.
     ///
     /// `devices` is the set of all indexable devices.
     ///
-    /// Wraps indexes around using modulo (`%`) so that every index is valid.
+    /// Wraps indices around using modulo (`%`) so that every index is valid.
     ///
     pub fn resolve_idxs_wrap(idxs: &[usize], devices: &[Device]) -> Vec<Device> {
         let valid_idxs = util::wrap_vals(idxs, devices.len());
@@ -252,7 +247,8 @@ impl Device {
     /// optionally match the flags set in the bitfield, `device_types`.
     ///
     /// Setting `device_types` to `None` will return a list of all avaliable
-    /// devices for `platform`
+    /// devices for `platform` regardless of type.
+    ///
     pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> Vec<Device> {
         let list_core = core::get_device_ids(platform.as_core(), device_types, None)
             .expect("Device::list: Error retrieving device list");
@@ -265,6 +261,7 @@ impl Device {
     /// Returns a list of all devices avaliable for a given `platform`.
     ///
     /// Equivalent to `::list(platform, None)`.
+    ///
     pub fn list_all(platform: &Platform) -> Vec<Device> {
         // let list_core = core::get_device_ids(Some(platform.as_core()), None)
         //     .expect("Device::list_all: Error retrieving device list");        
@@ -273,7 +270,7 @@ impl Device {
     }
 
     /// Returns a list of devices filtered by type then selected using a
-    /// list of indexes.
+    /// list of indices.
     ///
     /// # Errors
     ///
@@ -286,9 +283,9 @@ impl Device {
     }
 
     /// Returns a list of devices filtered by type then selected using a
-    /// wrapping list of indexes.
+    /// wrapping list of indices.
     ///
-    /// Wraps indexes around (`%`) so that every index is valid.
+    /// Wraps indices around (`%`) so that every index is valid.
     ///
     pub fn list_select_wrap(platform: &Platform, device_types: Option<DeviceType>,
             idxs: &[usize]) -> Vec<Device> 

@@ -66,19 +66,39 @@ mod traits {
 
 
     /// Types which have properties describing the amount of work to be done
-    /// in multiple dimensions.
+    /// in multiple dimensions. 
+    ///
     pub trait WorkDims {
-        /// Returns the number of dimensions defined by this `SpatialDims`.
+        /// Returns the number of dimensions defined.
         fn dim_count(&self) -> u32;
+        /// Returns an array representing the amount of work to be done by a kernel.
+        ///
+        /// Unspecified dimensions (for example, the 3rd dimension in a
+        /// 1-dimensional work size) are set equal to `1`.
+        ///
         fn to_work_size(&self) -> Option<[usize; 3]>;
+        /// Returns an array representing the offset of a work item or memory
+        /// location.
+        ///
+        /// Unspecified dimensions (for example, the 3rd dimension in a
+        /// 1-dimensional work size) are set equal to `0`.
+        ///
         fn to_work_offset(&self) -> Option<[usize; 3]>;
     }
 
     /// Types which have properties allowing them to be used to define the size
-    /// of buffers.
+    /// of a volume of memory.
+    ///
+    /// Units are expressed in `bytes / size_of(T)` just like `Vec::len()`.
+    ///
     pub trait MemLen {
+        /// Returns the exact number of elements of a volume of memory
+        /// (equivalent to `Vec::len()`).
         fn to_len(&self) -> usize;
-        fn to_len_padded(&self, usize) -> usize;
+        /// Returns the length of a volumue of memory padded to the next
+        /// multiple of `incr`.
+        fn to_len_padded(&self, incr: usize) -> usize;
+        /// Returns the exact lengths of each dimension of a volume of memory.
         fn to_lens(&self) -> [usize; 3];
     }
 

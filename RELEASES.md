@@ -3,17 +3,17 @@ Version 0.9.0 (UNRELEASED)
 
 Ocl is now confirmed to work on Windows-GNU (MSYS2/MinGW-w64). AMD and Intel
 drivers appear to work flawlessly. NVIDIA drivers have glitches here and there
-(particularly to do with concurrency) but are still mostly functional.
-Windows-MSVC testing is in progress. A short HOWTO for getting OpenCL drivers
-installed properly and working with Rust is in the works. For now just be sure
-to put a copy of the ICD loader, OpenCL.dll, usually found somewhere within
-the `C:\Windows` folder tree, into the Rust library folder (defaults to
+(particularly to do with concurrency) but are mostly functional. Windows-MSVC
+testing is in progress. A short HOWTO for getting OpenCL drivers installed
+properly and working with Rust is in the works. For now just be sure to put a
+copy of the ICD loader, OpenCL.dll, usually found somewhere within the
+`C:\Windows` folder tree, into the Rust library folder (defaults to
 `C:\Program Files\{Rust folder}\lib\rustlib\x86_64 -pc-windows-gnu\lib`) and
 make sure your platform drivers are installed correctly (there's a registry
 setting + they must be in the PATH).
 
 Still no verification on the status of OS X but there is no reason it
-shouldn't work fine.
+wouldn't work fine.
 
 
 Breaking Changes
@@ -25,6 +25,10 @@ Breaking Changes
   incompatability with some drivers.
 * The `KernelArg::Scalar` variant now contains a primitive rather than a
   primitive reference.
+* `::src_file_name` and `::get_file_names` have been removed from
+  `ProgramBuilder`. Use `::src_file` to set a source file `Path` or `PathBuf`
+  to include in the build.
+* The `BuildOpt::cmplr_opt` method has been removed.
 
 
 Version 0.8.0 (2016-03-09)

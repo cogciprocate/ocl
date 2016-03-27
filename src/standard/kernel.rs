@@ -427,6 +427,8 @@ impl Kernel {
         self.arg_count
     }
 
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
     pub fn core_as_ref(&self) -> &KernelCore {
         &self.obj_core
     }

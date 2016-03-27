@@ -15,7 +15,7 @@ pub struct Event(Option<EventCore>);
 
 impl Event {
     /// Creates a new, empty event which must be filled by a newly initiated
-    /// command.
+    /// command, becoming associated with it.
     pub fn empty() -> Event {
         Event(None)
     }
@@ -29,7 +29,10 @@ impl Event {
         Event(Some(event_core))
     }
 
-       /// Waits for all events in list to complete.
+    /// Waits for all events in list to complete before returning.
+    ///
+    /// Similar in function to `Queue::finish()`.
+    ///
     pub fn wait(&self) -> OclResult<()> {
         assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
         core::wait_for_event(self.0.as_ref().unwrap())
@@ -63,17 +66,20 @@ impl Event {
         }
     }
 
-    /// Returns the underlying `EventCore`.
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
     pub fn core_as_ref(&self) -> Option<&EventCore> {
         self.0.as_ref()
     }
 
-    /// Returns the underlying `EventCore`.
+    /// Returns a mutable reference to the core pointer wrapper usable by
+    /// functions in the `core` module.
     pub fn core_as_mut(&mut self) -> Option<&mut EventCore> {
         self.0.as_mut()
     }
 
-    #[inline]
+    /// Returns true if this event is 'empty' and has not yet been associated
+    /// with a command.
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
     }

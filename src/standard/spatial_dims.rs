@@ -11,11 +11,14 @@ use util;
 
 /// Specifies a size or offset in up to three dimensions.
 ///
-/// Custom types implementing `MemLen` and `WorkDims` should be created to
-/// express more complex relationships between data shape and work size.
-/// rather than using this one.
+/// Using `SpatialDims` to specify dimensions for your application may not be
+/// appropriate. Custom types implementing the traits `MemLen` and `WorkDims`
+/// should be created to express more complex relationships between data shape
+/// and work size for kernels which do not have a 1:1 correspondence between
+/// data set length and global work size.
 ///
-/// [FIXME] TODO: Much more explaination needed as soon as conventions solidify.
+/// [FIXME]: Describe the ways a `SpatialDims` can be created using various
+/// `From` implementations.
 ///
 /// [UNSTABLE]: This type and its methods may be renamed or otherwise changed
 /// at any time. This is still a work in progress.
@@ -33,6 +36,11 @@ impl SpatialDims {
     ///
     /// Dimensions must be specified in order from d0 -> d1 -> d2; i.e. `d1` 
     /// cannot be `Some(x)` if `d0` is `None`.
+    ///
+    /// Explicitly setting all zeros as values is not recommended as it is
+    /// invalid to OpenCL functions. Use `::Unspecified` to represent `NULL`
+    /// instead.
+    ///
     pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> OclResult<SpatialDims> {
         let std_err_msg = "Dimensions must be defined from left to right. If you define the 2nd \
             dimension, you must also define the 1st, etc.";
@@ -60,14 +68,13 @@ impl SpatialDims {
     pub fn dim_count(&self) -> u32 {
         match self {
             &SpatialDims::Unspecified => 0,
-            &SpatialDims::Three(..) => 3,
-            &SpatialDims::Two(..) => 2,
             &SpatialDims::One(..) => 1,
+            &SpatialDims::Two(..) => 2,
+            &SpatialDims::Three(..) => 3,
         }
-
     }
 
-    /// Returns a 3D size or an error.
+    /// Returns a 3D size or an error if unspecified.
     pub fn to_lens(&self) -> OclResult<[usize; 3]> {
         match self {
             &SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
@@ -77,7 +84,7 @@ impl SpatialDims {
         }
     }
 
-    /// Returns a 3D offset or an error.
+    /// Returns a 3D offset or an error if unspecified.
     pub fn to_offset(&self) -> OclResult<[usize; 3]> {
         match self {
             &SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
@@ -88,8 +95,13 @@ impl SpatialDims {
     }
 
     /// Returns the product of all contained dimensional values (equivalent to
-    /// a length, area, or volume depending on how many dimensions) or an
-    /// zero.
+    /// a length, area, or volume) or zero if unspecified.
+    ///
+    /// Check `::is_unspecified` if it matters whether or not the zero length
+    /// has been explicitly set however, explicitly setting all zeros as
+    /// dimensions is not recommended as it is an invalid value to OpenCL
+    /// functions. Use `::Unspecified` to represent `NULL` instead.
+    ///
     pub fn to_len(&self) -> usize {
         match self {
             &SpatialDims::Unspecified => 0,
@@ -99,38 +111,14 @@ impl SpatialDims {
         }
     }
 
-
-    // /// Returns a 3D size.
-    // pub fn to_lens(&self) -> [usize; 3] {
-    //     // match self {
-    //     //     &SpatialDims::Unspecified => 
-    //     //     &SpatialDims::One(x) => [x, 1, 1],
-    //     //     &SpatialDims::Two(x, y) => [x, y, 1],
-    //     //     &SpatialDims::Three(x, y, z) => [x, y, z],
-    //     // }
-    //     self.to_lens().expect("ocl::SpatialDims::to_lens()")
-    // }
-
-    // /// Returns 3D offset.
-    // pub fn to_offset(&self) -> [usize; 3] {
-    //     // match self {
-    //     //     &SpatialDims::Unspecified => [0, 0, 0],
-    //     //     &SpatialDims::One(x) => [x, 0, 0],
-    //     //     &SpatialDims::Two(x, y) => [x, y, 0],
-    //     //     &SpatialDims::Three(x, y, z) => [x, y, z],
-    //     // }
-    //     self.try_to_offset().unwrap_or([0, 0, 0]);
-    // }
-
-    // /// Returns the product of all contained dimensional values (equivalent to
-    // /// a length, area, or volume depending on how many dimensions).
-    // pub fn to_len(&self) -> usize {
-    //     self.try_to_len().unwrap_or(0)
-    // }
-
     /// Takes the length and rounds it up to the nearest `incr` or an error.
     pub fn try_to_padded_len(&self, incr: usize) -> OclResult<usize> {
         Ok(util::padded_len(self.to_len(), incr))
+    }
+
+    /// Returns `true` if this `SpatialDims` is an `Unspecified` variant.
+    pub fn is_unspecified(&self) -> bool {
+        if let &SpatialDims::Unspecified = self { true } else { false }
     }
 }
 
@@ -149,28 +137,15 @@ impl MemLen for SpatialDims {
 }
 
 impl WorkDims for SpatialDims {
-    /// Returns the number of dimensions defined by this `SpatialDims`.
     fn dim_count(&self) -> u32 {
         self.dim_count()
     }
 
     fn to_work_size(&self) -> Option<[usize; 3]> {
-        // match self {
-        //     &SpatialDims::Unspecified => None,
-        //     &SpatialDims::One(x) => Some([x, 1, 1]),
-        //     &SpatialDims::Two(x, y) => Some([x, y, 1]),
-        //     &SpatialDims::Three(x, y, z) => Some([x, y, z]),
-        // }
         self.to_lens().ok()
     }
 
     fn to_work_offset(&self) -> Option<[usize; 3]> {
-        // match self {
-        //     &SpatialDims::Unspecified => None,
-        //     &SpatialDims::One(x) => Some([x, 0, 0]),
-        //     &SpatialDims::Two(x, y) => Some([x, y, 0]),
-        //     &SpatialDims::Three(x, y, z) => Some([x, y, z]),
-        // }
         self.to_offset().ok()
     }
 }

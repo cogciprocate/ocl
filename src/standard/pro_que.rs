@@ -8,7 +8,7 @@ use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel
     MemLen, SpatialDims, WorkDims, DeviceSpecifier};
 
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use 
-    'ProQue::builder().dims(__)...' or '{{a_pro_que}}.set_dims(__)' to specify.";
+    'ProQueBuilder::dims' during creation or 'ProQue::set_dims' after creation to specify.";
 
 const DEBUG_PRINT: bool = false;
 
@@ -28,8 +28,11 @@ impl ProQueBuilder {
     /// The minimum amount of configuration possible before calling `::build` is to 
     /// simply assign some source code using `::src`.
     ///
-    /// For full configuration options, create the context and program_builder
-    /// separately and pass them as options.
+    /// For full configuration options, separately create a `Context` and
+    /// `ProgramBuilder` (do not `::build` the `ProgramBuilder`, its device
+    /// list must be set by this `ProQueBuilder` to assure consistency) then
+    /// pass them as arguments to the `::context` and `::prog_bldr` methods
+    /// respectively.
     ///
     pub fn new() -> ProQueBuilder {
         ProQueBuilder { 
@@ -46,7 +49,8 @@ impl ProQueBuilder {
     ///
     /// ## Errors
     ///
-    /// A `ProgramBuilder` or some source code must have been specified with `::program_builder` or `::src` before building.
+    /// A `ProgramBuilder` or some source code must have been specified with
+    /// `::prog_bldr` or `::src` before building.
     ///
     pub fn build(&self) -> OclResult<ProQue> {
         let program_builder = match self.program_builder {
@@ -197,7 +201,7 @@ impl ProQueBuilder {
     ///
     /// This `ProQueBuilder` may not already contain a `ProgramBuilder`.
     ///
-    /// `program_builder` must not have any device indexes configured (via its
+    /// `program_builder` must not have any device indices configured (via its
     /// `::device_idxs` method). `ProQueBuilder` will only build programs for
     /// the device specified by `::device_idx` or the default device if none has
     /// been specified.
@@ -207,7 +211,7 @@ impl ProQueBuilder {
             been called.");
 
         assert!(program_builder.get_device_spec().is_none(), "ProQueBuilder::prog_bldr(): The \
-            'ProgramBuilder' passed may not have any device indexes set as they will be unused. \
+            'ProgramBuilder' passed may not have any device indices set as they will be unused. \
             See 'ProQueBuilder' documentation for more information.");
 
         self.program_builder = Some(program_builder);
@@ -218,8 +222,11 @@ impl ProQueBuilder {
     ///
     /// This is optional.
     ///
-    /// Used if you want to do a quick and dirty `create_kernel` or 
-    /// `create_buffer` directly on the `ProQue`.
+    /// Use if you want to be able to call the `::create_kernel` or
+    /// `::create_buffer` methods on the `ProQue` created by this builder.
+    /// Dimensions can alternatively be set after building by using the
+    /// `ProQue::set_dims` method.
+    ///
     pub fn dims<'p, D: Into<SpatialDims>>(&'p mut self, dims: D) -> &'p mut ProQueBuilder {
         self.dims = Some(dims.into());
         self
@@ -228,25 +235,27 @@ impl ProQueBuilder {
 
 
 
-/// An all-in-one chimera of the `Program`, `Queue`, and (optionally) the 
-/// `Context` and `SpatialDims` types.
+/// An all-in-one chimera of the `Program`, `Queue`, `Context` and
+/// (optionally) `SpatialDims` types.
 ///
-/// Handy when creating only a single context, program, and queue or when
-/// using a unique program build on each device.
+/// Handy when you only need a single context, program, and queue for your
+/// project or when using a unique context and program on each device.
 ///
 /// All `ProQue` functionality is also provided separately by the `Context`, `Queue`, 
 /// `Program`, and `SpatialDims` types.
 /// 
+///
 /// # Creation
+///
 /// There are two ways to create a `ProQue`:
 ///
-/// 1. First call `::new` and pass a `Context` and device index then call 
-///    `::build` and pass a `ProgramBuilder`.
-/// 2. Call `::builder` [FIXME]: Complete description and give examples.
+/// 1. [Recommended] Use `ProQue::builder` or `ProQueBuilder::new()`.
+/// 2. Call `::new` and pass pre-created components.
+///
 ///
 /// # Destruction
 ///
-/// Handled automatically. Freely use, store, clone, discard, share among 
+/// Now handled automatically. Freely use, store, clone, discard, share among
 /// threads... put some on your toast... whatever.
 ///
 #[derive(Clone, Debug)]
@@ -260,6 +269,8 @@ pub struct ProQue {
 impl ProQue {
     /// Returns a new `ProQueBuilder`.
     ///
+    /// This is the recommended way to create a new `ProQue`.
+    ///
     /// Calling `ProQueBuilder::build()` will return a new `ProQue`.
     pub fn builder() -> ProQueBuilder {
         ProQueBuilder::new()
@@ -270,7 +281,6 @@ impl ProQue {
     /// Use builder unless you know what you're doing. Creating parts which are
     /// from different devices or contexts will cause errors later on.
     ///
-    /// [FIXME] TODO: DEPRICATE BUILDING THROUGH PROQUE.
     pub fn new<D: Into<SpatialDims>>(context: Context, queue: Queue, program: Program,
                     dims: Option<D>) -> ProQue 
     {
@@ -294,16 +304,13 @@ impl ProQue {
 
     /// Returns a new buffer
     ///
-    /// `with_vec` determines whether or not the buffer is created with a
-    /// built-in vector.
-    ///
     /// The default dimensions for this `ProQue` will be used.
     ///
     /// # Errors
     ///
     /// This `ProQue` must have been pre-configured with default dimensions to
-    /// use this method. If not, set them with `::set_dims`, use
-    /// Buffer::new().
+    /// use this method. If not, set them with `::set_dims`, or just create a
+    /// buffer using `Buffer::new()`.
     ///
     pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
         let dims = try!(self.dims_result());
@@ -317,6 +324,8 @@ impl ProQue {
 
     /// Returns the maximum workgroup size supported by the device associated
     /// with this `ProQue`.
+    ///
+    /// [UNSTABLE]: Evaluate usefulness.
     pub fn max_wg_size(&self) -> usize {
         self.queue.device().max_wg_size()
     }
@@ -326,23 +335,28 @@ impl ProQue {
         &self.queue
     }
 
-    /// Returns the contained context, if any.
+    /// Returns the contained context.
     pub fn context(&self) -> &Context {
         &self.context
     }
 
-    /// Returns the current program build, if any.
+    /// Returns the current program build.
     pub fn program(&self) -> &Program {
         &self.program
     }
 
     /// Returns the current `dims` or panics.
+    ///
+    /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards this
+    /// version at the moment.
     pub fn dims(&self) -> &SpatialDims {
-        self.dims_result().expect("ocl::ProQue::dims(): This ProQue has no dimensions set. 
-            Use `::set_dims` to set some or set them during building with `::dims`.")
+        self.dims_result().expect(DIMS_ERR_MSG)
     }
 
     /// Returns the current `dims` or an error.
+    ///
+    /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards the
+    /// above, panicing version at the moment.
     pub fn dims_result(&self) -> OclResult<&SpatialDims> {
         match self.dims {
             Some(ref dims) => Ok(dims),
@@ -419,7 +433,7 @@ impl Deref for ProQue {
     // /// ## Panics
     // /// This `ProQue` must not already contain a program.
     // ///
-    // /// `program_builder` must not have any device indexes configured (via its
+    // /// `program_builder` must not have any device indices configured (via its
     // /// `::device_idxs` method). `ProQue` will only build programs for the device
     // /// previously configured or the default device if none had been specified.
     // ///
@@ -437,7 +451,7 @@ impl Deref for ProQue {
 
     //     if builder.get_devices().len() > 0 {
     //         return OclError::err("ProQue::build_program(): The 'ProgramBuilder' passed \
-    //             may not have any device indexes set as they will be ignored. See 'ProQue' \
+    //             may not have any device indices set as they will be ignored. See 'ProQue' \
     //             documentation for more information.");
     //     }
         

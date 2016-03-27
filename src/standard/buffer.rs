@@ -1,4 +1,4 @@
-//! Interfaces to a buffer.
+//! Interfaces with a buffer.
 
 use std;
 use std::marker::PhantomData;
@@ -451,7 +451,7 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Returns a buffer command builder used to read, write, copy, etc.
     ///
-    /// Run `.enq()` to enqueue the command.
+    /// Call `.enq()` to enqueue the command.
     ///
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html) 
     /// for more info.
@@ -462,7 +462,7 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Returns a buffer command builder used to read.
     ///
-    /// Run `.enq()` to enqueue the command.
+    /// Call `.enq()` to enqueue the command.
     ///
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html) 
     /// for more info.
@@ -473,7 +473,7 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Returns a buffer command builder used to write.
     ///
-    /// Run `.enq()` to enqueue the command.
+    /// Call `.enq()` to enqueue the command.
     ///
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html) 
     /// for more info.
@@ -521,7 +521,8 @@ impl<T: OclPrm> Buffer<T> {
         &self.queue
     }
 
-    /// Returns a reference to the core memory object.
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
     pub fn core_as_ref(&self) -> &MemCore {
         &self.obj_core
     }

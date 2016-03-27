@@ -623,19 +623,21 @@ pub struct Image<E: OclPrm> {
 }
 
 impl<E: OclPrm> Image<E> {
-    /// Returns an `ImageBuilder`. This is the recommended method to create
-    /// a new `Image`.
-    pub fn builder() -> ImageBuilder<E> {
-        ImageBuilder::new()
-    }
-
     /// Returns a list of supported image formats.
     pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType,
                 ) -> OclResult<Vec<ImageFormat>> {
         core::get_supported_image_formats(context, flags, mem_obj_type)
     }
 
+    /// Returns an `ImageBuilder`. This is the recommended method to create
+    /// a new `Image`.
+    pub fn builder() -> ImageBuilder<E> {
+        ImageBuilder::new()
+    }
+
     /// Returns a new `Image`.
+    ///
+    /// Prefer `::builder` to create a new image.
     pub fn new(queue: &Queue, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, image_data: Option<&[E]>) -> OclResult<Image<E>>
     {
@@ -753,7 +755,8 @@ impl<E: OclPrm> Image<E> {
         core::get_mem_object_info(&self.obj_core, info_kind)
     }
 
-    /// Returns the core image object reference.
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
     pub fn core_as_ref(&self) -> &MemCore {
         &self.obj_core
     }

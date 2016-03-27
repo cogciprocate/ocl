@@ -19,6 +19,7 @@ kernel_debug_sleep = []
 # git = "https://github.com/rust-lang-nursery/bitflags.git"
 
 [dependencies]
+# [TODO] Make optional:
 rand = "0.3"
 num = "0.1"
 libc = "0.2"

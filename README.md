@@ -113,10 +113,17 @@ happens.
 
 *If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1`
 exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in
-case it's not already done (AMD drivers sometimes don't create this link).
-Intel also has [OpenCL libraries for your CPU] if you're having trouble
-getting your GPU to work (AMD used to have some for CPUs too, can't find them
-anymore).
+case it's not already done (some vendors don't create this link). Intel also
+has [OpenCL libraries for your CPU] if you're having trouble getting your GPU
+to work (AMD has some for CPUs too, need new link).
+
+A short HOWTO for getting OpenCL drivers installed properly and working with
+Rust-Windows-GNU (MSVC too eventually) is in the works. For now just be sure
+to put a copy of the ICD loader, OpenCL.dll, usually found somewhere within
+the `C:\Windows` folder tree, into the Rust library folder (defaults to
+`C:\Program Files\{Rust folder}\lib\rustlib\x86_64-pc-windows-gnu\lib`) and
+make sure your platform drivers are installed correctly (there's a registry
+setting + they must be in the PATH).
 
 Due to buggy and/or intentionally crippled drivers, functionality involving
 multiple host threads, multiple devices, or asynchronous callbacks may not
