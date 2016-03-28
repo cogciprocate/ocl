@@ -298,3 +298,9 @@ impl DerefMut for Context {
         &mut self.obj_core
     }
 }
+
+// impl PartialEq<Context> for Context {
+//     fn eq(&self, other: &Context) -> bool {
+//         self == other
+//     }
+// }

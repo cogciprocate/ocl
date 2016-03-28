@@ -13,7 +13,7 @@ fn main() {
         .dims([2 << 20])
         .build().unwrap();
 
-    let buffer: Buffer<f32> = pro_que.create_buffer().unwrap();
+    let buffer = pro_que.create_buffer::<f32>().unwrap();
 
     let kernel = pro_que.create_kernel("add").unwrap()
         .arg_buf(&buffer)
@@ -55,7 +55,7 @@ fn main_explained() {
         .build().unwrap();   
 
     // (2) Create a `Buffer`:
-    let buffer: Buffer<f32> = pro_que.create_buffer().unwrap();
+    let buffer = pro_que.create_buffer::<f32>().unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = pro_que.create_kernel("add").unwrap()

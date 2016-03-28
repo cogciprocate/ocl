@@ -141,6 +141,12 @@ unsafe impl ClPlatformIdPtr for PlatformId {}
 unsafe impl Sync for PlatformId {}
 unsafe impl Send for PlatformId {}
 
+impl PartialEq<PlatformId> for PlatformId {
+    fn eq(&self, other: &PlatformId) -> bool {
+        self.0 == other.0
+    }
+}
+
 
 
 /// cl_device_id
@@ -169,6 +175,12 @@ unsafe impl ClDeviceIdPtr for DeviceId {}
 unsafe impl Sync for DeviceId {}
 unsafe impl Send for DeviceId {}
 
+impl PartialEq<DeviceId> for DeviceId {
+    fn eq(&self, other: &DeviceId) -> bool {
+        self.0 == other.0
+    }
+}
+
 
 
 /// cl_context
@@ -188,6 +200,9 @@ impl Context {
 	}
 }
 
+unsafe impl Sync for Context {}
+unsafe impl Send for Context {}
+
 impl Clone for Context {
 	fn clone(&self) -> Context {
 		unsafe { core::retain_context(self).unwrap(); }
@@ -201,9 +216,11 @@ impl Drop for Context {
 	}
 }
 
-unsafe impl Sync for Context {}
-unsafe impl Send for Context {}
-
+impl PartialEq<Context> for Context {
+    fn eq(&self, other: &Context) -> bool {
+        self.0 == other.0
+    }
+}
 
 
 /// cl_command_queue
