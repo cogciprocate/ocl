@@ -1,4 +1,4 @@
-Version 0.9.0 (UNRELEASED)
+Version 0.9.0 (2016-03-28)
 ==========================
 
 Approaching Stability
