@@ -59,7 +59,7 @@ fn main() {
         .dims([2 << 20])
         .build().unwrap();
 
-    let buffer = pro_que.create_buffer::<f32>().unwrap();
+    let buffer: Buffer<f32> = pro_que.create_buffer().unwrap();
 
     let kernel = pro_que.create_kernel("add").unwrap()
         .arg_buf(&buffer)
