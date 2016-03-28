@@ -9,7 +9,10 @@
 //! example will likely fail on that platform.
 
 extern crate ocl;
-use std::time::Instant;
+extern crate time;
+// [TODO]: Bring this back once `Instant` stabilizes:
+// use std::time::Instant;
+
 
 use ocl::{util, core, ProQue, Buffer, EventList};
 
@@ -67,7 +70,7 @@ fn main() {
     println!("Enqueuing {} kernel runs... ", KERNEL_RUN_ITERS);
 
     // Start kernel timer
-    let kern_start = Instant::now();
+    let kern_start = time::get_time();
 
     // Enqueue kernel the first time:
     kern.enq().unwrap();
@@ -94,7 +97,7 @@ fn main() {
     println!("Enqueuing {} buffer reads... ", BUFFER_READ_ITERS);
 
     // Start kernel timer
-    let buffer_start = Instant::now();
+    let buffer_start = time::get_time();
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
@@ -114,7 +117,7 @@ fn main() {
     print!("\n");
     println!("Enqueuing {} blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
 
-    let kern_buf_start = Instant::now();
+    let kern_buf_start = time::get_time();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         kern.enq().unwrap();
@@ -134,7 +137,7 @@ fn main() {
     print!("\n");
     println!("Enqueuing {} non-blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
 
-    let kern_buf_start = Instant::now();
+    let kern_buf_start = time::get_time();
 
     let mut kern_events = EventList::new();
     let mut buf_events = EventList::new();
@@ -164,7 +167,7 @@ fn main() {
     print!("\n");
     println!("Enqueuing {} oh-fuck-it kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
 
-    let kern_buf_start = Instant::now();
+    let kern_buf_start = time::get_time();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.cmd().enew(&mut kern_events).enq().unwrap();
@@ -183,12 +186,23 @@ fn main() {
 }
 
 
-fn print_elapsed(title: &str, start: Instant) {
-    let time_elapsed = Instant::now().duration_since(start);
-    let elapsed_ms = time_elapsed.subsec_nanos() / 1000000;
+// [KEEP]: Convert back to this once `Instant` stabilizes:
+// fn print_elapsed(title: &str, start: Instant) {
+//     let time_elapsed = time::get_time() - start;
+//     // let time_elapsed = time::get_time().duration_since(start);
+//     let elapsed_ms = time_elapsed.subsec_nanos() / 1000000;
+//     let separator = if title.len() > 0 { ": " } else { "" };
+//     println!("    {}{}: {}.{:03}", title, separator, time_elapsed.as_secs(), elapsed_ms);
+// }
+// [/KEEP]
+
+fn print_elapsed(title: &str, start: time::Timespec) {
+    let time_elapsed = time::get_time() - start;
+    let elapsed_ms = time_elapsed.num_milliseconds();
     let separator = if title.len() > 0 { ": " } else { "" };
-    println!("    {}{}: {}.{:03}", title, separator, time_elapsed.as_secs(), elapsed_ms);
+    println!("    {}{}: {}.{:03}", title, separator, time_elapsed.num_seconds(), elapsed_ms);
 }
+
 
 
 fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) {

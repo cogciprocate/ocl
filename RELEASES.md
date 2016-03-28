@@ -1,19 +1,22 @@
 Version 0.9.0 (UNRELEASED)
 ==========================
 
-Ocl is now confirmed to work on Windows-GNU (MSYS2/MinGW-w64). AMD and Intel
-drivers appear to work flawlessly. NVIDIA drivers have glitches here and there
-(particularly to do with concurrency) but are mostly functional. Windows-MSVC
-testing is in progress. A short HOWTO for getting OpenCL drivers installed
-properly and working with Rust is in the works. For now just be sure to put a
-copy of the ICD loader, OpenCL.dll, usually found somewhere within the
-`C:\Windows` folder tree, into the Rust library folder (defaults to
+Approaching Stability
+---------------------
+
+Ocl is now confirmed to work on Rust-Windows-GNU (MSYS2/MinGW-w64). AMD and
+Intel drivers appear to work flawlessly. NVIDIA drivers have glitches here and
+there (particularly to do with concurrency) but are mostly functional.
+Windows-MSVC testing is in progress. A short HOWTO for getting OpenCL drivers
+installed properly and working with Rust is in the works. For now just be sure
+to put a copy of the ICD loader, OpenCL.dll, usually found somewhere within
+the `C:\Windows` folder tree, into the Rust library folder (defaults to
 `C:\Program Files\{Rust folder}\lib\rustlib\x86_64 -pc-windows-gnu\lib`) and
 make sure your platform drivers are installed correctly (there's a registry
-setting + they must be in the PATH).
+setting + they must be in the PATH). See [README.md] for links to drivers.
 
 Still no verification on the status of OS X but there is no reason it
-wouldn't work fine.
+shouldn't work fine.
 
 
 Breaking Changes
@@ -29,6 +32,9 @@ Breaking Changes
   `ProgramBuilder`. Use `::src_file` to set a source file `Path` or `PathBuf`
   to include in the build.
 * The `BuildOpt::cmplr_opt` method has been removed.
+* The `build` module has been renamed to `builders`.
+
+[README.md]: https://github.com/cogciprocate/ocl/blob/master/README.md
 
 
 Version 0.8.0 (2016-03-09)
@@ -128,7 +134,7 @@ New Features
   documentation along with [`examples/image.rs`].
 
 
-[`ImageBuilder`]: http://docs.cogciprocate.com/ocl/ocl/struct.ImageBuilder.html
+[`ImageBuilder`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.ImageBuilder.html
 [`examples/image.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/image.rs
 
 
@@ -238,10 +244,10 @@ New Types
 [`Buffer`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html
 [`Image`]: http://docs.cogciprocate.com/ocl/ocl/struct.Image.html
 [`raw`]: http://docs.cogciprocate.com/ocl/ocl/raw/index.html
-[`ProQueBuilder`]: http://docs.cogciprocate.com/ocl/ocl/struct.ProQueBuilder.html
+[`ProQueBuilder`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.ProQueBuilder.html
 [`ProQue`]: http://docs.cogciprocate.com/ocl/ocl/struct.ProQue.html
 ['ProQue::builder']: http://docs.cogciprocate.com/ocl/ocl/struct.ProQue.html#method.builder
-[`ProgramBuilder`]: http://docs.cogciprocate.com/ocl/ocl/struct.ProgramBuilder.html
+[`ProgramBuilder`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.ProgramBuilder.html
 [`Program`]: http://docs.cogciprocate.com/ocl/ocl/struct.Program.html
 [`Kernel`]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html
 [`SimpleDims`]: http://doc.cogciprocate.com/ocl/ocl/enum.SimpleDims.html

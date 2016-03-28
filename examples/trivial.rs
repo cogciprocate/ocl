@@ -170,7 +170,7 @@ fn main_cored() {
     use std::ffi::CString;
     use ocl::{core, flags};
     use ocl::enums::KernelArg;
-    use ocl::build::ContextProperties;
+    use ocl::builders::ContextProperties;
 
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {

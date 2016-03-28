@@ -59,7 +59,7 @@ pub mod traits {
 	pub use core::OclPrm;
 }
 
-pub mod build {
+pub mod builders {
 	//! Builders and associated settings-related types.
 
 	pub use standard::{ContextBuilder, BuildOpt, ProgramBuilder, ImageBuilder, ProQueBuilder,

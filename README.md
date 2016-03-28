@@ -24,7 +24,7 @@ To provide:
 - Thread-safe and automatic management of API pointers and resources
 
 
-## Installation
+## Usage
 
 Ensure that an OpenCL library is installed for your platform and that `clinfo`
 or some other diagnostic command will run. Add the following to your project's
@@ -33,6 +33,11 @@ or some other diagnostic command will run. Add the following to your project's
 ```rust
 [dependencies] 
 ocl = "0.8"
+```
+
+And add the following to your crate root (lib.rs or main.rs):
+```rust
+extern crate ocl;
 ```
 
 ## Example 
@@ -108,28 +113,42 @@ its younger sibling, [vulkano].
 
 ##### Help
 
-Try `cargo run --example info` or `cargo run --example info_core` and see what
-happens.
+If troubleshooting your vendor's drivers:
 
-*If troubleshooting your OpenCL drivers:* check that `/usr/lib/libOpenCL.so.1`
-exists. Go ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in
-case it's not already done (some vendors don't create this link). Intel also
-has [OpenCL libraries for your CPU] if you're having trouble getting your GPU
-to work (AMD has some for CPUs too, need new link).
+1. Clone this repo: `git clone https://github.com/cogciprocate/ocl.git`.
+2. Change to the newly created directory: `cd ocl`.
+3. Run some of the info examples: `cargo run --example info` and/or `cargo run
+   --example info_core`.
+4. Make sure your platform(s) and device(s) are printed out. If so, you're
+   probably good to go.
+
+*Other things to try (linux):* check that `/usr/lib/libOpenCL.so.1` exists. Go
+ahead and link `/usr/lib/libOpenCL.so -> libOpenCL.so.1` just in case it's not
+already done (some vendors don't create this link). 
+
+If you're still having trouble getting your GPU to work, Intel and AMD also
+have OpenCL libraries for your CPU: [amd-app-sdk], [intel-win64],
+[intel-linux64-redhat-suse], [intel-linux64-ubuntu]. [amd-app-sdk] works well
+on both Intel and AMD processors and is great if you don't mind installing all
+of the extra tools (which are pretty decent by the way).
 
 A short HOWTO for getting OpenCL drivers installed properly and working with
 Rust-Windows-GNU (MSVC too eventually) is in the works. For now just be sure
-to put a copy of the ICD loader, OpenCL.dll, usually found somewhere within
-the `C:\Windows` folder tree, into the Rust library folder (defaults to
-`C:\Program Files\{Rust folder}\lib\rustlib\x86_64-pc-windows-gnu\lib`) and
-make sure your platform drivers are installed correctly (there's a registry
-setting + they must be in the PATH).
+to put a copy of the platform-agnostic ICD loader, OpenCL.dll, usually found
+somewhere within the `C:\Windows` folder tree, into the Rust library folder
+(defaults to `C:\Program Files\{Rust
+folder}\lib\rustlib\x86_64-pc-windows-gnu\lib`) and make sure your platform
+drivers are installed correctly (there's a registry setting + they must be in
+the PATH).
 
 Due to buggy and/or intentionally crippled drivers, functionality involving
 multiple host threads, multiple devices, or asynchronous callbacks may not
 work on NVIDIA hardware. Until NVIDIA's implementation is corrected, tests and
-examples involving multiple asynchronous tasks may occasionally fail on that
-platform.
+examples involving multiple asynchronous tasks may occasionally fail or
+produce erroneous results (you are suffering from this if the `events.rs` test
+fails when you run `cargo test`). It's reccommended that you use Intel or AMD
+CPU drivers in the meanwhile and switch if/when NVIDIA ever gets their act
+together.
 
 Please ask questions and provide feedback by opening an
 [issue].
@@ -148,3 +167,7 @@ by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Gro
 [`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/trivial.rs#L27
 [glium]: https://github.com/tomaka/glium
 [vulkano]: https://github.com/tomaka/vulkano/tree/master/vulkano
+[intel-win64]: https://software.intel.com/en-us/articles/opencl-drivers#win64
+[intel-linux64-redhat-suse]: https://software.intel.com/en-us/articles/opencl-drivers#lin64
+[intel-linux64-ubuntu]: https://software.intel.com/en-us/articles/opencl-drivers#ubuntu64
+[amd-app-sdk]: http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/

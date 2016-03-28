@@ -907,6 +907,7 @@ enum_from_primitive! {
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum BufferCreateType {
         Region = cl_h::CL_BUFFER_CREATE_TYPE_REGION as isize,
+        __DUMMY,
     }
 }
 
