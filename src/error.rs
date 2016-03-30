@@ -1,4 +1,5 @@
 //! Standard error type for ocl.
+//!
 
 use std;
 // use std::error::Error;
@@ -15,10 +16,22 @@ use cl_h::Status;
 pub type Result<T> = std::result::Result<T, self::Error>;
 
 
-/// An enum containing either a `String` or one of several other standard 
-/// error types.
+/// An enum containing either a `String` or one of several other error types.
 ///
 /// Implements the usual error traits.
+///
+/// ## Stability
+///
+/// The `String` variant may eventually be removed. Many more variants and
+/// sub-types will be added as time goes on and things stabilize.
+///
+/// `Status` will eventually be changed internally to contain a sub-error type
+/// unique to each function which generates it (yeah that'll be fun to
+/// implement).
+///
+/// `UnspecifiedDimensions` may be moved into a sub-type.
+///
+/// For now, don't assume the existence of or check for any of the above.
 ///
 pub enum Error {
     // description: String,
