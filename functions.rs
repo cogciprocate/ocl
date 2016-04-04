@@ -216,9 +216,9 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
         cl_h::clGetPlatformIDs(0, ptr::null_mut(), &mut num_platforms) 
     };
 
-    // [TEMPORARY] Not sure if this is precisely a windows problem or what.
-    // Hacky attempt to solve Windows ICD problems:    
-    if cfg!(target_os = "windows") && errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
+    // Deal with ICD wake up problems when called from multiple threads at the
+    // same time by adding a delay/retry loop:
+    if errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
         // println!("CL_PLATFORM_NOT_FOUND_KHR... looping until platform list is available...");
         let sleep_ms = 2000;
         let mut iters_rmng = 5;
@@ -231,9 +231,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
             }
 
             // Sleep to allow the ICD to refresh or whatever it does:
-            if cfg!(target_os="windows") {
-                thread::sleep(Duration::from_millis(sleep_ms));
-            }
+            thread::sleep(Duration::from_millis(sleep_ms));
 
             // Get a count of available platforms:
             errcode = unsafe { 
