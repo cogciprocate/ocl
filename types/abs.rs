@@ -404,7 +404,7 @@ impl Event {
 			try!(core::retain_event(&new_core));
 			Ok(new_core)
 		} else {
-			OclError::err("core::EventList::from_cloned_ptr: Invalid pointer `ptr`.")
+			OclError::err("core::Event::from_cloned_ptr: Invalid pointer `ptr`.")
 		}
 	}
 
@@ -499,12 +499,16 @@ impl EventList {
 
     /// Pushes a new event onto the list.
     ///
-    /// Technically, copies `event`s contained pointer (a `cl_event`) then 
+    /// Technically, copies `event`'s contained pointer (a `cl_event`) then 
     /// `mem::forget`s it. This seems preferrable to incrementing the reference
     /// count (with `core::retain_event`) then letting `event` drop which just decrements it right back.
-    pub unsafe fn push(&mut self, event: Event) {
-        self.event_ptrs.push((*event.as_ptr_ref()));
-        mem::forget(event);
+    pub fn push(&mut self, event: Event) {
+    	assert!(event.is_valid());
+    	
+    	unsafe {
+	        self.event_ptrs.push((*event.as_ptr_ref()));
+	        mem::forget(event);
+        }
         self.decr_counter();
     }
 
