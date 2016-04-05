@@ -1,6 +1,6 @@
 [package]
 name = "ocl"
-version = "0.9.0"
+version = "0.9.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."
 documentation = "http://doc.cogciprocate.com/ocl/ocl/index.html"
@@ -27,6 +27,7 @@ enum_primitive = "0.1"
 bitflags = "0.5"
 
 [dev-dependencies]
+# [TODO] Make optional:
 image = "0.7"
 find_folder = "0.3"
 colorify = "0.1"

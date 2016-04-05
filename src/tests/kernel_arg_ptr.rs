@@ -1,4 +1,3 @@
-//! This doesn't work.
 use std::thread;
 use std::time::Duration;
 use standard::{ProQue, Kernel};
@@ -9,9 +8,9 @@ static SRC: &'static str = r#"
     }
 "#;
 
-/// Create a 1GB vector on the heap, then a buffer right after it. Assign the
+/// Create a vector on the heap, then a buffer right after it. Assign the
 /// buffer as a kernel argument. Let them both fall out of scope. Run kernel.
-/// If the buffer is not properly kept alive via its reference count, it will
+/// If a copy of the pointer to the buffer is not made by the kernel, it will
 /// be deallocated and when the kernel tries to access it via the pointer it
 /// has internally stored within its argument, it may cause a segfault or
 /// error.
