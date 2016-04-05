@@ -1,5 +1,4 @@
-//! This currently should fail and does not...
-
+//! This doesn't work.
 use std::thread;
 use std::time::Duration;
 use standard::{ProQue, Kernel};
@@ -10,44 +9,39 @@ static SRC: &'static str = r#"
     }
 "#;
 
+/// Create a 1GB vector on the heap, then a buffer right after it. Assign the
+/// buffer as a kernel argument. Let them both fall out of scope. Run kernel.
+/// If the buffer is not properly kept alive via its reference count, it will
+/// be deallocated and when the kernel tries to access it via the pointer it
+/// has internally stored within its argument, it may cause a segfault or
+/// error.
+///
 #[test]
 fn kernel_arg_ptr_out_of_scope() {
     let pro_que = ProQue::builder()
         .src(SRC)
         .dims([1024])
-        .build().unwrap();    
+        .build().unwrap();
 
-	let kernel = make_a_kernel(&pro_que);
+	let mut kernel = pro_que.create_kernel("add").unwrap()
+        .arg_buf_named::<f32>("buf", None)
+        .arg_scl(10.0f32);
 
-	for i in 0..50 {
-		make_a_kernel(&pro_que);
-	}
-
-	thread::sleep(Duration::from_millis(2000));
+    set_arg(&mut kernel, &pro_que);
+    let throwaway_vec = vec![99usize; 2 << 24];
+    thread::sleep(Duration::from_millis(100));
 
 	for _ in 0..5 {
 		kernel.enq().unwrap();
 	}
+
+    assert!(throwaway_vec[2 << 15] == 99);
 }
 
-fn make_a_kernel(pro_que: &ProQue) -> Kernel {
-	let throwaway_vec = vec![0usize; 2 << 20];
-	let buffer1 = Box::new(pro_que.create_buffer::<f32>().unwrap());
-	let throwaway_vec = vec![0usize; 2 << 20];
-	let buffer2 = Box::new(pro_que.create_buffer::<f32>().unwrap());
-	let throwaway_vec = vec![0usize; 2 << 20];
-	let buffer3 = Box::new(pro_que.create_buffer::<f32>().unwrap());
-	let throwaway_vec = vec![0usize; 2 << 20];
-	let buffer4 = Box::new(pro_que.create_buffer::<f32>().unwrap());
+fn set_arg(kernel: &mut Kernel, pro_que: &ProQue) {
+    let throwaway_vec = vec![99usize; 2 << 22];
+    let buffer = pro_que.create_buffer::<f32>().unwrap();
+    assert!(throwaway_vec[2 << 15] == 99);
 
-	let mut kernel = pro_que.create_kernel("add").unwrap()
-        // .arg_buf(&buffer)
-        .arg_buf_named::<f32>("buf", None)
-        .arg_scl(10.0f32);
-
-    kernel.set_arg_buf_named("buf", Some(&buffer3));
-
-    kernel.set_arg_buf_named("buf", Some(&buffer2));
-
-    kernel
+    kernel.set_arg_buf_named("buf", Some(&buffer)).unwrap();
 }

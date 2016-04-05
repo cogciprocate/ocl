@@ -37,9 +37,9 @@ use std::convert::Into;
 use libc::{size_t, c_void};
 use util;
 use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, 
-    ContextInfo, Context, 
-    CommandQueueInfo, Mem, MemInfo, Sampler, SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, 
-    KernelArgInfo, KernelWorkGroupInfo, ImageInfo, ImageFormat, EventInfo, ProfilingInfo};
+    ContextInfo, Context, CommandQueueInfo, Mem, MemInfo, Sampler, SamplerInfo, ProgramInfo, 
+    ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, ImageInfo, ImageFormat, 
+    EventInfo, ProfilingInfo};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 

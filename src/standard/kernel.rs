@@ -5,9 +5,9 @@
 use std;
 use std::convert::Into;
 use std::collections::HashMap;
-use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, KernelArg, 
-    KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
-    KernelWorkGroupInfoResult, ClEventPtrNew};
+use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
+    KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, 
+    KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrNew};
 use error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler, Device};
 
@@ -119,6 +119,7 @@ impl<'k> KernelCmd<'k> {
 pub struct Kernel {
     obj_core: KernelCore,
     named_args: HashMap<&'static str, u32>,
+    mem_args: Vec<Option<MemCore>>,
     arg_count: u32,
     queue: Queue,
     gwo: SpatialDims,
@@ -155,6 +156,7 @@ impl Kernel {
             obj_core: obj_core,
             named_args: HashMap::with_capacity(5),
             arg_count: 0,
+            mem_args: Vec::with_capacity(16),
             queue: queue.clone(),
             gwo: SpatialDims::Unspecified,
             gws: SpatialDims::Unspecified,
@@ -433,7 +435,7 @@ impl Kernel {
         &self.obj_core
     }
 
-    /// Returns info about this kernel.
+    /// Returns information about this kernel.
     pub fn info(&self, info_kind: KernelInfo) -> KernelInfoResult {
         // match core::get_kernel_info(&self.obj_core, info_kind) {
         //     Ok(res) => res,
@@ -442,7 +444,7 @@ impl Kernel {
         core::get_kernel_info(&self.obj_core, info_kind)
     }
 
-    /// Returns info about this kernel.
+    /// Returns argument information for this kernel.
     pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
         // match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
         //     Ok(res) => res,
@@ -451,7 +453,7 @@ impl Kernel {
         core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind)
     }
 
-    /// Returns info about this kernel.
+    /// Returns work group information for this kernel.
     pub fn wg_info(&self, device: &Device, info_kind: KernelWorkGroupInfo) 
             -> KernelWorkGroupInfoResult 
     {
@@ -572,16 +574,39 @@ impl Kernel {
 
     /// Adds a new argument to the kernel and returns the index.
     fn new_arg<T: OclPrm>(&mut self, arg: KernelArg<T>) -> u32 {
-        let arg_idx = self.arg_count;
+        let arg_idx = self.arg_count;        
 
-        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg).unwrap();
+        // Push an empty `mem_arg` to the list just to make room.
+        self.mem_args.push(None);
+
+        self.set_arg(arg_idx, arg).expect("Kernel::new_arg()");        
 
         self.arg_count += 1;
+        debug_assert!(self.arg_count as usize == self.mem_args.len());
         arg_idx
     } 
 
     /// Sets an argument.
-    fn set_arg<T: OclPrm>(&self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
+    fn set_arg<T: OclPrm>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
+        // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
+        // refers to, store it in `self.mem_args`, and create a new
+        // `KernelArg::Mem` refering to the locally stored copy. This prevents
+        // a buffer which has gone out of scope from being erroneously refered
+        // to when this kernel is enqueued and causing either a misleading
+        // error message or a hard to debug segfault depending on the
+        // platform.
+        let arg = match arg {
+            KernelArg::Mem(mem) => {
+                self.mem_args[arg_idx as usize] = Some(mem.clone());
+                let mem_arg_ref = self.mem_args.get(arg_idx as usize).unwrap().as_ref().unwrap();
+                KernelArg::Mem(mem_arg_ref)
+            },
+            arg @ _ => {
+                self.mem_args[arg_idx as usize] = None;
+                arg
+            },
+        };        
+
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
     }
 }
