@@ -124,8 +124,8 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     program_build_err, verify_context, default_platform, default_device_type };
 
 pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
-    PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event,
-    EventList, Sampler};
+    PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
+    ClWaitList};
 
 pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion};
 

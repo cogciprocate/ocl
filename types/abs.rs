@@ -41,7 +41,7 @@
 //! [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html
 
 use std::mem;
-// use std::ptr;
+use std::ptr;
 use std::fmt::Debug;
 use std::marker::Sized;
 use libc;
@@ -73,10 +73,27 @@ pub unsafe trait ClEventPtrNew: Debug {
 }
 
 /// Types with a reference to a raw event pointer.
+///
+/// Using references just to be extra paranoid about copying raw pointers.
 pub trait ClEventRef<'e> {
 	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
-	// unsafe fn as_ptr_mut(&mut self) -> &mut cl_event;
 }
+
+/// Types with a reference to a raw event array and an associated element
+/// count.
+///
+/// Using references just to be extra paranoid about copying raw pointers.
+pub unsafe trait ClWaitList {
+	unsafe fn as_ptr_ptr(&self) -> *const cl_event;
+	fn count (&self) -> u32;
+}
+
+impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
+	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
+		(*self).as_ptr_ref()
+	}
+}
+
 
 /// Types with a reference to a raw platform_id pointer.
 pub unsafe trait ClPlatformIdPtr: Sized {
@@ -104,7 +121,7 @@ pub unsafe trait ClDeviceIdPtr: Sized {
 
 /// Wrapper used by `EventList` to send event pointers to core functions
 /// cheaply.
-pub struct EventRefWrapper<'e>(&'e cl_event);
+pub struct EventRefWrapper<'e>(&'e cl_event, u32);
 
 impl<'e> ClEventRef<'e> for EventRefWrapper<'e> {
 	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
@@ -450,8 +467,19 @@ unsafe impl ClEventPtrNew for Event {
 }
 
 impl<'e> ClEventRef<'e> for Event {
-	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { self.as_ptr_ref() }
- 	// unsafe fn as_ptr_mut(&mut self) -> &mut cl_event { self.as_ptr_mut() }
+	unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { 
+		&self.0
+	}
+}
+
+unsafe impl ClWaitList for Event {
+	unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+		if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
+	}
+
+	fn count(&self) -> u32 {
+		if self.0.is_null() { 0 } else { 1 }
+	}
 }
 
 impl Clone for Event {
@@ -504,7 +532,7 @@ impl EventList {
     /// count (with `core::retain_event`) then letting `event` drop which just decrements it right back.
     pub fn push(&mut self, event: Event) {
     	assert!(event.is_valid());
-    	
+
     	unsafe {
 	        self.event_ptrs.push((*event.as_ptr_ref()));
 	        mem::forget(event);
@@ -526,8 +554,11 @@ impl EventList {
         self.event_ptrs.len() as u32
     }
 
-	pub unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-		self.event_ptrs.as_ptr() as *const cl_event
+	/// Returns an immutable reference to a pointer, do not deref and store it unless 
+	/// you will manage its associated reference count carefully.
+	pub unsafe fn as_ptr_ref(&self) -> &cl_event {
+		self.event_ptrs.first().expect("ocl::core::EventList::as_ptr_ref(): \
+			Attempted to take a reference to the first element of an empty list.")
 	}
 
 	/// Clones an event by index.
@@ -550,7 +581,7 @@ impl EventList {
         let mut idx = 0;
 
         for event_ptr in self.event_ptrs.iter() {
-        	let status = try!(core::get_event_status(&EventRefWrapper(event_ptr)));
+        	let status = try!(core::get_event_status(&EventRefWrapper(event_ptr, 1)));
 
             if status == CommandExecutionStatus::Complete {
                 cmpltd_events.push(idx)
@@ -562,7 +593,7 @@ impl EventList {
         // Release completed events:        
     	for &idx in cmpltd_events.iter() {
     		unsafe { 
-				try!(core::release_event(&EventRefWrapper(&self.event_ptrs[idx])));
+				try!(core::release_event(&EventRefWrapper(&self.event_ptrs[idx], 1)));
 			}
 		}
 
@@ -614,12 +645,25 @@ unsafe impl ClEventPtrNew for EventList {
 	}
 }
 
+unsafe impl ClWaitList for EventList {
+	unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+		match self.event_ptrs.first() {
+			Some(ele) => ele as *const cl_event,
+			None => ptr::null(),
+		}
+	}
+
+	fn count(&self) -> u32 {
+		self.event_ptrs.len() as u32
+	}
+}
+
 impl Clone for EventList {
 	/// Clones this list in a thread safe manner. 
 	fn clone(&self) -> EventList {
 		for event_ptr in self.event_ptrs.iter() {
 			if !(*event_ptr).is_null() {
-				unsafe { core::retain_event(&EventRefWrapper(event_ptr))
+				unsafe { core::retain_event(&EventRefWrapper(event_ptr, 1))
 					.expect("core::EventList::clone") }
 			}
 		}
@@ -638,7 +682,7 @@ impl Drop for EventList {
 	fn drop(&mut self) {
 		if DEBUG_PRINT { print!("Dropping events... "); }
 		for event_ptr in self.event_ptrs.iter() {
-			unsafe { core::release_event(&EventRefWrapper(event_ptr)).ok(); }
+			unsafe { core::release_event(&EventRefWrapper(event_ptr, 1)).ok(); }
 			if DEBUG_PRINT { print!("{{.}}"); }
 		}
 		if DEBUG_PRINT { print!("\n"); }
