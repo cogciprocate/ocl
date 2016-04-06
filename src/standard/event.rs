@@ -7,7 +7,7 @@ use libc::c_void;
 use cl_h;
 use error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult,
-    ClEventPtrNew, EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
+    ClEventPtrNew, ClWaitList, EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
 
 /// An event representing a command or user created event.
 #[derive(Clone, Debug)]
@@ -143,6 +143,23 @@ unsafe impl ClEventPtrNew for Event {
         unsafe { 
             self.0 = Some(EventCore::null());
             Ok(self.0.as_mut().unwrap().as_ptr_mut())
+        }
+    }
+}
+
+unsafe impl ClWaitList for Event {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_h::cl_event {
+        // self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::as_ref()").as_ptr_ptr()
+        match self.0 {
+            Some(ref ec) => ec.as_ptr_ptr(),
+            None => 0 as *const cl_h::cl_event,
+        }
+    }
+
+    fn count(&self) -> u32 {
+        match self.0 {
+            Some(ref ec) => ec.count(),
+            None => 0,
         }
     }
 }
@@ -284,5 +301,15 @@ impl DerefMut for EventList {
 unsafe impl ClEventPtrNew for EventList {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_h::cl_event> {
         Ok(self.event_list_core.allot())
+    }
+}
+
+unsafe impl ClWaitList for EventList {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_h::cl_event { 
+        self.event_list_core.as_ptr_ptr() 
+    }
+
+    fn count(&self) -> u32 {
+        self.event_list_core.count()
     }
 }
