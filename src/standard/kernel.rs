@@ -7,9 +7,9 @@ use std::convert::Into;
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, 
-    KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrNew};
+    KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrNew, ClWaitList};
 use error::{Result as OclResult, Error as OclError};
-use standard::{SpatialDims, Buffer, Image, EventList, Program, Queue, WorkDims, Sampler, Device};
+use standard::{SpatialDims, Buffer, Image, Program, Queue, WorkDims, Sampler, Device};
 
 const PRINT_DEBUG: bool = false;
 
@@ -21,7 +21,7 @@ pub struct KernelCmd<'k> {
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
-    wait_list: Option<&'k EventList>,
+    wait_list: Option<&'k ClWaitList>,
     dest_list: Option<&'k mut ClEventPtrNew>,
 }
 
@@ -52,13 +52,13 @@ impl<'k> KernelCmd<'k> {
     }
 
     /// Specifies the list of events to wait on before the command will run.
-    pub fn ewait(mut self, wait_list: &'k EventList) -> KernelCmd<'k> {
+    pub fn ewait(mut self, wait_list: &'k ClWaitList) -> KernelCmd<'k> {
         self.wait_list = Some(wait_list);
         self
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait_opt(mut self, wait_list: Option<&'k EventList>) -> KernelCmd<'k> {
+    pub fn ewait_opt(mut self, wait_list: Option<&'k ClWaitList>) -> KernelCmd<'k> {
         self.wait_list = wait_list;
         self
     }

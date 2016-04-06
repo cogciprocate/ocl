@@ -7,10 +7,10 @@ use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 use std::convert::Into;
 use error::{Error as OclError, Result as OclResult};
-use standard::{Context, Queue, MemLen, EventList, SpatialDims};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor, 
-    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ImageChannelOrder, 
-    ImageChannelDataType};
+    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList, 
+    ImageChannelOrder, ImageChannelDataType};
+use standard::{Context, Queue, MemLen, SpatialDims};
 
 
 /// A builder for `Image`. 
@@ -342,7 +342,7 @@ pub struct ImageCmd<'b, E: 'b + OclPrm> {
     row_pitch: usize,
     slc_pitch: usize,
     kind: ImageCmdKind<'b, E>,
-    ewait: Option<&'b EventList>,
+    ewait: Option<&'b ClWaitList>,
     enew: Option<&'b mut ClEventPtrNew>,
     mem_dims: [usize; 3],
 }
@@ -555,14 +555,14 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait(mut self, ewait: &'b EventList) -> ImageCmd<'b, E> {
+    pub fn ewait(mut self, ewait: &'b ClWaitList) -> ImageCmd<'b, E> {
         self.ewait = Some(ewait);
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt(mut self, ewait: Option<&'b EventList>) -> ImageCmd<'b, E> {
+    pub fn ewait_opt(mut self, ewait: Option<&'b ClWaitList>) -> ImageCmd<'b, E> {
         self.ewait = ewait;
         self
     }
@@ -598,7 +598,7 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
                     self.enew)
             },
             ImageCmdKind::Copy { dst_image, dst_origin } => {
-                core::enqueue_copy_image::<E, _>(self.queue, self.obj_core, dst_image, self.origin,
+                core::enqueue_copy_image::<E>(self.queue, self.obj_core, dst_image, self.origin,
                     dst_origin, self.region, self.ewait, self.enew)
             },
             ImageCmdKind::Unspecified => return OclError::err("ocl::ImageCmd::enq(): No operation \

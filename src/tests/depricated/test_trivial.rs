@@ -192,11 +192,11 @@ fn main_cored() {
 
     // (4) Run the kernel (default parameters shown for elucidation purposes):
     core::enqueue_kernel(&queue, &kernel, 1, None, &dims, 
-        None, None::<&core::EventList>, None).unwrap();
+        None, None, None).unwrap();
 
     // (5) Read results from the device into our buffer's [no longer] built-in vector:
      unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut buffer_vec, 
-        None::<&core::EventList>, None).unwrap() };    
+        None, None).unwrap() };    
 
     // Print an element:
     println!("The value at index [{}] was '{}' and is now '{}'!", 

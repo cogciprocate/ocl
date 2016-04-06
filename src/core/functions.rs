@@ -61,7 +61,7 @@ fn errcode_try(cl_fn_name: &'static str, fn_info: &str, errcode: cl_int) -> OclR
 }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_event_ptrs<L: ClWaitList>(wait_list: Option<&L>, 
+fn resolve_event_ptrs(wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
@@ -1506,7 +1506,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
 //============================================================================
 
 /// Blocks until the first `num_events` events in `event_list` are complete.
-pub fn wait_for_events<L: ClWaitList>(num_events: u32, event_list: &L) -> OclResult<()> {
+pub fn wait_for_events(num_events: u32, event_list: &ClWaitList) -> OclResult<()> {
     assert!(event_list.count() >= num_events);
 
     let errcode = unsafe {
@@ -1687,13 +1687,13 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 ///
 /// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
-pub unsafe fn enqueue_read_buffer<T: OclPrm, L: ClWaitList>(
+pub unsafe fn enqueue_read_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
             block: bool,
             offset: usize,
             data: &mut [T],
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -1732,7 +1732,7 @@ pub unsafe fn enqueue_read_buffer<T: OclPrm, L: ClWaitList>(
 ///
 /// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
-pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, L: ClWaitList>(
+pub unsafe fn enqueue_read_buffer_rect<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
             block: bool,
@@ -1744,7 +1744,7 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, L: ClWaitList>(
             host_row_pitch: usize,
             host_slc_pitch: usize,
             data: &mut [T],
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -1791,13 +1791,13 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, L: ClWaitList>(
 
 /// Enqueues a write from host memory, `data`, to device memory referred to by
 /// `buffer`.
-pub fn enqueue_write_buffer<T: OclPrm, L: ClWaitList>(
+pub fn enqueue_write_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
             block: bool,
             offset: usize,
             data: &[T],
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -1828,7 +1828,7 @@ pub fn enqueue_write_buffer<T: OclPrm, L: ClWaitList>(
 ///
 /// [SDK - clEnqueueWriteBufferRect]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteBufferRect.html
 ///
-pub fn enqueue_write_buffer_rect<T: OclPrm, L: ClWaitList>(
+pub fn enqueue_write_buffer_rect<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem, 
             block: bool,
@@ -1840,7 +1840,7 @@ pub fn enqueue_write_buffer_rect<T: OclPrm, L: ClWaitList>(
             host_row_pitch: usize,
             host_slc_pitch: usize,
             data: &[T],
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
     ) -> OclResult<()> 
 {
@@ -1880,13 +1880,13 @@ pub fn enqueue_write_buffer_rect<T: OclPrm, L: ClWaitList>(
 ///
 /// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
 ///
-pub fn enqueue_fill_buffer<T: OclPrm, L: ClWaitList>(
+pub fn enqueue_fill_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem,
             pattern: &[T],
             offset: usize,
             len: usize,
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -1913,14 +1913,14 @@ pub fn enqueue_fill_buffer<T: OclPrm, L: ClWaitList>(
 
 /// [UNTESTED]
 /// Copies the contents of one buffer to another.
-pub fn enqueue_copy_buffer<T: OclPrm, L: ClWaitList>(
+pub fn enqueue_copy_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             src_buffer: &Mem,
             dst_buffer: &Mem,
             src_offset: usize,
             dst_offset: usize,
             len: usize,
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -1950,7 +1950,7 @@ pub fn enqueue_copy_buffer<T: OclPrm, L: ClWaitList>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferRect.html)
 ///
-pub fn enqueue_copy_buffer_rect<T: OclPrm, L: ClWaitList>(
+pub fn enqueue_copy_buffer_rect<T: OclPrm>(
             command_queue: &CommandQueue,
             src_buffer: &Mem, 
             dst_buffer: &Mem, 
@@ -1961,7 +1961,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, L: ClWaitList>(
             src_slc_pitch: usize,
             dst_row_pitch: usize,
             dst_slc_pitch: usize,
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2008,7 +2008,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, L: ClWaitList>(
 /// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
 // pub unsafe fn enqueue_read_image<T>(
-pub unsafe fn enqueue_read_image<T, L: ClWaitList>(
+pub unsafe fn enqueue_read_image<T>(
             command_queue: &CommandQueue,
             image: &Mem,
             block: bool,
@@ -2017,7 +2017,7 @@ pub unsafe fn enqueue_read_image<T, L: ClWaitList>(
             row_pitch: usize,
             slc_pitch: usize,
             data: &mut [T],
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2049,7 +2049,7 @@ pub unsafe fn enqueue_read_image<T, L: ClWaitList>(
 /// Enqueues a command to write to an image or image array object from host memory.
 ///
 /// TODO: Size check (rather than leaving it to API).
-pub fn enqueue_write_image<T, L: ClWaitList>(
+pub fn enqueue_write_image<T>(
             command_queue: &CommandQueue,
             image: &Mem,
             block: bool,
@@ -2058,7 +2058,7 @@ pub fn enqueue_write_image<T, L: ClWaitList>(
             input_row_pitch: usize,
             input_slc_pitch: usize,
             data: &[T],
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2100,13 +2100,13 @@ pub fn enqueue_write_image<T, L: ClWaitList>(
 /// appropriate image channel format and order associated with image.
 ///
 /// TODO: Trait constraints for `T`. Presumably it should be 32bits? Testing needed.
-pub fn enqueue_fill_image<T, L: ClWaitList>(
+pub fn enqueue_fill_image<T>(
             command_queue: &CommandQueue,
             image: &Mem,
             color: &[T],
             origin: [usize; 3],
             region: [usize; 3],
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2133,14 +2133,14 @@ pub fn enqueue_fill_image<T, L: ClWaitList>(
 /// Enqueues a command to copy image objects.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImage.html)
-pub fn enqueue_copy_image<T, L: ClWaitList>(
+pub fn enqueue_copy_image<T>(
             command_queue: &CommandQueue,
             src_image: &Mem,
             dst_image: &Mem,
             src_origin: [usize; 3],
             dst_origin: [usize; 3],
             region: [usize; 3],
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2169,14 +2169,14 @@ pub fn enqueue_copy_image<T, L: ClWaitList>(
 /// Enqueues a command to copy an image object to a buffer object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImageToBuffer.html)
-pub fn enqueue_copy_image_to_buffer<T: OclPrm, L: ClWaitList>(
+pub fn enqueue_copy_image_to_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             src_image: &Mem,
             dst_buffer: &Mem,
             src_origin: [usize; 3],
             region: [usize; 3],
             dst_offset: usize,
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2205,14 +2205,14 @@ pub fn enqueue_copy_image_to_buffer<T: OclPrm, L: ClWaitList>(
 /// Enqueues a command to copy a buffer object to an image object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferToImage.html)
-pub fn enqueue_copy_buffer_to_image<T: OclPrm, L: ClWaitList>(
+pub fn enqueue_copy_buffer_to_image<T: OclPrm>(
             command_queue: &CommandQueue,
             src_buffer: &Mem,
             dst_image: &Mem,
             src_offset: usize,
             dst_origin: [usize; 3],
             region: [usize; 3],            
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2264,14 +2264,14 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm, L: ClWaitList>(
 /// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
 ///
 ///
-pub unsafe fn enqueue_map_buffer<T: OclPrm, L: ClWaitList>(
+pub unsafe fn enqueue_map_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem,
             block: bool,
             map_flags: MapFlags,
             offset: usize,
             size: usize,         
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<*mut c_void> 
 {
@@ -2322,7 +2322,7 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm, L: ClWaitList>(
 /// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
 ///
 ///
-pub unsafe fn enqueue_map_image<T, L: ClWaitList>(
+pub unsafe fn enqueue_map_image<T>(
             command_queue: &CommandQueue,
             image: &Mem,
             block: bool,
@@ -2331,7 +2331,7 @@ pub unsafe fn enqueue_map_image<T, L: ClWaitList>(
             region: [usize; 3],
             row_pitch: usize,
             slc_pitch: usize,        
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<*mut c_void> 
 {
@@ -2373,11 +2373,11 @@ pub unsafe fn enqueue_map_image<T, L: ClWaitList>(
 /// This function will eventually accept a safe wrapper of some sort for the
 /// mapped host memory rather than a pointer.
 ///
-pub fn enqueue_unmap_mem_object<L: ClWaitList>(
+pub fn enqueue_unmap_mem_object(
             command_queue: &CommandQueue,
             memobj: &Mem,
             mapped_ptr: *mut c_void,
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
@@ -2399,12 +2399,12 @@ pub fn enqueue_unmap_mem_object<L: ClWaitList>(
 /// be associated with.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMigrateMemObjects.html)
-pub fn enqueue_migrate_mem_objects<L: ClWaitList>(
+pub fn enqueue_migrate_mem_objects(
             command_queue: &CommandQueue,
             num_mem_objects: u32,
             mem_objects: &[Mem],
             flags: MemMigrationFlags,           
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2433,14 +2433,14 @@ pub fn enqueue_migrate_mem_objects<L: ClWaitList>(
 /// Work dimension/offset sizes *may* eventually be wrapped up in specialized types.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueNDRangeKernel.html)
-pub fn enqueue_kernel<L: ClWaitList + Debug>(
+pub fn enqueue_kernel(
             command_queue: &CommandQueue,
             kernel: &Kernel,
             work_dims: u32,
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: &[usize; 3],
             local_work_dims: Option<[usize; 3]>,
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
             // kernel_name: Option<&str>
         ) -> OclResult<()> 
@@ -2532,10 +2532,10 @@ pub fn enqueue_kernel<L: ClWaitList + Debug>(
 ///
 /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueTask.html
 ///
-pub fn enqueue_task<L: ClWaitList>(
+pub fn enqueue_task(
             command_queue: &CommandQueue,
             kernel: &Kernel,
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
             kernel_name: Option<&str>
         ) -> OclResult<()> 
@@ -2573,9 +2573,9 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
 /// complete, or all previously enqueued commands to complete.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMarkerWithWaitList.html)
-pub fn enqueue_marker_with_wait_list<L: ClWaitList>(
+pub fn enqueue_marker_with_wait_list(
             command_queue: &CommandQueue,          
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
@@ -2595,9 +2595,9 @@ pub fn enqueue_marker_with_wait_list<L: ClWaitList>(
 /// A synchronization point that enqueues a barrier operation.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueBarrierWithWaitList.html)
-pub fn enqueue_barrier_with_wait_list<L: ClWaitList>(
+pub fn enqueue_barrier_with_wait_list(
             command_queue: &CommandQueue,          
-            wait_list: Option<&L>, 
+            wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {

@@ -47,20 +47,20 @@ fn buffer_copy_core() {
 
     // Run the kernel:
     core::enqueue_kernel(&queue, &kernel, 1, None, &dims, 
-        None, None::<&core::EventList>, None).unwrap();
+        None, None, None).unwrap();
 
     // Copy src_buffer to dst_buffer:
     let copy_range = (153, 150000);
-    core::enqueue_copy_buffer::<f32, _>(&queue, &src_buffer, &dst_buffer, 
-        copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None::<&core::EventList>,
+    core::enqueue_copy_buffer::<f32>(&queue, &src_buffer, &dst_buffer, 
+        copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None,
         None).unwrap();
 
     // Read results from src_buffer:
     unsafe { core::enqueue_read_buffer(&queue, &src_buffer, true, 0, &mut src_buffer_vec, 
-        None::<&core::EventList>, None).unwrap() };
+        None, None).unwrap() };
     // Read results from dst_buffer:
     unsafe { core::enqueue_read_buffer(&queue, &dst_buffer, true, 0, &mut dst_buffer_vec, 
-        None::<&core::EventList>, None).unwrap() };
+        None, None).unwrap() };
 
     for i in 0..dims[0] {
         assert_eq!(src_buffer_vec[i], ADDEND);

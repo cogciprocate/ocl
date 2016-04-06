@@ -83,7 +83,7 @@ pub trait ClEventRef<'e> {
 /// count.
 ///
 /// Using references just to be extra paranoid about copying raw pointers.
-pub unsafe trait ClWaitList {
+pub unsafe trait ClWaitList: Debug {
 	unsafe fn as_ptr_ptr(&self) -> *const cl_event;
 	fn count (&self) -> u32;
 }

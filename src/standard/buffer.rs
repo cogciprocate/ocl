@@ -5,9 +5,9 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use core::{self, OclPrm, Mem as MemCore, MemFlags, 
-    MemInfo, MemInfoResult, ClEventPtrNew};
+    MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList};
 use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, MemLen, EventList, SpatialDims};
+use standard::{Queue, MemLen, SpatialDims};
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -86,7 +86,7 @@ pub struct BufferCmd<'b, T: 'b + OclPrm> {
     lock_block: bool,
     kind: BufferCmdKind<'b, T>,
     shape: BufferCmdDataShape,    
-    ewait: Option<&'b EventList>,
+    ewait: Option<&'b ClWaitList>,
     enew: Option<&'b mut ClEventPtrNew>,
     mem_len: usize,
 }
@@ -284,14 +284,14 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait(mut self, ewait: &'b EventList) -> BufferCmd<'b, T> {
+    pub fn ewait(mut self, ewait: &'b ClWaitList) -> BufferCmd<'b, T> {
         self.ewait = Some(ewait);
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt(mut self, ewait: Option<&'b EventList>) -> BufferCmd<'b, T> {
+    pub fn ewait_opt(mut self, ewait: Option<&'b ClWaitList>) -> BufferCmd<'b, T> {
         self.ewait = ewait;
         self
     }
@@ -312,7 +312,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 
 
     // core::enqueue_copy_buffer::<f32, core::EventList>(&queue, &src_buffer, &dst_buffer, 
-    //     copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None::<&core::EventList>,
+    //     copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None,
     //     None).unwrap();
 
     /// Enqueues this command.
@@ -363,7 +363,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                 match self.shape {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.mem_len, len, offset));
-                        core::enqueue_copy_buffer::<T, _>(self.queue, 
+                        core::enqueue_copy_buffer::<T>(self.queue, 
                             self.obj_core, dst_buffer, offset, dst_offset, len, 
                             self.ewait, self.enew)
                     },
@@ -378,7 +378,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                             offset and length must be zero. Ex.: \
                             'cmd().copy(&{{buf_name}}, 0, 0)..'.");
                         }
-                        core::enqueue_copy_buffer_rect::<T, _>(self.queue, self.obj_core, dst_buffer,
+                        core::enqueue_copy_buffer_rect::<T>(self.queue, self.obj_core, dst_buffer,
                         src_origin, dst_origin, region, src_row_pitch, src_slc_pitch, 
                         dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
                     },

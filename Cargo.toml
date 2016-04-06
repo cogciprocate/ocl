@@ -19,7 +19,7 @@ kernel_debug_sleep = []
 # git = "https://github.com/rust-lang-nursery/bitflags.git"
 
 [dependencies]
-# [TODO] Make optional:
+# [TODO]: Make optional feature:
 rand = "0.3"
 num = "0.1"
 libc = "0.2"
@@ -27,7 +27,7 @@ enum_primitive = "0.1"
 bitflags = "0.5"
 
 [dev-dependencies]
-# [TODO] Make optional:
+# [TODO]: Make optional somehow or remove or something:
 image = "0.7"
 find_folder = "0.3"
 colorify = "0.1"

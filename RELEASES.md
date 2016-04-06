@@ -1,3 +1,16 @@
+Version 0.10.0 (UNRELEASED)
+===========================
+
+
+Breaking Changes
+----------------
+* The command builders for kernel, buffer, and image now accept either an
+  `Event` or `EventList` argument when setting the wait list using `::ewait`
+  or `::ewait_opt`. Awkward type ascriptions when not passing a wait list can
+  now be removed due to the use of a trait object argument type.
+
+
+
 Version 0.9.0 (2016-03-28)
 ==========================
 
