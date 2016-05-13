@@ -135,6 +135,19 @@ pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
     KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
     EventInfoResult, ProfilingInfoResult};
 
+pub use self::types::vectors::{ 
+    cl_char2, cl_char3, cl_char4, cl_char8, cl_char16, 
+    cl_uchar2, cl_uchar3, cl_uchar4, cl_uchar8, cl_uchar16, 
+    cl_short2, cl_short3, cl_short4, cl_short8, cl_short16, 
+    cl_ushort2, cl_ushort3, cl_ushort4, cl_ushort8, cl_ushort16, 
+    cl_int2, cl_int3, cl_int4, cl_int8, cl_int16, 
+    cl_uint2, cl_uint3, cl_uint4, cl_uint8, cl_uint16, 
+    cl_long1, cl_long2, cl_long3, cl_long4, cl_long8, cl_long16, 
+    cl_ulong1, cl_ulong2, cl_ulong3, cl_ulong4, cl_ulong8, cl_ulong16, 
+    cl_float2, cl_float3, cl_float4, cl_float8, cl_float16, 
+    cl_double2, cl_double3, cl_double4, cl_double8, cl_double16, 
+};
+
 //=============================================================================
 //================================ CONSTANTS ==================================
 //=============================================================================
@@ -164,13 +177,23 @@ pub type UserDataPtr = *mut libc::c_void;
 ///
 /// TODO: Ensure various types of image color data are encompassed by this 
 /// definition.
-pub trait OclPrm: 
-    Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub + Mul + Div + 
-    Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+pub trait OclPrm: Copy + Clone + Default + Debug {}
 
-impl<T> OclPrm for T where T: 
-    Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub + Mul + Div + 
-    Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+impl<T> OclPrm for T where T: OclScl {}
+// impl<T> OclPrm for T where T: OclVec {}
+
+// impl<T> OclPrm for T where T: OclScl {}
+// impl<T> OclPrm for T where T: OclVec {}
+
+
+pub trait OclScl: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub + 
+    Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+
+impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ 
+    Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+
+
+pub trait OclVec {}
 
 // impl<'a, T> OclPrm for &'a T where T: 
 //     Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
