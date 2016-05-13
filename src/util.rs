@@ -14,7 +14,7 @@ use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use error::{Result as OclResult, Error as OclError};
 
-use core::OclPrm;
+use core::{OclPrm, OclScl};
 
 //=============================================================================
 //================================= MACROS ====================================
@@ -353,7 +353,7 @@ pub fn wrap_vals<T: OclPrm + Integer>(vals: &[T], val_n: T) -> Vec<T> {
 
 /// Returns a vector with length `size` containing random values in the (half-open)
 /// range `[vals.0, vals.1)`.
-pub fn scrambled_vec<T: OclPrm>(vals: (T, T), size: usize) -> Vec<T> {
+pub fn scrambled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
     assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
     let mut rng = rand::weak_rng();
@@ -367,7 +367,7 @@ pub fn scrambled_vec<T: OclPrm>(vals: (T, T), size: usize) -> Vec<T> {
 /// number of integers in the aforementioned range, the integers will repeat. After
 /// being filled with `size` values, the vector is shuffled and the order of its
 /// values is randomized.
-pub fn shuffled_vec<T: OclPrm>(vals: (T, T), size: usize) -> Vec<T> {
+pub fn shuffled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
     let mut vec: Vec<T> = Vec::with_capacity(size);
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
     assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
@@ -386,7 +386,7 @@ pub fn shuffled_vec<T: OclPrm>(vals: (T, T), size: usize) -> Vec<T> {
 
 /// Shuffles the values in a vector using a single pass of Fisher-Yates with a
 /// weak (not cryptographically secure) random number generator.
-pub fn shuffle<T: OclPrm>(vec: &mut [T]) {
+pub fn shuffle<T: OclScl>(vec: &mut [T]) {
     let len = vec.len();
     let mut rng = rand::weak_rng();
     let mut ridx: usize;
@@ -435,7 +435,7 @@ pub fn print_bytes_as_hex(bytes: &Vec<u8>) {
 #[allow(unused_assignments, unused_variables)]
 /// [UNSTABLE]: MAY BE REMOVED AT ANY TIME
 /// Prints a vector to stdout. Used for debugging.
-pub fn print_slice<T: OclPrm>(
+pub fn print_slice<T: OclScl>(
             vec: &[T], 
             every: usize, 
             val_range: Option<(T, T)>, 
@@ -571,13 +571,13 @@ pub fn print_slice<T: OclPrm>(
 }
 
 
-pub fn print_simple<T: OclPrm>(slice: &[T]) {
+pub fn print_simple<T: OclScl>(slice: &[T]) {
     print_slice(slice, 1, None, None, true);
 }
 
 
 
-pub fn print_val_range<T: OclPrm>(slice: &[T], every: usize, val_range: Option<(T, T)>) {
+pub fn print_val_range<T: OclScl>(slice: &[T], every: usize, val_range: Option<(T, T)>) {
     print_slice(slice, every, val_range, None, true);
 }
 

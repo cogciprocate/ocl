@@ -18,7 +18,7 @@ pub mod kernel_arg_ptr;
 
 use rand::{self, Rng};
 use error::{Error as OclError, Result as OclResult};
-use core::OclPrm;
+use core::OclScl;
 
 const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 16;
@@ -50,7 +50,7 @@ fn within_region(coords: [usize; 3], region_ofs: [usize; 3], region_size: [usize
     within
 }
 
-fn verify_vec_rect<T: OclPrm>(origin: [usize; 3], region: [usize; 3], in_region_val: T, 
+fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_val: T, 
             out_region_val: T, vec_dims: [usize; 3], ele_per_coord: usize, vec: &[T], 
             ttl_runs: i32, print: bool) -> OclResult<()>
 {
