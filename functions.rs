@@ -1324,23 +1324,19 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
     let (arg_size, arg_value): (size_t, *const c_void) = match arg {
         KernelArg::Mem(mem_core_ref) => (
             mem::size_of::<cl_mem>() as size_t, 
-            // (mem_obj.as_ptr() as *mut c_void) as *const c_void
             mem_core_ref as *const _ as *const c_void
         ),
         KernelArg::Sampler(smplr_core_ref) => (
             mem::size_of::<cl_sampler>() as size_t, 
-            // (smplr.as_ptr() as *mut c_void) as *const c_void)
             smplr_core_ref as *const _ as *const c_void
         ),
         KernelArg::Scalar(ref scalar) => (
             mem::size_of::<T>() as size_t, 
-            // scalar as *const _ as *const c_void
             scalar as *const T as *const c_void
         ),
-        KernelArg::Vector(slice)=> (
-            (mem::size_of::<T>() * slice.len()) as size_t,
-            // vector as *const _ as *const c_void
-            slice as *const _ as *const c_void
+        KernelArg::Vector(ref scalar) => (
+            mem::size_of::<T>() as size_t, 
+            scalar as *const T as *const c_void
         ),
         KernelArg::Local(length) => (
             (mem::size_of::<T>() * length) as size_t,
