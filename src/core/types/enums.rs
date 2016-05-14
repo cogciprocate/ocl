@@ -85,8 +85,7 @@ pub enum KernelArg<'a, T: 'a + OclPrm> {
     /// Type `T` is ignored.
     SamplerNull,
     Scalar(T),
-    /// This probably has a max len of 4... (4 * 32bits):
-    Vector(&'a [T]),
+    Vector(T),
     /// Length in multiples of T (not bytes).
     Local(&'a usize),
     /// `size`: size in bytes. Type `T` is ignored.

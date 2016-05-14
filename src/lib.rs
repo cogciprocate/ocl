@@ -68,16 +68,16 @@ pub mod aliases {
 	pub use cl_h::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong, 
 		cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
 
-	pub use core::{cl_char2, cl_char3, cl_char4, cl_char8, cl_char16,
-	    cl_uchar2, cl_uchar3, cl_uchar4, cl_uchar8, cl_uchar16, 
-	    cl_short2, cl_short3, cl_short4, cl_short8, cl_short16, 
-	    cl_ushort2, cl_ushort3, cl_ushort4, cl_ushort8, cl_ushort16, 
-	    cl_int2, cl_int3, cl_int4, cl_int8, cl_int16, 
-	    cl_uint2, cl_uint3, cl_uint4, cl_uint8, cl_uint16, 
-	    cl_long1, cl_long2, cl_long3, cl_long4, cl_long8, cl_long16, 
-	    cl_ulong1, cl_ulong2, cl_ulong3, cl_ulong4, cl_ulong8, cl_ulong16, 
-	    cl_float2, cl_float3, cl_float4, cl_float8, cl_float16, 
-	    cl_double2, cl_double3, cl_double4, cl_double8, cl_double16};
+	pub use core::{ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
+	    ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16, 
+	    ClShort2, ClShort3, ClShort4, ClShort8, ClShort16, 
+	    ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16, 
+	    ClInt2, ClInt3, ClInt4, ClInt8, ClInt16, 
+	    ClUint2, ClUint3, ClUint4, ClUint8, ClUint16, 
+	    ClLong1, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16, 
+	    ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16, 
+	    ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16, 
+	    ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16};
 }
 
 pub mod traits {

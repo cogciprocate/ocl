@@ -8,9 +8,11 @@ use core;
 use flags;
 use standard::{ProQue, Image, Sampler};
 use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
+use aliases::{ClInt4};
 use tests;
 
-const ADDEND: [i32; 4] = [1; 4];
+// const ADDEND: [i32; 4] = [1; 4];
+const ADDEND: ClInt4 = ClInt4(1, 1, 1, 1);
 const DIMS: [usize; 3] = [64, 128, 4];
 const TEST_ITERS: i32 = 4;
 
@@ -46,7 +48,7 @@ fn image_ops() {
 
     let sampler = Sampler::new(proque.context(), false, AddressingMode::None, FilterMode::Nearest).unwrap();
 
-    let mut vec = vec![0i32; proque.dims().to_len() * ADDEND.len()];
+    let mut vec = vec![0i32; proque.dims().to_len() * 4];
 
     // Source and destination images and a vec to shuffle data:
     let img_src = Image::<i32>::builder()
@@ -67,13 +69,13 @@ fn image_ops() {
     let kernel_add = proque.create_kernel("add").unwrap()
         // .gws(DIMS)
         .arg_smp(&sampler)
-        .arg_vec(&ADDEND)
+        .arg_vec(ADDEND)
         .arg_img(&img_src)
         .arg_img(&img_dst);
 
     let mut kernel_fill_src = proque.create_kernel("fill").unwrap()
         .arg_smp(&sampler)
-        .arg_vec_named::<i32>("pixel", None)
+        .arg_vec_named::<ClInt4>("pixel", None)
         .arg_img(&img_src);
 
     //========================================================================
@@ -103,14 +105,14 @@ fn image_ops() {
 
     // Verify that the `verify_vec_rect` function isn't letting something slip:
     for idx in 0..vec.len() {
-        assert!(vec[idx] == ADDEND[0] * ttl_runs, "vec[{}]: {}", idx, vec[idx]);
+        assert!(vec[idx] == ADDEND.0 * ttl_runs, "vec[{}]: {}", idx, vec[idx]);
     }
 
     print!("\n");
 
     // Warm up the verify function:
-    tests::verify_vec_rect([0, 0, 0], dims, ADDEND[0] * ttl_runs,
-        ADDEND[0] * (ttl_runs - 1), dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
+    tests::verify_vec_rect([0, 0, 0], dims, ADDEND.0 * ttl_runs,
+        ADDEND.0 * (ttl_runs - 1), dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
 
     //========================================================================
     //========================================================================
@@ -133,7 +135,7 @@ fn image_ops() {
         // Add from src to dst:
         kernel_add.enq().expect("[FIXME]: HANDLE ME!");
         ttl_runs += 1;
-        let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
+        let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
 
         // Read into vec:
         unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true, 
@@ -150,9 +152,9 @@ fn image_ops() {
 
         // Run kernel:
         ttl_runs += 1;
-        let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
-        let cur_pixel = [cur_val, cur_val, cur_val, cur_val];
-        kernel_fill_src.set_arg_vec_named("pixel", &cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
+        let cur_pixel = ClInt4(cur_val, cur_val, cur_val, cur_val);
+        kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         core::enqueue_copy_image::<i32>(proque.queue(), &img_src, &img_dst, 
             origin, origin, region, None, None).unwrap();
@@ -178,7 +180,7 @@ fn image_ops() {
         // Add from src to dst:
         kernel_add.enq().expect("[FIXME]: HANDLE ME!");
         ttl_runs += 1;
-        let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
+        let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
 
         // // Read into vec:
         img_dst.cmd().read(&mut vec).enq().unwrap();
@@ -190,9 +192,9 @@ fn image_ops() {
 
         // Run kernel:
         ttl_runs += 1;
-        let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
-        let cur_pixel = [cur_val, cur_val, cur_val, cur_val];
-        kernel_fill_src.set_arg_vec_named("pixel", &cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
+        let cur_pixel = ClInt4(cur_val, cur_val, cur_val, cur_val);
+        kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         img_src.cmd().copy(&img_dst, origin).enq().unwrap();
 

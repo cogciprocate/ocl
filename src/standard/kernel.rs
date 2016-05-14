@@ -224,7 +224,7 @@ impl Kernel {
 
     /// Adds a new argument specifying the value: `vector` (builder-style). Argument 
     /// is added to the bottom of the argument order.
-    pub fn arg_vec<T: OclPrm>(mut self, vector: &[T]) -> Kernel {
+    pub fn arg_vec<T: OclPrm>(mut self, vector: T) -> Kernel {
         self.new_arg_vec(Some(vector));
         self
     }
@@ -253,7 +253,7 @@ impl Kernel {
     /// (builder-style).
     ///
     /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
-    pub fn arg_vec_named<T: OclPrm>(mut self, name: &'static str, vector_opt: Option<&[T]>) -> Kernel {
+    pub fn arg_vec_named<T: OclPrm>(mut self, name: &'static str, vector_opt: Option<T>) -> Kernel {
         let arg_idx = self.new_arg_vec(vector_opt);
         self.named_args.insert(name, arg_idx);
         self
@@ -305,7 +305,7 @@ impl Kernel {
     ///
     /// ## Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_vec_named<'a, T: OclPrm>(&'a mut self, name: &'static str, vector: &[T]) 
+    pub fn set_arg_vec_named<'a, T: OclPrm>(&'a mut self, name: &'static str, vector: T) 
             -> OclResult<&'a mut Kernel>
     {
         let arg_idx = try!(self.resolve_named_arg_idx(name));
@@ -560,11 +560,17 @@ impl Kernel {
     }
 
     /// Non-builder-style version of `::arg_vec()`.
-    fn new_arg_vec<T: OclPrm>(&mut self, vector_opt: Option<&[T]>) -> u32 {
-        match vector_opt {
-            Some(v) => self.new_arg::<T>(KernelArg::Vector(v)),
-            None => self.new_arg::<T>(KernelArg::Vector(&[Default::default(); 4])),
-        }
+    fn new_arg_vec<T: OclPrm>(&mut self, vector_opt: Option<T>) -> u32 {
+        // match vector_opt {
+        //     Some(v) => self.new_arg::<T>(KernelArg::Vector(v)),
+        //     None => self.new_arg::<T>(KernelArg::Vector(&[Default::default(); 4])),
+        // }
+        let vector = match vector_opt {
+            Some(s) => s,
+            None => Default::default(),
+        };
+
+        self.new_arg::<T>(KernelArg::Vector(vector))
     }
 
     /// Non-builder-style version of `::arg_loc()`.
