@@ -171,33 +171,42 @@ pub type UserDataPtr = *mut libc::c_void;
 //================================== TRAITS ===================================
 //=============================================================================
 
-/// [POSSIBLY INCOMPLETE] A number compatible with OpenCL.
-/// 
-/// TODO: Clean up and evaluate.
+/// A type usable within OpenCL kernels.
 ///
-/// TODO: Ensure various types of image color data are encompassed by this 
-/// definition.
-pub trait OclPrm: Copy + Clone + Default + Debug {}
+/// Includes all of the signed, unsigned, and floating point 8 bit - 64 bit
+/// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
+/// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
+///
+pub unsafe trait OclPrm: PartialEq + Copy + Clone + Default + Debug {}
 
-impl<T> OclPrm for T where T: OclScl {}
-// impl<T> OclPrm for T where T: OclVec {}
-
-// impl<T> OclPrm for T where T: OclScl {}
-// impl<T> OclPrm for T where T: OclVec {}
+unsafe impl<S> OclPrm for S where S: OclScl {}
 
 
-pub trait OclScl: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub + 
+/// A scalar type usable within OpenCL kernels.
+///
+/// Meant as a grab bag of potentially useful traits for dealing with various
+/// scalar primitives. Primarily (solely?) used by testing and formatting
+/// functions.
+///
+/// To describe the contents of buffers, etc., prefer using the more general
+/// `OclPrm` trait unless scalar operations are required.
+/// 
+pub unsafe trait OclScl: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub + 
     Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ 
+unsafe impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ 
     Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 
-pub trait OclVec {}
+/// A vector type usable within OpenCL kernels.
+pub unsafe trait OclVec {}
 
-// impl<'a, T> OclPrm for &'a T where T: 
-//     Copy + Clone + PartialOrd + NumCast + Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+// unsafe impl<P> OclVec for [P] where P: OclPrm {}
 
+
+// impl<'a, T> OclPrm for &'a T where T: Copy + Clone + PartialOrd + NumCast +
+//     Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug +
+//     FromPrimitive + ToPrimitive + SampleRange {}
 
 
 // pub unsafe trait EventPtr: Debug {
