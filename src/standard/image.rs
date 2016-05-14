@@ -294,7 +294,7 @@ pub enum ImageCmdKind<'b, E: 'b> {
     Unspecified,
     Read { data: &'b mut [E] },
     Write { data: &'b [E] },
-    Fill { color: &'b [E] },
+    Fill { color: E },
     Copy { dst_image: &'b MemCore, dst_origin: [usize; 3] },
     CopyToBuffer { buffer: &'b MemCore, dst_origin: usize },
 } 
@@ -547,7 +547,7 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn fill(mut self, color: &'b [E]) -> ImageCmd<'b, E> {
+    pub fn fill(mut self, color: E) -> ImageCmd<'b, E> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::fill(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Fill { color: color }; 

@@ -1,185 +1,335 @@
 //! OpenCL Vector Types
 //!
-//! [UNSTABLE]: These MAY be integrated / replaced with whatever becomes the
-//! official rust SIMD library. As such, additional methods such as .xyzw,
-//! .s0, .s1, .lo, etc. are not currently planned for addition.
-//!
 //! These types will have the same memory layout no matter which `repr` is
-//! used. The default (`repr(rust)`) will be used until SIMD support is
-//! stable and its use can be evaluated.
+//! used. The default (`repr(rust)`) will be used until SIMD support is stable
+//! and its use can be evaluated (shouldn't matter at all though). If using
+//! any of these types *within* another struct, memory alignment must be
+//! managed manually. If using within a `Vec` (typical usage, i.e.:
+//! `Vec<cl_float4>`) you don't need to worry about it.
 //!
-//! If anyone wants to implement `Index` on all of these types, please feel
-//! free to do so. Same goes for .x, .y, .s0, .sA, .lo, etc. 
+//! [TODO]: Create a macro to implement `Index`, mathematical operations such
+//! as `Add`, `Mul`, etc., and whatever else.
+//!
+//! Not sure about swizzling interfaces or if they'll ever be realistic.
+//! Obviously for now just use .0, .1, .2, etc.
+//!
+//!
 
 #![allow(non_camel_case_types)]
 
-#[derive(Debug, Clone, Copy)]
+use core::{OclPrm, OclVec};
+use std::ops::{Add};
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
 pub struct cl_char2(pub i8, pub i8);
+unsafe impl OclPrm for cl_char2 {}
+unsafe impl OclVec for cl_char2 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_char3(i8, i8, i8, i8);
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_char3(pub i8, pub i8, pub i8, pub i8);
+// unsafe impl OclPrm for cl_char3 {}
+// unsafe impl OclVec for cl_char3 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_char4(i8, i8, i8, i8);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_char4(pub i8, pub i8, pub i8, pub i8);
+unsafe impl OclPrm for cl_char4 {}
+unsafe impl OclVec for cl_char4 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_char8(i8, i8, i8, i8, i8, i8, i8, i8);
+pub type cl_char3 = cl_char4;
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_char16(i8, i8, i8, i8, i8, i8, i8, i8, i8, i8, i8, i8, i8, i8, i8, i8);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_char8(pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8);
+unsafe impl OclPrm for cl_char8 {}
+unsafe impl OclVec for cl_char8 {}
 
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uchar2(u8, u8);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uchar3(u8, u8, u8, u8);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uchar4(u8, u8, u8, u8);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uchar8(u8, u8, u8, u8, u8, u8, u8, u8);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uchar16(u8, u8, u8, u8, u8, u8, u8, u8, u8, u8, u8, u8, u8, u8, u8, u8);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_char16(pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, 
+	pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8);
+unsafe impl OclPrm for cl_char16 {}
+unsafe impl OclVec for cl_char16 {}
 
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_short2(i16, i16);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_uchar2(pub u8, pub u8);
+unsafe impl OclPrm for cl_uchar2 {}
+unsafe impl OclVec for cl_uchar2 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_short3(i16, i16, i16, i16);
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_uchar3(pub u8, pub u8, pub u8, pub u8);
+// unsafe impl OclPrm for cl_uchar3 {}
+// unsafe impl OclVec for cl_uchar3 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_short4(i16, i16, i16, i16);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_uchar4(pub u8, pub u8, pub u8, pub u8);
+unsafe impl OclPrm for cl_uchar4 {}
+unsafe impl OclVec for cl_uchar4 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_short8(i16, i16, i16, i16, i16, i16, i16, i16);
+pub type cl_uchar3 = cl_uchar4;
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_short16(i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16, i16);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_uchar8(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
+unsafe impl OclPrm for cl_uchar8 {}
+unsafe impl OclVec for cl_uchar8 {}
 
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ushort2(u16, u16);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ushort3(u16, u16, u16, u16);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ushort4(u16, u16, u16, u16);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ushort8(u16, u16, u16, u16, u16, u16, u16, u16);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ushort16(u16, u16, u16, u16, u16, u16, u16, u16, u16, u16, u16, u16, u16, u16, u16, u16);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_uchar16(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, 
+	pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
+unsafe impl OclPrm for cl_uchar16 {}
+unsafe impl OclVec for cl_uchar16 {}
 
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_int2(i32, i32);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_short2(pub i16, pub i16);
+unsafe impl OclPrm for cl_short2 {}
+unsafe impl OclVec for cl_short2 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_int3(i32, i32, i32, i32);
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_short3(pub i16, pub i16, pub i16, pub i16);
+// unsafe impl OclPrm for cl_short3 {}
+// unsafe impl OclVec for cl_short3 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_int4(i32, i32, i32, i32);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_short4(pub i16, pub i16, pub i16, pub i16);
+unsafe impl OclPrm for cl_short4 {}
+unsafe impl OclVec for cl_short4 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_int8(i32, i32, i32, i32, i32, i32, i32, i32);
+pub type cl_short3 = cl_short4;
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_int16(i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_short8(pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16);
+unsafe impl OclPrm for cl_short8 {}
+unsafe impl OclVec for cl_short8 {}
 
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uint2(u32, u32);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uint3(u32, u32, u32, u32);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uint4(u32, u32, u32, u32);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uint8(u32, u32, u32, u32, u32, u32, u32, u32);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_uint16(u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32, u32);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_short16(pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, 
+	pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16);
+unsafe impl OclPrm for cl_short16 {}
+unsafe impl OclVec for cl_short16 {}
 
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_long1(i64);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ushort2(pub u16, pub u16);
+unsafe impl OclPrm for cl_ushort2 {}
+unsafe impl OclVec for cl_ushort2 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_long2(i64, i64);
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_ushort3(pub u16, pub u16, pub u16, pub u16);
+// unsafe impl OclPrm for cl_ushort3 {}
+// unsafe impl OclVec for cl_ushort3 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_long3(i64, i64, i64, i64);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ushort4(pub u16, pub u16, pub u16, pub u16);
+unsafe impl OclPrm for cl_ushort4 {}
+unsafe impl OclVec for cl_ushort4 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_long4(i64, i64, i64, i64);
+pub type cl_ushort3 = cl_ushort4;
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_long8(i64, i64, i64, i64, i64, i64, i64, i64);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ushort8(pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16);
+unsafe impl OclPrm for cl_ushort8 {}
+unsafe impl OclVec for cl_ushort8 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_long16(i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64, i64);
-
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ulong1(u64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ulong2(u64, u64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ulong3(u64, u64, u64, u64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ulong4(u64, u64, u64, u64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ulong8(u64, u64, u64, u64, u64, u64, u64, u64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_ulong16(u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64, u64);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ushort16(pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, 
+	pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16);
+unsafe impl OclPrm for cl_ushort16 {}
+unsafe impl OclVec for cl_ushort16 {}
 
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_float2(f32, f32);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_int2(pub i32, pub i32);
+unsafe impl OclPrm for cl_int2 {}
+unsafe impl OclVec for cl_int2 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_float3(f32, f32, f32, f32);
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_int3(pub i32, pub i32, pub i32, pub i32);
+// unsafe impl OclPrm for cl_int3 {}
+// unsafe impl OclVec for cl_int3 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_float4(f32, f32, f32, f32);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_int4(pub i32, pub i32, pub i32, pub i32);
+unsafe impl OclPrm for cl_int4 {}
+unsafe impl OclVec for cl_int4 {}
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_float8(f32, f32, f32, f32, f32, f32, f32, f32);
+pub type cl_int3 = cl_int4;
 
-#[derive(Debug, Clone, Copy)]
-pub struct cl_float16(f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_int8(pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32);
+unsafe impl OclPrm for cl_int8 {}
+unsafe impl OclVec for cl_int8 {}
 
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_double2(f64, f64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_double3(f64, f64, f64, f64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_double4(f64, f64, f64, f64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_double8(f64, f64, f64, f64, f64, f64, f64, f64);
-
-#[derive(Debug, Clone, Copy)]
-pub struct cl_double16(f64, f64, f64, f64, f64, f64, f64, f64, f64, f64, f64, f64, f64, f64, f64, f64);
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_int16(pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, 
+	pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32);
+unsafe impl OclPrm for cl_int16 {}
+unsafe impl OclVec for cl_int16 {}
 
 
-// VECTOR TYPE COMPLETE LIST: (taken from cl_platform.h v1.2):
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_uint2(pub u32, pub u32);
+unsafe impl OclPrm for cl_uint2 {}
+unsafe impl OclVec for cl_uint2 {}
+
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_uint3(pub u32, pub u32, pub u32, pub u32);
+// unsafe impl OclPrm for cl_uint3 {}
+// unsafe impl OclVec for cl_uint3 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_uint4(pub u32, pub u32, pub u32, pub u32);
+unsafe impl OclPrm for cl_uint4 {}
+unsafe impl OclVec for cl_uint4 {}
+
+pub type cl_uint3 = cl_uint4;
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_uint8(pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32);
+unsafe impl OclPrm for cl_uint8 {}
+unsafe impl OclVec for cl_uint8 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_uint16(pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, 
+	pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32);
+unsafe impl OclPrm for cl_uint16 {}
+unsafe impl OclVec for cl_uint16 {}
+
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_long1(pub i64);
+unsafe impl OclPrm for cl_long1 {}
+unsafe impl OclVec for cl_long1 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_long2(pub i64, pub i64);
+unsafe impl OclPrm for cl_long2 {}
+unsafe impl OclVec for cl_long2 {}
+
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_long3(pub i64, pub i64, pub i64, pub i64);
+// unsafe impl OclPrm for cl_long3 {}
+// unsafe impl OclVec for cl_long3 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_long4(pub i64, pub i64, pub i64, pub i64);
+unsafe impl OclPrm for cl_long4 {}
+unsafe impl OclVec for cl_long4 {}
+
+pub type cl_long3 = cl_long4;
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_long8(pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64);
+unsafe impl OclPrm for cl_long8 {}
+unsafe impl OclVec for cl_long8 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_long16(pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, 
+	pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64);
+unsafe impl OclPrm for cl_long16 {}
+unsafe impl OclVec for cl_long16 {}
+
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ulong1(pub u64);
+unsafe impl OclPrm for cl_ulong1 {}
+unsafe impl OclVec for cl_ulong1 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ulong2(pub u64, pub u64);
+unsafe impl OclPrm for cl_ulong2 {}
+unsafe impl OclVec for cl_ulong2 {}
+
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_ulong3(pub u64, pub u64, pub u64, pub u64);
+// unsafe impl OclPrm for cl_ulong3 {}
+// unsafe impl OclVec for cl_ulong3 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ulong4(pub u64, pub u64, pub u64, pub u64);
+unsafe impl OclPrm for cl_ulong4 {}
+unsafe impl OclVec for cl_ulong4 {}
+
+pub type cl_ulong3 = cl_ulong4;
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ulong8(pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64);
+unsafe impl OclPrm for cl_ulong8 {}
+unsafe impl OclVec for cl_ulong8 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_ulong16(pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, 
+	pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64);
+unsafe impl OclPrm for cl_ulong16 {}
+unsafe impl OclVec for cl_ulong16 {}
+
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_float2(pub f32, pub f32);
+unsafe impl OclPrm for cl_float2 {}
+unsafe impl OclVec for cl_float2 {}
+
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_float3(pub f32, pub f32, pub f32, pub f32);
+// unsafe impl OclPrm for cl_float3 {}
+// unsafe impl OclVec for cl_float3 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_float4(pub f32, pub f32, pub f32, pub f32);
+unsafe impl OclPrm for cl_float4 {}
+unsafe impl OclVec for cl_float4 {}
+
+impl Add<cl_float4> for cl_float4 {
+	type Output = cl_float4;
+
+	fn add(self, rhs: cl_float4) -> cl_float4 {
+		cl_float4(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2, self.3 + rhs.3)
+	}
+}
+
+pub type cl_float3 = cl_float4;
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_float8(pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32);
+unsafe impl OclPrm for cl_float8 {}
+unsafe impl OclVec for cl_float8 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_float16(pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, 
+	pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32);
+unsafe impl OclPrm for cl_float16 {}
+unsafe impl OclVec for cl_float16 {}
+
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_double2(pub f64, pub f64);
+unsafe impl OclPrm for cl_double2 {}
+unsafe impl OclVec for cl_double2 {}
+
+// #[derive(PartialEq, Debug, Clone, Copy, Default)]
+// pub struct cl_double3(pub f64, pub f64, pub f64, pub f64);
+// unsafe impl OclPrm for cl_double3 {}
+// unsafe impl OclVec for cl_double3 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_double4(pub f64, pub f64, pub f64, pub f64);
+unsafe impl OclPrm for cl_double4 {}
+unsafe impl OclVec for cl_double4 {}
+
+pub type cl_double3 = cl_double4;
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_double8(pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64);
+unsafe impl OclPrm for cl_double8 {}
+unsafe impl OclVec for cl_double8 {}
+
+#[derive(PartialEq, Debug, Clone, Copy, Default)]
+pub struct cl_double16(pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, 
+	pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64);
+unsafe impl OclPrm for cl_double16 {}
+unsafe impl OclVec for cl_double16 {}
+
+
+
+// VECTOR TYPE COMPLETE LIST (with redundancies): (taken from cl_platform.h v1.2):
 
 // typedef vector unsigned char     __cl_uchar16;
 // typedef vector signed char       __cl_char16;

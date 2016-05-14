@@ -25,7 +25,7 @@ pub enum BufferCmdKind<'b, T: 'b> {
     Read { data: &'b mut [T] },
     Write { data: &'b [T] },
     Copy { dst_buffer: &'b MemCore, dst_offset: usize, len: usize },
-    Fill { pattern: &'b [T], len: Option<usize> },
+    Fill { pattern: T, len: Option<usize> },
     CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
 } 
 
@@ -235,6 +235,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// If `.block(..)` has been set it will be ignored.
     ///
+    ///
     /// ## Panics
     ///
     /// The command operation kind must not have already been specified
@@ -252,11 +253,20 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// If `.block(..)` has been set it will be ignored.
     ///
+    /// `pattern` is the vector or scalar value to repeat contiguously. `len`
+    /// is the overall size expressed in units of sizeof(T) If `len` is `None`,
+    /// the pattern will fill the entire buffer, otherwise, `len` must be
+    /// divisible by sizeof(`pattern`).
+    ///
+    /// As an example if you want to fill the first 100 `cl_float4` sized
+    /// elements of a buffer, `pattern` would be a `cl_float4` and `len` would
+    /// be 400.
+    ///
     /// ## Panics
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn fill(mut self, pattern: &'b [T], len: Option<usize>) -> BufferCmd<'b, T> {
+    pub fn fill(mut self, pattern: T, len: Option<usize>) -> BufferCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Fill { pattern: pattern, len: len }; 
@@ -391,7 +401,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                             Some(l) => l,
                             None => self.mem_len,
                         };
-                        try!(check_len(self.mem_len, pattern.len() * len, offset));
+                        try!(check_len(self.mem_len, len, offset));
                         core::enqueue_fill_buffer(self.queue, self.obj_core, pattern, 
                             offset, len, self.ewait, self.enew)
                     },
@@ -445,7 +455,8 @@ impl<T: OclPrm> Buffer<T> {
             _data: PhantomData,
         };
         
-        if data.is_none() { try!(buf.cmd().fill(&[Default::default()], None).enq()); }
+        // if data.is_none() { try!(buf.cmd().fill(&[Default::default()], None).enq()); }
+        if data.is_none() { try!(buf.cmd().fill(Default::default(), None).enq()); }
         Ok(buf)
     }
 

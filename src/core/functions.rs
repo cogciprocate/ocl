@@ -1883,14 +1883,14 @@ pub fn enqueue_write_buffer_rect<T: OclPrm>(
 pub fn enqueue_fill_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem,
-            pattern: &[T],
+            pattern: T,
             offset: usize,
             len: usize,
             wait_list: Option<&ClWaitList>, 
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> 
 {
-    let pattern_size = pattern.len() * mem::size_of::<T>();
+    let pattern_size = mem::size_of::<T>();
     let offset_bytes = offset * mem::size_of::<T>();
     let size_bytes = len * mem::size_of::<T>();
 
@@ -1900,7 +1900,7 @@ pub fn enqueue_fill_buffer<T: OclPrm>(
     let errcode = unsafe { cl_h::clEnqueueFillBuffer(
         command_queue.as_ptr(),
         buffer.as_ptr(), 
-        pattern as *const _ as *const c_void, 
+        &pattern as *const _ as *const c_void, 
         pattern_size,
         offset_bytes,
         size_bytes,
