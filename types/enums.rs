@@ -32,6 +32,7 @@
 #![allow(dead_code)]
 
 use std;
+use std::mem;
 // use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
@@ -1078,7 +1079,7 @@ impl Into<String> for ProfilingInfoResult {
 fn to_string_retarded(v: &Vec<u8>) -> String {
     if v.len() == 4 {
         util::bytes_to_u32(&v[..]).to_string()
-    } else if v.len() == 8 {
+    } else if v.len() == 8 && mem::size_of::<usize>() == 8 {
         unsafe { util::bytes_to::<usize>(&v[..]).to_string() }
     } else if v.len() == 3 * 8 {
         unsafe { format!("{:?}", util::bytes_to_vec::<usize>(&v[..])) }
