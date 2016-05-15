@@ -3,7 +3,7 @@ name = "ocl"
 version = "0.10.0"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "colorify 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "colorify 0.2.1",
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "find_folder 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -35,8 +35,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "colorify"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.2.1"
 
 [[package]]
 name = "deque"
