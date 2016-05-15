@@ -85,7 +85,7 @@
 //! [`src/core/functions.rs`]: /ocl/src/ocl/src/core/functions.rs.html
 
 mod functions;
-mod types;
+pub mod types;
 
 use std::fmt::{Display, Debug};
 // use std::num::{Zero, One};
