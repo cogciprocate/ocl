@@ -15,6 +15,7 @@ pub mod buffer_fill;
 pub mod clear_completed;
 pub mod concurrent; 
 pub mod kernel_arg_ptr;
+pub mod vector_types;
 
 use rand::{self, Rng};
 use error::{Error as OclError, Result as OclResult};
