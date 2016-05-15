@@ -1,12 +1,12 @@
-//! OpenCL Vector Types
+//! OpenCL vector types.
 //!
-//! These types should have the same memory layout no matter which `repr` is
-//! used. The default (`repr(rust)` which should be exactly the same as
-//! `repr(C)` in this case) will be used until SIMD support is stable and its
-//! use can be evaluated. If using any of these types *within* another struct,
-//! memory alignment must be managed manually using spacing, etc. If using
-//! within a `Vec` (typical usage, i.e.: `Vec<ClFloat4>`) you don't need to
-//! worry about it.
+//! These types *should* have the same memory layout no matter which `repr` is
+//! used. The default (`repr(rust)`) will be used until SIMD support is stable
+//! and its use can be evaluated. If using any of these types *within* another
+//! struct, memory alignment must be managed manually using spacing, etc.
+//! (OPEN QUESTION: Does using repr(simd) somehow help in this case?). If
+//! using within a `Vec` (typical usage, i.e.: `Vec<ClFloat4>`) you don't need
+//! to worry about it.
 //!
 //! [TODO]: Create a macro to implement `Index`, mathematical operations such
 //! as `Add`, `Mul`, etc., and whatever else.

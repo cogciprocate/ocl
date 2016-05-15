@@ -9,7 +9,7 @@ use std::ops::Range;
 use std::mem;
 use std::ptr;
 use std::iter;
-use num::{Integer, FromPrimitive, ToPrimitive};
+use num::{Integer, FromPrimitive};
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use error::{Result as OclResult, Error as OclError};
