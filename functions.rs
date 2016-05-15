@@ -11,7 +11,6 @@
 
 use std::ptr;
 use std::mem;
-use std::io::Read;
 use std::ffi::CString;
 use std::iter;
 // #[cfg(any(feature="kernel_debug_sleep", target_os="windows"))] use std::thread;
