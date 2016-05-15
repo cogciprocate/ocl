@@ -10,8 +10,9 @@ const DATASET_SIZE: usize = 2 << 20;
 fn test_vector_types() {
 
     let src = r#"
-        __kernel void add_float3(__global float3* buffer, float3 addend) {
-            buffer[get_global_id(0)] += addend + (float3)get_global_id(0);
+        __kernel void add_float3(__global float4* buffer, float4 addend) {
+            buffer[get_global_id(0)] += addend + 
+                (float4)(get_global_id(0), get_global_id(0), get_global_id(0), 0.0);
         }
     "#;
 
