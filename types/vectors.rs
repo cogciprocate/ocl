@@ -400,6 +400,12 @@ impl From<[f32; 3]> for ClFloat3 {
 	}
 }
 
+impl From<(f32, f32, f32)> for ClFloat3 {
+	fn from(f: (f32, f32, f32)) -> Self {
+		ClFloat3(f.0, f.1, f.2, 0.0)
+	}
+}
+
 unsafe impl OclPrm for ClFloat3 {}
 unsafe impl OclVec for ClFloat3 {}
 
