@@ -30,7 +30,7 @@ bitflags = "0.5"
 # [TODO]: Make optional somehow or remove or something:
 image = "0.7"
 find_folder = "0.3"
-colorify = "0.1"
+colorify = "0.2"
 time = "0.1"
 
 
