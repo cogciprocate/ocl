@@ -146,7 +146,7 @@ multiple host threads, multiple devices, or asynchronous callbacks may not
 work on NVIDIA hardware. Until NVIDIA's implementation is corrected, tests and
 examples involving multiple asynchronous tasks may occasionally fail or
 produce erroneous results (you are suffering from this if the `events.rs` test
-fails when you run `cargo test`). It's reccommended that you use Intel or AMD
+fails when you run `cargo test`). It's recommended that you use Intel or AMD
 CPU drivers in the meanwhile and switch if/when NVIDIA ever gets their act
 together.
 

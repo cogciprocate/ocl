@@ -4,6 +4,7 @@ Version 0.10.0 (UNRELEASED)
 New Features
 ------------
 * [FIXME: ELABORATE]: Vector types.
+* MSVC support.
 
 
 Breaking Changes
@@ -13,6 +14,7 @@ Breaking Changes
   or `::ewait_opt`. Awkward type ascriptions when not passing a wait list can
   now be removed due to the use of a trait object argument type.
 * [FIXME: ELABORATE]: Fill now takes a vector type.
+* [FIXME: ELABORATE]: `Kernel::arg_vec` now takes a vector type.
 
 
 
