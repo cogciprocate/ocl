@@ -6,8 +6,8 @@
 //! * ContextInfoResult
 //!
 //!
-//! #### Incomplete 
-//! 
+//! #### Incomplete
+//!
 //! The following are using placeholder variants and types meaning everything
 //! is just stored and formatted as raw bytes.
 //!
@@ -23,10 +23,10 @@
 //! * KernelWorkGroupInfoResult
 //! * EventInfoResult
 //! * ProfilingInfoResult
-//! 
+//!
 //!
 //! Bleh. Implementing these sucks. On hold for a while.
-//! 
+//!
 //! TODO: ADD ERROR VARIANT FOR EACH OF THE RESULT ENUMS.
 
 #![allow(dead_code)]
@@ -38,11 +38,11 @@ use std::convert::Into;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
-use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, 
+use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo,
     ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
-     Mem, MemInfo, Sampler, SamplerInfo, 
-    ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
-    KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo, 
+     Mem, MemInfo, Sampler, SamplerInfo,
+    ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
+    KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo,
     ImageFormat, EventInfo, ProfilingInfo,};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
@@ -55,7 +55,7 @@ pub type TemporaryPlaceholderType = ();
 
 /// [UNSAFE] Kernel argument option type.
 ///
-/// The type argument `T` is ignored for `Mem`, `Sampler`, and `UnsafePointer` 
+/// The type argument `T` is ignored for `Mem`, `Sampler`, and `UnsafePointer`
 /// (just put `usize` or anything).
 ///
 /// ## Safety
@@ -76,7 +76,7 @@ pub type TemporaryPlaceholderType = ();
 ///   for example, which is itself a `*mut libc::c_void`). This is made more
 ///   complicated by the fact that the pointer can also be a pointer to a
 ///   scalar (ex: `*const u32`, etc.). See the [SDK docs] for more details.
-/// 
+///
 /// [SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 #[derive(Debug)]
 pub enum KernelArg<'a, T: 'a + OclPrm> {
@@ -176,7 +176,7 @@ pub enum PlatformInfoResult {
 }
 
 impl PlatformInfoResult {
-    pub fn from_bytes(request: PlatformInfo, result: OclResult<Vec<u8>>) 
+    pub fn from_bytes(request: PlatformInfo, result: OclResult<Vec<u8>>)
             -> PlatformInfoResult
     {
         // match result_string {
@@ -198,7 +198,7 @@ impl PlatformInfoResult {
         // }
 
         match result {
-            Ok(result) => { 
+            Ok(result) => {
                 let string = match String::from_utf8(result) {
                     Ok(s) => s,
                     Err(err) => return PlatformInfoResult::Error(Box::new(OclError::from(err))),
@@ -210,7 +210,7 @@ impl PlatformInfoResult {
                     PlatformInfo::Name => PlatformInfoResult::Name(string),
                     PlatformInfo::Vendor => PlatformInfoResult::Vendor(string),
                     PlatformInfo::Extensions => PlatformInfoResult::Extensions(string),
-                } 
+                }
             }
             Err(err) => PlatformInfoResult::Error(Box::new(err)),
         }
@@ -336,7 +336,7 @@ pub enum DeviceInfoResult {
 }
 
 impl DeviceInfoResult {
-    pub fn from_bytes(request: DeviceInfo, result: OclResult<Vec<u8>>) 
+    pub fn from_bytes(request: DeviceInfo, result: OclResult<Vec<u8>>)
             -> DeviceInfoResult
     {
         match result {
@@ -463,8 +463,8 @@ pub enum CommandQueueInfoResult {
 }
 
 impl CommandQueueInfoResult {
-    pub fn from_bytes(request: CommandQueueInfo, result: OclResult<Vec<u8>>) 
-            -> CommandQueueInfoResult 
+    pub fn from_bytes(request: CommandQueueInfo, result: OclResult<Vec<u8>>)
+            -> CommandQueueInfoResult
     {
         match result {
             Ok(result) => { match request {
@@ -536,8 +536,8 @@ pub enum MemInfoResult {
 
 
 impl MemInfoResult {
-    pub fn from_bytes(request: MemInfo, result: OclResult<Vec<u8>>) 
-            -> MemInfoResult 
+    pub fn from_bytes(request: MemInfo, result: OclResult<Vec<u8>>)
+            -> MemInfoResult
     {
         match result {
             Ok(result) => { match request {
@@ -646,8 +646,8 @@ pub enum SamplerInfoResult {
 }
 
 impl SamplerInfoResult {
-    pub fn from_bytes(request: SamplerInfo, result: OclResult<Vec<u8>>) 
-            -> SamplerInfoResult 
+    pub fn from_bytes(request: SamplerInfo, result: OclResult<Vec<u8>>)
+            -> SamplerInfoResult
     {
         match result {
             Ok(result) => { match request {
@@ -700,8 +700,8 @@ pub enum ProgramInfoResult {
 }
 
 impl ProgramInfoResult {
-    pub fn from_bytes(request: ProgramInfo, result: OclResult<Vec<u8>>) 
-            -> ProgramInfoResult 
+    pub fn from_bytes(request: ProgramInfo, result: OclResult<Vec<u8>>)
+            -> ProgramInfoResult
     {
         match result {
             Ok(result) => { match request {
@@ -748,8 +748,8 @@ pub enum ProgramBuildInfoResult {
 }
 
 impl ProgramBuildInfoResult {
-    pub fn from_bytes(request: ProgramBuildInfo, result: OclResult<Vec<u8>>) 
-            -> ProgramBuildInfoResult 
+    pub fn from_bytes(request: ProgramBuildInfo, result: OclResult<Vec<u8>>)
+            -> ProgramBuildInfoResult
     {
         match result {
             Ok(result) => { match request {
@@ -871,7 +871,7 @@ pub enum KernelArgInfoResult {
 }
 
 impl KernelArgInfoResult {
-    pub fn from_bytes(request: KernelArgInfo, result: OclResult<Vec<u8>>) 
+    pub fn from_bytes(request: KernelArgInfo, result: OclResult<Vec<u8>>)
             -> KernelArgInfoResult
     {
         match result {
@@ -957,7 +957,7 @@ pub enum KernelWorkGroupInfoResult {
 }
 
 impl KernelWorkGroupInfoResult {
-    pub fn from_bytes(request: KernelWorkGroupInfo, result: OclResult<Vec<u8>>) 
+    pub fn from_bytes(request: KernelWorkGroupInfo, result: OclResult<Vec<u8>>)
             -> KernelWorkGroupInfoResult
     {
         match result {
@@ -1031,8 +1031,8 @@ pub enum EventInfoResult {
 }
 
 impl EventInfoResult {
-    pub fn from_bytes(request: EventInfo, result: OclResult<Vec<u8>>) 
-            -> EventInfoResult 
+    pub fn from_bytes(request: EventInfo, result: OclResult<Vec<u8>>)
+            -> EventInfoResult
     {
         match result {
             Ok(result) => { match request {
@@ -1040,7 +1040,7 @@ impl EventInfoResult {
                     let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
                     EventInfoResult::CommandQueue(unsafe { CommandQueue::from_copied_ptr(ptr) })
                 },
-                EventInfo::CommandType => { 
+                EventInfo::CommandType => {
                     let code = unsafe { util::bytes_into::<u32>(result) };
                     match CommandType::from_u32(code) {
                         Some(ces) => EventInfoResult::CommandType(ces),
@@ -1107,8 +1107,8 @@ pub enum ProfilingInfoResult {
 }
 
 impl ProfilingInfoResult {
-    pub fn from_bytes(request: ProfilingInfo, result: OclResult<Vec<u8>>) 
-            -> ProfilingInfoResult 
+    pub fn from_bytes(request: ProfilingInfo, result: OclResult<Vec<u8>>)
+            -> ProfilingInfoResult
     {
         match result {
             Ok(result) => { match request {
