@@ -70,14 +70,14 @@
 //!
 //!
 //! ## `core` Stands Alone
-//!	
+//!
 //! This module may eventually be moved to its own separate crate (with its
 //! dependencies `cl_h` and `error`).
 //!
 //!
-//! [issue]: https://github.com/cogciprocate/ocl/issues 
-//! [`cl_h`]: /ocl/ocl/cl_h/index.html 
-//! [`core`]: /ocl/ocl/core/index.html 
+//! [issue]: https://github.com/cogciprocate/ocl/issues
+//! [`cl_h`]: /ocl/ocl/cl_h/index.html
+//! [`core`]: /ocl/ocl/core/index.html
 //! [`Error`]: /ocl/ocl/enum.Error.html
 //! [`EventRaw::as_ptr`]: /ocl/ocl/core/struct.EventRaw.html#method.as_ptr
 //! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
@@ -99,7 +99,7 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
     release_device, create_context, create_context_from_type, retain_context,
     release_context, get_context_info, create_command_queue, retain_command_queue,
-    release_command_queue, get_command_queue_info, create_buffer,
+    release_command_queue, get_command_queue_info, create_buffer, create_from_gl_buffer,
     create_sub_buffer, create_image, retain_mem_object, release_mem_object,
     get_supported_image_formats, get_mem_object_info, get_image_info,
     set_mem_object_destructor_callback, create_sampler, retain_sampler,
@@ -135,17 +135,17 @@ pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
     KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
     EventInfoResult, ProfilingInfoResult};
 
-pub use self::types::vectors::{ 
-    ClChar2, ClChar3, ClChar4, ClChar8, ClChar16, 
-    ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16, 
-    ClShort2, ClShort3, ClShort4, ClShort8, ClShort16, 
-    ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16, 
-    ClInt2, ClInt3, ClInt4, ClInt8, ClInt16, 
-    ClUint2, ClUint3, ClUint4, ClUint8, ClUint16, 
-    ClLong1, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16, 
-    ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16, 
-    ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16, 
-    ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16, 
+pub use self::types::vectors::{
+    ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
+    ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16,
+    ClShort2, ClShort3, ClShort4, ClShort8, ClShort16,
+    ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16,
+    ClInt2, ClInt3, ClInt4, ClInt8, ClInt16,
+    ClUint2, ClUint3, ClUint4, ClUint8, ClUint16,
+    ClLong1, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
+    ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
+    ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
+    ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16,
 };
 
 //=============================================================================
@@ -162,7 +162,7 @@ pub const DEVICES_MAX: u32 = 64;
 //=============================================================================
 
 pub type EventCallbackFn = extern "C" fn (cl_h::cl_event, i32, *mut libc::c_void);
-pub type CreateContextCallbackFn = extern "C" fn (*const libc::c_char, *const libc::c_void, 
+pub type CreateContextCallbackFn = extern "C" fn (*const libc::c_char, *const libc::c_void,
     libc::size_t, *mut libc::c_void);
 pub type BuildProgramCallbackFn = extern "C" fn (*mut libc::c_void, *mut libc::c_void);
 pub type UserDataPtr = *mut libc::c_void;
@@ -190,11 +190,11 @@ unsafe impl<S> OclPrm for S where S: OclScl {}
 ///
 /// To describe the contents of buffers, etc., prefer using the more general
 /// `OclPrm` trait unless scalar operations are required.
-/// 
-pub unsafe trait OclScl: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub + 
+///
+pub unsafe trait OclScl: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub +
     Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-unsafe impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ 
+unsafe impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/
     Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 
@@ -212,14 +212,14 @@ pub unsafe trait OclVec {}
 // pub unsafe trait EventPtr: Debug {
 //     unsafe fn as_ptr(&self) -> cl_event {
 //         *(self as *const Self as *const _ as *const cl_event)
-//     }   
+//     }
 // }
 
 // /// Types which are physically arrays of cl_events.
 // pub unsafe trait EventListPtr: Debug {
 //     unsafe fn as_ptr(&self) -> *const cl_event {
 //         self as *const Self as *const _ as *const cl_event
-//     }   
+//     }
 // }
 
 //=============================================================================
@@ -227,7 +227,7 @@ pub unsafe trait OclVec {}
 //=============================================================================
 
 bitflags! {
-	/// cl_device_type - bitfield 
+	/// cl_device_type - bitfield
     ///
     /// * `CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
     /// * `CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor.
@@ -358,7 +358,7 @@ bitflags! {
 
 
 bitflags! {
-	/// cl_kernel_arg_type_qualifer 
+	/// cl_kernel_arg_type_qualifer
     pub flags KernelArgTypeQualifier: u64 {
 		const KERNEL_ARG_TYPE_NONE = 0,
 		const KERNEL_ARG_TYPE_CONST = 1 << 0,
@@ -465,7 +465,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_platform_info 
+	/// cl_platform_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum PlatformInfo {
@@ -479,7 +479,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_device_info 
+	/// cl_device_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceInfo {
@@ -587,7 +587,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_context_info 
+	/// cl_context_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ContextInfo {
@@ -624,7 +624,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_command_queue_info 
+	/// cl_command_queue_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum CommandQueueInfo {
@@ -787,7 +787,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_build_status 
+	/// cl_build_status
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum BuildStatus {
@@ -815,7 +815,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_arg_info 
+	/// cl_kernel_arg_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgInfo {
@@ -829,7 +829,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_arg_address_qualifier 
+	/// cl_kernel_arg_address_qualifier
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgAddressQualifier {
@@ -842,7 +842,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_arg_access_qualifier 
+	/// cl_kernel_arg_access_qualifier
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgAccessQualifier {
@@ -855,7 +855,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_work_group_info 
+	/// cl_kernel_work_group_info
     ///
     /// [NOTE] PrivateMemSize: If device is not a custom device or kernel is not a built-in
     /// kernel, clGetKernelArgInfo returns the error CL_INVALID_VALUE:
@@ -873,7 +873,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_event_info 
+	/// cl_event_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum EventInfo {
@@ -945,7 +945,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_profiling_info 
+	/// cl_profiling_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProfilingInfo {
