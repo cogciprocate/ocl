@@ -32,7 +32,7 @@ fn main() {
     // Create a source buffer and initialize it with random floats between 0.0
     // and 20.0 using a temporary init vector, `vec_source`:
     let vec_source = util::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
-    let source_buffer = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+    let source_buffer = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE |
         core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_source)).unwrap();
 
     // Create another empty buffer and vector for results:
@@ -55,9 +55,9 @@ fn main() {
 
     // Check results and print the first 20:
     for idx in 0..DATA_SET_SIZE {
-        if idx < RESULTS_TO_PRINT { 
+        if idx < RESULTS_TO_PRINT {
             println!("source[{idx}]: {:.03}, \t coeff: {}, \tresult[{idx}]: {}",
-            vec_source[idx], COEFF, vec_result[idx], idx = idx); 
+            vec_source[idx], COEFF, vec_result[idx], idx = idx);
         }
         assert_eq!(vec_source[idx] * COEFF, vec_result[idx]);
     }

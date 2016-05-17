@@ -2,7 +2,7 @@
 //! through the kernel, increasing the blue channel for the entire image.
 //!
 //!
-//! Enable saving to disk by setting `SAVE_IMAGES_TO_DISK` to `true` and 
+//! Enable saving to disk by setting `SAVE_IMAGES_TO_DISK` to `true` and
 //! change the file paths/names if desired.
 
 extern crate image;
@@ -19,9 +19,9 @@ static AFTER_IMAGE_FILE_NAME: &'static str = "after_example_image.png";
 
 static KERNEL_SRC: &'static str = r#"
     // Unused... here for comparison purposes:
-    __constant sampler_t sampler_const = 
-        CLK_NORMALIZED_COORDS_FALSE | 
-        CLK_ADDRESS_NONE | 
+    __constant sampler_t sampler_const =
+        CLK_NORMALIZED_COORDS_FALSE |
+        CLK_ADDRESS_NONE |
         CLK_FILTER_NEAREST;
 
     __kernel void increase_blue(
@@ -46,11 +46,11 @@ fn generate_image() -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
         let near_midline = (x + y < 536) && (x + y > 488);
 
         if near_midline {
-            image::Rgba([196, 50, 50, 255u8])            
+            image::Rgba([196, 50, 50, 255u8])
         } else {
             image::Rgba([50, 50, 50, 255u8])
         }
-    });    
+    });
 
     img
 }
@@ -74,7 +74,7 @@ fn main() {
         .devices(device)
         .build(&context).unwrap();
 
-    let sup_img_formats = Image::<u8>::supported_formats(&context, ocl::flags::MEM_READ_WRITE, 
+    let sup_img_formats = Image::<u8>::supported_formats(&context, ocl::flags::MEM_READ_WRITE,
         MemObjectType::Image2d).unwrap();
     println!("Image formats supported: {}.", sup_img_formats.len());
     // println!("Image Formats: {:#?}.", sup_img_formats);
@@ -92,7 +92,7 @@ fn main() {
     // * u8 => ImageChannelDataType::UnormInt8
     // * f32 => ImageChannelDataType::Float
     // * etc.
-    // 
+    //
     // Will probably be some automation for this in the future.
     //
     let src_image = Image::<u8>::builder()
@@ -134,10 +134,10 @@ fn main() {
     dst_image.read(&mut img).enq().unwrap();
 
     printlnc!(dark_grey: "Pixel after: [0..16]: {:?}", &img[(0, 0)]);
-    
+
     if SAVE_IMAGES_TO_DISK {
         img.save(&Path::new(AFTER_IMAGE_FILE_NAME)).unwrap();
-        printlnc!(lime: "Images saved as: '{}' and '{}'.", 
+        printlnc!(lime: "Images saved as: '{}' and '{}'.",
             BEFORE_IMAGE_FILE_NAME, AFTER_IMAGE_FILE_NAME);
     } else {
         printlnc!(orange: "Saving images to disk disabled. \

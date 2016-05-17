@@ -22,7 +22,7 @@ fn clear_completed() {
     let mut event_list = EventList::new();
 
     let mut vec = vec![0.0f32; buffer.len()];
-    
+
     for _ in 0..2048 {
         kernel.cmd().enew(&mut event_list).enq().unwrap();
 
