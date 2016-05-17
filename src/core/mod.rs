@@ -358,7 +358,7 @@ bitflags! {
 
 
 bitflags! {
-	/// cl_kernel_arg_type_qualifer 
+	/// cl_kernel_arg_type_qualifer
     pub flags KernelArgTypeQualifier: u64 {
 		const KERNEL_ARG_TYPE_NONE = 0,
 		const KERNEL_ARG_TYPE_CONST = 1 << 0,
