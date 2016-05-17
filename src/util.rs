@@ -175,12 +175,12 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
 // at some point. 
 //
 pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
-    let byte_count = mem::size_of::<u8>() * vec.len();
-    assert_eq!(mem::size_of::<T>(), byte_count);
+    // let byte_count = mem::size_of::<u8>() * vec.len();
+    assert_eq!(mem::size_of::<T>(), vec.len());
 
     let mut new_val: T = mem::uninitialized();
 
-    ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, byte_count);
+    ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec.len());
 
     new_val
 }
@@ -192,12 +192,12 @@ pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
 /// You may want to wear a helmet.
 ///
 pub unsafe fn bytes_to<T>(bytes: &[u8]) -> T {
-    let byte_count = mem::size_of::<u8>() * bytes.len();
-    assert_eq!(mem::size_of::<T>(), byte_count);
+    // let byte_count = mem::size_of::<u8>() * bytes.len();
+    assert_eq!(mem::size_of::<T>(), bytes.len());
 
     let mut new_val: T = mem::uninitialized();
 
-    ptr::copy(bytes.as_ptr(), &mut new_val as *mut _ as *mut u8, byte_count);
+    ptr::copy(bytes.as_ptr(), &mut new_val as *mut _ as *mut u8, bytes.len());
 
     new_val
 }

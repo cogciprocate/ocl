@@ -54,6 +54,7 @@ mod standard;
 mod error;
 pub mod core;
 pub mod cl_h;
+pub mod ffi;
 
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event, 
 	EventList, Sampler, SpatialDims, ProQue};
@@ -78,6 +79,8 @@ pub mod aliases {
 	    ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16, 
 	    ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16, 
 	    ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16};
+
+	pub use ffi::{ ClGlUint, ClGlint, ClGlEnum };
 }
 
 pub mod traits {

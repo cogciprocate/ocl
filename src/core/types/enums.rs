@@ -36,11 +36,13 @@ use std::mem;
 // use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
+use num::FromPrimitive;
 use util;
 use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, 
-    ContextInfo, Context, CommandQueueInfo, Mem, MemInfo, Sampler, SamplerInfo, ProgramInfo, 
-    ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, ImageInfo, ImageFormat, 
-    EventInfo, ProfilingInfo};
+    ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
+     Mem, MemInfo, Sampler, SamplerInfo, 
+    ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, ImageInfo, 
+    ImageFormat, EventInfo, ProfilingInfo};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -919,7 +921,6 @@ impl Into<String> for KernelArgInfoResult {
 
 /// [UNSTABLE][INCOMPLETE] A kernel work groups info result.
 pub enum KernelWorkGroupInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
     WorkGroupSize(usize),
     CompileWorkGroupSize([usize; 3]),
     LocalMemSize(u64),
@@ -935,14 +936,30 @@ impl KernelWorkGroupInfoResult {
     {
         match result {
             Ok(result) => match request {
-                KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple => {
-                    let size = unsafe { util::bytes_into::<usize>(result) };
-                    KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(size)
+                KernelWorkGroupInfo::WorkGroupSize => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    KernelWorkGroupInfoResult::WorkGroupSize(r)
                 },
-                // KernelWorkGroupInfo::FunctionName => {
-                //     KernelWorkGroupInfoResult::FunctionName(try!(String::from_utf8(result)))
-                // },
-                _ => KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(result),
+                KernelWorkGroupInfo::CompileWorkGroupSize => {
+                    let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
+                    KernelWorkGroupInfoResult::CompileWorkGroupSize(r)
+                }
+                KernelWorkGroupInfo::LocalMemSize => {
+                    let r = unsafe { util::bytes_into::<u64>(result) };
+                     KernelWorkGroupInfoResult::LocalMemSize(r)
+                },
+                KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(r)
+                },
+                KernelWorkGroupInfo::PrivateMemSize => {
+                    let r = unsafe { util::bytes_into::<u64>(result) };
+                    KernelWorkGroupInfoResult::PrivateMemSize(r)
+                },
+                KernelWorkGroupInfo::GlobalWorkSize => {
+                    let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
+                    KernelWorkGroupInfoResult::GlobalWorkSize(r)
+                },
             },
             Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
         }
@@ -958,12 +975,13 @@ impl std::fmt::Debug for KernelWorkGroupInfoResult {
 impl std::fmt::Display for KernelWorkGroupInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
+            &KernelWorkGroupInfoResult::WorkGroupSize(s) => write!(f, "{}", s),
+            &KernelWorkGroupInfoResult::CompileWorkGroupSize(s) => write!(f, "{:?}", s),
+            &KernelWorkGroupInfoResult::LocalMemSize(s) => write!(f, "{}", s),
             &KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            &KernelWorkGroupInfoResult::PrivateMemSize(s) => write!(f, "{}", s),
+            &KernelWorkGroupInfoResult::GlobalWorkSize(s) => write!(f, "{:?}", s),
             &KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("KernelWorkGroupInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -978,12 +996,12 @@ impl Into<String> for KernelWorkGroupInfoResult {
 
 /// [UNSTABLE][INCOMPLETE] An event info result.
 pub enum EventInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
-    CommandQueue(TemporaryPlaceholderType),
-    CommandType(TemporaryPlaceholderType),
-    ReferenceCount(TemporaryPlaceholderType),
-    CommandExecutionStatus(TemporaryPlaceholderType),
-    Context(TemporaryPlaceholderType),
+    // TemporaryPlaceholderVariant(Vec<u8>),
+    CommandQueue(CommandQueue),
+    CommandType(CommandType),
+    ReferenceCount(u32),
+    CommandExecutionStatus(CommandExecutionStatus),
+    Context(Context),
     Error(Box<OclError>),
 }
 
@@ -993,7 +1011,34 @@ impl EventInfoResult {
     {
         match result {
             Ok(result) => { match request {
-                _ => EventInfoResult::TemporaryPlaceholderVariant(result),
+                EventInfo::CommandQueue => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    EventInfoResult::CommandQueue(unsafe { CommandQueue::from_copied_ptr(ptr) })
+                },
+                EventInfo::CommandType => { 
+                    let code = unsafe { util::bytes_into::<u32>(result) };
+                    match CommandType::from_u32(code) {
+                        Some(ces) => EventInfoResult::CommandType(ces),
+                        None => EventInfoResult::Error(Box::new(
+                            OclError::new(format!("Error converting '{}' to CommandType.", code)))),
+                    }
+                },
+                EventInfo::ReferenceCount => { EventInfoResult::ReferenceCount(
+                        unsafe { util::bytes_into::<u32>(result) }
+                ) },
+                EventInfo::CommandExecutionStatus => {
+                    let code = unsafe { util::bytes_into::<i32>(result) };
+                    match CommandExecutionStatus::from_i32(code) {
+                        Some(ces) => EventInfoResult::CommandExecutionStatus(ces),
+                        None => EventInfoResult::Error(Box::new(
+                            OclError::new(format!("Error converting '{}' to \
+                                CommandExecutionStatus.", code)))),
+                    }
+                },
+                EventInfo::Context => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    EventInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                },
             } }
             Err(err) => EventInfoResult::Error(Box::new(err)),
         }
@@ -1009,11 +1054,13 @@ impl std::fmt::Debug for EventInfoResult {
 impl std::fmt::Display for EventInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &EventInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            &EventInfoResult::CommandQueue(ref s) => write!(f, "{:?}", s),
+            &EventInfoResult::CommandType(ref s) => write!(f, "{:?}", s),
+            &EventInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            &EventInfoResult::CommandExecutionStatus(ref s) => write!(f, "{:?}", s),
+            &EventInfoResult::Context(ref s) => write!(f, "{:?}", s),
             &EventInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("EventInfoResult: Converting this variant to string not yet implemented."),
+            // _ => panic!("EventInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -1026,13 +1073,12 @@ impl Into<String> for EventInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] A profiling info result.
+/// A profiling info result.
 pub enum ProfilingInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
-    Queued(TemporaryPlaceholderType),
-    Submit(TemporaryPlaceholderType),
-    Start(TemporaryPlaceholderType),
-    End(TemporaryPlaceholderType),
+    Queued(u64),
+    Submit(u64),
+    Start(u64),
+    End(u64),
     Error(Box<OclError>),
 }
 
@@ -1042,8 +1088,15 @@ impl ProfilingInfoResult {
     {
         match result {
             Ok(result) => { match request {
-                _ => ProfilingInfoResult::TemporaryPlaceholderVariant(result),
-            } }
+                ProfilingInfo::Queued => ProfilingInfoResult::Queued(
+                        unsafe { util::bytes_into::<u64>(result) }),
+                ProfilingInfo::Submit => ProfilingInfoResult::Queued(
+                        unsafe { util::bytes_into::<u64>(result) }),
+                ProfilingInfo::Start => ProfilingInfoResult::Queued(
+                        unsafe { util::bytes_into::<u64>(result) }),
+                ProfilingInfo::End => ProfilingInfoResult::Queued(
+                        unsafe { util::bytes_into::<u64>(result) }),
+            } },
             Err(err) => ProfilingInfoResult::Error(Box::new(err)),
         }
     }
@@ -1058,11 +1111,11 @@ impl std::fmt::Debug for ProfilingInfoResult {
 impl std::fmt::Display for ProfilingInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &ProfilingInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            &ProfilingInfoResult::Queued(ref s) => write!(f, "{}", s),
+            &ProfilingInfoResult::Submit(ref s) => write!(f, "{}", s),
+            &ProfilingInfoResult::Start(ref s) => write!(f, "{}", s),
+            &ProfilingInfoResult::End(ref s) => write!(f, "{}", s),
             &ProfilingInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("ProfilingInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
