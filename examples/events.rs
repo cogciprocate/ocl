@@ -4,7 +4,7 @@
 //! Due to buggy and/or intentionally crippled drivers, this example may not
 //! work on NVIDIA hardware. Until NVIDIA's implementation is corrected this
 //! example will likely fail on that platform.
-//! 
+//!
 
 extern crate libc;
 extern crate ocl;
@@ -24,10 +24,10 @@ const RESULTS_TO_PRINT: usize = 5;
 
 
 struct TestEventsStuff {
-    seed_vec: *const Vec<u32>, 
-    result_vec: *const Vec<u32>, 
+    seed_vec: *const Vec<u32>,
+    result_vec: *const Vec<u32>,
     data_set_size: usize,
-    addend: u32, 
+    addend: u32,
     itr: usize,
 }
 
@@ -36,7 +36,7 @@ struct TestEventsStuff {
 //
 // Yeah it's ugly.
 extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data: *mut c_void) {
-    let buncha_stuff = user_data as *const TestEventsStuff;    
+    let buncha_stuff = user_data as *const TestEventsStuff;
 
     unsafe {
         let seed_vec: *const Vec<u32> = (*buncha_stuff).seed_vec as *const Vec<u32>;
@@ -44,12 +44,12 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
         let data_set_size: usize = (*buncha_stuff).data_set_size;
         let addend: u32 = (*buncha_stuff).addend;
         let itr: usize = (*buncha_stuff).itr;
-        
+
         if PRINT_DEBUG { println!("\nEvent: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
                  addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr); }
 
         for idx in 0..data_set_size {
-            assert_eq!((*result_vec)[idx], 
+            assert_eq!((*result_vec)[idx],
                 ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
 
             if PRINT_DEBUG && (idx < RESULTS_TO_PRINT) {
@@ -63,7 +63,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 
         for idx in 0..data_set_size {
             // [FIXME]: Reportedly failing on OSX:
-            assert_eq!((*result_vec)[idx], 
+            assert_eq!((*result_vec)[idx],
              ((*seed_vec)[idx] + ((itr + 1) as u32) * addend));
 
             if PRINT_DEBUG {
@@ -78,7 +78,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
             }
         }
 
-        if PRINT_DEBUG { 
+        if PRINT_DEBUG {
             if errors_found > 0 { print!("TOTAL ERRORS FOUND: {}\n", errors_found); }
         }
     }
@@ -92,7 +92,7 @@ fn main() {
     // Get a path for our program source:
     let src_file = Search::ParentsThenKids(3, 3).for_folder("examples").unwrap().join("cl/kernel_file.cl");
 
-    // Create a context, program, & queue: 
+    // Create a context, program, & queue:
     let ocl_pq = ProQue::builder()
         .dims(dims)
         .prog_bldr(Program::builder().src_file(src_file))
@@ -101,12 +101,12 @@ fn main() {
     // Create source and result buffers (our data containers):
     // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
     let seed_vec = util::scrambled_vec((0u32, 500u32), ocl_pq.dims().to_len());
-    let seed_buffer = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+    let seed_buffer = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE |
         core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&seed_vec)).unwrap();
 
     // let mut result_buffer = Buffer::with_vec(&dims, &ocl_pq.queue());
     let mut result_vec = vec![0; dims[0]];
-    let mut result_buffer = Buffer::<u32>::new(ocl_pq.queue(), None, 
+    let mut result_buffer = Buffer::<u32>::new(ocl_pq.queue(), None,
         ocl_pq.dims(), None).unwrap();
 
     // Our arbitrary addend:
@@ -120,7 +120,7 @@ fn main() {
         .arg_buf(&mut result_buffer);
 
     // Create event list:
-    let mut kernel_event = EventList::new();    
+    let mut kernel_event = EventList::new();
 
     //#############################################################################################
 
@@ -134,9 +134,9 @@ fn main() {
         // we are sure to allow the queue to finish before returning).
         buncha_stuffs.push(TestEventsStuff {
             seed_vec: &seed_vec as *const Vec<u32>,
-            result_vec: &result_vec as *const Vec<u32>, 
-            data_set_size: dims[0], 
-            addend: addend, 
+            result_vec: &result_vec as *const Vec<u32>,
+            data_set_size: dims[0],
+            addend: addend,
             itr: itr,
         });
 
@@ -151,20 +151,20 @@ fn main() {
         kernel.cmd().enew(&mut kernel_event).enq().unwrap();
 
         let mut read_event = EventList::new();
-        
+
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
         unsafe { result_buffer.cmd().read_async(&mut result_vec)
             .enew(&mut read_event).enq().unwrap(); }
-    
+
         // Clone event list just for fun:
         let read_event = read_event.clone();
 
-        let last_idx = buncha_stuffs.len() - 1;     
+        let last_idx = buncha_stuffs.len() - 1;
 
         unsafe {
-            if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...", 
+            if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...",
                 last_idx, itr); }
-            read_event.set_callback(Some(_test_events_verify_result), 
+            read_event.set_callback(Some(_test_events_verify_result),
                 &mut buncha_stuffs[last_idx]).unwrap();
         }
     }

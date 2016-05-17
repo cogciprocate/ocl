@@ -1,5 +1,5 @@
-//! These tests are fairly trivial. Most actual regression testing is done 
-//! by running tests with [bismit](https://github.com/cogciprocate/bismit). 
+//! These tests are fairly trivial. Most actual regression testing is done
+//! by running tests with [bismit](https://github.com/cogciprocate/bismit).
 //!
 //! Lots more tests needed (what's new?).
 //!
@@ -13,7 +13,7 @@ pub mod buffer_ops_rect;
 pub mod image_ops;
 pub mod buffer_fill;
 pub mod clear_completed;
-pub mod concurrent; 
+pub mod concurrent;
 pub mod kernel_arg_ptr;
 pub mod vector_types;
 
@@ -51,11 +51,11 @@ fn within_region(coords: [usize; 3], region_ofs: [usize; 3], region_size: [usize
     within
 }
 
-fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_val: T, 
-            out_region_val: T, vec_dims: [usize; 3], ele_per_coord: usize, vec: &[T], 
+fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_val: T,
+            out_region_val: T, vec_dims: [usize; 3], ele_per_coord: usize, vec: &[T],
             ttl_runs: i32, print: bool) -> OclResult<()>
 {
-    let mut print = PRINT && print && ttl_runs <= PRINT_ITERS_MAX; 
+    let mut print = PRINT && print && ttl_runs <= PRINT_ITERS_MAX;
     let slices_to_print = PRINT_SLICES_MAX;
     let mut result = Ok(());
 
@@ -67,7 +67,7 @@ fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_
     for z in 0..vec_dims[2] {
         for y in 0..vec_dims[1] {
             for x in 0..vec_dims[0] {
-                let pixel = (z * vec_dims[1] * vec_dims[0]) + 
+                let pixel = (z * vec_dims[1] * vec_dims[0]) +
                     (y * vec_dims[0]) + x;
                 let idz = pixel * ele_per_coord;
 
@@ -86,8 +86,8 @@ fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_
                             }
                         } else {
                             if vec[idx] == out_region_val {
-                                // printc!(dark_grey: "[{:02}]", vec[idx]); 
-                                print!("[{:02}]", vec[idx]); 
+                                // printc!(dark_grey: "[{:02}]", vec[idx]);
+                                print!("[{:02}]", vec[idx]);
                             } else {
                                 // printc!(yellow: "[{:02}]", vec[idx]);
                                 print!("[{:02}]", vec[idx]);
@@ -98,13 +98,13 @@ fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_
                     // Verify:
                     if result.is_ok() {
                         if within_region([x, y, z], origin, region) {
-                            if vec[idx] != in_region_val { 
+                            if vec[idx] != in_region_val {
                                 result = OclError::err(format!("vec[{}] should be '{}' but is '{}'",
                                     idx, in_region_val, vec[idx]));
                             }
                         } else {
                             if vec[idx] != out_region_val {
-                                result = OclError::err(format!("vec[{}] should be '{}' but is '{}'", 
+                                result = OclError::err(format!("vec[{}] should be '{}' but is '{}'",
                                     idx, out_region_val, vec[idx]));
                             }
                         }

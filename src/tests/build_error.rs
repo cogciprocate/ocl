@@ -3,7 +3,7 @@ use super::super::ProQue;
 #[test]
 #[should_panic]
 #[allow(unused_variables)]
-fn bad_kernel_variable_names() {    
+fn bad_kernel_variable_names() {
     let kernel = r#"
         kernel void multiply(global float* buffer, float coeff) {
 

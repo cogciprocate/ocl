@@ -4,7 +4,7 @@ use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use util;
 use cl_h::{self, cl_mem};
-use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, 
+use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType,
         ContextProperty, ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
 
 
@@ -52,7 +52,7 @@ impl ContextProperties {
         }
 
         platform
-    } 
+    }
 
     /// [UNTESTED: Not properly tested]
     /// Converts this list into a packed-byte representation as specified
@@ -62,15 +62,15 @@ impl ContextProperties {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(128);
 
-        unsafe { 
+        unsafe {
             // For each property:
             for prop in self.0.iter() {
-                // Convert both the kind of property (a u32) and the value (variable type/size) 
+                // Convert both the kind of property (a u32) and the value (variable type/size)
                 // into just a core byte vector (Vec<u8>):
                 let (kind, val) = match prop {
                     &ContextProperty::Platform(ref platform_id_core) => (
                         util::into_bytes(PropKind::Platform as cl_h::cl_uint),
-                        util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id) 
+                        util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id)
                     ),
                     &ContextProperty::InteropUserSync(sync) => (
                         util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
@@ -216,7 +216,7 @@ impl ImageFormat {
     ///
     /// TODO: Add a special case for Depth & DepthStencil
     /// (https://www.khronos.org/registry/cl/sdk/2.0/docs/man/xhtml/cl_khr_gl_depth_images.html).
-    /// 
+    ///
     /// TODO: Validate combinations.
     /// TODO: Use `core::get_image_info` to check these with a test.
     ///
@@ -336,7 +336,7 @@ pub struct ImageDescriptor {
 }
 
 impl ImageDescriptor {
-    pub fn new(image_type: MemObjectType, width: usize, height: usize, depth: usize, 
+    pub fn new(image_type: MemObjectType, width: usize, height: usize, depth: usize,
                 array_size: usize, row_pitch: usize, slc_pitch: usize, buffer: Option<Mem>,
                 ) -> ImageDescriptor {
         ImageDescriptor {

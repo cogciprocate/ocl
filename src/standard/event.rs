@@ -22,7 +22,7 @@ impl Event {
 
     /// Creates a new `Event` from a `EventCore`.
     ///
-    /// ## Safety 
+    /// ## Safety
     ///
     /// Not meant to be called directly.
     pub unsafe fn from_core(event_core: EventCore) -> Event {
@@ -38,10 +38,10 @@ impl Event {
         core::wait_for_event(self.0.as_ref().unwrap())
     }
 
-    /// Returns info about the event. 
+    /// Returns info about the event.
     pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
         match self.0 {
-            Some(ref core) => { 
+            Some(ref core) => {
                 // match core::get_event_info(core, info_kind) {
                 //     Ok(pi) => pi,
                 //     Err(err) => EventInfoResult::Error(Box::new(err)),
@@ -52,7 +52,7 @@ impl Event {
         }
     }
 
-    /// Returns info about the event. 
+    /// Returns info about the event.
     pub fn profiling_info(&self, info_kind: ProfilingInfo) -> ProfilingInfoResult {
         match self.0 {
             Some(ref core) => {
@@ -140,7 +140,7 @@ unsafe impl ClEventPtrNew for Event {
                 is not allowed. Please create a new, empty, event with ocl::Event::empty().");
         }
 
-        unsafe { 
+        unsafe {
             self.0 = Some(EventCore::null());
             Ok(self.0.as_mut().unwrap().as_ptr_mut())
         }
@@ -184,7 +184,7 @@ pub struct EventList {
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
-        EventList { 
+        EventList {
             event_list_core: EventListCore::new(),
         }
     }
@@ -227,17 +227,17 @@ impl EventList {
     }
 
     /// Sets a callback function, `callback_receiver`, to trigger upon completion of
-    /// the *last event* added to the event list with an optional reference to user 
+    /// the *last event* added to the event list with an optional reference to user
     /// data.
     ///
     /// # Safety
     ///
-    /// `user_data` must be guaranteed to still exist if and when `callback_receiver` 
+    /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
     /// is ever called.
     ///
     /// TODO: Create a safer type wrapper for `callback_receiver`.
     /// TODO: Move this method to `Event`.
-    pub unsafe fn set_callback<T>(&self, 
+    pub unsafe fn set_callback<T>(&self,
                 callback_receiver: Option<EventCallbackFn>,
                 user_data: &mut T,
                 ) -> OclResult<()>
@@ -305,8 +305,8 @@ unsafe impl ClEventPtrNew for EventList {
 }
 
 unsafe impl ClWaitList for EventList {
-    unsafe fn as_ptr_ptr(&self) -> *const cl_h::cl_event { 
-        self.event_list_core.as_ptr_ptr() 
+    unsafe fn as_ptr_ptr(&self) -> *const cl_h::cl_event {
+        self.event_list_core.as_ptr_ptr()
     }
 
     fn count(&self) -> u32 {

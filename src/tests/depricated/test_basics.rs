@@ -53,9 +53,9 @@ fn basics() {
         assert_eq!(result_buffer[idx], source_buffer[idx] * coeff);
 
         // Print:
-        if PRINT_DEBUG && (idx < 20) { 
+        if PRINT_DEBUG && (idx < 20) {
             println!("source_buffer[idx]: {}, coeff: {}, result_buffer[idx]: {}",
-            source_buffer[idx], coeff, result_buffer[idx]); 
+            source_buffer[idx], coeff, result_buffer[idx]);
         }
     }
 }

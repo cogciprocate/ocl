@@ -33,9 +33,9 @@ fn main() {
     // Define a kernel:
     let src = r#"
         __kernel void add(
-                    __global float const* const source, 
+                    __global float const* const source,
                     __private float scalar,
-                    __global float* const result) 
+                    __global float* const result)
         {
             uint idx = get_global_id(0);
             result[idx] = source[idx] + scalar;
@@ -47,11 +47,11 @@ fn main() {
 
     // Create init and result buffers and vectors:
     let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
-    let buffer_init = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+    let buffer_init = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE |
         core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_init)).unwrap();
 
     let mut vec_result = vec![0.0f32; DATASET_SIZE];
-    let buffer_result = Buffer::<f32>::new(ocl_pq.queue(), None, 
+    let buffer_result = Buffer::<f32>::new(ocl_pq.queue(), None,
         ocl_pq.dims(), None).unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
@@ -85,7 +85,7 @@ fn main() {
 
     // Wait for all kernels to run:
     ocl_pq.queue().finish();
-    
+
     // Print elapsed time for kernels:
     print_elapsed("total elapsed", kern_start);
 
@@ -105,7 +105,7 @@ fn main() {
     }
 
     print_elapsed("queue unfinished", buffer_start);
-    ocl_pq.queue().finish();    
+    ocl_pq.queue().finish();
     print_elapsed("queue finished", buffer_start);
 
     verify_results(&vec_init, &vec_result, KERNEL_RUN_ITERS);
@@ -125,7 +125,7 @@ fn main() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();    
+    ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
 
     verify_results(&vec_init, &vec_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
@@ -149,7 +149,7 @@ fn main() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();    
+    ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
 
     kern_events.wait().unwrap();
@@ -157,7 +157,7 @@ fn main() {
     buf_events.wait().unwrap();
     buf_events.clear_completed().unwrap();
 
-    verify_results(&vec_init, &vec_result, 
+    verify_results(&vec_init, &vec_result,
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 
     // ##################################################
@@ -181,7 +181,7 @@ fn main() {
     kern_events.wait().unwrap();
     buf_events.wait().unwrap();
 
-    verify_results(&vec_init, &vec_result, 
+    verify_results(&vec_init, &vec_result,
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 }
 
@@ -214,8 +214,8 @@ fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) {
 
     for idx in 0..DATASET_SIZE {
         let correct = vec_init[idx] + (iters as f32 * SCALAR);
-        assert!((correct - vec_result[idx]).abs() < margin_of_error, 
-            "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}", 
+        assert!((correct - vec_result[idx]).abs() < margin_of_error,
+            "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}",
             idx, vec_init[idx], correct, margin_of_error, vec_result[idx]);
 
         if PRINT_SOME_RESULTS && (idx % (DATASET_SIZE / RESULTS_TO_PRINT)) == 0  {

@@ -1,6 +1,6 @@
 // Timed kernel and buffer tests / benchmarks.
 //
-// Manipulate the consts below to fiddle with parameters. To create longer 
+// Manipulate the consts below to fiddle with parameters. To create longer
 // running tests, increase `DATASET_SIZE`, and the `*_ITERS` consts.
 // The other consts can be anything at all
 
@@ -29,9 +29,9 @@ fn timed() {
     // Define a kernel:
     let src = r#"
         __kernel void add(
-                    __global float const* const source, 
+                    __global float const* const source,
                     __private float scalar,
-                    __global float* const result) 
+                    __global float* const result)
         {
             uint idx = get_global_id(0);
             result[idx] = source[idx] + scalar;
@@ -46,11 +46,11 @@ fn timed() {
     // let buffer_init: Buffer<f32> = Buffer::with_vec_scrambled(
     //      INIT_VAL_RANGE, &ocl_pq, &ocl_pq.queue());
     let vec = util::scrambled_vec(INIT_VAL_RANGE, DATASET_SIZE);
-    let buffer_init = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE | 
+    let buffer_init = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE |
         core::MEM_COPY_HOST_PTR), ocl_pq.dims(), Some(&vec)).unwrap();
     // let mut buffer_result: Buffer<f32> = Buffer::with_vec(&ocl_pq, ocl_pq.queue());
     let mut vec_result = vec![0.0f32; DATASET_SIZE];
-    let mut buffer_result = Buffer::<f32>::new(ocl_pq.queue(), None, 
+    let mut buffer_result = Buffer::<f32>::new(ocl_pq.queue(), None,
         ocl_pq.dims(), None).unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
@@ -83,7 +83,7 @@ fn timed() {
 
     // Wait for all kernels to run:
     ocl_pq.queue().finish();
-    
+
     // Print elapsed time for kernels:
     print_elapsed("total elapsed", kern_start);
 
@@ -103,7 +103,7 @@ fn timed() {
     }
 
     print_elapsed("queue unfinished", buffer_start);
-    ocl_pq.queue().finish();    
+    ocl_pq.queue().finish();
     print_elapsed("queue finished", buffer_start);
 
     verify_results(&buffer_init, &buffer_result, KERNEL_RUN_ITERS);
@@ -123,7 +123,7 @@ fn timed() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();    
+    ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
 
     verify_results(&buffer_init, &buffer_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
@@ -148,10 +148,10 @@ fn timed() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();    
+    ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
 
-    verify_results(&buffer_init, &buffer_result, 
+    verify_results(&buffer_init, &buffer_result,
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 
     // ##################################################
@@ -172,10 +172,10 @@ fn timed() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();    
+    ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
 
-    verify_results(&buffer_init, &buffer_result, 
+    verify_results(&buffer_init, &buffer_result,
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
 }
 
@@ -198,8 +198,8 @@ fn verify_results(buffer_init: &Buffer<f32>, buffer_result: &Buffer<f32>, iters:
     for idx in 0..DATASET_SIZE {
         let correct = buffer_init[idx] + (iters as f32 * SCALAR);
         // let correct = buffer_init[i] + SCALAR;
-        assert!((correct - buffer_result[idx]).abs() < margin_of_error, 
-            "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}", 
+        assert!((correct - buffer_result[idx]).abs() < margin_of_error,
+            "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}",
             idx, buffer_init[idx], correct, margin_of_error, buffer_result[idx]);
 
         if PRINT_SOME_RESULTS && (idx % (DATASET_SIZE / RESULTS_TO_PRINT)) == 0  {

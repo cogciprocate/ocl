@@ -34,7 +34,7 @@ pub enum SpatialDims {
 impl SpatialDims {
     /// Returns a new `SpatialDims`.
     ///
-    /// Dimensions must be specified in order from d0 -> d1 -> d2; i.e. `d1` 
+    /// Dimensions must be specified in order from d0 -> d1 -> d2; i.e. `d1`
     /// cannot be `Some(x)` if `d0` is `None`.
     ///
     /// Explicitly setting all zeros as values is not recommended as it is
@@ -45,7 +45,7 @@ impl SpatialDims {
         let std_err_msg = "Dimensions must be defined from left to right. If you define the 2nd \
             dimension, you must also define the 1st, etc.";
 
-        if d2.is_some() { 
+        if d2.is_some() {
             if d1.is_some() && d0.is_some() {
                 Ok(SpatialDims::Three(d0.unwrap(), d1.unwrap(), d2.unwrap()))
             } else {
@@ -130,8 +130,8 @@ impl MemLen for SpatialDims {
     fn to_len(&self) -> usize {
         self.to_len()
     }
-    
-    fn to_lens(&self) -> [usize; 3] { 
+
+    fn to_lens(&self) -> [usize; 3] {
         self.to_lens().expect("SpatialDims::<MemLen>::to_lens()")
     }
 }
@@ -163,7 +163,7 @@ impl Index<usize> for SpatialDims {
                     Only one dimension avaliable.", index);
                 x
             },
-            &SpatialDims::Two(ref x, ref y) => {                
+            &SpatialDims::Two(ref x, ref y) => {
                 match index {
                     0 => x,
                     1 => y,
@@ -211,7 +211,7 @@ impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 1]> for SpatialDims {
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T)> for SpatialDims {
     fn from(pair: (T, T)) -> SpatialDims {
         SpatialDims::Two(
-            to_usize(pair.0), 
+            to_usize(pair.0),
             to_usize(pair.1),
         )
     }
@@ -220,7 +220,7 @@ impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T)> for SpatialDims {
 impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, T)> for SpatialDims {
     fn from(pair: &(T, T)) -> SpatialDims {
         SpatialDims::Two(
-            to_usize(pair.0), 
+            to_usize(pair.0),
             to_usize(pair.1),
         )
     }
@@ -229,7 +229,7 @@ impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, T)> for SpatialDims {
 impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 2]> for SpatialDims {
     fn from(pair: [T; 2]) -> SpatialDims {
         SpatialDims::Two(
-            to_usize(pair[0]), 
+            to_usize(pair[0]),
             to_usize(pair[1]),
         )
     }
@@ -238,7 +238,7 @@ impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 2]> for SpatialDims {
 impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 2]> for SpatialDims {
     fn from(pair: &[T; 2]) -> SpatialDims {
         SpatialDims::Two(
-            to_usize(pair[0]), 
+            to_usize(pair[0]),
             to_usize(pair[1]),
         )
     }
@@ -247,8 +247,8 @@ impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 2]> for SpatialDims {
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T, T)> for SpatialDims {
     fn from(set: (T, T, T)) -> SpatialDims {
         SpatialDims::Three(
-            to_usize(set.0), 
-            to_usize(set.1), 
+            to_usize(set.0),
+            to_usize(set.1),
             to_usize(set.2),
         )
     }
@@ -257,8 +257,8 @@ impl<T: Num + ToPrimitive + Debug + Copy> From<(T, T, T)> for SpatialDims {
 impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, T, T)> for SpatialDims {
     fn from(set: &(T, T, T)) -> SpatialDims {
         SpatialDims::Three(
-            to_usize(set.0), 
-            to_usize(set.1), 
+            to_usize(set.0),
+            to_usize(set.1),
             to_usize(set.2),
         )
     }
@@ -267,8 +267,8 @@ impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a (T, T, T)> for SpatialDim
 impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 3]> for SpatialDims {
     fn from(set: [T; 3]) -> SpatialDims {
         SpatialDims::Three(
-            to_usize(set[0]), 
-            to_usize(set[1]), 
+            to_usize(set[0]),
+            to_usize(set[1]),
             to_usize(set[2]),
         )
     }
@@ -277,8 +277,8 @@ impl<T: Num + ToPrimitive + Debug + Copy> From<[T; 3]> for SpatialDims {
 impl<'a, T: Num + ToPrimitive + Debug + Copy> From<&'a [T; 3]> for SpatialDims {
     fn from(set: &[T; 3]) -> SpatialDims {
         SpatialDims::Three(
-            to_usize(set[0]), 
-            to_usize(set[1]), 
+            to_usize(set[0]),
+            to_usize(set[1]),
             to_usize(set[2]),
         )
     }

@@ -15,9 +15,9 @@ const DEBUG_PRINT: bool = false;
 
 /// Specifies [what boils down to] a list of devices.
 ///
-/// The variants: `All`, `Index`, and `Indices` are context-specific, not robust, 
+/// The variants: `All`, `Index`, and `Indices` are context-specific, not robust,
 /// and may lead to a stack unwind if the context changes. They are useful for
-/// convenience only [NOTE: This may change and they may soon round-robin by default, 
+/// convenience only [NOTE: This may change and they may soon round-robin by default,
 /// making them robust and sexy... well robust anyway][UPDATE: this will probably remain as is].
 ///
 /// The `TypeFlags` variant is useful for specifying a list of devices using a bitfield
@@ -94,7 +94,7 @@ impl DeviceSpecifier {
                 vec![device.clone()]
             },
             &DeviceSpecifier::List(ref devices) => {
-                // devices.iter().map(|d| d.clone()).collect() 
+                // devices.iter().map(|d| d.clone()).collect()
                 devices.clone()
             },
             // &DeviceSpecifier::Index(idx) => {
@@ -209,7 +209,7 @@ impl Device {
     pub fn specifier() -> DeviceSpecifier {
         DeviceSpecifier::default()
     }
-    
+
     /// Resolves a list of indices into a list of valid devices.
     ///
     /// `devices` is the set of all indexable devices.
@@ -253,7 +253,7 @@ impl Device {
         let list_core = core::get_device_ids(platform.as_core(), device_types, None)
             .expect("Device::list: Error retrieving device list");
         let list = list_core.into_iter().map(|pr| Device(pr) ).collect();
-        if DEBUG_PRINT { println!("Devices::list(): device_types: {:?} -> list: {:?}", 
+        if DEBUG_PRINT { println!("Devices::list(): device_types: {:?} -> list: {:?}",
             device_types, list); }
         list
     }
@@ -264,7 +264,7 @@ impl Device {
     ///
     pub fn list_all(platform: &Platform) -> Vec<Device> {
         // let list_core = core::get_device_ids(Some(platform.as_core()), None)
-        //     .expect("Device::list_all: Error retrieving device list");        
+        //     .expect("Device::list_all: Error retrieving device list");
         // list_core.into_iter().map(|pr| Device(pr) ).collect()
         Self::list(platform, None)
     }
@@ -288,7 +288,7 @@ impl Device {
     /// Wraps indices around (`%`) so that every index is valid.
     ///
     pub fn list_select_wrap(platform: &Platform, device_types: Option<DeviceType>,
-            idxs: &[usize]) -> Vec<Device> 
+            idxs: &[usize]) -> Vec<Device>
     {
         let list = Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types));
         if DEBUG_PRINT { println!("Devices::list_select_wrap(): device_types: {:?} \
@@ -298,7 +298,7 @@ impl Device {
 
     // /// Creates a new `Device` from a `DeviceIdCore`.
     // ///
-    // /// ## Safety 
+    // /// ## Safety
     // ///
     // /// Not meant to be called unless you know what you're doing.
     // pub fn new(id_core: DeviceIdCore) -> Device {
@@ -337,7 +337,7 @@ impl Device {
         }
     }
 
-    /// Returns info about the device. 
+    /// Returns info about the device.
     pub fn info(&self, info_kind: DeviceInfo) -> DeviceInfoResult {
         // match core::get_device_info(&self.0, info_kind) {
         //     Ok(pi) => pi,

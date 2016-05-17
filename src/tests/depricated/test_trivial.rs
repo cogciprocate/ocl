@@ -26,7 +26,7 @@ fn main_explained() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims([500000])
-        .build().unwrap();   
+        .build().unwrap();
 
     // (2) Create a `Buffer` with a built-in `Vec`:
     let mut buffer = pro_que.create_buffer::<f32>();
@@ -46,7 +46,7 @@ fn main_explained() {
     buffer.fill_vec();
 
     // Print an element:
-    println!("The value at index [{}] was '{}' and is now '{}'!", 
+    println!("The value at index [{}] was '{}' and is now '{}'!",
         IDX, orig_val, buffer[IDX]);
 }
 
@@ -132,10 +132,10 @@ fn main_exploded() {
         .read(&mut buffer_vec)
         .ewait_opt(None)
         .enew_opt(None)
-        .enq().unwrap(); 
-    
+        .enq().unwrap();
+
     // Print an element:
-    println!("The value at index [{}] was '{}' and is now '{}'!", 
+    println!("The value at index [{}] was '{}' and is now '{}'!",
         IDX, orig_val, buffer_vec[IDX]);
 }
 
@@ -167,11 +167,11 @@ fn main_cored() {
     let device_ids = core::get_device_ids(&platform_id, None, None).unwrap();
     let device_id = device_ids[0];
     let context_properties = ContextProperties::new().platform(platform_id);
-    let context = core::create_context(&Some(context_properties), 
+    let context = core::create_context(&Some(context_properties),
         &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
-    core::build_program(&program, &[device_id], &CString::new("").unwrap(), 
+    core::build_program(&program, &[device_id], &CString::new("").unwrap(),
         None, None).unwrap();
     let queue = core::create_command_queue(&context, &device_id).unwrap();
     let dims = [500000, 1, 1usize];
@@ -179,7 +179,7 @@ fn main_cored() {
     // (2) Create a `Buffer` with a built-in `Vec` (created separately here):
     // Again, we're cheating on the length calculation.
     let mut buffer_vec = vec![0.0f32; dims[0]];
-    let buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE | 
+    let buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE |
         flags::MEM_COPY_HOST_PTR, dims[0], Some(&buffer_vec)).unwrap() };
 
     // For verification purposes:
@@ -191,14 +191,14 @@ fn main_cored() {
     core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(ADDEND)).unwrap();
 
     // (4) Run the kernel (default parameters shown for elucidation purposes):
-    core::enqueue_kernel(&queue, &kernel, 1, None, &dims, 
+    core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
         None, None, None).unwrap();
 
     // (5) Read results from the device into our buffer's [no longer] built-in vector:
-     unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut buffer_vec, 
-        None, None).unwrap() };    
+     unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut buffer_vec,
+        None, None).unwrap() };
 
     // Print an element:
-    println!("The value at index [{}] was '{}' and is now '{}'!", 
+    println!("The value at index [{}] was '{}' and is now '{}'!",
         IDX, orig_val, buffer_vec[IDX]);
 }

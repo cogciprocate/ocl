@@ -33,9 +33,9 @@ unsafe impl OclVec for ClChar2 {}
 pub struct ClChar3(pub i8, pub i8, pub i8, i8);
 
 impl ClChar3 {
-	pub fn new(s0: i8, s1: i8, s2: i8) -> ClChar3 {
-		ClChar3(s0, s1, s2, 0)
-	}
+    pub fn new(s0: i8, s1: i8, s2: i8) -> ClChar3 {
+        ClChar3(s0, s1, s2, 0)
+    }
 }
 
 unsafe impl OclPrm for ClChar3 {}
@@ -58,8 +58,8 @@ unsafe impl OclVec for ClChar8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClChar16(pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, 
-	pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8);
+pub struct ClChar16(pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8,
+    pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8);
 unsafe impl OclPrm for ClChar16 {}
 unsafe impl OclVec for ClChar16 {}
 
@@ -75,9 +75,9 @@ unsafe impl OclVec for ClUchar2 {}
 pub struct ClUchar3(pub u8, pub u8, pub u8, u8);
 
 impl ClUchar3 {
-	pub fn new(s0: u8, s1: u8, s2: u8) -> ClUchar3 {
-		ClUchar3(s0, s1, s2, 0)
-	}
+    pub fn new(s0: u8, s1: u8, s2: u8) -> ClUchar3 {
+        ClUchar3(s0, s1, s2, 0)
+    }
 }
 
 unsafe impl OclPrm for ClUchar3 {}
@@ -100,8 +100,8 @@ unsafe impl OclVec for ClUchar8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClUchar16(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, 
-	pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
+pub struct ClUchar16(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8,
+    pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
 unsafe impl OclPrm for ClUchar16 {}
 unsafe impl OclVec for ClUchar16 {}
 
@@ -117,9 +117,9 @@ unsafe impl OclVec for ClShort2 {}
 pub struct ClShort3(pub i16, pub i16, pub i16, i16);
 
 impl ClShort3 {
-	pub fn new(s0: i16, s1: i16, s2: i16) -> ClShort3 {
-		ClShort3(s0, s1, s2, 0)
-	}
+    pub fn new(s0: i16, s1: i16, s2: i16) -> ClShort3 {
+        ClShort3(s0, s1, s2, 0)
+    }
 }
 
 unsafe impl OclPrm for ClShort3 {}
@@ -142,8 +142,8 @@ unsafe impl OclVec for ClShort8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClShort16(pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, 
-	pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16);
+pub struct ClShort16(pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16,
+    pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16);
 unsafe impl OclPrm for ClShort16 {}
 unsafe impl OclVec for ClShort16 {}
 
@@ -159,9 +159,9 @@ unsafe impl OclVec for ClUshort2 {}
 pub struct ClUshort3(pub u16, pub u16, pub u16, u16);
 
 impl ClUshort3 {
-	pub fn new(s0: u16, s1: u16, s2: u16) -> ClUshort3 {
-		ClUshort3(s0, s1, s2, 0)
-	}
+    pub fn new(s0: u16, s1: u16, s2: u16) -> ClUshort3 {
+        ClUshort3(s0, s1, s2, 0)
+    }
 }
 
 unsafe impl OclPrm for ClUshort3 {}
@@ -184,8 +184,8 @@ unsafe impl OclVec for ClUshort8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClUshort16(pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, 
-	pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16);
+pub struct ClUshort16(pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16,
+    pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16);
 unsafe impl OclPrm for ClUshort16 {}
 unsafe impl OclVec for ClUshort16 {}
 
@@ -201,9 +201,9 @@ unsafe impl OclVec for ClInt2 {}
 pub struct ClInt3(pub i32, pub i32, pub i32, i32);
 
 impl ClInt3 {
-	pub fn new(s0: i32, s1: i32, s2: i32) -> ClInt3 {
-		ClInt3(s0, s1, s2, 0)
-	}
+    pub fn new(s0: i32, s1: i32, s2: i32) -> ClInt3 {
+        ClInt3(s0, s1, s2, 0)
+    }
 }
 
 unsafe impl OclPrm for ClInt3 {}
@@ -226,8 +226,8 @@ unsafe impl OclVec for ClInt8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClInt16(pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, 
-	pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32);
+pub struct ClInt16(pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32,
+    pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32);
 unsafe impl OclPrm for ClInt16 {}
 unsafe impl OclVec for ClInt16 {}
 
@@ -243,9 +243,9 @@ unsafe impl OclVec for ClUint2 {}
 pub struct ClUint3(pub u32, pub u32, pub u32, u32);
 
 impl ClUint3 {
-	pub fn new(s0: u32, s1: u32, s2: u32) -> ClUint3 {
-		ClUint3(s0, s1, s2, 0)
-	}
+    pub fn new(s0: u32, s1: u32, s2: u32) -> ClUint3 {
+        ClUint3(s0, s1, s2, 0)
+    }
 }
 
 unsafe impl OclPrm for ClUint3 {}
@@ -268,8 +268,8 @@ unsafe impl OclVec for ClUint8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClUint16(pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, 
-	pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32);
+pub struct ClUint16(pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32,
+    pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32);
 unsafe impl OclPrm for ClUint16 {}
 unsafe impl OclVec for ClUint16 {}
 
@@ -291,9 +291,9 @@ unsafe impl OclVec for ClLong2 {}
 pub struct ClLong3(pub i64, pub i64, pub i64, i64);
 
 impl ClLong3 {
-	pub fn new(s0: i64, s1: i64, s2: i64) -> ClLong3 {
-		ClLong3(s0, s1, s2, 0)
-	}
+    pub fn new(s0: i64, s1: i64, s2: i64) -> ClLong3 {
+        ClLong3(s0, s1, s2, 0)
+    }
 }
 
 unsafe impl OclPrm for ClLong3 {}
@@ -316,8 +316,8 @@ unsafe impl OclVec for ClLong8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClLong16(pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, 
-	pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64);
+pub struct ClLong16(pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64,
+    pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64);
 unsafe impl OclPrm for ClLong16 {}
 unsafe impl OclVec for ClLong16 {}
 
@@ -339,9 +339,9 @@ unsafe impl OclVec for ClUlong2 {}
 pub struct ClUlong3(pub u64, pub u64, pub u64, u64);
 
 impl ClUlong3 {
-	pub fn new(s0: u64, s1: u64, s2: u64) -> ClUlong3 {
-		ClUlong3(s0, s1, s2, 0)
-	}
+    pub fn new(s0: u64, s1: u64, s2: u64) -> ClUlong3 {
+        ClUlong3(s0, s1, s2, 0)
+    }
 }
 
 unsafe impl OclPrm for ClUlong3 {}
@@ -364,8 +364,8 @@ unsafe impl OclVec for ClUlong8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClUlong16(pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, 
-	pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64);
+pub struct ClUlong16(pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64,
+    pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64);
 unsafe impl OclPrm for ClUlong16 {}
 unsafe impl OclVec for ClUlong16 {}
 
@@ -381,29 +381,29 @@ unsafe impl OclVec for ClFloat2 {}
 pub struct ClFloat3(pub f32, pub f32, pub f32, f32);
 
 impl ClFloat3 {
-	pub fn new(s0: f32, s1: f32, s2: f32) -> ClFloat3 {
-		ClFloat3(s0, s1, s2, 0.0)
-	}
+    pub fn new(s0: f32, s1: f32, s2: f32) -> ClFloat3 {
+        ClFloat3(s0, s1, s2, 0.0)
+    }
 }
 
 impl Add<ClFloat3> for ClFloat3 {
-	type Output = Self;
+    type Output = Self;
 
-	fn add(self, rhs: Self) -> Self {
-		ClFloat3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2, self.3 + rhs.3)
-	}
+    fn add(self, rhs: Self) -> Self {
+        ClFloat3(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2, self.3 + rhs.3)
+    }
 }
 
 impl From<[f32; 3]> for ClFloat3 {
-	fn from(f: [f32; 3]) -> Self {
-		ClFloat3(f[0], f[1], f[2], 0.0)
-	}
+    fn from(f: [f32; 3]) -> Self {
+        ClFloat3(f[0], f[1], f[2], 0.0)
+    }
 }
 
 impl From<(f32, f32, f32)> for ClFloat3 {
-	fn from(f: (f32, f32, f32)) -> Self {
-		ClFloat3(f.0, f.1, f.2, 0.0)
-	}
+    fn from(f: (f32, f32, f32)) -> Self {
+        ClFloat3(f.0, f.1, f.2, 0.0)
+    }
 }
 
 unsafe impl OclPrm for ClFloat3 {}
@@ -414,17 +414,17 @@ unsafe impl OclVec for ClFloat3 {}
 pub struct ClFloat4(pub f32, pub f32, pub f32, pub f32);
 
 impl ClFloat4 {
-	pub fn new(s0: f32, s1: f32, s2: f32, s3: f32) -> ClFloat4 {
-		ClFloat4(s0, s1, s2, s3)
-	}
+    pub fn new(s0: f32, s1: f32, s2: f32, s3: f32) -> ClFloat4 {
+        ClFloat4(s0, s1, s2, s3)
+    }
 }
 
 impl Add<ClFloat4> for ClFloat4 {
-	type Output = ClFloat4;
+    type Output = ClFloat4;
 
-	fn add(self, rhs: ClFloat4) -> ClFloat4 {
-		ClFloat4(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2, self.3 + rhs.3)
-	}
+    fn add(self, rhs: ClFloat4) -> ClFloat4 {
+        ClFloat4(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2, self.3 + rhs.3)
+    }
 }
 
 unsafe impl OclPrm for ClFloat4 {}
@@ -440,8 +440,8 @@ unsafe impl OclVec for ClFloat8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClFloat16(pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, 
-	pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32);
+pub struct ClFloat16(pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32,
+    pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32);
 unsafe impl OclPrm for ClFloat16 {}
 unsafe impl OclVec for ClFloat16 {}
 
@@ -457,9 +457,9 @@ unsafe impl OclVec for ClDouble2 {}
 pub struct ClDouble3(pub f64, pub f64, pub f64, f64);
 
 impl ClDouble3 {
-	pub fn new(s0: f64, s1: f64, s2: f64) -> ClDouble3 {
-		ClDouble3(s0, s1, s2, 0.0)
-	}
+    pub fn new(s0: f64, s1: f64, s2: f64) -> ClDouble3 {
+        ClDouble3(s0, s1, s2, 0.0)
+    }
 }
 
 unsafe impl OclPrm for ClDouble3 {}
@@ -482,7 +482,7 @@ unsafe impl OclVec for ClDouble8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClDouble16(pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, 
-	pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64);
+pub struct ClDouble16(pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64,
+    pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64);
 unsafe impl OclPrm for ClDouble16 {}
 unsafe impl OclVec for ClDouble16 {}

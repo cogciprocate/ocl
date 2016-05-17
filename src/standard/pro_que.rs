@@ -7,7 +7,7 @@ use core::OclPrm;
 use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
     MemLen, SpatialDims, WorkDims, DeviceSpecifier};
 
-static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use 
+static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use
     'ProQueBuilder::dims' during creation or 'ProQue::set_dims' after creation to specify.";
 
 const DEBUG_PRINT: bool = false;
@@ -25,7 +25,7 @@ pub struct ProQueBuilder {
 impl ProQueBuilder {
     /// Returns a new `ProQueBuilder` with an empty / default configuration.
     ///
-    /// The minimum amount of configuration possible before calling `::build` is to 
+    /// The minimum amount of configuration possible before calling `::build` is to
     /// simply assign some source code using `::src`.
     ///
     /// For full configuration options, separately create a `Context` and
@@ -35,7 +35,7 @@ impl ProQueBuilder {
     /// respectively.
     ///
     pub fn new() -> ProQueBuilder {
-        ProQueBuilder { 
+        ProQueBuilder {
             platform: None,
             context: None,
             // device_idx: 0,
@@ -120,9 +120,9 @@ impl ProQueBuilder {
         // println!("PROQUEBUILDER: All done.");
 
         let program = try!(Program::new(
-            src_strings, 
-            cmplr_opts, 
-            &context, 
+            src_strings,
+            cmplr_opts,
+            &context,
             &vec![device],
         ));
 
@@ -156,7 +156,7 @@ impl ProQueBuilder {
     ///
     /// Must specify only a single device.
     ///
-    pub fn device<'p, D: Into<DeviceSpecifier>>(&'p mut self, device_spec: D) 
+    pub fn device<'p, D: Into<DeviceSpecifier>>(&'p mut self, device_spec: D)
             -> &'p mut ProQueBuilder
     {
         assert!(self.device_spec.is_none(), "ocl::ProQue::devices: Devices already specified");
@@ -182,7 +182,7 @@ impl ProQueBuilder {
     /// to call `::program_builder` after calling this method will cause a panic.
     ///
     /// If you need a more complex build configuration or to add multiple
-    /// source files. Pass an *unbuilt* `ProgramBuilder` to the 
+    /// source files. Pass an *unbuilt* `ProgramBuilder` to the
     /// `::program_builder` method (described below).
     pub fn src<'p, S: Into<String>>(&'p mut self, src: S) -> &'p mut ProQueBuilder {
         if self.program_builder.is_some() {
@@ -216,7 +216,7 @@ impl ProQueBuilder {
 
         self.program_builder = Some(program_builder);
         self
-    } 
+    }
 
     /// Sets the built-in dimensions.
     ///
@@ -241,9 +241,9 @@ impl ProQueBuilder {
 /// Handy when you only need a single context, program, and queue for your
 /// project or when using a unique context and program on each device.
 ///
-/// All `ProQue` functionality is also provided separately by the `Context`, `Queue`, 
+/// All `ProQue` functionality is also provided separately by the `Context`, `Queue`,
 /// `Program`, and `SpatialDims` types.
-/// 
+///
 ///
 /// # Creation
 ///
@@ -282,7 +282,7 @@ impl ProQue {
     /// from different devices or contexts will cause errors later on.
     ///
     pub fn new<D: Into<SpatialDims>>(context: Context, queue: Queue, program: Program,
-                    dims: Option<D>) -> ProQue 
+                    dims: Option<D>) -> ProQue
     {
         ProQue {
             context: context,
@@ -372,7 +372,7 @@ impl MemLen for ProQue {
     fn to_len_padded(&self, incr: usize) -> usize {
         self.dims().to_len_padded(incr)
     }
-    fn to_lens(&self) -> [usize; 3] { 
+    fn to_lens(&self) -> [usize; 3] {
         self.dims_result().expect("ocl::ProQue::to_lens()")
             .to_lens().expect("ocl::ProQue::to_lens()")
     }
@@ -402,8 +402,8 @@ impl Deref for ProQue {
 
 
 
-    // / Creates a new queue on the device with `device_idx` (see 
-    // / [`Queue`](/ocl/ocl/struct.Queue.html) 
+    // / Creates a new queue on the device with `device_idx` (see
+    // / [`Queue`](/ocl/ocl/struct.Queue.html)
     // / documentation) and returns a new Program/Queue hybrid.
     // /
     // / `::build_program` must be called before this ProQue can be used.
@@ -439,12 +439,12 @@ impl Deref for ProQue {
     // ///
     // /// ## Stability
     // ///
-    // /// The usefulness of this method is questionable now that we have a builder. 
+    // /// The usefulness of this method is questionable now that we have a builder.
     // /// It may be depricated.
     // ///
     // /// [UNSTABLE]: Prefer using `ProQueBuilder`.
     // pub fn build_program(&mut self, builder: &ProgramBuilder) -> OclResult<()> {
-    //     if self.program.is_some() { 
+    //     if self.program.is_some() {
     //         return OclError::err("ProQue::build_program(): Pre-existing build detected. Use \
     //             '.clear_build()' first.");
     //     }
@@ -454,11 +454,11 @@ impl Deref for ProQue {
     //             may not have any device indices set as they will be ignored. See 'ProQue' \
     //             documentation for more information.");
     //     }
-        
+
     //     self.program = Some(try!(Program::new(
-    //         try!(builder.get_src_strings().map_err(|e| e.to_string())), 
-    //         try!(builder.get_compiler_options().map_err(|e| e.to_string())), 
-    //         self.queue.context_core_as_ref(), 
+    //         try!(builder.get_src_strings().map_err(|e| e.to_string())),
+    //         try!(builder.get_compiler_options().map_err(|e| e.to_string())),
+    //         self.queue.context_core_as_ref(),
     //         &vec![self.queue.device().clone()],
     //     )));
 
@@ -467,15 +467,15 @@ impl Deref for ProQue {
 
 
     // /// Clears the current program build. Any kernels created with the pre-existing program will continue to work but new kernels will require a new program to be built. This can occasionally be useful for creating different programs based on the same source but with different constants.
-    // /// 
+    // ///
     // /// ## Stability
     // ///
     // /// [UNSTABLE]: Usefulness and safety questionable.
     // ///
     // pub fn clear_build(&mut self) {
     //     // match self.program {
-    //     //     Some(ref mut program) => { 
-    //     //         program.release();              
+    //     //     Some(ref mut program) => {
+    //     //         program.release();
     //     //     },
 
     //     //     None => (),
