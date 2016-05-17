@@ -21,6 +21,7 @@ use std::env;
 use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
+use ffi::ClGlUint;
 
 use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type,
     cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties,
@@ -28,7 +29,7 @@ use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devi
     cl_mem_flags, cl_mem_object_type, cl_buffer_create_type, cl_event, cl_program,
     cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info,
     cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
-    cl_kernel_work_group_info, cl_event_info, cl_profiling_info, GLuint};
+    cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 use error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel,
@@ -716,7 +717,7 @@ pub unsafe fn create_buffer<T: OclPrm>(
 /// Return a buffer pointer from a OpenGL buffer object.
 pub unsafe fn create_from_gl_buffer<T: OclPrm>(
             context: &Context,
-            gl_object: GLuint,
+            gl_object: ClGlUint,
             flags: MemFlags
         ) -> OclResult<Mem>
 {

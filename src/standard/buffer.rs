@@ -8,7 +8,7 @@ use core::{self, OclPrm, Mem as MemCore, MemFlags,
     MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList};
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, MemLen, SpatialDims};
-
+use ffi::ClGlUint;
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     if offset >= mem_len { return OclError::err(format!(
@@ -504,9 +504,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
     /// for more info.
-    ///
-    // FIXME: need GLuint type in place of gl_object ! did I import all types from cl_h.rs ?
-    pub fn from_gl_buffer<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, gl_object: u32)
+    pub fn from_gl_buffer<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, gl_object: ClGlUint)
             -> OclResult<Buffer<T>> {
         let flags = flags.unwrap_or(core::MEM_READ_WRITE);
         let dims: SpatialDims = dims.to_lens().into();

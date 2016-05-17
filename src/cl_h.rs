@@ -15,6 +15,7 @@
 
 use std::fmt::{Display, Formatter, Result};
 use libc::{c_void, size_t, c_char, c_uchar, intptr_t};
+use ffi::ClGlUint;
 
 pub type cl_platform_id     = *mut c_void;
 pub type cl_device_id       = *mut c_void;
@@ -77,7 +78,6 @@ pub type cl_kernel_work_group_info          = cl_uint;
 pub type cl_event_info                      = cl_uint;
 pub type cl_command_type                    = cl_uint;
 pub type cl_profiling_info                  = cl_uint;
-pub type GLuint                             = cl_uint; // FIXME is it a good idea to create this type ?
 
 #[repr(C)]
 
@@ -685,7 +685,7 @@ extern "system" {
 
     pub fn clCreateFromGLBuffer(context: cl_context,
                             flags: cl_mem_flags,
-                            bufobj: GLuint, // FIXME is it a good idea to use this type ?
+                            bufobj: ClGlUint,
                             errcode_ret: *mut cl_int) -> cl_mem;
 
     // //##### DEPRICATED 1.1 #####
