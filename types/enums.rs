@@ -38,10 +38,12 @@ use std::convert::Into;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
+use cl_h::{cl_image_format};
 use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, 
     ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
-     Mem, MemInfo, Sampler, SamplerInfo, 
-    ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
+    Mem, MemInfo, Sampler, SamplerInfo, AddressingMode, FilterMode,
+    ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo, 
+    KernelArgInfo, KernelWorkGroupInfo, 
     KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo, 
     ImageFormat, EventInfo, ProfilingInfo,};
 use error::{Result as OclResult, Error as OclError};
@@ -576,7 +578,7 @@ impl Into<String> for MemInfoResult {
 
 /// [UNSTABLE][INCOMPLETE] An image info result.
 pub enum ImageInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
+    // TemporaryPlaceholderVariant(Vec<u8>),
     Format(ImageFormat),
     ElementSize(usize),
     RowPitch(usize),
@@ -597,11 +599,54 @@ impl ImageInfoResult {
     {
         match result {
             Ok(result) => { match request {
-                ImageInfo::ElementSize => {
-                    let size = unsafe { util::bytes_into::<usize>(result) };
-                    ImageInfoResult::ElementSize(size)
+                ImageInfo::Format => {
+                    let r = unsafe { util::bytes_into::<cl_image_format>(result) };
+                    match ImageFormat::from_raw(r) {
+                        Ok(f) => ImageInfoResult::Format(f),
+                        Err(err) => ImageInfoResult::Error(Box::new(err)),
+                    }                    
                 },
-                _ => ImageInfoResult::TemporaryPlaceholderVariant(result),
+                ImageInfo::ElementSize => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    ImageInfoResult::ElementSize(r)
+                },
+                ImageInfo::RowPitch => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    ImageInfoResult::RowPitch(r)
+                },
+                ImageInfo::SlicePitch => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    ImageInfoResult::SlicePitch(r)
+                },
+                ImageInfo::Width => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    ImageInfoResult::Width(r)
+                },
+                ImageInfo::Height => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    ImageInfoResult::Height(r)
+                },
+                ImageInfo::Depth => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    ImageInfoResult::Depth(r)
+                },
+                ImageInfo::ArraySize => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    ImageInfoResult::ArraySize(r)
+                },
+                ImageInfo::Buffer => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    ImageInfoResult::Buffer(unsafe { Mem::from_copied_ptr(ptr) })
+                },
+                ImageInfo::NumMipLevels => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    ImageInfoResult::NumMipLevels(r)
+                },
+                ImageInfo::NumSamples => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    ImageInfoResult::NumSamples(r)
+                },
+                // _ => ImageInfoResult::TemporaryPlaceholderVariant(result),
             } }
             Err(err) => ImageInfoResult::Error(Box::new(err)),
         }
@@ -617,12 +662,22 @@ impl std::fmt::Debug for ImageInfoResult {
 impl std::fmt::Display for ImageInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            // &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
+            //    write!(f, "{}", to_string_retarded(v))
+            // },
+            &ImageInfoResult::Format(ref s) => write!(f, "{:?}", s),
             &ImageInfoResult::ElementSize(s) => write!(f, "{}", s),
+            &ImageInfoResult::RowPitch(s) => write!(f, "{}", s),
+            &ImageInfoResult::SlicePitch(s) => write!(f, "{}", s),
+            &ImageInfoResult::Width(s) => write!(f, "{}", s),
+            &ImageInfoResult::Height(s) => write!(f, "{}", s),
+            &ImageInfoResult::Depth(s) => write!(f, "{}", s),
+            &ImageInfoResult::ArraySize(s) => write!(f, "{}", s),
+            &ImageInfoResult::Buffer(ref s) => write!(f, "{:?}", s),
+            &ImageInfoResult::NumMipLevels(s) => write!(f, "{}", s),
+            &ImageInfoResult::NumSamples(s) => write!(f, "{}", s),
             &ImageInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
+            // _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -634,14 +689,14 @@ impl Into<String> for ImageInfoResult {
 }
 
 
-/// [UNSTABLE][INCOMPLETE] A sampler info result.
+/// A sampler info result.
 pub enum SamplerInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
-    ReferenceCount(TemporaryPlaceholderType),
-    Context(TemporaryPlaceholderType),
-    NormalizedCoords(TemporaryPlaceholderType),
-    AddressingMode(TemporaryPlaceholderType),
-    FilterMode(TemporaryPlaceholderType),
+    // TemporaryPlaceholderVariant(Vec<u8>),
+    ReferenceCount(u32),
+    Context(Context),
+    NormalizedCoords(bool),
+    AddressingMode(AddressingMode),
+    FilterMode(FilterMode),
     Error(Box<OclError>),
 }
 
@@ -651,7 +706,37 @@ impl SamplerInfoResult {
     {
         match result {
             Ok(result) => { match request {
-                _ => SamplerInfoResult::TemporaryPlaceholderVariant(result),
+                SamplerInfo::ReferenceCount => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    SamplerInfoResult::ReferenceCount(r)
+                },
+                SamplerInfo::Context => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    SamplerInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                },
+                SamplerInfo::NormalizedCoords => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    SamplerInfoResult::NormalizedCoords(r!= 0u32)
+                },
+                SamplerInfo::AddressingMode => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    match AddressingMode::from_u32(r) {
+                        Some(am) => SamplerInfoResult::AddressingMode(am),
+                        None => SamplerInfoResult::Error(Box::new(
+                            OclError::new(format!("Error converting '{}' to \
+                                AddressingMode.", r)))),
+                    }
+                },
+                SamplerInfo::FilterMode => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    match FilterMode::from_u32(r) {
+                        Some(fm) => SamplerInfoResult::FilterMode(fm),
+                        None => SamplerInfoResult::Error(Box::new(
+                            OclError::new(format!("Error converting '{}' to \
+                                FilterMode.", r)))),
+                    }
+                },
+                // _ => SamplerInfoResult::TemporaryPlaceholderVariant(result),
             } }
             Err(err) => SamplerInfoResult::Error(Box::new(err)),
         }
@@ -667,11 +752,16 @@ impl std::fmt::Debug for SamplerInfoResult {
 impl std::fmt::Display for SamplerInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            // &SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
+            //    write!(f, "{}", to_string_retarded(v))
+            // },
+            &SamplerInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            &SamplerInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            &SamplerInfoResult::NormalizedCoords(ref s) => write!(f, "{}", s),
+            &SamplerInfoResult::AddressingMode(ref s) => write!(f, "{:?}", s),
+            &SamplerInfoResult::FilterMode(ref s) => write!(f, "{:?}", s),
             &SamplerInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
+            // _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -684,18 +774,18 @@ impl Into<String> for SamplerInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] A program info result.
+/// A program info result.
 pub enum ProgramInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
-    ReferenceCount(TemporaryPlaceholderType),
-    Context(TemporaryPlaceholderType),
-    NumDevices(TemporaryPlaceholderType),
-    Devices(TemporaryPlaceholderType),
-    Source(TemporaryPlaceholderType),
-    BinarySizes(TemporaryPlaceholderType),
-    Binaries(TemporaryPlaceholderType),
-    NumKernels(TemporaryPlaceholderType),
-    KernelNames(TemporaryPlaceholderType),
+    // TemporaryPlaceholderVariant(Vec<u8>),
+    ReferenceCount(u32),
+    Context(Context),
+    NumDevices(u32),
+    Devices(Vec<DeviceId>),
+    Source(String),
+    BinarySizes(Vec<usize>),
+    Binaries(Vec<Vec<u8>>),
+    NumKernels(usize),
+    KernelNames(String),
     Error(Box<OclError>),
 }
 
@@ -705,7 +795,49 @@ impl ProgramInfoResult {
     {
         match result {
             Ok(result) => { match request {
-                _ => ProgramInfoResult::TemporaryPlaceholderVariant(result),
+                ProgramInfo::ReferenceCount => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    ProgramInfoResult::ReferenceCount(r)
+                },
+                ProgramInfo::Context => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    ProgramInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                },
+                ProgramInfo::NumDevices => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    ProgramInfoResult::NumDevices(r)
+                },
+                ProgramInfo::Devices => {
+                    ProgramInfoResult::Devices(
+                        unsafe { util::bytes_into_vec::<DeviceId>(result) }
+                    )
+                },
+                ProgramInfo::Source => {
+                    let string = match String::from_utf8(result) {
+                        Ok(s) => s,
+                        Err(err) => return ProgramInfoResult::Error(Box::new(OclError::from(err))),
+                    };
+                    ProgramInfoResult::Source(string)
+                },
+                ProgramInfo::BinarySizes => { ProgramInfoResult::BinarySizes(
+                        unsafe { util::bytes_into_vec::<usize>(result) }
+                ) },
+                ProgramInfo::Binaries => {
+                    // [FIXME]: UNIMPLEMENTED
+                    ProgramInfoResult::Binaries(Vec::with_capacity(0))
+                },
+                ProgramInfo::NumKernels => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    ProgramInfoResult::NumKernels(r)
+                },
+                ProgramInfo::KernelNames => {
+                    let string = match String::from_utf8(result) {
+                        Ok(s) => s,
+                        Err(err) => return ProgramInfoResult::Error(Box::new(OclError::from(err))),
+                    };
+                    ProgramInfoResult::KernelNames(string)
+                },
+                // _ => ProgramInfoResult::TemporaryPlaceholderVariant(result),
             } }
             Err(err) => ProgramInfoResult::Error(Box::new(err)),
         }
@@ -721,11 +853,20 @@ impl std::fmt::Debug for ProgramInfoResult {
 impl std::fmt::Display for ProgramInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            // &ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
+            //    write!(f, "{}", to_string_retarded(v))
+            // },
+            &ProgramInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            &ProgramInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            &ProgramInfoResult::NumDevices(ref s) => write!(f, "{}", s),
+            &ProgramInfoResult::Devices(ref s) => write!(f, "{:?}", s),
+            &ProgramInfoResult::Source(ref s) => write!(f, "{}", s),
+            &ProgramInfoResult::BinarySizes(ref s) => write!(f, "{:?}", s),
+            &ProgramInfoResult::Binaries(_) => write!(f, "[Unprintable]"),
+            &ProgramInfoResult::NumKernels(ref s) => write!(f, "{}", s),
+            &ProgramInfoResult::KernelNames(ref s) => write!(f, "{}", s),
             &ProgramInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
+            // _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -737,13 +878,12 @@ impl Into<String> for ProgramInfoResult {
 }
 
 
-/// [UNSTABLE][INCOMPLETE] A program build info result.
+/// A program build info result.
 pub enum ProgramBuildInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
-    BuildStatus(TemporaryPlaceholderType),
-    BuildOptions(TemporaryPlaceholderType),
+    BuildStatus(ProgramBuildStatus),
+    BuildOptions(String),
     BuildLog(String),
-    BinaryType(TemporaryPlaceholderType),
+    BinaryType(ProgramBinaryType),
     Error(Box<OclError>),
 }
 
@@ -753,6 +893,23 @@ impl ProgramBuildInfoResult {
     {
         match result {
             Ok(result) => { match request {
+                ProgramBuildInfo::BuildStatus => {
+                    let r = unsafe { util::bytes_into::<i32>(result) };
+                    match ProgramBuildStatus::from_i32(r) {
+                        Some(b) => ProgramBuildInfoResult::BuildStatus(b),
+                        None => ProgramBuildInfoResult::Error(Box::new(
+                            OclError::new(format!("Error converting '{}' to \
+                                ProgramBuildStatus.", r)))),
+                    }
+                },
+                ProgramBuildInfo::BuildOptions => {
+                    let string = match String::from_utf8(result) {
+                        Ok(s) => s,
+                        Err(err) => return ProgramBuildInfoResult::Error(Box::new(OclError::from(err))),
+                    };
+
+                    ProgramBuildInfoResult::BuildOptions(string)
+                },    
                 ProgramBuildInfo::BuildLog => {
                     let string = match String::from_utf8(result) {
                         Ok(s) => s,
@@ -761,7 +918,10 @@ impl ProgramBuildInfoResult {
 
                     ProgramBuildInfoResult::BuildLog(string)
                 },
-                _ => ProgramBuildInfoResult::TemporaryPlaceholderVariant(result),
+                ProgramBuildInfo::BinaryType => {
+                    let r = unsafe { util::bytes_into::<ProgramBinaryType>(result) };
+                    ProgramBuildInfoResult::BinaryType(r)
+                },
             } }
             Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
         }
@@ -777,12 +937,11 @@ impl std::fmt::Debug for ProgramBuildInfoResult {
 impl std::fmt::Display for ProgramBuildInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &ProgramBuildInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            &ProgramBuildInfoResult::BuildStatus(ref s) => write!(f, "{:?}", s),
+            &ProgramBuildInfoResult::BuildOptions(ref s) => write!(f, "{}", s),
             &ProgramBuildInfoResult::BuildLog(ref s) => write!(f, "{}", s),
+            &ProgramBuildInfoResult::BinaryType(ref s) => write!(f, "{:?}", s),
             &ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("ProgramBuildInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -795,15 +954,14 @@ impl Into<String> for ProgramBuildInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] A kernel info result.
+/// A kernel info result.
 pub enum KernelInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
     FunctionName(String),
-    NumArgs(TemporaryPlaceholderType),
-    ReferenceCount(TemporaryPlaceholderType),
-    Context(TemporaryPlaceholderType),
-    Program(TemporaryPlaceholderType),
-    Attributes(TemporaryPlaceholderType),
+    NumArgs(u32),
+    ReferenceCount(u32),
+    Context(Context),
+    Program(Program),
+    Attributes(String),
     Error(Box<OclError>),
 }
 
@@ -813,22 +971,36 @@ impl KernelInfoResult {
     {
         match result {
             Ok(result) => match request {
-                // KernelInfo::MaxWorkGroupSize => {
-                //     let r0 = unsafe { util::bytes_to::<usize>(&result) };
-                //     let size = unsafe { util::bytes_into::<usize>(result) };
-                //     debug_assert_eq!(r0, size);
-                //     // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
-                //     KernelInfoResult::MaxWorkGroupSize(size)
-                // },
                 KernelInfo::FunctionName => {
                     let string = match String::from_utf8(result) {
                         Ok(s) => s,
                         Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
                     };
-
                     KernelInfoResult::FunctionName(string)
                 },
-                _ => KernelInfoResult::TemporaryPlaceholderVariant(result),
+                KernelInfo::NumArgs => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    KernelInfoResult::NumArgs(r)
+                },
+                KernelInfo::ReferenceCount => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    KernelInfoResult::ReferenceCount(r)
+                },
+                KernelInfo::Context => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    KernelInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                },
+                KernelInfo::Program => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    KernelInfoResult::Program(unsafe { Program::from_copied_ptr(ptr) })
+                },
+                KernelInfo::Attributes => {
+                    let string = match String::from_utf8(result) {
+                        Ok(s) => s,
+                        Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
+                    };
+                    KernelInfoResult::Attributes(string)
+                },
             },
             Err(err) => KernelInfoResult::Error(Box::new(err)),
         }
@@ -844,10 +1016,13 @@ impl std::fmt::Debug for KernelInfoResult {
 impl std::fmt::Display for KernelInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &KernelInfoResult::TemporaryPlaceholderVariant(ref v) => write!(f, "{}", to_string_retarded(v)),
             &KernelInfoResult::FunctionName(ref s) => write!(f, "{}", s),
+            &KernelInfoResult::NumArgs(s) => write!(f, "{}", s),
+            &KernelInfoResult::ReferenceCount(s) => write!(f, "{}", s),
+            &KernelInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            &KernelInfoResult::Program(ref s) => write!(f, "{:?}", s),
+            &KernelInfoResult::Attributes(ref s) => write!(f, "{}", s),
             &KernelInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("KernelInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -860,7 +1035,7 @@ impl Into<String> for KernelInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] A kernel arg info result.
+/// A kernel arg info result.
 pub enum KernelArgInfoResult {
     AddressQualifier(KernelArgAddressQualifier),
     AccessQualifier(KernelArgAccessQualifier),
