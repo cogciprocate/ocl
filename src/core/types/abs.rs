@@ -308,6 +308,14 @@ impl Mem {
 		Mem(ptr)
 	}
 
+	/// Only call this when passing a copied pointer such as from an
+	/// `clGet*****Info` function.
+	pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> Mem {
+		let copy = Mem(ptr);
+		core::retain_mem_object(&copy).unwrap();
+		copy
+	}
+
 	// pub unsafe fn null() -> Mem {
 	// 	Mem(0 as *mut libc::c_void, PhantomData)
 	// }
@@ -345,6 +353,14 @@ impl Program {
 	/// `clCreate...`. Do not use this to clone or copy.
 	pub unsafe fn from_fresh_ptr(ptr: cl_program) -> Program {
 		Program(ptr)
+	}
+
+	/// Only call this when passing a copied pointer such as from an
+	/// `clGet*****Info` function.
+	pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> Program {
+		let copy = Program(ptr);
+		core::retain_program(&copy).unwrap();
+		copy
 	}
 
 	/// Returns a pointer, do not store it.

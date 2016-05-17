@@ -348,7 +348,7 @@ bitflags! {
 
 bitflags! {
 	/// cl_program_binary_type
-    pub flags ProgramBinaryType: u64 {
+    pub flags ProgramBinaryType: u32 {
 		const PROGRAM_BINARY_TYPE_NONE = 0x0,
 		const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
 		const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
@@ -790,7 +790,7 @@ enum_from_primitive! {
 	/// cl_build_status 
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum BuildStatus {
+    pub enum ProgramBuildStatus {
         Success = cl_h::CL_BUILD_SUCCESS as isize,
         None = cl_h::CL_BUILD_NONE as isize,
         Error = cl_h::CL_BUILD_ERROR as isize,

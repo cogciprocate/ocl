@@ -145,7 +145,7 @@ pub mod enums {
 		DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo,
 		ContextInfoOrPropertiesPointerType, PartitionProperty, CommandQueueInfo, ChannelType, 
 		MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo,
-		ProgramBuildInfo, BuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier, 
+		ProgramBuildInfo, ProgramBuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier,
 		KernelArgAccessQualifier, KernelWorkGroupInfo, EventInfo, CommandType, 
 		CommandExecutionStatus, BufferCreateType, ProfilingInfo};
 
