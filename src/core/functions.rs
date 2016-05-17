@@ -716,7 +716,7 @@ pub unsafe fn create_buffer<T: OclPrm>(
 /// Return a buffer pointer from a OpenGL buffer object.
 pub unsafe fn create_from_gl_buffer<T: OclPrm>(
             context: &Context,
-            gl_buffer_id: GLuint,
+            gl_object: GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
 {
@@ -728,7 +728,7 @@ pub unsafe fn create_from_gl_buffer<T: OclPrm>(
     let buf_ptr = cl_h::clCreateFromGLBuffer(
             context.as_ptr(),
             flags.bits() as cl_mem_flags,
-            gl_buffer_id,
+            gl_object,
             &mut errcode);
 
     try!(errcode_try("clCreateFromGLBuffer", "", errcode));
@@ -2016,6 +2016,51 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm>(
     errcode_try("clEnqueueCopyBufferRect", "", errcode)
 }
 
+/// [UNTESTED]
+/// Enqueue acquire OpenCL memory objects that have been created from OpenGL objects.
+pub fn enqueue_acquire_gl_buffer<T: OclPrm>(
+            command_queue: &CommandQueue,
+            buffer: &Mem,
+            wait_list: Option<&ClWaitList>,
+            new_event: Option<&mut ClEventPtrNew>,
+        ) -> OclResult<()>
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { cl_h::clEnqueueAcquireGLObjects(
+        command_queue.as_ptr(),
+        1,
+        &buffer.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr
+    ) };
+    errcode_try("clEnqueueAcquireGLObjects", "", errcode)
+}
+
+/// [UNTESTED]
+/// Enqueue release OpenCL memory objects that have been created from OpenGL objects.
+pub fn enqueue_release_gl_buffer<T: OclPrm>(
+            command_queue: &CommandQueue,
+            buffer: &Mem,
+            wait_list: Option<&ClWaitList>,
+            new_event: Option<&mut ClEventPtrNew>,
+        ) -> OclResult<()>
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { cl_h::clEnqueueReleaseGLObjects(
+        command_queue.as_ptr(),
+        1,
+        &buffer.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr
+    ) };
+    errcode_try("clEnqueueReleaseGLObjects", "", errcode)
+}
 
 /// Reads an image from device to host memory.
 ///
