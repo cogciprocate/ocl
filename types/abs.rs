@@ -211,6 +211,14 @@ impl Context {
 		Context(ptr)
 	}
 
+	/// Only call this when passing a copied pointer such as from an
+	/// `clGet*****Info` function.
+	pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> Context {
+		let copy = Context(ptr);
+		core::retain_context(&copy).unwrap();
+		copy
+	}
+
 	/// Returns a pointer, do not store it.
 	pub unsafe fn as_ptr(&self) -> cl_context {
 		self.0
@@ -249,6 +257,14 @@ impl CommandQueue {
 	/// `clCreate...`. Do not use this to clone or copy.
 	pub unsafe fn from_fresh_ptr(ptr: cl_command_queue) -> CommandQueue {
 		CommandQueue(ptr)
+	}
+
+	/// Only call this when passing a copied pointer such as from an
+	/// `clGet*****Info` function.
+	pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> CommandQueue {
+		let copy = CommandQueue(ptr);
+		core::retain_command_queue(&copy).unwrap();
+		copy
 	}
 
 	/// Returns a pointer, do not store it.
