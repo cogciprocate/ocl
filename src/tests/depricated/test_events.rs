@@ -7,10 +7,10 @@ use standard::{ProgramBuilder, Buffer, SpatialDims, ProQue, EventList};
 const PRINT_DEBUG: bool = false;
 
 struct TestEventsStuff {
-    seed_env: *const Buffer<u32>, 
-    res_env: *const Buffer<u32>, 
+    seed_env: *const Buffer<u32>,
+    res_env: *const Buffer<u32>,
     data_set_size: usize,
-    addend: u32, 
+    addend: u32,
     itr: usize,
 }
 
@@ -43,7 +43,7 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
             }
         }
 
-        if PRINT_DEBUG && errors_found > 0 { 
+        if PRINT_DEBUG && errors_found > 0 {
             println!("Event: `{:?}` has completed with status: `{}`, data_set_size: '{}`, \
                  addend: {}, itr: `{}`.", event, status, data_set_size, addend, itr);
             println!("    TOTAL ERRORS FOUND: {}", errors_found); }
@@ -84,7 +84,7 @@ fn events() {
     ;
 
     // Create event list:
-    let mut kernel_event = EventList::new();    
+    let mut kernel_event = EventList::new();
 
     //#############################################################################################
 
@@ -101,9 +101,9 @@ fn events() {
         // we are sure to allow the queue to finish before returning).
         buncha_stuffs.push(TestEventsStuff {
             seed_env: &seed_buffer as *const Buffer<u32>,
-            res_env: &result_buffer as *const Buffer<u32>, 
-            data_set_size: data_set_size, 
-            addend: addend, 
+            res_env: &result_buffer as *const Buffer<u32>,
+            data_set_size: data_set_size,
+            addend: addend,
             itr: itr,
         });
 
@@ -119,17 +119,17 @@ fn events() {
         kernel.cmd().enew(&mut kernel_event).enq().unwrap();
 
         let mut read_event = EventList::new();
-        
+
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
         unsafe { result_buffer.enqueue_fill_vec(false, None, Some(&mut read_event)).unwrap(); }
-    
 
-        let last_idx = buncha_stuffs.len() - 1;     
+
+        let last_idx = buncha_stuffs.len() - 1;
 
         unsafe {
-            if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...", 
+            if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...",
                 last_idx, itr); }
-            read_event.set_callback(Some(_test_events_verify_result), 
+            read_event.set_callback(Some(_test_events_verify_result),
                 // &mut buncha_stuffs[last_idx] as *mut _ as *mut c_void);
                 &mut buncha_stuffs[last_idx]).unwrap();
         }

@@ -44,7 +44,7 @@ fn image_ops() {
     let proque = ProQue::builder()
         .src(src)
         .dims(DIMS)
-        .build().unwrap();   
+        .build().unwrap();
 
     let sampler = Sampler::new(proque.context(), false, AddressingMode::None, FilterMode::Nearest).unwrap();
 
@@ -128,7 +128,7 @@ fn image_ops() {
         //====================================================================
 
         // Write to src:
-        core::enqueue_write_image(proque.queue(), &img_src, true, 
+        core::enqueue_write_image(proque.queue(), &img_src, true,
             origin, region, 0, 0,
             &vec, None, None).unwrap();
 
@@ -138,7 +138,7 @@ fn image_ops() {
         let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
 
         // Read into vec:
-        unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true, 
+        unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
             origin, region, 0, 0,
             &mut vec, None, None).unwrap(); }
 
@@ -146,9 +146,9 @@ fn image_ops() {
         proque.queue().finish();
 
         // Verify:
-        tests::verify_vec_rect(origin, region, cur_val, old_val, 
+        tests::verify_vec_rect(origin, region, cur_val, old_val,
             dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
-  
+
 
         // Run kernel:
         ttl_runs += 1;
@@ -156,11 +156,11 @@ fn image_ops() {
         let cur_pixel = ClInt4(cur_val, cur_val, cur_val, cur_val);
         kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
-        core::enqueue_copy_image::<i32>(proque.queue(), &img_src, &img_dst, 
+        core::enqueue_copy_image::<i32>(proque.queue(), &img_src, &img_dst,
             origin, origin, region, None, None).unwrap();
 
         // Read into vec:
-        unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true, 
+        unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
             origin, region, 0, 0,
             &mut vec, None, None).unwrap(); }
 
@@ -168,7 +168,7 @@ fn image_ops() {
         proque.queue().finish();
 
         // Verify:
-        tests::verify_vec_rect(origin, region, cur_val, old_val, 
+        tests::verify_vec_rect(origin, region, cur_val, old_val,
             dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
 
         //====================================================================
@@ -186,9 +186,9 @@ fn image_ops() {
         img_dst.cmd().read(&mut vec).enq().unwrap();
 
         // Verify:
-        tests::verify_vec_rect(origin, region, cur_val, old_val, 
+        tests::verify_vec_rect(origin, region, cur_val, old_val,
             dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
-  
+
 
         // Run kernel:
         ttl_runs += 1;
@@ -202,7 +202,7 @@ fn image_ops() {
         img_dst.cmd().read(&mut vec).enq().unwrap();
 
         // Verify:
-        tests::verify_vec_rect(origin, region, cur_val, old_val, 
+        tests::verify_vec_rect(origin, region, cur_val, old_val,
             dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
 
     }

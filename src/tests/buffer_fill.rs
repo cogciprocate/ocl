@@ -14,7 +14,7 @@ fn fill() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims([DATASET_SIZE])
-        .build().unwrap();   
+        .build().unwrap();
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();
 
@@ -60,7 +60,7 @@ fn fill_with_float4() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims([DATASET_SIZE])
-        .build().unwrap();   
+        .build().unwrap();
 
     let buffer = pro_que.create_buffer::<ClFloat4>().unwrap();
 

@@ -23,14 +23,14 @@ pub struct Queue {
 }
 
 impl Queue {
-    /// Returns a new Queue on the device specified by `device`. 
+    /// Returns a new Queue on the device specified by `device`.
     pub fn new(context: &Context, device: Device) -> OclResult<Queue> {
         let obj_core = try!(core::create_command_queue(context, &device));
 
         Ok(Queue {
             obj_core: obj_core,
             context_obj_core: context.core_as_ref().clone(),
-            device: device, 
+            device: device,
         })
     }
 
@@ -57,7 +57,7 @@ impl Queue {
     }
 
     /// Returns info about this queue.
-    pub fn info(&self, info_kind: CommandQueueInfo) -> CommandQueueInfoResult {   
+    pub fn info(&self, info_kind: CommandQueueInfo) -> CommandQueueInfoResult {
         core::get_command_queue_info(&self.obj_core, info_kind)
     }
 

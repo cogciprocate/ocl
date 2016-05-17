@@ -22,7 +22,7 @@ fn kernel_arg_ptr_out_of_scope() {
         .dims([1024])
         .build().unwrap();
 
-	let mut kernel = pro_que.create_kernel("add").unwrap()
+    let mut kernel = pro_que.create_kernel("add").unwrap()
         .arg_buf_named::<f32>("buf", None)
         .arg_scl(10.0f32);
 
@@ -30,9 +30,9 @@ fn kernel_arg_ptr_out_of_scope() {
     let throwaway_vec = vec![99usize; 2 << 24];
     thread::sleep(Duration::from_millis(100));
 
-	for _ in 0..5 {
-		kernel.enq().unwrap();
-	}
+    for _ in 0..5 {
+        kernel.enq().unwrap();
+    }
 
     assert!(throwaway_vec[2 << 15] == 99);
 }

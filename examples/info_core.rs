@@ -7,8 +7,8 @@ extern crate ocl;
 
 // use ocl::Error as OclError;
 use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo, 
-    SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, 
+use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo,
+    SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
     EventInfo, ProfilingInfo};
 use ocl::util;
 
@@ -962,7 +962,7 @@ fn print_platform_device(platform: Platform, device: Device) {
         core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::LocalMemSize),
         core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple),
         core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PrivateMemSize),
-        // core::get_kernel_work_group_info(&kernel, &device, 
+        // core::get_kernel_work_group_info(&kernel, &device,
         //  KernelWorkGroupInfo::GlobalWorkSize).unwrap(),
         "[KernelWorkGroupInfo::GlobalWorkSize not avaliable in this configuration]",
         t = util::colors::TAB,

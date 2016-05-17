@@ -1,7 +1,7 @@
 //! Utility and debugging functions.
 //!
 //! Largely untested.
-//! 
+//!
 //! ## Stability
 //!
 //! Printing functions may be moved/renamed/removed at any time.
@@ -25,7 +25,7 @@ use core::{OclPrm, OclScl};
 // /// Watch out for the leprechaun at the end of that rainbow. Seriously.
 // ///
 // /// #### Usage
-// /// 
+// ///
 // /// `printc!(yellow: "Number of banana peels on head: {}", hat_height);`
 // ///
 // /// See [`colorify!` docs](/ocl/ocl/macro.colorify!.html)
@@ -39,7 +39,7 @@ use core::{OclPrm, OclScl};
 // /// `println!` with color.
 // ///
 // /// #### Usage
-// /// 
+// ///
 // /// `printlnc!(orange: "Number of baggies filled while walking dogs: {}", bag_count);`
 // ///
 // /// See [`colorify!` docs](/ocl/ocl/macro.colorify!.html)
@@ -53,7 +53,7 @@ use core::{OclPrm, OclScl};
 // /// Adds color to a formatting literal.
 // ///
 // /// #### Usage
-// /// 
+// ///
 // /// `writeln!(fmtr, colorify!(red: "Number of zombies killed: {}"), zombie_kills);`
 // ///
 // #[macro_export]
@@ -107,7 +107,7 @@ use core::{OclPrm, OclScl};
 //=============================================================================
 
 pub mod colors {
-    pub static TAB: &'static str = "    "; 
+    pub static TAB: &'static str = "    ";
 
     pub static C_DEFAULT: &'static str = "\x1b[0m";
     pub static C_UNDER: &'static str = "\x1b[1m";
@@ -156,8 +156,8 @@ pub mod colors {
 ///
 pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
     debug_assert!(bytes.len() == 4);
-    
-    bytes[0] as u32 | 
+
+    bytes[0] as u32 |
     ((bytes[1] as u32) << 8) |
     ((bytes[2] as u32) << 16) |
     ((bytes[3] as u32) << 24)
@@ -170,9 +170,9 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
 /// Roughly equivalent to a weekend in Tijuana.
 ///
 // [NOTE]: Not sure this is the best or simplest way to do this but whatever.
-// Would be nice to not even have to copy anything and just basically 
-// transmute the vector into the result type. TODO: Fiddle with this 
-// at some point. 
+// Would be nice to not even have to copy anything and just basically
+// transmute the vector into the result type. TODO: Fiddle with this
+// at some point.
 //
 pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
     // let byte_count = mem::size_of::<u8>() * vec.len();
@@ -285,18 +285,18 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 
 /// Batch removes elements from a vector using a list of indices to remove.
 ///
-/// Will create a new vector and do a streamlined rebuild if 
+/// Will create a new vector and do a streamlined rebuild if
 /// `remove_list.len()` > `rebuild_threshold`. Threshold should typically be
-/// set very low (less than probably 5 or 10) as it's expensive to remove one 
+/// set very low (less than probably 5 or 10) as it's expensive to remove one
 /// by one.
 ///
 /// ### Safety
 ///
 /// Should be perfectly safe, just need to test it a bit.
 ///
-pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &[usize], 
+pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &[usize],
                 rebuild_threshold: usize) -> OclResult<()> {
-    if remove_list.len() > orig_vec.len() { 
+    if remove_list.len() > orig_vec.len() {
         return OclError::err("ocl::util::vec_remove_rebuild: Remove list is longer than source
             vector.");
     }
@@ -305,7 +305,7 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
     // If the list is below threshold
     if remove_list.len() <= rebuild_threshold {
         for &idx in remove_list.iter().rev() {
-            if idx < orig_len { 
+            if idx < orig_len {
                  orig_vec.remove(idx);
             } else {
                 return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
@@ -318,7 +318,7 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
 
             // Build a sparse list of which elements to remove:
             for &idx in remove_list.iter() {
-                if idx < orig_len { 
+                if idx < orig_len {
                     *remove_markers.get_unchecked_mut(idx) = false;
                 } else {
                     return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
@@ -363,7 +363,7 @@ pub fn scrambled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
 }
 
 /// Returns a vector with length `size` which is first filled with each integer value
-/// in the (inclusive) range `[vals.0, vals.1]`. If `size` is greater than the 
+/// in the (inclusive) range `[vals.0, vals.1]`. If `size` is greater than the
 /// number of integers in the aforementioned range, the integers will repeat. After
 /// being filled with `size` values, the vector is shuffled and the order of its
 /// values is randomized.
@@ -436,11 +436,11 @@ pub fn print_bytes_as_hex(bytes: &Vec<u8>) {
 /// [UNSTABLE]: MAY BE REMOVED AT ANY TIME
 /// Prints a vector to stdout. Used for debugging.
 pub fn print_slice<T: OclScl>(
-            vec: &[T], 
-            every: usize, 
-            val_range: Option<(T, T)>, 
+            vec: &[T],
+            every: usize,
+            val_range: Option<(T, T)>,
             idx_range: Option<Range<usize>>,
-            show_zeros: bool, 
+            show_zeros: bool,
             ) {
     print!( "{cdgr}[{cg}{}{cdgr}/{}", vec.len(), every, cg = colors::C_GRN, cdgr = colors::C_DGR);
 
@@ -519,7 +519,7 @@ pub fn print_slice<T: OclScl>(
 
                 within_val_range = true;
             }
-        } 
+        }
 
         if within_idx_range && within_val_range {
             sum += vec[i].to_i64().expect("ocl::buffer::print_vec(): vec[i]");
@@ -566,7 +566,7 @@ pub fn print_slice<T: OclScl>(
 
 
     println!("{cdgr} ;(nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
-        ir:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),hi:{},lo:{},anz:{:.2},prntd:{}){cd} ", 
+        ir:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),hi:{},lo:{},anz:{:.2},prntd:{}){cd} ",
         ttl_nz, nz_pct, ttl_ir, ir_pct, hi, lo, anz, ttl_prntd, cd = colors::C_DEFAULT, clbl = colors::C_LBL, cdgr = colors::C_DGR);
 }
 
@@ -604,7 +604,7 @@ mod tests {
         }
 
         println!("util::tests::remove_rebuild(): bad_indices: {}", bad_indices.len());
-     
+
         // Remove the bad values:
         super::vec_remove_rebuild(&mut primary_vals, &bad_indices[..], 3)
             .expect("util::tests::remove_rebuild()");

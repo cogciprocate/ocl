@@ -70,14 +70,14 @@
 //!
 //!
 //! ## `core` Stands Alone
-//!	
+//!
 //! This module may eventually be moved to its own separate crate (with its
 //! dependencies `cl_h` and `error`).
 //!
 //!
-//! [issue]: https://github.com/cogciprocate/ocl/issues 
-//! [`cl_h`]: /ocl/ocl/cl_h/index.html 
-//! [`core`]: /ocl/ocl/core/index.html 
+//! [issue]: https://github.com/cogciprocate/ocl/issues
+//! [`cl_h`]: /ocl/ocl/cl_h/index.html
+//! [`core`]: /ocl/ocl/core/index.html
 //! [`Error`]: /ocl/ocl/enum.Error.html
 //! [`EventRaw::as_ptr`]: /ocl/ocl/core/struct.EventRaw.html#method.as_ptr
 //! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
@@ -135,17 +135,17 @@ pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
     KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
     EventInfoResult, ProfilingInfoResult};
 
-pub use self::types::vectors::{ 
-    ClChar2, ClChar3, ClChar4, ClChar8, ClChar16, 
-    ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16, 
-    ClShort2, ClShort3, ClShort4, ClShort8, ClShort16, 
-    ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16, 
-    ClInt2, ClInt3, ClInt4, ClInt8, ClInt16, 
-    ClUint2, ClUint3, ClUint4, ClUint8, ClUint16, 
-    ClLong1, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16, 
-    ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16, 
-    ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16, 
-    ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16, 
+pub use self::types::vectors::{
+    ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
+    ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16,
+    ClShort2, ClShort3, ClShort4, ClShort8, ClShort16,
+    ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16,
+    ClInt2, ClInt3, ClInt4, ClInt8, ClInt16,
+    ClUint2, ClUint3, ClUint4, ClUint8, ClUint16,
+    ClLong1, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
+    ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
+    ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
+    ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16,
 };
 
 //=============================================================================
@@ -162,7 +162,7 @@ pub const DEVICES_MAX: u32 = 64;
 //=============================================================================
 
 pub type EventCallbackFn = extern "C" fn (cl_h::cl_event, i32, *mut libc::c_void);
-pub type CreateContextCallbackFn = extern "C" fn (*const libc::c_char, *const libc::c_void, 
+pub type CreateContextCallbackFn = extern "C" fn (*const libc::c_char, *const libc::c_void,
     libc::size_t, *mut libc::c_void);
 pub type BuildProgramCallbackFn = extern "C" fn (*mut libc::c_void, *mut libc::c_void);
 pub type UserDataPtr = *mut libc::c_void;
@@ -190,11 +190,11 @@ unsafe impl<S> OclPrm for S where S: OclScl {}
 ///
 /// To describe the contents of buffers, etc., prefer using the more general
 /// `OclPrm` trait unless scalar operations are required.
-/// 
-pub unsafe trait OclScl: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub + 
+///
+pub unsafe trait OclScl: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub +
     Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-unsafe impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ 
+unsafe impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/
     Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 
@@ -212,14 +212,14 @@ pub unsafe trait OclVec {}
 // pub unsafe trait EventPtr: Debug {
 //     unsafe fn as_ptr(&self) -> cl_event {
 //         *(self as *const Self as *const _ as *const cl_event)
-//     }   
+//     }
 // }
 
 // /// Types which are physically arrays of cl_events.
 // pub unsafe trait EventListPtr: Debug {
 //     unsafe fn as_ptr(&self) -> *const cl_event {
 //         self as *const Self as *const _ as *const cl_event
-//     }   
+//     }
 // }
 
 //=============================================================================
@@ -227,7 +227,7 @@ pub unsafe trait OclVec {}
 //=============================================================================
 
 bitflags! {
-	/// cl_device_type - bitfield 
+    /// cl_device_type - bitfield
     ///
     /// * `CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
     /// * `CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor.
@@ -242,12 +242,12 @@ bitflags! {
     /// * `CL_DEVICE_TYPE_ALL`: A union of all flags.
     ///
     pub flags DeviceType: u64 {
-		const DEVICE_TYPE_DEFAULT = 1 << 0,
-		const DEVICE_TYPE_CPU = 1 << 1,
-		const DEVICE_TYPE_GPU = 1 << 2,
-		const DEVICE_TYPE_ACCELERATOR = 1 << 3,
-		const DEVICE_TYPE_CUSTOM = 1 << 4,
-		const DEVICE_TYPE_ALL = 0xFFFFFFFF,
+        const DEVICE_TYPE_DEFAULT = 1 << 0,
+        const DEVICE_TYPE_CPU = 1 << 1,
+        const DEVICE_TYPE_GPU = 1 << 2,
+        const DEVICE_TYPE_ACCELERATOR = 1 << 3,
+        const DEVICE_TYPE_CUSTOM = 1 << 4,
+        const DEVICE_TYPE_ALL = 0xFFFFFFFF,
     }
 }
 
@@ -257,66 +257,63 @@ impl Default for DeviceType {
     }
 }
 
-
 bitflags! {
-	/// cl_device_fp_config - bitfield
+    /// cl_device_fp_config - bitfield
     pub flags DeviceFpConfig: u64 {
-		const FP_DENORM = 1 << 0,
-		const FP_INF_NAN = 1 << 1,
-		const FP_ROUND_TO_NEAREST = 1 << 2,
-		const FP_ROUND_TO_ZERO = 1 << 3,
-		const FP_ROUND_TO_INF = 1 << 4,
-		const FP_FMA = 1 << 5,
-		const FP_SOFT_FLOAT = 1 << 6,
-		const FP_CORRECTLY_ROUNDED_DIVIDE_SQRT = 1 << 7,
+        const FP_DENORM = 1 << 0,
+        const FP_INF_NAN = 1 << 1,
+        const FP_ROUND_TO_NEAREST = 1 << 2,
+        const FP_ROUND_TO_ZERO = 1 << 3,
+        const FP_ROUND_TO_INF = 1 << 4,
+        const FP_FMA = 1 << 5,
+        const FP_SOFT_FLOAT = 1 << 6,
+        const FP_CORRECTLY_ROUNDED_DIVIDE_SQRT = 1 << 7,
     }
 }
 
 
 bitflags! {
-	/// cl_device_exec_capabilities - bitfield
+    /// cl_device_exec_capabilities - bitfield
     pub flags DeviceExecCapabilities: u64 {
-		const EXEC_KERNEL = 1 << 0,
-		const EXEC_NATIVE_KERNEL = 1 << 1,
+        const EXEC_KERNEL = 1 << 0,
+        const EXEC_NATIVE_KERNEL = 1 << 1,
     }
 }
 
 
 bitflags! {
-	/// cl_command_queue_properties - bitfield
+    /// cl_command_queue_properties - bitfield
     pub flags CommandQueueProperties: u64 {
-		const QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE = 1 << 0,
-		const QUEUE_PROFILING_ENABLE = 1 << 1,
+        const QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE = 1 << 0,
+        const QUEUE_PROFILING_ENABLE = 1 << 1,
     }
 }
 
-
 bitflags! {
-	/// cl_device_affinity_domain
+    /// cl_device_affinity_domain
     pub flags DeviceAffinityDomain: u64 {
-		const DEVICE_AFFINITY_DOMAIN_NUMA = 1 << 0,
-		const DEVICE_AFFINITY_DOMAIN_L4_CACHE = 1 << 1,
-		const DEVICE_AFFINITY_DOMAIN_L3_CACHE = 1 << 2,
-		const DEVICE_AFFINITY_DOMAIN_L2_CACHE = 1 << 3,
-		const DEVICE_AFFINITY_DOMAIN_L1_CACHE = 1 << 4,
-		const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE = 1 << 5,
+        const DEVICE_AFFINITY_DOMAIN_NUMA = 1 << 0,
+        const DEVICE_AFFINITY_DOMAIN_L4_CACHE = 1 << 1,
+        const DEVICE_AFFINITY_DOMAIN_L3_CACHE = 1 << 2,
+        const DEVICE_AFFINITY_DOMAIN_L2_CACHE = 1 << 3,
+        const DEVICE_AFFINITY_DOMAIN_L1_CACHE = 1 << 4,
+        const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE = 1 << 5,
     }
 }
 
-
 bitflags! {
-	/// cl_mem_flags - bitfield
+    /// cl_mem_flags - bitfield
     pub flags MemFlags: u64 {
-		const MEM_READ_WRITE = 1 << 0,
-		const MEM_WRITE_ONLY = 1 << 1,
-		const MEM_READ_ONLY = 1 << 2,
-		const MEM_USE_HOST_PTR = 1 << 3,
-		const MEM_ALLOC_HOST_PTR = 1 << 4,
-		const MEM_COPY_HOST_PTR = 1 << 5,
-		// RESERVED            1<< 6,
-		const MEM_HOST_WRITE_ONLY = 1 << 7,
-		const MEM_HOST_READ_ONLY = 1 << 8,
-		const MEM_HOST_NO_ACCESS = 1 << 9,
+        const MEM_READ_WRITE = 1 << 0,
+        const MEM_WRITE_ONLY = 1 << 1,
+        const MEM_READ_ONLY = 1 << 2,
+        const MEM_USE_HOST_PTR = 1 << 3,
+        const MEM_ALLOC_HOST_PTR = 1 << 4,
+        const MEM_COPY_HOST_PTR = 1 << 5,
+        // RESERVED            1<< 6,
+        const MEM_HOST_WRITE_ONLY = 1 << 7,
+        const MEM_HOST_READ_ONLY = 1 << 8,
+        const MEM_HOST_NO_ACCESS = 1 << 9,
     }
 }
 
@@ -326,25 +323,22 @@ impl Default for MemFlags {
     }
 }
 
-
 bitflags! {
-	/// cl_mem_migration_flags - bitfield
+    /// cl_mem_migration_flags - bitfield
     pub flags MemMigrationFlags: u64 {
-		const MIGRATE_MEM_OBJECT_HOST = 1 << 0,
-		const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED = 1 << 1,
+        const MIGRATE_MEM_OBJECT_HOST = 1 << 0,
+        const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED = 1 << 1,
     }
 }
-
 
 bitflags! {
-	/// cl_map_flags - bitfield
+    /// cl_map_flags - bitfield
     pub flags MapFlags: u64 {
-		const MAP_READ = 1 << 0,
-		const MAP_WRITE = 1 << 1,
-		const MAP_WRITE_INVALIDATE_REGION = 1 << 2,
+        const MAP_READ = 1 << 0,
+        const MAP_WRITE = 1 << 1,
+        const MAP_WRITE_INVALIDATE_REGION = 1 << 2,
     }
 }
-
 
 bitflags! {
 	/// cl_program_binary_type
@@ -356,14 +350,13 @@ bitflags! {
     }
 }
 
-
 bitflags! {
-	/// cl_kernel_arg_type_qualifer
+    /// cl_kernel_arg_type_qualifer
     pub flags KernelArgTypeQualifier: u64 {
-		const KERNEL_ARG_TYPE_NONE = 0,
-		const KERNEL_ARG_TYPE_CONST = 1 << 0,
-		const KERNEL_ARG_TYPE_RESTRICT = 1 << 1,
-		const KERNEL_ARG_TYPE_VOLATILE = 1 << 2,
+        const KERNEL_ARG_TYPE_NONE = 0,
+        const KERNEL_ARG_TYPE_CONST = 1 << 0,
+        const KERNEL_ARG_TYPE_RESTRICT = 1 << 1,
+        const KERNEL_ARG_TYPE_VOLATILE = 1 << 2,
     }
 }
 
@@ -443,7 +436,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_bool
+    /// cl_bool
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum Cbool {
@@ -454,7 +447,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_bool: Polling
+    /// cl_bool: Polling
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum Polling {
@@ -465,7 +458,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_platform_info 
+    /// cl_platform_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum PlatformInfo {
@@ -479,7 +472,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_device_info 
+    /// cl_device_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceInfo {
@@ -564,7 +557,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_mem_cache_type
+    /// cl_mem_cache_type
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceMemCacheType {
@@ -576,7 +569,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_device_local_mem_type
+    /// cl_device_local_mem_type
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceLocalMemType {
@@ -587,7 +580,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_context_info 
+    /// cl_context_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ContextInfo {
@@ -600,7 +593,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_context_info + cl_context_properties
+    /// cl_context_info + cl_context_properties
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ContextInfoOrPropertiesPointerType {
@@ -611,7 +604,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_partition_property
+    /// cl_partition_property
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum PartitionProperty {
@@ -624,7 +617,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_command_queue_info 
+    /// cl_command_queue_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum CommandQueueInfo {
@@ -637,7 +630,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_channel_type
+    /// cl_channel_type
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ChannelType {
@@ -662,7 +655,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_mem_object_type
+    /// cl_mem_object_type
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum MemObjectType {
@@ -678,7 +671,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_mem_info
+    /// cl_mem_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum MemInfo {
@@ -696,7 +689,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_image_info
+    /// cl_image_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ImageInfo {
@@ -716,7 +709,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_addressing_mode
+    /// cl_addressing_mode
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum AddressingMode {
@@ -730,7 +723,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_filter_mode
+    /// cl_filter_mode
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum FilterMode {
@@ -741,7 +734,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_sampler_info
+    /// cl_sampler_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum SamplerInfo {
@@ -755,7 +748,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_program_info
+    /// cl_program_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProgramInfo {
@@ -773,7 +766,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_program_build_info
+    /// cl_program_build_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProgramBuildInfo {
@@ -787,7 +780,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_build_status 
+    /// cl_build_status
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProgramBuildStatus {
@@ -800,7 +793,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_info
+    /// cl_kernel_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelInfo {
@@ -815,7 +808,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_arg_info 
+    /// cl_kernel_arg_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgInfo {
@@ -829,7 +822,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_arg_address_qualifier 
+    /// cl_kernel_arg_address_qualifier
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgAddressQualifier {
@@ -842,7 +835,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_arg_access_qualifier 
+    /// cl_kernel_arg_access_qualifier
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgAccessQualifier {
@@ -855,7 +848,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_kernel_work_group_info 
+    /// cl_kernel_work_group_info
     ///
     /// [NOTE] PrivateMemSize: If device is not a custom device or kernel is not a built-in
     /// kernel, clGetKernelArgInfo returns the error CL_INVALID_VALUE:
@@ -873,7 +866,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_event_info 
+    /// cl_event_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum EventInfo {
@@ -887,7 +880,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_command_type
+    /// cl_command_type
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum CommandType {
@@ -921,7 +914,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// command execution status
+    /// command execution status
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum CommandExecutionStatus {
@@ -934,7 +927,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_buffer_create_type
+    /// cl_buffer_create_type
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum BufferCreateType {
@@ -945,7 +938,7 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-	/// cl_profiling_info 
+    /// cl_profiling_info
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProfilingInfo {

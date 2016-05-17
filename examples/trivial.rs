@@ -52,7 +52,7 @@ fn main_explained() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims([2 << 20])
-        .build().unwrap();   
+        .build().unwrap();
 
     // (2) Create a `Buffer`:
     let buffer = pro_que.create_buffer::<f32>().unwrap();
@@ -122,7 +122,7 @@ fn main_exploded() {
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];
-    let buffer = Buffer::<f32>::new(&queue, Some(flags::MEM_READ_WRITE | 
+    let buffer = Buffer::<f32>::new(&queue, Some(flags::MEM_READ_WRITE |
         flags::MEM_COPY_HOST_PTR), dims, Some(&vec)).unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:
@@ -149,8 +149,8 @@ fn main_exploded() {
         .read(&mut vec)
         .ewait_opt(None)
         .enew_opt(None)
-        .enq().unwrap(); 
-    
+        .enq().unwrap();
+
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
 }
@@ -184,18 +184,18 @@ fn main_cored() {
     let device_ids = core::get_device_ids(&platform_id, None, None).unwrap();
     let device_id = device_ids[0];
     let context_properties = ContextProperties::new().platform(platform_id);
-    let context = core::create_context(&Some(context_properties), 
+    let context = core::create_context(&Some(context_properties),
         &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
-    core::build_program(&program, &[device_id], &CString::new("").unwrap(), 
+    core::build_program(&program, &[device_id], &CString::new("").unwrap(),
         None, None).unwrap();
     let queue = core::create_command_queue(&context, &device_id).unwrap();
     let dims = [2 << 20, 1, 1];
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];
-    let buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE | 
+    let buffer = unsafe { core::create_buffer(&context, flags::MEM_READ_WRITE |
         flags::MEM_COPY_HOST_PTR, dims[0], Some(&vec)).unwrap() };
 
     // (3) Create a kernel with arguments matching those in the source above:
@@ -204,12 +204,12 @@ fn main_cored() {
     core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(10.0f32)).unwrap();
 
     // (4) Run the kernel:
-    core::enqueue_kernel(&queue, &kernel, 1, None, &dims, 
+    core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
         None, None, None).unwrap();
 
     // (5) Read results from the device into a vector:
-    unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec, 
-        None, None).unwrap() };    
+    unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,
+        None, None).unwrap() };
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);

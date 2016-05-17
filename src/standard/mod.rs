@@ -66,7 +66,7 @@ mod traits {
 
 
     /// Types which have properties describing the amount of work to be done
-    /// in multiple dimensions. 
+    /// in multiple dimensions.
     ///
     pub trait WorkDims {
         /// Returns the number of dimensions defined.
@@ -170,7 +170,7 @@ mod traits {
                 .to_len_padded(incr)
         }
         fn to_lens(&self) -> [usize; 3] { [to_usize(self[0]), to_usize(self[1]), to_usize(self[2])] }
-    }   
+    }
 }
 
 

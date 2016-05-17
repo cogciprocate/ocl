@@ -10,57 +10,57 @@ use standard::Context;
 pub struct Sampler(SamplerCore);
 
 impl Sampler {
-	/// Creates and returns a new sampler.
-	///
-	/// ## Enum Quick Reference
-	///
-	/// `addressing_mode`:
-	///
-	/// - AddressingMode::None
-	/// - AddressingMode::ClampToEdge
-	/// - AddressingMode::Clamp
-	/// - AddressingMode::Repeat
-	/// - AddressingMode::MirroredRepeat
-	///
-	/// `filter_mode`:
-	///
-	/// - FilterMode::Nearest
-	/// - FilterMode::Linear
-	///
-	/// See [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSampler.html)
-	/// for more information.
-	///
-	pub fn new(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
-            filter_mode: FilterMode) -> OclResult<Sampler> 
-	{
-		let sampler_core = try!(core::create_sampler(context, normalize_coords,
-			addressing_mode, filter_mode));
+    /// Creates and returns a new sampler.
+    ///
+    /// ## Enum Quick Reference
+    ///
+    /// `addressing_mode`:
+    ///
+    /// - AddressingMode::None
+    /// - AddressingMode::ClampToEdge
+    /// - AddressingMode::Clamp
+    /// - AddressingMode::Repeat
+    /// - AddressingMode::MirroredRepeat
+    ///
+    /// `filter_mode`:
+    ///
+    /// - FilterMode::Nearest
+    /// - FilterMode::Linear
+    ///
+    /// See [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSampler.html)
+    /// for more information.
+    ///
+    pub fn new(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
+            filter_mode: FilterMode) -> OclResult<Sampler>
+    {
+        let sampler_core = try!(core::create_sampler(context, normalize_coords,
+            addressing_mode, filter_mode));
 
-		Ok(Sampler(sampler_core))
-	}
+        Ok(Sampler(sampler_core))
+    }
 
-	/// Creates and returns a new sampler with some default settings.
-	///
-	/// ## Defaults
-	/// 
-	/// - `normalize_coords`: false
-	/// - `addressing_mode`: `AddressingMode::None`
-	/// - `filter_mode`: `FilterMode::Nearest`
-	///
-	pub fn with_defaults(context: &Context) -> OclResult<Sampler> 
-	{
-		let sampler_core = try!(core::create_sampler(context, false,
-			AddressingMode::None, FilterMode::Nearest));
+    /// Creates and returns a new sampler with some default settings.
+    ///
+    /// ## Defaults
+    ///
+    /// - `normalize_coords`: false
+    /// - `addressing_mode`: `AddressingMode::None`
+    /// - `filter_mode`: `FilterMode::Nearest`
+    ///
+    pub fn with_defaults(context: &Context) -> OclResult<Sampler>
+    {
+        let sampler_core = try!(core::create_sampler(context, false,
+            AddressingMode::None, FilterMode::Nearest));
 
-		Ok(Sampler(sampler_core))
-	}
+        Ok(Sampler(sampler_core))
+    }
 
-	/// Returns various kinds of information about the sampler.
-	pub fn info(&self, info_kind: SamplerInfo) -> SamplerInfoResult {
+    /// Returns various kinds of information about the sampler.
+    pub fn info(&self, info_kind: SamplerInfo) -> SamplerInfoResult {
         // match core::get_sampler_info(&self.0, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => SamplerInfoResult::Error(Box::new(err)),
-        // }        
+        // }
         core::get_sampler_info(&self.0, info_kind)
     }
 

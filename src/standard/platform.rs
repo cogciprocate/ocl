@@ -37,7 +37,7 @@ impl Platform {
 
     /// Creates a new `Platform` from a `PlatformIdCore`.
     ///
-    /// ## Safety 
+    /// ## Safety
     ///
     /// Not meant to be called unless you know what you're doing.
     ///
@@ -57,7 +57,7 @@ impl Platform {
     //     format!("{}", self)
     // }
 
-    /// Returns info about the platform. 
+    /// Returns info about the platform.
     pub fn info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
         // match core::get_platform_info(Some(self.0.clone()), info_kind) {
         //     Ok(pi) => pi,
@@ -74,7 +74,7 @@ impl Platform {
     /// * FULL_PROFILE - if the implementation supports the OpenCL
     ///   specification (functionality defined as part of the core
     ///   specification and does not require any extensions to be supported).
-    /// 
+    ///
     /// * EMBEDDED_PROFILE - if the implementation supports the OpenCL
     ///   embedded profile. The embedded profile is defined to be a subset for
     ///   each version of OpenCL.

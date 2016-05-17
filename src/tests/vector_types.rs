@@ -1,5 +1,5 @@
 //! [INCOMPLETE]: [TODO]: Test various types with an assortment of operations.
-//! 
+//!
 
 use standard::ProQue;
 use aliases::ClFloat3;
@@ -11,7 +11,7 @@ fn test_vector_types() {
 
     let src = r#"
         __kernel void add_float3(__global float4* buffer, float4 addend) {
-            buffer[get_global_id(0)] += addend + 
+            buffer[get_global_id(0)] += addend +
                 (float4)(get_global_id(0), get_global_id(0), get_global_id(0), 0.0);
         }
     "#;

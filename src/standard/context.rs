@@ -6,8 +6,8 @@
 // use formatting::MT;
 use std;
 use std::ops::{Deref, DerefMut};
-use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, 
-    DeviceInfo, DeviceInfoResult, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, 
+use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult,
+    DeviceInfo, DeviceInfoResult, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult,
     CreateContextCallbackFn, UserDataPtr};
 use error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier};
@@ -33,10 +33,10 @@ impl ContextBuilder {
     /// * All devices associated with the first available platform
     /// * No notify callback function or user data.
     ///
-    /// [TODO]: 
+    /// [TODO]:
     /// - That stuff above (find a valid context, devices, etc. first thing).
     /// - Handle context creation callbacks.
-    /// 
+    ///
     pub fn new() -> ContextBuilder {
         ContextBuilder {
             properties: None,
@@ -103,8 +103,8 @@ impl ContextBuilder {
     ///
     /// Panics if any devices have already been specified.
     ///
-    pub fn devices<'a, D: Into<DeviceSpecifier>>(&'a mut self, device_spec: D) 
-            -> &'a mut ContextBuilder 
+    pub fn devices<'a, D: Into<DeviceSpecifier>>(&'a mut self, device_spec: D)
+            -> &'a mut ContextBuilder
     {
         assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
         self.device_spec = Some(device_spec.into());
@@ -122,12 +122,12 @@ impl ContextBuilder {
 
 /// A context for a particular platform and set of device types.
 ///
-/// Thread safety and destruction for any enclosed pointers are all handled automatically. 
+/// Thread safety and destruction for any enclosed pointers are all handled automatically.
 /// Clone, store, and share between threads to your heart's content.
 ///
 /// [TODO]: Consider removing contained copies of the device id list and
 /// platform id. Can be easily ascertained via the API.
-/// 
+///
 #[derive(Debug, Clone)]
 pub struct Context {
     obj_core: ContextCore,
@@ -149,7 +149,7 @@ impl Context {
     /// what you're doing. Please also immediately contact us if you do, in
     /// fact, know what you're doing so that you can be added to the
     /// development team as the one who does.
-    /// 
+    ///
     /// ## Defaults
     ///
     /// * The 'NULL' platform (which is not to be relied on but is generally
@@ -157,20 +157,20 @@ impl Context {
     /// * All devices associated with the 'NULL' platform
     /// * No notify callback function or user data.
     ///
-    /// Don't rely on these defaults, instead rely on the `ContextBuilder` 
+    /// Don't rely on these defaults, instead rely on the `ContextBuilder`
     /// defaults. In other words, use: `Context::builder().build().unwrap()`
     /// rather than `Context::new(None, None, None, None).unwrap()`.
     ///
     /// ## Panics
     ///
-    /// [TEMPORARY] Passing a `Some` variant for `pfn_notify` or `user_data` is 
+    /// [TEMPORARY] Passing a `Some` variant for `pfn_notify` or `user_data` is
     /// not yet supported.
     ///
-    pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>, 
-                pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>) 
-            -> OclResult<Context> 
+    pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>,
+                pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>)
+            -> OclResult<Context>
     {
-        assert!(pfn_notify.is_none() && user_data.is_none(), 
+        assert!(pfn_notify.is_none() && user_data.is_none(),
             "Context creation callbacks not yet implemented.");
 
         let platform: Option<Platform> = match properties {
@@ -239,7 +239,7 @@ impl Context {
         core::get_device_info(device, info_kind)
     }
 
-    /// Returns info about the context. 
+    /// Returns info about the context.
     pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
         // match core::get_context_info(&self.obj_core, info_kind) {
         //     Ok(pi) => pi,

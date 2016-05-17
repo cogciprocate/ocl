@@ -55,7 +55,7 @@ impl BuildOpt {
 
 /// A builder for `Program`.
 ///
-// [SOMEDAY TODO]: Keep track of line number range for each string and print 
+// [SOMEDAY TODO]: Keep track of line number range for each string and print
 // out during build failure.
 //
 #[derive(Clone, Debug)]
@@ -93,9 +93,9 @@ impl ProgramBuilder {
         }
 
         Program::new(
-            try!(self.get_src_strings().map_err(|e| e.to_string())), 
-            try!(self.get_compiler_options().map_err(|e| e.to_string())), 
-            context, 
+            try!(self.get_src_strings().map_err(|e| e.to_string())),
+            try!(self.get_compiler_options().map_err(|e| e.to_string())),
+            context,
             &device_list[..])
     }
 
@@ -111,7 +111,7 @@ impl ProgramBuilder {
         self
     }
 
-    /// Adds a build option containing a raw compiler command line parameter. 
+    /// Adds a build option containing a raw compiler command line parameter.
     /// Formatted as `{}` (exact text).
     ///
     /// ## Example
@@ -136,7 +136,7 @@ impl ProgramBuilder {
             '{}' does not exist.", file_path.display());
         self.src_files.push(file_path);
         self
-    }   
+    }
 
     /// Adds raw text to the program source.
     pub fn src<S: Into<String>>(mut self, src: S) -> ProgramBuilder {
@@ -152,8 +152,8 @@ impl ProgramBuilder {
     /// ## Panics
     ///
     /// Devices may not have already been specified.
-    pub fn devices<D: Into<DeviceSpecifier>>(mut self, device_spec: D) 
-            -> ProgramBuilder 
+    pub fn devices<D: Into<DeviceSpecifier>>(mut self, device_spec: D)
+            -> ProgramBuilder
     {
         assert!(self.device_spec.is_none(), "ocl::ProgramBuilder::devices(): Devices already specified");
         self.device_spec = Some(device_spec.into());
@@ -172,7 +172,7 @@ impl ProgramBuilder {
 
         opts.push(" ".to_owned());
 
-        for option in self.options.iter() {         
+        for option in self.options.iter() {
             match option {
                 &BuildOpt::CmplrDefine { ref ident, ref val } => {
                     opts.push(format!("-D{}={}", ident, val))
@@ -186,7 +186,7 @@ impl ProgramBuilder {
                     opts.push(s.clone())
                 },
 
-                _ => (),    
+                _ => (),
             }
         }
 
@@ -227,7 +227,7 @@ impl ProgramBuilder {
         Ok(src_strings)
     }
 
-    /// Parses `self.options` for options intended for inclusion at the beginning of 
+    /// Parses `self.options` for options intended for inclusion at the beginning of
     /// the final program source and returns them as a list of strings.
     ///
     /// Generally used for #define directives, constants, etc. Normally called from
@@ -253,7 +253,7 @@ impl ProgramBuilder {
         Ok(strings)
     }
 
-    /// Parses `self.options` for options intended for inclusion at the end of 
+    /// Parses `self.options` for options intended for inclusion at the end of
     /// the final program source and returns them as a list of strings.
     fn get_includes_eof(&self) -> OclResult<Vec<CString>> {
         let mut strings = Vec::with_capacity(64);
@@ -268,7 +268,7 @@ impl ProgramBuilder {
             };
         }
 
-        Ok(strings)     
+        Ok(strings)
     }
 }
 
@@ -304,7 +304,7 @@ impl Program {
     pub fn new(src_strings: Vec<CString>, cmplr_opts: CString, context_obj_core: &ContextCore,
                 device_ids: &[Device]) -> OclResult<Program>
     {
-        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts, 
+        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts,
              device_ids).map_err(|e| e.to_string()));
 
         Ok(Program {
@@ -329,7 +329,7 @@ impl Program {
         // match core::get_program_info(&self.obj_core, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => ProgramInfoResult::Error(Box::new(err)),
-        // }        
+        // }
         core::get_program_info(&self.obj_core, info_kind)
     }
 
@@ -340,7 +340,7 @@ impl Program {
         // match core::get_program_build_info(&self.obj_core, &device, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
-        // }        
+        // }
         core::get_program_build_info(&self.obj_core, &device, info_kind)
     }
 
