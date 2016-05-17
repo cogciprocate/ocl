@@ -77,8 +77,10 @@ pub type cl_kernel_work_group_info          = cl_uint;
 pub type cl_event_info                      = cl_uint;
 pub type cl_command_type                    = cl_uint;
 pub type cl_profiling_info                  = cl_uint;
+pub type GLuint                             = cl_uint; // FIXME is it a good idea to create this type ?
 
 #[repr(C)]
+
 pub struct cl_image_format {
     pub image_channel_order:        cl_channel_order,
     pub image_channel_data_type:    cl_channel_type,
@@ -681,6 +683,11 @@ extern "system" {
                         buffer_create_info: *const c_void,
                         errcode_ret: *mut cl_int) -> cl_mem;
 
+    pub fn clCreateFromGLBuffer(context: cl_context,
+                            flags: cl_mem_flags,
+                            bufobj: GLuint, // FIXME is it a good idea to use this type ?
+                            errcode_ret: *mut cl_int) -> cl_mem;
+
     // //##### DEPRICATED 1.1 #####
     // pub fn clCreateImage2D(context: cl_context,
     //                 flags: cl_mem_flags,
@@ -949,7 +956,21 @@ extern "system" {
 
     pub fn clFinish(command_queue: cl_command_queue) -> cl_int;
 
-    // Enqueued Commands APIs 
+    // Enqueued Commands APIs
+    pub fn clEnqueueAcquireGLObjects(command_queue: cl_command_queue,
+                                num_objects: cl_uint,
+                                mem_objects: *const cl_mem,
+                                num_events_in_wait_list: cl_uint,
+                                event_wait_list: *const cl_event,
+                                event: *mut cl_event) -> cl_int;
+
+    pub fn clEnqueueReleaseGLObjects(command_queue: cl_command_queue,
+                                num_objects: cl_uint,
+                                mem_objects: *const cl_mem,
+                                num_events_in_wait_list: cl_uint,
+                                event_wait_list: *const cl_event,
+                                event: *mut cl_event) -> cl_int;
+
     pub fn clEnqueueReadBuffer(command_queue: cl_command_queue,
                            buffer: cl_mem,
                            blocking_read: cl_bool,

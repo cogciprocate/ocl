@@ -22,25 +22,25 @@ use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
-use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type, 
-    cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties, 
-    cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info, 
-    cl_mem_flags, cl_mem_object_type, cl_buffer_create_type, cl_event, cl_program, 
-    cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info, 
-    cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info, 
-    cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
+use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type,
+    cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties,
+    cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info,
+    cl_mem_flags, cl_mem_object_type, cl_buffer_create_type, cl_event, cl_program,
+    cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info,
+    cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
+    cl_kernel_work_group_info, cl_event_info, cl_profiling_info, GLuint};
 use error::{Error as OclError, Result as OclResult};
-use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, 
-    ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, 
-    ClEventPtrNew, Event, Sampler, KernelArg, DeviceType, ImageFormat, 
-    ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, 
-    PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, 
-    MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, 
-    ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, 
-    KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo, 
-    KernelWorkGroupInfoResult, ClEventRef, ClWaitList, EventInfo, EventInfoResult, ProfilingInfo, 
-    ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, 
-    EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion, 
+use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
+    ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel,
+    ClEventPtrNew, Event, Sampler, KernelArg, DeviceType, ImageFormat,
+    ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo,
+    PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult,
+    MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult,
+    ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo,
+    KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
+    KernelWorkGroupInfoResult, ClEventRef, ClWaitList, EventInfo, EventInfoResult, ProfilingInfo,
+    ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr,
+    EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion,
     BufferCreateType};
 
 // #[cfg(feature="kernel_debug_sleep")]
@@ -707,6 +707,31 @@ pub unsafe fn create_buffer<T: OclPrm>(
         &mut errcode,
     );
     try!(errcode_try("clCreateBuffer", "", errcode));
+    debug_assert!(!buf_ptr.is_null());
+
+    Ok(Mem::from_fresh_ptr(buf_ptr))
+}
+
+/// [UNTESTED]
+/// Return a buffer pointer from a OpenGL buffer object.
+pub unsafe fn create_from_gl_buffer<T: OclPrm>(
+            context: &Context,
+            gl_buffer_id: GLuint,
+            flags: MemFlags
+        ) -> OclResult<Mem>
+{
+    // Verify that the context is valid
+    try!(verify_context(context));
+
+    let mut errcode: cl_int = 0;
+
+    let buf_ptr = cl_h::clCreateFromGLBuffer(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            gl_buffer_id,
+            &mut errcode);
+
+    try!(errcode_try("clCreateFromGLBuffer", "", errcode));
     debug_assert!(!buf_ptr.is_null());
 
     Ok(Mem::from_fresh_ptr(buf_ptr))
