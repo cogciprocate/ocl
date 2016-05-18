@@ -4,14 +4,6 @@
 //!
 //! * PlatformInfoResult
 //! * ContextInfoResult
-//!
-//!
-//! #### Incomplete
-//!
-//! The following are using placeholder variants and types meaning everything
-//! is just stored and formatted as raw bytes.
-//!
-//! * DeviceInfoResult
 //! * CommandQueueInfoResult
 //! * MemInfoResult
 //! * ImageInfoResult
@@ -24,10 +16,16 @@
 //! * EventInfoResult
 //! * ProfilingInfoResult
 //!
+//! #### Incomplete
+//!
+//! The following are using placeholder variants and types meaning everything
+//! is just stored and formatted as raw bytes.
+//!
+//! * DeviceInfoResult
 //!
 //! Bleh. Implementing these sucks. On hold for a while.
 //!
-//! TODO: ADD ERROR VARIANT FOR EACH OF THE RESULT ENUMS.
+//!
 
 #![allow(dead_code)]
 
@@ -41,7 +39,7 @@ use util;
 use cl_h::{cl_image_format};
 use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, 
     ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
-    Mem, MemInfo, Sampler, SamplerInfo, AddressingMode, FilterMode,
+    Mem, MemInfo, MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode,
     ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo, 
     KernelArgInfo, KernelWorkGroupInfo, 
     KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo, 
@@ -181,24 +179,6 @@ impl PlatformInfoResult {
     pub fn from_bytes(request: PlatformInfo, result: OclResult<Vec<u8>>)
             -> PlatformInfoResult
     {
-        // match result_string {
-        //     Ok(rs) => {
-        //         // let string = String::from_utf8(result_string).expect("FIXME: src/core/custom/enums.rs");
-        //         let string = try!(String::from_utf8(rs));
-
-        //         Ok(match request {
-        //             PlatformInfo::Profile => PlatformInfoResult::Profile(string),
-        //             PlatformInfo::Version => PlatformInfoResult::Version(string),
-        //             PlatformInfo::Name => PlatformInfoResult::Name(string),
-        //             PlatformInfo::Vendor => PlatformInfoResult::Vendor(string),
-        //             PlatformInfo::Extensions => PlatformInfoResult::Extensions(string),
-        //         })
-        //     },
-        //     Err(err) => {
-        //         PlatformInfoResult::Error(Box::new(err.clone))
-        //     }
-        // }
-
         match result {
             Ok(result) => {
                 let string = match String::from_utf8(result) {
@@ -357,17 +337,7 @@ impl DeviceInfoResult {
     }
 }
 
-// // DON'T REIMPLEMENT THIS UNTIL ALL THE VARIANTS ARE WORKING
-// impl std::fmt::Debug for DeviceInfoResult {
-//     /// [INCOMPLETE]: TEMPORARY
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         // DON'T REIMPLEMENT THIS UNTIL ALL THE VARIANTS ARE WORKING
-//         write!(f, "{}", &self.to_string())
-//     }
-// }
-
 impl std::fmt::Display for DeviceInfoResult {
-    /// [INCOMPLETE]: TEMPORARY
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
@@ -407,21 +377,11 @@ impl ContextInfoResult {
                 ContextInfo::ReferenceCount => {
                     ContextInfoResult::ReferenceCount(util::bytes_to_u32(&result))
                 },
-                ContextInfo::Devices => {
-                    ContextInfoResult::Devices(
-                        unsafe { util::bytes_into_vec::<DeviceId>(result) }
-                    )
+                ContextInfo::Devices => { 
+                    ContextInfoResult::Devices(unsafe { util::bytes_into_vec::<DeviceId>(result) })
                 },
-                ContextInfo::Properties => {
-                    // unsafe { ContextInfoResult::Properties(
-                    //     ContextInfoOrPropertiesPointerType.from_u32(util::bytes_into::
-                    //         <cl_h::cl_context_properties>(result))
-                    // ) }
-                    ContextInfoResult::Properties(result)
-                },
-                ContextInfo::NumDevices => {
-                    ContextInfoResult::NumDevices(util::bytes_to_u32(&result))
-                },
+                ContextInfo::Properties => ContextInfoResult::Properties(result),
+                ContextInfo::NumDevices => ContextInfoResult::NumDevices(util::bytes_to_u32(&result)),
             } }
             Err(err) => ContextInfoResult::Error(Box::new(err)),
         }
@@ -454,9 +414,9 @@ impl Into<String> for ContextInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] A command queue info result.
+/// A command queue info result.
 pub enum CommandQueueInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
+    // TemporaryPlaceholderVariant(Vec<u8>),
     Context(Context),
     Device(DeviceId),
     ReferenceCount(u32),
@@ -470,25 +430,23 @@ impl CommandQueueInfoResult {
     {
         match result {
             Ok(result) => { match request {
-                _ => CommandQueueInfoResult::TemporaryPlaceholderVariant(result),
-                // CommandQueueInfo::ReferenceCount => {
-                //     CommandQueueInfoResult::ReferenceCount(util::bytes_to_u32(&result))
-                // },
-                // CommandQueueInfo::Devices => {
-                //     CommandQueueInfoResult::Devices(
-                //         unsafe { util::bytes_into_vec::<DeviceId>(result) }
-                //     )
-                // },
-                // CommandQueueInfo::Properties => {
-                //     // unsafe { CommandQueueInfoResult::Properties(
-                //     //     CommandQueueInfoOrPropertiesPointerType.from_u32(util::bytes_into::
-                //     //         <cl_h::cl_context_properties>(result))
-                //     // ) }
-                //     CommandQueueInfoResult::Properties(result)
-                // },
-                // CommandQueueInfo::NumDevices => {
-                //     CommandQueueInfoResult::NumDevices(util::bytes_to_u32(&result))
-                // },
+                CommandQueueInfo::Context => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    CommandQueueInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                },
+                CommandQueueInfo::Device => {
+                    let device = unsafe { util::bytes_into::<DeviceId>(result) };
+                    CommandQueueInfoResult::Device(device)
+                },
+                CommandQueueInfo::ReferenceCount => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    CommandQueueInfoResult::ReferenceCount(r)
+                }
+                CommandQueueInfo::Properties => {
+                    let r = unsafe { util::bytes_into::<CommandQueueProperties>(result) };
+                    CommandQueueInfoResult::Properties(r)
+                }
+                // _ => CommandQueueInfoResult::TemporaryPlaceholderVariant(result),
             } }
             Err(err) => CommandQueueInfoResult::Error(Box::new(err)),
         }
@@ -504,11 +462,15 @@ impl std::fmt::Debug for CommandQueueInfoResult {
 impl std::fmt::Display for CommandQueueInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            // &CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
+            //    write!(f, "{}", to_string_retarded(v))
+            // },
+            &CommandQueueInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            &CommandQueueInfoResult::Device(ref s) => write!(f, "{:?}", s),
+            &CommandQueueInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            &CommandQueueInfoResult::Properties(ref s) => write!(f, "{:?}", s),
             &CommandQueueInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
+            // _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -521,18 +483,34 @@ impl Into<String> for CommandQueueInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] A mem info result.
+/// [UNSTABLE][INCOMPLETE] A mem info result. /
+///
+// [TODO]: Do something with `HostPtr`. It should not be be a raw pointer.
+//
+// ### From Docs:
+//
+// If memobj is created with clCreateBuffer or clCreateImage and
+// CL_MEM_USE_HOST_PTR is specified in mem_flags, return the host_ptr argument
+// value specified when memobj is created. Otherwise a NULL value is returned.
+//
+// If memobj is created with clCreateSubBuffer, return the host_ptr + origin
+// value specified when memobj is created. host_ptr is the argument value
+// specified to clCreateBuffer and CL_MEM_USE_HOST_PTR is specified in
+// mem_flags for memory object from which memobj is created. Otherwise a NULL
+// value is returned.
+//
 pub enum MemInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
-    Type(TemporaryPlaceholderType),
-    Flags(TemporaryPlaceholderType),
-    Size(TemporaryPlaceholderType),
-    HostPtr(TemporaryPlaceholderType),
-    MapCount(TemporaryPlaceholderType),
-    ReferenceCount(TemporaryPlaceholderType),
-    Context(TemporaryPlaceholderType),
-    AssociatedMemobject(TemporaryPlaceholderType),
-    Offset(TemporaryPlaceholderType),
+    // TemporaryPlaceholderVariant(Vec<u8>),
+    Type(MemObjectType),
+    Flags(MemFlags),
+    Size(usize),
+    // Incomplete:
+    HostPtr(Option<(*mut c_void, Option<usize>)>),
+    MapCount(u32),
+    ReferenceCount(u32),
+    Context(Context),
+    AssociatedMemobject(Option<Mem>),
+    Offset(usize),
     Error(Box<OclError>),
 }
 
@@ -543,7 +521,74 @@ impl MemInfoResult {
     {
         match result {
             Ok(result) => { match request {
-                _ => MemInfoResult::TemporaryPlaceholderVariant(result),
+                MemInfo::Type => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    match MemObjectType::from_u32(r) {
+                        Some(am) => MemInfoResult::Type(am),
+                        None => MemInfoResult::Error(Box::new(
+                            OclError::new(format!("Error converting '{}' to \
+                                MemObjectType.", r)))),
+                    }
+                },
+                MemInfo::Flags => {
+                    let r = unsafe { util::bytes_into::<MemFlags>(result) };
+                    MemInfoResult::Flags(r)
+                },                
+                MemInfo::Size => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    MemInfoResult::Size(r)
+                },    
+                MemInfo::HostPtr => {
+                    // [FIXME]: UNTESTED, INCOMPLETE.
+                    if result.len() == 8 {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+
+                        if ptr.is_null() {
+                            MemInfoResult::HostPtr(None)
+                        } else {
+                            MemInfoResult::HostPtr(Some((ptr, None)))
+                        }                        
+                    } else if result.len() == 16 {
+                        let ptr_and_origin = unsafe { 
+                            util::bytes_into::<(*mut c_void, usize)>(result) 
+                        };
+
+                        if ptr_and_origin.0.is_null() {
+                            MemInfoResult::HostPtr(None)
+                        } else {
+                            MemInfoResult::HostPtr(Some((ptr_and_origin.0, 
+                                Some(ptr_and_origin.1))))
+                        }
+                    } else {
+                        MemInfoResult::HostPtr(None)
+                    }
+                },
+                MemInfo::MapCount => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    MemInfoResult::MapCount(r)
+                },    
+                MemInfo::ReferenceCount => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    MemInfoResult::ReferenceCount(r)
+                },    
+                MemInfo::Context => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    MemInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                },
+                MemInfo::AssociatedMemobject => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    if ptr.is_null() {
+                        MemInfoResult::AssociatedMemobject(None)
+                    } else {
+                        MemInfoResult::AssociatedMemobject(Some(unsafe { Mem::from_copied_ptr(ptr) }))
+                    }
+                },
+                MemInfo::Offset => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    MemInfoResult::Offset(r)
+                },    
+
+                // _ => MemInfoResult::TemporaryPlaceholderVariant(result),
             } }
             Err(err) => MemInfoResult::Error(Box::new(err)),
         }
@@ -559,11 +604,20 @@ impl std::fmt::Debug for MemInfoResult {
 impl std::fmt::Display for MemInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
-               write!(f, "{}", to_string_retarded(v))
-            },
+            // &MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
+            //    write!(f, "{}", to_string_retarded(v))
+            // },
+            &MemInfoResult::Type(ref s) => write!(f, "{:?}", s),
+            &MemInfoResult::Flags(ref s) => write!(f, "{:?}", s),
+            &MemInfoResult::Size(ref s) => write!(f, "{}", s),
+            &MemInfoResult::HostPtr(ref s) => write!(f, "{:?}", s),
+            &MemInfoResult::MapCount(ref s) => write!(f, "{}", s),
+            &MemInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            &MemInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            &MemInfoResult::AssociatedMemobject(ref s) => write!(f, "{:?}", s),
+            &MemInfoResult::Offset(ref s) => write!(f, "{}", s),
             &MemInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
+            // _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
         }
     }
 }
@@ -576,7 +630,7 @@ impl Into<String> for MemInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] An image info result.
+/// An image info result.
 pub enum ImageInfoResult {
     // TemporaryPlaceholderVariant(Vec<u8>),
     Format(ImageFormat),
@@ -587,14 +641,13 @@ pub enum ImageInfoResult {
     Height(usize),
     Depth(usize),
     ArraySize(usize),
-    Buffer(Mem),
+    Buffer(Option<Mem>),
     NumMipLevels(u32),
     NumSamples(u32),
     Error(Box<OclError>),
 }
 
 impl ImageInfoResult {
-    // TODO: IMPLEMENT THIS PROPERLY.
     pub fn from_bytes(request: ImageInfo, result: OclResult<Vec<u8>>) -> ImageInfoResult
     {
         match result {
@@ -636,7 +689,11 @@ impl ImageInfoResult {
                 },
                 ImageInfo::Buffer => {
                     let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    ImageInfoResult::Buffer(unsafe { Mem::from_copied_ptr(ptr) })
+                    if ptr.is_null() {
+                        ImageInfoResult::Buffer(None)
+                    } else {
+                        ImageInfoResult::Buffer(Some(unsafe { Mem::from_copied_ptr(ptr) }))
+                    }
                 },
                 ImageInfo::NumMipLevels => {
                     let r = unsafe { util::bytes_into::<u32>(result) };
