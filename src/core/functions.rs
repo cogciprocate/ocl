@@ -22,10 +22,10 @@ use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
-use ffi::{ ClGlUint, ClGlint, ClGlEnum };
-use ffi::{ clCreateFromGLBuffer, clCreateFromGLRenderbuffer,
+use ffi::{ClGlUint, ClGlint, ClGlEnum};
+use ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
     clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
-    clEnqueueReleaseGLObjects };
+    clEnqueueReleaseGLObjects};
 
 use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type,
     cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties,
@@ -769,6 +769,35 @@ pub unsafe fn create_from_gl_renderbuffer(
 
 /// [UNTESTED]
 /// Return a texture2D pointer from a OpenGL texture2D object.
+pub unsafe fn create_from_gl_texture(
+            context: &Context,
+            texture_target: ClGlEnum,
+            miplevel: ClGlint,
+            texture: ClGlUint,
+            flags: MemFlags
+        ) -> OclResult<Mem>
+{
+    // Verify that the context is valid
+    try!(verify_context(context));
+
+    let mut errcode: cl_int = 0;
+
+    let buf_ptr = clCreateFromGLTexture(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            texture_target,
+            miplevel,
+            texture,
+            &mut errcode);
+
+    try!(errcode_try("clCreateFromGLTexture", "", errcode));
+    debug_assert!(!buf_ptr.is_null());
+
+    Ok(Mem::from_fresh_ptr(buf_ptr))
+}
+
+/// [UNTESTED] [DEPRICATED]
+/// Return a texture2D pointer from a OpenGL texture2D object.
 pub unsafe fn create_from_gl_texture_2d(
             context: &Context,
             texture_target: ClGlEnum,
@@ -796,7 +825,7 @@ pub unsafe fn create_from_gl_texture_2d(
     Ok(Mem::from_fresh_ptr(buf_ptr))
 }
 
-/// [UNTESTED]
+/// [UNTESTED] [DEPRICATED]
 /// Return a texture3D pointer from a OpenGL texture3D object.
 pub unsafe fn create_from_gl_texture_3d(
             context: &Context,

@@ -11,7 +11,7 @@ use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList,
     ImageChannelOrder, ImageChannelDataType};
 use standard::{Context, Queue, MemLen, SpatialDims};
-use ffi::{ClGlUint};
+use ffi::{ClGlUint, ClGlint, ClGlEnum};
 
 /// A builder for `Image`.
 pub struct ImageBuilder<S: OclPrm> {
@@ -706,30 +706,44 @@ impl<E: OclPrm> Image<E> {
 
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
-    pub fn from_gl_texture(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor)
+    pub fn from_gl_texture(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor,
+            texture_target: ClGlEnum, miplevel: ClGlint, texture: ClGlUint)
             -> OclResult<Image<E>>
     {
-        // FIXME need these defines !
+        // FIXME:
         // https://www.khronos.org/registry/cl/specs/opencl-1.x-latest.pdf#page=280
-        let texture_target = 0;
-        let miplevel = 0;
-        let texture = 0;
 
-        let obj_core = match image_desc.image_depth {
-            2 => unsafe { try!(core::create_from_gl_texture_2d(
-                                queue.context_core_as_ref(),
-                                texture_target,
-                                miplevel,
-                                texture,
-                                flags)) },
-            3 => unsafe { try!(core::create_from_gl_texture_3d(
-                                queue.context_core_as_ref(),
-                                texture_target,
-                                miplevel,
-                                texture,
-                                flags)) },
-            _ => unimplemented!() // FIXME: return an error ? or panic! ?
-        };
+        // texture_target can be:
+        // GL_TEXTURE_1D, GL_TEXTURE_1D_ARRAY, GL_TEXTURE_BUFFER, GL_TEXTURE_2D,
+        // GL_TEXTURE_2D_ARRAY, GL_TEXTURE_3D, GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+        // GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        // GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, or GL_TEXTURE_RECTANGLE
+
+        // miplevel need to be > 0
+        // but is texture_target == GL_TEXTURE_BUFFER then miplevel = 0
+
+        // let obj_core = match image_desc.image_depth {
+        //     2 => unsafe { try!(core::create_from_gl_texture_2d(
+        //                         queue.context_core_as_ref(),
+        //                         texture_target,
+        //                         miplevel,
+        //                         texture,
+        //                         flags)) },
+        //     3 => unsafe { try!(core::create_from_gl_texture_3d(
+        //                         queue.context_core_as_ref(),
+        //                         texture_target,
+        //                         miplevel,
+        //                         texture,
+        //                         flags)) },
+        //     _ => unimplemented!() // FIXME: return an error ? or panic! ?
+        // };
+        let obj_core = unsafe { try!(core::create_from_gl_texture(
+                                        queue.context_core_as_ref(),
+                                        texture_target,
+                                        miplevel,
+                                        texture,
+                                        flags)) };
 
         // FIXME can I do this from a GLTexture ?
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
