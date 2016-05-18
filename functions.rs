@@ -22,7 +22,7 @@ use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
-use ffi::{ClGlUint, ClGlint, ClGlEnum};
+use ffi::{ClGlUint, ClGlInt, ClGlEnum};
 use ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
     clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
     clEnqueueReleaseGLObjects};
@@ -772,7 +772,7 @@ pub unsafe fn create_from_gl_renderbuffer(
 pub unsafe fn create_from_gl_texture(
             context: &Context,
             texture_target: ClGlEnum,
-            miplevel: ClGlint,
+            miplevel: ClGlInt,
             texture: ClGlUint,
             flags: MemFlags
         ) -> OclResult<Mem>
@@ -801,7 +801,7 @@ pub unsafe fn create_from_gl_texture(
 pub unsafe fn create_from_gl_texture_2d(
             context: &Context,
             texture_target: ClGlEnum,
-            miplevel: ClGlint,
+            miplevel: ClGlInt,
             texture: ClGlUint,
             flags: MemFlags
         ) -> OclResult<Mem>
@@ -830,7 +830,7 @@ pub unsafe fn create_from_gl_texture_2d(
 pub unsafe fn create_from_gl_texture_3d(
             context: &Context,
             texture_target: ClGlEnum,
-            miplevel: ClGlint,
+            miplevel: ClGlInt,
             texture: ClGlUint,
             flags: MemFlags
         ) -> OclResult<Mem>

@@ -94,6 +94,7 @@ use libc;
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 use cl_h;
+use ffi::glcorearb_h;
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
@@ -375,6 +376,26 @@ bitflags! {
 //=============================== ENUMERATORS =================================
 //=============================================================================
 
+enum_from_primitive! {
+    ///
+    #[repr(C)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    pub enum GlTextureTarget {
+        GlTexture1d = glcorearb_h::GL_TEXTURE_1D as isize,
+        GlTexture1dArray = glcorearb_h::GL_TEXTURE_1D_ARRAY as isize,
+        GlTextureBuffer = glcorearb_h::GL_TEXTURE_BUFFER as isize,
+        GlTexture2d = glcorearb_h::GL_TEXTURE_2D as isize,
+        GlTexture2dArray = glcorearb_h::GL_TEXTURE_2D_ARRAY as isize,
+        GlTexture3d = glcorearb_h::GL_TEXTURE_3D as isize,
+        GlTextureCubeMapPositiveX = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_X as isize,
+        GlTextureCubeMapPositiveY = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_Y as isize,
+        GlTextureCubeMapPositiveZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_Z as isize,
+        GlTextureCubeMapNegativeX = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_X as isize,
+        GlTextureCubeMapNegativeY = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Y as isize,
+        GlTextureCubeMapNegativeZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Z as isize,
+        GlTextureRectangle = glcorearb_h::GL_TEXTURE_RECTANGLE as isize,
+    }
+}
 
 enum_from_primitive! {
     /// Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below. (from SDK)
