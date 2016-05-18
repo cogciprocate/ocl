@@ -1,5 +1,35 @@
 //! OpenGL Extensions.
 
+use ffi::ClGlUint;
+use cl_h::{ cl_context, cl_mem_flags, cl_command_queue, cl_int,
+    cl_uint, cl_mem, cl_event };
+
+//#[link_args = "-L$OPENCL_LIB -lOpenCL"]
+#[cfg_attr(target_os = "macos", link(name = "OpenGL", kind = "framework"))]
+#[cfg_attr(target_os = "windows", link(name = "OpenGL"))]
+#[cfg_attr(not(target_os = "macos"), link(name = "OpenGL"))]
+extern "system" {
+
+    pub fn clCreateFromGLBuffer(context: cl_context,
+                                flags: cl_mem_flags,
+                                bufobj: ClGlUint,
+                                errcode_ret: *mut cl_int) -> cl_mem;
+
+    pub fn clEnqueueAcquireGLObjects(command_queue: cl_command_queue,
+                                     num_objects: cl_uint,
+                                     mem_objects: *const cl_mem,
+                                     num_events_in_wait_list: cl_uint,
+                                     event_wait_list: *const cl_event,
+                                     event: *mut cl_event) -> cl_int;
+
+    pub fn clEnqueueReleaseGLObjects(command_queue: cl_command_queue,
+                                     num_objects: cl_uint,
+                                     mem_objects: *const cl_mem,
+                                     num_events_in_wait_list: cl_uint,
+                                     event_wait_list: *const cl_event,
+                                     event: *mut cl_event) -> cl_int;
+}
+
 // #ifndef __OPENCL_CL_GL_H
 // #define __OPENCL_CL_GL_H
 
