@@ -710,18 +710,10 @@ impl<E: OclPrm> Image<E> {
             texture_target: GlTextureTarget, miplevel: ClGlInt, texture: ClGlUint)
             -> OclResult<Image<E>>
     {
-        // FIXME:
-        // https://www.khronos.org/registry/cl/specs/opencl-1.x-latest.pdf#page=280
-
-        // texture_target can be:
-        // GL_TEXTURE_1D, GL_TEXTURE_1D_ARRAY, GL_TEXTURE_BUFFER, GL_TEXTURE_2D,
-        // GL_TEXTURE_2D_ARRAY, GL_TEXTURE_3D, GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-        // GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
-        // GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-        // GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, or GL_TEXTURE_RECTANGLE
-
-        // miplevel need to be > 0
-        // but is texture_target == GL_TEXTURE_BUFFER then miplevel = 0
+        if texture_target == GlTextureTarget::GlTextureBuffer && miplevel != 0 {
+            return OclError::err("If texture_target is GL_TEXTURE_BUFFER, miplevel must be 0.\
+                Implementations may return CL_INVALID_OPERATION for miplevel values > 0");
+        }
 
         // let obj_core = match image_desc.image_depth {
         //     2 => unsafe { try!(core::create_from_gl_texture_2d(
