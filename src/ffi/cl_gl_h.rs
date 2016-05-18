@@ -62,9 +62,9 @@ pub const CL_WGL_HDC_KHR:           cl_context_properties = 0x200B;
 pub const CL_CGL_SHAREGROUP_KHR:    cl_context_properties = 0x200C;
 
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
-#[cfg_attr(target_os = "macos", link(name = "OpenGL", kind = "framework"))]
-#[cfg_attr(target_os = "windows", link(name = "OpenGL"))]
-#[cfg_attr(not(target_os = "macos"), link(name = "OpenGL"))]
+#[cfg_attr(target_os = "macos", link(name = "OpenCL", kind = "framework"))]
+#[cfg_attr(target_os = "windows", link(name = "OpenCL"))]
+#[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
 extern "system" {
 
     pub fn clCreateFromGLBuffer(context: cl_context,
