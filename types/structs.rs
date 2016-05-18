@@ -45,8 +45,8 @@ impl ContextProperties {
     pub fn get_platform(&self) -> Option<PlatformId> {
         let mut platform = None;
 
-        for prop in self.0.iter() {
-            if let &ContextProperty::Platform(ref plat) = prop {
+        for prop in &self.0 {
+            if let ContextProperty::Platform(ref plat) = *prop {
                 platform = Some(plat.clone());
             }
         }
@@ -64,15 +64,15 @@ impl ContextProperties {
 
         unsafe {
             // For each property:
-            for prop in self.0.iter() {
+            for prop in &self.0 {
                 // Convert both the kind of property (a u32) and the value (variable type/size)
                 // into just a core byte vector (Vec<u8>):
-                let (kind, val) = match prop {
-                    &ContextProperty::Platform(ref platform_id_core) => (
+                let (kind, val) = match *prop {
+                    ContextProperty::Platform(ref platform_id_core) => (
                         util::into_bytes(PropKind::Platform as cl_h::cl_uint),
                         util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id)
                     ),
-                    &ContextProperty::InteropUserSync(sync) => (
+                    ContextProperty::InteropUserSync(sync) => (
                         util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
                         util::into_bytes(sync as cl_h::cl_bool)
                     ),
@@ -364,10 +364,10 @@ impl ImageDescriptor {
             image_slice_pitch: self.image_slice_pitch,
             num_mip_levels: self.num_mip_levels,
             num_samples: self.num_mip_levels,
-            buffer: match &self.buffer {
-                    &Some(ref b) => unsafe { b.as_ptr() },
-                    &None => 0 as cl_mem,
-                },
+            buffer: match self.buffer {
+                        Some(ref b) => unsafe { b.as_ptr() },
+                        None => 0 as cl_mem,
+                    },
         }
     }
 }

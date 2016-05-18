@@ -225,13 +225,13 @@ impl std::fmt::Debug for PlatformInfoResult {
 
 impl std::fmt::Display for PlatformInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &PlatformInfoResult::Profile(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Version(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Name(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Vendor(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Extensions(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            PlatformInfoResult::Profile(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Version(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Name(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Vendor(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Extensions(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -239,11 +239,11 @@ impl std::fmt::Display for PlatformInfoResult {
 impl Into<String> for PlatformInfoResult {
     fn into(self) -> String {
         match self {
-            PlatformInfoResult::Profile(string) => string,
-            PlatformInfoResult::Version(string) => string,
-            PlatformInfoResult::Name(string) => string,
-            PlatformInfoResult::Vendor(string) => string,
-            PlatformInfoResult::Extensions(string) => string,
+            PlatformInfoResult::Profile(string)
+            | PlatformInfoResult::Version(string)
+            | PlatformInfoResult::Name(string)
+            | PlatformInfoResult::Vendor(string)
+            | PlatformInfoResult::Extensions(string) => string,
             PlatformInfoResult::Error(err) => err.status_code(),
         }
     }
@@ -374,7 +374,7 @@ impl std::fmt::Display for DeviceInfoResult {
             },
             &DeviceInfoResult::MaxWorkGroupSize(size) => write!(f, "{}", size),
             &DeviceInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            r @ _ => panic!("DeviceInfoResult: Converting '{:?}' to string not yet implemented.", r),
+            r => panic!("DeviceInfoResult: Converting '{:?}' to string not yet implemented.", r),
         }
     }
 }
@@ -434,12 +434,12 @@ impl std::fmt::Debug for ContextInfoResult {
 
 impl std::fmt::Display for ContextInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &ContextInfoResult::ReferenceCount(ref count) => write!(f, "{}", count),
-            &ContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
-            &ContextInfoResult::Properties(ref props) => write!(f, "{:?}", props),
-            &ContextInfoResult::NumDevices(ref num) => write!(f, "{}", num),
-            &ContextInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            ContextInfoResult::ReferenceCount(ref count) => write!(f, "{}", count),
+            ContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
+            ContextInfoResult::Properties(ref props) => write!(f, "{:?}", props),
+            ContextInfoResult::NumDevices(ref num) => write!(f, "{}", num),
+            ContextInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -501,11 +501,11 @@ impl std::fmt::Debug for CommandQueueInfoResult {
 
 impl std::fmt::Display for CommandQueueInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            &CommandQueueInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            CommandQueueInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -556,11 +556,11 @@ impl std::fmt::Debug for MemInfoResult {
 
 impl std::fmt::Display for MemInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            &MemInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            MemInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -616,12 +616,12 @@ impl std::fmt::Debug for ImageInfoResult {
 
 impl std::fmt::Display for ImageInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            &ImageInfoResult::ElementSize(s) => write!(f, "{}", s),
-            &ImageInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ImageInfoResult::ElementSize(s) => write!(f, "{}", s),
+            ImageInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -666,11 +666,11 @@ impl std::fmt::Debug for SamplerInfoResult {
 
 impl std::fmt::Display for SamplerInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            &SamplerInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            SamplerInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -720,11 +720,11 @@ impl std::fmt::Debug for ProgramInfoResult {
 
 impl std::fmt::Display for ProgramInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            &ProgramInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ProgramInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -776,12 +776,12 @@ impl std::fmt::Debug for ProgramBuildInfoResult {
 
 impl std::fmt::Display for ProgramBuildInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &ProgramBuildInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            ProgramBuildInfoResult::TemporaryPlaceholderVariant(ref v) => {
                write!(f, "{}", to_string_retarded(v))
             },
-            &ProgramBuildInfoResult::BuildLog(ref s) => write!(f, "{}", s),
-            &ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ProgramBuildInfoResult::BuildLog(ref s) => write!(f, "{}", s),
+            ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("ProgramBuildInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -843,10 +843,10 @@ impl std::fmt::Debug for KernelInfoResult {
 
 impl std::fmt::Display for KernelInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &KernelInfoResult::TemporaryPlaceholderVariant(ref v) => write!(f, "{}", to_string_retarded(v)),
-            &KernelInfoResult::FunctionName(ref s) => write!(f, "{}", s),
-            &KernelInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            KernelInfoResult::TemporaryPlaceholderVariant(ref v) => write!(f, "{}", to_string_retarded(v)),
+            KernelInfoResult::FunctionName(ref s) => write!(f, "{}", s),
+            KernelInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             _ => panic!("KernelInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -926,13 +926,13 @@ impl std::fmt::Debug for KernelArgInfoResult {
 
 impl std::fmt::Display for KernelArgInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &KernelArgInfoResult::AddressQualifier(s) => write!(f, "{:?}", s),
-            &KernelArgInfoResult::AccessQualifier(s) => write!(f, "{:?}", s),
-            &KernelArgInfoResult::TypeName(ref s) => write!(f, "{}", s),
-            &KernelArgInfoResult::TypeQualifier(s) => write!(f, "{:?}", s),
-            &KernelArgInfoResult::Name(ref s) => write!(f, "{}", s),
-            &KernelArgInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            KernelArgInfoResult::AddressQualifier(s) => write!(f, "{:?}", s),
+            KernelArgInfoResult::AccessQualifier(s) => write!(f, "{:?}", s),
+            KernelArgInfoResult::TypeName(ref s) => write!(f, "{}", s),
+            KernelArgInfoResult::TypeQualifier(s) => write!(f, "{:?}", s),
+            KernelArgInfoResult::Name(ref s) => write!(f, "{}", s),
+            KernelArgInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1000,14 +1000,14 @@ impl std::fmt::Debug for KernelWorkGroupInfoResult {
 
 impl std::fmt::Display for KernelWorkGroupInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &KernelWorkGroupInfoResult::WorkGroupSize(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::CompileWorkGroupSize(s) => write!(f, "{:?}", s),
-            &KernelWorkGroupInfoResult::LocalMemSize(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::PrivateMemSize(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::GlobalWorkSize(s) => write!(f, "{:?}", s),
-            &KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            KernelWorkGroupInfoResult::WorkGroupSize(s) => write!(f, "{}", s),
+            KernelWorkGroupInfoResult::CompileWorkGroupSize(s) => write!(f, "{:?}", s),
+            KernelWorkGroupInfoResult::LocalMemSize(s) => write!(f, "{}", s),
+            KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => write!(f, "{}", s),
+            KernelWorkGroupInfoResult::PrivateMemSize(s) => write!(f, "{}", s),
+            KernelWorkGroupInfoResult::GlobalWorkSize(s) => write!(f, "{:?}", s),
+            KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1078,13 +1078,13 @@ impl std::fmt::Debug for EventInfoResult {
 
 impl std::fmt::Display for EventInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &EventInfoResult::CommandQueue(ref s) => write!(f, "{:?}", s),
-            &EventInfoResult::CommandType(ref s) => write!(f, "{:?}", s),
-            &EventInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
-            &EventInfoResult::CommandExecutionStatus(ref s) => write!(f, "{:?}", s),
-            &EventInfoResult::Context(ref s) => write!(f, "{:?}", s),
-            &EventInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            EventInfoResult::CommandQueue(ref s) => write!(f, "{:?}", s),
+            EventInfoResult::CommandType(ref s) => write!(f, "{:?}", s),
+            EventInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            EventInfoResult::CommandExecutionStatus(ref s) => write!(f, "{:?}", s),
+            EventInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            EventInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1134,12 +1134,12 @@ impl std::fmt::Debug for ProfilingInfoResult {
 
 impl std::fmt::Display for ProfilingInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &ProfilingInfoResult::Queued(ref s) => write!(f, "{}", s),
-            &ProfilingInfoResult::Submit(ref s) => write!(f, "{}", s),
-            &ProfilingInfoResult::Start(ref s) => write!(f, "{}", s),
-            &ProfilingInfoResult::End(ref s) => write!(f, "{}", s),
-            &ProfilingInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            ProfilingInfoResult::Queued(ref s) => write!(f, "{}", s),
+            ProfilingInfoResult::Submit(ref s) => write!(f, "{}", s),
+            ProfilingInfoResult::Start(ref s) => write!(f, "{}", s),
+            ProfilingInfoResult::End(ref s) => write!(f, "{}", s),
+            ProfilingInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1161,6 +1161,6 @@ fn to_string_retarded(v: &Vec<u8>) -> String {
     } else if v.len() == 3 * 8 {
         unsafe { format!("{:?}", util::bytes_to_vec::<usize>(&v[..])) }
     } else {
-        String::from_utf8(v.clone()).unwrap_or(format!("{:?}", v))
+        String::from_utf8(v.clone()).unwrap_or_else(|_| format!("{:?}", v))
     }
 }
