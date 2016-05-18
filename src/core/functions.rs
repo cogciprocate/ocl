@@ -381,8 +381,8 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
 /// Returns information about a device.
 ///
 #[allow(unused_variables)]
-pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo,
-        ) -> DeviceInfoResult
+pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo) 
+        -> DeviceInfoResult
 {
     let mut result_size: size_t = 0;
 
@@ -418,7 +418,19 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo,
     // DeviceInfoResult::from_bytes(request, result)
 
     let result = errcode_try("clGetDeviceInfo", "", errcode).and(Ok(result));
-    DeviceInfoResult::from_bytes(request, result)
+
+    match request {
+        DeviceInfo::MaxWorkItemSizes => {
+            let max_wi_dims = match get_device_info(device, DeviceInfo::MaxWorkItemDimensions) {
+                DeviceInfoResult::MaxWorkItemDimensions(d) => d,
+                DeviceInfoResult::Error(err) => return DeviceInfoResult::Error(err),
+                _ => panic!("get_device_info(): Error determining dimensions for \
+                    'DeviceInfo::MaxWorkItemSizes' due to mismatched variants."),
+            };
+            DeviceInfoResult::from_bytes_max_work_item_sizes(request, result, max_wi_dims)
+        },
+        _ => DeviceInfoResult::from_bytes(request, result)
+    }    
 }
 
 /// [UNIMPLEMENTED]

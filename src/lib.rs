@@ -143,7 +143,7 @@ pub mod enums {
     // API enums.
     pub use core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo,
         DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo,
-        ContextInfoOrPropertiesPointerType, PartitionProperty, CommandQueueInfo, ChannelType,
+        ContextInfoOrPropertiesPointerType, DevicePartitionProperty, CommandQueueInfo, ChannelType,
         MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo,
         ProgramBuildInfo, ProgramBuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier,
         KernelArgAccessQualifier, KernelWorkGroupInfo, EventInfo, CommandType,

@@ -178,6 +178,12 @@ impl DeviceId {
         DeviceId(ptr)
     }
 
+    /// Only call this when passing a copied pointer such as from an
+    /// `clGet*****Info` function.
+    pub unsafe fn from_copied_ptr(ptr: cl_device_id) -> DeviceId {
+        DeviceId(ptr)
+    }
+
     pub unsafe fn null() -> DeviceId {
         DeviceId(0 as *mut libc::c_void)
     }
@@ -213,7 +219,7 @@ impl Context {
 
     /// Only call this when passing a copied pointer such as from an
     /// `clGet*****Info` function.
-    pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> Context {
+    pub unsafe fn from_copied_ptr(ptr: cl_context) -> Context {
         let copy = Context(ptr);
         core::retain_context(&copy).unwrap();
         copy
@@ -310,7 +316,7 @@ impl Mem {
 
 	/// Only call this when passing a copied pointer such as from an
 	/// `clGet*****Info` function.
-	pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> Mem {
+	pub unsafe fn from_copied_ptr(ptr: cl_mem) -> Mem {
 		let copy = Mem(ptr);
 		core::retain_mem_object(&copy).unwrap();
 		copy
@@ -357,7 +363,7 @@ impl Program {
 
 	/// Only call this when passing a copied pointer such as from an
 	/// `clGet*****Info` function.
-	pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> Program {
+	pub unsafe fn from_copied_ptr(ptr: cl_program) -> Program {
 		let copy = Program(ptr);
 		core::retain_program(&copy).unwrap();
 		copy
