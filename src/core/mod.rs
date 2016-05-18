@@ -94,7 +94,7 @@ use libc;
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 use cl_h;
-use ffi::glcorearb_h;
+use ffi::{cl_gl_h, glcorearb_h};
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
@@ -394,6 +394,22 @@ enum_from_primitive! {
         GlTextureCubeMapNegativeY = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Y as isize,
         GlTextureCubeMapNegativeZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Z as isize,
         GlTextureRectangle = glcorearb_h::GL_TEXTURE_RECTANGLE as isize,
+    }
+}
+
+enum_from_primitive! {
+    // cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken
+    #[repr(C)]
+    #[derive(Debug, PartialEq, Clone)]
+    pub enum ClGlObjectType {
+        ClGlObjectBuffer = cl_gl_h::CL_GL_OBJECT_BUFFER as isize,
+        ClGlObjectTexture2D = cl_gl_h::CL_GL_OBJECT_TEXTURE2D as isize,
+        ClGlObjectTexture3D = cl_gl_h::CL_GL_OBJECT_TEXTURE3D as isize,
+        ClGlObjectRenderbuffer = cl_gl_h::CL_GL_OBJECT_RENDERBUFFER as isize,
+        ClGlObjectTexture2DArray = cl_gl_h::CL_GL_OBJECT_TEXTURE2D_ARRAY as isize,
+        ClGlObjectTexture1D = cl_gl_h::CL_GL_OBJECT_TEXTURE1D as isize,
+        ClGlObjectTexture1DArray = cl_gl_h::CL_GL_OBJECT_TEXTURE1D_ARRAY as isize,
+        ClGlObjectTextureBuffer = cl_gl_h::CL_GL_OBJECT_TEXTURE_BUFFER as isize,
     }
 }
 
