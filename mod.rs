@@ -377,7 +377,7 @@ bitflags! {
 //=============================================================================
 
 enum_from_primitive! {
-    ///
+    /// specify the texture target type
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum GlTextureTarget {
