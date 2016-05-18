@@ -573,6 +573,7 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceLocalMemType {
+        None = cl_h::CL_NONE as isize,
         Local = cl_h::CL_LOCAL as isize,
         Global = cl_h::CL_GLOBAL as isize,
     }
@@ -604,14 +605,19 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-    /// cl_partition_property
+    /// [INCOMPLETE] cl_device_partition_property
+    ///
+    /// [FIXME]: This types variants should also contain data described in: 
+    /// [https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html]
+    /// (https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html)
+    ///
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum PartitionProperty {
-        PartitionEqually = cl_h::CL_DEVICE_PARTITION_EQUALLY as isize,
-        PartitionByCounts = cl_h::CL_DEVICE_PARTITION_BY_COUNTS as isize,
-        PartitionByCountsListEnd = cl_h::CL_DEVICE_PARTITION_BY_COUNTS_LIST_END as isize,
-        PartitionByAffinityDomain = cl_h::CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN as isize,
+    pub enum DevicePartitionProperty {
+        Equally = cl_h::CL_DEVICE_PARTITION_EQUALLY as isize,
+        ByCounts = cl_h::CL_DEVICE_PARTITION_BY_COUNTS as isize,
+        ByCountsListEnd = cl_h::CL_DEVICE_PARTITION_BY_COUNTS_LIST_END as isize,
+        ByAffinityDomain = cl_h::CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN as isize,
     }
 }
 

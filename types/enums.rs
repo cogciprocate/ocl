@@ -30,7 +30,7 @@
 #![allow(dead_code)]
 
 use std;
-use std::mem;
+// use std::mem;
 // use std::error::Error;
 use std::convert::Into;
 use libc::{size_t, c_void};
@@ -43,7 +43,9 @@ use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, D
     ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo, 
     KernelArgInfo, KernelWorkGroupInfo, 
     KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo, 
-    ImageFormat, EventInfo, ProfilingInfo,};
+    ImageFormat, EventInfo, ProfilingInfo,
+    DeviceType, DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities, 
+    DevicePartitionProperty, DeviceAffinityDomain, };
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -232,121 +234,583 @@ impl Into<String> for PlatformInfoResult {
 }
 
 
-/// A device info result.
+/// [UNSTABLE][INCOMPLETE] A device info result.
 ///
 /// [FIXME]: Implement the rest of this beast... eventually...
-#[derive(Debug)]
+// #[derive(Debug)]
 pub enum DeviceInfoResult {
-    TemporaryPlaceholderVariant(Vec<u8>),
-    Type(TemporaryPlaceholderType),
-    VendorId(TemporaryPlaceholderType),
-    MaxComputeUnits(TemporaryPlaceholderType),
-    MaxWorkItemDimensions(TemporaryPlaceholderType),
-    MaxWorkGroupSize(usize),
-    MaxWorkItemSizes(TemporaryPlaceholderType),
-    PreferredVectorWidthChar(TemporaryPlaceholderType),
-    PreferredVectorWidthShort(TemporaryPlaceholderType),
-    PreferredVectorWidthInt(TemporaryPlaceholderType),
-    PreferredVectorWidthLong(TemporaryPlaceholderType),
-    PreferredVectorWidthFloat(TemporaryPlaceholderType),
-    PreferredVectorWidthDouble(TemporaryPlaceholderType),
-    MaxClockFrequency(TemporaryPlaceholderType),
-    AddressBits(TemporaryPlaceholderType),
-    MaxReadImageArgs(TemporaryPlaceholderType),
-    MaxWriteImageArgs(TemporaryPlaceholderType),
-    MaxMemAllocSize(TemporaryPlaceholderType),
-    Image2dMaxWidth(TemporaryPlaceholderType),
-    Image2dMaxHeight(TemporaryPlaceholderType),
-    Image3dMaxWidth(TemporaryPlaceholderType),
-    Image3dMaxHeight(TemporaryPlaceholderType),
-    Image3dMaxDepth(TemporaryPlaceholderType),
-    ImageSupport(TemporaryPlaceholderType),
-    MaxParameterSize(TemporaryPlaceholderType),
-    MaxSamplers(TemporaryPlaceholderType),
-    MemBaseAddrAlign(TemporaryPlaceholderType),
-    MinDataTypeAlignSize(TemporaryPlaceholderType),
-    SingleFpConfig(TemporaryPlaceholderType),
-    GlobalMemCacheType(TemporaryPlaceholderType),
-    GlobalMemCachelineSize(TemporaryPlaceholderType),
-    GlobalMemCacheSize(TemporaryPlaceholderType),
-    GlobalMemSize(TemporaryPlaceholderType),
-    MaxConstantBufferSize(TemporaryPlaceholderType),
-    MaxConstantArgs(TemporaryPlaceholderType),
-    LocalMemType(TemporaryPlaceholderType),
-    LocalMemSize(TemporaryPlaceholderType),
-    ErrorCorrectionSupport(TemporaryPlaceholderType),
-    ProfilingTimerResolution(TemporaryPlaceholderType),
-    EndianLittle(TemporaryPlaceholderType),
-    Available(TemporaryPlaceholderType),
-    CompilerAvailable(TemporaryPlaceholderType),
-    ExecutionCapabilities(TemporaryPlaceholderType),
-    QueueProperties(TemporaryPlaceholderType),
-    Name(TemporaryPlaceholderType),
-    Vendor(TemporaryPlaceholderType),
-    DriverVersion(TemporaryPlaceholderType),
-    Profile(TemporaryPlaceholderType),
-    Version(TemporaryPlaceholderType),
-    Extensions(TemporaryPlaceholderType),
-    Platform(TemporaryPlaceholderType),
-    DoubleFpConfig(TemporaryPlaceholderType),
-    HalfFpConfig(TemporaryPlaceholderType),
-    PreferredVectorWidthHalf(TemporaryPlaceholderType),
-    HostUnifiedMemory(TemporaryPlaceholderType),
-    NativeVectorWidthChar(TemporaryPlaceholderType),
-    NativeVectorWidthShort(TemporaryPlaceholderType),
-    NativeVectorWidthInt(TemporaryPlaceholderType),
-    NativeVectorWidthLong(TemporaryPlaceholderType),
-    NativeVectorWidthFloat(TemporaryPlaceholderType),
-    NativeVectorWidthDouble(TemporaryPlaceholderType),
-    NativeVectorWidthHalf(TemporaryPlaceholderType),
-    OpenclCVersion(TemporaryPlaceholderType),
-    LinkerAvailable(TemporaryPlaceholderType),
-    BuiltInKernels(TemporaryPlaceholderType),
-    ImageMaxBufferSize(TemporaryPlaceholderType),
-    ImageMaxArraySize(TemporaryPlaceholderType),
-    ParentDevice(TemporaryPlaceholderType),
-    PartitionMaxSubDevices(TemporaryPlaceholderType),
-    PartitionProperties(TemporaryPlaceholderType),
-    PartitionAffinityDomain(TemporaryPlaceholderType),
-    PartitionType(TemporaryPlaceholderType),
-    ReferenceCount(TemporaryPlaceholderType),
-    PreferredInteropUserSync(TemporaryPlaceholderType),
-    PrintfBufferSize(TemporaryPlaceholderType),
-    ImagePitchAlignment(TemporaryPlaceholderType),
-    ImageBaseAddressAlignment(TemporaryPlaceholderType),
+    // TemporaryPlaceholderVariant(Vec<u8>),
+    Type(DeviceType),                    // cl_device_type      FLAGS u64
+    VendorId(u32),                 // cl_uint
+    MaxComputeUnits(u32),          // cl_uint
+    MaxWorkItemDimensions(u32),    // cl_uint
+    MaxWorkGroupSize(usize),                            // usize
+    MaxWorkItemSizes(Vec<usize>),         // [usize; CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS]
+    PreferredVectorWidthChar(u32), // cl_uint
+    PreferredVectorWidthShort(u32),// cl_uint
+    PreferredVectorWidthInt(u32),  // cl_uint
+    PreferredVectorWidthLong(u32), // cl_uint
+    PreferredVectorWidthFloat(u32),// cl_uint
+    PreferredVectorWidthDouble(u32),// cl_uint
+    MaxClockFrequency(u32),        // cl_uint
+    AddressBits(u32),              // cl_uint
+    MaxReadImageArgs(u32),         // cl_uint
+    MaxWriteImageArgs(u32),        // cl_uint
+    MaxMemAllocSize(u64),          // cl_ulong
+    Image2dMaxWidth(usize),          // usize
+    Image2dMaxHeight(usize),         // usize
+    Image3dMaxWidth(usize),          // usize
+    Image3dMaxHeight(usize),         // usize
+    Image3dMaxDepth(usize),          // usize
+    ImageSupport(bool),             // cl_bool
+    MaxParameterSize(usize),         // usize
+    MaxSamplers(u32),              // cl_uint
+    MemBaseAddrAlign(u32),         // cl_uint
+    MinDataTypeAlignSize(u32),     // cl_uint
+    SingleFpConfig(DeviceFpConfig),           // cl_device_fp_config    FLAGS u64
+    GlobalMemCacheType(DeviceMemCacheType),       // cl_device_mem_cache_type   ENUM
+    GlobalMemCachelineSize(u32),   // cl_uint
+    GlobalMemCacheSize(u64),       // cl_ulong
+    GlobalMemSize(u64),            // cl_ulong
+    MaxConstantBufferSize(u64),    // cl_ulong
+    MaxConstantArgs(u32),          // cl_uint
+    LocalMemType(DeviceLocalMemType),             // cl_device_local_mem_type     ENUM
+    LocalMemSize(u64),             // cl_ulong
+    ErrorCorrectionSupport(bool),   // cl_bool
+    ProfilingTimerResolution(usize), // usize
+    EndianLittle(bool),             // cl_bool
+    Available(bool),                // cl_bool
+    CompilerAvailable(bool),        // cl_bool
+    ExecutionCapabilities(DeviceExecCapabilities),    // cl_device_exec_capabilities    FLAGS u64
+    QueueProperties(CommandQueueProperties),          // cl_command_queue_properties    FLAGS u64
+    Name(String),                     // String
+    Vendor(String),                   // String
+    DriverVersion(String),            // String
+    Profile(String),                  // String
+    Version(String),                  // String
+    Extensions(String),               // String
+    Platform(PlatformId),             // cl_platform_id
+    DoubleFpConfig(DeviceFpConfig),           // cl_device_fp_config    FLAGS u64
+    HalfFpConfig(DeviceFpConfig),             // cl_device_fp_config    FLAGS u64
+    PreferredVectorWidthHalf(u32), // cl_uint
+    HostUnifiedMemory(bool),        // cl_bool
+    NativeVectorWidthChar(u32),    // cl_uint
+    NativeVectorWidthShort(u32),   // cl_uint
+    NativeVectorWidthInt(u32),     // cl_uint
+    NativeVectorWidthLong(u32),    // cl_uint
+    NativeVectorWidthFloat(u32),   // cl_uint
+    NativeVectorWidthDouble(u32),  // cl_uint
+    NativeVectorWidthHalf(u32),    // cl_uint
+    OpenclCVersion(String),           // String
+    LinkerAvailable(bool),          // cl_bool
+    BuiltInKernels(String),           // String
+    ImageMaxBufferSize(usize),       // usize
+    ImageMaxArraySize(usize),        // usize
+    ParentDevice(Option<DeviceId>),   // cl_device_id
+    PartitionMaxSubDevices(u32),   // cl_uint
+    PartitionProperties(Vec<DevicePartitionProperty>),      // cl_device_partition_property  ENUM
+    PartitionAffinityDomain(DeviceAffinityDomain),  // cl_device_affinity_domain    FLAGS u64
+    PartitionType(Vec<DevicePartitionProperty>),            // cl_device_partition_property  ENUM
+    ReferenceCount(u32),           // cl_uint
+    PreferredInteropUserSync(bool), // cl_bool
+    PrintfBufferSize(usize),         // usize
+    ImagePitchAlignment(u32),      // cl_uint 
+    ImageBaseAddressAlignment(u32),// cl_uint
     Error(Box<OclError>),
 }
 
 impl DeviceInfoResult {
+    /// Returns a new `DeviceInfoResult::MaxWorkItemSizes` variant.
+    pub fn from_bytes_max_work_item_sizes(request: DeviceInfo, result: OclResult<Vec<u8>>,
+                max_wi_dims: u32) -> DeviceInfoResult
+    {
+        match result { 
+            Ok(result) => { match request {
+                DeviceInfo::MaxWorkItemSizes => {
+                    match max_wi_dims {
+                        3 => {
+                            let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
+                            let mut v = Vec::with_capacity(3);
+                            v.extend_from_slice(&r);
+                            DeviceInfoResult::MaxWorkItemSizes(v)
+                        },
+                        2 => {
+                            let r = unsafe { util::bytes_into::<[usize; 2]>(result) };
+                            let mut v = Vec::with_capacity(2);
+                            v.extend_from_slice(&r);
+                            DeviceInfoResult::MaxWorkItemSizes(v)
+                        },
+                        1 => {
+                            let r = unsafe { util::bytes_into::<[usize; 1]>(result) };
+                            let mut v = Vec::with_capacity(1);
+                            v.extend_from_slice(&r);
+                            DeviceInfoResult::MaxWorkItemSizes(v)
+                        },
+                        _ => DeviceInfoResult::Error(Box::new(OclError::new(format!("Error \
+                            determining number of dimensions for MaxWorkItemSizes.")))),
+                    }
+                }, 
+                _ => panic!("DeviceInfoResult::from_bytes_max_work_item_sizes: Called with \
+                    invalid info variant ({:?}). Call '::from_bytes` instead.", request),
+            } },
+            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+        }
+    }
+
+    /// Returns a new `DeviceInfoResult` for all variants except `MaxWorkItemSizes`.
     pub fn from_bytes(request: DeviceInfo, result: OclResult<Vec<u8>>)
             -> DeviceInfoResult
     {
-        match result {
+        match result { 
             Ok(result) => { match request {
-            DeviceInfo::MaxWorkGroupSize => {
-                let r0 = unsafe { util::bytes_to::<usize>(&result) };
-                let size = unsafe { util::bytes_into::<usize>(result) };
-                debug_assert_eq!(r0, size);
-                // println!("\n\nDEVICEINFORESULT::FROM_BYTES(MAXWORKGROUPSIZE): r1: {}, r2: {}", r1, r2);
-                DeviceInfoResult::MaxWorkGroupSize(size)
-            },
-            _ => DeviceInfoResult::TemporaryPlaceholderVariant(result),
-        } }
+                DeviceInfo::Type => {
+                    let r = unsafe { util::bytes_into::<DeviceType>(result) };
+                    DeviceInfoResult::Type(r)
+                },  
+                DeviceInfo::VendorId => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::VendorId(r)
+                },  
+                DeviceInfo::MaxComputeUnits => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MaxComputeUnits(r)
+                },  
+                DeviceInfo::MaxWorkItemDimensions => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MaxWorkItemDimensions(r)
+                },  
+                DeviceInfo::MaxWorkGroupSize => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::MaxWorkGroupSize(r)
+                },  
+                DeviceInfo::MaxWorkItemSizes => {
+                    panic!("DeviceInfoResult::from_bytes: Called with invalid info variant ({:?}). \
+                        Call '::from_bytes_max_work_item_sizes` instead.", request);
+                },  
+                DeviceInfo::PreferredVectorWidthChar => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PreferredVectorWidthChar(r)
+                },  
+                DeviceInfo::PreferredVectorWidthShort => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PreferredVectorWidthShort(r)
+                },  
+                DeviceInfo::PreferredVectorWidthInt => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PreferredVectorWidthInt(r)
+                },  
+                DeviceInfo::PreferredVectorWidthLong => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PreferredVectorWidthLong(r)
+                },  
+                DeviceInfo::PreferredVectorWidthFloat => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PreferredVectorWidthFloat(r)
+                },  
+                DeviceInfo::PreferredVectorWidthDouble => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PreferredVectorWidthDouble(r)
+                },  
+                DeviceInfo::MaxClockFrequency => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MaxClockFrequency(r)
+                },  
+                DeviceInfo::AddressBits => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::AddressBits(r)
+                },  
+                DeviceInfo::MaxReadImageArgs => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MaxReadImageArgs(r)
+                },  
+                DeviceInfo::MaxWriteImageArgs => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MaxWriteImageArgs(r)
+                },  
+                DeviceInfo::MaxMemAllocSize => {
+                    let r = unsafe { util::bytes_into::<u64>(result) };
+                    DeviceInfoResult::MaxMemAllocSize(r)
+                },  
+                DeviceInfo::Image2dMaxWidth => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::Image2dMaxWidth(r)
+                },  
+                DeviceInfo::Image2dMaxHeight => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::Image2dMaxHeight(r)
+                },  
+                DeviceInfo::Image3dMaxWidth => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::Image3dMaxWidth(r)
+                },  
+                DeviceInfo::Image3dMaxHeight => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::Image3dMaxHeight(r)
+                },  
+                DeviceInfo::Image3dMaxDepth => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::Image3dMaxDepth(r)
+                },  
+                DeviceInfo::ImageSupport => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::ImageSupport(r != 0)
+                },  
+                DeviceInfo::MaxParameterSize => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::MaxParameterSize(r)
+                },  
+                DeviceInfo::MaxSamplers => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MaxSamplers(r)
+                },  
+                DeviceInfo::MemBaseAddrAlign => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MemBaseAddrAlign(r)
+                },  
+                DeviceInfo::MinDataTypeAlignSize => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MinDataTypeAlignSize(r)
+                },  
+                DeviceInfo::SingleFpConfig => {
+                    let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
+                    DeviceInfoResult::SingleFpConfig(r)
+                },  
+                DeviceInfo::GlobalMemCacheType => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    match DeviceMemCacheType::from_u32(r) {
+                        Some(e) => DeviceInfoResult::GlobalMemCacheType(e),
+                        None => DeviceInfoResult::Error(Box::new(
+                            OclError::new(format!("Error converting '{:X}' to \
+                                DeviceMemCacheType.", r)))),
+                    }
+                },
+                DeviceInfo::GlobalMemCachelineSize => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::GlobalMemCachelineSize(r)
+                },  
+                DeviceInfo::GlobalMemCacheSize => {
+                    let r = unsafe { util::bytes_into::<u64>(result) };
+                    DeviceInfoResult::GlobalMemCacheSize(r)
+                },  
+                DeviceInfo::GlobalMemSize => {
+                    let r = unsafe { util::bytes_into::<u64>(result) };
+                    DeviceInfoResult::GlobalMemSize(r)
+                },  
+                DeviceInfo::MaxConstantBufferSize => {
+                    let r = unsafe { util::bytes_into::<u64>(result) };
+                    DeviceInfoResult::MaxConstantBufferSize(r)
+                },  
+                DeviceInfo::MaxConstantArgs => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::MaxConstantArgs(r)
+                },  
+                DeviceInfo::LocalMemType => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    match DeviceLocalMemType::from_u32(r) {
+                        Some(e) => DeviceInfoResult::LocalMemType(e),
+                        None => DeviceInfoResult::Error(Box::new(
+                            OclError::new(format!("Error converting '{:X}' to \
+                                DeviceLocalMemType.", r)))),
+                    }
+                },
+                DeviceInfo::LocalMemSize => {
+                    let r = unsafe { util::bytes_into::<u64>(result) };
+                    DeviceInfoResult::LocalMemSize(r)
+                },  
+                DeviceInfo::ErrorCorrectionSupport => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::ErrorCorrectionSupport(r != 0)
+                },  
+                DeviceInfo::ProfilingTimerResolution => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::ProfilingTimerResolution(r)
+                },  
+                DeviceInfo::EndianLittle => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::EndianLittle(r != 0)
+                },  
+                DeviceInfo::Available => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::Available(r != 0)
+                },  
+                DeviceInfo::CompilerAvailable => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::CompilerAvailable(r != 0)
+                },  
+                DeviceInfo::ExecutionCapabilities => {
+                    let r = unsafe { util::bytes_into::<DeviceExecCapabilities>(result) };
+                    DeviceInfoResult::ExecutionCapabilities(r)
+                },  
+                DeviceInfo::QueueProperties => {
+                    let r = unsafe { util::bytes_into::<CommandQueueProperties>(result) };
+                    DeviceInfoResult::QueueProperties(r)
+                },  
+                DeviceInfo::Name => {
+                    match String::from_utf8(result) {
+                        Ok(s) => DeviceInfoResult::Name(s),
+                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                    }                    
+                },
+                DeviceInfo::Vendor => {
+                    match String::from_utf8(result) {
+                        Ok(s) => DeviceInfoResult::Vendor(s),
+                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                    }                    
+                },
+                DeviceInfo::DriverVersion => {
+                    match String::from_utf8(result) {
+                        Ok(s) => DeviceInfoResult::DriverVersion(s),
+                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                    }                    
+                },
+                DeviceInfo::Profile => {
+                    match String::from_utf8(result) {
+                        Ok(s) => DeviceInfoResult::Profile(s),
+                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                    }                    
+                },
+                DeviceInfo::Version => {
+                    match String::from_utf8(result) {
+                        Ok(s) => DeviceInfoResult::Version(s),
+                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                    }                    
+                },
+                DeviceInfo::Extensions => {
+                    match String::from_utf8(result) {
+                        Ok(s) => DeviceInfoResult::Extensions(s),
+                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                    }                    
+                },
+                DeviceInfo::Platform => {
+                    let r = unsafe { util::bytes_into::<PlatformId>(result) };
+                    DeviceInfoResult::Platform(r)
+                },  
+                DeviceInfo::DoubleFpConfig => {
+                    let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
+                    DeviceInfoResult::DoubleFpConfig(r)
+                },  
+                DeviceInfo::HalfFpConfig => {
+                    let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
+                    DeviceInfoResult::HalfFpConfig(r)
+                },  
+                DeviceInfo::PreferredVectorWidthHalf => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PreferredVectorWidthHalf(r)
+                },  
+                DeviceInfo::HostUnifiedMemory => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::HostUnifiedMemory(r != 0)
+                },  
+                DeviceInfo::NativeVectorWidthChar => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::NativeVectorWidthChar(r)
+                },  
+                DeviceInfo::NativeVectorWidthShort => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::NativeVectorWidthShort(r)
+                },  
+                DeviceInfo::NativeVectorWidthInt => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::NativeVectorWidthInt(r)
+                },  
+                DeviceInfo::NativeVectorWidthLong => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::NativeVectorWidthLong(r)
+                },  
+                DeviceInfo::NativeVectorWidthFloat => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::NativeVectorWidthFloat(r)
+                },  
+                DeviceInfo::NativeVectorWidthDouble => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::NativeVectorWidthDouble(r)
+                },  
+                DeviceInfo::NativeVectorWidthHalf => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::NativeVectorWidthHalf(r)
+                },  
+                DeviceInfo::OpenclCVersion => {
+                    match String::from_utf8(result) {
+                        Ok(s) => DeviceInfoResult::OpenclCVersion(s),
+                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                    }                    
+                },
+                DeviceInfo::LinkerAvailable => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::LinkerAvailable(r != 0)
+                },  
+                DeviceInfo::BuiltInKernels => {
+                    match String::from_utf8(result) {
+                        Ok(s) => DeviceInfoResult::BuiltInKernels(s),
+                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                    }                    
+                },
+                DeviceInfo::ImageMaxBufferSize => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::ImageMaxBufferSize(r)
+                },  
+                DeviceInfo::ImageMaxArraySize => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::ImageMaxArraySize(r)
+                },  
+                DeviceInfo::ParentDevice => {
+                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                    if ptr.is_null() {
+                        DeviceInfoResult::ParentDevice(None)
+                    } else {
+                        DeviceInfoResult::ParentDevice(Some(unsafe { DeviceId::from_copied_ptr(ptr) }))
+                    }
+                },  
+                DeviceInfo::PartitionMaxSubDevices => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PartitionMaxSubDevices(r)
+                },  
+                DeviceInfo::PartitionProperties => {
+                    // [FIXME]: INCOMPLETE:
+                    //
+                    // let r = unsafe { util::bytes_into::<u32>(result) };
+                    // match DevicePartitionProperty::from_u32(r) {
+                    //     Some(e) => DeviceInfoResult::PartitionProperties(e),
+                    //     None => DeviceInfoResult::Error(Box::new(
+                    //         OclError::new(format!("Error converting '{:X}' to \
+                    //             DevicePartitionProperty.", r)))),
+                    // }
+                    DeviceInfoResult::PartitionProperties(Vec::with_capacity(0))
+                },
+                DeviceInfo::PartitionAffinityDomain => {
+                    let r = unsafe { util::bytes_into::<DeviceAffinityDomain>(result) };
+                    DeviceInfoResult::PartitionAffinityDomain(r)
+                },  
+                DeviceInfo::PartitionType => {
+                    // [FIXME]: INCOMPLETE:
+                    //
+                    // let r = unsafe { util::bytes_into::<u32>(result) };
+                    // match DevicePartitionProperty::from_u32(r) {
+                    //     Some(e) => DeviceInfoResult::PartitionType(e),
+                    //     None => DeviceInfoResult::Error(Box::new(
+                    //         OclError::new(format!("Error converting '{:X}' to \
+                    //             DevicePartitionProperty.", r)))),
+                    // }
+                    DeviceInfoResult::PartitionType(Vec::with_capacity(0))
+                },
+                DeviceInfo::ReferenceCount => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::ReferenceCount(r)
+                },  
+                DeviceInfo::PreferredInteropUserSync => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::PreferredInteropUserSync(r != 0)
+                },  
+                DeviceInfo::PrintfBufferSize => {
+                    let r = unsafe { util::bytes_into::<usize>(result) };
+                    DeviceInfoResult::PrintfBufferSize(r)
+                },  
+                DeviceInfo::ImagePitchAlignment => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::ImagePitchAlignment(r)
+                },  
+                DeviceInfo::ImageBaseAddressAlignment => {
+                    let r = unsafe { util::bytes_into::<u32>(result) };
+                    DeviceInfoResult::ImageBaseAddressAlignment(r)
+                },    
+                // _ => DeviceInfoResult::TemporaryPlaceholderVariant(result),
+            } },
             Err(err) => DeviceInfoResult::Error(Box::new(err)),
         }
+    }
+}
+
+impl std::fmt::Debug for DeviceInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", &self)
     }
 }
 
 impl std::fmt::Display for DeviceInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
-                // TEMPORARY (and retarded):
-                write!(f, "{}", to_string_retarded(v))
-            },
-            &DeviceInfoResult::MaxWorkGroupSize(size) => write!(f, "{}", size),
+            // &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
+            //     // TEMPORARY (and retarded):
+            //     write!(f, "{}", to_string_retarded(v))
+            // },
+            &DeviceInfoResult::Type(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::VendorId(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxComputeUnits(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxWorkItemDimensions(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxWorkGroupSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxWorkItemSizes(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::PreferredVectorWidthChar(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::PreferredVectorWidthShort(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::PreferredVectorWidthInt(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::PreferredVectorWidthLong(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::PreferredVectorWidthFloat(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::PreferredVectorWidthDouble(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxClockFrequency(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::AddressBits(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxReadImageArgs(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxWriteImageArgs(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxMemAllocSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Image2dMaxWidth(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Image2dMaxHeight(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Image3dMaxWidth(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Image3dMaxHeight(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Image3dMaxDepth(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ImageSupport(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxParameterSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxSamplers(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MemBaseAddrAlign(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MinDataTypeAlignSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::SingleFpConfig(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::GlobalMemCacheType(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::GlobalMemCachelineSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::GlobalMemCacheSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::GlobalMemSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxConstantBufferSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::MaxConstantArgs(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::LocalMemType(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::LocalMemSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ErrorCorrectionSupport(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ProfilingTimerResolution(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::EndianLittle(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Available(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::CompilerAvailable(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ExecutionCapabilities(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::QueueProperties(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::Name(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Vendor(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::DriverVersion(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Profile(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Version(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Extensions(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::Platform(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::DoubleFpConfig(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::HalfFpConfig(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::PreferredVectorWidthHalf(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::HostUnifiedMemory(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::NativeVectorWidthChar(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::NativeVectorWidthShort(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::NativeVectorWidthInt(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::NativeVectorWidthLong(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::NativeVectorWidthFloat(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::NativeVectorWidthDouble(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::NativeVectorWidthHalf(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::OpenclCVersion(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::LinkerAvailable(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::BuiltInKernels(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ImageMaxBufferSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ImageMaxArraySize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ParentDevice(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::PartitionMaxSubDevices(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::PartitionProperties(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::PartitionAffinityDomain(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::PartitionType(ref s) => write!(f, "{:?}", s),
+            &DeviceInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::PreferredInteropUserSync(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::PrintfBufferSize(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ImagePitchAlignment(ref s) => write!(f, "{}", s),
+            &DeviceInfoResult::ImageBaseAddressAlignment(ref s) => write!(f, "{}", s),
             &DeviceInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
-            r @ _ => panic!("DeviceInfoResult: Converting '{:?}' to string not yet implemented.", r),
+            // r @ _ => panic!("DeviceInfoResult: Converting '{:?}' to string not yet implemented.", r),
         }
     }
 }
@@ -382,7 +846,7 @@ impl ContextInfoResult {
                 },
                 ContextInfo::Properties => ContextInfoResult::Properties(result),
                 ContextInfo::NumDevices => ContextInfoResult::NumDevices(util::bytes_to_u32(&result)),
-            } }
+            } },
             Err(err) => ContextInfoResult::Error(Box::new(err)),
         }
     }
@@ -870,11 +1334,10 @@ impl ProgramInfoResult {
                     )
                 },
                 ProgramInfo::Source => {
-                    let string = match String::from_utf8(result) {
-                        Ok(s) => s,
+                    match String::from_utf8(result) {
+                        Ok(s) => ProgramInfoResult::Source(s),
                         Err(err) => return ProgramInfoResult::Error(Box::new(OclError::from(err))),
-                    };
-                    ProgramInfoResult::Source(string)
+                    }
                 },
                 ProgramInfo::BinarySizes => { ProgramInfoResult::BinarySizes(
                         unsafe { util::bytes_into_vec::<usize>(result) }
@@ -888,11 +1351,10 @@ impl ProgramInfoResult {
                     ProgramInfoResult::NumKernels(r)
                 },
                 ProgramInfo::KernelNames => {
-                    let string = match String::from_utf8(result) {
-                        Ok(s) => s,
+                    match String::from_utf8(result) {
+                        Ok(s) => ProgramInfoResult::KernelNames(s),
                         Err(err) => return ProgramInfoResult::Error(Box::new(OclError::from(err))),
-                    };
-                    ProgramInfoResult::KernelNames(string)
+                    }                    
                 },
                 // _ => ProgramInfoResult::TemporaryPlaceholderVariant(result),
             } }
@@ -960,20 +1422,16 @@ impl ProgramBuildInfoResult {
                     }
                 },
                 ProgramBuildInfo::BuildOptions => {
-                    let string = match String::from_utf8(result) {
-                        Ok(s) => s,
+                    match String::from_utf8(result) {
+                        Ok(s) => ProgramBuildInfoResult::BuildOptions(s),
                         Err(err) => return ProgramBuildInfoResult::Error(Box::new(OclError::from(err))),
-                    };
-
-                    ProgramBuildInfoResult::BuildOptions(string)
+                    }
                 },    
                 ProgramBuildInfo::BuildLog => {
-                    let string = match String::from_utf8(result) {
-                        Ok(s) => s,
+                    match String::from_utf8(result) {
+                        Ok(s) => ProgramBuildInfoResult::BuildLog(s),
                         Err(err) => return ProgramBuildInfoResult::Error(Box::new(OclError::from(err))),
-                    };
-
-                    ProgramBuildInfoResult::BuildLog(string)
+                    }
                 },
                 ProgramBuildInfo::BinaryType => {
                     let r = unsafe { util::bytes_into::<ProgramBinaryType>(result) };
@@ -1029,11 +1487,10 @@ impl KernelInfoResult {
         match result {
             Ok(result) => match request {
                 KernelInfo::FunctionName => {
-                    let string = match String::from_utf8(result) {
-                        Ok(s) => s,
+                    match String::from_utf8(result) {
+                        Ok(s) => KernelInfoResult::FunctionName(s),
                         Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
-                    };
-                    KernelInfoResult::FunctionName(string)
+                    }
                 },
                 KernelInfo::NumArgs => {
                     let r = unsafe { util::bytes_into::<u32>(result) };
@@ -1052,11 +1509,10 @@ impl KernelInfoResult {
                     KernelInfoResult::Program(unsafe { Program::from_copied_ptr(ptr) })
                 },
                 KernelInfo::Attributes => {
-                    let string = match String::from_utf8(result) {
-                        Ok(s) => s,
+                    match String::from_utf8(result) {
+                        Ok(s) => KernelInfoResult::Attributes(s),
                         Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
-                    };
-                    KernelInfoResult::Attributes(string)
+                    }
                 },
             },
             Err(err) => KernelInfoResult::Error(Box::new(err)),
@@ -1127,22 +1583,20 @@ impl KernelArgInfoResult {
                     }
                 },
                 KernelArgInfo::TypeName => {
-                    let string = match String::from_utf8(result) {
-                        Ok(s) => s,
+                    match String::from_utf8(result) {
+                        Ok(s) => KernelArgInfoResult::TypeName(s),
                         Err(err) => return KernelArgInfoResult::Error(Box::new(OclError::from(err))),
-                    };
-                    KernelArgInfoResult::TypeName(string)
+                    }
                 },
                 KernelArgInfo::TypeQualifier => {
                     let r = unsafe { util::bytes_into::<KernelArgTypeQualifier>(result) };
                     KernelArgInfoResult::TypeQualifier(r)
                 },
                 KernelArgInfo::Name => {
-                    let string = match String::from_utf8(result) {
-                        Ok(s) => s,
+                    match String::from_utf8(result) {
+                        Ok(s) => KernelArgInfoResult::Name(s),
                         Err(err) => return KernelArgInfoResult::Error(Box::new(OclError::from(err))),
-                    };
-                    KernelArgInfoResult::Name(string)
+                    }
                 },
             },
             Err(err) => KernelArgInfoResult::Error(Box::new(err)),
@@ -1384,15 +1838,15 @@ impl Into<String> for ProfilingInfoResult {
 
 
 
-/// TEMPORARY
-fn to_string_retarded(v: &Vec<u8>) -> String {
-    if v.len() == 4 {
-        util::bytes_to_u32(&v[..]).to_string()
-    } else if v.len() == 8 && mem::size_of::<usize>() == 8 {
-        unsafe { util::bytes_to::<usize>(&v[..]).to_string() }
-    } else if v.len() == 3 * 8 {
-        unsafe { format!("{:?}", util::bytes_to_vec::<usize>(&v[..])) }
-    } else {
-        String::from_utf8(v.clone()).unwrap_or(format!("{:?}", v))
-    }
-}
+// /// TEMPORARY
+// fn to_string_retarded(v: &Vec<u8>) -> String {
+//     if v.len() == 4 {
+//         util::bytes_to_u32(&v[..]).to_string()
+//     } else if v.len() == 8 && mem::size_of::<usize>() == 8 {
+//         unsafe { util::bytes_to::<usize>(&v[..]).to_string() }
+//     } else if v.len() == 3 * 8 {
+//         unsafe { format!("{:?}", util::bytes_to_vec::<usize>(&v[..])) }
+//     } else {
+//         String::from_utf8(v.clone()).unwrap_or(format!("{:?}", v))
+//     }
+// }
