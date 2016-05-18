@@ -11,7 +11,7 @@ use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList,
     ImageChannelOrder, ImageChannelDataType};
 use standard::{Context, Queue, MemLen, SpatialDims};
-
+use ffi::{ClGlUint};
 
 /// A builder for `Image`.
 pub struct ImageBuilder<S: OclPrm> {
@@ -286,8 +286,6 @@ impl<S: OclPrm> ImageBuilder<S> {
     }
 }
 
-
-
 /// The type of operation to be performed by a command.
 #[derive(Debug)]
 pub enum ImageCmdKind<'b, E: 'b> {
@@ -297,6 +295,8 @@ pub enum ImageCmdKind<'b, E: 'b> {
     Fill { color: E },
     Copy { dst_image: &'b MemCore, dst_origin: [usize; 3] },
     CopyToBuffer { buffer: &'b MemCore, dst_origin: usize },
+    GLAcquire,
+    GLRelease,
 }
 
 impl<'b, E: 'b> ImageCmdKind<'b, E> {
@@ -539,6 +539,36 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
         self
     }
 
+    /// Specifies that this command will acquire a GL buffer.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn gl_acquire(mut self) -> ImageCmd<'b, E> {
+        assert!(self.kind.is_unspec(), "ocl::ImageCmd::gl_acquire(): Operation kind \
+            already set for this command.");
+        self.kind = ImageCmdKind::GLAcquire;
+        self
+    }
+
+    /// Specifies that this command will release a GL buffer.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn gl_release(mut self) -> ImageCmd<'b, E> {
+        assert!(self.kind.is_unspec(), "ocl::ImageCmd::gl_release(): Operation kind \
+            already set for this command.");
+        self.kind = ImageCmdKind::GLRelease;
+        self
+    }
+
     /// Specifies that this command will be a fill.
     ///
     /// If `.block(..)` has been set it will be ignored.
@@ -601,13 +631,18 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
                 core::enqueue_copy_image::<E>(self.queue, self.obj_core, dst_image, self.origin,
                     dst_origin, self.region, self.ewait, self.enew)
             },
+            ImageCmdKind::GLAcquire => {
+                core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+            },
+            ImageCmdKind::GLRelease => {
+                core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+            },
             ImageCmdKind::Unspecified => return OclError::err("ocl::ImageCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),
         }
     }
 }
-
 
 /// A section of device memory which represents one or many images.
 ///
@@ -657,6 +692,85 @@ impl<E: OclPrm> Image<E> {
         };
 
         let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth].into();
+
+        let new_img = Image {
+            obj_core: obj_core,
+            queue: queue.clone(),
+            dims: dims,
+            pixel_element_len: pixel_element_len,
+            _pixel: PhantomData,
+        };
+
+        Ok(new_img)
+    }
+
+    /// Returns a new `Image` from an existant GL texture2D/3D.
+    // [WORK IN PROGRESS]
+    pub fn from_gl_texture(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor)
+            -> OclResult<Image<E>>
+    {
+        // FIXME need these defines !
+        // https://www.khronos.org/registry/cl/specs/opencl-1.x-latest.pdf#page=280
+        let texture_target = 0;
+        let miplevel = 0;
+        let texture = 0;
+
+        let obj_core = match image_desc.image_depth {
+            2 => unsafe { try!(core::create_from_gl_texture_2d(
+                                queue.context_core_as_ref(),
+                                texture_target,
+                                miplevel,
+                                texture,
+                                flags)) },
+            3 => unsafe { try!(core::create_from_gl_texture_3d(
+                                queue.context_core_as_ref(),
+                                texture_target,
+                                miplevel,
+                                texture,
+                                flags)) },
+            _ => unimplemented!() // FIXME: return an error ? or panic! ?
+        };
+
+        // FIXME can I do this from a GLTexture ?
+        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
+            ImageInfoResult::ElementSize(s) => s / mem::size_of::<E>(),
+            ImageInfoResult::Error(err) => return Err(*err),
+            _ => return OclError::err("ocl::Image::element_len(): \
+                Unexpected 'ImageInfoResult' variant."),
+        };
+
+        let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth].into();
+
+        let new_img = Image {
+            obj_core: obj_core,
+            queue: queue.clone(),
+            dims: dims,
+            pixel_element_len: pixel_element_len,
+            _pixel: PhantomData,
+        };
+
+        Ok(new_img)
+    }
+
+    /// Returns a new `Image` from an existant renderbuffer.
+    // [WORK IN PROGRESS]
+    pub fn from_gl_renderbuffer(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor,
+            renderbuffer: ClGlUint) -> OclResult<Image<E>>
+    {
+        let obj_core = unsafe { try!(core::create_from_gl_renderbuffer(
+                                        queue.context_core_as_ref(),
+                                        renderbuffer,
+                                        flags)) };
+
+        // FIXME can I do this from a renderbuffer ?
+        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
+            ImageInfoResult::ElementSize(s) => s / mem::size_of::<E>(),
+            ImageInfoResult::Error(err) => return Err(*err),
+            _ => return OclError::err("ocl::Image::element_len(): \
+                Unexpected 'ImageInfoResult' variant."),
+        };
+
+        let dims = [image_desc.image_width, image_desc.image_height].into();
 
         let new_img = Image {
             obj_core: obj_core,

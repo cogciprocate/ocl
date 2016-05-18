@@ -235,6 +235,24 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         self
     }
 
+    /// Specifies that this command will be a copy to image.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn copy_to_image(mut self, image: &'b MemCore, dst_origin: [usize; 3],
+                region: [usize; 3]) -> BufferCmd<'b, T>
+    {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::CopyToImage { image: image, dst_origin: dst_origin, region: region };
+        self
+    }
+
     /// Specifies that this command will acquire a GL buffer.
     ///
     /// If `.block(..)` has been set it will be ignored.
@@ -262,24 +280,6 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::gl_release(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::GLRelease;
-        self
-    }
-
-    /// Specifies that this command will be a copy to image.
-    ///
-    /// If `.block(..)` has been set it will be ignored.
-    ///
-    ///
-    /// ## Panics
-    ///
-    /// The command operation kind must not have already been specified
-    ///
-    pub fn copy_to_image(mut self, image: &'b MemCore, dst_origin: [usize; 3],
-                region: [usize; 3]) -> BufferCmd<'b, T>
-    {
-        assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind \
-            already set for this command.");
-        self.kind = BufferCmdKind::CopyToImage { image: image, dst_origin: dst_origin, region: region };
         self
     }
 
@@ -446,10 +446,10 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                 }
             },
             BufferCmdKind::GLAcquire => {
-                core::enqueue_acquire_gl_buffer::<T>(self.queue, self.obj_core, self.ewait, self.enew)
+                core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
             },
             BufferCmdKind::GLRelease => {
-                core::enqueue_release_gl_buffer::<T>(self.queue, self.obj_core, self.ewait, self.enew)
+                core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
             },
             BufferCmdKind::Unspecified => return OclError::err("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
@@ -515,8 +515,10 @@ impl<T: OclPrm> Buffer<T> {
         let flags = flags.unwrap_or(core::MEM_READ_WRITE);
         let dims: SpatialDims = dims.to_lens().into();
         let len = dims.to_len();
-        let obj_core = unsafe { try!(core::create_from_gl_buffer::<T>(queue.context_core_as_ref(),
-            gl_object, flags)) };
+        let obj_core = unsafe { try!(core::create_from_gl_buffer(
+                                        queue.context_core_as_ref(),
+                                        gl_object,
+                                        flags)) };
 
         let buf = Buffer {
             obj_core: obj_core,

@@ -719,7 +719,7 @@ pub unsafe fn create_buffer<T: OclPrm>(
 
 /// [UNTESTED]
 /// Return a buffer pointer from a OpenGL buffer object.
-pub unsafe fn create_from_gl_buffer<T: OclPrm>(
+pub unsafe fn create_from_gl_buffer(
             context: &Context,
             gl_object: ClGlUint,
             flags: MemFlags
@@ -744,7 +744,7 @@ pub unsafe fn create_from_gl_buffer<T: OclPrm>(
 
 /// [UNTESTED]
 /// Return a renderbuffer pointer from a OpenGL renderbuffer object.
-pub unsafe fn create_from_gl_renderbuffer<T: OclPrm>(
+pub unsafe fn create_from_gl_renderbuffer(
             context: &Context,
             renderbuffer: ClGlUint,
             flags: MemFlags
@@ -769,7 +769,7 @@ pub unsafe fn create_from_gl_renderbuffer<T: OclPrm>(
 
 /// [UNTESTED]
 /// Return a texture2D pointer from a OpenGL texture2D object.
-pub unsafe fn create_from_gl_texture_2d<T: OclPrm>(
+pub unsafe fn create_from_gl_texture_2d(
             context: &Context,
             texture_target: ClGlEnum,
             miplevel: ClGlint,
@@ -798,7 +798,7 @@ pub unsafe fn create_from_gl_texture_2d<T: OclPrm>(
 
 /// [UNTESTED]
 /// Return a texture3D pointer from a OpenGL texture3D object.
-pub unsafe fn create_from_gl_texture_3d<T: OclPrm>(
+pub unsafe fn create_from_gl_texture_3d(
             context: &Context,
             texture_target: ClGlEnum,
             miplevel: ClGlint,
@@ -2106,7 +2106,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm>(
 
 /// [UNTESTED]
 /// Enqueue acquire OpenCL memory objects that have been created from OpenGL objects.
-pub fn enqueue_acquire_gl_buffer<T: OclPrm>(
+pub fn enqueue_acquire_gl_buffer(
             command_queue: &CommandQueue,
             buffer: &Mem,
             wait_list: Option<&ClWaitList>,
@@ -2129,7 +2129,7 @@ pub fn enqueue_acquire_gl_buffer<T: OclPrm>(
 
 /// [UNTESTED]
 /// Enqueue release OpenCL memory objects that have been created from OpenGL objects.
-pub fn enqueue_release_gl_buffer<T: OclPrm>(
+pub fn enqueue_release_gl_buffer(
             command_queue: &CommandQueue,
             buffer: &Mem,
             wait_list: Option<&ClWaitList>,
