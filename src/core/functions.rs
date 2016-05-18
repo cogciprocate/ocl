@@ -132,9 +132,9 @@ fn resolve_event_ptrs(wait_list: Option<&ClWaitList>,
 
 /// Converts an array option reference into a pointer to the contained array.
 fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
-    match work_dims {
-        &Some(ref w) => w as *const [usize; 3] as *const size_t,
-        &None => 0 as *const size_t,
+    match *work_dims {
+        Some(ref w) => w as *const [usize; 3] as *const size_t,
+        None => 0 as *const size_t,
     }
 }
 
@@ -469,9 +469,9 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    let properties_bytes: Vec<u8> = match properties {
-        &Some(ref props) => props.to_bytes(),
-        &None => Vec::<u8>::with_capacity(0),
+    let properties_bytes: Vec<u8> = match *properties {
+        Some(ref props) => props.to_bytes(),
+        None => Vec::<u8>::with_capacity(0),
     };
 
     // [DEBUG]:
@@ -480,7 +480,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     // print!("\n");
 
     // [FIXME]: Properties disabled:
-    let properties_ptr = if properties_bytes.len() == 0 {
+    let properties_ptr = if properties_bytes.is_empty() {
         ptr::null() as *const cl_context_properties
     } else {
         // [FIXME]: Properties disabled.
@@ -718,7 +718,7 @@ pub unsafe fn create_buffer<T: OclPrm>(
 }
 
 /// [UNTESTED]
-/// Return a buffer pointer from a OpenGL buffer object.
+/// Return a buffer pointer from a `OpenGL` buffer object.
 pub unsafe fn create_from_gl_buffer(
             context: &Context,
             gl_object: ClGlUint,
@@ -743,7 +743,7 @@ pub unsafe fn create_from_gl_buffer(
 }
 
 /// [UNTESTED]
-/// Return a renderbuffer pointer from a OpenGL renderbuffer object.
+/// Return a renderbuffer pointer from a `OpenGL` renderbuffer object.
 pub unsafe fn create_from_gl_renderbuffer(
             context: &Context,
             renderbuffer: ClGlUint,
@@ -768,7 +768,7 @@ pub unsafe fn create_from_gl_renderbuffer(
 }
 
 /// [UNTESTED]
-/// Return a texture2D pointer from a OpenGL texture2D object.
+/// Return a texture2D pointer from a `OpenGL` texture2D object.
 pub unsafe fn create_from_gl_texture(
             context: &Context,
             texture_target: ClGlEnum,
@@ -797,7 +797,7 @@ pub unsafe fn create_from_gl_texture(
 }
 
 /// [UNTESTED] [DEPRICATED]
-/// Return a texture2D pointer from a OpenGL texture2D object.
+/// Return a texture2D pointer from a `OpenGL` texture2D object.
 pub unsafe fn create_from_gl_texture_2d(
             context: &Context,
             texture_target: ClGlEnum,
@@ -826,7 +826,7 @@ pub unsafe fn create_from_gl_texture_2d(
 }
 
 /// [UNTESTED] [DEPRICATED]
-/// Return a texture3D pointer from a OpenGL texture3D object.
+/// Return a texture3D pointer from a `OpenGL` texture3D object.
 pub unsafe fn create_from_gl_texture_3d(
             context: &Context,
             texture_target: ClGlEnum,
@@ -1504,7 +1504,7 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
     ) };
 
     if err != 0 {
-        let name = get_kernel_name(&kernel);
+        let name = get_kernel_name(kernel);
         errcode_try("clSetKernelArg", &name, err)
     } else {
         Ok(())
@@ -2134,7 +2134,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm>(
 }
 
 /// [UNTESTED]
-/// Enqueue acquire OpenCL memory objects that have been created from OpenGL objects.
+/// Enqueue acquire OpenCL memory objects that have been created from `OpenGL` objects.
 pub fn enqueue_acquire_gl_buffer(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2157,7 +2157,7 @@ pub fn enqueue_acquire_gl_buffer(
 }
 
 /// [UNTESTED]
-/// Enqueue release OpenCL memory objects that have been created from OpenGL objects.
+/// Enqueue release OpenCL memory objects that have been created from `OpenGL` objects.
 pub fn enqueue_release_gl_buffer(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2698,7 +2698,7 @@ pub fn enqueue_kernel(
     }
 
     if errcode != 0 {
-        let name = get_kernel_name(&kernel);
+        let name = get_kernel_name(kernel);
         errcode_try("clEnqueueNDRangeKernel", &name, errcode)
     } else {
         Ok(())
@@ -2880,7 +2880,7 @@ pub fn default_platform_idx() -> usize {
 pub fn default_platform() -> OclResult<PlatformId> {
     let platform_list = try!(get_platform_ids());
 
-    if platform_list.len() == 0 {
+    if platform_list.is_empty() {
         OclError::err("No platforms found!")
     } else {
         let default_platform_idx = default_platform_idx();
@@ -2889,7 +2889,7 @@ pub fn default_platform() -> OclResult<PlatformId> {
                 'OCL_DEFAULT_PLATFORM_IDX' has an index which is out of range \
                 (index: [{}], max: [{}]).", default_platform_idx, platform_list.len() - 1))
         } else {
-            Ok(platform_list[default_platform_idx].clone())
+            Ok(platform_list[default_platform_idx])
         }
     }
 }
@@ -2980,7 +2980,7 @@ pub fn get_event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<Comman
     };
     try!(errcode_try("clGetEventInfo", "", errcode));
 
-    CommandExecutionStatus::from_i32(status_int).ok_or(OclError::new("Error converting \
+    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::new("Error converting \
         'clGetEventInfo' status output."))
 }
 

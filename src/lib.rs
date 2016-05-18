@@ -1,6 +1,6 @@
 //! # [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) | [GitHub](https://github.com/cogciprocate/ocl)
 //!
-//! Rust implementation of OpenCL&trade;.
+//! Rust implementation of `OpenCL`&trade.
 //!
 //! This documentation is occasionally built from development branches and may
 //! differ slightly from what is on crates.io and the master branch.
@@ -17,7 +17,7 @@
 //!
 //! ## Low Level Interfaces
 //!
-//! For lower level interfaces and to use OpenCL features that have not yet
+//! For lower level interfaces and to use `OpenCL` features that have not yet
 //! been implemented on the top-level interface types, see the [`core`] and
 //! [`cl_h`] modules.
 //!
@@ -28,7 +28,7 @@
 //! [issue] or creating a [pull request](https://github.com/cogciprocate/ocl/pulls).
 //!
 //! <br/>
-//! *“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission by Khronos.”*
+//! *“`OpenCL` and the `OpenCL` logo are trademarks of Apple Inc. used by permission by Khronos.”*
 
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues

@@ -66,31 +66,31 @@ impl SpatialDims {
 
     /// Returns the number of dimensions defined by this `SpatialDims`.
     pub fn dim_count(&self) -> u32 {
-        match self {
-            &SpatialDims::Unspecified => 0,
-            &SpatialDims::One(..) => 1,
-            &SpatialDims::Two(..) => 2,
-            &SpatialDims::Three(..) => 3,
+        match *self {
+            SpatialDims::Unspecified => 0,
+            SpatialDims::One(..) => 1,
+            SpatialDims::Two(..) => 2,
+            SpatialDims::Three(..) => 3,
         }
     }
 
     /// Returns a 3D size or an error if unspecified.
     pub fn to_lens(&self) -> OclResult<[usize; 3]> {
-        match self {
-            &SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
-            &SpatialDims::One(x) => Ok([x, 1, 1]),
-            &SpatialDims::Two(x, y) => Ok([x, y, 1]),
-            &SpatialDims::Three(x, y, z) => Ok([x, y, z]),
+        match *self {
+            SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
+            SpatialDims::One(x) => Ok([x, 1, 1]),
+            SpatialDims::Two(x, y) => Ok([x, y, 1]),
+            SpatialDims::Three(x, y, z) => Ok([x, y, z]),
         }
     }
 
     /// Returns a 3D offset or an error if unspecified.
     pub fn to_offset(&self) -> OclResult<[usize; 3]> {
-        match self {
-            &SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
-            &SpatialDims::One(x) => Ok([x, 0, 0]),
-            &SpatialDims::Two(x, y) => Ok([x, y, 0]),
-            &SpatialDims::Three(x, y, z) => Ok([x, y, z]),
+        match *self {
+            SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
+            SpatialDims::One(x) => Ok([x, 0, 0]),
+            SpatialDims::Two(x, y) => Ok([x, y, 0]),
+            SpatialDims::Three(x, y, z) => Ok([x, y, z]),
         }
     }
 
@@ -103,11 +103,11 @@ impl SpatialDims {
     /// functions. Use `::Unspecified` to represent `NULL` instead.
     ///
     pub fn to_len(&self) -> usize {
-        match self {
-            &SpatialDims::Unspecified => 0,
-            &SpatialDims::Three(d0, d1, d2) => d0 * d1 * d2,
-            &SpatialDims::Two(d0, d1) => d0 * d1,
-            &SpatialDims::One(d0) => d0,
+        match *self {
+            SpatialDims::Unspecified => 0,
+            SpatialDims::Three(d0, d1, d2) => d0 * d1 * d2,
+            SpatialDims::Two(d0, d1) => d0 * d1,
+            SpatialDims::One(d0) => d0,
         }
     }
 
@@ -118,7 +118,7 @@ impl SpatialDims {
 
     /// Returns `true` if this `SpatialDims` is an `Unspecified` variant.
     pub fn is_unspecified(&self) -> bool {
-        if let &SpatialDims::Unspecified = self { true } else { false }
+        if let SpatialDims::Unspecified = *self { true } else { false }
     }
 }
 
@@ -154,16 +154,16 @@ impl WorkDims for SpatialDims {
 impl Index<usize> for SpatialDims {
     type Output = usize;
 
-    fn index<'a>(&'a self, index: usize) -> &usize {
-        match self {
-            &SpatialDims::Unspecified => panic!("ocl::SpatialDims::index(): \
+    fn index(&self, index: usize) -> &usize {
+        match *self {
+            SpatialDims::Unspecified => panic!("ocl::SpatialDims::index(): \
                 Cannot index. No dimensions have been specified."),
-            &SpatialDims::One(ref x) => {
+            SpatialDims::One(ref x) => {
                 assert!(index == 0, "ocl::SpatialDims::index(): Index: [{}], out of range. \
                     Only one dimension avaliable.", index);
                 x
             },
-            &SpatialDims::Two(ref x, ref y) => {
+            SpatialDims::Two(ref x, ref y) => {
                 match index {
                     0 => x,
                     1 => y,
@@ -171,7 +171,7 @@ impl Index<usize> for SpatialDims {
                     Only two dimensions avaliable.", index),
                 }
             },
-            &SpatialDims::Three(ref x, ref y, ref z) => {
+            SpatialDims::Three(ref x, ref y, ref z) => {
                 match index {
                     0 => x,
                     1 => y,

@@ -208,7 +208,7 @@ pub unsafe fn bytes_to<T>(bytes: &[u8]) -> T {
 ///
 /// Ummm... Say what?
 ///
-/// TODO: Consider using alloc::heap::reallocate_inplace` equivalent.
+/// TODO: Consider using `alloc::heap::reallocate_inplace` equivalent.
 ///
 pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> Vec<T> {
     debug_assert!(vec.len() % mem::size_of::<T>() == 0);

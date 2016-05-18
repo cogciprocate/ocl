@@ -1,4 +1,4 @@
-//! An OpenCL event.
+//! An `OpenCL` event.
 
 use std;
 use std::ops::{Deref, DerefMut};
@@ -256,6 +256,11 @@ impl EventList {
     /// Returns the number of events in the list.
     pub fn len(&self) -> usize {
         self.event_list_core.len()
+    }
+
+    /// Returns if there is no events.
+    pub fn is_empty(&self) -> bool {
+        self.event_list_core.len() == 0
     }
 
     // Returns a reference to the underlying `core` event list.

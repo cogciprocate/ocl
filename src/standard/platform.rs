@@ -1,4 +1,4 @@
-//! An OpenCL platform identifier.
+//! An `OpenCL` platform identifier.
 //!
 //! Documentation copied from [https://www.khronos.org/registry/cl/sdk/1.2/doc
 //! s/man/xhtml/clGetPlatformInfo.html](https://www.khronos.org/registry/cl/sd
@@ -20,7 +20,7 @@ impl Platform {
         let list_core = core::get_platform_ids()
             .expect("Platform::list: Error retrieving platform list");
 
-        list_core.into_iter().map(|pr| Platform::new(pr) ).collect()
+        list_core.into_iter().map(Platform::new).collect()
     }
 
     // /// Returns the first available platform on the host machine.
@@ -48,7 +48,7 @@ impl Platform {
 
     /// Returns a list of `Platform`s from a list of `PlatformIdCore`s
     pub fn list_from_core(platforms: Vec<PlatformIdCore>) -> Vec<Platform> {
-        platforms.into_iter().map(|p| Platform::new(p)).collect()
+        platforms.into_iter().map(Platform::new).collect()
     }
 
     // /// Returns a string containing a formatted list of every platform property.
@@ -63,7 +63,7 @@ impl Platform {
         //     Ok(pi) => pi,
         //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
         // }
-        core::get_platform_info(Some(self.0.clone()), info_kind)
+        core::get_platform_info(Some(self.0), info_kind)
     }
 
     /// Returns the platform profile as a string.
@@ -84,7 +84,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Profile).into()
+        core::get_platform_info(Some(self.0), PlatformInfo::Profile).into()
     }
 
     /// Returns the platform driver version as a string.
@@ -101,7 +101,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version).into()
+        core::get_platform_info(Some(self.0), PlatformInfo::Version).into()
     }
 
     /// Returns the platform name as a string.
@@ -110,7 +110,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Name).into()
+        core::get_platform_info(Some(self.0), PlatformInfo::Name).into()
     }
 
     /// Returns the platform vendor as a string.
@@ -119,7 +119,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Vendor).into()
+        core::get_platform_info(Some(self.0), PlatformInfo::Vendor).into()
     }
 
     /// Returns the list of platform extensions as a string.
@@ -133,7 +133,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0.clone()), PlatformInfo::Extensions).into()
+        core::get_platform_info(Some(self.0), PlatformInfo::Extensions).into()
     }
 
     /// Returns a reference to the underlying `PlatformIdCore`.

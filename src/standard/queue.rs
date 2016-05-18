@@ -1,4 +1,4 @@
-//! An OpenCL command queue.
+//! An `OpenCL` command queue.
 
 use std;
 use std::ops::{Deref, DerefMut};
@@ -51,7 +51,7 @@ impl Queue {
         &self.context_obj_core
     }
 
-    /// Returns the OpenCL device associated with this queue.
+    /// Returns the `OpenCL` device associated with this queue.
     pub fn device(&self) -> &Device {
         &self.device
     }

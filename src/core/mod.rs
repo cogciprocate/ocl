@@ -1,10 +1,10 @@
 // ocl::core::
 
-//! Thin wrappers for the OpenCL FFI functions and types.
+//! Thin wrappers for the `OpenCL` FFI functions and types.
 //!
 //! *The layer between the hard rough and the soft furry parts...*
 //!
-//! Allows access to OpenCL FFI functions with a minimal layer of abstraction,
+//! Allows access to `OpenCL` FFI functions with a minimal layer of abstraction,
 //! providing both safety and convenience. Using functions in this module is
 //! only recommended for use when functionality has not yet been implemented
 //! on the 'standard' ocl interfaces. The 'core' and 'standard' interfaces are
@@ -38,7 +38,7 @@
 //!
 //! No, not that...
 //!
-//! Quantifiers passed to functions in the OpenCL API are generally expressed
+//! Quantifiers passed to functions in the `OpenCL` API are generally expressed
 //! in terms of bytes where units passed to functions in this module are
 //! expected to be `bytes / sizeof(T)`, corresponding with units returned by
 //! the ubiquitous `.len()` method. The suffix '_size' or '_bytes' is
@@ -48,14 +48,14 @@
 //! ## More Documentation
 //!
 //! As most of the functions here are minimally documented, please refer to
-//! the official OpenCL documentation linked below. Although there isn't a
+//! the official `OpenCL` documentation linked below. Although there isn't a
 //! precise 1:1 parameter mapping between the `core` and original functions,
 //! it's close enough (modulo the size/len difference discussed above) to help
 //! sort out any questions you may have until a more thorough documentation
 //! pass can be made. View the source code in [`src/core/functions.rs`] for
 //! more mapping details.
 //!
-//! [OpenCL 1.2 SDK Reference:
+//! [`OpenCL` 1.2 SDK Reference:
 //! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
 //!
 //!
@@ -81,7 +81,7 @@
 //! [`Error`]: /ocl/ocl/enum.Error.html
 //! [`EventRaw::as_ptr`]: /ocl/ocl/core/struct.EventRaw.html#method.as_ptr
 //! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
-//! [OpenCL 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
+//! [`OpenCL` 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/core/functions.rs`]: /ocl/src/ocl/src/core/functions.rs.html
 
 mod functions;
@@ -176,7 +176,7 @@ pub type UserDataPtr = *mut libc::c_void;
 //================================== TRAITS ===================================
 //=============================================================================
 
-/// A type usable within OpenCL kernels.
+/// A type usable within `OpenCL` kernels.
 ///
 /// Includes all of the signed, unsigned, and floating point 8 bit - 64 bit
 /// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
@@ -187,7 +187,7 @@ pub unsafe trait OclPrm: PartialEq + Copy + Clone + Default + Debug {}
 unsafe impl<S> OclPrm for S where S: OclScl {}
 
 
-/// A scalar type usable within OpenCL kernels.
+/// A scalar type usable within `OpenCL` kernels.
 ///
 /// Meant as a grab bag of potentially useful traits for dealing with various
 /// scalar primitives. Primarily (solely?) used by testing and formatting
@@ -203,7 +203,7 @@ unsafe impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Defau
     Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 
-/// A vector type usable within OpenCL kernels.
+/// A vector type usable within `OpenCL` kernels.
 pub unsafe trait OclVec {}
 
 // unsafe impl<P> OclVec for [P] where P: OclPrm {}
@@ -234,14 +234,14 @@ pub unsafe trait OclVec {}
 bitflags! {
     /// cl_device_type - bitfield
     ///
-    /// * `CL_DEVICE_TYPE_DEFAULT`: The default OpenCL device in the system.
-    /// * `CL_DEVICE_TYPE_CPU`: An OpenCL device that is the host processor.
-    ///   The host processor runs the OpenCL implementations and is a single
+    /// * `CL_DEVICE_TYPE_DEFAULT`: The default `OpenCL` device in the system.
+    /// * `CL_DEVICE_TYPE_CPU`: An `OpenCL` device that is the host processor.
+    ///   The host processor runs the `OpenCL` implementations and is a single
     ///   or multi-core CPU.
-    /// * `CL_DEVICE_TYPE_GPU`: An OpenCL device that is a GPU. By this we
+    /// * `CL_DEVICE_TYPE_GPU`: An `OpenCL` device that is a GPU. By this we
     ///   mean that the device can also be used to accelerate a 3D API such as
     ///   OpenGL or DirectX.
-    /// * `CL_DEVICE_TYPE_ACCELERATOR`: Dedicated OpenCL accelerators (for
+    /// * `CL_DEVICE_TYPE_ACCELERATOR`: Dedicated `OpenCL` accelerators (for
     ///   example the IBM CELL Blade). These devices communicate with the host
     ///   processor using a peripheral interconnect such as PCIe.
     /// * `CL_DEVICE_TYPE_ALL`: A union of all flags.

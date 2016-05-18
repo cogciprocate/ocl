@@ -69,12 +69,12 @@ impl ProQueBuilder {
                     platform and context cannot both be set.");
                 plt.clone()
             },
-            None => match &self.context {
-                &Some(ref context) => match context.platform() {
+            None => match self.context {
+                Some(ref context) => match context.platform() {
                     Some(platform) => platform,
                     None => Platform::default(),
                 },
-                &None => Platform::default(),
+                None => Platform::default(),
             },
         };
 
@@ -123,10 +123,10 @@ impl ProQueBuilder {
             src_strings,
             cmplr_opts,
             &context,
-            &vec![device],
+            &[device],
         ));
 
-        Ok(ProQue::new(context, queue, program, self.dims.clone()))
+        Ok(ProQue::new(context, queue, program, self.dims))
     }
 
     /// Sets the platform to be used and returns the builder.
@@ -135,7 +135,7 @@ impl ProQueBuilder {
     ///
     /// If context is set, this will panic upon building. Only one or the other
     /// can be configured.
-    pub fn platform<'p>(&'p mut self, platform: Platform) -> &'p mut ProQueBuilder {
+    pub fn platform(&mut self, platform: Platform) -> &mut ProQueBuilder {
         self.platform = Some(platform);
         self
     }
@@ -146,7 +146,7 @@ impl ProQueBuilder {
     ///
     /// If platform is set, this will panic upon building. Only one or the other
     /// can be configured.
-    pub fn context<'p>(&'p mut self, context: Context) -> &'p mut ProQueBuilder {
+    pub fn context(&mut self, context: Context) -> &mut ProQueBuilder {
         self.context = Some(context);
         self
     }
@@ -156,8 +156,8 @@ impl ProQueBuilder {
     ///
     /// Must specify only a single device.
     ///
-    pub fn device<'p, D: Into<DeviceSpecifier>>(&'p mut self, device_spec: D)
-            -> &'p mut ProQueBuilder
+    pub fn device<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
+            -> &mut ProQueBuilder
     {
         assert!(self.device_spec.is_none(), "ocl::ProQue::devices: Devices already specified");
         self.device_spec = Some(device_spec.into());
@@ -184,7 +184,7 @@ impl ProQueBuilder {
     /// If you need a more complex build configuration or to add multiple
     /// source files. Pass an *unbuilt* `ProgramBuilder` to the
     /// `::program_builder` method (described below).
-    pub fn src<'p, S: Into<String>>(&'p mut self, src: S) -> &'p mut ProQueBuilder {
+    pub fn src<S: Into<String>>(&mut self, src: S) -> &mut ProQueBuilder {
         if self.program_builder.is_some() {
             panic!("ocl::ProQueBuilder::src: Cannot set src if a 'ProgramBuilder' is already \
                 defined. Please use the '::program_builder' method for more complex build \
@@ -205,7 +205,7 @@ impl ProQueBuilder {
     /// `::device_idxs` method). `ProQueBuilder` will only build programs for
     /// the device specified by `::device_idx` or the default device if none has
     /// been specified.
-    pub fn prog_bldr<'p>(&'p mut self, program_builder: ProgramBuilder) -> &'p mut ProQueBuilder {
+    pub fn prog_bldr(&mut self, program_builder: ProgramBuilder) -> &mut ProQueBuilder {
         assert!(self.program_builder.is_none(), "ProQueBuilder::prog_bldr(): Cannot set the \
             'ProgramBuilder' using this method after one has already been set or after '::src' has \
             been called.");
@@ -227,7 +227,7 @@ impl ProQueBuilder {
     /// Dimensions can alternatively be set after building by using the
     /// `ProQue::set_dims` method.
     ///
-    pub fn dims<'p, D: Into<SpatialDims>>(&'p mut self, dims: D) -> &'p mut ProQueBuilder {
+    pub fn dims<D: Into<SpatialDims>>(&mut self, dims: D) -> &mut ProQueBuilder {
         self.dims = Some(dims.into());
         self
     }

@@ -78,15 +78,12 @@ impl self::Error {
     /// If this is a `String` variant, concatenate `txt` to the front of the
     /// contained string. Otherwise, do nothing at all.
     pub fn prepend<'s, S: AsRef<&'s str>>(&'s mut self, txt: S) {
-        match self {
-            &mut Error::String(ref mut string) => {
-                string.reserve_exact(txt.as_ref().len());
-                let old_string_copy = string.clone();
-                string.clear();
-                string.push_str(txt.as_ref());
-                string.push_str(&old_string_copy);
-            },
-            _ => (),
+        if let &mut Error::String(ref mut string) = self {
+            string.reserve_exact(txt.as_ref().len());
+            let old_string_copy = string.clone();
+            string.clear();
+            string.push_str(txt.as_ref());
+            string.push_str(&old_string_copy);
         }
     }
 
@@ -101,13 +98,13 @@ impl self::Error {
 
 impl std::error::Error for self::Error {
     fn description(&self) -> &str {
-        match self {
-            &Error::Nul(ref err) => err.description(),
-            &Error::Io(ref err) => err.description(),
-            &Error::FromUtf8Error(ref err) => err.description(),
-            &Error::Status { ref desc, .. } => desc,
-            &Error::String(ref desc) => &desc,
-            &Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
+        match *self {
+            Error::Nul(ref err) => err.description(),
+            Error::Io(ref err) => err.description(),
+            Error::FromUtf8Error(ref err) => err.description(),
+            Error::Status { ref desc, .. } => desc,
+            Error::String(ref desc) => desc,
+            Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
                 Please specify some dimensions.",
             // _ => panic!("OclError::description()"),
         }
@@ -154,14 +151,14 @@ impl From<std::string::FromUtf8Error> for self::Error {
 impl std::fmt::Display for self::Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use std::error::Error;
-        f.write_str(&self.description())
+        f.write_str(self.description())
     }
 }
 
 impl std::fmt::Debug for self::Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use std::error::Error;
-        f.write_str(&self.description())
+        f.write_str(self.description())
     }
 }
 
@@ -170,7 +167,7 @@ static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk
 static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
 
 fn fmt_status_desc(status: Status, fn_name: &'static str, fn_info: &str) -> String {
-    let fn_info_string = if fn_info.len() != 0 {
+    let fn_info_string = if fn_info.is_empty() == false {
         format!("(\"{}\")", fn_info)
     } else {
         String::with_capacity(0)
