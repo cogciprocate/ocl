@@ -5,6 +5,6 @@
 // typedef unsigned int cl_GLenum;
 
 pub type ClGlUint = u32;
-pub type ClGlint = i32;
+pub type ClGlInt = i32;
 pub type ClGlEnum = u32;
 

@@ -1,7 +1,8 @@
 pub mod platform_h;
 pub mod cl_gl_h;
+pub mod glcorearb_h;
 
-pub use self::platform_h::{ClGlUint, ClGlint, ClGlEnum};
+pub use self::platform_h::{ClGlUint, ClGlInt, ClGlEnum};
 pub use self::cl_gl_h::{cl_gl_object_type, cl_gl_texture_info,
     cl_gl_platform_info, cl_gl_context_info};
 
@@ -15,3 +16,9 @@ pub use self::cl_gl_h::{clCreateFromGLBuffer, clCreateFromGLTexture,
     clGetGLObjectInfo, clGetGLTextureInfo, clCreateFromGLRenderbuffer,
     clEnqueueAcquireGLObjects, clEnqueueReleaseGLObjects, clCreateFromGLTexture2D,
     clCreateFromGLTexture3D, clGetGLContextInfoKHR,};
+
+// pub use self::glcorearb_h::{GL_TEXTURE_1D, GL_TEXTURE_1D_ARRAY, GL_TEXTURE_BUFFER,
+//     GL_TEXTURE_2D, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_3D, GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+//     GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+//     GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+//     GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, GL_TEXTURE_RECTANGLE};
