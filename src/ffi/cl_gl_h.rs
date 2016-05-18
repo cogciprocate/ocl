@@ -15,12 +15,19 @@ extern "system" {
                                 bufobj: ClGlUint,
                                 errcode_ret: *mut cl_int) -> cl_mem;
 
-    pub fn clCreateFromGLTexture(context: cl_context,
-                                 flags: cl_mem_flags,
-                                 texture_target: ClGlEnum,
-                                 miplevel: ClGlint,
-                                 texture: ClGlUint,
-                                 errcode_ret: *mut cl_int) -> cl_mem;
+    pub fn clCreateFromGLTexture2D(context: cl_context,
+                                   flags: cl_mem_flags,
+                                   texture_target: ClGlEnum,
+                                   miplevel: ClGlint,
+                                   texture: ClGlUint,
+                                   errcode_ret: *mut cl_int) -> cl_mem;
+
+    pub fn clCreateFromGLTexture3D(context: cl_context,
+                                   flags: cl_mem_flags,
+                                   texture_target: ClGlEnum,
+                                   miplevel: ClGlint,
+                                   texture: ClGlUint,
+                                   errcode_ret: *mut cl_int) -> cl_mem;
 
     pub fn clCreateFromGLRenderbuffer(context: cl_context,
                                       flags: cl_mem_flags,
