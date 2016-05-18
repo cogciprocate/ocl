@@ -1,6 +1,6 @@
 //! OpenGL Extensions.
 
-use ffi::ClGlUint;
+use ffi::{ ClGlUint, ClGlint, ClGlEnum };
 use cl_h::{ cl_context, cl_mem_flags, cl_command_queue, cl_int,
     cl_uint, cl_mem, cl_event };
 
@@ -14,6 +14,18 @@ extern "system" {
                                 flags: cl_mem_flags,
                                 bufobj: ClGlUint,
                                 errcode_ret: *mut cl_int) -> cl_mem;
+
+    pub fn clCreateFromGLTexture(context: cl_context,
+                                 flags: cl_mem_flags,
+                                 texture_target: ClGlEnum,
+                                 miplevel: ClGlint,
+                                 texture: ClGlUint,
+                                 errcode_ret: *mut cl_int) -> cl_mem;
+
+    pub fn clCreateFromGLRenderbuffer(context: cl_context,
+                                      flags: cl_mem_flags,
+                                      renderbuffer: ClGlUint,
+                                      errcode_ret: *mut cl_int) -> cl_mem;
 
     pub fn clEnqueueAcquireGLObjects(command_queue: cl_command_queue,
                                      num_objects: cl_uint,
