@@ -1649,8 +1649,12 @@ impl KernelWorkGroupInfoResult {
         match result {
             Ok(result) => match request {
                 KernelWorkGroupInfo::WorkGroupSize => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    KernelWorkGroupInfoResult::WorkGroupSize(r)
+                    if result.len() == 0 {
+                        KernelWorkGroupInfoResult::WorkGroupSize(0)
+                    } else {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        KernelWorkGroupInfoResult::WorkGroupSize(r)
+                    }
                 },
                 KernelWorkGroupInfo::CompileWorkGroupSize => {
                     let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
