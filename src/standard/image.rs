@@ -9,9 +9,9 @@ use std::convert::Into;
 use error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList,
-    ImageChannelOrder, ImageChannelDataType};
+    ImageChannelOrder, ImageChannelDataType, GlTextureTarget};
 use standard::{Context, Queue, MemLen, SpatialDims};
-use ffi::{ClGlUint, ClGlInt, ClGlEnum};
+use ffi::{ClGlUint, ClGlInt};
 
 /// A builder for `Image`.
 pub struct ImageBuilder<S: OclPrm> {
@@ -707,7 +707,7 @@ impl<E: OclPrm> Image<E> {
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
     pub fn from_gl_texture(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor,
-            texture_target: ClGlEnum, miplevel: ClGlInt, texture: ClGlUint)
+            texture_target: GlTextureTarget, miplevel: ClGlInt, texture: ClGlUint)
             -> OclResult<Image<E>>
     {
         // FIXME:
@@ -740,7 +740,7 @@ impl<E: OclPrm> Image<E> {
         // };
         let obj_core = unsafe { try!(core::create_from_gl_texture(
                                         queue.context_core_as_ref(),
-                                        texture_target,
+                                        texture_target as u32,
                                         miplevel,
                                         texture,
                                         flags)) };
