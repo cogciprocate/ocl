@@ -11,7 +11,7 @@ use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList,
     ImageChannelOrder, ImageChannelDataType};
 use standard::{Context, Queue, MemLen, SpatialDims};
-use ffi::{ClGlUint, ClGlint, ClGlEnum};
+use ffi::{ClGlUint, ClGlInt, ClGlEnum};
 
 /// A builder for `Image`.
 pub struct ImageBuilder<S: OclPrm> {
@@ -707,7 +707,7 @@ impl<E: OclPrm> Image<E> {
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
     pub fn from_gl_texture(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor,
-            texture_target: ClGlEnum, miplevel: ClGlint, texture: ClGlUint)
+            texture_target: ClGlEnum, miplevel: ClGlInt, texture: ClGlUint)
             -> OclResult<Image<E>>
     {
         // FIXME:

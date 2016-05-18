@@ -3,7 +3,7 @@
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
 use libc::{c_void, size_t};
-use ffi::{ClGlUint, ClGlint, ClGlEnum};
+use ffi::{ClGlUint, ClGlInt, ClGlEnum};
 use cl_h::{cl_context, cl_context_properties, cl_mem_flags, cl_command_queue,
     cl_int, cl_uint, cl_mem, cl_event};
 
@@ -75,13 +75,13 @@ extern "system" {
     pub fn clCreateFromGLTexture(context: cl_context,
                                  flags: cl_mem_flags,
                                  texture_target: ClGlEnum,
-                                 miplevel: ClGlint,
+                                 miplevel: ClGlInt,
                                  texture: ClGlUint,
                                  errcode_ret: *mut cl_int) -> cl_mem;
 
     pub fn clGetGLObjectInfo(memobj: cl_mem,
-                            gl_object_type: *mut cl_gl_object_type,
-                            gl_object_name: *mut ClGlUint) -> cl_int;
+                             gl_object_type: *mut cl_gl_object_type,
+                             gl_object_name: *mut ClGlUint) -> cl_int;
 
     pub fn clGetGLTextureInfo(memobj: cl_mem,
                               param_name: cl_gl_texture_info,
@@ -125,14 +125,14 @@ extern "system" {
     pub fn clCreateFromGLTexture2D(context: cl_context,
                                    flags: cl_mem_flags,
                                    texture_target: ClGlEnum,
-                                   miplevel: ClGlint,
+                                   miplevel: ClGlInt,
                                    texture: ClGlUint,
                                    errcode_ret: *mut cl_int) -> cl_mem;
 
     pub fn clCreateFromGLTexture3D(context: cl_context,
                                    flags: cl_mem_flags,
                                    texture_target: ClGlEnum,
-                                   miplevel: ClGlint,
+                                   miplevel: ClGlInt,
                                    texture: ClGlUint,
                                    errcode_ret: *mut cl_int) -> cl_mem;
 }
