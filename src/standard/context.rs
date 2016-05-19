@@ -6,9 +6,9 @@
 // use formatting::MT;
 use std;
 use std::ops::{Deref, DerefMut};
-use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult,
-    DeviceInfo, DeviceInfoResult, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult,
-    CreateContextCallbackFn, UserDataPtr};
+use core::{self, Context as ContextCore, ContextProperties, ContextInfo, ContextInfoResult, DeviceInfo,
+           DeviceInfoResult, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, CreateContextCallbackFn,
+           UserDataPtr};
 use error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier};
 
@@ -51,17 +51,18 @@ impl ContextBuilder {
     pub fn build(&self) -> OclResult<Context> {
         let properties = match self.properties {
             Some(ref props) => {
-                assert!(self.platform.is_none(), "ocl::ContextBuilder::build: Internal error. 'platform' \
+                assert!(self.platform.is_none(),
+                        "ocl::ContextBuilder::build: Internal error. 'platform' \
                     and 'properties' have both been set.");
                 Some(props.clone())
-            },
+            }
             None => {
                 let platform = match self.platform {
                     Some(ref plat) => plat.clone(),
                     None => Platform::default(),
                 };
                 Some(ContextProperties::new().platform::<PlatformIdCore>(platform.into()))
-            },
+            }
         };
 
         Context::new(properties, self.device_spec.clone(), None, None)
@@ -74,8 +75,10 @@ impl ContextBuilder {
     /// Panics if either platform or properties has already been specified.
     ///
     pub fn platform<'a>(&'a mut self, platform: Platform) -> &'a mut ContextBuilder {
-        assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
-        assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
+        assert!(self.platform.is_none(),
+                "ocl::ContextBuilder::platform: Platform already specified");
+        assert!(self.properties.is_none(),
+                "ocl::ContextBuilder::platform: Properties already specified");
         self.platform = Some(platform);
         self
     }
@@ -87,8 +90,10 @@ impl ContextBuilder {
     /// Panics if either properties or platform has already been specified.
     ///
     pub fn properties<'a>(&'a mut self, properties: ContextProperties) -> &'a mut ContextBuilder {
-        assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
-        assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
+        assert!(self.platform.is_none(),
+                "ocl::ContextBuilder::platform: Platform already specified");
+        assert!(self.properties.is_none(),
+                "ocl::ContextBuilder::platform: Properties already specified");
         self.properties = Some(properties);
         self
     }
@@ -103,10 +108,9 @@ impl ContextBuilder {
     ///
     /// Panics if any devices have already been specified.
     ///
-    pub fn devices<'a, D: Into<DeviceSpecifier>>(&'a mut self, device_spec: D)
-            -> &'a mut ContextBuilder
-    {
-        assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
+    pub fn devices<'a, D: Into<DeviceSpecifier>>(&'a mut self, device_spec: D) -> &'a mut ContextBuilder {
+        assert!(self.device_spec.is_none(),
+                "ocl::ContextBuilder::devices: Devices already specified");
         self.device_spec = Some(device_spec.into());
         self
     }
@@ -166,12 +170,13 @@ impl Context {
     /// [TEMPORARY] Passing a `Some` variant for `pfn_notify` or `user_data` is
     /// not yet supported.
     ///
-    pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>,
-                pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>)
-            -> OclResult<Context>
-    {
+    pub fn new(properties: Option<ContextProperties>,
+               device_spec: Option<DeviceSpecifier>,
+               pfn_notify: Option<CreateContextCallbackFn>,
+               user_data: Option<UserDataPtr>)
+               -> OclResult<Context> {
         assert!(pfn_notify.is_none() && user_data.is_none(),
-            "Context creation callbacks not yet implemented.");
+                "Context creation callbacks not yet implemented.");
 
         let platform: Option<Platform> = match properties {
             Some(ref props) => props.get_platform().clone().map(|p| Platform::new(p)),
@@ -227,9 +232,8 @@ impl Context {
         let device = match self.devices.get(index) {
             Some(d) => d,
             None => {
-                return DeviceInfoResult::Error(Box::new(
-                    OclError::new("Context::device_info: Invalid device index")));
-            },
+                return DeviceInfoResult::Error(Box::new(OclError::new("Context::device_info: Invalid device index")));
+            }
         };
 
         // match core::get_device_info(device, info_kind) {

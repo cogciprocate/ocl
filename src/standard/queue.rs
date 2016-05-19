@@ -2,9 +2,8 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use error::{Result as OclResult};
-use core::{self, CommandQueue as CommandQueueCore, Context as ContextCore,
-    CommandQueueInfo, CommandQueueInfoResult};
+use error::Result as OclResult;
+use core::{self, CommandQueue as CommandQueueCore, Context as ContextCore, CommandQueueInfo, CommandQueueInfoResult};
 use standard::{Context, Device};
 
 /// A command queue which manages all actions taken on kernels, buffers, and

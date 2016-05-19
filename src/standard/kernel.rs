@@ -5,9 +5,9 @@
 use std;
 use std::convert::Into;
 use std::collections::HashMap;
-use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
-    KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
-    KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrNew, ClWaitList};
+use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore, KernelArg,
+           KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
+           KernelWorkGroupInfoResult, ClEventPtrNew, ClWaitList};
 use error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Buffer, Image, Program, Queue, WorkDims, Sampler, Device};
 
@@ -34,7 +34,7 @@ impl<'k> KernelCmd<'k> {
     }
 
     /// Specifies a global work offset for this call only.
-     pub fn gwo<D: Into<SpatialDims>>(mut self, gwo: D) -> KernelCmd<'k> {
+    pub fn gwo<D: Into<SpatialDims>>(mut self, gwo: D) -> KernelCmd<'k> {
         self.gwo = gwo.into();
         self
     }
@@ -83,17 +83,25 @@ impl<'k> KernelCmd<'k> {
 
         let gws = match self.gws.to_work_size() {
             Some(gws) => gws,
-            None => return OclError::err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
-                cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
+            None => {
+                return OclError::err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
+                cannot be left unspecified. Set a default for the kernel or pass a valid parameter.")
+            }
         };
 
         if PRINT_DEBUG {
             println!("Enqueuing kernel: '{}'...",
-                core::get_kernel_info(self.kernel, KernelInfo::FunctionName));
+                     core::get_kernel_info(self.kernel, KernelInfo::FunctionName));
         }
 
-        core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(),
-            &gws, self.lws.to_work_size(), self.wait_list, self.dest_list)
+        core::enqueue_kernel(self.queue,
+                             self.kernel,
+                             dim_count,
+                             self.gwo.to_work_offset(),
+                             &gws,
+                             self.lws.to_work_size(),
+                             self.wait_list,
+                             self.dest_list)
     }
 }
 
@@ -146,9 +154,7 @@ pub struct Kernel {
 impl Kernel {
     /// Returns a new kernel.
     // TODO: Implement proper error handling (return result etc.).
-    pub fn new<S: Into<String>, >(name: S, program: &Program, queue: &Queue,
-            ) -> OclResult<Kernel>
-    {
+    pub fn new<S: Into<String>>(name: S, program: &Program, queue: &Queue) -> OclResult<Kernel> {
         let name = name.into();
         let obj_core = try!(core::create_kernel(program, &name));
 
@@ -293,9 +299,7 @@ impl Kernel {
     ///
     /// ## Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_scl_named<'a, T: OclPrm>(&'a mut self, name: &'static str, scalar: T)
-            -> OclResult<&'a mut Kernel>
-    {
+    pub fn set_arg_scl_named<'a, T: OclPrm>(&'a mut self, name: &'static str, scalar: T) -> OclResult<&'a mut Kernel> {
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         self.set_arg::<T>(arg_idx, KernelArg::Scalar(scalar))
             .and(Ok(self))
@@ -305,9 +309,7 @@ impl Kernel {
     ///
     /// ## Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_vec_named<'a, T: OclPrm>(&'a mut self, name: &'static str, vector: T)
-            -> OclResult<&'a mut Kernel>
-    {
+    pub fn set_arg_vec_named<'a, T: OclPrm>(&'a mut self, name: &'static str, vector: T) -> OclResult<&'a mut Kernel> {
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         self.set_arg::<T>(arg_idx, KernelArg::Vector(vector))
             .and(Ok(self))
@@ -317,38 +319,34 @@ impl Kernel {
     ///
     /// ## Panics [FIXME]
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_buf_named<'a, T: OclPrm>(&'a mut self, name: &'static str,
-                buffer_opt: Option<&Buffer<T>>) -> OclResult<&'a mut Kernel>
-    {
+    pub fn set_arg_buf_named<'a, T: OclPrm>(&'a mut self,
+                                            name: &'static str,
+                                            buffer_opt: Option<&Buffer<T>>)
+                                            -> OclResult<&'a mut Kernel> {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         match buffer_opt {
-            Some(buffer) => {
-                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
-            },
-            None => {
-                self.set_arg::<T>(arg_idx, KernelArg::MemNull)
-            },
-        }.and(Ok(self))
+                Some(buffer) => self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer)),
+                None => self.set_arg::<T>(arg_idx, KernelArg::MemNull),
+            }
+            .and(Ok(self))
     }
 
     /// Modifies the kernel argument named: `name`.
     ///
     /// ## Panics [FIXME]
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_img_named<'a, P: OclPrm, T: OclPrm>(&'a mut self, name: &'static str,
-                image_opt: Option<&Image<P>>) -> OclResult<&'a mut Kernel>
-    {
+    pub fn set_arg_img_named<'a, P: OclPrm, T: OclPrm>(&'a mut self,
+                                                       name: &'static str,
+                                                       image_opt: Option<&Image<P>>)
+                                                       -> OclResult<&'a mut Kernel> {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         match image_opt {
-            Some(buffer) => {
-                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
-            },
-            None => {
-                self.set_arg::<T>(arg_idx, KernelArg::MemNull)
-            },
-        }.and(Ok(self))
+                Some(buffer) => self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer)),
+                None => self.set_arg::<T>(arg_idx, KernelArg::MemNull),
+            }
+            .and(Ok(self))
     }
 
     /// Sets the value of a named sampler argument.
@@ -356,18 +354,25 @@ impl Kernel {
     /// ## Panics [FIXME]
     // [PLACEHOLDER] Set a named sampler argument
     #[allow(unused_variables)]
-    pub fn set_arg_smp_named<'a, T: OclPrm>(&'a mut self, name: &'static str,
-                sampler_opt: Option<&Sampler>) -> OclResult<&'a mut Kernel>
-    {
+    pub fn set_arg_smp_named<'a, T: OclPrm>(&'a mut self,
+                                            name: &'static str,
+                                            sampler_opt: Option<&Sampler>)
+                                            -> OclResult<&'a mut Kernel> {
         unimplemented!();
     }
 
     /// Returns a command builder which is used to chain parameters of an
     /// 'enqueue' command together.
     pub fn cmd<'k>(&'k self) -> KernelCmd<'k> {
-        KernelCmd { queue: &self.queue, kernel: &self.obj_core,
-            gwo: self.gwo.clone(), gws: self.gws.clone(), lws: self.lws.clone(),
-            wait_list: None, dest_list: None }
+        KernelCmd {
+            queue: &self.queue,
+            kernel: &self.obj_core,
+            gwo: self.gwo.clone(),
+            gws: self.gws.clone(),
+            lws: self.lws.clone(),
+            wait_list: None,
+            dest_list: None,
+        }
     }
 
     /// Enqueues this kernel on the default queue and returns the result.
@@ -454,9 +459,7 @@ impl Kernel {
     }
 
     /// Returns work group information for this kernel.
-    pub fn wg_info(&self, device: &Device, info_kind: KernelWorkGroupInfo)
-            -> KernelWorkGroupInfoResult
-    {
+    pub fn wg_info(&self, device: &Device, info_kind: KernelWorkGroupInfo) -> KernelWorkGroupInfoResult {
         // match core::get_kernel_work_group_info(&self.obj_core, device, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
@@ -506,20 +509,17 @@ impl Kernel {
             Some(&ai) => Ok(ai),
             None => {
                 OclError::err(format!("Kernel::set_arg_scl_named(): Invalid argument \
-                    name: '{}'.", name))
-            },
+                    name: '{}'.",
+                                      name))
+            }
         }
     }
 
     /// Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T: OclPrm>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {
         match buffer_opt {
-            Some(buffer) => {
-                self.new_arg::<T>(KernelArg::Mem(buffer))
-            },
-            None => {
-                self.new_arg::<T>(KernelArg::MemNull)
-            },
+            Some(buffer) => self.new_arg::<T>(KernelArg::Mem(buffer)),
+            None => self.new_arg::<T>(KernelArg::MemNull),
         }
     }
 
@@ -529,10 +529,8 @@ impl Kernel {
             Some(image) => {
                 // Type is ignored:
                 self.new_arg::<u8>(KernelArg::Mem(image))
-            },
-            None => {
-                self.new_arg::<u8>(KernelArg::MemNull)
-            },
+            }
+            None => self.new_arg::<u8>(KernelArg::MemNull),
         }
     }
 
@@ -542,10 +540,8 @@ impl Kernel {
             Some(sampler) => {
                 // Type is ignored:
                 self.new_arg::<u8>(KernelArg::Sampler(sampler))
-            },
-            None => {
-                self.new_arg::<u8>(KernelArg::SamplerNull)
-            },
+            }
+            None => self.new_arg::<u8>(KernelArg::SamplerNull),
         }
     }
 
@@ -606,11 +602,11 @@ impl Kernel {
                 self.mem_args[arg_idx as usize] = Some(mem.clone());
                 let mem_arg_ref = self.mem_args.get(arg_idx as usize).unwrap().as_ref().unwrap();
                 KernelArg::Mem(mem_arg_ref)
-            },
+            }
             arg @ _ => {
                 self.mem_args[arg_idx as usize] = None;
                 arg
-            },
+            }
         };
 
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)

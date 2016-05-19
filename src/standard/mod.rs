@@ -46,22 +46,22 @@ pub use self::spatial_dims::SpatialDims;
 pub use self::traits::{MemLen, WorkDims};
 
 
-//=============================================================================
-//================================ CONSTANTS ==================================
-//=============================================================================
+// =============================================================================
+// ================================ CONSTANTS ==================================
+// =============================================================================
 
 // pub const INFO_FORMAT_MULTILINE: bool = false;
 
-//=============================================================================
-//================================= TRAITS ====================================
-//=============================================================================
+// =============================================================================
+// ================================= TRAITS ====================================
+// =============================================================================
 
 mod traits {
     use std::fmt::Debug;
     // use std::convert::Into;
     use num::{Num, ToPrimitive};
     // use error::{Result as OclResult};
-    use super::{SpatialDims};
+    use super::SpatialDims;
     use super::spatial_dims::to_usize;
 
 
@@ -102,75 +102,101 @@ mod traits {
         fn to_lens(&self) -> [usize; 3];
     }
 
-    impl<'a, D> MemLen for &'a D where D: MemLen {
-        fn to_len(&self) -> usize { (*self).to_len() }
-        fn to_len_padded(&self, incr: usize) -> usize { (*self).to_len_padded(incr) }
-        fn to_lens(&self) -> [usize; 3] { (*self).to_lens() }
+    impl<'a, D> MemLen for &'a D
+        where D: MemLen
+    {
+        fn to_len(&self) -> usize {
+            (*self).to_len()
+        }
+        fn to_len_padded(&self, incr: usize) -> usize {
+            (*self).to_len_padded(incr)
+        }
+        fn to_lens(&self) -> [usize; 3] {
+            (*self).to_lens()
+        }
     }
 
-    impl<D> MemLen for (D, ) where D: Num + ToPrimitive + Debug + Copy {
+    impl<D> MemLen for (D,)
+        where D: Num + ToPrimitive + Debug + Copy
+    {
         fn to_len(&self) -> usize {
             SpatialDims::One(to_usize(self.0)).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::One(to_usize(self.0)).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self.0), 1, 1] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self.0), 1, 1]
+        }
     }
 
-    impl<D> MemLen for [D; 1] where D: Num + ToPrimitive + Debug + Copy {
+    impl<D> MemLen for [D; 1]
+        where D: Num + ToPrimitive + Debug + Copy
+    {
         fn to_len(&self) -> usize {
             SpatialDims::One(to_usize(self[0])).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::One(to_usize(self[0])).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self[0]), 1, 1] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self[0]), 1, 1]
+        }
     }
 
-    impl<D> MemLen for (D, D) where D: Num + ToPrimitive + Debug + Copy {
+    impl<D> MemLen for (D, D)
+        where D: Num + ToPrimitive + Debug + Copy
+    {
         fn to_len(&self) -> usize {
             SpatialDims::Two(to_usize(self.0), to_usize(self.1)).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::Two(to_usize(self.0), to_usize(self.1)).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self.0), to_usize(self.1), 1] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self.0), to_usize(self.1), 1]
+        }
     }
 
-    impl<D> MemLen for [D; 2] where D: Num + ToPrimitive + Debug + Copy {
+    impl<D> MemLen for [D; 2]
+        where D: Num + ToPrimitive + Debug + Copy
+    {
         fn to_len(&self) -> usize {
             SpatialDims::Two(to_usize(self[0]), to_usize(self[1])).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
             SpatialDims::Two(to_usize(self[0]), to_usize(self[1])).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self[0]), to_usize(self[1]), 1] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self[0]), to_usize(self[1]), 1]
+        }
     }
 
-    impl<'a, D> MemLen for (D, D, D) where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemLen for (D, D, D)
+        where D: Num + ToPrimitive + Debug + Copy
+    {
         fn to_len(&self) -> usize {
-            SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2))
-                .to_len()
+            SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2)).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
-            SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2))
-                .to_len_padded(incr)
+            SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2)).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self.0), to_usize(self.1), to_usize(self.2)] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self.0), to_usize(self.1), to_usize(self.2)]
+        }
     }
 
-    impl<'a, D> MemLen for [D; 3] where D: Num + ToPrimitive + Debug + Copy {
+    impl<'a, D> MemLen for [D; 3]
+        where D: Num + ToPrimitive + Debug + Copy
+    {
         fn to_len(&self) -> usize {
-            SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2]))
-                .to_len()
+            SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2])).to_len()
         }
         fn to_len_padded(&self, incr: usize) -> usize {
-            SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2]))
-                .to_len_padded(incr)
+            SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2])).to_len_padded(incr)
         }
-        fn to_lens(&self) -> [usize; 3] { [to_usize(self[0]), to_usize(self[1]), to_usize(self[2])] }
+        fn to_lens(&self) -> [usize; 3] {
+            [to_usize(self[0]), to_usize(self[1]), to_usize(self[2])]
+        }
     }
 }
-
-

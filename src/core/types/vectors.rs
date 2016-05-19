@@ -19,7 +19,7 @@
 // #![allow(non_camel_case_types)]
 
 use core::{OclPrm, OclVec};
-use std::ops::{Add};
+use std::ops::Add;
 
 
 // ###### CL_CHAR ######
@@ -58,8 +58,22 @@ unsafe impl OclVec for ClChar8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClChar16(pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8,
-    pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8);
+pub struct ClChar16(pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8,
+                    pub i8);
 unsafe impl OclPrm for ClChar16 {}
 unsafe impl OclVec for ClChar16 {}
 
@@ -100,8 +114,22 @@ unsafe impl OclVec for ClUchar8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClUchar16(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8,
-    pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
+pub struct ClUchar16(pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8,
+                     pub u8);
 unsafe impl OclPrm for ClUchar16 {}
 unsafe impl OclVec for ClUchar16 {}
 
@@ -142,8 +170,22 @@ unsafe impl OclVec for ClShort8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClShort16(pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16,
-    pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16);
+pub struct ClShort16(pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16,
+                     pub i16);
 unsafe impl OclPrm for ClShort16 {}
 unsafe impl OclVec for ClShort16 {}
 
@@ -184,8 +226,22 @@ unsafe impl OclVec for ClUshort8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClUshort16(pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16,
-    pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16);
+pub struct ClUshort16(pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16,
+                      pub u16);
 unsafe impl OclPrm for ClUshort16 {}
 unsafe impl OclVec for ClUshort16 {}
 
@@ -226,8 +282,22 @@ unsafe impl OclVec for ClInt8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClInt16(pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32,
-    pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32);
+pub struct ClInt16(pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32,
+                   pub i32);
 unsafe impl OclPrm for ClInt16 {}
 unsafe impl OclVec for ClInt16 {}
 
@@ -268,8 +338,22 @@ unsafe impl OclVec for ClUint8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClUint16(pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32,
-    pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32);
+pub struct ClUint16(pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32,
+                    pub u32);
 unsafe impl OclPrm for ClUint16 {}
 unsafe impl OclVec for ClUint16 {}
 
@@ -316,8 +400,22 @@ unsafe impl OclVec for ClLong8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClLong16(pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64,
-    pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64);
+pub struct ClLong16(pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64,
+                    pub i64);
 unsafe impl OclPrm for ClLong16 {}
 unsafe impl OclVec for ClLong16 {}
 
@@ -364,8 +462,22 @@ unsafe impl OclVec for ClUlong8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClUlong16(pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64,
-    pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64);
+pub struct ClUlong16(pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64,
+                     pub u64);
 unsafe impl OclPrm for ClUlong16 {}
 unsafe impl OclVec for ClUlong16 {}
 
@@ -440,8 +552,22 @@ unsafe impl OclVec for ClFloat8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClFloat16(pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32,
-    pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32);
+pub struct ClFloat16(pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32,
+                     pub f32);
 unsafe impl OclPrm for ClFloat16 {}
 unsafe impl OclVec for ClFloat16 {}
 
@@ -482,7 +608,21 @@ unsafe impl OclVec for ClDouble8 {}
 
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
-pub struct ClDouble16(pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64,
-    pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64);
+pub struct ClDouble16(pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64,
+                      pub f64);
 unsafe impl OclPrm for ClDouble16 {}
 unsafe impl OclVec for ClDouble16 {}

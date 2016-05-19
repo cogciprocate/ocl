@@ -45,15 +45,15 @@ use std::ptr;
 use std::fmt::Debug;
 use std::marker::Sized;
 use libc;
-use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
-    cl_kernel, cl_event, cl_sampler};
+use cl_h::{cl_platform_id, cl_device_id, cl_context, cl_command_queue, cl_mem, cl_program, cl_kernel, cl_event,
+           cl_sampler};
 use core::{self, CommandExecutionStatus};
 use error::{Result as OclResult, Error as OclError};
 use util;
 
-//=============================================================================
-//================================ CONSTANTS ==================================
-//=============================================================================
+// =============================================================================
+// ================================ CONSTANTS ==================================
+// =============================================================================
 
 // TODO: Evaluate optimal parameters:
 const EL_INIT_CAPACITY: usize = 64;
@@ -63,9 +63,9 @@ const EL_CLEAR_AUTO: bool = true;
 
 const DEBUG_PRINT: bool = false;
 
-//=============================================================================
-//================================== TRAITS ===================================
-//=============================================================================
+// =============================================================================
+// ================================== TRAITS ===================================
+// =============================================================================
 
 /// Types with a mutable pointer to a new, null raw event pointer.
 pub unsafe trait ClEventPtrNew: Debug {
@@ -85,10 +85,12 @@ pub trait ClEventRef<'e> {
 /// Using references just to be extra paranoid about copying raw pointers.
 pub unsafe trait ClWaitList: Debug {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event;
-    fn count (&self) -> u32;
+    fn count(&self) -> u32;
 }
 
-impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
+impl<'e, L> ClEventRef<'e> for &'e L
+    where L: ClEventRef<'e>
+{
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
         (*self).as_ptr_ref()
     }
@@ -115,9 +117,9 @@ pub unsafe trait ClDeviceIdPtr: Sized {
     }
 }
 
-//=============================================================================
-//=================================== TYPES ===================================
-//=============================================================================
+// =============================================================================
+// =================================== TYPES ===================================
+// =============================================================================
 
 /// Wrapper used by `EventList` to send event pointers to core functions
 /// cheaply.
@@ -236,14 +238,18 @@ unsafe impl Send for Context {}
 
 impl Clone for Context {
     fn clone(&self) -> Context {
-        unsafe { core::retain_context(self).unwrap(); }
+        unsafe {
+            core::retain_context(self).unwrap();
+        }
         Context(self.0)
     }
 }
 
 impl Drop for Context {
     fn drop(&mut self) {
-        unsafe { core::release_context(self).ok(); }
+        unsafe {
+            core::release_context(self).ok();
+        }
     }
 }
 
@@ -281,14 +287,18 @@ impl CommandQueue {
 
 impl Clone for CommandQueue {
     fn clone(&self) -> CommandQueue {
-        unsafe { core::retain_command_queue(self).unwrap(); }
+        unsafe {
+            core::retain_command_queue(self).unwrap();
+        }
         CommandQueue(self.0)
     }
 }
 
 impl Drop for CommandQueue {
     fn drop(&mut self) {
-        unsafe { core::release_command_queue(self).ok(); }
+        unsafe {
+            core::release_command_queue(self).ok();
+        }
     }
 }
 
@@ -314,17 +324,17 @@ impl Mem {
         Mem(ptr)
     }
 
-	/// Only call this when passing a copied pointer such as from an
-	/// `clGet*****Info` function.
-	pub unsafe fn from_copied_ptr(ptr: cl_mem) -> Mem {
-		let copy = Mem(ptr);
-		core::retain_mem_object(&copy).unwrap();
-		copy
-	}
+    /// Only call this when passing a copied pointer such as from an
+    /// `clGet*****Info` function.
+    pub unsafe fn from_copied_ptr(ptr: cl_mem) -> Mem {
+        let copy = Mem(ptr);
+        core::retain_mem_object(&copy).unwrap();
+        copy
+    }
 
-	// pub unsafe fn null() -> Mem {
-	// 	Mem(0 as *mut libc::c_void, PhantomData)
-	// }
+    // pub unsafe fn null() -> Mem {
+    // 	Mem(0 as *mut libc::c_void, PhantomData)
+    // }
 
     /// Returns a pointer, do not store it.
     pub unsafe fn as_ptr(&self) -> cl_mem {
@@ -334,14 +344,18 @@ impl Mem {
 
 impl Clone for Mem {
     fn clone(&self) -> Mem {
-        unsafe { core::retain_mem_object(self).unwrap(); }
+        unsafe {
+            core::retain_mem_object(self).unwrap();
+        }
         Mem(self.0)
     }
 }
 
 impl Drop for Mem {
     fn drop(&mut self) {
-        unsafe { core::release_mem_object(self).ok(); }
+        unsafe {
+            core::release_mem_object(self).ok();
+        }
     }
 }
 
@@ -361,30 +375,34 @@ impl Program {
         Program(ptr)
     }
 
-	/// Only call this when passing a copied pointer such as from an
-	/// `clGet*****Info` function.
-	pub unsafe fn from_copied_ptr(ptr: cl_program) -> Program {
-		let copy = Program(ptr);
-		core::retain_program(&copy).unwrap();
-		copy
-	}
+    /// Only call this when passing a copied pointer such as from an
+    /// `clGet*****Info` function.
+    pub unsafe fn from_copied_ptr(ptr: cl_program) -> Program {
+        let copy = Program(ptr);
+        core::retain_program(&copy).unwrap();
+        copy
+    }
 
-	/// Returns a pointer, do not store it.
-	pub unsafe fn as_ptr(&self) -> cl_program {
-		self.0
-	}
+    /// Returns a pointer, do not store it.
+    pub unsafe fn as_ptr(&self) -> cl_program {
+        self.0
+    }
 }
 
 impl Clone for Program {
     fn clone(&self) -> Program {
-        unsafe { core::retain_program(self).unwrap(); }
+        unsafe {
+            core::retain_program(self).unwrap();
+        }
         Program(self.0)
     }
 }
 
 impl Drop for Program {
     fn drop(&mut self) {
-        unsafe { core::release_program(self).ok(); }
+        unsafe {
+            core::release_program(self).ok();
+        }
     }
 }
 
@@ -427,14 +445,18 @@ impl Kernel {
 
 impl Clone for Kernel {
     fn clone(&self) -> Kernel {
-        unsafe { core::retain_kernel(self).unwrap(); }
+        unsafe {
+            core::retain_kernel(self).unwrap();
+        }
         Kernel(self.0)
     }
 }
 
 impl Drop for Kernel {
     fn drop(&mut self) {
-        unsafe { core::release_kernel(self).ok(); }
+        unsafe {
+            core::release_kernel(self).ok();
+        }
     }
 }
 
@@ -498,7 +520,9 @@ unsafe impl ClEventPtrNew for Event {
         if self.0.is_null() {
             Ok(&mut self.0)
         } else {
-            unsafe { try!(core::release_event(self)); }
+            unsafe {
+                try!(core::release_event(self));
+            }
             Ok(&mut self.0)
         }
     }
@@ -512,17 +536,27 @@ impl<'e> ClEventRef<'e> for Event {
 
 unsafe impl ClWaitList for Event {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-        if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
+        if self.0.is_null() {
+            0 as *const cl_event
+        } else {
+            &self.0 as *const cl_event
+        }
     }
 
     fn count(&self) -> u32 {
-        if self.0.is_null() { 0 } else { 1 }
+        if self.0.is_null() {
+            0
+        } else {
+            1
+        }
     }
 }
 
 impl Clone for Event {
     fn clone(&self) -> Event {
-        unsafe { core::retain_event(self).expect("core::Event::clone"); }
+        unsafe {
+            core::retain_event(self).expect("core::Event::clone");
+        }
         Event(self.0)
     }
 }
@@ -530,7 +564,9 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if self.is_valid() {
-            unsafe { core::release_event(self).ok(); }
+            unsafe {
+                core::release_event(self).ok();
+            }
         }
     }
 }
@@ -601,19 +637,21 @@ impl EventList {
 
     /// Clones an event by index.
     pub fn get_clone(&self, index: usize) -> Option<OclResult<Event>> {
-        self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) } )
+        self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) })
     }
 
     /// Clones the last event.
     pub fn last_clone(&self) -> Option<OclResult<Event>> {
-        self.event_ptrs.last().map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) } )
+        self.event_ptrs.last().map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) })
     }
 
     /// Clears each completed event from the list.
     ///
     /// TODO: TEST THIS
     pub fn clear_completed(&mut self) -> OclResult<()> {
-        if self.len() < 16 { return Ok(()) }
+        if self.len() < 16 {
+            return Ok(());
+        }
 
         let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_LEN);
         let mut idx = 0;
@@ -701,8 +739,7 @@ impl Clone for EventList {
     fn clone(&self) -> EventList {
         for event_ptr in self.event_ptrs.iter() {
             if !(*event_ptr).is_null() {
-                unsafe { core::retain_event(&EventRefWrapper(event_ptr, 1))
-                    .expect("core::EventList::clone") }
+                unsafe { core::retain_event(&EventRefWrapper(event_ptr, 1)).expect("core::EventList::clone") }
             }
         }
 
@@ -718,12 +755,20 @@ impl Clone for EventList {
 
 impl Drop for EventList {
     fn drop(&mut self) {
-        if DEBUG_PRINT { print!("Dropping events... "); }
-        for event_ptr in self.event_ptrs.iter() {
-            unsafe { core::release_event(&EventRefWrapper(event_ptr, 1)).ok(); }
-            if DEBUG_PRINT { print!("{{.}}"); }
+        if DEBUG_PRINT {
+            print!("Dropping events... ");
         }
-        if DEBUG_PRINT { print!("\n"); }
+        for event_ptr in self.event_ptrs.iter() {
+            unsafe {
+                core::release_event(&EventRefWrapper(event_ptr, 1)).ok();
+            }
+            if DEBUG_PRINT {
+                print!("{{.}}");
+            }
+        }
+        if DEBUG_PRINT {
+            print!("\n");
+        }
     }
 }
 
@@ -757,14 +802,18 @@ impl Sampler {
 
 impl Clone for Sampler {
     fn clone(&self) -> Sampler {
-        unsafe { core::retain_sampler(self).unwrap(); }
+        unsafe {
+            core::retain_sampler(self).unwrap();
+        }
         Sampler(self.0)
     }
 }
 
 impl Drop for Sampler {
     fn drop(&mut self) {
-        unsafe { core::release_sampler(self).ok(); }
+        unsafe {
+            core::release_sampler(self).ok();
+        }
     }
 }
 

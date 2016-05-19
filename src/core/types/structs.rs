@@ -6,7 +6,7 @@ use util;
 use ffi::cl_GLuint;
 use cl_h::{self, cl_mem};
 use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType,
-        ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
+           ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
 
 
 // Until everything can be implemented:
@@ -110,7 +110,7 @@ impl ContextProperties {
     pub fn gl_context_khr(mut self, gl_ctx: cl_GLuint) -> ContextProperties {
         self.0.push(ContextProperty::GlContextKhr(gl_ctx));
         self
-    }    
+    }
 
     /// Pushes a `ContextProperty` onto this list of properties.
     pub fn prop(mut self, prop: ContextProperty) -> ContextProperties {
@@ -145,14 +145,14 @@ impl ContextProperties {
                 // Convert both the kind of property (a u32) and the value (variable type/size)
                 // into just a core byte vector (Vec<u8>):
                 let (kind, val) = match prop {
-                    &ContextProperty::Platform(ref platform_id_core) => (
-                        util::into_bytes(PropKind::Platform as cl_h::cl_uint),
-                        util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id)
-                    ),
-                    &ContextProperty::InteropUserSync(sync) => (
-                        util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
-                        util::into_bytes(sync as cl_h::cl_bool)
-                    ),
+                    &ContextProperty::Platform(ref platform_id_core) => {
+                        (util::into_bytes(PropKind::Platform as cl_h::cl_uint),
+                         util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id))
+                    }
+                    &ContextProperty::InteropUserSync(sync) => {
+                        (util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
+                         util::into_bytes(sync as cl_h::cl_bool))
+                    }
                     // &ContextProperty::GlContextKhr(ctx) => (
                     //     util::into_bytes(PropKind::GlContextKhr as cl_h::cl_uint),
                     //     util::into_bytes(sync as cl_h::cl_bool)
@@ -407,7 +407,7 @@ impl ImageFormat {
             ImageChannelDataType::Float => 4,
             // Each channel component is a normalized unsigned 24-bit integer value:
             // UnormInt24 => 3,
-            _ => 0
+            _ => 0,
         };
 
         channel_count * channel_size
@@ -464,9 +464,15 @@ pub struct ImageDescriptor {
 }
 
 impl ImageDescriptor {
-    pub fn new(image_type: MemObjectType, width: usize, height: usize, depth: usize,
-                array_size: usize, row_pitch: usize, slc_pitch: usize, buffer: Option<Mem>,
-                ) -> ImageDescriptor {
+    pub fn new(image_type: MemObjectType,
+               width: usize,
+               height: usize,
+               depth: usize,
+               array_size: usize,
+               row_pitch: usize,
+               slc_pitch: usize,
+               buffer: Option<Mem>)
+               -> ImageDescriptor {
         ImageDescriptor {
             image_type: image_type,
             image_width: width,
@@ -493,10 +499,9 @@ impl ImageDescriptor {
             num_mip_levels: self.num_mip_levels,
             num_samples: self.num_mip_levels,
             buffer: match &self.buffer {
-                    &Some(ref b) => unsafe { b.as_ptr() },
-                    &None => 0 as cl_mem,
-                },
+                &Some(ref b) => unsafe { b.as_ptr() },
+                &None => 0 as cl_mem,
+            },
         }
     }
 }
-

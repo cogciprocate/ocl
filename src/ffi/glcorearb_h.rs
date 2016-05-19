@@ -1,18 +1,18 @@
 use cl_h::cl_int;
 
-pub const GL_TEXTURE_1D:                    cl_int = 0x0DE0;
-pub const GL_TEXTURE_1D_ARRAY:              cl_int = 0x8C18;
-pub const GL_TEXTURE_BUFFER:                cl_int = 0x8C2A;
-pub const GL_TEXTURE_2D:                    cl_int = 0x0DE1;
-pub const GL_TEXTURE_2D_ARRAY:              cl_int = 0x8C1A;
-pub const GL_TEXTURE_3D:                    cl_int = 0x806F;
-pub const GL_TEXTURE_CUBE_MAP_POSITIVE_X:   cl_int = 0x8515;
-pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_X:   cl_int = 0x8516;
-pub const GL_TEXTURE_CUBE_MAP_POSITIVE_Y:   cl_int = 0x8517;
-pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:   cl_int = 0x8518;
-pub const GL_TEXTURE_CUBE_MAP_POSITIVE_Z:   cl_int = 0x8519;
-pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:   cl_int = 0x851A;
-pub const GL_TEXTURE_RECTANGLE:             cl_int = 0x84F5;
+pub const GL_TEXTURE_1D: cl_int = 0x0DE0;
+pub const GL_TEXTURE_1D_ARRAY: cl_int = 0x8C18;
+pub const GL_TEXTURE_BUFFER: cl_int = 0x8C2A;
+pub const GL_TEXTURE_2D: cl_int = 0x0DE1;
+pub const GL_TEXTURE_2D_ARRAY: cl_int = 0x8C1A;
+pub const GL_TEXTURE_3D: cl_int = 0x806F;
+pub const GL_TEXTURE_CUBE_MAP_POSITIVE_X: cl_int = 0x8515;
+pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_X: cl_int = 0x8516;
+pub const GL_TEXTURE_CUBE_MAP_POSITIVE_Y: cl_int = 0x8517;
+pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_Y: cl_int = 0x8518;
+pub const GL_TEXTURE_CUBE_MAP_POSITIVE_Z: cl_int = 0x8519;
+pub const GL_TEXTURE_CUBE_MAP_NEGATIVE_Z: cl_int = 0x851A;
+pub const GL_TEXTURE_RECTANGLE: cl_int = 0x84F5;
 
 // #ifndef __glcorearb_h_
 // #define __glcorearb_h_ 1

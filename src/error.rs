@@ -36,7 +36,12 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 pub enum Error {
     // description: String,
     // Status(Status, String),
-    Status { status: Status, fn_name: &'static str, fn_info: String, desc: String },
+    Status {
+        status: Status,
+        fn_name: &'static str,
+        fn_info: String,
+        desc: String,
+    },
     String(String),
     Nul(std::ffi::NulError),
     Io(std::io::Error),
@@ -58,9 +63,7 @@ impl self::Error {
 
     /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the
     /// given error code and description.
-    pub fn err_status<T: Default, S: Into<String>>(errcode: i32, fn_name: &'static str, fn_info: S)
-            -> self::Result<T>
-    {
+    pub fn err_status<T: Default, S: Into<String>>(errcode: i32, fn_name: &'static str, fn_info: S) -> self::Result<T> {
         let status = match Status::from_i32(errcode) {
             Some(s) => s,
             None => panic!("ocl::core::errcode_try(): Invalid error code: '{}'. Aborting.", errcode),
@@ -71,7 +74,12 @@ impl self::Error {
         } else {
             let fn_info = fn_info.into();
             let desc = fmt_status_desc(status.clone(), fn_name, &fn_info);
-            Err(Error::Status { status: status, fn_name: fn_name, fn_info: fn_info, desc: desc })
+            Err(Error::Status {
+                status: status,
+                fn_name: fn_name,
+                fn_info: fn_info,
+                desc: desc,
+            })
         }
     }
 
@@ -85,7 +93,7 @@ impl self::Error {
                 string.clear();
                 string.push_str(txt.as_ref());
                 string.push_str(&old_string_copy);
-            },
+            }
             _ => (),
         }
     }
@@ -107,8 +115,10 @@ impl std::error::Error for self::Error {
             &Error::FromUtf8Error(ref err) => err.description(),
             &Error::Status { ref desc, .. } => desc,
             &Error::String(ref desc) => &desc,
-            &Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
-                Please specify some dimensions.",
+            &Error::UnspecifiedDimensions => {
+                "Cannot convert to a valid set of dimensions. \
+                Please specify some dimensions."
+            }
             // _ => panic!("OclError::description()"),
         }
     }
@@ -182,6 +192,11 @@ fn fmt_status_desc(status: Status, fn_name: &'static str, fn_info: &str) -> Stri
         \n\nStatus error code: {:?} ({})  \
         \n\nPlease visit the following url for more information: \n\n{}{}{}  \n\n\
         ############################################################################# \n",
-        fn_name, fn_info_string, status.clone(), status as i32,
-        SDK_DOCS_URL_PRE, fn_name, SDK_DOCS_URL_SUF)
+            fn_name,
+            fn_info_string,
+            status.clone(),
+            status as i32,
+            SDK_DOCS_URL_PRE,
+            fn_name,
+            SDK_DOCS_URL_SUF)
 }

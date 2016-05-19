@@ -97,86 +97,75 @@ use cl_h;
 // use ffi::{cl_gl_h, glcorearb_h};
 use ffi;
 
-pub use self::functions::{ get_platform_ids, get_platform_info,
-    get_device_ids, get_device_info, create_sub_devices, retain_device,
-    release_device, create_context, create_context_from_type, retain_context,
-    release_context, get_context_info, create_command_queue, retain_command_queue,
-    release_command_queue, get_command_queue_info, create_buffer,
-    create_sub_buffer, create_image, retain_mem_object, release_mem_object,
-    get_supported_image_formats, get_mem_object_info, get_image_info,
-    set_mem_object_destructor_callback, create_sampler, retain_sampler,
-    release_sampler, get_sampler_info, create_program_with_source,
-    create_program_with_binary, create_program_with_built_in_kernels,
-    retain_program, release_program, build_program, compile_program, link_program,
-    create_build_program, get_program_info,
-    get_program_build_info, create_kernel, create_kernels_in_program,
-    retain_kernel, release_kernel, set_kernel_arg, get_kernel_info,
-    get_kernel_arg_info, get_kernel_work_group_info, wait_for_events,
-    get_event_info, create_user_event, retain_event, release_event,
-    set_user_event_status, set_event_callback, get_event_profiling_info, flush,
-    finish, enqueue_read_buffer, enqueue_read_buffer_rect, enqueue_write_buffer,
-    enqueue_write_buffer_rect, enqueue_copy_buffer,
-    create_from_gl_buffer, create_from_gl_renderbuffer, create_from_gl_texture,
-    create_from_gl_texture_2d, create_from_gl_texture_3d, // deprecated
-    enqueue_acquire_gl_buffer, enqueue_release_gl_buffer,
-    enqueue_fill_buffer,
-    enqueue_copy_buffer_rect, enqueue_read_image, enqueue_write_image,
-    enqueue_fill_image, enqueue_copy_image, enqueue_copy_image_to_buffer,
-    enqueue_copy_buffer_to_image, enqueue_map_buffer, enqueue_map_image,
-    enqueue_unmap_mem_object, enqueue_migrate_mem_objects, enqueue_kernel,
-    enqueue_task, enqueue_native_kernel, enqueue_marker_with_wait_list,
-    enqueue_barrier_with_wait_list, get_extension_function_address_for_platform,
-    wait_for_event, get_event_status, default_platform_idx,
-    program_build_err, verify_context, default_platform, default_device_type };
+pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, get_device_info, create_sub_devices,
+                          retain_device, release_device, create_context, create_context_from_type, retain_context,
+                          release_context, get_context_info, create_command_queue, retain_command_queue,
+                          release_command_queue, get_command_queue_info, create_buffer, create_sub_buffer,
+                          create_image, retain_mem_object, release_mem_object, get_supported_image_formats,
+                          get_mem_object_info, get_image_info, set_mem_object_destructor_callback, create_sampler,
+                          retain_sampler, release_sampler, get_sampler_info, create_program_with_source,
+                          create_program_with_binary, create_program_with_built_in_kernels, retain_program,
+                          release_program, build_program, compile_program, link_program, create_build_program,
+                          get_program_info, get_program_build_info, create_kernel, create_kernels_in_program,
+                          retain_kernel, release_kernel, set_kernel_arg, get_kernel_info, get_kernel_arg_info,
+                          get_kernel_work_group_info, wait_for_events, get_event_info, create_user_event,
+                          retain_event, release_event, set_user_event_status, set_event_callback,
+                          get_event_profiling_info, flush, finish, enqueue_read_buffer, enqueue_read_buffer_rect,
+                          enqueue_write_buffer, enqueue_write_buffer_rect, enqueue_copy_buffer, create_from_gl_buffer,
+                          create_from_gl_renderbuffer, create_from_gl_texture, create_from_gl_texture_2d,
+                          create_from_gl_texture_3d /* deprecated */, enqueue_acquire_gl_buffer,
+                          enqueue_release_gl_buffer, enqueue_fill_buffer, enqueue_copy_buffer_rect,
+                          enqueue_read_image, enqueue_write_image, enqueue_fill_image, enqueue_copy_image,
+                          enqueue_copy_image_to_buffer, enqueue_copy_buffer_to_image, enqueue_map_buffer,
+                          enqueue_map_image, enqueue_unmap_mem_object, enqueue_migrate_mem_objects, enqueue_kernel,
+                          enqueue_task, enqueue_native_kernel, enqueue_marker_with_wait_list,
+                          enqueue_barrier_with_wait_list, get_extension_function_address_for_platform, wait_for_event,
+                          get_event_status, default_platform_idx, program_build_err, verify_context, default_platform,
+                          default_device_type};
 
-pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
-    PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
-    ClWaitList};
+pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper, PlatformId,
+                           DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
+                           ClWaitList};
 
-pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion,
-        ContextProperty};
+pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion, ContextProperty};
 
-pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
-    ContextInfoResult, CommandQueueInfoResult, MemInfoResult,
-    ImageInfoResult, SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult,
-    KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
-    EventInfoResult, ProfilingInfoResult};
+pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult, ContextInfoResult,
+                             CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult,
+                             ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult,
+                             KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
 
-pub use self::types::vectors::{
-    ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
-    ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16,
-    ClShort2, ClShort3, ClShort4, ClShort8, ClShort16,
-    ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16,
-    ClInt2, ClInt3, ClInt4, ClInt8, ClInt16,
-    ClUint2, ClUint3, ClUint4, ClUint8, ClUint16,
-    ClLong1, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
-    ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
-    ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
-    ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16,
-};
+pub use self::types::vectors::{ClChar2, ClChar3, ClChar4, ClChar8, ClChar16, ClUchar2, ClUchar3, ClUchar4, ClUchar8,
+                               ClUchar16, ClShort2, ClShort3, ClShort4, ClShort8, ClShort16, ClUshort2, ClUshort3,
+                               ClUshort4, ClUshort8, ClUshort16, ClInt2, ClInt3, ClInt4, ClInt8, ClInt16, ClUint2,
+                               ClUint3, ClUint4, ClUint8, ClUint16, ClLong1, ClLong2, ClLong3, ClLong4, ClLong8,
+                               ClLong16, ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16, ClFloat2,
+                               ClFloat3, ClFloat4, ClFloat8, ClFloat16, ClDouble2, ClDouble3, ClDouble4, ClDouble8,
+                               ClDouble16};
 
-//=============================================================================
-//================================ CONSTANTS ==================================
-//=============================================================================
+// =============================================================================
+// ================================ CONSTANTS ==================================
+// =============================================================================
 
 // pub const DEFAULT_DEVICE_TYPE: cl_h::cl_device_type = cl_h::CL_DEVICE_TYPE_DEFAULT;
 pub const DEVICES_MAX: u32 = 64;
 // pub const DEFAULT_PLATFORM_IDX: usize = 0;
 // pub const DEFAULT_DEVICE_IDX: usize = 0;
 
-//=============================================================================
-//================================= TYPEDEFS ==================================
-//=============================================================================
+// =============================================================================
+// ================================= TYPEDEFS ==================================
+// =============================================================================
 
-pub type EventCallbackFn = extern "C" fn (cl_h::cl_event, i32, *mut libc::c_void);
-pub type CreateContextCallbackFn = extern "C" fn (*const libc::c_char, *const libc::c_void,
-    libc::size_t, *mut libc::c_void);
-pub type BuildProgramCallbackFn = extern "C" fn (*mut libc::c_void, *mut libc::c_void);
+pub type EventCallbackFn = extern "C" fn(cl_h::cl_event, i32, *mut libc::c_void);
+pub type CreateContextCallbackFn = extern "C" fn(*const libc::c_char,
+                                                 *const libc::c_void,
+                                                 libc::size_t,
+                                                 *mut libc::c_void);
+pub type BuildProgramCallbackFn = extern "C" fn(*mut libc::c_void, *mut libc::c_void);
 pub type UserDataPtr = *mut libc::c_void;
 
-//=============================================================================
-//================================== TRAITS ===================================
-//=============================================================================
+// =============================================================================
+// ================================== TRAITS ===================================
+// =============================================================================
 
 /// A type usable within OpenCL kernels.
 ///
@@ -229,9 +218,9 @@ pub unsafe trait OclVec {}
 //     }
 // }
 
-//=============================================================================
-//================================ BITFIELDS ==================================
-//=============================================================================
+// =============================================================================
+// ================================ BITFIELDS ==================================
+// =============================================================================
 
 bitflags! {
     /// cl_device_type - bitfield
@@ -367,9 +356,9 @@ bitflags! {
     }
 }
 
-//=============================================================================
-//=============================== ENUMERATORS =================================
-//=============================================================================
+// =============================================================================
+// =============================== ENUMERATORS =================================
+// =============================================================================
 
 enum_from_primitive! {
     /// specify the texture target type
@@ -409,7 +398,7 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    /// Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below. (from SDK)
+/// Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below. (from SDK)
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ImageChannelOrder {
@@ -417,20 +406,20 @@ enum_from_primitive! {
         A = cl_h::CL_A as isize,
         Rg = cl_h::CL_RG as isize,
         Ra = cl_h::CL_RA as isize,
-        // This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
+// This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
         Rgb = cl_h::CL_RGB as isize,
         Rgba = cl_h::CL_RGBA as isize,
-        // This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
+// This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
         Bgra = cl_h::CL_BGRA as isize,
-        // This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
+// This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
         Argb = cl_h::CL_ARGB as isize,
-        // This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
+// This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
         Intensity = cl_h::CL_INTENSITY as isize,
-        // This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
+// This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
         Luminance = cl_h::CL_LUMINANCE as isize,
         Rx = cl_h::CL_Rx as isize,
         Rgx = cl_h::CL_RGx as isize,
-        // This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
+// This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
         Rgbx = cl_h::CL_RGBx as isize,
         Depth = cl_h::CL_DEPTH as isize,
         DepthStencil = cl_h::CL_DEPTH_STENCIL as isize,
@@ -438,41 +427,41 @@ enum_from_primitive! {
 }
 
 enum_from_primitive! {
-    /// Describes the size of the channel data type. The number of bits per element determined by the image_channel_data_type and image_channel_order must be a power of two. The list of supported values is described in the table below. (from SDK)
+/// Describes the size of the channel data type. The number of bits per element determined by the image_channel_data_type and image_channel_order must be a power of two. The list of supported values is described in the table below. (from SDK)
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ImageChannelDataType {
-        // Each channel component is a normalized signed 8-bit integer value:
+// Each channel component is a normalized signed 8-bit integer value:
         SnormInt8 = cl_h::CL_SNORM_INT8 as isize,
-        // Each channel component is a normalized signed 16-bit integer value:
+// Each channel component is a normalized signed 16-bit integer value:
         SnormInt16 = cl_h::CL_SNORM_INT16 as isize,
-        // Each channel component is a normalized unsigned 8-bit integer value:
+// Each channel component is a normalized unsigned 8-bit integer value:
         UnormInt8 = cl_h::CL_UNORM_INT8 as isize,
-        // Each channel component is a normalized unsigned 16-bit integer value:
+// Each channel component is a normalized unsigned 16-bit integer value:
         UnormInt16 = cl_h::CL_UNORM_INT16 as isize,
-        // Represents a normalized 5-6-5 3-channel RGB image. The channel order must be CL_RGB or CL_RGBx:
+// Represents a normalized 5-6-5 3-channel RGB image. The channel order must be CL_RGB or CL_RGBx:
         UnormShort565 = cl_h::CL_UNORM_SHORT_565 as isize,
-        // Represents a normalized x-5-5-5 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
+// Represents a normalized x-5-5-5 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
         UnormShort555 = cl_h::CL_UNORM_SHORT_555 as isize,
-        // Represents a normalized x-10-10-10 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
+// Represents a normalized x-10-10-10 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
         UnormInt101010 = cl_h::CL_UNORM_INT_101010 as isize,
-        // Each channel component is an unnormalized signed 8-bit integer value:
+// Each channel component is an unnormalized signed 8-bit integer value:
         SignedInt8 = cl_h::CL_SIGNED_INT8 as isize,
-        // Each channel component is an unnormalized signed 16-bit integer value:
+// Each channel component is an unnormalized signed 16-bit integer value:
         SignedInt16 = cl_h::CL_SIGNED_INT16 as isize,
-        // Each channel component is an unnormalized signed 32-bit integer value:
+// Each channel component is an unnormalized signed 32-bit integer value:
         SignedInt32 = cl_h::CL_SIGNED_INT32 as isize,
-        // Each channel component is an unnormalized unsigned 8-bit integer value:
+// Each channel component is an unnormalized unsigned 8-bit integer value:
         UnsignedInt8 = cl_h::CL_UNSIGNED_INT8 as isize,
-        // Each channel component is an unnormalized unsigned 16-bit integer value:
+// Each channel component is an unnormalized unsigned 16-bit integer value:
         UnsignedInt16 = cl_h::CL_UNSIGNED_INT16 as isize,
-        // Each channel component is an unnormalized unsigned 32-bit integer value:
+// Each channel component is an unnormalized unsigned 32-bit integer value:
         UnsignedInt32 = cl_h::CL_UNSIGNED_INT32 as isize,
-        // Each channel component is a 16-bit half-float value:
+// Each channel component is a 16-bit half-float value:
         HalfFloat = cl_h::CL_HALF_FLOAT as isize,
-        // Each channel component is a single precision floating-point value:
+// Each channel component is a single precision floating-point value:
         Float = cl_h::CL_FLOAT as isize,
-        // Each channel component is a normalized unsigned 24-bit integer value:
+// Each channel component is a normalized unsigned 24-bit integer value:
         UnormInt24 = cl_h::CL_UNORM_INT24 as isize,
     }
 }

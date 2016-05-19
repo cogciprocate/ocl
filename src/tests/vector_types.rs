@@ -23,7 +23,8 @@ fn test_vector_types() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims([DATASET_SIZE])
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let buffer = pro_que.create_buffer::<ClFloat3>().unwrap();
 
@@ -36,7 +37,8 @@ fn test_vector_types() {
         assert_eq!(ele, start_val);
     }
 
-    let kernel = pro_que.create_kernel("add_float3").unwrap()
+    let kernel = pro_que.create_kernel("add_float3")
+        .unwrap()
         .arg_buf(&buffer)
         .arg_scl(addend);
 

@@ -8,7 +8,7 @@ use core;
 use flags;
 use standard::{ProQue, Image, Sampler};
 use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
-use aliases::{ClInt4};
+use aliases::ClInt4;
 use tests;
 
 // const ADDEND: [i32; 4] = [1; 4];
@@ -44,7 +44,8 @@ fn image_ops() {
     let proque = ProQue::builder()
         .src(src)
         .dims(DIMS)
-        .build().unwrap();
+        .build()
+        .unwrap();
 
     let sampler = Sampler::new(proque.context(), false, AddressingMode::None, FilterMode::Nearest).unwrap();
 
@@ -57,14 +58,16 @@ fn image_ops() {
         .image_type(MemObjectType::Image3d)
         .dims(proque.dims())
         .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
-        .build_with_data(proque.queue(), &vec).unwrap();
+        .build_with_data(proque.queue(), &vec)
+        .unwrap();
     let img_dst = Image::<i32>::builder()
         .channel_order(ImageChannelOrder::Rgba)
         .channel_data_type(ImageChannelDataType::SignedInt32)
         .image_type(MemObjectType::Image3d)
         .dims(proque.dims())
         .flags(flags::MEM_WRITE_ONLY | flags::MEM_COPY_HOST_PTR)
-        .build_with_data(proque.queue(), &vec).unwrap();
+        .build_with_data(proque.queue(), &vec)
+        .unwrap();
 
     let kernel_add = proque.create_kernel("add").unwrap()
         // .gws(DIMS)
@@ -73,16 +76,17 @@ fn image_ops() {
         .arg_img(&img_src)
         .arg_img(&img_dst);
 
-    let mut kernel_fill_src = proque.create_kernel("fill").unwrap()
+    let mut kernel_fill_src = proque.create_kernel("fill")
+        .unwrap()
         .arg_smp(&sampler)
         .arg_vec_named::<ClInt4>("pixel", None)
         .arg_img(&img_src);
 
-    //========================================================================
-    //========================================================================
-    //============================ Warm Up Run ===============================
-    //========================================================================
-    //========================================================================
+    // ========================================================================
+    // ========================================================================
+    // ============================ Warm Up Run ===============================
+    // ========================================================================
+    // ========================================================================
     // Make sure that pro_que's dims are correct:
     let dims = proque.dims().to_lens().unwrap();
     assert_eq!(DIMS, dims);
@@ -111,26 +115,32 @@ fn image_ops() {
     print!("\n");
 
     // Warm up the verify function:
-    tests::verify_vec_rect([0, 0, 0], dims, ADDEND.0 * ttl_runs,
-        ADDEND.0 * (ttl_runs - 1), dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
+    tests::verify_vec_rect([0, 0, 0],
+                           dims,
+                           ADDEND.0 * ttl_runs,
+                           ADDEND.0 * (ttl_runs - 1),
+                           dims,
+                           pixel_element_len,
+                           &vec,
+                           ttl_runs,
+                           true)
+        .unwrap();
 
-    //========================================================================
-    //========================================================================
-    //======================= Read / Write / Copy ============================
-    //========================================================================
-    //========================================================================
+    // ========================================================================
+    // ========================================================================
+    // ======================= Read / Write / Copy ============================
+    // ========================================================================
+    // ========================================================================
 
     for _ in 0..TEST_ITERS {
         let (region, origin) = (dims, [0, 0, 0]);
 
-        //====================================================================
-        //=================== `core::enqueue_..._image()` ====================
-        //====================================================================
+        // ====================================================================
+        // =================== `core::enqueue_..._image()` ====================
+        // ====================================================================
 
         // Write to src:
-        core::enqueue_write_image(proque.queue(), &img_src, true,
-            origin, region, 0, 0,
-            &vec, None, None).unwrap();
+        core::enqueue_write_image(proque.queue(), &img_src, true, origin, region, 0, 0, &vec, None, None).unwrap();
 
         // Add from src to dst:
         kernel_add.enq().expect("[FIXME]: HANDLE ME!");
@@ -138,16 +148,17 @@ fn image_ops() {
         let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
 
         // Read into vec:
-        unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
-            origin, region, 0, 0,
-            &mut vec, None, None).unwrap(); }
+        unsafe {
+            core::enqueue_read_image(proque.queue(), &img_dst, true, origin, region, 0, 0, &mut vec, None, None)
+                .unwrap();
+        }
 
         // Just to make sure read is complete:
         proque.queue().finish();
 
         // Verify:
-        tests::verify_vec_rect(origin, region, cur_val, old_val,
-            dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
+        tests::verify_vec_rect(origin, region, cur_val, old_val, dims, pixel_element_len, &vec, ttl_runs, true)
+            .unwrap();
 
 
         // Run kernel:
@@ -156,24 +167,25 @@ fn image_ops() {
         let cur_pixel = ClInt4(cur_val, cur_val, cur_val, cur_val);
         kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
-        core::enqueue_copy_image::<i32>(proque.queue(), &img_src, &img_dst,
-            origin, origin, region, None, None).unwrap();
+        core::enqueue_copy_image::<i32>(proque.queue(), &img_src, &img_dst, origin, origin, region, None, None)
+            .unwrap();
 
         // Read into vec:
-        unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
-            origin, region, 0, 0,
-            &mut vec, None, None).unwrap(); }
+        unsafe {
+            core::enqueue_read_image(proque.queue(), &img_dst, true, origin, region, 0, 0, &mut vec, None, None)
+                .unwrap();
+        }
 
         // Just to make sure read is complete:
         proque.queue().finish();
 
         // Verify:
-        tests::verify_vec_rect(origin, region, cur_val, old_val,
-            dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
+        tests::verify_vec_rect(origin, region, cur_val, old_val, dims, pixel_element_len, &vec, ttl_runs, true)
+            .unwrap();
 
-        //====================================================================
-        //========================= `Image::cmd()...` ========================
-        //====================================================================
+        // ====================================================================
+        // ========================= `Image::cmd()...` ========================
+        // ====================================================================
         // Write to src:
         img_src.cmd().write(&vec).enq().unwrap();
 
@@ -186,8 +198,8 @@ fn image_ops() {
         img_dst.cmd().read(&mut vec).enq().unwrap();
 
         // Verify:
-        tests::verify_vec_rect(origin, region, cur_val, old_val,
-            dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
+        tests::verify_vec_rect(origin, region, cur_val, old_val, dims, pixel_element_len, &vec, ttl_runs, true)
+            .unwrap();
 
 
         // Run kernel:
@@ -202,8 +214,8 @@ fn image_ops() {
         img_dst.cmd().read(&mut vec).enq().unwrap();
 
         // Verify:
-        tests::verify_vec_rect(origin, region, cur_val, old_val,
-            dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
+        tests::verify_vec_rect(origin, region, cur_val, old_val, dims, pixel_element_len, &vec, ttl_runs, true)
+            .unwrap();
 
     }
 

@@ -9,8 +9,8 @@ use std::collections::HashSet;
 use std::convert::Into;
 
 use error::{Result as OclResult, Error as OclError};
-use core::{self, Program as ProgramCore, Context as ContextCore,
-    ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
+use core::{self, Program as ProgramCore, Context as ContextCore, ProgramInfo, ProgramInfoResult, ProgramBuildInfo,
+           ProgramBuildInfoResult};
 use standard::{Context, Device, DeviceSpecifier};
 
 
@@ -26,10 +26,18 @@ use standard::{Context, Device, DeviceSpecifier};
 /// [FIXME] TODO: Examples.
 #[derive(Clone, Debug)]
 pub enum BuildOpt {
-    CmplrDefine { ident: String, val: String },
-    CmplrInclDir { path: String },
+    CmplrDefine {
+        ident: String,
+        val: String,
+    },
+    CmplrInclDir {
+        path: String,
+    },
     CmplrOther(String),
-    IncludeDefine { ident: String, val: String },
+    IncludeDefine {
+        ident: String,
+        val: String,
+    },
     IncludeRaw(String),
     IncludeRawEof(String),
 }
@@ -92,11 +100,10 @@ impl ProgramBuilder {
             return OclError::err("ocl::ProgramBuilder::build: No devices found.");
         }
 
-        Program::new(
-            try!(self.get_src_strings().map_err(|e| e.to_string())),
-            try!(self.get_compiler_options().map_err(|e| e.to_string())),
-            context,
-            &device_list[..])
+        Program::new(try!(self.get_src_strings().map_err(|e| e.to_string())),
+                     try!(self.get_compiler_options().map_err(|e| e.to_string())),
+                     context,
+                     &device_list[..])
     }
 
     /// Adds a build option containing a compiler command line definition.
@@ -132,8 +139,10 @@ impl ProgramBuilder {
     /// Adds the contents of a file to the program.
     pub fn src_file<P: Into<PathBuf>>(mut self, file_path: P) -> ProgramBuilder {
         let file_path = file_path.into();
-        assert!(file_path.is_file(), "ProgramBuilder::src_file(): Source file error: \
-            '{}' does not exist.", file_path.display());
+        assert!(file_path.is_file(),
+                "ProgramBuilder::src_file(): Source file error: \
+            '{}' does not exist.",
+                file_path.display());
         self.src_files.push(file_path);
         self
     }
@@ -152,10 +161,9 @@ impl ProgramBuilder {
     /// ## Panics
     ///
     /// Devices may not have already been specified.
-    pub fn devices<D: Into<DeviceSpecifier>>(mut self, device_spec: D)
-            -> ProgramBuilder
-    {
-        assert!(self.device_spec.is_none(), "ocl::ProgramBuilder::devices(): Devices already specified");
+    pub fn devices<D: Into<DeviceSpecifier>>(mut self, device_spec: D) -> ProgramBuilder {
+        assert!(self.device_spec.is_none(),
+                "ocl::ProgramBuilder::devices(): Devices already specified");
         self.device_spec = Some(device_spec.into());
         self
     }
@@ -174,17 +182,11 @@ impl ProgramBuilder {
 
         for option in self.options.iter() {
             match option {
-                &BuildOpt::CmplrDefine { ref ident, ref val } => {
-                    opts.push(format!("-D{}={}", ident, val))
-                },
+                &BuildOpt::CmplrDefine { ref ident, ref val } => opts.push(format!("-D{}={}", ident, val)),
 
-                &BuildOpt::CmplrInclDir { ref path } => {
-                    opts.push(format!("-I{}", path))
-                },
+                &BuildOpt::CmplrInclDir { ref path } => opts.push(format!("-I{}", path)),
 
-                &BuildOpt::CmplrOther(ref s) => {
-                    opts.push(s.clone())
-                },
+                &BuildOpt::CmplrOther(ref s) => opts.push(s.clone()),
 
                 _ => (),
             }
@@ -212,7 +214,9 @@ impl ProgramBuilder {
         for srcpath in self.src_files.iter() {
             let mut src_bytes: Vec<u8> = Vec::with_capacity(100000);
 
-            if src_file_history.contains(srcpath) { continue; }
+            if src_file_history.contains(srcpath) {
+                continue;
+            }
             src_file_history.insert(srcpath.clone());
 
             let mut src_file_handle = try!(File::open(srcpath));
@@ -239,12 +243,11 @@ impl ProgramBuilder {
         for option in self.options.iter() {
             match option {
                 &BuildOpt::IncludeDefine { ref ident, ref val } => {
-                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val)
-                        .into_bytes())));
-                },
+                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val).into_bytes())));
+                }
                 &BuildOpt::IncludeRaw(ref text) => {
                     strings.push(try!(CString::new(text.clone().into_bytes())));
-                },
+                }
                 _ => (),
             };
 
@@ -263,7 +266,7 @@ impl ProgramBuilder {
             match option {
                 &BuildOpt::IncludeRawEof(ref text) => {
                     strings.push(try!(CString::new(text.clone().into_bytes())));
-                },
+                }
                 _ => (),
             };
         }
@@ -301,11 +304,13 @@ impl Program {
     ///
     /// Prefer `::builder` to create a new `Program`.
     ///
-    pub fn new(src_strings: Vec<CString>, cmplr_opts: CString, context_obj_core: &ContextCore,
-                device_ids: &[Device]) -> OclResult<Program>
-    {
-        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts,
-             device_ids).map_err(|e| e.to_string()));
+    pub fn new(src_strings: Vec<CString>,
+               cmplr_opts: CString,
+               context_obj_core: &ContextCore,
+               device_ids: &[Device])
+               -> OclResult<Program> {
+        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts, device_ids)
+            .map_err(|e| e.to_string()));
 
         Ok(Program {
             obj_core: obj_core,

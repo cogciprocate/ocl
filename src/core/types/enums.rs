@@ -36,16 +36,14 @@ use std::convert::Into;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
-use cl_h::{cl_image_format};
-use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, 
-    ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
-    Mem, MemInfo, MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode,
-    ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo, 
-    KernelArgInfo, KernelWorkGroupInfo, 
-    KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo, 
-    ImageFormat, EventInfo, ProfilingInfo,
-    DeviceType, DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities, 
-    DevicePartitionProperty, DeviceAffinityDomain, };
+use cl_h::cl_image_format;
+use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo, Context,
+           CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus, Mem, MemInfo, MemObjectType, MemFlags,
+           Sampler, SamplerInfo, AddressingMode, FilterMode, ProgramInfo, ProgramBuildInfo, Program,
+           ProgramBuildStatus, ProgramBinaryType, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
+           KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo, ImageFormat,
+           EventInfo, ProfilingInfo, DeviceType, DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType,
+           DeviceExecCapabilities, DevicePartitionProperty, DeviceAffinityDomain};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -91,7 +89,10 @@ pub enum KernelArg<'a, T: 'a + OclPrm> {
     /// Length in multiples of T (not bytes).
     Local(&'a usize),
     /// `size`: size in bytes. Type `T` is ignored.
-    UnsafePointer { size: size_t, value: *const c_void },
+    UnsafePointer {
+        size: size_t,
+        value: *const c_void,
+    },
 }
 
 
@@ -109,9 +110,7 @@ pub enum PlatformInfoResult {
 }
 
 impl PlatformInfoResult {
-    pub fn from_bytes(request: PlatformInfo, result: OclResult<Vec<u8>>)
-            -> PlatformInfoResult
-    {
+    pub fn from_bytes(request: PlatformInfo, result: OclResult<Vec<u8>>) -> PlatformInfoResult {
         match result {
             Ok(result) => {
                 let string = match String::from_utf8(result) {
@@ -171,481 +170,494 @@ impl Into<String> for PlatformInfoResult {
 // #[derive(Debug)]
 pub enum DeviceInfoResult {
     // TemporaryPlaceholderVariant(Vec<u8>),
-    Type(DeviceType),                    // cl_device_type      FLAGS u64
-    VendorId(u32),                 // cl_uint
-    MaxComputeUnits(u32),          // cl_uint
-    MaxWorkItemDimensions(u32),    // cl_uint
-    MaxWorkGroupSize(usize),                            // usize
-    MaxWorkItemSizes(Vec<usize>),         // [usize; CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS]
+    Type(DeviceType), // cl_device_type      FLAGS u64
+    VendorId(u32), // cl_uint
+    MaxComputeUnits(u32), // cl_uint
+    MaxWorkItemDimensions(u32), // cl_uint
+    MaxWorkGroupSize(usize), // usize
+    MaxWorkItemSizes(Vec<usize>), // [usize; CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS]
     PreferredVectorWidthChar(u32), // cl_uint
-    PreferredVectorWidthShort(u32),// cl_uint
-    PreferredVectorWidthInt(u32),  // cl_uint
+    PreferredVectorWidthShort(u32), // cl_uint
+    PreferredVectorWidthInt(u32), // cl_uint
     PreferredVectorWidthLong(u32), // cl_uint
-    PreferredVectorWidthFloat(u32),// cl_uint
-    PreferredVectorWidthDouble(u32),// cl_uint
-    MaxClockFrequency(u32),        // cl_uint
-    AddressBits(u32),              // cl_uint
-    MaxReadImageArgs(u32),         // cl_uint
-    MaxWriteImageArgs(u32),        // cl_uint
-    MaxMemAllocSize(u64),          // cl_ulong
-    Image2dMaxWidth(usize),          // usize
-    Image2dMaxHeight(usize),         // usize
-    Image3dMaxWidth(usize),          // usize
-    Image3dMaxHeight(usize),         // usize
-    Image3dMaxDepth(usize),          // usize
-    ImageSupport(bool),             // cl_bool
-    MaxParameterSize(usize),         // usize
-    MaxSamplers(u32),              // cl_uint
-    MemBaseAddrAlign(u32),         // cl_uint
-    MinDataTypeAlignSize(u32),     // cl_uint
-    SingleFpConfig(DeviceFpConfig),           // cl_device_fp_config    FLAGS u64
-    GlobalMemCacheType(DeviceMemCacheType),       // cl_device_mem_cache_type   ENUM
-    GlobalMemCachelineSize(u32),   // cl_uint
-    GlobalMemCacheSize(u64),       // cl_ulong
-    GlobalMemSize(u64),            // cl_ulong
-    MaxConstantBufferSize(u64),    // cl_ulong
-    MaxConstantArgs(u32),          // cl_uint
-    LocalMemType(DeviceLocalMemType),             // cl_device_local_mem_type     ENUM
-    LocalMemSize(u64),             // cl_ulong
-    ErrorCorrectionSupport(bool),   // cl_bool
+    PreferredVectorWidthFloat(u32), // cl_uint
+    PreferredVectorWidthDouble(u32), // cl_uint
+    MaxClockFrequency(u32), // cl_uint
+    AddressBits(u32), // cl_uint
+    MaxReadImageArgs(u32), // cl_uint
+    MaxWriteImageArgs(u32), // cl_uint
+    MaxMemAllocSize(u64), // cl_ulong
+    Image2dMaxWidth(usize), // usize
+    Image2dMaxHeight(usize), // usize
+    Image3dMaxWidth(usize), // usize
+    Image3dMaxHeight(usize), // usize
+    Image3dMaxDepth(usize), // usize
+    ImageSupport(bool), // cl_bool
+    MaxParameterSize(usize), // usize
+    MaxSamplers(u32), // cl_uint
+    MemBaseAddrAlign(u32), // cl_uint
+    MinDataTypeAlignSize(u32), // cl_uint
+    SingleFpConfig(DeviceFpConfig), // cl_device_fp_config    FLAGS u64
+    GlobalMemCacheType(DeviceMemCacheType), // cl_device_mem_cache_type   ENUM
+    GlobalMemCachelineSize(u32), // cl_uint
+    GlobalMemCacheSize(u64), // cl_ulong
+    GlobalMemSize(u64), // cl_ulong
+    MaxConstantBufferSize(u64), // cl_ulong
+    MaxConstantArgs(u32), // cl_uint
+    LocalMemType(DeviceLocalMemType), // cl_device_local_mem_type     ENUM
+    LocalMemSize(u64), // cl_ulong
+    ErrorCorrectionSupport(bool), // cl_bool
     ProfilingTimerResolution(usize), // usize
-    EndianLittle(bool),             // cl_bool
-    Available(bool),                // cl_bool
-    CompilerAvailable(bool),        // cl_bool
-    ExecutionCapabilities(DeviceExecCapabilities),    // cl_device_exec_capabilities    FLAGS u64
-    QueueProperties(CommandQueueProperties),          // cl_command_queue_properties    FLAGS u64
-    Name(String),                     // String
-    Vendor(String),                   // String
-    DriverVersion(String),            // String
-    Profile(String),                  // String
-    Version(String),                  // String
-    Extensions(String),               // String
-    Platform(PlatformId),             // cl_platform_id
-    DoubleFpConfig(DeviceFpConfig),           // cl_device_fp_config    FLAGS u64
-    HalfFpConfig(DeviceFpConfig),             // cl_device_fp_config    FLAGS u64
+    EndianLittle(bool), // cl_bool
+    Available(bool), // cl_bool
+    CompilerAvailable(bool), // cl_bool
+    ExecutionCapabilities(DeviceExecCapabilities), // cl_device_exec_capabilities    FLAGS u64
+    QueueProperties(CommandQueueProperties), // cl_command_queue_properties    FLAGS u64
+    Name(String), // String
+    Vendor(String), // String
+    DriverVersion(String), // String
+    Profile(String), // String
+    Version(String), // String
+    Extensions(String), // String
+    Platform(PlatformId), // cl_platform_id
+    DoubleFpConfig(DeviceFpConfig), // cl_device_fp_config    FLAGS u64
+    HalfFpConfig(DeviceFpConfig), // cl_device_fp_config    FLAGS u64
     PreferredVectorWidthHalf(u32), // cl_uint
-    HostUnifiedMemory(bool),        // cl_bool
-    NativeVectorWidthChar(u32),    // cl_uint
-    NativeVectorWidthShort(u32),   // cl_uint
-    NativeVectorWidthInt(u32),     // cl_uint
-    NativeVectorWidthLong(u32),    // cl_uint
-    NativeVectorWidthFloat(u32),   // cl_uint
-    NativeVectorWidthDouble(u32),  // cl_uint
-    NativeVectorWidthHalf(u32),    // cl_uint
-    OpenclCVersion(String),           // String
-    LinkerAvailable(bool),          // cl_bool
-    BuiltInKernels(String),           // String
-    ImageMaxBufferSize(usize),       // usize
-    ImageMaxArraySize(usize),        // usize
-    ParentDevice(Option<DeviceId>),   // cl_device_id
-    PartitionMaxSubDevices(u32),   // cl_uint
-    PartitionProperties(Vec<DevicePartitionProperty>),      // cl_device_partition_property  ENUM
-    PartitionAffinityDomain(DeviceAffinityDomain),  // cl_device_affinity_domain    FLAGS u64
-    PartitionType(Vec<DevicePartitionProperty>),            // cl_device_partition_property  ENUM
-    ReferenceCount(u32),           // cl_uint
+    HostUnifiedMemory(bool), // cl_bool
+    NativeVectorWidthChar(u32), // cl_uint
+    NativeVectorWidthShort(u32), // cl_uint
+    NativeVectorWidthInt(u32), // cl_uint
+    NativeVectorWidthLong(u32), // cl_uint
+    NativeVectorWidthFloat(u32), // cl_uint
+    NativeVectorWidthDouble(u32), // cl_uint
+    NativeVectorWidthHalf(u32), // cl_uint
+    OpenclCVersion(String), // String
+    LinkerAvailable(bool), // cl_bool
+    BuiltInKernels(String), // String
+    ImageMaxBufferSize(usize), // usize
+    ImageMaxArraySize(usize), // usize
+    ParentDevice(Option<DeviceId>), // cl_device_id
+    PartitionMaxSubDevices(u32), // cl_uint
+    PartitionProperties(Vec<DevicePartitionProperty>), // cl_device_partition_property  ENUM
+    PartitionAffinityDomain(DeviceAffinityDomain), // cl_device_affinity_domain    FLAGS u64
+    PartitionType(Vec<DevicePartitionProperty>), // cl_device_partition_property  ENUM
+    ReferenceCount(u32), // cl_uint
     PreferredInteropUserSync(bool), // cl_bool
-    PrintfBufferSize(usize),         // usize
-    ImagePitchAlignment(u32),      // cl_uint 
-    ImageBaseAddressAlignment(u32),// cl_uint
+    PrintfBufferSize(usize), // usize
+    ImagePitchAlignment(u32), // cl_uint
+    ImageBaseAddressAlignment(u32), // cl_uint
     Error(Box<OclError>),
 }
 
 impl DeviceInfoResult {
     /// Returns a new `DeviceInfoResult::MaxWorkItemSizes` variant.
-    pub fn from_bytes_max_work_item_sizes(request: DeviceInfo, result: OclResult<Vec<u8>>,
-                max_wi_dims: u32) -> DeviceInfoResult
-    {
+    pub fn from_bytes_max_work_item_sizes(request: DeviceInfo,
+                                          result: OclResult<Vec<u8>>,
+                                          max_wi_dims: u32)
+                                          -> DeviceInfoResult {
         match result { 
-            Ok(result) => { match request {
-                DeviceInfo::MaxWorkItemSizes => {
-                    match max_wi_dims {
-                        3 => {
-                            let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
-                            let mut v = Vec::with_capacity(3);
-                            v.extend_from_slice(&r);
-                            DeviceInfoResult::MaxWorkItemSizes(v)
-                        },
-                        2 => {
-                            let r = unsafe { util::bytes_into::<[usize; 2]>(result) };
-                            let mut v = Vec::with_capacity(2);
-                            v.extend_from_slice(&r);
-                            DeviceInfoResult::MaxWorkItemSizes(v)
-                        },
-                        1 => {
-                            let r = unsafe { util::bytes_into::<[usize; 1]>(result) };
-                            let mut v = Vec::with_capacity(1);
-                            v.extend_from_slice(&r);
-                            DeviceInfoResult::MaxWorkItemSizes(v)
-                        },
-                        _ => DeviceInfoResult::Error(Box::new(OclError::new(format!("Error \
-                            determining number of dimensions for MaxWorkItemSizes.")))),
+            Ok(result) => {
+                match request {
+                    DeviceInfo::MaxWorkItemSizes => {
+                        match max_wi_dims {
+                            3 => {
+                                let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
+                                let mut v = Vec::with_capacity(3);
+                                v.extend_from_slice(&r);
+                                DeviceInfoResult::MaxWorkItemSizes(v)
+                            }
+                            2 => {
+                                let r = unsafe { util::bytes_into::<[usize; 2]>(result) };
+                                let mut v = Vec::with_capacity(2);
+                                v.extend_from_slice(&r);
+                                DeviceInfoResult::MaxWorkItemSizes(v)
+                            }
+                            1 => {
+                                let r = unsafe { util::bytes_into::<[usize; 1]>(result) };
+                                let mut v = Vec::with_capacity(1);
+                                v.extend_from_slice(&r);
+                                DeviceInfoResult::MaxWorkItemSizes(v)
+                            }
+                            _ => {
+                                DeviceInfoResult::Error(Box::new(OclError::new(format!("Error \
+                            determining number of dimensions for MaxWorkItemSizes."))))
+                            }
+                        }
+                    } 
+                    _ => {
+                        panic!("DeviceInfoResult::from_bytes_max_work_item_sizes: Called with \
+                    invalid info variant ({:?}). Call '::from_bytes` instead.",
+                               request)
                     }
-                }, 
-                _ => panic!("DeviceInfoResult::from_bytes_max_work_item_sizes: Called with \
-                    invalid info variant ({:?}). Call '::from_bytes` instead.", request),
-            } },
+                }
+            }
             Err(err) => DeviceInfoResult::Error(Box::new(err)),
         }
     }
 
     /// Returns a new `DeviceInfoResult` for all variants except `MaxWorkItemSizes`.
-    pub fn from_bytes(request: DeviceInfo, result: OclResult<Vec<u8>>)
-            -> DeviceInfoResult
-    {
+    pub fn from_bytes(request: DeviceInfo, result: OclResult<Vec<u8>>) -> DeviceInfoResult {
         match result { 
-            Ok(result) => { match request {
-                DeviceInfo::Type => {
-                    let r = unsafe { util::bytes_into::<DeviceType>(result) };
-                    DeviceInfoResult::Type(r)
-                },  
-                DeviceInfo::VendorId => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::VendorId(r)
-                },  
-                DeviceInfo::MaxComputeUnits => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MaxComputeUnits(r)
-                },  
-                DeviceInfo::MaxWorkItemDimensions => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MaxWorkItemDimensions(r)
-                },  
-                DeviceInfo::MaxWorkGroupSize => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::MaxWorkGroupSize(r)
-                },  
-                DeviceInfo::MaxWorkItemSizes => {
-                    panic!("DeviceInfoResult::from_bytes: Called with invalid info variant ({:?}). \
-                        Call '::from_bytes_max_work_item_sizes` instead.", request);
-                },  
-                DeviceInfo::PreferredVectorWidthChar => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PreferredVectorWidthChar(r)
-                },  
-                DeviceInfo::PreferredVectorWidthShort => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PreferredVectorWidthShort(r)
-                },  
-                DeviceInfo::PreferredVectorWidthInt => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PreferredVectorWidthInt(r)
-                },  
-                DeviceInfo::PreferredVectorWidthLong => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PreferredVectorWidthLong(r)
-                },  
-                DeviceInfo::PreferredVectorWidthFloat => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PreferredVectorWidthFloat(r)
-                },  
-                DeviceInfo::PreferredVectorWidthDouble => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PreferredVectorWidthDouble(r)
-                },  
-                DeviceInfo::MaxClockFrequency => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MaxClockFrequency(r)
-                },  
-                DeviceInfo::AddressBits => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::AddressBits(r)
-                },  
-                DeviceInfo::MaxReadImageArgs => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MaxReadImageArgs(r)
-                },  
-                DeviceInfo::MaxWriteImageArgs => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MaxWriteImageArgs(r)
-                },  
-                DeviceInfo::MaxMemAllocSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                    DeviceInfoResult::MaxMemAllocSize(r)
-                },  
-                DeviceInfo::Image2dMaxWidth => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::Image2dMaxWidth(r)
-                },  
-                DeviceInfo::Image2dMaxHeight => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::Image2dMaxHeight(r)
-                },  
-                DeviceInfo::Image3dMaxWidth => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::Image3dMaxWidth(r)
-                },  
-                DeviceInfo::Image3dMaxHeight => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::Image3dMaxHeight(r)
-                },  
-                DeviceInfo::Image3dMaxDepth => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::Image3dMaxDepth(r)
-                },  
-                DeviceInfo::ImageSupport => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::ImageSupport(r != 0)
-                },  
-                DeviceInfo::MaxParameterSize => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::MaxParameterSize(r)
-                },  
-                DeviceInfo::MaxSamplers => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MaxSamplers(r)
-                },  
-                DeviceInfo::MemBaseAddrAlign => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MemBaseAddrAlign(r)
-                },  
-                DeviceInfo::MinDataTypeAlignSize => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MinDataTypeAlignSize(r)
-                },  
-                DeviceInfo::SingleFpConfig => {
-                    let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
-                    DeviceInfoResult::SingleFpConfig(r)
-                },  
-                DeviceInfo::GlobalMemCacheType => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    match DeviceMemCacheType::from_u32(r) {
-                        Some(e) => DeviceInfoResult::GlobalMemCacheType(e),
-                        None => DeviceInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{:X}' to \
-                                DeviceMemCacheType.", r)))),
+            Ok(result) => {
+                match request {
+                    DeviceInfo::Type => {
+                        let r = unsafe { util::bytes_into::<DeviceType>(result) };
+                        DeviceInfoResult::Type(r)
+                    }  
+                    DeviceInfo::VendorId => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::VendorId(r)
+                    }  
+                    DeviceInfo::MaxComputeUnits => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MaxComputeUnits(r)
+                    }  
+                    DeviceInfo::MaxWorkItemDimensions => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MaxWorkItemDimensions(r)
+                    }  
+                    DeviceInfo::MaxWorkGroupSize => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::MaxWorkGroupSize(r)
+                    }  
+                    DeviceInfo::MaxWorkItemSizes => {
+                        panic!("DeviceInfoResult::from_bytes: Called with invalid info variant ({:?}). \
+                        Call '::from_bytes_max_work_item_sizes` instead.",
+                               request);
+                    }  
+                    DeviceInfo::PreferredVectorWidthChar => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PreferredVectorWidthChar(r)
+                    }  
+                    DeviceInfo::PreferredVectorWidthShort => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PreferredVectorWidthShort(r)
+                    }  
+                    DeviceInfo::PreferredVectorWidthInt => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PreferredVectorWidthInt(r)
+                    }  
+                    DeviceInfo::PreferredVectorWidthLong => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PreferredVectorWidthLong(r)
+                    }  
+                    DeviceInfo::PreferredVectorWidthFloat => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PreferredVectorWidthFloat(r)
+                    }  
+                    DeviceInfo::PreferredVectorWidthDouble => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PreferredVectorWidthDouble(r)
+                    }  
+                    DeviceInfo::MaxClockFrequency => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MaxClockFrequency(r)
+                    }  
+                    DeviceInfo::AddressBits => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::AddressBits(r)
+                    }  
+                    DeviceInfo::MaxReadImageArgs => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MaxReadImageArgs(r)
+                    }  
+                    DeviceInfo::MaxWriteImageArgs => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MaxWriteImageArgs(r)
+                    }  
+                    DeviceInfo::MaxMemAllocSize => {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        DeviceInfoResult::MaxMemAllocSize(r)
+                    }  
+                    DeviceInfo::Image2dMaxWidth => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::Image2dMaxWidth(r)
+                    }  
+                    DeviceInfo::Image2dMaxHeight => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::Image2dMaxHeight(r)
+                    }  
+                    DeviceInfo::Image3dMaxWidth => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::Image3dMaxWidth(r)
+                    }  
+                    DeviceInfo::Image3dMaxHeight => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::Image3dMaxHeight(r)
+                    }  
+                    DeviceInfo::Image3dMaxDepth => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::Image3dMaxDepth(r)
+                    }  
+                    DeviceInfo::ImageSupport => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::ImageSupport(r != 0)
+                    }  
+                    DeviceInfo::MaxParameterSize => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::MaxParameterSize(r)
+                    }  
+                    DeviceInfo::MaxSamplers => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MaxSamplers(r)
+                    }  
+                    DeviceInfo::MemBaseAddrAlign => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MemBaseAddrAlign(r)
+                    }  
+                    DeviceInfo::MinDataTypeAlignSize => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MinDataTypeAlignSize(r)
+                    }  
+                    DeviceInfo::SingleFpConfig => {
+                        let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
+                        DeviceInfoResult::SingleFpConfig(r)
+                    }  
+                    DeviceInfo::GlobalMemCacheType => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        match DeviceMemCacheType::from_u32(r) {
+                            Some(e) => DeviceInfoResult::GlobalMemCacheType(e),
+                            None => {
+                                DeviceInfoResult::Error(Box::new(OclError::new(format!("Error converting '{:X}' to \
+                                DeviceMemCacheType.",
+                                                                                       r))))
+                            }
+                        }
                     }
-                },
-                DeviceInfo::GlobalMemCachelineSize => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::GlobalMemCachelineSize(r)
-                },  
-                DeviceInfo::GlobalMemCacheSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                    DeviceInfoResult::GlobalMemCacheSize(r)
-                },  
-                DeviceInfo::GlobalMemSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                    DeviceInfoResult::GlobalMemSize(r)
-                },  
-                DeviceInfo::MaxConstantBufferSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                    DeviceInfoResult::MaxConstantBufferSize(r)
-                },  
-                DeviceInfo::MaxConstantArgs => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::MaxConstantArgs(r)
-                },  
-                DeviceInfo::LocalMemType => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    match DeviceLocalMemType::from_u32(r) {
-                        Some(e) => DeviceInfoResult::LocalMemType(e),
-                        None => DeviceInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{:X}' to \
-                                DeviceLocalMemType.", r)))),
+                    DeviceInfo::GlobalMemCachelineSize => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::GlobalMemCachelineSize(r)
+                    }  
+                    DeviceInfo::GlobalMemCacheSize => {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        DeviceInfoResult::GlobalMemCacheSize(r)
+                    }  
+                    DeviceInfo::GlobalMemSize => {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        DeviceInfoResult::GlobalMemSize(r)
+                    }  
+                    DeviceInfo::MaxConstantBufferSize => {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        DeviceInfoResult::MaxConstantBufferSize(r)
+                    }  
+                    DeviceInfo::MaxConstantArgs => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::MaxConstantArgs(r)
+                    }  
+                    DeviceInfo::LocalMemType => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        match DeviceLocalMemType::from_u32(r) {
+                            Some(e) => DeviceInfoResult::LocalMemType(e),
+                            None => {
+                                DeviceInfoResult::Error(Box::new(OclError::new(format!("Error converting '{:X}' to \
+                                DeviceLocalMemType.",
+                                                                                       r))))
+                            }
+                        }
                     }
-                },
-                DeviceInfo::LocalMemSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                    DeviceInfoResult::LocalMemSize(r)
-                },  
-                DeviceInfo::ErrorCorrectionSupport => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::ErrorCorrectionSupport(r != 0)
-                },  
-                DeviceInfo::ProfilingTimerResolution => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::ProfilingTimerResolution(r)
-                },  
-                DeviceInfo::EndianLittle => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::EndianLittle(r != 0)
-                },  
-                DeviceInfo::Available => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::Available(r != 0)
-                },  
-                DeviceInfo::CompilerAvailable => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::CompilerAvailable(r != 0)
-                },  
-                DeviceInfo::ExecutionCapabilities => {
-                    let r = unsafe { util::bytes_into::<DeviceExecCapabilities>(result) };
-                    DeviceInfoResult::ExecutionCapabilities(r)
-                },  
-                DeviceInfo::QueueProperties => {
-                    let r = unsafe { util::bytes_into::<CommandQueueProperties>(result) };
-                    DeviceInfoResult::QueueProperties(r)
-                },  
-                DeviceInfo::Name => {
-                    match String::from_utf8(result) {
-                        Ok(s) => DeviceInfoResult::Name(s),
-                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                DeviceInfo::Vendor => {
-                    match String::from_utf8(result) {
-                        Ok(s) => DeviceInfoResult::Vendor(s),
-                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                DeviceInfo::DriverVersion => {
-                    match String::from_utf8(result) {
-                        Ok(s) => DeviceInfoResult::DriverVersion(s),
-                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                DeviceInfo::Profile => {
-                    match String::from_utf8(result) {
-                        Ok(s) => DeviceInfoResult::Profile(s),
-                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                DeviceInfo::Version => {
-                    match String::from_utf8(result) {
-                        Ok(s) => DeviceInfoResult::Version(s),
-                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                DeviceInfo::Extensions => {
-                    match String::from_utf8(result) {
-                        Ok(s) => DeviceInfoResult::Extensions(s),
-                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                DeviceInfo::Platform => {
-                    let r = unsafe { util::bytes_into::<PlatformId>(result) };
-                    DeviceInfoResult::Platform(r)
-                },  
-                DeviceInfo::DoubleFpConfig => {
-                    let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
-                    DeviceInfoResult::DoubleFpConfig(r)
-                },  
-                DeviceInfo::HalfFpConfig => {
-                    let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
-                    DeviceInfoResult::HalfFpConfig(r)
-                },  
-                DeviceInfo::PreferredVectorWidthHalf => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PreferredVectorWidthHalf(r)
-                },  
-                DeviceInfo::HostUnifiedMemory => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::HostUnifiedMemory(r != 0)
-                },  
-                DeviceInfo::NativeVectorWidthChar => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::NativeVectorWidthChar(r)
-                },  
-                DeviceInfo::NativeVectorWidthShort => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::NativeVectorWidthShort(r)
-                },  
-                DeviceInfo::NativeVectorWidthInt => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::NativeVectorWidthInt(r)
-                },  
-                DeviceInfo::NativeVectorWidthLong => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::NativeVectorWidthLong(r)
-                },  
-                DeviceInfo::NativeVectorWidthFloat => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::NativeVectorWidthFloat(r)
-                },  
-                DeviceInfo::NativeVectorWidthDouble => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::NativeVectorWidthDouble(r)
-                },  
-                DeviceInfo::NativeVectorWidthHalf => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::NativeVectorWidthHalf(r)
-                },  
-                DeviceInfo::OpenclCVersion => {
-                    match String::from_utf8(result) {
-                        Ok(s) => DeviceInfoResult::OpenclCVersion(s),
-                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                DeviceInfo::LinkerAvailable => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::LinkerAvailable(r != 0)
-                },  
-                DeviceInfo::BuiltInKernels => {
-                    match String::from_utf8(result) {
-                        Ok(s) => DeviceInfoResult::BuiltInKernels(s),
-                        Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                DeviceInfo::ImageMaxBufferSize => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::ImageMaxBufferSize(r)
-                },  
-                DeviceInfo::ImageMaxArraySize => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::ImageMaxArraySize(r)
-                },  
-                DeviceInfo::ParentDevice => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    if ptr.is_null() {
-                        DeviceInfoResult::ParentDevice(None)
-                    } else {
-                        DeviceInfoResult::ParentDevice(Some(unsafe { DeviceId::from_copied_ptr(ptr) }))
+                    DeviceInfo::LocalMemSize => {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        DeviceInfoResult::LocalMemSize(r)
+                    }  
+                    DeviceInfo::ErrorCorrectionSupport => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::ErrorCorrectionSupport(r != 0)
+                    }  
+                    DeviceInfo::ProfilingTimerResolution => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::ProfilingTimerResolution(r)
+                    }  
+                    DeviceInfo::EndianLittle => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::EndianLittle(r != 0)
+                    }  
+                    DeviceInfo::Available => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::Available(r != 0)
+                    }  
+                    DeviceInfo::CompilerAvailable => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::CompilerAvailable(r != 0)
+                    }  
+                    DeviceInfo::ExecutionCapabilities => {
+                        let r = unsafe { util::bytes_into::<DeviceExecCapabilities>(result) };
+                        DeviceInfoResult::ExecutionCapabilities(r)
+                    }  
+                    DeviceInfo::QueueProperties => {
+                        let r = unsafe { util::bytes_into::<CommandQueueProperties>(result) };
+                        DeviceInfoResult::QueueProperties(r)
+                    }  
+                    DeviceInfo::Name => {
+                        match String::from_utf8(result) {
+                            Ok(s) => DeviceInfoResult::Name(s),
+                            Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                        }
                     }
-                },  
-                DeviceInfo::PartitionMaxSubDevices => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PartitionMaxSubDevices(r)
-                },  
-                DeviceInfo::PartitionProperties => {
-                    // [FIXME]: INCOMPLETE:
-                    //
-                    // let r = unsafe { util::bytes_into::<u32>(result) };
-                    // match DevicePartitionProperty::from_u32(r) {
-                    //     Some(e) => DeviceInfoResult::PartitionProperties(e),
-                    //     None => DeviceInfoResult::Error(Box::new(
-                    //         OclError::new(format!("Error converting '{:X}' to \
-                    //             DevicePartitionProperty.", r)))),
-                    // }
-                    DeviceInfoResult::PartitionProperties(Vec::with_capacity(0))
-                },
-                DeviceInfo::PartitionAffinityDomain => {
-                    let r = unsafe { util::bytes_into::<DeviceAffinityDomain>(result) };
-                    DeviceInfoResult::PartitionAffinityDomain(r)
-                },  
-                DeviceInfo::PartitionType => {
-                    // [FIXME]: INCOMPLETE:
-                    //
-                    // let r = unsafe { util::bytes_into::<u32>(result) };
-                    // match DevicePartitionProperty::from_u32(r) {
-                    //     Some(e) => DeviceInfoResult::PartitionType(e),
-                    //     None => DeviceInfoResult::Error(Box::new(
-                    //         OclError::new(format!("Error converting '{:X}' to \
-                    //             DevicePartitionProperty.", r)))),
-                    // }
-                    DeviceInfoResult::PartitionType(Vec::with_capacity(0))
-                },
-                DeviceInfo::ReferenceCount => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::ReferenceCount(r)
-                },  
-                DeviceInfo::PreferredInteropUserSync => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::PreferredInteropUserSync(r != 0)
-                },  
-                DeviceInfo::PrintfBufferSize => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    DeviceInfoResult::PrintfBufferSize(r)
-                },  
-                DeviceInfo::ImagePitchAlignment => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::ImagePitchAlignment(r)
-                },  
-                DeviceInfo::ImageBaseAddressAlignment => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    DeviceInfoResult::ImageBaseAddressAlignment(r)
-                },    
-                // _ => DeviceInfoResult::TemporaryPlaceholderVariant(result),
-            } },
+                    DeviceInfo::Vendor => {
+                        match String::from_utf8(result) {
+                            Ok(s) => DeviceInfoResult::Vendor(s),
+                            Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    DeviceInfo::DriverVersion => {
+                        match String::from_utf8(result) {
+                            Ok(s) => DeviceInfoResult::DriverVersion(s),
+                            Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    DeviceInfo::Profile => {
+                        match String::from_utf8(result) {
+                            Ok(s) => DeviceInfoResult::Profile(s),
+                            Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    DeviceInfo::Version => {
+                        match String::from_utf8(result) {
+                            Ok(s) => DeviceInfoResult::Version(s),
+                            Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    DeviceInfo::Extensions => {
+                        match String::from_utf8(result) {
+                            Ok(s) => DeviceInfoResult::Extensions(s),
+                            Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    DeviceInfo::Platform => {
+                        let r = unsafe { util::bytes_into::<PlatformId>(result) };
+                        DeviceInfoResult::Platform(r)
+                    }  
+                    DeviceInfo::DoubleFpConfig => {
+                        let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
+                        DeviceInfoResult::DoubleFpConfig(r)
+                    }  
+                    DeviceInfo::HalfFpConfig => {
+                        let r = unsafe { util::bytes_into::<DeviceFpConfig>(result) };
+                        DeviceInfoResult::HalfFpConfig(r)
+                    }  
+                    DeviceInfo::PreferredVectorWidthHalf => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PreferredVectorWidthHalf(r)
+                    }  
+                    DeviceInfo::HostUnifiedMemory => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::HostUnifiedMemory(r != 0)
+                    }  
+                    DeviceInfo::NativeVectorWidthChar => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::NativeVectorWidthChar(r)
+                    }  
+                    DeviceInfo::NativeVectorWidthShort => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::NativeVectorWidthShort(r)
+                    }  
+                    DeviceInfo::NativeVectorWidthInt => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::NativeVectorWidthInt(r)
+                    }  
+                    DeviceInfo::NativeVectorWidthLong => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::NativeVectorWidthLong(r)
+                    }  
+                    DeviceInfo::NativeVectorWidthFloat => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::NativeVectorWidthFloat(r)
+                    }  
+                    DeviceInfo::NativeVectorWidthDouble => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::NativeVectorWidthDouble(r)
+                    }  
+                    DeviceInfo::NativeVectorWidthHalf => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::NativeVectorWidthHalf(r)
+                    }  
+                    DeviceInfo::OpenclCVersion => {
+                        match String::from_utf8(result) {
+                            Ok(s) => DeviceInfoResult::OpenclCVersion(s),
+                            Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    DeviceInfo::LinkerAvailable => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::LinkerAvailable(r != 0)
+                    }  
+                    DeviceInfo::BuiltInKernels => {
+                        match String::from_utf8(result) {
+                            Ok(s) => DeviceInfoResult::BuiltInKernels(s),
+                            Err(err) => return DeviceInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    DeviceInfo::ImageMaxBufferSize => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::ImageMaxBufferSize(r)
+                    }  
+                    DeviceInfo::ImageMaxArraySize => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::ImageMaxArraySize(r)
+                    }  
+                    DeviceInfo::ParentDevice => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        if ptr.is_null() {
+                            DeviceInfoResult::ParentDevice(None)
+                        } else {
+                            DeviceInfoResult::ParentDevice(Some(unsafe { DeviceId::from_copied_ptr(ptr) }))
+                        }
+                    }  
+                    DeviceInfo::PartitionMaxSubDevices => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PartitionMaxSubDevices(r)
+                    }  
+                    DeviceInfo::PartitionProperties => {
+                        // [FIXME]: INCOMPLETE:
+                        //
+                        // let r = unsafe { util::bytes_into::<u32>(result) };
+                        // match DevicePartitionProperty::from_u32(r) {
+                        //     Some(e) => DeviceInfoResult::PartitionProperties(e),
+                        //     None => DeviceInfoResult::Error(Box::new(
+                        //         OclError::new(format!("Error converting '{:X}' to \
+                        //             DevicePartitionProperty.", r)))),
+                        // }
+                        DeviceInfoResult::PartitionProperties(Vec::with_capacity(0))
+                    }
+                    DeviceInfo::PartitionAffinityDomain => {
+                        let r = unsafe { util::bytes_into::<DeviceAffinityDomain>(result) };
+                        DeviceInfoResult::PartitionAffinityDomain(r)
+                    }  
+                    DeviceInfo::PartitionType => {
+                        // [FIXME]: INCOMPLETE:
+                        //
+                        // let r = unsafe { util::bytes_into::<u32>(result) };
+                        // match DevicePartitionProperty::from_u32(r) {
+                        //     Some(e) => DeviceInfoResult::PartitionType(e),
+                        //     None => DeviceInfoResult::Error(Box::new(
+                        //         OclError::new(format!("Error converting '{:X}' to \
+                        //             DevicePartitionProperty.", r)))),
+                        // }
+                        DeviceInfoResult::PartitionType(Vec::with_capacity(0))
+                    }
+                    DeviceInfo::ReferenceCount => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::ReferenceCount(r)
+                    }  
+                    DeviceInfo::PreferredInteropUserSync => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::PreferredInteropUserSync(r != 0)
+                    }  
+                    DeviceInfo::PrintfBufferSize => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        DeviceInfoResult::PrintfBufferSize(r)
+                    }  
+                    DeviceInfo::ImagePitchAlignment => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::ImagePitchAlignment(r)
+                    }  
+                    DeviceInfo::ImageBaseAddressAlignment => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        DeviceInfoResult::ImageBaseAddressAlignment(r)
+                    }    
+                    // _ => DeviceInfoResult::TemporaryPlaceholderVariant(result),
+                }
+            }
             Err(err) => DeviceInfoResult::Error(Box::new(err)),
         }
     }
@@ -768,16 +780,16 @@ pub enum ContextInfoResult {
 impl ContextInfoResult {
     pub fn from_bytes(request: ContextInfo, result: OclResult<Vec<u8>>) -> ContextInfoResult {
         match result {
-            Ok(result) => { match request {
-                ContextInfo::ReferenceCount => {
-                    ContextInfoResult::ReferenceCount(util::bytes_to_u32(&result))
-                },
-                ContextInfo::Devices => { 
-                    ContextInfoResult::Devices(unsafe { util::bytes_into_vec::<DeviceId>(result) })
-                },
-                ContextInfo::Properties => ContextInfoResult::Properties(result),
-                ContextInfo::NumDevices => ContextInfoResult::NumDevices(util::bytes_to_u32(&result)),
-            } },
+            Ok(result) => {
+                match request {
+                    ContextInfo::ReferenceCount => ContextInfoResult::ReferenceCount(util::bytes_to_u32(&result)),
+                    ContextInfo::Devices => {
+                        ContextInfoResult::Devices(unsafe { util::bytes_into_vec::<DeviceId>(result) })
+                    }
+                    ContextInfo::Properties => ContextInfoResult::Properties(result),
+                    ContextInfo::NumDevices => ContextInfoResult::NumDevices(util::bytes_to_u32(&result)),
+                }
+            }
             Err(err) => ContextInfoResult::Error(Box::new(err)),
         }
     }
@@ -820,29 +832,29 @@ pub enum CommandQueueInfoResult {
 }
 
 impl CommandQueueInfoResult {
-    pub fn from_bytes(request: CommandQueueInfo, result: OclResult<Vec<u8>>)
-            -> CommandQueueInfoResult
-    {
+    pub fn from_bytes(request: CommandQueueInfo, result: OclResult<Vec<u8>>) -> CommandQueueInfoResult {
         match result {
-            Ok(result) => { match request {
-                CommandQueueInfo::Context => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    CommandQueueInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
-                },
-                CommandQueueInfo::Device => {
-                    let device = unsafe { util::bytes_into::<DeviceId>(result) };
-                    CommandQueueInfoResult::Device(device)
-                },
-                CommandQueueInfo::ReferenceCount => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    CommandQueueInfoResult::ReferenceCount(r)
+            Ok(result) => {
+                match request {
+                    CommandQueueInfo::Context => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        CommandQueueInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                    }
+                    CommandQueueInfo::Device => {
+                        let device = unsafe { util::bytes_into::<DeviceId>(result) };
+                        CommandQueueInfoResult::Device(device)
+                    }
+                    CommandQueueInfo::ReferenceCount => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        CommandQueueInfoResult::ReferenceCount(r)
+                    }
+                    CommandQueueInfo::Properties => {
+                        let r = unsafe { util::bytes_into::<CommandQueueProperties>(result) };
+                        CommandQueueInfoResult::Properties(r)
+                    }
+                    // _ => CommandQueueInfoResult::TemporaryPlaceholderVariant(result),
                 }
-                CommandQueueInfo::Properties => {
-                    let r = unsafe { util::bytes_into::<CommandQueueProperties>(result) };
-                    CommandQueueInfoResult::Properties(r)
-                }
-                // _ => CommandQueueInfoResult::TemporaryPlaceholderVariant(result),
-            } }
+            }
             Err(err) => CommandQueueInfoResult::Error(Box::new(err)),
         }
     }
@@ -911,80 +923,79 @@ pub enum MemInfoResult {
 
 
 impl MemInfoResult {
-    pub fn from_bytes(request: MemInfo, result: OclResult<Vec<u8>>)
-            -> MemInfoResult
-    {
+    pub fn from_bytes(request: MemInfo, result: OclResult<Vec<u8>>) -> MemInfoResult {
         match result {
-            Ok(result) => { match request {
-                MemInfo::Type => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    match MemObjectType::from_u32(r) {
-                        Some(am) => MemInfoResult::Type(am),
-                        None => MemInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{}' to \
-                                MemObjectType.", r)))),
-                    }
-                },
-                MemInfo::Flags => {
-                    let r = unsafe { util::bytes_into::<MemFlags>(result) };
-                    MemInfoResult::Flags(r)
-                },                
-                MemInfo::Size => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    MemInfoResult::Size(r)
-                },    
-                MemInfo::HostPtr => {
-                    // [FIXME]: UNTESTED, INCOMPLETE.
-                    if result.len() == 8 {
-                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-
-                        if ptr.is_null() {
-                            MemInfoResult::HostPtr(None)
-                        } else {
-                            MemInfoResult::HostPtr(Some((ptr, None)))
-                        }                        
-                    } else if result.len() == 16 {
-                        let ptr_and_origin = unsafe { 
-                            util::bytes_into::<(*mut c_void, usize)>(result) 
-                        };
-
-                        if ptr_and_origin.0.is_null() {
-                            MemInfoResult::HostPtr(None)
-                        } else {
-                            MemInfoResult::HostPtr(Some((ptr_and_origin.0, 
-                                Some(ptr_and_origin.1))))
+            Ok(result) => {
+                match request {
+                    MemInfo::Type => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        match MemObjectType::from_u32(r) {
+                            Some(am) => MemInfoResult::Type(am),
+                            None => {
+                                MemInfoResult::Error(Box::new(OclError::new(format!("Error converting '{}' to \
+                                MemObjectType.",
+                                                                                    r))))
+                            }
                         }
-                    } else {
-                        MemInfoResult::HostPtr(None)
                     }
-                },
-                MemInfo::MapCount => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    MemInfoResult::MapCount(r)
-                },    
-                MemInfo::ReferenceCount => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    MemInfoResult::ReferenceCount(r)
-                },    
-                MemInfo::Context => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    MemInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
-                },
-                MemInfo::AssociatedMemobject => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    if ptr.is_null() {
-                        MemInfoResult::AssociatedMemobject(None)
-                    } else {
-                        MemInfoResult::AssociatedMemobject(Some(unsafe { Mem::from_copied_ptr(ptr) }))
-                    }
-                },
-                MemInfo::Offset => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    MemInfoResult::Offset(r)
-                },    
+                    MemInfo::Flags => {
+                        let r = unsafe { util::bytes_into::<MemFlags>(result) };
+                        MemInfoResult::Flags(r)
+                    }                
+                    MemInfo::Size => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        MemInfoResult::Size(r)
+                    }    
+                    MemInfo::HostPtr => {
+                        // [FIXME]: UNTESTED, INCOMPLETE.
+                        if result.len() == 8 {
+                            let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
 
-                // _ => MemInfoResult::TemporaryPlaceholderVariant(result),
-            } }
+                            if ptr.is_null() {
+                                MemInfoResult::HostPtr(None)
+                            } else {
+                                MemInfoResult::HostPtr(Some((ptr, None)))
+                            }
+                        } else if result.len() == 16 {
+                            let ptr_and_origin = unsafe { util::bytes_into::<(*mut c_void, usize)>(result) };
+
+                            if ptr_and_origin.0.is_null() {
+                                MemInfoResult::HostPtr(None)
+                            } else {
+                                MemInfoResult::HostPtr(Some((ptr_and_origin.0, Some(ptr_and_origin.1))))
+                            }
+                        } else {
+                            MemInfoResult::HostPtr(None)
+                        }
+                    }
+                    MemInfo::MapCount => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        MemInfoResult::MapCount(r)
+                    }    
+                    MemInfo::ReferenceCount => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        MemInfoResult::ReferenceCount(r)
+                    }    
+                    MemInfo::Context => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        MemInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                    }
+                    MemInfo::AssociatedMemobject => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        if ptr.is_null() {
+                            MemInfoResult::AssociatedMemobject(None)
+                        } else {
+                            MemInfoResult::AssociatedMemobject(Some(unsafe { Mem::from_copied_ptr(ptr) }))
+                        }
+                    }
+                    MemInfo::Offset => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        MemInfoResult::Offset(r)
+                    }    
+
+                    // _ => MemInfoResult::TemporaryPlaceholderVariant(result),
+                }
+            }
             Err(err) => MemInfoResult::Error(Box::new(err)),
         }
     }
@@ -1043,63 +1054,64 @@ pub enum ImageInfoResult {
 }
 
 impl ImageInfoResult {
-    pub fn from_bytes(request: ImageInfo, result: OclResult<Vec<u8>>) -> ImageInfoResult
-    {
+    pub fn from_bytes(request: ImageInfo, result: OclResult<Vec<u8>>) -> ImageInfoResult {
         match result {
-            Ok(result) => { match request {
-                ImageInfo::Format => {
-                    let r = unsafe { util::bytes_into::<cl_image_format>(result) };
-                    match ImageFormat::from_raw(r) {
-                        Ok(f) => ImageInfoResult::Format(f),
-                        Err(err) => ImageInfoResult::Error(Box::new(err)),
-                    }                    
-                },
-                ImageInfo::ElementSize => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    ImageInfoResult::ElementSize(r)
-                },
-                ImageInfo::RowPitch => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    ImageInfoResult::RowPitch(r)
-                },
-                ImageInfo::SlicePitch => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    ImageInfoResult::SlicePitch(r)
-                },
-                ImageInfo::Width => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    ImageInfoResult::Width(r)
-                },
-                ImageInfo::Height => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    ImageInfoResult::Height(r)
-                },
-                ImageInfo::Depth => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    ImageInfoResult::Depth(r)
-                },
-                ImageInfo::ArraySize => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    ImageInfoResult::ArraySize(r)
-                },
-                ImageInfo::Buffer => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    if ptr.is_null() {
-                        ImageInfoResult::Buffer(None)
-                    } else {
-                        ImageInfoResult::Buffer(Some(unsafe { Mem::from_copied_ptr(ptr) }))
+            Ok(result) => {
+                match request {
+                    ImageInfo::Format => {
+                        let r = unsafe { util::bytes_into::<cl_image_format>(result) };
+                        match ImageFormat::from_raw(r) {
+                            Ok(f) => ImageInfoResult::Format(f),
+                            Err(err) => ImageInfoResult::Error(Box::new(err)),
+                        }
                     }
-                },
-                ImageInfo::NumMipLevels => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    ImageInfoResult::NumMipLevels(r)
-                },
-                ImageInfo::NumSamples => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    ImageInfoResult::NumSamples(r)
-                },
-                // _ => ImageInfoResult::TemporaryPlaceholderVariant(result),
-            } }
+                    ImageInfo::ElementSize => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        ImageInfoResult::ElementSize(r)
+                    }
+                    ImageInfo::RowPitch => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        ImageInfoResult::RowPitch(r)
+                    }
+                    ImageInfo::SlicePitch => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        ImageInfoResult::SlicePitch(r)
+                    }
+                    ImageInfo::Width => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        ImageInfoResult::Width(r)
+                    }
+                    ImageInfo::Height => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        ImageInfoResult::Height(r)
+                    }
+                    ImageInfo::Depth => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        ImageInfoResult::Depth(r)
+                    }
+                    ImageInfo::ArraySize => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        ImageInfoResult::ArraySize(r)
+                    }
+                    ImageInfo::Buffer => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        if ptr.is_null() {
+                            ImageInfoResult::Buffer(None)
+                        } else {
+                            ImageInfoResult::Buffer(Some(unsafe { Mem::from_copied_ptr(ptr) }))
+                        }
+                    }
+                    ImageInfo::NumMipLevels => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        ImageInfoResult::NumMipLevels(r)
+                    }
+                    ImageInfo::NumSamples => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        ImageInfoResult::NumSamples(r)
+                    }
+                    // _ => ImageInfoResult::TemporaryPlaceholderVariant(result),
+                }
+            }
             Err(err) => ImageInfoResult::Error(Box::new(err)),
         }
     }
@@ -1153,43 +1165,47 @@ pub enum SamplerInfoResult {
 }
 
 impl SamplerInfoResult {
-    pub fn from_bytes(request: SamplerInfo, result: OclResult<Vec<u8>>)
-            -> SamplerInfoResult
-    {
+    pub fn from_bytes(request: SamplerInfo, result: OclResult<Vec<u8>>) -> SamplerInfoResult {
         match result {
-            Ok(result) => { match request {
-                SamplerInfo::ReferenceCount => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    SamplerInfoResult::ReferenceCount(r)
-                },
-                SamplerInfo::Context => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    SamplerInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
-                },
-                SamplerInfo::NormalizedCoords => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    SamplerInfoResult::NormalizedCoords(r!= 0u32)
-                },
-                SamplerInfo::AddressingMode => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    match AddressingMode::from_u32(r) {
-                        Some(am) => SamplerInfoResult::AddressingMode(am),
-                        None => SamplerInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{}' to \
-                                AddressingMode.", r)))),
+            Ok(result) => {
+                match request {
+                    SamplerInfo::ReferenceCount => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        SamplerInfoResult::ReferenceCount(r)
                     }
-                },
-                SamplerInfo::FilterMode => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    match FilterMode::from_u32(r) {
-                        Some(fm) => SamplerInfoResult::FilterMode(fm),
-                        None => SamplerInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{}' to \
-                                FilterMode.", r)))),
+                    SamplerInfo::Context => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        SamplerInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
                     }
-                },
-                // _ => SamplerInfoResult::TemporaryPlaceholderVariant(result),
-            } }
+                    SamplerInfo::NormalizedCoords => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        SamplerInfoResult::NormalizedCoords(r != 0u32)
+                    }
+                    SamplerInfo::AddressingMode => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        match AddressingMode::from_u32(r) {
+                            Some(am) => SamplerInfoResult::AddressingMode(am),
+                            None => {
+                                SamplerInfoResult::Error(Box::new(OclError::new(format!("Error converting '{}' to \
+                                AddressingMode.",
+                                                                                        r))))
+                            }
+                        }
+                    }
+                    SamplerInfo::FilterMode => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        match FilterMode::from_u32(r) {
+                            Some(fm) => SamplerInfoResult::FilterMode(fm),
+                            None => {
+                                SamplerInfoResult::Error(Box::new(OclError::new(format!("Error converting '{}' to \
+                                FilterMode.",
+                                                                                        r))))
+                            }
+                        }
+                    }
+                    // _ => SamplerInfoResult::TemporaryPlaceholderVariant(result),
+                }
+            }
             Err(err) => SamplerInfoResult::Error(Box::new(err)),
         }
     }
@@ -1242,53 +1258,51 @@ pub enum ProgramInfoResult {
 }
 
 impl ProgramInfoResult {
-    pub fn from_bytes(request: ProgramInfo, result: OclResult<Vec<u8>>)
-            -> ProgramInfoResult
-    {
+    pub fn from_bytes(request: ProgramInfo, result: OclResult<Vec<u8>>) -> ProgramInfoResult {
         match result {
-            Ok(result) => { match request {
-                ProgramInfo::ReferenceCount => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    ProgramInfoResult::ReferenceCount(r)
-                },
-                ProgramInfo::Context => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    ProgramInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
-                },
-                ProgramInfo::NumDevices => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    ProgramInfoResult::NumDevices(r)
-                },
-                ProgramInfo::Devices => {
-                    ProgramInfoResult::Devices(
-                        unsafe { util::bytes_into_vec::<DeviceId>(result) }
-                    )
-                },
-                ProgramInfo::Source => {
-                    match String::from_utf8(result) {
-                        Ok(s) => ProgramInfoResult::Source(s),
-                        Err(err) => return ProgramInfoResult::Error(Box::new(OclError::from(err))),
+            Ok(result) => {
+                match request {
+                    ProgramInfo::ReferenceCount => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        ProgramInfoResult::ReferenceCount(r)
                     }
-                },
-                ProgramInfo::BinarySizes => { ProgramInfoResult::BinarySizes(
-                        unsafe { util::bytes_into_vec::<usize>(result) }
-                ) },
-                ProgramInfo::Binaries => {
-                    // [FIXME]: UNIMPLEMENTED
-                    ProgramInfoResult::Binaries(Vec::with_capacity(0))
-                },
-                ProgramInfo::NumKernels => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    ProgramInfoResult::NumKernels(r)
-                },
-                ProgramInfo::KernelNames => {
-                    match String::from_utf8(result) {
-                        Ok(s) => ProgramInfoResult::KernelNames(s),
-                        Err(err) => return ProgramInfoResult::Error(Box::new(OclError::from(err))),
-                    }                    
-                },
-                // _ => ProgramInfoResult::TemporaryPlaceholderVariant(result),
-            } }
+                    ProgramInfo::Context => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        ProgramInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                    }
+                    ProgramInfo::NumDevices => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        ProgramInfoResult::NumDevices(r)
+                    }
+                    ProgramInfo::Devices => {
+                        ProgramInfoResult::Devices(unsafe { util::bytes_into_vec::<DeviceId>(result) })
+                    }
+                    ProgramInfo::Source => {
+                        match String::from_utf8(result) {
+                            Ok(s) => ProgramInfoResult::Source(s),
+                            Err(err) => return ProgramInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    ProgramInfo::BinarySizes => {
+                        ProgramInfoResult::BinarySizes(unsafe { util::bytes_into_vec::<usize>(result) })
+                    }
+                    ProgramInfo::Binaries => {
+                        // [FIXME]: UNIMPLEMENTED
+                        ProgramInfoResult::Binaries(Vec::with_capacity(0))
+                    }
+                    ProgramInfo::NumKernels => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        ProgramInfoResult::NumKernels(r)
+                    }
+                    ProgramInfo::KernelNames => {
+                        match String::from_utf8(result) {
+                            Ok(s) => ProgramInfoResult::KernelNames(s),
+                            Err(err) => return ProgramInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                    // _ => ProgramInfoResult::TemporaryPlaceholderVariant(result),
+                }
+            }
             Err(err) => ProgramInfoResult::Error(Box::new(err)),
         }
     }
@@ -1338,37 +1352,39 @@ pub enum ProgramBuildInfoResult {
 }
 
 impl ProgramBuildInfoResult {
-    pub fn from_bytes(request: ProgramBuildInfo, result: OclResult<Vec<u8>>)
-            -> ProgramBuildInfoResult
-    {
+    pub fn from_bytes(request: ProgramBuildInfo, result: OclResult<Vec<u8>>) -> ProgramBuildInfoResult {
         match result {
-            Ok(result) => { match request {
-                ProgramBuildInfo::BuildStatus => {
-                    let r = unsafe { util::bytes_into::<i32>(result) };
-                    match ProgramBuildStatus::from_i32(r) {
-                        Some(b) => ProgramBuildInfoResult::BuildStatus(b),
-                        None => ProgramBuildInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{}' to \
-                                ProgramBuildStatus.", r)))),
+            Ok(result) => {
+                match request {
+                    ProgramBuildInfo::BuildStatus => {
+                        let r = unsafe { util::bytes_into::<i32>(result) };
+                        match ProgramBuildStatus::from_i32(r) {
+                            Some(b) => ProgramBuildInfoResult::BuildStatus(b),
+                            None => {
+                                ProgramBuildInfoResult::Error(Box::new(OclError::new(format!("Error converting '{}' to \
+                                ProgramBuildStatus.",
+                                                                                             r))))
+                            }
+                        }
                     }
-                },
-                ProgramBuildInfo::BuildOptions => {
-                    match String::from_utf8(result) {
-                        Ok(s) => ProgramBuildInfoResult::BuildOptions(s),
-                        Err(err) => return ProgramBuildInfoResult::Error(Box::new(OclError::from(err))),
+                    ProgramBuildInfo::BuildOptions => {
+                        match String::from_utf8(result) {
+                            Ok(s) => ProgramBuildInfoResult::BuildOptions(s),
+                            Err(err) => return ProgramBuildInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }    
+                    ProgramBuildInfo::BuildLog => {
+                        match String::from_utf8(result) {
+                            Ok(s) => ProgramBuildInfoResult::BuildLog(s),
+                            Err(err) => return ProgramBuildInfoResult::Error(Box::new(OclError::from(err))),
+                        }
                     }
-                },    
-                ProgramBuildInfo::BuildLog => {
-                    match String::from_utf8(result) {
-                        Ok(s) => ProgramBuildInfoResult::BuildLog(s),
-                        Err(err) => return ProgramBuildInfoResult::Error(Box::new(OclError::from(err))),
+                    ProgramBuildInfo::BinaryType => {
+                        let r = unsafe { util::bytes_into::<ProgramBinaryType>(result) };
+                        ProgramBuildInfoResult::BinaryType(r)
                     }
-                },
-                ProgramBuildInfo::BinaryType => {
-                    let r = unsafe { util::bytes_into::<ProgramBinaryType>(result) };
-                    ProgramBuildInfoResult::BinaryType(r)
-                },
-            } }
+                }
+            }
             Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
         }
     }
@@ -1412,40 +1428,40 @@ pub enum KernelInfoResult {
 }
 
 impl KernelInfoResult {
-    pub fn from_bytes(request: KernelInfo, result: OclResult<Vec<u8>>)
-            -> KernelInfoResult
-    {
+    pub fn from_bytes(request: KernelInfo, result: OclResult<Vec<u8>>) -> KernelInfoResult {
         match result {
-            Ok(result) => match request {
-                KernelInfo::FunctionName => {
-                    match String::from_utf8(result) {
-                        Ok(s) => KernelInfoResult::FunctionName(s),
-                        Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
+            Ok(result) => {
+                match request {
+                    KernelInfo::FunctionName => {
+                        match String::from_utf8(result) {
+                            Ok(s) => KernelInfoResult::FunctionName(s),
+                            Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
+                        }
                     }
-                },
-                KernelInfo::NumArgs => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    KernelInfoResult::NumArgs(r)
-                },
-                KernelInfo::ReferenceCount => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    KernelInfoResult::ReferenceCount(r)
-                },
-                KernelInfo::Context => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    KernelInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
-                },
-                KernelInfo::Program => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    KernelInfoResult::Program(unsafe { Program::from_copied_ptr(ptr) })
-                },
-                KernelInfo::Attributes => {
-                    match String::from_utf8(result) {
-                        Ok(s) => KernelInfoResult::Attributes(s),
-                        Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
+                    KernelInfo::NumArgs => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        KernelInfoResult::NumArgs(r)
                     }
-                },
-            },
+                    KernelInfo::ReferenceCount => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        KernelInfoResult::ReferenceCount(r)
+                    }
+                    KernelInfo::Context => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        KernelInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                    }
+                    KernelInfo::Program => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        KernelInfoResult::Program(unsafe { Program::from_copied_ptr(ptr) })
+                    }
+                    KernelInfo::Attributes => {
+                        match String::from_utf8(result) {
+                            Ok(s) => KernelInfoResult::Attributes(s),
+                            Err(err) => return KernelInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                }
+            }
             Err(err) => KernelInfoResult::Error(Box::new(err)),
         }
     }
@@ -1490,46 +1506,50 @@ pub enum KernelArgInfoResult {
 }
 
 impl KernelArgInfoResult {
-    pub fn from_bytes(request: KernelArgInfo, result: OclResult<Vec<u8>>)
-            -> KernelArgInfoResult
-    {
+    pub fn from_bytes(request: KernelArgInfo, result: OclResult<Vec<u8>>) -> KernelArgInfoResult {
         match result {
-            Ok(result) => match request {
-                KernelArgInfo::AddressQualifier => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    match KernelArgAddressQualifier::from_u32(r) {
-                        Some(kaaq) => KernelArgInfoResult::AddressQualifier(kaaq),
-                        None => KernelArgInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{}' to \
-                                KernelArgAddressQualifier.", r)))),
+            Ok(result) => {
+                match request {
+                    KernelArgInfo::AddressQualifier => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        match KernelArgAddressQualifier::from_u32(r) {
+                            Some(kaaq) => KernelArgInfoResult::AddressQualifier(kaaq),
+                            None => {
+                                KernelArgInfoResult::Error(Box::new(OclError::new(format!("Error converting '{}' to \
+                                KernelArgAddressQualifier.",
+                                                                                          r))))
+                            }
+                        }
                     }
-                },
-                KernelArgInfo::AccessQualifier => {
-                    let r = unsafe { util::bytes_into::<u32>(result) };
-                    match KernelArgAccessQualifier::from_u32(r) {
-                        Some(kaaq) => KernelArgInfoResult::AccessQualifier(kaaq),
-                        None => KernelArgInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{}' to \
-                                KernelArgAccessQualifier.", r)))),
+                    KernelArgInfo::AccessQualifier => {
+                        let r = unsafe { util::bytes_into::<u32>(result) };
+                        match KernelArgAccessQualifier::from_u32(r) {
+                            Some(kaaq) => KernelArgInfoResult::AccessQualifier(kaaq),
+                            None => {
+                                KernelArgInfoResult::Error(Box::new(OclError::new(format!("Error converting '{}' to \
+                                KernelArgAccessQualifier.",
+                                                                                          r))))
+                            }
+                        }
                     }
-                },
-                KernelArgInfo::TypeName => {
-                    match String::from_utf8(result) {
-                        Ok(s) => KernelArgInfoResult::TypeName(s),
-                        Err(err) => return KernelArgInfoResult::Error(Box::new(OclError::from(err))),
+                    KernelArgInfo::TypeName => {
+                        match String::from_utf8(result) {
+                            Ok(s) => KernelArgInfoResult::TypeName(s),
+                            Err(err) => return KernelArgInfoResult::Error(Box::new(OclError::from(err))),
+                        }
                     }
-                },
-                KernelArgInfo::TypeQualifier => {
-                    let r = unsafe { util::bytes_into::<KernelArgTypeQualifier>(result) };
-                    KernelArgInfoResult::TypeQualifier(r)
-                },
-                KernelArgInfo::Name => {
-                    match String::from_utf8(result) {
-                        Ok(s) => KernelArgInfoResult::Name(s),
-                        Err(err) => return KernelArgInfoResult::Error(Box::new(OclError::from(err))),
+                    KernelArgInfo::TypeQualifier => {
+                        let r = unsafe { util::bytes_into::<KernelArgTypeQualifier>(result) };
+                        KernelArgInfoResult::TypeQualifier(r)
                     }
-                },
-            },
+                    KernelArgInfo::Name => {
+                        match String::from_utf8(result) {
+                            Ok(s) => KernelArgInfoResult::Name(s),
+                            Err(err) => return KernelArgInfoResult::Error(Box::new(OclError::from(err))),
+                        }
+                    }
+                }
+            }
             Err(err) => KernelArgInfoResult::Error(Box::new(err)),
         }
     }
@@ -1574,40 +1594,40 @@ pub enum KernelWorkGroupInfoResult {
 }
 
 impl KernelWorkGroupInfoResult {
-    pub fn from_bytes(request: KernelWorkGroupInfo, result: OclResult<Vec<u8>>)
-            -> KernelWorkGroupInfoResult
-    {
+    pub fn from_bytes(request: KernelWorkGroupInfo, result: OclResult<Vec<u8>>) -> KernelWorkGroupInfoResult {
         match result {
-            Ok(result) => match request {
-                KernelWorkGroupInfo::WorkGroupSize => {
-                    if result.len() == 0 {
-                        KernelWorkGroupInfoResult::WorkGroupSize(0)
-                    } else {
-                        let r = unsafe { util::bytes_into::<usize>(result) };
-                        KernelWorkGroupInfoResult::WorkGroupSize(r)
+            Ok(result) => {
+                match request {
+                    KernelWorkGroupInfo::WorkGroupSize => {
+                        if result.len() == 0 {
+                            KernelWorkGroupInfoResult::WorkGroupSize(0)
+                        } else {
+                            let r = unsafe { util::bytes_into::<usize>(result) };
+                            KernelWorkGroupInfoResult::WorkGroupSize(r)
+                        }
                     }
-                },
-                KernelWorkGroupInfo::CompileWorkGroupSize => {
-                    let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
-                    KernelWorkGroupInfoResult::CompileWorkGroupSize(r)
+                    KernelWorkGroupInfo::CompileWorkGroupSize => {
+                        let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
+                        KernelWorkGroupInfoResult::CompileWorkGroupSize(r)
+                    }
+                    KernelWorkGroupInfo::LocalMemSize => {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        KernelWorkGroupInfoResult::LocalMemSize(r)
+                    }
+                    KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple => {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(r)
+                    }
+                    KernelWorkGroupInfo::PrivateMemSize => {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        KernelWorkGroupInfoResult::PrivateMemSize(r)
+                    }
+                    KernelWorkGroupInfo::GlobalWorkSize => {
+                        let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
+                        KernelWorkGroupInfoResult::GlobalWorkSize(r)
+                    }
                 }
-                KernelWorkGroupInfo::LocalMemSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                     KernelWorkGroupInfoResult::LocalMemSize(r)
-                },
-                KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(r)
-                },
-                KernelWorkGroupInfo::PrivateMemSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                    KernelWorkGroupInfoResult::PrivateMemSize(r)
-                },
-                KernelWorkGroupInfo::GlobalWorkSize => {
-                    let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
-                    KernelWorkGroupInfoResult::GlobalWorkSize(r)
-                },
-            },
+            }
             Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
         }
     }
@@ -1652,40 +1672,44 @@ pub enum EventInfoResult {
 }
 
 impl EventInfoResult {
-    pub fn from_bytes(request: EventInfo, result: OclResult<Vec<u8>>)
-            -> EventInfoResult
-    {
+    pub fn from_bytes(request: EventInfo, result: OclResult<Vec<u8>>) -> EventInfoResult {
         match result {
-            Ok(result) => { match request {
-                EventInfo::CommandQueue => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    EventInfoResult::CommandQueue(unsafe { CommandQueue::from_copied_ptr(ptr) })
-                },
-                EventInfo::CommandType => {
-                    let code = unsafe { util::bytes_into::<u32>(result) };
-                    match CommandType::from_u32(code) {
-                        Some(ces) => EventInfoResult::CommandType(ces),
-                        None => EventInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{}' to CommandType.", code)))),
+            Ok(result) => {
+                match request {
+                    EventInfo::CommandQueue => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        EventInfoResult::CommandQueue(unsafe { CommandQueue::from_copied_ptr(ptr) })
                     }
-                },
-                EventInfo::ReferenceCount => { EventInfoResult::ReferenceCount(
-                        unsafe { util::bytes_into::<u32>(result) }
-                ) },
-                EventInfo::CommandExecutionStatus => {
-                    let code = unsafe { util::bytes_into::<i32>(result) };
-                    match CommandExecutionStatus::from_i32(code) {
-                        Some(ces) => EventInfoResult::CommandExecutionStatus(ces),
-                        None => EventInfoResult::Error(Box::new(
-                            OclError::new(format!("Error converting '{}' to \
-                                CommandExecutionStatus.", code)))),
+                    EventInfo::CommandType => {
+                        let code = unsafe { util::bytes_into::<u32>(result) };
+                        match CommandType::from_u32(code) {
+                            Some(ces) => EventInfoResult::CommandType(ces),
+                            None => {
+                                EventInfoResult::Error(Box::new(OclError::new(format!("Error converting '{}' to CommandType.",
+                                                                                      code))))
+                            }
+                        }
                     }
-                },
-                EventInfo::Context => {
-                    let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
-                    EventInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
-                },
-            } }
+                    EventInfo::ReferenceCount => {
+                        EventInfoResult::ReferenceCount(unsafe { util::bytes_into::<u32>(result) })
+                    }
+                    EventInfo::CommandExecutionStatus => {
+                        let code = unsafe { util::bytes_into::<i32>(result) };
+                        match CommandExecutionStatus::from_i32(code) {
+                            Some(ces) => EventInfoResult::CommandExecutionStatus(ces),
+                            None => {
+                                EventInfoResult::Error(Box::new(OclError::new(format!("Error converting '{}' to \
+                                CommandExecutionStatus.",
+                                                                                      code))))
+                            }
+                        }
+                    }
+                    EventInfo::Context => {
+                        let ptr = unsafe { util::bytes_into::<*mut c_void>(result) };
+                        EventInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                    }
+                }
+            }
             Err(err) => EventInfoResult::Error(Box::new(err)),
         }
     }
@@ -1728,20 +1752,16 @@ pub enum ProfilingInfoResult {
 }
 
 impl ProfilingInfoResult {
-    pub fn from_bytes(request: ProfilingInfo, result: OclResult<Vec<u8>>)
-            -> ProfilingInfoResult
-    {
+    pub fn from_bytes(request: ProfilingInfo, result: OclResult<Vec<u8>>) -> ProfilingInfoResult {
         match result {
-            Ok(result) => { match request {
-                ProfilingInfo::Queued => ProfilingInfoResult::Queued(
-                        unsafe { util::bytes_into::<u64>(result) }),
-                ProfilingInfo::Submit => ProfilingInfoResult::Queued(
-                        unsafe { util::bytes_into::<u64>(result) }),
-                ProfilingInfo::Start => ProfilingInfoResult::Queued(
-                        unsafe { util::bytes_into::<u64>(result) }),
-                ProfilingInfo::End => ProfilingInfoResult::Queued(
-                        unsafe { util::bytes_into::<u64>(result) }),
-            } },
+            Ok(result) => {
+                match request {
+                    ProfilingInfo::Queued => ProfilingInfoResult::Queued(unsafe { util::bytes_into::<u64>(result) }),
+                    ProfilingInfo::Submit => ProfilingInfoResult::Queued(unsafe { util::bytes_into::<u64>(result) }),
+                    ProfilingInfo::Start => ProfilingInfoResult::Queued(unsafe { util::bytes_into::<u64>(result) }),
+                    ProfilingInfo::End => ProfilingInfoResult::Queued(unsafe { util::bytes_into::<u64>(result) }),
+                }
+            }
             Err(err) => ProfilingInfoResult::Error(Box::new(err)),
         }
     }

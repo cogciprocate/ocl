@@ -6,8 +6,8 @@ use std::convert::Into;
 use libc::c_void;
 use cl_h;
 use error::{Error as OclError, Result as OclResult};
-use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult,
-    ClEventPtrNew, ClWaitList, EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
+use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, ClEventPtrNew,
+           ClWaitList, EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
 
 /// An event representing a command or user created event.
 #[derive(Clone, Debug)]
@@ -47,7 +47,7 @@ impl Event {
                 //     Err(err) => EventInfoResult::Error(Box::new(err)),
                 // }
                 core::get_event_info(core, info_kind)
-            },
+            }
             None => EventInfoResult::Error(Box::new(self.err_empty())),
         }
     }
@@ -61,7 +61,7 @@ impl Event {
                 //     Err(err) => ProfilingInfoResult::Error(Box::new(err)),
                 // }
                 core::get_event_profiling_info(core, info_kind)
-            },
+            }
             None => ProfilingInfoResult::Error(Box::new(self.err_empty())),
         }
     }
@@ -184,9 +184,7 @@ pub struct EventList {
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
-        EventList {
-            event_list_core: EventListCore::new(),
-        }
+        EventList { event_list_core: EventListCore::new() }
     }
 
     // pub fn push(&mut self, event: Event) {
@@ -208,7 +206,7 @@ impl EventList {
                     Ok(ev) => unsafe { Some(Event::from_core(ev)) },
                     Err(_) => None,
                 }
-            },
+            }
             None => None,
         }
     }
@@ -221,7 +219,7 @@ impl EventList {
                     Ok(ev) => unsafe { Some(Event::from_core(ev)) },
                     Err(_) => None,
                 }
-            },
+            }
             None => None,
         }
     }
@@ -238,15 +236,17 @@ impl EventList {
     /// TODO: Create a safer type wrapper for `callback_receiver`.
     /// TODO: Move this method to `Event`.
     pub unsafe fn set_callback<T>(&self,
-                callback_receiver: Option<EventCallbackFn>,
-                user_data: &mut T,
-                ) -> OclResult<()>
-    {
-        let event_core = try!(try!(self.event_list_core.last_clone().ok_or(
-            OclError::new("ocl::EventList::set_callback: This event list is empty."))));
+                                  callback_receiver: Option<EventCallbackFn>,
+                                  user_data: &mut T)
+                                  -> OclResult<()> {
+        let event_core = try!(try!(self.event_list_core
+            .last_clone()
+            .ok_or(OclError::new("ocl::EventList::set_callback: This event list is empty."))));
 
-        core::set_event_callback(&event_core, CommandExecutionStatus::Complete,
-                    callback_receiver, user_data as *mut _ as *mut c_void)
+        core::set_event_callback(&event_core,
+                                 CommandExecutionStatus::Complete,
+                                 callback_receiver,
+                                 user_data as *mut _ as *mut c_void)
     }
 
     // pub fn clear_completed(&mut self) -> OclResult<()> {

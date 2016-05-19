@@ -17,10 +17,9 @@ pub struct Platform(PlatformIdCore);
 impl Platform {
     /// Returns a list of all platforms avaliable on the host machine.
     pub fn list() -> Vec<Platform> {
-        let list_core = core::get_platform_ids()
-            .expect("Platform::list: Error retrieving platform list");
+        let list_core = core::get_platform_ids().expect("Platform::list: Error retrieving platform list");
 
-        list_core.into_iter().map(|pr| Platform::new(pr) ).collect()
+        list_core.into_iter().map(|pr| Platform::new(pr)).collect()
     }
 
     // /// Returns the first available platform on the host machine.

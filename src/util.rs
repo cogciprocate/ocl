@@ -16,9 +16,9 @@ use error::{Result as OclResult, Error as OclError};
 
 use core::{OclPrm, OclScl};
 
-//=============================================================================
-//================================= MACROS ====================================
-//=============================================================================
+// =============================================================================
+// ================================= MACROS ====================================
+// =============================================================================
 
 // /// `print!` with all the glorious colors of the the ANSI rainbow.
 // ///
@@ -102,9 +102,9 @@ use core::{OclPrm, OclScl};
 //     ($s:expr) => (concat!("\x1b[93m", $s, "\x1b[0m"));
 // }
 
-//=============================================================================
-//================================ STATICS ====================================
-//=============================================================================
+// =============================================================================
+// ================================ STATICS ====================================
+// =============================================================================
 
 pub mod colors {
     pub static TAB: &'static str = "    ";
@@ -144,9 +144,9 @@ pub mod colors {
 }
 
 
-//=============================================================================
-//=========================== UTILITY FUNCTIONS ===============================
-//=============================================================================
+// =============================================================================
+// =========================== UTILITY FUNCTIONS ===============================
+// =============================================================================
 
 /// Copies a byte slice to a new `u32`.
 ///
@@ -157,10 +157,7 @@ pub mod colors {
 pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
     debug_assert!(bytes.len() == 4);
 
-    bytes[0] as u32 |
-    ((bytes[1] as u32) << 8) |
-    ((bytes[2] as u32) << 16) |
-    ((bytes[3] as u32) << 24)
+    bytes[0] as u32 | ((bytes[1] as u32) << 8) | ((bytes[2] as u32) << 16) | ((bytes[3] as u32) << 24)
 }
 
 /// Converts a vector of bytes into a value of arbitrary type.
@@ -177,9 +174,11 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
 pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
     // let byte_count = mem::size_of::<u8>() * vec.len();
     // assert_eq!(mem::size_of::<T>(), vec.len());
-    assert!(mem::size_of::<T>() == vec.len(), "The size of the source byte vector ({} bytes) \
-        does not match the size of the destination type ({} bytes).", vec.len(), 
-        mem::size_of::<T>());
+    assert!(mem::size_of::<T>() == vec.len(),
+            "The size of the source byte vector ({} bytes) \
+        does not match the size of the destination type ({} bytes).",
+            vec.len(),
+            mem::size_of::<T>());
 
     let mut new_val: T = mem::uninitialized();
 
@@ -195,9 +194,11 @@ pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
 /// You may want to wear a helmet.
 ///
 pub unsafe fn bytes_to<T>(bytes: &[u8]) -> T {
-    assert!(mem::size_of::<T>() == bytes.len(), "The size of the source byte slice ({} bytes) \
-        does not match the size of the destination type ({} bytes).", bytes.len(), 
-        mem::size_of::<T>());
+    assert!(mem::size_of::<T>() == bytes.len(),
+            "The size of the source byte slice ({} bytes) \
+        does not match the size of the destination type ({} bytes).",
+            bytes.len(),
+            mem::size_of::<T>());
 
     let mut new_val: T = mem::uninitialized();
 
@@ -298,8 +299,10 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 ///
 /// Should be perfectly safe, just need to test it a bit.
 ///
-pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &[usize],
-                rebuild_threshold: usize) -> OclResult<()> {
+pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>,
+                                           remove_list: &[usize],
+                                           rebuild_threshold: usize)
+                                           -> OclResult<()> {
     if remove_list.len() > orig_vec.len() {
         return OclError::err("ocl::util::vec_remove_rebuild: Remove list is longer than source
             vector.");
@@ -310,10 +313,12 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
     if remove_list.len() <= rebuild_threshold {
         for &idx in remove_list.iter().rev() {
             if idx < orig_len {
-                 orig_vec.remove(idx);
+                orig_vec.remove(idx);
             } else {
                 return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
-                at least one out of range index: [{}] ('orig_vec.len()': {}).", idx, orig_len));
+                at least one out of range index: [{}] ('orig_vec.len()': {}).",
+                                             idx,
+                                             orig_len));
             }
         }
     } else {
@@ -326,7 +331,9 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
                     *remove_markers.get_unchecked_mut(idx) = false;
                 } else {
                     return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
-                    at least one out of range index: [{}] ('orig_vec.len()': {}).", idx, orig_len));
+                    at least one out of range index: [{}] ('orig_vec.len()': {}).",
+                                                 idx,
+                                                 orig_len));
                 }
             }
 
@@ -359,7 +366,8 @@ pub fn wrap_vals<T: OclPrm + Integer>(vals: &[T], val_n: T) -> Vec<T> {
 /// range `[vals.0, vals.1)`.
 pub fn scrambled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
-    assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
+    assert!(vals.0 < vals.1,
+            "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
     let mut rng = rand::weak_rng();
     let range = RandRange::new(vals.0, vals.1);
 
@@ -374,13 +382,15 @@ pub fn scrambled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
 pub fn shuffled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
     let mut vec: Vec<T> = Vec::with_capacity(size);
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
-    assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
+    assert!(vals.0 < vals.1,
+            "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
     let min = vals.0.to_i64().expect("\nbuffer::shuffled_vec(), min");
     let max = vals.1.to_i64().expect("\nbuffer::shuffled_vec(), max") + 1;
     let mut range = (min..max).cycle();
 
     for _ in 0..size {
-        vec.push(FromPrimitive::from_i64(range.next().expect("\nbuffer::shuffled_vec(), range")).expect("\nbuffer::shuffled_vec(), from_usize"));
+        vec.push(FromPrimitive::from_i64(range.next().expect("\nbuffer::shuffled_vec(), range"))
+            .expect("\nbuffer::shuffled_vec(), from_usize"));
     }
 
     shuffle(&mut vec);
@@ -422,9 +432,9 @@ pub fn shuffle<T: OclScl>(vec: &mut [T]) {
 //     lens.iter().map(|len| len * mem::size_of::<T>()).collect()
 // }
 
-//=============================================================================
-//=========================== PRINTING FUNCTIONS ==============================
-//=============================================================================
+// =============================================================================
+// =========================== PRINTING FUNCTIONS ==============================
+// =============================================================================
 
 /// Does what is says it's gonna.
 pub fn print_bytes_as_hex(bytes: &Vec<u8>) {
@@ -439,29 +449,31 @@ pub fn print_bytes_as_hex(bytes: &Vec<u8>) {
 #[allow(unused_assignments, unused_variables)]
 /// [UNSTABLE]: MAY BE REMOVED AT ANY TIME
 /// Prints a vector to stdout. Used for debugging.
-pub fn print_slice<T: OclScl>(
-            vec: &[T],
-            every: usize,
-            val_range: Option<(T, T)>,
-            idx_range: Option<Range<usize>>,
-            show_zeros: bool,
-            ) {
-    print!( "{cdgr}[{cg}{}{cdgr}/{}", vec.len(), every, cg = colors::C_GRN, cdgr = colors::C_DGR);
+pub fn print_slice<T: OclScl>(vec: &[T],
+                              every: usize,
+                              val_range: Option<(T, T)>,
+                              idx_range: Option<Range<usize>>,
+                              show_zeros: bool) {
+    print!("{cdgr}[{cg}{}{cdgr}/{}",
+           vec.len(),
+           every,
+           cg = colors::C_GRN,
+           cdgr = colors::C_DGR);
 
     let (vr_start, vr_end) = match val_range {
         Some(vr) => {
-            print!( ";({}-{})", vr.0, vr.1);
+            print!(";({}-{})", vr.0, vr.1);
             vr
-        },
+        }
 
         None => (Default::default(), Default::default()),
     };
 
     let (ir_start, ir_end) = match idx_range {
         Some(ref ir) => {
-            print!( ";[{}..{}]", ir.start, ir.end);
+            print!(";[{}..{}]", ir.start, ir.end);
             (ir.start, ir.end)
-        },
+        }
 
         None => (0usize, 0usize),
     };
@@ -528,9 +540,13 @@ pub fn print_slice<T: OclScl>(
         if within_idx_range && within_val_range {
             sum += vec[i].to_i64().expect("ocl::buffer::print_vec(): vec[i]");
 
-            if vec[i] > hi { hi = vec[i] };
+            if vec[i] > hi {
+                hi = vec[i]
+            };
 
-            if vec[i] < lo { lo = vec[i] };
+            if vec[i] < lo {
+                lo = vec[i]
+            };
 
             if vec[i] != Default::default() {
                 ttl_nz += 1usize;
@@ -545,7 +561,12 @@ pub fn print_slice<T: OclScl>(
         }
 
         if prnt {
-            print!( "{cg}[{cd}{}{cg}:{cc}{}{cg}]{cd}", i, vec[i], cc = color, cd = colors::C_DEFAULT, cg = colors::C_DGR);
+            print!("{cg}[{cd}{}{cg}:{cc}{}{cg}]{cd}",
+                   i,
+                   vec[i],
+                   cc = color,
+                   cd = colors::C_DEFAULT,
+                   cg = colors::C_DGR);
             ttl_prntd += 1;
         }
     }
@@ -559,19 +580,29 @@ pub fn print_slice<T: OclScl>(
     if ttl_nz > 0 {
         anz = sum as f32 / ttl_nz as f32;
         nz_pct = (ttl_nz as f32 / len as f32) * 100f32;
-        //print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
+        // print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
     }
 
     if ttl_ir > 0 {
         avg_ir = sum as f32 / ttl_ir as f32;
         ir_pct = (ttl_ir as f32 / len as f32) * 100f32;
-        //print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
+        // print!( "[ttl_nz: {}, nz_pct: {:.0}%, len: {}]", ttl_nz, nz_pct, len);
     }
 
 
     println!("{cdgr} ;(nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
         ir:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),hi:{},lo:{},anz:{:.2},prntd:{}){cd} ",
-        ttl_nz, nz_pct, ttl_ir, ir_pct, hi, lo, anz, ttl_prntd, cd = colors::C_DEFAULT, clbl = colors::C_LBL, cdgr = colors::C_DGR);
+             ttl_nz,
+             nz_pct,
+             ttl_ir,
+             ir_pct,
+             hi,
+             lo,
+             anz,
+             ttl_prntd,
+             cd = colors::C_DEFAULT,
+             clbl = colors::C_LBL,
+             cdgr = colors::C_DGR);
 }
 
 
@@ -610,8 +641,7 @@ mod tests {
         println!("util::tests::remove_rebuild(): bad_indices: {}", bad_indices.len());
 
         // Remove the bad values:
-        super::vec_remove_rebuild(&mut primary_vals, &bad_indices[..], 3)
-            .expect("util::tests::remove_rebuild()");
+        super::vec_remove_rebuild(&mut primary_vals, &bad_indices[..], 3).expect("util::tests::remove_rebuild()");
 
         // Check:
         for &val in primary_vals.iter() {
