@@ -389,9 +389,9 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    let properties_bytes: Vec<u8> = match properties {
-        &Some(ref props) => props.to_bytes(),
-        &None => Vec::<u8>::with_capacity(0),
+    let properties_bytes: Vec<isize> = match properties {
+        &Some(ref props) => props.to_raw(),
+        &None => Vec::<isize>::with_capacity(0),
     };
 
     // [DEBUG]:
@@ -403,8 +403,8 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     let properties_ptr = if properties_bytes.len() == 0 {
         ptr::null() as *const cl_context_properties
     } else {
-        // properties_bytes.as_ptr()
-        ptr::null() as *const cl_context_properties
+        properties_bytes.as_ptr()
+        // ptr::null() as *const cl_context_properties
     };
 
     // [FIXME]: Disabled:
@@ -448,9 +448,9 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    let properties_bytes: Vec<u8> = match properties {
-        &Some(ref props) => props.to_bytes(),
-        &None => Vec::<u8>::with_capacity(0),
+    let properties_bytes: Vec<isize> = match properties {
+        &Some(ref props) => props.to_raw(),
+        &None => Vec::<isize>::with_capacity(0),
     };
 
     // [DEBUG]:
@@ -462,8 +462,8 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     let properties_ptr = if properties_bytes.len() == 0 {
         ptr::null() as *const cl_context_properties
     } else {
-        // properties_bytes.as_ptr()
-        ptr::null() as *const cl_context_properties
+        properties_bytes.as_ptr()
+        // ptr::null() as *const cl_context_properties
     };
 
     // [FIXME]: Disabled:
