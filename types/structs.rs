@@ -104,16 +104,17 @@ impl Into<Vec<ContextProperty>> for ContextProperties {
     }
 }
 
-// pub enum ContextInfoOrPropertiesPointerType {
-//     Platform = cl_h::CL_CONTEXT_PLATFORM as isize,
-//     InteropUserSync = cl_h::CL_CONTEXT_INTEROP_USER_SYNC as isize,
-// }
-
 impl Into<Vec<u8>> for ContextProperties {
     fn into(self) -> Vec<u8> {
         self.to_bytes()
     }
 }
+
+
+// pub enum ContextInfoOrPropertiesPointerType {
+//     Platform = cl_h::CL_CONTEXT_PLATFORM as isize,
+//     InteropUserSync = cl_h::CL_CONTEXT_INTEROP_USER_SYNC as isize,
+// }
 
 
 

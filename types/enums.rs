@@ -36,6 +36,7 @@ use std::convert::Into;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
+use ffi::{ClGlUint}
 use cl_h::{cl_image_format};
 use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, 
     ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
@@ -153,7 +154,7 @@ pub enum ContextProperty {
     Platform(PlatformId),
     InteropUserSync(bool),
     D3d10DeviceKhr(TemporaryPlaceholderType),
-    GlContextKhr(TemporaryPlaceholderType),
+    GlContextKhr(ClGlUint),
     EglDisplayKhr(TemporaryPlaceholderType),
     GlxDisplayKhr(TemporaryPlaceholderType),
     CglSharegroupKhr(TemporaryPlaceholderType),
