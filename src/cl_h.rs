@@ -578,8 +578,8 @@ pub const CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 #[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
 extern "system" {
     // Platform API
-    pub fn clGetPlatformIDs(num_entries:   cl_uint,
-                            platforms:     *mut cl_platform_id,
+    pub fn clGetPlatformIDs(num_entries: cl_uint,
+                            platforms: *mut cl_platform_id,
                             num_platforms: *mut cl_uint) -> cl_int;
 
     pub fn clGetPlatformInfo(platform: cl_platform_id,

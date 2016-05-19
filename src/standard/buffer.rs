@@ -4,6 +4,8 @@ use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
+use ffi::ClGlUint;
+
 use core::{self, OclPrm, Mem as MemCore, MemFlags,
     MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList};
 use error::{Error as OclError, Result as OclResult};
@@ -27,6 +29,8 @@ pub enum BufferCmdKind<'b, T: 'b> {
     Copy { dst_buffer: &'b MemCore, dst_offset: usize, len: usize },
     Fill { pattern: T, len: Option<usize> },
     CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
+    GLAcquire,
+    GLRelease
 }
 
 impl<'b, T: 'b> BufferCmdKind<'b, T> {
@@ -249,6 +253,36 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         self
     }
 
+    /// Specifies that this command will acquire a GL buffer.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn gl_acquire(mut self) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::gl_acquire(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::GLAcquire;
+        self
+    }
+
+    /// Specifies that this command will release a GL buffer.
+    ///
+    /// If `.block(..)` has been set it will be ignored.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn gl_release(mut self) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::gl_release(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::GLRelease;
+        self
+    }
+
     /// Specifies that this command will be a fill.
     ///
     /// If `.block(..)` has been set it will be ignored.
@@ -410,7 +444,13 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                             valid operation. Please use the default shape, linear.");
                     }
                 }
-            }
+            },
+            BufferCmdKind::GLAcquire => {
+                core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+            },
+            BufferCmdKind::GLRelease => {
+                core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+            },
             BufferCmdKind::Unspecified => return OclError::err("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),
@@ -457,6 +497,37 @@ impl<T: OclPrm> Buffer<T> {
 
         // if data.is_none() { try!(buf.cmd().fill(&[Default::default()], None).enq()); }
         if data.is_none() { try!(buf.cmd().fill(Default::default(), None).enq()); }
+        Ok(buf)
+    }
+
+    /// [UNTESTED]
+    /// Create a buffer linked to a GL buffer object (created with openGL)
+    ///
+    /// ## Errors
+    ///
+    /// Don't forget to `.cmd().gl_acquire().enq()` before using it and
+    /// `.cmd().gl_release().enq()` after.
+    ///
+    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
+    /// for more info.
+    pub fn from_gl_buffer<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, gl_object: ClGlUint)
+            -> OclResult<Buffer<T>> {
+        let flags = flags.unwrap_or(core::MEM_READ_WRITE);
+        let dims: SpatialDims = dims.to_lens().into();
+        let len = dims.to_len();
+        let obj_core = unsafe { try!(core::create_from_gl_buffer(
+                                        queue.context_core_as_ref(),
+                                        gl_object,
+                                        flags)) };
+
+        let buf = Buffer {
+            obj_core: obj_core,
+            queue: queue.clone(),
+            dims: dims,
+            len: len,
+            _data: PhantomData,
+        };
+
         Ok(buf)
     }
 

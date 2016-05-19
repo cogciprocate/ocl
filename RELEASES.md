@@ -5,7 +5,7 @@ New Features
 ------------
 * [FIXME: ELABORATE]: Vector types.
 * MSVC support.
-
+* Buffers can be created from a GL object
 
 Breaking Changes
 ----------------
@@ -70,7 +70,7 @@ Breaking Changes
       (more documentation to come).
     * All of the traits pertaining to the internal vector, such as Index, have
       been removed.
-    * All of the constructors have been removed and replaced by a single 
+    * All of the constructors have been removed and replaced by a single
       method, `::new`.
     * Many of the convenience methods for initializing buffers with randomly
       scrambled or shuffled data now take the form of functions as,
@@ -132,18 +132,18 @@ Breaking Changes
   A new method with the old name, is now a shortcut for kernel creation using
   pre-assigned dimensions` (this naming is likely temporary).
 * The kernel created using `ProQue::create_kernel` is no longer wrapped in a
-  result and instead panics if there is a problem. If you require a 
+  result and instead panics if there is a problem. If you require a
   non-panicing way to create a kernel use `Kernel::new`.
 * `Context::new` has been redesigned. It is now recommended to use
   `Context::builder` or its equivalent, `ContextBuilder::new' to create a
   `Context`.
-* `Queue::new` now takes a `Device` as its second argument. Use the new 
+* `Queue::new` now takes a `Device` as its second argument. Use the new
   `Context::get_device_by_index` to achieve the same result.
 * All 'standard' types refer to `Device` and `Platform` instead of
   `core::DeviceId` and `core::PlatformId` in method signatures.
 * `Buffer::read_async` and `::write_async` have been renamed `::enqueue_read`
   and `::enqueue_write` and have an additional parameter to set blocking.
-* `Buffer::fill_vec_async` and `::flush_vec_async` have been renamed 
+* `Buffer::fill_vec_async` and `::flush_vec_async` have been renamed
   `::enqueue_fill_vec` and `::enqueue_flush_vec` and have an additional
   parameter to set blocking.
 
@@ -166,10 +166,10 @@ Breaking Changes
 * Some methods and functions now return results where before they would unwind.
 * The `::release` method has been removed from those types which still had it.
   All types now automatically release their resources properly.
-* `Buffer::fill_vec` and `Buffer::flush_vec` no longer return results and 
+* `Buffer::fill_vec` and `Buffer::flush_vec` no longer return results and
   instead panic in the event of an error.
 * All of the `Buffer` creation methods (such as `::new` and `::with_vec`) now
-  take a reference to a `BufferDims` type for the `dims` argument instead 
+  take a reference to a `BufferDims` type for the `dims` argument instead
   moving it.
 * The `raw` module has been renamed to `core` for clarity.
 * Functions in the `core` module now take references to `*Raw` types instead of
@@ -180,7 +180,7 @@ Breaking Changes
 
 New Features
 ------------
-* `core` has a considerable number of newly implemented (and unimplemented 
+* `core` has a considerable number of newly implemented (and unimplemented
   placeholder) functions.
 * Many 'info' functions and types have been added. See the example, `info.rs`,
   for details on how to use them.
@@ -210,27 +210,27 @@ implemented on the 'standard' ocl interfaces.
 Breaking Changes
 ----------------
 * [`Buffer`] has had several methods dealing with reading and writing renamed
-  and two new ones created. 
-   * `::flush_vec` and `::fill_vec` have been renamed to `::flush_vec_async` 
-     and `::fill_vec_async`. 
-   * `::flush_vec_wait` and `::fill_vec_wait` have been renamed to 
-     `::flush_vec` and `::fill_vec`. 
-   * `::read` and `::write` have been renamed `::read_async` and 
+  and two new ones created.
+   * `::flush_vec` and `::fill_vec` have been renamed to `::flush_vec_async`
+     and `::fill_vec_async`.
+   * `::flush_vec_wait` and `::fill_vec_wait` have been renamed to
+     `::flush_vec` and `::fill_vec`.
+   * `::read` and `::write` have been renamed `::read_async` and
      `::write_async`.
    * Blocking versions of read and write have been created called, you guessed
      it, `::read` and `::write`.
-  The more straightforward, blocking versions of these methods now have the 
-  simplest names wheras the more complicated, non-blocking versions have the 
+  The more straightforward, blocking versions of these methods now have the
+  simplest names wheras the more complicated, non-blocking versions have the
   `_async` suffix.
 * [`Buffer`] non-blocking read methods (*_async) are now unsafe pending review.
 * [`Buffer`] reading and writing methods now return a `Result<()>`.
-* The `Buffer::with_vec_shuffled` and `Buffer::with_vec_scrambled` methods 
-  now accept a 2-tuple as the first argument instead of two separate values for 
+* The `Buffer::with_vec_shuffled` and `Buffer::with_vec_scrambled` methods
+  now accept a 2-tuple as the first argument instead of two separate values for
   the first two arguments.
 * `ProQue::build` has been renamed `ProQue::build_program`.
-* `BuildOptions` has been renamed to [`ProgramBuilder`] and has been 
+* `BuildOptions` has been renamed to [`ProgramBuilder`] and has been
   redesigned:
-   * A new [`ProgramBuilder`] can be created with `ProgramBuilder::new` or 
+   * A new [`ProgramBuilder`] can be created with `ProgramBuilder::new` or
      `Program::builder`.
    * The `::build` method has been added, consuming the builder and returning
      a new [`Program`].
