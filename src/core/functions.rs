@@ -405,6 +405,13 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
         properties_bytes.as_ptr()
     };
 
+    // [FIXME]: Disabled:
+    let user_data_ptr = match user_data {
+        // Some(ud_ptr) => ud_ptr,
+        Some(_) => ptr::null_mut(),
+        None => ptr::null_mut(),
+    };
+
     let mut errcode: cl_int = 0;
 
     let context = unsafe { Context::from_fresh_ptr(cl_h::clCreateContext(
@@ -412,7 +419,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
         device_ids.len() as cl_uint,
         device_ids.as_ptr()  as *const cl_device_id,
         pfn_notify,
-        user_data,
+        user_data_ptr,
         &mut errcode,
     )) };
     // [DEBUG]:
@@ -455,13 +462,20 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
         properties_bytes.as_ptr()
     };
 
+    // [FIXME]: Disabled:
+    let user_data_ptr = match user_data {
+        // Some(ud_ptr) => ud_ptr,
+        Some(_) => ptr::null_mut(),
+        None => ptr::null_mut(),
+    };
+
     let mut errcode: cl_int = 0;
 
     let context = unsafe { Context::from_fresh_ptr(cl_h::clCreateContextFromType(
         properties_ptr as *const cl_context_properties,
         device_type.bits(),
         pfn_notify,
-        user_data,
+        user_data_ptr,
         &mut errcode,
     )) };
     errcode_try("clCreateContextFromType", "", errcode).and(Ok(context))
