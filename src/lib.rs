@@ -65,6 +65,8 @@ pub mod aliases {
     //! kernel.
     //!
     //! Vector type fields can be accessed using .0, .1, .2 ... etc.
+    //!
+    //! 
 
     pub use cl_h::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
