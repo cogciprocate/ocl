@@ -181,6 +181,8 @@ impl ContextProperties {
     // /// Converts this list into a packed-word representation as specified
     // /// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
     // ///
+    // // [NOTE]: Meant to replace `::to_bytes`.
+    // //
     // // Return type is `Vec<cl_context_properties>` => `Vec<isize>`
     // pub fn to_raw(&self) -> Vec<isize> {
     //     let mut props = Vec::with_capacity(32);
@@ -189,8 +191,8 @@ impl ContextProperties {
     //         // For each property:
     //         for prop in self.0.iter() {
     //             // Convert both the kind of property (a u32) and the value (variable type/size)
-    //             // into just a core byte vector (Vec<u8>):
-    //             let (kind, val) = match prop {
+    //             // an isize:
+    //             match prop {
     //                 &ContextProperty::Platform(ref platform_id_core) => (
     //                     util::into_bytes(PropKind::Platform as cl_h::cl_uint),
     //                     util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id)
@@ -205,23 +207,14 @@ impl ContextProperties {
     //                 // ),
     //                 _ => continue,
     //             };
-
-    //             // Property Kind Enum:
-    //             bytes.extend_from_slice(&kind);
-    //             // 32 bits of padding:
-    //             bytes.extend_from_slice(&util::into_bytes(0 as u32));
-    //             // Value:
-    //             bytes.extend_from_slice(&val);
-    //             // 32 bits of padding:
-    //             bytes.extend_from_slice(&util::into_bytes(0 as u32));
     //         }
 
     //         // Add a terminating 0:
     //         bytes.extend_from_slice(&util::into_bytes(0 as usize));
     //     }
 
-    //     bytes.shrink_to_fit();
-    //     bytes
+    //     props.shrink_to_fit();
+    //     props
     // }
 }
 
