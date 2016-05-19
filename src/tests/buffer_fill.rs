@@ -12,10 +12,10 @@ fn fill() {
     "#;
 
     let pro_que = ProQue::builder()
-        .src(src)
-        .dims([DATASET_SIZE])
-        .build()
-        .unwrap();
+                      .src(src)
+                      .dims([DATASET_SIZE])
+                      .build()
+                      .unwrap();
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();
 
@@ -29,9 +29,9 @@ fn fill() {
     }
 
     let kernel = pro_que.create_kernel("add")
-        .unwrap()
-        .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+                        .unwrap()
+                        .arg_buf(&buffer)
+                        .arg_scl(10.0f32);
 
     kernel.enq().expect("[FIXME]: HANDLE ME!");
 
@@ -60,10 +60,10 @@ fn fill_with_float4() {
     let final_val = start_val + addend;
 
     let pro_que = ProQue::builder()
-        .src(src)
-        .dims([DATASET_SIZE])
-        .build()
-        .unwrap();
+                      .src(src)
+                      .dims([DATASET_SIZE])
+                      .build()
+                      .unwrap();
 
     let buffer = pro_que.create_buffer::<ClFloat4>().unwrap();
 
@@ -77,9 +77,9 @@ fn fill_with_float4() {
     }
 
     let kernel = pro_que.create_kernel("add_float4")
-        .unwrap()
-        .arg_buf(&buffer)
-        .arg_scl(addend);
+                        .unwrap()
+                        .arg_buf(&buffer)
+                        .arg_scl(addend);
 
     kernel.enq().unwrap();
 

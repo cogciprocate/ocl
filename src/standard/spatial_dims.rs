@@ -118,7 +118,11 @@ impl SpatialDims {
 
     /// Returns `true` if this `SpatialDims` is an `Unspecified` variant.
     pub fn is_unspecified(&self) -> bool {
-        if let SpatialDims::Unspecified = *self { true } else { false }
+        if let SpatialDims::Unspecified = *self {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -156,13 +160,17 @@ impl Index<usize> for SpatialDims {
 
     fn index(&self, index: usize) -> &usize {
         match *self {
-            SpatialDims::Unspecified => panic!("ocl::SpatialDims::index(): \
-                Cannot index. No dimensions have been specified."),
+            SpatialDims::Unspecified => {
+                panic!("ocl::SpatialDims::index(): \
+                Cannot index. No dimensions have been specified.")
+            }
             SpatialDims::One(ref x) => {
-                assert!(index == 0, "ocl::SpatialDims::index(): Index: [{}], out of range. \
-                    Only one dimension avaliable.", index);
+                assert!(index == 0,
+                        "ocl::SpatialDims::index(): Index: [{}], out of range. \
+                    Only one dimension avaliable.",
+                        index);
                 x
-            },
+            }
             SpatialDims::Two(ref x, ref y) => {
                 match index {
                     0 => x,
@@ -173,7 +181,7 @@ impl Index<usize> for SpatialDims {
                                index)
                     }
                 }
-            },
+            }
             SpatialDims::Three(ref x, ref y, ref z) => {
                 match index {
                     0 => x,

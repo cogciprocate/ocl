@@ -302,9 +302,9 @@ impl ImageFormat {
     pub fn from_raw(raw: cl_h::cl_image_format) -> OclResult<ImageFormat> {
         Ok(ImageFormat {
             channel_order: try!(ImageChannelOrder::from_u32(raw.image_channel_order)
-                .ok_or(OclError::new("Error converting to 'ImageChannelOrder'."))),
+                                    .ok_or(OclError::new("Error converting to 'ImageChannelOrder'."))),
             channel_data_type: try!(ImageChannelDataType::from_u32(raw.image_channel_data_type)
-                .ok_or(OclError::new("Error converting to 'ImageChannelDataType'."))),
+                                        .ok_or(OclError::new("Error converting to 'ImageChannelDataType'."))),
         })
     }
 

@@ -9,17 +9,17 @@ fn clear_completed() {
     "#;
 
     let pro_que = ProQue::builder()
-        .src(src)
-        .dims([2 << 10])
-        .build()
-        .unwrap();
+                      .src(src)
+                      .dims([2 << 10])
+                      .build()
+                      .unwrap();
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();
 
     let kernel = pro_que.create_kernel("add")
-        .unwrap()
-        .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+                        .unwrap()
+                        .arg_buf(&buffer)
+                        .arg_scl(10.0f32);
 
     let mut event_list = EventList::new();
 

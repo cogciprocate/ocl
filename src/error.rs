@@ -110,10 +110,12 @@ impl std::error::Error for self::Error {
             Error::Nul(ref err) => err.description(),
             Error::Io(ref err) => err.description(),
             Error::FromUtf8Error(ref err) => err.description(),
-            Error::Status { ref desc, .. }
-            | Error::String(ref desc) => desc,
-            Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
-                Please specify some dimensions.",
+            Error::Status { ref desc, .. } |
+            Error::String(ref desc) => desc,
+            Error::UnspecifiedDimensions => {
+                "Cannot convert to a valid set of dimensions. \
+                Please specify some dimensions."
+            }
             // _ => panic!("OclError::description()"),
         }
     }

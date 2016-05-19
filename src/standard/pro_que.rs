@@ -72,12 +72,16 @@ impl ProQueBuilder {
                     platform and context cannot both be set.");
                 plt.clone()
             }
-            None => match self.context {
-                Some(ref context) => match context.platform() {
-                    Some(platform) => platform,
+            None => {
+                match self.context {
+                    Some(ref context) => {
+                        match context.platform() {
+                            Some(platform) => platform,
+                            None => Platform::default(),
+                        }
+                    }
                     None => Platform::default(),
-                },
-                None => Platform::default(),
+                }
             }
         };
 
@@ -109,9 +113,9 @@ impl ProQueBuilder {
             Some(ref ctx) => ctx.clone(),
             None => {
                 try!(Context::builder()
-                    .platform(platform)
-                    .devices(device)
-                    .build())
+                         .platform(platform)
+                         .devices(device)
+                         .build())
             }
         };
 
@@ -127,12 +131,7 @@ impl ProQueBuilder {
         let cmplr_opts = try!(program_builder.get_compiler_options().map_err(|e| e.to_string()));
         // println!("PROQUEBUILDER: All done.");
 
-        let program = try!(Program::new(
-            src_strings,
-            cmplr_opts,
-            &context,
-            &[device],
-        ));
+        let program = try!(Program::new(src_strings, cmplr_opts, &context, &[device]));
 
         Ok(ProQue::new(context, queue, program, self.dims))
     }
@@ -212,7 +211,8 @@ impl ProQueBuilder {
     /// the device specified by `::device_idx` or the default device if none has
     /// been specified.
     pub fn prog_bldr(&mut self, program_builder: ProgramBuilder) -> &mut ProQueBuilder {
-        assert!(self.program_builder.is_none(), "ProQueBuilder::prog_bldr(): Cannot set the \
+        assert!(self.program_builder.is_none(),
+                "ProQueBuilder::prog_bldr(): Cannot set the \
             'ProgramBuilder' using this method after one has already been set or after '::src' has \
             been called.");
 

@@ -182,17 +182,11 @@ impl ProgramBuilder {
 
         for option in &self.options {
             match *option {
-                BuildOpt::CmplrDefine { ref ident, ref val } => {
-                    opts.push(format!("-D{}={}", ident, val))
-                },
+                BuildOpt::CmplrDefine { ref ident, ref val } => opts.push(format!("-D{}={}", ident, val)),
 
-                BuildOpt::CmplrInclDir { ref path } => {
-                    opts.push(format!("-I{}", path))
-                },
+                BuildOpt::CmplrInclDir { ref path } => opts.push(format!("-I{}", path)),
 
-                BuildOpt::CmplrOther(ref s) => {
-                    opts.push(s.clone())
-                },
+                BuildOpt::CmplrOther(ref s) => opts.push(s.clone()),
 
                 _ => (),
             }
@@ -249,12 +243,11 @@ impl ProgramBuilder {
         for option in &self.options {
             match *option {
                 BuildOpt::IncludeDefine { ref ident, ref val } => {
-                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val)
-                        .into_bytes())));
-                },
+                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val).into_bytes())));
+                }
                 BuildOpt::IncludeRaw(ref text) => {
                     strings.push(try!(CString::new(text.clone().into_bytes())));
-                },
+                }
                 _ => (),
             };
 
@@ -314,7 +307,7 @@ impl Program {
                device_ids: &[Device])
                -> OclResult<Program> {
         let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts, device_ids)
-            .map_err(|e| e.to_string()));
+                                .map_err(|e| e.to_string()));
 
         Ok(Program {
             obj_core: obj_core,
@@ -355,16 +348,16 @@ impl Program {
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Program")
-            .field("ReferenceCount", &self.info(ProgramInfo::ReferenceCount))
-            .field("Context", &self.info(ProgramInfo::Context))
-            .field("NumDevices", &self.info(ProgramInfo::NumDevices))
-            .field("Devices", &self.info(ProgramInfo::Devices))
-            .field("Source", &self.info(ProgramInfo::Source))
-            .field("BinarySizes", &self.info(ProgramInfo::BinarySizes))
-            .field("Binaries", &self.info(ProgramInfo::Binaries))
-            .field("NumKernels", &self.info(ProgramInfo::NumKernels))
-            .field("KernelNames", &self.info(ProgramInfo::KernelNames))
-            .finish()
+         .field("ReferenceCount", &self.info(ProgramInfo::ReferenceCount))
+         .field("Context", &self.info(ProgramInfo::Context))
+         .field("NumDevices", &self.info(ProgramInfo::NumDevices))
+         .field("Devices", &self.info(ProgramInfo::Devices))
+         .field("Source", &self.info(ProgramInfo::Source))
+         .field("BinarySizes", &self.info(ProgramInfo::BinarySizes))
+         .field("Binaries", &self.info(ProgramInfo::Binaries))
+         .field("NumKernels", &self.info(ProgramInfo::NumKernels))
+         .field("KernelNames", &self.info(ProgramInfo::KernelNames))
+         .finish()
     }
 }
 

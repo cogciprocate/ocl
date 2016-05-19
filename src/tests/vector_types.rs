@@ -21,10 +21,10 @@ fn test_vector_types() {
     let final_val = start_val + addend;
 
     let pro_que = ProQue::builder()
-        .src(src)
-        .dims([DATASET_SIZE])
-        .build()
-        .unwrap();
+                      .src(src)
+                      .dims([DATASET_SIZE])
+                      .build()
+                      .unwrap();
 
     let buffer = pro_que.create_buffer::<ClFloat3>().unwrap();
 
@@ -38,9 +38,9 @@ fn test_vector_types() {
     }
 
     let kernel = pro_que.create_kernel("add_float3")
-        .unwrap()
-        .arg_buf(&buffer)
-        .arg_scl(addend);
+                        .unwrap()
+                        .arg_buf(&buffer)
+                        .arg_scl(addend);
 
     kernel.enq().unwrap();
 

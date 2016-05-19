@@ -142,12 +142,12 @@ impl Platform {
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Platform")
-            .field("Profile", &self.info(PlatformInfo::Profile))
-            .field("Version", &self.info(PlatformInfo::Version))
-            .field("Name", &self.info(PlatformInfo::Name))
-            .field("Vendor", &self.info(PlatformInfo::Vendor))
-            .field("Extensions", &self.info(PlatformInfo::Extensions))
-            .finish()
+         .field("Profile", &self.info(PlatformInfo::Profile))
+         .field("Version", &self.info(PlatformInfo::Version))
+         .field("Name", &self.info(PlatformInfo::Name))
+         .field("Vendor", &self.info(PlatformInfo::Vendor))
+         .field("Extensions", &self.info(PlatformInfo::Extensions))
+         .finish()
     }
 }
 

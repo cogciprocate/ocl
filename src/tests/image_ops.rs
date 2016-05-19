@@ -42,10 +42,10 @@ fn image_ops() {
     "#;
 
     let proque = ProQue::builder()
-        .src(src)
-        .dims(DIMS)
-        .build()
-        .unwrap();
+                     .src(src)
+                     .dims(DIMS)
+                     .build()
+                     .unwrap();
 
     let sampler = Sampler::new(proque.context(), false, AddressingMode::None, FilterMode::Nearest).unwrap();
 
@@ -53,21 +53,21 @@ fn image_ops() {
 
     // Source and destination images and a vec to shuffle data:
     let img_src = Image::<i32>::builder()
-        .channel_order(ImageChannelOrder::Rgba)
-        .channel_data_type(ImageChannelDataType::SignedInt32)
-        .image_type(MemObjectType::Image3d)
-        .dims(proque.dims())
-        .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
-        .build_with_data(proque.queue(), &vec)
-        .unwrap();
+                      .channel_order(ImageChannelOrder::Rgba)
+                      .channel_data_type(ImageChannelDataType::SignedInt32)
+                      .image_type(MemObjectType::Image3d)
+                      .dims(proque.dims())
+                      .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
+                      .build_with_data(proque.queue(), &vec)
+                      .unwrap();
     let img_dst = Image::<i32>::builder()
-        .channel_order(ImageChannelOrder::Rgba)
-        .channel_data_type(ImageChannelDataType::SignedInt32)
-        .image_type(MemObjectType::Image3d)
-        .dims(proque.dims())
-        .flags(flags::MEM_WRITE_ONLY | flags::MEM_COPY_HOST_PTR)
-        .build_with_data(proque.queue(), &vec)
-        .unwrap();
+                      .channel_order(ImageChannelOrder::Rgba)
+                      .channel_data_type(ImageChannelDataType::SignedInt32)
+                      .image_type(MemObjectType::Image3d)
+                      .dims(proque.dims())
+                      .flags(flags::MEM_WRITE_ONLY | flags::MEM_COPY_HOST_PTR)
+                      .build_with_data(proque.queue(), &vec)
+                      .unwrap();
 
     let kernel_add = proque.create_kernel("add").unwrap()
         // .gws(DIMS)
@@ -77,10 +77,10 @@ fn image_ops() {
         .arg_img(&img_dst);
 
     let mut kernel_fill_src = proque.create_kernel("fill")
-        .unwrap()
-        .arg_smp(&sampler)
-        .arg_vec_named::<ClInt4>("pixel", None)
-        .arg_img(&img_src);
+                                    .unwrap()
+                                    .arg_smp(&sampler)
+                                    .arg_vec_named::<ClInt4>("pixel", None)
+                                    .arg_img(&img_src);
 
     // ========================================================================
     // ========================================================================

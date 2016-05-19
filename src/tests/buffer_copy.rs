@@ -94,10 +94,10 @@ fn buffer_copy_standard() {
     "#;
 
     let pro_que = ProQue::builder()
-        .src(src)
-        .dims([DATASET_SIZE])
-        .build()
-        .unwrap();
+                      .src(src)
+                      .dims([DATASET_SIZE])
+                      .build()
+                      .unwrap();
 
     let src_buffer = pro_que.create_buffer::<f32>().unwrap();
     let mut src_vec = vec![0.0f32; src_buffer.len()];
@@ -105,9 +105,9 @@ fn buffer_copy_standard() {
     let mut dst_vec = vec![0.0f32; dst_buffer.len()];
 
     let kernel = pro_que.create_kernel("add")
-        .unwrap()
-        .arg_buf(&src_buffer)
-        .arg_scl(ADDEND);
+                        .unwrap()
+                        .arg_buf(&src_buffer)
+                        .arg_scl(ADDEND);
 
     kernel.enq().expect("[FIXME]: HANDLE ME!");
 

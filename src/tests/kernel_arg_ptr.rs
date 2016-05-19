@@ -18,15 +18,15 @@ static SRC: &'static str = r#"
 #[test]
 fn kernel_arg_ptr_out_of_scope() {
     let pro_que = ProQue::builder()
-        .src(SRC)
-        .dims([1024])
-        .build()
-        .unwrap();
+                      .src(SRC)
+                      .dims([1024])
+                      .build()
+                      .unwrap();
 
     let mut kernel = pro_que.create_kernel("add")
-        .unwrap()
-        .arg_buf_named::<f32>("buf", None)
-        .arg_scl(10.0f32);
+                            .unwrap()
+                            .arg_buf_named::<f32>("buf", None)
+                            .arg_scl(10.0f32);
 
     set_arg(&mut kernel, &pro_que);
     let throwaway_vec = vec![99usize; 2 << 24];

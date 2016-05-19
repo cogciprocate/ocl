@@ -65,12 +65,12 @@ impl Sampler {
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Sampler")
-            .field("ReferenceCount", &self.info(SamplerInfo::ReferenceCount))
-            .field("Context", &self.info(SamplerInfo::Context))
-            .field("NormalizedCoords", &self.info(SamplerInfo::NormalizedCoords))
-            .field("AddressingMode", &self.info(SamplerInfo::AddressingMode))
-            .field("FilterMode", &self.info(SamplerInfo::FilterMode))
-            .finish()
+         .field("ReferenceCount", &self.info(SamplerInfo::ReferenceCount))
+         .field("Context", &self.info(SamplerInfo::Context))
+         .field("NormalizedCoords", &self.info(SamplerInfo::NormalizedCoords))
+         .field("AddressingMode", &self.info(SamplerInfo::AddressingMode))
+         .field("FilterMode", &self.info(SamplerInfo::FilterMode))
+         .finish()
     }
 }
 

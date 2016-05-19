@@ -819,8 +819,9 @@ impl<E: OclPrm> Image<E> {
                                 image_desc: ImageDescriptor,
                                 renderbuffer: cl_GLuint)
                                 -> OclResult<Image<E>> {
-        let obj_core =
-            unsafe { try!(core::create_from_gl_renderbuffer(queue.context_core_as_ref(), renderbuffer, flags)) };
+        let obj_core = unsafe {
+            try!(core::create_from_gl_renderbuffer(queue.context_core_as_ref(), renderbuffer, flags))
+        };
 
         // FIXME can I do this from a renderbuffer ?
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
@@ -850,8 +851,7 @@ impl<E: OclPrm> Image<E> {
     /// Run `.enq()` to enqueue the command.
     ///
     pub fn cmd(&self) -> ImageCmd<E> {
-        ImageCmd::new(&self.queue, &self.obj_core,
-            self.dims.to_lens().expect("ocl::Image::cmd"))
+        ImageCmd::new(&self.queue, &self.obj_core, self.dims.to_lens().expect("ocl::Image::cmd"))
     }
 
     /// Returns an image command builder set to read.
@@ -940,32 +940,32 @@ impl<E: OclPrm> Image<E> {
     /// Format image info.
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Image")
-            .field("ElementSize", &self.info(ImageInfo::ElementSize))
-            .field("RowPitch", &self.info(ImageInfo::RowPitch))
-            .field("SlicePitch", &self.info(ImageInfo::SlicePitch))
-            .field("Width", &self.info(ImageInfo::Width))
-            .field("Height", &self.info(ImageInfo::Height))
-            .field("Depth", &self.info(ImageInfo::Depth))
-            .field("ArraySize", &self.info(ImageInfo::ArraySize))
-            .field("Buffer", &self.info(ImageInfo::Buffer))
-            .field("NumMipLevels", &self.info(ImageInfo::NumMipLevels))
-            .field("NumSamples", &self.info(ImageInfo::NumSamples))
-            .finish()
+         .field("ElementSize", &self.info(ImageInfo::ElementSize))
+         .field("RowPitch", &self.info(ImageInfo::RowPitch))
+         .field("SlicePitch", &self.info(ImageInfo::SlicePitch))
+         .field("Width", &self.info(ImageInfo::Width))
+         .field("Height", &self.info(ImageInfo::Height))
+         .field("Depth", &self.info(ImageInfo::Depth))
+         .field("ArraySize", &self.info(ImageInfo::ArraySize))
+         .field("Buffer", &self.info(ImageInfo::Buffer))
+         .field("NumMipLevels", &self.info(ImageInfo::NumMipLevels))
+         .field("NumSamples", &self.info(ImageInfo::NumSamples))
+         .finish()
     }
 
     /// Format image mem info.
     fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Mem")
-            .field("Type", &self.mem_info(MemInfo::Type))
-            .field("Flags", &self.mem_info(MemInfo::Flags))
-            .field("Size", &self.mem_info(MemInfo::Size))
-            .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
-            .field("MapCount", &self.mem_info(MemInfo::MapCount))
-            .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
-            .field("Context", &self.mem_info(MemInfo::Context))
-            .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
-            .field("Offset", &self.mem_info(MemInfo::Offset))
-            .finish()
+         .field("Type", &self.mem_info(MemInfo::Type))
+         .field("Flags", &self.mem_info(MemInfo::Flags))
+         .field("Size", &self.mem_info(MemInfo::Size))
+         .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
+         .field("MapCount", &self.mem_info(MemInfo::MapCount))
+         .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
+         .field("Context", &self.mem_info(MemInfo::Context))
+         .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
+         .field("Offset", &self.mem_info(MemInfo::Offset))
+         .finish()
     }
 }
 

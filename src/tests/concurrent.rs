@@ -33,11 +33,11 @@ fn concurrent() {
         let thread_name = format!("[thread_{}]", i);
 
         let th = thread::Builder::new()
-            .name(thread_name.clone())
-            .spawn(move || {
-                let platforms = Platform::list();
-            })
-            .expect(&format!("Error creating {}", &thread_name));
+                     .name(thread_name.clone())
+                     .spawn(move || {
+                         let platforms = Platform::list();
+                     })
+                     .expect(&format!("Error creating {}", &thread_name));
 
         threads.push(th);
     }
@@ -82,10 +82,10 @@ fn main_from_example() {
             // Make a context to share around:
             let context = Context::builder().build().unwrap();
             let program = Program::builder()
-                .src(SRC)
-                .devices(device)
-                .build(&context)
-                .unwrap();
+                              .src(SRC)
+                              .devices(device)
+                              .build(&context)
+                              .unwrap();
 
             // Make a few different queues for the hell of it:
             // let queueball = vec![Queue::new_by_device_index(&context, None),
@@ -121,43 +121,43 @@ fn main_from_example() {
                 print!("{}, ", thread_name);
 
                 let th = thread::Builder::new()
-                    .name(thread_name.clone())
-                    .spawn(move || {
-                        // let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
-                        let mut buffer = Buffer::<f32>::new(&queueball_th[0], None, &dims_th, None).unwrap();
-                        let mut vec = vec![0.0f32; buffer.len()];
+                             .name(thread_name.clone())
+                             .spawn(move || {
+                                 // let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
+                                 let mut buffer = Buffer::<f32>::new(&queueball_th[0], None, &dims_th, None).unwrap();
+                                 let mut vec = vec![0.0f32; buffer.len()];
 
-                        let mut kernel = Kernel::new("add", &program_th, &queueball_th[0])
-                            .unwrap()
-                            .gws(&dims_th)
-                            .arg_buf(&buffer)
-                            .arg_scl(1000.0f32);
+                                 let mut kernel = Kernel::new("add", &program_th, &queueball_th[0])
+                                                      .unwrap()
+                                                      .gws(&dims_th)
+                                                      .arg_buf(&buffer)
+                                                      .arg_scl(1000.0f32);
 
-                        // Event list isn't really necessary here but hey.
-                        let mut event_list = EventList::new();
+                                 // Event list isn't really necessary here but hey.
+                                 let mut event_list = EventList::new();
 
-                        // Change queues around just for fun:
-                        kernel.cmd().enew(&mut event_list).enq().unwrap();
-                        kernel.set_default_queue(&queueball_th[1]).unwrap().enq().unwrap();
-                        kernel.cmd().queue(&queueball_th[2]).enq().unwrap();
+                                 // Change queues around just for fun:
+                                 kernel.cmd().enew(&mut event_list).enq().unwrap();
+                                 kernel.set_default_queue(&queueball_th[1]).unwrap().enq().unwrap();
+                                 kernel.cmd().queue(&queueball_th[2]).enq().unwrap();
 
-                        // Sleep just so the results don't print too quickly.
-                        thread::sleep(Duration::from_millis(100));
+                                 // Sleep just so the results don't print too quickly.
+                                 thread::sleep(Duration::from_millis(100));
 
-                        // Basically redundant in this situation.
-                        event_list.wait().unwrap();
+                                 // Basically redundant in this situation.
+                                 event_list.wait().unwrap();
 
-                        // Again, just playing with queues...
-                        buffer.set_default_queue(&queueball_th[2]).read(&mut vec).enq().unwrap();
-                        buffer.read(&mut vec).queue(&queueball_th[1]).enq().unwrap();
-                        buffer.read(&mut vec).queue(&queueball_th[0]).enq().unwrap();
-                        buffer.read(&mut vec).enq().unwrap();
+                                 // Again, just playing with queues...
+                                 buffer.set_default_queue(&queueball_th[2]).read(&mut vec).enq().unwrap();
+                                 buffer.read(&mut vec).queue(&queueball_th[1]).enq().unwrap();
+                                 buffer.read(&mut vec).queue(&queueball_th[0]).enq().unwrap();
+                                 buffer.read(&mut vec).enq().unwrap();
 
-                        // Print results (won't appear until later):
-                        let check_idx = data_set_size / 2;
-                        print!("{{{}}}={}, ", &thread_name, vec[check_idx]);
-                    })
-                    .expect("Error creating thread");
+                                 // Print results (won't appear until later):
+                                 let check_idx = data_set_size / 2;
+                                 print!("{{{}}}={}, ", &thread_name, vec[check_idx]);
+                             })
+                             .expect("Error creating thread");
 
                 threads.push(th);
             }

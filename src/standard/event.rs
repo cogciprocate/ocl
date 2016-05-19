@@ -91,12 +91,12 @@ impl Event {
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Event")
-            .field("CommandQueue", &self.info(EventInfo::CommandQueue))
-            .field("CommandType", &self.info(EventInfo::CommandType))
-            .field("ReferenceCount", &self.info(EventInfo::ReferenceCount))
-            .field("CommandExecutionStatus", &self.info(EventInfo::CommandExecutionStatus))
-            .field("Context", &self.info(EventInfo::Context))
-            .finish()
+         .field("CommandQueue", &self.info(EventInfo::CommandQueue))
+         .field("CommandType", &self.info(EventInfo::CommandType))
+         .field("ReferenceCount", &self.info(EventInfo::ReferenceCount))
+         .field("CommandExecutionStatus", &self.info(EventInfo::CommandExecutionStatus))
+         .field("Context", &self.info(EventInfo::Context))
+         .finish()
     }
 }
 

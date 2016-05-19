@@ -321,13 +321,13 @@ impl Kernel {
                                             name: &'static str,
                                             buffer_opt: Option<&Buffer<T>>)
                                             -> OclResult<&'a mut Kernel> {
-        //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
+        // TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         match buffer_opt {
-                Some(buffer) => self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer)),
-                None => self.set_arg::<T>(arg_idx, KernelArg::MemNull),
-            }
-            .and(Ok(self))
+            Some(buffer) => self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer)),
+            None => self.set_arg::<T>(arg_idx, KernelArg::MemNull),
+        }
+        .and(Ok(self))
     }
 
     /// Modifies the kernel argument named: `name`.
@@ -338,13 +338,13 @@ impl Kernel {
                                                        name: &'static str,
                                                        image_opt: Option<&Image<P>>)
                                                        -> OclResult<&'a mut Kernel> {
-        //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
+        // TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         match image_opt {
-                Some(buffer) => self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer)),
-                None => self.set_arg::<T>(arg_idx, KernelArg::MemNull),
-            }
-            .and(Ok(self))
+            Some(buffer) => self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer)),
+            None => self.set_arg::<T>(arg_idx, KernelArg::MemNull),
+        }
+        .and(Ok(self))
     }
 
     /// Sets the value of a named sampler argument.
@@ -362,9 +362,15 @@ impl Kernel {
     /// Returns a command builder which is used to chain parameters of an
     /// 'enqueue' command together.
     pub fn cmd(&self) -> KernelCmd {
-        KernelCmd { queue: &self.queue, kernel: &self.obj_core,
-            gwo: self.gwo, gws: self.gws, lws: self.lws,
-            wait_list: None, dest_list: None }
+        KernelCmd {
+            queue: &self.queue,
+            kernel: &self.obj_core,
+            gwo: self.gwo,
+            gws: self.gws,
+            lws: self.lws,
+            wait_list: None,
+            dest_list: None,
+        }
     }
 
     /// Enqueues this kernel on the default queue and returns the result.
@@ -465,12 +471,12 @@ impl Kernel {
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Kernel")
-            .field("FunctionName", &self.info(KernelInfo::FunctionName))
-            .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
-            .field("Context", &self.info(KernelInfo::Context))
-            .field("Program", &self.info(KernelInfo::Program))
-            .field("Attributes", &self.info(KernelInfo::Attributes))
-            .finish()
+         .field("FunctionName", &self.info(KernelInfo::FunctionName))
+         .field("ReferenceCount", &self.info(KernelInfo::ReferenceCount))
+         .field("Context", &self.info(KernelInfo::Context))
+         .field("Program", &self.info(KernelInfo::Program))
+         .field("Attributes", &self.info(KernelInfo::Attributes))
+         .finish()
     }
 
     // fn fmt_arg_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

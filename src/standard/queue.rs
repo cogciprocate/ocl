@@ -62,11 +62,11 @@ impl Queue {
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Queue")
-            .field("Context", &self.info(CommandQueueInfo::Context))
-            .field("Device", &self.info(CommandQueueInfo::Device))
-            .field("ReferenceCount", &self.info(CommandQueueInfo::ReferenceCount))
-            .field("Properties", &self.info(CommandQueueInfo::Properties))
-            .finish()
+         .field("Context", &self.info(CommandQueueInfo::Context))
+         .field("Device", &self.info(CommandQueueInfo::Device))
+         .field("ReferenceCount", &self.info(CommandQueueInfo::ReferenceCount))
+         .field("Properties", &self.info(CommandQueueInfo::Properties))
+         .finish()
     }
 }
 

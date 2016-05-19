@@ -104,7 +104,7 @@ mod traits {
 
     impl<'a, D> MemLen for &'a D
         where D: MemLen
-    {
+{
         fn to_len(&self) -> usize {
             (*self).to_len()
         }
@@ -118,7 +118,7 @@ mod traits {
 
     impl<D> MemLen for (D,)
         where D: Num + ToPrimitive + Debug + Copy
-    {
+{
         fn to_len(&self) -> usize {
             SpatialDims::One(to_usize(self.0)).to_len()
         }
@@ -132,7 +132,7 @@ mod traits {
 
     impl<D> MemLen for [D; 1]
         where D: Num + ToPrimitive + Debug + Copy
-    {
+{
         fn to_len(&self) -> usize {
             SpatialDims::One(to_usize(self[0])).to_len()
         }
@@ -146,7 +146,7 @@ mod traits {
 
     impl<D> MemLen for (D, D)
         where D: Num + ToPrimitive + Debug + Copy
-    {
+{
         fn to_len(&self) -> usize {
             SpatialDims::Two(to_usize(self.0), to_usize(self.1)).to_len()
         }
@@ -160,7 +160,7 @@ mod traits {
 
     impl<D> MemLen for [D; 2]
         where D: Num + ToPrimitive + Debug + Copy
-    {
+{
         fn to_len(&self) -> usize {
             SpatialDims::Two(to_usize(self[0]), to_usize(self[1])).to_len()
         }
@@ -174,7 +174,7 @@ mod traits {
 
     impl<'a, D> MemLen for (D, D, D)
         where D: Num + ToPrimitive + Debug + Copy
-    {
+{
         fn to_len(&self) -> usize {
             SpatialDims::Three(to_usize(self.0), to_usize(self.1), to_usize(self.2)).to_len()
         }
@@ -188,7 +188,7 @@ mod traits {
 
     impl<'a, D> MemLen for [D; 3]
         where D: Num + ToPrimitive + Debug + Copy
-    {
+{
         fn to_len(&self) -> usize {
             SpatialDims::Three(to_usize(self[0]), to_usize(self[1]), to_usize(self[2])).to_len()
         }

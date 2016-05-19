@@ -153,11 +153,11 @@ impl std::fmt::Display for PlatformInfoResult {
 impl Into<String> for PlatformInfoResult {
     fn into(self) -> String {
         match self {
-            PlatformInfoResult::Profile(string)
-            | PlatformInfoResult::Version(string)
-            | PlatformInfoResult::Name(string)
-            | PlatformInfoResult::Vendor(string)
-            | PlatformInfoResult::Extensions(string) => string,
+            PlatformInfoResult::Profile(string) |
+            PlatformInfoResult::Version(string) |
+            PlatformInfoResult::Name(string) |
+            PlatformInfoResult::Vendor(string) |
+            PlatformInfoResult::Extensions(string) => string,
             PlatformInfoResult::Error(err) => err.status_code(),
         }
     }

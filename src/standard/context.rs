@@ -75,8 +75,10 @@ impl ContextBuilder {
     /// Panics if either platform or properties has already been specified.
     ///
     pub fn platform(&mut self, platform: Platform) -> &mut ContextBuilder {
-        assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
-        assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
+        assert!(self.platform.is_none(),
+                "ocl::ContextBuilder::platform: Platform already specified");
+        assert!(self.properties.is_none(),
+                "ocl::ContextBuilder::platform: Properties already specified");
         self.platform = Some(platform);
         self
     }
@@ -88,8 +90,10 @@ impl ContextBuilder {
     /// Panics if either properties or platform has already been specified.
     ///
     pub fn properties(&mut self, properties: ContextProperties) -> &mut ContextBuilder {
-        assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
-        assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
+        assert!(self.platform.is_none(),
+                "ocl::ContextBuilder::platform: Platform already specified");
+        assert!(self.properties.is_none(),
+                "ocl::ContextBuilder::platform: Properties already specified");
         self.properties = Some(properties);
         self
     }
@@ -104,10 +108,9 @@ impl ContextBuilder {
     ///
     /// Panics if any devices have already been specified.
     ///
-    pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
-            -> &mut ContextBuilder
-    {
-        assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
+    pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D) -> &mut ContextBuilder {
+        assert!(self.device_spec.is_none(),
+                "ocl::ContextBuilder::devices: Devices already specified");
         self.device_spec = Some(device_spec.into());
         self
     }
@@ -272,11 +275,11 @@ impl Context {
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Context")
-            .field("ReferenceCount", &self.info(ContextInfo::ReferenceCount))
-            .field("Devices", &self.info(ContextInfo::Devices))
-            .field("Properties", &self.info(ContextInfo::Properties))
-            .field("NumDevices", &self.info(ContextInfo::NumDevices))
-            .finish()
+         .field("ReferenceCount", &self.info(ContextInfo::ReferenceCount))
+         .field("Devices", &self.info(ContextInfo::Devices))
+         .field("Properties", &self.info(ContextInfo::Properties))
+         .field("NumDevices", &self.info(ContextInfo::NumDevices))
+         .finish()
     }
 }
 

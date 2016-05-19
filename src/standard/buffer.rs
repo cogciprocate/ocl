@@ -723,16 +723,16 @@ impl<T: OclPrm> Buffer<T> {
     /// Formats memory info.
     fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Buffer Mem")
-            .field("Type", &self.mem_info(MemInfo::Type))
-            .field("Flags", &self.mem_info(MemInfo::Flags))
-            .field("Size", &self.mem_info(MemInfo::Size))
-            .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
-            .field("MapCount", &self.mem_info(MemInfo::MapCount))
-            .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
-            .field("Context", &self.mem_info(MemInfo::Context))
-            .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
-            .field("Offset", &self.mem_info(MemInfo::Offset))
-            .finish()
+         .field("Type", &self.mem_info(MemInfo::Type))
+         .field("Flags", &self.mem_info(MemInfo::Flags))
+         .field("Size", &self.mem_info(MemInfo::Size))
+         .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
+         .field("MapCount", &self.mem_info(MemInfo::MapCount))
+         .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
+         .field("Context", &self.mem_info(MemInfo::Context))
+         .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
+         .field("Offset", &self.mem_info(MemInfo::Offset))
+         .finish()
     }
 }
 

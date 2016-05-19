@@ -251,8 +251,8 @@ pub fn get_device_ids(platform: &PlatformId,
     };
 
     let mut device_ids: Vec<DeviceId> = iter::repeat(unsafe { DeviceId::null() })
-        .take(devices_max as usize)
-        .collect();
+                                            .take(devices_max as usize)
+                                            .collect();
 
     let errcode = unsafe {
         cl_h::clGetDeviceIDs(platform.as_ptr(),
@@ -320,8 +320,8 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo) -> Dev
                 }
             };
             DeviceInfoResult::from_bytes_max_work_item_sizes(request, result, max_wi_dims)
-        },
-        _ => DeviceInfoResult::from_bytes(request, result)
+        }
+        _ => DeviceInfoResult::from_bytes(request, result),
     }
 }
 
@@ -668,8 +668,10 @@ pub unsafe fn create_from_gl_renderbuffer(context: &Context,
 
     let mut errcode: cl_int = 0;
 
-    let buf_ptr =
-        clCreateFromGLRenderbuffer(context.as_ptr(), flags.bits() as cl_mem_flags, renderbuffer, &mut errcode);
+    let buf_ptr = clCreateFromGLRenderbuffer(context.as_ptr(),
+                                             flags.bits() as cl_mem_flags,
+                                             renderbuffer,
+                                             &mut errcode);
 
     try!(errcode_try("clCreateFromGLRenderbuffer", "", errcode));
     debug_assert!(!buf_ptr.is_null());
@@ -859,8 +861,8 @@ pub fn get_supported_image_formats(context: &Context,
     }
 
     let mut image_formats: Vec<cl_image_format> = (0..(num_image_formats as usize))
-        .map(|_| ImageFormat::new_raw())
-        .collect();
+                                                      .map(|_| ImageFormat::new_raw())
+                                                      .collect();
 
     debug_assert!(image_formats.len() == num_image_formats as usize && image_formats.len() > 0);
 
@@ -2338,8 +2340,8 @@ pub fn enqueue_migrate_mem_objects(command_queue: &CommandQueue,
     let (wait_list_len, wait_list_ptr, new_event_ptr) = try!(resolve_event_ptrs(wait_list, new_event));
 
     let mem_ptr_list: Vec<cl_mem> = mem_objects.iter()
-        .map(|ref mem_obj| unsafe { mem_obj.as_ptr() })
-        .collect();
+                                               .map(|ref mem_obj| unsafe { mem_obj.as_ptr() })
+                                               .collect();
 
     let errcode = unsafe {
         cl_h::clEnqueueMigrateMemObjects(command_queue.as_ptr(),
@@ -2655,13 +2657,11 @@ pub fn get_kernel_name(kernel: &Kernel) -> String {
 ///
 /// TODO: Break out create and build parts into requisite functions then call
 /// from here.
-pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
-            context: &Context,
-            src_strings: &[CString],
-            cmplr_opts: &CString,
-            device_ids: &[D],
-        ) -> OclResult<Program>
-{
+pub fn create_build_program<D: ClDeviceIdPtr + Debug>(context: &Context,
+                                                      src_strings: &[CString],
+                                                      cmplr_opts: &CString,
+                                                      device_ids: &[D])
+                                                      -> OclResult<Program> {
     let program = try!(create_program_with_source(context, src_strings));
     try!(build_program(&program, device_ids, cmplr_opts, None, None));
     Ok(program)
@@ -2691,8 +2691,10 @@ pub fn get_event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<Comman
     };
     try!(errcode_try("clGetEventInfo", "", errcode));
 
-    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::new("Error converting \
-        'clGetEventInfo' status output."))
+    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| {
+        OclError::new("Error converting \
+        'clGetEventInfo' status output.")
+    })
 }
 
 /// Verifies that the `context` is in fact a context object pointer.
