@@ -171,12 +171,15 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
 ///
 // [NOTE]: Not sure this is the best or simplest way to do this but whatever.
 // Would be nice to not even have to copy anything and just basically
-// transmute the vector into the result type. TODO: Fiddle with this
+// transmute the vector into the result type. [TODO]: Fiddle with this
 // at some point.
 //
 pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
     // let byte_count = mem::size_of::<u8>() * vec.len();
-    assert_eq!(mem::size_of::<T>(), vec.len());
+    // assert_eq!(mem::size_of::<T>(), vec.len());
+    assert!(mem::size_of::<T>() == vec.len(), "The size of the source byte vector ({} bytes) \
+        does not match the size of the destination type ({} bytes).", vec.len(), 
+        mem::size_of::<T>());
 
     let mut new_val: T = mem::uninitialized();
 
@@ -192,8 +195,9 @@ pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
 /// You may want to wear a helmet.
 ///
 pub unsafe fn bytes_to<T>(bytes: &[u8]) -> T {
-    // let byte_count = mem::size_of::<u8>() * bytes.len();
-    assert_eq!(mem::size_of::<T>(), bytes.len());
+    assert!(mem::size_of::<T>() == bytes.len(), "The size of the source byte slice ({} bytes) \
+        does not match the size of the destination type ({} bytes).", bytes.len(), 
+        mem::size_of::<T>());
 
     let mut new_val: T = mem::uninitialized();
 

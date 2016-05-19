@@ -636,9 +636,9 @@ extern "system" {
                        user_data: *mut c_void,
                        errcode_ret: *mut cl_int) -> cl_context;
 
-    pub fn clCreateContextFromType(properties: *mut cl_context_properties,
+    pub fn clCreateContextFromType(properties: *const cl_context_properties,
                                device_type: cl_device_type,
-                               pfn_notify: Option<extern fn (*mut c_char, *mut c_void, size_t, *mut c_void)>,
+                               pfn_notify: Option<extern fn (*const c_char, *const c_void, size_t, *mut c_void)>,
                                user_data: *mut c_void,
                                errcode_ret: *mut cl_int) -> cl_context;
 

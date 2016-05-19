@@ -11,7 +11,7 @@ use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, I
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList,
     ImageChannelOrder, ImageChannelDataType, GlTextureTarget};
 use standard::{Context, Queue, MemLen, SpatialDims};
-use ffi::{ClGlUint, ClGlInt};
+use ffi::{cl_GLuint, cl_GLint};
 
 /// A builder for `Image`.
 pub struct ImageBuilder<S: OclPrm> {
@@ -707,7 +707,7 @@ impl<E: OclPrm> Image<E> {
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
     pub fn from_gl_texture(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor,
-            texture_target: GlTextureTarget, miplevel: ClGlInt, texture: ClGlUint)
+            texture_target: GlTextureTarget, miplevel: cl_GLint, texture: cl_GLuint)
             -> OclResult<Image<E>>
     {
         if texture_target == GlTextureTarget::GlTextureBuffer && miplevel != 0 {
@@ -761,7 +761,7 @@ impl<E: OclPrm> Image<E> {
     /// Returns a new `Image` from an existant renderbuffer.
     // [WORK IN PROGRESS]
     pub fn from_gl_renderbuffer(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor,
-            renderbuffer: ClGlUint) -> OclResult<Image<E>>
+            renderbuffer: cl_GLuint) -> OclResult<Image<E>>
     {
         let obj_core = unsafe { try!(core::create_from_gl_renderbuffer(
                                         queue.context_core_as_ref(),

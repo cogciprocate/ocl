@@ -3,7 +3,7 @@
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
 use libc::{c_void, size_t};
-use ffi::{ClGlUint, ClGlInt, ClGlEnum};
+use ffi::{cl_GLuint, cl_GLint, cl_GLenum};
 use cl_h::{cl_context, cl_context_properties, cl_mem_flags, cl_command_queue,
     cl_int, cl_uint, cl_mem, cl_event};
 
@@ -12,32 +12,15 @@ pub type cl_gl_texture_info     = cl_uint;
 pub type cl_gl_platform_info    = cl_uint;
 pub type cl_gl_context_info     = cl_uint;
 
-// // cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken
-// pub const CL_GL_OBJECT_BUFFER:          cl_gl_object_type = 0x2000;
-// pub const CL_GL_OBJECT_TEXTURE2D:       cl_gl_object_type = 0x2001;
-// pub const CL_GL_OBJECT_TEXTURE3D:       cl_gl_object_type = 0x2002;
-// pub const CL_GL_OBJECT_RENDERBUFFER:    cl_gl_object_type = 0x2003;
-// pub const CL_GL_OBJECT_TEXTURE2D_ARRAY: cl_gl_object_type = 0x200E;
-// pub const CL_GL_OBJECT_TEXTURE1D:       cl_gl_object_type = 0x200F;
-// pub const CL_GL_OBJECT_TEXTURE1D_ARRAY: cl_gl_object_type = 0x2010;
-// pub const CL_GL_OBJECT_TEXTURE_BUFFER:  cl_gl_object_type = 0x2011;
-
-// #[derive(PartialEq, Debug, FromPrimitive)]
-enum_from_primitive! {
-    // cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken
-    #[repr(C)]
-    #[derive(Debug, PartialEq, Clone)]
-    pub enum ClGlObjectType {
-        CL_GL_OBJECT_BUFFER              = 0x2000,
-        CL_GL_OBJECT_TEXTURE2D           = 0x2001,
-        CL_GL_OBJECT_TEXTURE3D           = 0x2002,
-        CL_GL_OBJECT_RENDERBUFFER        = 0x2003,
-        CL_GL_OBJECT_TEXTURE2D_ARRAY     = 0x200E,
-        CL_GL_OBJECT_TEXTURE1D           = 0x200F,
-        CL_GL_OBJECT_TEXTURE1D_ARRAY     = 0x2010,
-        CL_GL_OBJECT_TEXTURE_BUFFER      = 0x2011,
-    }
-}
+// cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken
+pub const CL_GL_OBJECT_BUFFER:          cl_gl_object_type = 0x2000;
+pub const CL_GL_OBJECT_TEXTURE2D:       cl_gl_object_type = 0x2001;
+pub const CL_GL_OBJECT_TEXTURE3D:       cl_gl_object_type = 0x2002;
+pub const CL_GL_OBJECT_RENDERBUFFER:    cl_gl_object_type = 0x2003;
+pub const CL_GL_OBJECT_TEXTURE2D_ARRAY: cl_gl_object_type = 0x200E;
+pub const CL_GL_OBJECT_TEXTURE1D:       cl_gl_object_type = 0x200F;
+pub const CL_GL_OBJECT_TEXTURE1D_ARRAY: cl_gl_object_type = 0x2010;
+pub const CL_GL_OBJECT_TEXTURE_BUFFER:  cl_gl_object_type = 0x2011;
 
 // cl_gl_texture_info
 pub const CL_GL_TEXTURE_TARGET: cl_gl_texture_info = 0x2004;
@@ -69,19 +52,19 @@ extern "system" {
 
     pub fn clCreateFromGLBuffer(context: cl_context,
                                 flags: cl_mem_flags,
-                                bufobj: ClGlUint,
+                                bufobj: cl_GLuint,
                                 errcode_ret: *mut cl_int) -> cl_mem;
 
     pub fn clCreateFromGLTexture(context: cl_context,
                                  flags: cl_mem_flags,
-                                 texture_target: ClGlEnum,
-                                 miplevel: ClGlInt,
-                                 texture: ClGlUint,
+                                 texture_target: cl_GLenum,
+                                 miplevel: cl_GLint,
+                                 texture: cl_GLuint,
                                  errcode_ret: *mut cl_int) -> cl_mem;
 
     pub fn clGetGLObjectInfo(memobj: cl_mem,
                              gl_object_type: *mut cl_gl_object_type,
-                             gl_object_name: *mut ClGlUint) -> cl_int;
+                             gl_object_name: *mut cl_GLuint) -> cl_int;
 
     pub fn clGetGLTextureInfo(memobj: cl_mem,
                               param_name: cl_gl_texture_info,
@@ -91,7 +74,7 @@ extern "system" {
 
     pub fn clCreateFromGLRenderbuffer(context: cl_context,
                                       flags: cl_mem_flags,
-                                      renderbuffer: ClGlUint,
+                                      renderbuffer: cl_GLuint,
                                       errcode_ret: *mut cl_int) -> cl_mem;
 
     pub fn clEnqueueAcquireGLObjects(command_queue: cl_command_queue,
@@ -124,15 +107,15 @@ extern "system" {
     // Deprecated OpenCL 1.1 APIs
     pub fn clCreateFromGLTexture2D(context: cl_context,
                                    flags: cl_mem_flags,
-                                   texture_target: ClGlEnum,
-                                   miplevel: ClGlInt,
-                                   texture: ClGlUint,
+                                   texture_target: cl_GLenum,
+                                   miplevel: cl_GLint,
+                                   texture: cl_GLuint,
                                    errcode_ret: *mut cl_int) -> cl_mem;
 
     pub fn clCreateFromGLTexture3D(context: cl_context,
                                    flags: cl_mem_flags,
-                                   texture_target: ClGlEnum,
-                                   miplevel: ClGlInt,
-                                   texture: ClGlUint,
+                                   texture_target: cl_GLenum,
+                                   miplevel: cl_GLint,
+                                   texture: cl_GLuint,
                                    errcode_ret: *mut cl_int) -> cl_mem;
 }
