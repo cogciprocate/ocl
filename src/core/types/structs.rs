@@ -66,6 +66,10 @@ impl ContextProperties {
     /// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
     ///
     /// TODO: Evaluate cleaner ways to do this.
+    //
+    //
+    // [IMPORTANT]: THE RETURN TYPE SHOULD BE `Vec<isize>` (`Vec<cl_context_properties>`)
+    //
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(128);
 
