@@ -44,9 +44,9 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo,
     KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
     KernelWorkGroupInfoResult, ClEventRef, ClWaitList, EventInfo, EventInfoResult, ProfilingInfo,
-    ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr,
-    EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion,
-    BufferCreateType};
+    ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, 
+    ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, 
+    MapFlags, BufferRegion, BufferCreateType};
 
 // #[cfg(feature="kernel_debug_sleep")]
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
@@ -509,12 +509,12 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     //     // None => ptr::null::<CreateContextCallbackFn>(),
     // } };
 
-    // [FIXME]: Disabled:
-    let user_data_ptr = match user_data {
-        // Some(ud_ptr) => ud_ptr,
-        Some(_) => ptr::null_mut(),
-        None => ptr::null_mut(),
-    };
+    // // [FIXME]: Disabled:
+    // let user_data_ptr = match user_data {
+    //     // Some(ud_ptr) => ud_ptr,
+    //     Some(_) => ptr::null_mut(),
+    //     None => ptr::null_mut(),
+    // };
 
     let mut errcode: cl_int = 0;
 
@@ -524,7 +524,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
         device_ids.len() as cl_uint,
         device_ids.as_ptr()  as *const cl_device_id,
         pfn_notify,
-        user_data_ptr,
+        user_data,
         &mut errcode,
     )) };
     // [DEBUG]:
@@ -533,14 +533,52 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
 }
 
 /// [UNIMPLEMENTED]
-pub fn create_context_from_type() -> OclResult<()> {
-    // cl_h::clCreateContextFromType(properties: *mut cl_context_properties,
-    //                            device_type: cl_device_type,
-    //                            pfn_notify: extern fn (*mut c_char, *mut c_void, size_t, *mut c_void),
-    //                            user_data: *mut c_void,
-    //                            errcode_ret: *mut cl_int) -> cl_context;
-    unimplemented!();
+pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
+            device_type: DeviceType, pfn_notify: Option<CreateContextCallbackFn>, 
+            user_data: Option<UserDataPtr>) -> OclResult<Context> {
+
+    let properties_bytes: Vec<u8> = match properties {
+        &Some(ref props) => props.to_bytes(),
+        &None => Vec::<u8>::with_capacity(0),
+    };
+
+    // [FIXME]: Properties disabled:
+    let properties_ptr = if properties_bytes.len() == 0 {
+        0 as *const u8
+    } else {
+        // [FIXME]: Properties disabled.
+        properties_bytes.as_ptr()
+    };
+
+    // // [FIXME]: Disabled:
+    // let pfn_notify_ptr = unsafe { match pfn_notify {
+    //     // Some(cb) => mem::transmute(cb),
+    //     Some(_) => mem::transmute(ptr::null::<fn()>()),
+    //     // Some(_) => ptr::null::<CreateContextCallbackFn>(),
+    //     None => mem::transmute(ptr::null::<fn()>()),
+    //     // None => ptr::null::<CreateContextCallbackFn>(),
+    // } };
+
+    // // [FIXME]: Disabled:
+    // let user_data_ptr = match user_data {
+    //     // Some(ud_ptr) => ud_ptr,
+    //     Some(_) => ptr::null_mut(),
+    //     None => ptr::null_mut(),
+    // };
+
+    let mut errcode: cl_int = 0;
+
+    // [FIXME]: Callback function and data unimplemented.
+    let context = unsafe { Context::from_fresh_ptr(cl_h::clCreateContextFromType(
+        properties_ptr as *const isize,
+        device_type.bits(),
+        pfn_notify,
+        user_data,
+        &mut errcode,
+    )) };
+    errcode_try("clCreateContextFromType", "", errcode).and(Ok(context))
 }
+
 
 /// Increments the reference count of a context.
 pub unsafe fn retain_context(context: &Context) -> OclResult<()> {

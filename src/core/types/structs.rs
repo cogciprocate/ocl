@@ -3,6 +3,7 @@
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use util;
+use ffi::ClGlUint;
 use cl_h::{self, cl_mem};
 use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType,
         ContextProperty, ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
@@ -34,6 +35,12 @@ impl ContextProperties {
         self.0.push(ContextProperty::InteropUserSync(sync));
         self
     }
+
+    /// Specifies an OpenGL context handle.
+    pub fn gl_context_khr(mut self, gl_ctx: ClGlUint) -> ContextProperties {
+        self.0.push(ContextProperty::GlContextKhr(gl_ctx));
+        self
+    }    
 
     /// Pushes a `ContextProperty` onto this list of properties.
     pub fn and(mut self, prop: ContextProperty) -> ContextProperties {
@@ -76,6 +83,10 @@ impl ContextProperties {
                         util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
                         util::into_bytes(sync as cl_h::cl_bool)
                     ),
+                    // &ContextProperty::GlContextKhr(ctx) => (
+                    //     util::into_bytes(PropKind::GlContextKhr as cl_h::cl_uint),
+                    //     util::into_bytes(sync as cl_h::cl_bool)
+                    // ),
                     _ => continue,
                 };
 
