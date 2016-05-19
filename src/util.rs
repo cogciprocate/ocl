@@ -178,7 +178,7 @@ pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
     // let byte_count = mem::size_of::<u8>() * vec.len();
     // assert_eq!(mem::size_of::<T>(), vec.len());
     assert!(mem::size_of::<T>() == vec.len(), "The size of the source byte vector ({} bytes) \
-        does not match the size of the destination type ({} bytes).", vec.len(), 
+        does not match the size of the destination type ({} bytes).", vec.len(),
         mem::size_of::<T>());
 
     let mut new_val: T = mem::uninitialized();
@@ -196,7 +196,7 @@ pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
 ///
 pub unsafe fn bytes_to<T>(bytes: &[u8]) -> T {
     assert!(mem::size_of::<T>() == bytes.len(), "The size of the source byte slice ({} bytes) \
-        does not match the size of the destination type ({} bytes).", bytes.len(), 
+        does not match the size of the destination type ({} bytes).", bytes.len(),
         mem::size_of::<T>());
 
     let mut new_val: T = mem::uninitialized();
@@ -427,7 +427,7 @@ pub fn shuffle<T: OclScl>(vec: &mut [T]) {
 //=============================================================================
 
 /// Does what is says it's gonna.
-pub fn print_bytes_as_hex(bytes: &Vec<u8>) {
+pub fn print_bytes_as_hex(bytes: &[u8]) {
     print!("0x");
 
     for &byte in bytes.iter() {
@@ -483,7 +483,7 @@ pub fn print_slice<T: OclScl>(
     let mut prnt: bool = false;
 
     // Yes, this clusterfuck needs rewriting someday
-    for i in 0..vec.len() {
+    for (i, item) in vec.iter().enumerate() {
 
         prnt = false;
 
@@ -509,16 +509,17 @@ pub fn print_slice<T: OclScl>(
         }
 
         if val_range.is_some() {
-            if vec[i] < vr_start || vec[i] > vr_end {
+            if *item < vr_start || *item > vr_end {
                 prnt = false;
                 within_val_range = false;
             } else {
                 if within_idx_range {
-                    if vec[i] == Default::default() {
-                        ttl_ir += 1;
-                    } else {
-                        ttl_ir += 1;
-                    }
+                    // if *item == Default::default() {
+                    //     ttl_ir += 1;
+                    // } else {
+                    //     ttl_ir += 1;
+                    // }
+                    ttl_ir += 1;
                 }
 
                 within_val_range = true;
@@ -526,21 +527,19 @@ pub fn print_slice<T: OclScl>(
         }
 
         if within_idx_range && within_val_range {
-            sum += vec[i].to_i64().expect("ocl::buffer::print_vec(): vec[i]");
+            sum += item.to_i64().expect("ocl::buffer::print_vec(): vec[i]");
 
-            if vec[i] > hi { hi = vec[i] };
+            if *item > hi { hi = *item };
 
-            if vec[i] < lo { lo = vec[i] };
+            if *item < lo { lo = *item };
 
             if vec[i] != Default::default() {
                 ttl_nz += 1usize;
                 color = colors::C_ORA;
+            } else if show_zeros {
+                color = colors::C_DEFAULT;
             } else {
-                if show_zeros {
-                    color = colors::C_DEFAULT;
-                } else {
-                    prnt = false;
-                }
+                prnt = false;
             }
         }
 

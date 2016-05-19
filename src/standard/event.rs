@@ -275,7 +275,7 @@ impl EventList {
 
     /// Waits for all events in list to complete.
     pub fn wait(&self) -> OclResult<()> {
-        if self.event_list_core.len() > 0 {
+        if self.event_list_core.is_empty() == false {
             core::wait_for_events(self.event_list_core.count(), &self.event_list_core)
         } else {
             Ok(())

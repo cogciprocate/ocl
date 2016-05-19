@@ -89,8 +89,8 @@ impl self::Error {
 
     /// Returns the error status const code name or nothing.
     pub fn status_code(&self) -> String {
-        match self {
-            &Error::Status { ref status, .. } => format!("{:?}", status),
+        match *self {
+            Error::Status { ref status, .. } => format!("{:?}", status),
             _ => String::from(""),
         }
     }
@@ -102,8 +102,8 @@ impl std::error::Error for self::Error {
             Error::Nul(ref err) => err.description(),
             Error::Io(ref err) => err.description(),
             Error::FromUtf8Error(ref err) => err.description(),
-            Error::Status { ref desc, .. } => desc,
-            Error::String(ref desc) => desc,
+            Error::Status { ref desc, .. }
+            | Error::String(ref desc) => desc,
             Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
                 Please specify some dimensions.",
             // _ => panic!("OclError::description()"),

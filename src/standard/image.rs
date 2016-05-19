@@ -793,7 +793,7 @@ impl<E: OclPrm> Image<E> {
     ///
     /// Run `.enq()` to enqueue the command.
     ///
-    pub fn cmd<'b>(&self) -> ImageCmd<E> {
+    pub fn cmd(&self) -> ImageCmd<E> {
         ImageCmd::new(&self.queue, &self.obj_core,
             self.dims.to_lens().expect("ocl::Image::cmd"))
     }
