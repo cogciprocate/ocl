@@ -82,7 +82,7 @@ pub mod aliases {
         ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
         ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16};
 
-    pub use ffi::{ ClGlUint, ClGlInt, ClGlEnum };
+    pub use ffi::{ cl_GLuint, cl_GLint, cl_GLenum };
 }
 
 pub mod traits {

@@ -4,7 +4,7 @@ use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
-use ffi::ClGlUint;
+use ffi::cl_GLuint;
 
 use core::{self, OclPrm, Mem as MemCore, MemFlags,
     MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList};
@@ -510,7 +510,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
     /// for more info.
-    pub fn from_gl_buffer<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, gl_object: ClGlUint)
+    pub fn from_gl_buffer<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, gl_object: cl_GLuint)
             -> OclResult<Buffer<T>> {
         let flags = flags.unwrap_or(core::MEM_READ_WRITE);
         let dims: SpatialDims = dims.to_lens().into();

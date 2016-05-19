@@ -3,7 +3,7 @@ mod cl_gl_h;
 mod glcorearb_h;
 pub mod cl_h;
 
-pub use self::platform_h::{ClGlUint, ClGlInt, ClGlEnum};
+pub use self::platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
 pub use self::cl_gl_h::{cl_gl_object_type, cl_gl_texture_info,
     cl_gl_platform_info, cl_gl_context_info};
 

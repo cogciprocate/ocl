@@ -3,7 +3,7 @@
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use util;
-use ffi::ClGlUint;
+use ffi::cl_GLuint;
 use cl_h::{self, cl_mem};
 use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType,
         ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
@@ -67,7 +67,7 @@ pub enum ContextProperty {
     Platform(PlatformId),
     InteropUserSync(bool),
     D3d10DeviceKhr(TemporaryPlaceholderType),
-    GlContextKhr(ClGlUint),
+    GlContextKhr(cl_GLuint),
     EglDisplayKhr(TemporaryPlaceholderType),
     GlxDisplayKhr(TemporaryPlaceholderType),
     CglSharegroupKhr(TemporaryPlaceholderType),
@@ -107,7 +107,7 @@ impl ContextProperties {
     }
 
     /// Specifies an OpenGL context handle.
-    pub fn gl_context_khr(mut self, gl_ctx: ClGlUint) -> ContextProperties {
+    pub fn gl_context_khr(mut self, gl_ctx: cl_GLuint) -> ContextProperties {
         self.0.push(ContextProperty::GlContextKhr(gl_ctx));
         self
     }    
