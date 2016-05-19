@@ -262,7 +262,6 @@ impl Default for DeviceType {
     }
 }
 
-
 bitflags! {
     /// cl_device_fp_config - bitfield
     pub flags DeviceFpConfig: u64 {
@@ -295,7 +294,6 @@ bitflags! {
     }
 }
 
-
 bitflags! {
     /// cl_device_affinity_domain
     pub flags DeviceAffinityDomain: u64 {
@@ -307,7 +305,6 @@ bitflags! {
         const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE = 1 << 5,
     }
 }
-
 
 bitflags! {
     /// cl_mem_flags - bitfield
@@ -331,7 +328,6 @@ impl Default for MemFlags {
     }
 }
 
-
 bitflags! {
     /// cl_mem_migration_flags - bitfield
     pub flags MemMigrationFlags: u64 {
@@ -339,7 +335,6 @@ bitflags! {
         const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED = 1 << 1,
     }
 }
-
 
 bitflags! {
     /// cl_map_flags - bitfield
@@ -350,17 +345,15 @@ bitflags! {
     }
 }
 
-
 bitflags! {
-    /// cl_program_binary_type
-    pub flags ProgramBinaryType: u64 {
-        const PROGRAM_BINARY_TYPE_NONE = 0x0,
-        const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
-        const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
-        const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
+	/// cl_program_binary_type
+    pub flags ProgramBinaryType: u32 {
+		const PROGRAM_BINARY_TYPE_NONE = 0x0,
+		const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
+		const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
+		const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
     }
 }
-
 
 bitflags! {
     /// cl_kernel_arg_type_qualifer
@@ -621,6 +614,7 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceLocalMemType {
+        None = cl_h::CL_NONE as isize,
         Local = cl_h::CL_LOCAL as isize,
         Global = cl_h::CL_GLOBAL as isize,
     }
@@ -652,14 +646,19 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-    /// cl_partition_property
+    /// [INCOMPLETE] cl_device_partition_property
+    ///
+    /// [FIXME]: This types variants should also contain data described in: 
+    /// [https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html]
+    /// (https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html)
+    ///
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum PartitionProperty {
-        PartitionEqually = cl_h::CL_DEVICE_PARTITION_EQUALLY as isize,
-        PartitionByCounts = cl_h::CL_DEVICE_PARTITION_BY_COUNTS as isize,
-        PartitionByCountsListEnd = cl_h::CL_DEVICE_PARTITION_BY_COUNTS_LIST_END as isize,
-        PartitionByAffinityDomain = cl_h::CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN as isize,
+    pub enum DevicePartitionProperty {
+        Equally = cl_h::CL_DEVICE_PARTITION_EQUALLY as isize,
+        ByCounts = cl_h::CL_DEVICE_PARTITION_BY_COUNTS as isize,
+        ByCountsListEnd = cl_h::CL_DEVICE_PARTITION_BY_COUNTS_LIST_END as isize,
+        ByAffinityDomain = cl_h::CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN as isize,
     }
 }
 
@@ -831,7 +830,7 @@ enum_from_primitive! {
     /// cl_build_status
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum BuildStatus {
+    pub enum ProgramBuildStatus {
         Success = cl_h::CL_BUILD_SUCCESS as isize,
         None = cl_h::CL_BUILD_NONE as isize,
         Error = cl_h::CL_BUILD_ERROR as isize,

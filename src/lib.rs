@@ -53,9 +53,9 @@ pub mod util;
 mod standard;
 mod error;
 pub mod core;
-pub mod cl_h;
 pub mod ffi;
 
+pub use ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, Sampler, SpatialDims, ProQue};
 pub use self::error::{Error, Result};
@@ -143,9 +143,9 @@ pub mod enums {
     // API enums.
     pub use core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo,
         DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo,
-        ContextInfoOrPropertiesPointerType, PartitionProperty, CommandQueueInfo, ChannelType,
+        ContextInfoOrPropertiesPointerType, DevicePartitionProperty, CommandQueueInfo, ChannelType,
         MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo,
-        ProgramBuildInfo, BuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier,
+        ProgramBuildInfo, ProgramBuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier,
         KernelArgAccessQualifier, KernelWorkGroupInfo, EventInfo, CommandType,
         CommandExecutionStatus, BufferCreateType, ProfilingInfo};
 

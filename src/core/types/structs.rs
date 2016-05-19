@@ -3,6 +3,7 @@
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use util;
+use ffi::ClGlUint;
 use cl_h::{self, cl_mem};
 use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType,
         ContextProperty, ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
@@ -35,6 +36,12 @@ impl ContextProperties {
         self
     }
 
+    /// Specifies an OpenGL context handle.
+    pub fn gl_context_khr(mut self, gl_ctx: ClGlUint) -> ContextProperties {
+        self.0.push(ContextProperty::GlContextKhr(gl_ctx));
+        self
+    }    
+
     /// Pushes a `ContextProperty` onto this list of properties.
     pub fn and(mut self, prop: ContextProperty) -> ContextProperties {
         self.0.push(prop);
@@ -59,6 +66,10 @@ impl ContextProperties {
     /// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
     ///
     /// TODO: Evaluate cleaner ways to do this.
+    //
+    //
+    // [IMPORTANT]: THE RETURN TYPE SHOULD BE `Vec<isize>` (`Vec<cl_context_properties>`)
+    //
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(128);
 
@@ -76,6 +87,10 @@ impl ContextProperties {
                         util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
                         util::into_bytes(sync as cl_h::cl_bool)
                     ),
+                    // &ContextProperty::GlContextKhr(ctx) => (
+                    //     util::into_bytes(PropKind::GlContextKhr as cl_h::cl_uint),
+                    //     util::into_bytes(sync as cl_h::cl_bool)
+                    // ),
                     _ => continue,
                 };
 
@@ -104,16 +119,17 @@ impl Into<Vec<ContextProperty>> for ContextProperties {
     }
 }
 
-// pub enum ContextInfoOrPropertiesPointerType {
-//     Platform = cl_h::CL_CONTEXT_PLATFORM as isize,
-//     InteropUserSync = cl_h::CL_CONTEXT_INTEROP_USER_SYNC as isize,
-// }
-
 impl Into<Vec<u8>> for ContextProperties {
     fn into(self) -> Vec<u8> {
         self.to_bytes()
     }
 }
+
+
+// pub enum ContextInfoOrPropertiesPointerType {
+//     Platform = cl_h::CL_CONTEXT_PLATFORM as isize,
+//     InteropUserSync = cl_h::CL_CONTEXT_INTEROP_USER_SYNC as isize,
+// }
 
 
 

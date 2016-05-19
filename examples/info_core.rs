@@ -831,7 +831,7 @@ fn print_platform_device(platform: Platform, device: Device) {
     println!("Program Build:\n\
             {t}BuildStatus: {}\n\
             {t}BuildOptions: {}\n\
-            {t}BuildLog: {}\n\
+            {t}BuildLog: \n\n{}\n\n\
             {t}BinaryType: {}\n\
         ",
         core::get_program_build_info(&program, &device, ProgramBuildInfo::BuildStatus),
