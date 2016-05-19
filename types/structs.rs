@@ -110,7 +110,7 @@ impl ContextProperties {
     pub fn gl_context_khr(mut self, gl_ctx: cl_GLuint) -> ContextProperties {
         self.0.push(ContextProperty::GlContextKhr(gl_ctx));
         self
-    }    
+    }
 
     /// Pushes a `ContextProperty` onto this list of properties.
     pub fn prop(mut self, prop: ContextProperty) -> ContextProperties {

@@ -42,8 +42,8 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo,
     KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
     KernelWorkGroupInfoResult, ClEventRef, ClWaitList, EventInfo, EventInfoResult, ProfilingInfo,
-    ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, 
-    ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, 
+    ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
+    ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType};
 
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
@@ -293,7 +293,7 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
 /// Returns information about a device.
 ///
 #[allow(unused_variables)]
-pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo) 
+pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
         -> DeviceInfoResult
 {
     let mut result_size: size_t = 0;
@@ -340,7 +340,7 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
             DeviceInfoResult::from_bytes_max_work_item_sizes(request, result, max_wi_dims)
         },
         _ => DeviceInfoResult::from_bytes(request, result)
-    }    
+    }
 }
 
 /// [UNIMPLEMENTED]
@@ -400,7 +400,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     // print!("\n");
 
     // [FIXME]: Disabled:
-    let properties_ptr = if properties_bytes.len() == 0 {
+    let properties_ptr = if properties_bytes.is_empty() {
         ptr::null() as *const cl_context_properties
     } else {
         // properties_bytes.as_ptr()
@@ -441,16 +441,16 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
 //
 // [NOTE]: Leave commented "DEBUG" print statements intact until more
 // `ContextProperties` variants are implemented.
-pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
-            device_type: DeviceType, pfn_notify: Option<CreateContextCallbackFn>, 
+pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>,
+            device_type: DeviceType, pfn_notify: Option<CreateContextCallbackFn>,
             user_data: Option<UserDataPtr>) -> OclResult<Context> {
 
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    let properties_bytes: Vec<u8> = match properties {
-        &Some(ref props) => props.to_bytes(),
-        &None => Vec::<u8>::with_capacity(0),
+    let properties_bytes: Vec<u8> = match *properties {
+        Some(ref props) => props.to_bytes(),
+        None => Vec::<u8>::with_capacity(0),
     };
 
     // [DEBUG]:
@@ -459,7 +459,7 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     // print!("\n");
 
     // [FIXME]: Disabled:
-    let properties_ptr = if properties_bytes.len() == 0 {
+    let properties_ptr = if properties_bytes.is_empty() {
         ptr::null() as *const cl_context_properties
     } else {
         // properties_bytes.as_ptr()
@@ -1162,8 +1162,8 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
     ) };
     try!(errcode_try("clCreateProgramWithBinary", "", errcode));
 
-    for i in 0..binary_status.len() {
-        try!(errcode_try("clCreateProgramWithBinary", &format!("(): Device [{}]", i), binary_status[i]));
+    for (i, item) in binary_status.iter().enumerate() {
+        try!(errcode_try("clCreateProgramWithBinary", &format!("(): Device [{}]", i), *item));
     }
 
     unsafe { Ok(Program::from_fresh_ptr(program)) }
@@ -2836,7 +2836,7 @@ pub fn get_kernel_name(kernel: &Kernel) -> String {
 /// from here.
 pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
             context: &Context,
-            src_strings: &Vec<CString>,
+            src_strings: &[CString],
             cmplr_opts: &CString,
             device_ids: &[D],
         ) -> OclResult<Program>
