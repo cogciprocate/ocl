@@ -399,10 +399,12 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     // util::print_bytes_as_hex(&properties_bytes);
     // print!("\n");
 
+    // [FIXME]: Disabled:
     let properties_ptr = if properties_bytes.len() == 0 {
-        0 as *const u8
+        ptr::null() as *const cl_context_properties
     } else {
-        properties_bytes.as_ptr()
+        // properties_bytes.as_ptr()
+        ptr::null() as *const cl_context_properties
     };
 
     // [FIXME]: Disabled:
@@ -415,7 +417,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     let mut errcode: cl_int = 0;
 
     let context = unsafe { Context::from_fresh_ptr(cl_h::clCreateContext(
-        properties_ptr as *const cl_context_properties,
+        properties_ptr,
         device_ids.len() as cl_uint,
         device_ids.as_ptr()  as *const cl_device_id,
         pfn_notify,
@@ -456,10 +458,12 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     // util::print_bytes_as_hex(&properties_bytes);
     // print!("\n");
 
+    // [FIXME]: Disabled:
     let properties_ptr = if properties_bytes.len() == 0 {
-        0 as *const u8
+        ptr::null() as *const cl_context_properties
     } else {
-        properties_bytes.as_ptr()
+        // properties_bytes.as_ptr()
+        ptr::null() as *const cl_context_properties
     };
 
     // [FIXME]: Disabled:
@@ -472,7 +476,7 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     let mut errcode: cl_int = 0;
 
     let context = unsafe { Context::from_fresh_ptr(cl_h::clCreateContextFromType(
-        properties_ptr as *const cl_context_properties,
+        properties_ptr,
         device_type.bits(),
         pfn_notify,
         user_data_ptr,
