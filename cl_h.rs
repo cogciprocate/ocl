@@ -633,13 +633,13 @@ extern "system" {
                        num_devices: cl_uint,
                        devices: *const cl_device_id,
                        pfn_notify: Option<extern fn (*const c_char, *const c_void, size_t, *mut c_void)>,
-                       user_data: Option<*mut c_void>,
+                       user_data: *mut c_void,
                        errcode_ret: *mut cl_int) -> cl_context;
 
     pub fn clCreateContextFromType(properties: *const cl_context_properties,
                                device_type: cl_device_type,
                                pfn_notify: Option<extern fn (*const c_char, *const c_void, size_t, *mut c_void)>,
-                               user_data: Option<*mut c_void>,
+                               user_data: *mut c_void,
                                errcode_ret: *mut cl_int) -> cl_context;
 
     pub fn clRetainContext(context: cl_context) -> cl_int;
