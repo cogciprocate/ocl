@@ -3,7 +3,6 @@
 use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
-// use util;
 use ffi;
 use cl_h::{self, cl_mem};
 use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
@@ -91,13 +90,11 @@ pub struct ContextProperties(HashMap<ContextProperty, ContextPropertyValue>);
 impl ContextProperties {
     /// Returns an empty new list of context properties
     pub fn new() -> ContextProperties {
-        // ContextProperties(Vec::with_capacity(4))
         ContextProperties(HashMap::with_capacity(16))
     }
 
     /// Specifies a platform (builder-style).
     pub fn platform<'a, P: Into<PlatformId>>(&'a mut self, platform: P) -> &'a mut ContextProperties {
-        // self.0.push((ContextProperty::Platform, ContextPropertyValue::Platform(platform.into())));
         self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(platform.into()));
         self
     }
@@ -105,14 +102,12 @@ impl ContextProperties {
     /// Specifies whether the user is responsible for synchronization between
     /// OpenCL and other APIs (builder-style).
     pub fn interop_user_sync<'a>(&'a mut self, sync: bool) -> &'a mut ContextProperties {
-        // self.0.push((ContextProperty::InteropUserSync, ContextPropertyValue::InteropUserSync(sync)));
         self.0.insert(ContextProperty::InteropUserSync, ContextPropertyValue::InteropUserSync(sync));
         self
     }
 
     /// Specifies an OpenGL context handle.
     pub fn gl_context<'a>(&'a mut self, gl_ctx: ffi::cl_GLuint) -> &'a mut ContextProperties {
-        // self.0.push((ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx)));
         self.0.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
         self
     }    
@@ -120,14 +115,6 @@ impl ContextProperties {
     /// Pushes a `ContextPropertyValue` onto this list of properties.
     pub fn prop<'a>(&'a mut self, prop: ContextPropertyValue) -> &'a mut ContextProperties {
         match prop {
-            // ContextPropertyValue::Platform(val) => 
-            //         self.0.push((ContextProperty::Platform, ContextPropertyValue::Platform(val))),
-            // ContextPropertyValue::InteropUserSync(val) => 
-            //         self.0.push((ContextProperty::InteropUserSync, 
-            //             ContextPropertyValue::InteropUserSync(val))),
-            // ContextPropertyValue::GlContextKhr(val) => 
-            //         self.0.push((ContextProperty::GlContextKhr, 
-            //             ContextPropertyValue::GlContextKhr(val))),
             ContextPropertyValue::Platform(val) => {
                 self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(val));
             },
@@ -146,16 +133,6 @@ impl ContextProperties {
 
     /// Returns a platform id or none.
     pub fn get_platform(&self) -> Option<PlatformId> {
-        // let mut platform = None;
-
-        // for (key, val) in self.0.iter() {
-        //     if let &ContextPropertyValue::Platform(ref plat) = val {
-        //         platform = Some(plat.clone());
-        //     }
-        // }
-
-        // platform
-
         match self.0.get(&ContextProperty::Platform) {
             Some(prop_val) => {
                 if let &ContextPropertyValue::Platform(ref plat) = prop_val {
@@ -203,12 +180,6 @@ impl ContextProperties {
         props_raw
     }
 }
-
-// impl Into<Vec<(ContextProperty, ContextPropertyValue)>> for ContextProperties {
-//     fn into(self) -> Vec<(ContextProperty, ContextPropertyValue)> {
-//         self.0
-//     }
-// }
 
 impl Into<Vec<isize>> for ContextProperties {
     fn into(self) -> Vec<isize> {

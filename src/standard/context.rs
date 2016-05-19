@@ -1,9 +1,5 @@
 //! An OpenCL context.
 
-// TEMPORARY:
-#![allow(dead_code)]
-
-// use formatting::MT;
 use std;
 use std::ops::{Deref, DerefMut};
 use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo, 
@@ -52,23 +48,6 @@ impl ContextBuilder {
     ///
     /// Returns a newly created context with the specified platform and set of device types.
     pub fn build(&self) -> OclResult<Context> {
-        // let properties = match self.properties {
-        //     Some(ref props) => {
-        //         // assert!(self.platform.is_none(), "ocl::ContextBuilder::build: Internal error. 'platform' \
-        //         //     and 'properties' have both been set.");
-        //         Some(props.clone())
-        //     },
-        //     None => {
-        //         // let platform = match self.platform {
-        //         //     Some(ref plat) => plat.clone(),
-        //         //     None => Platform::default(),
-        //         // };
-        //         let mut props = ContextProperties::new();
-        //         props.platform::<PlatformIdCore>(Platform::default().into());
-        //         Some(props)
-        //     },
-        // };
-
         Context::new(Some(self.properties.clone()), self.device_spec.clone(), None, None)
     }
 
@@ -97,20 +76,6 @@ impl ContextBuilder {
     /// Overwrites any previously specified platform.
     ///
     pub fn platform<'a>(&'a mut self, platform: Platform) -> &'a mut ContextBuilder {
-        // assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
-        // assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
-        // if self.properties.is_some() {
-        //     match self.properties {
-        //         Some(ref mut props) => {
-        //             props.platform(ContextProperties::new().platform::<PlatformIdCore>(
-        //                 platform.into()));
-        //         },
-        //         None => panic!("Internal error setting platform.");
-        //     }
-        // } else {
-        //     self.properties = Some(ContextProperties::new().platform::<PlatformIdCore>(
-        //         platform.into()));
-        // }
         self.properties.platform(platform);
         self
     }
@@ -132,20 +97,6 @@ impl ContextBuilder {
         self.device_spec = Some(device_spec.into());
         self
     }
-
-    // fn create_context_properties(&mut self) {
-    //     if self.properties.is_none() {
-    //         self.properties = ContextProperties::new();
-    //         props.platform::<PlatformIdCore>(Platform::default().into());
-    //     }
-    // }
-
-    // // [FIXME: Add these]
-    //
-    // pub fn device_idx_round_robin
-    // pub fn context_idx_round_robin
-    //
-    //
 }
 
 
@@ -270,10 +221,6 @@ impl Context {
 
     /// Returns info about the context.
     pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
-        // match core::get_context_info(&self.obj_core, info_kind) {
-        //     Ok(pi) => pi,
-        //     Err(err) => ContextInfoResult::Error(Box::new(err)),
-        // }
         core::get_context_info(&self.obj_core, info_kind)
     }
 
@@ -327,9 +274,3 @@ impl DerefMut for Context {
         &mut self.obj_core
     }
 }
-
-// impl PartialEq<Context> for Context {
-//     fn eq(&self, other: &Context) -> bool {
-//         self == other
-//     }
-// }
