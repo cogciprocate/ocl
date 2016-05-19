@@ -369,8 +369,12 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 
 /// Creates a new context pointer valid for all devices in `device_ids`.
 ///
+/// Platform is specified in `properties`. If `properties` is `None`, the platform may
+/// default to the first available.
+///
 /// [FIXME]: Incomplete implementation. Callback and userdata untested.
 /// [FIXME]: Verify OpenCL Version on property.
+/// [FIXME]: Most context sources not implemented for `ContextProperties`.
 //
 // [NOTE]: Leave commented print statements intact until more `ContextProperties
 // variants are implemented.
@@ -390,16 +394,16 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
         &None => Vec::<u8>::with_capacity(0),
     };
 
+    // [DEBUG]:
+    // print!("CREATE_CONTEXT: BYTES: ");
+    // util::print_bytes_as_hex(&properties_bytes);
+    // print!("\n");
+
     let properties_ptr = if properties_bytes.len() == 0 {
         0 as *const u8
     } else {
         properties_bytes.as_ptr()
     };
-
-    // [DEBUG]:
-    // print!("CREATE_CONTEXT: BYTES: ");
-    // util::print_bytes_as_hex(&properties_bytes);
-    // print!("\n");
 
     let mut errcode: cl_int = 0;
 
@@ -417,17 +421,33 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
 }
 
 
-/// Creates a new context pointer from an outside source such as OpenGL or DirectX.
+/// Creates a new context pointer for all devices of a specific type.
 ///
-/// [FIXME]: Most sources not implemented.
+/// Platform is specified in `properties`. If `properties` is `None`, the platform may
+/// default to the first available.
+///
+/// [FIXME]: Incomplete implementation. Callback and userdata untested.
+/// [FIXME]: Verify OpenCL Version on property.
+/// [FIXME]: Most context sources not implemented for `ContextProperties`.
+//
+// [NOTE]: Leave commented print statements intact until more `ContextProperties
+// variants are implemented.
 pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
             device_type: DeviceType, pfn_notify: Option<CreateContextCallbackFn>, 
             user_data: Option<UserDataPtr>) -> OclResult<Context> {
+
+    // [DEBUG]:
+    // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
     let properties_bytes: Vec<u8> = match properties {
         &Some(ref props) => props.to_bytes(),
         &None => Vec::<u8>::with_capacity(0),
     };
+
+    // [DEBUG]:
+    // print!("CREATE_CONTEXT: BYTES: ");
+    // util::print_bytes_as_hex(&properties_bytes);
+    // print!("\n");
 
     let properties_ptr = if properties_bytes.len() == 0 {
         0 as *const u8
