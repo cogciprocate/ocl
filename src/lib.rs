@@ -53,9 +53,9 @@ pub mod util;
 mod standard;
 mod error;
 pub mod core;
-pub mod cl_h;
 pub mod ffi;
 
+pub use ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, Sampler, SpatialDims, ProQue};
 pub use self::error::{Error, Result};

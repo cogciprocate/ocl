@@ -1,6 +1,7 @@
 pub mod platform_h;
 pub mod cl_gl_h;
 pub mod glcorearb_h;
+pub mod cl_h;
 
 pub use self::platform_h::{ClGlUint, ClGlInt, ClGlEnum};
 pub use self::cl_gl_h::{cl_gl_object_type, cl_gl_texture_info,
