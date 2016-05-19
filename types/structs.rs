@@ -2,11 +2,11 @@
 
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
-use util;
-use ffi::cl_GLuint;
+// use util;
+use ffi;
 use cl_h::{self, cl_mem};
-use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType,
-        ContextInfoOrPropertiesPointerType as PropKind, PlatformId};
+use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
+        PlatformId};
 
 
 // Until everything can be implemented:
@@ -63,11 +63,11 @@ pub type TemporaryPlaceholderType = ();
 // use for Direct3D 11 interoperability. The default value is NULL.
 //
 #[derive(Clone, Debug)]
-pub enum ContextProperty {
+pub enum ContextPropertyValue {
     Platform(PlatformId),
     InteropUserSync(bool),
     D3d10DeviceKhr(TemporaryPlaceholderType),
-    GlContextKhr(cl_GLuint),
+    GlContextKhr(ffi::cl_GLuint),
     EglDisplayKhr(TemporaryPlaceholderType),
     GlxDisplayKhr(TemporaryPlaceholderType),
     CglSharegroupKhr(TemporaryPlaceholderType),
@@ -85,7 +85,7 @@ pub enum ContextProperty {
 ///
 /// TODO: Check for duplicate property assignments.
 #[derive(Clone, Debug)]
-pub struct ContextProperties(Vec<ContextProperty>);
+pub struct ContextProperties(Vec<(ContextProperty, ContextPropertyValue)>);
 
 impl ContextProperties {
     /// Returns an empty new list of context properties
@@ -95,26 +95,36 @@ impl ContextProperties {
 
     /// Specifies a platform (builder-style).
     pub fn platform<P: Into<PlatformId>>(mut self, platform: P) -> ContextProperties {
-        self.0.push(ContextProperty::Platform(platform.into()));
+        self.0.push((ContextProperty::Platform, ContextPropertyValue::Platform(platform.into())));
         self
     }
 
     /// Specifies whether the user is responsible for synchronization between
     /// OpenCL and other APIs (builder-style).
     pub fn interop_user_sync(mut self, sync: bool) -> ContextProperties {
-        self.0.push(ContextProperty::InteropUserSync(sync));
+        self.0.push((ContextProperty::InteropUserSync, ContextPropertyValue::InteropUserSync(sync)));
         self
     }
 
     /// Specifies an OpenGL context handle.
-    pub fn gl_context_khr(mut self, gl_ctx: cl_GLuint) -> ContextProperties {
-        self.0.push(ContextProperty::GlContextKhr(gl_ctx));
+    pub fn gl_context(mut self, gl_ctx: ffi::cl_GLuint) -> ContextProperties {
+        self.0.push((ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx)));
         self
     }    
 
-    /// Pushes a `ContextProperty` onto this list of properties.
-    pub fn prop(mut self, prop: ContextProperty) -> ContextProperties {
-        self.0.push(prop);
+    /// Pushes a `ContextPropertyValue` onto this list of properties.
+    pub fn prop(mut self, prop: ContextPropertyValue) -> ContextProperties {
+        match prop {
+            ContextPropertyValue::Platform(val) => 
+                    self.0.push((ContextProperty::Platform, ContextPropertyValue::Platform(val))),
+            ContextPropertyValue::InteropUserSync(val) => 
+                    self.0.push((ContextProperty::InteropUserSync, 
+                        ContextPropertyValue::InteropUserSync(val))),
+            ContextPropertyValue::GlContextKhr(val) => 
+                    self.0.push((ContextProperty::GlContextKhr, 
+                        ContextPropertyValue::GlContextKhr(val))),
+            _ => panic!("'{:?}' is not yet a supported variant.", prop),
+        }        
         self
     }
 
@@ -123,7 +133,7 @@ impl ContextProperties {
         let mut platform = None;
 
         for prop in self.0.iter() {
-            if let &ContextProperty::Platform(ref plat) = prop {
+            if let &ContextPropertyValue::Platform(ref plat) = &prop.1 {
                 platform = Some(plat.clone());
             }
         }
@@ -131,102 +141,108 @@ impl ContextProperties {
         platform
     }
 
-    /// [UNTESTED: Not properly tested]
-    /// Converts this list into a packed-byte representation as specified
-    /// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
-    ///
-    /// TODO: Evaluate cleaner ways to do this.
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(128);
-
-        unsafe {
-            // For each property:
-            for prop in self.0.iter() {
-                // Convert both the kind of property (a u32) and the value (variable type/size)
-                // into just a core byte vector (Vec<u8>):
-                let (kind, val) = match prop {
-                    &ContextProperty::Platform(ref platform_id_core) => (
-                        util::into_bytes(PropKind::Platform as cl_h::cl_uint),
-                        util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id)
-                    ),
-                    &ContextProperty::InteropUserSync(sync) => (
-                        util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
-                        util::into_bytes(sync as cl_h::cl_bool)
-                    ),
-                    // &ContextProperty::GlContextKhr(ctx) => (
-                    //     util::into_bytes(PropKind::GlContextKhr as cl_h::cl_uint),
-                    //     util::into_bytes(sync as cl_h::cl_bool)
-                    // ),
-                    _ => continue,
-                };
-
-                // Property Kind Enum:
-                bytes.extend_from_slice(&kind);
-                // 32 bits of padding:
-                bytes.extend_from_slice(&util::into_bytes(0 as u32));
-                // Value:
-                bytes.extend_from_slice(&val);
-                // 32 bits of padding:
-                bytes.extend_from_slice(&util::into_bytes(0 as u32));
-            }
-
-            // Add a terminating 0:
-            bytes.extend_from_slice(&util::into_bytes(0 as usize));
-        }
-
-        bytes.shrink_to_fit();
-        bytes
-    }
-
-    // /// Converts this list into a packed-word representation as specified
+    // /// [UNTESTED: Not properly tested]
+    // /// Converts this list into a packed-byte representation as specified
     // /// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
     // ///
-    // // [NOTE]: Meant to replace `::to_bytes`.
-    // //
-    // // Return type is `Vec<cl_context_properties>` => `Vec<isize>`
-    // pub fn to_raw(&self) -> Vec<isize> {
-    //     let mut props = Vec::with_capacity(32);
+    // /// TODO: Evaluate cleaner ways to do this.
+    // pub fn to_bytes(&self) -> Vec<u8> {
+    //     let mut bytes = Vec::with_capacity(128);
 
     //     unsafe {
     //         // For each property:
     //         for prop in self.0.iter() {
     //             // Convert both the kind of property (a u32) and the value (variable type/size)
-    //             // an isize:
-    //             match prop {
-    //                 &ContextProperty::Platform(ref platform_id_core) => (
+    //             // into just a core byte vector (Vec<u8>):
+    //             let (kind, val) = match prop {
+    //                 &ContextPropertyValue::Platform(ref platform_id_core) => (
     //                     util::into_bytes(PropKind::Platform as cl_h::cl_uint),
     //                     util::into_bytes(platform_id_core.as_ptr() as cl_h::cl_platform_id)
     //                 ),
-    //                 &ContextProperty::InteropUserSync(sync) => (
+    //                 &ContextPropertyValue::InteropUserSync(sync) => (
     //                     util::into_bytes(PropKind::InteropUserSync as cl_h::cl_uint),
     //                     util::into_bytes(sync as cl_h::cl_bool)
     //                 ),
-    //                 // &ContextProperty::GlContextKhr(ctx) => (
+    //                 // &ContextPropertyValue::GlContextKhr(ctx) => (
     //                 //     util::into_bytes(PropKind::GlContextKhr as cl_h::cl_uint),
     //                 //     util::into_bytes(sync as cl_h::cl_bool)
     //                 // ),
     //                 _ => continue,
     //             };
+
+    //             // Property Kind Enum:
+    //             bytes.extend_from_slice(&kind);
+    //             // 32 bits of padding:
+    //             bytes.extend_from_slice(&util::into_bytes(0 as u32));
+    //             // Value:
+    //             bytes.extend_from_slice(&val);
+    //             // 32 bits of padding:
+    //             bytes.extend_from_slice(&util::into_bytes(0 as u32));
     //         }
 
     //         // Add a terminating 0:
     //         bytes.extend_from_slice(&util::into_bytes(0 as usize));
     //     }
 
-    //     props.shrink_to_fit();
-    //     props
+    //     bytes.shrink_to_fit();
+    //     bytes
     // }
+
+    /// Converts this list into a packed-word representation as specified
+    /// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
+    ///
+    // [NOTE]: Meant to replace `::to_bytes`.
+    //
+    // Return type is `Vec<cl_context_properties>` => `Vec<isize>`
+    pub fn to_raw(&self) -> Vec<isize> {
+        let mut props_raw = Vec::with_capacity(32);
+
+        unsafe {
+            // For each property ...
+            for prop in self.0.iter() {
+                // convert both the kind of property (a u32 originally) and
+                // the value (variable type/size) to an isize:
+                match &prop.1 {
+                    &ContextPropertyValue::Platform(ref platform_id_core) => {
+                        props_raw.push(prop.0 as isize);
+                        props_raw.push(platform_id_core.as_ptr() as isize);
+                    },
+                    &ContextPropertyValue::InteropUserSync(sync) => {
+                        props_raw.push(prop.0 as isize);
+                        props_raw.push(sync as isize);
+                    },
+                    // &ContextPropertyValue::GlContextKhr(ctx) => (
+                    //     util::into_bytes(PropKind::GlContextKhr as cl_h::cl_uint),
+                    //     util::into_bytes(sync as cl_h::cl_bool)
+                    // ),
+                    _ => panic!("'{:?}' is not yet a supported variant.", prop.0),
+                };
+            }
+
+            // Add a terminating 0:
+            props_raw.push(0);
+        }
+
+        props_raw.shrink_to_fit();
+        props_raw
+    }
 }
 
-impl Into<Vec<ContextProperty>> for ContextProperties {
-    fn into(self) -> Vec<ContextProperty> {
+impl Into<Vec<(ContextProperty, ContextPropertyValue)>> for ContextProperties {
+    fn into(self) -> Vec<(ContextProperty, ContextPropertyValue)> {
         self.0
     }
 }
 
-impl Into<Vec<u8>> for ContextProperties {
-    fn into(self) -> Vec<u8> {
-        self.to_bytes()
+// impl Into<Vec<u8>> for ContextProperties {
+//     fn into(self) -> Vec<u8> {
+//         self.to_bytes()
+//     }
+// }
+
+impl Into<Vec<isize>> for ContextProperties {
+    fn into(self) -> Vec<isize> {
+        self.to_raw()
     }
 }
 
