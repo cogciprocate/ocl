@@ -22,6 +22,11 @@ use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
+use ffi::{ClGlUint, ClGlInt, ClGlEnum};
+use ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
+    clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
+    clEnqueueReleaseGLObjects};
+
 use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type,
     cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties,
     cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info,
@@ -719,6 +724,143 @@ pub unsafe fn create_buffer<T: OclPrm>(
         &mut errcode,
     );
     try!(errcode_try("clCreateBuffer", "", errcode));
+    debug_assert!(!buf_ptr.is_null());
+
+    Ok(Mem::from_fresh_ptr(buf_ptr))
+}
+
+/// [UNTESTED]
+/// Return a buffer pointer from a OpenGL buffer object.
+pub unsafe fn create_from_gl_buffer(
+            context: &Context,
+            gl_object: ClGlUint,
+            flags: MemFlags
+        ) -> OclResult<Mem>
+{
+    // Verify that the context is valid
+    try!(verify_context(context));
+
+    let mut errcode: cl_int = 0;
+
+    let buf_ptr = clCreateFromGLBuffer(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            gl_object,
+            &mut errcode);
+
+    try!(errcode_try("clCreateFromGLBuffer", "", errcode));
+    debug_assert!(!buf_ptr.is_null());
+
+    Ok(Mem::from_fresh_ptr(buf_ptr))
+}
+
+/// [UNTESTED]
+/// Return a renderbuffer pointer from a OpenGL renderbuffer object.
+pub unsafe fn create_from_gl_renderbuffer(
+            context: &Context,
+            renderbuffer: ClGlUint,
+            flags: MemFlags
+        ) -> OclResult<Mem>
+{
+    // Verify that the context is valid
+    try!(verify_context(context));
+
+    let mut errcode: cl_int = 0;
+
+    let buf_ptr = clCreateFromGLRenderbuffer(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            renderbuffer,
+            &mut errcode);
+
+    try!(errcode_try("clCreateFromGLRenderbuffer", "", errcode));
+    debug_assert!(!buf_ptr.is_null());
+
+    Ok(Mem::from_fresh_ptr(buf_ptr))
+}
+
+/// [UNTESTED]
+/// Return a texture2D pointer from a OpenGL texture2D object.
+pub unsafe fn create_from_gl_texture(
+            context: &Context,
+            texture_target: ClGlEnum,
+            miplevel: ClGlInt,
+            texture: ClGlUint,
+            flags: MemFlags
+        ) -> OclResult<Mem>
+{
+    // Verify that the context is valid
+    try!(verify_context(context));
+
+    let mut errcode: cl_int = 0;
+
+    let buf_ptr = clCreateFromGLTexture(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            texture_target,
+            miplevel,
+            texture,
+            &mut errcode);
+
+    try!(errcode_try("clCreateFromGLTexture", "", errcode));
+    debug_assert!(!buf_ptr.is_null());
+
+    Ok(Mem::from_fresh_ptr(buf_ptr))
+}
+
+/// [UNTESTED] [DEPRICATED]
+/// Return a texture2D pointer from a OpenGL texture2D object.
+pub unsafe fn create_from_gl_texture_2d(
+            context: &Context,
+            texture_target: ClGlEnum,
+            miplevel: ClGlInt,
+            texture: ClGlUint,
+            flags: MemFlags
+        ) -> OclResult<Mem>
+{
+    // Verify that the context is valid
+    try!(verify_context(context));
+
+    let mut errcode: cl_int = 0;
+
+    let buf_ptr = clCreateFromGLTexture2D(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            texture_target,
+            miplevel,
+            texture,
+            &mut errcode);
+
+    try!(errcode_try("clCreateFromGLTexture2D", "", errcode));
+    debug_assert!(!buf_ptr.is_null());
+
+    Ok(Mem::from_fresh_ptr(buf_ptr))
+}
+
+/// [UNTESTED] [DEPRICATED]
+/// Return a texture3D pointer from a OpenGL texture3D object.
+pub unsafe fn create_from_gl_texture_3d(
+            context: &Context,
+            texture_target: ClGlEnum,
+            miplevel: ClGlInt,
+            texture: ClGlUint,
+            flags: MemFlags
+        ) -> OclResult<Mem>
+{
+    // Verify that the context is valid
+    try!(verify_context(context));
+
+    let mut errcode: cl_int = 0;
+
+    let buf_ptr = clCreateFromGLTexture3D(
+            context.as_ptr(),
+            flags.bits() as cl_mem_flags,
+            texture_target,
+            miplevel,
+            texture,
+            &mut errcode);
+
+    try!(errcode_try("clCreateFromGLTexture3D", "", errcode));
     debug_assert!(!buf_ptr.is_null());
 
     Ok(Mem::from_fresh_ptr(buf_ptr))
@@ -2001,6 +2143,52 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm>(
         new_event_ptr,
     ) };
     errcode_try("clEnqueueCopyBufferRect", "", errcode)
+}
+
+/// [UNTESTED]
+/// Enqueue acquire OpenCL memory objects that have been created from OpenGL objects.
+pub fn enqueue_acquire_gl_buffer(
+            command_queue: &CommandQueue,
+            buffer: &Mem,
+            wait_list: Option<&ClWaitList>,
+            new_event: Option<&mut ClEventPtrNew>,
+        ) -> OclResult<()>
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { clEnqueueAcquireGLObjects(
+        command_queue.as_ptr(),
+        1,
+        &buffer.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr
+    ) };
+    errcode_try("clEnqueueAcquireGLObjects", "", errcode)
+}
+
+/// [UNTESTED]
+/// Enqueue release OpenCL memory objects that have been created from OpenGL objects.
+pub fn enqueue_release_gl_buffer(
+            command_queue: &CommandQueue,
+            buffer: &Mem,
+            wait_list: Option<&ClWaitList>,
+            new_event: Option<&mut ClEventPtrNew>,
+        ) -> OclResult<()>
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+
+    let errcode = unsafe { clEnqueueReleaseGLObjects(
+        command_queue.as_ptr(),
+        1,
+        &buffer.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr
+    ) };
+    errcode_try("clEnqueueReleaseGLObjects", "", errcode)
 }
 
 
