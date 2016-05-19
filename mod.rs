@@ -94,7 +94,8 @@ use libc;
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 use cl_h;
-use ffi::glcorearb_h;
+// use ffi::{cl_gl_h, glcorearb_h};
+use ffi;
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
@@ -132,10 +133,11 @@ pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceI
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
     ClWaitList};
 
-pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion};
+pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion,
+        ContextProperty};
 
 pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
-    ContextInfoResult, ContextProperty, CommandQueueInfoResult, MemInfoResult,
+    ContextInfoResult, CommandQueueInfoResult, MemInfoResult,
     ImageInfoResult, SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult,
     KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
     EventInfoResult, ProfilingInfoResult};
@@ -262,7 +264,6 @@ impl Default for DeviceType {
     }
 }
 
-
 bitflags! {
     /// cl_device_fp_config - bitfield
     pub flags DeviceFpConfig: u64 {
@@ -295,7 +296,6 @@ bitflags! {
     }
 }
 
-
 bitflags! {
     /// cl_device_affinity_domain
     pub flags DeviceAffinityDomain: u64 {
@@ -307,7 +307,6 @@ bitflags! {
         const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE = 1 << 5,
     }
 }
-
 
 bitflags! {
     /// cl_mem_flags - bitfield
@@ -331,7 +330,6 @@ impl Default for MemFlags {
     }
 }
 
-
 bitflags! {
     /// cl_mem_migration_flags - bitfield
     pub flags MemMigrationFlags: u64 {
@@ -339,7 +337,6 @@ bitflags! {
         const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED = 1 << 1,
     }
 }
-
 
 bitflags! {
     /// cl_map_flags - bitfield
@@ -350,17 +347,15 @@ bitflags! {
     }
 }
 
-
 bitflags! {
-    /// cl_program_binary_type
-    pub flags ProgramBinaryType: u64 {
-        const PROGRAM_BINARY_TYPE_NONE = 0x0,
-        const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
-        const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
-        const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
+	/// cl_program_binary_type
+    pub flags ProgramBinaryType: u32 {
+		const PROGRAM_BINARY_TYPE_NONE = 0x0,
+		const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
+		const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
+		const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
     }
 }
-
 
 bitflags! {
     /// cl_kernel_arg_type_qualifer
@@ -381,19 +376,35 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum GlTextureTarget {
-        GlTexture1d = glcorearb_h::GL_TEXTURE_1D as isize,
-        GlTexture1dArray = glcorearb_h::GL_TEXTURE_1D_ARRAY as isize,
-        GlTextureBuffer = glcorearb_h::GL_TEXTURE_BUFFER as isize,
-        GlTexture2d = glcorearb_h::GL_TEXTURE_2D as isize,
-        GlTexture2dArray = glcorearb_h::GL_TEXTURE_2D_ARRAY as isize,
-        GlTexture3d = glcorearb_h::GL_TEXTURE_3D as isize,
-        GlTextureCubeMapPositiveX = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_X as isize,
-        GlTextureCubeMapPositiveY = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_Y as isize,
-        GlTextureCubeMapPositiveZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_Z as isize,
-        GlTextureCubeMapNegativeX = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_X as isize,
-        GlTextureCubeMapNegativeY = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Y as isize,
-        GlTextureCubeMapNegativeZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Z as isize,
-        GlTextureRectangle = glcorearb_h::GL_TEXTURE_RECTANGLE as isize,
+        GlTexture1d = ffi::GL_TEXTURE_1D as isize,
+        GlTexture1dArray = ffi::GL_TEXTURE_1D_ARRAY as isize,
+        GlTextureBuffer = ffi::GL_TEXTURE_BUFFER as isize,
+        GlTexture2d = ffi::GL_TEXTURE_2D as isize,
+        GlTexture2dArray = ffi::GL_TEXTURE_2D_ARRAY as isize,
+        GlTexture3d = ffi::GL_TEXTURE_3D as isize,
+        GlTextureCubeMapPositiveX = ffi::GL_TEXTURE_CUBE_MAP_POSITIVE_X as isize,
+        GlTextureCubeMapPositiveY = ffi::GL_TEXTURE_CUBE_MAP_POSITIVE_Y as isize,
+        GlTextureCubeMapPositiveZ = ffi::GL_TEXTURE_CUBE_MAP_POSITIVE_Z as isize,
+        GlTextureCubeMapNegativeX = ffi::GL_TEXTURE_CUBE_MAP_NEGATIVE_X as isize,
+        GlTextureCubeMapNegativeY = ffi::GL_TEXTURE_CUBE_MAP_NEGATIVE_Y as isize,
+        GlTextureCubeMapNegativeZ = ffi::GL_TEXTURE_CUBE_MAP_NEGATIVE_Z as isize,
+        GlTextureRectangle = ffi::GL_TEXTURE_RECTANGLE as isize,
+    }
+}
+
+enum_from_primitive! {
+    // cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken
+    #[repr(C)]
+    #[derive(Debug, PartialEq, Clone)]
+    pub enum ClGlObjectType {
+        ClGlObjectBuffer = ffi::CL_GL_OBJECT_BUFFER as isize,
+        ClGlObjectTexture2D = ffi::CL_GL_OBJECT_TEXTURE2D as isize,
+        ClGlObjectTexture3D = ffi::CL_GL_OBJECT_TEXTURE3D as isize,
+        ClGlObjectRenderbuffer = ffi::CL_GL_OBJECT_RENDERBUFFER as isize,
+        ClGlObjectTexture2DArray = ffi::CL_GL_OBJECT_TEXTURE2D_ARRAY as isize,
+        ClGlObjectTexture1D = ffi::CL_GL_OBJECT_TEXTURE1D as isize,
+        ClGlObjectTexture1DArray = ffi::CL_GL_OBJECT_TEXTURE1D_ARRAY as isize,
+        ClGlObjectTextureBuffer = ffi::CL_GL_OBJECT_TEXTURE_BUFFER as isize,
     }
 }
 
@@ -605,6 +616,7 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceLocalMemType {
+        None = cl_h::CL_NONE as isize,
         Local = cl_h::CL_LOCAL as isize,
         Global = cl_h::CL_GLOBAL as isize,
     }
@@ -636,14 +648,19 @@ enum_from_primitive! {
 
 
 enum_from_primitive! {
-    /// cl_partition_property
+    /// [INCOMPLETE] cl_device_partition_property
+    ///
+    /// [FIXME]: This types variants should also contain data described in: 
+    /// [https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html]
+    /// (https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html)
+    ///
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum PartitionProperty {
-        PartitionEqually = cl_h::CL_DEVICE_PARTITION_EQUALLY as isize,
-        PartitionByCounts = cl_h::CL_DEVICE_PARTITION_BY_COUNTS as isize,
-        PartitionByCountsListEnd = cl_h::CL_DEVICE_PARTITION_BY_COUNTS_LIST_END as isize,
-        PartitionByAffinityDomain = cl_h::CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN as isize,
+    pub enum DevicePartitionProperty {
+        Equally = cl_h::CL_DEVICE_PARTITION_EQUALLY as isize,
+        ByCounts = cl_h::CL_DEVICE_PARTITION_BY_COUNTS as isize,
+        ByCountsListEnd = cl_h::CL_DEVICE_PARTITION_BY_COUNTS_LIST_END as isize,
+        ByAffinityDomain = cl_h::CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN as isize,
     }
 }
 
@@ -815,7 +832,7 @@ enum_from_primitive! {
     /// cl_build_status
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
-    pub enum BuildStatus {
+    pub enum ProgramBuildStatus {
         Success = cl_h::CL_BUILD_SUCCESS as isize,
         None = cl_h::CL_BUILD_NONE as isize,
         Error = cl_h::CL_BUILD_ERROR as isize,
