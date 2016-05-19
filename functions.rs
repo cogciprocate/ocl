@@ -462,10 +462,9 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 //============================= Context APIs  ================================
 //============================================================================
 
-/// Returns a new context pointer valid for all devices in `device_ids`.
+/// Creates a new context pointer valid for all devices in `device_ids`.
 ///
-/// [FIXME]: Incomplete implementation. Callback and userdata unimplemented.
-/// [FIXME]: Properties disabled.
+/// [FIXME]: Incomplete implementation. Callback and userdata untested.
 /// [FIXME]: Verify OpenCL Version on property.
 //
 // [NOTE]: Leave commented print statements intact until more `ContextProperties
@@ -486,39 +485,19 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
         &None => Vec::<u8>::with_capacity(0),
     };
 
+    let properties_ptr = if properties_bytes.len() == 0 {
+        0 as *const u8
+    } else {
+        properties_bytes.as_ptr()
+    };
+
     // [DEBUG]:
     // print!("CREATE_CONTEXT: BYTES: ");
     // util::print_bytes_as_hex(&properties_bytes);
     // print!("\n");
 
-    // [FIXME]: Properties disabled:
-    let properties_ptr = if properties_bytes.len() == 0 {
-        ptr::null() as *const cl_context_properties
-    } else {
-        // [FIXME]: Properties disabled.
-        // properties_bytes.as_ptr()
-        ptr::null() as *const cl_context_properties
-    };
-
-    // // [FIXME]: Disabled:
-    // let pfn_notify_ptr = unsafe { match pfn_notify {
-    //     // Some(cb) => mem::transmute(cb),
-    //     Some(_) => mem::transmute(ptr::null::<fn()>()),
-    //     // Some(_) => ptr::null::<CreateContextCallbackFn>(),
-    //     None => mem::transmute(ptr::null::<fn()>()),
-    //     // None => ptr::null::<CreateContextCallbackFn>(),
-    // } };
-
-    // // [FIXME]: Disabled:
-    // let user_data_ptr = match user_data {
-    //     // Some(ud_ptr) => ud_ptr,
-    //     Some(_) => ptr::null_mut(),
-    //     None => ptr::null_mut(),
-    // };
-
     let mut errcode: cl_int = 0;
 
-    // [FIXME]: Callback function and data unimplemented.
     let context = unsafe { Context::from_fresh_ptr(cl_h::clCreateContext(
         properties_ptr,
         device_ids.len() as cl_uint,
@@ -532,7 +511,10 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     errcode_try("clCreateContext", "", errcode).and(Ok(context))
 }
 
-/// [UNIMPLEMENTED]
+
+/// Creates a new context pointer from an outside source such as OpenGL or DirectX.
+///
+/// [FIXME]: Most sources not implemented.
 pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
             device_type: DeviceType, pfn_notify: Option<CreateContextCallbackFn>, 
             user_data: Option<UserDataPtr>) -> OclResult<Context> {
@@ -542,33 +524,14 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
         &None => Vec::<u8>::with_capacity(0),
     };
 
-    // [FIXME]: Properties disabled:
     let properties_ptr = if properties_bytes.len() == 0 {
         0 as *const u8
     } else {
-        // [FIXME]: Properties disabled.
         properties_bytes.as_ptr()
     };
 
-    // // [FIXME]: Disabled:
-    // let pfn_notify_ptr = unsafe { match pfn_notify {
-    //     // Some(cb) => mem::transmute(cb),
-    //     Some(_) => mem::transmute(ptr::null::<fn()>()),
-    //     // Some(_) => ptr::null::<CreateContextCallbackFn>(),
-    //     None => mem::transmute(ptr::null::<fn()>()),
-    //     // None => ptr::null::<CreateContextCallbackFn>(),
-    // } };
-
-    // // [FIXME]: Disabled:
-    // let user_data_ptr = match user_data {
-    //     // Some(ud_ptr) => ud_ptr,
-    //     Some(_) => ptr::null_mut(),
-    //     None => ptr::null_mut(),
-    // };
-
     let mut errcode: cl_int = 0;
 
-    // [FIXME]: Callback function and data unimplemented.
     let context = unsafe { Context::from_fresh_ptr(cl_h::clCreateContextFromType(
         properties_ptr as *const isize,
         device_type.bits(),
