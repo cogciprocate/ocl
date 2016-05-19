@@ -20,7 +20,7 @@ use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
-use ffi::{ClGlUint, ClGlInt, ClGlEnum};
+use ffi::{cl_GLuint, cl_GLint, cl_GLenum};
 use ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
     clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
     clEnqueueReleaseGLObjects};
@@ -369,11 +369,15 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 
 /// Creates a new context pointer valid for all devices in `device_ids`.
 ///
+/// Platform is specified in `properties`. If `properties` is `None`, the platform may
+/// default to the first available.
+///
 /// [FIXME]: Incomplete implementation. Callback and userdata untested.
 /// [FIXME]: Verify OpenCL Version on property.
+/// [FIXME]: Most context sources not implemented for `ContextProperties`.
 //
-// [NOTE]: Leave commented print statements intact until more `ContextProperties
-// variants are implemented.
+// [NOTE]: Leave commented "DEBUG" print statements intact until more
+// `ContextProperties` variants are implemented.
 pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, device_ids: &[D],
             pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
         ) -> OclResult<Context>
@@ -390,16 +394,16 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
         &None => Vec::<u8>::with_capacity(0),
     };
 
+    // [DEBUG]:
+    // print!("CREATE_CONTEXT: BYTES: ");
+    // util::print_bytes_as_hex(&properties_bytes);
+    // print!("\n");
+
     let properties_ptr = if properties_bytes.len() == 0 {
         0 as *const u8
     } else {
         properties_bytes.as_ptr()
     };
-
-    // [DEBUG]:
-    // print!("CREATE_CONTEXT: BYTES: ");
-    // util::print_bytes_as_hex(&properties_bytes);
-    // print!("\n");
 
     let mut errcode: cl_int = 0;
 
@@ -417,17 +421,33 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
 }
 
 
-/// Creates a new context pointer from an outside source such as OpenGL or DirectX.
+/// Creates a new context pointer for all devices of a specific type.
 ///
-/// [FIXME]: Most sources not implemented.
+/// Platform is specified in `properties`. If `properties` is `None`, the platform may
+/// default to the first available.
+///
+/// [FIXME]: Incomplete implementation. Callback and userdata untested.
+/// [FIXME]: Verify OpenCL Version on property.
+/// [FIXME]: Most context sources not implemented for `ContextProperties`.
+//
+// [NOTE]: Leave commented "DEBUG" print statements intact until more
+// `ContextProperties` variants are implemented.
 pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
             device_type: DeviceType, pfn_notify: Option<CreateContextCallbackFn>, 
             user_data: Option<UserDataPtr>) -> OclResult<Context> {
+
+    // [DEBUG]:
+    // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
     let properties_bytes: Vec<u8> = match properties {
         &Some(ref props) => props.to_bytes(),
         &None => Vec::<u8>::with_capacity(0),
     };
+
+    // [DEBUG]:
+    // print!("CREATE_CONTEXT: BYTES: ");
+    // util::print_bytes_as_hex(&properties_bytes);
+    // print!("\n");
 
     let properties_ptr = if properties_bytes.len() == 0 {
         0 as *const u8
@@ -637,7 +657,7 @@ pub unsafe fn create_buffer<T: OclPrm>(
 /// Return a buffer pointer from a OpenGL buffer object.
 pub unsafe fn create_from_gl_buffer(
             context: &Context,
-            gl_object: ClGlUint,
+            gl_object: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
 {
@@ -662,7 +682,7 @@ pub unsafe fn create_from_gl_buffer(
 /// Return a renderbuffer pointer from a OpenGL renderbuffer object.
 pub unsafe fn create_from_gl_renderbuffer(
             context: &Context,
-            renderbuffer: ClGlUint,
+            renderbuffer: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
 {
@@ -687,9 +707,9 @@ pub unsafe fn create_from_gl_renderbuffer(
 /// Return a texture2D pointer from a OpenGL texture2D object.
 pub unsafe fn create_from_gl_texture(
             context: &Context,
-            texture_target: ClGlEnum,
-            miplevel: ClGlInt,
-            texture: ClGlUint,
+            texture_target: cl_GLenum,
+            miplevel: cl_GLint,
+            texture: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
 {
@@ -716,9 +736,9 @@ pub unsafe fn create_from_gl_texture(
 /// Return a texture2D pointer from a OpenGL texture2D object.
 pub unsafe fn create_from_gl_texture_2d(
             context: &Context,
-            texture_target: ClGlEnum,
-            miplevel: ClGlInt,
-            texture: ClGlUint,
+            texture_target: cl_GLenum,
+            miplevel: cl_GLint,
+            texture: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
 {
@@ -745,9 +765,9 @@ pub unsafe fn create_from_gl_texture_2d(
 /// Return a texture3D pointer from a OpenGL texture3D object.
 pub unsafe fn create_from_gl_texture_3d(
             context: &Context,
-            texture_target: ClGlEnum,
-            miplevel: ClGlInt,
-            texture: ClGlUint,
+            texture_target: cl_GLenum,
+            miplevel: cl_GLint,
+            texture: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
 {

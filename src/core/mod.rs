@@ -94,7 +94,8 @@ use libc;
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 use cl_h;
-use ffi::{cl_gl_h, glcorearb_h};
+// use ffi::{cl_gl_h, glcorearb_h};
+use ffi;
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
@@ -132,10 +133,11 @@ pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceI
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
     ClWaitList};
 
-pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion};
+pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion,
+        ContextProperty};
 
 pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
-    ContextInfoResult, ContextProperty, CommandQueueInfoResult, MemInfoResult,
+    ContextInfoResult, CommandQueueInfoResult, MemInfoResult,
     ImageInfoResult, SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult,
     KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
     EventInfoResult, ProfilingInfoResult};
@@ -374,19 +376,19 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum GlTextureTarget {
-        GlTexture1d = glcorearb_h::GL_TEXTURE_1D as isize,
-        GlTexture1dArray = glcorearb_h::GL_TEXTURE_1D_ARRAY as isize,
-        GlTextureBuffer = glcorearb_h::GL_TEXTURE_BUFFER as isize,
-        GlTexture2d = glcorearb_h::GL_TEXTURE_2D as isize,
-        GlTexture2dArray = glcorearb_h::GL_TEXTURE_2D_ARRAY as isize,
-        GlTexture3d = glcorearb_h::GL_TEXTURE_3D as isize,
-        GlTextureCubeMapPositiveX = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_X as isize,
-        GlTextureCubeMapPositiveY = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_Y as isize,
-        GlTextureCubeMapPositiveZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_Z as isize,
-        GlTextureCubeMapNegativeX = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_X as isize,
-        GlTextureCubeMapNegativeY = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Y as isize,
-        GlTextureCubeMapNegativeZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Z as isize,
-        GlTextureRectangle = glcorearb_h::GL_TEXTURE_RECTANGLE as isize,
+        GlTexture1d = ffi::GL_TEXTURE_1D as isize,
+        GlTexture1dArray = ffi::GL_TEXTURE_1D_ARRAY as isize,
+        GlTextureBuffer = ffi::GL_TEXTURE_BUFFER as isize,
+        GlTexture2d = ffi::GL_TEXTURE_2D as isize,
+        GlTexture2dArray = ffi::GL_TEXTURE_2D_ARRAY as isize,
+        GlTexture3d = ffi::GL_TEXTURE_3D as isize,
+        GlTextureCubeMapPositiveX = ffi::GL_TEXTURE_CUBE_MAP_POSITIVE_X as isize,
+        GlTextureCubeMapPositiveY = ffi::GL_TEXTURE_CUBE_MAP_POSITIVE_Y as isize,
+        GlTextureCubeMapPositiveZ = ffi::GL_TEXTURE_CUBE_MAP_POSITIVE_Z as isize,
+        GlTextureCubeMapNegativeX = ffi::GL_TEXTURE_CUBE_MAP_NEGATIVE_X as isize,
+        GlTextureCubeMapNegativeY = ffi::GL_TEXTURE_CUBE_MAP_NEGATIVE_Y as isize,
+        GlTextureCubeMapNegativeZ = ffi::GL_TEXTURE_CUBE_MAP_NEGATIVE_Z as isize,
+        GlTextureRectangle = ffi::GL_TEXTURE_RECTANGLE as isize,
     }
 }
 
@@ -395,14 +397,14 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Debug, PartialEq, Clone)]
     pub enum ClGlObjectType {
-        ClGlObjectBuffer = cl_gl_h::CL_GL_OBJECT_BUFFER as isize,
-        ClGlObjectTexture2D = cl_gl_h::CL_GL_OBJECT_TEXTURE2D as isize,
-        ClGlObjectTexture3D = cl_gl_h::CL_GL_OBJECT_TEXTURE3D as isize,
-        ClGlObjectRenderbuffer = cl_gl_h::CL_GL_OBJECT_RENDERBUFFER as isize,
-        ClGlObjectTexture2DArray = cl_gl_h::CL_GL_OBJECT_TEXTURE2D_ARRAY as isize,
-        ClGlObjectTexture1D = cl_gl_h::CL_GL_OBJECT_TEXTURE1D as isize,
-        ClGlObjectTexture1DArray = cl_gl_h::CL_GL_OBJECT_TEXTURE1D_ARRAY as isize,
-        ClGlObjectTextureBuffer = cl_gl_h::CL_GL_OBJECT_TEXTURE_BUFFER as isize,
+        ClGlObjectBuffer = ffi::CL_GL_OBJECT_BUFFER as isize,
+        ClGlObjectTexture2D = ffi::CL_GL_OBJECT_TEXTURE2D as isize,
+        ClGlObjectTexture3D = ffi::CL_GL_OBJECT_TEXTURE3D as isize,
+        ClGlObjectRenderbuffer = ffi::CL_GL_OBJECT_RENDERBUFFER as isize,
+        ClGlObjectTexture2DArray = ffi::CL_GL_OBJECT_TEXTURE2D_ARRAY as isize,
+        ClGlObjectTexture1D = ffi::CL_GL_OBJECT_TEXTURE1D as isize,
+        ClGlObjectTexture1DArray = ffi::CL_GL_OBJECT_TEXTURE1D_ARRAY as isize,
+        ClGlObjectTextureBuffer = ffi::CL_GL_OBJECT_TEXTURE_BUFFER as isize,
     }
 }
 

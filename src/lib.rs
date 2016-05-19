@@ -65,6 +65,8 @@ pub mod aliases {
     //! kernel.
     //!
     //! Vector type fields can be accessed using .0, .1, .2 ... etc.
+    //!
+    //! 
 
     pub use cl_h::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
@@ -80,7 +82,7 @@ pub mod aliases {
         ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
         ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16};
 
-    pub use ffi::{ ClGlUint, ClGlInt, ClGlEnum };
+    pub use ffi::{ cl_GLuint, cl_GLint, cl_GLenum };
 }
 
 pub mod traits {
