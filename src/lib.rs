@@ -144,7 +144,7 @@ pub mod enums {
 
     // API enums.
     pub use core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo,
-        DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo,
+        DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo, ContextProperty,
         ContextInfoOrPropertiesPointerType, DevicePartitionProperty, CommandQueueInfo, ChannelType,
         MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo,
         ProgramBuildInfo, ProgramBuildStatus, KernelInfo, KernelArgInfo, KernelArgAddressQualifier,
@@ -152,7 +152,7 @@ pub mod enums {
         CommandExecutionStatus, BufferCreateType, ProfilingInfo};
 
     // Custom enums.
-    pub use core::{KernelArg, ContextProperty, PlatformInfoResult, DeviceInfoResult,
+    pub use core::{KernelArg, ContextPropertyValue, PlatformInfoResult, DeviceInfoResult,
         ContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult,
         SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult,
         KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};

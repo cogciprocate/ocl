@@ -133,7 +133,8 @@ pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceI
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
     ClWaitList};
 
-pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion};
+pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion,
+    ContextPropertyValue};
 
 pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
     ContextInfoResult, CommandQueueInfoResult, MemInfoResult,
@@ -637,7 +638,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_context_info + cl_context_properties
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ContextProperty {
         Platform = ffi::CL_CONTEXT_PLATFORM as isize,
         InteropUserSync = ffi::CL_CONTEXT_INTEROP_USER_SYNC as isize,

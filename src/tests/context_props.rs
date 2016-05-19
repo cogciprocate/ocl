@@ -1,7 +1,7 @@
 //! Test `Context', particularly pertaining to properties, Paul.
 
 use standard::{Platform, Device, Context};
-// use core::{ProgramInfo, OclPrm};
+use core::{ContextPropertyValue};
 
 // static SRC: &'static str = r#"
 //     __kernel void multiply(__global float* buffer, float coeff) {
@@ -25,6 +25,7 @@ fn test_context_props() {
         // [NOTE]: A new context can also be created for each device if desired.
         let context = Context::builder()
             .platform(platform.clone())
+            .property(ContextPropertyValue::Platform(platform.clone().into()))
             .devices(&devices)
             .build().unwrap();
 
