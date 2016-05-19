@@ -83,9 +83,9 @@ fn resolve_event_ptrs(wait_list: Option<&ClWaitList>,
 
 /// Converts an array option reference into a pointer to the contained array.
 fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
-    match work_dims {
-        &Some(ref w) => w as *const [usize; 3] as *const size_t,
-        &None => 0 as *const size_t,
+    match *work_dims {
+        Some(ref w) => w as *const [usize; 3] as *const size_t,
+        None => 0 as *const size_t,
     }
 }
 
@@ -320,8 +320,8 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo) -> Dev
                 }
             };
             DeviceInfoResult::from_bytes_max_work_item_sizes(request, result, max_wi_dims)
-        }
-        _ => DeviceInfoResult::from_bytes(request, result),
+        },
+        _ => DeviceInfoResult::from_bytes(request, result)
     }
 }
 
@@ -371,9 +371,9 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>,
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    let properties_bytes: Vec<u8> = match properties {
-        &Some(ref props) => props.to_bytes(),
-        &None => Vec::<u8>::with_capacity(0),
+    let properties_bytes: Vec<u8> = match *properties {
+        Some(ref props) => props.to_bytes(),
+        None => Vec::<u8>::with_capacity(0),
     };
 
     // [DEBUG]:
@@ -381,10 +381,12 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>,
     // util::print_bytes_as_hex(&properties_bytes);
     // print!("\n");
 
-    let properties_ptr = if properties_bytes.len() == 0 {
-        0 as *const u8
+    // [FIXME]: Disabled:
+    let properties_ptr = if properties_bytes.is_empty() {
+        ptr::null() as *const cl_context_properties
     } else {
-        properties_bytes.as_ptr()
+        // properties_bytes.as_ptr()
+        ptr::null() as *const cl_context_properties
     };
 
     // [FIXME]: Disabled:
@@ -429,9 +431,9 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    let properties_bytes: Vec<u8> = match properties {
-        &Some(ref props) => props.to_bytes(),
-        &None => Vec::<u8>::with_capacity(0),
+    let properties_bytes: Vec<u8> = match *properties {
+        Some(ref props) => props.to_bytes(),
+        None => Vec::<u8>::with_capacity(0),
     };
 
     // [DEBUG]:
@@ -439,10 +441,12 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     // util::print_bytes_as_hex(&properties_bytes);
     // print!("\n");
 
-    let properties_ptr = if properties_bytes.len() == 0 {
-        0 as *const u8
+    // [FIXME]: Disabled:
+    let properties_ptr = if properties_bytes.is_empty() {
+        ptr::null() as *const cl_context_properties
     } else {
-        properties_bytes.as_ptr()
+        // properties_bytes.as_ptr()
+        ptr::null() as *const cl_context_properties
     };
 
     // [FIXME]: Disabled:
@@ -1092,8 +1096,8 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(context: &Context,
     };
     try!(errcode_try("clCreateProgramWithBinary", "", errcode));
 
-    for i in 0..binary_status.len() {
-        try!(errcode_try("clCreateProgramWithBinary", &format!("(): Device [{}]", i), binary_status[i]));
+    for (i, item) in binary_status.iter().enumerate() {
+        try!(errcode_try("clCreateProgramWithBinary", &format!("(): Device [{}]", i), *item));
     }
 
     unsafe { Ok(Program::from_fresh_ptr(program)) }
@@ -1353,7 +1357,7 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
     let err = unsafe { cl_h::clSetKernelArg(kernel.as_ptr(), arg_index, arg_size, arg_value) };
 
     if err != 0 {
-        let name = get_kernel_name(&kernel);
+        let name = get_kernel_name(kernel);
         errcode_try("clSetKernelArg", &name, err)
     } else {
         Ok(())
@@ -2435,7 +2439,7 @@ pub fn enqueue_kernel(command_queue: &CommandQueue,
     }
 
     if errcode != 0 {
-        let name = get_kernel_name(&kernel);
+        let name = get_kernel_name(kernel);
         errcode_try("clEnqueueNDRangeKernel", &name, errcode)
     } else {
         Ok(())
@@ -2599,7 +2603,7 @@ pub fn default_platform_idx() -> usize {
 pub fn default_platform() -> OclResult<PlatformId> {
     let platform_list = try!(get_platform_ids());
 
-    if platform_list.len() == 0 {
+    if platform_list.is_empty() {
         OclError::err("No platforms found!")
     } else {
         let default_platform_idx = default_platform_idx();
@@ -2610,7 +2614,7 @@ pub fn default_platform() -> OclResult<PlatformId> {
                                   default_platform_idx,
                                   platform_list.len() - 1))
         } else {
-            Ok(platform_list[default_platform_idx].clone())
+            Ok(platform_list[default_platform_idx])
         }
     }
 }
@@ -2651,11 +2655,13 @@ pub fn get_kernel_name(kernel: &Kernel) -> String {
 ///
 /// TODO: Break out create and build parts into requisite functions then call
 /// from here.
-pub fn create_build_program<D: ClDeviceIdPtr + Debug>(context: &Context,
-                                                      src_strings: &Vec<CString>,
-                                                      cmplr_opts: &CString,
-                                                      device_ids: &[D])
-                                                      -> OclResult<Program> {
+pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
+            context: &Context,
+            src_strings: &[CString],
+            cmplr_opts: &CString,
+            device_ids: &[D],
+        ) -> OclResult<Program>
+{
     let program = try!(create_program_with_source(context, src_strings));
     try!(build_program(&program, device_ids, cmplr_opts, None, None));
     Ok(program)
@@ -2685,7 +2691,7 @@ pub fn get_event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<Comman
     };
     try!(errcode_try("clGetEventInfo", "", errcode));
 
-    CommandExecutionStatus::from_i32(status_int).ok_or(OclError::new("Error converting \
+    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::new("Error converting \
         'clGetEventInfo' status output."))
 }
 

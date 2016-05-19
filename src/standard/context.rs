@@ -1,4 +1,4 @@
-//! An OpenCL context.
+//! An `OpenCL` context.
 
 // TEMPORARY:
 #![allow(dead_code)]
@@ -74,11 +74,9 @@ impl ContextBuilder {
     ///
     /// Panics if either platform or properties has already been specified.
     ///
-    pub fn platform<'a>(&'a mut self, platform: Platform) -> &'a mut ContextBuilder {
-        assert!(self.platform.is_none(),
-                "ocl::ContextBuilder::platform: Platform already specified");
-        assert!(self.properties.is_none(),
-                "ocl::ContextBuilder::platform: Properties already specified");
+    pub fn platform(&mut self, platform: Platform) -> &mut ContextBuilder {
+        assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
+        assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
         self.platform = Some(platform);
         self
     }
@@ -89,11 +87,9 @@ impl ContextBuilder {
     ///
     /// Panics if either properties or platform has already been specified.
     ///
-    pub fn properties<'a>(&'a mut self, properties: ContextProperties) -> &'a mut ContextBuilder {
-        assert!(self.platform.is_none(),
-                "ocl::ContextBuilder::platform: Platform already specified");
-        assert!(self.properties.is_none(),
-                "ocl::ContextBuilder::platform: Properties already specified");
+    pub fn properties(&mut self, properties: ContextProperties) -> &mut ContextBuilder {
+        assert!(self.platform.is_none(), "ocl::ContextBuilder::platform: Platform already specified");
+        assert!(self.properties.is_none(), "ocl::ContextBuilder::platform: Properties already specified");
         self.properties = Some(properties);
         self
     }
@@ -108,9 +104,10 @@ impl ContextBuilder {
     ///
     /// Panics if any devices have already been specified.
     ///
-    pub fn devices<'a, D: Into<DeviceSpecifier>>(&'a mut self, device_spec: D) -> &'a mut ContextBuilder {
-        assert!(self.device_spec.is_none(),
-                "ocl::ContextBuilder::devices: Devices already specified");
+    pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
+            -> &mut ContextBuilder
+    {
+        assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
         self.device_spec = Some(device_spec.into());
         self
     }
@@ -179,7 +176,7 @@ impl Context {
                 "Context creation callbacks not yet implemented.");
 
         let platform: Option<Platform> = match properties {
-            Some(ref props) => props.get_platform().clone().map(|p| Platform::new(p)),
+            Some(ref props) => props.get_platform().map(Platform::new),
             None => None,
         };
 
@@ -213,7 +210,7 @@ impl Context {
     /// Round-robins (%) to the next valid device.
     ///
     pub fn get_device_by_wrapping_index(&self, index: usize) -> Device {
-        self.resolve_wrapping_device_idxs(&[index; 1])[0].clone()
+        self.resolve_wrapping_device_idxs(&[index; 1])[0]
     }
 
     /// Returns info about the platform associated with the context.
@@ -223,7 +220,7 @@ impl Context {
         //     Ok(pi) => pi,
         //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
         // }
-        core::get_platform_info(self.platform().clone(), info_kind)
+        core::get_platform_info(self.platform(), info_kind)
     }
 
     /// Returns info about the device indexed by `index` associated with this
@@ -270,7 +267,7 @@ impl Context {
 
     /// Returns the platform this context is associated with.
     pub fn platform(&self) -> Option<Platform> {
-        self.platform.clone()
+        self.platform
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

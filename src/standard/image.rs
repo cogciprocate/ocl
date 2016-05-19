@@ -87,12 +87,12 @@ impl<S: OclPrm> ImageBuilder<S> {
                    Some(image_data))
     }
 
-    pub fn channel_order<'a>(&'a mut self, order: ImageChannelOrder) -> &'a mut ImageBuilder<S> {
+    pub fn channel_order(&mut self, order: ImageChannelOrder) -> &mut ImageBuilder<S> {
         self.image_format.channel_order = order;
         self
     }
 
-    pub fn channel_data_type<'a>(&'a mut self, data_type: ImageChannelDataType) -> &'a mut ImageBuilder<S> {
+    pub fn channel_data_type(&mut self, data_type: ImageChannelDataType) -> &mut ImageBuilder<S> {
         self.image_format.channel_data_type = data_type;
         self
     }
@@ -103,7 +103,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// Describes the image type and must be either `Image1d`, `Image1dBuffer`,
     /// `Image1dArray`, `Image2d`, `Image2dArray`, or `Image3d`.
     ///
-    pub fn image_type<'a>(&'a mut self, image_type: MemObjectType) -> &'a mut ImageBuilder<S> {
+    pub fn image_type(&mut self, image_type: MemObjectType) -> &mut ImageBuilder<S> {
         self.image_desc.image_type = image_type;
         self
     }
@@ -142,7 +142,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// * To set the dimensions of a 3d image use:
     ///   `SpatialDims::Three(width, height, depth)`.
     ///
-    pub fn dims<'a, D: MemLen>(&'a mut self, dims: D) -> &'a mut ImageBuilder<S> {
+    pub fn dims<D: MemLen>(&mut self, dims: D) -> &mut ImageBuilder<S> {
         let dims = dims.to_lens();
         // let size = dims.to_lens().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
         //        dimensions: {:?}", dims));
@@ -161,7 +161,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// Note that reading and writing 2D image arrays from a kernel with
     /// image_array_size = 1 may be lower performance than 2D images.
     ///
-    pub fn array_size<'a>(&'a mut self, array_size: usize) -> &'a mut ImageBuilder<S> {
+    pub fn array_size(&mut self, array_size: usize) -> &mut ImageBuilder<S> {
         self.image_desc.image_array_size = array_size;
         self
     }
@@ -175,7 +175,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// If image_row_pitch is not 0, it must be a multiple of the image element
     /// size in bytes.
     ///
-    pub fn row_pitch_bytes<'a>(&'a mut self, row_pitch: usize) -> &'a mut ImageBuilder<S> {
+    pub fn row_pitch_bytes(&mut self, row_pitch: usize) -> &mut ImageBuilder<S> {
         self.image_desc.image_row_pitch = row_pitch;
         self
     }
@@ -193,7 +193,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// image_row_pitch for a 1D image array. If image_slice_pitch is not 0, it
     /// must be a multiple of the image_row_pitch.
     ///
-    pub fn slc_pitch_bytes<'a>(&'a mut self, slc_pitch: usize) -> &'a mut ImageBuilder<S> {
+    pub fn slc_pitch_bytes(&mut self, slc_pitch: usize) -> &mut ImageBuilder<S> {
         self.image_desc.image_slice_pitch = slc_pitch;
         self
     }
@@ -209,7 +209,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// image_width * size of element in bytes must be ≤ size of buffer object
     /// data store.
     ///
-    pub fn buffer_sync<'a>(&'a mut self, buffer: MemCore) -> &'a mut ImageBuilder<S> {
+    pub fn buffer_sync(&mut self, buffer: MemCore) -> &mut ImageBuilder<S> {
         self.image_desc.buffer = Some(buffer);
         self
     }
@@ -225,7 +225,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// ```
     ///
     /// Defaults to `core::MEM_READ_WRITE` if not set.
-    pub fn flags<'a>(&'a mut self, flags: MemFlags) -> &'a mut ImageBuilder<S> {
+    pub fn flags(&mut self, flags: MemFlags) -> &mut ImageBuilder<S> {
         self.flags = flags;
         self
     }
@@ -241,7 +241,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     ///    channel_data_type: ImageChannelDataType::SnormInt8,
     /// }
     /// ```
-    pub fn image_format<'a>(&'a mut self, image_format: ImageFormat) -> &'a mut ImageBuilder<S> {
+    pub fn image_format(&mut self, image_format: ImageFormat) -> &mut ImageBuilder<S> {
         self.image_format = image_format;
         self
     }
@@ -280,7 +280,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     ///
     /// Setting this overwrites any previously set type, dimensions, array size, pitch, etc.
     ///
-    pub unsafe fn image_desc<'a>(&'a mut self, image_desc: ImageDescriptor) -> &'a mut ImageBuilder<S> {
+    pub unsafe fn image_desc(&mut self, image_desc: ImageDescriptor) -> &mut ImageBuilder<S> {
         self.image_desc = image_desc;
         self
     }
@@ -313,7 +313,7 @@ pub enum ImageCmdKind<'b, E: 'b> {
 
 impl<'b, E: 'b> ImageCmdKind<'b, E> {
     fn is_unspec(&'b self) -> bool {
-        if let &ImageCmdKind::Unspecified = self {
+        if let ImageCmdKind::Unspecified = *self {
             true
         } else {
             false
@@ -849,8 +849,9 @@ impl<E: OclPrm> Image<E> {
     ///
     /// Run `.enq()` to enqueue the command.
     ///
-    pub fn cmd<'b>(&'b self) -> ImageCmd<'b, E> {
-        ImageCmd::new(&self.queue, &self.obj_core, self.dims.to_lens().expect("ocl::Image::cmd"))
+    pub fn cmd(&self) -> ImageCmd<E> {
+        ImageCmd::new(&self.queue, &self.obj_core,
+            self.dims.to_lens().expect("ocl::Image::cmd"))
     }
 
     /// Returns an image command builder set to read.

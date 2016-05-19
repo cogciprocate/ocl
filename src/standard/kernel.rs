@@ -1,6 +1,4 @@
-//! An OpenCL kernel.
-//!
-
+//! An `OpenCL` kernel.
 
 use std;
 use std::convert::Into;
@@ -363,23 +361,17 @@ impl Kernel {
 
     /// Returns a command builder which is used to chain parameters of an
     /// 'enqueue' command together.
-    pub fn cmd<'k>(&'k self) -> KernelCmd<'k> {
-        KernelCmd {
-            queue: &self.queue,
-            kernel: &self.obj_core,
-            gwo: self.gwo.clone(),
-            gws: self.gws.clone(),
-            lws: self.lws.clone(),
-            wait_list: None,
-            dest_list: None,
-        }
+    pub fn cmd(&self) -> KernelCmd {
+        KernelCmd { queue: &self.queue, kernel: &self.obj_core,
+            gwo: self.gwo, gws: self.gws, lws: self.lws,
+            wait_list: None, dest_list: None }
     }
 
     /// Enqueues this kernel on the default queue and returns the result.
     ///
     /// Shorthand for `.cmd().enq()`
     ///
-    pub fn enq<'k>(&'k self) -> OclResult<()> {
+    pub fn enq(&self) -> OclResult<()> {
         // core::enqueue_kernel::<EventList>(&self.queue, &self.obj_core,
         //     self.gws.dim_count(), self.gwo.to_work_offset(), &self.gws.to_lens().unwrap(), self.lws.to_work_size(),
         //     None, None)
@@ -402,7 +394,7 @@ impl Kernel {
     /// The new queue must be associated with a device associated with the
     /// kernel's program.
     ///
-    pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> OclResult<&'a mut Kernel> {
+    pub fn set_default_queue(&mut self, queue: &Queue) -> OclResult<&mut Kernel> {
         // self.command_queue_obj_core = queue.core_as_ref().clone();
         self.queue = queue.clone();
         Ok(self)
@@ -415,17 +407,17 @@ impl Kernel {
 
     /// Returns the default global work offset.
     pub fn get_gwo(&self) -> SpatialDims {
-        self.gwo.clone()
+        self.gwo
     }
 
     /// Returns the default global work size.
     pub fn get_gws(&self) -> SpatialDims {
-        self.gws.clone()
+        self.gws
     }
 
     /// Returns the default local work size.
     pub fn get_lws(&self) -> SpatialDims {
-        self.lws.clone()
+        self.lws
     }
 
     /// Returns the number of arguments specified for this kernel.
@@ -603,7 +595,7 @@ impl Kernel {
                 let mem_arg_ref = self.mem_args.get(arg_idx as usize).unwrap().as_ref().unwrap();
                 KernelArg::Mem(mem_arg_ref)
             }
-            arg @ _ => {
+            arg => {
                 self.mem_args[arg_idx as usize] = None;
                 arg
             }
@@ -619,7 +611,7 @@ impl std::fmt::Display for Kernel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         try!(self.fmt_info(f));
         try!(write!(f, " "));
-        self.fmt_wg_info(f, &self.queue.device())
+        self.fmt_wg_info(f, self.queue.device())
     }
 }
 

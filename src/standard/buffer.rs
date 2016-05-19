@@ -53,7 +53,7 @@ pub enum BufferCmdKind<'b, T: 'b> {
 
 impl<'b, T: 'b> BufferCmdKind<'b, T> {
     fn is_unspec(&'b self) -> bool {
-        if let &BufferCmdKind::Unspecified = self {
+        if let BufferCmdKind::Unspecified = *self {
             true
         } else {
             false
@@ -643,7 +643,7 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
     /// for more info.
     ///
-    pub fn cmd<'b>(&'b self) -> BufferCmd<'b, T> {
+    pub fn cmd(&self) -> BufferCmd<T> {
         BufferCmd::new(&self.queue, &self.obj_core, self.len)
     }
 
@@ -675,6 +675,12 @@ impl<T: OclPrm> Buffer<T> {
         // debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() }
         //     else { self.len }) == self.len);
         self.len
+    }
+
+    /// Returns if the Buffer is empty.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Returns info about the underlying memory object.

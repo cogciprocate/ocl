@@ -139,13 +139,13 @@ impl std::fmt::Debug for PlatformInfoResult {
 
 impl std::fmt::Display for PlatformInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &PlatformInfoResult::Profile(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Version(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Name(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Vendor(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Extensions(ref s) => write!(f, "{}", s),
-            &PlatformInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            PlatformInfoResult::Profile(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Version(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Name(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Vendor(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Extensions(ref s) => write!(f, "{}", s),
+            PlatformInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -153,11 +153,11 @@ impl std::fmt::Display for PlatformInfoResult {
 impl Into<String> for PlatformInfoResult {
     fn into(self) -> String {
         match self {
-            PlatformInfoResult::Profile(string) => string,
-            PlatformInfoResult::Version(string) => string,
-            PlatformInfoResult::Name(string) => string,
-            PlatformInfoResult::Vendor(string) => string,
-            PlatformInfoResult::Extensions(string) => string,
+            PlatformInfoResult::Profile(string)
+            | PlatformInfoResult::Version(string)
+            | PlatformInfoResult::Name(string)
+            | PlatformInfoResult::Vendor(string)
+            | PlatformInfoResult::Extensions(string) => string,
             PlatformInfoResult::Error(err) => err.status_code(),
         }
     }
@@ -671,88 +671,88 @@ impl std::fmt::Debug for DeviceInfoResult {
 
 impl std::fmt::Display for DeviceInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            // &DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            // DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //     // TEMPORARY (and retarded):
             //     write!(f, "{}", to_string_retarded(v))
             // },
-            &DeviceInfoResult::Type(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::VendorId(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxComputeUnits(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxWorkItemDimensions(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxWorkGroupSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxWorkItemSizes(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::PreferredVectorWidthChar(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::PreferredVectorWidthShort(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::PreferredVectorWidthInt(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::PreferredVectorWidthLong(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::PreferredVectorWidthFloat(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::PreferredVectorWidthDouble(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxClockFrequency(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::AddressBits(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxReadImageArgs(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxWriteImageArgs(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxMemAllocSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Image2dMaxWidth(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Image2dMaxHeight(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Image3dMaxWidth(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Image3dMaxHeight(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Image3dMaxDepth(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ImageSupport(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxParameterSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxSamplers(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MemBaseAddrAlign(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MinDataTypeAlignSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::SingleFpConfig(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::GlobalMemCacheType(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::GlobalMemCachelineSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::GlobalMemCacheSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::GlobalMemSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxConstantBufferSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::MaxConstantArgs(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::LocalMemType(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::LocalMemSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ErrorCorrectionSupport(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ProfilingTimerResolution(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::EndianLittle(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Available(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::CompilerAvailable(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ExecutionCapabilities(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::QueueProperties(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::Name(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Vendor(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::DriverVersion(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Profile(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Version(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Extensions(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Platform(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::DoubleFpConfig(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::HalfFpConfig(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::PreferredVectorWidthHalf(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::HostUnifiedMemory(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::NativeVectorWidthChar(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::NativeVectorWidthShort(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::NativeVectorWidthInt(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::NativeVectorWidthLong(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::NativeVectorWidthFloat(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::NativeVectorWidthDouble(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::NativeVectorWidthHalf(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::OpenclCVersion(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::LinkerAvailable(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::BuiltInKernels(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ImageMaxBufferSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ImageMaxArraySize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ParentDevice(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::PartitionMaxSubDevices(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::PartitionProperties(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::PartitionAffinityDomain(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::PartitionType(ref s) => write!(f, "{:?}", s),
-            &DeviceInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::PreferredInteropUserSync(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::PrintfBufferSize(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ImagePitchAlignment(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::ImageBaseAddressAlignment(ref s) => write!(f, "{}", s),
-            &DeviceInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            DeviceInfoResult::Type(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::VendorId(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxComputeUnits(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxWorkItemDimensions(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxWorkGroupSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxWorkItemSizes(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::PreferredVectorWidthChar(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::PreferredVectorWidthShort(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::PreferredVectorWidthInt(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::PreferredVectorWidthLong(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::PreferredVectorWidthFloat(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::PreferredVectorWidthDouble(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxClockFrequency(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::AddressBits(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxReadImageArgs(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxWriteImageArgs(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxMemAllocSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Image2dMaxWidth(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Image2dMaxHeight(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Image3dMaxWidth(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Image3dMaxHeight(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Image3dMaxDepth(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ImageSupport(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxParameterSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxSamplers(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MemBaseAddrAlign(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MinDataTypeAlignSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::SingleFpConfig(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::GlobalMemCacheType(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::GlobalMemCachelineSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::GlobalMemCacheSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::GlobalMemSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxConstantBufferSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::MaxConstantArgs(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::LocalMemType(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::LocalMemSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ErrorCorrectionSupport(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ProfilingTimerResolution(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::EndianLittle(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Available(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::CompilerAvailable(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ExecutionCapabilities(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::QueueProperties(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::Name(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Vendor(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::DriverVersion(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Profile(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Version(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Extensions(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Platform(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::DoubleFpConfig(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::HalfFpConfig(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::PreferredVectorWidthHalf(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::HostUnifiedMemory(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::NativeVectorWidthChar(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::NativeVectorWidthShort(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::NativeVectorWidthInt(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::NativeVectorWidthLong(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::NativeVectorWidthFloat(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::NativeVectorWidthDouble(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::NativeVectorWidthHalf(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::OpenclCVersion(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::LinkerAvailable(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::BuiltInKernels(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ImageMaxBufferSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ImageMaxArraySize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ParentDevice(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::PartitionMaxSubDevices(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::PartitionProperties(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::PartitionAffinityDomain(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::PartitionType(ref s) => write!(f, "{:?}", s),
+            DeviceInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::PreferredInteropUserSync(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::PrintfBufferSize(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ImagePitchAlignment(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::ImageBaseAddressAlignment(ref s) => write!(f, "{}", s),
+            DeviceInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             // r @ _ => panic!("DeviceInfoResult: Converting '{:?}' to string not yet implemented.", r),
         }
     }
@@ -803,12 +803,12 @@ impl std::fmt::Debug for ContextInfoResult {
 
 impl std::fmt::Display for ContextInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &ContextInfoResult::ReferenceCount(ref count) => write!(f, "{}", count),
-            &ContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
-            &ContextInfoResult::Properties(ref props) => write!(f, "{:?}", props),
-            &ContextInfoResult::NumDevices(ref num) => write!(f, "{}", num),
-            &ContextInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            ContextInfoResult::ReferenceCount(ref count) => write!(f, "{}", count),
+            ContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
+            ContextInfoResult::Properties(ref props) => write!(f, "{:?}", props),
+            ContextInfoResult::NumDevices(ref num) => write!(f, "{}", num),
+            ContextInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -868,15 +868,15 @@ impl std::fmt::Debug for CommandQueueInfoResult {
 
 impl std::fmt::Display for CommandQueueInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            // &CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            // CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
             // },
-            &CommandQueueInfoResult::Context(ref s) => write!(f, "{:?}", s),
-            &CommandQueueInfoResult::Device(ref s) => write!(f, "{:?}", s),
-            &CommandQueueInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
-            &CommandQueueInfoResult::Properties(ref s) => write!(f, "{:?}", s),
-            &CommandQueueInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            CommandQueueInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            CommandQueueInfoResult::Device(ref s) => write!(f, "{:?}", s),
+            CommandQueueInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            CommandQueueInfoResult::Properties(ref s) => write!(f, "{:?}", s),
+            CommandQueueInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             // _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1009,20 +1009,20 @@ impl std::fmt::Debug for MemInfoResult {
 
 impl std::fmt::Display for MemInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            // &MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            // MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
             // },
-            &MemInfoResult::Type(ref s) => write!(f, "{:?}", s),
-            &MemInfoResult::Flags(ref s) => write!(f, "{:?}", s),
-            &MemInfoResult::Size(ref s) => write!(f, "{}", s),
-            &MemInfoResult::HostPtr(ref s) => write!(f, "{:?}", s),
-            &MemInfoResult::MapCount(ref s) => write!(f, "{}", s),
-            &MemInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
-            &MemInfoResult::Context(ref s) => write!(f, "{:?}", s),
-            &MemInfoResult::AssociatedMemobject(ref s) => write!(f, "{:?}", s),
-            &MemInfoResult::Offset(ref s) => write!(f, "{}", s),
-            &MemInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            MemInfoResult::Type(ref s) => write!(f, "{:?}", s),
+            MemInfoResult::Flags(ref s) => write!(f, "{:?}", s),
+            MemInfoResult::Size(ref s) => write!(f, "{}", s),
+            MemInfoResult::HostPtr(ref s) => write!(f, "{:?}", s),
+            MemInfoResult::MapCount(ref s) => write!(f, "{}", s),
+            MemInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            MemInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            MemInfoResult::AssociatedMemobject(ref s) => write!(f, "{:?}", s),
+            MemInfoResult::Offset(ref s) => write!(f, "{}", s),
+            MemInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             // _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1125,22 +1125,22 @@ impl std::fmt::Debug for ImageInfoResult {
 
 impl std::fmt::Display for ImageInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            // &ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            // ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
             // },
-            &ImageInfoResult::Format(ref s) => write!(f, "{:?}", s),
-            &ImageInfoResult::ElementSize(s) => write!(f, "{}", s),
-            &ImageInfoResult::RowPitch(s) => write!(f, "{}", s),
-            &ImageInfoResult::SlicePitch(s) => write!(f, "{}", s),
-            &ImageInfoResult::Width(s) => write!(f, "{}", s),
-            &ImageInfoResult::Height(s) => write!(f, "{}", s),
-            &ImageInfoResult::Depth(s) => write!(f, "{}", s),
-            &ImageInfoResult::ArraySize(s) => write!(f, "{}", s),
-            &ImageInfoResult::Buffer(ref s) => write!(f, "{:?}", s),
-            &ImageInfoResult::NumMipLevels(s) => write!(f, "{}", s),
-            &ImageInfoResult::NumSamples(s) => write!(f, "{}", s),
-            &ImageInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ImageInfoResult::Format(ref s) => write!(f, "{:?}", s),
+            ImageInfoResult::ElementSize(s) => write!(f, "{}", s),
+            ImageInfoResult::RowPitch(s) => write!(f, "{}", s),
+            ImageInfoResult::SlicePitch(s) => write!(f, "{}", s),
+            ImageInfoResult::Width(s) => write!(f, "{}", s),
+            ImageInfoResult::Height(s) => write!(f, "{}", s),
+            ImageInfoResult::Depth(s) => write!(f, "{}", s),
+            ImageInfoResult::ArraySize(s) => write!(f, "{}", s),
+            ImageInfoResult::Buffer(ref s) => write!(f, "{:?}", s),
+            ImageInfoResult::NumMipLevels(s) => write!(f, "{}", s),
+            ImageInfoResult::NumSamples(s) => write!(f, "{}", s),
+            ImageInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             // _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1219,16 +1219,16 @@ impl std::fmt::Debug for SamplerInfoResult {
 
 impl std::fmt::Display for SamplerInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            // &SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            // SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
             // },
-            &SamplerInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
-            &SamplerInfoResult::Context(ref s) => write!(f, "{:?}", s),
-            &SamplerInfoResult::NormalizedCoords(ref s) => write!(f, "{}", s),
-            &SamplerInfoResult::AddressingMode(ref s) => write!(f, "{:?}", s),
-            &SamplerInfoResult::FilterMode(ref s) => write!(f, "{:?}", s),
-            &SamplerInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            SamplerInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            SamplerInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            SamplerInfoResult::NormalizedCoords(ref s) => write!(f, "{}", s),
+            SamplerInfoResult::AddressingMode(ref s) => write!(f, "{:?}", s),
+            SamplerInfoResult::FilterMode(ref s) => write!(f, "{:?}", s),
+            SamplerInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             // _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1316,20 +1316,20 @@ impl std::fmt::Debug for ProgramInfoResult {
 
 impl std::fmt::Display for ProgramInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            // &ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
+        match *self {
+            // ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
             // },
-            &ProgramInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
-            &ProgramInfoResult::Context(ref s) => write!(f, "{:?}", s),
-            &ProgramInfoResult::NumDevices(ref s) => write!(f, "{}", s),
-            &ProgramInfoResult::Devices(ref s) => write!(f, "{:?}", s),
-            &ProgramInfoResult::Source(ref s) => write!(f, "{}", s),
-            &ProgramInfoResult::BinarySizes(ref s) => write!(f, "{:?}", s),
-            &ProgramInfoResult::Binaries(_) => write!(f, "[Unprintable]"),
-            &ProgramInfoResult::NumKernels(ref s) => write!(f, "{}", s),
-            &ProgramInfoResult::KernelNames(ref s) => write!(f, "{}", s),
-            &ProgramInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ProgramInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            ProgramInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            ProgramInfoResult::NumDevices(ref s) => write!(f, "{}", s),
+            ProgramInfoResult::Devices(ref s) => write!(f, "{:?}", s),
+            ProgramInfoResult::Source(ref s) => write!(f, "{}", s),
+            ProgramInfoResult::BinarySizes(ref s) => write!(f, "{:?}", s),
+            ProgramInfoResult::Binaries(_) => write!(f, "[Unprintable]"),
+            ProgramInfoResult::NumKernels(ref s) => write!(f, "{}", s),
+            ProgramInfoResult::KernelNames(ref s) => write!(f, "{}", s),
+            ProgramInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
             // _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1398,12 +1398,12 @@ impl std::fmt::Debug for ProgramBuildInfoResult {
 
 impl std::fmt::Display for ProgramBuildInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &ProgramBuildInfoResult::BuildStatus(ref s) => write!(f, "{:?}", s),
-            &ProgramBuildInfoResult::BuildOptions(ref s) => write!(f, "{}", s),
-            &ProgramBuildInfoResult::BuildLog(ref s) => write!(f, "{}", s),
-            &ProgramBuildInfoResult::BinaryType(ref s) => write!(f, "{:?}", s),
-            &ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            ProgramBuildInfoResult::BuildStatus(ref s) => write!(f, "{:?}", s),
+            ProgramBuildInfoResult::BuildOptions(ref s) => write!(f, "{}", s),
+            ProgramBuildInfoResult::BuildLog(ref s) => write!(f, "{}", s),
+            ProgramBuildInfoResult::BinaryType(ref s) => write!(f, "{:?}", s),
+            ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1475,14 +1475,14 @@ impl std::fmt::Debug for KernelInfoResult {
 
 impl std::fmt::Display for KernelInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &KernelInfoResult::FunctionName(ref s) => write!(f, "{}", s),
-            &KernelInfoResult::NumArgs(s) => write!(f, "{}", s),
-            &KernelInfoResult::ReferenceCount(s) => write!(f, "{}", s),
-            &KernelInfoResult::Context(ref s) => write!(f, "{:?}", s),
-            &KernelInfoResult::Program(ref s) => write!(f, "{:?}", s),
-            &KernelInfoResult::Attributes(ref s) => write!(f, "{}", s),
-            &KernelInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            KernelInfoResult::FunctionName(ref s) => write!(f, "{}", s),
+            KernelInfoResult::NumArgs(s) => write!(f, "{}", s),
+            KernelInfoResult::ReferenceCount(s) => write!(f, "{}", s),
+            KernelInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            KernelInfoResult::Program(ref s) => write!(f, "{:?}", s),
+            KernelInfoResult::Attributes(ref s) => write!(f, "{}", s),
+            KernelInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1563,13 +1563,13 @@ impl std::fmt::Debug for KernelArgInfoResult {
 
 impl std::fmt::Display for KernelArgInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &KernelArgInfoResult::AddressQualifier(s) => write!(f, "{:?}", s),
-            &KernelArgInfoResult::AccessQualifier(s) => write!(f, "{:?}", s),
-            &KernelArgInfoResult::TypeName(ref s) => write!(f, "{}", s),
-            &KernelArgInfoResult::TypeQualifier(s) => write!(f, "{:?}", s),
-            &KernelArgInfoResult::Name(ref s) => write!(f, "{}", s),
-            &KernelArgInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            KernelArgInfoResult::AddressQualifier(s) => write!(f, "{:?}", s),
+            KernelArgInfoResult::AccessQualifier(s) => write!(f, "{:?}", s),
+            KernelArgInfoResult::TypeName(ref s) => write!(f, "{}", s),
+            KernelArgInfoResult::TypeQualifier(s) => write!(f, "{:?}", s),
+            KernelArgInfoResult::Name(ref s) => write!(f, "{}", s),
+            KernelArgInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1641,14 +1641,14 @@ impl std::fmt::Debug for KernelWorkGroupInfoResult {
 
 impl std::fmt::Display for KernelWorkGroupInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &KernelWorkGroupInfoResult::WorkGroupSize(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::CompileWorkGroupSize(s) => write!(f, "{:?}", s),
-            &KernelWorkGroupInfoResult::LocalMemSize(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::PrivateMemSize(s) => write!(f, "{}", s),
-            &KernelWorkGroupInfoResult::GlobalWorkSize(s) => write!(f, "{:?}", s),
-            &KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            KernelWorkGroupInfoResult::WorkGroupSize(s) => write!(f, "{}", s),
+            KernelWorkGroupInfoResult::CompileWorkGroupSize(s) => write!(f, "{:?}", s),
+            KernelWorkGroupInfoResult::LocalMemSize(s) => write!(f, "{}", s),
+            KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => write!(f, "{}", s),
+            KernelWorkGroupInfoResult::PrivateMemSize(s) => write!(f, "{}", s),
+            KernelWorkGroupInfoResult::GlobalWorkSize(s) => write!(f, "{:?}", s),
+            KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1723,13 +1723,13 @@ impl std::fmt::Debug for EventInfoResult {
 
 impl std::fmt::Display for EventInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &EventInfoResult::CommandQueue(ref s) => write!(f, "{:?}", s),
-            &EventInfoResult::CommandType(ref s) => write!(f, "{:?}", s),
-            &EventInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
-            &EventInfoResult::CommandExecutionStatus(ref s) => write!(f, "{:?}", s),
-            &EventInfoResult::Context(ref s) => write!(f, "{:?}", s),
-            &EventInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            EventInfoResult::CommandQueue(ref s) => write!(f, "{:?}", s),
+            EventInfoResult::CommandType(ref s) => write!(f, "{:?}", s),
+            EventInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
+            EventInfoResult::CommandExecutionStatus(ref s) => write!(f, "{:?}", s),
+            EventInfoResult::Context(ref s) => write!(f, "{:?}", s),
+            EventInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }
@@ -1775,12 +1775,12 @@ impl std::fmt::Debug for ProfilingInfoResult {
 
 impl std::fmt::Display for ProfilingInfoResult {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            &ProfilingInfoResult::Queued(ref s) => write!(f, "{}", s),
-            &ProfilingInfoResult::Submit(ref s) => write!(f, "{}", s),
-            &ProfilingInfoResult::Start(ref s) => write!(f, "{}", s),
-            &ProfilingInfoResult::End(ref s) => write!(f, "{}", s),
-            &ProfilingInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+        match *self {
+            ProfilingInfoResult::Queued(ref s) => write!(f, "{}", s),
+            ProfilingInfoResult::Submit(ref s) => write!(f, "{}", s),
+            ProfilingInfoResult::Start(ref s) => write!(f, "{}", s),
+            ProfilingInfoResult::End(ref s) => write!(f, "{}", s),
+            ProfilingInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
         }
     }
 }

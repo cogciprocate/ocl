@@ -1,4 +1,4 @@
-//! An OpenCL event.
+//! An `OpenCL` event.
 
 use std;
 use std::ops::{Deref, DerefMut};
@@ -258,6 +258,11 @@ impl EventList {
         self.event_list_core.len()
     }
 
+    /// Returns if there is no events.
+    pub fn is_empty(&self) -> bool {
+        self.event_list_core.len() == 0
+    }
+
     // Returns a reference to the underlying `core` event list.
     pub fn core_as_ref(&self) -> &EventListCore {
         &self.event_list_core
@@ -270,7 +275,7 @@ impl EventList {
 
     /// Waits for all events in list to complete.
     pub fn wait(&self) -> OclResult<()> {
-        if self.event_list_core.len() > 0 {
+        if self.event_list_core.is_empty() == false {
             core::wait_for_events(self.event_list_core.count(), &self.event_list_core)
         } else {
             Ok(())

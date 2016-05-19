@@ -1,4 +1,4 @@
-//! An OpenCL program.
+//! An `OpenCL` program.
 use std;
 use std::ops::{Deref, DerefMut};
 use std::ffi::CString;
@@ -87,7 +87,7 @@ impl ProgramBuilder {
     ///
     /// [TODO]: If the context is associated with more than one device,
     /// check that at least one of those devices has been specified. An empty
-    /// device list will cause an OpenCL error in that case.
+    /// device list will cause an `OpenCL` error in that case.
     ///
     /// [TODO]: Check for duplicate devices in the final device list.
     pub fn build(&self, context: &Context) -> OclResult<Program> {
@@ -96,7 +96,7 @@ impl ProgramBuilder {
             None => vec![],
         };
 
-        if device_list.len() == 0 {
+        if device_list.is_empty() {
             return OclError::err("ocl::ProgramBuilder::build: No devices found.");
         }
 
@@ -180,19 +180,25 @@ impl ProgramBuilder {
 
         opts.push(" ".to_owned());
 
-        for option in self.options.iter() {
-            match option {
-                &BuildOpt::CmplrDefine { ref ident, ref val } => opts.push(format!("-D{}={}", ident, val)),
+        for option in &self.options {
+            match *option {
+                BuildOpt::CmplrDefine { ref ident, ref val } => {
+                    opts.push(format!("-D{}={}", ident, val))
+                },
 
-                &BuildOpt::CmplrInclDir { ref path } => opts.push(format!("-I{}", path)),
+                BuildOpt::CmplrInclDir { ref path } => {
+                    opts.push(format!("-I{}", path))
+                },
 
-                &BuildOpt::CmplrOther(ref s) => opts.push(s.clone()),
+                BuildOpt::CmplrOther(ref s) => {
+                    opts.push(s.clone())
+                },
 
                 _ => (),
             }
         }
 
-        CString::new(opts.join(" ").into_bytes()).map_err(|err| OclError::from(err))
+        CString::new(opts.join(" ").into_bytes()).map_err(OclError::from)
     }
 
     /// Returns the final program source code as a list of strings.
@@ -211,7 +217,7 @@ impl ProgramBuilder {
 
         src_strings.extend_from_slice(&try!(self.get_includes()));
 
-        for srcpath in self.src_files.iter() {
+        for srcpath in &self.src_files {
             let mut src_bytes: Vec<u8> = Vec::with_capacity(100000);
 
             if src_file_history.contains(srcpath) {
@@ -240,14 +246,15 @@ impl ProgramBuilder {
         let mut strings = Vec::with_capacity(64);
         strings.push(try!(CString::new("\n".as_bytes())));
 
-        for option in self.options.iter() {
-            match option {
-                &BuildOpt::IncludeDefine { ref ident, ref val } => {
-                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val).into_bytes())));
-                }
-                &BuildOpt::IncludeRaw(ref text) => {
+        for option in &self.options {
+            match *option {
+                BuildOpt::IncludeDefine { ref ident, ref val } => {
+                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val)
+                        .into_bytes())));
+                },
+                BuildOpt::IncludeRaw(ref text) => {
                     strings.push(try!(CString::new(text.clone().into_bytes())));
-                }
+                },
                 _ => (),
             };
 
@@ -262,13 +269,10 @@ impl ProgramBuilder {
         let mut strings = Vec::with_capacity(64);
         strings.push(try!(CString::new("\n".as_bytes())));
 
-        for option in self.options.iter() {
-            match option {
-                &BuildOpt::IncludeRawEof(ref text) => {
-                    strings.push(try!(CString::new(text.clone().into_bytes())));
-                }
-                _ => (),
-            };
+        for option in &self.options {
+            if let BuildOpt::IncludeRawEof(ref text) = *option {
+                strings.push(try!(CString::new(text.clone().into_bytes())));
+            }
         }
 
         Ok(strings)

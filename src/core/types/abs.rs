@@ -624,6 +624,10 @@ impl EventList {
         self.event_ptrs.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn count(&self) -> u32 {
         self.event_ptrs.len() as u32
     }
@@ -654,20 +658,17 @@ impl EventList {
         }
 
         let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_LEN);
-        let mut idx = 0;
 
-        for event_ptr in self.event_ptrs.iter() {
+        for (idx, event_ptr) in self.event_ptrs.iter().enumerate() {
             let status = try!(core::get_event_status(&EventRefWrapper(event_ptr, 1)));
 
             if status == CommandExecutionStatus::Complete {
                 cmpltd_events.push(idx)
             }
-
-            idx += 1;
         }
 
         // Release completed events:
-        for &idx in cmpltd_events.iter() {
+        for &idx in &cmpltd_events {
             unsafe {
                 try!(core::release_event(&EventRefWrapper(&self.event_ptrs[idx], 1)));
             }
@@ -737,7 +738,7 @@ unsafe impl ClWaitList for EventList {
 impl Clone for EventList {
     /// Clones this list in a thread safe manner.
     fn clone(&self) -> EventList {
-        for event_ptr in self.event_ptrs.iter() {
+        for event_ptr in &self.event_ptrs {
             if !(*event_ptr).is_null() {
                 unsafe { core::retain_event(&EventRefWrapper(event_ptr, 1)).expect("core::EventList::clone") }
             }
