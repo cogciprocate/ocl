@@ -94,6 +94,7 @@ use libc;
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 use cl_h;
+use ffi::{cl_gl_h, glcorearb_h};
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
@@ -113,7 +114,11 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     get_event_info, create_user_event, retain_event, release_event,
     set_user_event_status, set_event_callback, get_event_profiling_info, flush,
     finish, enqueue_read_buffer, enqueue_read_buffer_rect, enqueue_write_buffer,
-    enqueue_write_buffer_rect, enqueue_copy_buffer, enqueue_fill_buffer,
+    enqueue_write_buffer_rect, enqueue_copy_buffer,
+    create_from_gl_buffer, create_from_gl_renderbuffer, create_from_gl_texture,
+    create_from_gl_texture_2d, create_from_gl_texture_3d, // deprecated
+    enqueue_acquire_gl_buffer, enqueue_release_gl_buffer,
+    enqueue_fill_buffer,
     enqueue_copy_buffer_rect, enqueue_read_image, enqueue_write_image,
     enqueue_fill_image, enqueue_copy_image, enqueue_copy_image_to_buffer,
     enqueue_copy_buffer_to_image, enqueue_map_buffer, enqueue_map_image,
@@ -364,6 +369,42 @@ bitflags! {
 //=============================== ENUMERATORS =================================
 //=============================================================================
 
+enum_from_primitive! {
+    /// specify the texture target type
+    #[repr(C)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    pub enum GlTextureTarget {
+        GlTexture1d = glcorearb_h::GL_TEXTURE_1D as isize,
+        GlTexture1dArray = glcorearb_h::GL_TEXTURE_1D_ARRAY as isize,
+        GlTextureBuffer = glcorearb_h::GL_TEXTURE_BUFFER as isize,
+        GlTexture2d = glcorearb_h::GL_TEXTURE_2D as isize,
+        GlTexture2dArray = glcorearb_h::GL_TEXTURE_2D_ARRAY as isize,
+        GlTexture3d = glcorearb_h::GL_TEXTURE_3D as isize,
+        GlTextureCubeMapPositiveX = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_X as isize,
+        GlTextureCubeMapPositiveY = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_Y as isize,
+        GlTextureCubeMapPositiveZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_POSITIVE_Z as isize,
+        GlTextureCubeMapNegativeX = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_X as isize,
+        GlTextureCubeMapNegativeY = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Y as isize,
+        GlTextureCubeMapNegativeZ = glcorearb_h::GL_TEXTURE_CUBE_MAP_NEGATIVE_Z as isize,
+        GlTextureRectangle = glcorearb_h::GL_TEXTURE_RECTANGLE as isize,
+    }
+}
+
+enum_from_primitive! {
+    // cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken
+    #[repr(C)]
+    #[derive(Debug, PartialEq, Clone)]
+    pub enum ClGlObjectType {
+        ClGlObjectBuffer = cl_gl_h::CL_GL_OBJECT_BUFFER as isize,
+        ClGlObjectTexture2D = cl_gl_h::CL_GL_OBJECT_TEXTURE2D as isize,
+        ClGlObjectTexture3D = cl_gl_h::CL_GL_OBJECT_TEXTURE3D as isize,
+        ClGlObjectRenderbuffer = cl_gl_h::CL_GL_OBJECT_RENDERBUFFER as isize,
+        ClGlObjectTexture2DArray = cl_gl_h::CL_GL_OBJECT_TEXTURE2D_ARRAY as isize,
+        ClGlObjectTexture1D = cl_gl_h::CL_GL_OBJECT_TEXTURE1D as isize,
+        ClGlObjectTexture1DArray = cl_gl_h::CL_GL_OBJECT_TEXTURE1D_ARRAY as isize,
+        ClGlObjectTextureBuffer = cl_gl_h::CL_GL_OBJECT_TEXTURE_BUFFER as isize,
+    }
+}
 
 enum_from_primitive! {
     /// Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below. (from SDK)
