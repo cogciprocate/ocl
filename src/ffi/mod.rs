@@ -1,9 +1,13 @@
-pub mod platform_h;
-mod cl_gl_h;
+mod platform_h;
 mod glcorearb_h;
+mod cl_gl_h;
+mod cl_dx9_media_sharing_h;
+mod cl_d3d10_h;
+mod cl_d3d11_h;
 pub mod cl_h;
 
 pub use self::platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
+
 pub use self::cl_gl_h::{cl_gl_object_type, cl_gl_texture_info,
     cl_gl_platform_info, cl_gl_context_info};
 
@@ -24,3 +28,12 @@ pub use self::glcorearb_h::{GL_TEXTURE_1D, GL_TEXTURE_1D_ARRAY, GL_TEXTURE_BUFFE
     GL_TEXTURE_CUBE_MAP_NEGATIVE_X, GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
     GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
     GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, GL_TEXTURE_RECTANGLE};
+
+pub use self::cl_d3d10_h::CL_CONTEXT_D3D10_DEVICE_KHR;
+
+pub use self::cl_dx9_media_sharing_h::{CL_CONTEXT_ADAPTER_D3D9_KHR, CL_CONTEXT_ADAPTER_D3D9EX_KHR,
+    CL_CONTEXT_ADAPTER_DXVA_KHR};
+
+pub use self::cl_d3d11_h::CL_CONTEXT_D3D11_DEVICE_KHR;
+
+pub use self::cl_h::{CL_CONTEXT_PLATFORM, CL_CONTEXT_INTEROP_USER_SYNC};

@@ -134,7 +134,7 @@ pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceI
     ClWaitList};
 
 pub use self::types::structs::{ContextProperties, ImageFormat, ImageDescriptor, BufferRegion,
-        ContextProperty};
+    ContextPropertyValue};
 
 pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
     ContextInfoResult, CommandQueueInfoResult, MemInfoResult,
@@ -632,6 +632,26 @@ enum_from_primitive! {
         Devices = cl_h::CL_CONTEXT_DEVICES as isize,
         Properties = cl_h::CL_CONTEXT_PROPERTIES as isize,
         NumDevices = cl_h::CL_CONTEXT_NUM_DEVICES as isize,
+    }
+}
+
+enum_from_primitive! {
+    /// cl_context_info + cl_context_properties
+    #[repr(C)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    pub enum ContextProperty {
+        Platform = ffi::CL_CONTEXT_PLATFORM as isize,
+        InteropUserSync = ffi::CL_CONTEXT_INTEROP_USER_SYNC as isize,
+        D3d10DeviceKhr = ffi::CL_CONTEXT_D3D10_DEVICE_KHR as isize,
+        GlContextKhr = ffi::CL_GL_CONTEXT_KHR as isize,
+        EglDisplayKhr = ffi::CL_EGL_DISPLAY_KHR as isize,
+        GlxDisplayKhr = ffi::CL_GLX_DISPLAY_KHR as isize,
+        CglSharegroupKhr = ffi::CL_CGL_SHAREGROUP_KHR as isize,
+        WglHdcKhr = ffi::CL_WGL_HDC_KHR as isize,
+        AdapterD3d9Khr = ffi::CL_CONTEXT_ADAPTER_D3D9_KHR as isize,
+        AdapterD3d9exKhr = ffi::CL_CONTEXT_ADAPTER_D3D9EX_KHR as isize,
+        AdapterDxvaKhr = ffi::CL_CONTEXT_ADAPTER_DXVA_KHR as isize,
+        D3d11DeviceKhr = ffi::CL_CONTEXT_D3D11_DEVICE_KHR as isize,
     }
 }
 
