@@ -1,5 +1,8 @@
 //! OpenCL / DirectX 10 sharing.
 
+use cl_h::cl_uint;
+
+pub const CL_CONTEXT_D3D10_DEVICE_KHR: cl_uint = 0x4014;
 
 // /**********************************************************************************
 //  * Copyright (c) 2008-2015 The Khronos Group Inc.
