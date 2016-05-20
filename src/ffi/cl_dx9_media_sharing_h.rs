@@ -1,5 +1,12 @@
 //! OpenCL / DirectX 9 sharing.
 
+use cl_h::cl_uint;
+
+pub const CL_CONTEXT_ADAPTER_D3D9_KHR: cl_uint = 0x2025;
+pub const CL_CONTEXT_ADAPTER_D3D9EX_KHR: cl_uint = 0x2026;
+pub const CL_CONTEXT_ADAPTER_DXVA_KHR: cl_uint = 0x2027;
+
+
 
 // /**********************************************************************************
 //  * Copyright (c) 2008-2015 The Khronos Group Inc.
