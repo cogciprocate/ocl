@@ -1,4 +1,4 @@
-//! Test `Context', particularly pertaining to properties, Paul.
+//! Test adding multiple context properties.
 
 use standard::{Platform, Device, Context};
 use core::{ContextPropertyValue};
@@ -30,14 +30,14 @@ fn test_context_props() {
             .build().unwrap();
 
 
-        println!("{}", platform);
-        println!("{}", context);        
+        // println!("{}", platform);
+        // println!("{}", context);        
 
-        for device in devices.iter() {
-            println!("Device {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());
-        }
+        // for device in devices.iter() {
+        //     println!("Device {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());
+        // }
 
-        print!("\n\n");
+        // print!("\n\n");
 
         // // Loop through each device
         // for d_idx in 0..devices.len() {

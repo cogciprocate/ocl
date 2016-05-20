@@ -80,6 +80,15 @@ impl ContextBuilder {
         self
     }
 
+    /// Specifies an OpenGL context to associate with.
+    ///
+    /// Overwrites any previously specified OpenGL context.
+    ///
+    pub fn gl_context<'a>(&'a mut self, gl_handle: u32) -> &'a mut ContextBuilder {
+        self.properties.gl_context(gl_handle);
+        self
+    }
+
     /// Specifies a `DeviceSpecifer` which specifies how specifically
     /// the relevant devices shall be specified.
     ///
