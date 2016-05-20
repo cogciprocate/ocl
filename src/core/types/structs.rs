@@ -66,12 +66,16 @@ pub type TemporaryPlaceholderType = ();
 pub enum ContextPropertyValue {
     Platform(PlatformId),
     InteropUserSync(bool),
-    D3d10DeviceKhr(TemporaryPlaceholderType),
+    // Not sure about this type:
+    D3d10DeviceKhr(*mut ffi::cl_d3d10_device_source_khr),
     GlContextKhr(ffi::cl_GLuint),
-    EglDisplayKhr(TemporaryPlaceholderType),
-    GlxDisplayKhr(TemporaryPlaceholderType),
-    CglSharegroupKhr(TemporaryPlaceholderType),
-    WglHdcKhr(TemporaryPlaceholderType),
+    EglDisplayKhr(ffi::CLeglDisplayKHR),
+    // Not sure about this type:
+    GlxDisplayKhr(ffi::cl_GLuint),
+    // Not sure about this type:
+    CglSharegroupKhr(ffi::cl_GLuint),
+    // Not sure about this type:
+    WglHdcKhr(ffi::cl_GLuint),
     AdapterD3d9Khr(TemporaryPlaceholderType),
     AdapterD3d9exKhr(TemporaryPlaceholderType),
     AdapterDxvaKhr(TemporaryPlaceholderType),
