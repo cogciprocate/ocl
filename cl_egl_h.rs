@@ -1,3 +1,24 @@
+//! OpenGL EGL Sharing.
+
+#![allow(non_camel_case_types)]
+
+use libc::{c_void, intptr_t};
+
+// /* CLeglImageKHR is an opaque handle to an EGLImage */
+// typedef void* CLeglImageKHR;
+pub type CLeglImageKHR = *mut c_void;
+
+// /* CLeglDisplayKHR is an opaque handle to an EGLDisplay */
+// typedef void* CLeglDisplayKHR;
+pub type CLeglDisplayKHR = *mut c_void;
+
+// /* CLeglSyncKHR is an opaque handle to an EGLSync object */
+// typedef void* CLeglSyncKHR;
+pub type CLeglSyncKHR = *mut c_void;
+
+// /* properties passed to clCreateFromEGLImageKHR */
+// typedef intptr_t cl_egl_image_properties_khr;
+pub type cl_egl_image_properties_khr = intptr_t;
 
 // /*******************************************************************************
 //  * Copyright (c) 2008-2015 The Khronos Group Inc.
