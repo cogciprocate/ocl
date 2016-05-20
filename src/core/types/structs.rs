@@ -98,26 +98,49 @@ impl ContextProperties {
     }
 
     /// Specifies a platform (builder-style).
-    pub fn platform<'a, P: Into<PlatformId>>(&'a mut self, platform: P) -> &'a mut ContextProperties {
-        self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(platform.into()));
+    pub fn platform<P: Into<PlatformId>>(mut self, platform: P) -> ContextProperties {
+        self.set_platform(platform);
         self
     }
 
     /// Specifies whether the user is responsible for synchronization between
     /// OpenCL and other APIs (builder-style).
-    pub fn interop_user_sync<'a>(&'a mut self, sync: bool) -> &'a mut ContextProperties {
-        self.0.insert(ContextProperty::InteropUserSync, ContextPropertyValue::InteropUserSync(sync));
+    pub fn interop_user_sync(mut self, sync: bool) -> ContextProperties {
+        self.set_interop_user_sync(sync);
         self
+    }
+
+    /// Specifies an OpenGL context handle (builder-style).
+    pub fn gl_context(mut self, gl_ctx: ffi::cl_GLuint) -> ContextProperties {
+        self.set_gl_context(gl_ctx);
+        self
+    }
+
+    /// Pushes a `ContextPropertyValue` onto this list of properties
+    /// (builder-style).
+    pub fn property_value(mut self, prop: ContextPropertyValue) -> ContextProperties {   
+        self.set_property_value(prop);
+        self
+    }
+
+    /// Specifies a platfor.
+    pub fn set_platform<P: Into<PlatformId>>(&mut self, platform: P) {
+        self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(platform.into()));
+    }
+
+    /// Specifies whether the user is responsible for synchronization between
+    /// OpenCL and other APIs.
+    pub fn set_interop_user_sync(&mut self, sync: bool) {
+        self.0.insert(ContextProperty::InteropUserSync, ContextPropertyValue::InteropUserSync(sync));
     }
 
     /// Specifies an OpenGL context handle.
-    pub fn gl_context<'a>(&'a mut self, gl_ctx: ffi::cl_GLuint) -> &'a mut ContextProperties {
+    pub fn set_gl_context(&mut self, gl_ctx: ffi::cl_GLuint) {
         self.0.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
-        self
     }
 
     /// Pushes a `ContextPropertyValue` onto this list of properties.
-    pub fn prop<'a>(&'a mut self, prop: ContextPropertyValue) -> &'a mut ContextProperties {
+    pub fn set_property_value(&mut self, prop: ContextPropertyValue) {
         match prop {
             ContextPropertyValue::Platform(val) => {
                 self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(val));
@@ -132,7 +155,6 @@ impl ContextProperties {
             },
             _ => panic!("'{:?}' is not yet a supported variant.", prop),
         }        
-        self
     }
 
     /// Returns a platform id or none.

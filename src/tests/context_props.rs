@@ -30,12 +30,12 @@ fn test_context_props() {
             .build().unwrap();
 
 
-        // println!("{}", platform);
-        // println!("{}", context);        
+        println!("{}", platform);
+        println!("{}", context);        
 
-        // for device in devices.iter() {
-        //     println!("Device {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());
-        // }
+        for device in devices.iter() {
+            println!("Device {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());
+        }
 
         // print!("\n\n");
 

@@ -183,8 +183,7 @@ fn main_cored() {
     let platform_id = core::default_platform().unwrap();
     let device_ids = core::get_device_ids(&platform_id, None, None).unwrap();
     let device_id = device_ids[0];
-    let mut context_properties = ContextProperties::new();
-    context_properties.platform(platform_id);
+    let context_properties = ContextProperties::new().platform(platform_id);
     let context = core::create_context(&Some(context_properties),
         &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();

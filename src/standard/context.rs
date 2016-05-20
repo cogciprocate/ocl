@@ -34,8 +34,8 @@ impl ContextBuilder {
     /// - Handle context creation callbacks.
     ///
     pub fn new() -> ContextBuilder {
-        let mut properties = ContextProperties::new();
-        properties.platform::<PlatformIdCore>(Platform::default().into());
+        let properties = ContextProperties::new()
+            .platform::<PlatformIdCore>(Platform::default().into());
 
         ContextBuilder {
             properties: properties,
@@ -67,7 +67,7 @@ impl ContextBuilder {
     /// overwritten if `prop_val` is also `ContextPropertyValue::Platform`).
     ///
     pub fn property<'a>(&'a mut self, prop_val: ContextPropertyValue) -> &'a mut ContextBuilder {
-        self.properties.prop(prop_val);
+        self.properties.set_property_value(prop_val);
         self
     }
 
@@ -76,7 +76,7 @@ impl ContextBuilder {
     /// Overwrites any previously specified platform.
     ///
     pub fn platform(&mut self, platform: Platform) -> &mut ContextBuilder {
-        self.properties.platform(platform);
+        self.properties.set_platform(platform);
         self
     }
 
@@ -85,7 +85,7 @@ impl ContextBuilder {
     /// Overwrites any previously specified OpenGL context.
     ///
     pub fn gl_context(&mut self, gl_handle: u32) -> &mut ContextBuilder {
-        self.properties.gl_context(gl_handle);
+        self.properties.set_gl_context(gl_handle);
         self
     }
 
