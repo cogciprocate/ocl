@@ -36,6 +36,7 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 pub enum Error {
     // description: String,
     // Status(Status, String),
+    Conversion(String),
     Status { status: Status, fn_name: &'static str, fn_info: String, desc: String },
     String(String),
     Nul(std::ffi::NulError),
@@ -50,8 +51,8 @@ impl self::Error {
         self::Error::String(desc.into())
     }
 
-    /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the
-    /// given description.
+    /// Returns a new `ocl::Result::Err` containing an `ocl::Error::String`
+    /// variant with the given description.
     pub fn err<T, S: Into<String>>(desc: S) -> self::Result<T> {
         Err(Error::String(desc.into()))
     }
@@ -73,6 +74,12 @@ impl self::Error {
             let desc = fmt_status_desc(status.clone(), fn_name, &fn_info);
             Err(Error::Status { status: status, fn_name: fn_name, fn_info: fn_info, desc: desc })
         }
+    }
+
+    /// Returns a new `ocl::Result::Err` containing an
+    /// `ocl::Error::Conversion` variant with the given description.
+    pub fn err_conversion<T, S: Into<String>>(desc: S) -> self::Result<T> {
+        Err(Error::Conversion(desc.into()))
     }
 
     /// If this is a `String` variant, concatenate `txt` to the front of the
@@ -99,6 +106,7 @@ impl self::Error {
 impl std::error::Error for self::Error {
     fn description(&self) -> &str {
         match *self {
+            Error::Conversion(ref desc) => desc,
             Error::Nul(ref err) => err.description(),
             Error::Io(ref err) => err.description(),
             Error::FromUtf8Error(ref err) => err.description(),

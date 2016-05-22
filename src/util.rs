@@ -163,6 +163,24 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
     ((bytes[3] as u32) << 24)
 }
 
+/// Copies a slice of bytes to a new value of arbitrary type.
+///
+/// ### Safety
+///
+/// You may want to wear a helmet.
+///
+pub unsafe fn bytes_to<T>(bytes: &[u8]) -> OclResult<T> {
+    if mem::size_of::<T>() == bytes.len() {
+        let mut new_val: T = mem::uninitialized();
+        ptr::copy(bytes.as_ptr(), &mut new_val as *mut _ as *mut u8, bytes.len());
+        Ok(new_val)
+    } else {
+        OclError::err(format!("The size of the source byte slice ({} bytes) \
+        does not match the size of the destination type ({} bytes).", bytes.len(),
+        mem::size_of::<T>()))
+    }
+}
+
 /// Converts a vector of bytes into a value of arbitrary type.
 ///
 /// ### Safety
@@ -174,36 +192,16 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
 // transmute the vector into the result type. [TODO]: Fiddle with this
 // at some point.
 //
-pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> T {
-    // let byte_count = mem::size_of::<u8>() * vec.len();
-    // assert_eq!(mem::size_of::<T>(), vec.len());
-    assert!(mem::size_of::<T>() == vec.len(), "The size of the source byte vector ({} bytes) \
+pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> OclResult<T> {
+    if mem::size_of::<T>() == vec.len() {
+        let mut new_val: T = mem::uninitialized();
+        ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec.len());
+        Ok(new_val)
+    } else {
+        OclError::err(format!("The size of the source byte vector ({} bytes) \
         does not match the size of the destination type ({} bytes).", vec.len(),
-        mem::size_of::<T>());
-
-    let mut new_val: T = mem::uninitialized();
-
-    ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec.len());
-
-    new_val
-}
-
-/// Copies a slice of bytes to a new value of arbitrary type.
-///
-/// ### Safety
-///
-/// You may want to wear a helmet.
-///
-pub unsafe fn bytes_to<T>(bytes: &[u8]) -> T {
-    assert!(mem::size_of::<T>() == bytes.len(), "The size of the source byte slice ({} bytes) \
-        does not match the size of the destination type ({} bytes).", bytes.len(),
-        mem::size_of::<T>());
-
-    let mut new_val: T = mem::uninitialized();
-
-    ptr::copy(bytes.as_ptr(), &mut new_val as *mut _ as *mut u8, bytes.len());
-
-    new_val
+        mem::size_of::<T>()))
+    }
 }
 
 /// Converts a vector of bytes into a vector of arbitrary type.
@@ -214,15 +212,21 @@ pub unsafe fn bytes_to<T>(bytes: &[u8]) -> T {
 ///
 /// TODO: Consider using `alloc::heap::reallocate_inplace` equivalent.
 ///
-pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> Vec<T> {
-    debug_assert!(vec.len() % mem::size_of::<T>() == 0);
-    let new_len = vec.len() / mem::size_of::<T>();
-    let new_cap = vec.capacity() / mem::size_of::<T>();
-    let ptr = vec.as_mut_ptr();
-    mem::forget(vec);
-    let mut new_vec: Vec<T> = Vec::from_raw_parts(ptr as *mut T, new_len, new_cap);
-    new_vec.shrink_to_fit();
-    new_vec
+pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> OclResult<Vec<T>> {
+    // debug_assert!(vec.len() % mem::size_of::<T>() == 0);
+    if vec.len() % mem::size_of::<T>() == 0 {
+        let new_len = vec.len() / mem::size_of::<T>();
+        let new_cap = vec.capacity() / mem::size_of::<T>();
+        let ptr = vec.as_mut_ptr();
+        mem::forget(vec);
+        let mut new_vec: Vec<T> = Vec::from_raw_parts(ptr as *mut T, new_len, new_cap);
+        new_vec.shrink_to_fit();
+        Ok(new_vec)
+    } else {
+        OclError::err_conversion(format!("The size of the source byte vector ({} bytes) is not \
+            evenly divisible by the size of the destination type ({} bytes).", vec.len(),
+            mem::size_of::<T>()))
+    }
 }
 
 /// Copies a slice of bytes into a vector of arbitrary type.
@@ -231,13 +235,19 @@ pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> Vec<T> {
 ///
 /// Negative.
 ///
-pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> Vec<T> {
-    debug_assert!(bytes.len() % mem::size_of::<T>() == 0);
-    let new_len = bytes.len() / mem::size_of::<T>();
-    let mut new_vec: Vec<T> = Vec::with_capacity(new_len);
-    ptr::copy(bytes.as_ptr(), new_vec.as_mut_ptr() as *mut _ as *mut u8, bytes.len());
-    new_vec.set_len(new_len);
-    new_vec
+pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> OclResult<Vec<T>> {
+    // debug_assert!(bytes.len() % mem::size_of::<T>() == 0);
+    if bytes.len() % mem::size_of::<T>() == 0 {
+        let new_len = bytes.len() / mem::size_of::<T>();
+        let mut new_vec: Vec<T> = Vec::with_capacity(new_len);
+        ptr::copy(bytes.as_ptr(), new_vec.as_mut_ptr() as *mut _ as *mut u8, bytes.len());
+        new_vec.set_len(new_len);
+        Ok(new_vec)
+    } else {
+        OclError::err_conversion(format!("The size of the source byte slice ({} bytes) is not \
+            evenly divisible by the size of the destination type ({} bytes).", bytes.len(),
+            mem::size_of::<T>()))
+    }
 }
 
 
