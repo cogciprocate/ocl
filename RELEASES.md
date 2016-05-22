@@ -5,7 +5,9 @@ New Features
 ------------
 * [FIXME: ELABORATE]: Vector types.
 * MSVC support.
-* Buffers can be created from a GL object
+* Preliminary OpenGL interop support:
+  - OpenGL context handles are accepted as properties during `Context` creation.
+  - Buffers can be created from a GL object.
 
 Breaking Changes
 ----------------
@@ -63,44 +65,44 @@ Version 0.8.0 (2016-03-09)
 Breaking Changes
 ----------------
 * [`Buffer`] has undergone a major redesign:
-    * The optional built-in vector has been removed. Reads and writes must now
-      all be done using a separate data container.
-    * All of the methods for reading and writing have been removed and
-      replaced by the new command builder system, accessible with `::cmd`
-      (more documentation to come).
-    * All of the traits pertaining to the internal vector, such as Index, have
-      been removed.
-    * All of the constructors have been removed and replaced by a single
-      method, `::new`.
-    * Many of the convenience methods for initializing buffers with randomly
-      scrambled or shuffled data now take the form of functions as,
-      `::scrambled_vec` and `::shuffled_vec` in [`ocl::util`].
-    * `::set_queue` has been renamed `::set_default_queue`.
-    * `::wait` has been removed. Queue related methods are now accessed on the
-      queue itself using `::queue`.
-    * Length is no longer padded out to the next workgroup size. It is up to
-      the consumer to pad the sizes of buffers (the new kernel method,
-      `::wg_info` can help determine optimal sizes).
-* [`Image`] has also had its read/write methods removed and replaced with a
-  command builder accessible using `::cmd` (more documentation to come).
-* `Image::set_queue` has been renamed `::set_default_queue`.
-* [`Kernel`] has had its various `::enqueue_***` methods removed and replaced
-  with, you guessed it, a command builder (`::cmd`).
-* `Kernel::new` no longer accepts a global work size as an argument. Instead
-  use the new builder-style method, `::gws` after creating.
-* `Kernel::set_queue` has been renamed `::set_default_queue`.
-* `Queue::new_by_device_index` has been removed.
-* The `device` argument for `Queue::new` is no longer optional.
-* `ProgramBuilder::src_file` now takes a `Path` instead of a string.
-* `ProQue::create_kernel_with_dims` has been removed.
-* `ProQue::device_idx` has been replaced by `::device`.
-* `Context::new_by_index_and_type` has been removed.
-* `core::set_kernel_arg` and `::enqueue_kernel` no longer have an argument for
-  the kernel function name. Instead it is queried when needed using
-  `::get_kernel_info`.
-* `SimpleDims` has been renamed `SpatialDims` and many of its methods now
-  return `Result` types.
-* `OclNum` has been renamed `OclPrm`
+  * The optional built-in vector has been removed. Reads and writes must now
+    all be done using a separate data container.
+  * All of the methods for reading and writing have been removed and
+    replaced by the new command builder system, accessible with `::cmd`
+    (more documentation to come).
+  * All of the traits pertaining to the internal vector, such as Index, have
+    been removed.
+  * All of the constructors have been removed and replaced by a single
+    method, `::new`.
+  * Many of the convenience methods for initializing buffers with randomly
+    scrambled or shuffled data now take the form of functions as,
+    `::scrambled_vec` and `::shuffled_vec` in [`ocl::util`].
+  * `::set_queue` has been renamed `::set_default_queue`.
+  * `::wait` has been removed. Queue related methods are now accessed on the
+    queue itself using `::queue`.
+  * Length is no longer padded out to the next workgroup size. It is up to
+    the consumer to pad the sizes of buffers (the new kernel method,
+    `::wg_info` can help determine optimal sizes).
+  * [`Image`] has also had its read/write methods removed and replaced with a
+    command builder accessible using `::cmd` (more documentation to come).
+  * `Image::set_queue` has been renamed `::set_default_queue`.
+  * [`Kernel`] has had its various `::enqueue_***` methods removed and replaced
+    with, you guessed it, a command builder (`::cmd`).
+  * `Kernel::new` no longer accepts a global work size as an argument. Instead
+    use the new builder-style method, `::gws` after creating.
+  * `Kernel::set_queue` has been renamed `::set_default_queue`.
+  * `Queue::new_by_device_index` has been removed.
+  * The `device` argument for `Queue::new` is no longer optional.
+  * `ProgramBuilder::src_file` now takes a `Path` instead of a string.
+  * `ProQue::create_kernel_with_dims` has been removed.
+  * `ProQue::device_idx` has been replaced by `::device`.
+  * `Context::new_by_index_and_type` has been removed.
+  * `core::set_kernel_arg` and `::enqueue_kernel` no longer have an argument for
+    the kernel function name. Instead it is queried when needed using
+    `::get_kernel_info`.
+  * `SimpleDims` has been renamed `SpatialDims` and many of its methods now
+    return `Result` types.
+  * `OclNum` has been renamed `OclPrm`
 
 
 New Features
