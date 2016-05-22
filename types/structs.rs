@@ -1,5 +1,6 @@
 //! Rust implementations of various structs used by the OpenCL API.
 
+use libc;
 use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
@@ -71,11 +72,11 @@ pub enum ContextPropertyValue {
     GlContextKhr(ffi::cl_GLuint),
     EglDisplayKhr(ffi::CLeglDisplayKHR),
     // Not sure about this type:
-    GlxDisplayKhr(ffi::cl_GLuint),
+    GlxDisplayKhr(*mut libc::c_void),
     // Not sure about this type:
-    CglSharegroupKhr(ffi::cl_GLuint),
+    CglSharegroupKhr(*mut libc::c_void),
     // Not sure about this type:
-    WglHdcKhr(ffi::cl_GLuint),
+    WglHdcKhr(*mut libc::c_void),
     AdapterD3d9Khr(TemporaryPlaceholderType),
     AdapterD3d9exKhr(TemporaryPlaceholderType),
     AdapterDxvaKhr(TemporaryPlaceholderType),

@@ -1588,24 +1588,44 @@ impl KernelWorkGroupInfoResult {
                     }
                 },
                 KernelWorkGroupInfo::CompileWorkGroupSize => {
-                    let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
-                    KernelWorkGroupInfoResult::CompileWorkGroupSize(r)
+                    if result.is_empty() {
+                        KernelWorkGroupInfoResult::CompileWorkGroupSize([0, 0, 0])
+                    } else {
+                        let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
+                        KernelWorkGroupInfoResult::CompileWorkGroupSize(r)
+                    }
                 }
                 KernelWorkGroupInfo::LocalMemSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                     KernelWorkGroupInfoResult::LocalMemSize(r)
+                    if result.is_empty() {
+                        KernelWorkGroupInfoResult::LocalMemSize(0)
+                    } else {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        KernelWorkGroupInfoResult::LocalMemSize(r)
+                    }
                 },
                 KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple => {
-                    let r = unsafe { util::bytes_into::<usize>(result) };
-                    KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(r)
+                    if result.is_empty() {
+                        KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(0)
+                    } else {
+                        let r = unsafe { util::bytes_into::<usize>(result) };
+                        KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(r)
+                    }
                 },
                 KernelWorkGroupInfo::PrivateMemSize => {
-                    let r = unsafe { util::bytes_into::<u64>(result) };
-                    KernelWorkGroupInfoResult::PrivateMemSize(r)
+                    if result.is_empty() {
+                        KernelWorkGroupInfoResult::PrivateMemSize(0)
+                    } else {
+                        let r = unsafe { util::bytes_into::<u64>(result) };
+                        KernelWorkGroupInfoResult::PrivateMemSize(r)
+                    }
                 },
                 KernelWorkGroupInfo::GlobalWorkSize => {
-                    let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
-                    KernelWorkGroupInfoResult::GlobalWorkSize(r)
+                    if result.is_empty() {
+                        KernelWorkGroupInfoResult::GlobalWorkSize([0, 0, 0])
+                    } else {
+                        let r = unsafe { util::bytes_into::<[usize; 3]>(result) };
+                        KernelWorkGroupInfoResult::GlobalWorkSize(r)
+                    }
                 },
             },
             Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
