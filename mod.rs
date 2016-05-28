@@ -635,6 +635,12 @@ enum_from_primitive! {
     }
 }
 
+// FIXME that's ugly
+#[cfg(target_os = "macos")]
+const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: u32 = ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
+#[cfg(not(target_os = "macos"))]
+const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: u32 = ffi::CL_CGL_SHAREGROUP_KHR;
+
 enum_from_primitive! {
     /// cl_context_info + cl_context_properties
     #[repr(C)]
@@ -646,7 +652,7 @@ enum_from_primitive! {
         GlContextKhr = ffi::CL_GL_CONTEXT_KHR as isize,
         EglDisplayKhr = ffi::CL_EGL_DISPLAY_KHR as isize,
         GlxDisplayKhr = ffi::CL_GLX_DISPLAY_KHR as isize,
-        CglSharegroupKhr = ffi::CL_CGL_SHAREGROUP_KHR as isize,
+        CglSharegroupKhr = CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC as isize, // FIXME that's ugly
         WglHdcKhr = ffi::CL_WGL_HDC_KHR as isize,
         AdapterD3d9Khr = ffi::CL_CONTEXT_ADAPTER_D3D9_KHR as isize,
         AdapterD3d9exKhr = ffi::CL_CONTEXT_ADAPTER_D3D9EX_KHR as isize,
