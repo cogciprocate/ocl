@@ -348,12 +348,12 @@ bitflags! {
 }
 
 bitflags! {
-	/// cl_program_binary_type
+    /// cl_program_binary_type
     pub flags ProgramBinaryType: u32 {
-		const PROGRAM_BINARY_TYPE_NONE = 0x0,
-		const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
-		const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
-		const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
+        const PROGRAM_BINARY_TYPE_NONE = 0x0,
+        const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
+        const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
+        const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
     }
 }
 
@@ -670,7 +670,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// [INCOMPLETE] cl_device_partition_property
     ///
-    /// [FIXME]: This types variants should also contain data described in: 
+    /// [FIXME]: This types variants should also contain data described in:
     /// [https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html]
     /// (https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html)
     ///

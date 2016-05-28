@@ -188,6 +188,20 @@ impl ContextProperties {
         }
     }
 
+    /// Returns a cgl_sharegroup id or none.
+    pub fn get_cgl_sharegroup(&self) -> Option<*mut libc::c_void> {
+        match self.0.get(&ContextProperty::CglSharegroupKhr) {
+            Some(prop_val) => {
+                if let ContextPropertyValue::CglSharegroupKhr(ref cgl_sharegroup) = *prop_val {
+                    Some(cgl_sharegroup.clone())
+                } else {
+                    panic!("Internal error returning cgl_sharegroup.");
+                }
+            },
+            None => None
+        }
+    }
+
     /// Converts this list into a packed-word representation as specified
     /// [here](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html).
     ///

@@ -64,7 +64,7 @@ fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: &D) -> OclResult<bool>
     match get_device_info(device, DeviceInfo::Extensions) {
         DeviceInfoResult::Extensions(extensions) => Ok(extensions.contains(CL_GL_SHARING_EXT)),
         DeviceInfoResult::Error(err) => Err(*err),
-        _ => OclError::err("Bad DeviceInfo return, excpected Extensions")
+        _ => OclError::err("Bad DeviceInfo returned, excpected Extensions")
     }
 }
 
@@ -401,7 +401,19 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    // TODO check sharegroup is available
+    // https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html
+    // http://sa10.idav.ucdavis.edu/docs/sa10-dg-opencl-gl-interop.pdf
+    if let &Some(ref properties) = properties {
+        if let Some(_) = properties.get_cgl_sharegroup() {
+            for device in device_ids {
+                match device_support_cl_gl_sharing(device) {
+                    Ok(true) => {},
+                    Ok(false) => return OclError::err("A device doesn't support cl_gl_sharing extension."),
+                    Err(err) => return Err(err),
+                }
+            }
+        }
+    }
 
     let properties_bytes: Vec<isize> = match properties {
         &Some(ref props) => props.to_raw(),
@@ -462,7 +474,17 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    // TODO check sharegroup is available
+    // if let &Some(properties) = properties {
+    //     if let Some(_) = properties.get_cgl_sharegroup() {
+    //         for device in device_ids {
+    //             match device_support_cl_gl_sharing(device) {
+    //                 Ok(true) => {},
+    //                 Ok(false) => return OclError::err("A device doesn't support cl_gl_sharing extension."),
+    //                 Err(err) => return Err(err),
+    //             }
+    //         }
+    //     }
+    // }
 
     let properties_bytes: Vec<isize> = match properties {
         &Some(ref props) => props.to_raw(),
