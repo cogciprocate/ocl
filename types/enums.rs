@@ -1,31 +1,10 @@
 //! Custom enumerators not specifically based on OpenCL C-style enums.
 //!
-//! #### Complete
-//!
-//! * PlatformInfoResult
-//! * ContextInfoResult
-//! * CommandQueueInfoResult
-//! * MemInfoResult
-//! * ImageInfoResult
-//! * SamplerInfoResult
-//! * ProgramInfoResult
-//! * ProgramBuildInfoResult
-//! * KernelInfoResult
-//! * KernelArgInfoResult
-//! * KernelWorkGroupInfoResult
-//! * EventInfoResult
-//! * ProfilingInfoResult
-//!
-//! #### Incomplete
-//!
-//! The following are using placeholder variants and types meaning everything
-//! is just stored and formatted as raw bytes.
-//!
-//! * DeviceInfoResult
-//!
-//! Bleh. Implementing these sucks. On hold for a while.
 //!
 //!
+//
+// [TODO]: Evaluate usefulness of `Error` impls and potentially remove. 
+//
 
 #![allow(dead_code)]
 
@@ -693,7 +672,7 @@ impl DeviceInfoResult {
                     // _ => DeviceInfoResult::TemporaryPlaceholderVariant(result),
                 }
             },
-            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+            Err(err) => err.into(),
         }
     }
 }
