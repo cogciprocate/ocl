@@ -46,6 +46,11 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType};
 
+#[cfg(target_os="macos")]
+const CL_GL_SHARING_EXT: &'static str = "cl_APPLE_gl_sharing";
+#[cfg(not(target_os="macos"))]
+const CL_GL_SHARING_EXT: &'static str = "cl_khr_gl_sharing";
+
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
 
 //============================================================================
@@ -53,6 +58,15 @@ const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
 //=========================== SUPPORT FUNCTIONS ==============================
 //============================================================================
 //============================================================================
+
+/// will check if current device support CL_GL_SHARING_EXT option
+fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: &D) -> OclResult<bool> {
+    match get_device_info(device, DeviceInfo::Extensions) {
+        DeviceInfoResult::Extensions(extensions) => Ok(extensions.contains(CL_GL_SHARING_EXT)),
+        DeviceInfoResult::Error(err) => Err(*err),
+        _ => OclError::err("Bad DeviceInfo returned, excpected Extensions")
+    }
+}
 
 /// [DEPRICATED] Evaluates `errcode` and returns an `Err` with a failure
 /// message if it is not 0.
@@ -291,8 +305,6 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
 }
 
 /// Returns information about a device.
-///
-#[allow(unused_variables)]
 pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
         -> DeviceInfoResult
 {
@@ -321,7 +333,7 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
     let errcode = unsafe { cl_h::clGetDeviceInfo(
         device.as_ptr() as cl_device_id,
         request as cl_device_info,
-        result_size  as size_t,
+        result_size as size_t,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };
@@ -389,6 +401,20 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
+    // https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html
+    // http://sa10.idav.ucdavis.edu/docs/sa10-dg-opencl-gl-interop.pdf
+    if let &Some(ref properties) = properties {
+        if let Some(_) = properties.get_cgl_sharegroup() {
+            for device in device_ids {
+                match device_support_cl_gl_sharing(device) {
+                    Ok(true) => {},
+                    Ok(false) => return OclError::err("A device doesn't support cl_gl_sharing extension."),
+                    Err(err) => return Err(err),
+                }
+            }
+        }
+    }
+
     let properties_bytes: Vec<isize> = match properties {
         &Some(ref props) => props.to_raw(),
         &None => Vec::<isize>::with_capacity(0),
@@ -447,6 +473,18 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
 
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
+
+    // if let &Some(properties) = properties {
+    //     if let Some(_) = properties.get_cgl_sharegroup() {
+    //         for device in device_ids {
+    //             match device_support_cl_gl_sharing(device) {
+    //                 Ok(true) => {},
+    //                 Ok(false) => return OclError::err("A device doesn't support cl_gl_sharing extension."),
+    //                 Err(err) => return Err(err),
+    //             }
+    //         }
+    //     }
+    // }
 
     let properties_bytes: Vec<isize> = match properties {
         &Some(ref props) => props.to_raw(),

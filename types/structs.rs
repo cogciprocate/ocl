@@ -9,7 +9,6 @@ use cl_h::{self, cl_mem};
 use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
         PlatformId};
 
-
 // Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
 
@@ -117,14 +116,21 @@ impl ContextProperties {
         self
     }
 
+    /// Specifies an OpenGL context CGL share group to
+    /// associate the OpenCL context with (builder-style).
+    pub fn cgl_sharegroup(mut self, gl_sharegroup: *mut libc::c_void) -> ContextProperties {
+        self.set_cgl_sharegroup(gl_sharegroup);
+        self
+    }
+
     /// Pushes a `ContextPropertyValue` onto this list of properties
     /// (builder-style).
-    pub fn property_value(mut self, prop: ContextPropertyValue) -> ContextProperties {   
+    pub fn property_value(mut self, prop: ContextPropertyValue) -> ContextProperties {
         self.set_property_value(prop);
         self
     }
 
-    /// Specifies a platfor.
+    /// Specifies a platform.
     pub fn set_platform<P: Into<PlatformId>>(&mut self, platform: P) {
         self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(platform.into()));
     }
@@ -140,6 +146,12 @@ impl ContextProperties {
         self.0.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
     }
 
+    /// Specifies an OpenGL context CGL share group to
+    /// associate the OpenCL context with.
+    pub fn set_cgl_sharegroup(&mut self, gl_sharegroup: *mut libc::c_void) {
+        self.0.insert(ContextProperty::CglSharegroupKhr, ContextPropertyValue::CglSharegroupKhr(gl_sharegroup));
+    }
+
     /// Pushes a `ContextPropertyValue` onto this list of properties.
     pub fn set_property_value(&mut self, prop: ContextPropertyValue) {
         match prop {
@@ -147,15 +159,19 @@ impl ContextProperties {
                 self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(val));
             },
             ContextPropertyValue::InteropUserSync(val) => {
-                self.0.insert(ContextProperty::InteropUserSync, 
+                self.0.insert(ContextProperty::InteropUserSync,
                     ContextPropertyValue::InteropUserSync(val));
             },
             ContextPropertyValue::GlContextKhr(val) => {
-                self.0.insert(ContextProperty::GlContextKhr, 
+                self.0.insert(ContextProperty::GlContextKhr,
                     ContextPropertyValue::GlContextKhr(val));
             },
+            ContextPropertyValue::CglSharegroupKhr(val) => {
+                self.0.insert(ContextProperty::CglSharegroupKhr,
+                    ContextPropertyValue::CglSharegroupKhr(val));
+            },
             _ => panic!("'{:?}' is not yet a supported variant.", prop),
-        }        
+        }
     }
 
     /// Returns a platform id or none.
@@ -166,6 +182,20 @@ impl ContextProperties {
                     Some(plat.clone())
                 } else {
                     panic!("Internal error returning platform.");
+                }
+            },
+            None => None
+        }
+    }
+
+    /// Returns a cgl_sharegroup id or none.
+    pub fn get_cgl_sharegroup(&self) -> Option<*mut libc::c_void> {
+        match self.0.get(&ContextProperty::CglSharegroupKhr) {
+            Some(prop_val) => {
+                if let ContextPropertyValue::CglSharegroupKhr(ref cgl_sharegroup) = *prop_val {
+                    Some(cgl_sharegroup.clone())
+                } else {
+                    panic!("Internal error returning cgl_sharegroup.");
                 }
             },
             None => None
@@ -192,6 +222,10 @@ impl ContextProperties {
                         props_raw.push(platform_id_core.as_ptr() as isize);
                     },
                     ContextPropertyValue::InteropUserSync(sync) => {
+                        props_raw.push(key.clone() as isize);
+                        props_raw.push(sync as isize);
+                    },
+                    ContextPropertyValue::CglSharegroupKhr(sync) => {
                         props_raw.push(key.clone() as isize);
                         props_raw.push(sync as isize);
                     },
