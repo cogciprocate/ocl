@@ -1,7 +1,7 @@
-pub use cl_h::cl_uint;
+pub use cl_h::cl_context_properties;
 
 // Introduced in Mac OS X 10.6
-pub const CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE: cl_uint = 0x10000000;
+pub const CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE: cl_context_properties = 0x10000000;
 
 // /*******************************************************************************
 //  * Copyright (c) 2008 - 2012 The Khronos Group Inc.
