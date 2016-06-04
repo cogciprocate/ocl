@@ -635,7 +635,7 @@ enum_from_primitive! {
     }
 }
 
-// FIXME that's ugly
+// [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os = "macos")]
 const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
 #[cfg(not(target_os = "macos"))]

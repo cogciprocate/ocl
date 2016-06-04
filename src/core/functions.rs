@@ -46,6 +46,7 @@ use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, Conte
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType};
 
+// [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
 const CL_GL_SHARING_EXT: &'static str = "cl_APPLE_gl_sharing";
 #[cfg(not(target_os="macos"))]
