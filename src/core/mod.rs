@@ -637,9 +637,9 @@ enum_from_primitive! {
 
 // FIXME that's ugly
 #[cfg(target_os = "macos")]
-const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: u32 = ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
+const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
 #[cfg(not(target_os = "macos"))]
-const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: u32 = ffi::CL_CGL_SHAREGROUP_KHR;
+const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CGL_SHAREGROUP_KHR;
 
 enum_from_primitive! {
     /// cl_context_info + cl_context_properties
