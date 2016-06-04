@@ -348,12 +348,12 @@ bitflags! {
 }
 
 bitflags! {
-	/// cl_program_binary_type
+    /// cl_program_binary_type
     pub flags ProgramBinaryType: u32 {
-		const PROGRAM_BINARY_TYPE_NONE = 0x0,
-		const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
-		const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
-		const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
+        const PROGRAM_BINARY_TYPE_NONE = 0x0,
+        const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
+        const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
+        const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
     }
 }
 
@@ -635,6 +635,11 @@ enum_from_primitive! {
     }
 }
 
+#[cfg(target_os = "macos")]
+const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
+#[cfg(not(target_os = "macos"))]
+const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CGL_SHAREGROUP_KHR;
+
 enum_from_primitive! {
     /// cl_context_info + cl_context_properties
     #[repr(C)]
@@ -646,7 +651,7 @@ enum_from_primitive! {
         GlContextKhr = ffi::CL_GL_CONTEXT_KHR as isize,
         EglDisplayKhr = ffi::CL_EGL_DISPLAY_KHR as isize,
         GlxDisplayKhr = ffi::CL_GLX_DISPLAY_KHR as isize,
-        CglSharegroupKhr = ffi::CL_CGL_SHAREGROUP_KHR as isize,
+        CglSharegroupKhr = CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC,
         WglHdcKhr = ffi::CL_WGL_HDC_KHR as isize,
         AdapterD3d9Khr = ffi::CL_CONTEXT_ADAPTER_D3D9_KHR as isize,
         AdapterD3d9exKhr = ffi::CL_CONTEXT_ADAPTER_D3D9EX_KHR as isize,
@@ -670,7 +675,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// [INCOMPLETE] cl_device_partition_property
     ///
-    /// [FIXME]: This types variants should also contain data described in: 
+    /// [FIXME]: This types variants should also contain data described in:
     /// [https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html]
     /// (https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html)
     ///
