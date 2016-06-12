@@ -3,10 +3,12 @@ Version 0.10.0 (UNRELEASED)
 
 New Features
 ------------
-* [FIXME: ELABORATE]: Vector types.
-* MSVC support.
+* Vector types have been added making their use more intuitive.
+* MSVC support is working and should be much easier to get running (more
+  simplification to linking libraries coming).
 * Preliminary OpenGL interop support:
   - OpenGL context handles are accepted as properties during `Context` creation.
+    - Note: The new methods involved in this may soon be renamed.
   - Buffers can be created from a GL object.
 
 Breaking Changes
@@ -15,8 +17,8 @@ Breaking Changes
   `Event` or `EventList` argument when setting the wait list using `::ewait`
   or `::ewait_opt`. Awkward type ascriptions when not passing a wait list can
   now be removed due to the use of a trait object argument type.
-* [FIXME: ELABORATE]: Fill now takes a vector type.
-* [FIXME: ELABORATE]: `Kernel::arg_vec` now takes a vector type.
+* Fill now takes a vector type.
+* `Kernel::arg_vec` now takes a vector type.
 
 
 
@@ -83,26 +85,26 @@ Breaking Changes
   * Length is no longer padded out to the next workgroup size. It is up to
     the consumer to pad the sizes of buffers (the new kernel method,
     `::wg_info` can help determine optimal sizes).
-  * [`Image`] has also had its read/write methods removed and replaced with a
-    command builder accessible using `::cmd` (more documentation to come).
-  * `Image::set_queue` has been renamed `::set_default_queue`.
-  * [`Kernel`] has had its various `::enqueue_***` methods removed and replaced
+* [`Image`] has also had its read/write methods removed and replaced with a
+  command builder accessible using `::cmd` (more documentation to come).
+* `Image::set_queue` has been renamed `::set_default_queue`.
+* [`Kernel`] has had its various `::enqueue_***` methods removed and replaced
     with, you guessed it, a command builder (`::cmd`).
-  * `Kernel::new` no longer accepts a global work size as an argument. Instead
+* `Kernel::new` no longer accepts a global work size as an argument. Instead
     use the new builder-style method, `::gws` after creating.
-  * `Kernel::set_queue` has been renamed `::set_default_queue`.
-  * `Queue::new_by_device_index` has been removed.
-  * The `device` argument for `Queue::new` is no longer optional.
-  * `ProgramBuilder::src_file` now takes a `Path` instead of a string.
-  * `ProQue::create_kernel_with_dims` has been removed.
-  * `ProQue::device_idx` has been replaced by `::device`.
-  * `Context::new_by_index_and_type` has been removed.
-  * `core::set_kernel_arg` and `::enqueue_kernel` no longer have an argument for
-    the kernel function name. Instead it is queried when needed using
-    `::get_kernel_info`.
-  * `SimpleDims` has been renamed `SpatialDims` and many of its methods now
-    return `Result` types.
-  * `OclNum` has been renamed `OclPrm`
+* `Kernel::set_queue` has been renamed `::set_default_queue`.
+* `Queue::new_by_device_index` has been removed.
+* The `device` argument for `Queue::new` is no longer optional.
+* `ProgramBuilder::src_file` now takes a `Path` instead of a string.
+* `ProQue::create_kernel_with_dims` has been removed.
+* `ProQue::device_idx` has been replaced by `::device`.
+* `Context::new_by_index_and_type` has been removed.
+* `core::set_kernel_arg` and `::enqueue_kernel` no longer have an argument for
+  the kernel function name. Instead it is queried when needed using
+  `::get_kernel_info`.
+* `SimpleDims` has been renamed `SpatialDims` and many of its methods now
+  return `Result` types.
+* `OclNum` has been renamed `OclPrm`
 
 
 New Features
