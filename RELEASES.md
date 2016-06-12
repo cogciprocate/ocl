@@ -1,4 +1,4 @@
-Version 0.10.0 (UNRELEASED)
+Version 0.10.0 (2016-06-11)
 ===========================
 
 New Features
