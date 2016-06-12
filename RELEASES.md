@@ -17,7 +17,7 @@ Breaking Changes
   `Event` or `EventList` argument when setting the wait list using `::ewait`
   or `::ewait_opt`. Awkward type ascriptions when not passing a wait list can
   now be removed due to the use of a trait object argument type.
-* Fill now takes a vector type.
+* 'fill' methods now accept a vector type.
 * `Kernel::arg_vec` now takes a vector type.
 
 

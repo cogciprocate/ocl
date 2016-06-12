@@ -59,14 +59,13 @@ pub use ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, Sampler, SpatialDims, ProQue};
 pub use self::error::{Error, Result};
-
 pub mod aliases {
     //! Type aliases and structs meant to mirror those available within a
     //! kernel.
     //!
     //! Vector type fields can be accessed using .0, .1, .2 ... etc.
     //!
-    //! 
+    //! [NOTE]: This module may be renamed.
 
     pub use cl_h::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
