@@ -10,9 +10,6 @@ Pure OpenCL&trade; bindings and interfaces for Rust. Makes easy to use the
 most common features of OpenCL. All interfaces are virtually zero-cost and
 perform on a par with the C++ bindings.
 
-Interfaces are still mildly unstable. Changes are now being documented in
-[RELEASES.md](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md).
-
 
 ## Goals
 
@@ -39,6 +36,7 @@ And add the following to your crate root (lib.rs or main.rs):
 ```rust
 extern crate ocl;
 ```
+
 
 ## Example 
 
@@ -76,6 +74,14 @@ fn main() {
 ```
 
 See the the remainder of [`examples/trivial.rs`] for much more.
+
+
+## Development Status
+
+Interfaces are probably 98% stable. All core functionality is complete and
+working as intended. Performance is excellent on platforms tested so far
+(mainly linux/windows-amd/intel/nvidia). Feedback needed and appreciated for
+other platforms! File an issue just to let us know what you think.
 
 
 #### Diving Deeper
