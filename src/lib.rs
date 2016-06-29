@@ -59,6 +59,7 @@ pub use ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, Sampler, SpatialDims, ProQue};
 pub use self::error::{Error, Result};
+
 pub mod aliases {
     //! Type aliases and structs meant to mirror those available within a
     //! kernel.

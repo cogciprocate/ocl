@@ -6,9 +6,10 @@ ocl
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
 
 
-Pure OpenCL&trade; bindings and interfaces for Rust. Makes easy to use the
-most common features of OpenCL. All interfaces are virtually zero-cost and
-perform on a par with the C++ bindings.
+Pure OpenCL&trade; bindings and interfaces for
+[Rust](https://www.rust-lang.org/). Makes easy to use the most common features
+of OpenCL. All interfaces are virtually zero-cost and perform on a par with
+native (C/C++) bindings.
 
 
 ## Goals
