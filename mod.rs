@@ -1,3 +1,5 @@
+//! The bowels and fundament of the operation.
+
 mod platform_h;
 mod glcorearb_h;
 mod cl_gl_h;
