@@ -170,16 +170,14 @@ impl ProgramBuilder {
     pub fn get_compiler_options(&self) -> OclResult<CString> {
         let mut opts: Vec<String> = Vec::with_capacity(64);
 
-        opts.push(" ".to_owned());
-
         for option in &self.options {
             match *option {
                 BuildOpt::CmplrDefine { ref ident, ref val } => {
-                    opts.push(format!("-D{}={}", ident, val))
+                    opts.push(format!("-D {}={}", ident, val))
                 },
 
                 BuildOpt::CmplrInclDir { ref path } => {
-                    opts.push(format!("-I{}", path))
+                    opts.push(format!("-I {}", path))
                 },
 
                 BuildOpt::CmplrOther(ref s) => {
