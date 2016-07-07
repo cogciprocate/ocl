@@ -12,8 +12,14 @@ license = "MIT"
 exclude = ["target/*", "*.png", "bak/*"]
 
 [features]
+default = ["opencl_1_2"]
 kernel_debug_print = []
 kernel_debug_sleep = []
+# NYI
+#opencl_1_0 = []
+# NYI
+#opencl_1_1 = []
+opencl_1_2 = []
 
 # [dependencies.bitflags]
 # git = "https://github.com/rust-lang-nursery/bitflags.git"

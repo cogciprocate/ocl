@@ -578,10 +578,12 @@ pub const CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 #[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
 extern "system" {
     // Platform API
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetPlatformIDs(num_entries: cl_uint,
                             platforms: *mut cl_platform_id,
                             num_platforms: *mut cl_uint) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetPlatformInfo(platform: cl_platform_id,
                              param_name: cl_platform_info,
                              param_value_size: size_t,
@@ -589,12 +591,14 @@ extern "system" {
                              param_value_size_ret: *mut size_t) -> cl_int;
 
     // Device APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetDeviceIDs(platform: cl_platform_id,
                       device_type: cl_device_type,
                       num_entries: cl_uint,
                       devices: *mut cl_device_id,
                       num_devices: *mut cl_uint) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetDeviceInfo(device: cl_device_id,
                        param_name: cl_device_info,
                        param_value_size: size_t,
@@ -610,6 +614,7 @@ extern "system" {
     //                    cl_device_id *                       /* out_devices */,
     //                    cl_uint *                            /* num_devices_ret */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(feature = "opencl_1_2")]
     pub fn clCreateSubDevices(in_device: cl_device_id,
                        properties: *const cl_device_partition_property,
                        num_devices: cl_uint,
@@ -620,15 +625,18 @@ extern "system" {
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clRetainDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(feature = "opencl_1_2")]
     pub fn clRetainDevice(device: cl_device_id) -> cl_int;
 
     //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clReleaseDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(feature = "opencl_1_2")]
     pub fn clReleaseDevice(device: cl_device_id ) -> cl_int;
 
     // Context APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateContext(properties: *const cl_context_properties,
                        num_devices: cl_uint,
                        devices: *const cl_device_id,
@@ -636,16 +644,20 @@ extern "system" {
                        user_data: *mut c_void,
                        errcode_ret: *mut cl_int) -> cl_context;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateContextFromType(properties: *const cl_context_properties,
                                device_type: cl_device_type,
                                pfn_notify: Option<extern fn (*const c_char, *const c_void, size_t, *mut c_void)>,
                                user_data: *mut c_void,
                                errcode_ret: *mut cl_int) -> cl_context;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clRetainContext(context: cl_context) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clReleaseContext(context: cl_context) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetContextInfo(context: cl_context,
                         param_name: cl_context_info,
                         param_value_size: size_t,
@@ -653,59 +665,72 @@ extern "system" {
                         param_value_size_ret: *mut size_t) -> cl_int;
 
     // Command Queue APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateCommandQueue(context: cl_context,
                             device: cl_device_id,
                             properties: cl_command_queue_properties,
                             errcode_ret: *mut cl_int) -> cl_command_queue;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clReleaseCommandQueue(command_queue: cl_command_queue) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetCommandQueueInfo(command_queue: cl_command_queue,
                              param_name: cl_command_queue_info,
                              param_value_size: size_t,
                              param_value: *mut c_void,
                              param_value_size_ret: *mut size_t) -> cl_int;
 
+    // Not Yet Included. Probably not ever included.
+    //#[cfg(feature = "opencl_1_0")]
+    // pub fn clSetCommandQueueProperty ...
+
     // Memory Object APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateBuffer(context: cl_context,
                       flags: cl_mem_flags,
                       size: size_t,
                       host_ptr: *mut c_void,
                       errcode_ret: *mut cl_int) -> cl_mem;
 
+    #[cfg(any(feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateSubBuffer(buffer: cl_mem,
                         flags: cl_mem_flags,
                         buffer_create_type: cl_buffer_create_type,
                         buffer_create_info: *const c_void,
                         errcode_ret: *mut cl_int) -> cl_mem;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clCreateImage2D(context: cl_context,
-    //                 flags: cl_mem_flags,
-    //                 image_format: *mut cl_image_format,
-    //                 image_width: size_t,
-    //                 image_depth: size_t,
-    //                 image_slc_pitch: size_t,
-    //                 host_ptr: *mut c_void,
-    //                 errcode_ret: *mut cl_int) -> cl_mem;
+    //##### DEPRICATED 1.1 #####
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
+    pub fn clCreateImage2D(context: cl_context,
+                    flags: cl_mem_flags,
+                    image_format: *mut cl_image_format,
+                    image_width: size_t,
+                    image_depth: size_t,
+                    image_slc_pitch: size_t,
+                    host_ptr: *mut c_void,
+                    errcode_ret: *mut cl_int) -> cl_mem;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clCreateImage3D(context: cl_context,
-    //                 flags: cl_mem_flags,
-    //                 image_format: *mut cl_image_format,
-    //                 image_width: size_t,
-    //                 image_depth: size_t,
-    //                 image_depth: size_t,
-    //                 image_slc_pitch: size_t,
-    //                 image_depth: size_t,
-    //                 image_slc_pitch: size_t,
-    //                 image_slc_pitch: size_t,
-    //                 host_ptr: *mut c_void,
-    //                 errcode_ret: *mut cl_int) -> cl_mem;
+    //##### DEPRICATED 1.1 #####
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
+    pub fn clCreateImage3D(context: cl_context,
+                    flags: cl_mem_flags,
+                    image_format: *mut cl_image_format,
+                    image_width: size_t,
+                    image_depth: size_t,
+                    image_depth: size_t,
+                    image_slc_pitch: size_t,
+                    image_depth: size_t,
+                    image_slc_pitch: size_t,
+                    image_slc_pitch: size_t,
+                    host_ptr: *mut c_void,
+                    errcode_ret: *mut cl_int) -> cl_mem;
 
     //################## NEW 1.2 ###################
+    #[cfg(feature = "opencl_1_2")]
     pub fn clCreateImage(context: cl_context,
                         flags: cl_mem_flags,
                         image_format: *const cl_image_format,
@@ -713,10 +738,13 @@ extern "system" {
                         host_ptr: *mut c_void,
                         errcode_ret: *mut cl_int) -> cl_mem;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clRetainMemObject(memobj: cl_mem) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clReleaseMemObject(memobj: cl_mem) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetSupportedImageFormats(context: cl_context,
                                   flags: cl_mem_flags,
                                   image_type: cl_mem_object_type,
@@ -724,33 +752,40 @@ extern "system" {
                                   image_formats: *mut cl_image_format,
                                   num_image_formats: *mut cl_uint) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetMemObjectInfo(memobj: cl_mem,
                           param_name: cl_mem_info,
                           param_value_size: size_t,
                           param_value: *mut c_void,
                           param_value_size_ret: *mut size_t) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetImageInfo(image: cl_mem,
                       param_name: cl_image_info,
                       param_value_size: size_t,
                       param_value: *mut c_void,
                       param_value_size_ret: *mut size_t) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clSetMemObjectDestructorCallback(memobj: cl_mem,
                                         pfn_notify: Option<extern fn (cl_mem, *mut c_void)>,
                                         user_data: *mut c_void) -> cl_int;
 
     // Sampler APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateSampler(context: cl_context,
                        normalize_coords: cl_bool,
                        addressing_mode: cl_addressing_mode,
                        filter_mode: cl_filter_mode,
                        errcode_ret: *mut cl_int) -> cl_sampler;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clRetainSampler(sampler: cl_sampler) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clReleaseSampler(sampler: cl_sampler) ->cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetSamplerInfo(sampler: cl_sampler,
                         param_name: cl_sampler_info,
                         param_value_size: size_t,
@@ -758,12 +793,14 @@ extern "system" {
                         param_value_size_ret: *mut size_t) -> cl_int;
 
     // Program Object APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateProgramWithSource(context: cl_context,
                                  count: cl_uint,
                                  strings: *const *const c_char,
                                  lengths: *const size_t,
                                  errcode_ret: *mut cl_int) -> cl_program;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateProgramWithBinary(context: cl_context,
                                  num_devices: cl_uint,
                                  device_list: *const cl_device_id,
@@ -772,7 +809,7 @@ extern "system" {
                                  binary_status: *mut cl_int,
                                  errcode_ret: *mut cl_int) -> cl_program;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_program CL_API_CALL
     // clCreateProgramWithBuiltInKernels(cl_context            /* context */,
     //                                  cl_uint               /* num_devices */,
@@ -780,16 +817,20 @@ extern "system" {
     //                                  const char *          /* kernel_names */,
     //                                  cl_int *              /* errcode_ret */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clCreateProgramWithBuiltInKernels(context: cl_context,
                                      num_devices: cl_uint,
                                      device_list: *const cl_device_id,
                                      kernel_names: *mut char,
                                      errcode_ret: *mut cl_int) -> cl_program;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clRetainProgram(program: cl_program) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clReleaseProgram(program: cl_program) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clBuildProgram(program: cl_program,
                       num_devices: cl_uint,
                       device_list: *const cl_device_id,
@@ -797,10 +838,11 @@ extern "system" {
                       pfn_notify: Option<extern fn (cl_program, *mut c_void)>,
                       user_data: *mut c_void) -> cl_int;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clUnloadCompsaler() -> cl_int;
+    //##### DEPRICATED 1.1 #####
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
+    pub fn clUnloadCompiler() -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clCompileProgram(cl_program           /* program */,
     //                 cl_uint              /* num_devices */,
@@ -812,6 +854,7 @@ extern "system" {
     //                 void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
     //                 void *               /* user_data */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clCompileProgram(program: cl_program,
                     num_devices: cl_uint,
                     device_list: *const cl_device_id,
@@ -822,7 +865,7 @@ extern "system" {
                     pfn_notify: Option<extern fn (program: cl_program, user_data: *mut c_void)>,
                     user_data: *mut c_void) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_program CL_API_CALL
     // clLinkProgram(cl_context           /* context */,
     //               cl_uint              /* num_devices */,
@@ -834,6 +877,7 @@ extern "system" {
     //               void *               /* user_data */,
     //               cl_int *             /* errcode_ret */ ) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clLinkProgram(context: cl_context,
                   num_devices: cl_uint,
                   device_list: *const cl_device_id,
@@ -844,19 +888,21 @@ extern "system" {
                   user_data: *mut c_void,
                   errcode_ret: *mut cl_int) -> cl_program;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clUnloadPlatformCompiler(cl_platform_id /* platform */) CL_API_SUFFIX__VERSION_1_2;
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // [DISABLED DUE TO PLATFORM INCOMPATABILITY]
     // pub fn clUnloadPlatformCompiler(platform: cl_platform_id) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetProgramInfo(program: cl_program,
                         param_name: cl_program_info,
                         param_value_size: size_t,
                         param_value: *mut c_void,
                         param_value_size_ret: *mut size_t) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetProgramBuildInfo(program: cl_program,
                              device: cl_device_id,
                              param_name: cl_program_build_info,
@@ -865,31 +911,37 @@ extern "system" {
                              param_value_size_ret: *mut size_t) -> cl_int;
 
     // Kernel Object APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateKernel(program: cl_program,
                       kernel_name: *const c_char,
                       errcode_ret: *mut cl_int) -> cl_kernel;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateKernelsInProgram(program: cl_program,
                                 num_kernels: cl_uint,
                                 kernels: *mut cl_kernel,
                                 num_kernels_ret: *mut cl_uint) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clRetainKernel(kernel: cl_kernel) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clReleaseKernel(kernel: cl_kernel) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clSetKernelArg(kernel: cl_kernel,
                       arg_index: cl_uint,
                       arg_size: size_t,
                       arg_value: *const c_void) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetKernelInfo(kernel: cl_kernel,
                        param_name: cl_kernel_info,
                        param_value_size: size_t,
                        param_value: *mut c_void,
                        param_value_size_ret: *mut size_t) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clGetKernelArgInfo(cl_kernel       /* kernel */,
     //                   cl_uint         /* arg_indx */,
@@ -898,6 +950,7 @@ extern "system" {
     //                   void *          /* param_value */,
     //                   size_t *        /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clGetKernelArgInfo(kernel: cl_kernel,
                       arg_indx: cl_uint,
                       param_name: cl_kernel_arg_info,
@@ -905,6 +958,7 @@ extern "system" {
                       param_value: *mut c_void,
                       param_value_size_ret: *mut size_t) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetKernelWorkGroupInfo(kernel: cl_kernel,
                                 device: cl_device_id,
                                 param_name: cl_kernel_work_group_info,
@@ -913,31 +967,39 @@ extern "system" {
                                 param_value_size_ret: *mut size_t) -> cl_int;
 
     // Event Object APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clWaitForEvents(num_events: cl_uint,
                        event_list: *const cl_event) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetEventInfo(event: cl_event,
                       param_name: cl_event_info,
                       param_value_size: size_t,
                       param_value: *mut c_void,
                       param_value_size_ret: *mut size_t) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clCreateUserEvent(context: cl_context,
                          errcode_ret: *mut cl_int) -> cl_event;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clRetainEvent(event: cl_event) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clReleaseEvent(event: cl_event) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clSetUserEventStatus(event: cl_event,
                             execution_status: cl_int) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clSetEventCallback(event: cl_event,
                           command_exec_callback_type: cl_int,
                           pfn_notify: Option<extern fn (cl_event, cl_int, *mut c_void)>,
                           user_data: *mut c_void) -> cl_int;
 
     // Profiling APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clGetEventProfilingInfo(event: cl_event,
                                param_name: cl_profiling_info,
                                param_value_size: size_t,
@@ -945,11 +1007,14 @@ extern "system" {
                                param_value_size_ret: *mut size_t) -> cl_int;
 
     // Flush and Finish APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clFlush(command_queue: cl_command_queue) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clFinish(command_queue: cl_command_queue) -> cl_int;
 
     // Enqueued Commands APIs
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clEnqueueReadBuffer(command_queue: cl_command_queue,
                            buffer: cl_mem,
                            blocking_read: cl_bool,
@@ -960,6 +1025,7 @@ extern "system" {
                            event_wait_list: *const cl_event,
                            event: *mut cl_event) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clEnqueueReadBufferRect(command_queue: cl_command_queue,
                                buffer: cl_mem,
                                blocking_read: cl_bool,
@@ -985,6 +1051,7 @@ extern "system" {
                             event_wait_list: *const cl_event,
                             event: *mut cl_event) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clEnqueueWriteBufferRect(command_queue: cl_command_queue,
                                 buffer: cl_mem,
                                 blocking_write: cl_bool,
@@ -1000,7 +1067,7 @@ extern "system" {
                                 event_wait_list: *const cl_event,
                                 event: *mut cl_event) -> cl_int;
 
-        // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueFillBuffer(cl_command_queue   /* command_queue */,
     //                 cl_mem             /* buffer */,
@@ -1012,6 +1079,7 @@ extern "system" {
     //                 const cl_event *   /* event_wait_list */,
     //                 cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clEnqueueFillBuffer(command_queue: cl_command_queue,
                     buffer: cl_mem,
                     pattern: *const c_void,
@@ -1032,6 +1100,7 @@ extern "system" {
                            event_wait_list: *const cl_event,
                            event: *mut cl_event) -> cl_int;
 
+    #[cfg(any(feature = "opencl_1_1", feature = "opencl_1_2"))]
     pub fn clEnqueueCopyBufferRect(command_queue: cl_command_queue,
                                src_buffer: cl_mem,
                                dst_buffer: cl_mem,
@@ -1070,7 +1139,7 @@ extern "system" {
                            event_wait_list: *const cl_event,
                            event: *mut cl_event) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueFillImage(cl_command_queue   /* command_queue */,
     //                   cl_mem             /* image */,
@@ -1081,6 +1150,7 @@ extern "system" {
     //                   const cl_event *   /* event_wait_list */,
     //                   cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clEnqueueFillImage(command_queue: cl_command_queue,
                       image: cl_mem,
                       fill_color: *const c_void,
@@ -1151,7 +1221,7 @@ extern "system" {
                                event_wait_list: *const cl_event,
                                event: *mut cl_event) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueMigrateMemObjects(cl_command_queue       /* command_queue */,
     //                           cl_uint                /* num_mem_objects */,
@@ -1161,6 +1231,7 @@ extern "system" {
     //                           const cl_event *       /* event_wait_list */,
     //                           cl_event *             /* event */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clEnqueueMigrateMemObjects(command_queue: cl_command_queue,
                               num_mem_objects: cl_uint,
                               mem_objects: *const cl_mem,
@@ -1196,28 +1267,31 @@ extern "system" {
                              event_wait_list: *const cl_event,
                              event: *mut cl_event) -> cl_int;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clEnqueueMarker(command_queue: cl_command_queue,
-    //                 event: *mut cl_event) -> cl_int;
+    //##### DEPRICATED 1.1 #####
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
+    pub fn clEnqueueMarker(command_queue: cl_command_queue,
+                    event: *mut cl_event) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueMarkerWithWaitList(cl_command_queue /* command_queue */,
     //          cl_uint           /* num_events_in_wait_list */,
     //          const cl_event *  /* event_wait_list */,
     //          cl_event *        /* event */) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clEnqueueMarkerWithWaitList(command_queue: cl_command_queue,
              num_events_in_wait_list: cl_uint,
              event_wait_list: *const cl_event,
              event: *mut cl_event) -> cl_int;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clEnqueueWaitForEvents(command_queue: cl_command_queue,
-    //                        num_events: cl_uint,
-    //                        event_list: *mut cl_event) -> cl_int;
+    //##### DEPRICATED 1.1 #####
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
+    pub fn clEnqueueWaitForEvents(command_queue: cl_command_queue,
+                           num_events: cl_uint,
+                           event_list: *mut cl_event) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueBarrierWithWaitList(
     //          cl_command_queue
@@ -1233,6 +1307,7 @@ extern "system" {
     //           // event
     //      ) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clEnqueueBarrierWithWaitList(
              command_queue: cl_command_queue,
              num_events_in_wait_list: cl_uint,
@@ -1240,24 +1315,27 @@ extern "system" {
              event: *mut cl_event) -> cl_int;
 
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clEnqueueBarrier(command_queue: cl_command_queue) -> cl_int;
+    //##### DEPRICATED 1.1 #####
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
+    pub fn clEnqueueBarrier(command_queue: cl_command_queue) -> cl_int;
 
-    // //##### DEPRICATED 1.1 #####
+    //##### DEPRICATED 1.1 #####
     // Extension function access
     // Returns the extension function address for the given function name,
     // or NULL if a valid function can not be found. The client must
     // check to make sure the address is not NULL, before using or
     // or calling the returned function address.
-    // pub fn clGetExtensionFunctionAddress(func_name: *mut c_char);
+    #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
+    pub fn clGetExtensionFunctionAddress(func_name: *mut c_char) -> *mut c_void;
 
-    // //################## NEW 1.2 ###################
+    //################## NEW 1.2 ###################
     // extern CL_API_ENTRY void * CL_API_CALL
     // clGetExtensionFunctionAddressForPlatform(cl_platform_id /* platform */,
     //                    const char *
     //                     // func_name
     //                    ) CL_API_SUFFIX__VERSION_1_2;
     //################## NEW 1.2 ###################
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn clGetExtensionFunctionAddressForPlatform(platform: cl_platform_id,
                        func_name: *const c_char) -> *mut c_void;
 }
