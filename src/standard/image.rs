@@ -67,6 +67,7 @@ impl<S: OclPrm> ImageBuilder<S> {
 
     /// Builds with no host side image data memory specified and returns a
     /// new `Image`.
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn build(&self, queue: &Queue) -> OclResult<Image<S>> {
         Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
             None)
@@ -82,6 +83,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// flags. See the [official SDK docs] for more info.
     ///
     /// [official SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn build_with_data(&self, queue: &Queue, image_data: &[S]) -> OclResult<Image<S>> {
         Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
             Some(image_data))
@@ -673,6 +675,7 @@ impl<E: OclPrm> Image<E> {
     /// Returns a new `Image`.
     ///
     /// Prefer `::builder` to create a new image.
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn new(queue: &Queue, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, image_data: Option<&[E]>) -> OclResult<Image<E>>
     {

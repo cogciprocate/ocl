@@ -17,8 +17,7 @@ kernel_debug_print = []
 kernel_debug_sleep = []
 # NYI
 #opencl_1_0 = []
-# NYI
-#opencl_1_1 = []
+opencl_1_1 = []
 opencl_1_2 = []
 
 # [dependencies.bitflags]

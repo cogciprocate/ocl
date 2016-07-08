@@ -367,11 +367,13 @@ pub fn create_sub_devices() -> OclResult<()> {
 }
 
 /// Increments the reference count of a device.
+#[cfg(any(feature = "opencl_1_2"))]
 pub unsafe fn retain_device(device: &DeviceId) -> OclResult<()> {
     errcode_try("clRetainDevice", "", cl_h::clRetainDevice(device.as_ptr()))
 }
 
 /// Decrements the reference count of a device.
+#[cfg(any(feature = "opencl_1_2"))]
 pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
     errcode_try("clReleaseDevice", "", cl_h::clReleaseDevice(device.as_ptr()))
 }
@@ -882,6 +884,7 @@ pub fn create_sub_buffer(
 /// Returns a new image (mem) pointer.
 ///
 // [WORK IN PROGRESS]
+#[cfg(any(feature = "opencl_1_2"))]
 pub unsafe fn create_image<T>(
             context: &Context,
             flags: MemFlags,
@@ -918,6 +921,67 @@ pub unsafe fn create_image<T>(
     Ok(Mem::from_fresh_ptr(image_ptr))
 }
 
+/*
+#[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
+pub unsafe fn create_image_<T>(
+    context: &Context,
+    flags: MemFlags,
+    format: &ImageFormat,
+    desc: &ImageDescriptor,
+    data: Option<&[T]>,
+) -> OclResult<Mem>
+{
+    // Verify that the context is valid:
+    try!(verify_context(context));
+
+    let mut errcode: cl_int = 0;
+
+    let host_ptr = match data {
+        Some(d) => {
+            // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE WITH FORMAT/DESC
+            // assert!(d.len() == len, "ocl::create_image(): Data length mismatch.");
+            d.as_ptr() as cl_mem
+        },
+        None => ptr::null_mut(),
+    };
+
+    // the good clCreateImage deprecated these in 1_2
+    let image_ptr = match desc.image_type {
+        core::MemObjectType::Image2d => {
+            cl_h::clCreateImage2D(
+                context.as_ptr(),
+                flags.bits() as cl_mem_flags,
+                &format.to_raw() as *const cl_image_format,
+                desc.image_height as size_t,
+                desc.image_width as size_t,
+                desc.image_row_pitch as size_t,
+                host_ptr,
+                &mut errcode as *mut cl_int,
+            )
+        }
+        core::MemObjectType::Image3d => {
+            cl_h::clCreateImage3D(
+                context.as_ptr(),
+                flags.bits() as cl_mem_flags,
+                &format.to_raw() as *const cl_image_format,
+                desc.image_height as size_t,
+                desc.image_width as size_t,
+                desc.image_depth as size_t,
+                desc.image_row_pitch as size_t,
+                desc.image_slice_pitch as size_t,
+                host_ptr,
+                &mut errcode as *mut cl_int,
+            )
+        }
+        _ => panic!("unsupported image type!")
+    };
+
+    try!(errcode_try("clCreateImage", "", errcode));
+    debug_assert!(!image_ptr.is_null());
+
+    Ok(Mem::from_fresh_ptr(image_ptr))
+}
+*/
 /// Increments the reference counter of a mem object.
 pub unsafe fn retain_mem_object(mem: &Mem) -> OclResult<()> {
     errcode_try("clRetainMemObject", "", cl_h::clRetainMemObject(mem.as_ptr()))
@@ -1531,6 +1595,7 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
 }
 
 /// Get kernel arg info.
+#[cfg(any(feature = "opencl_1_2"))]
 pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         ) -> KernelArgInfoResult
 {
@@ -1983,6 +2048,7 @@ pub fn enqueue_write_buffer_rect<T: OclPrm>(
 ///
 /// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
 ///
+#[cfg(any(feature = "opencl_1_2"))]
 pub fn enqueue_fill_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2245,6 +2311,7 @@ pub fn enqueue_write_image<T>(
 /// appropriate image channel format and order associated with image.
 ///
 /// TODO: Trait constraints for `T`. Presumably it should be 32bits? Testing needed.
+#[cfg(any(feature = "opencl_1_2"))]
 pub fn enqueue_fill_image<T>(
             command_queue: &CommandQueue,
             image: &Mem,
@@ -2531,6 +2598,7 @@ pub fn enqueue_unmap_mem_object(
 /// be associated with.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMigrateMemObjects.html)
+#[cfg(any(feature = "opencl_1_2"))]
 pub fn enqueue_migrate_mem_objects(
             command_queue: &CommandQueue,
             num_mem_objects: u32,
@@ -2704,6 +2772,7 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
 /// complete, or all previously enqueued commands to complete.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMarkerWithWaitList.html)
+#[cfg(any(feature = "opencl_1_2"))]
 pub fn enqueue_marker_with_wait_list(
             command_queue: &CommandQueue,
             wait_list: Option<&ClWaitList>,
@@ -2726,6 +2795,7 @@ pub fn enqueue_marker_with_wait_list(
 /// A synchronization point that enqueues a barrier operation.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueBarrierWithWaitList.html)
+#[cfg(any(feature = "opencl_1_2"))]
 pub fn enqueue_barrier_with_wait_list(
             command_queue: &CommandQueue,
             wait_list: Option<&ClWaitList>,
@@ -2789,6 +2859,7 @@ pub fn enqueue_barrier_with_wait_list(
 // [FIXME]: Return a generic that implements `Fn` (or `FnMut/Once`?).
 // TODO: Create another function which will handle the second check described
 // above in addition to calling this.
+#[cfg(any(feature = "opencl_1_2"))]
 pub unsafe fn get_extension_function_address_for_platform(platform: &PlatformId,
             func_name: &str) -> OclResult<*mut c_void>
 {

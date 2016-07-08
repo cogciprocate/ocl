@@ -443,6 +443,7 @@ impl Kernel {
     }
 
     /// Returns argument information for this kernel.
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
         // match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
         //     Ok(res) => res,

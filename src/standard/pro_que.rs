@@ -312,6 +312,7 @@ impl ProQue {
     /// use this method. If not, set them with `::set_dims`, or just create a
     /// buffer using `Buffer::new()`.
     ///
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
         let dims = try!(self.dims_result());
         Buffer::<T>::new(&self.queue, None, &dims, None)

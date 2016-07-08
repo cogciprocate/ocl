@@ -707,7 +707,7 @@ extern "system" {
     #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
     pub fn clCreateImage2D(context: cl_context,
                     flags: cl_mem_flags,
-                    image_format: *mut cl_image_format,
+                    image_format: *const cl_image_format,
                     image_width: size_t,
                     image_depth: size_t,
                     image_slc_pitch: size_t,
@@ -718,14 +718,12 @@ extern "system" {
     #[cfg(any(feature = "opencl_1_0", feature = "opencl_1_1"))]
     pub fn clCreateImage3D(context: cl_context,
                     flags: cl_mem_flags,
-                    image_format: *mut cl_image_format,
+                    image_format: *const cl_image_format,
                     image_width: size_t,
+                    image_height: size_t,
                     image_depth: size_t,
-                    image_depth: size_t,
-                    image_slc_pitch: size_t,
-                    image_depth: size_t,
-                    image_slc_pitch: size_t,
-                    image_slc_pitch: size_t,
+                    image_row_pitch: size_t,
+                    image_slice_pitch: size_t,
                     host_ptr: *mut c_void,
                     errcode_ret: *mut cl_int) -> cl_mem;
 
