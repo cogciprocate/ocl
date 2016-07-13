@@ -1,5 +1,8 @@
 //! The bowels and fundament of the operation.
 
+#[macro_use] extern crate enum_primitive;
+extern crate libc;
+
 mod platform_h;
 mod glcorearb_h;
 mod cl_gl_h;

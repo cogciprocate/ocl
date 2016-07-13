@@ -45,9 +45,9 @@ use std::ptr;
 use std::fmt::Debug;
 use std::marker::Sized;
 use libc;
-use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
+use ffi::cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
-use core::{self, CommandExecutionStatus};
+use ::CommandExecutionStatus;
 use error::{Result as OclResult, Error as OclError};
 use util;
 
@@ -221,7 +221,7 @@ impl Context {
     /// `clGet*****Info` function.
     pub unsafe fn from_copied_ptr(ptr: cl_context) -> Context {
         let copy = Context(ptr);
-        core::retain_context(&copy).unwrap();
+        ::retain_context(&copy).unwrap();
         copy
     }
 
@@ -236,14 +236,14 @@ unsafe impl Send for Context {}
 
 impl Clone for Context {
     fn clone(&self) -> Context {
-        unsafe { core::retain_context(self).unwrap(); }
+        unsafe { ::retain_context(self).unwrap(); }
         Context(self.0)
     }
 }
 
 impl Drop for Context {
     fn drop(&mut self) {
-        unsafe { core::release_context(self).ok(); }
+        unsafe { ::release_context(self).ok(); }
     }
 }
 
@@ -269,7 +269,7 @@ impl CommandQueue {
     /// `clGet*****Info` function.
     pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> CommandQueue {
         let copy = CommandQueue(ptr);
-        core::retain_command_queue(&copy).unwrap();
+        ::retain_command_queue(&copy).unwrap();
         copy
     }
 
@@ -281,14 +281,14 @@ impl CommandQueue {
 
 impl Clone for CommandQueue {
     fn clone(&self) -> CommandQueue {
-        unsafe { core::retain_command_queue(self).unwrap(); }
+        unsafe { ::retain_command_queue(self).unwrap(); }
         CommandQueue(self.0)
     }
 }
 
 impl Drop for CommandQueue {
     fn drop(&mut self) {
-        unsafe { core::release_command_queue(self).ok(); }
+        unsafe { ::release_command_queue(self).ok(); }
     }
 }
 
@@ -318,7 +318,7 @@ impl Mem {
 	/// `clGet*****Info` function.
 	pub unsafe fn from_copied_ptr(ptr: cl_mem) -> Mem {
 		let copy = Mem(ptr);
-		core::retain_mem_object(&copy).unwrap();
+		::retain_mem_object(&copy).unwrap();
 		copy
 	}
 
@@ -334,14 +334,14 @@ impl Mem {
 
 impl Clone for Mem {
     fn clone(&self) -> Mem {
-        unsafe { core::retain_mem_object(self).unwrap(); }
+        unsafe { ::retain_mem_object(self).unwrap(); }
         Mem(self.0)
     }
 }
 
 impl Drop for Mem {
     fn drop(&mut self) {
-        unsafe { core::release_mem_object(self).ok(); }
+        unsafe { ::release_mem_object(self).ok(); }
     }
 }
 
@@ -365,7 +365,7 @@ impl Program {
 	/// `clGet*****Info` function.
 	pub unsafe fn from_copied_ptr(ptr: cl_program) -> Program {
 		let copy = Program(ptr);
-		core::retain_program(&copy).unwrap();
+		::retain_program(&copy).unwrap();
 		copy
 	}
 
@@ -377,14 +377,14 @@ impl Program {
 
 impl Clone for Program {
     fn clone(&self) -> Program {
-        unsafe { core::retain_program(self).unwrap(); }
+        unsafe { ::retain_program(self).unwrap(); }
         Program(self.0)
     }
 }
 
 impl Drop for Program {
     fn drop(&mut self) {
-        unsafe { core::release_program(self).ok(); }
+        unsafe { ::release_program(self).ok(); }
     }
 }
 
@@ -394,7 +394,7 @@ unsafe impl Send for Program {}
 // impl Drop for Program {
 //     fn drop(&mut self) {
 //         // println!("DROPPING PROGRAM");
-//         unsafe { core::release_program(self.obj_core).unwrap(); }
+//         unsafe { ::release_program(self.obj_core).unwrap(); }
 //     }
 // }
 
@@ -427,14 +427,14 @@ impl Kernel {
 
 impl Clone for Kernel {
     fn clone(&self) -> Kernel {
-        unsafe { core::retain_kernel(self).unwrap(); }
+        unsafe { ::retain_kernel(self).unwrap(); }
         Kernel(self.0)
     }
 }
 
 impl Drop for Kernel {
     fn drop(&mut self) {
-        unsafe { core::release_kernel(self).ok(); }
+        unsafe { ::release_kernel(self).ok(); }
     }
 }
 
@@ -456,10 +456,10 @@ impl Event {
         let new_core = Event(ptr);
 
         if new_core.is_valid() {
-            try!(core::retain_event(&new_core));
+            try!(::retain_event(&new_core));
             Ok(new_core)
         } else {
-            OclError::err("core::Event::from_cloned_ptr: Invalid pointer `ptr`.")
+            OclError::err("::Event::from_cloned_ptr: Invalid pointer `ptr`.")
         }
     }
 
@@ -498,7 +498,7 @@ unsafe impl ClEventPtrNew for Event {
         if self.0.is_null() {
             Ok(&mut self.0)
         } else {
-            unsafe { try!(core::release_event(self)); }
+            unsafe { try!(::release_event(self)); }
             Ok(&mut self.0)
         }
     }
@@ -522,7 +522,7 @@ unsafe impl ClWaitList for Event {
 
 impl Clone for Event {
     fn clone(&self) -> Event {
-        unsafe { core::retain_event(self).expect("core::Event::clone"); }
+        unsafe { ::retain_event(self).expect("::Event::clone"); }
         Event(self.0)
     }
 }
@@ -530,7 +530,7 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if self.is_valid() {
-            unsafe { core::release_event(self).ok(); }
+            unsafe { ::release_event(self).ok(); }
         }
     }
 }
@@ -567,7 +567,7 @@ impl EventList {
     ///
     /// Technically, copies `event`'s contained pointer (a `cl_event`) then
     /// `mem::forget`s it. This seems preferrable to incrementing the reference
-    /// count (with `core::retain_event`) then letting `event` drop which just decrements it right back.
+    /// count (with `::retain_event`) then letting `event` drop which just decrements it right back.
     pub fn push(&mut self, event: Event) {
         assert!(event.is_valid());
 
@@ -599,7 +599,7 @@ impl EventList {
     /// Returns an immutable reference to a pointer, do not deref and store it unless
     /// you will manage its associated reference count carefully.
     pub unsafe fn as_ptr_ref(&self) -> &cl_event {
-        self.event_ptrs.first().expect("ocl::core::EventList::as_ptr_ref(): \
+        self.event_ptrs.first().expect("ocl::::EventList::as_ptr_ref(): \
             Attempted to take a reference to the first element of an empty list.")
     }
 
@@ -622,7 +622,7 @@ impl EventList {
         let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_LEN);
 
         for (idx, event_ptr) in self.event_ptrs.iter().enumerate() {
-            let status = try!(core::get_event_status(&EventRefWrapper(event_ptr, 1)));
+            let status = try!(::get_event_status(&EventRefWrapper(event_ptr, 1)));
 
             if status == CommandExecutionStatus::Complete {
                 cmpltd_events.push(idx)
@@ -632,7 +632,7 @@ impl EventList {
         // Release completed events:
         for &idx in &cmpltd_events {
             unsafe {
-                try!(core::release_event(&EventRefWrapper(&self.event_ptrs[idx], 1)));
+                try!(::release_event(&EventRefWrapper(&self.event_ptrs[idx], 1)));
             }
         }
 
@@ -702,8 +702,8 @@ impl Clone for EventList {
     fn clone(&self) -> EventList {
         for event_ptr in &self.event_ptrs {
             if !(*event_ptr).is_null() {
-                unsafe { core::retain_event(&EventRefWrapper(event_ptr, 1))
-                    .expect("core::EventList::clone") }
+                unsafe { ::retain_event(&EventRefWrapper(event_ptr, 1))
+                    .expect("::EventList::clone") }
             }
         }
 
@@ -721,7 +721,7 @@ impl Drop for EventList {
     fn drop(&mut self) {
         if DEBUG_PRINT { print!("Dropping events... "); }
         for event_ptr in &self.event_ptrs {
-            unsafe { core::release_event(&EventRefWrapper(event_ptr, 1)).ok(); }
+            unsafe { ::release_event(&EventRefWrapper(event_ptr, 1)).ok(); }
             if DEBUG_PRINT { print!("{{.}}"); }
         }
         if DEBUG_PRINT { print!("\n"); }
@@ -758,14 +758,14 @@ impl Sampler {
 
 impl Clone for Sampler {
     fn clone(&self) -> Sampler {
-        unsafe { core::retain_sampler(self).unwrap(); }
+        unsafe { ::retain_sampler(self).unwrap(); }
         Sampler(self.0)
     }
 }
 
 impl Drop for Sampler {
     fn drop(&mut self) {
-        unsafe { core::release_sampler(self).ok(); }
+        unsafe { ::release_sampler(self).ok(); }
     }
 }
 

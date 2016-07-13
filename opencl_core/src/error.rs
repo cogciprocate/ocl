@@ -11,7 +11,7 @@ use std::convert::Into;
 use std::default::Default;
 use num::FromPrimitive;
 
-use cl_h::Status;
+use ffi::cl_h::Status;
 /// `ocl::Error` result type.
 pub type Result<T> = std::result::Result<T, self::Error>;
 

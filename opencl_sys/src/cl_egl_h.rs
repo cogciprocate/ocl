@@ -55,7 +55,7 @@ pub type cl_egl_image_properties_khr = intptr_t;
 
 // #else
 // #include <CL/cl.h>
-// #endif  
+// #endif
 
 // #ifdef __cplusplus
 // extern "C" {

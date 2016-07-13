@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi;
-use cl_h::{self, cl_mem};
-use core::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
+use ffi::cl_h::{self, cl_mem};
+use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
         PlatformId};
 
 // Until everything can be implemented:

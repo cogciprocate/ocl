@@ -25,7 +25,7 @@ use ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTextur
     clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
     clEnqueueReleaseGLObjects};
 
-use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type,
+use ffi::cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type,
     cl_device_info, cl_platform_info, cl_context, cl_context_info, cl_context_properties,
     cl_image_format, cl_image_desc, cl_kernel, cl_program_build_info, cl_mem, cl_mem_info,
     cl_mem_flags, cl_mem_object_type, cl_buffer_create_type, cl_event, cl_program,
@@ -33,7 +33,8 @@ use cl_h::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devi
     cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
     cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 use error::{Error as OclError, Result as OclResult};
-use core::{self, OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
+
+use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel,
     ClEventPtrNew, Event, Sampler, KernelArg, DeviceType, ImageFormat,
     ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo,
@@ -115,7 +116,7 @@ fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
 ///
 pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids: &[D]) -> OclResult<()> {
     if device_ids.len() == 0 {
-        return OclError::err("ocl::core::program_build_err(): Device list is empty. Aborting.");
+        return OclError::err("opencl_core::program_build_err(): Device list is empty. Aborting.");
     }
 
     for device_id in device_ids.iter() {
@@ -134,7 +135,7 @@ pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids
                 }
             },
             ProgramBuildInfoResult::Error(err) => return Err(*err),
-            _ => panic!("ocl::core::program_build_err(): Unexpected 'ProgramBuildInfoResult' variant."),
+            _ => panic!("opencl_core::program_build_err(): Unexpected 'ProgramBuildInfoResult' variant."),
         }
     }
 
@@ -169,7 +170,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 
         while errcode == cl_h::Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
             if iters_rmng == 0 {
-                return OclError::err(format!("core::get_platform_ids(): \
+                return OclError::err(format!("opencl_core::get_platform_ids(): \
                     CL_PLATFORM_NOT_FOUND_KHR... Unable to get platform id list after {} \
                     seconds of waiting.", (iters_rmng * sleep_ms) / 1000));
             }
@@ -278,12 +279,12 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
     let devices_max = match devices_max {
         Some(d) => {
             if d == 0 {
-                return OclError::err("ocl::core::get_device_ids(): `devices_max` can not be zero.");
+                return OclError::err("opencl_core::get_device_ids(): `devices_max` can not be zero.");
             } else {
                 d
             }
         },
-        None => core::DEVICES_MAX,
+        None => ::DEVICES_MAX,
     };
 
     let mut device_ids: Vec<DeviceId> = iter::repeat(unsafe { DeviceId::null() } )
@@ -398,7 +399,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
         ) -> OclResult<Context>
 {
     if device_ids.len() == 0 {
-        return OclError::err("ocl::core::create_context(): No devices specified.");
+        return OclError::err("opencl_core::create_context(): No devices specified.");
     }
 
     // [DEBUG]:
@@ -570,7 +571,7 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
         let err_if_zero_result_size = request as cl_context_info == cl_h::CL_CONTEXT_DEVICES;
 
         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-            return ContextInfoResult::Error(Box::new(OclError::new("\n\nocl::core::context_info(): \
+            return ContextInfoResult::Error(Box::new(OclError::new("\n\nopencl_core::context_info(): \
                 Possible invalid context detected. \n\
                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
                 invalid context object. If not, please file an issue at: \n\
@@ -692,7 +693,7 @@ pub unsafe fn create_buffer<T: OclPrm>(
     let host_ptr = match data {
         Some(d) => {
             if d.len() != len {
-                return OclError::err("ocl::create_buffer(): Data length mismatch.");
+                return OclError::err("create_buffer(): Data length mismatch.");
             }
             d.as_ptr() as cl_mem
         },
@@ -901,7 +902,7 @@ pub unsafe fn create_image<T>(
     let host_ptr = match data {
         Some(d) => {
             // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE WITH FORMAT/DESC
-            // assert!(d.len() == len, "ocl::create_image(): Data length mismatch.");
+            // assert!(d.len() == len, "create_image(): Data length mismatch.");
             d.as_ptr() as cl_mem
         },
         None => ptr::null_mut(),
@@ -939,7 +940,7 @@ pub unsafe fn create_image_<T>(
     let host_ptr = match data {
         Some(d) => {
             // [FIXME]: CALCULATE CORRECT IMAGE SIZE AND COMPARE WITH FORMAT/DESC
-            // assert!(d.len() == len, "ocl::create_image(): Data length mismatch.");
+            // assert!(d.len() == len, "create_image(): Data length mismatch.");
             d.as_ptr() as cl_mem
         },
         None => ptr::null_mut(),
@@ -999,8 +1000,8 @@ pub unsafe fn release_mem_object(mem: &Mem) -> OclResult<()> {
 /// ```text
 /// let context = Context::builder().build().unwrap();
 ///
-/// let img_fmts = core::get_supported_image_formats(context,
-///    core::MEM_READ_WRITE, core::MemObjectType::Image2d)
+/// let img_fmts = opencl_core::get_supported_image_formats(context,
+///    opencl_core::MEM_READ_WRITE, opencl_core::MemObjectType::Image2d)
 /// ```
 pub fn get_supported_image_formats(
             context: &Context,
@@ -1245,9 +1246,9 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
 {
     // assert!(devices.len() > 0);
     // assert!(devices.len() == binaries.len());
-    if devices.len() == 0 { return OclError::err("ocl::create_program_with_binary: \
+    if devices.len() == 0 { return OclError::err("create_program_with_binary: \
         Length of 'devices' must be greater than zero."); }
-    if devices.len() != binaries.len() { return OclError::err("ocl::create_program_with_binary: \
+    if devices.len() != binaries.len() { return OclError::err("create_program_with_binary: \
         Length of 'devices' must equal the length of 'binaries' (e.g. one binary per device)."); }
 
     let lengths: Vec<usize> = binaries.iter().map(|bin| bin.len()).collect();
@@ -1312,9 +1313,9 @@ pub fn build_program<D: ClDeviceIdPtr + Debug>(
         ) -> OclResult<()>
 {
     assert!(pfn_notify.is_none() && user_data.is_none(),
-        "ocl::core::build_program(): Callback functions not yet implemented.");
+        "opencl_core::build_program(): Callback functions not yet implemented.");
 
-    if devices.len() == 0 { return OclError::err("ocl::core::build_program: \
+    if devices.len() == 0 { return OclError::err("opencl_core::build_program: \
         No devices specified."); }
 
     let user_data = match user_data {
@@ -1417,7 +1418,7 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + Debug>(obj: &Program, device_ob
 {
     let mut result_size: size_t = 0;
 
-    // println!("ocl::core::get_program_build_info(): device_obj: {:?}", device_obj);
+    // println!("opencl_core::get_program_build_info(): device_obj: {:?}", device_obj);
 
     let errcode = unsafe { cl_h::clGetProgramBuildInfo(
         obj.as_ptr() as cl_program,
@@ -1849,11 +1850,11 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 /// ## Safety
 ///
 /// Caller must ensure that `data` lives until the read is complete. Use
-/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// `new_event` to monitor it (use [`opencl_core::EventList::last_clone`] if passing
 /// an event list as `new_event`).
 ///
 ///
-/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
+/// [`opencl_core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
@@ -1890,7 +1891,7 @@ pub unsafe fn enqueue_read_buffer<T: OclPrm>(
 /// ## Safety
 ///
 /// Caller must ensure that `data` lives until the read is complete. Use
-/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// `new_event` to monitor it (use [`opencl_core::EventList::last_clone`] if passing
 /// an event list as `new_event`).
 ///
 /// ## Official Documentation
@@ -1898,7 +1899,7 @@ pub unsafe fn enqueue_read_buffer<T: OclPrm>(
 /// [SDK - clEnqueueReadBufferRect](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html)
 ///
 ///
-/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
+/// [`opencl_core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer_rect<T: OclPrm>(
             command_queue: &CommandQueue,
@@ -2217,10 +2218,10 @@ pub fn enqueue_release_gl_buffer(
 /// ## Safety
 ///
 /// Caller must ensure that `data` lives until the read is complete. Use
-/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// `new_event` to monitor it (use [`opencl_core::EventList::last_clone`] if passing
 /// an event list as `new_event`).
 ///
-/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
+/// [`opencl_core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
 // pub unsafe fn enqueue_read_image<T>(
 pub unsafe fn enqueue_read_image<T>(
@@ -2676,7 +2677,7 @@ pub fn enqueue_kernel(
 
     // #[cfg(feature="kernel_debug_print")]
     if cfg!(feature="kernel_debug_print") {
-        print!("core::enqueue_kernel('{}': \
+        print!("opencl_core::enqueue_kernel('{}': \
             work_dims: {}, \
             gwo: {:?}, \
             gws: {:?}, \
@@ -2828,8 +2829,8 @@ pub fn enqueue_barrier_with_wait_list(
 /// A non-NULL return value does
 /// not guarantee that an extension function is actually supported by the
 /// platform. The application must also make a corresponding query using
-/// `ocl::core::get_platform_info(platform_core, CL_PLATFORM_EXTENSIONS, ... )` or
-/// `ocl::core::get_device_info(device_core, CL_DEVICE_EXTENSIONS, ... )`
+/// `opencl_core::get_platform_info(platform_core, CL_PLATFORM_EXTENSIONS, ... )` or
+/// `opencl_core::get_device_info(device_core, CL_DEVICE_EXTENSIONS, ... )`
 /// to determine if an extension is supported by the OpenCL implementation.
 ///
 /// [FIXME]: Update enum names above to the wrapped types.
@@ -2918,17 +2919,17 @@ pub fn default_platform() -> OclResult<PlatformId> {
 pub fn default_device_type() -> OclResult<DeviceType> {
     match env::var("OCL_DEFAULT_DEVICE_TYPE") {
         Ok(ref s) => match s.trim() {
-            "DEFAULT" => Ok(core::DEVICE_TYPE_DEFAULT),
-            "CPU" => Ok(core::DEVICE_TYPE_CPU),
-            "GPU" => Ok(core::DEVICE_TYPE_GPU),
-            "ACCELERATOR" => Ok(core::DEVICE_TYPE_ACCELERATOR),
-            "CUSTOM" => Ok(core::DEVICE_TYPE_CUSTOM),
-            "ALL" => Ok(core::DEVICE_TYPE_ALL),
+            "DEFAULT" => Ok(::DEVICE_TYPE_DEFAULT),
+            "CPU" => Ok(::DEVICE_TYPE_CPU),
+            "GPU" => Ok(::DEVICE_TYPE_GPU),
+            "ACCELERATOR" => Ok(::DEVICE_TYPE_ACCELERATOR),
+            "CUSTOM" => Ok(::DEVICE_TYPE_CUSTOM),
+            "ALL" => Ok(::DEVICE_TYPE_ALL),
             _ => OclError::err(format!("The default device type set by the environment variable \
                 'OCL_DEFAULT_DEVICE_TYPE': ('{}') is invalid. Valid types are: 'DEFAULT', 'CPU', \
                 'GPU', 'ACCELERATOR', 'CUSTOM', and 'ALL'.", s)),
         },
-        Err(_) => Ok(core::DEVICE_TYPE_ALL),
+        Err(_) => Ok(::DEVICE_TYPE_ALL),
     }
 }
 

@@ -8,7 +8,7 @@ use ffi::cl_GLuint;
 
 use core::{self, OclPrm, Mem as MemCore, MemFlags,
     MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList};
-use error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclError, Result as OclResult};
 use standard::{Queue, MemLen, SpatialDims};
 
 

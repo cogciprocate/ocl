@@ -18,7 +18,7 @@
 
 // #![allow(non_camel_case_types)]
 
-use core::{OclPrm, OclVec};
+use ::{OclPrm, OclVec};
 use std::ops::{Add};
 
 

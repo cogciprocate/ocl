@@ -11,6 +11,9 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT"
 exclude = ["target/*", "*.png", "bak/*"]
 
+[workspace]
+members = ["opencl_sys", "opencl_core"]
+
 [features]
 default = ["opencl_1_2"]
 kernel_debug_print = []
@@ -25,11 +28,14 @@ opencl_1_2 = []
 
 [dependencies]
 # [TODO]: Make optional feature:
-rand = "0.3"
-num = "0.1"
-libc = "0.2"
-enum_primitive = "0.1"
-bitflags = "0.5"
+rand = "0.3" #check for removable
+num = "0.1" # check for removable
+libc = "0.2" # check for removable
+enum_primitive = "0.1" # check for removable
+bitflags = "0.5" # check for removable
+opencl_core = { path = "opencl_core" }
+#todo: Depend only on core
+opencl_sys = { path = "opencl_sys" }
 
 [dev-dependencies]
 # [TODO]: Make optional somehow or remove or something:

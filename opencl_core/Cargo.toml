@@ -1,0 +1,23 @@
+[package]
+name = "opencl_core"
+version = "0.0.0"
+repository = "https://github.com/cogciprocate/ocl"
+keywords = ["opencl", "gpu", "gpgpu"]
+license = "MIT"
+
+[features]
+default = ["opencl_1_2"]
+kernel_debug_print = []
+kernel_debug_sleep = []
+# NYI
+#opencl_1_0 = []
+opencl_1_1 = []
+opencl_1_2 = []
+
+[dependencies]
+opencl_sys = { path = "../opencl_sys" }
+bitflags = "0.5"
+enum_primitive = "0.1"
+libc = "0.2"
+num = "0.1"
+rand = "0.3"

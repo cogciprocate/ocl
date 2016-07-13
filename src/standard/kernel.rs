@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrNew, ClWaitList};
-use error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Buffer, Image, Program, Queue, WorkDims, Sampler, Device};
 
 const PRINT_DEBUG: bool = false;

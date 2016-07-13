@@ -2,7 +2,7 @@
 
 use std::convert::Into;
 use std::ops::Deref;
-use error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclError};
 use core::OclPrm;
 use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
     MemLen, SpatialDims, WorkDims, DeviceSpecifier};

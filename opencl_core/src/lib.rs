@@ -1,5 +1,3 @@
-// ocl::core::
-
 //! Thin wrappers for the `OpenCL` FFI functions and types.
 //!
 //! *The layer between the hard rough and the soft furry parts...*
@@ -15,14 +13,14 @@
 //!
 //! If there's still something missing or for some reason you need direct FFI
 //! access, use the functions in the [`cl_h`] module. The pointers used by
-//! [`cl_h`] functions can be wrapped in [`core`] wrappers (core::PlatformId,
-//! core::Context, etc.) and passed to [`core`] module functions. Likewise the
+//! [`cl_h`] functions can be wrapped in [`opencl_core`] wrappers (opencl_core::PlatformId,
+//! opencl_core::Context, etc.) and passed to [`opencl_core`] module functions. Likewise the
 //! other way around (using, for example: [`EventRaw::as_ptr`]).
 //!
 //!
 //! ## Performance
 //!
-//! Performance between all three interface layers, [`cl_h`], [`core`], and
+//! Performance between all three interface layers, [`cl_h`], [`opencl_core`], and
 //! the 'standard' types, is identical or virtually identical (if not, please
 //! file an issue).
 //!
@@ -49,7 +47,7 @@
 //!
 //! As most of the functions here are minimally documented, please refer to
 //! the official `OpenCL` documentation linked below. Although there isn't a
-//! precise 1:1 parameter mapping between the `core` and original functions,
+//! precise 1:1 parameter mapping between the `opencl_core` and original functions,
 //! it's close enough (modulo the size/len difference discussed above) to help
 //! sort out any questions you may have until a more thorough documentation
 //! pass can be made. View the source code in [`src/core/functions.rs`] for
@@ -69,7 +67,7 @@
 //! stuff: 90%. <br/>
 //!
 //!
-//! ## `core` Stands Alone
+//! ## `opencl_core` Stands Alone
 //!
 //! This module may eventually be moved to its own separate crate (with its
 //! dependencies `cl_h` and `error`).
@@ -77,25 +75,33 @@
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues
 //! [`cl_h`]: /ocl/ocl/cl_h/index.html
-//! [`core`]: /ocl/ocl/core/index.html
+//! [`opencl_core`]: /ocl/ocl/core/index.html
 //! [`Error`]: /ocl/ocl/enum.Error.html
 //! [`EventRaw::as_ptr`]: /ocl/ocl/core/struct.EventRaw.html#method.as_ptr
 //! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
 //! [`OpenCL` 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/core/functions.rs`]: /ocl/src/ocl/src/core/functions.rs.html
 
+#[macro_use] extern crate enum_primitive;
+#[macro_use] extern crate bitflags;
+extern crate libc;
+extern crate opencl_sys as ffi;
+extern crate num;
+extern crate rand;
+
 mod functions;
 pub mod types;
+pub mod error;
+pub mod util;
 
 use std::fmt::{Display, Debug};
 // use std::num::{Zero, One};
 use std::ops::{Add, Sub, Mul, Div, Rem};
-use libc;
+
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
-use cl_h;
+use ffi::cl_h;
 // use ffi::{cl_gl_h, glcorearb_h};
-use ffi;
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices,

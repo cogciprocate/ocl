@@ -2,7 +2,7 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use error::{Result as OclResult};
+use core::error::{Result as OclResult};
 use core::{self, Sampler as SamplerCore, AddressingMode, FilterMode, SamplerInfo, SamplerInfoResult};
 use standard::Context;
 
