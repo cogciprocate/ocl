@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrNew, ClWaitList};
-use error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Buffer, Image, Program, Queue, WorkDims, Sampler, Device};
 
 const PRINT_DEBUG: bool = false;
@@ -443,6 +443,7 @@ impl Kernel {
     }
 
     /// Returns argument information for this kernel.
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
         // match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
         //     Ok(res) => res,

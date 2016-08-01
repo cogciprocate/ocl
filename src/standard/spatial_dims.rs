@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use std::ops::Index;
 // use std::mem;
 use num::{Num, ToPrimitive};
-use error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclError};
 use standard::{MemLen, WorkDims};
 use util;
 

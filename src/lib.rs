@@ -41,24 +41,30 @@
 // #![feature(zero_one)]
 // #![feature(question_mark)]
 // #![feature(stmt_expr_attributes)]
+/*
+#[macro_use] extern crate enum_primitive; // check for removable
+#[macro_use] extern crate bitflags; // check for removable
+extern crate rand; // check for removable
+ */
 
-#[macro_use] extern crate enum_primitive;
-#[macro_use] extern crate bitflags;
 extern crate libc;
 extern crate num;
-extern crate rand;
-
-pub mod util;
+pub extern crate opencl_core as core;
+// todo: depend only on core?
+extern crate opencl_sys as ffi;
+//pub mod util;
+pub use core::util as util;
 #[cfg(test)] mod tests;
 mod standard;
-mod error;
-pub mod core;
-pub mod ffi;
+//mod error;
+//use opencl_core::error as error;
+//pub mod core;
+//pub mod ffi;
 
-pub use ffi::cl_h;
+//pub use ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, Sampler, SpatialDims, ProQue};
-pub use self::error::{Error, Result};
+pub use core::error::{Error, Result};
 
 pub mod aliases {
     //! Type aliases and structs meant to mirror those available within a
@@ -68,7 +74,7 @@ pub mod aliases {
     //!
     //! [NOTE]: This module may be renamed.
 
-    pub use cl_h::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
+    pub use core::types::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
 
     pub use core::{ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
@@ -158,5 +164,5 @@ pub mod enums {
         KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
 
     // Error status.
-    pub use cl_h::Status;
+    pub use ffi::cl_h::Status;
 }

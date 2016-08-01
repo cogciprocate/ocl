@@ -14,7 +14,7 @@ use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use error::{Result as OclResult, Error as OclError};
 
-use core::{OclPrm, OclScl};
+use ::{OclPrm, OclScl};
 
 //=============================================================================
 //================================= MACROS ====================================

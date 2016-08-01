@@ -8,7 +8,7 @@ use ffi::cl_GLuint;
 
 use core::{self, OclPrm, Mem as MemCore, MemFlags,
     MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList};
-use error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclError, Result as OclResult};
 use standard::{Queue, MemLen, SpatialDims};
 
 
@@ -360,6 +360,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     //     None).unwrap();
 
     /// Enqueues this command.
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn enq(self) -> OclResult<()> {
         match self.kind {
             BufferCmdKind::Read { data } => {
@@ -475,6 +476,7 @@ impl<T: OclPrm> Buffer<T> {
     /// Creates a new buffer
     ///
     /// [UNSTABLE]: New method, arguments still in a state of flux.
+    #[cfg(any(feature = "opencl_1_2"))]
     pub fn new<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, data: Option<&[T]>)
             -> OclResult<Buffer<T>>
     {
