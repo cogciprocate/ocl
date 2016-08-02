@@ -3,7 +3,8 @@
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
 use libc::{c_void, size_t};
-use ffi::{cl_GLuint, cl_GLint, cl_GLenum};
+use platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
+
 use cl_h::{cl_context, cl_context_properties, cl_mem_flags, cl_command_queue,
     cl_int, cl_uint, cl_mem, cl_event};
 
