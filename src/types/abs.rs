@@ -35,6 +35,14 @@
 //! dereferencing old pointers particularly on certain *ahem* platforms.
 //!
 //!
+//! ### `drop()` and `functions::release_[...]()`
+//!
+//! Handling errors inside of the destructor is still an open issue. For now,
+//! release builds will panic upon errors returned from calls to
+//! `functions::release_[...]()`. Because a panic during a panic could make
+//! debugging more difficult, debug builds will ignore errors.
+//!
+//!
 //!
 //!
 //!
@@ -244,7 +252,11 @@ impl Clone for Context {
 
 impl Drop for Context {
     fn drop(&mut self) {
-        unsafe { functions::release_context(self).ok(); }
+        if cfg!(release) {
+            unsafe { functions::release_context(self).unwrap(); }
+        } else {
+            unsafe { functions::release_context(self).ok(); }
+        }
     }
 }
 
@@ -289,7 +301,11 @@ impl Clone for CommandQueue {
 
 impl Drop for CommandQueue {
     fn drop(&mut self) {
-        unsafe { functions::release_command_queue(self).ok(); }
+        if cfg!(release) {
+            unsafe { functions::release_command_queue(self).unwrap(); }
+        } else {
+            unsafe { functions::release_command_queue(self).ok(); }
+        }
     }
 }
 
@@ -342,7 +358,11 @@ impl Clone for Mem {
 
 impl Drop for Mem {
     fn drop(&mut self) {
-        unsafe { functions::release_mem_object(self).ok(); }
+        if cfg!(release) {
+            unsafe { functions::release_mem_object(self).unwrap(); }
+        } else {
+            unsafe { functions::release_mem_object(self).ok(); }
+        }
     }
 }
 
@@ -385,19 +405,16 @@ impl Clone for Program {
 
 impl Drop for Program {
     fn drop(&mut self) {
-        unsafe { functions::release_program(self).ok(); }
+        if cfg!(release) {
+            unsafe { functions::release_program(self).unwrap(); }
+        } else {
+            unsafe { functions::release_program(self).ok(); }
+        }
     }
 }
 
 unsafe impl Sync for Program {}
 unsafe impl Send for Program {}
-
-// impl Drop for Program {
-//     fn drop(&mut self) {
-//         // println!("DROPPING PROGRAM");
-//         unsafe { functions::release_program(self.obj_core).unwrap(); }
-//     }
-// }
 
 
 /// cl_kernel
@@ -435,7 +452,11 @@ impl Clone for Kernel {
 
 impl Drop for Kernel {
     fn drop(&mut self) {
-        unsafe { functions::release_kernel(self).ok(); }
+        if cfg!(release) {
+            unsafe { functions::release_kernel(self).unwrap(); }
+        } else {
+            unsafe { functions::release_kernel(self).ok(); }
+        }
     }
 }
 
@@ -531,7 +552,11 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if self.is_valid() {
-            unsafe { functions::release_event(self).ok(); }
+            if cfg!(release) {
+                unsafe { functions::release_event(self).unwrap(); }
+            } else {
+                unsafe { functions::release_event(self).ok(); }
+            }
         }
     }
 }
@@ -722,7 +747,11 @@ impl Drop for EventList {
     fn drop(&mut self) {
         if DEBUG_PRINT { print!("Dropping events... "); }
         for event_ptr in &self.event_ptrs {
-            unsafe { functions::release_event(&EventRefWrapper(event_ptr, 1)).ok(); }
+            if cfg!(release) {
+                unsafe { functions::release_event(&EventRefWrapper(event_ptr, 1)).unwrap(); }
+            } else {
+                unsafe { functions::release_event(&EventRefWrapper(event_ptr, 1)).ok(); }
+            }
             if DEBUG_PRINT { print!("{{.}}"); }
         }
         if DEBUG_PRINT { print!("\n"); }
@@ -766,7 +795,11 @@ impl Clone for Sampler {
 
 impl Drop for Sampler {
     fn drop(&mut self) {
-        unsafe { functions::release_sampler(self).ok(); }
+        if cfg!(release) {
+            unsafe { functions::release_sampler(self).unwrap(); }
+        } else {
+            unsafe { functions::release_sampler(self).ok(); }
+        }
     }
 }
 
