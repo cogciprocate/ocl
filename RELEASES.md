@@ -1,3 +1,14 @@
+Version 0.11.0 (UNRELEASED)
+===========================
+
+The `core` and `ffi` modules have been moved into new crates, [`ocl-core`] and
+[`cl-sys`] respectively.
+
+
+[`ocl-core`]: https://github.com/cogciprocate/ocl-core
+[`cl-sys`]: https://github.com/cogciprocate/cl-sys
+
+
 Version 0.10.0 (2016-06-11)
 ===========================
 
@@ -123,6 +134,7 @@ New Features
 
 [`Sampler`]: http://doc.cogciprocate.com/ocl/ocl/struct.Sampler.html
 [`ocl::util`]: http://docs.cogciprocate.com/ocl/ocl/util/index.html
+
 
 Version 0.7.0 (2016-02-27)
 ==========================
