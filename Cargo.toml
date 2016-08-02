@@ -18,6 +18,9 @@ kernel_debug_sleep = []
 # [dependencies.bitflags]
 # git = "https://github.com/rust-lang-nursery/bitflags.git"
 
+[dependencies.cl-sys]
+git = "https://github.com/cogciprocate/cl-sys"
+
 [dependencies]
 # [TODO]: Make optional feature:
 rand = "0.3"
