@@ -48,18 +48,20 @@ extern crate libc;
 extern crate num;
 extern crate rand;
 extern crate cl_sys as ffi;
+pub extern crate ocl_core as core;
 
-pub mod util;
+// pub mod util;
 #[cfg(test)] mod tests;
 mod standard;
-mod error;
-pub mod core;
+// mod error;
+// pub mod core;
 // pub mod ffi;
 
 pub use ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, Sampler, SpatialDims, ProQue};
-pub use self::error::{Error, Result};
+pub use core::error::{Error, Result};
+pub use core::util;
 
 pub mod aliases {
     //! Type aliases and structs meant to mirror those available within a

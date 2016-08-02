@@ -2,10 +2,10 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo, 
-    ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformId as PlatformIdCore, PlatformInfo, 
+use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
+    ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformId as PlatformIdCore, PlatformInfo,
     PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
-use error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier};
 
 

@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use libc::c_void;
 use cl_h;
-use error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult,
     ClEventPtrNew, ClWaitList, EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
 

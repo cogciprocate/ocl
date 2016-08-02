@@ -1,4 +1,6 @@
 //! `ocl` standard types.
+//!
+//! [TODO]: This module needs a rename.
 
 mod platform;
 mod device;
@@ -60,7 +62,7 @@ mod traits {
     use std::fmt::Debug;
     // use std::convert::Into;
     use num::{Num, ToPrimitive};
-    // use error::{Result as OclResult};
+    // use core::error::{Result as OclResult};
     use super::{SpatialDims};
     use super::spatial_dims::to_usize;
 

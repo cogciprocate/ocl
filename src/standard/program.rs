@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::collections::HashSet;
 use std::convert::Into;
 
-use error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclError};
 use core::{self, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
 use standard::{Context, Device, DeviceSpecifier};

@@ -19,7 +19,7 @@ pub mod vector_types;
 pub mod context_props;
 
 use rand::{self, Rng};
-use error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclError, Result as OclResult};
 use core::OclScl;
 
 const PRINT_ITERS_MAX: i32 = 3;

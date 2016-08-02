@@ -6,10 +6,10 @@ use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use std::error::Error;
 // use std::borrow::Borrow;
-use error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclError, Result as OclResult};
 use standard::Platform;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
-use util;
+use core::util;
 
 const DEBUG_PRINT: bool = false;
 
