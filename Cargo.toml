@@ -1,0 +1,20 @@
+[package]
+name = "ocl-core"
+version = "0.1.0"
+authors = ["Nick Sanders <cogciprocate@gmail.com>"]
+description = "OpenCL interfaces for Rust."
+documentation = "http://doc.cogciprocate.com/ocl-core/ocl-core/index.html"
+homepage = "https://github.com/cogciprocate/ocl-core"
+repository = "https://github.com/cogciprocate/ocl-core"
+readme = "README.md"
+keywords = ["opencl", "gpu", "gpgpu"]
+license = "MIT"
+exclude = ["target/*", "*.png", "bak/*"]
+
+[dependencies]
+cl-sys = { git = "https://github.com/cogciprocate/cl-sys" }
+rand = "0.3"
+num = "0.1"
+libc = "0.2"
+enum_primitive = "0.1"
+bitflags = "0.5"

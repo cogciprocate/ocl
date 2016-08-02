@@ -3,7 +3,7 @@
 //!
 //!
 //
-// [TODO]: Evaluate usefulness of `Error` impls and potentially remove. 
+// [TODO]: Evaluate usefulness of `Error` impls and potentially remove.
 //
 
 #![allow(dead_code)]
@@ -16,7 +16,7 @@ use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
 use cl_h::{cl_image_format};
-use core::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo,
+use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo,
     ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
     Mem, MemInfo, MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode,
     ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo,
@@ -31,7 +31,7 @@ use error::{Result as OclResult, Error as OclError};
 
 /// `try!` for `***InfoResult` types.
 macro_rules! try_ir {
-    ( $ expr : expr ) => { 
+    ( $ expr : expr ) => {
         match $expr {
             Ok(val) => val,
             Err(err) => return err.into(),
@@ -1960,7 +1960,7 @@ impl EventInfoResult {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
                         EventInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
                     },
-                } 
+                }
             },
             Err(err) => EventInfoResult::Error(Box::new(err)),
         }

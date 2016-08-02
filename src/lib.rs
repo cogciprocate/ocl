@@ -84,18 +84,27 @@
 //! [`OpenCL` 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/core/functions.rs`]: /ocl/src/ocl/src/core/functions.rs.html
 
+#[macro_use] extern crate bitflags;
+#[macro_use] extern crate enum_primitive;
+extern crate libc;
+extern crate cl_sys as ffi;
+extern crate rand;
+extern crate num;
+
 mod functions;
 pub mod types;
+pub mod error;
+pub mod util;
 
 use std::fmt::{Display, Debug};
 // use std::num::{Zero, One};
 use std::ops::{Add, Sub, Mul, Div, Rem};
-use libc;
+// use libc;
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
-use cl_h;
+pub use ffi::cl_h;
 // use ffi::{cl_gl_h, glcorearb_h};
-use ffi;
+// use ffi;
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
