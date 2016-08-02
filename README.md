@@ -79,15 +79,15 @@ See the the remainder of [`examples/trivial.rs`] for much more.
 
 ## Development Status
 
-Interfaces are probably 98% stable. All core functionality is complete and
-working as intended. Performance is excellent on platforms tested so far
+Interfaces are probably 98% stable. All essential functionality is complete
+and working as intended. Performance is excellent on platforms tested so far
 (mainly linux/windows-amd/intel/nvidia). Feedback needed and appreciated for
 other platforms! File an issue just to let us know what you think.
 
 
 #### Diving Deeper
 
-Already familiar with the standard OpenCL core API? See the [`core`] module
+Already familiar with the standard OpenCL core API? See the [`ocl-core`] crate
 for access to the complete feature set in the conventional API style with
 Rust's safety and convenience.
 
@@ -110,12 +110,10 @@ compile into SPIR-V making the device side of things the same. I wouldn't be
 suprised if most driver vendors implement the two host APIs identically.
 
 In the future it's possible the two may completely merge (or that Vulkan will
-absorb OpenCL). Whatever happens, not much will change as far as the front end
-of this library is concerned (though the `core` module functions / types could
-get some very minor renaming, etc. but it wouldn't be for a very long time...
-version 2.0...). This library will maintain its focus on the compute side of
-things. For the graphics side, see the excellent OpenGL library, [glium], and
-its younger sibling, [vulkano].
+absorb OpenCL). Whatever happens, nothing will change as far as the front end
+of this library is concerned. This library will maintain its focus on the
+compute side of things. For the graphics side, see the excellent OpenGL
+library, [glium], and its younger sibling, [vulkano].
 
 
 ##### Help
@@ -167,7 +165,7 @@ by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Gro
 
 [OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
 [AMD]: https://software.intel.com/en-us/intel-opencl/download
-[`core`]: http://docs.cogciprocate.com/ocl/ocl/core/index.html
+[`ocl-core`]: https://github.com/cogciprocate/ocl-core
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [`examples`]: https://github.com/cogciprocate/ocl/tree/master/examples

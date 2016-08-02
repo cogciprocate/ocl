@@ -18,8 +18,8 @@
 //! ## Low Level Interfaces
 //!
 //! For lower level interfaces and to use `OpenCL` features that have not yet
-//! been implemented on the top-level interface types, see the [`core`] and
-//! [`cl_h`] modules.
+//! been implemented on the `standard` (high-level) interface types, see the
+//! [`ocl-core`] and [`cl-sys`] crates.
 //!
 //!
 //! ## Help Wanted
@@ -32,8 +32,8 @@
 
 //!
 //! [issue]: https://github.com/cogciprocate/ocl/issues
-//! [`core`]: /ocl/ocl/core/index.html
-//! [`cl_h`]: /ocl/ocl/cl_h/index.html
+//! [`ocl-core`]: https://github.com/cogciprocate/ocl-core
+//! [`cl-sys`]: https://github.com/cogciprocate/cl-sys
 //! [`Result`]: /ocl/ocl/type.Result.html
 //! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
@@ -50,12 +50,8 @@ extern crate rand;
 extern crate cl_sys as ffi;
 pub extern crate ocl_core as core;
 
-// pub mod util;
 #[cfg(test)] mod tests;
 mod standard;
-// mod error;
-// pub mod core;
-// pub mod ffi;
 
 pub use ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
