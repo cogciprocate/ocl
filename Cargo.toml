@@ -30,8 +30,8 @@ enum_primitive = "0.1"
 bitflags = "0.5"
 
 [dev-dependencies]
-# [TODO]: Make optional somehow or remove or something:
-image = "0.7"
+# [TODO]: Make optional somehow or remove or something: [DONE]
+# image = "0.7"
 find_folder = "0.3"
 colorify = "0.2"
 time = "0.1"
