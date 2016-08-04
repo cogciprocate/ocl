@@ -12,7 +12,7 @@ license = "MIT"
 exclude = ["target/*", "*.png", "bak/*"]
 
 [dependencies]
-cl-sys = { git = "https://github.com/cogciprocate/cl-sys" }
+cl-sys = "0.1"
 rand = "0.3"
 num = "0.1"
 libc = "0.2"

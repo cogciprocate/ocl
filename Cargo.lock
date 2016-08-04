@@ -3,7 +3,7 @@ name = "ocl-core"
 version = "0.1.0"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cl-sys 0.1.0 (git+https://github.com/cogciprocate/cl-sys)",
+ "cl-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "colorify 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -19,7 +19,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "cl-sys"
 version = "0.1.0"
-source = "git+https://github.com/cogciprocate/cl-sys#9825af9a0a100f1100d3fdeb72de41eab1e93709"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -124,7 +124,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
 "checksum bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4f67931368edf3a9a51d29886d245f1c3db2f1ef0dcc9e35ff70341b78c10d23"
-"checksum cl-sys 0.1.0 (git+https://github.com/cogciprocate/cl-sys)" = "<none>"
+"checksum cl-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b75ebe9419ced85679c217eaeeabb1aeddf1fd4ec83ab121a0186dce860a5545"
 "checksum colorify 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3eb006d3382cc3ca88eecfb3e2f22a8bd5d246507a514d5916c17cd40ad01c59"
 "checksum enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f79eff5be92a4d7d5bddf7daa7d650717ea71628634efe6ca7bcda85b2183c23"
 "checksum libc 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)" = "39dfaaa0f4da0f1a06876c5d94329d739ad0150868069cc235f1ddf80a0480e7"
