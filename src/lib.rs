@@ -1,8 +1,12 @@
 //! FFI bindings for OpenCL.
 //!
-//! See [ocl-core](https://github.com/cogciprocate/ocl-core) for usage
-//! examples.
+//! For low level API access with Rust's safety and convenience, use the
+//! extremely lightweight functions and types in the [ocl-core] crate.
 //!
+//! See [ocl-core] for usage examples.
+//!
+//!
+//! [ocl-core]: https://github.com/cogciprocate/ocl-core
 
 #[macro_use] extern crate enum_primitive;
 extern crate libc;

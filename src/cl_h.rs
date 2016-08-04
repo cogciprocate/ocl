@@ -1,14 +1,14 @@
 //! Rust bindings for the OpenCL ABI.
 //!
-//! For low level access still within the confines of Rust's safety and convenience, use the extremely lightweight functions and types in the [`core`] module.
+//! Supports OpenCL versions 1.1+ (1.0 not supported).
 //!
-//! This file was adapted from [https://www.khronos.org/registry/cl/api/1.2/cl.h](https://www.khronos.org/registry/cl/api/1.2/cl.h).
+//! This file was originally adapted from
+//! [https://www.khronos.org/registry/cl/api/1.1/cl.h](https://www.khronos.org/registry/cl/api/1.1/cl.h)
+//! and will continue to be updated with additions to newer versions of that
+//! document.
 //!
-//! Supports OpenCL version 1.2. Version 1.0 and 1.1 support is currently disabled. Eventually there will be support for every version (including 2.0+) and an auto-detecting best version available system.
-//! [FIXME]: 1.2 implementation not 100% complete.
 //!
 //!
-//! [`core`]: /ocl/ocl/core/index.html
 //!
 
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
@@ -46,15 +46,19 @@ pub type cl_device_fp_config                = cl_bitfield;
 pub type cl_device_mem_cache_type           = cl_uint;
 pub type cl_device_local_mem_type           = cl_uint;
 pub type cl_device_exec_capabilities        = cl_bitfield;
+// typedef cl_bitfield         cl_device_svm_capabilities;
 pub type cl_command_queue_properties        = cl_bitfield;
 pub type cl_device_partition_property       = intptr_t;
 pub type cl_device_affinity_domain          = cl_bitfield;
+
 pub type cl_context_properties              = intptr_t;
 pub type cl_context_info                    = cl_uint;
+// typedef cl_bitfield         cl_queue_properties;
 pub type cl_command_queue_info              = cl_uint;
 pub type cl_channel_order                   = cl_uint;
 pub type cl_channel_type                    = cl_uint;
 pub type cl_mem_flags                       = cl_bitfield;
+// typedef cl_bitfield         cl_svm_mem_flags;
 pub type cl_mem_object_type                 = cl_uint;
 pub type cl_mem_info                        = cl_uint;
 pub type cl_mem_migration_flags             = cl_bitfield;
@@ -64,6 +68,8 @@ pub type cl_addressing_mode                 = cl_uint;
 pub type cl_filter_mode                     = cl_uint;
 pub type cl_sampler_info                    = cl_uint;
 pub type cl_map_flags                       = cl_bitfield;
+// typedef intptr_t            cl_pipe_properties;
+// typedef cl_uint             cl_pipe_info;
 pub type cl_program_info                    = cl_uint;
 pub type cl_program_build_info              = cl_uint;
 pub type cl_program_binary_type             = cl_uint;
@@ -74,9 +80,12 @@ pub type cl_kernel_arg_address_qualifier    = cl_uint;
 pub type cl_kernel_arg_access_qualifier     = cl_uint;
 pub type cl_kernel_arg_type_qualifier       = cl_uint;
 pub type cl_kernel_work_group_info          = cl_uint;
+// typedef cl_uint             cl_kernel_sub_group_info;
 pub type cl_event_info                      = cl_uint;
 pub type cl_command_type                    = cl_uint;
 pub type cl_profiling_info                  = cl_uint;
+// typedef cl_bitfield         cl_sampler_properties;
+// typedef cl_uint             cl_kernel_exec_info;
 
 #[repr(C)]
 pub struct cl_image_format {
@@ -95,6 +104,7 @@ pub struct cl_image_desc {
     pub image_slice_pitch:  size_t,
     pub num_mip_levels:     cl_uint,
     pub num_samples:        cl_uint,
+    // AKA `mem_object` in 2.0+
     pub buffer:             cl_mem,
 }
 
@@ -171,6 +181,8 @@ enum_from_primitive! {
         CL_INVALID_COMPILER_OPTIONS                     = -66,
         CL_INVALID_LINKER_OPTIONS                       = -67,
         CL_INVALID_DEVICE_PARTITION_COUNT               = -68,
+            // #define CL_INVALID_PIPE_SIZE                        -69
+            // #define CL_INVALID_DEVICE_QUEUE                     -70
         CL_PLATFORM_NOT_FOUND_KHR                       = -1001,
     }
 }
@@ -187,6 +199,7 @@ pub const CL_VERSION_1_0:                               cl_bool = 1;
 pub const CL_VERSION_1_1:                               cl_bool = 1;
 pub const CL_VERSION_1_2:                               cl_bool = 1;
 //pub const CL_VERSION_2_0:                               cl_bool = 1;
+// #define CL_VERSION_2_1                              1
 
 // cl_bool
 pub const CL_FALSE:                                     cl_bool = 0;
@@ -201,6 +214,7 @@ pub const CL_PLATFORM_VERSION:                          cl_uint = 0x0901;
 pub const CL_PLATFORM_NAME:                             cl_uint = 0x0902;
 pub const CL_PLATFORM_VENDOR:                           cl_uint = 0x0903;
 pub const CL_PLATFORM_EXTENSIONS:                       cl_uint = 0x0904;
+// #define CL_PLATFORM_HOST_TIMER_RESOLUTION           0x0905
 
 // cl_device_type - bitfield
 pub const CL_DEVICE_TYPE_DEFAULT:                      cl_bitfield = 1 << 0;
@@ -253,7 +267,9 @@ pub const CL_DEVICE_ENDIAN_LITTLE:                      cl_uint = 0x1026;
 pub const CL_DEVICE_AVAILABLE:                          cl_uint = 0x1027;
 pub const CL_DEVICE_COMPILER_AVAILABLE:                 cl_uint = 0x1028;
 pub const CL_DEVICE_EXECUTION_CAPABILITIES:             cl_uint = 0x1029;
+// DEPRICATED 2.0:
 pub const CL_DEVICE_QUEUE_PROPERTIES:                   cl_uint = 0x102A;
+// #define CL_DEVICE_QUEUE_ON_HOST_PROPERTIES              0x102A
 pub const CL_DEVICE_NAME:                               cl_uint = 0x102B;
 pub const CL_DEVICE_VENDOR:                             cl_uint = 0x102C;
 pub const CL_DRIVER_VERSION:                            cl_uint = 0x102D;
@@ -264,6 +280,7 @@ pub const CL_DEVICE_PLATFORM:                           cl_uint = 0x1031;
 pub const CL_DEVICE_DOUBLE_FP_CONFIG:                   cl_uint = 0x1032;
 pub const CL_DEVICE_HALF_FP_CONFIG:                     cl_uint = 0x1033;
 pub const CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF:        cl_uint = 0x1034;
+// DEPRICATED 2.0:
 pub const CL_DEVICE_HOST_UNIFIED_MEMORY:                cl_uint = 0x1035;
 pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR:           cl_uint = 0x1036;
 pub const CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT:          cl_uint = 0x1037;
@@ -287,6 +304,24 @@ pub const CL_DEVICE_PREFERRED_INTEROP_USER_SYNC:        cl_uint = 0x1048;
 pub const CL_DEVICE_PRINTF_BUFFER_SIZE:                 cl_uint = 0x1049;
 pub const CL_DEVICE_IMAGE_PITCH_ALIGNMENT:              cl_uint = 0x104A;
 pub const CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT:       cl_uint = 0x104B;
+// #define CL_DEVICE_MAX_READ_WRITE_IMAGE_ARGS             0x104C
+// #define CL_DEVICE_MAX_GLOBAL_VARIABLE_SIZE              0x104D
+// #define CL_DEVICE_QUEUE_ON_DEVICE_PROPERTIES            0x104E
+// #define CL_DEVICE_QUEUE_ON_DEVICE_PREFERRED_SIZE        0x104F
+// #define CL_DEVICE_QUEUE_ON_DEVICE_MAX_SIZE              0x1050
+// #define CL_DEVICE_MAX_ON_DEVICE_QUEUES                  0x1051
+// #define CL_DEVICE_MAX_ON_DEVICE_EVENTS                  0x1052
+// #define CL_DEVICE_SVM_CAPABILITIES                      0x1053
+// #define CL_DEVICE_GLOBAL_VARIABLE_PREFERRED_TOTAL_SIZE  0x1054
+// #define CL_DEVICE_MAX_PIPE_ARGS                         0x1055
+// #define CL_DEVICE_PIPE_MAX_ACTIVE_RESERVATIONS          0x1056
+// #define CL_DEVICE_PIPE_MAX_PACKET_SIZE                  0x1057
+// #define CL_DEVICE_PREFERRED_PLATFORM_ATOMIC_ALIGNMENT   0x1058
+// #define CL_DEVICE_PREFERRED_GLOBAL_ATOMIC_ALIGNMENT     0x1059
+// #define CL_DEVICE_PREFERRED_LOCAL_ATOMIC_ALIGNMENT      0x105A
+// #define CL_DEVICE_IL_VERSION                             0x105B
+// #define CL_DEVICE_MAX_NUM_SUB_GROUPS                     0x105C
+// #define CL_DEVICE_SUB_GROUP_INDEPENDENT_FORWARD_PROGRESS 0x105D
 
 // cl_device_fp_config - bitfield
 pub const CL_FP_DENORM:                                 cl_bitfield = 1 << 0;
@@ -314,6 +349,8 @@ pub const CL_EXEC_NATIVE_KERNEL:                        cl_bitfield = 1 << 1;
 // cl_command_queue_properties - bitfield
 pub const CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE:       cl_bitfield = 1 << 0;
 pub const CL_QUEUE_PROFILING_ENABLE:                    cl_bitfield = 1 << 1;
+// #define CL_QUEUE_ON_DEVICE                          (1 << 2)
+// #define CL_QUEUE_ON_DEVICE_DEFAULT                  (1 << 3)
 
 // cl_context_info
 pub const CL_CONTEXT_REFERENCE_COUNT:                   cl_uint = 0x1080;
@@ -339,13 +376,21 @@ pub const CL_DEVICE_AFFINITY_DOMAIN_L2_CACHE:           cl_bitfield = 1 << 3;
 pub const CL_DEVICE_AFFINITY_DOMAIN_L1_CACHE:           cl_bitfield = 1 << 4;
 pub const CL_DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE: cl_bitfield = 1 << 5;
 
+// /* cl_device_svm_capabilities */
+// #define CL_DEVICE_SVM_COARSE_GRAIN_BUFFER           (1 << 0)
+// #define CL_DEVICE_SVM_FINE_GRAIN_BUFFER             (1 << 1)
+// #define CL_DEVICE_SVM_FINE_GRAIN_SYSTEM             (1 << 2)
+// #define CL_DEVICE_SVM_ATOMICS                       (1 << 3)
+
 // cl_command_queue_info
 pub const CL_QUEUE_CONTEXT:                             cl_uint = 0x1090;
 pub const CL_QUEUE_DEVICE:                              cl_uint = 0x1091;
 pub const CL_QUEUE_REFERENCE_COUNT:                     cl_uint = 0x1092;
 pub const CL_QUEUE_PROPERTIES:                          cl_uint = 0x1093;
+// #define CL_QUEUE_SIZE                               0x1094
+// #define CL_QUEUE_DEVICE_DEFAULT                     0x1095
 
-// cl_mem_flags - bitfield
+// cl_mem_flags and cl_svm_mem_flags - bitfield
 pub const CL_MEM_READ_WRITE:                            cl_bitfield = 1 << 0;
 pub const CL_MEM_WRITE_ONLY:                            cl_bitfield = 1 << 1;
 pub const CL_MEM_READ_ONLY:                             cl_bitfield = 1 << 2;
@@ -356,6 +401,9 @@ pub const CL_MEM_COPY_HOST_PTR:                         cl_bitfield = 1 << 5;
 pub const CL_MEM_HOST_WRITE_ONLY:                       cl_bitfield = 1 << 7;
 pub const CL_MEM_HOST_READ_ONLY:                        cl_bitfield = 1 << 8;
 pub const CL_MEM_HOST_NO_ACCESS:                        cl_bitfield = 1 << 9;
+// #define CL_MEM_SVM_FINE_GRAIN_BUFFER                (1 << 10)   /* used by cl_svm_mem_flags only */
+// #define CL_MEM_SVM_ATOMICS                          (1 << 11)   /* used by cl_svm_mem_flags only */
+// #define CL_MEM_KERNEL_READ_AND_WRITE                (1 << 12)
 
 // cl_mem_migration_flags - bitfield
 pub const CL_MIGRATE_MEM_OBJECT_HOST:                   cl_bitfield = 1 << 0;
@@ -377,6 +425,11 @@ pub const CL_RGx:                                       cl_uint = 0x10BB;
 pub const CL_RGBx:                                      cl_uint = 0x10BC;
 pub const CL_DEPTH:                                     cl_uint = 0x10BD;
 pub const CL_DEPTH_STENCIL:                             cl_uint = 0x10BE;
+// #define CL_sRGB                                     0x10BF
+// #define CL_sRGBx                                    0x10C0
+// #define CL_sRGBA                                    0x10C1
+// #define CL_sBGRA                                    0x10C2
+// #define CL_ABGR                                     0x10C3
 
 // cl_channel_type
 pub const CL_SNORM_INT8:                                cl_uint = 0x10D0;
@@ -395,6 +448,7 @@ pub const CL_UNSIGNED_INT32:                            cl_uint = 0x10DC;
 pub const CL_HALF_FLOAT:                                cl_uint = 0x10DD;
 pub const CL_FLOAT:                                     cl_uint = 0x10DE;
 pub const CL_UNORM_INT24:                               cl_uint = 0x10DF;
+// #define CL_UNORM_INT_101010_2                       0x10E0
 
 // cl_mem_object_type
 pub const CL_MEM_OBJECT_BUFFER:                         cl_uint = 0x10F0;
@@ -404,6 +458,7 @@ pub const CL_MEM_OBJECT_IMAGE2D_ARRAY:                  cl_uint = 0x10F3;
 pub const CL_MEM_OBJECT_IMAGE1D:                        cl_uint = 0x10F4;
 pub const CL_MEM_OBJECT_IMAGE1D_ARRAY:                  cl_uint = 0x10F5;
 pub const CL_MEM_OBJECT_IMAGE1D_BUFFER:                 cl_uint = 0x10F6;
+// #define CL_MEM_OBJECT_PIPE                          0x10F7
 
 // cl_mem_info
 pub const CL_MEM_TYPE:                                  cl_uint = 0x1100;
@@ -415,6 +470,7 @@ pub const CL_MEM_REFERENCE_COUNT:                       cl_uint = 0x1105;
 pub const CL_MEM_CONTEXT:                               cl_uint = 0x1106;
 pub const CL_MEM_ASSOCIATED_MEMOBJECT:                  cl_uint = 0x1107;
 pub const CL_MEM_OFFSET:                                cl_uint = 0x1108;
+// #define CL_MEM_USES_SVM_POINTER                     0x1109
 
 // cl_image_info
 pub const CL_IMAGE_FORMAT:                              cl_uint = 0x1110;
@@ -428,6 +484,10 @@ pub const CL_IMAGE_ARRAY_SIZE:                          cl_uint = 0x1117;
 pub const CL_IMAGE_BUFFER:                              cl_uint = 0x1118;
 pub const CL_IMAGE_NUM_MIP_LEVELS:                      cl_uint = 0x1119;
 pub const CL_IMAGE_NUM_SAMPLES:                         cl_uint = 0x111A;
+
+// /* cl_pipe_info */
+// #define CL_PIPE_PACKET_SIZE                         0x1120
+// #define CL_PIPE_MAX_PACKETS                         0x1121
 
 // cl_addressing_mode
 pub const CL_ADDRESS_NONE:                              cl_uint = 0x1130;
@@ -446,6 +506,9 @@ pub const CL_SAMPLER_CONTEXT:                           cl_uint = 0x1151;
 pub const CL_SAMPLER_NORMALIZED_COORDS:                 cl_uint = 0x1152;
 pub const CL_SAMPLER_ADDRESSING_MODE:                   cl_uint = 0x1153;
 pub const CL_SAMPLER_FILTER_MODE:                       cl_uint = 0x1154;
+// #define CL_SAMPLER_MIP_FILTER_MODE                  0x1155
+// #define CL_SAMPLER_LOD_MIN                          0x1156
+// #define CL_SAMPLER_LOD_MAX                          0x1157
 
 // cl_map_flags - bitfield
 pub const CL_MAP_READ:                                  cl_bitfield = 1 << 0;
@@ -462,12 +525,14 @@ pub const CL_PROGRAM_BINARY_SIZES:                      cl_uint = 0x1165;
 pub const CL_PROGRAM_BINARIES:                          cl_uint = 0x1166;
 pub const CL_PROGRAM_NUM_KERNELS:                       cl_uint = 0x1167;
 pub const CL_PROGRAM_KERNEL_NAMES:                      cl_uint = 0x1168;
+// #define CL_PROGRAM_IL                               0x1169
 
 // cl_program_build_info
 pub const CL_PROGRAM_BUILD_STATUS:                      cl_uint = 0x1181;
 pub const CL_PROGRAM_BUILD_OPTIONS:                     cl_uint = 0x1182;
 pub const CL_PROGRAM_BUILD_LOG:                         cl_uint = 0x1183;
 pub const CL_PROGRAM_BINARY_TYPE:                       cl_uint = 0x1184;
+// #define CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE 0x1185
 
 // cl_program_binary_type
 pub const CL_PROGRAM_BINARY_TYPE_NONE:                  cl_bitfield = 0x0;
@@ -488,6 +553,8 @@ pub const CL_KERNEL_REFERENCE_COUNT:                    cl_uint = 0x1192;
 pub const CL_KERNEL_CONTEXT:                            cl_uint = 0x1193;
 pub const CL_KERNEL_PROGRAM:                            cl_uint = 0x1194;
 pub const CL_KERNEL_ATTRIBUTES:                         cl_uint = 0x1195;
+// #define CL_KERNEL_MAX_NUM_SUB_GROUPS                0x11B9
+// #define CL_KERNEL_COMPILE_NUM_SUB_GROUPS            0x11BA
 
 // cl_kernel_arg_info
 pub const CL_KERNEL_ARG_ADDRESS_QUALIFIER:              cl_uint = 0x1196;
@@ -513,6 +580,7 @@ pub const CL_KERNEL_ARG_TYPE_NONE:                      cl_bitfield = 0;
 pub const CL_KERNEL_ARG_TYPE_CONST:                     cl_bitfield = 1 << 0;
 pub const CL_KERNEL_ARG_TYPE_RESTRICT:                  cl_bitfield = 1 << 1;
 pub const CL_KERNEL_ARG_TYPE_VOLATILE:                  cl_bitfield = 1 << 2;
+// #define CL_KERNEL_ARG_TYPE_PIPE                     (1 << 3)
 
 // cl_kernel_work_group_info
 pub const CL_KERNEL_WORK_GROUP_SIZE:                    cl_uint = 0x11B0;
@@ -521,6 +589,15 @@ pub const CL_KERNEL_LOCAL_MEM_SIZE:                     cl_uint = 0x11B2;
 pub const CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE: cl_uint = 0x11B3;
 pub const CL_KERNEL_PRIVATE_MEM_SIZE:                   cl_uint = 0x11B4;
 pub const CL_KERNEL_GLOBAL_WORK_SIZE:                   cl_uint = 0x11B5;
+
+// /* cl_kernel_sub_group_info */
+// #define CL_KERNEL_MAX_SUB_GROUP_SIZE_FOR_NDRANGE    0x2033
+// #define CL_KERNEL_SUB_GROUP_COUNT_FOR_NDRANGE       0x2034
+// #define CL_KERNEL_LOCAL_SIZE_FOR_SUB_GROUP_COUNT    0x11B8
+
+// /* cl_kernel_exec_info */
+// #define CL_KERNEL_EXEC_INFO_SVM_PTRS                0x11B6
+// #define CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM   0x11B7
 
 // cl_event_info
 pub const CL_EVENT_COMMAND_QUEUE:                       cl_uint = 0x11D0;
@@ -555,6 +632,11 @@ pub const CL_COMMAND_BARRIER:                           cl_uint = 0x1205;
 pub const CL_COMMAND_MIGRATE_MEM_OBJECTS:               cl_uint = 0x1206;
 pub const CL_COMMAND_FILL_BUFFER:                       cl_uint = 0x1207;
 pub const CL_COMMAND_FILL_IMAGE:                        cl_uint = 0x1208;
+// #define CL_COMMAND_SVM_FREE                         0x1209
+// #define CL_COMMAND_SVM_MEMCPY                       0x120A
+// #define CL_COMMAND_SVM_MEMFILL                      0x120B
+// #define CL_COMMAND_SVM_MAP                          0x120C
+// #define CL_COMMAND_SVM_UNMAP                        0x120D
 
 // command execution status
 pub const CL_COMPLETE:                                  cl_int = 0x0;
@@ -570,6 +652,7 @@ pub const CL_PROFILING_COMMAND_QUEUED:                  cl_uint = 0x1280;
 pub const CL_PROFILING_COMMAND_SUBMIT:                  cl_uint = 0x1281;
 pub const CL_PROFILING_COMMAND_START:                   cl_uint = 0x1282;
 pub const CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
+// #define CL_PROFILING_COMMAND_COMPLETE               0x1284
 
 
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
@@ -602,31 +685,48 @@ extern "system" {
                        param_value_size_ret: *mut size_t) -> cl_int;
 
 
-    //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clCreateSubDevices(cl_device_id                         /* in_device */,
     //                    const cl_device_partition_property * /* properties */,
     //                    cl_uint                              /* num_devices */,
     //                    cl_device_id *                       /* out_devices */,
     //                    cl_uint *                            /* num_devices_ret */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clCreateSubDevices(in_device: cl_device_id,
                        properties: *const cl_device_partition_property,
                        num_devices: cl_uint,
                        out_devices: *mut cl_device_id,
                        num_devices_ret: *mut cl_uint) -> cl_int;
 
-    //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clRetainDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clRetainDevice(device: cl_device_id) -> cl_int;
 
-    //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clReleaseDevice(cl_device_id /* device */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clReleaseDevice(device: cl_device_id ) -> cl_int;
+
+    // //############################### NEW 2.1 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clSetDefaultDeviceCommandQueue(cl_context           /* context */,
+    //                                cl_device_id         /* device */,
+    //                                cl_command_queue     /* command_queue */) CL_API_SUFFIX__VERSION_2_1;
+
+    // //############################### NEW 2.1 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clGetDeviceAndHostTimer(cl_device_id    /* device */,
+    //                         cl_ulong*       /* device_timestamp */,
+    //                         cl_ulong*       /* host_timestamp */) CL_API_SUFFIX__VERSION_2_1;
+
+    // //############################### NEW 2.1 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clGetHostTimer(cl_device_id /* device */,
+    //                cl_ulong *   /* host_timestamp */)  CL_API_SUFFIX__VERSION_2_1;
 
     // Context APIs
     pub fn clCreateContext(properties: *const cl_context_properties,
@@ -653,10 +753,18 @@ extern "system" {
                         param_value_size_ret: *mut size_t) -> cl_int;
 
     // Command Queue APIs
+    //########################## DEPRICATED 1.2 ##############################
     pub fn clCreateCommandQueue(context: cl_context,
                             device: cl_device_id,
                             properties: cl_command_queue_properties,
                             errcode_ret: *mut cl_int) -> cl_command_queue;
+
+    //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_command_queue CL_API_CALL
+    // clCreateCommandQueueWithProperties(cl_context               /* context */,
+    //                                    cl_device_id             /* device */,
+    //                                    const cl_queue_properties *    /* properties */,
+    //                                    cl_int *                 /* errcode_ret */) CL_API_SUFFIX__VERSION_2_0;
 
     pub fn clRetainCommandQueue(command_queue: cl_command_queue) -> cl_int;
 
@@ -681,37 +789,44 @@ extern "system" {
                         buffer_create_info: *const c_void,
                         errcode_ret: *mut cl_int) -> cl_mem;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clCreateImage2D(context: cl_context,
-    //                 flags: cl_mem_flags,
-    //                 image_format: *mut cl_image_format,
-    //                 image_width: size_t,
-    //                 image_depth: size_t,
-    //                 image_slc_pitch: size_t,
-    //                 host_ptr: *mut c_void,
-    //                 errcode_ret: *mut cl_int) -> cl_mem;
+    //########################## DEPRICATED 1.1 ##############################
+    pub fn clCreateImage2D(context: cl_context,
+                    flags: cl_mem_flags,
+                    image_format: *mut cl_image_format,
+                    image_width: size_t,
+                    image_depth: size_t,
+                    image_slc_pitch: size_t,
+                    host_ptr: *mut c_void,
+                    errcode_ret: *mut cl_int) -> cl_mem;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clCreateImage3D(context: cl_context,
-    //                 flags: cl_mem_flags,
-    //                 image_format: *mut cl_image_format,
-    //                 image_width: size_t,
-    //                 image_depth: size_t,
-    //                 image_depth: size_t,
-    //                 image_slc_pitch: size_t,
-    //                 image_depth: size_t,
-    //                 image_slc_pitch: size_t,
-    //                 image_slc_pitch: size_t,
-    //                 host_ptr: *mut c_void,
-    //                 errcode_ret: *mut cl_int) -> cl_mem;
+    //########################## DEPRICATED 1.1 ##############################
+    pub fn clCreateImage3D(context: cl_context,
+                    flags: cl_mem_flags,
+                    image_format: *mut cl_image_format,
+                    image_width: size_t,
+                    image_height: size_t,
+                    image_depth: size_t,
+                    image_row_pitch: size_t,
+                    image_slc_pitch: size_t,
+                    host_ptr: *mut c_void,
+                    errcode_ret: *mut cl_int) -> cl_mem;
 
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clCreateImage(context: cl_context,
                         flags: cl_mem_flags,
                         image_format: *const cl_image_format,
                         image_desc: *const cl_image_desc,
                         host_ptr: *mut c_void,
                         errcode_ret: *mut cl_int) -> cl_mem;
+
+    //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_mem CL_API_CALL
+    // clCreatePipe(cl_context                 /* context */,
+    //              cl_mem_flags               /* flags */,
+    //              cl_uint                    /* pipe_packet_size */,
+    //              cl_uint                    /* pipe_max_packets */,
+    //              const cl_pipe_properties * /* properties */,
+    //              cl_int *                   /* errcode_ret */) CL_API_SUFFIX__VERSION_2_0;
 
     pub fn clRetainMemObject(memobj: cl_mem) -> cl_int;
 
@@ -736,9 +851,30 @@ extern "system" {
                       param_value: *mut c_void,
                       param_value_size_ret: *mut size_t) -> cl_int;
 
+    //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clGetPipeInfo(cl_mem           /* pipe */,
+    //               cl_pipe_info     /* param_name */,
+    //               size_t           /* param_value_size */,
+    //               void *           /* param_value */,
+    //               size_t *         /* param_value_size_ret */) CL_API_SUFFIX__VERSION_2_0;
+
     pub fn clSetMemObjectDestructorCallback(memobj: cl_mem,
                                         pfn_notify: Option<extern fn (cl_mem, *mut c_void)>,
                                         user_data: *mut c_void) -> cl_int;
+
+    /* SVM Allocation APIs */
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY void * CL_API_CALL
+    // clSVMAlloc(cl_context       /* context */,
+    //            cl_svm_mem_flags /* flags */,
+    //            size_t           /* size */,
+    //            cl_uint          /* alignment */) CL_API_SUFFIX__VERSION_2_0;
+
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY void CL_API_CALL
+    // clSVMFree(cl_context        /* context */,
+    //           void *            /* svm_pointer */) CL_API_SUFFIX__VERSION_2_0;
 
     // Sampler APIs
     pub fn clCreateSampler(context: cl_context,
@@ -746,6 +882,12 @@ extern "system" {
                        addressing_mode: cl_addressing_mode,
                        filter_mode: cl_filter_mode,
                        errcode_ret: *mut cl_int) -> cl_sampler;
+
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_sampler CL_API_CALL
+    // clCreateSamplerWithProperties(cl_context                     /* context */,
+    //                               const cl_sampler_properties *  /* normalized_coords */,
+    //                               cl_int *                       /* errcode_ret */) CL_API_SUFFIX__VERSION_2_0;
 
     pub fn clRetainSampler(sampler: cl_sampler) -> cl_int;
 
@@ -772,19 +914,26 @@ extern "system" {
                                  binary_status: *mut cl_int,
                                  errcode_ret: *mut cl_int) -> cl_program;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_program CL_API_CALL
     // clCreateProgramWithBuiltInKernels(cl_context            /* context */,
     //                                  cl_uint               /* num_devices */,
     //                                  const cl_device_id *  /* device_list */,
     //                                  const char *          /* kernel_names */,
     //                                  cl_int *              /* errcode_ret */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clCreateProgramWithBuiltInKernels(context: cl_context,
                                      num_devices: cl_uint,
                                      device_list: *const cl_device_id,
                                      kernel_names: *mut char,
                                      errcode_ret: *mut cl_int) -> cl_program;
+
+    // //############################### NEW 2.1 #################################
+    // extern CL_API_ENTRY cl_program CL_API_CALL
+    // clCreateProgramWithIL(cl_context    /* context */,
+    //                      const void*    /* il */,
+    //                      size_t         /* length */,
+    //                      cl_int*        /* errcode_ret */) CL_API_SUFFIX__VERSION_2_1;
 
     pub fn clRetainProgram(program: cl_program) -> cl_int;
 
@@ -797,10 +946,10 @@ extern "system" {
                       pfn_notify: Option<extern fn (cl_program, *mut c_void)>,
                       user_data: *mut c_void) -> cl_int;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clUnloadCompsaler() -> cl_int;
+    //########################## DEPRICATED 1.1 ##############################
+    pub fn clUnloadCompiler() -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clCompileProgram(cl_program           /* program */,
     //                 cl_uint              /* num_devices */,
@@ -811,7 +960,7 @@ extern "system" {
     //                 const char **        /* header_include_names */,
     //                 void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
     //                 void *               /* user_data */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clCompileProgram(program: cl_program,
                     num_devices: cl_uint,
                     device_list: *const cl_device_id,
@@ -822,7 +971,7 @@ extern "system" {
                     pfn_notify: Option<extern fn (program: cl_program, user_data: *mut c_void)>,
                     user_data: *mut c_void) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_program CL_API_CALL
     // clLinkProgram(cl_context           /* context */,
     //               cl_uint              /* num_devices */,
@@ -833,7 +982,7 @@ extern "system" {
     //               void (CL_CALLBACK *  /* pfn_notify */)(cl_program /* program */, void * /* user_data */),
     //               void *               /* user_data */,
     //               cl_int *             /* errcode_ret */ ) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clLinkProgram(context: cl_context,
                   num_devices: cl_uint,
                   device_list: *const cl_device_id,
@@ -844,10 +993,10 @@ extern "system" {
                   user_data: *mut c_void,
                   errcode_ret: *mut cl_int) -> cl_program;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clUnloadPlatformCompiler(cl_platform_id /* platform */) CL_API_SUFFIX__VERSION_1_2;
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // [DISABLED DUE TO PLATFORM INCOMPATABILITY]
     // pub fn clUnloadPlatformCompiler(platform: cl_platform_id) -> cl_int;
 
@@ -874,6 +1023,11 @@ extern "system" {
                                 kernels: *mut cl_kernel,
                                 num_kernels_ret: *mut cl_uint) -> cl_int;
 
+    // //############################### NEW 2.1 #################################
+    // extern CL_API_ENTRY cl_kernel CL_API_CALL
+    // clCloneKernel(cl_kernel     /* source_kernel */,
+    //               cl_int*       /* errcode_ret */) CL_API_SUFFIX__VERSION_2_1;
+
     pub fn clRetainKernel(kernel: cl_kernel) -> cl_int;
 
     pub fn clReleaseKernel(kernel: cl_kernel) -> cl_int;
@@ -883,13 +1037,26 @@ extern "system" {
                       arg_size: size_t,
                       arg_value: *const c_void) -> cl_int;
 
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clSetKernelArgSVMPointer(cl_kernel    /* kernel */,
+    //                          cl_uint      /* arg_index */,
+    //                          const void * /* arg_value */) CL_API_SUFFIX__VERSION_2_0;
+
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clSetKernelExecInfo(cl_kernel            /* kernel */,
+    //                     cl_kernel_exec_info  /* param_name */,
+    //                     size_t               /* param_value_size */,
+    //                     const void *         /* param_value */) CL_API_SUFFIX__VERSION_2_0;
+
     pub fn clGetKernelInfo(kernel: cl_kernel,
                        param_name: cl_kernel_info,
                        param_value_size: size_t,
                        param_value: *mut c_void,
                        param_value_size_ret: *mut size_t) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clGetKernelArgInfo(cl_kernel       /* kernel */,
     //                   cl_uint         /* arg_indx */,
@@ -897,7 +1064,7 @@ extern "system" {
     //                   size_t          /* param_value_size */,
     //                   void *          /* param_value */,
     //                   size_t *        /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clGetKernelArgInfo(kernel: cl_kernel,
                       arg_indx: cl_uint,
                       param_name: cl_kernel_arg_info,
@@ -911,6 +1078,17 @@ extern "system" {
                                 param_value_size: size_t,
                                 param_value: *mut c_void,
                                 param_value_size_ret: *mut size_t) -> cl_int;
+
+    // //############################### NEW 2.1 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clGetKernelSubGroupInfo(cl_kernel                   /* kernel */,
+    //                         cl_device_id                /* device */,
+    //                         cl_kernel_sub_group_info    /* param_name */,
+    //                         size_t                      /* input_value_size */,
+    //                         const void*                 /*input_value */,
+    //                         size_t                      /* param_value_size */,
+    //                         void*                       /* param_value */,
+    //                         size_t*                     /* param_value_size_ret */ ) CL_API_SUFFIX__VERSION_2_1;
 
     // Event Object APIs
     pub fn clWaitForEvents(num_events: cl_uint,
@@ -1000,7 +1178,7 @@ extern "system" {
                                 event_wait_list: *const cl_event,
                                 event: *mut cl_event) -> cl_int;
 
-        // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueFillBuffer(cl_command_queue   /* command_queue */,
     //                 cl_mem             /* buffer */,
@@ -1011,7 +1189,7 @@ extern "system" {
     //                 cl_uint            /* num_events_in_wait_list */,
     //                 const cl_event *   /* event_wait_list */,
     //                 cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clEnqueueFillBuffer(command_queue: cl_command_queue,
                     buffer: cl_mem,
                     pattern: *const c_void,
@@ -1070,7 +1248,7 @@ extern "system" {
                            event_wait_list: *const cl_event,
                            event: *mut cl_event) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueFillImage(cl_command_queue   /* command_queue */,
     //                   cl_mem             /* image */,
@@ -1080,7 +1258,7 @@ extern "system" {
     //                   cl_uint            /* num_events_in_wait_list */,
     //                   const cl_event *   /* event_wait_list */,
     //                   cl_event *         /* event */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clEnqueueFillImage(command_queue: cl_command_queue,
                       image: cl_mem,
                       fill_color: *const c_void,
@@ -1151,7 +1329,7 @@ extern "system" {
                                event_wait_list: *const cl_event,
                                event: *mut cl_event) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueMigrateMemObjects(cl_command_queue       /* command_queue */,
     //                           cl_uint                /* num_mem_objects */,
@@ -1160,7 +1338,7 @@ extern "system" {
     //                           cl_uint                /* num_events_in_wait_list */,
     //                           const cl_event *       /* event_wait_list */,
     //                           cl_event *             /* event */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clEnqueueMigrateMemObjects(command_queue: cl_command_queue,
                               num_mem_objects: cl_uint,
                               mem_objects: *const cl_mem,
@@ -1179,6 +1357,7 @@ extern "system" {
                               event_wait_list: *const cl_event,
                               event: *mut cl_event) -> cl_int;
 
+    //########################## DEPRICATED 1.2 ##############################
     pub fn clEnqueueTask(command_queue: cl_command_queue,
                      kernel: cl_kernel,
                      num_events_in_wait_list: cl_uint,
@@ -1196,28 +1375,28 @@ extern "system" {
                              event_wait_list: *const cl_event,
                              event: *mut cl_event) -> cl_int;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clEnqueueMarker(command_queue: cl_command_queue,
-    //                 event: *mut cl_event) -> cl_int;
+    //########################## DEPRICATED 1.1 ##############################
+    pub fn clEnqueueMarker(command_queue: cl_command_queue,
+                    event: *mut cl_event) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueMarkerWithWaitList(cl_command_queue /* command_queue */,
     //          cl_uint           /* num_events_in_wait_list */,
     //          const cl_event *  /* event_wait_list */,
     //          cl_event *        /* event */) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clEnqueueMarkerWithWaitList(command_queue: cl_command_queue,
              num_events_in_wait_list: cl_uint,
              event_wait_list: *const cl_event,
              event: *mut cl_event) -> cl_int;
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clEnqueueWaitForEvents(command_queue: cl_command_queue,
-    //                        num_events: cl_uint,
-    //                        event_list: *mut cl_event) -> cl_int;
+    //########################## DEPRICATED 1.1 ##############################
+    pub fn clEnqueueWaitForEvents(command_queue: cl_command_queue,
+                           num_events: cl_uint,
+                           event_list: *mut cl_event) -> cl_int;
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clEnqueueBarrierWithWaitList(
     //          cl_command_queue
@@ -1232,7 +1411,7 @@ extern "system" {
     //          cl_event *
     //           // event
     //      ) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clEnqueueBarrierWithWaitList(
              command_queue: cl_command_queue,
              num_events_in_wait_list: cl_uint,
@@ -1240,24 +1419,91 @@ extern "system" {
              event: *mut cl_event) -> cl_int;
 
 
-    // //##### DEPRICATED 1.1 #####
-    // pub fn clEnqueueBarrier(command_queue: cl_command_queue) -> cl_int;
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clEnqueueSVMFree(cl_command_queue  /* command_queue */,
+    //                  cl_uint           /* num_svm_pointers */,
+    //                  void *[]          /* svm_pointers[] */,
+    //                  void (CL_CALLBACK * /*pfn_free_func*/)(cl_command_queue /* queue */,
+    //                                                         cl_uint          /* num_svm_pointers */,
+    //                                                         void *[]         /* svm_pointers[] */,
+    //                                                         void *           /* user_data */),
+    //                  void *            /* user_data */,
+    //                  cl_uint           /* num_events_in_wait_list */,
+    //                  const cl_event *  /* event_wait_list */,
+    //                  cl_event *        /* event */) CL_API_SUFFIX__VERSION_2_0;
 
-    // //##### DEPRICATED 1.1 #####
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clEnqueueSVMMemcpy(cl_command_queue  /* command_queue */,
+    //                    cl_bool           /* blocking_copy */,
+    //                    void *            /* dst_ptr */,
+    //                    const void *      /* src_ptr */,
+    //                    size_t            /* size */,
+    //                    cl_uint           /* num_events_in_wait_list */,
+    //                    const cl_event *  /* event_wait_list */,
+    //                    cl_event *        /* event */) CL_API_SUFFIX__VERSION_2_0;
+
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clEnqueueSVMMemFill(cl_command_queue  /* command_queue */,
+    //                     void *            /* svm_ptr */,
+    //                     const void *      /* pattern */,
+    //                     size_t            /* pattern_size */,
+    //                     size_t            /* size */,
+    //                     cl_uint           /* num_events_in_wait_list */,
+    //                     const cl_event *  /* event_wait_list */,
+    //                     cl_event *        /* event */) CL_API_SUFFIX__VERSION_2_0;
+
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clEnqueueSVMMap(cl_command_queue  /* command_queue */,
+    //                 cl_bool           /* blocking_map */,
+    //                 cl_map_flags      /* flags */,
+    //                 void *            /* svm_ptr */,
+    //                 size_t            /* size */,
+    //                 cl_uint           /* num_events_in_wait_list */,
+    //                 const cl_event *  /* event_wait_list */,
+    //                 cl_event *        /* event */) CL_API_SUFFIX__VERSION_2_0;
+
+    // //############################### NEW 2.0 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clEnqueueSVMUnmap(cl_command_queue  /* command_queue */,
+    //                   void *            /* svm_ptr */,
+    //                   cl_uint           /* num_events_in_wait_list */,
+    //                   const cl_event *  /* event_wait_list */,
+    //                   cl_event *        /* event */) CL_API_SUFFIX__VERSION_2_0;
+
+    // //############################### NEW 2.1 #################################
+    // extern CL_API_ENTRY cl_int CL_API_CALL
+    // clEnqueueSVMMigrateMem(cl_command_queue         /* command_queue */,
+    //                        cl_uint                  /* num_svm_pointers */,
+    //                        const void **            /* svm_pointers */,
+    //                        const size_t *           /* sizes */,
+    //                        cl_mem_migration_flags   /* flags */,
+    //                        cl_uint                  /* num_events_in_wait_list */,
+    //                        const cl_event *         /* event_wait_list */,
+    //                        cl_event *               /* event */) CL_API_SUFFIX__VERSION_2_1;
+
+
+    //########################## DEPRICATED 1.1 ##############################
+    pub fn clEnqueueBarrier(command_queue: cl_command_queue) -> cl_int;
+
+    //########################## DEPRICATED 1.1 ##############################
     // Extension function access
     // Returns the extension function address for the given function name,
     // or NULL if a valid function can not be found. The client must
     // check to make sure the address is not NULL, before using or
     // or calling the returned function address.
-    // pub fn clGetExtensionFunctionAddress(func_name: *mut c_char);
+    pub fn clGetExtensionFunctionAddress(func_name: *mut c_char);
 
-    // //################## NEW 1.2 ###################
+    // //############################### NEW 1.2 #################################
     // extern CL_API_ENTRY void * CL_API_CALL
     // clGetExtensionFunctionAddressForPlatform(cl_platform_id /* platform */,
     //                    const char *
     //                     // func_name
     //                    ) CL_API_SUFFIX__VERSION_1_2;
-    //################## NEW 1.2 ###################
+    //############################### NEW 1.2 #################################
     pub fn clGetExtensionFunctionAddressForPlatform(platform: cl_platform_id,
                        func_name: *const c_char) -> *mut c_void;
 }
