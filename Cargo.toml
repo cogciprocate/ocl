@@ -22,18 +22,14 @@ kernel_debug_sleep = []
 # git = "https://github.com/cogciprocate/cl-sys"
 
 [dependencies]
-# cl-sys = { git = "https://github.com/cogciprocate/cl-sys" }
-cl-sys = { path = "/home/nick/src/github.com/cogciprocate/cl-sys" }
-
-# ocl-core = { git = "https://github.com/cogciprocate/ocl-core" }
-ocl-core = { path = "/home/nick/src/github.com/cogciprocate/ocl-core" }
-
-# [TODO]: Make optional feature:
-rand = "0.3"
+cl-sys = "0.1"
+ocl-core = "0.1"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.5"
+# [TODO]: Make rand optional feature:
+rand = "0.3"
 
 [dev-dependencies]
 # [TODO]: Make optional somehow or remove or something: [DONE]
