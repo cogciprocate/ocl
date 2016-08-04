@@ -4,27 +4,27 @@
 //!
 //! *The layer between the hard rough and the soft furry parts...*
 //!
-//! Allows access to `OpenCL` FFI functions with a minimal layer of abstraction,
-//! providing both safety and convenience. Using functions in this module is
-//! only recommended for use when functionality has not yet been implemented
-//! on the 'standard' ocl interfaces. The 'core' and 'standard' interfaces are
-//! all completely interoperable, and generally feature-equivalent.
+//! Allows access to `OpenCL` FFI functions with a minimal layer of
+//! abstraction, providing both safety and convenience. The [`ocl`] crate
+//! contains higher level and easier to use interfaces to the functionality
+//! contained within.
 //!
 //!
-//! ## Even Lower Level: [`cl_h`]
+//! ## Even Lower Level: [`cl_sys`]
 //!
 //! If there's still something missing or for some reason you need direct FFI
-//! access, use the functions in the [`cl_h`] module. The pointers used by
-//! [`cl_h`] functions can be wrapped in [`core`] wrappers (core::PlatformId,
-//! core::Context, etc.) and passed to [`core`] module functions. Likewise the
-//! other way around (using, for example: [`EventRaw::as_ptr`]).
+//! access, use the functions in the [`cl_sys`] module. The pointers used by
+//! [`cl_sys`] functions can be wrapped in [`ocl-core`] wrappers
+//! (ocl_core::PlatformId, ocl_core::Context, etc.) and passed to [`ocl-core`]
+//! module functions. Likewise the other way around (using, for example:
+//! [`EventRaw::as_ptr`]).
 //!
 //!
 //! ## Performance
 //!
-//! Performance between all three interface layers, [`cl_h`], [`core`], and
-//! the 'standard' types, is identical or virtually identical (if not, please
-//! file an issue).
+//! Performance between all three interface layers, [`cl_sys`], [`ocl-core`],
+//! and the 'standard' ([`ocl`]) types, is identical or virtually identical
+//! (if not, please file an issue).
 //!
 //!
 //! ## Safety
@@ -38,11 +38,11 @@
 //!
 //! No, not that...
 //!
-//! Quantifiers passed to functions in the `OpenCL` API are generally expressed
-//! in terms of bytes where units passed to functions in this module are
-//! expected to be `bytes / sizeof(T)`, corresponding with units returned by
-//! the ubiquitous `.len()` method. The suffix '_size' or '_bytes' is
-//! generally used when a parameter deviates from this convention.
+//! Quantifiers passed to functions in the `OpenCL` API are generally
+//! expressed in terms of bytes where units passed to functions in this
+//! library are expected to be `bytes / sizeof(T)`, corresponding with units
+//! returned by the ubiquitous `.len()` method. The suffix '_size' or '_bytes'
+//! is generally used when a parameter deviates from this convention.
 //!
 //!
 //! ## More Documentation
@@ -52,37 +52,21 @@
 //! precise 1:1 parameter mapping between the `core` and original functions,
 //! it's close enough (modulo the size/len difference discussed above) to help
 //! sort out any questions you may have until a more thorough documentation
-//! pass can be made. View the source code in [`src/core/functions.rs`] for
+//! pass can be made. View the source code in [`src/types/functions.rs`] for
 //! more mapping details.
 //!
-//! [`OpenCL` 1.2 SDK Reference:
-//! https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
+//! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]
 //!
 //!
-//! ## Help Wanted
-//!
-//! Please help complete coverage of any FFI functions you may need by filing
-//! an [issue](https://github.com/cogciprocate/ocl/issues) or creating a [pull
-//! request](https://github.com/cogciprocate/ocl/pulls).
-//!
-//! [STATUS]: <br/> Coverage of core stuff: 100%. <br/> Coverage of peripheral
-//! stuff: 90%. <br/>
 //!
 //!
-//! ## `core` Stands Alone
-//!
-//! This module may eventually be moved to its own separate crate (with its
-//! dependencies `cl_h` and `error`).
 //!
 //!
-//! [issue]: https://github.com/cogciprocate/ocl/issues
-//! [`cl_h`]: /ocl/ocl/cl_h/index.html
-//! [`core`]: /ocl/ocl/core/index.html
-//! [`Error`]: /ocl/ocl/enum.Error.html
-//! [`EventRaw::as_ptr`]: /ocl/ocl/core/struct.EventRaw.html#method.as_ptr
-//! [`clSetKernelArg`]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
-//! [`OpenCL` 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
-//! [`src/core/functions.rs`]: /ocl/src/ocl/src/core/functions.rs.html
+//! [`ocl`]: https://github.com/cogciprocate/ocl
+//! [`cl_sys`]: https://github.com/cogciprocate/cl_sys
+//! [issue]: https://github.com/cogciprocate/ocl-core/issues
+//! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
+//! [`src/types/functions.rs`]: /ocl-core/src/ocl-core/src/types/functions.rs.html
 
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate enum_primitive;
@@ -97,14 +81,10 @@ pub mod error;
 pub mod util;
 
 use std::fmt::{Display, Debug};
-// use std::num::{Zero, One};
 use std::ops::{Add, Sub, Mul, Div, Rem};
-// use libc;
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 pub use ffi::cl_h;
-// use ffi::{cl_gl_h, glcorearb_h};
-// use ffi;
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,

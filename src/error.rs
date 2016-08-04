@@ -2,16 +2,12 @@
 //!
 
 use std;
-// use std::error::Error;
-// use std::io;
-// use std::fmt;
 use std::convert::Into;
-// use std::collections::str::FromUtf8Error;
-// use std::ffi;
 use std::default::Default;
 use num::FromPrimitive;
-
 use cl_h::Status;
+
+
 /// `ocl::Error` result type.
 pub type Result<T> = std::result::Result<T, self::Error>;
 
@@ -34,8 +30,6 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 /// For now, don't assume the existence of or check for any of the above.
 ///
 pub enum Error {
-    // description: String,
-    // Status(Status, String),
     Conversion(String),
     Status { status: Status, fn_name: &'static str, fn_info: String, desc: String },
     String(String),
