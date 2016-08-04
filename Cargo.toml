@@ -2,14 +2,14 @@
 name = "cl-sys"
 version = "0.1.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
-description = "OpenCL bindings for Rust."
-documentation = "http://doc.cogciprocate.com/cl-sys/cl-sys/index.html"
+description = "OpenCL FFI bindings."
+documentation = "http://doc.cogciprocate.com/cl_sys/cl_sys"
 homepage = "https://github.com/cogciprocate/cl-sys"
 repository = "https://github.com/cogciprocate/cl-sys"
 readme = "README.md"
 keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT"
-exclude = ["target/*", "*.png", "bak/*"]
+exclude = ["target/*", "bak/*"]
 
 [dependencies]
 enum_primitive = "0.1"

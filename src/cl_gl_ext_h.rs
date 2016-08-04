@@ -1,3 +1,5 @@
+//! CGL (Apple) stuff.
+
 pub use cl_h::cl_context_properties;
 
 // Introduced in Mac OS X 10.6

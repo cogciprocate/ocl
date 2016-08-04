@@ -1,4 +1,8 @@
-//! The bowels and fundament of the operation.
+//! FFI bindings for OpenCL.
+//!
+//! See [ocl-core](https://github.com/cogciprocate/ocl-core) for usage
+//! examples.
+//!
 
 #[macro_use] extern crate enum_primitive;
 extern crate libc;
