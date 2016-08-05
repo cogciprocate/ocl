@@ -220,7 +220,7 @@ impl DeviceId {
     }
 
     /// Returns the looked up and parsed OpenCL version for this device.
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    pub fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
         if !self.0.is_null() {
             functions::get_device_info(self, DeviceInfo::Version)
                 .as_opencl_version().map(|dv| vec![dv])
