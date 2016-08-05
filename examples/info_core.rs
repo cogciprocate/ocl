@@ -36,7 +36,7 @@ fn print_platform(platform: Platform) {
 }
 
 fn print_platform_device(platform: Platform, device: Device) {
-    let device_version = core::get_device_version(&device).unwrap();
+    let device_version = device.device_versions().unwrap();
 
     let context = Context::builder().platform(platform).devices(device).build().unwrap();
     let program = Program::builder()

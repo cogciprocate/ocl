@@ -13,3 +13,6 @@ glium = "0.14"
 [dependencies.ocl]
 path = "/home/nick/projects/ocl"
 
+[replace]
+"cl-sys:0.1.0" = { git = 'https://github.com/cogciprocate/cl-sys' }
+"ocl-core:0.1.0" = { git = "https://github.com/cogciprocate/ocl-core" }

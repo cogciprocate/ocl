@@ -449,7 +449,7 @@ impl Kernel {
         //     Err(err) => KernelArgInfoResult::Error(Box::new(err)),
         // }
         core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind,
-            Some(self.queue.device_version()))
+            Some(&[self.queue.device_version()]))
     }
 
     /// Returns work group information for this kernel.

@@ -682,7 +682,7 @@ impl<E: OclPrm> Image<E> {
             &image_format,
             &image_desc,
             image_data,
-            Some(queue.device_version()),
+            Some(&[queue.device_version()]),
         )) };
 
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
