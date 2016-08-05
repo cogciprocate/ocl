@@ -79,15 +79,6 @@ const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
 //============================================================================
 //============================================================================
 
-/// will check if current device support CL_GL_SHARING_EXT option
-fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: &D) -> OclResult<bool> {
-    match get_device_info(device, DeviceInfo::Extensions) {
-        DeviceInfoResult::Extensions(extensions) => Ok(extensions.contains(CL_GL_SHARING_EXT)),
-        DeviceInfoResult::Error(err) => Err(*err),
-        _ => OclError::err("Bad DeviceInfo returned, excpected Extensions")
-    }
-}
-
 /// [DEPRICATED] Evaluates `errcode` and returns an `Err` with a failure
 /// message if it is not 0.
 ///
@@ -158,6 +149,19 @@ pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids
     }
 
     Ok(())
+}
+
+
+
+
+
+/// will check if current device support CL_GL_SHARING_EXT option
+fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: &D) -> OclResult<bool> {
+    match get_device_info(device, DeviceInfo::Extensions) {
+        DeviceInfoResult::Extensions(extensions) => Ok(extensions.contains(CL_GL_SHARING_EXT)),
+        DeviceInfoResult::Error(err) => Err(*err),
+        _ => OclError::err("Bad DeviceInfo returned, excpected Extensions")
+    }
 }
 
 //============================================================================
@@ -384,6 +388,8 @@ pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclResult<(
     //                    num_devices: cl_uint,
     //                    out_devices: *mut cl_device_id,
     //                    num_devices_ret: *mut cl_uint) -> cl_int;
+
+    let _ = device_version;
     unimplemented!();
 }
 
@@ -1247,6 +1253,7 @@ pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersio
     //                                  device_list: *const cl_device_id,
     //                                  kernel_names: *mut char,
     //                                  errcode_ret: *mut cl_int) -> cl_program;
+    let _ =  device_version;
     unimplemented!();
 }
 
@@ -1320,6 +1327,7 @@ pub fn compile_program(device_version: Option<&OpenclVersion>) -> OclResult<()> 
     //                 header_include_names: *const *const c_char,
     //                 pfn_notify: extern fn (program: cl_program, user_data: *mut c_void),
     //                 user_data: *mut c_void) -> cl_int;
+    let _ = device_version;
     unimplemented!();
 }
 
@@ -1336,6 +1344,7 @@ pub fn link_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
     //               pfn_notify: extern fn (program: cl_program, user_data: *mut c_void),
     //               user_data: *mut c_void,
     //               errcode_ret: *mut cl_int) -> cl_program;
+    let _ = device_version;
     unimplemented!();
 }
 
