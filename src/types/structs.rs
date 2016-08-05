@@ -19,21 +19,22 @@ pub type TemporaryPlaceholderType = ();
 ///
 /// ex.: 'OpenCL 1.2' -> `OpenclVersion(1, 2)`.
 ///
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OpenclVersion {
-    ver: [u32; 2],
+    ver: [u16; 2],
 }
 
 impl OpenclVersion {
-    pub fn new(major: u32, minor: u32) -> OpenclVersion {
+    pub fn new(major: u16, minor: u16) -> OpenclVersion {
         OpenclVersion { ver: [major, minor] }
     }
 
     pub fn max(&self) -> OpenclVersion {
-        OpenclVersion { ver: [u32::max_value(), u32::max_value()] }
+        OpenclVersion { ver: [u16::max_value(), u16::max_value()] }
     }
 
-    /// Parse the `ver` and return a dual-integer result as `OpenclVersion`.
+    /// Parse the string `ver` and return a dual-integer result as
+    /// `OpenclVersion`.
     ///
     /// Looks for the sequence of chars, "OpenCL" (non-case-sensitive), then
     /// splits the word just after that (at '.') and parses the two results
@@ -48,7 +49,7 @@ impl OpenclVersion {
                 let nums: Vec<_> = word.split('.').collect();
 
                 if nums.len() == 2 {
-                    let (major, minor) = (nums[0].parse::<u32>(), nums[1].parse::<u32>());
+                    let (major, minor) = (nums[0].parse::<u16>(), nums[1].parse::<u16>());
 
                     if major.is_ok() && minor.is_ok() {
                         version = Some(OpenclVersion::new(major.unwrap(), minor.unwrap()));
@@ -81,9 +82,15 @@ impl OpenclVersion {
     }
 }
 
+impl From<[u16; 2]> for OpenclVersion {
+    fn from(ver: [u16; 2]) -> OpenclVersion {
+        OpenclVersion { ver: ver }
+    }
+}
+
 impl std::fmt::Display for OpenclVersion {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "OpenCL {}.{}", self.ver[0], self.ver[1])
+        write!(f, "{}.{}", self.ver[0], self.ver[1])
     }
 }
 

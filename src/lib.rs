@@ -117,11 +117,11 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     enqueue_barrier_with_wait_list, get_extension_function_address_for_platform,
     wait_for_event, get_event_status, default_platform_idx,
     program_build_err, verify_context, default_platform, default_device_type,
-    get_device_version };
+    /*get_device_version*/ };
 
 pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
-    ClWaitList};
+    ClWaitList, ClVersions};
 
 pub use self::types::structs::{OpenclVersion, ContextProperties, ImageFormat, ImageDescriptor,
     BufferRegion, ContextPropertyValue};

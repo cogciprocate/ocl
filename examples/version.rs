@@ -10,6 +10,8 @@ use std::ffi::CString;
 // use core::{ContextProperties, KernelArg};
 
 fn main() {
+    use core::ClVersions;
+
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {
             buffer[get_global_id(0)] += scalar;
@@ -32,6 +34,7 @@ fn main() {
     let dv0 = core::get_device_info(&device_id, core::DeviceInfo::Version);
     println!("Pre-Parse: 'DeviceInfo::Version': {}", dv0);
 
-    let dv1 = core::get_device_version(&device_id).unwrap();
-    println!("Parsed: 'core::get_device_version()': {}", dv1);
+    // let dv1 = core::get_device_version(&device_id).unwrap();
+    let dv1 = device_id.device_versions().unwrap();
+    println!("Parsed: 'core::get_device_version()': {}", dv1.first().unwrap());
 }

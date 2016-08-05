@@ -45,9 +45,9 @@ use std::marker::Sized;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
-use functions;
-use ::CommandExecutionStatus;
+use ::{CommandExecutionStatus, OpenclVersion, DeviceInfo};
 use error::{Result as OclResult, Error as OclError};
+use functions;
 use util;
 
 //=============================================================================
@@ -65,6 +65,22 @@ const DEBUG_PRINT: bool = false;
 //=============================================================================
 //================================== TRAITS ===================================
 //=============================================================================
+
+/// Types with a fixed set of associated devices and an associated platform.
+pub trait ClVersions {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>>;
+    fn platform_version(&self) -> OclResult<OpenclVersion>;
+
+    fn verify_device_versions(&self, required_version: [u16; 2]) -> OclResult<()> {
+        functions::verify_versions(&try!(self.device_versions()), required_version)
+    }
+
+    fn verify_platform_version(&self, required_version: [u16; 2]) -> OclResult<()> {
+        let ver = [try!(self.platform_version())];
+        functions::verify_versions(&ver, required_version)
+    }
+}
+
 
 /// Types with a mutable pointer to a new, null raw event pointer.
 pub unsafe trait ClEventPtrNew: Debug {
@@ -163,6 +179,17 @@ impl PartialEq<PlatformId> for PlatformId {
     }
 }
 
+impl ClVersions for PlatformId {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        unimplemented!();
+    }
+
+    // [FIXME]: TEMPORARY
+    fn platform_version(&self) -> OclResult<OpenclVersion> {
+        unimplemented!();
+    }
+}
+
 
 
 /// cl_device_id
@@ -200,6 +227,18 @@ unsafe impl Send for DeviceId {}
 impl PartialEq<DeviceId> for DeviceId {
     fn eq(&self, other: &DeviceId) -> bool {
         self.0 == other.0
+    }
+}
+
+impl ClVersions for DeviceId {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        functions::get_device_info(self, DeviceInfo::Version)
+            .as_opencl_version().map(|dv| vec![dv])
+    }
+
+    // [FIXME]: TEMPORARY
+    fn platform_version(&self) -> OclResult<OpenclVersion> {
+        unimplemented!();
     }
 }
 
@@ -252,6 +291,17 @@ impl PartialEq<Context> for Context {
     }
 }
 
+impl ClVersions for Context {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        unimplemented!()
+    }
+
+    // [FIXME]: TEMPORARY
+    fn platform_version(&self) -> OclResult<OpenclVersion> {
+        unimplemented!();
+    }
+}
+
 
 /// cl_command_queue
 #[derive(Debug)]
@@ -299,6 +349,17 @@ impl AsRef<CommandQueue> for CommandQueue {
 
 unsafe impl Sync for CommandQueue {}
 unsafe impl Send for CommandQueue {}
+
+impl ClVersions for CommandQueue{
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        unimplemented!()
+    }
+
+    // [FIXME]: TEMPORARY
+    fn platform_version(&self) -> OclResult<OpenclVersion> {
+        unimplemented!();
+    }
+}
 
 
 
@@ -390,6 +451,17 @@ impl Drop for Program {
 unsafe impl Sync for Program {}
 unsafe impl Send for Program {}
 
+impl ClVersions for Program {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        unimplemented!()
+    }
+
+    // [FIXME]: TEMPORARY
+    fn platform_version(&self) -> OclResult<OpenclVersion> {
+        unimplemented!();
+    }
+}
+
 
 /// cl_kernel
 ///
@@ -427,6 +499,17 @@ impl Clone for Kernel {
 impl Drop for Kernel {
     fn drop(&mut self) {
         unsafe { functions::release_kernel(self).unwrap(); }
+    }
+}
+
+impl ClVersions for Kernel {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        unimplemented!()
+    }
+
+    // [FIXME]: TEMPORARY
+    fn platform_version(&self) -> OclResult<OpenclVersion> {
+        unimplemented!();
     }
 }
 

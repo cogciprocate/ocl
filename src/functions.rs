@@ -5,10 +5,11 @@
 //!
 //! Functions in this module with the `[Version Controlled: OpenCL {...}+]`
 //! tag in the description require an additional parameter, `device_version`
-//! which is a parsed result of `DeviceInfo::Version`. This is a check to
-//! ensure that the device supports the function being called. Calling a
-//! function which a particular device does not support will likely cause a
-//! segmentation fault and possibly data corruption.
+//! or `device_versions` which is a parsed result (or slice of results) of
+//! `DeviceInfo::Version`. This is a check to ensure that the device supports
+//! the function being called. Calling a function which a particular device
+//! does not support will likely cause a segmentation fault and possibly data
+//! corruption.
 //!
 //! Saving the `OpenclVersion` returned from `get_device_version()` for your
 //! device(es) at the start of your program and passing each time you call a
@@ -18,10 +19,10 @@
 //! which is more expensive (slower) than passing a pre-cached version but is
 //! a safe option if you are not sure what to do.
 //!
-//! Passing the result of a call to `OpenclVersion::max().unwrap()` or passing
-//! a fake version will bypass any safety checks and has all of the risks
-//! described above. Only do this if you're absolutely sure you know what
-//! you're doing and are not concerned about segfaults and data integrity.
+//! Passing the result of a call to `OpenclVersion::max()` or passing a fake
+//! version will bypass any safety checks and has all of the risks described
+//! above. Only do this if you're absolutely sure you know what you're doing
+//! and are not concerned about segfaults and data integrity.
 //!
 //!
 //!
@@ -63,7 +64,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     KernelWorkGroupInfoResult, ClEventRef, ClWaitList, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
-    MapFlags, BufferRegion, BufferCreateType, OpenclVersion};
+    MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -151,7 +152,49 @@ pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids
     Ok(())
 }
 
+fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
+            required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
+    match provided_version {
+        Some(pv) => {
+            let ver = [pv.clone()];
+            verify_versions(&ver, required_version)
+        },
+        None => fallback_version_source.verify_device_versions(required_version),
+    }
+}
 
+fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersion]>,
+            required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
+    match provided_versions {
+        Some(pv) => verify_versions(pv, required_version),
+        None => fallback_version_source.verify_device_versions(required_version),
+    }
+}
+
+fn verify_platform_version<V: ClVersions>(provided_versions: Option<&OpenclVersion>,
+            required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
+    match provided_versions {
+        Some(pv) => {
+            let vers = [pv.clone()];
+            verify_versions(&vers, required_version)
+        },
+        None => fallback_version_source.verify_platform_version(required_version),
+    }
+}
+
+/// Verifies that device versions are above a specified threshold.
+pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -> OclResult<()> {
+    let reqd_ver = OpenclVersion::from(required_version);
+
+    for dev_v in versions {
+        if dev_v < &reqd_ver {
+            return OclError::err(format!("OpenCL version too low to use this feature\
+                (detected: {}, required: {}).", dev_v, reqd_ver));
+        }
+    }
+
+    Ok(())
+}
 
 
 
@@ -381,7 +424,7 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
 
 /// [UNIMPLEMENTED]
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclResult<()> {
     // clCreateSubDevices(in_device: cl_device_id,
     //                    properties: *const cl_device_partition_property,
@@ -395,17 +438,19 @@ pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclResult<(
 
 /// Increments the reference count of a device.
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
+    try!(verify_device_version(device_version, [1, 2], device));
     errcode_try("clRetainDevice", "", cl_h::clRetainDevice(device.as_ptr()))
 }
 
 /// Decrements the reference count of a device.
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn release_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
+    try!(verify_device_version(device_version, [1, 2], device));
     errcode_try("clReleaseDevice", "", cl_h::clReleaseDevice(device.as_ptr()))
 }
 
@@ -914,19 +959,21 @@ pub fn create_sub_buffer(
 
 /// Returns a new image (mem) pointer.
 ///
-// [WORK IN PROGRESS]
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn create_image<T>(
             context: &Context,
             flags: MemFlags,
             format: &ImageFormat,
             desc: &ImageDescriptor,
             data: Option<&[T]>,
-            device_version: Option<&OpenclVersion>,
+            device_versions: Option<&[OpenclVersion]>,
         ) -> OclResult<Mem>
 {
     // Verify that the context is valid:
     try!(verify_context(context));
+
+    // Verify device version:
+    try!(verify_device_versions(device_versions, [1, 2], context));
 
     let mut errcode: cl_int = 0;
 
@@ -1245,7 +1292,7 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
 
 /// [UNIMPLEMENTED]
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
     // clCreateProgramWithBuiltInKernels(context: cl_context,
@@ -1316,7 +1363,7 @@ pub fn build_program<D: ClDeviceIdPtr + Debug>(
 
 /// [UNIMPLEMENTED]
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn compile_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
     // clCompileProgram(program: cl_program,
     //                 num_devices: cl_uint,
@@ -1333,7 +1380,7 @@ pub fn compile_program(device_version: Option<&OpenclVersion>) -> OclResult<()> 
 
 /// [UNIMPLEMENTED]
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn link_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
     // clLinkProgram(context: cl_context,
     //               num_devices: cl_uint,
@@ -1352,7 +1399,7 @@ pub fn link_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
 // /// [UNTESTED]
 // /// Unloads a platform compiler.
 // ///
-// /// [Version Controlled: OpenCL 1.2+]
+// /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 // pub fn unload_platform_compiler(platform: &PlatformId,
 //          device_version: Option<&OpenclVersion>) -> OclResult<()> {
 //     unsafe { errcode_try("clUnloadPlatformCompiler", "",
@@ -1580,10 +1627,15 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
 
 /// Get kernel arg info.
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
-        device_version: Option<&OpenclVersion>) -> KernelArgInfoResult
+        device_versions: Option<&[OpenclVersion]>) -> KernelArgInfoResult
 {
+    // Verify device version:
+    if let Err(err) = verify_device_versions(device_versions, [1, 2], obj) {
+        return KernelArgInfoResult::Error(Box::new(err))
+    }
+
     let mut result_size: size_t = 0;
 
     let errcode = unsafe { cl_h::clGetKernelArgInfo(
@@ -2033,7 +2085,7 @@ pub fn enqueue_write_buffer_rect<T: OclPrm>(
 ///
 /// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_fill_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2045,6 +2097,8 @@ pub fn enqueue_fill_buffer<T: OclPrm>(
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
+    try!(verify_device_version(device_version, [1, 2], command_queue));
+
     let pattern_size = mem::size_of::<T>();
     let offset_bytes = offset * mem::size_of::<T>();
     let size_bytes = len * mem::size_of::<T>();
@@ -2298,7 +2352,7 @@ pub fn enqueue_write_image<T>(
 ///
 /// TODO: Trait constraints for `T`. Presumably it should be 32bits? Testing needed.
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_fill_image<T>(
             command_queue: &CommandQueue,
             image: &Mem,
@@ -2310,6 +2364,9 @@ pub fn enqueue_fill_image<T>(
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
+    // Verify device version:
+    try!(verify_device_version(device_version, [1, 2], command_queue));
+
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -2587,7 +2644,7 @@ pub fn enqueue_unmap_mem_object(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMigrateMemObjects.html)
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_migrate_mem_objects(
             command_queue: &CommandQueue,
             num_mem_objects: u32,
@@ -2598,6 +2655,9 @@ pub fn enqueue_migrate_mem_objects(
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
+    // Verify device version:
+    try!(verify_device_version(device_version, [1, 2], command_queue));
+
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -2763,7 +2823,7 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMarkerWithWaitList.html)
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_marker_with_wait_list(
             command_queue: &CommandQueue,
             wait_list: Option<&ClWaitList>,
@@ -2771,6 +2831,9 @@ pub fn enqueue_marker_with_wait_list(
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
+    // Verify device version:
+    try!(verify_device_version(device_version, [1, 2], command_queue));
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -2788,7 +2851,7 @@ pub fn enqueue_marker_with_wait_list(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueBarrierWithWaitList.html)
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_barrier_with_wait_list(
             command_queue: &CommandQueue,
             wait_list: Option<&ClWaitList>,
@@ -2796,6 +2859,9 @@ pub fn enqueue_barrier_with_wait_list(
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
+    // Verify device version:
+    try!(verify_device_version(device_version, [1, 2], command_queue));
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -2836,7 +2902,7 @@ pub fn enqueue_barrier_with_wait_list(
 /// - The specified function does not exist for the implementation.
 /// - 'platform' is not a valid platform.
 ///
-/// [Version Controlled: OpenCL 1.2+]
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 //
 // Extension function access
 //
@@ -2859,9 +2925,12 @@ pub fn enqueue_barrier_with_wait_list(
 pub unsafe fn get_extension_function_address_for_platform(
             platform: &PlatformId,
             func_name: &str,
-            device_version: Option<&OpenclVersion>
+            platform_version: Option<&OpenclVersion>
         ) -> OclResult<*mut c_void>
 {
+    // Verify platform version:
+    try!(verify_platform_version(platform_version, [1, 2], platform));
+
     let func_name_c = try!(CString::new(func_name));
 
     let ext_fn = cl_h::clGetExtensionFunctionAddressForPlatform(
@@ -2931,24 +3000,11 @@ pub fn default_device_type() -> OclResult<DeviceType> {
     }
 }
 
-
-/// Gets a kernel name.
+/// Returns the name of a kernel.
 pub fn get_kernel_name(kernel: &Kernel) -> String {
     let result = get_kernel_info(kernel, KernelInfo::FunctionName);
     result.into()
 }
-
-
-/// Gets a device version.
-///
-/// ### Panics
-///
-/// Panics upon OpenCL error of any kind.
-///
-pub fn get_device_version(device_id: &DeviceId) -> OclResult<OpenclVersion> {
-    get_device_info(device_id, DeviceInfo::Version).as_opencl_version()
-}
-
 
 /// Creates, builds, and returns a new program pointer from `src_strings`.
 ///
@@ -3032,3 +3088,86 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
 //====================== Wow, you made it this far? ==========================
 //============================================================================
 //============================================================================
+
+
+// PROTOTYPES FOR VERSION CONTROL SYSTEM (DON'T DELETE YET):
+
+// /// Returns the OpenCL version for a device.
+// pub fn get_device_version(device_id: &DeviceId) -> OclResult<OpenclVersion> {
+//     get_device_info(device_id, DeviceInfo::Version).as_opencl_version()
+// }
+
+// /// Returns a list of versions for devices.
+// pub fn get_device_versions(device_ids: &[DeviceId]) -> OclResult<Vec<OpenclVersion>> {
+//     let mut d_versions = Vec::with_capacity(device_ids.len());
+
+//     for device_id in device_ids {
+//         d_versions.push(try!(get_device_version(device_id)));
+//     }
+
+//     Ok(d_versions)
+// }
+
+// /// Returns a list of versions for devices associated with a context.
+// pub fn get_context_device_versions(context: &Context) -> OclResult<Vec<OpenclVersion>> {
+//     match get_context_info(context, ContextInfo::Devices) {
+//         ContextInfoResult::Devices(d) => get_device_versions(&d),
+//         _ => panic!("core::functions::get_context_device_versions(): Unexpected variant."),
+//     }
+// }
+
+// /// Returns a list of versions for devices associated with a kernel.
+// pub fn get_context_device_versions(context: &Context) -> OclResult<Vec<OpenclVersion>> {
+//     match get_context_info(context, ContextInfo::Devices) {
+//         ContextInfoResult::Devices(d) => get_device_versions(&d),
+//         _ => panic!("core::functions::get_context_device_versions(): Unexpected variant."),
+//     }
+// }
+
+// fn verify_device_version(device_version: Option<&OpenclVersion>,
+//             reqd_version: [u16; 2], device: &DeviceId) -> OclResult<()> {
+//     let reqd_ver = OpenclVersion::from(reqd_version);
+//     match device_version {
+//         Some(dv) => verify_versions(&[dv.clone()], &reqd_ver),
+//         None => verify_versions(&try!(get_device_versions(&[device.clone()])), &reqd_ver),
+//     }
+// }
+
+// fn verify_device_versions(device_versions: Option<&[OpenclVersion]>,
+//             reqd_version: [u16; 2], devices: &[DeviceId]) -> OclResult<()> {
+//     let reqd_ver = OpenclVersion::from(reqd_version);
+//     match device_versions {
+//         Some(dv) => verify_versions(&dv, &reqd_ver),
+//         None => verify_versions(&try!(get_device_versions(devices)), &reqd_ver),
+//     }
+// }
+
+// /// Verifies context device versions.
+// fn verify_context_device_versions(device_versions: Option<&[OpenclVersion]>,
+//             reqd_version: [u16; 2], context: &Context) -> OclResult<()> {
+//     let reqd_ver = OpenclVersion::from(reqd_version);
+//     match device_versions {
+//         Some(dv) => verify_versions(dv, &reqd_ver),
+//         None => verify_versions(&try!(get_context_device_versions(context)), &reqd_ver),
+//     }
+// }
+
+// /// Verifies program device versions.
+// fn verify_program_device_versions(device_versions: Option<&[OpenclVersion]>,
+//             reqd_version: [u16; 2], program: &Program) -> OclResult<()> {
+//     let reqd_ver = OpenclVersion::from(reqd_version);
+//     match device_versions {
+//         Some(dv) => verify_versions(dv, &reqd_ver),
+//         None => verify_versions(&try!(get_program_device_versions(program)), &reqd_ver),
+//     }
+// }
+
+// /// Verifies kernel device versions.
+// fn verify_kernel_device_versions(device_versions: Option<&[OpenclVersion]>,
+//             reqd_version: [u16; 2], kernel: &Kernel) -> OclResult<()> {
+//     let reqd_ver = OpenclVersion::from(reqd_version);
+//     match device_versions {
+//         Some(dv) => verify_versions(dv, &reqd_ver),
+//         None => verify_versions(&try!(get_kernel_device_versions(kernel)), &reqd_ver),
+//     }
+// }
