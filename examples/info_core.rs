@@ -14,7 +14,7 @@ use core::{util, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInf
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
     EventInfo, ProfilingInfo, ContextProperties, PlatformId, DeviceId, MemFlags,
     ImageFormat, ImageDescriptor, MemObjectType, AddressingMode, FilterMode,
-    EventList, Event, ContextInfoResult};
+    EventList, Event, ContextInfoResult, KernelArg};
 
 const DIMS: [usize; 3] = [1024, 64, 16];
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -49,7 +49,7 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
         &[device]).unwrap();
     let queue = core::create_command_queue(&context, &device).unwrap();
     let len = DIMS.iter().fold(0, |acc, &x| acc + x); // sum of all DIMS
-    let buffer = core::create_buffer::<f32>(&context, MemFlags::empty(), len, None).unwrap();
+    let buffer = unsafe { core::create_buffer::<f32>(&context, MemFlags::empty(), len, None).unwrap() };
     let image_descriptor = ImageDescriptor::new(
         MemObjectType::Image3d,
         DIMS[0], DIMS[1], DIMS[2],
@@ -57,26 +57,22 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
         0, // row pitch ?
         0, // slc pitch ?
         None); // buffer ?
-    let image = core::create_image::<u8>(&context,
+    let image = unsafe { core::create_image::<u8>(&context,
         MemFlags::empty(),
         &ImageFormat::new_rgba(),
         &image_descriptor,
         None,
-        None).unwrap();
+        None).unwrap() };
     let sampler = core::create_sampler(&context, false, AddressingMode::None, FilterMode::Nearest).unwrap();
     let kernel = core::create_kernel(&program, "multiply").unwrap();
-    // let kernel = Kernel::new("multiply", &program, &queue).unwrap()
-    //     .gws(&DIMS)
-    //     .arg_scl(10.0f32)
-    //     .arg_buf(&buffer);
+    core::set_kernel_arg(&kernel, 0, KernelArg::Scalar(10.0f32)).unwrap();
+    core::set_kernel_arg::<usize>(&kernel, 1, KernelArg::Mem(&buffer)).unwrap(); // usize or anything :)
 
-    let mut event_list = EventList::new();
-    kernel.cmd().enew(&mut event_list).enq().unwrap();
-    event_list.wait().unwrap();
+    core::enqueue_kernel(&queue, &kernel, DIMS.len() as u32, None, &DIMS, None, None, None).unwrap();
+    core::finish(&queue).unwrap();
 
-    let mut event = Event::empty();
-    buffer.cmd().write(&vec![0.0; DIMS[0]]).enew(&mut event).enq().unwrap();
-    event.wait().unwrap();
+    core::enqueue_write_buffer(&queue, &buffer, true, 0, &vec![0.0; DIMS[0]], None, None).unwrap();
+    core::finish(&queue).unwrap();
 
     println!("############### OpenCL Platform-Device Full Info ################");
     print!("\n");
@@ -1005,20 +1001,20 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     //     Context = cl_h::CL_EVENT_CONTEXT as isize,
     // }
 
-    println!("Event:\n\
-            {t}CommandQueue: {}\n\
-            {t}CommandType: {}\n\
-            {t}ReferenceCount: {}\n\
-            {t}CommandExecutionStatus: {}\n\
-            {t}Context: {}\n\
-        ",
-        core::get_event_info(&event, EventInfo::CommandQueue),
-        core::get_event_info(&event, EventInfo::CommandType),
-        core::get_event_info(&event, EventInfo::ReferenceCount),
-        core::get_event_info(&event, EventInfo::CommandExecutionStatus),
-        core::get_event_info(&event, EventInfo::Context),
-        t = util::colors::TAB,
-    );
+    // println!("Event:\n\
+    //         {t}CommandQueue: {}\n\
+    //         {t}CommandType: {}\n\
+    //         {t}ReferenceCount: {}\n\
+    //         {t}CommandExecutionStatus: {}\n\
+    //         {t}Context: {}\n\
+    //     ",
+    //     core::get_event_info(&event, EventInfo::CommandQueue),
+    //     core::get_event_info(&event, EventInfo::CommandType),
+    //     core::get_event_info(&event, EventInfo::ReferenceCount),
+    //     core::get_event_info(&event, EventInfo::CommandExecutionStatus),
+    //     core::get_event_info(&event, EventInfo::Context),
+    //     t = util::colors::TAB,
+    // );
 
     //
     // CHANGE TO --->
@@ -1059,18 +1055,18 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     //     End = cl_h::CL_PROFILING_COMMAND_END as isize,
     // }
 
-    println!("Event Profiling:\n\
-            {t}Queued: {}\n\
-            {t}Submit: {}\n\
-            {t}Start: {}\n\
-            {t}End: {}\n\
-        ",
-        core::get_event_profiling_info(&event, ProfilingInfo::Queued),
-        core::get_event_profiling_info(&event, ProfilingInfo::Submit),
-        core::get_event_profiling_info(&event, ProfilingInfo::Start),
-        core::get_event_profiling_info(&event, ProfilingInfo::End),
-        t = util::colors::TAB,
-    );
+    // println!("Event Profiling:\n\
+    //         {t}Queued: {}\n\
+    //         {t}Submit: {}\n\
+    //         {t}Start: {}\n\
+    //         {t}End: {}\n\
+    //     ",
+    //     core::get_event_profiling_info(&event, ProfilingInfo::Queued),
+    //     core::get_event_profiling_info(&event, ProfilingInfo::Submit),
+    //     core::get_event_profiling_info(&event, ProfilingInfo::Start),
+    //     core::get_event_profiling_info(&event, ProfilingInfo::End),
+    //     t = util::colors::TAB,
+    // );
 
     //
     // CHANGE TO --->
