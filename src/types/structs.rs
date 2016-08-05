@@ -19,7 +19,7 @@ pub type TemporaryPlaceholderType = ();
 ///
 /// ex.: 'OpenCL 1.2' -> `OpenclVersion(1, 2)`.
 ///
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct OpenclVersion {
     ver: [u32; 2],
 }

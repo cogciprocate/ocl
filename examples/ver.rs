@@ -1,3 +1,7 @@
+//! Parses the first device's OpenCL version and prints.
+//!
+//! [TODO (easy)]: Test all the devices on all the platforms.
+
 extern crate ocl_core as core;
 
 use std::ffi::CString;
@@ -24,8 +28,8 @@ fn main() {
     let dims = [2 << 20, 1, 1];
 
     let dv0 = core::get_device_info(&device_id, core::DeviceInfo::Version);
-    println!("DeviceInfo::Version: {}", dv0);
+    println!("Pre-Parse: 'DeviceInfo::Version': {}", dv0);
 
     let dv1 = core::get_device_version(&device_id);
-    println!("get_device_version: {}", dv1);
+    println!("Parsed: 'core::get_device_version()': {}", dv1);
 }
