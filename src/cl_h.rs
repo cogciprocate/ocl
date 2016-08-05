@@ -673,10 +673,10 @@ extern "system" {
 
     // Device APIs
     pub fn clGetDeviceIDs(platform: cl_platform_id,
-                      device_type: cl_device_type,
-                      num_entries: cl_uint,
-                      devices: *mut cl_device_id,
-                      num_devices: *mut cl_uint) -> cl_int;
+                          device_type: cl_device_type,
+                          num_entries: cl_uint,
+                          devices: *mut cl_device_id,
+                          num_devices: *mut cl_uint) -> cl_int;
 
     pub fn clGetDeviceInfo(device: cl_device_id,
                        param_name: cl_device_info,
