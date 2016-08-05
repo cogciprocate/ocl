@@ -4,7 +4,7 @@ use std;
 use std::ops::{Deref, DerefMut};
 use core::error::{Result as OclResult};
 use core::{self, CommandQueue as CommandQueueCore, Context as ContextCore,
-    CommandQueueInfo, CommandQueueInfoResult};
+    CommandQueueInfo, CommandQueueInfoResult, OpenclVersion};
 use standard::{Context, Device};
 
 /// A command queue which manages all actions taken on kernels, buffers, and
@@ -20,17 +20,20 @@ pub struct Queue {
     obj_core: CommandQueueCore,
     context_obj_core: ContextCore,
     device: Device,
+    device_version: OpenclVersion,
 }
 
 impl Queue {
     /// Returns a new Queue on the device specified by `device`.
     pub fn new(context: &Context, device: Device) -> OclResult<Queue> {
         let obj_core = try!(core::create_command_queue(context, &device));
+        let device_version = try!(core::get_device_version(&device));
 
         Ok(Queue {
             obj_core: obj_core,
             context_obj_core: context.core_as_ref().clone(),
             device: device,
+            device_version: device_version,
         })
     }
 
@@ -54,6 +57,11 @@ impl Queue {
     /// Returns the `OpenCL` device associated with this queue.
     pub fn device(&self) -> &Device {
         &self.device
+    }
+
+    /// Returns the cached device version.
+    pub fn device_version(&self) -> &OpenclVersion {
+        &self.device_version
     }
 
     /// Returns info about this queue.

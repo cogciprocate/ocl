@@ -36,6 +36,8 @@ fn print_platform(platform: Platform) {
 }
 
 fn print_platform_device(platform: Platform, device: Device) {
+    let device_version = core::get_device_version(&device).unwrap();
+
     let context = Context::builder().platform(platform).devices(device).build().unwrap();
     let program = Program::builder()
         .devices(device)
@@ -923,11 +925,11 @@ fn print_platform_device(platform: Platform, device: Device) {
             {t}TypeQualifier: {}\n\
             {t}Name: {}\n\
         ",
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier, Some(&device_version)),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier, Some(&device_version)),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName, Some(&device_version)),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier, Some(&device_version)),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name, Some(&device_version)),
         t = util::colors::TAB,
     );
 

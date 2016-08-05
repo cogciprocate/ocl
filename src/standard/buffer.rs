@@ -437,7 +437,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         };
                         try!(check_len(self.mem_len, len, offset));
                         core::enqueue_fill_buffer(self.queue, self.obj_core, pattern,
-                            offset, len, self.ewait, self.enew)
+                            offset, len, self.ewait, self.enew, Some(self.queue.device_version()))
                     },
                     BufferCmdDataShape::Rect { .. } => OclError::err("ocl::BufferCmd::enq(): \
                         Rectangular fill is not a valid operation. Please use the default shape, linear.")
