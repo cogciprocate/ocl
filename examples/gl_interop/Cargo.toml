@@ -1,5 +1,5 @@
 [package]
-name = "test_ocl"
+name = "gl_interop_test"
 version = "0.1.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 

@@ -71,7 +71,7 @@ impl ProQueBuilder {
             },
             None => match self.context {
                 Some(ref context) => match context.platform() {
-                    Some(platform) => platform,
+                    Some(platform) => platform.clone(),
                     None => Platform::default(),
                 },
                 None => Platform::default(),
@@ -82,7 +82,7 @@ impl ProQueBuilder {
         // Resolve the device and ensure only one was specified.
         let device = match self.device_spec {
             Some(ref ds) => {
-                let device_list = try!(ds.to_device_list(Some(platform)));
+                let device_list = try!(ds.to_device_list(Some(&platform)));
 
                 if device_list.len() == 1 {
                     device_list[0]

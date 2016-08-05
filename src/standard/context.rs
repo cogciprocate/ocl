@@ -172,7 +172,7 @@ impl Context {
             None => DeviceSpecifier::All,
         };
 
-        let device_list = try!(device_spec.to_device_list(platform.clone()));
+        let device_list = try!(device_spec.to_device_list(platform.as_ref()));
 
         let obj_core = try!(core::create_context(&properties, &device_list, pfn_notify, user_data));
 
@@ -207,7 +207,11 @@ impl Context {
         //     Ok(pi) => pi,
         //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
         // }
-        core::get_platform_info(self.platform(), info_kind)
+        match self.platform() {
+            Some(ref p) => core::get_platform_info(p, info_kind),
+            None => PlatformInfoResult::from(OclError::new("Context::platform_info: \
+                This context has no associated platform.")),
+        }
     }
 
     /// Returns info about the device indexed by `index` associated with this
@@ -250,8 +254,8 @@ impl Context {
     }
 
     /// Returns the platform this context is associated with.
-    pub fn platform(&self) -> Option<Platform> {
-        self.platform
+    pub fn platform(&self) -> Option<&Platform> {
+        self.platform.as_ref()
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

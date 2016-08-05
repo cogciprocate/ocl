@@ -28,7 +28,7 @@ impl Queue {
     pub fn new(context: &Context, device: Device) -> OclResult<Queue> {
         let obj_core = try!(core::create_command_queue(context, &device));
         // let device_version = try!(core::get_device_version(&device));
-        let device_version = try!(device.device_versions())[0];
+        let device_version = try!(device.version());
 
         Ok(Queue {
             obj_core: obj_core,

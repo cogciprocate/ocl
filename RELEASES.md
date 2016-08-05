@@ -4,6 +4,12 @@ Version 0.11.0 (UNRELEASED)
 The `core` and `ffi` modules have been moved into new crates, [`ocl-core`] and
 [`cl-sys`] respectively.
 
+Breaking Changes
+----------------
+* `Context::platform` now returns a `Option<&Platform>` instead of
+  `Option<Platform>` to make it consistent with other methods of its kind.
+* `DeviceSpecifier::to_device_list` now accepts a `Option<&Platform>`.
+
 
 [`ocl-core`]: https://github.com/cogciprocate/ocl-core
 [`cl-sys`]: https://github.com/cogciprocate/cl-sys

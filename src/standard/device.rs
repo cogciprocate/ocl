@@ -77,9 +77,9 @@ impl DeviceSpecifier {
     /// Any device indices within the `Index` and `Indices` variants must be within the range of the number of devices for the platform specified by `Platform`. If no `platform` has been specified, this behaviour is undefined and could end up using any platform at all.
     ///
     /// TODO: Swap some of the `try!`s for `.map`s.
-    pub fn to_device_list(&self, platform: Option<Platform>) -> OclResult<Vec<Device>> {
+    pub fn to_device_list(&self, platform: Option<&Platform>) -> OclResult<Vec<Device>> {
         let platform = match platform {
-            Some(p) => p,
+            Some(p) => p.clone(),
             None => Platform::default(),
         };
 
@@ -439,6 +439,7 @@ impl Device {
 }
 
 unsafe impl ClDeviceIdPtr for Device {}
+unsafe impl<'a> ClDeviceIdPtr for &'a Device {}
 
 impl Into<String> for Device {
     fn into(self) -> String {

@@ -36,7 +36,7 @@ fn print_platform(platform: Platform) {
 }
 
 fn print_platform_device(platform: Platform, device: Device) {
-    let device_version = device.device_versions().unwrap();
+    let device_version = device.version().unwrap();
 
     let context = Context::builder().platform(platform).devices(device).build().unwrap();
     let program = Program::builder()
@@ -82,11 +82,11 @@ fn print_platform_device(platform: Platform, device: Device) {
             {t}Vendor: {}\n\
             {t}Extensions: {}\n\
         ",
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Profile),
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Version),
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Name),
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Vendor),
-        core::get_platform_info(context.platform().clone(), PlatformInfo::Extensions),
+        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Profile),
+        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Version),
+        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Name),
+        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Vendor),
+        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Extensions),
         t = util::colors::TAB,
     );
 
@@ -925,11 +925,11 @@ fn print_platform_device(platform: Platform, device: Device) {
             {t}TypeQualifier: {}\n\
             {t}Name: {}\n\
         ",
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier, Some(&device_version)),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier, Some(&device_version)),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName, Some(&device_version)),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier, Some(&device_version)),
-        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name, Some(&device_version)),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AddressQualifier, Some(&[device_version])),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::AccessQualifier, Some(&[device_version])),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeName, Some(&[device_version])),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::TypeQualifier, Some(&[device_version])),
+        core::get_kernel_arg_info(&kernel, 0, KernelArgInfo::Name, Some(&[device_version])),
         t = util::colors::TAB,
     );
 

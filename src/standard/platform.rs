@@ -63,7 +63,7 @@ impl Platform {
         //     Ok(pi) => pi,
         //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
         // }
-        core::get_platform_info(Some(self.0), info_kind)
+        core::get_platform_info(&self.0, info_kind)
     }
 
     /// Returns the platform profile as a string.
@@ -84,7 +84,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0), PlatformInfo::Profile).into()
+        core::get_platform_info(&self.0, PlatformInfo::Profile).into()
     }
 
     /// Returns the platform driver version as a string.
@@ -101,7 +101,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0), PlatformInfo::Version).into()
+        core::get_platform_info(&self.0, PlatformInfo::Version).into()
     }
 
     /// Returns the platform name as a string.
@@ -110,7 +110,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0), PlatformInfo::Name).into()
+        core::get_platform_info(&self.0, PlatformInfo::Name).into()
     }
 
     /// Returns the platform vendor as a string.
@@ -119,7 +119,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0), PlatformInfo::Vendor).into()
+        core::get_platform_info(&self.0, PlatformInfo::Vendor).into()
     }
 
     /// Returns the list of platform extensions as a string.
@@ -133,7 +133,7 @@ impl Platform {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(Some(self.0), PlatformInfo::Extensions).into()
+        core::get_platform_info(&self.0, PlatformInfo::Extensions).into()
     }
 
     /// Returns a reference to the underlying `PlatformIdCore`.
@@ -153,6 +153,7 @@ impl Platform {
 }
 
 unsafe impl ClPlatformIdPtr for Platform {}
+unsafe impl<'a> ClPlatformIdPtr for &'a Platform {}
 
 impl Default for Platform {
     fn default() -> Platform {
