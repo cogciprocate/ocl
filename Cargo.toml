@@ -15,22 +15,21 @@ exclude = ["target/*", "*.png", "bak/*"]
 kernel_debug_print = []
 kernel_debug_sleep = []
 
-# [dependencies.bitflags]
-# git = "https://github.com/rust-lang-nursery/bitflags.git"
-
-[dependencies.cl-sys]
+# [dependencies.cl-sys]
 # git = "https://github.com/cogciprocate/cl-sys"
-path = "/home/nick/src/github.com/cogciprocate/cl-sys"
+# path = "/home/nick/src/github.com/cogciprocate/cl-sys"
 
-[dependencies.ocl-core]
+# [dependencies.ocl-core]
 # git = "https://github.com/cogciprocate/ocl-core"
-path = "/home/nick/src/github.com/cogciprocate/ocl-core"
+# path = "/home/nick/src/github.com/cogciprocate/ocl-core"
+
+[replace]
+"cl-sys:0.1.0" = { git = 'https://github.com/cogciprocate/cl-sys' }
+"ocl-core:0.1.0" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 [dependencies]
-# cl-sys = { version = "0.1", optional = true }
-# ocl-core = { version = "0.1", optional = true }
-# cl-sys = "0.1"
-# ocl-core = "0.1"
+cl-sys = "0.1"
+ocl-core = "0.1"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
@@ -44,13 +43,4 @@ rand = "0.3"
 find_folder = "0.3"
 colorify = "0.2"
 time = "0.1"
-
-[profile.test]
-opt-level = 0
-debug = true
-rpath = false
-lto = false
-# Set false to make sure we're not relying overly on any debug assertions.
-debug-assertions = false
-codegen-units = 1
 
