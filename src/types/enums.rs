@@ -24,7 +24,7 @@ use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, Devic
     KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo,
     ImageFormat, EventInfo, ProfilingInfo,
     DeviceType, DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities,
-    DevicePartitionProperty, DeviceAffinityDomain, };
+    DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -673,6 +673,17 @@ impl DeviceInfoResult {
                 }
             },
             Err(err) => err.into(),
+        }
+    }
+
+    /// Parse the `Version` string and get a numeric result as `OpenclVersion`.
+    pub fn as_opencl_version(&self) -> OclResult<OpenclVersion> {
+        if let DeviceInfoResult::Version(ref ver) = *self {
+            OpenclVersion::from_info_str(ver)
+        } else {
+            OclError::err(format!("DeviceInfoResult::as_opencl_version(): Invalid device info \
+                result variant: ({:?}). This function can only be called on a \
+                'DeviceInfoResult::Version' variant.", self))
         }
     }
 }

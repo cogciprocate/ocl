@@ -17,7 +17,7 @@
 //!
 //! The following new derived wrappers are also included in this module:
 //!
-//! * [cl_event]: A list of events.
+//! * cl_events: A list of events.
 //!
 //!
 //! ### Who cares. Why bother?

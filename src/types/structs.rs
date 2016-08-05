@@ -1,6 +1,7 @@
 //! Rust implementations of various structs used by the OpenCL API.
 
 use libc;
+use std;
 use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
@@ -9,8 +10,82 @@ use cl_h::{self, cl_mem};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
         PlatformId};
 
+
 // Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
+
+
+/// Parsed OpenCL version in the layout `({major}, {minor})`.
+///
+/// ex.: 'OpenCL 1.2' -> `OpenclVersion(1, 2)`.
+///
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OpenclVersion {
+    ver: [u32; 2],
+}
+
+impl OpenclVersion {
+    pub fn new(major: u32, minor: u32) -> OpenclVersion {
+        OpenclVersion { ver: [major, minor] }
+    }
+
+    pub fn max(&self) -> OpenclVersion {
+        OpenclVersion { ver: [u32::max_value(), u32::max_value()] }
+    }
+
+    /// Parse the `ver` and return a dual-integer result as `OpenclVersion`.
+    ///
+    /// Looks for the sequence of chars, "OpenCL" (non-case-sensitive), then
+    /// splits the word just after that (at '.') and parses the two results
+    /// into integers (major and minor version numbers).
+    pub fn from_info_str(ver: &str) -> OclResult<OpenclVersion> {
+        let mut version_word_idx: Option<usize> = None;
+        let mut version: Option<OpenclVersion> = None;
+
+        for (word_idx, word) in ver.split_whitespace().enumerate() {
+            if let Some(wi) = version_word_idx {
+                assert!(wi == word_idx);
+                let nums: Vec<_> = word.split('.').collect();
+
+                if nums.len() == 2 {
+                    let (major, minor) = (nums[0].parse::<u32>(), nums[1].parse::<u32>());
+
+                    if major.is_ok() && minor.is_ok() {
+                        version = Some(OpenclVersion::new(major.unwrap(), minor.unwrap()));
+                    }
+                }
+                break;
+            }
+
+            for (ch_idx, ch) in word.chars().enumerate() {
+                match ch_idx {
+                    0 => if ch != 'O' && ch != 'o' { break; },
+                    1 => if ch != 'P' && ch != 'p' { break; },
+                    2 => if ch != 'E' && ch != 'e' { break; },
+                    3 => if ch != 'N' && ch != 'n' { break; },
+                    4 => if ch != 'C' && ch != 'c' { break; },
+                    5 => if ch == 'L' || ch == 'l' {
+                        version_word_idx = Some(word_idx + 1);
+                        break;
+                    },
+                    _ => break,
+                }
+            }
+        }
+
+        match version {
+            Some(cl_ver) => Ok(cl_ver),
+            None => OclError::err(format!("DeviceInfoResult::as_opencl_version(): \
+                Error parsing version from the string: '{}'.", ver)),
+        }
+    }
+}
+
+impl std::fmt::Display for OpenclVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "OpenCL {}.{}", self.ver[0], self.ver[1])
+    }
+}
 
 
 // cl_context_properties enum  Property value  Description

@@ -1,10 +1,30 @@
-//! All the functions.
+//! Thin function wrappers.
 //!
-//! ## Redundant Casts
 //!
-//! Redundant casts are temporary for development and will be removed.
+//! ## Version Control
 //!
-//! POSSIBLE TODO: Break this file up
+//! Functions in this module with the `[VERSION CONTROLLED: OpenCL {...}+]`
+//! tag in the description are version controlled and require an additional
+//! parameter, `device_version` which is a parsed result of
+//! `DeviceInfo::Version`. This is a check to ensure that the device supports
+//! the function being called. Calling a function which a particular device
+//! does not support will likely cause a segmentation fault and possibly data
+//! corruption.
+//!
+//! Saving the `OpenclVersion` returned from `get_device_version()` for your
+//! device(es) at the start of your program and passing each time you call a
+//! version controlled function is the fastest and safest method.
+//!
+//! Passing `None` for `device_version` will cause an automated version check
+//! which is more expensive (slower) than passing a pre-cached version but is
+//! a safe option if you are not sure what to do.
+//!
+//! Passing the result of a call to `OpenclVersion::max().unwrap()` will
+//! bypass any safety checks and have all of the risks described above. Only
+//! do this if you're absolutely sure you know what you're doing and are not
+//! concerned about segfaults and data integrity.
+//!
+//!
 //!
 
 use std::ptr;
@@ -44,7 +64,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     KernelWorkGroupInfoResult, ClEventRef, ClWaitList, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
-    MapFlags, BufferRegion, BufferCreateType};
+    MapFlags, BufferRegion, BufferCreateType, OpenclVersion};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -390,7 +410,7 @@ pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
 /// [FIXME]: Most context sources not implemented for `ContextProperties`.
 //
 // [NOTE]: Leave commented "DEBUG" print statements intact until more
-// `ContextProperties` variants are implemented.
+// `ContextProperties` variants are implemented. [PROBABLY DONE]
 pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, device_ids: &[D],
             pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
         ) -> OclResult<Context>
@@ -2862,10 +2882,21 @@ pub fn default_device_type() -> OclResult<DeviceType> {
 }
 
 
-/// Get a kernel name.
+/// Gets a kernel name.
 pub fn get_kernel_name(kernel: &Kernel) -> String {
     let result = get_kernel_info(kernel, KernelInfo::FunctionName);
     result.into()
+}
+
+
+/// Gets a device version.
+///
+/// ### Panics
+///
+/// Panics upon OpenCL error of any kind.
+///
+pub fn get_device_version(device_id: &DeviceId) -> OpenclVersion {
+    get_device_info(device_id, DeviceInfo::Version).as_opencl_version().unwrap()
 }
 
 
