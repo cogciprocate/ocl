@@ -181,7 +181,8 @@ impl PartialEq<PlatformId> for PlatformId {
 
 impl ClVersions for PlatformId {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        unimplemented!();
+        let devices = try!(functions::get_device_ids(self, Some(::DEVICE_TYPE_ALL), None));
+        functions::device_versions(&devices)
     }
 
     // [FIXME]: TEMPORARY
@@ -220,14 +221,23 @@ impl DeviceId {
     }
 
     /// Returns the looked up and parsed OpenCL version for this device.
-    pub fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    pub fn version(&self) -> OclResult<OpenclVersion> {
         if !self.0.is_null() {
-            functions::get_device_info(self, DeviceInfo::Version)
-                .as_opencl_version().map(|dv| vec![dv])
+            functions::get_device_info(self, DeviceInfo::Version).as_opencl_version()
         } else {
             OclError::err("DeviceId::device_versions(): This device_id is invalid.")
         }
     }
+
+    // /// Returns the looked up and parsed OpenCL version for this device.
+    // pub fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    //     if !self.0.is_null() {
+    //         functions::get_device_info(self, DeviceInfo::Version)
+    //             .as_opencl_version().map(|dv| vec![dv])
+    //     } else {
+    //         OclError::err("DeviceId::device_versions(): This device_id is invalid.")
+    //     }
+    // }
 }
 
 unsafe impl ClDeviceIdPtr for DeviceId {}
@@ -242,7 +252,7 @@ impl PartialEq<DeviceId> for DeviceId {
 
 impl ClVersions for DeviceId {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        self.device_versions()
+        self.version().map(|dv| vec![dv])
     }
 
     // [FIXME]: TEMPORARY

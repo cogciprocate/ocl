@@ -1,4 +1,4 @@
-//! Thin function wrappers.
+//! Thin and safe function wrappers.
 //!
 //!
 //! ## Version Control
@@ -16,8 +16,8 @@
 //! version controlled function is the fastest and safest method.
 //!
 //! Passing `None` for `device_version` will cause an automated version check
-//! which is more expensive (slower) than passing a pre-cached version but is
-//! a safe option if you are not sure what to do.
+//! which has a small cost (calling info function, parsing the version number
+//! etc.) but is a safe option if you are not sure what to do.
 //!
 //! Passing the result of a call to `OpenclVersion::max()` or passing a fake
 //! version will bypass any safety checks and has all of the risks described
@@ -152,6 +152,20 @@ pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids
     Ok(())
 }
 
+/// Verifies that OpenCL versions are above a specified threshold.
+pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -> OclResult<()> {
+    let reqd_ver = OpenclVersion::from(required_version);
+
+    for dev_v in versions {
+        if dev_v < &reqd_ver {
+            return OclError::err(format!("OpenCL version too low to use this feature\
+                (detected: {}, required: {}).", dev_v, reqd_ver));
+        }
+    }
+
+    Ok(())
+}
+
 fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
             required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
     match provided_version {
@@ -164,36 +178,22 @@ fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>
 }
 
 fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersion]>,
-            required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
+            required_version: [u16; 2], fallback_versions_source: &V) -> OclResult<()> {
     match provided_versions {
         Some(pv) => verify_versions(pv, required_version),
-        None => fallback_version_source.verify_device_versions(required_version),
+        None => fallback_versions_source.verify_device_versions(required_version),
     }
 }
 
-fn verify_platform_version<V: ClVersions>(provided_versions: Option<&OpenclVersion>,
+fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
             required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
-    match provided_versions {
+    match provided_version {
         Some(pv) => {
             let vers = [pv.clone()];
             verify_versions(&vers, required_version)
         },
         None => fallback_version_source.verify_platform_version(required_version),
     }
-}
-
-/// Verifies that device versions are above a specified threshold.
-pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -> OclResult<()> {
-    let reqd_ver = OpenclVersion::from(required_version);
-
-    for dev_v in versions {
-        if dev_v < &reqd_ver {
-            return OclError::err(format!("OpenCL version too low to use this feature\
-                (detected: {}, required: {}).", dev_v, reqd_ver));
-        }
-    }
-
-    Ok(())
 }
 
 
@@ -1633,7 +1633,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
 {
     // Verify device version:
     if let Err(err) = verify_device_versions(device_versions, [1, 2], obj) {
-        return KernelArgInfoResult::Error(Box::new(err))
+        return KernelArgInfoResult::from(err)
     }
 
     let mut result_size: size_t = 0;
@@ -1649,7 +1649,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
 
     // try!(errcode_try("clGetKernelArgInfo", "", errcode));
     if let Err(err) = errcode_try("clGetKernelArgInfo", "", errcode) {
-        return KernelArgInfoResult::Error(Box::new(err));
+        return KernelArgInfoResult::from(err);
     }
 
     // If result size is zero, return an empty info result directly:
@@ -1689,7 +1689,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
 
     // try!(errcode_try("clGetKernelWorkGroupInfo", "", errcode));
     if let Err(err) = errcode_try("clGetKernelWorkGroupInfo", "", errcode) {
-        return KernelWorkGroupInfoResult::Error(Box::new(err));
+        return KernelWorkGroupInfoResult::from(err);
     }
 
     // If result size is zero, return an empty info result directly:
@@ -2876,6 +2876,26 @@ pub fn enqueue_barrier_with_wait_list(
 
 
 
+// [UNTESTED]
+// Extension function access
+//
+// Returns the extension function address for the given function name,
+// or NULL if a valid function can not be found. The client must
+// check to make sure the address is not NULL, before using or
+// or calling the returned function address.
+//
+// A non-NULL return value for clGetExtensionFunctionAddressForPlatform does
+// not guarantee that an extension function is actually supported by the
+// platform. The application must also make a corresponding query using
+// clGetPlatformInfo (platform, CL_PLATFORM_EXTENSIONS, ... ) or
+// clGetDeviceInfo (device,CL_DEVICE_EXTENSIONS, ... ) to determine if an
+// extension is supported by the OpenCL implementation.
+//
+// [FIXME]: Return a generic that implements `Fn` (or `FnMut/Once`?).
+// TODO: Create another function which will handle the second check described
+// above in addition to calling this.
+//
+// ////////////////////////////////////////////////////////////////////////////
 /// [UNTESTED]
 /// Returns the address of the extension function named by
 /// `func_name` for a given platform.
@@ -2903,25 +2923,6 @@ pub fn enqueue_barrier_with_wait_list(
 /// - 'platform' is not a valid platform.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-//
-// Extension function access
-//
-// Returns the extension function address for the given function name,
-// or NULL if a valid function can not be found. The client must
-// check to make sure the address is not NULL, before using or
-// or calling the returned function address.
-//
-// A non-NULL return value for clGetExtensionFunctionAddressForPlatform does
-// not guarantee that an extension function is actually supported by the
-// platform. The application must also make a corresponding query using
-// clGetPlatformInfo (platform, CL_PLATFORM_EXTENSIONS, ... ) or
-// clGetDeviceInfo (device,CL_DEVICE_EXTENSIONS, ... ) to determine if an
-// extension is supported by the OpenCL implementation.
-//
-// [FIXME]: Return a generic that implements `Fn` (or `FnMut/Once`?).
-// TODO: Create another function which will handle the second check described
-// above in addition to calling this.
-//
 pub unsafe fn get_extension_function_address_for_platform(
             platform: &PlatformId,
             func_name: &str,
@@ -2951,8 +2952,18 @@ pub unsafe fn get_extension_function_address_for_platform(
 //=========================== DERIVED FUNCTIONS ==============================
 //============================================================================
 //============================================================================
-// MANY OF THESE NEED TO BE MORPHED INTO THE MORE GENERAL VERSIONS AND MOVED UP
 
+
+/// Returns a list of versions for devices.
+pub fn device_versions(device_ids: &[DeviceId]) -> OclResult<Vec<OpenclVersion>> {
+    let mut d_versions = Vec::with_capacity(device_ids.len());
+
+    for device_id in device_ids {
+        d_versions.push(try!(device_id.version()));
+    }
+
+    Ok(d_versions)
+}
 
 /// Returns the default platform if set by an environment variable or config
 /// file.
@@ -2982,7 +2993,7 @@ pub fn default_platform() -> OclResult<PlatformId> {
 }
 
 /// Returns the default device type bitflags as specified by environment
-/// variable or `DEVICE_TYPE_ALL`.
+/// variable or else `DEVICE_TYPE_ALL`.
 pub fn default_device_type() -> OclResult<DeviceType> {
     match env::var("OCL_DEFAULT_DEVICE_TYPE") {
         Ok(ref s) => match s.trim() {
@@ -3097,16 +3108,6 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
 //     get_device_info(device_id, DeviceInfo::Version).as_opencl_version()
 // }
 
-// /// Returns a list of versions for devices.
-// pub fn get_device_versions(device_ids: &[DeviceId]) -> OclResult<Vec<OpenclVersion>> {
-//     let mut d_versions = Vec::with_capacity(device_ids.len());
-
-//     for device_id in device_ids {
-//         d_versions.push(try!(get_device_version(device_id)));
-//     }
-
-//     Ok(d_versions)
-// }
 
 // /// Returns a list of versions for devices associated with a context.
 // pub fn get_context_device_versions(context: &Context) -> OclResult<Vec<OpenclVersion>> {
