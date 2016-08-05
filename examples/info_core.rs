@@ -48,17 +48,17 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
         &CString::new("").unwrap(),
         &[device]).unwrap();
     let queue = core::create_command_queue(&context, &device).unwrap();
-    let len = DIMS.iter().fold(1, |acc, &x| acc * x); // product of all DIMS
-    let buffer = unsafe { core::create_buffer::<f32>(&context, MemFlags::empty(), len, None).unwrap() };
+    let len = DIMS[0] * DIMS[1] * DIMS[2];
+    let buffer = unsafe { core::create_buffer::<f32>(&context, core::MEM_READ_WRITE, len, None).unwrap() };
     let image_descriptor = ImageDescriptor::new(
-        MemObjectType::Image3d,
+        MemObjectType::Image1d,
         DIMS[0], DIMS[1], DIMS[2],
-        len, // array size ?
+        0, // array size ?
         0, // row pitch ?
         0, // slc pitch ?
         None); // buffer ?
     let image = unsafe { core::create_image::<u8>(&context,
-        MemFlags::empty(),
+        core::MEM_READ_WRITE,
         &ImageFormat::new_rgba(),
         &image_descriptor,
         None,
@@ -71,7 +71,8 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     core::enqueue_kernel(&queue, &kernel, DIMS.len() as u32, None, &DIMS, None, None, None).unwrap();
     core::finish(&queue).unwrap();
 
-    core::enqueue_write_buffer(&queue, &buffer, true, 0, &vec![0.0; DIMS[0]], None, None).unwrap();
+    let mut event = unsafe { Event::null() };
+    core::enqueue_write_buffer(&queue, &buffer, true, 0, &vec![0.0; DIMS[0]], None, Some(&mut event)).unwrap();
     core::finish(&queue).unwrap();
 
     println!("############### OpenCL Platform-Device Full Info ################");
@@ -1001,20 +1002,20 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     //     Context = cl_h::CL_EVENT_CONTEXT as isize,
     // }
 
-    // println!("Event:\n\
-    //         {t}CommandQueue: {}\n\
-    //         {t}CommandType: {}\n\
-    //         {t}ReferenceCount: {}\n\
-    //         {t}CommandExecutionStatus: {}\n\
-    //         {t}Context: {}\n\
-    //     ",
-    //     core::get_event_info(&event, EventInfo::CommandQueue),
-    //     core::get_event_info(&event, EventInfo::CommandType),
-    //     core::get_event_info(&event, EventInfo::ReferenceCount),
-    //     core::get_event_info(&event, EventInfo::CommandExecutionStatus),
-    //     core::get_event_info(&event, EventInfo::Context),
-    //     t = util::colors::TAB,
-    // );
+    println!("Event:\n\
+            {t}CommandQueue: {}\n\
+            {t}CommandType: {}\n\
+            {t}ReferenceCount: {}\n\
+            {t}CommandExecutionStatus: {}\n\
+            {t}Context: {}\n\
+        ",
+        core::get_event_info(&event, EventInfo::CommandQueue),
+        core::get_event_info(&event, EventInfo::CommandType),
+        core::get_event_info(&event, EventInfo::ReferenceCount),
+        core::get_event_info(&event, EventInfo::CommandExecutionStatus),
+        core::get_event_info(&event, EventInfo::Context),
+        t = util::colors::TAB,
+    );
 
     //
     // CHANGE TO --->
@@ -1055,18 +1056,18 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     //     End = cl_h::CL_PROFILING_COMMAND_END as isize,
     // }
 
-    // println!("Event Profiling:\n\
-    //         {t}Queued: {}\n\
-    //         {t}Submit: {}\n\
-    //         {t}Start: {}\n\
-    //         {t}End: {}\n\
-    //     ",
-    //     core::get_event_profiling_info(&event, ProfilingInfo::Queued),
-    //     core::get_event_profiling_info(&event, ProfilingInfo::Submit),
-    //     core::get_event_profiling_info(&event, ProfilingInfo::Start),
-    //     core::get_event_profiling_info(&event, ProfilingInfo::End),
-    //     t = util::colors::TAB,
-    // );
+    println!("Event Profiling:\n\
+            {t}Queued: {}\n\
+            {t}Submit: {}\n\
+            {t}Start: {}\n\
+            {t}End: {}\n\
+        ",
+        core::get_event_profiling_info(&event, ProfilingInfo::Queued),
+        core::get_event_profiling_info(&event, ProfilingInfo::Submit),
+        core::get_event_profiling_info(&event, ProfilingInfo::Start),
+        core::get_event_profiling_info(&event, ProfilingInfo::End),
+        t = util::colors::TAB,
+    );
 
     //
     // CHANGE TO --->
