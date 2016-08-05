@@ -4,6 +4,7 @@
 //!
 //
 // [TODO]: Evaluate usefulness of `Error` impls and potentially remove.
+// [TODO]: Possibly remove custom implementation of `Debug` and derive instead.
 //
 
 #![allow(dead_code)]

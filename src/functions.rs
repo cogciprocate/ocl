@@ -3,13 +3,12 @@
 //!
 //! ## Version Control
 //!
-//! Functions in this module with the `[VERSION CONTROLLED: OpenCL {...}+]`
-//! tag in the description are version controlled and require an additional
-//! parameter, `device_version` which is a parsed result of
-//! `DeviceInfo::Version`. This is a check to ensure that the device supports
-//! the function being called. Calling a function which a particular device
-//! does not support will likely cause a segmentation fault and possibly data
-//! corruption.
+//! Functions in this module with the `[Version Controlled: OpenCL {...}+]`
+//! tag in the description require an additional parameter, `device_version`
+//! which is a parsed result of `DeviceInfo::Version`. This is a check to
+//! ensure that the device supports the function being called. Calling a
+//! function which a particular device does not support will likely cause a
+//! segmentation fault and possibly data corruption.
 //!
 //! Saving the `OpenclVersion` returned from `get_device_version()` for your
 //! device(es) at the start of your program and passing each time you call a
@@ -19,10 +18,10 @@
 //! which is more expensive (slower) than passing a pre-cached version but is
 //! a safe option if you are not sure what to do.
 //!
-//! Passing the result of a call to `OpenclVersion::max().unwrap()` will
-//! bypass any safety checks and have all of the risks described above. Only
-//! do this if you're absolutely sure you know what you're doing and are not
-//! concerned about segfaults and data integrity.
+//! Passing the result of a call to `OpenclVersion::max().unwrap()` or passing
+//! a fake version will bypass any safety checks and has all of the risks
+//! described above. Only do this if you're absolutely sure you know what
+//! you're doing and are not concerned about segfaults and data integrity.
 //!
 //!
 //!
@@ -377,7 +376,9 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
 }
 
 /// [UNIMPLEMENTED]
-pub fn create_sub_devices() -> OclResult<()> {
+///
+/// [Version Controlled: OpenCL 1.2+]
+pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclResult<()> {
     // clCreateSubDevices(in_device: cl_device_id,
     //                    properties: *const cl_device_partition_property,
     //                    num_devices: cl_uint,
@@ -387,12 +388,18 @@ pub fn create_sub_devices() -> OclResult<()> {
 }
 
 /// Increments the reference count of a device.
-pub unsafe fn retain_device(device: &DeviceId) -> OclResult<()> {
+///
+/// [Version Controlled: OpenCL 1.2+]
+pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
+            -> OclResult<()> {
     errcode_try("clRetainDevice", "", cl_h::clRetainDevice(device.as_ptr()))
 }
 
 /// Decrements the reference count of a device.
-pub unsafe fn release_device(device: &DeviceId) -> OclResult<()> {
+///
+/// [Version Controlled: OpenCL 1.2+]
+pub unsafe fn release_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
+            -> OclResult<()> {
     errcode_try("clReleaseDevice", "", cl_h::clReleaseDevice(device.as_ptr()))
 }
 
@@ -902,12 +909,14 @@ pub fn create_sub_buffer(
 /// Returns a new image (mem) pointer.
 ///
 // [WORK IN PROGRESS]
+/// [Version Controlled: OpenCL 1.2+]
 pub unsafe fn create_image<T>(
             context: &Context,
             flags: MemFlags,
             format: &ImageFormat,
             desc: &ImageDescriptor,
             data: Option<&[T]>,
+            device_version: Option<&OpenclVersion>,
         ) -> OclResult<Mem>
 {
     // Verify that the context is valid:
@@ -1229,7 +1238,10 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
 }
 
 /// [UNIMPLEMENTED]
-pub fn create_program_with_built_in_kernels() -> OclResult<()> {
+///
+/// [Version Controlled: OpenCL 1.2+]
+pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersion>)
+            -> OclResult<()> {
     // clCreateProgramWithBuiltInKernels(context: cl_context,
     //                                  num_devices: cl_uint,
     //                                  device_list: *const cl_device_id,
@@ -1296,7 +1308,9 @@ pub fn build_program<D: ClDeviceIdPtr + Debug>(
 }
 
 /// [UNIMPLEMENTED]
-pub fn compile_program() -> OclResult<()> {
+///
+/// [Version Controlled: OpenCL 1.2+]
+pub fn compile_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
     // clCompileProgram(program: cl_program,
     //                 num_devices: cl_uint,
     //                 device_list: *const cl_device_id,
@@ -1310,7 +1324,9 @@ pub fn compile_program() -> OclResult<()> {
 }
 
 /// [UNIMPLEMENTED]
-pub fn link_program() -> OclResult<()> {
+///
+/// [Version Controlled: OpenCL 1.2+]
+pub fn link_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
     // clLinkProgram(context: cl_context,
     //               num_devices: cl_uint,
     //               device_list: *const cl_device_id,
@@ -1326,7 +1342,10 @@ pub fn link_program() -> OclResult<()> {
 // [DISABLED DUE TO PLATFORM INCOMPATABILITY]
 // /// [UNTESTED]
 // /// Unloads a platform compiler.
-// pub fn unload_platform_compiler(platform: &PlatformId) -> OclResult<()> {
+// ///
+// /// [Version Controlled: OpenCL 1.2+]
+// pub fn unload_platform_compiler(platform: &PlatformId,
+//          device_version: Option<&OpenclVersion>) -> OclResult<()> {
 //     unsafe { errcode_try("clUnloadPlatformCompiler", "",
 //         cl_h::clUnloadPlatformCompiler(platform.as_ptr())) }
 // }
@@ -1551,8 +1570,10 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
 }
 
 /// Get kernel arg info.
+///
+/// [Version Controlled: OpenCL 1.2+]
 pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
-        ) -> KernelArgInfoResult
+        device_version: Option<&OpenclVersion>) -> KernelArgInfoResult
 {
     let mut result_size: size_t = 0;
 
@@ -2003,6 +2024,7 @@ pub fn enqueue_write_buffer_rect<T: OclPrm>(
 ///
 /// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
 ///
+/// [Version Controlled: OpenCL 1.2+]
 pub fn enqueue_fill_buffer<T: OclPrm>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2011,6 +2033,7 @@ pub fn enqueue_fill_buffer<T: OclPrm>(
             len: usize,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
+            device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
     let pattern_size = mem::size_of::<T>();
@@ -2265,6 +2288,8 @@ pub fn enqueue_write_image<T>(
 /// appropriate image channel format and order associated with image.
 ///
 /// TODO: Trait constraints for `T`. Presumably it should be 32bits? Testing needed.
+///
+/// [Version Controlled: OpenCL 1.2+]
 pub fn enqueue_fill_image<T>(
             command_queue: &CommandQueue,
             image: &Mem,
@@ -2273,6 +2298,7 @@ pub fn enqueue_fill_image<T>(
             region: [usize; 3],
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
+            device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr)
@@ -2551,6 +2577,8 @@ pub fn enqueue_unmap_mem_object(
 /// be associated with.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMigrateMemObjects.html)
+///
+/// [Version Controlled: OpenCL 1.2+]
 pub fn enqueue_migrate_mem_objects(
             command_queue: &CommandQueue,
             num_mem_objects: u32,
@@ -2558,6 +2586,7 @@ pub fn enqueue_migrate_mem_objects(
             flags: MemMigrationFlags,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
+            device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr)
@@ -2724,10 +2753,13 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
 /// complete, or all previously enqueued commands to complete.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMarkerWithWaitList.html)
+///
+/// [Version Controlled: OpenCL 1.2+]
 pub fn enqueue_marker_with_wait_list(
             command_queue: &CommandQueue,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
+            device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
@@ -2746,10 +2778,13 @@ pub fn enqueue_marker_with_wait_list(
 /// A synchronization point that enqueues a barrier operation.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueBarrierWithWaitList.html)
+///
+/// [Version Controlled: OpenCL 1.2+]
 pub fn enqueue_barrier_with_wait_list(
             command_queue: &CommandQueue,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
+            device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
@@ -2767,12 +2802,12 @@ pub fn enqueue_barrier_with_wait_list(
 
 
 /// [UNTESTED]
-/// Returns the address of the extension function named by `func_name` for
-/// a given platform.
+/// Returns the address of the extension function named by
+/// `func_name` for a given platform.
 ///
-/// The pointer returned should be cast to a function pointer type matching the extension
-/// function's definition defined in the appropriate extension specification and
-/// header file.
+/// The pointer returned should be cast to a function pointer type matching
+/// the extension function's definition defined in the appropriate extension
+/// specification and header file.
 ///
 ///
 /// A non-NULL return value does
@@ -2792,6 +2827,8 @@ pub fn enqueue_barrier_with_wait_list(
 /// - The specified function does not exist for the implementation.
 /// - 'platform' is not a valid platform.
 ///
+/// [Version Controlled: OpenCL 1.2+]
+//
 // Extension function access
 //
 // Returns the extension function address for the given function name,
@@ -2809,8 +2846,12 @@ pub fn enqueue_barrier_with_wait_list(
 // [FIXME]: Return a generic that implements `Fn` (or `FnMut/Once`?).
 // TODO: Create another function which will handle the second check described
 // above in addition to calling this.
-pub unsafe fn get_extension_function_address_for_platform(platform: &PlatformId,
-            func_name: &str) -> OclResult<*mut c_void>
+//
+pub unsafe fn get_extension_function_address_for_platform(
+            platform: &PlatformId,
+            func_name: &str,
+            device_version: Option<&OpenclVersion>
+        ) -> OclResult<*mut c_void>
 {
     let func_name_c = try!(CString::new(func_name));
 
@@ -2895,8 +2936,8 @@ pub fn get_kernel_name(kernel: &Kernel) -> String {
 ///
 /// Panics upon OpenCL error of any kind.
 ///
-pub fn get_device_version(device_id: &DeviceId) -> OpenclVersion {
-    get_device_info(device_id, DeviceInfo::Version).as_opencl_version().unwrap()
+pub fn get_device_version(device_id: &DeviceId) -> OclResult<OpenclVersion> {
+    get_device_info(device_id, DeviceInfo::Version).as_opencl_version()
 }
 
 

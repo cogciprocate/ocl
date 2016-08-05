@@ -35,16 +35,6 @@
 //! dereferencing old pointers particularly on certain *ahem* platforms.
 //!
 //!
-//! ### `drop()` and `functions::release_[...]()`
-//!
-//! Handling errors inside of the destructor is still an open issue. For now,
-//! release builds will panic upon errors returned from calls to
-//! `functions::release_[...]()`. Because a panic during a panic could make
-//! debugging more difficult, debug builds will ignore errors.
-//!
-//!
-//!
-//!
 //!
 //! [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html
 
@@ -252,11 +242,7 @@ impl Clone for Context {
 
 impl Drop for Context {
     fn drop(&mut self) {
-        if cfg!(release) {
-            unsafe { functions::release_context(self).unwrap(); }
-        } else {
-            unsafe { functions::release_context(self).ok(); }
-        }
+        unsafe { functions::release_context(self).unwrap(); }
     }
 }
 
@@ -301,11 +287,7 @@ impl Clone for CommandQueue {
 
 impl Drop for CommandQueue {
     fn drop(&mut self) {
-        if cfg!(release) {
-            unsafe { functions::release_command_queue(self).unwrap(); }
-        } else {
-            unsafe { functions::release_command_queue(self).ok(); }
-        }
+        unsafe { functions::release_command_queue(self).unwrap(); }
     }
 }
 
@@ -358,11 +340,7 @@ impl Clone for Mem {
 
 impl Drop for Mem {
     fn drop(&mut self) {
-        if cfg!(release) {
-            unsafe { functions::release_mem_object(self).unwrap(); }
-        } else {
-            unsafe { functions::release_mem_object(self).ok(); }
-        }
+        unsafe { functions::release_mem_object(self).unwrap(); }
     }
 }
 
@@ -405,11 +383,7 @@ impl Clone for Program {
 
 impl Drop for Program {
     fn drop(&mut self) {
-        if cfg!(release) {
-            unsafe { functions::release_program(self).unwrap(); }
-        } else {
-            unsafe { functions::release_program(self).ok(); }
-        }
+        unsafe { functions::release_program(self).unwrap(); }
     }
 }
 
@@ -452,11 +426,7 @@ impl Clone for Kernel {
 
 impl Drop for Kernel {
     fn drop(&mut self) {
-        if cfg!(release) {
-            unsafe { functions::release_kernel(self).unwrap(); }
-        } else {
-            unsafe { functions::release_kernel(self).ok(); }
-        }
+        unsafe { functions::release_kernel(self).unwrap(); }
     }
 }
 
@@ -795,11 +765,7 @@ impl Clone for Sampler {
 
 impl Drop for Sampler {
     fn drop(&mut self) {
-        if cfg!(release) {
-            unsafe { functions::release_sampler(self).unwrap(); }
-        } else {
-            unsafe { functions::release_sampler(self).ok(); }
-        }
+        unsafe { functions::release_sampler(self).unwrap(); }
     }
 }
 
