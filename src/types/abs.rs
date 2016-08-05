@@ -45,7 +45,7 @@ use std::marker::Sized;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
-use ::{CommandExecutionStatus, OpenclVersion, DeviceInfo};
+use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo};
 use error::{Result as OclResult, Error as OclError};
 use functions;
 use util;
@@ -166,6 +166,15 @@ impl PlatformId {
     /// Returns a pointer.
     pub unsafe fn as_ptr(&self) -> cl_platform_id {
         self.0
+    }
+
+    /// Returns the looked up and parsed OpenCL version for this platform.
+    pub fn version(&self) -> OclResult<OpenclVersion> {
+        if !self.0.is_null() {
+            functions::get_platform_info(self, PlatformInfo::Version).as_opencl_version()
+        } else {
+            OclError::err("PlatformId::version(): This platform_id is invalid.")
+        }
     }
 }
 

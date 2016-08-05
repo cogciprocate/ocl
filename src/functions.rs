@@ -282,19 +282,14 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 }
 
 /// Returns platform information of the requested type.
-pub fn get_platform_info<P: ClPlatformIdPtr>(platform: Option<P>, request: PlatformInfo,
+pub fn get_platform_info<P: ClPlatformIdPtr>(platform: &P, request: PlatformInfo,
         ) -> PlatformInfoResult
 {
-    let platform_ptr: cl_platform_id = match platform {
-        Some(p) => unsafe { p.as_ptr() },
-        None => ptr::null_mut() as cl_platform_id,
-    };
-
     let mut result_size = 0 as size_t;
 
     let errcode = unsafe {
         cl_h::clGetPlatformInfo(
-            platform_ptr,
+            platform.as_ptr(),
             request as cl_platform_info,
             0 as size_t,
             ptr::null_mut(),
@@ -315,7 +310,7 @@ pub fn get_platform_info<P: ClPlatformIdPtr>(platform: Option<P>, request: Platf
 
     let errcode = unsafe {
         cl_h::clGetPlatformInfo(
-            platform_ptr,
+            platform.as_ptr(),
             request as cl_platform_info,
             result_size as size_t,
             result.as_mut_ptr() as *mut c_void,

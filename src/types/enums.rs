@@ -125,6 +125,17 @@ impl PlatformInfoResult {
             Err(err) => PlatformInfoResult::Error(Box::new(err)),
         }
     }
+
+    /// Parse the `Version` string and get a numeric result as `OpenclVersion`.
+    pub fn as_opencl_version(&self) -> OclResult<OpenclVersion> {
+        if let PlatformInfoResult::Version(ref ver) = *self {
+            OpenclVersion::from_info_str(ver)
+        } else {
+            OclError::err(format!("PlatformInfoResult::as_opencl_version(): Invalid platform info \
+                result variant: ({:?}). This function can only be called on a \
+                'PlatformInfoResult::Version' variant.", self))
+        }
+    }
 }
 
 impl std::fmt::Debug for PlatformInfoResult {
