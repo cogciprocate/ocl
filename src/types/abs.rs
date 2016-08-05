@@ -218,6 +218,16 @@ impl DeviceId {
     pub unsafe fn as_ptr(&self) -> cl_device_id {
         self.0
     }
+
+    /// Returns the looked up and parsed OpenCL version for this device.
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        if !self.0.is_null() {
+            functions::get_device_info(self, DeviceInfo::Version)
+                .as_opencl_version().map(|dv| vec![dv])
+        } else {
+            OclError::err("DeviceId::device_versions(): This device_id is invalid.")
+        }
+    }
 }
 
 unsafe impl ClDeviceIdPtr for DeviceId {}
@@ -232,8 +242,7 @@ impl PartialEq<DeviceId> for DeviceId {
 
 impl ClVersions for DeviceId {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        functions::get_device_info(self, DeviceInfo::Version)
-            .as_opencl_version().map(|dv| vec![dv])
+        self.device_versions()
     }
 
     // [FIXME]: TEMPORARY
