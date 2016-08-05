@@ -48,7 +48,7 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
         &CString::new("").unwrap(),
         &[device]).unwrap();
     let queue = core::create_command_queue(&context, &device).unwrap();
-    let len = DIMS.iter().fold(0, |acc, &x| acc + x); // sum of all DIMS
+    let len = DIMS.iter().fold(1, |acc, &x| acc * x); // product of all DIMS
     let buffer = unsafe { core::create_buffer::<f32>(&context, MemFlags::empty(), len, None).unwrap() };
     let image_descriptor = ImageDescriptor::new(
         MemObjectType::Image3d,
