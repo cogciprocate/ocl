@@ -1,20 +1,20 @@
 //! Get information about all the things using `core` function calls.
 //!
-//! [UNDERGOING SOME REDESIGN]
+//! [UNDERGOING SOME REDESIGN (eventually)]
 //!
-//! TODO: Need to translate standard-style interfaces into core-style.
+//! [TODO ONE DAY]: Need to translate old-style `println!`s into the better
+//! formatted style so that the multiline formatting works everywhere.
+//!
 
 extern crate ocl_core as core;
 #[macro_use] extern crate colorify;
 
-// use ocl::Error as OclError;
-// use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use std::ffi::CString;
 use core::{util, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo,
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
-    EventInfo, ProfilingInfo, ContextProperties, PlatformId, DeviceId, MemFlags,
-    ImageFormat, ImageDescriptor, MemObjectType, AddressingMode, FilterMode,
-    EventList, Event, ContextInfoResult, KernelArg};
+    EventInfo, ProfilingInfo, ContextProperties, PlatformId, DeviceId, ImageFormat,
+    ImageDescriptor, MemObjectType, AddressingMode, FilterMode, Event, ContextInfoResult,
+    KernelArg};
 
 const DIMS: [usize; 3] = [1024, 64, 16];
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -27,7 +27,6 @@ static SRC: &'static str = r#"
 
 fn main() {
     let platforms = core::get_platform_ids().unwrap();
-    // let platform = platforms[platforms.len() - 1];
     for platform in platforms.iter() {
         print_platform(platform.clone());
     }
@@ -43,26 +42,20 @@ fn print_platform(platform: PlatformId) {
 fn print_platform_device(platform: PlatformId, device: DeviceId) {
     let context_properties = ContextProperties::new().platform(platform);
     let context = core::create_context(&Some(context_properties), &[device], None, None).unwrap();
-    let program = core::create_build_program(&context,
-        &[CString::new(SRC).unwrap()],
-        &CString::new("").unwrap(),
-        &[device]).unwrap();
+
+    let program = core::create_build_program(&context, &[CString::new(SRC).unwrap()],
+        &CString::new("").unwrap(), &[device]).unwrap();
+
     let queue = core::create_command_queue(&context, &device).unwrap();
     let len = DIMS[0] * DIMS[1] * DIMS[2];
     let buffer = unsafe { core::create_buffer::<f32>(&context, core::MEM_READ_WRITE, len, None).unwrap() };
-    let image_descriptor = ImageDescriptor::new(
-        MemObjectType::Image1d,
-        DIMS[0], DIMS[1], DIMS[2],
-        0, // array size ?
-        0, // row pitch ?
-        0, // slc pitch ?
-        None); // buffer ?
-    let image = unsafe { core::create_image::<u8>(&context,
-        core::MEM_READ_WRITE,
-        &ImageFormat::new_rgba(),
-        &image_descriptor,
-        None,
-        None).unwrap() };
+
+    let image_descriptor = ImageDescriptor::new(MemObjectType::Image1d,
+        DIMS[0], DIMS[1], DIMS[2], 0, 0, 0, None);
+
+    let image = unsafe { core::create_image::<u8>(&context, core::MEM_READ_WRITE,
+        &ImageFormat::new_rgba(), &image_descriptor, None, None).unwrap() };
+
     let sampler = core::create_sampler(&context, false, AddressingMode::None, FilterMode::Nearest).unwrap();
     let kernel = core::create_kernel(&program, "multiply").unwrap();
     core::set_kernel_arg(&kernel, 0, KernelArg::Scalar(10.0f32)).unwrap();
@@ -95,11 +88,11 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
             {t}Vendor: {}\n\
             {t}Extensions: {}\n\
         ",
-        core::get_platform_info(Some(platform), PlatformInfo::Profile),
-        core::get_platform_info(Some(platform), PlatformInfo::Version),
-        core::get_platform_info(Some(platform), PlatformInfo::Name),
-        core::get_platform_info(Some(platform), PlatformInfo::Vendor),
-        core::get_platform_info(Some(platform), PlatformInfo::Extensions),
+        core::get_platform_info(&platform, PlatformInfo::Profile),
+        core::get_platform_info(&platform, PlatformInfo::Version),
+        core::get_platform_info(&platform, PlatformInfo::Name),
+        core::get_platform_info(&platform, PlatformInfo::Vendor),
+        core::get_platform_info(&platform, PlatformInfo::Extensions),
         t = util::colors::TAB,
     );
 
@@ -137,8 +130,6 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     // ##################################################
 
     // [FIXME]: Complete this section.
-    // [FIXME]: Implement `Display`/`Debug` for all variants of `DeviceInfoResult`.
-    // Printing algorithm is highly janky (due to laziness).
 
     let devices = match core::get_context_info(&context, ContextInfo::Devices) {
         ContextInfoResult::Devices(devices) => devices,
