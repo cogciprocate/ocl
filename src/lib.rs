@@ -99,6 +99,7 @@ extern crate cl_sys as ffi;
 extern crate rand;
 extern crate num;
 
+#[cfg(test)] mod tests;
 mod functions;
 pub mod types;
 pub mod error;
