@@ -8,7 +8,7 @@
 //!
 
 pub mod build_error;
-// pub mod buffer_copy;
+pub mod buffer_copy;
 // pub mod buffer_ops_rect;
 // pub mod image_ops;
 // pub mod buffer_fill;

@@ -12,16 +12,20 @@ fn buffer_copy_core() {
         }
     "#;
 
-    let platform_id = ::get_platform_ids().unwrap().first().unwrap();
-    let device_id = ::get_device_ids(&platform_id, None, None).unwrap().first().unwrap();
-    let context_properties = ::ContextProperties::new().platform(platform_id);
+    let platforms = ::get_platform_ids().unwrap();
+    let platform = platforms.first().unwrap().clone();
+
+    let devices = ::get_device_ids(&platform, None, None).unwrap();
+    let device = devices.first().unwrap();
+
+    let context_properties = ::ContextProperties::new().platform(platform);
     let context = ::create_context(&Some(context_properties),
-        &[device_id], None, None).unwrap();
+        &[device], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();
     let program = ::create_program_with_source(&context, &[src_cstring]).unwrap();
-    ::build_program(&program, &[device_id], &CString::new("").unwrap(),
+    ::build_program(&program, &[device], &CString::new("").unwrap(),
         None, None).unwrap();
-    let queue = ::create_command_queue(&context, &device_id).unwrap();
+    let queue = ::create_command_queue(&context, &device).unwrap();
     let dims = [DATASET_SIZE, 1, 1usize];
 
     // Source buffer:
