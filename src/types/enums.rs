@@ -1417,9 +1417,9 @@ impl ProgramInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ProgramInfoResult::Error(Box::new(OclError::new(
-                        "[NONE]")));
+                    return ProgramInfoResult::Error(Box::new(OclError::new("[NONE]")));
                 }
+
                 match request {
                     ProgramInfo::ReferenceCount => {
                         let r = unsafe { try_ir!(util::bytes_into::<u32>(result)) };

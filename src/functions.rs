@@ -1,29 +1,6 @@
 //! Thin and safe function wrappers.
 //!
 //!
-//! ## Version Control
-//!
-//! Functions in this module with the `[Version Controlled: OpenCL {...}+]`
-//! tag in the description require an additional parameter, `device_version`
-//! or `device_versions` which is a parsed result (or slice of results) of
-//! `DeviceInfo::Version`. This is a check to ensure that the device supports
-//! the function being called. Calling a function which a particular device
-//! does not support will likely cause a segmentation fault and possibly data
-//! corruption.
-//!
-//! Saving the `OpenclVersion` returned from `get_device_version()` for your
-//! device(es) at the start of your program and passing each time you call a
-//! version controlled function is the fastest and safest method.
-//!
-//! Passing `None` for `device_version` will cause an automated version check
-//! which has a small cost (calling info function, parsing the version number
-//! etc.) but is a safe option if you are not sure what to do.
-//!
-//! Passing the result of a call to `OpenclVersion::max()` or passing a fake
-//! version will bypass any safety checks and has all of the risks described
-//! above. Only do this if you're absolutely sure you know what you're doing
-//! and are not concerned about segfaults and data integrity.
-//!
 //!
 //!
 
@@ -158,12 +135,23 @@ pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -
 
     for dev_v in versions {
         if dev_v < &reqd_ver {
-            return OclError::err(format!("OpenCL version too low to use this feature\
+            return OclError::err(format!("OpenCL version too low to use this feature \
                 (detected: {}, required: {}).", dev_v, reqd_ver));
         }
     }
 
     Ok(())
+}
+
+fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
+            required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
+    match provided_version {
+        Some(pv) => {
+            let vers = [pv.clone()];
+            verify_versions(&vers, required_version)
+        },
+        None => fallback_version_source.verify_platform_version(required_version),
+    }
 }
 
 fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
@@ -182,17 +170,6 @@ fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersi
     match provided_versions {
         Some(pv) => verify_versions(pv, required_version),
         None => fallback_versions_source.verify_device_versions(required_version),
-    }
-}
-
-fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
-            required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
-    match provided_version {
-        Some(pv) => {
-            let vers = [pv.clone()];
-            verify_versions(&vers, required_version)
-        },
-        None => fallback_version_source.verify_platform_version(required_version),
     }
 }
 

@@ -45,7 +45,9 @@ use std::marker::Sized;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
-use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo};
+use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
+    ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
+    ProgramInfoResult, KernelInfo, KernelInfoResult};
 use error::{Result as OclResult, Error as OclError};
 use functions;
 use util;
@@ -179,6 +181,7 @@ impl PlatformId {
 }
 
 unsafe impl ClPlatformIdPtr for PlatformId {}
+unsafe impl<'a> ClPlatformIdPtr for &'a PlatformId {}
 unsafe impl Sync for PlatformId {}
 unsafe impl Send for PlatformId {}
 
@@ -196,7 +199,7 @@ impl ClVersions for PlatformId {
 
     // [FIXME]: TEMPORARY
     fn platform_version(&self) -> OclResult<OpenclVersion> {
-        unimplemented!();
+        self.version()
     }
 }
 
@@ -237,19 +240,10 @@ impl DeviceId {
             OclError::err("DeviceId::device_versions(): This device_id is invalid.")
         }
     }
-
-    // /// Returns the looked up and parsed OpenCL version for this device.
-    // pub fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-    //     if !self.0.is_null() {
-    //         functions::get_device_info(self, DeviceInfo::Version)
-    //             .as_opencl_version().map(|dv| vec![dv])
-    //     } else {
-    //         OclError::err("DeviceId::device_versions(): This device_id is invalid.")
-    //     }
-    // }
 }
 
 unsafe impl ClDeviceIdPtr for DeviceId {}
+unsafe impl<'a> ClDeviceIdPtr for &'a DeviceId {}
 unsafe impl Sync for DeviceId {}
 unsafe impl Send for DeviceId {}
 
@@ -264,9 +258,14 @@ impl ClVersions for DeviceId {
         self.version().map(|dv| vec![dv])
     }
 
-    // [FIXME]: TEMPORARY
     fn platform_version(&self) -> OclResult<OpenclVersion> {
-        unimplemented!();
+        let platform = match functions::get_device_info(self, DeviceInfo::Platform) {
+            DeviceInfoResult::Platform(p) => p,
+            DeviceInfoResult::Error(e) => return Err(OclError::from(*e)),
+            _ => unreachable!(),
+        };
+
+        functions::get_platform_info(&platform, PlatformInfo::Version).as_opencl_version()
     }
 }
 
@@ -321,12 +320,17 @@ impl PartialEq<Context> for Context {
 
 impl ClVersions for Context {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        unimplemented!()
+        let devices = match functions::get_context_info(self, ContextInfo::Devices) {
+            ContextInfoResult::Devices(ds) => ds,
+            ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
+            _ => unreachable!(),
+        };
+
+        functions::device_versions(&devices)
     }
 
-    // [FIXME]: TEMPORARY
     fn platform_version(&self) -> OclResult<OpenclVersion> {
-        unimplemented!();
+        OclError::err("Context::platform_version: This function is intentionally unused.")
     }
 }
 
@@ -354,6 +358,15 @@ impl CommandQueue {
     pub unsafe fn as_ptr(&self) -> cl_command_queue {
         self.0
     }
+
+    /// Returns the `DeviceId` associated with this command queue.
+    pub fn device(&self) -> OclResult<DeviceId> {
+        match functions::get_command_queue_info(self, CommandQueueInfo::Device) {
+            CommandQueueInfoResult::Device(d) => Ok(d),
+            CommandQueueInfoResult::Error(e) => Err(OclError::from(*e)),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Clone for CommandQueue {
@@ -380,12 +393,12 @@ unsafe impl Send for CommandQueue {}
 
 impl ClVersions for CommandQueue{
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        unimplemented!()
+        let device = try!(self.device());
+        device.version().map(|dv| vec![dv])
     }
 
-    // [FIXME]: TEMPORARY
     fn platform_version(&self) -> OclResult<OpenclVersion> {
-        unimplemented!();
+        try!(self.device()).platform_version()
     }
 }
 
@@ -461,6 +474,15 @@ impl Program {
 	pub unsafe fn as_ptr(&self) -> cl_program {
 		self.0
 	}
+
+    /// Returns the devices associated with this program.
+    pub fn devices(&self) -> OclResult<Vec<DeviceId>> {
+        match functions::get_program_info(self, ProgramInfo::Devices) {
+            ProgramInfoResult::Devices(d) => Ok(d),
+            ProgramInfoResult::Error(e) => Err(OclError::from(*e)),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Clone for Program {
@@ -481,12 +503,13 @@ unsafe impl Send for Program {}
 
 impl ClVersions for Program {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        unimplemented!()
+        let devices = try!(self.devices());
+        functions::device_versions(&devices)
     }
 
-    // [FIXME]: TEMPORARY
     fn platform_version(&self) -> OclResult<OpenclVersion> {
-        unimplemented!();
+        let devices = try!(self.devices());
+        devices[0].platform_version()
     }
 }
 
@@ -515,6 +538,15 @@ impl Kernel {
     pub unsafe fn as_ptr(&self) -> cl_kernel {
         self.0
     }
+
+    /// Returns the program associated with this kernel.
+    pub fn program(&self) -> OclResult<Program> {
+        match functions::get_kernel_info(self, KernelInfo::Program) {
+            KernelInfoResult::Program(d) => Ok(d),
+            KernelInfoResult::Error(e) => Err(OclError::from(*e)),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Clone for Kernel {
@@ -532,12 +564,13 @@ impl Drop for Kernel {
 
 impl ClVersions for Kernel {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        unimplemented!()
+        let devices = try!(try!(self.program()).devices());
+        functions::device_versions(&devices)
     }
 
-    // [FIXME]: TEMPORARY
     fn platform_version(&self) -> OclResult<OpenclVersion> {
-        unimplemented!();
+        let devices = try!(try!(self.program()).devices());
+        devices[0].platform_version()
     }
 }
 

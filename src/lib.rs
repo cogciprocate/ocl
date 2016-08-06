@@ -45,6 +45,30 @@
 //! is generally used when a parameter deviates from this convention.
 //!
 //!
+//! ## Version Control
+//!
+//! Functions in this crate with the `[Version Controlled: OpenCL {...}+]`
+//! tag in the description require an additional parameter, `device_version`
+//! or `device_versions` which is a parsed result (or slice of results) of
+//! `DeviceInfo::Version`. This is a check to ensure that the device supports
+//! the function being called. Calling a function which a particular device
+//! does not support will likely cause a segmentation fault and possibly data
+//! corruption.
+//!
+//! Saving the `OpenclVersion` returned from `get_device_version()` for your
+//! device(es) at the start of your program and passing each time you call a
+//! version controlled function is the fastest and safest method.
+//!
+//! Passing `None` for `device_version` will cause an automated version check
+//! which has a small cost (calling info function, parsing the version number
+//! etc.) but is a safe option if you are not sure what to do.
+//!
+//! Passing the result of a call to `OpenclVersion::max()` or passing a fake
+//! version will bypass any safety checks and has all of the risks described
+//! above. Only do this if you're absolutely sure you know what you're doing
+//! and are not concerned about segfaults and data integrity.
+//!
+//!
 //! ## More Documentation
 //!
 //! As most of the functions here are minimally documented, please refer to
