@@ -8,8 +8,6 @@ use std::thread::{self, JoinHandle};
 use std::sync::mpsc;
 use std::time::Duration;
 use rand::{self, Rng};
-use standard::{Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
-use core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 
 static SRC: &'static str = r#"
     __kernel void add(__global float* buffer, float addend) {

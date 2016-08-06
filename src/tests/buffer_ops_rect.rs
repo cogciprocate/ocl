@@ -2,10 +2,9 @@
 //!
 //! Runs both the core function and the 'standard' method call for each.
 
-use core;
-// use flags;
-use standard::{ProQue, Buffer};
 use tests;
+
+use std::ffi::CString;
 
 const ADDEND: f32 = 10.0;
 const DIMS: [usize; 3] = [16, 16, 16];
@@ -31,23 +30,35 @@ fn buffer_ops_rect() {
         }
     "#;
 
-    let proque = ProQue::builder()
-        .src(src)
-        .dims(DIMS)
-        .build().unwrap();
+    // let proque = ProQue::builder()
+    //     .src(src)
+    //     .dims(DIMS)
+    //     .build().unwrap();
+
+
+    let platform_id = ::get_platform_ids().unwrap().first().unwrap();
+    let device = ::get_device_ids(&platform_id, None, None).unwrap().first().unwrap();
+    let context_properties = ::ContextProperties::new().platform(platform_id);
+    let context = ::create_context(&Some(context_properties),
+        &[device], None, None).unwrap();
+
+    let queue = ::create_command_queue(&context, &device).unwrap();
 
     // SRC_BUFFER:
-    let mut vec = vec![0.0f32; proque.dims().to_len()];
-    // let buf = unsafe { Buffer::new_unchecked(
-    //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
-    //     proque.dims().to_len().unwrap(), Some(&vec), proque.queue()) };
-    let buf = Buffer::new(proque.queue(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec)).unwrap();
+    let len = DIMS[0] * DIMS[1] * DIMS[2];
+    let mut vec = vec![0.0f32; len];
+    let buf = unsafe { ::create_buffer::<f32>(&context,
+        ::MEM_READ_WRITE | ::MEM_COPY_HOST_PTR, len, Some(&vec)).unwrap() };
 
-    let kernel_add = proque.create_kernel("add").unwrap()
-        .arg_buf(&buf)
-        .arg_scl(ADDEND);
+    // let kernel_add = proque.create_kernel("add").unwrap()
+    //     .arg_buf(&buf)
+    //     .arg_scl(ADDEND);
 
+    let program = ::create_build_program(&context, &[CString::new(src).unwrap()],
+            &CString::new("").unwrap(), &[device]).unwrap();
+    let kernel_add = ::create_kernel(&program, "add").unwrap();
+    ::set_kernel_arg::<usize>(&kernel_add, 0, ::KernelArg::Mem(&buf)).unwrap(); // usize or anything :)
+    ::set_kernel_arg(&kernel_add, 1, ::KernelArg::Scalar(ADDEND)).unwrap();
 
     //========================================================================
     //========================================================================
@@ -55,11 +66,11 @@ fn buffer_ops_rect() {
     //========================================================================
     //========================================================================
     // Make sure that pro_que's dims are correct:
-    let dims = proque.dims().to_lens().unwrap();
-    assert_eq!(DIMS, dims);
+    // let dims = proque.dims().to_lens().unwrap();
+    // assert_eq!(DIMS, dims);
 
     // Verify buffer and vector lengths:
-    let len = proque.dims().to_len();
+    // let len = proque.dims().to_len();
     assert_eq!(buf.len(), len);
     assert_eq!(vec.len(), len);
 
@@ -70,7 +81,7 @@ fn buffer_ops_rect() {
     // READ AND VERIFY #1 (LINEAR):
     buf.read(&mut vec).enq().unwrap();
 
-    for idx in 0..proque.dims().to_len() {
+    for idx in 0..len {
         // DEBUG:
         // print!("[{:02}]", vec[i]);
         // if i % 20 == 19 { print!("\n"); }
@@ -81,8 +92,8 @@ fn buffer_ops_rect() {
     print!("\n");
 
     // Warm up the verify function:
-    tests::verify_vec_rect([0, 0, 0], dims, ADDEND * ttl_runs as f32,
-        ADDEND * (ttl_runs - 1) as f32, dims, 1, &vec, ttl_runs, false).unwrap();
+    tests::verify_vec_rect([0, 0, 0], DIMS, ADDEND * ttl_runs as f32,
+        ADDEND * (ttl_runs - 1) as f32, DIMS, 1, &vec, ttl_runs, false).unwrap();
 
     //========================================================================
     //========================================================================
@@ -92,19 +103,19 @@ fn buffer_ops_rect() {
     // Buffer origin doesn't matter since it's all the same value host side:
     let buf_origin = [0, 0, 0];
     // Lengths of the two non-major dimensions.
-    let row_pitch = dims[0];
-    let slc_pitch = dims[0] * dims[1];
+    let row_pitch = DIMS[0];
+    let slc_pitch = DIMS[0] * DIMS[1];
 
     for _ in 0..TEST_ITERS {
         // Generate a random size region and origin point:
-        let (vec_origin, read_region) = tests::gen_region_origin(&dims);
+        let (vec_origin, read_region) = tests::gen_region_origin(&DIMS);
 
         //====================================================================
-        //=============== `core::enqueue_read_buffer_rect()` =================
+        //=============== `::enqueue_read_buffer_rect()` =================
         //====================================================================
         // Reset vec:
-        unsafe { core::enqueue_read_buffer_rect(proque.queue(), &buf, true,
-            [0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch, row_pitch, slc_pitch,
+        unsafe { ::enqueue_read_buffer_rect(queue, &buf, true,
+            [0, 0, 0], [0, 0, 0], DIMS, row_pitch, slc_pitch, row_pitch, slc_pitch,
             &mut vec, None, None).unwrap(); }
 
         // Run kernel:
@@ -114,20 +125,20 @@ fn buffer_ops_rect() {
         let old_val = ADDEND * (ttl_runs - 1) as f32;
 
         // Read from the random region into our vec:
-        unsafe { core::enqueue_read_buffer_rect(proque.queue(), &buf, true,
+        unsafe { ::enqueue_read_buffer_rect(queue, &buf, true,
             buf_origin, vec_origin, read_region.clone(), row_pitch, slc_pitch,
             row_pitch, slc_pitch, &mut vec, None, None).unwrap(); }
 
         // Verify:
         tests::verify_vec_rect(vec_origin, read_region, cur_val, old_val,
-            dims, 1, &vec, ttl_runs, false).unwrap();
+            DIMS, 1, &vec, ttl_runs, false).unwrap();
 
         //====================================================================
         //================== `Buffer::cmd().read().rect()` ===================
         //====================================================================
         // Reset vec:
-        buf.cmd().read(&mut vec).rect([0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch,
-            row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
+        buf.cmd().read(&mut vec).rect([0, 0, 0], [0, 0, 0], DIMS, row_pitch, slc_pitch,
+            row_pitch, slc_pitch).queue(queue).block(true).enq().unwrap();
 
         // Run kernel:
         kernel_add.enq().expect("[FIXME]: HANDLE ME!");
@@ -137,11 +148,11 @@ fn buffer_ops_rect() {
 
         // Read from the random region into our vec:
         buf.cmd().read(&mut vec).rect(buf_origin, vec_origin, read_region.clone(), row_pitch,
-            slc_pitch, row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
+            slc_pitch, row_pitch, slc_pitch).queue(queue).block(true).enq().unwrap();
 
         // Verify:
         tests::verify_vec_rect(vec_origin, read_region, cur_val, old_val,
-            dims, 1, &vec, ttl_runs, false).unwrap();
+            DIMS, 1, &vec, ttl_runs, false).unwrap();
     }
 
     //========================================================================
@@ -152,14 +163,14 @@ fn buffer_ops_rect() {
     // Prepare a kernel which will write a single value to the entire buffer
     // and which can be updated on each run (to act as a 'reset').
     let mut kernel_eq = proque.create_kernel("eq").unwrap()
-    .arg_buf_named("buf", Some(&buf))
-    .arg_scl_named("val", Some(0.0f32));
+        .arg_buf_named("buf", Some(&buf))
+        .arg_scl_named("val", Some(0.0f32));
 
     // Vector origin doesn't matter for this:
     let vec_origin = [0, 0, 0];
     // Lengths of the two non-major dimensions.
-    let row_pitch = dims[0];
-    let slc_pitch = dims[0] * dims[1];
+    let row_pitch = DIMS[0];
+    let slc_pitch = DIMS[0] * DIMS[1];
 
     // Reset kernel runs count:
     ttl_runs = 0;
@@ -167,10 +178,10 @@ fn buffer_ops_rect() {
     for _ in 0..TEST_ITERS {
         // Generate a random size region and origin point. For the write test
         // it's the buf origin we care about, not the vec.
-        let (buf_origin, read_region) = tests::gen_region_origin(&dims);
+        let (buf_origin, read_region) = tests::gen_region_origin(&DIMS);
 
         //====================================================================
-        //=============== `core::enqueue_write_buffer_rect()` ================
+        //=============== `::enqueue_write_buffer_rect()` ================
         //====================================================================
         // Set up values. Device buffer will now be init'd one step behind host vec.
         ttl_runs += 1;
@@ -182,16 +193,16 @@ fn buffer_ops_rect() {
         for ele in vec.iter_mut() { *ele = nxt_val }
 
         // Write to the random region:
-        core::enqueue_write_buffer_rect(proque.queue(), &buf, false,
+        ::enqueue_write_buffer_rect(queue, &buf, false,
             buf_origin, vec_origin, read_region.clone(), row_pitch, slc_pitch,
             row_pitch, slc_pitch, &vec, None, None).unwrap();
         // Read the entire buffer back into the vector:
-        unsafe { core::enqueue_read_buffer_rect(proque.queue(), &buf, true,
-            [0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch, row_pitch, slc_pitch,
+        unsafe { ::enqueue_read_buffer_rect(queue, &buf, true,
+            [0, 0, 0], [0, 0, 0], DIMS, row_pitch, slc_pitch, row_pitch, slc_pitch,
             &mut vec, None, None).unwrap(); }
         // Verify that our random region was in fact written correctly:
         tests::verify_vec_rect(buf_origin, read_region, nxt_val, cur_val,
-            dims, 1, &vec, ttl_runs, true).unwrap();
+            DIMS, 1, &vec, ttl_runs, true).unwrap();
 
         //====================================================================
         //================= `Buffer::cmd().write().rect()` ===================
@@ -207,13 +218,13 @@ fn buffer_ops_rect() {
 
         // Write to the random region:
         buf.cmd().write(&mut vec).rect(buf_origin, vec_origin, read_region.clone(), row_pitch,
-            slc_pitch, row_pitch, slc_pitch).queue(proque.queue()).block(false).enq().unwrap();
+            slc_pitch, row_pitch, slc_pitch).queue(queue).block(false).enq().unwrap();
         // Read the entire buffer back into the vector:
-        buf.cmd().read(&mut vec).rect([0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch,
-            row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
+        buf.cmd().read(&mut vec).rect([0, 0, 0], [0, 0, 0], DIMS, row_pitch, slc_pitch,
+            row_pitch, slc_pitch).queue(queue).block(true).enq().unwrap();
         // Verify that our random region was in fact written correctly:
         tests::verify_vec_rect(buf_origin, read_region, nxt_val, cur_val,
-            dims, 1, &vec, ttl_runs, true).unwrap();
+            DIMS, 1, &vec, ttl_runs, true).unwrap();
     }
 
     //========================================================================
@@ -223,25 +234,19 @@ fn buffer_ops_rect() {
     //========================================================================
     // Source Buffer:
     let mut vec_src = vec![0.0f32; proque.dims().to_len()];
-    // let buf_src = unsafe { Buffer::new_unchecked(
-    //     flags::MEM_READ_ONLY | flags::MEM_HOST_WRITE_ONLY | flags::MEM_COPY_HOST_PTR,
-    //     proque.dims().to_len().unwrap(), Some(&vec_src), proque.queue()) };
-    let buf_src = Buffer::new(proque.queue(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src)).unwrap();
+    let buf_src = Buffer::new(queue, Some(::MEM_READ_WRITE |
+        ::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src)).unwrap();
 
     // Destination Buffer:
     let mut vec_dst = vec![0.0f32; proque.dims().to_len()];
-    // let buf_dst = unsafe { Buffer::new_unchecked(
-    //     flags::MEM_WRITE_ONLY | flags::MEM_HOST_READ_ONLY | flags::MEM_COPY_HOST_PTR,
-    //     proque.dims().to_len().unwrap(), Some(&vec_dst), proque.queue()) };
-    let buf_dst = Buffer::new(proque.queue(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_dst)).unwrap();
+    let buf_dst = Buffer::new(queue, Some(::MEM_READ_WRITE |
+        ::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_dst)).unwrap();
 
     // Source origin doesn't matter for this:
     let src_origin = [0, 0, 0];
     // Lengths of the two non-major dimensions.
-    let row_pitch = dims[0];
-    let slc_pitch = dims[0] * dims[1];
+    let row_pitch = DIMS[0];
+    let slc_pitch = DIMS[0] * DIMS[1];
 
     // Set our 'eq' kernel's buffer to our dst buffer for reset purposes:
     kernel_eq.set_arg_buf_named("buf", Some(&buf_dst)).unwrap();
@@ -256,7 +261,7 @@ fn buffer_ops_rect() {
         let (dst_origin, read_region) = tests::gen_region_origin(&dims);
 
         //====================================================================
-        //=============== `core::enqueue_copy_buffer_rect()` ================
+        //=============== `::enqueue_copy_buffer_rect()` ================
         //====================================================================
         // Set up values. Src buffer will be one step ahead of dst buffer.
         ttl_runs += 1;
@@ -271,21 +276,21 @@ fn buffer_ops_rect() {
         for ele in vec_src.iter_mut() { *ele = nxt_val }
 
         // Write the source vec to the source buf:
-        core::enqueue_write_buffer_rect(proque.queue(), &buf_src, true, [0, 0, 0], [0, 0, 0],
-            dims, row_pitch, slc_pitch, row_pitch, slc_pitch, &vec_src,
+        ::enqueue_write_buffer_rect(queue, &buf_src, true, [0, 0, 0], [0, 0, 0],
+            DIMS, row_pitch, slc_pitch, row_pitch, slc_pitch, &vec_src,
             None, None).unwrap();
 
         // Copy from the source buffer to the random region on the destination buffer:
-        core::enqueue_copy_buffer_rect::<f32>(proque.queue(), &buf_src, &buf_dst,
+        ::enqueue_copy_buffer_rect::<f32>(queue, &buf_src, &buf_dst,
             src_origin, dst_origin, read_region.clone(), row_pitch, slc_pitch,
             row_pitch, slc_pitch, None, None).unwrap();
         // Read the entire destination buffer into the destination vec:
-        unsafe { core::enqueue_read_buffer_rect(proque.queue(), &buf_dst, true,
-            [0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch, row_pitch, slc_pitch,
+        unsafe { ::enqueue_read_buffer_rect(queue, &buf_dst, true,
+            [0, 0, 0], [0, 0, 0], DIMS, row_pitch, slc_pitch, row_pitch, slc_pitch,
             &mut vec_dst, None, None).unwrap(); }
         // Verify that our random region was in fact written correctly:
         tests::verify_vec_rect(dst_origin, read_region, nxt_val, cur_val,
-            dims, 1, &vec_dst, ttl_runs, true).unwrap();
+            DIMS, 1, &vec_dst, ttl_runs, true).unwrap();
 
         //====================================================================
         //================= `Buffer::cmd().copy().rect()` ===================
@@ -303,15 +308,15 @@ fn buffer_ops_rect() {
         for ele in vec_src.iter_mut() { *ele = nxt_val }
 
         // Write the source vec to the source buf:
-        buf_src.cmd().write(&vec_src).rect([0, 0, 0], [0, 0, 0], dims, row_pitch,
-            slc_pitch, row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
+        buf_src.cmd().write(&vec_src).rect([0, 0, 0], [0, 0, 0], DIMS, row_pitch,
+            slc_pitch, row_pitch, slc_pitch).queue(queue).block(true).enq().unwrap();
 
         // Copy from the source buffer to the random region on the destination buffer:
         buf_src.cmd().copy(&buf_dst, 0, 0).rect(src_origin, dst_origin, read_region.clone(), row_pitch,
-            slc_pitch, row_pitch, slc_pitch).queue(proque.queue()).enq().unwrap();
+            slc_pitch, row_pitch, slc_pitch).queue(queue).enq().unwrap();
         // Read the entire destination buffer into the destination vec:
-        buf_dst.cmd().read(&mut vec_dst).rect([0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch,
-            row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
+        buf_dst.cmd().read(&mut vec_dst).rect([0, 0, 0], [0, 0, 0], DIMS, row_pitch, slc_pitch,
+            row_pitch, slc_pitch).queue(queue).block(true).enq().unwrap();
         // Verify that our random region was in fact written correctly:
         tests::verify_vec_rect(dst_origin, read_region, nxt_val, cur_val,
             dims, 1, &vec_dst, ttl_runs, true).unwrap();

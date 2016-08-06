@@ -1,15 +1,12 @@
 //! Test adding multiple context properties.
 
-use standard::{Platform, Device, Context};
-use core::{ContextPropertyValue};
-
 // static SRC: &'static str = r#"
 //     __kernel void multiply(__global float* buffer, float coeff) {
 //         buffer[get_global_id(0)] *= coeff;
 //     }
 // "#;
 
-#[test] 
+#[test]
 fn test_context_props() {
     // let dims = [2048];
     let platforms = Platform::list();
@@ -31,7 +28,7 @@ fn test_context_props() {
 
 
         println!("{}", platform);
-        println!("{}", context);        
+        println!("{}", context);
 
         for device in devices.iter() {
             println!("Device {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());

@@ -1,6 +1,5 @@
 use std::thread;
 use std::time::Duration;
-use standard::{ProQue, Kernel};
 
 static SRC: &'static str = r#"
     __kernel void add(__global float* buffer, float addend) {

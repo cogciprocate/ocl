@@ -1,5 +1,3 @@
-use core;
-
 static kernel: &'static str = r#"
     __kernel void pyrs_ltp(
                 __global uchar const* const axn_states,
@@ -86,5 +84,5 @@ static kernel: &'static str = r#"
 
 #[test]
 fn complex_kernel() {
-
+    unimplemented!();
 }

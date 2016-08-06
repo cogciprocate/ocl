@@ -8,19 +8,19 @@
 //!
 
 pub mod build_error;
-pub mod buffer_copy;
-pub mod buffer_ops_rect;
-pub mod image_ops;
-pub mod buffer_fill;
-pub mod clear_completed;
-pub mod concurrent;
-pub mod kernel_arg_ptr;
-pub mod vector_types;
-pub mod context_props;
+// pub mod buffer_copy;
+// pub mod buffer_ops_rect;
+// pub mod image_ops;
+// pub mod buffer_fill;
+// pub mod clear_completed;
+// pub mod concurrent;
+// pub mod kernel_arg_ptr;
+// pub mod vector_types;
+// pub mod context_props;
 
 use rand::{self, Rng};
 use error::{Error as OclError, Result as OclResult};
-use core::OclScl;
+use OclScl;
 
 const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 16;

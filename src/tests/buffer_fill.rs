@@ -1,6 +1,3 @@
-// extern crate ocl;
-use standard::ProQue;
-
 const DATASET_SIZE: usize = 2 << 20;
 
 #[test]
@@ -43,8 +40,6 @@ fn fill() {
 
 #[test]
 fn fill_with_float4() {
-    use aliases::ClFloat4;
-
     let src = r#"
         __kernel void add_float4(__global float4* buffer, float4 addend) {
             buffer[get_global_id(0)] += addend;

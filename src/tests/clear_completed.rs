@@ -1,5 +1,3 @@
-use standard::{ProQue, EventList};
-
 #[test]
 fn clear_completed() {
     let src = r#"
@@ -31,4 +29,3 @@ fn clear_completed() {
         event_list.clear_completed().unwrap();
     }
 }
-

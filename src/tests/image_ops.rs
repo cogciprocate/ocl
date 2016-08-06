@@ -4,11 +4,6 @@
 //!
 //! Runs both the core function and the 'standard' method call for each.
 
-use core;
-use flags;
-use standard::{ProQue, Image, Sampler};
-use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
-use aliases::{ClInt4};
 use tests;
 
 // const ADDEND: [i32; 4] = [1; 4];
@@ -56,14 +51,14 @@ fn image_ops() {
         .channel_data_type(ImageChannelDataType::SignedInt32)
         .image_type(MemObjectType::Image3d)
         .dims(proque.dims())
-        .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
+        .flags(::MEM_READ_WRITE | ::MEM_COPY_HOST_PTR)
         .build_with_data(proque.queue(), &vec).unwrap();
     let img_dst = Image::<i32>::builder()
         .channel_order(ImageChannelOrder::Rgba)
         .channel_data_type(ImageChannelDataType::SignedInt32)
         .image_type(MemObjectType::Image3d)
         .dims(proque.dims())
-        .flags(flags::MEM_WRITE_ONLY | flags::MEM_COPY_HOST_PTR)
+        .flags(::MEM_WRITE_ONLY | ::MEM_COPY_HOST_PTR)
         .build_with_data(proque.queue(), &vec).unwrap();
 
     let kernel_add = proque.create_kernel("add").unwrap()
@@ -124,11 +119,11 @@ fn image_ops() {
         let (region, origin) = (dims, [0, 0, 0]);
 
         //====================================================================
-        //=================== `core::enqueue_..._image()` ====================
+        //=================== `::enqueue_..._image()` ========================
         //====================================================================
 
         // Write to src:
-        core::enqueue_write_image(proque.queue(), &img_src, true,
+        ::enqueue_write_image(proque.queue(), &img_src, true,
             origin, region, 0, 0,
             &vec, None, None).unwrap();
 
@@ -138,7 +133,7 @@ fn image_ops() {
         let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
 
         // Read into vec:
-        unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
+        unsafe { ::enqueue_read_image(proque.queue(), &img_dst, true,
             origin, region, 0, 0,
             &mut vec, None, None).unwrap(); }
 
@@ -156,11 +151,11 @@ fn image_ops() {
         let cur_pixel = ClInt4(cur_val, cur_val, cur_val, cur_val);
         kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
-        core::enqueue_copy_image::<i32>(proque.queue(), &img_src, &img_dst,
+        ::enqueue_copy_image::<i32>(proque.queue(), &img_src, &img_dst,
             origin, origin, region, None, None).unwrap();
 
         // Read into vec:
-        unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
+        unsafe { ::enqueue_read_image(proque.queue(), &img_dst, true,
             origin, region, 0, 0,
             &mut vec, None, None).unwrap(); }
 
