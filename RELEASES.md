@@ -1,8 +1,13 @@
 Version 0.11.0 (UNRELEASED)
 ===========================
 
-The `core` and `ffi` modules have been moved into new crates, [`ocl-core`] and
-[`cl-sys`] respectively.
+The `core` and `ffi` modules have been moved into new crates, [ocl-core] and
+[cl-sys] respectively.
+
+The version control system has been implemented. Functions added since OpenCL
+1.1 now take an additional argument to ensure that the device or platform
+supports that feature. See the [ocl-core crate documentation] for more
+information.
 
 Breaking Changes
 ----------------
@@ -11,8 +16,9 @@ Breaking Changes
 * `DeviceSpecifier::to_device_list` now accepts a `Option<&Platform>`.
 
 
-[`ocl-core`]: https://github.com/cogciprocate/ocl-core
-[`cl-sys`]: https://github.com/cogciprocate/cl-sys
+[ocl-core crate documentation]: http://docs.cogciprocate.com/ocl_core/ocl_core
+[ocl-core]: https://github.com/cogciprocate/ocl-core
+[cl-sys]: https://github.com/cogciprocate/cl-sys
 
 
 Version 0.10.0 (2016-06-11)
