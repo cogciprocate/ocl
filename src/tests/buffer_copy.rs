@@ -21,6 +21,7 @@ fn buffer_copy_core() {
     let context_properties = ::ContextProperties::new().platform(platform);
     let context = ::create_context(&Some(context_properties),
         &[device], None, None).unwrap();
+
     let src_cstring = CString::new(src).unwrap();
     let program = ::create_program_with_source(&context, &[src_cstring]).unwrap();
     ::build_program(&program, &[device], &CString::new("").unwrap(),
