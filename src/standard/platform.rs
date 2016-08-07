@@ -23,6 +23,7 @@ impl Platform {
         list_core.into_iter().map(Platform::new).collect()
     }
 
+    // DEPRICATED:
     // /// Returns the first available platform on the host machine.
     // pub fn first() -> Platform {
     //     let list_core = core::get_platform_ids()
@@ -95,7 +96,9 @@ impl Platform {
     /// * OpenCL<space><major_version.minor_version><space><platform-specific
     ///   information>
     ///
-    /// * The major_version.minor_version value returned will be 1.2.
+    /// * The major_version.minor_version value returned will be '1.2'.
+    ///
+    /// [TODO]: Convert this to new version system returning an `OpenclVersion`.
     pub fn version(&self) -> String {
         // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version) {
         //     Ok(pi) => pi.into(),

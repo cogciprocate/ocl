@@ -94,10 +94,8 @@ Rust's safety and convenience.
 
 ##### Version Support
 
-1.1 support is intact but intentionally disabled for simplicity. If this
-support is needed, please file an [issue] and it will be reenabled. Automatic
-best-version support for versions going all the way back to 1.0 will
-eventually be added.
+OpenCL versions 1.1 and above are supported. OpenCL version 1.0 is **not**
+supported due to its inherent thread unsafety.
 
 
 ##### What About Vulkan&trade;?
