@@ -5,7 +5,12 @@
 //!
 //! TODO: port some of bismit's tests over.
 //!
+//! [NOTE]: These tests are being migrated from the original `ocl` crate.
 //!
+//! TODO: Finish porting tests from ocl.
+//!
+
+#![allow(dead_code)]
 
 pub mod build_error;
 pub mod buffer_copy;

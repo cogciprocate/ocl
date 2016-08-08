@@ -1,4 +1,4 @@
-const IDX: usize = 200007;
+// const IDX: usize = 200007;
 const ADDEND: f32 = 10.0;
 const DATASET_SIZE: usize = 2 << 20;
 
