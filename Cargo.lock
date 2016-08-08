@@ -135,7 +135,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "ocl-core"
 version = "0.1.0"
-source = "git+https://github.com/cogciprocate/ocl-core#ba4a79eba7d40d88c465ae4a43cdd5fadc1ca502"
+source = "git+https://github.com/cogciprocate/ocl-core#be5a6b1ad207a02aee91127d9694eea23027b164"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cl-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -15,10 +15,6 @@ exclude = ["target/*", "*.png", "bak/*"]
 kernel_debug_print = []
 kernel_debug_sleep = []
 
-# [dependencies.cl-sys]
-# git = "https://github.com/cogciprocate/cl-sys"
-# path = "/home/nick/src/github.com/cogciprocate/cl-sys"
-
 # [dependencies.ocl-core]
 # git = "https://github.com/cogciprocate/ocl-core"
 # path = "/home/nick/src/github.com/cogciprocate/ocl-core"
@@ -28,7 +24,6 @@ kernel_debug_sleep = []
 "ocl-core:0.1.0" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 [dependencies]
-cl-sys = "0.1"
 ocl-core = "0.1"
 num = "0.1"
 libc = "0.2"

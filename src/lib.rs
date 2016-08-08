@@ -47,13 +47,14 @@
 extern crate libc;
 extern crate num;
 extern crate rand;
-extern crate cl_sys as ffi;
+// extern crate cl_sys as ffi;
 pub extern crate ocl_core as core;
 
 #[cfg(test)] mod tests;
 mod standard;
 
-pub use ffi::cl_h;
+pub use core::ffi;
+pub use core::ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, Sampler, SpatialDims, ProQue};
 pub use core::error::{Error, Result};
