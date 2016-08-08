@@ -95,7 +95,7 @@
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate enum_primitive;
 extern crate libc;
-extern crate cl_sys as ffi;
+pub extern crate cl_sys as ffi;
 extern crate rand;
 extern crate num;
 
