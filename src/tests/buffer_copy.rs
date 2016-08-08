@@ -12,13 +12,10 @@ fn buffer_copy_core() {
         }
     "#;
 
-    let platforms = ::get_platform_ids().unwrap();
-    let platform = platforms.first().unwrap().clone();
-
-    let devices = ::get_device_ids(&platform, None, None).unwrap();
-    let device = devices.first().unwrap();
-
-    let context_properties = ::ContextProperties::new().platform(platform);
+    let platform_id = ::default_platform().unwrap();
+    let device_ids = ::get_device_ids(&platform_id, None, None).unwrap();
+    let device = device_ids[0];
+    let context_properties = ::ContextProperties::new().platform(platform_id);
     let context = ::create_context(&Some(context_properties),
         &[device], None, None).unwrap();
 
