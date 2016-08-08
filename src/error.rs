@@ -95,6 +95,14 @@ impl self::Error {
             _ => String::from(""),
         }
     }
+
+    /// Returns the error status code for `Status` variants.
+    pub fn status(&self) -> Option<Status> {
+        match *self {
+            Error::Status { ref status, .. } => Some(status.clone()),
+            _ => None,
+        }
+    }
 }
 
 impl std::error::Error for self::Error {
