@@ -11,6 +11,9 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT"
 exclude = ["target/*", "bak/*"]
 
+[replace]
+"cl-sys:0.1.0" = { git = 'https://github.com/cogciprocate/cl-sys', branch = 'master' }
+
 [dependencies]
 cl-sys = "0.1"
 rand = "0.3"
