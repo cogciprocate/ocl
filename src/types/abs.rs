@@ -44,7 +44,7 @@ use std::fmt::Debug;
 use std::marker::Sized;
 use libc;
 use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
-    cl_kernel, cl_event, cl_sampler};
+    cl_kernel, cl_event, cl_sampler, Status};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult};
@@ -294,6 +294,15 @@ impl Context {
     pub unsafe fn as_ptr(&self) -> cl_context {
         self.0
     }
+
+    /// Returns the devices associated with this context.
+    fn devices(&self) -> OclResult<Vec<DeviceId>> {
+        match functions::get_context_info(self, ContextInfo::Devices) {
+            ContextInfoResult::Devices(ds) => Ok(ds),
+            ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
+            _ => unreachable!(),
+        }
+    }
 }
 
 unsafe impl Sync for Context {}
@@ -307,8 +316,19 @@ impl Clone for Context {
 }
 
 impl Drop for Context {
+    // Panics in the event of an error of type `Error::Status` except when the
+    // status code is `CL_INVALID_CONTEXT` (which is ignored).
     fn drop(&mut self) {
-        unsafe { functions::release_context(self).unwrap(); }
+        unsafe {
+            if let Err(e) = functions::release_context(self) {
+                if let OclError::Status { ref status, .. } = e {
+                    if status == &Status::CL_INVALID_CONTEXT {
+                        return;
+                    }
+                }
+                panic!("{:?}", e);
+            }
+        }
     }
 }
 
@@ -320,18 +340,16 @@ impl PartialEq<Context> for Context {
 
 impl ClVersions for Context {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        let devices = match functions::get_context_info(self, ContextInfo::Devices) {
-            ContextInfoResult::Devices(ds) => ds,
-            ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
-            _ => unreachable!(),
-        };
-
+        let devices = try!(self.devices());
         functions::device_versions(&devices)
     }
 
     fn platform_version(&self) -> OclResult<OpenclVersion> {
-        OclError::err("Context::platform_version: This function is intentionally unused.")
+        let devices = try!(self.devices());
+        devices[0].platform_version()
     }
+
+
 }
 
 
