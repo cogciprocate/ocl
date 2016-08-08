@@ -316,8 +316,12 @@ impl Clone for Context {
 }
 
 impl Drop for Context {
-    // Panics in the event of an error of type `Error::Status` except when the
-    // status code is `CL_INVALID_CONTEXT` (which is ignored).
+    /// Panics in the event of an error of type `Error::Status` except when
+    /// the status code is `CL_INVALID_CONTEXT` (which is ignored).
+    ///
+    /// This is done because certain platforms error with `CL_INVALID_CONTEXT`
+    /// for unknown reasons and as far as we know can be safely ignored.
+    ///
     fn drop(&mut self) {
         unsafe {
             if let Err(e) = functions::release_context(self) {
