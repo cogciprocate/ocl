@@ -29,6 +29,7 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 ///
 /// For now, don't assume the existence of or check for any of the above.
 ///
+#[derive(Debug)]
 pub enum Error {
     Conversion(String),
     Status { status: Status, fn_name: &'static str, fn_info: String, desc: String },
@@ -165,12 +166,12 @@ impl std::fmt::Display for self::Error {
     }
 }
 
-impl std::fmt::Debug for self::Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
-    }
-}
+// impl std::fmt::Debug for self::Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         use std::error::Error;
+//         f.write_str(self.description())
+//     }
+// }
 
 
 static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
