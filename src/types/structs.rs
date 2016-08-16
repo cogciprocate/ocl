@@ -5,8 +5,7 @@ use std;
 use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
-use ffi;
-use cl_h::{self, cl_mem};
+use ffi::{self, cl_mem};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
         PlatformId};
 
@@ -393,7 +392,7 @@ impl ImageFormat {
         }
     }
 
-    pub fn from_raw(raw: cl_h::cl_image_format) -> OclResult<ImageFormat> {
+    pub fn from_raw(raw: ffi::cl_image_format) -> OclResult<ImageFormat> {
         Ok(ImageFormat {
             channel_order: try!(ImageChannelOrder::from_u32(raw.image_channel_order)
                 .ok_or(OclError::new("Error converting to 'ImageChannelOrder'."))),
@@ -402,7 +401,7 @@ impl ImageFormat {
         })
     }
 
-    pub fn list_from_raw(list_raw: Vec<cl_h::cl_image_format>) -> OclResult<Vec<ImageFormat>> {
+    pub fn list_from_raw(list_raw: Vec<ffi::cl_image_format>) -> OclResult<Vec<ImageFormat>> {
         let mut result_list = Vec::with_capacity(list_raw.len());
 
         for clif in list_raw.into_iter() {
@@ -412,17 +411,17 @@ impl ImageFormat {
         Ok(result_list)
     }
 
-    pub fn to_raw(&self) -> cl_h::cl_image_format {
-        cl_h::cl_image_format {
-            image_channel_order: self.channel_order as cl_h::cl_channel_order,
-            image_channel_data_type: self.channel_data_type as cl_h::cl_channel_type,
+    pub fn to_raw(&self) -> ffi::cl_image_format {
+        ffi::cl_image_format {
+            image_channel_order: self.channel_order as ffi::cl_channel_order,
+            image_channel_data_type: self.channel_data_type as ffi::cl_channel_type,
         }
     }
 
-    pub fn new_raw() -> cl_h::cl_image_format {
-        cl_h::cl_image_format {
-            image_channel_order: 0 as cl_h::cl_channel_order,
-            image_channel_data_type: 0 as cl_h::cl_channel_type,
+    pub fn new_raw() -> ffi::cl_image_format {
+        ffi::cl_image_format {
+            image_channel_order: 0 as ffi::cl_channel_order,
+            image_channel_data_type: 0 as ffi::cl_channel_type,
         }
     }
 
@@ -568,8 +567,8 @@ impl ImageDescriptor {
         }
     }
 
-    pub fn to_raw(&self) -> cl_h::cl_image_desc {
-        cl_h::cl_image_desc {
+    pub fn to_raw(&self) -> ffi::cl_image_desc {
+        ffi::cl_image_desc {
             image_type: self.image_type as u32,
             image_width: self.image_width,
             image_height: self.image_height,

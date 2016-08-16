@@ -109,7 +109,6 @@ use std::fmt::{Display, Debug};
 use std::ops::{Add, Sub, Mul, Div, Rem};
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
-pub use ffi::cl_h;
 
 pub use self::functions::{ get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
@@ -174,7 +173,7 @@ pub use self::types::vectors::{
 //================================ CONSTANTS ==================================
 //=============================================================================
 
-// pub const DEFAULT_DEVICE_TYPE: cl_h::cl_device_type = cl_h::CL_DEVICE_TYPE_DEFAULT;
+// pub const DEFAULT_DEVICE_TYPE: ffi::cl_device_type = ffi::CL_DEVICE_TYPE_DEFAULT;
 pub const DEVICES_MAX: u32 = 64;
 // pub const DEFAULT_PLATFORM_IDX: usize = 0;
 // pub const DEFAULT_DEVICE_IDX: usize = 0;
@@ -183,7 +182,7 @@ pub const DEVICES_MAX: u32 = 64;
 //================================= TYPEDEFS ==================================
 //=============================================================================
 
-pub type EventCallbackFn = extern "C" fn (cl_h::cl_event, i32, *mut libc::c_void);
+pub type EventCallbackFn = extern "C" fn (ffi::cl_event, i32, *mut libc::c_void);
 pub type CreateContextCallbackFn = extern "C" fn (*const libc::c_char, *const libc::c_void,
     libc::size_t, *mut libc::c_void);
 pub type BuildProgramCallbackFn = extern "C" fn (*mut libc::c_void, *mut libc::c_void);
@@ -386,6 +385,86 @@ bitflags! {
 //=============================== ENUMERATORS =================================
 //=============================================================================
 
+
+// #[derive(PartialEq, Debug, FromPrimitive)]
+enum_from_primitive! {
+    /// TODO: MOVE ME AND LEAVE CONSTS AS THEY WERE.
+    /// The status of an OpenCL API call. Used for returning success/error codes.
+    #[repr(C)]
+    #[derive(Debug, PartialEq, Clone)]
+    pub enum Status {
+        CL_SUCCESS                                      = 0,
+        CL_DEVICE_NOT_FOUND                             = -1,
+        CL_DEVICE_NOT_AVAILABLE                         = -2,
+        CL_COMPILER_NOT_AVAILABLE                       = -3,
+        CL_MEM_OBJECT_ALLOCATION_FAILURE                = -4,
+        CL_OUT_OF_RESOURCES                             = -5,
+        CL_OUT_OF_HOST_MEMORY                           = -6,
+        CL_PROFILING_INFO_NOT_AVAILABLE                 = -7,
+        CL_MEM_COPY_OVERLAP                             = -8,
+        CL_IMAGE_FORMAT_MISMATCH                        = -9,
+        CL_IMAGE_FORMAT_NOT_SUPPORTED                   = -10,
+        CL_BUILD_PROGRAM_FAILURE                        = -11,
+        CL_MAP_FAILURE                                  = -12,
+        CL_MISALIGNED_SUB_BUFFER_OFFSET                 = -13,
+        CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST    = -14,
+        CL_COMPILE_PROGRAM_FAILURE                      = -15,
+        CL_LINKER_NOT_AVAILABLE                         = -16,
+        CL_LINK_PROGRAM_FAILURE                         = -17,
+        CL_DEVICE_PARTITION_FAILED                      = -18,
+        CL_KERNEL_ARG_INFO_NOT_AVAILABLE                = -19,
+        CL_INVALID_VALUE                                = -30,
+        CL_INVALID_DEVICE_TYPE                          = -31,
+        CL_INVALID_PLATFORM                             = -32,
+        CL_INVALID_DEVICE                               = -33,
+        CL_INVALID_CONTEXT                              = -34,
+        CL_INVALID_QUEUE_PROPERTIES                     = -35,
+        CL_INVALID_COMMAND_QUEUE                        = -36,
+        CL_INVALID_HOST_PTR                             = -37,
+        CL_INVALID_MEM_OBJECT                           = -38,
+        CL_INVALID_IMAGE_FORMAT_DESCRIPTOR              = -39,
+        CL_INVALID_IMAGE_SIZE                           = -40,
+        CL_INVALID_SAMPLER                              = -41,
+        CL_INVALID_BINARY                               = -42,
+        CL_INVALID_BUILD_OPTIONS                        = -43,
+        CL_INVALID_PROGRAM                              = -44,
+        CL_INVALID_PROGRAM_EXECUTABLE                   = -45,
+        CL_INVALID_KERNEL_NAME                          = -46,
+        CL_INVALID_KERNEL_DEFINITION                    = -47,
+        CL_INVALID_KERNEL                               = -48,
+        CL_INVALID_ARG_INDEX                            = -49,
+        CL_INVALID_ARG_VALUE                            = -50,
+        CL_INVALID_ARG_SIZE                             = -51,
+        CL_INVALID_KERNEL_ARGS                          = -52,
+        CL_INVALID_WORK_DIMENSION                       = -53,
+        CL_INVALID_WORK_GROUP_SIZE                      = -54,
+        CL_INVALID_WORK_ITEM_SIZE                       = -55,
+        CL_INVALID_GLOBAL_OFFSET                        = -56,
+        CL_INVALID_EVENT_WAIT_LIST                      = -57,
+        CL_INVALID_EVENT                                = -58,
+        CL_INVALID_OPERATION                            = -59,
+        CL_INVALID_GL_OBJECT                            = -60,
+        CL_INVALID_BUFFER_SIZE                          = -61,
+        CL_INVALID_MIP_LEVEL                            = -62,
+        CL_INVALID_GLOBAL_WORK_SIZE                     = -63,
+        CL_INVALID_PROPERTY                             = -64,
+        CL_INVALID_IMAGE_DESCRIPTOR                     = -65,
+        CL_INVALID_COMPILER_OPTIONS                     = -66,
+        CL_INVALID_LINKER_OPTIONS                       = -67,
+        CL_INVALID_DEVICE_PARTITION_COUNT               = -68,
+        CL_INVALID_PIPE_SIZE                            = -69,
+        CL_INVALID_DEVICE_QUEUE                         = -70,
+        CL_PLATFORM_NOT_FOUND_KHR                       = -1001,
+    }
+}
+
+impl std::fmt::Display for Status {
+    fn fmt(&self, fmtr: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(fmtr, "{:?}", self)
+    }
+}
+
+
 enum_from_primitive! {
     /// specify the texture target type
     #[repr(C)]
@@ -428,27 +507,27 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ImageChannelOrder {
-        R = cl_h::CL_R as isize,
-        A = cl_h::CL_A as isize,
-        Rg = cl_h::CL_RG as isize,
-        Ra = cl_h::CL_RA as isize,
+        R = ffi::CL_R as isize,
+        A = ffi::CL_A as isize,
+        Rg = ffi::CL_RG as isize,
+        Ra = ffi::CL_RA as isize,
         // This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
-        Rgb = cl_h::CL_RGB as isize,
-        Rgba = cl_h::CL_RGBA as isize,
+        Rgb = ffi::CL_RGB as isize,
+        Rgba = ffi::CL_RGBA as isize,
         // This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
-        Bgra = cl_h::CL_BGRA as isize,
+        Bgra = ffi::CL_BGRA as isize,
         // This format can only be used if channel data type = CL_UNORM_INT8, CL_SNORM_INT8, CL_SIGNED_INT8 or CL_UNSIGNED_INT8:
-        Argb = cl_h::CL_ARGB as isize,
+        Argb = ffi::CL_ARGB as isize,
         // This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
-        Intensity = cl_h::CL_INTENSITY as isize,
+        Intensity = ffi::CL_INTENSITY as isize,
         // This format can only be used if channel data type = CL_UNORM_INT8, CL_UNORM_INT16, CL_SNORM_INT8, CL_SNORM_INT16, CL_HALF_FLOAT, or CL_FLOAT:
-        Luminance = cl_h::CL_LUMINANCE as isize,
-        Rx = cl_h::CL_Rx as isize,
-        Rgx = cl_h::CL_RGx as isize,
+        Luminance = ffi::CL_LUMINANCE as isize,
+        Rx = ffi::CL_Rx as isize,
+        Rgx = ffi::CL_RGx as isize,
         // This format can only be used if channel data type = CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 or CL_UNORM_INT101010:
-        Rgbx = cl_h::CL_RGBx as isize,
-        Depth = cl_h::CL_DEPTH as isize,
-        DepthStencil = cl_h::CL_DEPTH_STENCIL as isize,
+        Rgbx = ffi::CL_RGBx as isize,
+        Depth = ffi::CL_DEPTH as isize,
+        DepthStencil = ffi::CL_DEPTH_STENCIL as isize,
     }
 }
 
@@ -458,37 +537,37 @@ enum_from_primitive! {
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ImageChannelDataType {
         // Each channel component is a normalized signed 8-bit integer value:
-        SnormInt8 = cl_h::CL_SNORM_INT8 as isize,
+        SnormInt8 = ffi::CL_SNORM_INT8 as isize,
         // Each channel component is a normalized signed 16-bit integer value:
-        SnormInt16 = cl_h::CL_SNORM_INT16 as isize,
+        SnormInt16 = ffi::CL_SNORM_INT16 as isize,
         // Each channel component is a normalized unsigned 8-bit integer value:
-        UnormInt8 = cl_h::CL_UNORM_INT8 as isize,
+        UnormInt8 = ffi::CL_UNORM_INT8 as isize,
         // Each channel component is a normalized unsigned 16-bit integer value:
-        UnormInt16 = cl_h::CL_UNORM_INT16 as isize,
+        UnormInt16 = ffi::CL_UNORM_INT16 as isize,
         // Represents a normalized 5-6-5 3-channel RGB image. The channel order must be CL_RGB or CL_RGBx:
-        UnormShort565 = cl_h::CL_UNORM_SHORT_565 as isize,
+        UnormShort565 = ffi::CL_UNORM_SHORT_565 as isize,
         // Represents a normalized x-5-5-5 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
-        UnormShort555 = cl_h::CL_UNORM_SHORT_555 as isize,
+        UnormShort555 = ffi::CL_UNORM_SHORT_555 as isize,
         // Represents a normalized x-10-10-10 4-channel xRGB image. The channel order must be CL_RGB or CL_RGBx:
-        UnormInt101010 = cl_h::CL_UNORM_INT_101010 as isize,
+        UnormInt101010 = ffi::CL_UNORM_INT_101010 as isize,
         // Each channel component is an unnormalized signed 8-bit integer value:
-        SignedInt8 = cl_h::CL_SIGNED_INT8 as isize,
+        SignedInt8 = ffi::CL_SIGNED_INT8 as isize,
         // Each channel component is an unnormalized signed 16-bit integer value:
-        SignedInt16 = cl_h::CL_SIGNED_INT16 as isize,
+        SignedInt16 = ffi::CL_SIGNED_INT16 as isize,
         // Each channel component is an unnormalized signed 32-bit integer value:
-        SignedInt32 = cl_h::CL_SIGNED_INT32 as isize,
+        SignedInt32 = ffi::CL_SIGNED_INT32 as isize,
         // Each channel component is an unnormalized unsigned 8-bit integer value:
-        UnsignedInt8 = cl_h::CL_UNSIGNED_INT8 as isize,
+        UnsignedInt8 = ffi::CL_UNSIGNED_INT8 as isize,
         // Each channel component is an unnormalized unsigned 16-bit integer value:
-        UnsignedInt16 = cl_h::CL_UNSIGNED_INT16 as isize,
+        UnsignedInt16 = ffi::CL_UNSIGNED_INT16 as isize,
         // Each channel component is an unnormalized unsigned 32-bit integer value:
-        UnsignedInt32 = cl_h::CL_UNSIGNED_INT32 as isize,
+        UnsignedInt32 = ffi::CL_UNSIGNED_INT32 as isize,
         // Each channel component is a 16-bit half-float value:
-        HalfFloat = cl_h::CL_HALF_FLOAT as isize,
+        HalfFloat = ffi::CL_HALF_FLOAT as isize,
         // Each channel component is a single precision floating-point value:
-        Float = cl_h::CL_FLOAT as isize,
+        Float = ffi::CL_FLOAT as isize,
         // Each channel component is a normalized unsigned 24-bit integer value:
-        UnormInt24 = cl_h::CL_UNORM_INT24 as isize,
+        UnormInt24 = ffi::CL_UNORM_INT24 as isize,
     }
 }
 
@@ -498,8 +577,8 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum Cbool {
-        False = cl_h::CL_FALSE as isize,
-        True = cl_h::CL_TRUE as isize,
+        False = ffi::CL_FALSE as isize,
+        True = ffi::CL_TRUE as isize,
     }
 }
 
@@ -509,8 +588,8 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum Polling {
-        Blocking = cl_h::CL_BLOCKING as isize,
-        NonBlocking = cl_h::CL_NON_BLOCKING as isize,
+        Blocking = ffi::CL_BLOCKING as isize,
+        NonBlocking = ffi::CL_NON_BLOCKING as isize,
     }
 }
 
@@ -520,11 +599,11 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum PlatformInfo {
-        Profile = cl_h::CL_PLATFORM_PROFILE as isize,
-        Version = cl_h::CL_PLATFORM_VERSION as isize,
-        Name = cl_h::CL_PLATFORM_NAME as isize,
-        Vendor = cl_h::CL_PLATFORM_VENDOR as isize,
-        Extensions = cl_h::CL_PLATFORM_EXTENSIONS as isize,
+        Profile = ffi::CL_PLATFORM_PROFILE as isize,
+        Version = ffi::CL_PLATFORM_VERSION as isize,
+        Name = ffi::CL_PLATFORM_NAME as isize,
+        Vendor = ffi::CL_PLATFORM_VENDOR as isize,
+        Extensions = ffi::CL_PLATFORM_EXTENSIONS as isize,
     }
 }
 
@@ -534,82 +613,82 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceInfo {
-        Type = cl_h::CL_DEVICE_TYPE as isize,
-        VendorId = cl_h::CL_DEVICE_VENDOR_ID as isize,
-        MaxComputeUnits = cl_h::CL_DEVICE_MAX_COMPUTE_UNITS as isize,
-        MaxWorkItemDimensions = cl_h::CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS as isize,
-        MaxWorkGroupSize = cl_h::CL_DEVICE_MAX_WORK_GROUP_SIZE as isize,
-        MaxWorkItemSizes = cl_h::CL_DEVICE_MAX_WORK_ITEM_SIZES as isize,
-        PreferredVectorWidthChar = cl_h::CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR as isize,
-        PreferredVectorWidthShort = cl_h::CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT as isize,
-        PreferredVectorWidthInt = cl_h::CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT as isize,
-        PreferredVectorWidthLong = cl_h::CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG as isize,
-        PreferredVectorWidthFloat = cl_h::CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT as isize,
-        PreferredVectorWidthDouble = cl_h::CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE as isize,
-        MaxClockFrequency = cl_h::CL_DEVICE_MAX_CLOCK_FREQUENCY as isize,
-        AddressBits = cl_h::CL_DEVICE_ADDRESS_BITS as isize,
-        MaxReadImageArgs = cl_h::CL_DEVICE_MAX_READ_IMAGE_ARGS as isize,
-        MaxWriteImageArgs = cl_h::CL_DEVICE_MAX_WRITE_IMAGE_ARGS as isize,
-        MaxMemAllocSize = cl_h::CL_DEVICE_MAX_MEM_ALLOC_SIZE as isize,
-        Image2dMaxWidth = cl_h::CL_DEVICE_IMAGE2D_MAX_WIDTH as isize,
-        Image2dMaxHeight = cl_h::CL_DEVICE_IMAGE2D_MAX_HEIGHT as isize,
-        Image3dMaxWidth = cl_h::CL_DEVICE_IMAGE3D_MAX_WIDTH as isize,
-        Image3dMaxHeight = cl_h::CL_DEVICE_IMAGE3D_MAX_HEIGHT as isize,
-        Image3dMaxDepth = cl_h::CL_DEVICE_IMAGE3D_MAX_DEPTH as isize,
-        ImageSupport = cl_h::CL_DEVICE_IMAGE_SUPPORT as isize,
-        MaxParameterSize = cl_h::CL_DEVICE_MAX_PARAMETER_SIZE as isize,
-        MaxSamplers = cl_h::CL_DEVICE_MAX_SAMPLERS as isize,
-        MemBaseAddrAlign = cl_h::CL_DEVICE_MEM_BASE_ADDR_ALIGN as isize,
-        MinDataTypeAlignSize = cl_h::CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE as isize,
-        SingleFpConfig = cl_h::CL_DEVICE_SINGLE_FP_CONFIG as isize,
-        GlobalMemCacheType = cl_h::CL_DEVICE_GLOBAL_MEM_CACHE_TYPE as isize,
-        GlobalMemCachelineSize = cl_h::CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE as isize,
-        GlobalMemCacheSize = cl_h::CL_DEVICE_GLOBAL_MEM_CACHE_SIZE as isize,
-        GlobalMemSize = cl_h::CL_DEVICE_GLOBAL_MEM_SIZE as isize,
-        MaxConstantBufferSize = cl_h::CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE as isize,
-        MaxConstantArgs = cl_h::CL_DEVICE_MAX_CONSTANT_ARGS as isize,
-        LocalMemType = cl_h::CL_DEVICE_LOCAL_MEM_TYPE as isize,
-        LocalMemSize = cl_h::CL_DEVICE_LOCAL_MEM_SIZE as isize,
-        ErrorCorrectionSupport = cl_h::CL_DEVICE_ERROR_CORRECTION_SUPPORT as isize,
-        ProfilingTimerResolution = cl_h::CL_DEVICE_PROFILING_TIMER_RESOLUTION as isize,
-        EndianLittle = cl_h::CL_DEVICE_ENDIAN_LITTLE as isize,
-        Available = cl_h::CL_DEVICE_AVAILABLE as isize,
-        CompilerAvailable = cl_h::CL_DEVICE_COMPILER_AVAILABLE as isize,
-        ExecutionCapabilities = cl_h::CL_DEVICE_EXECUTION_CAPABILITIES as isize,
-        QueueProperties = cl_h::CL_DEVICE_QUEUE_PROPERTIES as isize,
-        Name = cl_h::CL_DEVICE_NAME as isize,
-        Vendor = cl_h::CL_DEVICE_VENDOR as isize,
-        DriverVersion = cl_h::CL_DRIVER_VERSION as isize,
-        Profile = cl_h::CL_DEVICE_PROFILE as isize,
-        Version = cl_h::CL_DEVICE_VERSION as isize,
-        Extensions = cl_h::CL_DEVICE_EXTENSIONS as isize,
-        Platform = cl_h::CL_DEVICE_PLATFORM as isize,
-        DoubleFpConfig = cl_h::CL_DEVICE_DOUBLE_FP_CONFIG as isize,
-        HalfFpConfig = cl_h::CL_DEVICE_HALF_FP_CONFIG as isize,
-        PreferredVectorWidthHalf = cl_h::CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF as isize,
-        HostUnifiedMemory = cl_h::CL_DEVICE_HOST_UNIFIED_MEMORY as isize,
-        NativeVectorWidthChar = cl_h::CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR as isize,
-        NativeVectorWidthShort = cl_h::CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT as isize,
-        NativeVectorWidthInt = cl_h::CL_DEVICE_NATIVE_VECTOR_WIDTH_INT as isize,
-        NativeVectorWidthLong = cl_h::CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG as isize,
-        NativeVectorWidthFloat = cl_h::CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT as isize,
-        NativeVectorWidthDouble = cl_h::CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE as isize,
-        NativeVectorWidthHalf = cl_h::CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF as isize,
-        OpenclCVersion = cl_h::CL_DEVICE_OPENCL_C_VERSION as isize,
-        LinkerAvailable = cl_h::CL_DEVICE_LINKER_AVAILABLE as isize,
-        BuiltInKernels = cl_h::CL_DEVICE_BUILT_IN_KERNELS as isize,
-        ImageMaxBufferSize = cl_h::CL_DEVICE_IMAGE_MAX_BUFFER_SIZE as isize,
-        ImageMaxArraySize = cl_h::CL_DEVICE_IMAGE_MAX_ARRAY_SIZE as isize,
-        ParentDevice = cl_h::CL_DEVICE_PARENT_DEVICE as isize,
-        PartitionMaxSubDevices = cl_h::CL_DEVICE_PARTITION_MAX_SUB_DEVICES as isize,
-        PartitionProperties = cl_h::CL_DEVICE_PARTITION_PROPERTIES as isize,
-        PartitionAffinityDomain = cl_h::CL_DEVICE_PARTITION_AFFINITY_DOMAIN as isize,
-        PartitionType = cl_h::CL_DEVICE_PARTITION_TYPE as isize,
-        ReferenceCount = cl_h::CL_DEVICE_REFERENCE_COUNT as isize,
-        PreferredInteropUserSync = cl_h::CL_DEVICE_PREFERRED_INTEROP_USER_SYNC as isize,
-        PrintfBufferSize = cl_h::CL_DEVICE_PRINTF_BUFFER_SIZE as isize,
-        ImagePitchAlignment = cl_h::CL_DEVICE_IMAGE_PITCH_ALIGNMENT as isize,
-        ImageBaseAddressAlignment = cl_h::CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT as isize,
+        Type = ffi::CL_DEVICE_TYPE as isize,
+        VendorId = ffi::CL_DEVICE_VENDOR_ID as isize,
+        MaxComputeUnits = ffi::CL_DEVICE_MAX_COMPUTE_UNITS as isize,
+        MaxWorkItemDimensions = ffi::CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS as isize,
+        MaxWorkGroupSize = ffi::CL_DEVICE_MAX_WORK_GROUP_SIZE as isize,
+        MaxWorkItemSizes = ffi::CL_DEVICE_MAX_WORK_ITEM_SIZES as isize,
+        PreferredVectorWidthChar = ffi::CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR as isize,
+        PreferredVectorWidthShort = ffi::CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT as isize,
+        PreferredVectorWidthInt = ffi::CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT as isize,
+        PreferredVectorWidthLong = ffi::CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG as isize,
+        PreferredVectorWidthFloat = ffi::CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT as isize,
+        PreferredVectorWidthDouble = ffi::CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE as isize,
+        MaxClockFrequency = ffi::CL_DEVICE_MAX_CLOCK_FREQUENCY as isize,
+        AddressBits = ffi::CL_DEVICE_ADDRESS_BITS as isize,
+        MaxReadImageArgs = ffi::CL_DEVICE_MAX_READ_IMAGE_ARGS as isize,
+        MaxWriteImageArgs = ffi::CL_DEVICE_MAX_WRITE_IMAGE_ARGS as isize,
+        MaxMemAllocSize = ffi::CL_DEVICE_MAX_MEM_ALLOC_SIZE as isize,
+        Image2dMaxWidth = ffi::CL_DEVICE_IMAGE2D_MAX_WIDTH as isize,
+        Image2dMaxHeight = ffi::CL_DEVICE_IMAGE2D_MAX_HEIGHT as isize,
+        Image3dMaxWidth = ffi::CL_DEVICE_IMAGE3D_MAX_WIDTH as isize,
+        Image3dMaxHeight = ffi::CL_DEVICE_IMAGE3D_MAX_HEIGHT as isize,
+        Image3dMaxDepth = ffi::CL_DEVICE_IMAGE3D_MAX_DEPTH as isize,
+        ImageSupport = ffi::CL_DEVICE_IMAGE_SUPPORT as isize,
+        MaxParameterSize = ffi::CL_DEVICE_MAX_PARAMETER_SIZE as isize,
+        MaxSamplers = ffi::CL_DEVICE_MAX_SAMPLERS as isize,
+        MemBaseAddrAlign = ffi::CL_DEVICE_MEM_BASE_ADDR_ALIGN as isize,
+        MinDataTypeAlignSize = ffi::CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE as isize,
+        SingleFpConfig = ffi::CL_DEVICE_SINGLE_FP_CONFIG as isize,
+        GlobalMemCacheType = ffi::CL_DEVICE_GLOBAL_MEM_CACHE_TYPE as isize,
+        GlobalMemCachelineSize = ffi::CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE as isize,
+        GlobalMemCacheSize = ffi::CL_DEVICE_GLOBAL_MEM_CACHE_SIZE as isize,
+        GlobalMemSize = ffi::CL_DEVICE_GLOBAL_MEM_SIZE as isize,
+        MaxConstantBufferSize = ffi::CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE as isize,
+        MaxConstantArgs = ffi::CL_DEVICE_MAX_CONSTANT_ARGS as isize,
+        LocalMemType = ffi::CL_DEVICE_LOCAL_MEM_TYPE as isize,
+        LocalMemSize = ffi::CL_DEVICE_LOCAL_MEM_SIZE as isize,
+        ErrorCorrectionSupport = ffi::CL_DEVICE_ERROR_CORRECTION_SUPPORT as isize,
+        ProfilingTimerResolution = ffi::CL_DEVICE_PROFILING_TIMER_RESOLUTION as isize,
+        EndianLittle = ffi::CL_DEVICE_ENDIAN_LITTLE as isize,
+        Available = ffi::CL_DEVICE_AVAILABLE as isize,
+        CompilerAvailable = ffi::CL_DEVICE_COMPILER_AVAILABLE as isize,
+        ExecutionCapabilities = ffi::CL_DEVICE_EXECUTION_CAPABILITIES as isize,
+        QueueProperties = ffi::CL_DEVICE_QUEUE_PROPERTIES as isize,
+        Name = ffi::CL_DEVICE_NAME as isize,
+        Vendor = ffi::CL_DEVICE_VENDOR as isize,
+        DriverVersion = ffi::CL_DRIVER_VERSION as isize,
+        Profile = ffi::CL_DEVICE_PROFILE as isize,
+        Version = ffi::CL_DEVICE_VERSION as isize,
+        Extensions = ffi::CL_DEVICE_EXTENSIONS as isize,
+        Platform = ffi::CL_DEVICE_PLATFORM as isize,
+        DoubleFpConfig = ffi::CL_DEVICE_DOUBLE_FP_CONFIG as isize,
+        HalfFpConfig = ffi::CL_DEVICE_HALF_FP_CONFIG as isize,
+        PreferredVectorWidthHalf = ffi::CL_DEVICE_PREFERRED_VECTOR_WIDTH_HALF as isize,
+        HostUnifiedMemory = ffi::CL_DEVICE_HOST_UNIFIED_MEMORY as isize,
+        NativeVectorWidthChar = ffi::CL_DEVICE_NATIVE_VECTOR_WIDTH_CHAR as isize,
+        NativeVectorWidthShort = ffi::CL_DEVICE_NATIVE_VECTOR_WIDTH_SHORT as isize,
+        NativeVectorWidthInt = ffi::CL_DEVICE_NATIVE_VECTOR_WIDTH_INT as isize,
+        NativeVectorWidthLong = ffi::CL_DEVICE_NATIVE_VECTOR_WIDTH_LONG as isize,
+        NativeVectorWidthFloat = ffi::CL_DEVICE_NATIVE_VECTOR_WIDTH_FLOAT as isize,
+        NativeVectorWidthDouble = ffi::CL_DEVICE_NATIVE_VECTOR_WIDTH_DOUBLE as isize,
+        NativeVectorWidthHalf = ffi::CL_DEVICE_NATIVE_VECTOR_WIDTH_HALF as isize,
+        OpenclCVersion = ffi::CL_DEVICE_OPENCL_C_VERSION as isize,
+        LinkerAvailable = ffi::CL_DEVICE_LINKER_AVAILABLE as isize,
+        BuiltInKernels = ffi::CL_DEVICE_BUILT_IN_KERNELS as isize,
+        ImageMaxBufferSize = ffi::CL_DEVICE_IMAGE_MAX_BUFFER_SIZE as isize,
+        ImageMaxArraySize = ffi::CL_DEVICE_IMAGE_MAX_ARRAY_SIZE as isize,
+        ParentDevice = ffi::CL_DEVICE_PARENT_DEVICE as isize,
+        PartitionMaxSubDevices = ffi::CL_DEVICE_PARTITION_MAX_SUB_DEVICES as isize,
+        PartitionProperties = ffi::CL_DEVICE_PARTITION_PROPERTIES as isize,
+        PartitionAffinityDomain = ffi::CL_DEVICE_PARTITION_AFFINITY_DOMAIN as isize,
+        PartitionType = ffi::CL_DEVICE_PARTITION_TYPE as isize,
+        ReferenceCount = ffi::CL_DEVICE_REFERENCE_COUNT as isize,
+        PreferredInteropUserSync = ffi::CL_DEVICE_PREFERRED_INTEROP_USER_SYNC as isize,
+        PrintfBufferSize = ffi::CL_DEVICE_PRINTF_BUFFER_SIZE as isize,
+        ImagePitchAlignment = ffi::CL_DEVICE_IMAGE_PITCH_ALIGNMENT as isize,
+        ImageBaseAddressAlignment = ffi::CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT as isize,
     }
 }
 
@@ -619,9 +698,9 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceMemCacheType {
-        None = cl_h::CL_NONE as isize,
-        ReadOnlyCache = cl_h::CL_READ_ONLY_CACHE as isize,
-        ReadWriteCache = cl_h::CL_READ_WRITE_CACHE as isize,
+        None = ffi::CL_NONE as isize,
+        ReadOnlyCache = ffi::CL_READ_ONLY_CACHE as isize,
+        ReadWriteCache = ffi::CL_READ_WRITE_CACHE as isize,
     }
 }
 
@@ -631,9 +710,9 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DeviceLocalMemType {
-        None = cl_h::CL_NONE as isize,
-        Local = cl_h::CL_LOCAL as isize,
-        Global = cl_h::CL_GLOBAL as isize,
+        None = ffi::CL_NONE as isize,
+        Local = ffi::CL_LOCAL as isize,
+        Global = ffi::CL_GLOBAL as isize,
     }
 }
 
@@ -643,10 +722,10 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ContextInfo {
-        ReferenceCount = cl_h::CL_CONTEXT_REFERENCE_COUNT as isize,
-        Devices = cl_h::CL_CONTEXT_DEVICES as isize,
-        Properties = cl_h::CL_CONTEXT_PROPERTIES as isize,
-        NumDevices = cl_h::CL_CONTEXT_NUM_DEVICES as isize,
+        ReferenceCount = ffi::CL_CONTEXT_REFERENCE_COUNT as isize,
+        Devices = ffi::CL_CONTEXT_DEVICES as isize,
+        Properties = ffi::CL_CONTEXT_PROPERTIES as isize,
+        NumDevices = ffi::CL_CONTEXT_NUM_DEVICES as isize,
     }
 }
 
@@ -682,8 +761,8 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ContextInfoOrPropertiesPointerType {
-        Platform = cl_h::CL_CONTEXT_PLATFORM as isize,
-        InteropUserSync = cl_h::CL_CONTEXT_INTEROP_USER_SYNC as isize,
+        Platform = ffi::CL_CONTEXT_PLATFORM as isize,
+        InteropUserSync = ffi::CL_CONTEXT_INTEROP_USER_SYNC as isize,
     }
 }
 
@@ -698,10 +777,10 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum DevicePartitionProperty {
-        Equally = cl_h::CL_DEVICE_PARTITION_EQUALLY as isize,
-        ByCounts = cl_h::CL_DEVICE_PARTITION_BY_COUNTS as isize,
-        ByCountsListEnd = cl_h::CL_DEVICE_PARTITION_BY_COUNTS_LIST_END as isize,
-        ByAffinityDomain = cl_h::CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN as isize,
+        Equally = ffi::CL_DEVICE_PARTITION_EQUALLY as isize,
+        ByCounts = ffi::CL_DEVICE_PARTITION_BY_COUNTS as isize,
+        ByCountsListEnd = ffi::CL_DEVICE_PARTITION_BY_COUNTS_LIST_END as isize,
+        ByAffinityDomain = ffi::CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN as isize,
     }
 }
 
@@ -711,10 +790,10 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum CommandQueueInfo {
-        Context = cl_h::CL_QUEUE_CONTEXT as isize,
-        Device = cl_h::CL_QUEUE_DEVICE as isize,
-        ReferenceCount = cl_h::CL_QUEUE_REFERENCE_COUNT as isize,
-        Properties = cl_h::CL_QUEUE_PROPERTIES as isize,
+        Context = ffi::CL_QUEUE_CONTEXT as isize,
+        Device = ffi::CL_QUEUE_DEVICE as isize,
+        ReferenceCount = ffi::CL_QUEUE_REFERENCE_COUNT as isize,
+        Properties = ffi::CL_QUEUE_PROPERTIES as isize,
     }
 }
 
@@ -724,22 +803,22 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ChannelType {
-        SnormInt8 = cl_h::CL_SNORM_INT8 as isize,
-        SnormInt16 = cl_h::CL_SNORM_INT16 as isize,
-        UnormInt8 = cl_h::CL_UNORM_INT8 as isize,
-        UnormInt16 = cl_h::CL_UNORM_INT16 as isize,
-        UnormShort_565 = cl_h::CL_UNORM_SHORT_565 as isize,
-        UnormShort_555 = cl_h::CL_UNORM_SHORT_555 as isize,
-        UnormInt_101010 = cl_h::CL_UNORM_INT_101010 as isize,
-        SignedInt8 = cl_h::CL_SIGNED_INT8 as isize,
-        SignedInt16 = cl_h::CL_SIGNED_INT16 as isize,
-        SignedInt32 = cl_h::CL_SIGNED_INT32 as isize,
-        UnsignedInt8 = cl_h::CL_UNSIGNED_INT8 as isize,
-        UnsignedInt16 = cl_h::CL_UNSIGNED_INT16 as isize,
-        UnsignedInt32 = cl_h::CL_UNSIGNED_INT32 as isize,
-        HalfFloat = cl_h::CL_HALF_FLOAT as isize,
-        Float = cl_h::CL_FLOAT as isize,
-        UnormInt24 = cl_h::CL_UNORM_INT24 as isize,
+        SnormInt8 = ffi::CL_SNORM_INT8 as isize,
+        SnormInt16 = ffi::CL_SNORM_INT16 as isize,
+        UnormInt8 = ffi::CL_UNORM_INT8 as isize,
+        UnormInt16 = ffi::CL_UNORM_INT16 as isize,
+        UnormShort_565 = ffi::CL_UNORM_SHORT_565 as isize,
+        UnormShort_555 = ffi::CL_UNORM_SHORT_555 as isize,
+        UnormInt_101010 = ffi::CL_UNORM_INT_101010 as isize,
+        SignedInt8 = ffi::CL_SIGNED_INT8 as isize,
+        SignedInt16 = ffi::CL_SIGNED_INT16 as isize,
+        SignedInt32 = ffi::CL_SIGNED_INT32 as isize,
+        UnsignedInt8 = ffi::CL_UNSIGNED_INT8 as isize,
+        UnsignedInt16 = ffi::CL_UNSIGNED_INT16 as isize,
+        UnsignedInt32 = ffi::CL_UNSIGNED_INT32 as isize,
+        HalfFloat = ffi::CL_HALF_FLOAT as isize,
+        Float = ffi::CL_FLOAT as isize,
+        UnormInt24 = ffi::CL_UNORM_INT24 as isize,
     }
 }
 
@@ -749,13 +828,13 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum MemObjectType {
-        Buffer = cl_h::CL_MEM_OBJECT_BUFFER as isize,
-        Image2d = cl_h::CL_MEM_OBJECT_IMAGE2D as isize,
-        Image3d = cl_h::CL_MEM_OBJECT_IMAGE3D as isize,
-        Image2dArray = cl_h::CL_MEM_OBJECT_IMAGE2D_ARRAY as isize,
-        Image1d = cl_h::CL_MEM_OBJECT_IMAGE1D as isize,
-        Image1dArray = cl_h::CL_MEM_OBJECT_IMAGE1D_ARRAY as isize,
-        Image1dBuffer = cl_h::CL_MEM_OBJECT_IMAGE1D_BUFFER as isize,
+        Buffer = ffi::CL_MEM_OBJECT_BUFFER as isize,
+        Image2d = ffi::CL_MEM_OBJECT_IMAGE2D as isize,
+        Image3d = ffi::CL_MEM_OBJECT_IMAGE3D as isize,
+        Image2dArray = ffi::CL_MEM_OBJECT_IMAGE2D_ARRAY as isize,
+        Image1d = ffi::CL_MEM_OBJECT_IMAGE1D as isize,
+        Image1dArray = ffi::CL_MEM_OBJECT_IMAGE1D_ARRAY as isize,
+        Image1dBuffer = ffi::CL_MEM_OBJECT_IMAGE1D_BUFFER as isize,
     }
 }
 
@@ -765,15 +844,15 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum MemInfo {
-        Type = cl_h::CL_MEM_TYPE as isize,
-        Flags = cl_h::CL_MEM_FLAGS as isize,
-        Size = cl_h::CL_MEM_SIZE as isize,
-        HostPtr = cl_h::CL_MEM_HOST_PTR as isize,
-        MapCount = cl_h::CL_MEM_MAP_COUNT as isize,
-        ReferenceCount = cl_h::CL_MEM_REFERENCE_COUNT as isize,
-        Context = cl_h::CL_MEM_CONTEXT as isize,
-        AssociatedMemobject = cl_h::CL_MEM_ASSOCIATED_MEMOBJECT as isize,
-        Offset = cl_h::CL_MEM_OFFSET as isize,
+        Type = ffi::CL_MEM_TYPE as isize,
+        Flags = ffi::CL_MEM_FLAGS as isize,
+        Size = ffi::CL_MEM_SIZE as isize,
+        HostPtr = ffi::CL_MEM_HOST_PTR as isize,
+        MapCount = ffi::CL_MEM_MAP_COUNT as isize,
+        ReferenceCount = ffi::CL_MEM_REFERENCE_COUNT as isize,
+        Context = ffi::CL_MEM_CONTEXT as isize,
+        AssociatedMemobject = ffi::CL_MEM_ASSOCIATED_MEMOBJECT as isize,
+        Offset = ffi::CL_MEM_OFFSET as isize,
     }
 }
 
@@ -783,17 +862,17 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ImageInfo {
-        Format = cl_h::CL_IMAGE_FORMAT as isize,
-        ElementSize = cl_h::CL_IMAGE_ELEMENT_SIZE as isize,
-        RowPitch = cl_h::CL_IMAGE_ROW_PITCH as isize,
-        SlicePitch = cl_h::CL_IMAGE_SLICE_PITCH as isize,
-        Width = cl_h::CL_IMAGE_WIDTH as isize,
-        Height = cl_h::CL_IMAGE_HEIGHT as isize,
-        Depth = cl_h::CL_IMAGE_DEPTH as isize,
-        ArraySize = cl_h::CL_IMAGE_ARRAY_SIZE as isize,
-        Buffer = cl_h::CL_IMAGE_BUFFER as isize,
-        NumMipLevels = cl_h::CL_IMAGE_NUM_MIP_LEVELS as isize,
-        NumSamples = cl_h::CL_IMAGE_NUM_SAMPLES as isize,
+        Format = ffi::CL_IMAGE_FORMAT as isize,
+        ElementSize = ffi::CL_IMAGE_ELEMENT_SIZE as isize,
+        RowPitch = ffi::CL_IMAGE_ROW_PITCH as isize,
+        SlicePitch = ffi::CL_IMAGE_SLICE_PITCH as isize,
+        Width = ffi::CL_IMAGE_WIDTH as isize,
+        Height = ffi::CL_IMAGE_HEIGHT as isize,
+        Depth = ffi::CL_IMAGE_DEPTH as isize,
+        ArraySize = ffi::CL_IMAGE_ARRAY_SIZE as isize,
+        Buffer = ffi::CL_IMAGE_BUFFER as isize,
+        NumMipLevels = ffi::CL_IMAGE_NUM_MIP_LEVELS as isize,
+        NumSamples = ffi::CL_IMAGE_NUM_SAMPLES as isize,
     }
 }
 
@@ -803,11 +882,11 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum AddressingMode {
-        None = cl_h::CL_ADDRESS_NONE as isize,
-        ClampToEdge = cl_h::CL_ADDRESS_CLAMP_TO_EDGE as isize,
-        Clamp = cl_h::CL_ADDRESS_CLAMP as isize,
-        Repeat = cl_h::CL_ADDRESS_REPEAT as isize,
-        MirroredRepeat = cl_h::CL_ADDRESS_MIRRORED_REPEAT as isize,
+        None = ffi::CL_ADDRESS_NONE as isize,
+        ClampToEdge = ffi::CL_ADDRESS_CLAMP_TO_EDGE as isize,
+        Clamp = ffi::CL_ADDRESS_CLAMP as isize,
+        Repeat = ffi::CL_ADDRESS_REPEAT as isize,
+        MirroredRepeat = ffi::CL_ADDRESS_MIRRORED_REPEAT as isize,
     }
 }
 
@@ -817,8 +896,8 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum FilterMode {
-        Nearest = cl_h::CL_FILTER_NEAREST as isize,
-        Linear = cl_h::CL_FILTER_LINEAR as isize,
+        Nearest = ffi::CL_FILTER_NEAREST as isize,
+        Linear = ffi::CL_FILTER_LINEAR as isize,
     }
 }
 
@@ -828,11 +907,11 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum SamplerInfo {
-        ReferenceCount = cl_h::CL_SAMPLER_REFERENCE_COUNT as isize,
-        Context = cl_h::CL_SAMPLER_CONTEXT as isize,
-        NormalizedCoords = cl_h::CL_SAMPLER_NORMALIZED_COORDS as isize,
-        AddressingMode = cl_h::CL_SAMPLER_ADDRESSING_MODE as isize,
-        FilterMode = cl_h::CL_SAMPLER_FILTER_MODE as isize,
+        ReferenceCount = ffi::CL_SAMPLER_REFERENCE_COUNT as isize,
+        Context = ffi::CL_SAMPLER_CONTEXT as isize,
+        NormalizedCoords = ffi::CL_SAMPLER_NORMALIZED_COORDS as isize,
+        AddressingMode = ffi::CL_SAMPLER_ADDRESSING_MODE as isize,
+        FilterMode = ffi::CL_SAMPLER_FILTER_MODE as isize,
     }
 }
 
@@ -842,15 +921,15 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProgramInfo {
-        ReferenceCount = cl_h::CL_PROGRAM_REFERENCE_COUNT as isize,
-        Context = cl_h::CL_PROGRAM_CONTEXT as isize,
-        NumDevices = cl_h::CL_PROGRAM_NUM_DEVICES as isize,
-        Devices = cl_h::CL_PROGRAM_DEVICES as isize,
-        Source = cl_h::CL_PROGRAM_SOURCE as isize,
-        BinarySizes = cl_h::CL_PROGRAM_BINARY_SIZES as isize,
-        Binaries = cl_h::CL_PROGRAM_BINARIES as isize,
-        NumKernels = cl_h::CL_PROGRAM_NUM_KERNELS as isize,
-        KernelNames = cl_h::CL_PROGRAM_KERNEL_NAMES as isize,
+        ReferenceCount = ffi::CL_PROGRAM_REFERENCE_COUNT as isize,
+        Context = ffi::CL_PROGRAM_CONTEXT as isize,
+        NumDevices = ffi::CL_PROGRAM_NUM_DEVICES as isize,
+        Devices = ffi::CL_PROGRAM_DEVICES as isize,
+        Source = ffi::CL_PROGRAM_SOURCE as isize,
+        BinarySizes = ffi::CL_PROGRAM_BINARY_SIZES as isize,
+        Binaries = ffi::CL_PROGRAM_BINARIES as isize,
+        NumKernels = ffi::CL_PROGRAM_NUM_KERNELS as isize,
+        KernelNames = ffi::CL_PROGRAM_KERNEL_NAMES as isize,
     }
 }
 
@@ -860,10 +939,10 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProgramBuildInfo {
-        BuildStatus = cl_h::CL_PROGRAM_BUILD_STATUS as isize,
-        BuildOptions = cl_h::CL_PROGRAM_BUILD_OPTIONS as isize,
-        BuildLog = cl_h::CL_PROGRAM_BUILD_LOG as isize,
-        BinaryType = cl_h::CL_PROGRAM_BINARY_TYPE as isize,
+        BuildStatus = ffi::CL_PROGRAM_BUILD_STATUS as isize,
+        BuildOptions = ffi::CL_PROGRAM_BUILD_OPTIONS as isize,
+        BuildLog = ffi::CL_PROGRAM_BUILD_LOG as isize,
+        BinaryType = ffi::CL_PROGRAM_BINARY_TYPE as isize,
     }
 }
 
@@ -874,10 +953,10 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProgramBuildStatus {
-        Success = cl_h::CL_BUILD_SUCCESS as isize,
-        None = cl_h::CL_BUILD_NONE as isize,
-        Error = cl_h::CL_BUILD_ERROR as isize,
-        InProgress = cl_h::CL_BUILD_IN_PROGRESS as isize,
+        Success = ffi::CL_BUILD_SUCCESS as isize,
+        None = ffi::CL_BUILD_NONE as isize,
+        Error = ffi::CL_BUILD_ERROR as isize,
+        InProgress = ffi::CL_BUILD_IN_PROGRESS as isize,
     }
 }
 
@@ -887,12 +966,12 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelInfo {
-        FunctionName = cl_h::CL_KERNEL_FUNCTION_NAME as isize,
-        NumArgs = cl_h::CL_KERNEL_NUM_ARGS as isize,
-        ReferenceCount = cl_h::CL_KERNEL_REFERENCE_COUNT as isize,
-        Context = cl_h::CL_KERNEL_CONTEXT as isize,
-        Program = cl_h::CL_KERNEL_PROGRAM as isize,
-        Attributes = cl_h::CL_KERNEL_ATTRIBUTES as isize,
+        FunctionName = ffi::CL_KERNEL_FUNCTION_NAME as isize,
+        NumArgs = ffi::CL_KERNEL_NUM_ARGS as isize,
+        ReferenceCount = ffi::CL_KERNEL_REFERENCE_COUNT as isize,
+        Context = ffi::CL_KERNEL_CONTEXT as isize,
+        Program = ffi::CL_KERNEL_PROGRAM as isize,
+        Attributes = ffi::CL_KERNEL_ATTRIBUTES as isize,
     }
 }
 
@@ -902,11 +981,11 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgInfo {
-        AddressQualifier = cl_h::CL_KERNEL_ARG_ADDRESS_QUALIFIER as isize,
-        AccessQualifier = cl_h::CL_KERNEL_ARG_ACCESS_QUALIFIER as isize,
-        TypeName = cl_h::CL_KERNEL_ARG_TYPE_NAME as isize,
-        TypeQualifier = cl_h::CL_KERNEL_ARG_TYPE_QUALIFIER as isize,
-        Name = cl_h::CL_KERNEL_ARG_NAME as isize,
+        AddressQualifier = ffi::CL_KERNEL_ARG_ADDRESS_QUALIFIER as isize,
+        AccessQualifier = ffi::CL_KERNEL_ARG_ACCESS_QUALIFIER as isize,
+        TypeName = ffi::CL_KERNEL_ARG_TYPE_NAME as isize,
+        TypeQualifier = ffi::CL_KERNEL_ARG_TYPE_QUALIFIER as isize,
+        Name = ffi::CL_KERNEL_ARG_NAME as isize,
     }
 }
 
@@ -916,10 +995,10 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgAddressQualifier {
-        Global = cl_h::CL_KERNEL_ARG_ADDRESS_GLOBAL as isize,
-        Local = cl_h::CL_KERNEL_ARG_ADDRESS_LOCAL as isize,
-        Constant = cl_h::CL_KERNEL_ARG_ADDRESS_CONSTANT as isize,
-        Private = cl_h::CL_KERNEL_ARG_ADDRESS_PRIVATE as isize,
+        Global = ffi::CL_KERNEL_ARG_ADDRESS_GLOBAL as isize,
+        Local = ffi::CL_KERNEL_ARG_ADDRESS_LOCAL as isize,
+        Constant = ffi::CL_KERNEL_ARG_ADDRESS_CONSTANT as isize,
+        Private = ffi::CL_KERNEL_ARG_ADDRESS_PRIVATE as isize,
     }
 }
 
@@ -929,10 +1008,10 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelArgAccessQualifier {
-        ReadOnly = cl_h::CL_KERNEL_ARG_ACCESS_READ_ONLY as isize,
-        WriteOnly = cl_h::CL_KERNEL_ARG_ACCESS_WRITE_ONLY as isize,
-        ReadWrite = cl_h::CL_KERNEL_ARG_ACCESS_READ_WRITE as isize,
-        None = cl_h::CL_KERNEL_ARG_ACCESS_NONE as isize,
+        ReadOnly = ffi::CL_KERNEL_ARG_ACCESS_READ_ONLY as isize,
+        WriteOnly = ffi::CL_KERNEL_ARG_ACCESS_WRITE_ONLY as isize,
+        ReadWrite = ffi::CL_KERNEL_ARG_ACCESS_READ_WRITE as isize,
+        None = ffi::CL_KERNEL_ARG_ACCESS_NONE as isize,
      }
 }
 
@@ -945,12 +1024,12 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum KernelWorkGroupInfo {
-        WorkGroupSize = cl_h::CL_KERNEL_WORK_GROUP_SIZE as isize,
-        CompileWorkGroupSize = cl_h::CL_KERNEL_COMPILE_WORK_GROUP_SIZE as isize,
-        LocalMemSize = cl_h::CL_KERNEL_LOCAL_MEM_SIZE as isize,
-        PreferredWorkGroupSizeMultiple = cl_h::CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE as isize,
-        PrivateMemSize = cl_h::CL_KERNEL_PRIVATE_MEM_SIZE as isize,
-        GlobalWorkSize = cl_h::CL_KERNEL_GLOBAL_WORK_SIZE as isize,
+        WorkGroupSize = ffi::CL_KERNEL_WORK_GROUP_SIZE as isize,
+        CompileWorkGroupSize = ffi::CL_KERNEL_COMPILE_WORK_GROUP_SIZE as isize,
+        LocalMemSize = ffi::CL_KERNEL_LOCAL_MEM_SIZE as isize,
+        PreferredWorkGroupSizeMultiple = ffi::CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE as isize,
+        PrivateMemSize = ffi::CL_KERNEL_PRIVATE_MEM_SIZE as isize,
+        GlobalWorkSize = ffi::CL_KERNEL_GLOBAL_WORK_SIZE as isize,
     }
 }
 
@@ -960,11 +1039,11 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum EventInfo {
-        CommandQueue = cl_h::CL_EVENT_COMMAND_QUEUE as isize,
-        CommandType = cl_h::CL_EVENT_COMMAND_TYPE as isize,
-        ReferenceCount = cl_h::CL_EVENT_REFERENCE_COUNT as isize,
-        CommandExecutionStatus = cl_h::CL_EVENT_COMMAND_EXECUTION_STATUS as isize,
-        Context = cl_h::CL_EVENT_CONTEXT as isize,
+        CommandQueue = ffi::CL_EVENT_COMMAND_QUEUE as isize,
+        CommandType = ffi::CL_EVENT_COMMAND_TYPE as isize,
+        ReferenceCount = ffi::CL_EVENT_REFERENCE_COUNT as isize,
+        CommandExecutionStatus = ffi::CL_EVENT_COMMAND_EXECUTION_STATUS as isize,
+        Context = ffi::CL_EVENT_CONTEXT as isize,
     }
 }
 
@@ -974,31 +1053,31 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum CommandType {
-        NdrangeKernel = cl_h::CL_COMMAND_NDRANGE_KERNEL as isize,
-        Task = cl_h::CL_COMMAND_TASK as isize,
-        NativeKernel = cl_h::CL_COMMAND_NATIVE_KERNEL as isize,
-        ReadBuffer = cl_h::CL_COMMAND_READ_BUFFER as isize,
-        WriteBuffer = cl_h::CL_COMMAND_WRITE_BUFFER as isize,
-        CopyBuffer = cl_h::CL_COMMAND_COPY_BUFFER as isize,
-        ReadImage = cl_h::CL_COMMAND_READ_IMAGE as isize,
-        WriteImage = cl_h::CL_COMMAND_WRITE_IMAGE as isize,
-        CopyImage = cl_h::CL_COMMAND_COPY_IMAGE as isize,
-        CopyImageToBuffer = cl_h::CL_COMMAND_COPY_IMAGE_TO_BUFFER as isize,
-        CopyBufferToImage = cl_h::CL_COMMAND_COPY_BUFFER_TO_IMAGE as isize,
-        MapBuffer = cl_h::CL_COMMAND_MAP_BUFFER as isize,
-        MapImage = cl_h::CL_COMMAND_MAP_IMAGE as isize,
-        UnmapMemObject = cl_h::CL_COMMAND_UNMAP_MEM_OBJECT as isize,
-        Marker = cl_h::CL_COMMAND_MARKER as isize,
-        AcquireGlObjects = cl_h::CL_COMMAND_ACQUIRE_GL_OBJECTS as isize,
-        ReleaseGlObjects = cl_h::CL_COMMAND_RELEASE_GL_OBJECTS as isize,
-        ReadBufferRect = cl_h::CL_COMMAND_READ_BUFFER_RECT as isize,
-        WriteBufferRect = cl_h::CL_COMMAND_WRITE_BUFFER_RECT as isize,
-        CopyBufferRect = cl_h::CL_COMMAND_COPY_BUFFER_RECT as isize,
-        User = cl_h::CL_COMMAND_USER as isize,
-        Barrier = cl_h::CL_COMMAND_BARRIER as isize,
-        MigrateMemObjects = cl_h::CL_COMMAND_MIGRATE_MEM_OBJECTS as isize,
-        FillBuffer = cl_h::CL_COMMAND_FILL_BUFFER as isize,
-        FillImage = cl_h::CL_COMMAND_FILL_IMAGE as isize,
+        NdrangeKernel = ffi::CL_COMMAND_NDRANGE_KERNEL as isize,
+        Task = ffi::CL_COMMAND_TASK as isize,
+        NativeKernel = ffi::CL_COMMAND_NATIVE_KERNEL as isize,
+        ReadBuffer = ffi::CL_COMMAND_READ_BUFFER as isize,
+        WriteBuffer = ffi::CL_COMMAND_WRITE_BUFFER as isize,
+        CopyBuffer = ffi::CL_COMMAND_COPY_BUFFER as isize,
+        ReadImage = ffi::CL_COMMAND_READ_IMAGE as isize,
+        WriteImage = ffi::CL_COMMAND_WRITE_IMAGE as isize,
+        CopyImage = ffi::CL_COMMAND_COPY_IMAGE as isize,
+        CopyImageToBuffer = ffi::CL_COMMAND_COPY_IMAGE_TO_BUFFER as isize,
+        CopyBufferToImage = ffi::CL_COMMAND_COPY_BUFFER_TO_IMAGE as isize,
+        MapBuffer = ffi::CL_COMMAND_MAP_BUFFER as isize,
+        MapImage = ffi::CL_COMMAND_MAP_IMAGE as isize,
+        UnmapMemObject = ffi::CL_COMMAND_UNMAP_MEM_OBJECT as isize,
+        Marker = ffi::CL_COMMAND_MARKER as isize,
+        AcquireGlObjects = ffi::CL_COMMAND_ACQUIRE_GL_OBJECTS as isize,
+        ReleaseGlObjects = ffi::CL_COMMAND_RELEASE_GL_OBJECTS as isize,
+        ReadBufferRect = ffi::CL_COMMAND_READ_BUFFER_RECT as isize,
+        WriteBufferRect = ffi::CL_COMMAND_WRITE_BUFFER_RECT as isize,
+        CopyBufferRect = ffi::CL_COMMAND_COPY_BUFFER_RECT as isize,
+        User = ffi::CL_COMMAND_USER as isize,
+        Barrier = ffi::CL_COMMAND_BARRIER as isize,
+        MigrateMemObjects = ffi::CL_COMMAND_MIGRATE_MEM_OBJECTS as isize,
+        FillBuffer = ffi::CL_COMMAND_FILL_BUFFER as isize,
+        FillImage = ffi::CL_COMMAND_FILL_IMAGE as isize,
     }
 }
 
@@ -1008,10 +1087,10 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum CommandExecutionStatus {
-        Complete = cl_h::CL_COMPLETE as isize,
-        Running = cl_h::CL_RUNNING as isize,
-        Submitted = cl_h::CL_SUBMITTED as isize,
-        Queued = cl_h::CL_QUEUED as isize,
+        Complete = ffi::CL_COMPLETE as isize,
+        Running = ffi::CL_RUNNING as isize,
+        Submitted = ffi::CL_SUBMITTED as isize,
+        Queued = ffi::CL_QUEUED as isize,
     }
 }
 
@@ -1021,7 +1100,7 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum BufferCreateType {
-        Region = cl_h::CL_BUFFER_CREATE_TYPE_REGION as isize,
+        Region = ffi::CL_BUFFER_CREATE_TYPE_REGION as isize,
         __DUMMY,
     }
 }
@@ -1032,9 +1111,9 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum ProfilingInfo {
-        Queued = cl_h::CL_PROFILING_COMMAND_QUEUED as isize,
-        Submit = cl_h::CL_PROFILING_COMMAND_SUBMIT as isize,
-        Start = cl_h::CL_PROFILING_COMMAND_START as isize,
-        End = cl_h::CL_PROFILING_COMMAND_END as isize,
+        Queued = ffi::CL_PROFILING_COMMAND_QUEUED as isize,
+        Submit = ffi::CL_PROFILING_COMMAND_SUBMIT as isize,
+        Start = ffi::CL_PROFILING_COMMAND_START as isize,
+        End = ffi::CL_PROFILING_COMMAND_END as isize,
     }
 }

@@ -19,7 +19,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "cl-sys"
 version = "0.1.0"
-source = "git+https://github.com/cogciprocate/cl-sys#4bb02be80549716fd26ea6b9a1b01844552bb8ec"
+source = "git+https://github.com/cogciprocate/cl-sys#1c837329eb55e01200f2428c7ce3fd8647607b07"
 dependencies = [
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",

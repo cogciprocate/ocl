@@ -16,7 +16,7 @@ use std::convert::Into;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
-use cl_h::{cl_image_format};
+use ffi::{cl_image_format};
 use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo,
     ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
     Mem, MemInfo, MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode,

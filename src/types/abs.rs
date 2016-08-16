@@ -43,11 +43,11 @@ use std::ptr;
 use std::fmt::Debug;
 use std::marker::Sized;
 use libc;
-use cl_h::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
-    cl_kernel, cl_event, cl_sampler, Status};
+use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
+    cl_kernel, cl_event, cl_sampler};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
-    ProgramInfoResult, KernelInfo, KernelInfoResult};
+    ProgramInfoResult, KernelInfo, KernelInfoResult, Status};
 use error::{Result as OclResult, Error as OclError};
 use functions;
 use util;

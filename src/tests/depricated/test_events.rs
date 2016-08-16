@@ -1,6 +1,6 @@
 
 use libc::c_void;
-use cl_h::{cl_event, cl_int};
+use ffi::{cl_event, cl_int};
 use standard::{ProgramBuilder, Buffer, SpatialDims, ProQue, EventList};
 
 
