@@ -1,8 +1,11 @@
 Version 0.11.0 (UNRELEASED)
 ===========================
 
-The `core` and `ffi` modules have been moved into new crates, [ocl-core] and
-[cl-sys] respectively.
+The `core` and `ffi` modules have been moved out into new crates, [ocl-core]
+and [cl-sys] respectively. They continue to be exported with the same names.
+This document will continue to contain information pertaining to all three
+libraries ([ocl], [ocl-core], and [cl-sys]). Issues will likewise be centrally
+handled from the [ocl] repo page.
 
 The version control system has been implemented. Functions added since OpenCL
 1.1 now take an additional argument to ensure that the device or platform
@@ -13,12 +16,21 @@ Breaking Changes
 ----------------
 * `Context::platform` now returns a `Option<&Platform>` instead of
   `Option<Platform>` to make it consistent with other methods of its kind.
-* `DeviceSpecifier::to_device_list` now accepts a `Option<&Platform>`.
+* [ocl-core] `DeviceSpecifier::to_device_list` now accepts a
+  `Option<&Platform>`.
+* [ocl-core] Certain functions now require an additional argument for version
+  control purposes (see above).
+* [cl-sys] Types/functions/constants from the `cl_h` module are now
+  re-exported from the root crate. `cl_h` is now private.
+* [cl-sys] Functions from the OpenCL 2.0 & 2.1 specifications have been added.
+  This may cause problems on older devices. Please file an [issue] if it does.
 
 
 [ocl-core crate documentation]: http://docs.cogciprocate.com/ocl_core/ocl_core
+[ocl-core]: https://github.com/cogciprocate/ocl
 [ocl-core]: https://github.com/cogciprocate/ocl-core
 [cl-sys]: https://github.com/cogciprocate/cl-sys
+[issue]: https://github.com/cogciprocate/ocl/issues
 
 
 Version 0.10.0 (2016-06-11)
