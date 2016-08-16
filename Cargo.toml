@@ -24,7 +24,7 @@ kernel_debug_sleep = []
 "ocl-core:0.1.0" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 [dependencies]
-ocl-core = "0.1"
+ocl-core = "0.2"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"

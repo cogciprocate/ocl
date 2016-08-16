@@ -54,7 +54,6 @@ pub extern crate ocl_core as core;
 mod standard;
 
 pub use core::ffi;
-pub use core::ffi::cl_h;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, Sampler, SpatialDims, ProQue};
 pub use core::error::{Error, Result};
@@ -68,7 +67,7 @@ pub mod aliases {
     //!
     //! [NOTE]: This module may be renamed.
 
-    pub use cl_h::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
+    pub use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
 
     pub use core::{ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
@@ -158,5 +157,5 @@ pub mod enums {
         KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
 
     // Error status.
-    pub use cl_h::Status;
+    pub use core::Status;
 }
