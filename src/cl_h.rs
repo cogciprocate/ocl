@@ -14,7 +14,7 @@
 
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
-use std::fmt::{Display, Formatter, Result};
+// use std::fmt::{Display, Formatter, Result};
 use libc::{c_void, size_t, c_char, c_uchar, intptr_t};
 
 pub type cl_platform_id     = *mut c_void;
@@ -115,101 +115,166 @@ pub struct cl_buffer_region {
 }
 
 
-// #[derive(PartialEq, Debug, FromPrimitive)]
-enum_from_primitive! {
-    /// TODO: MOVE ME AND LEAVE CONSTS AS THEY WERE.
-    /// The status of an OpenCL API call. Used for returning success/error codes.
-    #[repr(C)]
-    #[derive(Debug, PartialEq, Clone)]
-    pub enum Status {
-        CL_SUCCESS                                      = 0,
-        CL_DEVICE_NOT_FOUND                             = -1,
-        CL_DEVICE_NOT_AVAILABLE                         = -2,
-        CL_COMPILER_NOT_AVAILABLE                       = -3,
-        CL_MEM_OBJECT_ALLOCATION_FAILURE                = -4,
-        CL_OUT_OF_RESOURCES                             = -5,
-        CL_OUT_OF_HOST_MEMORY                           = -6,
-        CL_PROFILING_INFO_NOT_AVAILABLE                 = -7,
-        CL_MEM_COPY_OVERLAP                             = -8,
-        CL_IMAGE_FORMAT_MISMATCH                        = -9,
-        CL_IMAGE_FORMAT_NOT_SUPPORTED                   = -10,
-        CL_BUILD_PROGRAM_FAILURE                        = -11,
-        CL_MAP_FAILURE                                  = -12,
-        CL_MISALIGNED_SUB_BUFFER_OFFSET                 = -13,
-        CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST    = -14,
-        CL_COMPILE_PROGRAM_FAILURE                      = -15,
-        CL_LINKER_NOT_AVAILABLE                         = -16,
-        CL_LINK_PROGRAM_FAILURE                         = -17,
-        CL_DEVICE_PARTITION_FAILED                      = -18,
-        CL_KERNEL_ARG_INFO_NOT_AVAILABLE                = -19,
-        CL_INVALID_VALUE                                = -30,
-        CL_INVALID_DEVICE_TYPE                          = -31,
-        CL_INVALID_PLATFORM                             = -32,
-        CL_INVALID_DEVICE                               = -33,
-        CL_INVALID_CONTEXT                              = -34,
-        CL_INVALID_QUEUE_PROPERTIES                     = -35,
-        CL_INVALID_COMMAND_QUEUE                        = -36,
-        CL_INVALID_HOST_PTR                             = -37,
-        CL_INVALID_MEM_OBJECT                           = -38,
-        CL_INVALID_IMAGE_FORMAT_DESCRIPTOR              = -39,
-        CL_INVALID_IMAGE_SIZE                           = -40,
-        CL_INVALID_SAMPLER                              = -41,
-        CL_INVALID_BINARY                               = -42,
-        CL_INVALID_BUILD_OPTIONS                        = -43,
-        CL_INVALID_PROGRAM                              = -44,
-        CL_INVALID_PROGRAM_EXECUTABLE                   = -45,
-        CL_INVALID_KERNEL_NAME                          = -46,
-        CL_INVALID_KERNEL_DEFINITION                    = -47,
-        CL_INVALID_KERNEL                               = -48,
-        CL_INVALID_ARG_INDEX                            = -49,
-        CL_INVALID_ARG_VALUE                            = -50,
-        CL_INVALID_ARG_SIZE                             = -51,
-        CL_INVALID_KERNEL_ARGS                          = -52,
-        CL_INVALID_WORK_DIMENSION                       = -53,
-        CL_INVALID_WORK_GROUP_SIZE                      = -54,
-        CL_INVALID_WORK_ITEM_SIZE                       = -55,
-        CL_INVALID_GLOBAL_OFFSET                        = -56,
-        CL_INVALID_EVENT_WAIT_LIST                      = -57,
-        CL_INVALID_EVENT                                = -58,
-        CL_INVALID_OPERATION                            = -59,
-        CL_INVALID_GL_OBJECT                            = -60,
-        CL_INVALID_BUFFER_SIZE                          = -61,
-        CL_INVALID_MIP_LEVEL                            = -62,
-        CL_INVALID_GLOBAL_WORK_SIZE                     = -63,
-        CL_INVALID_PROPERTY                             = -64,
-        CL_INVALID_IMAGE_DESCRIPTOR                     = -65,
-        CL_INVALID_COMPILER_OPTIONS                     = -66,
-        CL_INVALID_LINKER_OPTIONS                       = -67,
-        CL_INVALID_DEVICE_PARTITION_COUNT               = -68,
-            //###### NEW ########
-            CL_INVALID_PIPE_SIZE                            = -69,
-            CL_INVALID_DEVICE_QUEUE                         = -70,
-        CL_PLATFORM_NOT_FOUND_KHR                       = -1001,
-    }
-}
+// enum_from_primitive! {
+//     /// TODO: MOVE ME AND LEAVE CONSTS AS THEY WERE.
+//     /// The status of an OpenCL API call. Used for returning success/error codes.
+//     #[repr(C)]
+//     #[derive(Debug, PartialEq, Clone)]
+//     pub enum Status {
+//         CL_SUCCESS                                      = 0,
+//         CL_DEVICE_NOT_FOUND                             = -1,
+//         CL_DEVICE_NOT_AVAILABLE                         = -2,
+//         CL_COMPILER_NOT_AVAILABLE                       = -3,
+//         CL_MEM_OBJECT_ALLOCATION_FAILURE                = -4,
+//         CL_OUT_OF_RESOURCES                             = -5,
+//         CL_OUT_OF_HOST_MEMORY                           = -6,
+//         CL_PROFILING_INFO_NOT_AVAILABLE                 = -7,
+//         CL_MEM_COPY_OVERLAP                             = -8,
+//         CL_IMAGE_FORMAT_MISMATCH                        = -9,
+//         CL_IMAGE_FORMAT_NOT_SUPPORTED                   = -10,
+//         CL_BUILD_PROGRAM_FAILURE                        = -11,
+//         CL_MAP_FAILURE                                  = -12,
+//         CL_MISALIGNED_SUB_BUFFER_OFFSET                 = -13,
+//         CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST    = -14,
+//         CL_COMPILE_PROGRAM_FAILURE                      = -15,
+//         CL_LINKER_NOT_AVAILABLE                         = -16,
+//         CL_LINK_PROGRAM_FAILURE                         = -17,
+//         CL_DEVICE_PARTITION_FAILED                      = -18,
+//         CL_KERNEL_ARG_INFO_NOT_AVAILABLE                = -19,
+//         CL_INVALID_VALUE                                = -30,
+//         CL_INVALID_DEVICE_TYPE                          = -31,
+//         CL_INVALID_PLATFORM                             = -32,
+//         CL_INVALID_DEVICE                               = -33,
+//         CL_INVALID_CONTEXT                              = -34,
+//         CL_INVALID_QUEUE_PROPERTIES                     = -35,
+//         CL_INVALID_COMMAND_QUEUE                        = -36,
+//         CL_INVALID_HOST_PTR                             = -37,
+//         CL_INVALID_MEM_OBJECT                           = -38,
+//         CL_INVALID_IMAGE_FORMAT_DESCRIPTOR              = -39,
+//         CL_INVALID_IMAGE_SIZE                           = -40,
+//         CL_INVALID_SAMPLER                              = -41,
+//         CL_INVALID_BINARY                               = -42,
+//         CL_INVALID_BUILD_OPTIONS                        = -43,
+//         CL_INVALID_PROGRAM                              = -44,
+//         CL_INVALID_PROGRAM_EXECUTABLE                   = -45,
+//         CL_INVALID_KERNEL_NAME                          = -46,
+//         CL_INVALID_KERNEL_DEFINITION                    = -47,
+//         CL_INVALID_KERNEL                               = -48,
+//         CL_INVALID_ARG_INDEX                            = -49,
+//         CL_INVALID_ARG_VALUE                            = -50,
+//         CL_INVALID_ARG_SIZE                             = -51,
+//         CL_INVALID_KERNEL_ARGS                          = -52,
+//         CL_INVALID_WORK_DIMENSION                       = -53,
+//         CL_INVALID_WORK_GROUP_SIZE                      = -54,
+//         CL_INVALID_WORK_ITEM_SIZE                       = -55,
+//         CL_INVALID_GLOBAL_OFFSET                        = -56,
+//         CL_INVALID_EVENT_WAIT_LIST                      = -57,
+//         CL_INVALID_EVENT                                = -58,
+//         CL_INVALID_OPERATION                            = -59,
+//         CL_INVALID_GL_OBJECT                            = -60,
+//         CL_INVALID_BUFFER_SIZE                          = -61,
+//         CL_INVALID_MIP_LEVEL                            = -62,
+//         CL_INVALID_GLOBAL_WORK_SIZE                     = -63,
+//         CL_INVALID_PROPERTY                             = -64,
+//         CL_INVALID_IMAGE_DESCRIPTOR                     = -65,
+//         CL_INVALID_COMPILER_OPTIONS                     = -66,
+//         CL_INVALID_LINKER_OPTIONS                       = -67,
+//         CL_INVALID_DEVICE_PARTITION_COUNT               = -68,
+//             //###### NEW ########
+//             CL_INVALID_PIPE_SIZE                            = -69,
+//             CL_INVALID_DEVICE_QUEUE                         = -70,
+//         CL_PLATFORM_NOT_FOUND_KHR                       = -1001,
+//     }
+// }
 
-impl Display for Status {
-    fn fmt(&self, fmtr: &mut Formatter) -> Result {
-        write!(fmtr, "{:?}", self)
-    }
-}
+// impl Display for Status {
+//     fn fmt(&self, fmtr: &mut Formatter) -> Result {
+//         write!(fmtr, "{:?}", self)
+//     }
+// }
 
 
-// Version
+// Error Codes:
+pub const CL_SUCCESS:                                      cl_int = 0;
+pub const CL_DEVICE_NOT_FOUND:                             cl_int = -1;
+pub const CL_DEVICE_NOT_AVAILABLE:                         cl_int = -2;
+pub const CL_COMPILER_NOT_AVAILABLE:                       cl_int = -3;
+pub const CL_MEM_OBJECT_ALLOCATION_FAILURE:                cl_int = -4;
+pub const CL_OUT_OF_RESOURCES:                             cl_int = -5;
+pub const CL_OUT_OF_HOST_MEMORY:                           cl_int = -6;
+pub const CL_PROFILING_INFO_NOT_AVAILABLE:                 cl_int = -7;
+pub const CL_MEM_COPY_OVERLAP:                             cl_int = -8;
+pub const CL_IMAGE_FORMAT_MISMATCH:                        cl_int = -9;
+pub const CL_IMAGE_FORMAT_NOT_SUPPORTED:                   cl_int = -10;
+pub const CL_BUILD_PROGRAM_FAILURE:                        cl_int = -11;
+pub const CL_MAP_FAILURE:                                  cl_int = -12;
+pub const CL_MISALIGNED_SUB_BUFFER_OFFSET:                 cl_int = -13;
+pub const CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST:    cl_int = -14;
+pub const CL_COMPILE_PROGRAM_FAILURE:                      cl_int = -15;
+pub const CL_LINKER_NOT_AVAILABLE:                         cl_int = -16;
+pub const CL_LINK_PROGRAM_FAILURE:                         cl_int = -17;
+pub const CL_DEVICE_PARTITION_FAILED:                      cl_int = -18;
+pub const CL_KERNEL_ARG_INFO_NOT_AVAILABLE:                cl_int = -19;
+
+pub const CL_INVALID_VALUE:                                cl_int = -30;
+pub const CL_INVALID_DEVICE_TYPE:                          cl_int = -31;
+pub const CL_INVALID_PLATFORM:                             cl_int = -32;
+pub const CL_INVALID_DEVICE:                               cl_int = -33;
+pub const CL_INVALID_CONTEXT:                              cl_int = -34;
+pub const CL_INVALID_QUEUE_PROPERTIES:                     cl_int = -35;
+pub const CL_INVALID_COMMAND_QUEUE:                        cl_int = -36;
+pub const CL_INVALID_HOST_PTR:                             cl_int = -37;
+pub const CL_INVALID_MEM_OBJECT:                           cl_int = -38;
+pub const CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:              cl_int = -39;
+pub const CL_INVALID_IMAGE_SIZE:                           cl_int = -40;
+pub const CL_INVALID_SAMPLER:                              cl_int = -41;
+pub const CL_INVALID_BINARY:                               cl_int = -42;
+pub const CL_INVALID_BUILD_OPTIONS:                        cl_int = -43;
+pub const CL_INVALID_PROGRAM:                              cl_int = -44;
+pub const CL_INVALID_PROGRAM_EXECUTABLE:                   cl_int = -45;
+pub const CL_INVALID_KERNEL_NAME:                          cl_int = -46;
+pub const CL_INVALID_KERNEL_DEFINITION:                    cl_int = -47;
+pub const CL_INVALID_KERNEL:                               cl_int = -48;
+pub const CL_INVALID_ARG_INDEX:                            cl_int = -49;
+pub const CL_INVALID_ARG_VALUE:                            cl_int = -50;
+pub const CL_INVALID_ARG_SIZE:                             cl_int = -51;
+pub const CL_INVALID_KERNEL_ARGS:                          cl_int = -52;
+pub const CL_INVALID_WORK_DIMENSION:                       cl_int = -53;
+pub const CL_INVALID_WORK_GROUP_SIZE:                      cl_int = -54;
+pub const CL_INVALID_WORK_ITEM_SIZE:                       cl_int = -55;
+pub const CL_INVALID_GLOBAL_OFFSET:                        cl_int = -56;
+pub const CL_INVALID_EVENT_WAIT_LIST:                      cl_int = -57;
+pub const CL_INVALID_EVENT:                                cl_int = -58;
+pub const CL_INVALID_OPERATION:                            cl_int = -59;
+pub const CL_INVALID_GL_OBJECT:                            cl_int = -60;
+pub const CL_INVALID_BUFFER_SIZE:                          cl_int = -61;
+pub const CL_INVALID_MIP_LEVEL:                            cl_int = -62;
+pub const CL_INVALID_GLOBAL_WORK_SIZE:                     cl_int = -63;
+pub const CL_INVALID_PROPERTY:                             cl_int = -64;
+pub const CL_INVALID_IMAGE_DESCRIPTOR:                     cl_int = -65;
+pub const CL_INVALID_COMPILER_OPTIONS:                     cl_int = -66;
+pub const CL_INVALID_LINKER_OPTIONS:                       cl_int = -67;
+pub const CL_INVALID_DEVICE_PARTITION_COUNT:               cl_int = -68;
+pub const CL_INVALID_PIPE_SIZE:                            cl_int = -69;
+pub const CL_INVALID_DEVICE_QUEUE:                         cl_int = -70;
+pub const CL_PLATFORM_NOT_FOUND_KHR:                       cl_int = -1001;
+
+
+// Version:
 pub const CL_VERSION_1_0:                               cl_bool = 1;
 pub const CL_VERSION_1_1:                               cl_bool = 1;
 pub const CL_VERSION_1_2:                               cl_bool = 1;
 pub const CL_VERSION_2_0:                               cl_bool = 1;
 pub const CL_VERSION_2_1:                               cl_bool = 1;
 
-// cl_bool
+// cl_bool:
 pub const CL_FALSE:                                     cl_bool = 0;
 pub const CL_TRUE:                                      cl_bool = 1;
 pub const CL_BLOCKING:                                  cl_bool = CL_TRUE;
 pub const CL_NON_BLOCKING:                              cl_bool = CL_FALSE;
 
 
-// cl_platform_info
+// cl_platform_info:
 pub const CL_PLATFORM_PROFILE:                          cl_uint = 0x0900;
 pub const CL_PLATFORM_VERSION:                          cl_uint = 0x0901;
 pub const CL_PLATFORM_NAME:                             cl_uint = 0x0902;
@@ -218,7 +283,7 @@ pub const CL_PLATFORM_EXTENSIONS:                       cl_uint = 0x0904;
     //###### NEW ########
     pub const CL_PLATFORM_HOST_TIMER_RESOLUTION:            cl_uint = 0x0905;
 
-// cl_device_type - bitfield
+// cl_device_type - bitfield:
 pub const CL_DEVICE_TYPE_DEFAULT:                      cl_bitfield = 1 << 0;
 pub const CL_DEVICE_TYPE_CPU:                          cl_bitfield = 1 << 1;
 pub const CL_DEVICE_TYPE_GPU:                          cl_bitfield = 1 << 2;
@@ -226,7 +291,7 @@ pub const CL_DEVICE_TYPE_ACCELERATOR:                  cl_bitfield = 1 << 3;
 pub const CL_DEVICE_TYPE_CUSTOM:                       cl_bitfield = 1 << 4;
 pub const CL_DEVICE_TYPE_ALL:                          cl_bitfield = 0xFFFFFFFF;
 
-// cl_device_info
+// cl_device_info:
 pub const CL_DEVICE_TYPE:                                   cl_uint = 0x1000;
 pub const CL_DEVICE_VENDOR_ID:                              cl_uint = 0x1001;
 pub const CL_DEVICE_MAX_COMPUTE_UNITS:                      cl_uint = 0x1002;
@@ -326,7 +391,7 @@ pub const CL_DEVICE_IMAGE_BASE_ADDRESS_ALIGNMENT:           cl_uint = 0x104B;
     pub const CL_DEVICE_MAX_NUM_SUB_GROUPS:                     cl_uint = 0x105C;
     pub const CL_DEVICE_SUB_GROUP_INDEPENDENT_FORWARD_PROGRESS: cl_uint = 0x105D;
 
-// cl_device_fp_config - bitfield
+// cl_device_fp_config - bitfield:
 pub const CL_FP_DENORM:                                 cl_bitfield = 1 << 0;
 pub const CL_FP_INF_NAN:                                cl_bitfield = 1 << 1;
 pub const CL_FP_ROUND_TO_NEAREST:                       cl_bitfield = 1 << 2;
@@ -336,43 +401,43 @@ pub const CL_FP_FMA:                                    cl_bitfield = 1 << 5;
 pub const CL_FP_SOFT_FLOAT:                             cl_bitfield = 1 << 6;
 pub const CL_FP_CORRECTLY_ROUNDED_DIVIDE_SQRT:          cl_bitfield = 1 << 7;
 
-// cl_device_mem_cache_type
+// cl_device_mem_cache_type:
 pub const CL_NONE:                                      cl_uint = 0x0;
 pub const CL_READ_ONLY_CACHE:                           cl_uint = 0x1;
 pub const CL_READ_WRITE_CACHE:                          cl_uint = 0x2;
 
-// cl_device_local_mem_type
+// cl_device_local_mem_type:
 pub const CL_LOCAL:                                     cl_uint = 0x1;
 pub const CL_GLOBAL:                                    cl_uint = 0x2;
 
-// cl_device_exec_capabilities - bitfield
+// cl_device_exec_capabilities - bitfield:
 pub const CL_EXEC_KERNEL:                               cl_bitfield = 1 << 0;
 pub const CL_EXEC_NATIVE_KERNEL:                        cl_bitfield = 1 << 1;
 
-// cl_command_queue_properties - bitfield
+// cl_command_queue_properties - bitfield:
 pub const CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE:       cl_bitfield = 1 << 0;
 pub const CL_QUEUE_PROFILING_ENABLE:                    cl_bitfield = 1 << 1;
     //###### NEW ########
     pub const CL_QUEUE_ON_DEVICE:                           cl_bitfield = 1 << 2;
     pub const CL_QUEUE_ON_DEVICE_DEFAULT:                   cl_bitfield = 1 << 3;
 
-// cl_context_info
+// cl_context_info:
 pub const CL_CONTEXT_REFERENCE_COUNT:                   cl_uint = 0x1080;
 pub const CL_CONTEXT_DEVICES:                           cl_uint = 0x1081;
 pub const CL_CONTEXT_PROPERTIES:                        cl_uint = 0x1082;
 pub const CL_CONTEXT_NUM_DEVICES:                       cl_uint = 0x1083;
 
-// cl_context_info + cl_context_properties
+// cl_context_info + cl_context_properties:
 pub const CL_CONTEXT_PLATFORM:                          cl_uint = 0x1084;
 pub const CL_CONTEXT_INTEROP_USER_SYNC:                 cl_uint = 0x1085;
 
-// cl_device_partition_property
+// cl_device_partition_property:
 pub const CL_DEVICE_PARTITION_EQUALLY:                  cl_uint = 0x1086;
 pub const CL_DEVICE_PARTITION_BY_COUNTS:                cl_uint = 0x1087;
 pub const CL_DEVICE_PARTITION_BY_COUNTS_LIST_END:       cl_uint = 0x0;
 pub const CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN:       cl_uint = 0x1088;
 
-// cl_device_affinity_domain
+// cl_device_affinity_domain:
 pub const CL_DEVICE_AFFINITY_DOMAIN_NUMA:               cl_bitfield = 1 << 0;
 pub const CL_DEVICE_AFFINITY_DOMAIN_L4_CACHE:           cl_bitfield = 1 << 1;
 pub const CL_DEVICE_AFFINITY_DOMAIN_L3_CACHE:           cl_bitfield = 1 << 2;
@@ -381,13 +446,13 @@ pub const CL_DEVICE_AFFINITY_DOMAIN_L1_CACHE:           cl_bitfield = 1 << 4;
 pub const CL_DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE: cl_bitfield = 1 << 5;
 
     //###### NEW ########
-    // cl_device_svm_capabilities
+    // cl_device_svm_capabilities:
     pub const CL_DEVICE_SVM_COARSE_GRAIN_BUFFER:           cl_bitfield = 1 << 0;
     pub const CL_DEVICE_SVM_FINE_GRAIN_BUFFER:             cl_bitfield = 1 << 1;
     pub const CL_DEVICE_SVM_FINE_GRAIN_SYSTEM:             cl_bitfield = 1 << 2;
     pub const CL_DEVICE_SVM_ATOMICS:                       cl_bitfield = 1 << 3;
 
-// cl_command_queue_info
+// cl_command_queue_info:
 pub const CL_QUEUE_CONTEXT:                             cl_uint = 0x1090;
 pub const CL_QUEUE_DEVICE:                              cl_uint = 0x1091;
 pub const CL_QUEUE_REFERENCE_COUNT:                     cl_uint = 0x1092;
@@ -396,7 +461,7 @@ pub const CL_QUEUE_PROPERTIES:                          cl_uint = 0x1093;
     pub const CL_QUEUE_SIZE:                                cl_uint = 0x1094;
     pub const CL_QUEUE_DEVICE_DEFAULT:                      cl_uint = 0x1095;
 
-// cl_mem_flags and cl_svm_mem_flags - bitfield
+// cl_mem_flags and cl_svm_mem_flags - bitfield:
 pub const CL_MEM_READ_WRITE:                            cl_bitfield = 1 << 0;
 pub const CL_MEM_WRITE_ONLY:                            cl_bitfield = 1 << 1;
 pub const CL_MEM_READ_ONLY:                             cl_bitfield = 1 << 2;
@@ -412,11 +477,11 @@ pub const CL_MEM_HOST_NO_ACCESS:                        cl_bitfield = 1 << 9;
     pub const CL_MEM_SVM_ATOMICS:                           cl_bitfield = 1 << 11;   // used by cl_svm_mem_flags only
     pub const CL_MEM_KERNEL_READ_AND_WRITE:                 cl_bitfield = 1 << 12;
 
-// cl_mem_migration_flags - bitfield
+// cl_mem_migration_flags - bitfield:
 pub const CL_MIGRATE_MEM_OBJECT_HOST:                   cl_bitfield = 1 << 0;
 pub const CL_MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED:      cl_bitfield = 1 << 1;
 
-// cl_channel_order
+// cl_channel_order:
 pub const CL_R:                                         cl_uint = 0x10B0;
 pub const CL_A:                                         cl_uint = 0x10B1;
 pub const CL_RG:                                        cl_uint = 0x10B2;
@@ -439,7 +504,7 @@ pub const CL_DEPTH_STENCIL:                             cl_uint = 0x10BE;
     pub const CL_sBGRA:                                     cl_uint = 0x10C2;
     pub const CL_ABGR:                                      cl_uint = 0x10C3;
 
-// cl_channel_type
+// cl_channel_type:
 pub const CL_SNORM_INT8:                                cl_uint = 0x10D0;
 pub const CL_SNORM_INT16:                               cl_uint = 0x10D1;
 pub const CL_UNORM_INT8:                                cl_uint = 0x10D2;
@@ -459,7 +524,7 @@ pub const CL_UNORM_INT24:                               cl_uint = 0x10DF;
     //###### NEW ########
     pub const CL_UNORM_INT_101010_2:                        cl_uint = 0x10E0;
 
-// cl_mem_object_type
+// cl_mem_object_type:
 pub const CL_MEM_OBJECT_BUFFER:                         cl_uint = 0x10F0;
 pub const CL_MEM_OBJECT_IMAGE2D:                        cl_uint = 0x10F1;
 pub const CL_MEM_OBJECT_IMAGE3D:                        cl_uint = 0x10F2;
@@ -470,7 +535,7 @@ pub const CL_MEM_OBJECT_IMAGE1D_BUFFER:                 cl_uint = 0x10F6;
     //###### NEW ########
     pub const CL_MEM_OBJECT_PIPE:                           cl_uint = 0x10F7;
 
-// cl_mem_info
+// cl_mem_info:
 pub const CL_MEM_TYPE:                                  cl_uint = 0x1100;
 pub const CL_MEM_FLAGS:                                 cl_uint = 0x1101;
 pub const CL_MEM_SIZE:                                  cl_uint = 0x1102;
@@ -483,7 +548,7 @@ pub const CL_MEM_OFFSET:                                cl_uint = 0x1108;
     //###### NEW ########
     pub const CL_MEM_USES_SVM_POINTER:                      cl_uint = 0x1109;
 
-// cl_image_info
+// cl_image_info:
 pub const CL_IMAGE_FORMAT:                              cl_uint = 0x1110;
 pub const CL_IMAGE_ELEMENT_SIZE:                        cl_uint = 0x1111;
 pub const CL_IMAGE_ROW_PITCH:                           cl_uint = 0x1112;
@@ -497,22 +562,22 @@ pub const CL_IMAGE_NUM_MIP_LEVELS:                      cl_uint = 0x1119;
 pub const CL_IMAGE_NUM_SAMPLES:                         cl_uint = 0x111A;
 
     //###### NEW ########
-    // cl_pipe_info
+    // cl_pipe_info:
     pub const CL_PIPE_PACKET_SIZE:                         cl_uint = 0x1120;
     pub const CL_PIPE_MAX_PACKETS:                         cl_uint = 0x1121;
 
-// cl_addressing_mode
+// cl_addressing_mode:
 pub const CL_ADDRESS_NONE:                              cl_uint = 0x1130;
 pub const CL_ADDRESS_CLAMP_TO_EDGE:                     cl_uint = 0x1131;
 pub const CL_ADDRESS_CLAMP:                             cl_uint = 0x1132;
 pub const CL_ADDRESS_REPEAT:                            cl_uint = 0x1133;
 pub const CL_ADDRESS_MIRRORED_REPEAT:                   cl_uint = 0x1134;
 
-// cl_filter_mode
+// cl_filter_mode:
 pub const CL_FILTER_NEAREST:                            cl_uint = 0x1140;
 pub const CL_FILTER_LINEAR:                             cl_uint = 0x1141;
 
-// cl_sampler_info
+// cl_sampler_info:
 pub const CL_SAMPLER_REFERENCE_COUNT:                   cl_uint = 0x1150;
 pub const CL_SAMPLER_CONTEXT:                           cl_uint = 0x1151;
 pub const CL_SAMPLER_NORMALIZED_COORDS:                 cl_uint = 0x1152;
@@ -523,12 +588,12 @@ pub const CL_SAMPLER_FILTER_MODE:                       cl_uint = 0x1154;
     pub const CL_SAMPLER_LOD_MIN:                           cl_uint = 0x1156;
     pub const CL_SAMPLER_LOD_MAX:                           cl_uint = 0x1157;
 
-// cl_map_flags - bitfield
+// cl_map_flags - bitfield:
 pub const CL_MAP_READ:                                  cl_bitfield = 1 << 0;
 pub const CL_MAP_WRITE:                                 cl_bitfield = 1 << 1;
 pub const CL_MAP_WRITE_INVALIDATE_REGION:               cl_bitfield = 1 << 2;
 
-// cl_program_info
+// cl_program_info:
 pub const CL_PROGRAM_REFERENCE_COUNT:                   cl_uint = 0x1160;
 pub const CL_PROGRAM_CONTEXT:                           cl_uint = 0x1161;
 pub const CL_PROGRAM_NUM_DEVICES:                       cl_uint = 0x1162;
@@ -541,7 +606,7 @@ pub const CL_PROGRAM_KERNEL_NAMES:                      cl_uint = 0x1168;
     //###### NEW ########
     pub const CL_PROGRAM_IL:                                cl_uint = 0x1169;
 
-// cl_program_build_info
+// cl_program_build_info:
 pub const CL_PROGRAM_BUILD_STATUS:                      cl_uint = 0x1181;
 pub const CL_PROGRAM_BUILD_OPTIONS:                     cl_uint = 0x1182;
 pub const CL_PROGRAM_BUILD_LOG:                         cl_uint = 0x1183;
@@ -549,19 +614,19 @@ pub const CL_PROGRAM_BINARY_TYPE:                       cl_uint = 0x1184;
     //###### NEW ########
     pub const CL_PROGRAM_BUILD_GLOBAL_VARIABLE_TOTAL_SIZE:  cl_uint = 0x1185;
 
-// cl_program_binary_type
+// cl_program_binary_type:
 pub const CL_PROGRAM_BINARY_TYPE_NONE:                  cl_bitfield = 0x0;
 pub const CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT:       cl_bitfield = 0x1;
 pub const CL_PROGRAM_BINARY_TYPE_LIBRARY:               cl_bitfield = 0x2;
 pub const CL_PROGRAM_BINARY_TYPE_EXECUTABLE:            cl_bitfield = 0x4;
 
-// cl_build_status
+// cl_build_status:
 pub const CL_BUILD_SUCCESS:                             cl_uint = 0;
 pub const CL_BUILD_NONE:                                cl_uint = !0 - 1;
 pub const CL_BUILD_ERROR:                               cl_uint = !0 - 2;
 pub const CL_BUILD_IN_PROGRESS:                         cl_uint = !0 - 3;
 
-// cl_kernel_info
+// cl_kernel_info:
 pub const CL_KERNEL_FUNCTION_NAME:                      cl_uint = 0x1190;
 pub const CL_KERNEL_NUM_ARGS:                           cl_uint = 0x1191;
 pub const CL_KERNEL_REFERENCE_COUNT:                    cl_uint = 0x1192;
@@ -572,26 +637,26 @@ pub const CL_KERNEL_ATTRIBUTES:                         cl_uint = 0x1195;
     pub const CL_KERNEL_MAX_NUM_SUB_GROUPS:                 cl_uint = 0x11B9;
     pub const CL_KERNEL_COMPILE_NUM_SUB_GROUPS:             cl_uint = 0x11BA;
 
-// cl_kernel_arg_info
+// cl_kernel_arg_info:
 pub const CL_KERNEL_ARG_ADDRESS_QUALIFIER:              cl_uint = 0x1196;
 pub const CL_KERNEL_ARG_ACCESS_QUALIFIER:               cl_uint = 0x1197;
 pub const CL_KERNEL_ARG_TYPE_NAME:                      cl_uint = 0x1198;
 pub const CL_KERNEL_ARG_TYPE_QUALIFIER:                 cl_uint = 0x1199;
 pub const CL_KERNEL_ARG_NAME:                           cl_uint = 0x119A;
 
-// cl_kernel_arg_address_qualifier
+// cl_kernel_arg_address_qualifier:
 pub const CL_KERNEL_ARG_ADDRESS_GLOBAL:                 cl_uint = 0x119B;
 pub const CL_KERNEL_ARG_ADDRESS_LOCAL:                  cl_uint = 0x119C;
 pub const CL_KERNEL_ARG_ADDRESS_CONSTANT:               cl_uint = 0x119D;
 pub const CL_KERNEL_ARG_ADDRESS_PRIVATE:                cl_uint = 0x119E;
 
-// cl_kernel_arg_access_qualifier
+// cl_kernel_arg_access_qualifier:
 pub const CL_KERNEL_ARG_ACCESS_READ_ONLY:               cl_uint = 0x11A0;
 pub const CL_KERNEL_ARG_ACCESS_WRITE_ONLY:              cl_uint = 0x11A1;
 pub const CL_KERNEL_ARG_ACCESS_READ_WRITE:              cl_uint = 0x11A2;
 pub const CL_KERNEL_ARG_ACCESS_NONE:                    cl_uint = 0x11A3;
 
-// cl_kernel_arg_type_qualifer
+// cl_kernel_arg_type_qualifer:
 pub const CL_KERNEL_ARG_TYPE_NONE:                      cl_bitfield = 0;
 pub const CL_KERNEL_ARG_TYPE_CONST:                     cl_bitfield = 1 << 0;
 pub const CL_KERNEL_ARG_TYPE_RESTRICT:                  cl_bitfield = 1 << 1;
@@ -599,7 +664,7 @@ pub const CL_KERNEL_ARG_TYPE_VOLATILE:                  cl_bitfield = 1 << 2;
     //###### NEW ########
     pub const CL_KERNEL_ARG_TYPE_PIPE:                      cl_bitfield = 1 << 3;
 
-// cl_kernel_work_group_info
+// cl_kernel_work_group_info:
 pub const CL_KERNEL_WORK_GROUP_SIZE:                    cl_uint = 0x11B0;
 pub const CL_KERNEL_COMPILE_WORK_GROUP_SIZE:            cl_uint = 0x11B1;
 pub const CL_KERNEL_LOCAL_MEM_SIZE:                     cl_uint = 0x11B2;
@@ -608,24 +673,24 @@ pub const CL_KERNEL_PRIVATE_MEM_SIZE:                   cl_uint = 0x11B4;
 pub const CL_KERNEL_GLOBAL_WORK_SIZE:                   cl_uint = 0x11B5;
 
     //###### NEW ########
-    // cl_kernel_sub_group_info
+    // cl_kernel_sub_group_info:
     pub const CL_KERNEL_MAX_SUB_GROUP_SIZE_FOR_NDRANGE:    cl_uint = 0x2033;
     pub const CL_KERNEL_SUB_GROUP_COUNT_FOR_NDRANGE:       cl_uint = 0x2034;
     pub const CL_KERNEL_LOCAL_SIZE_FOR_SUB_GROUP_COUNT:    cl_uint = 0x11B8;
 
     //###### NEW ########
-    // cl_kernel_exec_info
+    // cl_kernel_exec_info:
     pub const CL_KERNEL_EXEC_INFO_SVM_PTRS:                cl_uint = 0x11B6;
     pub const CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM:   cl_uint = 0x11B7;
 
-// cl_event_info
+// cl_event_info:
 pub const CL_EVENT_COMMAND_QUEUE:                       cl_uint = 0x11D0;
 pub const CL_EVENT_COMMAND_TYPE:                        cl_uint = 0x11D1;
 pub const CL_EVENT_REFERENCE_COUNT:                     cl_uint = 0x11D2;
 pub const CL_EVENT_COMMAND_EXECUTION_STATUS:            cl_uint = 0x11D3;
 pub const CL_EVENT_CONTEXT:                             cl_uint = 0x11D4;
 
-// cl_command_type
+// cl_command_type:
 pub const CL_COMMAND_NDRANGE_KERNEL:                    cl_uint = 0x11F0;
 pub const CL_COMMAND_TASK:                              cl_uint = 0x11F1;
 pub const CL_COMMAND_NATIVE_KERNEL:                     cl_uint = 0x11F2;
@@ -658,16 +723,16 @@ pub const CL_COMMAND_FILL_IMAGE:                        cl_uint = 0x1208;
     pub const CL_COMMAND_SVM_MAP:                           cl_uint = 0x120C;
     pub const CL_COMMAND_SVM_UNMAP:                         cl_uint = 0x120D;
 
-// command execution status
+// command execution status:
 pub const CL_COMPLETE:                                  cl_int = 0x0;
 pub const CL_RUNNING:                                   cl_int = 0x1;
 pub const CL_SUBMITTED:                                 cl_int = 0x2;
 pub const CL_QUEUED:                                    cl_int = 0x3;
 
-// cl_buffer_create_type
+// cl_buffer_create_type:
 pub const CL_BUFFER_CREATE_TYPE_REGION:                 cl_uint = 0x1220;
 
-// cl_profiling_info
+// cl_profiling_info:
 pub const CL_PROFILING_COMMAND_QUEUED:                  cl_uint = 0x1280;
 pub const CL_PROFILING_COMMAND_SUBMIT:                  cl_uint = 0x1281;
 pub const CL_PROFILING_COMMAND_START:                   cl_uint = 0x1282;
@@ -681,7 +746,7 @@ pub const CL_PROFILING_COMMAND_END:                     cl_uint = 0x1283;
 #[cfg_attr(target_os = "windows", link(name = "OpenCL"))]
 #[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
 extern "system" {
-    // Platform API
+    // Platform API:
     pub fn clGetPlatformIDs(num_entries: cl_uint,
                             platforms: *mut cl_platform_id,
                             num_platforms: *mut cl_uint) -> cl_int;
@@ -692,7 +757,7 @@ extern "system" {
                              param_value: *mut c_void,
                              param_value_size_ret: *mut size_t) -> cl_int;
 
-    // Device APIs
+    // Device APIs:
     pub fn clGetDeviceIDs(platform: cl_platform_id,
                           device_type: cl_device_type,
                           num_entries: cl_uint,
@@ -753,7 +818,7 @@ extern "system" {
     pub fn clGetHostTimer(device: cl_device_id,
                           host_timestamp: cl_ulong) -> cl_int;
 
-    // Context APIs
+    // Context APIs:
     pub fn clCreateContext(properties: *const cl_context_properties,
                        num_devices: cl_uint,
                        devices: *const cl_device_id,
@@ -805,7 +870,7 @@ extern "system" {
                              param_value: *mut c_void,
                              param_value_size_ret: *mut size_t) -> cl_int;
 
-    // Memory Object APIs
+    // Memory Object APIs:
     pub fn clCreateBuffer(context: cl_context,
                       flags: cl_mem_flags,
                       size: size_t,
@@ -922,7 +987,7 @@ extern "system" {
     pub fn clSVMFree(context: cl_context,
                      svm_pointer: *mut c_void);
 
-    // Sampler APIs
+    // Sampler APIs:
     pub fn clCreateSampler(context: cl_context,
                        normalize_coords: cl_bool,
                        addressing_mode: cl_addressing_mode,
@@ -948,7 +1013,7 @@ extern "system" {
                         param_value: *mut c_void,
                         param_value_size_ret: *mut size_t) -> cl_int;
 
-    // Program Object APIs
+    // Program Object APIs:
     pub fn clCreateProgramWithSource(context: cl_context,
                                  count: cl_uint,
                                  strings: *const *const c_char,
@@ -1059,7 +1124,7 @@ extern "system" {
                              param_value: *mut c_void,
                              param_value_size_ret: *mut size_t) -> cl_int;
 
-    // Kernel Object APIs
+    // Kernel Object APIs:
     pub fn clCreateKernel(program: cl_program,
                       kernel_name: *const c_char,
                       errcode_ret: *mut cl_int) -> cl_kernel;
@@ -1156,7 +1221,7 @@ extern "system" {
                                    param_value_size_ret: *mut size_t) -> cl_int;
 
 
-    // Event Object APIs
+    // Event Object APIs:
     pub fn clWaitForEvents(num_events: cl_uint,
                        event_list: *const cl_event) -> cl_int;
 
@@ -1181,19 +1246,19 @@ extern "system" {
                           pfn_notify: Option<extern fn (cl_event, cl_int, *mut c_void)>,
                           user_data: *mut c_void) -> cl_int;
 
-    // Profiling APIs
+    // Profiling APIs:
     pub fn clGetEventProfilingInfo(event: cl_event,
                                param_name: cl_profiling_info,
                                param_value_size: size_t,
                                param_value: *mut c_void,
                                param_value_size_ret: *mut size_t) -> cl_int;
 
-    // Flush and Finish APIs
+    // Flush and Finish APIs:
     pub fn clFlush(command_queue: cl_command_queue) -> cl_int;
 
     pub fn clFinish(command_queue: cl_command_queue) -> cl_int;
 
-    // Enqueued Commands APIs
+    // Enqueued Commands APIs:
     pub fn clEnqueueReadBuffer(command_queue: cl_command_queue,
                            buffer: cl_mem,
                            blocking_read: cl_bool,
