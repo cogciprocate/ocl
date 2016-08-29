@@ -1,9 +1,9 @@
 [root]
 name = "ocl-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cl-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cl-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "colorify 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -18,18 +18,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cl-sys"
-version = "0.1.0"
-source = "git+https://github.com/cogciprocate/cl-sys#1c837329eb55e01200f2428c7ce3fd8647607b07"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "cl-sys"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "cl-sys 0.1.0 (git+https://github.com/cogciprocate/cl-sys)"
 
 [[package]]
 name = "colorify"
@@ -130,8 +124,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [metadata]
 "checksum bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4f67931368edf3a9a51d29886d245f1c3db2f1ef0dcc9e35ff70341b78c10d23"
-"checksum cl-sys 0.1.0 (git+https://github.com/cogciprocate/cl-sys)" = "<none>"
-"checksum cl-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b75ebe9419ced85679c217eaeeabb1aeddf1fd4ec83ab121a0186dce860a5545"
+"checksum cl-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9a3d3bf253d260ac33cb91c723ac1ff54cd1d250bc8b5bf89f457ca4bbcfb64d"
 "checksum colorify 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3eb006d3382cc3ca88eecfb3e2f22a8bd5d246507a514d5916c17cd40ad01c59"
 "checksum enum_primitive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f79eff5be92a4d7d5bddf7daa7d650717ea71628634efe6ca7bcda85b2183c23"
 "checksum libc 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)" = "23e3757828fa702a20072c37ff47938e9dd331b92fac6e223d26d4b7a55f7ee2"

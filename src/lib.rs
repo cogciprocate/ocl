@@ -2,8 +2,6 @@
 
 //! Thin wrappers for the `OpenCL` FFI functions and types.
 //!
-//! *The layer between the hard rough and the soft furry parts...*
-//!
 //! Allows access to `OpenCL` FFI functions with a minimal layer of
 //! abstraction, providing both safety and convenience. The [`ocl`] crate
 //! contains higher level and easier to use interfaces to the functionality
@@ -15,9 +13,9 @@
 //! If there's still something missing or for some reason you need direct FFI
 //! access, use the functions in the [`cl_sys`] module. The pointers used by
 //! [`cl_sys`] functions can be wrapped in [`ocl-core`] wrappers
-//! (ocl_core::PlatformId, ocl_core::Context, etc.) and passed to [`ocl-core`]
-//! module functions. Likewise the other way around (using, for example:
-//! [`EventRaw::as_ptr`]).
+//! (`ocl_core::PlatformId`, `ocl_core::Context`, etc.) and passed to
+//! [`ocl-core`] module functions. Likewise the other way around (using, for
+//! example: [`EventRaw::as_ptr`]).
 //!
 //!
 //! ## Performance
@@ -47,17 +45,18 @@
 //!
 //! ## Version Control
 //!
-//! Functions in this crate with the `[Version Controlled: OpenCL {...}+]`
-//! tag in the description require an additional parameter, `device_version`
-//! or `device_versions` which is a parsed result (or slice of results) of
-//! `DeviceInfo::Version`. This is a check to ensure that the device supports
-//! the function being called. Calling a function which a particular device
-//! does not support will likely cause a segmentation fault and possibly data
-//! corruption.
+//! Functions in this crate with the `[Version Controlled: OpenCL {...}+]` tag
+//! in the description require an additional parameter, `device_version` or
+//! `device_versions`: a parsed result (or slice of results) of
+//! `DeviceInfo::Version`. This is a runtime check to ensure that the device
+//! supports the function being called. Calling a function which a particular
+//! device does not support will likely cause a segmentation fault and
+//! possibly data corruption.
 //!
-//! Saving the `OpenclVersion` returned from `get_device_version()` for your
-//! device(es) at the start of your program and passing each time you call a
-//! version controlled function is the fastest and safest method.
+//! Saving the `OpenclVersion` returned from `device_version()` for your
+//! device(es) at the start of your program and passing it each time you call
+//! a version controlled function is the fastest and safest method (see the
+//! `ocl` library for an example).
 //!
 //! Passing `None` for `device_version` will cause an automated version check
 //! which has a small cost (calling info function, parsing the version number
@@ -141,7 +140,7 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     enqueue_barrier_with_wait_list, get_extension_function_address_for_platform,
     wait_for_event, get_event_status, default_platform_idx,
     program_build_err, verify_context, default_platform, default_device_type,
-    /*get_device_version*/ };
+    device_versions };
 
 pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
