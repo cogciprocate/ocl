@@ -79,10 +79,10 @@ See the the remainder of [`examples/trivial.rs`] for much more.
 
 ## Development Status
 
-Interfaces are probably 98% stable. All essential functionality is complete
-and working as intended. Performance is excellent on platforms tested so far
-(mainly linux/windows-amd/intel/nvidia). Feedback needed and appreciated for
-other platforms! File an issue just to let us know what you think.
+All essential functionality is complete and working as intended. Performance
+is excellent on platforms tested so far (mainly
+linux/windows-amd/intel/nvidia). Feedback needed and appreciated for other
+platforms! File an issue just to let us know what you think.
 
 
 #### Diving Deeper
