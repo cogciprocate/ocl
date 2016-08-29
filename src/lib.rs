@@ -86,6 +86,7 @@
 //!
 //!
 //! [`ocl`]: https://github.com/cogciprocate/ocl
+//! [`ocl-core`]: https://github.com/cogciprocate/ocl-core
 //! [`cl_sys`]: https://github.com/cogciprocate/cl_sys
 //! [issue]: https://github.com/cogciprocate/ocl-core/issues
 //! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
