@@ -13,7 +13,7 @@ fn print_elapsed(title: &str, start: time::Timespec) {
     let time_elapsed = time::get_time() - start;
     let elapsed_ms = time_elapsed.num_milliseconds();
     let separator = if title.len() > 0 { ": " } else { "" };
-    println!("    {}{}: {}.{:03}", title, separator, time_elapsed.num_seconds(), elapsed_ms);
+    println!("    {}{}{}.{:03}", title, separator, time_elapsed.num_seconds(), elapsed_ms);
 }
 
 

@@ -4,6 +4,6 @@ version = "0.0.2"
 authors = ["Bernhard Schuster <bernhard@ahoi.io>"]
 
 [dependencies]
-ocl = "0.10.0"
-image = "0.7.0"
+ocl = "0.11.0"
+image = "*"
 time = "*"
