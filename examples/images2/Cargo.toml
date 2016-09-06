@@ -7,3 +7,5 @@ authors = ["Bernhard Schuster <bernhard@ahoi.io>"]
 ocl = "0.11.0"
 image = "*"
 time = "*"
+find_folder = "*"
+colorify = "*"
