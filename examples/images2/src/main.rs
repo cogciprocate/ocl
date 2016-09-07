@@ -17,7 +17,20 @@
 //! thing to do in certain cases, just not this one).
 //!
 //!
+//! # Image Indexing
+//!
+//! Due to a lack of clarity in the official OpenCL documentation
+//! (particularly documentation regarding how out of range image indexes are
+//! or are not clamped) and differences between vendor implementations, the
+//! following example shows the best practice for addressing into an image.
+//! Put plainly, do not expect clamping to work for *integer* index values
+//! whether normalized or not (normalized float indexes should clamp as
+//! expected). Always be dilligent in assuring that integer index values are
+//! within the bounds of the image buffer.
+//!
+//!
 //! [OPEN QUESTION]: Could this example be refactored / split up to improve clarity?
+//!
 
 extern crate find_folder;
 extern crate image;
