@@ -37,7 +37,7 @@ fn main() {
     for p_idx in 0..platforms.len() {
         let platform = &platforms[p_idx];
 
-        let devices = Device::list_all(platform);
+        let devices = Device::list_all(platform).unwrap();
 
         // [NOTE]: A new context can also be created for each device if desired.
         let context = Context::builder()
@@ -97,7 +97,7 @@ fn main() {
 
 fn print_platform_info(platform: &Platform) {
     printc!(blue: "{}", platform);
-    let devices = Device::list_all(platform);
+    let devices = Device::list_all(platform).unwrap();
     printc!(blue: " {{ Total Device Count: {} }}", devices.len());
     print!("\n");
 }

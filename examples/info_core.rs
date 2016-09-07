@@ -30,7 +30,7 @@ fn main() {
 }
 
 fn print_platform(platform: Platform) {
-    for device in Device::list_all(&platform) {
+    for device in Device::list_all(&platform).unwrap() {
         print_platform_device(platform.clone(), device);
     }
 }

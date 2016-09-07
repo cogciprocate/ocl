@@ -63,7 +63,7 @@ fn main_from_example() {
         let platform = &platforms[p_idx];
         println!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
 
-        let devices = Device::list_all(platform);
+        let devices = Device::list_all(platform).unwrap();
 
         // Loop through each device:
         for device_idx in 0..devices.len() {

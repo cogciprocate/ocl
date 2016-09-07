@@ -11,7 +11,7 @@ use standard::Platform;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
 use core::util;
 
-const DEBUG_PRINT: bool = false;
+// const DEBUG_PRINT: bool = false;
 
 /// Specifies [what boils down to] a list of devices.
 ///
@@ -83,19 +83,19 @@ impl DeviceSpecifier {
             None => Platform::default(),
         };
 
-        Ok(match *self {
+        match *self {
             DeviceSpecifier::All => {
                 Device::list_all(&platform)
             },
             DeviceSpecifier::First => {
-                try!(Device::list_select(&platform, None, &[0]))
+                Device::list_select(&platform, None, &[0])
             },
             DeviceSpecifier::Single(ref device) => {
-                vec![device.clone()]
+                Ok(vec![device.clone()])
             },
             DeviceSpecifier::List(ref devices) => {
                 // devices.iter().map(|d| d.clone()).collect()
-                devices.clone()
+                Ok(devices.clone())
             },
             // DeviceSpecifier::Index(idx) => {
             //     assert!(idx < device_list_all.len(), "ocl::Context::new: DeviceSpecifier::Index: \
@@ -109,7 +109,7 @@ impl DeviceSpecifier {
                 //         device_list_all[idx].clone()
                 //     } ).collect()
 
-                try!(Device::list_select(&platform, None, idx_list))
+                Device::list_select(&platform, None, idx_list)
             },
             DeviceSpecifier::WrappingIndices(ref idx_list) => {
                 // idx_list.iter().map(|&idx| {
@@ -125,7 +125,7 @@ impl DeviceSpecifier {
                 // ))
                 Device::list(&platform, Some(flags))
             },
-        })
+        }
     }
 }
 
@@ -249,20 +249,21 @@ impl Device {
     /// Setting `device_types` to `None` will return a list of all avaliable
     /// devices for `platform` regardless of type.
     ///
-    pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> Vec<Device> {
-        let list_core = core::get_device_ids(platform.as_core(), device_types, None)
-            .expect("Device::list: Error retrieving device list");
-        let list = list_core.into_iter().map(Device).collect();
-        if DEBUG_PRINT { println!("Devices::list(): device_types: {:?} -> list: {:?}",
-            device_types, list); }
-        list
+    pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
+        let list_core = try!(core::get_device_ids(platform.as_core(), device_types, None));
+            // .expect("Device::list: Error retrieving device list");
+        // let list = list_core.into_iter().map(Device).collect();
+        // if DEBUG_PRINT { println!("Devices::list(): device_types: {:?} -> list: {:?}",
+        //     device_types, list); }
+        // Ok(list)
+        Ok(list_core.into_iter().map(Device).collect())
     }
 
     /// Returns a list of all devices avaliable for a given `platform`.
     ///
     /// Equivalent to `::list(platform, None)`.
     ///
-    pub fn list_all(platform: &Platform) -> Vec<Device> {
+    pub fn list_all(platform: &Platform) -> OclResult<Vec<Device>> {
         // let list_core = core::get_device_ids(Some(platform.as_core()), None)
         //     .expect("Device::list_all: Error retrieving device list");
         // list_core.into_iter().map(|pr| Device(pr) ).collect()
@@ -277,9 +278,9 @@ impl Device {
     /// All indices in `idxs` must be valid.
     ///
     pub fn list_select(platform: &Platform, device_types: Option<DeviceType>,
-            idxs: &[usize]) -> OclResult<Vec<Device>>
+                idxs: &[usize]) -> OclResult<Vec<Device>>
     {
-        Self::resolve_idxs(idxs, &Self::list(platform, device_types))
+        Self::resolve_idxs(idxs, &try!(Self::list(platform, device_types)))
     }
 
     /// Returns a list of devices filtered by type then selected using a
@@ -288,12 +289,13 @@ impl Device {
     /// Wraps indices around (`%`) so that every index is valid.
     ///
     pub fn list_select_wrap(platform: &Platform, device_types: Option<DeviceType>,
-            idxs: &[usize]) -> Vec<Device>
+            idxs: &[usize]) -> OclResult<Vec<Device>>
     {
-        let list = Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types));
-        if DEBUG_PRINT { println!("Devices::list_select_wrap(): device_types: {:?} \
-            -> list: {:?}", device_types, list); }
-        list
+        // let list = Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types));
+        // if DEBUG_PRINT { println!("Devices::list_select_wrap(): device_types: {:?} \
+        //     -> list: {:?}", device_types, list); }
+        // list
+        Ok(Self::resolve_idxs_wrap(idxs, &try!(Self::list(platform, device_types))))
     }
 
     // /// Creates a new `Device` from a `DeviceIdCore`.

@@ -9,7 +9,7 @@ use core::{ContextPropertyValue};
 //     }
 // "#;
 
-#[test] 
+#[test]
 fn test_context_props() {
     // let dims = [2048];
     let platforms = Platform::list();
@@ -20,7 +20,7 @@ fn test_context_props() {
     for p_idx in 0..platforms.len() {
         let platform = &platforms[p_idx];
 
-        let devices = Device::list_all(platform);
+        let devices = Device::list_all(platform).unwrap();
 
         // [NOTE]: A new context can also be created for each device if desired.
         let context = Context::builder()
@@ -31,7 +31,7 @@ fn test_context_props() {
 
 
         println!("{}", platform);
-        println!("{}", context);        
+        println!("{}", context);
 
         for device in devices.iter() {
             println!("Device {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());

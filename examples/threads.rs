@@ -47,7 +47,7 @@ fn main() {
         let platform = &platforms[p_idx];
         printlnc!(green: "Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
 
-        let devices = Device::list_all(platform);
+        let devices = Device::list_all(platform).unwrap();
 
         println!("DEVICES: {:?}", devices);
 
