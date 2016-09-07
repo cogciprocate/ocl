@@ -1,3 +1,12 @@
+Version 0.12.0 (UNRELEASED)
+===========================
+
+Breaking Changes
+----------------
+* `Device::list`, `::list_all`, `::list_select`, and `::list_select_wrap` now
+  wrap their return value in an `ocl::Result`.
+
+
 Version 0.11.0 (2016-08-29)
 ===========================
 
