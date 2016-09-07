@@ -48,6 +48,7 @@ extern crate libc;
 extern crate num;
 extern crate rand;
 // extern crate cl_sys as ffi;
+// pub extern crate ocl_core as core;
 pub extern crate ocl_core as core;
 
 #[cfg(test)] mod tests;
