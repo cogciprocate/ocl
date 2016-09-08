@@ -11,3 +11,7 @@ cargo run --example trivial "$@"
 cd examples/images
 cargo run "$@"
 cd -
+
+cd examples/images2
+cargo run "$@"
+cd -
