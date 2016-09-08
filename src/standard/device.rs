@@ -1,34 +1,25 @@
-//! An `OpenCL` device identifier.
+//! An OpenCL device identifier and related types.
 
-// use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
 use std::ops::{Deref, DerefMut};
 use std::convert::Into;
-use std::error::Error;
-// use std::borrow::Borrow;
 use core::error::{Error as OclError, Result as OclResult};
 use standard::Platform;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
 use core::util;
 
-// const DEBUG_PRINT: bool = false;
-
 /// Specifies [what boils down to] a list of devices.
 ///
-/// The variants: `All`, `Index`, and `Indices` are context-specific, not robust,
-/// and may lead to a stack unwind if the context changes. They are useful for
-/// convenience only [NOTE: This may change and they may soon round-robin by default,
-/// making them robust and sexy... well robust anyway][UPDATE: this will probably remain as is].
+/// The `Indices` variant is context-specific, not robust, and may lead to a
+/// panic if the context changes. It is useful for convenience only and not
+/// recommended for general use. The `WrappingIndices` variant is somewhat
+/// less dangerous but can still be somewhat machine-specific.
 ///
-/// The `TypeFlags` variant is useful for specifying a list of devices using a bitfield
-/// (`DeviceType`) and is the most robust / portable.
-///
+/// The `TypeFlags` variant is used for specifying a list of devices using a
+/// bitfield (`DeviceType`) and is the most robust / portable.
 ///
 ///
 /// [FIXME: Add some links to the SDK]
-/// [FIXME: Figure out what we're doing as far as round-robin/moduloing by default]
-/// - UPDATE: Leave this to the builder or whatever else to determine and leave this
-///   enum an exact index which panics.
 ///
 #[derive(Debug, Clone)]
 pub enum DeviceSpecifier {
@@ -42,41 +33,82 @@ pub enum DeviceSpecifier {
 }
 
 impl DeviceSpecifier {
+    /// Returns a `DeviceSpecifier::All` variant which specifies all
+    /// devices on a platform.
+    ///
     pub fn all(self) -> DeviceSpecifier {
         DeviceSpecifier::All
     }
 
+    /// Returns a `DeviceSpecifier::First` variant which specifies only
+    /// the first device on a platform.
+    ///
     pub fn first(self) -> DeviceSpecifier {
         DeviceSpecifier::First
     }
 
+    /// Returns a `DeviceSpecifier::Single` variant which specifies a single
+    /// device.
+    ///
     pub fn single(self, device: Device) -> DeviceSpecifier {
         DeviceSpecifier::Single(device)
     }
 
+    /// Returns a `DeviceSpecifier::List` variant which specifies a list of
+    /// devices.
+    ///
     pub fn list(self, list: Vec<Device>) -> DeviceSpecifier {
         DeviceSpecifier::List(list)
     }
 
-    pub fn indices(self, indices: Vec<usize>) -> DeviceSpecifier {
+    /// Returns a `DeviceSpecifier::Indices` variant which specifies a list of
+    /// devices by index.
+    ///
+    ///
+    /// ### Safety
+    ///
+    /// This variant is context-specific, not robust, and may lead to a panic
+    /// if the context changes. It is useful for convenience only and not
+    /// recommended for general use.
+    ///
+    /// Though using the `Indices` variant is not strictly unsafe in the usual
+    /// way (will not lead to memory bugs, etc.), it is marked unsafe as a
+    /// warning. Recommendations for a more idiomatic way to express this
+    /// potential footgun are welcome.
+    ///
+    /// Using `::wrapping_indices` is a more robust (but still potentially
+    /// non-portable) solution.
+    ///
+    pub unsafe fn indices(self, indices: Vec<usize>) -> DeviceSpecifier {
         DeviceSpecifier::Indices(indices)
     }
 
+    /// Returns a `DeviceSpecifier::WrappingIndices` variant, specifying a
+    /// list of devices by indices which are wrapped around (simply using the
+    /// modulo operator) so that every index is always valid.
+    ///
     pub fn wrapping_indices(self, windices: Vec<usize>) -> DeviceSpecifier {
         DeviceSpecifier::WrappingIndices(windices)
     }
 
+    /// Returns a `DeviceSpecifier::TypeFlags` variant which specifies a list
+    /// of devices using a conventional bitfield.
+    ///
     pub fn type_flags(self, flags: DeviceType) -> DeviceSpecifier {
         DeviceSpecifier::TypeFlags(flags)
     }
 
-    /// Returns the list of devices matching the parameters specified by this `DeviceSpecifier`
+    /// Returns the list of devices matching the parameters specified by this
+    /// `DeviceSpecifier`
     ///
-    /// ## Panics
     ///
-    /// Any device indices within the `Index` and `Indices` variants must be within the range of the number of devices for the platform specified by `Platform`. If no `platform` has been specified, this behaviour is undefined and could end up using any platform at all.
+    /// ### Panics
     ///
-    /// TODO: Swap some of the `try!`s for `.map`s.
+    /// Any device indices listed within the `Indices` variant must be within
+    /// the range of the number of devices for the platform specified by
+    /// `Platform`. If no `platform` has been specified, this behaviour is
+    /// undefined and could end up using any platform at all.
+    ///
     pub fn to_device_list(&self, platform: Option<&Platform>) -> OclResult<Vec<Device>> {
         let platform = match platform {
             Some(p) => p.clone(),
@@ -94,35 +126,15 @@ impl DeviceSpecifier {
                 Ok(vec![device.clone()])
             },
             DeviceSpecifier::List(ref devices) => {
-                // devices.iter().map(|d| d.clone()).collect()
                 Ok(devices.clone())
             },
-            // DeviceSpecifier::Index(idx) => {
-            //     assert!(idx < device_list_all.len(), "ocl::Context::new: DeviceSpecifier::Index: \
-            //         Device index out of range.");
-            //     vec![device_list_all[idx].clone()]
-            // },
             DeviceSpecifier::Indices(ref idx_list) => {
-                // idx_list.iter().map(|&idx| {
-                //         assert!(idx < device_list_all.len(), "ocl::Context::new: \
-                //             DeviceSpecifier::Indices: Device index out of range.");
-                //         device_list_all[idx].clone()
-                //     } ).collect()
-
                 Device::list_select(&platform, None, idx_list)
             },
             DeviceSpecifier::WrappingIndices(ref idx_list) => {
-                // idx_list.iter().map(|&idx| {
-                //         assert!(idx < device_list_all.len(), "ocl::Context::new: \
-                //             DeviceSpecifier::Indices: Device index out of range.");
-                //         device_list_all[idx].clone()
-                //     } ).collect()
                 Device::list_select_wrap(&platform, None, idx_list)
             },
             DeviceSpecifier::TypeFlags(flags) => {
-                // Device::list_from_core(try!(
-                //     core::get_device_ids(platform_id_core.clone(), Some(flags))
-                // ))
                 Device::list(&platform, Some(flags))
             },
         }
@@ -152,14 +164,6 @@ impl<'a> From<&'a Vec<usize>> for DeviceSpecifier {
         DeviceSpecifier::WrappingIndices(indices.clone())
     }
 }
-
-// impl<'a, T> Borrow<T> for &'a T where T: ?Sized
-
-// impl<'a, B> From<B> for DeviceSpecifier where B: Borrow<usize> {
-//     fn from(indices: B) -> DeviceSpecifier {
-//         DeviceSpecifier::WrappingIndices(indices.clone())
-//     }
-// }
 
 impl<'a> From<&'a [Device]> for DeviceSpecifier {
     fn from(devices: &'a [Device]) -> DeviceSpecifier {
@@ -192,12 +196,19 @@ impl From<DeviceType> for DeviceSpecifier {
 }
 
 
-/// A device identifier.
+/// An individual device identifier (an OpenCL device_id).
+///
 #[derive(Clone, Copy, Debug)]
 pub struct Device(DeviceIdCore);
 
 impl Device {
-    /// Returns the first available device on a platform
+    /// Returns the first available device on a platform.
+    ///
+    ///
+    /// ### Errors
+    ///
+    ///
+    ///
     pub fn first(platform: Platform) -> Device {
         let first_core = core::get_device_ids(&platform, None, None)
             .expect("ocl::Device::first: Error retrieving device list");
@@ -214,7 +225,8 @@ impl Device {
     ///
     /// `devices` is the set of all indexable devices.
     ///
-    /// # Errors
+    ///
+    /// ### Errors
     ///
     /// All indices in `idxs` must be valid. Use `resolve_idxs_wrap` for index
     /// lists which may contain out of bounds indices.
@@ -249,13 +261,19 @@ impl Device {
     /// Setting `device_types` to `None` will return a list of all avaliable
     /// devices for `platform` regardless of type.
     ///
+    ///
+    /// ### Errors
+    ///
+    /// Returns an `Err(ocl::core::Error::Status {...})` enum variant upon any
+    /// OpenCL error. Calling [`.status()`] on the returned error will return
+    /// an `Option(``[ocl::core::Status]``)` which can be unwrapped then
+    /// matched to determine the precise reason for failure.
+    ///
+    /// [`.status()`]: /ocl_core/ocl_core/error/enum.Error.html#method.status
+    /// [`ocl::core::Status`]: /ocl_core/ocl_core/enum.Status.html
+    ///
     pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
         let list_core = try!(core::get_device_ids(platform.as_core(), device_types, None));
-            // .expect("Device::list: Error retrieving device list");
-        // let list = list_core.into_iter().map(Device).collect();
-        // if DEBUG_PRINT { println!("Devices::list(): device_types: {:?} -> list: {:?}",
-        //     device_types, list); }
-        // Ok(list)
         Ok(list_core.into_iter().map(Device).collect())
     }
 
@@ -263,23 +281,26 @@ impl Device {
     ///
     /// Equivalent to `::list(platform, None)`.
     ///
+    /// See [`::list`](/ocl/ocl/struct.Device.html#method.list) for other
+    /// error information.
+    ///
     pub fn list_all(platform: &Platform) -> OclResult<Vec<Device>> {
-        // let list_core = core::get_device_ids(Some(platform.as_core()), None)
-        //     .expect("Device::list_all: Error retrieving device list");
-        // list_core.into_iter().map(|pr| Device(pr) ).collect()
         Self::list(platform, None)
     }
 
     /// Returns a list of devices filtered by type then selected using a
     /// list of indices.
     ///
-    /// # Errors
+    ///
+    /// ### Errors
     ///
     /// All indices in `idxs` must be valid.
     ///
+    /// See [`::list`](/ocl/ocl/struct.Device.html#method.list) for other
+    /// error information.
+    ///
     pub fn list_select(platform: &Platform, device_types: Option<DeviceType>,
-                idxs: &[usize]) -> OclResult<Vec<Device>>
-    {
+                idxs: &[usize]) -> OclResult<Vec<Device>> {
         Self::resolve_idxs(idxs, &try!(Self::list(platform, device_types)))
     }
 
@@ -288,24 +309,15 @@ impl Device {
     ///
     /// Wraps indices around (`%`) so that every index is valid.
     ///
+    ///
+    /// ### Errors
+    ///
+    /// See [`::list`](/ocl/ocl/struct.Device.html#method.list)
+    ///
     pub fn list_select_wrap(platform: &Platform, device_types: Option<DeviceType>,
-            idxs: &[usize]) -> OclResult<Vec<Device>>
-    {
-        // let list = Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types));
-        // if DEBUG_PRINT { println!("Devices::list_select_wrap(): device_types: {:?} \
-        //     -> list: {:?}", device_types, list); }
-        // list
+                idxs: &[usize]) -> OclResult<Vec<Device>> {
         Ok(Self::resolve_idxs_wrap(idxs, &try!(Self::list(platform, device_types))))
     }
-
-    // /// Creates a new `Device` from a `DeviceIdCore`.
-    // ///
-    // /// ## Safety
-    // ///
-    // /// Not meant to be called unless you know what you're doing.
-    // pub fn new(id_core: DeviceIdCore) -> Device {
-    //     Device(id_core)
-    // }
 
     /// Returns a list of `Device`s from a list of `DeviceIdCore`s
     pub fn list_from_core(devices: Vec<DeviceIdCore>) -> Vec<Device> {
@@ -314,37 +326,32 @@ impl Device {
 
     /// Returns the device name.
     pub fn name(&self) -> String {
-        // match core::get_device_info(&self.0, DeviceInfo::Name) {
-        //     Ok(pi) => pi.into(),
-        //     Err(err) => err.into(),
-        // }
         core::get_device_info(&self.0, DeviceInfo::Name).into()
     }
 
     /// Returns the device vendor as a string.
     pub fn vendor(&self) -> String {
-        // match core::get_device_info(&self.0, DeviceInfo::Vendor) {
-        //     Ok(pi) => pi.into(),
-        //     Err(err) => err.into(),
-        // }
         core::get_device_info(&self.0, DeviceInfo::Vendor).into()
     }
 
     /// Returns the maximum workgroup size.
-    pub fn max_wg_size(&self) -> usize {
+    ///
+    ///
+    /// ### Errors
+    ///
+    /// Returns any OpenCL error.
+    ///
+    pub fn max_wg_size(&self) -> OclResult<usize> {
         match self.info(DeviceInfo::MaxWorkGroupSize) {
-            DeviceInfoResult::MaxWorkGroupSize(s) => s,
-            DeviceInfoResult::Error(err) => panic!("ocl::Device::max_wg_size: {}", err.description()),
+            DeviceInfoResult::MaxWorkGroupSize(s) => Ok(s),
+            DeviceInfoResult::Error(err) => Err(*err),
+            // Verify that this is unreachable and replace with `unreachable!()`:
             _ => panic!("ocl::Device::max_wg_size: Unexpected 'DeviceInfoResult' variant."),
         }
     }
 
     /// Returns info about the device.
     pub fn info(&self, info_kind: DeviceInfo) -> DeviceInfoResult {
-        // match core::get_device_info(&self.0, info_kind) {
-        //     Ok(pi) => pi,
-        //     Err(err) => DeviceInfoResult::Error(Box::new(err)),
-        // }
         core::get_device_info(&self.0, info_kind)
     }
 
@@ -480,11 +487,3 @@ impl DerefMut for Device {
         &mut self.0
     }
 }
-
-
-// fn try_to_str(result: OclResult<DeviceInfoResult>) -> String {
-//     match result {
-//         Ok(pi) => pi.into(),
-//         Err(err) => err.into(),
-//     }
-// }

@@ -5,6 +5,8 @@ Breaking Changes
 ----------------
 * `Device::list`, `::list_all`, `::list_select`, and `::list_select_wrap` now
   wrap their return value in an `ocl::Result`.
+* `Device::max_wg_size` now returns an `ocl::Result` instead of panicing.
+* `ProQue::max_wg_size` now returns an `ocl::Result` instead of panicing.
 
 
 Version 0.11.0 (2016-08-29)

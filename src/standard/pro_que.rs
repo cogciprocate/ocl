@@ -326,7 +326,7 @@ impl ProQue {
     /// with this `ProQue`.
     ///
     /// [UNSTABLE]: Evaluate usefulness.
-    pub fn max_wg_size(&self) -> usize {
+    pub fn max_wg_size(&self) -> OclResult<usize> {
         self.queue.device().max_wg_size()
     }
 
