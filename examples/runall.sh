@@ -12,6 +12,6 @@ cd examples/images
 cargo run "$@"
 cd -
 
-cd examples/images2
+cd examples/images-safe-clamp
 cargo run "$@"
 cd -

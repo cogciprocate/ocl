@@ -1,6 +1,6 @@
 __constant sampler_t sampler_const =
 CLK_NORMALIZED_COORDS_FALSE |
-CLK_ADDRESS_CLAMP |
+CLK_ADDRESS_NONE |
 CLK_FILTER_NEAREST;
 
 __kernel void rgb2gray_unrolled(read_only image2d_t source, write_only image2d_t dest) {
