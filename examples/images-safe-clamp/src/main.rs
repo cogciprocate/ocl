@@ -61,7 +61,7 @@ fn read_source_image(loco : &str) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>
 
 fn main() {
     let compute_program = Search::ParentsThenKids(3, 3)
-        .for_folder("images2").unwrap().join("src/parallel.cl");
+        .for_folder("images-save-clamp").unwrap().join("src/parallel.cl");
 
     let context = Context::builder().devices(Device::specifier()
         .type_flags(ocl::flags::DEVICE_TYPE_GPU).first()).build().unwrap();
@@ -119,8 +119,6 @@ fn main() {
     print_elapsed("queue finished", start_time);
 
     cl_dest_unrolled.read(&mut result_unrolled).enq().unwrap();
-    // Necessary or you will end up with an empty saved image on some platforms:
-    queue.finish();
     print_elapsed("read finished", start_time);
 
     result_unrolled.save(&Path::new("result_unrolled.png")).unwrap();
@@ -201,8 +199,6 @@ fn main() {
     print_elapsed("queue finished", start_time);
 
     cl_dest_patches.read(&mut result_patches).enq().unwrap();
-    // Necessary or you will end up with an empty saved image on some platforms:
-    queue.finish();
     print_elapsed("read finished", start_time);
 
     result_patches.save(&Path::new("result_patches.png")).unwrap();
