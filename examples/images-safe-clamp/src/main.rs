@@ -61,7 +61,7 @@ fn read_source_image(loco : &str) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>
 
 fn main() {
     let compute_program = Search::ParentsThenKids(3, 3)
-        .for_folder("images-save-clamp").unwrap().join("src/parallel.cl");
+        .for_folder("images-safe-clamp").expect("Cannot find program file").join("src/parallel.cl");
 
     let context = Context::builder().devices(Device::specifier()
         .type_flags(ocl::flags::DEVICE_TYPE_GPU).first()).build().unwrap();
