@@ -22,7 +22,7 @@
 
 # My junk
 /data
-/tmp
+**/tmp
 /src/junk
 /bak
 

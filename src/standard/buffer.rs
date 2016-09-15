@@ -493,8 +493,20 @@ impl<T: OclPrm> Buffer<T> {
             _data: PhantomData,
         };
 
-        // if data.is_none() { try!(buf.cmd().fill(&[Default::default()], None).enq()); }
-        if data.is_none() { try!(buf.cmd().fill(Default::default(), None).enq()); }
+        if data.is_none() {
+            // Useful on platforms (PoCL) that have trouble with fill. Creates
+            // a temporary zeroed `Vec` in host memory and writes from there
+            // instead. Add `features = ["buffer_no_fill"]` to your Cargo.toml.
+            if cfg!(feature = "buffer_no_fill") {
+                // println!("#### no fill");
+                try!(buf.cmd().fill(Default::default(), None).enq());
+            } else {
+                let zeros = vec![Default::default(); len];
+                try!(buf.cmd().write(&zeros).enq());
+                // println!("#### fill!");
+            }
+        }
+
         Ok(buf)
     }
 
