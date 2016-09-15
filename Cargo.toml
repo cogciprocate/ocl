@@ -8,7 +8,7 @@ homepage = "https://github.com/cogciprocate/ocl"
 repository = "https://github.com/cogciprocate/ocl"
 readme = "README.md"
 keywords = ["opencl", "gpu", "gpgpu"]
-license = "MIT"
+license = "MIT/Apache-2.0"
 exclude = ["target/*", "*.png", "bak/*"]
 
 [features]
