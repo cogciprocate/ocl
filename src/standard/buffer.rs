@@ -457,11 +457,6 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 }
 
 
-// Useful on platforms (PoCL) that have trouble with fill.
-// [TODO]: Make me a build feature.
-const NO_FILL: bool = true;
-
-
 /// A chunk of memory physically located on a device, such as a GPU.
 ///
 /// Data is stored remotely in a memory buffer on the device associated with
@@ -499,7 +494,10 @@ impl<T: OclPrm> Buffer<T> {
         };
 
         if data.is_none() {
-            if NO_FILL {
+            // Useful on platforms (PoCL) that have trouble with fill. Creates
+            // a temporary zeroed `Vec` in host memory and writes from there
+            // instead. Add `features = ["buffer_no_fill"]` to your Cargo.toml.
+            if cfg!(feature = "buffer_no_fill") {
                 try!(buf.cmd().fill(Default::default(), None).enq());
             } else {
                 let zeros = vec![Default::default(); len];
