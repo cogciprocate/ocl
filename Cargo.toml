@@ -19,8 +19,7 @@ kernel_debug_sleep = []
 # temporary zeroed `Vec` in host memory and writes from there instead:
 buffer_no_fill = []
 
-# Temporary!
-default = ["buffer_no_fill"]
+# default = ["buffer_no_fill"]
 
 # [dependencies.ocl-core]
 # git = "https://github.com/cogciprocate/ocl-core"
