@@ -472,22 +472,23 @@ pub struct Buffer<T: OclPrm> {
 }
 
 impl<T: OclPrm> Buffer<T> {
-    /// Creates a new buffer
+    /// Creates a new buffer.
     ///
-    /// [UNSTABLE]: New method, arguments still in a state of flux.
-    pub fn new<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, data: Option<&[T]>)
-            -> OclResult<Buffer<T>>
-    {
-        let flags = flags.unwrap_or(core::MEM_READ_WRITE);
-        let dims: SpatialDims = dims.to_lens().into();
-        // let len = dims.to_len_padded(queue.device().max_wg_size()).expect("[FIXME]: Buffer::new: TEMP");
+    /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed.
+    ///
+    /// [UNSTABLE]: Arguments may still be in a state of flux.
+    ///
+    pub fn new<D: Into<SpatialDims>>(queue: Queue, flags: Option<MemFlags>, dims: D,
+                data: Option<&[T]>) -> OclResult<Buffer<T>> {
+        let flags = flags.unwrap_or(::flags::MEM_READ_WRITE);
+        let dims: SpatialDims = dims.into();
         let len = dims.to_len();
         let obj_core = unsafe { try!(core::create_buffer(queue.context_core_as_ref(), flags, len,
             data)) };
 
         let buf = Buffer {
             obj_core: obj_core,
-            queue: queue.clone(),
+            queue: queue,
             dims: dims,
             len: len,
             _data: PhantomData,
@@ -511,24 +512,27 @@ impl<T: OclPrm> Buffer<T> {
     }
 
     /// [UNTESTED]
-    /// Create a buffer linked to a GL buffer object (created with openGL)
+    /// Creates a buffer linked to a previously created OpenGL buffer object.
     ///
-    /// ## Errors
+    ///
+    /// ### Errors
     ///
     /// Don't forget to `.cmd().gl_acquire().enq()` before using it and
     /// `.cmd().gl_release().enq()` after.
     ///
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
     /// for more info.
+    ///
     pub fn from_gl_buffer<D: MemLen>(queue: &Queue, flags: Option<MemFlags>, dims: D, gl_object: cl_GLuint)
             -> OclResult<Buffer<T>> {
         let flags = flags.unwrap_or(core::MEM_READ_WRITE);
         let dims: SpatialDims = dims.to_lens().into();
         let len = dims.to_len();
         let obj_core = unsafe { try!(core::create_from_gl_buffer(
-                                        queue.context_core_as_ref(),
-                                        gl_object,
-                                        flags)) };
+            queue.context_core_as_ref(),
+            gl_object,
+            flags))
+        };
 
         let buf = Buffer {
             obj_core: obj_core,
@@ -559,6 +563,7 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
     /// for more info.
     ///
+    #[inline]
     pub fn read<'b>(&'b self, data: &'b mut [T]) -> BufferCmd<'b, T> {
         self.cmd().read(data)
     }
@@ -570,6 +575,7 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
     /// for more info.
     ///
+    #[inline]
     pub fn write<'b>(&'b self, data: &'b [T]) -> BufferCmd<'b, T> {
         self.cmd().write(data)
     }

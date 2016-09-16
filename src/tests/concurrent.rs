@@ -113,7 +113,7 @@ fn main_from_example() {
 
                 let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
                     // let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
-                    let mut buffer = Buffer::<f32>::new(&queueball_th[0], None,
+                    let mut buffer = Buffer::<f32>::new(queueball_th[0].clone(), None,
                         &dims_th, None).unwrap();
                     let mut vec = vec![0.0f32; buffer.len()];
 

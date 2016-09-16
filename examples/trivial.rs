@@ -122,7 +122,7 @@ fn main_exploded() {
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];
-    let buffer = Buffer::<f32>::new(&queue, Some(flags::MEM_READ_WRITE |
+    let buffer = Buffer::<f32>::new(queue.clone(), Some(flags::MEM_READ_WRITE |
         flags::MEM_COPY_HOST_PTR), dims, Some(&vec)).unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:

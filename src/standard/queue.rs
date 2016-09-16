@@ -10,11 +10,14 @@ use standard::{Context, Device};
 /// A command queue which manages all actions taken on kernels, buffers, and
 /// images.
 ///
+///
 /// ## Destruction
 ///
 /// Underlying queue object is destroyed automatically.
 ///
+//
 // TODO: Implement a constructor which accepts a DeviceIdCore.
+//
 #[derive(Clone, Debug)]
 pub struct Queue {
     obj_core: CommandQueueCore,

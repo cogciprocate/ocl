@@ -184,6 +184,12 @@ impl Index<usize> for SpatialDims {
     }
 }
 
+impl<'a> From<&'a SpatialDims> for SpatialDims {
+    fn from(sd: &'a SpatialDims) -> SpatialDims {
+        sd.clone()
+    }
+}
+
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, )> for SpatialDims {
     fn from(val: (T, )) -> SpatialDims {
         SpatialDims::One(to_usize(val.0))

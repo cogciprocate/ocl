@@ -32,7 +32,7 @@ fn main() {
     // Create a source buffer and initialize it with random floats between 0.0
     // and 20.0 using a temporary init vector, `vec_source`:
     let vec_source = util::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
-    let source_buffer = Buffer::new(ocl_pq.queue(), Some(core::MEM_READ_WRITE |
+    let source_buffer = Buffer::new(ocl_pq.queue().clone(), Some(core::MEM_READ_WRITE |
         core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_source)).unwrap();
 
     // Create another empty buffer and vector for results:
