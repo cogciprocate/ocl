@@ -3,6 +3,13 @@ Version 0.12.0 (UNRELEASED)
 
 Breaking Changes
 ----------------
+* `Buffer::new` has under gone small signature changes.
+  * The `queue` argument now accepts an owned rather than a borrowed `Queue`.
+    `Buffer` now stores it's own `ocl::Queue` (changed from a
+    `core::CommandQueue`, a result of the addition of the 'version control'
+    system). It is now left to the caller to clone the queue when necessary.
+  * The `dims` argument is now constrained by `Into<SpatialDims>` rather than
+    `MemLen` for consistency with other arguments of it's kind.
 * `Device::list`, `::list_all`, `::list_select`, and `::list_select_wrap` now
   wrap their return value in an `ocl::Result`.
 * `Device::max_wg_size` now returns an `ocl::Result` instead of panicing.
@@ -53,9 +60,9 @@ New Features
 * MSVC support is working and should be much easier to get running (more
   simplification to linking libraries coming).
 * Preliminary OpenGL interop support:
-  - OpenGL context handles are accepted as properties during `Context` creation.
+  * OpenGL context handles are accepted as properties during `Context` creation.
     - Note: The new methods involved in this may soon be renamed.
-  - Buffers can be created from a GL object.
+  * Buffers can be created from a GL object.
 
 Breaking Changes
 ----------------

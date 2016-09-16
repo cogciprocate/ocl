@@ -474,7 +474,14 @@ pub struct Buffer<T: OclPrm> {
 impl<T: OclPrm> Buffer<T> {
     /// Creates a new buffer.
     ///
-    /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed.
+    /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
+    /// the [SDK Docs] for more information about flags. Note that the
+    /// `host_ptr` mentioned in the [SDK Docs] is equivalent to the slice
+    /// optionally passed as the `data` argument. Also note that the names of
+    /// the flags in this library have the `CL_` prefix removed for brevity.
+    ///
+    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    ///
     ///
     /// [UNSTABLE]: Arguments may still be in a state of flux.
     ///
