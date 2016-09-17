@@ -2054,11 +2054,11 @@ impl ProfilingInfoResult {
                 match request {
                     ProfilingInfo::Queued => ProfilingInfoResult::Queued(
                             unsafe { try_ir!(util::bytes_into::<u64>(result)) }),
-                    ProfilingInfo::Submit => ProfilingInfoResult::Queued(
+                    ProfilingInfo::Submit => ProfilingInfoResult::Submit(
                             unsafe { try_ir!(util::bytes_into::<u64>(result)) }),
-                    ProfilingInfo::Start => ProfilingInfoResult::Queued(
+                    ProfilingInfo::Start => ProfilingInfoResult::Start(
                             unsafe { try_ir!(util::bytes_into::<u64>(result)) }),
-                    ProfilingInfo::End => ProfilingInfoResult::Queued(
+                    ProfilingInfo::End => ProfilingInfoResult::End(
                             unsafe { try_ir!(util::bytes_into::<u64>(result)) }),
                 }
             },
