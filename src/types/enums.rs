@@ -150,7 +150,7 @@ impl std::fmt::Display for PlatformInfoResult {
             PlatformInfoResult::Name(ref s) => write!(f, "{}", s),
             PlatformInfoResult::Vendor(ref s) => write!(f, "{}", s),
             PlatformInfoResult::Extensions(ref s) => write!(f, "{}", s),
-            PlatformInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            PlatformInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -163,7 +163,7 @@ impl Into<String> for PlatformInfoResult {
             | PlatformInfoResult::Name(string)
             | PlatformInfoResult::Vendor(string)
             | PlatformInfoResult::Extensions(string) => string,
-            PlatformInfoResult::Error(err) => err.status_code(),
+            PlatformInfoResult::Error(err) => err.to_string(),
         }
     }
 }
@@ -799,7 +799,7 @@ impl std::fmt::Display for DeviceInfoResult {
             DeviceInfoResult::PrintfBufferSize(ref s) => write!(f, "{}", s),
             DeviceInfoResult::ImagePitchAlignment(ref s) => write!(f, "{}", s),
             DeviceInfoResult::ImageBaseAddressAlignment(ref s) => write!(f, "{}", s),
-            DeviceInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            DeviceInfoResult::Error(ref err) => write!(f, "{}", err),
             // r @ _ => panic!("DeviceInfoResult: Converting '{:?}' to string not yet implemented.", r),
         }
     }
@@ -876,7 +876,7 @@ impl std::fmt::Display for ContextInfoResult {
             ContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
             ContextInfoResult::Properties(ref props) => write!(f, "{:?}", props),
             ContextInfoResult::NumDevices(ref num) => write!(f, "{}", num),
-            ContextInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ContextInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -966,7 +966,7 @@ impl std::fmt::Display for CommandQueueInfoResult {
             CommandQueueInfoResult::Device(ref s) => write!(f, "{:?}", s),
             CommandQueueInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
             CommandQueueInfoResult::Properties(ref s) => write!(f, "{:?}", s),
-            CommandQueueInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            CommandQueueInfoResult::Error(ref err) => write!(f, "{}", err),
             // _ => panic!("CommandQueueInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1134,7 +1134,7 @@ impl std::fmt::Display for MemInfoResult {
             MemInfoResult::Context(ref s) => write!(f, "{:?}", s),
             MemInfoResult::AssociatedMemobject(ref s) => write!(f, "{:?}", s),
             MemInfoResult::Offset(ref s) => write!(f, "{}", s),
-            MemInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            MemInfoResult::Error(ref err) => write!(f, "{}", err),
             // _ => panic!("MemInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1272,7 +1272,7 @@ impl std::fmt::Display for ImageInfoResult {
             ImageInfoResult::Buffer(ref s) => write!(f, "{:?}", s),
             ImageInfoResult::NumMipLevels(s) => write!(f, "{}", s),
             ImageInfoResult::NumSamples(s) => write!(f, "{}", s),
-            ImageInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ImageInfoResult::Error(ref err) => write!(f, "{}", err),
             // _ => panic!("ImageInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1376,7 +1376,7 @@ impl std::fmt::Display for SamplerInfoResult {
             SamplerInfoResult::NormalizedCoords(ref s) => write!(f, "{}", s),
             SamplerInfoResult::AddressingMode(ref s) => write!(f, "{:?}", s),
             SamplerInfoResult::FilterMode(ref s) => write!(f, "{:?}", s),
-            SamplerInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            SamplerInfoResult::Error(ref err) => write!(f, "{}", err),
             // _ => panic!("SamplerInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1500,7 +1500,7 @@ impl std::fmt::Display for ProgramInfoResult {
             ProgramInfoResult::Binaries(_) => write!(f, "[Unprintable]"),
             ProgramInfoResult::NumKernels(ref s) => write!(f, "{}", s),
             ProgramInfoResult::KernelNames(ref s) => write!(f, "{}", s),
-            ProgramInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ProgramInfoResult::Error(ref err) => write!(f, "{}", err),
             // _ => panic!("ProgramInfoResult: Converting this variant to string not yet implemented."),
         }
     }
@@ -1593,7 +1593,7 @@ impl std::fmt::Display for ProgramBuildInfoResult {
             ProgramBuildInfoResult::BuildOptions(ref s) => write!(f, "{}", s),
             ProgramBuildInfoResult::BuildLog(ref s) => write!(f, "{}", s),
             ProgramBuildInfoResult::BinaryType(ref s) => write!(f, "{:?}", s),
-            ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ProgramBuildInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -1693,7 +1693,7 @@ impl std::fmt::Display for KernelInfoResult {
             KernelInfoResult::Context(ref s) => write!(f, "{:?}", s),
             KernelInfoResult::Program(ref s) => write!(f, "{:?}", s),
             KernelInfoResult::Attributes(ref s) => write!(f, "{}", s),
-            KernelInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            KernelInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -1797,7 +1797,7 @@ impl std::fmt::Display for KernelArgInfoResult {
             KernelArgInfoResult::TypeName(ref s) => write!(f, "{}", s),
             KernelArgInfoResult::TypeQualifier(s) => write!(f, "{:?}", s),
             KernelArgInfoResult::Name(ref s) => write!(f, "{}", s),
-            KernelArgInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            KernelArgInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -1916,7 +1916,7 @@ impl std::fmt::Display for KernelWorkGroupInfoResult {
             KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => write!(f, "{}", s),
             KernelWorkGroupInfoResult::PrivateMemSize(s) => write!(f, "{}", s),
             KernelWorkGroupInfoResult::GlobalWorkSize(s) => write!(f, "{:?}", s),
-            KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -2014,7 +2014,7 @@ impl std::fmt::Display for EventInfoResult {
             EventInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
             EventInfoResult::CommandExecutionStatus(ref s) => write!(f, "{:?}", s),
             EventInfoResult::Context(ref s) => write!(f, "{:?}", s),
-            EventInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            EventInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
@@ -2090,7 +2090,7 @@ impl std::fmt::Display for ProfilingInfoResult {
             ProfilingInfoResult::Submit(ref s) => write!(f, "{}", s),
             ProfilingInfoResult::Start(ref s) => write!(f, "{}", s),
             ProfilingInfoResult::End(ref s) => write!(f, "{}", s),
-            ProfilingInfoResult::Error(ref err) => write!(f, "{}", err.status_code()),
+            ProfilingInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }
 }
