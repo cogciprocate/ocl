@@ -12,7 +12,7 @@
 use std;
 // use std::mem;
 // use std::error::Error;
-use std::ffi::CString;
+// use std::ffi::CString;
 use std::convert::Into;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
@@ -110,7 +110,10 @@ impl PlatformInfoResult {
                         "[NONE]")));
                 }
 
-                let string = try_ir!(try_ir!(CString::new(result)).into_string());
+                let string = match String::from_utf8(result) {
+                    Ok(s) => s,
+                    Err(err) => return PlatformInfoResult::Error(Box::new(OclError::from(err))),
+                };
 
                 match request {
                     PlatformInfo::Profile => PlatformInfoResult::Profile(string),
