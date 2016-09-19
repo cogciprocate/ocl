@@ -11,23 +11,20 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "*.png", "bak/*"]
 
+
 [features]
 kernel_debug_print = []
 kernel_debug_sleep = []
 
 # Useful on platforms (such as PoCL) that have trouble with fill. Creates a
-# temporary zeroed `Vec` in host memory and writes from there instead:
+# temporary zeroed `Vec` in host memory during creation and writes zeros from
+# there instead of calling `clEnqueueFillBuffer`:
 buffer_no_fill = []
 
-# default = ["buffer_no_fill"]
 
 # [dependencies.ocl-core]
 # git = "https://github.com/cogciprocate/ocl-core"
 # path = "/home/nick/src/github.com/cogciprocate/ocl-core"
-
-[replace]
-"cl-sys:0.1.0" = { git = 'https://github.com/cogciprocate/cl-sys' }
-"ocl-core:0.1.0" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 [dependencies]
 ocl-core = "0.2"
@@ -38,10 +35,13 @@ bitflags = "0.5"
 # [TODO]: Make rand optional feature:
 rand = "0.3"
 
+
 [dev-dependencies]
-# [TODO]: Make optional somehow or remove or something: [DONE]
-# image = "0.7"
 find_folder = "0.3"
 colorify = "0.2"
 time = "0.1"
 
+
+[replace]
+# "ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
+"ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
