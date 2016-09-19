@@ -8,11 +8,11 @@
 //! contained within.
 //!
 //!
-//! ## Even Lower Level: [`cl_sys`]
+//! ## Even Lower Level: [`cl-sys`]
 //!
 //! If there's still something missing or for some reason you need direct FFI
-//! access, use the functions in the [`cl_sys`] module. The pointers used by
-//! [`cl_sys`] functions can be wrapped in [`ocl-core`] wrappers
+//! access, use the functions in the [`cl-sys`] module. The pointers used by
+//! [`cl-sys`] functions can be wrapped in [`ocl-core`] wrappers
 //! (`ocl_core::PlatformId`, `ocl_core::Context`, etc.) and passed to
 //! [`ocl-core`] module functions. Likewise the other way around (using, for
 //! example: [`EventRaw::as_ptr`]).
@@ -20,7 +20,7 @@
 //!
 //! ## Performance
 //!
-//! Performance between all three interface layers, [`cl_sys`], [`ocl-core`],
+//! Performance between all three interface layers, [`cl-sys`], [`ocl-core`],
 //! and the 'standard' ([`ocl`]) types, is identical or virtually identical
 //! (if not, please file an issue).
 //!
@@ -37,13 +37,16 @@
 //! No, not that...
 //!
 //! Quantifiers passed to functions in the `OpenCL` API are generally
-//! expressed in terms of bytes where units passed to functions in this
-//! library are expected to be `bytes / sizeof(T)`, corresponding with units
-//! returned by the ubiquitous `.len()` method. The suffix '_size' or '_bytes'
-//! is generally used when a parameter deviates from this convention.
+//! expressed in bytes. Units passed to functions in *this* library are
+//! expected to be `bytes / sizeof(T)` (corresponding with units returned by
+//! the ubiquitous `.len()` method). The suffix '_size' or '_bytes' is
+//! generally used when a parameter deviates from this convention.
 //!
 //!
 //! ## Version Control
+//!
+//! The version control system is in place to ensure that you don't call
+//! functions that your hardware/driver does not support.
 //!
 //! Functions in this crate with the `[Version Controlled: OpenCL {...}+]` tag
 //! in the description require an additional parameter, `device_version` or
@@ -56,7 +59,8 @@
 //! Saving the `OpenclVersion` returned from `device_version()` for your
 //! device(es) at the start of your program and passing it each time you call
 //! a version controlled function is the fastest and safest method (see the
-//! `ocl` library for an example).
+//! `ocl` library for an example). The cost of this check is little more than
+//! a single `if` statement.
 //!
 //! Passing `None` for `device_version` will cause an automated version check
 //! which has a small cost (calling info function, parsing the version number
@@ -66,6 +70,8 @@
 //! version will bypass any safety checks and has all of the risks described
 //! above. Only do this if you're absolutely sure you know what you're doing
 //! and are not concerned about segfaults and data integrity.
+//!
+
 //!
 //!
 //! ## More Documentation
@@ -87,7 +93,7 @@
 //!
 //! [`ocl`]: https://github.com/cogciprocate/ocl
 //! [`ocl-core`]: https://github.com/cogciprocate/ocl-core
-//! [`cl_sys`]: https://github.com/cogciprocate/cl_sys
+//! [`cl-sys`]: https://github.com/cogciprocate/cl-sys
 //! [issue]: https://github.com/cogciprocate/ocl-core/issues
 //! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/types/functions.rs`]: /ocl-core/src/ocl-core/src/types/functions.rs.html

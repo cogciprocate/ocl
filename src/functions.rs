@@ -143,6 +143,8 @@ pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -
     Ok(())
 }
 
+// Verifies that a platform version (`provided_version`) is above a threshold
+// (`required_version`).
 fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
             required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
     match provided_version {
@@ -154,6 +156,8 @@ fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersio
     }
 }
 
+// Verifies that a device version (`provided_version`) is above a threshold
+// (`required_version`).
 fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
             required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
     match provided_version {
@@ -165,22 +169,12 @@ fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>
     }
 }
 
+// Verifies multiple device versions.
 fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersion]>,
             required_version: [u16; 2], fallback_versions_source: &V) -> OclResult<()> {
     match provided_versions {
         Some(pv) => verify_versions(pv, required_version),
         None => fallback_versions_source.verify_device_versions(required_version),
-    }
-}
-
-
-
-/// will check if current device support CL_GL_SHARING_EXT option
-fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: &D) -> OclResult<bool> {
-    match get_device_info(device, DeviceInfo::Extensions) {
-        DeviceInfoResult::Extensions(extensions) => Ok(extensions.contains(CL_GL_SHARING_EXT)),
-        DeviceInfoResult::Error(err) => Err(*err),
-        _ => OclError::err("Bad DeviceInfo returned, excpected Extensions")
     }
 }
 
@@ -3065,6 +3059,20 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
         }
     }
 }
+
+
+/// Checks to see if a device supports the `CL_GL_SHARING_EXT` extension.
+//
+// [TODO]: Rename to: `supports_gl_sharing`.
+//
+fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: &D) -> OclResult<bool> {
+    match get_device_info(device, DeviceInfo::Extensions) {
+        DeviceInfoResult::Extensions(extensions) => Ok(extensions.contains(CL_GL_SHARING_EXT)),
+        DeviceInfoResult::Error(err) => Err(*err),
+        _ => unreachable!(),
+    }
+}
+
 
 //============================================================================
 //============================================================================
