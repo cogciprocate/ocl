@@ -43,5 +43,4 @@ time = "0.1"
 
 
 [replace]
-# "ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
 "ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
