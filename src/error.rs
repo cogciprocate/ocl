@@ -38,6 +38,7 @@ pub enum Error {
     Io(std::io::Error),
     FromUtf8Error(std::string::FromUtf8Error),
     UnspecifiedDimensions,
+    IntoStringError(std::ffi::IntoStringError),
 }
 
 impl self::Error {
@@ -113,6 +114,7 @@ impl std::error::Error for self::Error {
             Error::Nul(ref err) => err.description(),
             Error::Io(ref err) => err.description(),
             Error::FromUtf8Error(ref err) => err.description(),
+            Error::IntoStringError(ref err) => err.description(),
             Error::Status { ref desc, .. }
             | Error::String(ref desc) => desc,
             Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
@@ -156,6 +158,12 @@ impl From<std::io::Error> for self::Error {
 impl From<std::string::FromUtf8Error> for self::Error {
     fn from(err: std::string::FromUtf8Error) -> self::Error {
         self::Error::FromUtf8Error(err)
+    }
+}
+
+impl From<std::ffi::IntoStringError> for self::Error {
+    fn from(err: std::ffi::IntoStringError) -> self::Error {
+        self::Error::IntoStringError(err)
     }
 }
 
