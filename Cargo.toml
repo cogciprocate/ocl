@@ -2,13 +2,13 @@
 name = "ocl-core"
 version = "0.2.2"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
-description = "Rusty OpenCL interface layer over cl-sys."
+description = "Rusty and conventional OpenCL API."
 documentation = "http://doc.cogciprocate.com/ocl_core/ocl_core/index.html"
 homepage = "https://github.com/cogciprocate/ocl-core"
 repository = "https://github.com/cogciprocate/ocl-core"
 readme = "README.md"
 keywords = ["opencl", "gpu", "gpgpu"]
-license = "MIT"
+license = "MIT/Apache-2.0"
 exclude = ["target/*", "bak/*"]
 
 [dependencies]
