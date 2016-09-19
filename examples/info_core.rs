@@ -41,7 +41,7 @@ fn print_platform(platform: PlatformId) {
 
 fn print_platform_device(platform: PlatformId, device: DeviceId) {
     let context_properties = ContextProperties::new().platform(platform);
-    let context = core::create_context(&Some(context_properties), &[device], None, None).unwrap();
+    let context = core::create_context(Some(&context_properties), &[device], None, None).unwrap();
 
     let program = core::create_build_program(&context, &[CString::new(SRC).unwrap()],
         &CString::new("").unwrap(), &[device]).unwrap();

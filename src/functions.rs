@@ -435,7 +435,7 @@ pub unsafe fn release_device(device: &DeviceId, device_version: Option<&OpenclVe
 //
 // [NOTE]: Leave commented "DEBUG" print statements intact until more
 // `ContextProperties` variants are implemented. [PROBABLY DONE]
-pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, device_ids: &[D],
+pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, device_ids: &[D],
             pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
         ) -> OclResult<Context>
 {
@@ -448,7 +448,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
 
     // https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html
     // http://sa10.idav.ucdavis.edu/docs/sa10-dg-opencl-gl-interop.pdf
-    if let &Some(ref properties) = properties {
+    if let Some(properties) = properties {
         if let Some(_) = properties.get_cgl_sharegroup() {
             for device in device_ids {
                 match device_support_cl_gl_sharing(device) {
@@ -461,8 +461,8 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>, 
     }
 
     let properties_bytes: Vec<isize> = match properties {
-        &Some(ref props) => props.to_raw(),
-        &None => Vec::<isize>::with_capacity(0),
+        Some(props) => props.to_raw(),
+        None => Vec::<isize>::with_capacity(0),
     };
 
     // [DEBUG]:
@@ -3062,8 +3062,6 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
 
 
 /// Checks to see if a device supports the `CL_GL_SHARING_EXT` extension.
-//
-// [TODO]: Rename to: `supports_gl_sharing`.
 //
 fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: &D) -> OclResult<bool> {
     match get_device_info(device, DeviceInfo::Extensions) {

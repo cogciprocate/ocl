@@ -16,7 +16,7 @@ fn buffer_copy_core() {
     let device_ids = ::get_device_ids(&platform_id, None, None).unwrap();
     let device = device_ids[0];
     let context_properties = ::ContextProperties::new().platform(platform_id);
-    let context = ::create_context(&Some(context_properties),
+    let context = ::create_context(Some(&context_properties),
         &[device], None, None).unwrap();
 
     let src_cstring = CString::new(src).unwrap();
