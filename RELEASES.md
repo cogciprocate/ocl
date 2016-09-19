@@ -14,6 +14,8 @@ Breaking Changes
   wrap their return value in an `ocl::Result`.
 * `Device::max_wg_size` now returns an `ocl::Result` instead of panicing.
 * `ProQue::max_wg_size` now returns an `ocl::Result` instead of panicing.
+* [ocl-core]: `::create_context` has had it's signature changed. The
+  `properties` argument is now an `Option<&ContextProperties>`.
 
 
 Version 0.11.0 (2016-08-29)

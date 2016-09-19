@@ -184,7 +184,7 @@ fn main_cored() {
     let device_ids = core::get_device_ids(&platform_id, None, None).unwrap();
     let device_id = device_ids[0];
     let context_properties = ContextProperties::new().platform(platform_id);
-    let context = core::create_context(&Some(context_properties),
+    let context = core::create_context(Some(&context_properties),
         &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();

@@ -174,7 +174,7 @@ impl Context {
 
         let device_list = try!(device_spec.to_device_list(platform.as_ref()));
 
-        let obj_core = try!(core::create_context(&properties, &device_list, pfn_notify, user_data));
+        let obj_core = try!(core::create_context(properties.as_ref(), &device_list, pfn_notify, user_data));
 
         Ok(Context {
             obj_core: obj_core,
