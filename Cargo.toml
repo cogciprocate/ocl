@@ -12,5 +12,4 @@ license = "MIT"
 exclude = ["target/*", "bak/*"]
 
 [dependencies]
-enum_primitive = "0.1"
 libc = "0.2"

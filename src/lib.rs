@@ -7,7 +7,6 @@
 //!
 //! [ocl-core]: https://github.com/cogciprocate/ocl-core
 
-#[macro_use] extern crate enum_primitive;
 extern crate libc;
 
 mod platform_h;
