@@ -32,7 +32,9 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 #[derive(Debug)]
 pub enum Error {
     Conversion(String),
-    Status { status: Status, fn_name: &'static str, fn_info: String, desc: String },
+    Status {
+        status: Status, status_string: String, fn_name: &'static str, fn_info: String, desc: String
+    },
     String(String),
     Nul(std::ffi::NulError),
     Io(std::io::Error),
@@ -68,7 +70,15 @@ impl self::Error {
         } else {
             let fn_info = fn_info.into();
             let desc = fmt_status_desc(status.clone(), fn_name, &fn_info);
-            Err(Error::Status { status: status, fn_name: fn_name, fn_info: fn_info, desc: desc })
+            let status_string = format!("{:?}", status);
+
+            Err(Error::Status {
+                    status: status,
+                    status_string: status_string,
+                    fn_name: fn_name,
+                    fn_info: fn_info,
+                    desc: desc
+            })
         }
     }
 
@@ -90,13 +100,13 @@ impl self::Error {
         }
     }
 
-    /// Returns the error status const code name or nothing.
-    pub fn status_code(&self) -> String {
-        match *self {
-            Error::Status { ref status, .. } => format!("{:?}", status),
-            _ => String::from(""),
-        }
-    }
+    // /// Returns the error status const code name or nothing.
+    // pub fn status_code(&self) -> String {
+    //     match *self {
+    //         Error::Status { ref status, .. } => format!("{:?}", status),
+    //         _ => format!("{:?}", self),
+    //     }
+    // }
 
     /// Returns the error status code for `Status` variants.
     pub fn status(&self) -> Option<Status> {
@@ -115,8 +125,8 @@ impl std::error::Error for self::Error {
             Error::Io(ref err) => err.description(),
             Error::FromUtf8Error(ref err) => err.description(),
             Error::IntoStringError(ref err) => err.description(),
-            Error::Status { ref desc, .. }
-            | Error::String(ref desc) => desc,
+            Error::Status { ref status_string, .. } => status_string,
+            Error::String(ref desc) => desc,
             Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
                 Please specify some dimensions.",
             // _ => panic!("OclError::description()"),

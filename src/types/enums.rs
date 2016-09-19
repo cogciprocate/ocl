@@ -110,26 +110,7 @@ impl PlatformInfoResult {
                         "[NONE]")));
                 }
 
-                // let string = match String::from_utf8(result) {
-                //     Ok(s) => s,
-                //     Err(err) => return PlatformInfoResult::Error(Box::new(OclError::from(err))),
-                // };
-
-                // CString::into_string
-
-                let string = match CString::new(result) {
-                    Ok(st) => match st.into_string() {
-                        Ok(s) => s,
-                        Err(err) => return PlatformInfoResult::Error(Box::new(OclError::from(err))),
-                    },
-                    Err(err) => return PlatformInfoResult::Error(Box::new(OclError::from(err))),
-                };
-
-                // println!("###### PlatformInfoResult: Printing string...");
-
-                // for byte in string.as_bytes() {
-                //     print!("{:#b} | ", byte);
-                // }
+                let string = try_ir!(try_ir!(CString::new(result)).into_string());
 
                 match request {
                     PlatformInfo::Profile => PlatformInfoResult::Profile(string),
@@ -190,6 +171,18 @@ impl Into<String> for PlatformInfoResult {
 impl From<OclError> for PlatformInfoResult {
     fn from(err: OclError) -> PlatformInfoResult {
         PlatformInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<std::ffi::IntoStringError> for PlatformInfoResult {
+    fn from(err: std::ffi::IntoStringError) -> PlatformInfoResult {
+        PlatformInfoResult::Error(Box::new(err.into()))
+    }
+}
+
+impl From<std::ffi::NulError> for PlatformInfoResult {
+    fn from(err: std::ffi::NulError) -> PlatformInfoResult {
+        PlatformInfoResult::Error(Box::new(err.into()))
     }
 }
 
