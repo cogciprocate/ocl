@@ -512,7 +512,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
 //
 // [NOTE]: Leave commented "DEBUG" print statements intact until more
 // `ContextProperties` variants are implemented.
-pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextProperties>,
+pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>,
             device_type: DeviceType, pfn_notify: Option<CreateContextCallbackFn>,
             user_data: Option<UserDataPtr>) -> OclResult<Context> {
 
@@ -532,8 +532,8 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: &Option<ContextPro
     // }
 
     let properties_bytes: Vec<isize> = match properties {
-        &Some(ref props) => props.to_raw(),
-        &None => Vec::<isize>::with_capacity(0),
+        Some(props) => props.to_raw(),
+        None => Vec::<isize>::with_capacity(0),
     };
 
     // [DEBUG]:
