@@ -90,9 +90,9 @@ fn resolve_event_ptrs(wait_list: Option<&ClWaitList>,
 }
 
 /// Converts an array option reference into a pointer to the contained array.
-fn resolve_work_dims(work_dims: &Option<[usize; 3]>) -> *const size_t {
-    match *work_dims {
-        Some(ref w) => w as *const [usize; 3] as *const size_t,
+fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
+    match work_dims {
+        Some(w) => w as *const [usize; 3] as *const size_t,
         None => 0 as *const size_t,
     }
 }
@@ -2675,7 +2675,7 @@ pub fn enqueue_kernel(
     // #[cfg(feature="kernel_debug_print")]
     // println!("Resolving global work offset: {:?}...", global_work_offset);
 
-    let gwo = resolve_work_dims(&global_work_offset);
+    let gwo = resolve_work_dims(global_work_offset.as_ref());
 
     // #[cfg(feature="kernel_debug_print")]
     // println!("Assigning global work size: {:?}...", global_work_dims);
@@ -2685,7 +2685,7 @@ pub fn enqueue_kernel(
     // #[cfg(feature="kernel_debug_print")]
     // println!("Resolving local work size: {:?}...", local_work_dims);
 
-    let lws = resolve_work_dims(&local_work_dims);
+    let lws = resolve_work_dims(local_work_dims.as_ref());
 
     // #[cfg(feature="kernel_debug_print")]
     // println!("Preparing to print all details...");
