@@ -11,13 +11,21 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "bak/*"]
 
+
+[features]
+default = ["rand"]
+
+
 [dependencies]
 cl-sys = "0.2"
-rand = "0.3"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.5"
+
+# Optional:
+rand = { version = "0.3", optional = true }
+
 
 [dev-dependencies]
 colorify = "0.2"

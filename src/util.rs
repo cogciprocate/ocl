@@ -300,6 +300,7 @@ pub fn wrap_vals<T: OclPrm + Integer>(vals: &[T], val_n: T) -> Vec<T> {
 
 /// Returns a vector with length `size` containing random values in the (half-open)
 /// range `[vals.0, vals.1)`.
+#[cfg(feature = "rand")]
 pub fn scrambled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
     assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
@@ -314,6 +315,7 @@ pub fn scrambled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
 /// number of integers in the aforementioned range, the integers will repeat. After
 /// being filled with `size` values, the vector is shuffled and the order of its
 /// values is randomized.
+#[cfg(feature = "rand")]
 pub fn shuffled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
     let mut vec: Vec<T> = Vec::with_capacity(size);
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
