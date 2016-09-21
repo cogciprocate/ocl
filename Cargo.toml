@@ -1,6 +1,6 @@
 [package]
 name = "ocl-core"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "Rusty and conventional OpenCL API."
 documentation = "http://doc.cogciprocate.com/ocl_core/ocl_core/index.html"
