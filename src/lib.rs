@@ -46,9 +46,7 @@
 #[macro_use] extern crate bitflags;
 extern crate libc;
 extern crate num;
-extern crate rand;
-// extern crate cl_sys as ffi;
-// pub extern crate ocl_core as core;
+#[cfg(test)] extern crate rand;
 pub extern crate ocl_core as core;
 
 #[cfg(test)] mod tests;

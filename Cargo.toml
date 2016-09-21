@@ -32,14 +32,13 @@ num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.5"
-# [TODO]: Make rand optional feature:
-rand = "0.3"
 
 
 [dev-dependencies]
 find_folder = "0.3"
 colorify = "0.2"
 time = "0.1"
+rand = "0.3"
 
 
 [replace]
