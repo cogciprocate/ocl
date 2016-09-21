@@ -336,6 +336,15 @@ pub fn shuffle<T: OclScl>(vec: &mut [T]) {
     }
 }
 
+/// Converts a null-terminated byte slice to a string.
+pub fn bytes_to_str(mut bytes: Vec<u8>) -> OclResult<String> {
+    if bytes.pop() == Some(0u8) {
+        String::from_utf8(bytes).map_err(OclError::from)
+    } else {
+        Err(OclError::from("string not null terminated: this is probably a driver bug"))
+    }
+}
+
 
 // /// Converts a length in `T` to a size in bytes.
 // #[inline]
