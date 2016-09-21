@@ -173,6 +173,17 @@ pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> OclResult<Vec<T>> {
 }
 
 
+/// Converts a byte Vec into a string, removing the trailing null byte if it
+/// exists.
+pub fn bytes_into_string(mut bytes: Vec<u8>) -> OclResult<String> {
+    if bytes.last() == Some(&0u8) {
+        bytes.pop();
+    }
+
+    String::from_utf8(bytes).map_err(OclError::from)
+}
+
+
 /// [UNTESTED] Copies an arbitrary primitive or struct into core bytes.
 ///
 /// ### Depth
@@ -333,15 +344,6 @@ pub fn shuffle<T: OclScl>(vec: &mut [T]) {
         tmp = vec[i];
         vec[i] = vec[ridx];
         vec[ridx] = tmp;
-    }
-}
-
-/// Converts a null-terminated byte slice to a string.
-pub fn bytes_to_str(mut bytes: Vec<u8>) -> OclResult<String> {
-    if bytes.pop() == Some(0u8) {
-        String::from_utf8(bytes).map_err(OclError::from)
-    } else {
-        Err(OclError::from("string not null terminated: this is probably a driver bug"))
     }
 }
 

@@ -28,7 +28,6 @@ use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, Devic
     DeviceType, DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities,
     DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion};
 use error::{Result as OclResult, Error as OclError};
-use util::bytes_to_str;
 // use cl_h;
 
 
@@ -111,7 +110,7 @@ impl PlatformInfoResult {
                         "[NONE]")));
                 }
 
-                let string = match bytes_to_str(result) {
+                let string = match util::bytes_into_string(result) {
                     Ok(s) => s,
                     Err(err) => return PlatformInfoResult::Error(Box::new(err)),
                 };
@@ -528,37 +527,37 @@ impl DeviceInfoResult {
                         DeviceInfoResult::QueueProperties(r)
                     },
                     DeviceInfo::Name => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Name(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
                     },
                     DeviceInfo::Vendor => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Vendor(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
                     },
                     DeviceInfo::DriverVersion => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::DriverVersion(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
                     },
                     DeviceInfo::Profile => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Profile(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
                     },
                     DeviceInfo::Version => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Version(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
                     },
                     DeviceInfo::Extensions => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Extensions(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
@@ -612,7 +611,7 @@ impl DeviceInfoResult {
                         DeviceInfoResult::NativeVectorWidthHalf(r)
                     },
                     DeviceInfo::OpenclCVersion => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::OpenclCVersion(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
@@ -622,7 +621,7 @@ impl DeviceInfoResult {
                         DeviceInfoResult::LinkerAvailable(r != 0)
                     },
                     DeviceInfo::BuiltInKernels => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::BuiltInKernels(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
@@ -1453,7 +1452,7 @@ impl ProgramInfoResult {
                         )
                     },
                     ProgramInfo::Source => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => ProgramInfoResult::Source(s),
                             Err(err) => ProgramInfoResult::Error(Box::new(err)),
                         }
@@ -1470,7 +1469,7 @@ impl ProgramInfoResult {
                         ProgramInfoResult::NumKernels(r)
                     },
                     ProgramInfo::KernelNames => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => ProgramInfoResult::KernelNames(s),
                             Err(err) => ProgramInfoResult::Error(Box::new(err)),
                         }
@@ -1562,13 +1561,13 @@ impl ProgramBuildInfoResult {
                         }
                     },
                     ProgramBuildInfo::BuildOptions => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => ProgramBuildInfoResult::BuildOptions(s),
                             Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
                         }
                     },
                     ProgramBuildInfo::BuildLog => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => ProgramBuildInfoResult::BuildLog(s),
                             Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
                         }
@@ -1648,7 +1647,7 @@ impl KernelInfoResult {
                 }
                 match request {
                     KernelInfo::FunctionName => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => KernelInfoResult::FunctionName(s),
                             Err(err) => KernelInfoResult::Error(Box::new(err)),
                         }
@@ -1670,7 +1669,7 @@ impl KernelInfoResult {
                         KernelInfoResult::Program(unsafe { Program::from_copied_ptr(ptr) })
                     },
                     KernelInfo::Attributes => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => KernelInfoResult::Attributes(s),
                             Err(err) => KernelInfoResult::Error(Box::new(err)),
                         }
@@ -1765,7 +1764,7 @@ impl KernelArgInfoResult {
                         }
                     },
                     KernelArgInfo::TypeName => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => KernelArgInfoResult::TypeName(s),
                             Err(err) => KernelArgInfoResult::Error(Box::new(err)),
                         }
@@ -1775,7 +1774,7 @@ impl KernelArgInfoResult {
                         KernelArgInfoResult::TypeQualifier(r)
                     },
                     KernelArgInfo::Name => {
-                        match bytes_to_str(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => KernelArgInfoResult::Name(s),
                             Err(err) => KernelArgInfoResult::Error(Box::new(err)),
                         }
