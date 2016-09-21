@@ -26,6 +26,7 @@ buffer_no_fill = []
 # git = "https://github.com/cogciprocate/ocl-core"
 # path = "/home/nick/src/github.com/cogciprocate/ocl-core"
 
+
 [dependencies]
 ocl-core = "0.2"
 num = "0.1"
@@ -34,12 +35,12 @@ enum_primitive = "0.1"
 bitflags = "0.5"
 
 
+[replace]
+"ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
+
+
 [dev-dependencies]
 find_folder = "0.3"
 colorify = "0.2"
 time = "0.1"
 rand = "0.3"
-
-
-[replace]
-"ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }

@@ -9,9 +9,11 @@ cargo run --example timed "$@"
 cargo run --example trivial "$@"
 
 cd examples/images
+cargo update
 cargo run "$@"
 cd -
 
 cd examples/images-safe-clamp
+cargo update
 cargo run "$@"
 cd -

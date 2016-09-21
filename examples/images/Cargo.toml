@@ -7,3 +7,6 @@ authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 ocl = "*"
 colorify = "*"
 image = "*"
+
+[replace]
+"ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
