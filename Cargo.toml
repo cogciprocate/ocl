@@ -28,15 +28,15 @@ buffer_no_fill = []
 
 
 [dependencies]
-ocl-core = "0.2"
+ocl-core = "0.3"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.5"
 
 
-[replace]
-"ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
+# [replace]
+# "ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 
 [dev-dependencies]
