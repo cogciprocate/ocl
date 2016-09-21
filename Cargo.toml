@@ -23,7 +23,10 @@ libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.5"
 
-# Optional:
+# Optional features:
+# See `http://doc.crates.io/manifest.html#the-features-section` to opt-out:
+
+# Optionally used for generating a buffer full of random data:
 rand = { version = "0.3", optional = true }
 
 
