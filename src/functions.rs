@@ -1199,14 +1199,14 @@ pub fn create_program_with_source(
     let ks_lens: Vec<usize> = src_strings.iter().map(|cs| cs.as_bytes().len()).collect();
 
     // Pointers to each string:
-    let kern_string_ptrs: Vec<*const i8> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
+    let kern_string_ptrs: Vec<*const _> = src_strings.iter().map(|cs| cs.as_ptr()).collect();
 
     let mut errcode: cl_int = 0;
 
     let program = unsafe { ffi::clCreateProgramWithSource(
         context.as_ptr(),
         kern_string_ptrs.len() as cl_uint,
-        kern_string_ptrs.as_ptr() as *const *const i8,
+        kern_string_ptrs.as_ptr() as *const *const _,
         ks_lens.as_ptr() as *const usize,
         &mut errcode,
     ) };
@@ -1314,7 +1314,7 @@ pub fn build_program<D: ClDeviceIdPtr + Debug>(
         program.as_ptr() as cl_program,
         devices.len() as cl_uint,
         devices.as_ptr() as *const cl_device_id,
-        options.as_ptr() as *const i8,
+        options.as_ptr() as *const _,
         pfn_notify,
         user_data,
     ) };
