@@ -1,8 +1,8 @@
 [package]
 name = "ocl-core"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
-description = "Rusty and conventional OpenCL API."
+description = "A boring OpenCL API."
 documentation = "http://doc.cogciprocate.com/ocl_core/ocl_core/index.html"
 homepage = "https://github.com/cogciprocate/ocl-core"
 repository = "https://github.com/cogciprocate/ocl-core"
@@ -11,10 +11,8 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "bak/*"]
 
-
 [features]
 default = ["rand"]
-
 
 [dependencies]
 cl-sys = "0.2"
@@ -23,12 +21,8 @@ libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.5"
 
-# Optional features:
-# See `http://doc.crates.io/manifest.html#the-features-section` to opt-out:
-
 # Optionally used for generating a buffer full of random data:
 rand = { version = "0.3", optional = true }
-
 
 [dev-dependencies]
 colorify = "0.2"
