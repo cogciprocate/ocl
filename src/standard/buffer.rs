@@ -423,8 +423,8 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                             'cmd().copy(&{{buf_name}}, 0, 0)..'.");
                         }
                         core::enqueue_copy_buffer_rect::<T>(self.queue, self.obj_core, dst_buffer,
-                        src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
-                        dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
+                            src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
+                            dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
                     },
                 }
             },
@@ -587,12 +587,17 @@ impl<T: OclPrm> Buffer<T> {
         self.cmd().write(data)
     }
 
-    /// Returns the length of the Buffer.
+    /// Returns the length of the buffer.
     #[inline]
     pub fn len(&self) -> usize {
         // debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() }
         //     else { self.len }) == self.len);
         self.len
+    }
+
+    /// Returns the dimensions of the buffer.
+    pub fn dims(&self) -> &SpatialDims {
+        &self.dims
     }
 
     /// Returns if the Buffer is empty.
@@ -612,9 +617,9 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Changes the default queue used by this Buffer for reads and writes, etc.
     ///
-    /// Returns a ref for chaining i.e.:
+    /// Returns a mutable reference for optional chaining i.e.:
     ///
-    /// ## Example
+    /// ### Example
     ///
     /// `buffer.set_default_queue(queue).read(....);`
     ///
