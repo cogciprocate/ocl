@@ -10,6 +10,7 @@ Breaking Changes
     system). It is now left to the caller to clone the queue when necessary.
   * The `dims` argument is now constrained by `Into<SpatialDims>` rather than
     `MemLen` for consistency with other arguments of it's kind.
+* `Buffer` now has a `::dims` method which returns a `SpatialDims` reference.
 * `Device::list`, `::list_all`, `::list_select`, and `::list_select_wrap` now
   wrap their return value in an `ocl::Result`.
 * `Device::max_wg_size` now returns an `ocl::Result` instead of panicing.
