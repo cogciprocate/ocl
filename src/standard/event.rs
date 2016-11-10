@@ -100,6 +100,15 @@ impl Event {
     }
 }
 
+impl Into<EventCore> for Event {
+    fn into(self) -> EventCore {
+        match self.0 {
+            Some(evc) => evc,
+            None => unsafe { EventCore::null() },
+        }
+    }
+}
+
 impl Into<String> for Event {
     fn into(self) -> String {
         format!("{}", self)
@@ -189,15 +198,15 @@ impl EventList {
         }
     }
 
-    // pub fn push(&mut self, event: Event) {
-    //     self.events.push(event);
-    // }
+    pub fn push(&mut self, event: Event) {
+        self.event_list_core.push(event.into());
+    }
 
     // /// Appends a new null element to the end of the list and returns...
     // /// [FIXME]: Update
     // pub fn allot(&mut self) -> &mut Event {
-    //     unsafe { self.events.push(Event::null()); }
-    //     self.events.last_mut().unwrap()
+    //     unsafe { self.event_list_core.push(EventCore::null()); }
+    //     self.event_list_core.last_mut().unwrap()
     // }
 
     /// Returns a new copy of an event by index.
