@@ -212,8 +212,22 @@ impl EventList {
         }
     }
 
+    /// Adds an event to the list.
     pub fn push(&mut self, event: Event) {
         self.event_list_core.push(event.into());
+    }
+
+    /// Removes the last event from the list and returns it.
+    pub fn pop(&mut self) -> Option<Event> {
+        match self.event_list_core.pop() {
+            Some(ev_res) => {
+                match ev_res {
+                    Ok(ev) => unsafe { Some(Event::from_core(ev)) },
+                    Err(_) => None,
+                }
+            },
+            None => None,
+        }
     }
 
     // /// Appends a new null element to the end of the list and returns...
@@ -298,7 +312,7 @@ impl EventList {
 
     /// Waits for all events in list to complete.
     pub fn wait(&self) -> OclResult<()> {
-        if self.event_list_core.is_empty() == false {
+        if !self.event_list_core.is_empty() {
             core::wait_for_events(self.event_list_core.count(), &self.event_list_core)
         } else {
             Ok(())

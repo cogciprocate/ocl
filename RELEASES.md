@@ -18,6 +18,7 @@ Breaking Changes
 * [ocl-core]: `::create_context` and `::create_context_from_type` have had
   their signatures changed. The `properties` argument is now an
   `Option<&ContextProperties>`.
+* `Event::push` and `Event::pop` have been added.
 
 
 Version 0.11.0 (2016-08-29)

@@ -22,13 +22,13 @@ kernel_debug_sleep = []
 buffer_no_fill = []
 
 
-# [dependencies.ocl-core]
+[dependencies.ocl-core]
 # git = "https://github.com/cogciprocate/ocl-core"
-# path = "/home/nick/src/github.com/cogciprocate/ocl-core"
+path = "/home/nick/src/github.com/cogciprocate/ocl-core"
 
 
 [dependencies]
-ocl-core = "0.3"
+# ocl-core = "0.3"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
