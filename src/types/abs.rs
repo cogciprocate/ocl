@@ -740,6 +740,11 @@ impl EventList {
         self.decr_counter();
     }
 
+    /// Removes the last event from the list and returns it.
+    pub fn pop(&mut self) -> Option<OclResult<Event>> {
+        self.event_ptrs.pop().map(|ptr| unsafe { Event::from_cloned_ptr(ptr) } )
+    }
+
     /// Appends a new null element to the end of the list and returns a reference to it.
     pub fn allot(&mut self) -> &mut cl_event {
         self.event_ptrs.push(0 as cl_event);
