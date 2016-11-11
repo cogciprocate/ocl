@@ -156,6 +156,20 @@ unsafe impl ClEventPtrNew for Event {
     }
 }
 
+unsafe impl<'a> ClEventPtrNew for &'a mut Event {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
+        if !self.is_empty() {
+            return OclError::err("ocl::Event: Attempting to use a non-empty event as a new event
+                is not allowed. Please create a new, empty, event with ocl::Event::empty().");
+        }
+
+        unsafe {
+            self.0 = Some(EventCore::null());
+            Ok(self.0.as_mut().unwrap().as_ptr_mut())
+        }
+    }
+}
+
 unsafe impl ClWaitList for Event {
     unsafe fn as_ptr_ptr(&self) -> *const ffi::cl_event {
         // self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::as_ref()").as_ptr_ptr()
@@ -313,6 +327,12 @@ impl DerefMut for EventList {
 }
 
 unsafe impl ClEventPtrNew for EventList {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
+        Ok(self.event_list_core.allot())
+    }
+}
+
+unsafe impl<'a> ClEventPtrNew for &'a mut EventList {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
         Ok(self.event_list_core.allot())
     }
