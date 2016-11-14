@@ -1,7 +1,7 @@
 ocl
 ===
 
-#### [Documentation](http://doc.cogciprocate.com/ocl/ocl/) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
+#### [Documentation](https://docs.rs/ocl) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
 
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl)
 
