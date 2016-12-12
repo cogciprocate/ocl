@@ -260,7 +260,7 @@ impl Kernel {
     /// Adds a new named argument specifying the buffer object represented by
     /// 'buffer' (builder-style). Argument is added to the bottom of the argument order.
     ///
-    /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
+    /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
     pub fn arg_buf_named<T: OclPrm>(mut self, name: &'static str, buffer_opt: Option<&Buffer<T>>) -> Kernel {
         let arg_idx = self.new_arg_buf(buffer_opt);
         self.named_args.insert(name, arg_idx);
@@ -270,7 +270,7 @@ impl Kernel {
     /// Adds a new named argument specifying the image object represented by
     /// 'image' (builder-style). Argument is added to the bottom of the argument order.
     ///
-    /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
+    /// Named arguments can be easily modified later using `::set_arg_img_named()`.
     pub fn arg_img_named<P: OclPrm>(mut self, name: &'static str, image_opt: Option<&Image<P>>) -> Kernel {
         let arg_idx = self.new_arg_img(image_opt);
         self.named_args.insert(name, arg_idx);
@@ -280,7 +280,7 @@ impl Kernel {
     /// Adds a new named argument specifying the sampler object represented by
     /// 'sampler' (builder-style). Argument is added to the bottom of the argument order.
     ///
-    /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
+    /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
     pub fn arg_smp_named(mut self, name: &'static str, sampler_opt: Option<&Sampler>) -> Kernel {
         let arg_idx = self.new_arg_smp(sampler_opt);
         self.named_args.insert(name, arg_idx);
@@ -592,6 +592,8 @@ impl Kernel {
     }
 
     /// Sets an argument.
+    ///
+    // [TODO]: Consider making this public (user feedback needed).
     fn set_arg<T: OclPrm>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
         // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
         // refers to, store it in `self.mem_args`, and create a new
