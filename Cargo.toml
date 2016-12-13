@@ -23,8 +23,8 @@ buffer_no_fill = []
 
 
 [dependencies.ocl-core]
-# git = "https://github.com/cogciprocate/ocl-core"
-path = "/home/nick/src/github.com/cogciprocate/ocl-core"
+git = "https://github.com/cogciprocate/ocl-core"
+# path = "/home/nick/src/github.com/cogciprocate/ocl-core"
 
 
 [dependencies]
