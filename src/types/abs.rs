@@ -170,7 +170,7 @@ impl PlatformId {
         self.0
     }
 
-    /// Returns the looked up and parsed OpenCL version for this platform.
+    /// Returns the queried and parsed OpenCL version for this platform.
     pub fn version(&self) -> OclResult<OpenclVersion> {
         if !self.0.is_null() {
             functions::get_platform_info(self, PlatformInfo::Version).as_opencl_version()
@@ -232,7 +232,7 @@ impl DeviceId {
         self.0
     }
 
-    /// Returns the looked up and parsed OpenCL version for this device.
+    /// Returns the queried and parsed OpenCL version for this device.
     pub fn version(&self) -> OclResult<OpenclVersion> {
         if !self.0.is_null() {
             functions::get_device_info(self, DeviceInfo::Version).as_opencl_version()
