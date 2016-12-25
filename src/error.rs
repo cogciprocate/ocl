@@ -29,7 +29,7 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 ///
 /// For now, don't assume the existence of or check for any of the above.
 ///
-#[derive(Debug)]
+// #[derive(Debug)]
 pub enum Error {
     Conversion(String),
     Status {
@@ -120,13 +120,13 @@ impl self::Error {
 impl std::error::Error for self::Error {
     fn description(&self) -> &str {
         match *self {
-            Error::Conversion(ref desc) => desc,
+            Error::Conversion(ref desc) => desc.as_str(),
             Error::Nul(ref err) => err.description(),
             Error::Io(ref err) => err.description(),
             Error::FromUtf8Error(ref err) => err.description(),
             Error::IntoStringError(ref err) => err.description(),
-            Error::Status { ref status_string, .. } => status_string,
-            Error::String(ref desc) => desc,
+            Error::Status { ref desc, .. } => desc.as_str(),
+            Error::String(ref desc) => desc.as_str(),
             Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
                 Please specify some dimensions.",
             // _ => panic!("OclError::description()"),
@@ -184,13 +184,12 @@ impl std::fmt::Display for self::Error {
     }
 }
 
-// impl std::fmt::Debug for self::Error {
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         use std::error::Error;
-//         f.write_str(self.description())
-//     }
-// }
-
+impl std::fmt::Debug for self::Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use std::error::Error;
+        f.write_str(self.description())
+    }
+}
 
 static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
 static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
