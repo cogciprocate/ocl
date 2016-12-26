@@ -25,11 +25,8 @@ the problem so we can improve our documentation.
 
 Your device drivers should include OpenCL drivers. If not, download the
 appropriate SDK from one of the following links:
-
-[AMD](developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/)
-
-[NVIDIA](https://developer.nvidia.com/opencl)
-
+[AMD](http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/),
+[NVIDIA](https://developer.nvidia.com/opencl),
 [Intel](https://software.intel.com/en-us/intel-opencl)
 
 
