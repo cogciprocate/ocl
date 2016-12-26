@@ -25,3 +25,14 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
 additional terms or conditions.
+
+##### BROKEN ON WINDOWS MSVC
+
+Download your Vendors OpenCL SDK:
+
+[AMD](developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/)
+
+Intel will make you register an account with them FYI. 
+[Intel](https://software.intel.com/en-us/intel-opencl)
+
+[Nvidia](https://developer.nvidia.com/opencl)
