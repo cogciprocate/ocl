@@ -27,7 +27,7 @@ use ::{OclPrm, OclScl};
 pub mod colors {
     //! ASCII Color Palette
     //!
-    //! [TODO]: REMOVE ME
+    //! Used for printing functions.
 
     pub static TAB: &'static str = "    ";
 
@@ -255,8 +255,9 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
             if idx < orig_len {
                  orig_vec.remove(idx);
             } else {
-                return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
-                at least one out of range index: [{}] ('orig_vec.len()': {}).", idx, orig_len));
+                return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' \
+                    contains at least one out of range index: [{}] ('orig_vec.len()': {}).",
+                    idx, orig_len));
             }
         }
     } else {
@@ -268,8 +269,9 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
                 if idx < orig_len {
                     *remove_markers.get_unchecked_mut(idx) = false;
                 } else {
-                    return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' contains
-                    at least one out of range index: [{}] ('orig_vec.len()': {}).", idx, orig_len));
+                    return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' \
+                        contains at least one out of range index: [{}] ('orig_vec.len()': {}).",
+                        idx, orig_len));
                 }
             }
 
@@ -325,7 +327,8 @@ pub fn shuffled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
     let mut range = (min..max).cycle();
 
     for _ in 0..size {
-        vec.push(FromPrimitive::from_i64(range.next().expect("\nbuffer::shuffled_vec(), range")).expect("\nbuffer::shuffled_vec(), from_usize"));
+        vec.push(FromPrimitive::from_i64(range.next().expect("\nbuffer::shuffled_vec(), range"))
+            .expect("\nbuffer::shuffled_vec(), from_usize"));
     }
 
     shuffle(&mut vec);
@@ -513,7 +516,7 @@ pub fn print_slice<T: OclScl>(
     }
 
 
-    println!("{cdgr} ;(nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
+    println!("{cdgr}; (nz:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),\
         ir:{clbl}{}{cdgr}({clbl}{:.2}%{cdgr}),hi:{},lo:{},anz:{:.2},prntd:{}){cd} ",
         ttl_nz, nz_pct, ttl_ir, ir_pct, hi, lo, anz, ttl_prntd, cd = colors::C_DEFAULT, clbl = colors::C_LBL, cdgr = colors::C_DGR);
 }
