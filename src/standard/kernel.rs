@@ -113,7 +113,7 @@ impl<'k> KernelCmd<'k> {
 /// TODO: Add more details, examples, etc.
 /// TODO: Add information about panics and errors.
 /// TODO: Finish arg info formatting.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Kernel {
     obj_core: KernelCore,
     named_args: HashMap<&'static str, u32>,
