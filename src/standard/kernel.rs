@@ -102,18 +102,20 @@ impl<'k> KernelCmd<'k> {
 ///
 /// Corresponds to code which must have already been compiled into a program.
 ///
-/// ## Destruction
 ///
-/// Reference counter now managed automatically.
+/// ## Clonability
 ///
-/// ## Thread Safety
+/// Cloning a kernel after creation should virtually never be necessary (and
+/// may indicate that your design needs improvement). If you really really
+/// need to clone and store something, clone the kernel core with
+/// `::core_as_ref.clone()` and use `ocl::core::enqueue_kernel(...)` to
+/// enqueue.
 ///
-/// Now handled automatically.
 ///
 /// TODO: Add more details, examples, etc.
 /// TODO: Add information about panics and errors.
 /// TODO: Finish arg info formatting.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Kernel {
     obj_core: KernelCore,
     named_args: HashMap<&'static str, u32>,
