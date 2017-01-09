@@ -22,6 +22,7 @@ pub struct ImageBuilder<S: OclPrm> {
     // image_data: Option<&'a [S]>,
 }
 
+
 impl<S: OclPrm> ImageBuilder<S> {
     /// Returns a new `ImageBuilder` with very basic defaults.
     ///
