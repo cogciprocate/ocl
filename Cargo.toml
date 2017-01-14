@@ -1,6 +1,6 @@
 [package]
 name = "ocl"
-version = "0.11.0"
+version = "0.12.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."
 documentation = "http://doc.cogciprocate.com/ocl/ocl/index.html"
@@ -30,7 +30,7 @@ ocl-core = "0.3"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
-bitflags = "0.5"
+bitflags = "0.7"
 
 
 # [replace]
