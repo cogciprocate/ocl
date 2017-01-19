@@ -3,7 +3,7 @@ Version 0.12.0 (2017-01-14)
 
 Breaking Changes
 ----------------
-* `Buffer::new` has under gone small signature changes.
+* `Buffer::new` has undergone small signature changes.
   * The `queue` argument now accepts an owned rather than a borrowed `Queue`.
     `Buffer` now stores it's own `ocl::Queue` (changed from a
     `core::CommandQueue`, a result of the addition of the 'version control'
@@ -15,10 +15,11 @@ Breaking Changes
   wrap their return value in an `ocl::Result`.
 * `Device::max_wg_size` now returns an `ocl::Result` instead of panicing.
 * `ProQue::max_wg_size` now returns an `ocl::Result` instead of panicing.
-* [ocl-core]: `::create_context` and `::create_context_from_type` have had
-  their signatures changed. The `properties` argument is now an
-  `Option<&ContextProperties>`.
-* `Event::push` and `Event::pop` have been added.
+* `EventList::push` and `EventList::pop` have been added.
+* [ocl-core]: 
+  * `::create_context` and `::create_context_from_type` have had their
+    signatures changed. The `properties` argument is now an
+    `Option<&ContextProperties>`.
 
 
 Version 0.11.0 (2016-08-29)
