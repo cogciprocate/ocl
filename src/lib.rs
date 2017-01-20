@@ -65,6 +65,10 @@ pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Im
 pub use core::error::{Error, Result};
 pub use core::util;
 
+#[doc(no_inline)]
+pub use core::{OclPrm, OclScl, OclVec};
+
+
 pub mod aliases {
     //! Type aliases and structs meant to mirror those available within a
     //! kernel.

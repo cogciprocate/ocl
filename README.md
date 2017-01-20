@@ -171,10 +171,9 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
 additional terms or conditions.
 
-<br/>
-
-*“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by permission
-by Khronos.”* *“Vulkan and the Vulkan logo are trademarks of the Khronos Group Inc.”*
+<br/>*“OpenCL and the OpenCL logo are trademarks of Apple Inc. used by
+permission by Khronos.”* <br/>*“Vulkan and the Vulkan logo are trademarks of
+the Khronos Group Inc.”*
 
 [OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
 [AMD]: https://software.intel.com/en-us/intel-opencl/download
