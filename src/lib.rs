@@ -57,7 +57,7 @@
 //! possibly data corruption.
 //!
 //! Saving the `OpenclVersion` returned from `device_version()` for your
-//! device(es) at the start of your program and passing it each time you call
+//! device(s) at the start of your program and passing it each time you call
 //! a version controlled function is the fastest and safest method (see the
 //! `ocl` library for an example). The cost of this check is little more than
 //! a single `if` statement.

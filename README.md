@@ -2,7 +2,7 @@ OpenCL interfaces and types.
 
 #### [Documentation](http://doc.cogciprocate.com/ocl_core/ocl_core/)
 
-[![](http://meritbadge.herokuapp.com/ocl_core)](https://crates.io/crates/ocl_core)
+[![](http://meritbadge.herokuapp.com/ocl_core)](https://crates.io/crates/ocl_core)  [![](https://docs.rs/ocl-core/badge.svg)](https://docs.rs/ocl-core)
 
 Examples and tests exist within the [ocl](https://github.com/cogciprocate/ocl)
 repo. Please also file

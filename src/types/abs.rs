@@ -42,6 +42,7 @@ use std::mem;
 use std::ptr;
 use std::fmt::Debug;
 use std::marker::Sized;
+use std::borrow::Borrow;
 use libc;
 use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
@@ -91,18 +92,8 @@ pub unsafe trait ClEventPtrNew: Debug {
 
 /// Types with a reference to a raw event pointer.
 ///
-/// Using references just to be extra paranoid about copying raw pointers.
 pub trait ClEventRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
-}
-
-/// Types with a reference to a raw event array and an associated element
-/// count.
-///
-/// Using references just to be extra paranoid about copying raw pointers.
-pub unsafe trait ClWaitList: Debug {
-    unsafe fn as_ptr_ptr(&self) -> *const cl_event;
-    fn count (&self) -> u32;
 }
 
 impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
@@ -111,6 +102,24 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
     }
 }
 
+/// Types with a reference to a raw event array and an associated element
+/// count.
+///
+pub unsafe trait ClWaitList: Debug {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event;
+    fn count (&self) -> u32;
+}
+
+// [TODO]: TEST ME:
+unsafe impl<'a> ClWaitList for &'a [cl_event] {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+        self.as_ptr()
+    }
+
+    fn count (&self) -> u32 {
+        self.len() as u32
+    }
+}
 
 /// Types with a reference to a raw platform_id pointer.
 pub unsafe trait ClPlatformIdPtr: Sized {
