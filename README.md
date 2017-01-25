@@ -2,7 +2,7 @@ OpenCL C FFI Bindings.
 
 ### [Documentation](http://doc.cogciprocate.com/cl_sys/cl_sys/)
 
-[![](http://meritbadge.herokuapp.com/cl_sys)](https://crates.io/crates/cl_sys)
+[![](http://meritbadge.herokuapp.com/cl_sys)](https://crates.io/crates/cl_sys) [![](https://docs.rs/cl-sys/badge.svg)](https://docs.rs/cl-sys)
 
 Please file **[issues](https://github.com/cogciprocate/ocl/issues)** on the
 [ocl](https://github.com/cogciprocate/ocl) repo page.
