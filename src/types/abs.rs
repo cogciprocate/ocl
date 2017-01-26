@@ -42,7 +42,7 @@ use std::mem;
 use std::ptr;
 use std::fmt::Debug;
 use std::marker::Sized;
-use std::borrow::Borrow;
+// use std::borrow::Borrow;
 use libc;
 use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
@@ -736,11 +736,13 @@ impl EventList {
 
     /// Pushes a new event onto the list.
     ///
-    /// Technically, copies `event`'s contained pointer (a `cl_event`) then
-    /// `mem::forget`s it. This seems preferrable to incrementing the reference
-    /// count (with `functions::retain_event`) then letting `event` drop which just decrements it right back.
+    //
+    // Technically, copies `event`'s contained pointer (a `cl_event`) then
+    // `mem::forget`s it. This seems preferrable to incrementing the reference
+    // count (with `functions::retain_event`) then letting `event` drop which just decrements it right back.
+    //
     pub fn push(&mut self, event: Event) {
-        assert!(event.is_valid());
+        assert!(event.is_valid(), "Cannot push an empty (null) 'Event' into an 'EventList'.");
 
         unsafe {
             self.event_ptrs.push((*event.as_ptr_ref()));
@@ -750,8 +752,14 @@ impl EventList {
     }
 
     /// Removes the last event from the list and returns it.
-    pub fn pop(&mut self) -> Option<OclResult<Event>> {
-        self.event_ptrs.pop().map(|ptr| unsafe { Event::from_cloned_ptr(ptr) } )
+    ///
+    //
+    // Does not increment reference count as it will not have been decremented
+    // when added to list.
+    //
+    pub fn pop(&mut self) -> Option<Event> {
+        // self.event_ptrs.pop().map(|ptr| unsafe { Event::from_cloned_ptr(ptr) } )
+        self.event_ptrs.pop().map(|ptr| Event(ptr))
     }
 
     /// Appends a new null element to the end of the list and returns a reference to it.
@@ -787,6 +795,12 @@ impl EventList {
     /// Clones the last event.
     pub fn last_clone(&self) -> Option<OclResult<Event>> {
         self.event_ptrs.last().map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) } )
+    }
+
+
+    /// Clears the list.
+    pub fn clear(&mut self) {
+        self.event_ptrs.clear()
     }
 
     /// Clears each completed event from the list.
