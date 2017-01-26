@@ -219,15 +219,16 @@ impl EventList {
 
     /// Removes the last event from the list and returns it.
     pub fn pop(&mut self) -> Option<Event> {
-        match self.event_list_core.pop() {
-            Some(ev_res) => {
-                match ev_res {
-                    Ok(ev) => unsafe { Some(Event::from_core(ev)) },
-                    Err(_) => None,
-                }
-            },
-            None => None,
-        }
+        // match self.event_list_core.pop() {
+        //     Some(ev_res) => {
+        //         match ev_res {
+        //             Ok(ev) => unsafe { Some(Event::from_core(ev)) },
+        //             Err(_) => None,
+        //         }
+        //     },
+        //     None => None,
+        // }
+        self.event_list_core.pop().map(|ev| unsafe { Event::from_core(ev) })
     }
 
     // /// Appends a new null element to the end of the list and returns...
@@ -286,9 +287,15 @@ impl EventList {
                     callback_receiver, user_data as *mut _ as *mut c_void)
     }
 
-    // pub fn clear_completed(&mut self) -> OclResult<()> {
-    //     self.event_list_core.clear_completed()
-    // }
+    /// Clears all events from the list whether or not they have completed.
+    pub fn clear(&mut self) -> OclResult<()> {
+        self.event_list_core.clear()
+    }
+
+    /// Clears events which have completed.
+    pub fn clear_completed(&mut self) -> OclResult<()> {
+        self.event_list_core.clear_completed()
+    }
 
     /// Returns the number of events in the list.
     pub fn len(&self) -> usize {

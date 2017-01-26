@@ -33,8 +33,8 @@ enum_primitive = "0.1"
 bitflags = "0.7"
 
 
-# [replace]
-# "ocl-core:0.2.3" = { git = "https://github.com/cogciprocate/ocl-core" }
+[replace]
+"ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 
 [dev-dependencies]

@@ -1,3 +1,20 @@
+Version 0.13.0 (UNRELEASED)
+===========================
+
+Breaking Changes
+----------------
+* [ocl-core]:
+  * `EventList::pop` now returns an `Option<Event>` instead of an
+    `Option<Result<Event>>`.
+
+
+Other Changes
+-------------
+* `EventList::clear` has been added.
+* `EventList` auto-clearing has been experimentally re-enabled.
+
+
+
 Version 0.12.0 (2017-01-14)
 ===========================
 
