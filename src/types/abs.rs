@@ -803,6 +803,7 @@ impl EventList {
             unsafe { functions::release_event(&EventRefWrapper(ptr, 1))?; }
         }
 
+        self.clear_counter = EL_CLEAR_INTERVAL;
         Ok(self.event_ptrs.clear())
     }
 
@@ -831,9 +832,7 @@ impl EventList {
 
         try!(util::vec_remove_rebuild(&mut self.event_ptrs, &cmpltd_events[..], 2));
 
-        if EL_CLEAR_AUTO {
-            self.clear_counter = EL_CLEAR_INTERVAL;
-        }
+        self.clear_counter = EL_CLEAR_INTERVAL;
 
         Ok(())
     }
@@ -864,8 +863,8 @@ impl EventList {
             self.clear_counter -= 1;
 
             if self.clear_counter <= 0 && self.event_ptrs.len() > EL_CLEAR_MAX_LEN {
-                // self.clear_completed();
-                unimplemented!();
+                self.clear_completed().unwrap();
+                // unimplemented!();
             }
         }
     }
