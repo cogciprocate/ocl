@@ -797,10 +797,13 @@ impl EventList {
         self.event_ptrs.last().map(|ptr| unsafe { Event::from_cloned_ptr(*ptr) } )
     }
 
-
     /// Clears the list.
-    pub fn clear(&mut self) {
-        self.event_ptrs.clear()
+    pub fn clear(&mut self) -> OclResult<()> {
+        for ptr in self.event_ptrs.iter() {
+            unsafe { functions::release_event(&EventRefWrapper(ptr, 1))?; }
+        }
+
+        Ok(self.event_ptrs.clear())
     }
 
     /// Clears each completed event from the list.
