@@ -11,6 +11,7 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "bak/*"]
 build = "build.rs"
+categories = ["api-bindings", "external-ffi-bindings", "asynchronous", "science"]
 
 [dependencies]
 libc = "0.2"
