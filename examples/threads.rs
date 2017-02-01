@@ -70,9 +70,9 @@ fn main() {
             //  Queue::new_by_device_index(&context, None)];
 
             // Make a few different queues for the hell of it:
-            let queueball = vec![Queue::new(&context, device).unwrap(),
-                Queue::new(&context, device).unwrap(),
-                Queue::new(&context, device).unwrap()];
+            let queueball = vec![Queue::new(&context, device, None).unwrap(),
+                Queue::new(&context, device, None).unwrap(),
+                Queue::new(&context, device, None).unwrap()];
 
             printc!(orange: "    Spawning threads... ");
 

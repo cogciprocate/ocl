@@ -21,7 +21,7 @@ fn scalar_map() {
         .devices(dev)
         .build()
         .unwrap();
-    let queue = ocl::Queue::new(&context, dev).unwrap();
+    let queue = ocl::Queue::new(&context, dev, None).unwrap();
     let program = ocl::Program::builder()
         .src(kernel_src)
         .devices(dev)
@@ -102,7 +102,7 @@ fn vector_map() {
         .devices(dev)
         .build()
         .unwrap();
-    let queue = ocl::Queue::new(&context, dev).unwrap();
+    let queue = ocl::Queue::new(&context, dev, None).unwrap();
     let program = ocl::Program::builder()
         .src(kernel_src)
         .devices(dev)

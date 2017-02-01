@@ -1,18 +1,28 @@
 Version 0.13.0 (UNRELEASED)
 ===========================
 
+Command queue properties can now be specified when creating a `Queue` or
+`ProQue` allowing out of order execution and profiling to be enabled.
+Profiling had previously been enabled by default but now must be explicitly
+enabled by setting the `QUEUE_PROFILING_ENABLE` flag.
+
 Breaking Changes
 ----------------
+* `Queue::new` now takes a third argument: `properties` (details below).
+
 * [ocl-core]:
   * `EventList::pop` now returns an `Option<Event>` instead of an
     `Option<Result<Event>>`.
-
+  * `::create_command_queue` now takes a third argument: `properties`,
+    an optional bitfield described in the [clCreateCommandQueue SDK
+    Documentation](https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateCommandQueue.html).
+    Valid options include `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and
+    `QUEUE_PROFILING_ENABLE`.
 
 Other Changes
 -------------
 * `EventList::clear` has been added.
 * `EventList` auto-clearing has been experimentally re-enabled.
-
 
 
 Version 0.12.0 (2017-01-14)
@@ -95,7 +105,6 @@ Breaking Changes
   now be removed due to the use of a trait object argument type.
 * 'fill' methods now accept a vector type.
 * `Kernel::arg_vec` now takes a vector type.
-
 
 
 Version 0.9.0 (2016-03-28)

@@ -4,7 +4,7 @@ use std;
 use std::ops::{Deref, DerefMut};
 use core::error::{Result as OclResult};
 use core::{self, CommandQueue as CommandQueueCore, Context as ContextCore,
-    CommandQueueInfo, CommandQueueInfoResult, OpenclVersion};
+    CommandQueueInfo, CommandQueueInfoResult, OpenclVersion, CommandQueueProperties};
 use standard::{Context, Device};
 
 /// A command queue which manages all actions taken on kernels, buffers, and
@@ -28,9 +28,9 @@ pub struct Queue {
 
 impl Queue {
     /// Returns a new Queue on the device specified by `device`.
-    pub fn new(context: &Context, device: Device) -> OclResult<Queue> {
-        let obj_core = try!(core::create_command_queue(context, &device));
-        // let device_version = try!(core::get_device_version(&device));
+    pub fn new(context: &Context, device: Device, properties: Option<CommandQueueProperties>)
+            -> OclResult<Queue> {
+        let obj_core = try!(core::create_command_queue(context, &device, properties));
         let device_version = try!(device.version());
 
         Ok(Queue {

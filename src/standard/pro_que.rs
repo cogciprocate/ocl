@@ -3,7 +3,7 @@
 use std::convert::Into;
 use std::ops::Deref;
 use core::error::{Result as OclResult, Error as OclError};
-use core::OclPrm;
+use core::{OclPrm, CommandQueueProperties};
 use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
     MemLen, SpatialDims, WorkDims, DeviceSpecifier};
 
@@ -20,6 +20,7 @@ pub struct ProQueBuilder {
     device_spec: Option<DeviceSpecifier>,
     program_builder: Option<ProgramBuilder>,
     dims: Option<SpatialDims>,
+    queue_properties: Option<CommandQueueProperties>,
 }
 
 impl ProQueBuilder {
@@ -42,6 +43,7 @@ impl ProQueBuilder {
             device_spec: None,
             program_builder: None,
             dims: None,
+            queue_properties: None,
         }
     }
 
@@ -111,7 +113,7 @@ impl ProQueBuilder {
 
         if DEBUG_PRINT { println!("ProQue::build(): context.devices(): {:?}", context.devices()); }
 
-        let queue = try!(Queue::new(&context, device));
+        let queue = try!(Queue::new(&context, device, self.queue_properties));
 
         // println!("PROQUEBUILDER: About to load SRC_STRINGS.");
         let src_strings = try!(program_builder.get_src_strings().map_err(|e| e.to_string()));
@@ -229,6 +231,15 @@ impl ProQueBuilder {
     ///
     pub fn dims<D: Into<SpatialDims>>(&mut self, dims: D) -> &mut ProQueBuilder {
         self.dims = Some(dims.into());
+        self
+    }
+
+    /// Sets the command queue properties.
+    ///
+    /// Optional.
+    ///
+    pub fn queue_properties(&mut self, props: CommandQueueProperties) -> &mut ProQueBuilder {
+        self.queue_properties = Some(props);
         self
     }
 }

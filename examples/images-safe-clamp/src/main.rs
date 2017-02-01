@@ -66,7 +66,7 @@ fn main() {
     let context = Context::builder().devices(Device::specifier()
         .type_flags(ocl::flags::DEVICE_TYPE_GPU).first()).build().unwrap();
     let device = context.devices()[0];
-    let queue = Queue::new(&context, device).unwrap();
+    let queue = Queue::new(&context, device, None).unwrap();
 
     let program = Program::builder()
         .src_file(compute_program)

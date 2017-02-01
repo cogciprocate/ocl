@@ -43,7 +43,7 @@ fn print_platform_device(platform: Platform, device: Device) {
         .devices(device)
         .src(SRC)
         .build(&context).unwrap();
-    let queue = Queue::new(&context, device).unwrap();
+    let queue = Queue::new(&context, device, Some(core::QUEUE_PROFILING_ENABLE)).unwrap();
     let buffer = Buffer::<f32>::new(queue.clone(), None, &DIMS, None).unwrap();
     let image = Image::<u8>::builder()
         .dims(&DIMS)

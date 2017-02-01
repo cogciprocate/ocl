@@ -67,7 +67,7 @@ fn main() {
 
     let context = Context::builder().devices(Device::specifier().first()).build().unwrap();
     let device = context.devices()[0];
-    let queue = Queue::new(&context, device).unwrap();
+    let queue = Queue::new(&context, device, None).unwrap();
 
     let program = Program::builder()
         .src(KERNEL_SRC)

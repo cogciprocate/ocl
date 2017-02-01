@@ -28,7 +28,7 @@ fn buffer_copy_core() {
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
     core::build_program(&program, &[device_id], &CString::new("").unwrap(),
         None, None).unwrap();
-    let queue = core::create_command_queue(&context, &device_id).unwrap();
+    let queue = core::create_command_queue(&context, &device_id, None).unwrap();
     let dims = [DATASET_SIZE, 1, 1usize];
 
     // Source buffer:

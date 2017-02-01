@@ -113,7 +113,7 @@ fn main_exploded() {
         .devices(device)
         .src(src)
         .build(&context).unwrap();
-    let queue = Queue::new(&context, device).unwrap();
+    let queue = Queue::new(&context, device, None).unwrap();
     let dims = [2 << 20];
     // [NOTE]: At this point we could manually assemble a ProQue by calling:
     // `ProQue::new(context, queue, program, Some(dims))`. One might want to
@@ -190,7 +190,7 @@ fn main_cored() {
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
     core::build_program(&program, &[device_id], &CString::new("").unwrap(),
         None, None).unwrap();
-    let queue = core::create_command_queue(&context, &device_id).unwrap();
+    let queue = core::create_command_queue(&context, &device_id, None).unwrap();
     let dims = [2 << 20, 1, 1];
 
     // (2) Create a `Buffer`:
