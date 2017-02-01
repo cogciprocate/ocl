@@ -41,7 +41,8 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     KernelWorkGroupInfoResult, ClEventRef, ClWaitList, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
-    MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status};
+    MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
+    CommandQueueProperties};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -647,17 +648,24 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
 pub fn create_command_queue<D: ClDeviceIdPtr>(
             context: &Context,
             device: &D,
+            properties: Option<CommandQueueProperties>,
         ) -> OclResult<CommandQueue>
 {
     // Verify that the context is valid:
     try!(verify_context(context));
+
+    let cmd_queue_props = match properties {
+        Some(p) => p.bits,
+        None => 0,
+    };
 
     let mut errcode: cl_int = 0;
 
     let cq = unsafe { CommandQueue::from_fresh_ptr(ffi::clCreateCommandQueue(
         context.as_ptr(),
         device.as_ptr(),
-        ffi::CL_QUEUE_PROFILING_ENABLE,
+        // ffi::CL_QUEUE_PROFILING_ENABLE,
+        cmd_queue_props,
         &mut errcode
     )) };
     errcode_try("clCreateCommandQueue", "", errcode).and(Ok(cq))

@@ -27,7 +27,7 @@ fn main() {
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
     core::build_program(&program, &[device_id], &CString::new("").unwrap(),
         None, None).unwrap();
-    let queue = core::create_command_queue(&context, &device_id).unwrap();
+    let queue = core::create_command_queue(&context, &device_id, None).unwrap();
     let dims = [2 << 20, 1, 1];
 
     // (2) Create a `Buffer`:

@@ -46,7 +46,8 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     let program = core::create_build_program(&context, &[CString::new(SRC).unwrap()],
         &CString::new("").unwrap(), &[device]).unwrap();
 
-    let queue = core::create_command_queue(&context, &device).unwrap();
+    let queue = core::create_command_queue(&context, &device,
+        Some(core::QUEUE_PROFILING_ENABLE)).unwrap();
     let len = DIMS[0] * DIMS[1] * DIMS[2];
     let buffer = unsafe { core::create_buffer::<f32>(&context, core::MEM_READ_WRITE, len, None).unwrap() };
 
