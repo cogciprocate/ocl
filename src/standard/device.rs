@@ -198,7 +198,7 @@ impl From<DeviceType> for DeviceSpecifier {
 
 /// An individual device identifier (an OpenCL device_id).
 ///
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Device(DeviceIdCore);
 
 impl Device {

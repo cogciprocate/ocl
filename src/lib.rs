@@ -49,8 +49,8 @@
 // #![feature(question_mark)]
 // #![feature(stmt_expr_attributes)]
 
-#[macro_use] extern crate enum_primitive;
-#[macro_use] extern crate bitflags;
+// #[macro_use] extern crate enum_primitive;
+// #[macro_use] extern crate bitflags;
 extern crate libc;
 extern crate num;
 #[cfg(test)] extern crate rand;
@@ -60,8 +60,8 @@ pub extern crate ocl_core as core;
 mod standard;
 
 pub use core::ffi;
-pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
-    EventList, Sampler, SpatialDims, ProQue};
+pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, SubBuffer, Image,
+    Event, EventList, Sampler, SpatialDims, ProQue};
 pub use core::error::{Error, Result};
 pub use core::util;
 
@@ -97,7 +97,7 @@ pub mod aliases {
 pub mod traits {
     //! Commonly used traits.
 
-    pub use standard::{WorkDims, MemLen};
+    pub use standard::{WorkDims, MemLen, AsMemRef, AsMemMut};
     pub use core::{OclPrm, OclScl, OclVec};
 }
 

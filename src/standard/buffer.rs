@@ -6,10 +6,10 @@ use std::ops::{Deref, DerefMut};
 
 use ffi::cl_GLuint;
 
-use core::{self, OclPrm, Mem as MemCore, MemFlags,
-    MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList};
+use core::{self, OclPrm, Mem as MemCore, MemFlags, MemInfo, MemInfoResult, ClEventPtrNew,
+    ClWaitList, BufferRegion};
 use core::error::{Error as OclError, Result as OclResult};
-use standard::{Queue, MemLen, SpatialDims};
+use standard::{Queue, MemLen, SpatialDims, AsMemRef};
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -472,7 +472,53 @@ pub struct Buffer<T: OclPrm> {
 }
 
 impl<T: OclPrm> Buffer<T> {
-    /// Creates a new buffer.
+    // /// Creates a new buffer.
+    // ///
+    // /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
+    // /// the [SDK Docs] for more information about flags. Note that the
+    // /// `host_ptr` mentioned in the [SDK Docs] is equivalent to the slice
+    // /// optionally passed as the `data` argument. Also note that the names of
+    // /// the flags in this library have the `CL_` prefix removed for brevity.
+    // ///
+    // /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    // ///
+    // ///
+    // /// [UNSTABLE]: Arguments may still be in a state of flux.
+    // ///
+    // pub fn new<D: Into<SpatialDims>>(queue: Queue, flags: Option<MemFlags>, dims: D,
+    //             data: Option<&[T]>) -> OclResult<Buffer<T>> {
+    //     let flags = flags.unwrap_or(::flags::MEM_READ_WRITE);
+    //     let dims: SpatialDims = dims.into();
+    //     let len = dims.to_len();
+    //     let obj_core = unsafe { try!(core::create_sub_buffer(queue.context_core_as_ref(), flags, len,
+    //         data)) };
+
+    //     let buf = Buffer {
+    //         obj_core: obj_core,
+    //         queue: queue,
+    //         dims: dims,
+    //         len: len,
+    //         _data: PhantomData,
+    //     };
+
+    //     if data.is_none() {
+    //         // Useful on platforms (PoCL) that have trouble with fill. Creates
+    //         // a temporary zeroed `Vec` in host memory and writes from there
+    //         // instead. Add `features = ["buffer_no_fill"]` to your Cargo.toml.
+    //         if cfg!(feature = "buffer_no_fill") {
+    //             // println!("#### no fill");
+    //             try!(buf.cmd().fill(Default::default(), None).enq());
+    //         } else {
+    //             let zeros = vec![Default::default(); len];
+    //             try!(buf.cmd().write(&zeros).enq());
+    //             // println!("#### fill!");
+    //         }
+    //     }
+
+    //     Ok(buf)
+    // }
+
+    /// Creates a new sub-buffer.
     ///
     /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
     /// the [SDK Docs] for more information about flags. Note that the
@@ -600,12 +646,6 @@ impl<T: OclPrm> Buffer<T> {
         &self.dims
     }
 
-    /// Returns if the Buffer is empty.
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     /// Returns info about the underlying memory object.
     pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
         // match core::get_mem_object_info(&self.obj_core, info_kind) {
@@ -627,7 +667,6 @@ impl<T: OclPrm> Buffer<T> {
         // [FIXME]: Set this up:
         // assert!(queue.device == self.queue.device);
         // [/FIXME]
-
         self.queue = queue.clone();
         self
     }
@@ -641,6 +680,12 @@ impl<T: OclPrm> Buffer<T> {
     /// the `core` module.
     pub fn core_as_ref(&self) -> &MemCore {
         &self.obj_core
+    }
+
+    pub fn create_sub_buffer<D: Into<SpatialDims>>(&self, flags: Option<MemFlags>, origin: D,
+        size: D) -> OclResult<SubBuffer<T>>
+    {
+        SubBuffer::new(self, flags, origin, size)
     }
 
     /// Formats memory info.
@@ -673,9 +718,257 @@ impl<T: OclPrm> DerefMut for Buffer<T> {
     }
 }
 
+impl<T: OclPrm> AsRef<MemCore> for Buffer<T> {
+    fn as_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<T: OclPrm> AsMut<MemCore> for Buffer<T> {
+    fn as_mut(&mut self) -> &mut MemCore {
+        &mut self.obj_core
+    }
+}
+
+impl<T: OclPrm> AsMemRef<T> for Buffer<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<'a, T: OclPrm> AsMemRef<T> for &'a Buffer<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<'a, T: OclPrm> AsMemRef<T> for &'a mut Buffer<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+// impl<T: OclPrm> AsMemRef<T> for Buffer<T> {
+//     fn as_mem_ref(&mut self) -> &mut MemCore {
+//         &self.obj_core
+//     }
+// }
+
+// impl<'a, T: OclPrm> AsMemRef<T> for &'a Buffer<T> {
+//     fn as_mem_ref(&self) -> &mut MemCore {
+//         &self.obj_core
+//     }
+// }
+
 impl<T: OclPrm> std::fmt::Display for Buffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_mem_info(f)
     }
 }
 
+
+/// A subsection of buffer memory physically located on a device, such as a
+/// GPU.
+///
+#[derive(Debug, Clone)]
+pub struct SubBuffer<T: OclPrm> {
+    obj_core: MemCore,
+    queue: Queue,
+    origin: SpatialDims,
+    size: SpatialDims,
+    len: usize,
+    _data: PhantomData<T>,
+}
+
+impl<T: OclPrm> SubBuffer<T> {
+    /// Creates a new sub-buffer.
+    ///
+    /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
+    /// the [SDK Docs] for more information about flags. Note that the names
+    /// of the flags in this library have the `CL_` prefix removed for
+    /// brevity.
+    ///
+    /// `origin` and `size` set up the region of the sub-buffer within the
+    ///  original buffer and must not fall beyond the boundaries of it.
+    ///
+    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
+    ///
+    pub fn new<D: Into<SpatialDims>>(buffer: &Buffer<T>, flags: Option<MemFlags>, origin: D,
+        size: D) -> OclResult<SubBuffer<T>>
+    {
+        let flags_ = flags.unwrap_or(::flags::MEM_READ_WRITE);
+        let origin: SpatialDims = origin.into();
+        let size: SpatialDims = size.into();
+
+        let buffer_len = buffer.dims().to_len();
+        let origin_len = origin.to_len();
+        let size_len = size.to_len();
+
+        if origin_len > buffer_len {
+            return OclError::err(format!("SubBuffer::new: Origin ({:?}) is outside of the \
+                dimensions of the source buffer ({:?}).", origin, buffer.dims()));
+        }
+
+        if origin_len + size_len > buffer_len {
+            return OclError::err(format!("SubBuffer::new: Sub-buffer region (origin: '{:?}', \
+                size: '{:?}') exceeds the dimensions of the source buffer ({:?}).", origin, size,
+                buffer.dims()));
+        }
+
+        let obj_core = core::create_sub_buffer(buffer, flags_,
+            &BufferRegion { origin: origin.to_len(), size: size.to_len() })?;
+
+        Ok(SubBuffer {
+            obj_core: obj_core,
+            queue: buffer.default_queue().clone(),
+            origin: origin,
+            size: size,
+            len: size_len,
+            _data: PhantomData,
+        })
+    }
+
+    /// Returns a buffer command builder used to read, write, copy, etc.
+    ///
+    /// Call `.enq()` to enqueue the command.
+    ///
+    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
+    /// for more info.
+    ///
+    pub fn cmd(&self) -> BufferCmd<T> {
+        BufferCmd::new(&self.queue, &self.obj_core, self.len)
+    }
+
+    /// Returns a buffer command builder used to read.
+    ///
+    /// Call `.enq()` to enqueue the command.
+    ///
+    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
+    /// for more info.
+    ///
+    #[inline]
+    pub fn read<'b>(&'b self, data: &'b mut [T]) -> BufferCmd<'b, T> {
+        self.cmd().read(data)
+    }
+
+    /// Returns a buffer command builder used to write.
+    ///
+    /// Call `.enq()` to enqueue the command.
+    ///
+    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
+    /// for more info.
+    ///
+    #[inline]
+    pub fn write<'b>(&'b self, data: &'b [T]) -> BufferCmd<'b, T> {
+        self.cmd().write(data)
+    }
+
+    /// Returns the length of the sub-buffer.
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns the dimensions of the buffer.
+    pub fn dims(&self) -> &SpatialDims {
+        &self.size
+    }
+
+    /// Returns info about the underlying memory object.
+    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
+        core::get_mem_object_info(&self.obj_core, info_kind)
+    }
+
+    /// Changes the default queue used by this `SubBuffer` for reads and
+    /// writes, etc.
+    ///
+    /// Returns a mutable reference for optional chaining i.e.:
+    ///
+    /// ### Example
+    ///
+    /// `buffer.set_default_queue(queue).read(....);`
+    ///
+    pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut SubBuffer<T> {
+        // [FIXME]: Set this up:
+        // assert!(queue.device == self.queue.device);
+        // [/FIXME]
+        self.queue = queue.clone();
+        self
+    }
+
+    /// Returns a reference to the default queue.
+    pub fn default_queue(&self) -> &Queue {
+        &self.queue
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    pub fn core_as_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+
+    /// Formats memory info.
+    fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("SubBuffer Mem")
+            .field("Type", &self.mem_info(MemInfo::Type))
+            .field("Flags", &self.mem_info(MemInfo::Flags))
+            .field("Size", &self.mem_info(MemInfo::Size))
+            .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
+            .field("MapCount", &self.mem_info(MemInfo::MapCount))
+            .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
+            .field("Context", &self.mem_info(MemInfo::Context))
+            .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
+            .field("Offset", &self.mem_info(MemInfo::Offset))
+            .finish()
+    }
+}
+
+impl<T: OclPrm> Deref for SubBuffer<T> {
+    type Target = MemCore;
+
+    fn deref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<T: OclPrm> DerefMut for SubBuffer<T> {
+    fn deref_mut(&mut self) -> &mut MemCore {
+        &mut self.obj_core
+    }
+}
+
+impl<T: OclPrm> AsRef<MemCore> for SubBuffer<T> {
+    fn as_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<T: OclPrm> AsMut<MemCore> for SubBuffer<T> {
+    fn as_mut(&mut self) -> &mut MemCore {
+        &mut self.obj_core
+    }
+}
+
+impl<'a, T: OclPrm> AsMemRef<T> for SubBuffer<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<'a, T: OclPrm> AsMemRef<T> for &'a SubBuffer<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<'a, T: OclPrm> AsMemRef<T> for &'a mut SubBuffer<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<T: OclPrm> std::fmt::Display for SubBuffer<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.fmt_mem_info(f)
+    }
+}

@@ -1,28 +1,46 @@
 Version 0.13.0 (UNRELEASED)
 ===========================
 
-Command queue properties can now be specified when creating a `Queue` or
-`ProQue` allowing out of order execution and profiling to be enabled.
-Profiling had previously been enabled by default but now must be explicitly
-enabled by setting the `QUEUE_PROFILING_ENABLE` flag.
+* `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
+  be used just as you would `Buffer`. Use `SubBuffer::new` or
+  `Buffer::create_sub_buffer` to create one.
+* `Kernel` buffer and image related functions (such as `arg_buf`) can now
+  interchangeably accept either `Buffer<T>`, `SubBuffer<T>`, or `Image<T>`
+  types.
+* Command queue properties can now be specified when creating a `Queue` or
+  `ProQue` allowing out of order execution and profiling to be enabled.
+  Profiling had previously been enabled by default but now must be explicitly
+  enabled by setting the `QUEUE_PROFILING_ENABLE` flag.
 
 Breaking Changes
 ----------------
-* `Queue::new` now takes a third argument: `properties` (details below).
-
-* [ocl-core]:
+* `Kernel` named argument declaration functions such as `::arg_buf_named` or
+  `::set_arg_img_named` called with a `None` variant must now specify the full
+  type of the image, buffer, or sub-buffer which will be used for that
+  argument. Where before you might have used: 
+    ```.arg_buf_named::<f32>("buf", None)```
+  you must now use: 
+    ```.arg_buf_named("buf", None::<Buffer<f32>>)``` 
+  or 
+    ```.arg_buf_named::<f32, Buffer<f32>>("buf", None)```.
+* `Queue::new` now takes a third argument: `properties` (details below in
+  ocl-core section).
+* `Buffer::is_empty` has been removed.
+* ocl-core:
   * `EventList::pop` now returns an `Option<Event>` instead of an
     `Option<Result<Event>>`.
-  * `::create_command_queue` now takes a third argument: `properties`,
-    an optional bitfield described in the [clCreateCommandQueue SDK
-    Documentation](https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateCommandQueue.html).
-    Valid options include `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and
-    `QUEUE_PROFILING_ENABLE`.
+  * `::create_command_queue` now takes a third argument: `properties`, an
+    optional bitfield described in the [clCreateCommandQueue SDK
+    Documentation]. Valid options include
+    `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and `QUEUE_PROFILING_ENABLE`.
 
 Other Changes
 -------------
 * `EventList::clear` has been added.
 * `EventList` auto-clearing has been experimentally re-enabled.
+
+
+[clCreateCommandQueue SDK Documentation]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateCommandQueue.html
 
 
 Version 0.12.0 (2017-01-14)
@@ -43,7 +61,7 @@ Breaking Changes
 * `Device::max_wg_size` now returns an `ocl::Result` instead of panicing.
 * `ProQue::max_wg_size` now returns an `ocl::Result` instead of panicing.
 * `EventList::push` and `EventList::pop` have been added.
-* [ocl-core]: 
+* ocl-core: 
   * `::create_context` and `::create_context_from_type` have had their
     signatures changed. The `properties` argument is now an
     `Option<&ContextProperties>`.

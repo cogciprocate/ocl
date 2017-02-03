@@ -7,7 +7,7 @@ use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrNew, ClWaitList};
 use core::error::{Result as OclResult, Error as OclError};
-use standard::{SpatialDims, Buffer, Image, Program, Queue, WorkDims, Sampler, Device};
+use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, AsMemRef};
 
 const PRINT_DEBUG: bool = false;
 
@@ -194,16 +194,21 @@ impl Kernel {
     /// Adds a new argument to the kernel specifying the buffer object represented
     /// by 'buffer' (builder-style). Argument is added to the bottom of the argument
     /// order.
-    pub fn arg_buf<T: OclPrm>(mut self, buffer: &Buffer<T>) -> Kernel {
-        self.new_arg_buf(Some(buffer));
+    // pub fn arg_buf<T: OclPrm>(mut self, buffer: &Buffer<T>) -> Kernel {
+    pub fn arg_buf<T, M>(mut self, buffer: M) -> Kernel
+            where T: OclPrm, M: AsMemRef<T>
+    {
+        self.new_arg_buf::<T, _>(Some(buffer));
         self
     }
 
     /// Adds a new argument to the kernel specifying the image object represented
     /// by 'image' (builder-style). Argument is added to the bottom of the argument
     /// order.
-    pub fn arg_img<P: OclPrm>(mut self, image: &Image<P>) -> Kernel {
-        self.new_arg_img(Some(image));
+    pub fn arg_img<T, M>(mut self, image: M) -> Kernel
+        where T: OclPrm, M: AsMemRef<T>
+    {
+        self.new_arg_img::<T, _>(Some(image));
         self
     }
 
@@ -263,8 +268,10 @@ impl Kernel {
     /// 'buffer' (builder-style). Argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
-    pub fn arg_buf_named<T: OclPrm>(mut self, name: &'static str, buffer_opt: Option<&Buffer<T>>) -> Kernel {
-        let arg_idx = self.new_arg_buf(buffer_opt);
+    pub fn arg_buf_named<T, M>(mut self, name: &'static str, buffer_opt: Option<M>) -> Kernel
+            where T: OclPrm, M: AsMemRef<T>
+    {
+        let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
         self.named_args.insert(name, arg_idx);
         self
     }
@@ -273,8 +280,10 @@ impl Kernel {
     /// 'image' (builder-style). Argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_img_named()`.
-    pub fn arg_img_named<P: OclPrm>(mut self, name: &'static str, image_opt: Option<&Image<P>>) -> Kernel {
-        let arg_idx = self.new_arg_img(image_opt);
+    pub fn arg_img_named<T, M>(mut self, name: &'static str, image_opt: Option<M>) -> Kernel
+            where T: OclPrm, M: AsMemRef<T>
+    {
+        let arg_idx = self.new_arg_img::<T, _>(image_opt);
         self.named_args.insert(name, arg_idx);
         self
     }
@@ -317,14 +326,16 @@ impl Kernel {
     ///
     /// ## Panics [FIXME]
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_buf_named<'a, T: OclPrm>(&'a mut self, name: &'static str,
-                buffer_opt: Option<&Buffer<T>>) -> OclResult<&'a mut Kernel>
+    pub fn set_arg_buf_named<'a, T, M>(&'a mut self, name: &'static str,
+            buffer_opt: Option<M>)
+            -> OclResult<&'a mut Kernel>
+            where T: OclPrm, M: AsMemRef<T>
     {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         match buffer_opt {
             Some(buffer) => {
-                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
+                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer.as_mem_ref()))
             },
             None => {
                 self.set_arg::<T>(arg_idx, KernelArg::MemNull)
@@ -336,14 +347,16 @@ impl Kernel {
     ///
     /// ## Panics [FIXME]
     // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
-    pub fn set_arg_img_named<'a, P: OclPrm, T: OclPrm>(&'a mut self, name: &'static str,
-                image_opt: Option<&Image<P>>) -> OclResult<&'a mut Kernel>
+    pub fn set_arg_img_named<'a, T, M>(&'a mut self, name: &'static str,
+            image_opt: Option<M>)
+            -> OclResult<&'a mut Kernel>
+            where T: OclPrm, M: AsMemRef<T>
     {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         match image_opt {
-            Some(buffer) => {
-                self.set_arg::<T>(arg_idx, KernelArg::Mem(buffer))
+            Some(img) => {
+                self.set_arg::<T>(arg_idx, KernelArg::Mem(img.as_mem_ref()))
             },
             None => {
                 self.set_arg::<T>(arg_idx, KernelArg::MemNull)
@@ -513,10 +526,12 @@ impl Kernel {
     }
 
     /// Non-builder-style version of `::arg_buf()`.
-    fn new_arg_buf<T: OclPrm>(&mut self, buffer_opt: Option<&Buffer<T>>) -> u32 {
+    fn new_arg_buf<T, M>(&mut self, buffer_opt: Option<M>) -> u32
+            where T: OclPrm, M: AsMemRef<T>
+    {
         match buffer_opt {
             Some(buffer) => {
-                self.new_arg::<T>(KernelArg::Mem(buffer))
+                self.new_arg::<T>(KernelArg::Mem(buffer.as_mem_ref()))
             },
             None => {
                 self.new_arg::<T>(KernelArg::MemNull)
@@ -525,11 +540,13 @@ impl Kernel {
     }
 
     /// Non-builder-style version of `::arg_img()`.
-    fn new_arg_img<P: OclPrm>(&mut self, image_opt: Option<&Image<P>>) -> u32 {
+    fn new_arg_img<T, M>(&mut self, image_opt: Option<M>) -> u32
+        where T: OclPrm, M: AsMemRef<T>
+    {
         match image_opt {
             Some(image) => {
                 // Type is ignored:
-                self.new_arg::<u8>(KernelArg::Mem(image))
+                self.new_arg::<u8>(KernelArg::Mem(image.as_mem_ref()))
             },
             None => {
                 self.new_arg::<u8>(KernelArg::MemNull)

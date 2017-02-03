@@ -1,6 +1,6 @@
 use std::thread;
 use std::time::Duration;
-use standard::{ProQue, Kernel};
+use standard::{ProQue, Kernel, Buffer};
 
 static SRC: &'static str = r#"
     __kernel void add(__global float* buffer, float addend) {
@@ -23,7 +23,8 @@ fn kernel_arg_ptr_out_of_scope() {
         .build().unwrap();
 
     let mut kernel = pro_que.create_kernel("add").unwrap()
-        .arg_buf_named::<f32>("buf", None)
+        // Being redundant with type ascription for testing purposes:
+        .arg_buf_named::<f32, Buffer<f32>>("buf", None::<Buffer<f32>>)
         .arg_scl(10.0f32);
 
     set_arg(&mut kernel, &pro_que);

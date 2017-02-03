@@ -190,6 +190,26 @@ impl<'a> From<&'a SpatialDims> for SpatialDims {
     }
 }
 
+impl From<usize> for SpatialDims {
+    fn from(val: usize) -> SpatialDims {
+        SpatialDims::One(val)
+    }
+}
+
+impl From<isize> for SpatialDims {
+    fn from(val: isize) -> SpatialDims {
+        assert!(val > 0, "Invalid 'SpatialDims' value: {}. \
+            Dimensions must be greater than zero.", val);
+        (val as usize).into()
+    }
+}
+
+impl From<i32> for SpatialDims {
+    fn from(val: i32) -> SpatialDims {
+        (val as isize).into()
+    }
+}
+
 impl<T: Num + ToPrimitive + Debug + Copy> From<(T, )> for SpatialDims {
     fn from(val: (T, )) -> SpatialDims {
         SpatialDims::One(to_usize(val.0))

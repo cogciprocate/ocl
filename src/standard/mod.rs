@@ -34,7 +34,7 @@ pub use self::context::{Context, ContextBuilder};
 pub use self::program::{Program, ProgramBuilder, BuildOpt};
 pub use self::queue::Queue;
 pub use self::kernel::{Kernel, KernelCmd};
-pub use self::buffer::{Buffer, BufferCmd, BufferCmdKind, BufferCmdDataShape};
+pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, SubBuffer};
 // pub use self::buffer_cmd::{BufferCmd, BufferCmdKind, BufferCmdDataShape};
 // pub use self::image_builder::ImageBuilder;
 pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};
@@ -45,7 +45,7 @@ pub use self::pro_que::{ProQue, ProQueBuilder};
 pub use self::event::{Event, EventList};
 // pub use self::event_list::EventList;
 pub use self::spatial_dims::SpatialDims;
-pub use self::traits::{MemLen, WorkDims};
+pub use self::traits::{MemLen, WorkDims, AsMemRef, AsMemMut};
 
 
 //=============================================================================
@@ -63,8 +63,21 @@ mod traits {
     // use std::convert::Into;
     use num::{Num, ToPrimitive};
     // use core::error::{Result as OclResult};
-    use super::{SpatialDims};
+    use core::Mem as MemCore;
+    use ::{SpatialDims, OclPrm};
     use super::spatial_dims::to_usize;
+
+
+    /// `AsRef` with a type being carried along for convenience.
+    pub trait AsMemRef<T: OclPrm> {
+        fn as_mem_ref(&self) -> &MemCore;
+    }
+
+
+    /// `AsMut` with a type being carried along for convenience.
+    pub trait AsMemMut<T: OclPrm> {
+        fn as_mem_mut(&mut self) -> &mut MemCore;
+    }
 
 
     /// Types which have properties describing the amount of work to be done
@@ -88,6 +101,7 @@ mod traits {
         fn to_work_offset(&self) -> Option<[usize; 3]>;
     }
 
+
     /// Types which have properties allowing them to be used to define the size
     /// of a volume of memory.
     ///
@@ -97,7 +111,7 @@ mod traits {
         /// Returns the exact number of elements of a volume of memory
         /// (equivalent to `Vec::len()`).
         fn to_len(&self) -> usize;
-        /// Returns the length of a volumue of memory padded to the next
+        /// Returns the length of a volume of memory padded to the next
         /// multiple of `incr`.
         fn to_len_padded(&self, incr: usize) -> usize;
         /// Returns the exact lengths of each dimension of a volume of memory.

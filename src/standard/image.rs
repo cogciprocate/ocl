@@ -10,7 +10,7 @@ use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList,
     ImageChannelOrder, ImageChannelDataType, GlTextureTarget};
-use standard::{Context, Queue, MemLen, SpatialDims};
+use standard::{Context, Queue, MemLen, SpatialDims, AsMemRef};
 use ffi::{cl_GLuint, cl_GLint};
 
 /// A builder for `Image`.
@@ -934,6 +934,24 @@ impl<E: OclPrm> Deref for Image<E> {
 impl<E: OclPrm> DerefMut for Image<E> {
     fn deref_mut(&mut self) -> &mut MemCore {
         &mut self.obj_core
+    }
+}
+
+impl<T: OclPrm> AsMemRef<T> for Image<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<'a, T: OclPrm> AsMemRef<T> for &'a Image<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+}
+
+impl<'a, T: OclPrm> AsMemRef<T> for &'a mut Image<T> {
+    fn as_mem_ref(&self) -> &MemCore {
+        &self.obj_core
     }
 }
 
