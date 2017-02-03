@@ -160,7 +160,7 @@ impl<'e> ClEventRef<'e> for EventRefWrapper<'e> {
 
 /// cl_platform_id
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Hash)]
+#[derive(Clone, Copy, Debug, Hash, Eq)]
 pub struct PlatformId(cl_platform_id);
 
 impl PlatformId {
@@ -216,7 +216,7 @@ impl ClVersions for PlatformId {
 
 /// cl_device_id
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Hash)]
+#[derive(Clone, Copy, Debug, Hash, Eq)]
 pub struct DeviceId(cl_device_id);
 
 impl DeviceId {
