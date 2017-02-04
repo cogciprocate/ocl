@@ -914,21 +914,21 @@ pub unsafe fn create_from_gl_texture_3d(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html)
 ///
-pub fn create_sub_buffer(
+pub fn create_sub_buffer<T>(
             buffer: &Mem,
             flags: MemFlags,
-            buffer_create_info: &BufferRegion,
+            buffer_create_info: &BufferRegion<T>,
         ) -> OclResult<Mem>
 {
     let buffer_create_type = BufferCreateType::Region;
-
+    let buffer_create_info_bytes = buffer_create_info.to_bytes();
     let mut errcode = 0i32;
 
     let sub_buf_ptr = unsafe { ffi::clCreateSubBuffer(
         buffer.as_ptr(),
         flags.bits(),
         buffer_create_type as cl_buffer_create_type,
-        buffer_create_info as *const _ as *const c_void,
+        &buffer_create_info_bytes as *const _ as *const c_void,
         &mut errcode,
     ) };
     try!(errcode_try("clCreateSubBuffer", "", errcode));

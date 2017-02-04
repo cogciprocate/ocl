@@ -2,10 +2,12 @@
 
 use libc;
 use std;
+use std::mem;
+use std::marker::PhantomData;
 use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
-use ffi::{self, cl_mem};
+use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
         PlatformId};
 
@@ -352,9 +354,32 @@ impl Into<Vec<isize>> for ContextProperties {
 /// devices in context associated with buffer for which the origin value is
 /// aligned to the CL_DEVICE_MEM_BASE_ADDR_ALIGN value.
 ///
-pub struct BufferRegion {
-    pub origin: usize,
-    pub size: usize,
+pub struct BufferRegion<T> {
+    origin: usize,
+    len: usize,
+    _data: PhantomData<T>,
+}
+
+// #[repr(C)]
+// pub struct cl_buffer_region {
+//     pub origin:     size_t,
+//     pub size:       size_t,
+// }
+
+impl<T> BufferRegion<T> {
+    pub fn new(origin: usize, len: usize) -> BufferRegion<T> {
+        BufferRegion {
+            origin: origin,
+            len: len,
+            _data: PhantomData,
+        }
+    }
+    pub fn to_bytes(&self) -> cl_buffer_region {
+        cl_buffer_region {
+            origin: self.origin * mem::size_of::<T>(),
+            size: self.len * mem::size_of::<T>(),
+        }
+    }
 }
 
 
