@@ -482,6 +482,34 @@ impl Kernel {
         core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName).into()
     }
 
+    pub fn named_arg_idx(&self, name: &'static str) -> Option<u32> {
+        self.named_args.get(name).cloned()
+    }
+
+    /// Sets an argument by index.
+    pub fn set_arg<T: OclPrm>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
+        // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
+        // refers to, store it in `self.mem_args`, and create a new
+        // `KernelArg::Mem` refering to the locally stored copy. This prevents
+        // a buffer which has gone out of scope from being erroneously refered
+        // to when this kernel is enqueued and causing either a misleading
+        // error message or a hard to debug segfault depending on the
+        // platform.
+        let arg = match arg {
+            KernelArg::Mem(mem) => {
+                self.mem_args[arg_idx as usize] = Some(mem.clone());
+                let mem_arg_ref = self.mem_args.get(arg_idx as usize).unwrap().as_ref().unwrap();
+                KernelArg::Mem(mem_arg_ref)
+            },
+            arg => {
+                self.mem_args[arg_idx as usize] = None;
+                arg
+            },
+        };
+
+        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
+    }
+
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Kernel")
             .field("FunctionName", &self.info(KernelInfo::FunctionName))
@@ -608,32 +636,6 @@ impl Kernel {
         self.arg_count += 1;
         debug_assert!(self.arg_count as usize == self.mem_args.len());
         arg_idx
-    }
-
-    /// Sets an argument.
-    ///
-    // [TODO]: Consider making this public (user feedback needed).
-    fn set_arg<T: OclPrm>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
-        // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
-        // refers to, store it in `self.mem_args`, and create a new
-        // `KernelArg::Mem` refering to the locally stored copy. This prevents
-        // a buffer which has gone out of scope from being erroneously refered
-        // to when this kernel is enqueued and causing either a misleading
-        // error message or a hard to debug segfault depending on the
-        // platform.
-        let arg = match arg {
-            KernelArg::Mem(mem) => {
-                self.mem_args[arg_idx as usize] = Some(mem.clone());
-                let mem_arg_ref = self.mem_args.get(arg_idx as usize).unwrap().as_ref().unwrap();
-                KernelArg::Mem(mem_arg_ref)
-            },
-            arg => {
-                self.mem_args[arg_idx as usize] = None;
-                arg
-            },
-        };
-
-        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
     }
 }
 

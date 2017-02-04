@@ -863,15 +863,21 @@ impl<T: OclPrm> SubBuffer<T> {
         self.cmd().write(data)
     }
 
+    /// Returns the origin of the sub-buffer within the buffer.
+    #[inline]
+    pub fn origin(&self) -> &SpatialDims {
+        &self.origin
+    }
+
+    /// Returns the dimensions of the sub-buffer.
+    pub fn dims(&self) -> &SpatialDims {
+        &self.size
+    }
+
     /// Returns the length of the sub-buffer.
     #[inline]
     pub fn len(&self) -> usize {
         self.len
-    }
-
-    /// Returns the dimensions of the buffer.
-    pub fn dims(&self) -> &SpatialDims {
-        &self.size
     }
 
     /// Returns info about the underlying memory object.
