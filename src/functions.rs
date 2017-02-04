@@ -352,6 +352,13 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
         &mut result_size as *mut size_t,
     ) };
 
+    // Don't generate a full error report for `CL_INVALID_VALUE` it's always
+    // just an extension unsupported by the device (i.e.
+    // `CL_DEVICE_HALF_FP_CONFIG` on Intel):
+    if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
+        return DeviceInfoResult::Error(Box::new(OclError::new("[UNAVAILABLE (CL_INVALID_VALUE)]")));
+    }
+
     // try!(errcode_try("clGetDeviceInfo", "", errcode));
     if let Err(err) = errcode_try("clGetDeviceInfo", "", errcode) {
         return DeviceInfoResult::Error(Box::new(err));
@@ -371,7 +378,6 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };
-
 
     let result = errcode_try("clGetDeviceInfo", "", errcode).and(Ok(result));
 
