@@ -326,6 +326,16 @@ bitflags! {
     }
 }
 
+impl CommandQueueProperties {
+    #[inline] pub fn out_of_order() -> CommandQueueProperties { QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE }
+    #[inline] pub fn profiling() -> CommandQueueProperties { QUEUE_PROFILING_ENABLE }
+}
+
+impl Default for CommandQueueProperties {
+    #[inline] fn default() -> CommandQueueProperties { CommandQueueProperties::empty() }
+}
+
+
 bitflags! {
     /// cl_device_affinity_domain
     pub flags DeviceAffinityDomain: u64 {
@@ -410,6 +420,7 @@ bitflags! {
         const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
     }
 }
+
 
 bitflags! {
     /// cl_kernel_arg_type_qualifer
