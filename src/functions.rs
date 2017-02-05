@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties};
+    CommandQueueProperties, MappedMem};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -2463,18 +2463,11 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm>(
     errcode_try("clEnqueueCopyBufferToImage", "", errcode)
 }
 
-/// [UNTESTED]
 /// Enqueues a command to map a region of the buffer object given
 /// by `buffer` into the host address space and returns a pointer to this
 /// mapped region.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html)
-///
-/// ## Stability
-///
-/// This function will eventually return a safe wrapper for the mapped host
-/// memory. Until then, just create a `Vec` from the returned pointer using
-/// `size` / size_of::<T>() as the length and capacity.
 ///
 /// ## Safety
 ///
@@ -2499,7 +2492,7 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
             size: usize,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
-        ) -> OclResult<*mut c_void>
+        ) -> OclResult<MappedMem<T>>
 {
     let offset_bytes = offset * mem::size_of::<T>();
     let size_bytes = size * mem::size_of::<T>();
@@ -2522,7 +2515,7 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
     );
     try!(errcode_try("clEnqueueMapBuffer", "", errcode));
 
-    Ok(mapped_ptr)
+    Ok(MappedMem::new(mapped_ptr as *mut T, size))
 }
 
 /// [UNTESTED]
@@ -2530,12 +2523,6 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
 /// the host address space and returns a pointer to this mapped region.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html)
-///
-/// ## Stability
-///
-/// This function will eventually return a safe wrapper for the mapped host
-/// memory. Until then, just create a `Vec` from the returned pointer using
-/// `size` / size_of::<T>() as the length and capacity.
 ///
 /// ## Safety
 ///
@@ -2548,7 +2535,7 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
 /// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
 ///
 ///
-pub unsafe fn enqueue_map_image<T>(
+pub unsafe fn enqueue_map_image<T: OclPrm>(
             command_queue: &CommandQueue,
             image: &Mem,
             block: bool,
@@ -2559,7 +2546,7 @@ pub unsafe fn enqueue_map_image<T>(
             slc_pitch: usize,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
-        ) -> OclResult<*mut c_void>
+        ) -> OclResult<MappedMem<T>>
 {
     let row_pitch_bytes = row_pitch * mem::size_of::<T>();
     let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
@@ -2584,23 +2571,17 @@ pub unsafe fn enqueue_map_image<T>(
     );
     try!(errcode_try("clEnqueueMapImage", "", errcode));
 
-    Ok(mapped_ptr)
+    Ok(MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2]))
 }
 
-/// [UNTESTED]
 /// Enqueues a command to unmap a previously mapped region of a memory object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueUnmapMemObject.html)
 ///
-/// ## Stability
-///
-/// This function will eventually accept a safe wrapper of some sort for the
-/// mapped host memory rather than a pointer.
-///
-pub fn enqueue_unmap_mem_object(
+pub fn enqueue_unmap_mem_object<T: OclPrm>(
             command_queue: &CommandQueue,
             memobj: &Mem,
-            mapped_ptr: *mut c_void,
+            mapped_mem: &mut MappedMem<T>,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<()> {
@@ -2610,11 +2591,16 @@ pub fn enqueue_unmap_mem_object(
     let errcode = unsafe { ffi::clEnqueueUnmapMemObject(
         command_queue.as_ptr(),
         memobj.as_ptr(),
-        mapped_ptr,
+        mapped_mem.as_ptr(),
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
     ) };
+
+    if errcode == Status::CL_SUCCESS as i32 {
+        unsafe { mapped_mem.set_unmapped(); }
+    }
+
     errcode_try("clEnqueueUnmapMemObject", "", errcode)
 }
 

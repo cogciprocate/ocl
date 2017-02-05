@@ -2,18 +2,132 @@
 
 use libc;
 use std;
+use std::slice;
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-        PlatformId};
+        PlatformId, OclPrm, CommandQueue, ClWaitList, ClEventPtrNew};
 
 
 // Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
+
+
+/// A view of memory mapped by `clEnqueueMap{...}`.
+///
+/// ### [UNSTABLE]
+///
+/// Still in a state of flux but is ~95% stable.
+///
+pub struct MappedMem<T> {
+    ptr: *mut T,
+    len: usize,
+    mapped: bool,
+}
+
+impl<T> MappedMem<T>  where T: OclPrm {
+    pub unsafe fn new(ptr: *mut T, len: usize) -> MappedMem<T> {
+        assert!(!ptr.is_null(), "MappedMem::new: Null pointer passed.");
+
+        MappedMem {
+            ptr: ptr,
+            len: len,
+            mapped: true,
+        }
+    }
+
+    pub fn unmap(&mut self, queue: &CommandQueue, mem: &Mem, wait_list: Option<&ClWaitList>,
+            new_event: Option<&mut ClEventPtrNew>) -> OclResult<()>
+    {
+        ::enqueue_unmap_mem_object(queue, mem, self, wait_list, new_event)
+    }
+
+    pub fn as_ptr(&self) -> cl_mem {
+        self.ptr as cl_mem
+    }
+
+    pub unsafe fn set_unmapped(&mut self) {
+        self.mapped = false;
+    }
+}
+
+impl<T> Deref for MappedMem<T> where T: OclPrm {
+    type Target = [T];
+
+    fn deref(&self) -> &[T] {
+        unsafe { slice::from_raw_parts(self.ptr, self.len) }
+    }
+}
+
+impl<T> DerefMut for MappedMem<T> where T: OclPrm {
+    fn deref_mut(&mut self) -> &mut [T] {
+        unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
+    }
+}
+
+impl<T> Drop for MappedMem<T> {
+    fn drop(&mut self) {
+        assert!(!self.mapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
+            Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
+    }
+}
+
+
+// /// A view of memory mapped by `clEnqueueMap{...}`.
+// pub struct MappedMem<T> {
+//     ptr: *mut T,
+//     len: usize,
+//     queue: CommandQueue,
+//     mem: Mem,
+// }
+
+// impl<T> MappedMem<T>  where T: OclPrm {
+//     pub unsafe fn new(ptr: *mut T, len: usize, queue: CommandQueue, mem: Mem) -> MappedMem<T> {
+//         assert!(!ptr.is_null(), "MappedMem::new: Null pointer passed.");
+
+//         MappedMem {
+//             ptr: ptr,
+//             len: len,
+//             queue: queue,
+//             mem: mem,
+//         }
+//     }
+// }
+
+// impl<T> Deref for MappedMem<T> where T: OclPrm {
+//     type Target = [T];
+
+//     fn deref(&self) -> &[T] {
+//         unsafe { slice::from_raw_parts(self.ptr, self.len) }
+//     }
+// }
+
+// impl<T> DerefMut for MappedMem<T> where T: OclPrm {
+//     fn deref_mut(&mut self) -> &mut [T] {
+//         unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
+//     }
+// }
+
+// impl<T> Drop for MappedMem<T> {
+//     fn drop(&mut self) {
+//         unsafe {
+//             ::enqueue_unmap_mem_object(
+//                 &self.queue,
+//                 &self.mem,
+//                 self.ptr as cl_mem,
+//                 None,
+//                 None,
+//             ).unwrap();
+//         }
+//     }
+// }
+
+
 
 
 /// Parsed OpenCL version in the layout `({major}, {minor})`.

@@ -153,8 +153,8 @@ pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceI
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
     ClWaitList, ClVersions};
 
-pub use self::types::structs::{OpenclVersion, ContextProperties, ImageFormat, ImageDescriptor,
-    BufferRegion, ContextPropertyValue};
+pub use self::types::structs::{MappedMem, OpenclVersion, ContextProperties, ImageFormat,
+    ImageDescriptor, BufferRegion, ContextPropertyValue};
 
 pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
     ContextInfoResult, CommandQueueInfoResult, MemInfoResult,
