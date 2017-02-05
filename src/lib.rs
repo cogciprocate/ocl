@@ -66,7 +66,7 @@ pub use core::error::{Error, Result};
 pub use core::util;
 
 #[doc(no_inline)]
-pub use core::{OclPrm, OclScl, OclVec};
+pub use core::{OclPrm, OclScl, OclVec, MappedMem};
 
 
 pub mod aliases {

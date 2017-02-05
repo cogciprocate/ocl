@@ -16,12 +16,11 @@ extern crate rand;
 /////// [FIXME]: TEMPORARY:
 extern crate libc;
 
-use std::slice;
+// use std::slice;
 use rand::distributions::{IndependentSample, Range as RandRange};
 use std::collections::{LinkedList, HashMap, BTreeSet};
 use ocl::{flags, Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
-    Event, EventList};
-use ocl::flags::{CommandQueueProperties, MemFlags};
+    Event, EventList, MappedMem};
 use ocl::aliases::ClFloat4;
 
 const INITIAL_PROGRAM_COUNT: usize = 25;
@@ -39,8 +38,7 @@ struct PoolRegion {
     len: u32,
 }
 
-
-/// A simple but slow sub-buffer allocator.
+/// A simple (linear search) sub-buffer allocator.
 struct BufferPool<T: OclPrm> {
     buffer: Buffer<T>,
     regions: LinkedList<PoolRegion>,
@@ -66,6 +64,10 @@ impl<T: OclPrm> BufferPool<T> {
         }
     }
 
+    fn next_valid_align(&self, unaligned_origin: u32) -> u32 {
+        ((unaligned_origin / self.align) + 1) * self.align
+    }
+
     fn next_uid(&mut self) -> usize {
         self._next_uid += 1;
         self._next_uid - 1
@@ -78,10 +80,9 @@ impl<T: OclPrm> BufferPool<T> {
     }
 
     fn create_sub_buffer(&mut self, region_idx: usize, flags: Option<flags::MemFlags>,
-            unaligned_origin: u32, len: u32) -> usize
+            origin: u32, len: u32) -> usize
     {
         let buffer_id = self.next_uid();
-        let origin = ((unaligned_origin / self.align) + 1) * self.align;
         let region = PoolRegion { buffer_id: buffer_id, origin: origin, len: len };
         let sbuf = self.buffer.create_sub_buffer(flags, region.origin, region.len).unwrap();
         if let Some(idx) = self.sub_buffers.insert(region.buffer_id, sbuf) {
@@ -105,7 +106,7 @@ impl<T: OclPrm> BufferPool<T> {
                         create_at = Some(region_idx);
                         break;
                     } else {
-                        end_prev = region.origin + region.len;
+                        end_prev = self.next_valid_align(region.origin + region.len);
                     }
                 }
 
@@ -417,7 +418,7 @@ impl Task {
         }))
     }
 
-    pub fn write<T: OclPrm>(&self, cmd_idx: usize, buf_pool: &BufferPool<T>) -> Result<&mut [T], ()> {
+    pub fn write<T: OclPrm>(&self, cmd_idx: usize, buf_pool: &BufferPool<T>) -> Result<MappedMem<T>, ()> {
         let tar_buf_id = match self.cmd_graph.commands[cmd_idx].details {
             CommandDetails::Write { target } => target,
             _ => return Err(()),
@@ -427,25 +428,21 @@ impl Task {
 
         unsafe {
             Ok(
-                slice::from_raw_parts_mut(
-                    ocl::core::enqueue_map_buffer::<T>(
-                        &self.queue,
-                        buf,
-                        true,
-                        flags::MAP_WRITE_INVALIDATE_REGION,
-                        0,
-                        buf.len(),
-                        None,
-                        None,
-                        ).unwrap() as *mut T
-                    ,
-                    buf.len()
-                )
+                ocl::core::enqueue_map_buffer::<T>(
+                    &self.queue,
+                    buf,
+                    true,
+                    flags::MAP_WRITE_INVALIDATE_REGION,
+                    0,
+                    buf.len(),
+                    None,
+                    None,
+                ).unwrap()
             )
         }
     }
 
-    pub fn read<T: OclPrm>(&self, cmd_idx: usize, buf_pool: &BufferPool<T>) -> Result<&[T], ()> {
+    pub fn read<T: OclPrm>(&self, cmd_idx: usize, buf_pool: &BufferPool<T>) -> Result<MappedMem<T>, ()> {
         let src_buf_id = match self.cmd_graph.commands[cmd_idx].details {
             CommandDetails::Read { source } => source,
             _ => return Err(()),
@@ -455,20 +452,16 @@ impl Task {
 
         unsafe {
             Ok(
-                slice::from_raw_parts(
-                    ocl::core::enqueue_map_buffer::<T>(
-                        &self.queue,
-                        buf,
-                        true,
-                        flags::MAP_READ,
-                        0,
-                        buf.len(),
-                        None,
-                        None,
-                        ).unwrap() as *const T
-                    ,
-                    buf.len()
-                )
+                ocl::core::enqueue_map_buffer::<T>(
+                    &self.queue,
+                    buf,
+                    true,
+                    flags::MAP_READ,
+                    0,
+                    buf.len(),
+                    None,
+                    None,
+                ).unwrap()
             )
         }
     }
@@ -518,15 +511,130 @@ fn gen_kern_src(kernel_name: &str, add: bool) -> String {
 }
 
 
+/// Returns a simple task.
+///
+/// This task will:
+///
+/// 1. Write data
+/// 2. Run one kernel
+/// 3. Read data
+///
+fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPool<ClFloat4>,
+    work_size: u32, kernel_queue: Queue) -> Result<Task, ()>
+{
+    let write_buf_flags = Some(flags::MEM_ALLOC_HOST_PTR | flags::MEM_READ_ONLY |
+        flags::MEM_HOST_WRITE_ONLY);
+    let read_buf_flags = Some(flags::MEM_ALLOC_HOST_PTR | flags::MEM_WRITE_ONLY |
+        flags::MEM_HOST_READ_ONLY);
+
+    // The container for this task:
+    let mut task = Task::new(kernel_queue.clone());
+
+    // Allocate our input and output buffers:
+    let write_buf_id_res = buf_pool.alloc(work_size, write_buf_flags);
+    let read_buf_id_res = buf_pool.alloc(work_size, read_buf_flags);
+
+    // Make sure we didn't exceed the buffer pool:
+    if write_buf_id_res.is_err() || read_buf_id_res.is_err() {
+        buf_pool.free(write_buf_id_res.unwrap()).ok();
+        buf_pool.free(read_buf_id_res.unwrap()).ok();
+        return Err(());
+    }
+
+    let write_buf_id = write_buf_id_res.unwrap();
+    let read_buf_id = write_buf_id_res.unwrap();
+
+    let program = Program::builder()
+        .devices(device)
+        .src(gen_kern_src("kern", true))
+        .build(context).unwrap();
+
+    let kern = Kernel::new("kern", &program, kernel_queue).unwrap()
+        .gws(work_size)
+        .arg_buf(buf_pool.get(write_buf_id).unwrap())
+        .arg_scl(ClFloat4(100., 100., 100., 100.))
+        .arg_buf(buf_pool.get(read_buf_id).unwrap());
+
+    // Initial write to device:
+    assert!(task.add_write_command(write_buf_id).unwrap() == 0);
+
+    // Kernel:
+    assert!(task.add_kernel(kern,
+        vec![KernelArgBuffer::new(0, write_buf_id)],
+        vec![KernelArgBuffer::new(2, read_buf_id)]).unwrap() == 1);
+
+    // Final read from device:
+    assert!(task.add_read_command(read_buf_id).unwrap() == 2);
+
+    Ok(task)
+}
+
+fn run_simple_task(task: &Task, buf_pool: &BufferPool<ClFloat4>, correct_val_count: &mut usize) {
+    match task.write(0, buf_pool) {
+        Ok(mut data) => {
+            let write_buf_id = match task.cmd_graph.commands[0].details {
+                CommandDetails::Write { target } => target,
+                _ => panic!(),
+            };
+
+            let buf = buf_pool.get(write_buf_id).unwrap();
+
+            assert!(data.len() == buf.len());
+
+            for val in data.iter_mut() {
+                *val = ClFloat4(0., 0., 0., 0.);
+            }
+
+            ocl::core::enqueue_unmap_mem_object(
+                &task.queue,
+                buf,
+                &mut data,
+                None,
+                None,
+            ).unwrap();
+        },
+        Err(_) => panic!("Error attempting to write."),
+    }
+
+    task.kernel(1).unwrap();
+
+    match task.read(2, buf_pool) {
+        Ok(mut data) => {
+            let read_buf_id = match task.cmd_graph.commands[2].details {
+                CommandDetails::Read { source } => source,
+                _ => panic!(),
+            };
+
+            let buf = buf_pool.get(read_buf_id).unwrap();
+            assert!(data.len() == buf.len());
+
+            for val in data.iter() {
+                if *val != ClFloat4(100., 100., 100., 100.) {
+                    panic!("Invalid value: {:?}", val);
+                }
+                *correct_val_count += 1;
+            }
+
+            // println!("All {} values correctly equal '{:?}'!", data.len(), data.first().unwrap());
+
+            ocl::core::enqueue_unmap_mem_object(
+                &task.queue,
+                buf,
+                &mut data,
+                None,
+                None,
+            ).unwrap();
+        },
+        Err(_) => panic!("Error attempting to read."),
+    }
+}
+
+
 /// Creates a large number of complex asynchronous tasks and verifies that
 /// they each executed correctly without blocking or explicitly using any fences
 fn main() {
     // Flags and buffer size range:
     let ooo_queue_flag = Some(flags::QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
-    let write_buf_flags = Some(flags::MEM_ALLOC_HOST_PTR | flags::MEM_READ_ONLY |
-        flags::MEM_HOST_WRITE_ONLY);
-    let read_buf_flags = Some(flags::MEM_ALLOC_HOST_PTR | flags::MEM_WRITE_ONLY |
-        flags::MEM_HOST_READ_ONLY);
     let buffer_size_range = RandRange::new(SUB_BUF_MIN_LEN, SUB_BUF_MAX_LEN);
     let mut rng = rand::weak_rng();
 
@@ -540,176 +648,43 @@ fn main() {
 
     // All queues are out of order and coordinated by the command graph. This
     // example doesn't really need two because they're already out of order
-    // (I'm fairly sure about this) but it's good practice to have a separate
-    // I/O queue so we'll stick with it for now.
+    // but it's good practice to have a separate I/O queue.
     let kernel_queue = Queue::new(&context, device, ooo_queue_flag).unwrap();
     let io_queue = Queue::new(&context, device, ooo_queue_flag).unwrap();
 
     let mut buf_pool: BufferPool<ClFloat4> = BufferPool::new(INITIAL_BUFFER_LEN, io_queue);
-    let mut tasks: HashMap<usize, Task> = HashMap::new();
-
+    let mut tasks: Vec<Task> = Vec::new();
     let mut pool_full = false;
 
     // Create some arbitrary tasks until our buffer pool is full:
     while !pool_full {
-        for j in 0..300 {
-            // This task will:
-            //
-            // 1. Write data
-            // 2. Run one kernel
-            // 3. Read data
-
-            // Vary the work size:
+        for j in 0..3 {
+            // Random work size:
             let work_size = buffer_size_range.ind_sample(&mut rng);
 
-            // The container for this task:
-            let mut task = Task::new(kernel_queue.clone());
+            // Create task if there is room in the buffer pool:
+            let task = match create_simple_task(device, &context, &mut buf_pool,
+                    work_size, kernel_queue.clone())
+            {
+                Ok(task) => task,
+                Err(_) => {
+                    pool_full = true;
+                    println!("Buffer pool is full.");
+                    break;
+                },
+            };
 
-            // Allocate our input and output buffers:
-            let write_buf_id_res = buf_pool.alloc(work_size, write_buf_flags);
-            let read_buf_id_res = buf_pool.alloc(work_size, read_buf_flags);
-
-            // Make sure we didn't exceed the buffer pool:
-            if write_buf_id_res.is_err() || read_buf_id_res.is_err() {
-                pool_full = true;
-                println!("Buffer pool is full.");
-                break;
-            }
-
-            let write_buf_id = write_buf_id_res.unwrap();
-            let read_buf_id = write_buf_id_res.unwrap();
-
-            let program = Program::builder()
-                .devices(device)
-                // .src(gen_kern_src("kern", rand::random()))
-                .src(gen_kern_src("kern", true))
-                .build(&context).unwrap();
-
-            let kern = Kernel::new("kern", &program, kernel_queue.clone()).unwrap()
-                .gws(work_size)
-                .arg_buf(buf_pool.get(write_buf_id).unwrap())
-                .arg_scl(ClFloat4(100., 100., 100., 100.))
-                .arg_buf(buf_pool.get(read_buf_id).unwrap());
-
-            // Initial write to device:
-            assert!(task.add_write_command(write_buf_id).unwrap() == 0);
-
-            // Kernel:
-            assert!(task.add_kernel(kern,
-                vec![KernelArgBuffer::new(0, write_buf_id)],
-                vec![KernelArgBuffer::new(2, read_buf_id)]).unwrap() == 1);
-
-            // Final read from device:
-            assert!(task.add_read_command(read_buf_id).unwrap() == 2);
-
-            // Insert task. Use a buffer_id as the key since it'll be unique:
-            tasks.insert(write_buf_id, task);
+            // Add task to the list:
+            tasks.push(task);
         }
     }
 
-    let mut val_count = 0usize;
+    let mut correct_val_count = 0usize;
 
-    for task in tasks.values() {
-        match task.write(0, &buf_pool) {
-            Ok(data) => {
-                let write_buf_id = match task.cmd_graph.commands[0].details {
-                    CommandDetails::Write { target } => target,
-                    _ => panic!(),
-                };
-
-                let buf = buf_pool.get(write_buf_id).unwrap();
-
-                assert!(data.len() == buf.len());
-
-                for val in data.iter_mut() {
-                    *val = ClFloat4(0., 0., 0., 0.);
-                }
-
-                ocl::core::enqueue_unmap_mem_object(
-                    &task.queue,
-                    buf,
-                    data.as_ptr() as *mut libc::c_void,
-                    None,
-                    None,
-                ).unwrap();
-            },
-            Err(_) => panic!("Error attempting to write."),
-        }
-
-        task.kernel(1).unwrap();
-
-        match task.read(2, &buf_pool) {
-            Ok(data) => {
-                let read_buf_id = match task.cmd_graph.commands[2].details {
-                    CommandDetails::Read { source } => source,
-                    _ => panic!(),
-                };
-
-                let buf = buf_pool.get(read_buf_id).unwrap();
-                assert!(data.len() == buf.len());
-
-                for val in data.iter() {
-                    if *val != ClFloat4(100., 100., 100., 100.) {
-                        panic!("Invalid value: {:?}", val);
-                    }
-                    val_count += 1;
-                }
-
-                // println!("All {} values correctly equal '{:?}'!", data.len(), data.first().unwrap());
-
-                ocl::core::enqueue_unmap_mem_object(
-                    &task.queue,
-                    buf,
-                    data.as_ptr() as *mut libc::c_void,
-                    None,
-                    None,
-                ).unwrap();
-            },
-            Err(_) => panic!("Error attempting to write."),
-        }
+    for task in tasks.iter() {
+        run_simple_task(task, &buf_pool, &mut correct_val_count);
     }
 
-    println!("All {} values are correct!", val_count);
+    println!("All {} values are correct!", correct_val_count);
 }
 
-
-
-    // let kernel_src = gen_kernel("add", ());
-
-    // let program = Program::builder()
-    //     .devices(device)
-    //     .src(src)
-    //     .build(&context).unwrap();
-
-    // let kernel = Kernel::new("add", &program, &queue).unwrap()
-    //     .gws(&dims)
-    //     .arg_buf(&buffer)
-    //     .arg_scl(ClFloat4(10., 10., 10., 10.));
-
-    // kernel.cmd()
-    //     .queue(&queue)
-    //     .gwo(kernel.get_gwo())
-    //     .gws(&dims)
-    //     .lws(kernel.get_lws())
-    //     .ewait_opt(None)
-    //     .enew_opt(None)
-    //     .enq().unwrap();
-
-    // buffer.cmd()
-    //     .queue(&queue)
-    //     .block(true)
-    //     .offset(0)
-    //     .read(&mut vec)
-    //     .ewait_opt(None)
-    //     .enew_opt(None)
-    //     .enq().unwrap();
-
-    // println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);}
-
-
-    // struct TaskChain {
-    //     queue: Queue,
-    //     buffer_ids: Vec<usize>,
-    //     programs: Vec<Program>,
-    //     kernels: Vec<Kernel>,
-    // }

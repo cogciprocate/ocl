@@ -4,6 +4,8 @@ Version 0.13.0 (UNRELEASED)
 
 [TODO]: Add links to documentation.
 
+[FIXME]:
+* Buffer mapping...
 
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
   be used just as you would `Buffer`. Use `SubBuffer::new` or
@@ -46,6 +48,9 @@ Breaking Changes
     optional bitfield described in the [clCreateCommandQueue SDK
     Documentation]. Valid options include
     `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and `QUEUE_PROFILING_ENABLE`.
+
+  [FIXME]:
+  * `enqueue_map_buffer`, `enqueue_map_image`, `enqueue_unmap_mem_object`
 
 Other Changes
 -------------
