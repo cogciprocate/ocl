@@ -190,12 +190,14 @@ impl<'a> From<&'a SpatialDims> for SpatialDims {
     }
 }
 
+// [FIXME]: Quit being lazy and implement FromPrimitive.
 impl From<usize> for SpatialDims {
     fn from(val: usize) -> SpatialDims {
         SpatialDims::One(val)
     }
 }
 
+// [FIXME]: Quit being lazy and implement FromPrimitive.
 impl From<isize> for SpatialDims {
     fn from(val: isize) -> SpatialDims {
         assert!(val > 0, "Invalid 'SpatialDims' value: {}. \
@@ -204,6 +206,14 @@ impl From<isize> for SpatialDims {
     }
 }
 
+// [FIXME]: Quit being lazy and implement FromPrimitive.
+impl From<u32> for SpatialDims {
+    fn from(val: u32) -> SpatialDims {
+        (val as usize).into()
+    }
+}
+
+// [FIXME]: Quit being lazy and implement FromPrimitive.
 impl From<i32> for SpatialDims {
     fn from(val: i32) -> SpatialDims {
         (val as isize).into()

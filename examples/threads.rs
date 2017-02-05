@@ -103,7 +103,7 @@ fn main() {
                         &dims_th, None).unwrap();
                     let mut vec = vec![0.0f32; buffer.len()];
 
-                    let mut kernel = Kernel::new("add", &program_th, &queueball_th[0]).unwrap()
+                    let mut kernel = Kernel::new("add", &program_th, queueball_th[0].clone()).unwrap()
                         .gws(&dims_th)
                         .arg_buf(&buffer)
                         .arg_scl(1000.0f32);
@@ -113,7 +113,7 @@ fn main() {
 
                     // Change queues around just for fun:
                     kernel.cmd().enew(&mut event_list).enq().unwrap();
-                    kernel.set_default_queue(&queueball_th[1]).unwrap().enq().unwrap();
+                    kernel.set_default_queue(queueball_th[1].clone()).unwrap().enq().unwrap();
                     kernel.cmd().queue(&queueball_th[2]).enq().unwrap();
 
                     // Sleep just so the results don't print too quickly.

@@ -334,19 +334,21 @@ impl Device {
         core::get_device_info(&self.0, DeviceInfo::Vendor).into()
     }
 
-    /// Returns the maximum workgroup size.
-    ///
-    ///
-    /// ### Errors
-    ///
-    /// Returns any OpenCL error.
-    ///
+    /// Returns the maximum workgroup size or an error.
     pub fn max_wg_size(&self) -> OclResult<usize> {
         match self.info(DeviceInfo::MaxWorkGroupSize) {
             DeviceInfoResult::MaxWorkGroupSize(s) => Ok(s),
             DeviceInfoResult::Error(err) => Err(*err),
-            // Verify that this is unreachable and replace with `unreachable!()`:
-            _ => panic!("ocl::Device::max_wg_size: Unexpected 'DeviceInfoResult' variant."),
+            _ => panic!("Device::max_wg_size: Unexpected 'DeviceInfoResult' variant."),
+        }
+    }
+
+    /// Returns the memory base address alignment offset or an error.
+    pub fn mem_base_addr_align(&self) -> OclResult<u32> {
+        match self.info(DeviceInfo::MemBaseAddrAlign) {
+            DeviceInfoResult::MemBaseAddrAlign(s) => Ok(s),
+            DeviceInfoResult::Error(err) => Err(*err),
+            _ => panic!("Device::mem_base_addr_align: Unexpected 'DeviceInfoResult' variant."),
         }
     }
 

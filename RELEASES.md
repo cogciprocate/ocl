@@ -1,6 +1,7 @@
 Version 0.13.0 (UNRELEASED)
 ===========================
 
+
 [TODO]: Add links to documentation.
 
 
@@ -10,6 +11,10 @@ Version 0.13.0 (UNRELEASED)
 * `Kernel` buffer and image related functions (such as `arg_buf`) can now
   interchangeably accept either `Buffer<T>`, `SubBuffer<T>`, or `Image<T>`
   types.
+* `Kernel::set_arg` and `Kernel::named_arg_idx` have been added allowing the
+  ability to set a kernel argument by index and retrieve the index of a named
+  argument. Argument indexes always correspond exactly to the order arguments
+  are declared.
 * Command queue properties can now be specified when creating a `Queue` or
   `ProQue` allowing out of order execution and profiling to be enabled.
   Profiling had previously been enabled by default but now must be explicitly
@@ -28,6 +33,11 @@ Breaking Changes
     ```.arg_buf_named::<f32, Buffer<f32>>("buf", None)```.
 * `Queue::new` now takes a third argument: `properties` (details below in
   ocl-core section).
+* `Buffer::from_gl_buffer`, `Buffer::set_default_queue`,
+  `ImageBuilder::build`, `ImageBuilder::build_with_data`, `Image::new`,
+  `Image::from_gl_texture`, `Image::from_gl_renderbuffer`,
+  `Image::set_default_queue`, `Kernel::new`, `Kernel::set_default_queue` now
+  accept a `Queue` instead of a `&Queue`.
 * `Buffer::is_empty` has been removed.
 * ocl-core:
   * `EventList::pop` now returns an `Option<Event>` instead of an

@@ -59,13 +59,13 @@ fn main() {
             let buffer = Buffer::<f32>::new(queue.clone(), None, &dims, None).unwrap();
             let image = Image::<u8>::builder()
                 .dims(dims)
-                .build(&queue).unwrap();
+                .build(queue.clone()).unwrap();
             let sampler = Sampler::with_defaults(&context).unwrap();
             let program = Program::builder()
                 .src(SRC)
                 .devices(device)
                 .build(&context).unwrap();
-            let kernel = Kernel::new("multiply", &program, &queue).unwrap()
+            let kernel = Kernel::new("multiply", &program, queue.clone()).unwrap()
                 .gws(&dims)
                 .arg_buf(&buffer)
                 .arg_scl(10.0f32);

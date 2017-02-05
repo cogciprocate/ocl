@@ -68,7 +68,7 @@ fn scalar_map() {
         assert_eq!(ele, 10_f32);
     }
 
-    ocl::Kernel::new(String::from("add"), &program, &queue)
+    ocl::Kernel::new(String::from("add"), &program, queue.clone())
         .expect("Kernel creation failed")
         .gws([BUFFER_DIMENSIONS])
         .arg_buf(&in_buff)
@@ -151,7 +151,7 @@ fn vector_map() {
         assert_eq!(ele.0, 10_f32);
     }
 
-    ocl::Kernel::new(String::from("add"), &program, &queue)
+    ocl::Kernel::new(String::from("add"), &program, queue.clone())
         .expect("Kernel creation failed")
         .gws([BUFFER_DIMENSIONS])
         .arg_buf(&in_buff)

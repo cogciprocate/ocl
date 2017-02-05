@@ -68,7 +68,7 @@ impl<S: OclPrm> ImageBuilder<S> {
 
     /// Builds with no host side image data memory specified and returns a
     /// new `Image`.
-    pub fn build(&self, queue: &Queue) -> OclResult<Image<S>> {
+    pub fn build(&self, queue: Queue) -> OclResult<Image<S>> {
         Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
             None)
     }
@@ -83,7 +83,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// flags. See the [official SDK docs] for more info.
     ///
     /// [official SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html
-    pub fn build_with_data(&self, queue: &Queue, image_data: &[S]) -> OclResult<Image<S>> {
+    pub fn build_with_data(&self, queue: Queue, image_data: &[S]) -> OclResult<Image<S>> {
         Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
             Some(image_data))
     }
@@ -674,7 +674,7 @@ impl<E: OclPrm> Image<E> {
     /// Returns a new `Image`.
     ///
     /// Prefer `::builder` to create a new image.
-    pub fn new(queue: &Queue, flags: MemFlags, image_format: ImageFormat,
+    pub fn new(queue: Queue, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, image_data: Option<&[E]>) -> OclResult<Image<E>>
     {
         let obj_core = unsafe { try!(core::create_image(
@@ -697,7 +697,7 @@ impl<E: OclPrm> Image<E> {
 
         let new_img = Image {
             obj_core: obj_core,
-            queue: queue.clone(),
+            queue: queue,
             dims: dims,
             pixel_element_len: pixel_element_len,
             _pixel: PhantomData,
@@ -708,7 +708,7 @@ impl<E: OclPrm> Image<E> {
 
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
-    pub fn from_gl_texture(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor,
+    pub fn from_gl_texture(queue: Queue, flags: MemFlags, image_desc: ImageDescriptor,
             texture_target: GlTextureTarget, miplevel: cl_GLint, texture: cl_GLuint)
             -> OclResult<Image<E>>
     {
@@ -751,7 +751,7 @@ impl<E: OclPrm> Image<E> {
 
         let new_img = Image {
             obj_core: obj_core,
-            queue: queue.clone(),
+            queue: queue,
             dims: dims,
             pixel_element_len: pixel_element_len,
             _pixel: PhantomData,
@@ -762,7 +762,7 @@ impl<E: OclPrm> Image<E> {
 
     /// Returns a new `Image` from an existant renderbuffer.
     // [WORK IN PROGRESS]
-    pub fn from_gl_renderbuffer(queue: &Queue, flags: MemFlags, image_desc: ImageDescriptor,
+    pub fn from_gl_renderbuffer(queue: Queue, flags: MemFlags, image_desc: ImageDescriptor,
             renderbuffer: cl_GLuint) -> OclResult<Image<E>>
     {
         let obj_core = unsafe { try!(core::create_from_gl_renderbuffer(
@@ -782,7 +782,7 @@ impl<E: OclPrm> Image<E> {
 
         let new_img = Image {
             obj_core: obj_core,
-            queue: queue.clone(),
+            queue: queue,
             dims: dims,
             pixel_element_len: pixel_element_len,
             _pixel: PhantomData,
@@ -828,9 +828,9 @@ impl<E: OclPrm> Image<E> {
     ///
     /// The new queue must be associated with a valid device.
     ///
-    pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Image<E> {
+    pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Image<E> {
         // self.command_queue_obj_core = queue.core_as_ref().clone();
-        self.queue = queue.clone();
+        self.queue = queue;
         self
     }
 
@@ -954,74 +954,3 @@ impl<'a, T: OclPrm> AsMemRef<T> for &'a mut Image<T> {
         &self.obj_core
     }
 }
-
-
-
-    // /// Reads from the device image buffer into `data`.
-    // ///
-    // /// Setting `queue` to `None` will use the default queue set during creation.
-    // /// Otherwise, the queue passed will be used for this call only.
-    // ///
-    // /// ## Safety
-    // ///
-    // /// Caller must ensure that `data` lives until the read is complete. Use
-    // /// the new event in `dest_list` to monitor it (use [`EventList::last_clone`]).
-    // ///
-    // ///
-    // /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadImage.html)
-    // /// for more detailed information.
-    // /// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
-    // ///
-    // pub unsafe fn enqueue_read(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3],
-    //             region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &mut [E],
-    //             wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
-    // {
-    //     let command_queue = match queue {
-    //         Some(q) => q,
-    //         None => &self.queue,
-    //     };
-
-    //     core::enqueue_read_image(command_queue, &self.obj_core, block, origin, region,
-    //         row_pitch, slc_pitch, data, wait_list, dest_list)
-    // }
-
-    // /// Writes from `data` to the device image buffer.
-    // ///
-    // /// Setting `queue` to `None` will use the default queue set during creation.
-    // /// Otherwise, the queue passed will be used for this call only.
-    // ///
-    // /// See the [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteImage.html)
-    // /// for more detailed information.
-    // pub fn enqueue_write(&self, queue: Option<&Queue>, block: bool, origin: [usize; 3],
-    //             region: [usize; 3], row_pitch: usize, slc_pitch: usize, data: &[E],
-    //             wait_list: Option<&EventList>, dest_list: Option<&mut ClEventPtrNew>) -> OclResult<()>
-    // {
-    //     let command_queue = match queue {
-    //         Some(q) => q,
-    //         None => &self.queue,
-    //     };
-
-    //     core::enqueue_write_image(command_queue, &self.obj_core, block, origin, region,
-    //         row_pitch, slc_pitch, data, wait_list, dest_list)
-    // }
-
-    // /// Reads the entire device image buffer into `data`, blocking until complete.
-    // ///
-    // /// `data` must be equal to the size of the device image buffer and must be
-    // /// alligned without pitch or offset of any kind.
-    // ///
-    // /// Use `::enqueue_read` for the complete range of options.
-    // pub fn read_old(&self, data: &mut [E]) -> OclResult<()> {
-    //     // Safe because `block = true`:
-    //     unsafe { self.enqueue_read(None, true, [0, 0, 0], try!(self.dims.to_lens()), 0, 0,  data, None, None) }
-    // }
-
-    // /// Writes from `data` to the device image buffer, blocking until complete.
-    // ///
-    // /// `data` must be equal to the size of the device image buffer and must be
-    // /// alligned without pitch or offset of any kind.
-    // ///
-    // /// Use `::enqueue_write` for the complete range of options.
-    // pub fn write_old(&self, data: &[E]) -> OclResult<()> {
-    //     self.enqueue_write(None, true, [0, 0, 0], try!(self.dims.to_lens()), 0, 0,  data, None, None)
-    // }

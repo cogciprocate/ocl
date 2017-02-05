@@ -36,3 +36,6 @@ find_folder = "0.3"
 colorify = "0.2"
 time = "0.1"
 rand = "0.3"
+
+# TEMPORARY:
+libc = "0.2"

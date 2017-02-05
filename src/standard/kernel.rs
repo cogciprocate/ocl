@@ -146,7 +146,7 @@ pub struct Kernel {
 impl Kernel {
     /// Returns a new kernel.
     // TODO: Implement proper error handling (return result etc.).
-    pub fn new<S: Into<String>, >(name: S, program: &Program, queue: &Queue,
+    pub fn new<S: Into<String>, >(name: S, program: &Program, queue: Queue,
             ) -> OclResult<Kernel>
     {
         let name = name.into();
@@ -157,7 +157,7 @@ impl Kernel {
             named_args: HashMap::with_capacity(5),
             arg_count: 0,
             mem_args: Vec::with_capacity(16),
-            queue: queue.clone(),
+            queue: queue,
             gwo: SpatialDims::Unspecified,
             gws: SpatialDims::Unspecified,
             lws: SpatialDims::Unspecified,
@@ -410,9 +410,9 @@ impl Kernel {
     /// The new queue must be associated with a device associated with the
     /// kernel's program.
     ///
-    pub fn set_default_queue(&mut self, queue: &Queue) -> OclResult<&mut Kernel> {
+    pub fn set_default_queue(&mut self, queue: Queue) -> OclResult<&mut Kernel> {
         // self.command_queue_obj_core = queue.core_as_ref().clone();
-        self.queue = queue.clone();
+        self.queue = queue;
         Ok(self)
     }
 
