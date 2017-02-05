@@ -278,11 +278,19 @@ bitflags! {
     }
 }
 
-impl Default for DeviceType {
-    fn default() -> DeviceType {
-        DEVICE_TYPE_ALL
-    }
+impl DeviceType {
+    #[inline] pub fn system_default() -> DeviceType { DEVICE_TYPE_DEFAULT }
+    #[inline] pub fn cpu() -> DeviceType { DEVICE_TYPE_CPU }
+    #[inline] pub fn gpu() -> DeviceType { DEVICE_TYPE_GPU }
+    #[inline] pub fn accelerator() -> DeviceType { DEVICE_TYPE_ACCELERATOR }
+    #[inline] pub fn custom() -> DeviceType { DEVICE_TYPE_CUSTOM }
+    // #[inline] pub fn all() -> DeviceType { DEVICE_TYPE_ALL }
 }
+
+impl Default for DeviceType {
+    #[inline] fn default() -> DeviceType { DEVICE_TYPE_ALL }
+}
+
 
 bitflags! {
     /// cl_device_fp_config - bitfield
@@ -330,6 +338,7 @@ bitflags! {
     }
 }
 
+
 bitflags! {
     /// cl_mem_flags - bitfield
     pub flags MemFlags: u64 {
@@ -346,11 +355,22 @@ bitflags! {
     }
 }
 
-impl Default for MemFlags {
-    fn default() -> MemFlags {
-        MEM_READ_WRITE
-    }
+impl MemFlags {
+    #[inline] pub fn read_write() -> MemFlags { MEM_READ_WRITE }
+    #[inline] pub fn write_only() -> MemFlags { MEM_WRITE_ONLY }
+    #[inline] pub fn read_only() -> MemFlags { MEM_READ_ONLY }
+    #[inline] pub fn use_host_ptr() -> MemFlags { MEM_USE_HOST_PTR }
+    #[inline] pub fn alloc_host_ptr() -> MemFlags { MEM_ALLOC_HOST_PTR }
+    #[inline] pub fn copy_host_ptr() -> MemFlags { MEM_COPY_HOST_PTR }
+    #[inline] pub fn host_write_only() -> MemFlags { MEM_HOST_WRITE_ONLY }
+    #[inline] pub fn host_read_only() -> MemFlags { MEM_HOST_READ_ONLY }
+    #[inline] pub fn host_no_access() -> MemFlags { MEM_HOST_NO_ACCESS }
 }
+
+impl Default for MemFlags {
+    #[inline] fn default() -> MemFlags { MEM_READ_WRITE }
+}
+
 
 bitflags! {
     /// cl_mem_migration_flags - bitfield
@@ -360,6 +380,7 @@ bitflags! {
     }
 }
 
+
 bitflags! {
     /// cl_map_flags - bitfield
     pub flags MapFlags: u64 {
@@ -368,6 +389,17 @@ bitflags! {
         const MAP_WRITE_INVALIDATE_REGION = 1 << 2,
     }
 }
+
+impl MapFlags {
+    #[inline] pub fn read() -> MapFlags { MAP_READ }
+    #[inline] pub fn write() -> MapFlags { MAP_WRITE }
+    #[inline] pub fn write_invalidate_region() -> MapFlags { MAP_WRITE_INVALIDATE_REGION }
+}
+
+impl Default for MapFlags {
+    #[inline] fn default() -> MapFlags { MapFlags::empty() }
+}
+
 
 bitflags! {
     /// cl_program_binary_type
