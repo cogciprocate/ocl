@@ -3047,6 +3047,25 @@ pub fn get_event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<Comman
         'clGetEventInfo' status output."))
 }
 
+/// Returns true if an event is complete, false if not complete or upon error.
+pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> bool {
+    let mut status_int: cl_int = 0;
+
+    let errcode = unsafe {
+        ffi::clGetEventInfo(
+            *event.as_ptr_ref(),
+            ffi::CL_EVENT_COMMAND_EXECUTION_STATUS,
+            mem::size_of::<cl_int>(),
+            &mut status_int as *mut _ as *mut c_void,
+            ptr::null_mut(),
+        )
+    };
+
+    status_int == CommandExecutionStatus::Complete as i32 && errcode == Status::CL_SUCCESS as i32
+}
+
+
+
 /// Verifies that the `context` is in fact a context object pointer.
 ///
 /// # Assumptions

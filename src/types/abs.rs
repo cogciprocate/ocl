@@ -614,6 +614,7 @@ pub struct Event(cl_event);
 impl Event {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
+    #[inline]
     pub unsafe fn from_fresh_ptr(ptr: cl_event) -> Event {
         Event(ptr)
     }
@@ -632,8 +633,28 @@ impl Event {
     }
 
     /// For passage directly to an 'event creation' function (such as enqueue).
+    #[inline]
     pub unsafe fn null() -> Event {
         Event(0 as cl_event)
+    }
+
+    /// Queries the command status associated with this event and returns true
+    /// if it is complete, false if incomplete or upon error.
+    ///
+    /// This is the fastest possible way to determine event status.
+    ///
+    #[inline]
+    pub fn is_complete(&self) -> bool {
+        // match functions::get_event_status(self) {
+        //     Ok(status) => {
+        //         match status {
+        //             CommandExecutionStatus::Complete => true,
+        //             _ => false,
+        //         }
+        //     }
+        //     Err(_) => false,
+        // }
+        functions::event_is_complete(self)
     }
 
     // /// Returns a pointer, do not store it unless you will manage its
@@ -644,12 +665,14 @@ impl Event {
 
     /// Returns an immutable reference to a pointer, do not deref and store it unless
     /// you will manage its associated reference count carefully.
+    #[inline]
     pub unsafe fn as_ptr_ref(&self) -> &cl_event {
         &self.0
     }
 
     /// Returns a mutable reference to a pointer, do not deref then modify or store it
     /// unless you will manage its associated reference count carefully.
+    #[inline]
     pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
         &mut self.0
     }
@@ -659,22 +682,9 @@ impl Event {
     ///
     /// This still leads to crazy segfaults when non-event pointers (random
     /// whatever addresses) are passed. Need better check.
+    #[inline]
     pub fn is_valid(&self) -> bool {
         !self.0.is_null()
-    }
-
-    // Queries the command status associated with this event and returns true
-    // if it is complete, false if incomplete or upon error.
-    pub fn is_complete(&self) -> bool {
-        match functions::get_event_status(self) {
-            Ok(status) => {
-                match status {
-                    CommandExecutionStatus::Complete => true,
-                    _ => false,
-                }
-            }
-            Err(_) => false,
-        }
     }
 }
 

@@ -116,7 +116,7 @@ use std::ops::{Add, Sub, Mul, Div, Rem};
 use num::{NumCast, FromPrimitive, ToPrimitive};
 use rand::distributions::range::SampleRange;
 
-pub use self::functions::{ get_platform_ids, get_platform_info,
+pub use self::functions::{get_platform_ids, get_platform_info,
     get_device_ids, get_device_info, create_sub_devices, retain_device,
     release_device, create_context, create_context_from_type, retain_context,
     release_context, get_context_info, create_command_queue, retain_command_queue,
@@ -147,7 +147,7 @@ pub use self::functions::{ get_platform_ids, get_platform_info,
     enqueue_barrier_with_wait_list, get_extension_function_address_for_platform,
     wait_for_event, get_event_status, default_platform_idx,
     program_build_err, verify_context, default_platform, default_device_type,
-    device_versions };
+    device_versions, event_is_complete};
 
 pub use self::types::abs::{ClEventPtrNew, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr, EventRefWrapper,
     PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, Event, EventList, Sampler,
