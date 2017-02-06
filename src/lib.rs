@@ -61,12 +61,12 @@ mod standard;
 
 pub use core::ffi;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, SubBuffer, Image,
-    Event, EventList, Sampler, SpatialDims, ProQue};
+    Event, EventList, Sampler, SpatialDims, ProQue, MappedMem};
 pub use core::error::{Error, Result};
 pub use core::util;
 
 #[doc(no_inline)]
-pub use core::{OclPrm, OclScl, OclVec, MappedMem};
+pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
 
 
 pub mod aliases {

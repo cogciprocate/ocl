@@ -307,7 +307,7 @@ fn buffer_ops_rect() {
             slc_pitch, row_pitch, slc_pitch).queue(proque.queue()).block(true).enq().unwrap();
 
         // Copy from the source buffer to the random region on the destination buffer:
-        buf_src.cmd().copy(&buf_dst, 0, 0).rect(src_origin, dst_origin, read_region.clone(), row_pitch,
+        buf_src.cmd().copy(&buf_dst, None, None).rect(src_origin, dst_origin, read_region.clone(), row_pitch,
             slc_pitch, row_pitch, slc_pitch).queue(proque.queue()).enq().unwrap();
         // Read the entire destination buffer into the destination vec:
         buf_dst.cmd().read(&mut vec_dst).rect([0, 0, 0], [0, 0, 0], dims, row_pitch, slc_pitch,

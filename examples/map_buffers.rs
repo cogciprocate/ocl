@@ -30,7 +30,7 @@ fn scalar_map() {
     // Creation of buffer using ocl API will result in filling of the buffer as well
     let in_buff = ocl::Buffer::new(queue.clone(),
                                    Some(ocl::core::MEM_ALLOC_HOST_PTR),
-                                   &[BUFFER_DIMENSIONS],
+                                   BUFFER_DIMENSIONS,
                                    None::<&[f32]>)
         .expect("Creating buffer failed");
 
@@ -66,7 +66,7 @@ fn scalar_map() {
 
     ocl::Kernel::new(String::from("add"), &program, queue.clone())
         .expect("Kernel creation failed")
-        .gws([BUFFER_DIMENSIONS])
+        .gws(BUFFER_DIMENSIONS)
         .arg_buf(&in_buff)
         .arg_scl(5_f32)
         .cmd()
@@ -106,7 +106,7 @@ fn vector_map() {
         .unwrap();
     let in_buff = ocl::Buffer::new(queue.clone(),
                                    Some(ocl::core::MEM_ALLOC_HOST_PTR),
-                                   &[BUFFER_DIMENSIONS],
+                                   BUFFER_DIMENSIONS,
                                    None::<&[ocl::aliases::ClFloat16]>)
         .expect("Creating buffer failed");
 
@@ -145,7 +145,7 @@ fn vector_map() {
 
     ocl::Kernel::new(String::from("add"), &program, queue.clone())
         .expect("Kernel creation failed")
-        .gws([BUFFER_DIMENSIONS])
+        .gws(BUFFER_DIMENSIONS)
         .arg_buf(&in_buff)
         .arg_scl(5_f32)
         .cmd()

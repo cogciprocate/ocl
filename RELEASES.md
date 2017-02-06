@@ -4,8 +4,11 @@ Version 0.13.0 (UNRELEASED)
 
 [TODO]: Add links to documentation.
 
-[FIXME]:
+[FIXME]: ADD SECTION FOR:
 * Buffer mapping...
+* [BREAKING] Buffer command (optional params)...
+  * `::copy`
+
 
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
   be used just as you would `Buffer`. Use `SubBuffer::new` or

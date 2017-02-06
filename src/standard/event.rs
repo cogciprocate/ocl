@@ -327,6 +327,12 @@ impl EventList {
     }
 }
 
+impl Into<EventListCore> for EventList {
+    fn into(self) ->  EventListCore {
+        self.event_list_core
+    }
+}
+
 impl AsRef<EventListCore> for EventList {
     fn as_ref(&self) -> &EventListCore {
         &self.event_list_core

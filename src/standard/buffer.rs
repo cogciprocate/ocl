@@ -1,36 +1,180 @@
 //! Interfaces with a buffer.
 
+// [TEMP]:
+#![allow(dead_code)]
+
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use ffi::cl_GLuint;
 
-use core::{self, OclPrm, Mem as MemCore, MemFlags, MemInfo, MemInfoResult, ClEventPtrNew,
-    ClWaitList, BufferRegion};
+use core::{self, OclPrm, Mem as MemCore, CommandQueue, MemFlags, MemInfo, MemInfoResult,
+    ClEventPtrNew, ClWaitList, BufferRegion, MappedMem as MappedMemCore, Event as EventCore,
+    EventList as EventListCore, MapFlags};
 use core::error::{Error as OclError, Result as OclResult};
 use standard::{Queue, MemLen, SpatialDims, AsMemRef};
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
-    if offset >= mem_len { return OclError::err(format!(
-        "ocl::Buffer::enq(): Offset out of range. (mem_len: {}, data_len: {}, offset: {}",
-        mem_len, data_len, offset)); }
-    if data_len > (mem_len - offset) { return OclError::err(
-        "ocl::Buffer::enq(): Data length exceeds buffer length."); }
-    Ok(())
+    if offset >= mem_len {
+        OclError::err(format!("ocl::Buffer::enq(): Offset out of range. \
+            (mem_len: {}, data_len: {}, offset: {}", mem_len, data_len, offset))
+    } else if data_len > (mem_len - offset) {
+        OclError::err("ocl::Buffer::enq(): Data length exceeds buffer length.")
+    } else {
+        Ok(())
+    }
 }
+
+
+/// Information about what to do when `MappedMem` goes out of scope.
+enum DelayedUnmap {
+    Some {
+        queue: CommandQueue,
+        mem: MemCore,
+        ewait: Option<EventListCore>,
+        enew: Option<EventCore>,
+    },
+    None,
+}
+
+
+/// A view of mapped memory.
+///
+/// ### [UNSTABLE]
+///
+/// Still in a state of flux.
+///
+pub struct MappedMem<T: OclPrm> {
+    core: MappedMemCore<T>,
+    delayed_unmap: DelayedUnmap,
+}
+
+impl<T: OclPrm> MappedMem<T> {
+    /// Returns a new `MappedMem`.
+    pub fn new(core: MappedMemCore<T>) -> MappedMem<T> {
+        MappedMem {
+            core: core,
+            delayed_unmap: DelayedUnmap::None,
+        }
+    }
+
+    /// Automatically unmaps when this `MappedMem` goes out of scope or by
+    /// calling `::unmap`.
+    ///
+    /// Automatically adds the event associated with the original map event to
+    /// the wait event list.
+    ///
+    pub fn unmap_later<EVL, EV>(&mut self, queue: CommandQueue, mem: MemCore,
+            wait_list: Option<EVL>, new_event: Option<EV>)
+            where EVL: Into<EventListCore>, EV: Into<EventCore>
+    {
+        self.delayed_unmap = DelayedUnmap::Some {
+            queue: queue,
+            mem: mem,
+            ewait: wait_list.map(|evl| evl.into()),
+            enew: new_event.map(|ev| ev.into()),
+        }
+    }
+
+    /// Sets events for a `MappedMem` which has already had `::unmap_later`
+    /// called first.
+    pub fn set_unmap_events<'a, EVL, EV>(&'a mut self, wait_list: Option<EVL>, new_event: Option<EV>)
+            -> &'a mut MappedMem<T>
+            where EVL: Into<EventListCore>, EV: Into<EventCore>
+    {
+        assert!(!self.core.is_unmapped(), "ocl::MappedMem::unmap: \
+            This 'MappedMem' is already unmapped.");
+
+        match self.delayed_unmap {
+            DelayedUnmap::Some { ref mut ewait, ref mut enew, .. } => {
+                if let Some(evl) = wait_list {
+                    *ewait = Some(evl.into())
+                }
+
+                if let Some(ev) = new_event {
+                    *enew = Some(ev.into())
+                }
+            },
+            DelayedUnmap::None => panic!("ocl::MappedMem::set_unmap_events: Can only be called \
+                after '::unmap_later' has already been called."),
+        }
+
+        self
+    }
+
+    pub fn unmap(&mut self) -> OclResult<()> {
+        if self.core.is_unmapped() { return Err("ocl::MappedMem::unmap: \
+            This 'MappedMem' is already unmapped.".into()); }
+
+        match self.delayed_unmap {
+            DelayedUnmap::Some { ref queue, ref mem, ref ewait, ref mut enew } => {
+                self.core.unmap_mem_object(queue, mem,
+                    match *ewait {
+                        Some(ref el) => Some(el as &ClWaitList),
+                        None => None,
+                    },
+                    match *enew {
+                        Some(ref mut e) => Some(e as &mut ClEventPtrNew),
+                        None => None,
+                    },
+                )
+            },
+            DelayedUnmap::None => Err("ocl::MappedMem::set_unmap_events: Can only be called \
+                after '::unmap_later' has already been called.".into()),
+        }
+    }
+}
+
+impl<T> Deref for MappedMem<T> where T: OclPrm {
+    type Target = MappedMemCore<T>;
+
+    fn deref(&self) -> &MappedMemCore<T> {
+        &self.core
+    }
+}
+
+impl<T> DerefMut for MappedMem<T> where T: OclPrm {
+    fn deref_mut(&mut self) -> &mut MappedMemCore<T> {
+        &mut self.core
+    }
+}
+
+impl<T> Drop for MappedMem<T> where T: OclPrm {
+    fn drop(&mut self) {
+        if self.core.is_unmapped() { return; }
+
+        match self.delayed_unmap {
+            DelayedUnmap::Some { ref queue, ref mem, ref ewait, ref mut enew } => {
+                self.core.unmap_mem_object(queue, mem,
+                    match *ewait {
+                        Some(ref el) => Some(el as &ClWaitList),
+                        None => None,
+                    },
+                    match *enew {
+                        Some(ref mut e) => Some(e as &mut ClEventPtrNew),
+                        None => None,
+                    },
+                ).unwrap()
+            },
+            DelayedUnmap::None => (),
+        }
+    }
+}
+
 
 /// The type of operation to be performed by a command.
 pub enum BufferCmdKind<'b, T: 'b> {
     Unspecified,
     Read { data: &'b mut [T] },
     Write { data: &'b [T] },
-    Copy { dst_buffer: &'b MemCore, dst_offset: usize, len: usize },
+    Map { flags: Option<MapFlags>, len: Option<usize> },
+    Copy { dst_buffer: &'b MemCore, dst_offset: Option<usize>, len: Option<usize> },
     Fill { pattern: T, len: Option<usize> },
     CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
     GLAcquire,
-    GLRelease
+    GLRelease,
 }
 
 impl<'b, T: 'b> BufferCmdKind<'b, T> {
@@ -62,7 +206,7 @@ pub enum BufferCmdDataShape {
 
 /// A buffer command builder used to enqueue reads, writes, fills, and copies.
 ///
-/// Create one using `Buffer::cmd` or with shortcut methods such as
+/// Create one by using `Buffer::cmd` or with shortcut methods such as
 /// `Buffer::read` and `Buffer::write`.
 ///
 /// ## Examples
@@ -210,6 +354,20 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         self
     }
 
+    /// Specifies that this command will be a map operation.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    pub fn map(mut self, flags: Option<MapFlags>, len: Option<usize>) -> BufferCmd<'b, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
+            already set for this command.");
+        self.kind = BufferCmdKind::Map{ flags: flags, len: len };
+        self
+    }
+
+
     /// Specifies that this command will be a copy operation.
     ///
     /// If `.block(..)` has been set it will be ignored.
@@ -222,13 +380,14 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy(mut self, dst_buffer: &'b Buffer<T>, dst_offset: usize, len: usize)
+    pub fn copy<M>(mut self, dst_buffer: &'b M, dst_offset: Option<usize>, len: Option<usize>)
             -> BufferCmd<'b, T>
+            where M: AsMemRef<T>
     {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Copy {
-            dst_buffer: dst_buffer.core_as_ref(),
+            dst_buffer: dst_buffer.as_mem_ref(),
             dst_offset: dst_offset,
             len: len,
         };
@@ -360,6 +519,9 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     //     None).unwrap();
 
     /// Enqueues this command.
+    ///
+    /// For map operations use `::enq_map` instead.
+    ///
     pub fn enq(self) -> OclResult<()> {
         match self.kind {
             BufferCmdKind::Read { data } => {
@@ -406,7 +568,10 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
             BufferCmdKind::Copy { dst_buffer, dst_offset, len } => {
                 match self.shape {
                     BufferCmdDataShape::Lin { offset } => {
+                        let len = len.unwrap_or(self.mem_len);
                         try!(check_len(self.mem_len, len, offset));
+                        let dst_offset = dst_offset.unwrap_or(0);
+
                         core::enqueue_copy_buffer::<T>(self.queue,
                             self.obj_core, dst_buffer, offset, dst_offset, len,
                             self.ewait, self.enew)
@@ -417,10 +582,10 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         // Verify dims given.
                         // try!(Ok(()));
 
-                        if dst_offset != 0 || len != 0 { return OclError::err(
+                        if dst_offset.is_some() || len.is_some() { return OclError::err(
                             "ocl::BufferCmd::enq(): For 'rect' shaped copies, destination \
-                            offset and length must be zero. Ex.: \
-                            'cmd().copy(&{{buf_name}}, 0, 0)..'.");
+                            offset and length must be 'None'. Ex.: \
+                            'cmd().copy(&{{buf_name}}, None, None)..'.");
                         }
                         core::enqueue_copy_buffer_rect::<T>(self.queue, self.obj_core, dst_buffer,
                             src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
@@ -451,7 +616,42 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
             },
             BufferCmdKind::Unspecified => OclError::err("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
+            BufferCmdKind::Map { .. } => OclError::err("ocl::BufferCmd::enq(): \
+                For map operations use '::enq_map()' instead."),
             _ => unimplemented!(),
+        }
+    }
+
+    /// Enqueues a map command.
+    ///
+    /// For all other operation types use `::map` instead.
+    ///
+    pub fn enq_map(self) -> OclResult<MappedMem<T>> {
+        match self.kind {
+            BufferCmdKind::Map { flags, len } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        let len = match len {
+                            Some(l) => l,
+                            None => self.mem_len,
+                        };
+
+                        check_len(self.mem_len, len, offset)?;
+                        let flags = flags.unwrap_or(MapFlags::empty());
+
+                        unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T>(self.queue,
+                            self.obj_core, self.block, flags, offset, len, self.ewait,
+                            self.enew )?)) }
+                    },
+                    BufferCmdDataShape::Rect { .. } => {
+                        OclError::err("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
+                            operation. Please use the default shape, linear.")
+                    },
+                }
+            },
+            BufferCmdKind::Unspecified => OclError::err("ocl::BufferCmd::enq_map(): No operation \
+                specified. Use '::map', before calling '::enq_map'."),
+            _ => OclError::err("ocl::BufferCmd::enq_map(): For non-map operations use '::enq' instead."),
         }
     }
 }
@@ -473,52 +673,6 @@ pub struct Buffer<T: OclPrm> {
 }
 
 impl<T: OclPrm> Buffer<T> {
-    // /// Creates a new buffer.
-    // ///
-    // /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
-    // /// the [SDK Docs] for more information about flags. Note that the
-    // /// `host_ptr` mentioned in the [SDK Docs] is equivalent to the slice
-    // /// optionally passed as the `data` argument. Also note that the names of
-    // /// the flags in this library have the `CL_` prefix removed for brevity.
-    // ///
-    // /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    // ///
-    // ///
-    // /// [UNSTABLE]: Arguments may still be in a state of flux.
-    // ///
-    // pub fn new<D: Into<SpatialDims>>(queue: Queue, flags: Option<MemFlags>, dims: D,
-    //             data: Option<&[T]>) -> OclResult<Buffer<T>> {
-    //     let flags = flags.unwrap_or(::flags::MEM_READ_WRITE);
-    //     let dims: SpatialDims = dims.into();
-    //     let len = dims.to_len();
-    //     let obj_core = unsafe { try!(core::create_sub_buffer(queue.context_core_as_ref(), flags, len,
-    //         data)) };
-
-    //     let buf = Buffer {
-    //         obj_core: obj_core,
-    //         queue: queue,
-    //         dims: dims,
-    //         len: len,
-    //         _data: PhantomData,
-    //     };
-
-    //     if data.is_none() {
-    //         // Useful on platforms (PoCL) that have trouble with fill. Creates
-    //         // a temporary zeroed `Vec` in host memory and writes from there
-    //         // instead. Add `features = ["buffer_no_fill"]` to your Cargo.toml.
-    //         if cfg!(feature = "buffer_no_fill") {
-    //             // println!("#### no fill");
-    //             try!(buf.cmd().fill(Default::default(), None).enq());
-    //         } else {
-    //             let zeros = vec![Default::default(); len];
-    //             try!(buf.cmd().write(&zeros).enq());
-    //             // println!("#### fill!");
-    //         }
-    //     }
-
-    //     Ok(buf)
-    // }
-
     /// Creates a new sub-buffer.
     ///
     /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See

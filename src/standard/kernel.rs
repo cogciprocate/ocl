@@ -631,7 +631,13 @@ impl Kernel {
         // Push an empty `mem_arg` to the list just to make room.
         self.mem_args.push(None);
 
-        self.set_arg(arg_idx, arg).expect("Kernel::new_arg()");
+        match self.set_arg(arg_idx, arg) {
+            Ok(_) => (),
+            Err(err) => {
+                panic!("Kernel::new_arg(arg_idx: {}): {}",
+                    arg_idx, err);
+            }
+        }
 
         self.arg_count += 1;
         debug_assert!(self.arg_count as usize == self.mem_args.len());

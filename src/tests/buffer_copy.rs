@@ -100,7 +100,8 @@ fn buffer_copy_standard() {
 
     // Copy src to dst:
     let copy_range = (IDX, pro_que.dims()[0] - 100);
-    src_buffer.cmd().copy(&dst_buffer, copy_range.0, copy_range.1 - copy_range.0).enq().unwrap();
+    src_buffer.cmd().copy(&dst_buffer, Some(copy_range.0), Some(copy_range.1 - copy_range.0))
+        .enq().unwrap();
 
     // Read both buffers from device.
     src_buffer.read(&mut src_vec).enq().unwrap();
