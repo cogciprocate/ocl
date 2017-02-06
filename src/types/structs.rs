@@ -11,7 +11,7 @@ use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-        PlatformId, OclPrm, CommandQueue, ClWaitList, ClEventPtrNew};
+        PlatformId, OclPrm, CommandQueue, ClWaitList, ClEventPtrNew, Event};
 
 
 // Until everything can be implemented:
@@ -22,112 +22,62 @@ pub type TemporaryPlaceholderType = ();
 ///
 /// ### [UNSTABLE]
 ///
-/// Still in a state of flux but is ~95% stable.
+/// Still in a state of flux but is ~90% stable.
 ///
 pub struct MappedMem<T> {
     ptr: *mut T,
     len: usize,
-    mapped: bool,
+    map_event: Event,
+    is_unmapped: bool,
 }
 
 impl<T> MappedMem<T>  where T: OclPrm {
-    pub unsafe fn new(ptr: *mut T, len: usize) -> MappedMem<T> {
+    pub unsafe fn new(ptr: *mut T, len: usize, map_event: Event) -> MappedMem<T> {
         assert!(!ptr.is_null(), "MappedMem::new: Null pointer passed.");
 
         MappedMem {
             ptr: ptr,
             len: len,
-            mapped: true,
+            map_event: map_event,
+            is_unmapped: false,
         }
     }
 
-    pub fn unmap(&mut self, queue: &CommandQueue, mem: &Mem, wait_list: Option<&ClWaitList>,
+    pub fn unmap_mem_object(&mut self, queue: &CommandQueue, mem: &Mem, wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
         ::enqueue_unmap_mem_object(queue, mem, self, wait_list, new_event)
     }
 
-    pub fn as_ptr(&self) -> cl_mem {
-        self.ptr as cl_mem
-    }
-
-    pub unsafe fn set_unmapped(&mut self) {
-        self.mapped = false;
-    }
+    #[inline] pub fn map_event(&self) -> &Event { &self.map_event }
+    #[inline] pub fn is_accessible(&self) -> bool { self.map_event.is_complete() && !self.is_unmapped }
+    #[inline] pub fn as_ptr(&self) -> cl_mem { self.ptr as cl_mem }
+    #[inline] pub fn is_unmapped(&self) -> bool { self.is_unmapped }
+    #[inline] pub unsafe fn set_unmapped(&mut self) { self.is_unmapped = true; }
 }
 
 impl<T> Deref for MappedMem<T> where T: OclPrm {
     type Target = [T];
 
     fn deref(&self) -> &[T] {
+        assert!(self.is_accessible(), "Mapped memory inaccessable.");
         unsafe { slice::from_raw_parts(self.ptr, self.len) }
     }
 }
 
 impl<T> DerefMut for MappedMem<T> where T: OclPrm {
     fn deref_mut(&mut self) -> &mut [T] {
+        assert!(self.is_accessible(), "Mapped memory inaccessable.");
         unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 }
 
 impl<T> Drop for MappedMem<T> {
     fn drop(&mut self) {
-        assert!(!self.mapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
+        assert!(self.is_unmapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
             Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
     }
 }
-
-
-// /// A view of memory mapped by `clEnqueueMap{...}`.
-// pub struct MappedMem<T> {
-//     ptr: *mut T,
-//     len: usize,
-//     queue: CommandQueue,
-//     mem: Mem,
-// }
-
-// impl<T> MappedMem<T>  where T: OclPrm {
-//     pub unsafe fn new(ptr: *mut T, len: usize, queue: CommandQueue, mem: Mem) -> MappedMem<T> {
-//         assert!(!ptr.is_null(), "MappedMem::new: Null pointer passed.");
-
-//         MappedMem {
-//             ptr: ptr,
-//             len: len,
-//             queue: queue,
-//             mem: mem,
-//         }
-//     }
-// }
-
-// impl<T> Deref for MappedMem<T> where T: OclPrm {
-//     type Target = [T];
-
-//     fn deref(&self) -> &[T] {
-//         unsafe { slice::from_raw_parts(self.ptr, self.len) }
-//     }
-// }
-
-// impl<T> DerefMut for MappedMem<T> where T: OclPrm {
-//     fn deref_mut(&mut self) -> &mut [T] {
-//         unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
-//     }
-// }
-
-// impl<T> Drop for MappedMem<T> {
-//     fn drop(&mut self) {
-//         unsafe {
-//             ::enqueue_unmap_mem_object(
-//                 &self.queue,
-//                 &self.mem,
-//                 self.ptr as cl_mem,
-//                 None,
-//                 None,
-//             ).unwrap();
-//         }
-//     }
-// }
-
-
 
 
 /// Parsed OpenCL version in the layout `({major}, {minor})`.

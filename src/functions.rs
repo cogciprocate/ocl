@@ -2489,17 +2489,19 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
             block: bool,
             map_flags: MapFlags,
             offset: usize,
-            size: usize,
+            len: usize,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<MappedMem<T>>
 {
     let offset_bytes = offset * mem::size_of::<T>();
-    let size_bytes = size * mem::size_of::<T>();
+    let size_bytes = len * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
+
     let mut errcode = 0i32;
+    let mut map_event = 0 as cl_event;
 
     let mapped_ptr = ffi::clEnqueueMapBuffer(
         command_queue.as_ptr(),
@@ -2510,12 +2512,19 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
         size_bytes,
         wait_list_len,
         wait_list_ptr,
-        new_event_ptr,
+        &mut map_event,
         &mut errcode,
     );
-    try!(errcode_try("clEnqueueMapBuffer", "", errcode));
 
-    Ok(MappedMem::new(mapped_ptr as *mut T, size))
+    let map_event_core = if !new_event_ptr.is_null() {
+        *new_event_ptr = map_event;
+        Event::from_cloned_ptr(map_event)?
+    } else {
+        Event::from_fresh_ptr(map_event)
+    };
+
+    errcode_try("clEnqueueMapBuffer", "", errcode)?;
+    Ok(MappedMem::new(mapped_ptr as *mut T, len, map_event_core))
 }
 
 /// [UNTESTED]
@@ -2553,7 +2562,9 @@ pub unsafe fn enqueue_map_image<T: OclPrm>(
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
+
     let mut errcode = 0i32;
+    let mut map_event = 0 as cl_event;
 
     let mapped_ptr = ffi::clEnqueueMapImage(
         command_queue.as_ptr(),
@@ -2566,12 +2577,19 @@ pub unsafe fn enqueue_map_image<T: OclPrm>(
         slc_pitch_bytes,
         wait_list_len,
         wait_list_ptr,
-        new_event_ptr,
+        &mut map_event,
         &mut errcode,
     );
-    try!(errcode_try("clEnqueueMapImage", "", errcode));
 
-    Ok(MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2]))
+    let map_event_core = if !new_event_ptr.is_null() {
+        *new_event_ptr = map_event;
+        Event::from_cloned_ptr(map_event)?
+    } else {
+        Event::from_fresh_ptr(map_event)
+    };
+
+    errcode_try("clEnqueueMapImage", "", errcode)?;
+    Ok(MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2], map_event_core))
 }
 
 /// Enqueues a command to unmap a previously mapped region of a memory object.

@@ -164,8 +164,8 @@ impl<'e> ClEventRef<'e> for EventRefWrapper<'e> {
 pub struct PlatformId(cl_platform_id);
 
 impl PlatformId {
-    /// Only call this when passing a newly created pointer directly from
-    /// `clCreate...`. Do not use this to clone or copy.
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_fresh_ptr(ptr: cl_platform_id) -> PlatformId {
         PlatformId(ptr)
     }
@@ -220,8 +220,8 @@ impl ClVersions for PlatformId {
 pub struct DeviceId(cl_device_id);
 
 impl DeviceId {
-    /// Only call this when passing a newly created pointer directly from
-    /// `clCreate...`. Do not use this to clone or copy.
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_fresh_ptr(ptr: cl_device_id) -> DeviceId {
         DeviceId(ptr)
     }
@@ -285,8 +285,8 @@ impl ClVersions for DeviceId {
 pub struct Context(cl_context);
 
 impl Context {
-    /// Only call this when passing a newly created pointer directly from
-    /// `clCreate...`. Do not use this to clone or copy.
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_fresh_ptr(ptr: cl_context) -> Context {
         Context(ptr)
     }
@@ -371,8 +371,8 @@ impl ClVersions for Context {
 pub struct CommandQueue(cl_command_queue);
 
 impl CommandQueue {
-    /// Only call this when passing a newly created pointer directly from
-    /// `clCreate...`. Do not use this to clone or copy.
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_fresh_ptr(ptr: cl_command_queue) -> CommandQueue {
         CommandQueue(ptr)
     }
@@ -440,8 +440,8 @@ impl ClVersions for CommandQueue{
 pub struct Mem(cl_mem);
 
 impl Mem {
-    /// Only call this when passing a newly created pointer directly from
-    /// `clCreate...`. Do not use this to clone or copy.
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_fresh_ptr(ptr: cl_mem) -> Mem {
         Mem(ptr)
     }
@@ -487,8 +487,8 @@ unsafe impl Send for Mem {}
 pub struct Program(cl_program);
 
 impl Program {
-    /// Only call this when passing a newly created pointer directly from
-    /// `clCreate...`. Do not use this to clone or copy.
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_fresh_ptr(ptr: cl_program) -> Program {
         Program(ptr)
     }
@@ -559,8 +559,8 @@ impl ClVersions for Program {
 pub struct Kernel(cl_kernel);
 
 impl Kernel {
-    /// Only call this when passing a newly created pointer directly from
-    /// `clCreate...`. Do not use this to clone or copy.
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_fresh_ptr(ptr: cl_kernel) -> Kernel {
         Kernel(ptr)
     }
@@ -612,13 +612,14 @@ impl ClVersions for Kernel {
 pub struct Event(cl_event);
 
 impl Event {
-    /// Only call this when passing a newly created pointer directly from
-    /// `clCreate...`. Do not use this to clone or copy.
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_fresh_ptr(ptr: cl_event) -> Event {
         Event(ptr)
     }
 
-    /// Only use when cloning from a pre-existing and valid `cl_event`.
+    /// Only use when cloning or copying from a pre-existing and valid
+    /// `cl_event`.
     pub unsafe fn from_cloned_ptr(ptr: cl_event) -> OclResult<Event> {
         let new_core = Event(ptr);
 
@@ -655,8 +656,25 @@ impl Event {
 
     /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
     /// NULL CHECK IS NOT ENOUGH
+    ///
+    /// This still leads to crazy segfaults when non-event pointers (random
+    /// whatever addresses) are passed. Need better check.
     pub fn is_valid(&self) -> bool {
         !self.0.is_null()
+    }
+
+    // Queries the command status associated with this event and returns true
+    // if it is complete, false if incomplete or upon error.
+    pub fn is_complete(&self) -> bool {
+        match functions::get_event_status(self) {
+            Ok(status) => {
+                match status {
+                    CommandExecutionStatus::Complete => true,
+                    _ => false,
+                }
+            }
+            Err(_) => false,
+        }
     }
 }
 
@@ -697,11 +715,7 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if self.is_valid() {
-            if cfg!(release) {
-                unsafe { functions::release_event(self).unwrap(); }
-            } else {
-                unsafe { functions::release_event(self).ok(); }
-            }
+            unsafe { functions::release_event(self).unwrap(); }
         }
     }
 }
