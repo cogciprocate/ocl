@@ -644,7 +644,7 @@ impl Event {
     /// This is the fastest possible way to determine event status.
     ///
     #[inline]
-    pub fn is_complete(&self) -> bool {
+    pub fn is_complete(&self) -> OclResult<bool> {
         // match functions::get_event_status(self) {
         //     Ok(status) => {
         //         match status {

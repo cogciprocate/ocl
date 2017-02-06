@@ -49,8 +49,12 @@ impl<T> MappedMem<T>  where T: OclPrm {
         ::enqueue_unmap_mem_object(queue, mem, self, wait_list, new_event)
     }
 
+    #[inline]
+    pub fn is_accessible(&self) -> bool {
+        self.map_event.is_complete().unwrap_or(false) && !self.is_unmapped
+    }
+
     #[inline] pub fn map_event(&self) -> &Event { &self.map_event }
-    #[inline] pub fn is_accessible(&self) -> bool { self.map_event.is_complete() && !self.is_unmapped }
     #[inline] pub fn as_ptr(&self) -> cl_mem { self.ptr as cl_mem }
     #[inline] pub fn is_unmapped(&self) -> bool { self.is_unmapped }
     #[inline] pub unsafe fn set_unmapped(&mut self) { self.is_unmapped = true; }

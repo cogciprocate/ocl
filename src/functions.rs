@@ -58,11 +58,12 @@ const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
 //============================================================================
 //============================================================================
 
-/// [DEPRICATED] Evaluates `errcode` and returns an `Err` with a failure
-/// message if it is not 0.
+/// Evaluates `errcode` and returns an `Err` with a failure message if it is
+/// not 0 (Status::CL_SUCCESS).
 ///
-fn errcode_try(cl_fn_name: &'static str, fn_info: &str, errcode: cl_int) -> OclResult<()> {
-    OclError::err_status(errcode, cl_fn_name, fn_info)
+#[inline(always)]
+fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info: &str) -> OclResult<T> {
+    OclError::eval_errcode(errcode, result, cl_fn_name, fn_info)
 }
 
 /// Maps options of slices to pointers and a length.
@@ -224,7 +225,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
         }
     }
 
-    try!(errcode_try("clGetPlatformIDs", "", errcode));
+    try!(eval_errcode(errcode, (), "clGetPlatformIDs", ""));
 
     // If no platforms are found, return an empty vec directly:
     if num_platforms == 0 {
@@ -248,9 +249,8 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
             ptr::null_mut()
         )
     };
-    try!(errcode_try("clGetPlatformIDs", "", errcode));
 
-    Ok(platforms)
+    eval_errcode(errcode, platforms, "clGetPlatformIDs", "")
 }
 
 /// Returns platform information of the requested type.
@@ -269,7 +269,7 @@ pub fn get_platform_info<P: ClPlatformIdPtr>(platform: &P, request: PlatformInfo
         )
     };
 
-    if let Err(err) = errcode_try("clGetPlatformInfo", "", errcode) {
+    if let Err(err) = eval_errcode(errcode, (), "clGetPlatformInfo", "") {
         return PlatformInfoResult::Error(Box::new(err));
     }
 
@@ -290,7 +290,7 @@ pub fn get_platform_info<P: ClPlatformIdPtr>(platform: &P, request: PlatformInfo
         )
     };
 
-    let result = errcode_try("clGetPlatformInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetPlatformInfo", "");
     PlatformInfoResult::from_bytes(request, result)
 }
 
@@ -329,7 +329,7 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
         device_ids.as_mut_ptr() as *mut cl_device_id,
         &mut devices_available,
     ) };
-    try!(errcode_try("clGetDeviceIDs", "", errcode));
+    try!(eval_errcode(errcode, (), "clGetDeviceIDs", ""));
 
     // Trim vec len:
     unsafe { device_ids.set_len(devices_available as usize); }
@@ -359,8 +359,8 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
         return DeviceInfoResult::Error(Box::new(OclError::new("[UNAVAILABLE (CL_INVALID_VALUE)]")));
     }
 
-    // try!(errcode_try("clGetDeviceInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetDeviceInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetDeviceInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetDeviceInfo", "") {
         return DeviceInfoResult::Error(Box::new(err));
     }
 
@@ -379,7 +379,7 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetDeviceInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetDeviceInfo", "");
 
     match request {
         DeviceInfo::MaxWorkItemSizes => {
@@ -415,7 +415,7 @@ pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclResult<(
 pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
     try!(verify_device_version(device_version, [1, 2], device));
-    errcode_try("clRetainDevice", "", ffi::clRetainDevice(device.as_ptr()))
+    eval_errcode(ffi::clRetainDevice(device.as_ptr()), (), "clRetainDevice", "")
 }
 
 /// Decrements the reference count of a device.
@@ -424,7 +424,7 @@ pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVer
 pub unsafe fn release_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
     try!(verify_device_version(device_version, [1, 2], device));
-    errcode_try("clReleaseDevice", "", ffi::clReleaseDevice(device.as_ptr()))
+    eval_errcode(ffi::clReleaseDevice(device.as_ptr()), (), "clReleaseDevice", "")
 }
 
 //============================================================================
@@ -504,7 +504,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
     )) };
     // [DEBUG]:
     // println!("CREATE_CONTEXT: CONTEXT PTR: {:?}", context);
-    errcode_try("clCreateContext", "", errcode).and(Ok(context))
+    eval_errcode(errcode, context, "clCreateContext", "")
 }
 
 
@@ -572,18 +572,18 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
         user_data_ptr,
         &mut errcode,
     )) };
-    errcode_try("clCreateContextFromType", "", errcode).and(Ok(context))
+    eval_errcode(errcode, context, "clCreateContextFromType", "")
 }
 
 
 /// Increments the reference count of a context.
 pub unsafe fn retain_context(context: &Context) -> OclResult<()> {
-    errcode_try("clRetainContext", "", ffi::clRetainContext(context.as_ptr()))
+    eval_errcode(ffi::clRetainContext(context.as_ptr()), (), "clRetainContext", "")
 }
 
 /// Decrements reference count of a context.
 pub unsafe fn release_context(context: &Context) -> OclResult<()> {
-    errcode_try("clReleaseContext", "", ffi::clReleaseContext(context.as_ptr()))
+    eval_errcode(ffi::clReleaseContext(context.as_ptr()), (), "clReleaseContext", "")
 }
 
 /// Returns various kinds of context information.
@@ -608,7 +608,7 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
         &mut result_size as *mut usize,
     ) };
 
-    if let Err(err) = errcode_try("clGetContextInfo", "", errcode) {
+    if let Err(err) = eval_errcode(errcode, (), "clGetContextInfo", "") {
         return ContextInfoResult::Error(Box::new(err));
     }
 
@@ -642,7 +642,7 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
         0 as *mut usize,
     ) };
 
-    let result = errcode_try("clGetContextInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetContextInfo", "");
     ContextInfoResult::from_bytes(request, result)
 }
 
@@ -674,20 +674,19 @@ pub fn create_command_queue<D: ClDeviceIdPtr>(
         cmd_queue_props,
         &mut errcode
     )) };
-    errcode_try("clCreateCommandQueue", "", errcode).and(Ok(cq))
+    eval_errcode(errcode, cq, "clCreateCommandQueue", "")
 }
 
 /// Increments the reference count of a command queue.
 pub unsafe fn retain_command_queue(queue: &CommandQueue) -> OclResult<()> {
-    errcode_try("clRetainCommandQueue", "", ffi::clRetainCommandQueue(queue.as_ptr()))
+    eval_errcode(ffi::clRetainCommandQueue(queue.as_ptr()), (), "clRetainCommandQueue", "")
 }
 
 /// Decrements the reference count of a command queue.
 ///
 /// [FIXME]: Return result
 pub unsafe fn release_command_queue(queue: &CommandQueue) -> OclResult<()> {
-    errcode_try("clReleaseCommandQueue", "",
-        ffi::clReleaseCommandQueue(queue.as_ptr()))
+    eval_errcode(ffi::clReleaseCommandQueue(queue.as_ptr()), (), "clReleaseCommandQueue", "")
 }
 
 /// Returns information about a command queue
@@ -704,8 +703,8 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetCommandQueueInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetCommandQueueInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetCommandQueueInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetCommandQueueInfo", "") {
         return CommandQueueInfoResult::Error(Box::new(err));
     }
 
@@ -724,7 +723,7 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetCommandQueueInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetCommandQueueInfo", "");
     CommandQueueInfoResult::from_bytes(request, result)
 }
 
@@ -762,10 +761,8 @@ pub unsafe fn create_buffer<T: OclPrm>(
         host_ptr,
         &mut errcode,
     );
-    try!(errcode_try("clCreateBuffer", "", errcode));
-    debug_assert!(!buf_ptr.is_null());
 
-    Ok(Mem::from_fresh_ptr(buf_ptr))
+    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateBuffer", "")
 }
 
 /// [UNTESTED]
@@ -787,10 +784,7 @@ pub unsafe fn create_from_gl_buffer(
             gl_object,
             &mut errcode);
 
-    try!(errcode_try("clCreateFromGLBuffer", "", errcode));
-    debug_assert!(!buf_ptr.is_null());
-
-    Ok(Mem::from_fresh_ptr(buf_ptr))
+    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLBuffer", "")
 }
 
 /// [UNTESTED]
@@ -812,10 +806,7 @@ pub unsafe fn create_from_gl_renderbuffer(
             renderbuffer,
             &mut errcode);
 
-    try!(errcode_try("clCreateFromGLRenderbuffer", "", errcode));
-    debug_assert!(!buf_ptr.is_null());
-
-    Ok(Mem::from_fresh_ptr(buf_ptr))
+    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLRenderbuffer", "")
 }
 
 /// [UNTESTED]
@@ -841,10 +832,7 @@ pub unsafe fn create_from_gl_texture(
             texture,
             &mut errcode);
 
-    try!(errcode_try("clCreateFromGLTexture", "", errcode));
-    debug_assert!(!buf_ptr.is_null());
-
-    Ok(Mem::from_fresh_ptr(buf_ptr))
+    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLTexture", "")
 }
 
 /// [UNTESTED] [DEPRICATED]
@@ -870,10 +858,7 @@ pub unsafe fn create_from_gl_texture_2d(
             texture,
             &mut errcode);
 
-    try!(errcode_try("clCreateFromGLTexture2D", "", errcode));
-    debug_assert!(!buf_ptr.is_null());
-
-    Ok(Mem::from_fresh_ptr(buf_ptr))
+    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLTexture2D", "")
 }
 
 /// [UNTESTED] [DEPRICATED]
@@ -899,10 +884,7 @@ pub unsafe fn create_from_gl_texture_3d(
             texture,
             &mut errcode);
 
-    try!(errcode_try("clCreateFromGLTexture3D", "", errcode));
-    debug_assert!(!buf_ptr.is_null());
-
-    Ok(Mem::from_fresh_ptr(buf_ptr))
+    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLTexture3D", "")
 }
 
 /// [UNTESTED]
@@ -931,10 +913,8 @@ pub fn create_sub_buffer<T>(
         &buffer_create_info_bytes as *const _ as *const c_void,
         &mut errcode,
     ) };
-    try!(errcode_try("clCreateSubBuffer", "", errcode));
-    debug_assert!(!sub_buf_ptr.is_null());
 
-    unsafe { Ok(Mem::from_fresh_ptr(sub_buf_ptr)) }
+    unsafe { eval_errcode(errcode, Mem::from_fresh_ptr(sub_buf_ptr), "clCreateSubBuffer", "") }
 }
 
 /// Returns a new image (mem) pointer.
@@ -974,20 +954,18 @@ pub unsafe fn create_image<T>(
         host_ptr,
         &mut errcode as *mut cl_int,
     );
-    try!(errcode_try("clCreateImage", "", errcode));
-    debug_assert!(!image_ptr.is_null());
 
-    Ok(Mem::from_fresh_ptr(image_ptr))
+    eval_errcode(errcode, Mem::from_fresh_ptr(image_ptr), "clCreateImage", "")
 }
 
 /// Increments the reference counter of a mem object.
 pub unsafe fn retain_mem_object(mem: &Mem) -> OclResult<()> {
-    errcode_try("clRetainMemObject", "", ffi::clRetainMemObject(mem.as_ptr()))
+    eval_errcode(ffi::clRetainMemObject(mem.as_ptr()), (), "clRetainMemObject", "")
 }
 
 /// Decrements the reference counter of a mem object.
 pub unsafe fn release_mem_object(mem: &Mem) -> OclResult<()> {
-    errcode_try("clReleaseMemObject", "", ffi::clReleaseMemObject(mem.as_ptr()))
+    eval_errcode(ffi::clReleaseMemObject(mem.as_ptr()), (), "clReleaseMemObject", "")
 }
 
 /// Returns a list of supported image formats.
@@ -1016,7 +994,7 @@ pub fn get_supported_image_formats(
         ptr::null_mut() as *mut cl_image_format,
         &mut num_image_formats as *mut cl_uint,
     ) };
-    try!(errcode_try("clGetSupportedImageFormats", "", errcode));
+    try!(eval_errcode(errcode, (), "clGetSupportedImageFormats", ""));
 
     // If no formats found, return an empty list directly:
     if num_image_formats == 0 {
@@ -1037,7 +1015,8 @@ pub fn get_supported_image_formats(
         image_formats.as_mut_ptr() as *mut _ as *mut cl_image_format,
         0 as *mut cl_uint,
     ) };
-    try!(errcode_try("clGetSupportedImageFormats", "", errcode));
+
+    try!(eval_errcode(errcode, (), "clGetSupportedImageFormats", ""));
 
     ImageFormat::list_from_raw(image_formats)
 }
@@ -1055,8 +1034,8 @@ pub fn get_mem_object_info(obj: &Mem, request: MemInfo) -> MemInfoResult {
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetMemObjectInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetMemObjectInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetMemObjectInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetMemObjectInfo", "") {
         return MemInfoResult::Error(Box::new(err));
     }
 
@@ -1074,7 +1053,7 @@ pub fn get_mem_object_info(obj: &Mem, request: MemInfo) -> MemInfoResult {
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };
-    let result = errcode_try("clGetMemObjectInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetMemObjectInfo", "");
     MemInfoResult::from_bytes(request, result)
 }
 
@@ -1091,8 +1070,8 @@ pub fn get_image_info(obj: &Mem, request: ImageInfo) -> ImageInfoResult {
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetImageInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetImageInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetImageInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetImageInfo", "") {
         return ImageInfoResult::Error(Box::new(err));
     }
 
@@ -1111,7 +1090,7 @@ pub fn get_image_info(obj: &Mem, request: ImageInfo) -> ImageInfoResult {
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetImageInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetImageInfo", "");
     ImageInfoResult::from_bytes(request, result)
 }
 
@@ -1143,17 +1122,17 @@ pub fn create_sampler(context: &Context, normalize_coords: bool, addressing_mode
         &mut errcode,
     )) };
 
-    errcode_try("clCreateSampler", "", errcode).and(Ok(sampler))
+    eval_errcode(errcode, sampler, "clCreateSampler", "")
 }
 
 /// Increments a sampler reference counter.
 pub unsafe fn retain_sampler(sampler: &Sampler) -> OclResult<()> {
-    errcode_try("clRetainSampler", "", ffi::clRetainSampler(sampler.as_ptr()))
+    eval_errcode(ffi::clRetainSampler(sampler.as_ptr()), (), "clRetainSampler", "")
 }
 
 /// Decrements a sampler reference counter.
 pub unsafe fn release_sampler(sampler: &Sampler) -> OclResult<()> {
-    errcode_try("clReleaseSampler", "", ffi::clReleaseSampler(sampler.as_ptr()))
+    eval_errcode(ffi::clReleaseSampler(sampler.as_ptr()), (), "clReleaseSampler", "")
 }
 
 /// Returns information about the sampler object.
@@ -1172,8 +1151,8 @@ pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetSamplerInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetSamplerInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetSamplerInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetSamplerInfo", "") {
         return SamplerInfoResult::Error(Box::new(err));
     }
 
@@ -1192,7 +1171,7 @@ pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetSamplerInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetSamplerInfo", "");
     SamplerInfoResult::from_bytes(request, result)
 }
 
@@ -1224,9 +1203,7 @@ pub fn create_program_with_source(
         ks_lens.as_ptr() as *const usize,
         &mut errcode,
     ) };
-    try!(errcode_try("clCreateProgramWithSource", "", errcode));
-
-    unsafe { Ok(Program::from_fresh_ptr(program)) }
+    unsafe { eval_errcode(errcode, Program::from_fresh_ptr(program), "clCreateProgramWithSource", "") }
 }
 
 /// [UNTESTED]
@@ -1261,10 +1238,10 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
         binary_status.as_mut_ptr(),
         &mut errcode,
     ) };
-    try!(errcode_try("clCreateProgramWithBinary", "", errcode));
+    try!(eval_errcode(errcode, (), "clCreateProgramWithBinary", ""));
 
     for (i, item) in binary_status.iter().enumerate() {
-        try!(errcode_try("clCreateProgramWithBinary", &format!("(): Device [{}]", i), *item));
+        try!(eval_errcode(*item, (), "clCreateProgramWithBinary", &format!("(): Device [{}]", i)));
     }
 
     unsafe { Ok(Program::from_fresh_ptr(program)) }
@@ -1286,12 +1263,12 @@ pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersio
 
 /// Increments a program reference counter.
 pub unsafe fn retain_program(program: &Program) -> OclResult<()> {
-    errcode_try("clRetainProgram", "", ffi::clRetainProgram(program.as_ptr()))
+    eval_errcode(ffi::clRetainProgram(program.as_ptr()), (), "clRetainProgram", "")
 }
 
 /// Decrements a program reference counter.
 pub unsafe fn release_program(program: &Program) -> OclResult<()> {
-    errcode_try("clReleaseKernel", "", ffi::clReleaseProgram(program.as_ptr()))
+    eval_errcode(ffi::clReleaseProgram(program.as_ptr()), (), "clReleaseKernel", "")
 }
 
 pub struct UserDataPh(usize);
@@ -1336,8 +1313,7 @@ pub fn build_program<D: ClDeviceIdPtr + Debug>(
     if errcode == Status::CL_BUILD_PROGRAM_FAILURE as i32 {
         program_build_err(program, devices)
     } else {
-        try!(errcode_try("clBuildProgram", "", errcode));
-        Ok(())
+        eval_errcode(errcode, (), "clBuildProgram", "")
     }
 }
 
@@ -1382,7 +1358,7 @@ pub fn link_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
 // /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 // pub fn unload_platform_compiler(platform: &PlatformId,
 //          device_version: Option<&OpenclVersion>) -> OclResult<()> {
-//     unsafe { errcode_try("clUnloadPlatformCompiler", "",
+//     unsafe { eval_errcode("clUnloadPlatformCompiler", "",
 //         ffi::clUnloadPlatformCompiler(platform.as_ptr())) }
 // }
 
@@ -1398,8 +1374,8 @@ pub fn get_program_info(obj: &Program, request: ProgramInfo) -> ProgramInfoResul
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetProgramInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetProgramInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetProgramInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetProgramInfo", "") {
         return ProgramInfoResult::Error(Box::new(err));
     }
 
@@ -1418,7 +1394,7 @@ pub fn get_program_info(obj: &Program, request: ProgramInfo) -> ProgramInfoResul
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetProgramInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetProgramInfo", "");
     ProgramInfoResult::from_bytes(request, result)
 }
 
@@ -1439,8 +1415,8 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + Debug>(obj: &Program, device_ob
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetProgramBuildInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetProgramBuildInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetProgramBuildInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetProgramBuildInfo", "") {
         return ProgramBuildInfoResult::Error(Box::new(err));
     }
 
@@ -1460,7 +1436,7 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + Debug>(obj: &Program, device_ob
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetProgramBuildInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetProgramBuildInfo", "");
     ProgramBuildInfoResult::from_bytes(request, result)
 }
 
@@ -1482,7 +1458,8 @@ pub fn create_kernel(
         try!(CString::new(name.as_bytes())).as_ptr(),
         &mut err,
     )) };
-    errcode_try("clCreateKernel", name, err).and(Ok(kernel))
+
+    eval_errcode(err, kernel, "clCreateKernel", name)
 }
 
 /// [UNIMPLEMENTED]
@@ -1496,12 +1473,12 @@ pub fn create_kernels_in_program() -> OclResult<()> {
 
 /// Increments a kernel reference counter.
 pub unsafe fn retain_kernel(kernel: &Kernel) -> OclResult<()> {
-    errcode_try("clRetainKernel", "", ffi::clRetainKernel(kernel.as_ptr()))
+    eval_errcode(ffi::clRetainKernel(kernel.as_ptr()), (), "clRetainKernel", "")
 }
 
 /// Decrements a kernel reference counter.
 pub unsafe fn release_kernel(kernel: &Kernel) -> OclResult<()> {
-    errcode_try("clReleaseKernel", "", ffi::clReleaseKernel(kernel.as_ptr()))
+    eval_errcode(ffi::clReleaseKernel(kernel.as_ptr()), (), "clReleaseKernel", "")
 }
 
 
@@ -1559,9 +1536,9 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
             arg_value,
     ) };
 
-    if err != 0 {
+    if err != Status::CL_SUCCESS as i32 {
         let name = get_kernel_name(kernel);
-        errcode_try("clSetKernelArg", &name, err)
+        eval_errcode(err, (), "clSetKernelArg", &name)
     } else {
         Ok(())
     }
@@ -1581,8 +1558,8 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetKernelInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetKernelInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetKernelInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetKernelInfo", "") {
         return KernelInfoResult::Error(Box::new(err));
     }
 
@@ -1601,7 +1578,7 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetKernelInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetKernelInfo", "");
     KernelInfoResult::from_bytes(request, result)
 }
 
@@ -1627,8 +1604,8 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetKernelArgInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetKernelArgInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetKernelArgInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetKernelArgInfo", "") {
         return KernelArgInfoResult::from(err);
     }
 
@@ -1648,7 +1625,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetKernelArgInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetKernelArgInfo", "");
     KernelArgInfoResult::from_bytes(request, result)
 }
 
@@ -1667,8 +1644,8 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetKernelWorkGroupInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetKernelWorkGroupInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetKernelWorkGroupInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetKernelWorkGroupInfo", "") {
         return KernelWorkGroupInfoResult::from(err);
     }
 
@@ -1688,7 +1665,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetKernelWorkGroupInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetKernelWorkGroupInfo", "");
     KernelWorkGroupInfoResult::from_bytes(request, result)
 }
 
@@ -1704,7 +1681,7 @@ pub fn wait_for_events(num_events: u32, event_list: &ClWaitList) -> OclResult<()
         ffi::clWaitForEvents(num_events, event_list.as_ptr_ptr())
     };
 
-    errcode_try("clWaitForEvents", "", errcode)
+    eval_errcode(errcode, (), "clWaitForEvents", "")
 }
 
 /// Get event info.
@@ -1721,8 +1698,8 @@ pub fn get_event_info(event: &Event, request: EventInfo,
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetEventInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetEventInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetEventInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetEventInfo", "") {
         return EventInfoResult::Error(Box::new(err));
     }
 
@@ -1741,7 +1718,7 @@ pub fn get_event_info(event: &Event, request: EventInfo,
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetEventInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetEventInfo", "");
     EventInfoResult::from_bytes(request, result)
 }
 
@@ -1750,17 +1727,17 @@ pub fn get_event_info(event: &Event, request: EventInfo,
 pub fn create_user_event(context: &Context) -> OclResult<Event> {
     let mut errcode = 0;
     let event = unsafe { Event::from_fresh_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
-    errcode_try("clCreateUserEvent", "", errcode).and(Ok(event))
+    eval_errcode(errcode, event, "clCreateUserEvent", "")
 }
 
 /// Increments an event's reference counter.
 pub unsafe fn retain_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
-    errcode_try("clRetainEvent", "", ffi::clRetainEvent(*event.as_ptr_ref()))
+    eval_errcode(ffi::clRetainEvent(*event.as_ptr_ref()), (), "clRetainEvent", "")
 }
 
 /// Decrements an event's reference counter.
 pub unsafe fn release_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
-    errcode_try("clReleaseEvent", "", ffi::clReleaseEvent(*event.as_ptr_ref()))
+    eval_errcode(ffi::clReleaseEvent(*event.as_ptr_ref()), (), "clReleaseEvent", "")
 }
 
 /// [UNTESTED]
@@ -1768,8 +1745,11 @@ pub unsafe fn release_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()
 pub fn set_user_event_status<'e,E: ClEventRef<'e>>(event: &'e E,
             execution_status: CommandExecutionStatus) -> OclResult<()>
 {
-    unsafe { errcode_try("clSetUserEventStatus", "", ffi::clSetUserEventStatus(
-        *event.as_ptr_ref(), execution_status as cl_int)) }
+    unsafe {
+        eval_errcode(ffi::clSetUserEventStatus(*event.as_ptr_ref(), execution_status as cl_int),
+            (), "clSetUserEventStatus", ""
+        )
+    }
 }
 
 /// Sets a callback function which is called as soon as the `callback_trigger`
@@ -1781,12 +1761,12 @@ pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
             user_data: *mut c_void,
         ) -> OclResult<()>
 {
-    errcode_try("clSetEventCallback", "", ffi::clSetEventCallback(
+    eval_errcode(ffi::clSetEventCallback(
         *event.as_ptr_ref(),
         callback_trigger as cl_int,
         callback_receiver,
         user_data,
-    ))
+    ), (), "clSetEventCallback", "")
 }
 
 //============================================================================
@@ -1808,8 +1788,8 @@ pub fn get_event_profiling_info(event: &Event, request: ProfilingInfo,
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(errcode_try("clGetEventProfilingInfo", "", errcode));
-    if let Err(err) = errcode_try("clGetEventProfilingInfo", "", errcode) {
+    // try!(eval_errcode(errcode, result, "clGetEventProfilingInfo", ""));
+    if let Err(err) = eval_errcode(errcode, (), "clGetEventProfilingInfo", "") {
         return ProfilingInfoResult::Error(Box::new(err));
     }
 
@@ -1828,7 +1808,7 @@ pub fn get_event_profiling_info(event: &Event, request: ProfilingInfo,
         0 as *mut size_t,
     ) };
 
-    let result = errcode_try("clGetEventProfilingInfo", "", errcode).and(Ok(result));
+    let result = eval_errcode(errcode, result, "clGetEventProfilingInfo", "");
     ProfilingInfoResult::from_bytes(request, result)
 }
 
@@ -1842,7 +1822,7 @@ pub fn get_event_profiling_info(event: &Event, request: ProfilingInfo,
 /// Issues all previously queued OpenCL commands in a command-queue to the
 /// device associated with the command-queue.
 pub fn flush(command_queue: &CommandQueue) -> OclResult<()> {
-    unsafe { errcode_try("clFlush", "", ffi::clFlush(command_queue.as_ptr())) }
+    unsafe { eval_errcode(ffi::clFlush(command_queue.as_ptr()), (), "clFlush", "") }
 }
 
 /// Waits for a queue to finish.
@@ -1852,7 +1832,7 @@ pub fn flush(command_queue: &CommandQueue) -> OclResult<()> {
 pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
     unsafe {
         let errcode = ffi::clFinish(command_queue.as_ptr());
-        errcode_try("clFinish", "", errcode)
+        eval_errcode(errcode, (), "clFinish", "")
     }
 }
 
@@ -1899,7 +1879,7 @@ pub unsafe fn enqueue_read_buffer<T: OclPrm>(
         new_event_ptr,
     );
 
-    errcode_try("clEnqueueReadBuffer", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueReadBuffer", "")
 }
 
 /// Enqueues a command to read from a rectangular region from a buffer object to host memory.
@@ -1971,7 +1951,8 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     );
-    errcode_try("clEnqueueReadBufferRect", "", errcode)
+
+    eval_errcode(errcode, (), "clEnqueueReadBufferRect", "")
 }
 
 /// Enqueues a write from host memory, `data`, to device memory referred to by
@@ -2002,7 +1983,7 @@ pub fn enqueue_write_buffer<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueWriteBuffer", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueWriteBuffer", "")
 }
 
 /// Enqueues a command to write from a rectangular region from host memory to a buffer object.
@@ -2058,7 +2039,7 @@ pub fn enqueue_write_buffer_rect<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueWriteBufferRect", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueWriteBufferRect", "")
 }
 
 /// Enqueues a command to fill a buffer object with a pattern of a given pattern size.
@@ -2097,7 +2078,7 @@ pub fn enqueue_fill_buffer<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueFillBuffer", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueFillBuffer", "")
 }
 
 /// [UNTESTED]
@@ -2131,7 +2112,7 @@ pub fn enqueue_copy_buffer<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueCopyBuffer", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueCopyBuffer", "")
 }
 
 /// Enqueues a command to copy a rectangular region from a buffer object to
@@ -2182,7 +2163,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueCopyBufferRect", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueCopyBufferRect", "")
 }
 
 /// [UNTESTED]
@@ -2205,7 +2186,7 @@ pub fn enqueue_acquire_gl_buffer(
         wait_list_ptr,
         new_event_ptr
     ) };
-    errcode_try("clEnqueueAcquireGLObjects", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", "")
 }
 
 /// [UNTESTED]
@@ -2228,7 +2209,7 @@ pub fn enqueue_release_gl_buffer(
         wait_list_ptr,
         new_event_ptr
     ) };
-    errcode_try("clEnqueueReleaseGLObjects", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueReleaseGLObjects", "")
 }
 
 
@@ -2275,7 +2256,7 @@ pub unsafe fn enqueue_read_image<T>(
         wait_list_ptr,
         new_event_ptr,
     );
-    errcode_try("clEnqueueReadImage", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueReadImage", "")
 }
 
 
@@ -2314,7 +2295,7 @@ pub fn enqueue_write_image<T>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueWriteImage", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueWriteImage", "")
 }
 
 /// [UNTESTED]
@@ -2360,7 +2341,7 @@ pub fn enqueue_fill_image<T>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueFillImage", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueFillImage", "")
 }
 
 
@@ -2392,7 +2373,7 @@ pub fn enqueue_copy_image<T>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueCopyImage", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueCopyImage", "")
 }
 
 /// [UNTESTED]
@@ -2426,7 +2407,7 @@ pub fn enqueue_copy_image_to_buffer<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueCopyImageToBuffer", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueCopyImageToBuffer", "")
 }
 
 /// [UNTESTED]
@@ -2460,7 +2441,7 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueCopyBufferToImage", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueCopyBufferToImage", "")
 }
 
 /// Enqueues a command to map a region of the buffer object given
@@ -2523,8 +2504,7 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
         Event::from_fresh_ptr(map_event)
     };
 
-    errcode_try("clEnqueueMapBuffer", "", errcode)?;
-    Ok(MappedMem::new(mapped_ptr as *mut T, len, map_event_core))
+    eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, len, map_event_core), "clEnqueueMapBuffer", "")
 }
 
 /// [UNTESTED]
@@ -2588,8 +2568,10 @@ pub unsafe fn enqueue_map_image<T: OclPrm>(
         Event::from_fresh_ptr(map_event)
     };
 
-    errcode_try("clEnqueueMapImage", "", errcode)?;
-    Ok(MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2], map_event_core))
+    eval_errcode(errcode,
+        MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2], map_event_core),
+        "clEnqueueMapImage", ""
+    )
 }
 
 /// Enqueues a command to unmap a previously mapped region of a memory object.
@@ -2619,7 +2601,7 @@ pub fn enqueue_unmap_mem_object<T: OclPrm>(
         unsafe { mapped_mem.set_unmapped(); }
     }
 
-    errcode_try("clEnqueueUnmapMemObject", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueUnmapMemObject", "")
 }
 
 /// [UNTESTED]
@@ -2657,7 +2639,7 @@ pub fn enqueue_migrate_mem_objects(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueMigrateMemObjects", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueMigrateMemObjects", "")
 }
 
 /// Enqueues a command to execute a kernel on a device.
@@ -2749,7 +2731,7 @@ pub fn enqueue_kernel(
 
     if errcode != 0 {
         let name = get_kernel_name(kernel);
-        errcode_try("clEnqueueNDRangeKernel", &name, errcode)
+        eval_errcode(errcode, (), "clEnqueueNDRangeKernel", &name)
     } else {
         Ok(())
     }
@@ -2783,7 +2765,7 @@ pub fn enqueue_task(
             wait_list_ptr,
             new_event_ptr,
     ) };
-    errcode_try("clEnqueueTask", kernel_name.unwrap_or(""), errcode)
+    eval_errcode(errcode, (), "clEnqueueTask", kernel_name.unwrap_or(""))
 }
 
 /// [UNIMPLEMENTED]
@@ -2827,7 +2809,7 @@ pub fn enqueue_marker_with_wait_list(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueMarkerWithWaitList", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueMarkerWithWaitList", "")
 }
 
 /// [UNTESTED]
@@ -2855,7 +2837,7 @@ pub fn enqueue_barrier_with_wait_list(
         wait_list_ptr,
         new_event_ptr,
     ) };
-    errcode_try("clEnqueueBarrierWithWaitList", "", errcode)
+    eval_errcode(errcode, (), "clEnqueueBarrierWithWaitList", "")
 }
 
 
@@ -3025,7 +3007,7 @@ pub fn wait_for_event(event: &Event) -> OclResult<()> {
         let event_ptr = *event.as_ptr_ref();
         ffi::clWaitForEvents(1, &event_ptr)
     };
-    errcode_try("clWaitForEvents", "", errcode)
+    eval_errcode(errcode, (), "clWaitForEvents", "")
 }
 
 /// Returns the status of `event`.
@@ -3041,14 +3023,14 @@ pub fn get_event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<Comman
             ptr::null_mut(),
         )
     };
-    try!(errcode_try("clGetEventInfo", "", errcode));
+    try!(eval_errcode(errcode, (), "clGetEventInfo", ""));
 
     CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::new("Error converting \
         'clGetEventInfo' status output."))
 }
 
-/// Returns true if an event is complete, false if not complete or upon error.
-pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> bool {
+/// Returns true if an event is complete, false if not complete.
+pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<bool> {
     let mut status_int: cl_int = 0;
 
     let errcode = unsafe {
@@ -3061,7 +3043,7 @@ pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> bool {
         )
     };
 
-    status_int == CommandExecutionStatus::Complete as i32 && errcode == Status::CL_SUCCESS as i32
+    eval_errcode(errcode, status_int == CommandExecutionStatus::Complete as i32, "", "")
 }
 
 

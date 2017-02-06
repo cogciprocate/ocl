@@ -3,13 +3,32 @@
 
 use std;
 use std::convert::Into;
-use std::default::Default;
 use num::FromPrimitive;
 use ::Status;
 
 
 /// `ocl::Error` result type.
 pub type Result<T> = std::result::Result<T, self::Error>;
+
+
+fn gen_status_error<S: Into<String>>(errcode: i32, fn_name: &'static str, fn_info: S) -> self::Error {
+    let status = match Status::from_i32(errcode) {
+        Some(s) => s,
+        None => panic!("ocl_core::Error::err_status: Invalid error code: '{}'. Aborting.", errcode),
+    };
+
+    let fn_info = fn_info.into();
+    let desc = fmt_status_desc(status.clone(), fn_name, &fn_info);
+    let status_string = format!("{:?}", status);
+
+    Error::Status {
+            status: status,
+            status_string: status_string,
+            fn_name: fn_name,
+            fn_info: fn_info,
+            desc: desc
+    }
+}
 
 
 /// An enum containing either a `String` or one of several other error types.
@@ -57,28 +76,14 @@ impl self::Error {
 
     /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the
     /// given error code and description.
-    pub fn err_status<T: Default, S: Into<String>>(errcode: i32, fn_name: &'static str, fn_info: S)
+    #[inline(always)]
+    pub fn eval_errcode<T, S: Into<String>>(errcode: i32, result: T, fn_name: &'static str, fn_info: S)
             -> self::Result<T>
     {
-        let status = match Status::from_i32(errcode) {
-            Some(s) => s,
-            None => panic!("ocl::core::errcode_try(): Invalid error code: '{}'. Aborting.", errcode),
-        };
-
-        if let Status::CL_SUCCESS = status {
-            Ok(T::default())
+        if (Status::CL_SUCCESS as i32) == errcode {
+            Ok(result)
         } else {
-            let fn_info = fn_info.into();
-            let desc = fmt_status_desc(status.clone(), fn_name, &fn_info);
-            let status_string = format!("{:?}", status);
-
-            Err(Error::Status {
-                    status: status,
-                    status_string: status_string,
-                    fn_name: fn_name,
-                    fn_info: fn_info,
-                    desc: desc
-            })
+            Err(gen_status_error(errcode, fn_name, fn_info))
         }
     }
 
