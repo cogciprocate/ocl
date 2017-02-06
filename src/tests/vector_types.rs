@@ -38,7 +38,7 @@ fn test_vector_types() {
 
     let kernel = pro_que.create_kernel("add_float3").unwrap()
         .arg_buf(&buffer)
-        .arg_scl(addend);
+        .arg_vec(addend);
 
     kernel.enq().unwrap();
 

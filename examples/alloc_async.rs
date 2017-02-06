@@ -31,6 +31,7 @@ extern crate rand;
 extern crate chrono;
 extern crate ocl;
 
+use rand::{Rng, XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use std::collections::{LinkedList, HashMap, BTreeSet};
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
@@ -275,7 +276,6 @@ impl Command {
         let pre_writers = self.details.sources().iter().flat_map(|cmd_src_block|
                 cmds.get(cmd_src_block).unwrap().writers.iter().cloned()).collect();
 
-        // if PRINT_DEBUG { println!("##### [{}]: Preceding Writers: {:?}", cmd_idx, pre_writers); }
         pre_writers
     }
 
@@ -285,7 +285,6 @@ impl Command {
         let fol_readers = self.details.targets().iter().flat_map(|cmd_tar_block|
                 cmds.get(cmd_tar_block).unwrap().readers.iter().cloned()).collect();
 
-        // if PRINT_DEBUG { println!("##### [{}]: Following Readers: {:?}", cmd_idx, fol_readers); }
         fol_readers
     }
 }
@@ -420,17 +419,17 @@ struct Task {
     cmd_graph: CommandGraph,
     queue: Queue,
     kernels: Vec<Kernel>,
-    // buffers: Vec<usize>,
+    expected_result: Option<ClFloat4>,
 }
 
-impl Task {
+impl Task{
     /// Returns a new, empty task.
     pub fn new(queue: Queue) -> Task {
         Task {
             cmd_graph: CommandGraph::new(),
             queue: queue,
             kernels: Vec::new(),
-            // buffers: Vec::new(),
+            expected_result: None,
         }
     }
 
@@ -470,6 +469,10 @@ impl Task {
             source: source_buffer_id,
             target: target_buffer_id,
         }))
+    }
+
+    pub fn set_expected_result(&mut self, expected_result: ClFloat4) {
+        self.expected_result = Some(expected_result)
     }
 
     /// Fill a buffer with a pattern of data:
@@ -557,6 +560,9 @@ impl Task {
     }
 }
 
+fn coeff(add: bool) -> f32 {
+    if add { 1. } else { -1. }
+}
 
 /// A very simple kernel source generator. Imagine something cooler here.
 ///
@@ -571,7 +577,7 @@ impl Task {
 /// believe all/most OpenCL vendors have offline LLVM -> Binary compilers for
 /// older hardware. [TODO]: Investigate this.
 ///
-fn gen_kern_src(kernel_name: &str, simple: bool, add: bool, ) -> String {
+fn gen_kern_src(kernel_name: &str, simple: bool, add: bool) -> String {
     let op = if add { "+" } else { "-" };
 
     if simple {
@@ -658,6 +664,7 @@ fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPo
     // 2.) Final read from device:
     assert!(task.add_read_command(read_buf_id).unwrap() == 2);
 
+    // Populate the command graph:
     task.cmd_graph.populate_requisites();
     Ok(task)
 }
@@ -682,7 +689,7 @@ fn verify_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, correct_
     let data = task.map(2, buf_pool);
 
     for val in data.iter() {
-        assert!(*val == ClFloat4(150., 150., 150., 150.));
+        assert_eq!(*val, ClFloat4(150., 150., 150., 150.));
         *correct_val_count += 1;
     }
 
@@ -706,7 +713,7 @@ fn verify_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, correct_
 /// 7.) Read:    buffer[6] -> host_mem
 ///
 fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferPool<ClFloat4>,
-    work_size: u32, queue: Queue) -> Result<Task, ()>
+    work_size: u32, queue: Queue, rng: &mut XorShiftRng) -> Result<Task, ()>
 {
     // The container for this task:
     let mut task = Task::new(queue.clone());
@@ -741,17 +748,24 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
         }
     }
 
+    let kern_a_sign = rng.gen();
+    let kern_b_sign = rng.gen();
+    let kern_c_sign = rng.gen();
+    let kern_a_val = RandRange::new(-1000., 1000.).ind_sample(rng);
+    let kern_b_val = RandRange::new(-500., 500.).ind_sample(rng);
+    let kern_c_val = RandRange::new(-2000., 2000.).ind_sample(rng);
+
     let program = Program::builder()
         .devices(device)
-        .src(gen_kern_src("kernel_A", true, true))
-        .src(gen_kern_src("kernel_B", false, true))
-        .src(gen_kern_src("kernel_C", true, false))
+        .src(gen_kern_src("kernel_A", true, kern_a_sign))
+        .src(gen_kern_src("kernel_B", false, kern_b_sign))
+        .src(gen_kern_src("kernel_C", true, kern_c_sign))
         .build(context).unwrap();
 
     let kernel_A = Kernel::new("kernel_A", &program, queue.clone()).unwrap()
         .gws(work_size)
         .arg_buf(buf_pool.get(buffer_ids[0]).unwrap())
-        .arg_vec(ClFloat4(200., 200., 200., 200.))
+        .arg_vec(ClFloat4(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
         .arg_buf(buf_pool.get(buffer_ids[1]).unwrap());
 
     let kernel_B = Kernel::new("kernel_B", &program, queue.clone()).unwrap()
@@ -759,13 +773,13 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
         .arg_buf(buf_pool.get(buffer_ids[2]).unwrap())
         .arg_buf(buf_pool.get(buffer_ids[3]).unwrap())
         .arg_buf(buf_pool.get(buffer_ids[4]).unwrap())
-        .arg_vec(ClFloat4(510., 510., 510., 510.))
+        .arg_vec(ClFloat4(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
         .arg_buf(buf_pool.get(buffer_ids[5]).unwrap());
 
     let kernel_C = Kernel::new("kernel_C", &program, queue).unwrap()
         .gws(work_size)
         .arg_buf(buf_pool.get(buffer_ids[5]).unwrap())
-        .arg_vec(ClFloat4(2000., 2000., 2000., 2000.))
+        .arg_vec(ClFloat4(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
         .arg_buf(buf_pool.get(buffer_ids[6]).unwrap());
 
     // 0.) Initially write 500s:
@@ -800,6 +814,16 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
     // 7.) Final read from device:
     assert!(task.add_read_command(buffer_ids[6]).unwrap() == 7);
 
+    // Calculate expected result value:
+    let kern_a_out_val = 500. + (coeff(kern_a_sign) * kern_a_val);
+    let kern_b_out_val = kern_a_out_val +
+        (coeff(kern_b_sign) * kern_a_out_val) +
+        (coeff(kern_b_sign) * 50.) +
+        (coeff(kern_b_sign) * kern_b_val);
+    let kern_c_out_val = kern_b_out_val + (coeff(kern_c_sign) * kern_c_val);
+    task.set_expected_result(ClFloat4(kern_c_out_val, kern_c_out_val, kern_c_out_val, kern_c_out_val));
+
+    // Populate the command graph:
     task.cmd_graph.populate_requisites();
     Ok(task)
 }
@@ -840,8 +864,10 @@ fn verify_complex_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, correct
     let read_cmd_idx = 7;
     let data = task.map(read_cmd_idx, buf_pool);
 
+    let expected_result = task.expected_result.unwrap();
+
     for val in data.iter() {
-        assert!(*val == ClFloat4(-40., -40., -40., -40.));
+        assert_eq!(*val, expected_result);
         *correct_val_count += 1;
     }
 
@@ -864,10 +890,11 @@ fn main() {
         .devices(device)
         .build().unwrap();
 
-    // An out of order queue (coordinated by the command graph):
-    let queue = Queue::new(&context, device, Some(CommandQueueProperties::out_of_order())).unwrap();
+    // Out of order queues (coordinated by the command graph):
+    let io_queue = Queue::new(&context, device, Some(CommandQueueProperties::out_of_order())).unwrap();
+    let kern_queue = Queue::new(&context, device, Some(CommandQueueProperties::out_of_order())).unwrap();
 
-    let mut buf_pool: BufferPool<ClFloat4> = BufferPool::new(INITIAL_BUFFER_LEN, queue.clone());
+    let mut buf_pool: BufferPool<ClFloat4> = BufferPool::new(INITIAL_BUFFER_LEN, io_queue);
     let mut simple_tasks: Vec<Task> = Vec::new();
     let mut complex_tasks: Vec<Task> = Vec::new();
     let mut pool_full = false;
@@ -884,7 +911,7 @@ fn main() {
 
             // Create task if there is room in the buffer pool:
             let task = match create_simple_task(device, &context, &mut buf_pool,
-                    work_size, queue.clone())
+                    work_size, kern_queue.clone())
             {
                 Ok(task) => task,
                 Err(_) => {
@@ -905,7 +932,7 @@ fn main() {
 
             // Create task if there is room in the buffer pool:
             let task = match create_complex_task(device, &context, &mut buf_pool,
-                    work_size, queue.clone())
+                    work_size, kern_queue.clone(), &mut rng)
             {
                 Ok(task) => task,
                 Err(_) => {
