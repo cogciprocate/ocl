@@ -2529,7 +2529,8 @@ pub unsafe fn enqueue_map_buffer_async<T>(
         Event::from_fresh_ptr(new_map_event_ptr)
     };
 
-    mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core))
+    mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core, buffer.clone(),
+        command_queue.clone()))
 }
 
 
@@ -2597,12 +2598,14 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
     //     Event::from_fresh_ptr(map_event)
     // };
 
-    // eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, len, /*map_event_core*/), "clEnqueueMapBuffer", "")
+    // eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, len, /*map_event_core*/),
+    //     "clEnqueueMapBuffer", "")
 
     let mapped_ptr_res = _enqueue_map_buffer(command_queue, buffer, block, map_flags, offset, len,
         wait_list_len, wait_list_ptr, new_event_ptr);
 
-    mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None))
+    mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None, buffer.clone(),
+        command_queue.clone()))
 }
 
 
@@ -2734,10 +2737,8 @@ pub unsafe fn enqueue_map_image<T: OclPrm>(
     //     Event::from_fresh_ptr(map_event)
     // };
 
-    eval_errcode(errcode,
-        MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2], None),
-        "clEnqueueMapImage", ""
-    )
+    eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2],
+        None, image.clone(), command_queue.clone()), "clEnqueueMapImage", "")
 }
 
 /// Enqueues a command to unmap a previously mapped region of a memory object.
@@ -2747,10 +2748,17 @@ pub unsafe fn enqueue_map_image<T: OclPrm>(
 pub fn enqueue_unmap_mem_object<T: OclPrm>(
             command_queue: &CommandQueue,
             memobj: &Mem,
-            mapped_mem: &mut MappedMem<T>,
+            mapped_mem: &MappedMem<T>,
             wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>,
-        ) -> OclResult<()> {
+        ) -> OclResult<()>
+{
+
+    if mapped_mem.is_unmapped() {
+        return Err("ocl_core::enqueue_unmap_mem_object: The 'MappedMem' object passed is already \
+            unmapped.".into());
+    }
+
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
 
@@ -2762,10 +2770,6 @@ pub fn enqueue_unmap_mem_object<T: OclPrm>(
         wait_list_ptr,
         new_event_ptr,
     ) };
-
-    if errcode == Status::CL_SUCCESS as i32 {
-        unsafe { mapped_mem.set_unmapped(); }
-    }
 
     eval_errcode(errcode, (), "clEnqueueUnmapMemObject", "")
 }

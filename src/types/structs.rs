@@ -21,10 +21,12 @@ pub type TemporaryPlaceholderType = ();
 pub struct MappedMemPtr<T: OclPrm>(*mut T);
 
 impl<T: OclPrm> MappedMemPtr<T> {
+    #[inline(always)]
     pub fn new(ptr: *mut T) -> MappedMemPtr<T> {
         MappedMemPtr(ptr)
     }
 
+    #[inline(always)]
     pub fn as_ptr(&self) -> *mut T {
         self.0
     }
@@ -34,35 +36,52 @@ unsafe impl<T: OclPrm> Send for MappedMemPtr<T> {}
 unsafe impl<T: OclPrm> Sync for MappedMemPtr<T> {}
 
 
+pub unsafe fn mapped_mem_set_unmapped<T: OclPrm>(mm: &mut MappedMem<T>) {
+    mm.is_unmapped = true;
+}
+
+
+
 /// A view of memory mapped by `clEnqueueMap{...}`.
 ///
 /// ### [UNSTABLE]
 ///
-/// Still in a state of flux but is ~90% stable.
+/// Still in a state of flux but is ~80% stable.
 ///
 pub struct MappedMem<T: OclPrm> {
     ptr: MappedMemPtr<T>,
     len: usize,
     unmap_event: Option<UserEvent>,
+    buffer: Mem,
+    queue: CommandQueue,
     is_unmapped: bool,
 }
 
 impl<T> MappedMem<T>  where T: OclPrm {
-    pub unsafe fn new(ptr: *mut T, len: usize, unmap_event: Option<UserEvent>) -> MappedMem<T> {
+    pub unsafe fn new(ptr: *mut T, len: usize, unmap_event: Option<UserEvent>, buffer: Mem,
+            queue: CommandQueue) -> MappedMem<T>
+    {
         assert!(!ptr.is_null(), "MappedMem::new: Null pointer passed.");
 
         MappedMem {
             ptr: MappedMemPtr::new(ptr),
             len: len,
             unmap_event: unmap_event,
+            buffer: buffer,
+            queue: queue,
             is_unmapped: false,
         }
     }
 
-    pub fn unmap_mem_object(&mut self, queue: &CommandQueue, mem: &Mem, wait_list: Option<&ClWaitList>,
+    pub fn unmap(&self, queue: Option<&CommandQueue>, wait_list: Option<&ClWaitList>,
             new_event: Option<&mut ClEventPtrNew>) -> OclResult<()>
     {
-        ::enqueue_unmap_mem_object(queue, mem, self, wait_list, new_event)
+        // let unmap_queue = queue.unwrap_or(&self.queue);
+
+        ::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
+            self, wait_list, new_event)
+
+        // if unmap_res.is_ok() { Ok(self.is_unmapped = true) } else { unmap_res }
     }
 
     #[inline]
@@ -74,7 +93,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
     // #[inline] pub fn map_event(&self) -> &Event { &self.map_event }
     #[inline] pub fn as_ptr(&self) -> cl_mem { self.ptr.as_ptr() as cl_mem }
     #[inline] pub fn is_unmapped(&self) -> bool { self.is_unmapped }
-    #[inline] pub unsafe fn set_unmapped(&mut self) { self.is_unmapped = true; }
+    // #[inline] pub unsafe fn set_unmapped(&mut self) { self.is_unmapped = true; }
 }
 
 impl<T> Deref for MappedMem<T> where T: OclPrm {
@@ -97,11 +116,15 @@ impl<T> DerefMut for MappedMem<T> where T: OclPrm {
 
 impl<T: OclPrm> Drop for MappedMem<T> {
     fn drop(&mut self) {
-        assert!(self.is_unmapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
-            Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
+        // assert!(self.is_unmapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
+        //     Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
+        if self.is_unmapped {
+            ::enqueue_unmap_mem_object(&self.queue, &self.buffer, self, None, None).unwrap();
 
-        if let Some(ref event) = self.unmap_event {
-            event.set_complete().unwrap();
+
+            if let Some(ref event) = self.unmap_event {
+                event.set_complete().unwrap();
+            }
         }
     }
 }
