@@ -27,7 +27,8 @@ use std::ops::{Add};
 pub struct ClChar2(pub i8, pub i8);
 unsafe impl OclPrm for ClChar2 {}
 unsafe impl OclVec for ClChar2 {}
-
+unsafe impl Send for ClChar2 {}
+unsafe impl Sync for ClChar2 {}
 
 #[derive(PartialEq, Debug, Clone, Copy, Default)]
 pub struct ClChar3(pub i8, pub i8, pub i8, i8);
@@ -429,6 +430,8 @@ impl Add<ClFloat4> for ClFloat4 {
 
 unsafe impl OclPrm for ClFloat4 {}
 unsafe impl OclVec for ClFloat4 {}
+unsafe impl Send for ClFloat4 {}
+unsafe impl Sync for ClFloat4 {}
 
 // pub type ClFloat3 = ClFloat4;
 

@@ -5,3 +5,4 @@ pub mod abs;
 pub mod enums;
 pub mod structs;
 pub mod vectors;
+pub mod futures;

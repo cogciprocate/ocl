@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem};
+    CommandQueueProperties, MappedMem, FutureMappedMem, UserEvent};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -1724,9 +1724,9 @@ pub fn get_event_info(event: &Event, request: EventInfo,
 
 /// [UNTESTED]
 /// Creates an event not already associated with any command.
-pub fn create_user_event(context: &Context) -> OclResult<Event> {
+pub fn create_user_event(context: &Context) -> OclResult<UserEvent> {
     let mut errcode = 0;
-    let event = unsafe { Event::from_fresh_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
+    let event = unsafe { UserEvent::from_fresh_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
     eval_errcode(errcode, event, "clCreateUserEvent", "")
 }
 
@@ -2444,6 +2444,98 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm>(
     eval_errcode(errcode, (), "clEnqueueCopyBufferToImage", "")
 }
 
+
+
+
+
+unsafe fn _enqueue_map_buffer<T>(
+        command_queue: &CommandQueue,
+        buffer: &Mem,
+        block: bool,
+        map_flags: MapFlags,
+        offset: usize,
+        len: usize,
+        // wait_list: Option<&ClWaitList>,
+        // new_event: Option<&mut ClEventPtrNew>,
+        wait_list_len: cl_uint,
+        wait_list_ptr: *const cl_event,
+        new_event_ptr: *mut cl_event,
+        ) -> OclResult<*mut T>
+        where T: OclPrm
+{
+    let offset_bytes = offset * mem::size_of::<T>();
+    let size_bytes = len * mem::size_of::<T>();
+
+    // let (wait_list_len, wait_list_ptr, new_event_ptr) =
+    //     try!(resolve_event_ptrs(wait_list, new_event));
+
+    let mut errcode = 0i32;
+
+    let mapped_ptr = ffi::clEnqueueMapBuffer(
+        command_queue.as_ptr(),
+        buffer.as_ptr(),
+        block as cl_uint,
+        map_flags.bits(),
+        offset_bytes,
+        size_bytes,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+        &mut errcode,
+    );
+
+    // let map_event_core = if !new_event_ptr.is_null() {
+    //     *new_event_ptr = map_event;
+    //     Event::from_copied_ptr(map_event)?
+    // } else {
+    //     Event::from_fresh_ptr(map_event)
+    // };
+
+    eval_errcode(errcode, mapped_ptr as *mut T, "clEnqueueMapBuffer", "")
+}
+
+pub unsafe fn enqueue_map_buffer_async<T>(
+        command_queue: &CommandQueue,
+        buffer: &Mem,
+        map_flags: MapFlags,
+        offset: usize,
+        len: usize,
+        wait_list: Option<&ClWaitList>,
+        new_event: Option<&mut ClEventPtrNew>,
+        ) -> OclResult<FutureMappedMem<T>>
+        where T: OclPrm
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        try!(resolve_event_ptrs(wait_list, new_event));
+
+    let mut new_map_event_ptr = 0 as cl_event;
+
+    let mapped_ptr = _enqueue_map_buffer(
+        command_queue,
+        buffer,
+        false,
+        map_flags,
+        offset,
+        len,
+        wait_list_len,
+        wait_list_ptr,
+        &mut new_map_event_ptr,
+    );
+
+    let new_map_event_core = if !new_event_ptr.is_null() {
+        *new_event_ptr = new_map_event_ptr;
+        Event::from_copied_ptr(new_map_event_ptr)?
+    } else {
+        Event::from_fresh_ptr(new_map_event_ptr)
+    };
+
+    mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core))
+}
+
+
+
+
+
 /// Enqueues a command to map a region of the buffer object given
 /// by `buffer` into the host address space and returns a pointer to this
 /// mapped region.
@@ -2475,37 +2567,110 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm>(
             new_event: Option<&mut ClEventPtrNew>,
         ) -> OclResult<MappedMem<T>>
 {
-    let offset_bytes = offset * mem::size_of::<T>();
-    let size_bytes = len * mem::size_of::<T>();
+    // let offset_bytes = offset * mem::size_of::<T>();
+    // let size_bytes = len * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
 
-    let mut errcode = 0i32;
-    let mut map_event = 0 as cl_event;
+    // let mut errcode = 0i32;
+    // let mut map_event = 0 as cl_event;
 
-    let mapped_ptr = ffi::clEnqueueMapBuffer(
-        command_queue.as_ptr(),
-        buffer.as_ptr(),
-        block as cl_uint,
-        map_flags.bits(),
-        offset_bytes,
-        size_bytes,
-        wait_list_len,
-        wait_list_ptr,
-        &mut map_event,
-        &mut errcode,
-    );
+    // let mapped_ptr = ffi::clEnqueueMapBuffer(
+    //     command_queue.as_ptr(),
+    //     buffer.as_ptr(),
+    //     block as cl_uint,
+    //     map_flags.bits(),
+    //     offset_bytes,
+    //     size_bytes,
+    //     wait_list_len,
+    //     wait_list_ptr,
+    //     new_event_ptr,
+    //     // &mut map_event,
+    //     &mut errcode,
+    // );
 
-    let map_event_core = if !new_event_ptr.is_null() {
-        *new_event_ptr = map_event;
-        Event::from_cloned_ptr(map_event)?
-    } else {
-        Event::from_fresh_ptr(map_event)
-    };
+    // let map_event_core = if !new_event_ptr.is_null() {
+    //     *new_event_ptr = map_event;
+    //     Event::from_copied_ptr(map_event)?
+    // } else {
+    //     Event::from_fresh_ptr(map_event)
+    // };
 
-    eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, len, map_event_core), "clEnqueueMapBuffer", "")
+    // eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, len, /*map_event_core*/), "clEnqueueMapBuffer", "")
+
+    let mapped_ptr_res = _enqueue_map_buffer(command_queue, buffer, block, map_flags, offset, len,
+        wait_list_len, wait_list_ptr, new_event_ptr);
+
+    mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None))
 }
+
+
+
+
+
+// /// Enqueues a command to map a region of the buffer object given
+// /// by `buffer` into the host address space and returns a pointer to this
+// /// mapped region.
+// ///
+// /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html)
+// ///
+// /// ## Safety
+// ///
+// /// Caller must ensure that the returned pointer is not used until the map is
+// /// complete. Use `new_event` to monitor it. [TEMPORARY] It also must be
+// /// ensured that memory referred to by the returned pointer is not dropped,
+// /// reused, or otherwise interfered with until `enqueue_unmap_mem_object` is
+// /// called.
+// ///
+// ///
+// /// TODO: Return a new wrapped type representing the newly mapped memory.
+// ///
+// /// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
+// ///
+// ///
+// pub unsafe fn enqueue_map_buffer<T: OclPrm>(
+//             command_queue: &CommandQueue,
+//             buffer: &Mem,
+//             block: bool,
+//             map_flags: MapFlags,
+//             offset: usize,
+//             len: usize,
+//             wait_list: Option<&ClWaitList>,
+//             new_event: Option<&mut ClEventPtrNew>,
+//         ) -> OclResult<MappedMem<T>>
+// {
+//     let offset_bytes = offset * mem::size_of::<T>();
+//     let size_bytes = len * mem::size_of::<T>();
+
+//     let (wait_list_len, wait_list_ptr, new_event_ptr) =
+//         try!(resolve_event_ptrs(wait_list, new_event));
+
+//     let mut errcode = 0i32;
+//     let mut map_event = 0 as cl_event;
+
+//     let mapped_ptr = ffi::clEnqueueMapBuffer(
+//         command_queue.as_ptr(),
+//         buffer.as_ptr(),
+//         block as cl_uint,
+//         map_flags.bits(),
+//         offset_bytes,
+//         size_bytes,
+//         wait_list_len,
+//         wait_list_ptr,
+//         &mut map_event,
+//         &mut errcode,
+//     );
+
+//     let map_event_core = if !new_event_ptr.is_null() {
+//         *new_event_ptr = map_event;
+//         Event::from_copied_ptr(map_event)?
+//     } else {
+//         Event::from_fresh_ptr(map_event)
+//     };
+
+//     eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, len, map_event_core), "clEnqueueMapBuffer", "")
+// }
 
 /// [UNTESTED]
 /// Enqueues a command to map a region of the image object given by `image` into
@@ -2544,7 +2709,7 @@ pub unsafe fn enqueue_map_image<T: OclPrm>(
         try!(resolve_event_ptrs(wait_list, new_event));
 
     let mut errcode = 0i32;
-    let mut map_event = 0 as cl_event;
+    // let mut map_event = 0 as cl_event;
 
     let mapped_ptr = ffi::clEnqueueMapImage(
         command_queue.as_ptr(),
@@ -2557,19 +2722,20 @@ pub unsafe fn enqueue_map_image<T: OclPrm>(
         slc_pitch_bytes,
         wait_list_len,
         wait_list_ptr,
-        &mut map_event,
+        new_event_ptr,
+        // &mut map_event,
         &mut errcode,
     );
 
-    let map_event_core = if !new_event_ptr.is_null() {
-        *new_event_ptr = map_event;
-        Event::from_cloned_ptr(map_event)?
-    } else {
-        Event::from_fresh_ptr(map_event)
-    };
+    // let map_event_core = if !new_event_ptr.is_null() {
+    //     *new_event_ptr = map_event;
+    //     Event::from_copied_ptr(map_event)?
+    // } else {
+    //     Event::from_fresh_ptr(map_event)
+    // };
 
     eval_errcode(errcode,
-        MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2], map_event_core),
+        MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2], None),
         "clEnqueueMapImage", ""
     )
 }
@@ -3042,6 +3208,8 @@ pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<bool>
             ptr::null_mut(),
         )
     };
+
+    println!("Event Status: {:?}", CommandExecutionStatus::from_i32(status_int).unwrap());
 
     eval_errcode(errcode, status_int == CommandExecutionStatus::Complete as i32, "", "")
 }

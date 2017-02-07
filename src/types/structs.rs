@@ -11,11 +11,27 @@ use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-        PlatformId, OclPrm, CommandQueue, ClWaitList, ClEventPtrNew, Event};
+        PlatformId, OclPrm, CommandQueue, ClWaitList, ClEventPtrNew, UserEvent};
 
 
 // Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
+
+
+pub struct MappedMemPtr<T: OclPrm>(*mut T);
+
+impl<T: OclPrm> MappedMemPtr<T> {
+    pub fn new(ptr: *mut T) -> MappedMemPtr<T> {
+        MappedMemPtr(ptr)
+    }
+
+    pub fn as_ptr(&self) -> *mut T {
+        self.0
+    }
+}
+
+unsafe impl<T: OclPrm> Send for MappedMemPtr<T> {}
+unsafe impl<T: OclPrm> Sync for MappedMemPtr<T> {}
 
 
 /// A view of memory mapped by `clEnqueueMap{...}`.
@@ -24,21 +40,21 @@ pub type TemporaryPlaceholderType = ();
 ///
 /// Still in a state of flux but is ~90% stable.
 ///
-pub struct MappedMem<T> {
-    ptr: *mut T,
+pub struct MappedMem<T: OclPrm> {
+    ptr: MappedMemPtr<T>,
     len: usize,
-    map_event: Event,
+    unmap_event: Option<UserEvent>,
     is_unmapped: bool,
 }
 
 impl<T> MappedMem<T>  where T: OclPrm {
-    pub unsafe fn new(ptr: *mut T, len: usize, map_event: Event) -> MappedMem<T> {
+    pub unsafe fn new(ptr: *mut T, len: usize, unmap_event: Option<UserEvent>) -> MappedMem<T> {
         assert!(!ptr.is_null(), "MappedMem::new: Null pointer passed.");
 
         MappedMem {
-            ptr: ptr,
+            ptr: MappedMemPtr::new(ptr),
             len: len,
-            map_event: map_event,
+            unmap_event: unmap_event,
             is_unmapped: false,
         }
     }
@@ -50,12 +66,13 @@ impl<T> MappedMem<T>  where T: OclPrm {
     }
 
     #[inline]
-    pub fn is_accessible(&self) -> bool {
-        self.map_event.is_complete().unwrap_or(false) && !self.is_unmapped
+    pub fn is_accessible(&self) -> OclResult<bool> {
+        // self.map_event.is_complete().map(|cmplt| cmplt && !self.is_unmapped)
+        Ok(!self.is_unmapped)
     }
 
-    #[inline] pub fn map_event(&self) -> &Event { &self.map_event }
-    #[inline] pub fn as_ptr(&self) -> cl_mem { self.ptr as cl_mem }
+    // #[inline] pub fn map_event(&self) -> &Event { &self.map_event }
+    #[inline] pub fn as_ptr(&self) -> cl_mem { self.ptr.as_ptr() as cl_mem }
     #[inline] pub fn is_unmapped(&self) -> bool { self.is_unmapped }
     #[inline] pub unsafe fn set_unmapped(&mut self) { self.is_unmapped = true; }
 }
@@ -64,22 +81,28 @@ impl<T> Deref for MappedMem<T> where T: OclPrm {
     type Target = [T];
 
     fn deref(&self) -> &[T] {
-        assert!(self.is_accessible(), "Mapped memory inaccessable.");
-        unsafe { slice::from_raw_parts(self.ptr, self.len) }
+        assert!(self.is_accessible().unwrap_or(false), "Mapped memory inaccessable. \
+            Check with '::is_accessable' first.");
+        unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
     }
 }
 
 impl<T> DerefMut for MappedMem<T> where T: OclPrm {
     fn deref_mut(&mut self) -> &mut [T] {
-        assert!(self.is_accessible(), "Mapped memory inaccessable.");
-        unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
+        assert!(self.is_accessible().unwrap_or(false), "Mapped memory inaccessable. \
+            Check with '::is_accessable' first.");
+        unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
     }
 }
 
-impl<T> Drop for MappedMem<T> {
+impl<T: OclPrm> Drop for MappedMem<T> {
     fn drop(&mut self) {
         assert!(self.is_unmapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
             Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
+
+        if let Some(ref event) = self.unmap_event {
+            event.set_complete().unwrap();
+        }
     }
 }
 
