@@ -54,6 +54,7 @@
 extern crate libc;
 extern crate num;
 #[cfg(test)] extern crate rand;
+extern crate futures;
 pub extern crate ocl_core as core;
 
 #[cfg(test)] mod tests;

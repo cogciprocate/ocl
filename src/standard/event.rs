@@ -4,6 +4,7 @@ use std;
 use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use libc::c_void;
+use futures::{Future, Poll, Async};
 use ffi;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult,
@@ -216,6 +217,16 @@ unsafe impl ClWaitList for Event {
         }
     }
 }
+
+impl Future for Event {
+    type Item = ();
+    type Error = OclError;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.is_complete().map(|_| Async::Ready(()))
+    }
+}
+
 
 
 

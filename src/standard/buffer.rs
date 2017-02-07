@@ -6,13 +6,13 @@
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-
+// use futures::{Future, Poll, Async};
 use ffi::cl_GLuint;
-
-use core::{self, OclPrm, Mem as MemCore, CommandQueue, MemFlags, MemInfo, MemInfoResult,
-    ClEventPtrNew, ClWaitList, BufferRegion, MappedMem as MappedMemCore, Event as EventCore,
-    EventList as EventListCore, MapFlags};
-use core::error::{Error as OclError, Result as OclResult};
+use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore, CommandQueue,
+    MemFlags, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList, BufferRegion,
+    MappedMem as MappedMemCore, FutureMappedMem, Event as EventCore, EventList as EventListCore,
+    MapFlags};
+use core::error::{};
 use standard::{Queue, MemLen, SpatialDims, AsMemRef};
 
 
@@ -104,7 +104,7 @@ impl<T: OclPrm> MappedMem<T> {
         self
     }
 
-    pub fn unmap(&mut self) -> OclResult<()> {
+    pub fn unmap_now(&mut self) -> OclResult<()> {
         if self.core.is_unmapped() { return Err("ocl::MappedMem::unmap: \
             This 'MappedMem' is already unmapped.".into()); }
 
@@ -162,6 +162,21 @@ impl<T> Drop for MappedMem<T> where T: OclPrm {
         }
     }
 }
+
+// impl<T: OclPrm> Future for MappedMem<T> {
+//     type Item = &'a mut [T];
+//     type Error = OclError;
+
+//     fn poll(&'a mut self) -> Poll<Self::Item, Self::Error> {
+//         // self.core.is_accessible().map(|_| Async::Ready(()))
+//         match self.core.is_accessible() {
+//             Ok(true) => self,
+//             Ok(false) => Async::NotReady,
+//             Err(err) => Err(err),
+//         }
+//     }
+// }
+
 
 
 /// The type of operation to be performed by a command.
@@ -470,7 +485,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     /// (the default being linear).
     ///
     /// Only valid for 'read', 'write', and 'copy' modes. Will error if used
-    /// with 'fill' or 'copy to image'.
+    /// with any other mode.
     pub fn rect(mut self, src_origin: [usize; 3], dst_origin: [usize; 3], region: [usize; 3],
                 src_row_pitch: usize, src_slc_pitch: usize, dst_row_pitch: usize,
                 dst_slc_pitch: usize) -> BufferCmd<'b, T>
@@ -642,6 +657,43 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T>(self.queue,
                             self.obj_core, self.block, flags, offset, len, self.ewait,
                             self.enew )?)) }
+                    },
+                    BufferCmdDataShape::Rect { .. } => {
+                        OclError::err("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
+                            operation. Please use the default shape, linear.")
+                    },
+                }
+            },
+            BufferCmdKind::Unspecified => OclError::err("ocl::BufferCmd::enq_map(): No operation \
+                specified. Use '::map', before calling '::enq_map'."),
+            _ => OclError::err("ocl::BufferCmd::enq_map(): For non-map operations use '::enq' instead."),
+        }
+    }
+
+
+    /// Enqueues a map command and returns a future representing the
+    /// completion of that map command and containing a reference to the
+    /// mapped memory.
+    ///
+    /// For all other operation types use `::map` instead.
+    ///
+    pub fn enq_map_async(self) -> OclResult<FutureMappedMem<T>> {
+        match self.kind {
+            BufferCmdKind::Map { flags, len } => {
+                match self.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        let len = match len {
+                            Some(l) => l,
+                            None => self.mem_len,
+                        };
+
+                        check_len(self.mem_len, len, offset)?;
+                        let flags = flags.unwrap_or(MapFlags::empty());
+
+                        let future = unsafe { core::enqueue_map_buffer_async::<T>(self.queue,
+                            self.obj_core, flags, offset, len, self.ewait, self.enew )? };
+
+                        Ok(future)
                     },
                     BufferCmdDataShape::Rect { .. } => {
                         OclError::err("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
