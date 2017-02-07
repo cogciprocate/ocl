@@ -10,6 +10,17 @@ use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, 
     ClEventPtrNew, ClWaitList, EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
 
 /// An event representing a command or user created event.
+///
+/// ### Future Plans
+///
+/// This type currently relies on the `Option` type to represent whether or
+/// not this event is `null`. This is perfectly fine but in the future this
+/// type will be split this type into two types, `Event`, and `EmptyEvent`
+/// representing the same thing and removing any cost (however tiny) there is
+/// to the runtime 'someness' check.
+///
+///
+///
 #[derive(Clone, Debug)]
 pub struct Event(Option<EventCore>);
 
@@ -29,6 +40,20 @@ impl Event {
         Event(Some(event_core))
     }
 
+    /// Returns true if this event is complete, false if it is not complete or
+    /// if this event is not yet associated with a command.
+    ///
+    /// This is the fastest possible way to determine the event completion
+    /// status.
+    ///
+    #[inline]
+    pub fn is_complete(&self) -> OclResult<bool> {
+        match self.0 {
+            Some(ref core) => core.is_complete(),
+            None => Ok(false),
+        }
+    }
+
     /// Waits for all events in list to complete before returning.
     ///
     /// Similar in function to `Queue::finish()`.
@@ -38,7 +63,16 @@ impl Event {
         core::wait_for_event(self.0.as_ref().unwrap())
     }
 
-    /// Returns info about the event.
+    /// Returns true if this event is 'empty' and has not yet been associated
+    /// with a command.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_none()
+    }
+
+
+
+        /// Returns info about the event.
     pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
         match self.0 {
             Some(ref core) => {
@@ -68,20 +102,16 @@ impl Event {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[inline]
     pub fn core_as_ref(&self) -> Option<&EventCore> {
         self.0.as_ref()
     }
 
     /// Returns a mutable reference to the core pointer wrapper usable by
     /// functions in the `core` module.
+    #[inline]
     pub fn core_as_mut(&mut self) -> Option<&mut EventCore> {
         self.0.as_mut()
-    }
-
-    /// Returns true if this event is 'empty' and has not yet been associated
-    /// with a command.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_none()
     }
 
     fn err_empty(&self) -> OclError {

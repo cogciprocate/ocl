@@ -185,7 +185,7 @@ the Khronos Group Inc.”*
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [`examples`]: https://github.com/cogciprocate/ocl/tree/master/examples
-[`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/trivial.rs#L27
+[`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/trivial.rs
 [glium]: https://github.com/tomaka/glium
 [vulkano]: https://github.com/tomaka/vulkano/tree/master/vulkano
 [intel-win64]: https://software.intel.com/en-us/articles/opencl-drivers#win64
