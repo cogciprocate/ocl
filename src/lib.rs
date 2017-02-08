@@ -7,7 +7,7 @@
 //!
 //! [ocl-core]: https://github.com/cogciprocate/ocl-core
 
-extern crate libc;
+pub extern crate libc;
 
 mod platform_h;
 mod glcorearb_h;
@@ -18,6 +18,8 @@ mod cl_dx9_media_sharing_h;
 mod cl_d3d10_h;
 mod cl_d3d11_h;
 mod cl_h;
+
+pub use libc::{c_void, size_t};
 
 pub use self::platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
 
