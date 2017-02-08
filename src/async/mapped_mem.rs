@@ -1,11 +1,14 @@
 #![allow(dead_code, unused_imports)]
 
+// use std::marker::PhantomData,
 use std::thread::Thread;
 use std::sync::Arc;
 use libc::c_void;
 use ffi;
 use functions;
-use futures::{Future, Poll, Async, AndThen};
+use futures;
+use futures::{future, Future, Poll, Async, AndThen};
+use futures::future::*;
 use futures::sync::oneshot::{self, Sender};
 use futures::task::{self, Task, UnparkEvent, EventSet, /*ThreadUnpark*/};
 use ::{Error as OclError, Result as OclResult, Event, UserEvent, OclPrm, MappedMem,
@@ -22,6 +25,7 @@ pub struct FutureMappedMem<T: OclPrm> {
     queue: Option<CommandQueue>,
     task: Option<Task>,
     thread_handle: Option<Thread>,
+    // _data: PhantomData,
 }
 
 impl<T: OclPrm> FutureMappedMem<T> {
@@ -111,7 +115,7 @@ extern "C" fn _wake_up<T: OclPrm>(event_ptr: ffi::cl_event, event_status: i32,
     if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
         // let future = user_data as *mut _ as *mut FutureMappedMem<T>;
         // let task_ptr = user_data as *mut _ as *mut Arc<Task>;
-        // let tx_ptr = user_data as *mut _ as *mut Sender<T>;
+        let tx_ptr = user_data as *mut _ as *mut Sender<T>;
 
         unsafe {
             println!("Unparking task via callback...");
@@ -132,8 +136,8 @@ extern "C" fn _wake_up<T: OclPrm>(event_ptr: ffi::cl_event, event_status: i32,
             // let task = Arc::from_raw(task_ptr);
             // task.unpark();
 
-            // let tx = Box::from_raw(tx_ptr);
-            // tx.complete(Default::default());
+            let tx = Box::from_raw(tx_ptr);
+            (*tx).complete(Default::default());
         }
     } else {
         panic!("Wake up user data is null or event is not complete.");
@@ -146,71 +150,73 @@ extern "C" fn _dummy(_: ffi::cl_event, _: i32, _: *mut c_void) {}
 
 
 #[cfg(feature = "future_event_callbacks")]
-impl<T: OclPrm> Future for FutureMappedMem<T> {
-    type Item = MappedMem<T>;
+impl<T> Future for FutureMappedMem<T>
+        where T: OclPrm + 'static
+{
+    // type Item = MappedMem<T>;
+    // type Item = Box<Future<Item = MappedMem<T>, Error = Self::Error>>;
+    type Item = BoxFuture<MappedMem<T>, Self::Error>;
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         println!("Polling FutureMappedMem...");
 
-        loop {
-            match self.map_event.is_complete() {
-                Ok(true) => {
-                    if self.task.is_none() {
-                        println!("Task completed on first poll.");
-                        // return self.to_mapped_mem().map(|mm| Async::Ready(mm));
-                    } else {
-                        println!("Unsetting callback...");
-                        unsafe { self.map_event.set_callback::<T>(Some(_dummy), None)?; }
-                        self.task = None;
-                        // println!("Task complete but waiting on callback.");
-                        // continue;
-                    }
-
-                    return self.to_mapped_mem().map(|mm| Async::Ready(mm));
-                }
-                Ok(false) => {
-                    if self.task.is_none() {
-                        println!("Task incomplete...");
-                        // self.task = Some(Arc::new(task::park()));
-
-                        // let unpark = Arc::new(ThreadUnpark::new(thread::current()));
-
-                        unsafe {
-                            println!("Setting event callback...");
-
-                            // // [`FutureMappedMem<T>`]:
-                            // let self_ptr = self as *mut _ as *mut c_void;
-                            // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), self_ptr)?;
-
-                            // // [`Arc<Task>`]:
-                            // let task = Arc::into_raw(self.task.clone().unwrap()) as *mut _ as *mut c_void;
-                            // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), task)?;
-
-                            let (tx, rx) = oneshot::channel::<()>();
-                            let tx_ptr = Box::into_raw(Box::new(tx)) as *mut _ as *mut c_void;
-                            self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), tx_ptr)?;
-
-                            // rx.wait().unwrap();
-                            // let mm = self.to_mapped_mem().map(|mm| Async::Ready(mm))?;
-                            // return Ok(rx.and_then(|| mm));
+        // Ok(Async::Ready(future::lazy(|| {
+            loop {
+                match self.map_event.is_complete() {
+                    Ok(true) => {
+                        if self.task.is_none() {
+                            println!("Task completed on first poll.");
+                        } else {
+                            println!("Unsetting callback...");
+                            unsafe { self.map_event.set_callback::<T>(Some(_dummy), None)?; }
+                            self.task = None;
                         }
 
-                        // return self.to_mapped_mem().map(|mm| Async::Ready(mm))
+                        // return .map(|mm| Async::Ready(future::ok(mm).boxed()));
 
-                        // self.task = Some(task::park());
-                        // continue;
-                        // panic!("Whatever.");
-                    } else {
-                        println!("Task incomplete, already parked.");
+                        // match self.to_mapped_mem() {
+                        //     // Ok(mm) => return Ok(Async::Ready(Box::new(future::ok(mm)))),
+                        //     Ok(mm) => return Ok(Async::Ready(future::ok(mm).boxed())),
+                        //     Err(err) => return Err(err),
+                        // };
+                        continue;
                     }
+                    Ok(false) => {
+                        if self.task.is_none() {
+                            println!("Task incomplete...");
+                            // self.task = Some(Arc::new(task::park()));
 
-                    // continue;
-                    return Ok(Async::NotReady);
-                },
-                Err(err) => return Err(err),
+                            // let unpark = Arc::new(ThreadUnpark::new(thread::current()));
+
+                            unsafe {
+                                println!("Setting event callback...");
+
+                                // // [`FutureMappedMem<T>`]:
+                                // let self_ptr = self as *mut _ as *mut c_void;
+                                // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), self_ptr)?;
+
+                                // // [`Arc<Task>`]:
+                                // let task = Arc::into_raw(self.task.clone().unwrap()) as *mut _ as *mut c_void;
+                                // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), task)?;
+
+                                // let (tx, rx) = futures::sync::mpsc::channel<()>();
+                                // let tx_ptr = Box::into_raw(Box::new(tx)) as *mut _ as *mut c_void;
+                                // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), tx_ptr);
+
+                            }
+
+                            panic!("Sucks.");
+                        } else {
+                            println!("Task incomplete, already parked.");
+                        }
+
+                        continue;
+                    },
+                    Err(err) => return Err(err),
+                }
             }
-        }
+        // })))
     }
 }
 
