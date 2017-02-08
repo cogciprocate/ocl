@@ -48,7 +48,7 @@ use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, c
     cl_kernel, cl_event, cl_sampler};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
-    ProgramInfoResult, KernelInfo, KernelInfoResult, Status};
+    ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn};
 use error::{Result as OclResult, Error as OclError};
 use functions;
 use util;
@@ -549,11 +549,14 @@ impl ClVersions for Program {
 ///
 /// ### Thread Safety
 ///
-/// Not thread safe: do not implement `Send` or `Sync`.
-///
-/// It's possible to do with some work but it's not worth the bother, just
-/// make another identical kernel in the other thread and call it good.
-///
+/// Currently not thread safe: does not implement `Send` or `Sync`. It's
+/// probably possible to implement one or both with some work but it's
+/// potentially problematic on certain (all?) platforms due to issues while
+/// setting arguments. If you need to transfer a kernel you're better off
+/// creating another one in the other thread or using some other mechanism
+/// such as channels to manipulate kernels in other threads. This issue will
+/// be revisited in the future (please provide input by filing an issue if you
+/// have any thoughts on the matter).
 ///
 #[derive(Debug)]
 pub struct Kernel(cl_kernel);
@@ -656,6 +659,73 @@ impl Event {
         //     Err(_) => false,
         // }
         functions::event_is_complete(self)
+    }
+
+
+    /// Sets a callback function, `callback_receiver`, to trigger upon
+    /// completion of this event list with an optional reference to user data.
+    ///
+    /// # Safety
+    ///
+    /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
+    /// is ever called.
+    ///
+    /// TODO: Create a safer type wrapper for `callback_receiver` (using an
+    /// `Arc`?, etc.) within `ocl`.
+    ///
+    pub unsafe fn set_callback<T>(&self,
+            callback_receiver: Option<EventCallbackFn>,
+            user_data: Option<&mut T>,
+            ) -> OclResult<()>
+    {
+        // if self.is_valid() {
+        //     let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut libc::c_void)
+        //         .unwrap_or(ptr::null_mut());
+
+        //     ::set_event_callback(
+        //         self,
+        //         CommandExecutionStatus::Complete,
+        //         callback_receiver,
+        //         user_data_ptr,
+        //     )
+        // } else {
+        //     return Err("ocl_core::Event::set_callback: This event is null.".into())
+        // }
+
+        let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut libc::c_void)
+            .unwrap_or(ptr::null_mut());
+        self.set_callback_with_ptr(callback_receiver, user_data_ptr)
+    }
+
+    /// Sets a callback function, `callback_receiver`, to trigger upon
+    /// completion of this event list with an optional pointer to user data.
+    ///
+    /// # Safety
+    ///
+    /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
+    /// is ever called.
+    ///
+    /// TODO: Create a safer type wrapper for `callback_receiver` (using an
+    /// `Arc`?, etc.) within `ocl`.
+    ///
+    pub unsafe fn set_callback_with_ptr(&self,
+            callback_receiver: Option<EventCallbackFn>,
+            user_data_ptr: *mut libc::c_void,
+            ) -> OclResult<()>
+    {
+        if self.is_valid() {
+            // let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut libc::c_void)
+            //     .unwrap_or(ptr::null_mut());
+
+            ::set_event_callback(
+                self,
+                CommandExecutionStatus::Complete,
+                callback_receiver,
+                user_data_ptr,
+            )
+        } else {
+            return Err("ocl_core::Event::set_callback: This event is null.".into())
+        }
     }
 
     // /// Returns a pointer, do not store it unless you will manage its

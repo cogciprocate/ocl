@@ -98,9 +98,19 @@
 //! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/types/functions.rs`]: /ocl-core/src/ocl-core/src/types/functions.rs.html
 
+// #![feature()]
+// #![cfg_attr(feature = "nightly", feature(rc_raw))]
+// #![cfg(rc_raw)]
+
+
+// #![feature(rc_raw)]
+
+#![cfg_attr(feature = "future_event_callbacks", feature(rc_raw))]
+
+
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate enum_primitive;
-#[macro_use] extern crate futures;
+extern crate futures;
 extern crate libc;
 extern crate rand;
 extern crate num;
@@ -108,6 +118,7 @@ pub extern crate cl_sys as ffi;
 
 #[cfg(test)] mod tests;
 mod functions;
+mod async;
 pub mod types;
 pub mod error;
 pub mod util;
@@ -145,7 +156,7 @@ pub use self::types::vectors::{
     ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16,
 };
 
-pub use self::types::futures::{FutureMappedMem};
+pub use self::async::mapped_mem::{FutureMappedMem};
 
 pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids,
     get_device_info, create_sub_devices, retain_device, release_device,

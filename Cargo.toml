@@ -13,7 +13,11 @@ exclude = ["target/*", "bak/*"]
 # categories = ["asynchronous", "concurrency", "science"]
 
 [features]
-default = ["rand"]
+# Uses OpenCL callbacks instead of polling for task unparking -- requires nightly.
+future_event_callbacks = []
+
+# default = ["rand"]
+default = ["rand", "future_event_callbacks"]
 
 [dependencies]
 cl-sys = "0.2"
