@@ -1759,7 +1759,7 @@ pub fn get_event_info(event: &Event, request: EventInfo,
 /// Creates an event not already associated with any command.
 pub fn create_user_event(context: &Context) -> OclResult<UserEvent> {
     let mut errcode = 0;
-    let event = unsafe { UserEvent::from_fresh_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
+    let event = unsafe { UserEvent::from_raw(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
     eval_errcode(errcode, event, "clCreateUserEvent", "")
 }
 
@@ -2559,7 +2559,7 @@ pub unsafe fn enqueue_map_buffer_async<T>(
         *new_event_ptr = new_map_event_ptr;
         Event::from_copied_ptr(new_map_event_ptr)?
     } else {
-        Event::from_fresh_ptr(new_map_event_ptr)
+        Event::from_raw(new_map_event_ptr)
     };
 
     mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core, buffer.clone(),

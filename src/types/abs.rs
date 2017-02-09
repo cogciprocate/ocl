@@ -45,7 +45,7 @@ use std::marker::Sized;
 use std::ops::Deref;
 // use std::borrow::Borrow;
 use libc::c_void;
-use ffi::{self, cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
+use ffi::{/*self,*/ cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
@@ -623,36 +623,100 @@ impl ClVersions for Kernel {
 unsafe impl Send for Kernel {}
 
 
+
+/// cl_event
+#[derive(Debug)]
+pub struct NullEvent(cl_event);
+
+impl NullEvent {
+    /// For passage directly to an 'event creation' function (such as enqueue...).
+    #[inline]
+    pub fn new() -> NullEvent {
+        NullEvent(0 as cl_event)
+    }
+
+    pub fn validate(self) -> OclResult<Event> {
+        if self.is_valid() {
+            Ok(Event(self.0))
+        } else {
+            Err("NullEvent::validate: Event is not valid.".into())
+        }
+    }
+
+    /// Returns a mutable reference to a pointer, do not deref then modify or store it
+    /// unless you will manage its associated reference count carefully.
+    ///
+    #[inline]
+    pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
+        &mut self.0
+    }
+
+    /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
+    /// NULL CHECK IS NOT ENOUGH
+    ///
+    /// This still leads to crazy segfaults when non-event pointers (random
+    /// whatever addresses) are passed. Need better check.
+    ///
+    #[inline]
+    pub fn is_valid(&self) -> bool {
+        !self.0.is_null()
+    }
+}
+
+unsafe impl ClEventPtrNew for NullEvent {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+        if self.0.is_null() {
+            Ok(&mut self.0)
+        } else {
+            unsafe { try!(functions::release_event(self)); }
+            Ok(&mut self.0)
+        }
+    }
+}
+
+impl<'e> ClEventRef<'e> for NullEvent {
+    unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
+        &self.0
+    }
+}
+
+// unsafe impl EventPtr for Event {}
+unsafe impl Sync for NullEvent {}
+unsafe impl Send for NullEvent {}
+
+
+
 /// cl_event
 #[derive(Debug)]
 pub struct Event(cl_event);
 
 impl Event {
-    /// Only call this when passing **the original** newly created pointer
-    /// directly from `clCreate...`. Do not use this to clone or copy.
+    /// For passage directly to an 'event creation' function (such as enqueue...).
     #[inline]
-    pub unsafe fn from_fresh_ptr(ptr: cl_event) -> Event {
-        Event(ptr)
+    pub fn null() -> NullEvent {
+        NullEvent::new()
     }
+
+    // /// Only call this when passing **the original** newly created pointer
+    // /// directly from `clCreate...`. Do not use this to clone or copy.
+    // #[inline]
+    // pub unsafe fn from_fresh_ptr(ptr: cl_event) -> Event {
+    //     Event(ptr)
+    // }
 
     /// Only use when cloning or copying from a pre-existing and valid
     /// `cl_event`.
+    ///
     #[inline]
     pub unsafe fn from_copied_ptr(ptr: cl_event) -> OclResult<Event> {
         let new_core = Event(ptr);
 
-        if new_core.is_valid() {
+        if !ptr.is_null() {
             try!(functions::retain_event(&new_core));
             Ok(new_core)
         } else {
             OclError::err_string("core::Event::from_copied_ptr: Invalid pointer `ptr`.")
         }
-    }
-
-    /// For passage directly to an 'event creation' function (such as enqueue).
-    #[inline]
-    pub unsafe fn null() -> Event {
-        Event(0 as cl_event)
     }
 
     /// Queries the command status associated with this event and returns true
@@ -664,28 +728,6 @@ impl Event {
     pub fn is_complete(&self) -> OclResult<bool> {
         functions::event_is_complete(self)
     }
-
-    // /// Sets a callback function, `callback_receiver`, to trigger upon
-    // /// completion of this event list with an optional reference to user data.
-    // ///
-    // /// # Safety
-    // ///
-    // /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
-    // /// is ever called.
-    // ///
-    // /// TODO: Create a safer type wrapper for `callback_receiver` (using an
-    // /// `Arc`?, etc.) within `ocl`.
-    // ///
-    // pub unsafe fn set_callback<T>(&self,
-    //         callback_receiver: Option<EventCallbackFn>,
-    //         user_data: Option<&mut T>,
-    //         ) -> OclResult<()>
-    // {
-    //     let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut c_void)
-    //         .unwrap_or(ptr::null_mut());
-
-    //     self.set_callback_with_ptr(callback_receiver, user_data_ptr)
-    // }
 
     /// Sets a callback function, `callback_receiver`, to trigger upon
     /// completion of this event list with an optional pointer to user data.
@@ -703,7 +745,9 @@ impl Event {
             user_data_ptr: *mut c_void,
             ) -> OclResult<()>
     {
-        if self.is_valid() {
+        // if self.is_valid() {
+            debug_assert!(!self.0.is_null());
+
             let callback_receiver = match callback_receiver_opt {
                 Some(cbr) => Some(cbr),
                 None => Some(::_dummy_event_callback as EventCallbackFn),
@@ -715,10 +759,11 @@ impl Event {
                 callback_receiver,
                 user_data_ptr as *mut _ as *mut c_void,
             )
-        } else {
-            Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
-                internal event pointer is actually created by a `clCreate...` function.".into())
-        }
+
+        // } else {
+        //     Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
+        //         internal event pointer is actually created by a `clCreate...` function.".into())
+        // }
     }
 
     // /// Returns a pointer, do not store it unless you will manage its
@@ -743,16 +788,16 @@ impl Event {
         &mut self.0
     }
 
-    /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
-    /// NULL CHECK IS NOT ENOUGH
-    ///
-    /// This still leads to crazy segfaults when non-event pointers (random
-    /// whatever addresses) are passed. Need better check.
-    ///
-    #[inline]
-    pub fn is_valid(&self) -> bool {
-        !self.0.is_null()
-    }
+    // /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
+    // /// NULL CHECK IS NOT ENOUGH
+    // ///
+    // /// This still leads to crazy segfaults when non-event pointers (random
+    // /// whatever addresses) are passed. Need better check.
+    // ///
+    // #[inline]
+    // pub fn is_valid(&self) -> bool {
+    //     !self.0.is_null()
+    // }
 
     /// Consumes the `Event`, returning the wrapped `cl_event` pointer.
     ///
@@ -779,22 +824,29 @@ impl Event {
     }
 }
 
+impl From<NullEvent> for Event {
+    fn from(null_event: NullEvent) -> Event {
+        assert!(null_event.is_valid(), "Invalid null event.");
+        Event(null_event.0)
+    }
+}
+
 impl From<UserEvent> for Event {
     fn from(uev: UserEvent) -> Event {
         Event(uev.0)
     }
 }
 
-unsafe impl ClEventPtrNew for Event {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        if self.0.is_null() {
-            Ok(&mut self.0)
-        } else {
-            unsafe { try!(functions::release_event(self)); }
-            Ok(&mut self.0)
-        }
-    }
-}
+// unsafe impl ClEventPtrNew for Event {
+//     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+//         if self.0.is_null() {
+//             Ok(&mut self.0)
+//         } else {
+//             unsafe { try!(functions::release_event(self)); }
+//             Ok(&mut self.0)
+//         }
+//     }
+// }
 
 impl<'e> ClEventRef<'e> for Event {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
@@ -821,9 +873,10 @@ impl Clone for Event {
 
 impl Drop for Event {
     fn drop(&mut self) {
-        if self.is_valid() {
+        // if self.is_valid() {
+            debug_assert!(!self.0.is_null());
             unsafe { functions::release_event(self).unwrap(); }
-        }
+        // }
     }
 }
 
@@ -837,20 +890,26 @@ unsafe impl Send for Event {}
 pub struct UserEvent(cl_event);
 
 impl UserEvent {
-    /// Only call this when passing **the original** newly created pointer
-    /// directly from `clCreate...`. Do not use this to clone or copy.
     #[inline]
-    pub unsafe fn from_fresh_ptr(ptr: cl_event) -> UserEvent {
-        UserEvent(ptr)
+    pub fn new(context: &Context) -> OclResult<UserEvent> {
+        functions::create_user_event(context)
     }
+
+    // /// Only call this when passing **the original** newly created pointer
+    // /// directly from `clCreate...`. Do not use this to clone or copy.
+    // #[inline]
+    // pub unsafe fn from_fresh_ptr(ptr: cl_event) -> UserEvent {
+    //     UserEvent(ptr)
+    // }
 
     /// Only use when cloning or copying from a pre-existing and valid
     /// `cl_event`.
+    ///
     #[inline]
     pub unsafe fn from_copied_ptr(ptr: cl_event) -> OclResult<UserEvent> {
         let new_core = UserEvent(ptr);
 
-        if new_core.is_valid() {
+        if !ptr.is_null() {
             try!(functions::retain_event(&new_core));
             Ok(new_core)
         } else {
@@ -858,22 +917,15 @@ impl UserEvent {
         }
     }
 
-    #[inline]
-    pub fn new(context: &Context) -> OclResult<UserEvent> {
-        functions::create_user_event(context)
-    }
-
     /// Sets the status for this user created event. Setting status to
     /// completion will cause commands waiting upon this event to execute
     ///
     /// Valid options are (for OpenCL versions 1.1 - 2.1):
     ///
-    ///
     /// `CommandExecutionStatus::Complete`
     /// `CommandExecutionStatus::Running`
     /// `CommandExecutionStatus::Submitted`
     /// `CommandExecutionStatus::Queued`
-    ///
     ///
     /// To the best of the author's knowledge, the only variant that matters
     /// is `::Complete`. Everything else is functionally equivalent and is
@@ -937,15 +989,14 @@ impl UserEvent {
         ptr
     }
 
-
     /// Constructs an `UserEvent` from a raw `cl_event` pointer.
     ///
     /// The raw pointer must have been previously returned by a call to a
     /// [`UserEvent::into_raw`][into_raw].
     ///
     /// [into_raw]: struct.UserEvent.html#method.into_raw
-    pub unsafe fn from_raw(ptr: cl_event) -> Event {
-        Event(ptr)
+    pub unsafe fn from_raw(ptr: cl_event) -> UserEvent {
+        UserEvent(ptr)
     }
 }
 
@@ -982,9 +1033,10 @@ impl Clone for UserEvent {
 
 impl Drop for UserEvent {
     fn drop(&mut self) {
-        if self.is_valid() {
+        // if self.is_valid() {
+            debug_assert!(!self.0.is_null());
             unsafe { functions::release_event(self).unwrap(); }
-        }
+        // }
     }
 }
 
@@ -1024,7 +1076,7 @@ impl EventList {
     // count (with `functions::retain_event`) then letting `event` drop which just decrements it right back.
     //
     pub fn push(&mut self, event: Event) {
-        assert!(event.is_valid(), "Cannot push an empty (null) 'Event' into an 'EventList'.");
+        // assert!(event.is_valid(), "Cannot push an empty (null) 'Event' into an 'EventList'.");
 
         unsafe {
             self.event_ptrs.push((*event.as_ptr_ref()));

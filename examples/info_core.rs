@@ -65,8 +65,9 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     core::enqueue_kernel(&queue, &kernel, DIMS.len() as u32, None, &DIMS, None, None, None).unwrap();
     core::finish(&queue).unwrap();
 
-    let mut event = unsafe { Event::null() };
-    core::enqueue_write_buffer(&queue, &buffer, true, 0, &vec![0.0; DIMS[0]], None, Some(&mut event)).unwrap();
+    let mut new_event = Event::null();
+    core::enqueue_write_buffer(&queue, &buffer, true, 0, &vec![0.0; DIMS[0]], None, Some(&mut new_event)).unwrap();
+    let event = new_event.validate().unwrap();
     core::finish(&queue).unwrap();
 
     println!("############### OpenCL Platform-Device Full Info ################");

@@ -91,7 +91,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
     {
         if !self.is_unmapped {
             let mut new_event_opt = if self.unmap_event.is_some() || enew_opt.is_some() {
-                unsafe { Some(Event::null()) }
+                Some(Event::null())
             } else {
                 None
             };
@@ -101,27 +101,27 @@ impl<T> MappedMem<T>  where T: OclPrm {
 
             self.is_unmapped = true;
 
-            if let Some(new_event) = new_event_opt {
+            if let Some(new_event_null) = new_event_opt {
                 // new_event refcount: 1
-                if new_event.is_valid() {
-                    // If enew_opt is `Some`, update its internal event ptr.
-                    if let Some(enew) = enew_opt {
-                        unsafe {
-                            ::retain_event(&new_event)?;
-                            // new_event refcount: 2
-                            if let Ok(ptr_ptr) = enew.ptr_mut_ptr_new() {
-                                *ptr_ptr = *(new_event.as_ptr_ref());
-                            }
+                let new_event = new_event_null.validate()?;
+
+                // If enew_opt is `Some`, update its internal event ptr.
+                if let Some(enew) = enew_opt {
+                    unsafe {
+                        ::retain_event(&new_event)?;
+                        // new_event refcount: 2
+                        if let Ok(ptr_ptr) = enew.ptr_mut_ptr_new() {
+                            *ptr_ptr = *(new_event.as_ptr_ref());
                         }
                     }
+                }
 
-                    if cfg!(feature = "future_event_callbacks") {
-                        self.register_event_trigger(&new_event)?;
-                        // `new_event` will be reconstructed by the callback
-                        // function using `UserEvent::from_raw` so that the
-                        // destructor will be run.
-                        mem::forget(new_event);
-                    }
+                if cfg!(feature = "future_event_callbacks") {
+                    self.register_event_trigger(&new_event)?;
+                    // `new_event` will be reconstructed by the callback
+                    // function using `UserEvent::from_raw` so that the
+                    // destructor will be run.
+                    mem::forget(new_event);
                 }
             }
 
@@ -133,7 +133,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
 
     #[cfg(feature = "future_event_callbacks")]
     fn register_event_trigger(&mut self, event: &Event) -> OclResult<()> {
-        debug_assert!(self.is_unmapped && event.is_valid() && self.unmap_event.is_some());
+        debug_assert!(self.is_unmapped && self.unmap_event.is_some());
 
         if !self.callback_is_set {
             unsafe {
