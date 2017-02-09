@@ -411,7 +411,7 @@ impl Kernel {
     /// kernel's program.
     ///
     pub fn set_default_queue(&mut self, queue: Queue) -> OclResult<&mut Kernel> {
-        // self.command_queue_obj_core = queue.core_as_ref().clone();
+        // self.command_queue_obj_core = queue.core().clone();
         self.queue = queue;
         Ok(self)
     }

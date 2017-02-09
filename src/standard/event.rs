@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use libc::c_void;
 use futures::{Future, Poll, Async};
-use ffi;
+use ffi::cl_event;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, NullEvent as NullEventCore, UserEvent as UserEventCore,
     EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, ClEventPtrNew, ClWaitList,
@@ -215,39 +215,39 @@ impl DerefMut for Event {
 }
 
 unsafe impl ClEventPtrNew for Event {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         if !self.is_empty() {
             return OclError::err_string("ocl::Event: Attempting to use a non-empty event as a new event
                 is not allowed. Please create a new, empty, event with ocl::Event::empty().");
         }
 
         unsafe {
-            self.0 = Some(EventCore::null());
+            self.0 = Some(EventCore::from_raw(0 as *mut c_void));
             Ok(self.0.as_mut().unwrap().as_ptr_mut())
         }
     }
 }
 
 unsafe impl<'a> ClEventPtrNew for &'a mut Event {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         if !self.is_empty() {
             return OclError::err_string("ocl::Event: Attempting to use a non-empty event as a new event
                 is not allowed. Please create a new, empty, event with ocl::Event::empty().");
         }
 
         unsafe {
-            self.0 = Some(EventCore::null());
+            self.0 = Some(EventCore::from_raw(0 as *mut c_void));
             Ok(self.0.as_mut().unwrap().as_ptr_mut())
         }
     }
 }
 
 unsafe impl ClWaitList for Event {
-    unsafe fn as_ptr_ptr(&self) -> *const ffi::cl_event {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         // self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::as_ref()").as_ptr_ptr()
         match self.0 {
             Some(ref ec) => ec.as_ptr_ptr(),
-            None => 0 as *const ffi::cl_event,
+            None => 0 as *const cl_event,
         }
     }
 
@@ -296,7 +296,10 @@ impl EventList {
 
     /// Adds an event to the list.
     pub fn push(&mut self, event: Event) {
-        self.event_list_core.push(event.into());
+        match event.0 {
+            Some(ecore) => self.event_list_core.push(ecore),
+            None => panic!("EventList::push: Unable to push null (empty) event."),
+        }
     }
 
     /// Removes the last event from the list and returns it.
@@ -452,19 +455,19 @@ impl DerefMut for EventList {
 }
 
 unsafe impl ClEventPtrNew for EventList {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         Ok(self.event_list_core.allot())
     }
 }
 
 unsafe impl<'a> ClEventPtrNew for &'a mut EventList {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         Ok(self.event_list_core.allot())
     }
 }
 
 unsafe impl ClWaitList for EventList {
-    unsafe fn as_ptr_ptr(&self) -> *const ffi::cl_event {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         self.event_list_core.as_ptr_ptr()
     }
 

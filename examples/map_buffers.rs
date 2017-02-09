@@ -36,7 +36,7 @@ fn scalar_map() {
 
     unsafe {
         let mut buff_datum = ocl_core::enqueue_map_buffer::<f32>(&queue,
-                                                             in_buff.core_as_ref(),
+                                                             in_buff.core(),
                                                              true,
                                                              ocl_core::MAP_WRITE,
                                                              0,
@@ -50,7 +50,7 @@ fn scalar_map() {
         let datum: Vec<f32> = vec![10_f32; BUFFER_DIMENSIONS];
         buff_datum.copy_from_slice(&datum);
 
-        ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core_as_ref(), &mut buff_datum, None, None)
+        ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None, None)
             .expect("Unmap of memory object failed");
         // Wait until unmapping is finished
         queue.finish();
@@ -114,7 +114,7 @@ fn vector_map() {
         let mut event = ocl::EventList::new();
         let mut buff_datum =
             ocl_core::enqueue_map_buffer::<ocl::aliases::ClFloat16>(&queue,
-                                                                    in_buff.core_as_ref(),
+                                                                    in_buff.core(),
                                                                     true,
                                                                     ocl_core::MAP_WRITE,
                                                                     0,
@@ -129,7 +129,7 @@ fn vector_map() {
         value.0 = 10_f32;
         let datum: Vec<ocl::aliases::ClFloat16> = vec![value; BUFFER_DIMENSIONS];
         buff_datum.copy_from_slice(&datum);
-        ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core_as_ref(), &mut buff_datum, None, None)
+        ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None, None)
             .expect("Unmap of memory object failed");
         queue.finish();
     }

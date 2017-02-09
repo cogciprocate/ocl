@@ -44,6 +44,8 @@ fn test_vector_types() {
 
     buffer.read(&mut vec).enq().unwrap();
 
+    pro_que.finish();
+
     let mut i = 0;
     for &ele in vec.iter() {
         assert_eq!(ele, final_val + ClFloat3::new(i as f32, i as f32, i as f32));

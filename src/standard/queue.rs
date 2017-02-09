@@ -35,7 +35,7 @@ impl Queue {
 
         Ok(Queue {
             obj_core: obj_core,
-            context_obj_core: context.core_as_ref().clone(),
+            context_obj_core: context.core().clone(),
             device: device,
             device_version: device_version,
         })

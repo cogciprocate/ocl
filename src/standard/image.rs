@@ -519,7 +519,7 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::copy(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Copy {
-            dst_image: dst_image.core_as_ref(),
+            dst_image: dst_image.core(),
             dst_origin: dst_origin,
         };
         self
@@ -829,7 +829,7 @@ impl<E: OclPrm> Image<E> {
     /// The new queue must be associated with a valid device.
     ///
     pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Image<E> {
-        // self.command_queue_obj_core = queue.core_as_ref().clone();
+        // self.command_queue_obj_core = queue.core().clone();
         self.queue = queue;
         self
     }

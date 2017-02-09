@@ -518,8 +518,7 @@ impl Task{
 
         let mut ev = Event::empty();
 
-        data.unmap_mem_object(&self.queue, buf_pool.get(buffer_id).unwrap(),
-            None, Some(&mut ev)).unwrap();
+        data.unmap(Some(&self.queue), None, Some(&mut ev)).unwrap();
 
         self.cmd_graph.set_cmd_event(cmd_idx, ev).unwrap();
     }
