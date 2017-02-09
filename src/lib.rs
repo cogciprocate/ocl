@@ -98,6 +98,7 @@
 //! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/types/functions.rs`]: /ocl-core/src/ocl-core/src/types/functions.rs.html
 
+#![allow(unused_features)]
 #![cfg_attr(feature = "future_event_callbacks", feature(rc_raw))]
 #![cfg_attr(feature = "future_event_callbacks", feature(conservative_impl_trait))]
 
@@ -184,7 +185,7 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids,
     get_extension_function_address_for_platform, wait_for_event,
     get_event_status, default_platform_idx, program_build_err, verify_context,
     default_platform, default_device_type, device_versions,
-    event_is_complete};
+    event_is_complete, _complete_event};
 
 //=============================================================================
 //================================ CONSTANTS ==================================

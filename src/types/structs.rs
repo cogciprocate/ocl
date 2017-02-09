@@ -1,7 +1,8 @@
 //! Rust implementations of various structs used by the OpenCL API.
 
-use libc;
+use libc::c_void;
 use std;
+use std::ptr;
 use std::slice;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -11,7 +12,7 @@ use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-        PlatformId, OclPrm, CommandQueue, ClWaitList, ClEventPtrNew, UserEvent};
+    PlatformId, OclPrm, CommandQueue, ClWaitList, UserEvent, Event, ClEventPtrNew};
 
 
 // Until everything can be implemented:
@@ -41,6 +42,10 @@ pub unsafe fn mapped_mem_set_unmapped<T: OclPrm>(mm: &mut MappedMem<T>) {
 }
 
 
+pub fn mapped_mem_ptr<T: OclPrm>(mm: &MappedMem<T>) -> cl_mem {
+    mm.as_ptr()
+}
+
 
 /// A view of memory mapped by `clEnqueueMap{...}`.
 ///
@@ -51,9 +56,10 @@ pub unsafe fn mapped_mem_set_unmapped<T: OclPrm>(mm: &mut MappedMem<T>) {
 pub struct MappedMem<T: OclPrm> {
     ptr: MappedMemPtr<T>,
     len: usize,
-    unmap_event: Option<UserEvent>,
     buffer: Mem,
     queue: CommandQueue,
+    unmap_event: Option<UserEvent>,
+    callback_is_set: bool,
     is_unmapped: bool,
 }
 
@@ -66,66 +72,110 @@ impl<T> MappedMem<T>  where T: OclPrm {
         MappedMem {
             ptr: MappedMemPtr::new(ptr),
             len: len,
-            unmap_event: unmap_event,
             buffer: buffer,
             queue: queue,
+            unmap_event: unmap_event,
+            callback_is_set: false,
             is_unmapped: false,
         }
     }
 
-    pub fn unmap(&self, queue: Option<&CommandQueue>, wait_list: Option<&ClWaitList>,
-            new_event: Option<&mut ClEventPtrNew>) -> OclResult<()>
+    pub fn get_unmap_event(&self) -> Option<&UserEvent> {
+        self.unmap_event.as_ref()
+    }
+
+    // #[cfg(feature = "future_event_callbacks")]
+    pub fn unmap(&mut self, queue: Option<&CommandQueue>, wait_list: Option<&ClWaitList>)
+            -> OclResult<()>
     {
-        // let unmap_queue = queue.unwrap_or(&self.queue);
+        if !self.is_unmapped {
+            let mut nev_opt = if self.unmap_event.is_some() {
+                unsafe { Some(Event::null()) }
+            } else {
+                None
+            };
 
-        ::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
-            self, wait_list, new_event)
+            ::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
+                self, wait_list, nev_opt.as_mut().map(|ev| ev as &mut ClEventPtrNew))?;
 
-        // if unmap_res.is_ok() { Ok(self.is_unmapped = true) } else { unmap_res }
+            self.is_unmapped = true;
+
+            if cfg!(feature = "future_event_callbacks") {
+                if let Some(nev) = nev_opt {
+                    if nev.is_valid() {
+                        return self.register_event_trigger(&nev);
+                    }
+                }
+            }
+
+            Ok(())
+        } else {
+            Err("ocl_core::MappedMem::unmap: Already unmapped.".into())
+        }
     }
 
-    #[inline]
-    pub fn is_accessible(&self) -> OclResult<bool> {
-        // self.map_event.is_complete().map(|cmplt| cmplt && !self.is_unmapped)
-        Ok(!self.is_unmapped)
+    #[cfg(feature = "future_event_callbacks")]
+    fn register_event_trigger(&mut self, event: &Event) -> OclResult<()> {
+        debug_assert!(self.is_unmapped && event.is_valid() && self.unmap_event.is_some());
+
+        if !self.callback_is_set {
+            unsafe {
+                let unmap_event_ptr = match self.unmap_event {
+                    Some(ref ev) => (*(ev.as_ptr_ref())) as *mut _ as *mut c_void,
+                    None => ptr::null_mut(),
+                };
+
+                event.set_callback_with_ptr(Some(::_complete_event), unmap_event_ptr)?;
+                println!("Callback set for event: {:?}", unmap_event_ptr);
+            };
+
+            self.callback_is_set = true;
+            Ok(())
+        } else {
+            Err("Callback already set.".into())
+        }
     }
 
-    // #[inline] pub fn map_event(&self) -> &Event { &self.map_event }
-    #[inline] pub fn as_ptr(&self) -> cl_mem { self.ptr.as_ptr() as cl_mem }
+    // #[inline]
+    // pub fn is_accessible(&self) -> OclResult<bool> {
+    //     // self.map_event.is_complete().map(|cmplt| cmplt && !self.is_unmapped)
+    //     Ok(!self.is_unmapped)
+    // }
+
     #[inline] pub fn is_unmapped(&self) -> bool { self.is_unmapped }
-    // #[inline] pub unsafe fn set_unmapped(&mut self) { self.is_unmapped = true; }
+    #[inline] fn as_ptr(&self) -> cl_mem { self.ptr.as_ptr() as cl_mem }
 }
 
 impl<T> Deref for MappedMem<T> where T: OclPrm {
     type Target = [T];
 
     fn deref(&self) -> &[T] {
-        assert!(self.is_accessible().unwrap_or(false), "Mapped memory inaccessable. \
-            Check with '::is_accessable' first.");
+        assert!(!self.is_unmapped, "Mapped memory inaccessible. Check with '::is_accessable'
+            before attempting to access.");
         unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
     }
 }
 
 impl<T> DerefMut for MappedMem<T> where T: OclPrm {
     fn deref_mut(&mut self) -> &mut [T] {
-        assert!(self.is_accessible().unwrap_or(false), "Mapped memory inaccessable. \
-            Check with '::is_accessable' first.");
+        assert!(!self.is_unmapped, "Mapped memory inaccessible. Check with '::is_accessable'
+            before attempting to access.");
         unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
     }
 }
 
 impl<T: OclPrm> Drop for MappedMem<T> {
+    #[cfg(feature = "future_event_callbacks")]
     fn drop(&mut self) {
-        // assert!(self.is_unmapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
-        //     Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
-        if self.is_unmapped {
-            ::enqueue_unmap_mem_object(&self.queue, &self.buffer, self, None, None).unwrap();
-
-
-            if let Some(ref event) = self.unmap_event {
-                event.set_complete().unwrap();
-            }
+        if !self.is_unmapped {
+            self.unmap(None, None).ok();
         }
+    }
+
+    #[cfg(not(feature = "future_event_callbacks"))]
+    fn drop(&mut self) {
+        assert!(self.is_unmapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
+            Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
     }
 }
 
@@ -268,11 +318,11 @@ pub enum ContextPropertyValue {
     GlContextKhr(ffi::cl_GLuint),
     EglDisplayKhr(ffi::CLeglDisplayKHR),
     // Not sure about this type:
-    GlxDisplayKhr(*mut libc::c_void),
+    GlxDisplayKhr(*mut c_void),
     // Not sure about this type:
-    CglSharegroupKhr(*mut libc::c_void),
+    CglSharegroupKhr(*mut c_void),
     // Not sure about this type:
-    WglHdcKhr(*mut libc::c_void),
+    WglHdcKhr(*mut c_void),
     AdapterD3d9Khr(TemporaryPlaceholderType),
     AdapterD3d9exKhr(TemporaryPlaceholderType),
     AdapterDxvaKhr(TemporaryPlaceholderType),
@@ -315,7 +365,7 @@ impl ContextProperties {
 
     /// Specifies an OpenGL context CGL share group to
     /// associate the OpenCL context with (builder-style).
-    pub fn cgl_sharegroup(mut self, gl_sharegroup: *mut libc::c_void) -> ContextProperties {
+    pub fn cgl_sharegroup(mut self, gl_sharegroup: *mut c_void) -> ContextProperties {
         self.set_cgl_sharegroup(gl_sharegroup);
         self
     }
@@ -345,7 +395,7 @@ impl ContextProperties {
 
     /// Specifies an OpenGL context CGL share group to
     /// associate the OpenCL context with.
-    pub fn set_cgl_sharegroup(&mut self, gl_sharegroup: *mut libc::c_void) {
+    pub fn set_cgl_sharegroup(&mut self, gl_sharegroup: *mut c_void) {
         self.0.insert(ContextProperty::CglSharegroupKhr, ContextPropertyValue::CglSharegroupKhr(gl_sharegroup));
     }
 
@@ -386,7 +436,7 @@ impl ContextProperties {
     }
 
     /// Returns a cgl_sharegroup id or none.
-    pub fn get_cgl_sharegroup(&self) -> Option<*mut libc::c_void> {
+    pub fn get_cgl_sharegroup(&self) -> Option<*mut c_void> {
         match self.0.get(&ContextProperty::CglSharegroupKhr) {
             Some(prop_val) => {
                 if let ContextPropertyValue::CglSharegroupKhr(ref cgl_sharegroup) = *prop_val {
@@ -534,9 +584,9 @@ impl ImageFormat {
     pub fn from_raw(raw: ffi::cl_image_format) -> OclResult<ImageFormat> {
         Ok(ImageFormat {
             channel_order: try!(ImageChannelOrder::from_u32(raw.image_channel_order)
-                .ok_or(OclError::new("Error converting to 'ImageChannelOrder'."))),
+                .ok_or(OclError::string("Error converting to 'ImageChannelOrder'."))),
             channel_data_type: try!(ImageChannelDataType::from_u32(raw.image_channel_data_type)
-                .ok_or(OclError::new("Error converting to 'ImageChannelDataType'."))),
+                .ok_or(OclError::string("Error converting to 'ImageChannelDataType'."))),
         })
     }
 

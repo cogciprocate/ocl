@@ -1,19 +1,66 @@
 #![allow(dead_code, unused_imports)]
 
-// use std::marker::PhantomData,
 use std::thread::Thread;
 use std::sync::Arc;
 use libc::c_void;
-use ffi;
-use functions;
+
 use futures;
 use futures::{future, Future, Poll, Async, AndThen};
 use futures::future::*;
 use futures::sync::oneshot::{self, Sender};
-use futures::task::{self, Task, UnparkEvent, EventSet, /*ThreadUnpark*/};
+use futures::task::{self, Task, UnparkEvent, EventSet};
+
+use ffi::cl_event;
+use functions;
 use ::{Error as OclError, Result as OclResult, Event, UserEvent, OclPrm, MappedMem,
     MappedMemPtr, Mem, CommandQueue, CommandQueueInfo, CommandQueueInfoResult,
-    CommandExecutionStatus};
+    CommandExecutionStatus, EventList};
+
+
+
+#[cfg(feature = "future_event_callbacks")]
+extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
+    let _ = event_ptr;
+
+    if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
+        unsafe {
+            println!("Unparking task via callback...");
+
+            let task_ptr = user_data as *mut _ as *mut Task;
+            let task = Box::from_raw(task_ptr);
+            (*task).unpark();
+        }
+    } else {
+        panic!("Wake up user data is null or event is not complete.");
+    }
+}
+
+
+
+pub struct EventListTrigger {
+    wait_events: EventList,
+    completion_event: UserEvent,
+    callback_is_set: bool,
+}
+
+
+
+pub struct EventTrigger {
+    wait_event: Event,
+    completion_event: UserEvent,
+    callback_is_set: bool,
+}
+
+impl EventTrigger {
+    pub fn new(wait_event: Event, completion_event: UserEvent) -> EventTrigger {
+        EventTrigger {
+            wait_event: wait_event,
+            completion_event: completion_event ,
+            callback_is_set: false,
+        }
+    }
+}
+
 
 
 pub struct FutureMappedMem<T: OclPrm> {
@@ -23,9 +70,8 @@ pub struct FutureMappedMem<T: OclPrm> {
     unmap_event: Option<UserEvent>,
     buffer: Option<Mem>,
     queue: Option<CommandQueue>,
-    task: Option<Task>,
-    thread_handle: Option<Thread>,
-    // _data: PhantomData,
+    callback_is_set: bool,
+
 }
 
 impl<T: OclPrm> FutureMappedMem<T> {
@@ -36,11 +82,10 @@ impl<T: OclPrm> FutureMappedMem<T> {
             ptr: MappedMemPtr::new(ptr),
             len: len,
             map_event: map_event,
-            task: None,
             unmap_event: None,
             buffer: Some(buffer),
             queue: Some(queue),
-            thread_handle: None,
+            callback_is_set: false,
         }
     }
 
@@ -77,11 +122,13 @@ impl<T: OclPrm> FutureMappedMem<T> {
         }
     }
 
-    // fn set_task(&mut self, task: Task) {
-    //     self.task = Some(task);
-    // }
+    #[inline]
+    pub fn get_unmap_event(&self) -> Option<&UserEvent> {
+        self.unmap_event.as_ref()
+    }
 }
 
+/// Polling implementation.
 #[cfg(not(feature = "future_event_callbacks"))]
 impl<T: OclPrm> Future for FutureMappedMem<T> {
     type Item = MappedMem<T>;
@@ -94,7 +141,6 @@ impl<T: OclPrm> Future for FutureMappedMem<T> {
             match self.map_event.is_complete() {
                 Ok(true) => return self.to_mapped_mem().map(|mm| Async::Ready(mm)),
                 Ok(false) => {
-                    // Ok(Async::NotReady)
                     task::park();
                     continue;
                 },
@@ -104,124 +150,41 @@ impl<T: OclPrm> Future for FutureMappedMem<T> {
     }
 }
 
-
-
 #[cfg(feature = "future_event_callbacks")]
-extern "C" fn _wake_up<T: OclPrm>(event_ptr: ffi::cl_event, event_status: i32,
-        user_data: *mut c_void)
-{
-    let _ = event_ptr;
-
-    if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
-        // let future = user_data as *mut _ as *mut FutureMappedMem<T>;
-        // let task_ptr = user_data as *mut _ as *mut Arc<Task>;
-        let tx_ptr = user_data as *mut _ as *mut Sender<T>;
-
-        unsafe {
-            println!("Unparking task via callback...");
-
-            // (*task).unpark();
-            // if (*task).is_current() {
-            //     (*task).unpark();
-            // } else {
-            //     panic!("futures::_wake_up: Task is not current.");
-            // }
-
-            // (*future).poll();
-
-            // self.to_mapped_mem().map(|mm| Async::Ready(mm))
-
-            // (*future).task.as_ref().unwrap().unpark();
-
-            // let task = Arc::from_raw(task_ptr);
-            // task.unpark();
-
-            let tx = Box::from_raw(tx_ptr);
-            (*tx).complete(Default::default());
-        }
-    } else {
-        panic!("Wake up user data is null or event is not complete.");
-    }
-}
-
-
-#[cfg(feature = "future_event_callbacks")]
-extern "C" fn _dummy(_: ffi::cl_event, _: i32, _: *mut c_void) {}
-
-
-#[cfg(feature = "future_event_callbacks")]
-impl<T> Future for FutureMappedMem<T>
-        where T: OclPrm + 'static
-{
-    // type Item = MappedMem<T>;
-    // type Item = Box<Future<Item = MappedMem<T>, Error = Self::Error>>;
-    type Item = BoxFuture<MappedMem<T>, Self::Error>;
+impl<T> Future for FutureMappedMem<T> where T: OclPrm + 'static {
+    type Item = MappedMem<T>;
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         println!("Polling FutureMappedMem...");
 
-        // Ok(Async::Ready(future::lazy(|| {
-            loop {
-                match self.map_event.is_complete() {
-                    Ok(true) => {
-                        if self.task.is_none() {
-                            println!("Task completed on first poll.");
-                        } else {
-                            println!("Unsetting callback...");
-                            unsafe { self.map_event.set_callback::<T>(Some(_dummy), None)?; }
-                            self.task = None;
-                        }
-
-                        // return .map(|mm| Async::Ready(future::ok(mm).boxed()));
-
-                        // match self.to_mapped_mem() {
-                        //     // Ok(mm) => return Ok(Async::Ready(Box::new(future::ok(mm)))),
-                        //     Ok(mm) => return Ok(Async::Ready(future::ok(mm).boxed())),
-                        //     Err(err) => return Err(err),
-                        // };
-                        continue;
-                    }
-                    Ok(false) => {
-                        if self.task.is_none() {
-                            println!("Task incomplete...");
-                            // self.task = Some(Arc::new(task::park()));
-
-                            // let unpark = Arc::new(ThreadUnpark::new(thread::current()));
-
-                            unsafe {
-                                println!("Setting event callback...");
-
-                                // // [`FutureMappedMem<T>`]:
-                                // let self_ptr = self as *mut _ as *mut c_void;
-                                // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), self_ptr)?;
-
-                                // // [`Arc<Task>`]:
-                                // let task = Arc::into_raw(self.task.clone().unwrap()) as *mut _ as *mut c_void;
-                                // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), task)?;
-
-                                // let (tx, rx) = futures::sync::mpsc::channel<()>();
-                                // let tx_ptr = Box::into_raw(Box::new(tx)) as *mut _ as *mut c_void;
-                                // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), tx_ptr);
-
-                            }
-
-                            panic!("Sucks.");
-                        } else {
-                            println!("Task incomplete, already parked.");
-                        }
-
-                        continue;
-                    },
-                    Err(err) => return Err(err),
+        match self.map_event.is_complete() {
+            Ok(true) => {
+                if !self.callback_is_set {
+                    println!("Task completed on first poll.");
+                } else {
+                    println!("Unsetting callback...");
+                    unsafe { self.map_event.set_callback::<T>(None, None)?; }
+                    self.callback_is_set = false;
                 }
+
+                return self.to_mapped_mem().map(|mm| Async::Ready(mm));
             }
-        // })))
+            Ok(false) => {
+                if !self.callback_is_set {
+                    let task_box = Box::new(task::park());
+                    let task_ptr = Box::into_raw(task_box) as *mut _ as *mut c_void;
+                    println!("Setting callback...");
+                    unsafe { self.map_event.set_callback_with_ptr(Some(_unpark_task), task_ptr)?; };
+                    self.callback_is_set = true;
+                }
+
+                return Ok(Async::NotReady)
+            },
+            Err(err) => return Err(err),
+        }
     }
 }
-
-// pub type EventCallbackFn = extern "C" fn (ffi::cl_event, i32, *mut c_void);
-
 
 unsafe impl<T: OclPrm> Send for FutureMappedMem<T> {}
 unsafe impl<T: OclPrm> Sync for FutureMappedMem<T> {}
@@ -229,15 +192,14 @@ unsafe impl<T: OclPrm> Sync for FutureMappedMem<T> {}
 
 
 
-
 //#############################################################################
 //#############################################################################
-//#####################+##### FAILED EXPERIMENTS ##############################
+//########################### FAILED EXPERIMENTS ##############################
 //#############################################################################
 //#############################################################################
 
 // #[cfg(feature = "future_event_callbacks")]
-// extern "C" fn _wake_up<T: OclPrm>(event_ptr: ffi::cl_event, event_status: i32,
+// extern "C" fn _unpark_task<T: OclPrm>(event_ptr: ffi::cl_event, event_status: i32,
 //         user_data: *mut c_void)
 // {
 //     // let (_, _, _) = (event_ptr, event_status, user_data);
@@ -255,7 +217,7 @@ unsafe impl<T: OclPrm> Sync for FutureMappedMem<T> {}
 //             // if (*task).is_current() {
 //             //     (*task).unpark();
 //             // } else {
-//             //     panic!("futures::_wake_up: Task is not current.");
+//             //     panic!("futures::_unpark_task: Task is not current.");
 //             // }
 
 //             // (*future).poll();
@@ -316,15 +278,15 @@ unsafe impl<T: OclPrm> Sync for FutureMappedMem<T> {}
 
 //                             // // [`FutureMappedMem<T>`]:
 //                             // let self_ptr = self as *mut _ as *mut c_void;
-//                             // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), self_ptr)?;
+//                             // self.map_event.set_callback_with_ptr(Some(_unpark_task::<T>), self_ptr)?;
 
 //                             // // [`Arc<Task>`]:
 //                             // let task = Arc::into_raw(self.task.clone().unwrap()) as *mut _ as *mut c_void;
-//                             // self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), task)?;
+//                             // self.map_event.set_callback_with_ptr(Some(_unpark_task::<T>), task)?;
 
 //                             let (tx, rx) = oneshot::channel::<()>();
 //                             let tx_ptr = Box::into_raw(Box::new(tx)) as *mut _ as *mut c_void;
-//                             self.map_event.set_callback_with_ptr(Some(_wake_up::<T>), tx_ptr)?;
+//                             self.map_event.set_callback_with_ptr(Some(_unpark_task::<T>), tx_ptr)?;
 
 //                             // rx.wait().unwrap();
 //                             // let mm = self.to_mapped_mem().map(|mm| Async::Ready(mm))?;

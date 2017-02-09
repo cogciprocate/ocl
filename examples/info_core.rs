@@ -7,7 +7,7 @@
 //!
 
 extern crate ocl_core as core;
-#[macro_use] extern crate colorify;
+// #[macro_use] extern crate colorify;
 
 use std::ffi::CString;
 use core::{util, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo,

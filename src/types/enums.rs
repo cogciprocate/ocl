@@ -106,7 +106,7 @@ impl PlatformInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return PlatformInfoResult::Error(Box::new(OclError::new(
+                    return PlatformInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
 
@@ -292,7 +292,7 @@ impl DeviceInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return DeviceInfoResult::Error(Box::new(OclError::new(
+                    return DeviceInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
             match request {
@@ -322,7 +322,7 @@ impl DeviceInfoResult {
                             v.extend_from_slice(&r);
                             DeviceInfoResult::MaxWorkItemSizes(v)
                         },
-                        _ => DeviceInfoResult::Error(Box::new(OclError::new("Error \
+                        _ => DeviceInfoResult::Error(Box::new(OclError::string("Error \
                             determining number of dimensions for MaxWorkItemSizes."))),
                     }
                 },
@@ -340,7 +340,7 @@ impl DeviceInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return DeviceInfoResult::Error(Box::new(OclError::new(
+                    return DeviceInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -461,7 +461,7 @@ impl DeviceInfoResult {
                         match DeviceMemCacheType::from_u32(r) {
                             Some(e) => DeviceInfoResult::GlobalMemCacheType(e),
                             None => DeviceInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{:X}' to \
+                                OclError::string(format!("Error converting '{:X}' to \
                                     DeviceMemCacheType.", r)))),
                         }
                     },
@@ -490,7 +490,7 @@ impl DeviceInfoResult {
                         match DeviceLocalMemType::from_u32(r) {
                             Some(e) => DeviceInfoResult::LocalMemType(e),
                             None => DeviceInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{:X}' to \
+                                OclError::string(format!("Error converting '{:X}' to \
                                     DeviceLocalMemType.", r)))),
                         }
                     },
@@ -653,7 +653,7 @@ impl DeviceInfoResult {
                         // match DevicePartitionProperty::from_u32(r) {
                         //     Some(e) => DeviceInfoResult::PartitionProperties(e),
                         //     None => DeviceInfoResult::Error(Box::new(
-                        //         OclError::new(format!("Error converting '{:X}' to \
+                        //         OclError::string(format!("Error converting '{:X}' to \
                         //             DevicePartitionProperty.", r)))),
                         // }
                         DeviceInfoResult::PartitionProperties(Vec::with_capacity(0))
@@ -669,7 +669,7 @@ impl DeviceInfoResult {
                         // match DevicePartitionProperty::from_u32(r) {
                         //     Some(e) => DeviceInfoResult::PartitionType(e),
                         //     None => DeviceInfoResult::Error(Box::new(
-                        //         OclError::new(format!("Error converting '{:X}' to \
+                        //         OclError::string(format!("Error converting '{:X}' to \
                         //             DevicePartitionProperty.", r)))),
                         // }
                         DeviceInfoResult::PartitionType(Vec::with_capacity(0))
@@ -847,7 +847,7 @@ impl ContextInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ContextInfoResult::Error(Box::new(OclError::new(
+                    return ContextInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -924,7 +924,7 @@ impl CommandQueueInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return CommandQueueInfoResult::Error(Box::new(OclError::new(
+                    return CommandQueueInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
 
@@ -1037,7 +1037,7 @@ impl MemInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return MemInfoResult::Error(Box::new(OclError::new(
+                    return MemInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -1046,7 +1046,7 @@ impl MemInfoResult {
                         match MemObjectType::from_u32(r) {
                             Some(am) => MemInfoResult::Type(am),
                             None => MemInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{}' to \
+                                OclError::string(format!("Error converting '{}' to \
                                     MemObjectType.", r)))),
                         }
                     },
@@ -1189,7 +1189,7 @@ impl ImageInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ImageInfoResult::Error(Box::new(OclError::new(
+                    return ImageInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -1320,7 +1320,7 @@ impl SamplerInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return SamplerInfoResult::Error(Box::new(OclError::new(
+                    return SamplerInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -1341,7 +1341,7 @@ impl SamplerInfoResult {
                         match AddressingMode::from_u32(r) {
                             Some(am) => SamplerInfoResult::AddressingMode(am),
                             None => SamplerInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{}' to \
+                                OclError::string(format!("Error converting '{}' to \
                                     AddressingMode.", r)))),
                         }
                     },
@@ -1350,7 +1350,7 @@ impl SamplerInfoResult {
                         match FilterMode::from_u32(r) {
                             Some(fm) => SamplerInfoResult::FilterMode(fm),
                             None => SamplerInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{}' to \
+                                OclError::string(format!("Error converting '{}' to \
                                     FilterMode.", r)))),
                         }
                     },
@@ -1430,7 +1430,7 @@ impl ProgramInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ProgramInfoResult::Error(Box::new(OclError::new("[NONE]")));
+                    return ProgramInfoResult::Error(Box::new(OclError::string("[NONE]")));
                 }
 
                 match request {
@@ -1547,7 +1547,7 @@ impl ProgramBuildInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ProgramBuildInfoResult::Error(Box::new(OclError::new(
+                    return ProgramBuildInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -1556,7 +1556,7 @@ impl ProgramBuildInfoResult {
                         match ProgramBuildStatus::from_i32(r) {
                             Some(b) => ProgramBuildInfoResult::BuildStatus(b),
                             None => ProgramBuildInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{}' to \
+                                OclError::string(format!("Error converting '{}' to \
                                     ProgramBuildStatus.", r)))),
                         }
                     },
@@ -1642,7 +1642,7 @@ impl KernelInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return KernelInfoResult::Error(Box::new(OclError::new(
+                    return KernelInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -1741,7 +1741,7 @@ impl KernelArgInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return KernelArgInfoResult::Error(Box::new(OclError::new(
+                    return KernelArgInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -1750,7 +1750,7 @@ impl KernelArgInfoResult {
                         match KernelArgAddressQualifier::from_u32(r) {
                             Some(kaaq) => KernelArgInfoResult::AddressQualifier(kaaq),
                             None => KernelArgInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{}' to \
+                                OclError::string(format!("Error converting '{}' to \
                                     KernelArgAddressQualifier.", r)))),
                         }
                     },
@@ -1759,7 +1759,7 @@ impl KernelArgInfoResult {
                         match KernelArgAccessQualifier::from_u32(r) {
                             Some(kaaq) => KernelArgInfoResult::AccessQualifier(kaaq),
                             None => KernelArgInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{}' to \
+                                OclError::string(format!("Error converting '{}' to \
                                     KernelArgAccessQualifier.", r)))),
                         }
                     },
@@ -1845,7 +1845,7 @@ impl KernelWorkGroupInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return KernelWorkGroupInfoResult::Error(Box::new(OclError::new(
+                    return KernelWorkGroupInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -1964,7 +1964,7 @@ impl EventInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return EventInfoResult::Error(Box::new(OclError::new(
+                    return EventInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {
@@ -1977,7 +1977,7 @@ impl EventInfoResult {
                         match CommandType::from_u32(code) {
                             Some(ces) => EventInfoResult::CommandType(ces),
                             None => EventInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{}' to CommandType.", code)))),
+                                OclError::string(format!("Error converting '{}' to CommandType.", code)))),
                         }
                     },
                     EventInfo::ReferenceCount => { EventInfoResult::ReferenceCount(
@@ -1988,7 +1988,7 @@ impl EventInfoResult {
                         match CommandExecutionStatus::from_i32(code) {
                             Some(ces) => EventInfoResult::CommandExecutionStatus(ces),
                             None => EventInfoResult::Error(Box::new(
-                                OclError::new(format!("Error converting '{}' to \
+                                OclError::string(format!("Error converting '{}' to \
                                     CommandExecutionStatus.", code)))),
                         }
                     },
@@ -2061,7 +2061,7 @@ impl ProfilingInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ProfilingInfoResult::Error(Box::new(OclError::new(
+                    return ProfilingInfoResult::Error(Box::new(OclError::string(
                         "[NONE]")));
                 }
                 match request {

@@ -42,9 +42,10 @@ use std::mem;
 use std::ptr;
 use std::fmt::Debug;
 use std::marker::Sized;
+use std::ops::Deref;
 // use std::borrow::Borrow;
-use libc;
-use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
+use libc::c_void;
+use ffi::{self, cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
@@ -147,15 +148,13 @@ pub unsafe trait ClDeviceIdPtr: Sized {
 
 /// Wrapper used by `EventList` to send event pointers to core functions
 /// cheaply.
-pub struct EventRefWrapper<'e>(&'e cl_event, u32);
+pub struct EventRefWrapper(pub cl_event);
 
-impl<'e> ClEventRef<'e> for EventRefWrapper<'e> {
+impl<'e> ClEventRef<'e> for EventRefWrapper {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
-        self.0
+        &self.0
     }
 }
-
-
 
 
 /// cl_platform_id
@@ -171,7 +170,7 @@ impl PlatformId {
     }
 
     pub unsafe fn null() -> PlatformId {
-        PlatformId(0 as *mut libc::c_void)
+        PlatformId(0 as *mut c_void)
     }
 
     /// Returns a pointer.
@@ -233,7 +232,7 @@ impl DeviceId {
     }
 
     pub unsafe fn null() -> DeviceId {
-        DeviceId(0 as *mut libc::c_void)
+        DeviceId(0 as *mut c_void)
     }
 
     /// Returns a pointer.
@@ -455,7 +454,7 @@ impl Mem {
 	}
 
 	// pub unsafe fn null() -> Mem {
-	// 	Mem(0 as *mut libc::c_void, PhantomData)
+	// 	Mem(0 as *mut c_void, PhantomData)
 	// }
 
     /// Returns a pointer, do not store it.
@@ -609,6 +608,8 @@ impl ClVersions for Kernel {
 }
 
 
+extern "C" fn _dummy_callback(_: ffi::cl_event, _: i32, _: *mut c_void) {}
+
 
 /// cl_event
 #[derive(Debug)]
@@ -649,18 +650,8 @@ impl Event {
     ///
     #[inline]
     pub fn is_complete(&self) -> OclResult<bool> {
-        // match functions::get_event_status(self) {
-        //     Ok(status) => {
-        //         match status {
-        //             CommandExecutionStatus::Complete => true,
-        //             _ => false,
-        //         }
-        //     }
-        //     Err(_) => false,
-        // }
         functions::event_is_complete(self)
     }
-
 
     /// Sets a callback function, `callback_receiver`, to trigger upon
     /// completion of this event list with an optional reference to user data.
@@ -678,22 +669,9 @@ impl Event {
             user_data: Option<&mut T>,
             ) -> OclResult<()>
     {
-        // if self.is_valid() {
-        //     let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut libc::c_void)
-        //         .unwrap_or(ptr::null_mut());
-
-        //     ::set_event_callback(
-        //         self,
-        //         CommandExecutionStatus::Complete,
-        //         callback_receiver,
-        //         user_data_ptr,
-        //     )
-        // } else {
-        //     return Err("ocl_core::Event::set_callback: This event is null.".into())
-        // }
-
-        let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut libc::c_void)
+        let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut c_void)
             .unwrap_or(ptr::null_mut());
+
         self.set_callback_with_ptr(callback_receiver, user_data_ptr)
     }
 
@@ -709,22 +687,25 @@ impl Event {
     /// `Arc`?, etc.) within `ocl`.
     ///
     pub unsafe fn set_callback_with_ptr(&self,
-            callback_receiver: Option<EventCallbackFn>,
-            user_data_ptr: *mut libc::c_void,
+            callback_receiver_opt: Option<EventCallbackFn>,
+            user_data_ptr: *mut c_void,
             ) -> OclResult<()>
     {
         if self.is_valid() {
-            // let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut libc::c_void)
-            //     .unwrap_or(ptr::null_mut());
+            let callback_receiver = match callback_receiver_opt {
+                Some(cbr) => Some(cbr),
+                None => Some(_dummy_callback as EventCallbackFn),
+            };
 
             ::set_event_callback(
                 self,
                 CommandExecutionStatus::Complete,
                 callback_receiver,
-                user_data_ptr,
+                user_data_ptr as *mut _ as *mut c_void,
             )
         } else {
-            return Err("ocl_core::Event::set_callback: This event is null.".into())
+            Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
+                internal event pointer is actually created by a `clCreate...` function.".into())
         }
     }
 
@@ -756,6 +737,12 @@ impl Event {
     #[inline]
     pub fn is_valid(&self) -> bool {
         !self.0.is_null()
+    }
+}
+
+impl From<UserEvent> for Event {
+    fn from(uev: UserEvent) -> Event {
+        Event(uev.0)
     }
 }
 
@@ -842,12 +829,12 @@ impl UserEvent {
     ///
     /// Valid options are (for OpenCL versions 1.1 - 2.1):
     ///
-    /// ```
-    /// CommandExecutionStatus::Complete
-    /// CommandExecutionStatus::Running
-    /// CommandExecutionStatus::Submitted
-    /// CommandExecutionStatus::Queued
-    /// ```
+    ///
+    /// `CommandExecutionStatus::Complete`
+    /// `CommandExecutionStatus::Running`
+    /// `CommandExecutionStatus::Submitted`
+    /// `CommandExecutionStatus::Queued`
+    ///
     ///
     /// To the best of the author's knowledge, the only variant that matters
     /// is `::Complete`. Everything else is functionally equivalent and is
@@ -912,6 +899,14 @@ unsafe impl ClWaitList for UserEvent {
 
     fn count(&self) -> u32 {
         if self.0.is_null() { 0 } else { 1 }
+    }
+}
+
+impl Deref for UserEvent {
+    type Target = Event;
+
+    fn deref(&self) -> &Event {
+        unsafe { &*(&self as *const _ as *const Event) }
     }
 }
 
@@ -1023,8 +1018,8 @@ impl EventList {
 
     /// Clears the list.
     pub fn clear(&mut self) -> OclResult<()> {
-        for ptr in self.event_ptrs.iter() {
-            unsafe { functions::release_event(&EventRefWrapper(ptr, 1))?; }
+        for &ptr in self.event_ptrs.iter() {
+            unsafe { functions::release_event(&EventRefWrapper(ptr))?; }
         }
 
         self.clear_counter = EL_CLEAR_INTERVAL;
@@ -1039,8 +1034,8 @@ impl EventList {
 
         let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_LEN);
 
-        for (idx, event_ptr) in self.event_ptrs.iter().enumerate() {
-            let status = try!(functions::get_event_status(&EventRefWrapper(event_ptr, 1)));
+        for (idx, &event_ptr) in self.event_ptrs.iter().enumerate() {
+            let status = try!(functions::get_event_status(&EventRefWrapper(event_ptr)));
 
             if status == CommandExecutionStatus::Complete {
                 cmpltd_events.push(idx)
@@ -1050,7 +1045,7 @@ impl EventList {
         // Release completed events:
         for &idx in &cmpltd_events {
             unsafe {
-                try!(functions::release_event(&EventRefWrapper(&self.event_ptrs[idx], 1)));
+                try!(functions::release_event(&EventRefWrapper(self.event_ptrs[idx])));
             }
         }
 
@@ -1116,9 +1111,9 @@ unsafe impl ClWaitList for EventList {
 impl Clone for EventList {
     /// Clones this list in a thread safe manner.
     fn clone(&self) -> EventList {
-        for event_ptr in &self.event_ptrs {
-            if !(*event_ptr).is_null() {
-                unsafe { functions::retain_event(&EventRefWrapper(event_ptr, 1))
+        for &event_ptr in &self.event_ptrs {
+            if !event_ptr.is_null() {
+                unsafe { functions::retain_event(&EventRefWrapper(event_ptr))
                     .expect("core::EventList::clone") }
             }
         }
@@ -1136,11 +1131,11 @@ impl Clone for EventList {
 impl Drop for EventList {
     fn drop(&mut self) {
         if DEBUG_PRINT { print!("Dropping events... "); }
-        for event_ptr in &self.event_ptrs {
+        for &event_ptr in &self.event_ptrs {
             if cfg!(release) {
-                unsafe { functions::release_event(&EventRefWrapper(event_ptr, 1)).unwrap(); }
+                unsafe { functions::release_event(&EventRefWrapper(event_ptr)).unwrap(); }
             } else {
-                unsafe { functions::release_event(&EventRefWrapper(event_ptr, 1)).ok(); }
+                unsafe { functions::release_event(&EventRefWrapper(event_ptr)).ok(); }
             }
             if DEBUG_PRINT { print!("{{.}}"); }
         }

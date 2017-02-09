@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem, FutureMappedMem, UserEvent};
+    CommandQueueProperties, MappedMem, FutureMappedMem, UserEvent, EventRefWrapper};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -51,6 +51,23 @@ const CL_GL_SHARING_EXT: &'static str = "cl_APPLE_gl_sharing";
 const CL_GL_SHARING_EXT: &'static str = "cl_khr_gl_sharing";
 
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
+
+
+#[cfg(feature = "future_event_callbacks")]
+pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
+    let _ = src_event_ptr;
+
+    if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
+        let tar_event_ptr = user_data as *mut _ as cl_event;
+
+        ::set_user_event_status(&EventRefWrapper(tar_event_ptr),
+            CommandExecutionStatus::Complete).unwrap();
+
+        println!("Event status set to complete for event: {:?}", tar_event_ptr);
+    } else {
+        panic!("Wake up user data is null or event is not complete.");
+    }
+}
 
 //============================================================================
 //============================================================================
@@ -356,7 +373,7 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
     // just an extension unsupported by the device (i.e.
     // `CL_DEVICE_HALF_FP_CONFIG` on Intel):
     if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-        return DeviceInfoResult::Error(Box::new(OclError::new("[UNAVAILABLE (CL_INVALID_VALUE)]")));
+        return DeviceInfoResult::Error(Box::new(OclError::string("[UNAVAILABLE (CL_INVALID_VALUE)]")));
     }
 
     // try!(eval_errcode(errcode, result, "clGetDeviceInfo", ""));
@@ -619,7 +636,7 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
         let err_if_zero_result_size = request as cl_context_info == ffi::CL_CONTEXT_DEVICES;
 
         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-            return ContextInfoResult::Error(Box::new(OclError::new("\n\nocl::core::context_info(): \
+            return ContextInfoResult::Error(Box::new(OclError::string("\n\nocl::core::context_info(): \
                 Possible invalid context detected. \n\
                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
                 invalid context object. If not, please file an issue at: \n\
@@ -2765,7 +2782,7 @@ pub fn enqueue_unmap_mem_object<T: OclPrm>(
     let errcode = unsafe { ffi::clEnqueueUnmapMemObject(
         command_queue.as_ptr(),
         memobj.as_ptr(),
-        mapped_mem.as_ptr(),
+        ::structs::mapped_mem_ptr(mapped_mem),
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -3195,7 +3212,7 @@ pub fn get_event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<Comman
     };
     try!(eval_errcode(errcode, (), "clGetEventInfo", ""));
 
-    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::new("Error converting \
+    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::string("Error converting \
         'clGetEventInfo' status output."))
 }
 
@@ -3213,6 +3230,7 @@ pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<bool>
         )
     };
 
+    // [REMOVE ME]:
     println!("Event Status: {:?}", CommandExecutionStatus::from_i32(status_int).unwrap());
 
     eval_errcode(errcode, status_int == CommandExecutionStatus::Complete as i32, "", "")

@@ -50,6 +50,7 @@ fn gen_status_error<S: Into<String>>(errcode: i32, fn_name: &'static str, fn_inf
 ///
 // #[derive(Debug)]
 pub enum Error {
+    Void,
     Conversion(String),
     Status {
         status: Status, status_string: String, fn_name: &'static str, fn_info: String, desc: String
@@ -63,8 +64,19 @@ pub enum Error {
 }
 
 impl self::Error {
-    /// Returns a new `Error` with the description string: `desc`.
+    /// [DEPRICATED] Returns a new `Error` with the description string: `desc`.
+    ///
+    /// ### Depricated
+    ///
+    /// Use `::string` instead.
+    //
+    #[deprecated(since="0.4.0", note="please use `string` instead")]
     pub fn new<S: Into<String>>(desc: S) -> self::Error {
+        self::Error::String(desc.into())
+    }
+
+    /// Returns a new `Error::String` with the given description.
+    pub fn string<S: Into<String>>(desc: S) -> self::Error {
         self::Error::String(desc.into())
     }
 
@@ -125,6 +137,7 @@ impl self::Error {
 impl std::error::Error for self::Error {
     fn description(&self) -> &str {
         match *self {
+            Error::Void => "OpenCL Error",
             Error::Conversion(ref desc) => desc.as_str(),
             Error::Nul(ref err) => err.description(),
             Error::Io(ref err) => err.description(),
@@ -139,22 +152,21 @@ impl std::error::Error for self::Error {
     }
 }
 
-impl Into<String> for self::Error {
-    fn into(self) -> String {
-        use std::error::Error;
-        self.description().to_string()
+impl From<()> for self::Error {
+    fn from(_: ()) -> self::Error {
+        self::Error::Void
     }
 }
 
 impl From<String> for self::Error {
     fn from(desc: String) -> self::Error {
-        self::Error::new(desc)
+        self::Error::string(desc)
     }
 }
 
 impl<'a> From<&'a str> for self::Error {
     fn from(desc: &'a str) -> self::Error {
-        self::Error::new(String::from(desc))
+        self::Error::string(String::from(desc))
     }
 }
 
@@ -179,6 +191,13 @@ impl From<std::string::FromUtf8Error> for self::Error {
 impl From<std::ffi::IntoStringError> for self::Error {
     fn from(err: std::ffi::IntoStringError) -> self::Error {
         self::Error::IntoStringError(err)
+    }
+}
+
+impl Into<String> for self::Error {
+    fn into(self) -> String {
+        use std::error::Error;
+        self.description().to_string()
     }
 }
 
