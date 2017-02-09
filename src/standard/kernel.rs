@@ -108,7 +108,7 @@ impl<'k> KernelCmd<'k> {
 /// Cloning a kernel after creation should virtually never be necessary (and
 /// may indicate that your design needs improvement). If you really really
 /// need to clone and store something, clone the kernel core with
-/// `::core_as_ref.clone()` and use `ocl::core::enqueue_kernel(...)` to
+/// `::core.clone()` and use `ocl::core::enqueue_kernel(...)` to
 /// enqueue.
 ///
 ///
@@ -444,7 +444,15 @@ impl Kernel {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     pub fn core_as_ref(&self) -> &KernelCore {
+        &self.obj_core
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    #[inline]
+    pub fn core(&self) -> &KernelCore {
         &self.obj_core
     }
 

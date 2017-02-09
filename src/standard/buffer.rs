@@ -743,7 +743,7 @@ impl<T: OclPrm> Buffer<T> {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
         let dims: SpatialDims = dims.into();
         let len = dims.to_len();
-        let obj_core = unsafe { try!(core::create_buffer(queue.context_core_as_ref(), flags, len,
+        let obj_core = unsafe { try!(core::create_buffer(queue.context_core(), flags, len,
             data)) };
 
         let buf = Buffer {
@@ -790,7 +790,7 @@ impl<T: OclPrm> Buffer<T> {
         let dims: SpatialDims = dims.to_lens().into();
         let len = dims.to_len();
         let obj_core = unsafe { try!(core::create_from_gl_buffer(
-            queue.context_core_as_ref(),
+            queue.context_core(),
             gl_object,
             flags))
         };
@@ -894,8 +894,17 @@ impl<T: OclPrm> Buffer<T> {
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
     ///
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     #[inline]
     pub fn core_as_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    ///
+    #[inline]
+    pub fn core(&self) -> &MemCore {
         &self.obj_core
     }
 
@@ -1166,8 +1175,16 @@ impl<T: OclPrm> SubBuffer<T> {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     #[inline]
     pub fn core_as_ref(&self) -> &MemCore {
+        &self.obj_core
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    #[inline]
+    pub fn core(&self) -> &MemCore {
         &self.obj_core
     }
 

@@ -310,7 +310,15 @@ impl Program {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     pub fn core_as_ref(&self) -> &ProgramCore {
+        &self.obj_core
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    #[inline]
+    pub fn core(&self) -> &ProgramCore {
         &self.obj_core
     }
 

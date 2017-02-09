@@ -7,20 +7,18 @@ use libc::c_void;
 use futures::{Future, Poll, Async};
 use ffi;
 use core::error::{Error as OclError, Result as OclResult};
-use core::{self, Event as EventCore, UserEvent as UserEventCore, EventInfo, EventInfoResult,
-    ProfilingInfo, ProfilingInfoResult, ClEventPtrNew, ClWaitList, EventList as EventListCore,
-    CommandExecutionStatus, EventCallbackFn};
+use core::{self, Event as EventCore, NullEvent as NullEventCore, UserEvent as UserEventCore,
+    EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, ClEventPtrNew, ClWaitList,
+    EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
+
+
+// enum EventState {
+//     Null(NullEventCore),
+//     Valid(EventCore),
+// }
+
 
 /// An event representing a command or user created event.
-///
-/// ### Future Plans
-///
-/// This type currently relies on the `Option` type to represent whether or
-/// not this event is `null`. This is perfectly fine but in the future this
-/// type will be split this type into two types, `Event`, and `EmptyEvent`
-/// representing the same thing and removing any cost (however tiny) there is
-/// to the runtime 'someness' check.
-///
 ///
 ///
 #[derive(Clone, Debug)]
@@ -104,15 +102,32 @@ impl Event {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     #[inline]
     pub fn core_as_ref(&self) -> Option<&EventCore> {
         self.0.as_ref()
     }
 
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    #[inline]
+    pub fn core(&self) -> Option<&EventCore> {
+        self.0.as_ref()
+    }
+
     /// Returns a mutable reference to the core pointer wrapper usable by
     /// functions in the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core_mut` instead.")]
     #[inline]
     pub fn core_as_mut(&mut self) -> Option<&mut EventCore> {
+        self.0.as_mut()
+    }
+
+    /// Returns a mutable reference to the core pointer wrapper usable by
+    /// functions in the `core` module.
+    ///
+    #[inline]
+    pub fn core_mut(&mut self) -> Option<&mut EventCore> {
         self.0.as_mut()
     }
 
@@ -132,13 +147,18 @@ impl Event {
     }
 }
 
+impl From<NullEventCore> for Event {
+    fn from(nev: NullEventCore) -> Event {
+        match nev.validate() {
+            Ok(nev) => Event(Some(nev)),
+            Err(_) => Event(None),
+        }
+    }
+}
+
 impl From<EventCore> for Event {
     fn from(ev: EventCore) -> Event {
-        if ev.is_valid() {
-            Event(Some(ev))
-        } else {
-            Event(None)
-        }
+        Event(Some(ev))
     }
 }
 
@@ -152,14 +172,14 @@ impl From<UserEventCore> for Event {
     }
 }
 
-impl Into<EventCore> for Event {
-    fn into(self) -> EventCore {
-        match self.0 {
-            Some(evc) => evc,
-            None => unsafe { EventCore::null() },
-        }
-    }
-}
+// impl Into<EventCore> for Event {
+//     fn into(self) -> EventCore {
+//         match self.0 {
+//             Some(evc) => evc,
+//             None => unsafe { EventCore::null() },
+//         }
+//     }
+// }
 
 impl Into<String> for Event {
     fn into(self) -> String {
@@ -369,13 +389,29 @@ impl EventList {
         self.event_list_core.len() == 0
     }
 
-    // Returns a reference to the underlying `core` event list.
+    /// Returns a reference to the underlying `core` event list.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
+    #[inline]
     pub fn core_as_ref(&self) -> &EventListCore {
         &self.event_list_core
     }
 
-    // Returns a mutable reference to the underlying `core` event list.
+    /// Returns a reference to the underlying `core` event list.
+    #[inline]
+    pub fn core(&self) -> &EventListCore {
+        &self.event_list_core
+    }
+
+    /// Returns a mutable reference to the underlying `core` event list.
+    #[deprecated(since="0.13.0", note="Use `::core_mut` instead.")]
+    #[inline]
     pub fn core_as_mut(&mut self) -> &mut EventListCore {
+        &mut self.event_list_core
+    }
+
+    /// Returns a mutable reference to the underlying `core` event list.
+    #[inline]
+    pub fn core_mut(&mut self) -> &mut EventListCore {
         &mut self.event_list_core
     }
 

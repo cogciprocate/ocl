@@ -678,7 +678,7 @@ impl<E: OclPrm> Image<E> {
             image_desc: ImageDescriptor, image_data: Option<&[E]>) -> OclResult<Image<E>>
     {
         let obj_core = unsafe { try!(core::create_image(
-            queue.context_core_as_ref(),
+            queue.context_core(),
             flags,
             &image_format,
             &image_desc,
@@ -719,13 +719,13 @@ impl<E: OclPrm> Image<E> {
 
         // let obj_core = match image_desc.image_depth {
         //     2 => unsafe { try!(core::create_from_gl_texture_2d(
-        //                         queue.context_core_as_ref(),
+        //                         queue.context_core(),
         //                         texture_target,
         //                         miplevel,
         //                         texture,
         //                         flags)) },
         //     3 => unsafe { try!(core::create_from_gl_texture_3d(
-        //                         queue.context_core_as_ref(),
+        //                         queue.context_core(),
         //                         texture_target,
         //                         miplevel,
         //                         texture,
@@ -733,7 +733,7 @@ impl<E: OclPrm> Image<E> {
         //     _ => unimplemented!() // FIXME: return an error ? or panic! ?
         // };
         let obj_core = unsafe { try!(core::create_from_gl_texture(
-                                        queue.context_core_as_ref(),
+                                        queue.context_core(),
                                         texture_target as u32,
                                         miplevel,
                                         texture,
@@ -766,7 +766,7 @@ impl<E: OclPrm> Image<E> {
             renderbuffer: cl_GLuint) -> OclResult<Image<E>>
     {
         let obj_core = unsafe { try!(core::create_from_gl_renderbuffer(
-                                        queue.context_core_as_ref(),
+                                        queue.context_core(),
                                         renderbuffer,
                                         flags)) };
 
@@ -879,9 +879,17 @@ impl<E: OclPrm> Image<E> {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     pub fn core_as_ref(&self) -> &MemCore {
         &self.obj_core
     }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    pub fn core(&self) -> &MemCore {
+        &self.obj_core
+    }
+
 
     /// Format image info.
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

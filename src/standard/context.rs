@@ -244,7 +244,16 @@ impl Context {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
+    #[inline]
     pub fn core_as_ref(&self) -> &ContextCore {
+        &self.obj_core
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    #[inline]
+    pub fn core(&self) -> &ContextCore {
         &self.obj_core
     }
 

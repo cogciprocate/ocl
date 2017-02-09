@@ -4,7 +4,9 @@ Version 0.13.0 (UNRELEASED)
 
 [TODO]: Add links to documentation.
 
+
 [FIXME]: ADD SECTION FOR:
+* `core_as_ref` & `core_as_mut` rename
 * Buffer mapping...
 * [BREAKING] Buffer command (optional params)...
   * `::copy`

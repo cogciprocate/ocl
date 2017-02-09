@@ -48,13 +48,21 @@ impl Queue {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     pub fn core_as_ref(&self) -> &CommandQueueCore {
+        &self.obj_core
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
+    pub fn core(&self) -> &CommandQueueCore {
         &self.obj_core
     }
 
     /// Returns a reference to the core pointer wrapper of the context
     /// associated with this queue, usable by functions in the `core` module.
-    pub fn context_core_as_ref(&self) -> &ContextCore {
+    pub fn context_core(&self) -> &ContextCore {
         &self.context_obj_core
     }
 
