@@ -89,7 +89,7 @@ impl ProgramBuilder {
         };
 
         if device_list.is_empty() {
-            return OclError::err("ocl::ProgramBuilder::build: No devices found.");
+            return OclError::err_string("ocl::ProgramBuilder::build: No devices found.");
         }
 
         Program::new(

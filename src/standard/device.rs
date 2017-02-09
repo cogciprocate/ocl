@@ -237,7 +237,7 @@ impl Device {
         for &idx in idxs.iter() {
             match devices.get(idx) {
                 Some(&device) => result.push(device),
-                None => return OclError::err(format!("Error resolving device index: '{}'. Index out of \
+                None => return OclError::err_string(format!("Error resolving device index: '{}'. Index out of \
                     range. Devices avaliable: '{}'.", idx, devices.len())),
             }
         }

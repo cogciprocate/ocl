@@ -49,13 +49,13 @@ impl SpatialDims {
             if d1.is_some() && d0.is_some() {
                 Ok(SpatialDims::Three(d0.unwrap(), d1.unwrap(), d2.unwrap()))
             } else {
-                OclError::err(std_err_msg)
+                OclError::err_string(std_err_msg)
             }
         } else if d1.is_some() {
             if d0.is_some() {
                 Ok(SpatialDims::Two(d1.unwrap(), d0.unwrap()))
             } else {
-                OclError::err(std_err_msg)
+                OclError::err_string(std_err_msg)
             }
         } else if d0.is_some() {
             Ok(SpatialDims::One(d0.unwrap()))

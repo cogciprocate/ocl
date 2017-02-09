@@ -58,7 +58,7 @@ impl ProQueBuilder {
         let program_builder = match self.program_builder {
             // Some(program_builder) => ProQueBuilder::_build(self.context, self.device_idx, program_builder),
             Some(ref program_builder) => program_builder,
-            None => return OclError::err("ProQueBuilder::build(): No program builder or kernel source defined. \
+            None => return OclError::err_string("ProQueBuilder::build(): No program builder or kernel source defined. \
                 OpenCL programs must have some source code to be compiled. Use '::src' to directly \
                 add source code or '::program_builder' for more complex builds. Please see the \
                 'ProQueBuilder' and 'ProgramBuilder' documentation for more information."),
@@ -89,7 +89,7 @@ impl ProQueBuilder {
                 if device_list.len() == 1 {
                     device_list[0]
                 } else {
-                    return OclError::err(format!("Invalid number of devices specified ({}). Each 'ProQue' \
+                    return OclError::err_string(format!("Invalid number of devices specified ({}). Each 'ProQue' \
                         can only be associated with a single device. Use 'Context', 'Program', and \
                         'Queue' separately for multi-device configurations.", device_list.len()));
                 }
@@ -372,7 +372,7 @@ impl ProQue {
     pub fn dims_result(&self) -> OclResult<&SpatialDims> {
         match self.dims {
             Some(ref dims) => Ok(dims),
-            None => OclError::err(DIMS_ERR_MSG),
+            None => OclError::err_string(DIMS_ERR_MSG),
         }
     }
 }

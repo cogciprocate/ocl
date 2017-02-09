@@ -7,8 +7,9 @@ use libc::c_void;
 use futures::{Future, Poll, Async};
 use ffi;
 use core::error::{Error as OclError, Result as OclResult};
-use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult,
-    ClEventPtrNew, ClWaitList, EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
+use core::{self, Event as EventCore, UserEvent as UserEventCore, EventInfo, EventInfoResult,
+    ProfilingInfo, ProfilingInfoResult, ClEventPtrNew, ClWaitList, EventList as EventListCore,
+    CommandExecutionStatus, EventCallbackFn};
 
 /// An event representing a command or user created event.
 ///
@@ -116,7 +117,7 @@ impl Event {
     }
 
     fn err_empty(&self) -> OclError {
-        OclError::new("This `ocl::Event` is empty and cannot be used until \
+        OclError::string("This `ocl::Event` is empty and cannot be used until \
             filled by a command.")
     }
 
@@ -128,6 +129,26 @@ impl Event {
             .field("CommandExecutionStatus", &self.info(EventInfo::CommandExecutionStatus))
             .field("Context", &self.info(EventInfo::Context))
             .finish()
+    }
+}
+
+impl From<EventCore> for Event {
+    fn from(ev: EventCore) -> Event {
+        if ev.is_valid() {
+            Event(Some(ev))
+        } else {
+            Event(None)
+        }
+    }
+}
+
+impl From<UserEventCore> for Event {
+    fn from(uev: UserEventCore) -> Event {
+        if uev.is_valid() {
+            Event(Some(uev.into()))
+        } else {
+            Event(None)
+        }
     }
 }
 
@@ -176,7 +197,7 @@ impl DerefMut for Event {
 unsafe impl ClEventPtrNew for Event {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
         if !self.is_empty() {
-            return OclError::err("ocl::Event: Attempting to use a non-empty event as a new event
+            return OclError::err_string("ocl::Event: Attempting to use a non-empty event as a new event
                 is not allowed. Please create a new, empty, event with ocl::Event::empty().");
         }
 
@@ -190,7 +211,7 @@ unsafe impl ClEventPtrNew for Event {
 unsafe impl<'a> ClEventPtrNew for &'a mut Event {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut ffi::cl_event> {
         if !self.is_empty() {
-            return OclError::err("ocl::Event: Attempting to use a non-empty event as a new event
+            return OclError::err_string("ocl::Event: Attempting to use a non-empty event as a new event
                 is not allowed. Please create a new, empty, event with ocl::Event::empty().");
         }
 
@@ -322,7 +343,7 @@ impl EventList {
                 ) -> OclResult<()>
     {
         let event_core = try!(try!(self.event_list_core.last_clone().ok_or(
-            OclError::new("ocl::EventList::set_callback: This event list is empty."))));
+            OclError::string("ocl::EventList::set_callback: This event list is empty."))));
 
         core::set_event_callback(&event_core, CommandExecutionStatus::Complete,
                     callback_receiver, user_data as *mut _ as *mut c_void)

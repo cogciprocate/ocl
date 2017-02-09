@@ -81,7 +81,7 @@ impl<'k> KernelCmd<'k> {
 
         let gws = match self.gws.to_work_size() {
             Some(gws) => gws,
-            None => return OclError::err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
+            None => return OclError::err_string("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
                 cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
         };
 
@@ -547,7 +547,7 @@ impl Kernel {
         match self.named_args.get(name) {
             Some(&ai) => Ok(ai),
             None => {
-                OclError::err(format!("Kernel::set_arg_scl_named(): Invalid argument \
+                OclError::err_string(format!("Kernel::set_arg_scl_named(): Invalid argument \
                     name: '{}'.", name))
             },
         }

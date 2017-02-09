@@ -209,7 +209,7 @@ impl Context {
         // }
         match self.platform() {
             Some(ref p) => core::get_platform_info(p, info_kind),
-            None => PlatformInfoResult::from(OclError::new("Context::platform_info: \
+            None => PlatformInfoResult::from(OclError::string("Context::platform_info: \
                 This context has no associated platform.")),
         }
     }
@@ -221,7 +221,7 @@ impl Context {
             Some(d) => d,
             None => {
                 return DeviceInfoResult::Error(Box::new(
-                    OclError::new("Context::device_info: Invalid device index")));
+                    OclError::string("Context::device_info: Invalid device index")));
             },
         };
 

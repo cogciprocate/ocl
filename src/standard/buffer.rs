@@ -8,36 +8,36 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 // use futures::{Future, Poll, Async};
 use ffi::cl_GLuint;
-use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore, CommandQueue,
+use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore, /*CommandQueue,*/
     MemFlags, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList, BufferRegion,
-    MappedMem as MappedMemCore, FutureMappedMem, Event as EventCore, EventList as EventListCore,
+    MappedMem as MappedMemCore, FutureMappedMem, /*Event as EventCore, EventList as EventListCore,*/
     MapFlags};
-use core::error::{};
+// use core::error::{};
 use standard::{Queue, MemLen, SpatialDims, AsMemRef};
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     if offset >= mem_len {
-        OclError::err(format!("ocl::Buffer::enq(): Offset out of range. \
+        OclError::err_string(format!("ocl::Buffer::enq(): Offset out of range. \
             (mem_len: {}, data_len: {}, offset: {}", mem_len, data_len, offset))
     } else if data_len > (mem_len - offset) {
-        OclError::err("ocl::Buffer::enq(): Data length exceeds buffer length.")
+        OclError::err_string("ocl::Buffer::enq(): Data length exceeds buffer length.")
     } else {
         Ok(())
     }
 }
 
 
-/// Information about what to do when `MappedMem` goes out of scope.
-enum DelayedUnmap {
-    Some {
-        queue: CommandQueue,
-        mem: MemCore,
-        ewait: Option<EventListCore>,
-        enew: Option<EventCore>,
-    },
-    None,
-}
+// /// Information about what to do when `MappedMem` goes out of scope.
+// enum DelayedUnmap {
+//     Some {
+//         queue: CommandQueue,
+//         mem: MemCore,
+//         ewait: Option<EventListCore>,
+//         enew: Option<EventCore>,
+//     },
+//     None,
+// }
 
 
 /// A view of mapped memory.
@@ -48,7 +48,7 @@ enum DelayedUnmap {
 ///
 pub struct MappedMem<T: OclPrm> {
     core: MappedMemCore<T>,
-    delayed_unmap: DelayedUnmap,
+    // delayed_unmap: DelayedUnmap,
 }
 
 impl<T: OclPrm> MappedMem<T> {
@@ -56,75 +56,75 @@ impl<T: OclPrm> MappedMem<T> {
     pub fn new(core: MappedMemCore<T>) -> MappedMem<T> {
         MappedMem {
             core: core,
-            delayed_unmap: DelayedUnmap::None,
+            // delayed_unmap: DelayedUnmap::None,
         }
     }
 
-    /// Automatically unmaps when this `MappedMem` goes out of scope or by
-    /// calling `::unmap`.
-    ///
-    /// Automatically adds the event associated with the original map event to
-    /// the wait event list.
-    ///
-    pub fn unmap_later<EVL, EV>(&mut self, queue: CommandQueue, mem: MemCore,
-            wait_list: Option<EVL>, new_event: Option<EV>)
-            where EVL: Into<EventListCore>, EV: Into<EventCore>
-    {
-        self.delayed_unmap = DelayedUnmap::Some {
-            queue: queue,
-            mem: mem,
-            ewait: wait_list.map(|evl| evl.into()),
-            enew: new_event.map(|ev| ev.into()),
-        }
-    }
+    // /// Automatically unmaps when this `MappedMem` goes out of scope or by
+    // /// calling `::unmap`.
+    // ///
+    // /// Automatically adds the event associated with the original map event to
+    // /// the wait event list.
+    // ///
+    // pub fn unmap_later<EVL, EV>(&mut self, queue: CommandQueue, mem: MemCore,
+    //         wait_list: Option<EVL>, new_event: Option<EV>)
+    //         where EVL: Into<EventListCore>, EV: Into<EventCore>
+    // {
+    //     self.delayed_unmap = DelayedUnmap::Some {
+    //         queue: queue,
+    //         mem: mem,
+    //         ewait: wait_list.map(|evl| evl.into()),
+    //         enew: new_event.map(|ev| ev.into()),
+    //     }
+    // }
 
-    /// Sets events for a `MappedMem` which has already had `::unmap_later`
-    /// called first.
-    pub fn set_unmap_events<'a, EVL, EV>(&'a mut self, wait_list: Option<EVL>, new_event: Option<EV>)
-            -> &'a mut MappedMem<T>
-            where EVL: Into<EventListCore>, EV: Into<EventCore>
-    {
-        assert!(!self.core.is_unmapped(), "ocl::MappedMem::unmap: \
-            This 'MappedMem' is already unmapped.");
+    // /// Sets events for a `MappedMem` which has already had `::unmap_later`
+    // /// called first.
+    // pub fn set_unmap_events<'a, EVL, EV>(&'a mut self, wait_list: Option<EVL>, new_event: Option<EV>)
+    //         -> &'a mut MappedMem<T>
+    //         where EVL: Into<EventListCore>, EV: Into<EventCore>
+    // {
+    //     assert!(!self.core.is_unmapped(), "ocl::MappedMem::unmap: \
+    //         This 'MappedMem' is already unmapped.");
 
-        match self.delayed_unmap {
-            DelayedUnmap::Some { ref mut ewait, ref mut enew, .. } => {
-                if let Some(evl) = wait_list {
-                    *ewait = Some(evl.into())
-                }
+    //     match self.delayed_unmap {
+    //         DelayedUnmap::Some { ref mut ewait, ref mut enew, .. } => {
+    //             if let Some(evl) = wait_list {
+    //                 *ewait = Some(evl.into())
+    //             }
 
-                if let Some(ev) = new_event {
-                    *enew = Some(ev.into())
-                }
-            },
-            DelayedUnmap::None => panic!("ocl::MappedMem::set_unmap_events: Can only be called \
-                after '::unmap_later' has already been called."),
-        }
+    //             if let Some(ev) = new_event {
+    //                 *enew = Some(ev.into())
+    //             }
+    //         },
+    //         DelayedUnmap::None => panic!("ocl::MappedMem::set_unmap_events: Can only be called \
+    //             after '::unmap_later' has already been called."),
+    //     }
 
-        self
-    }
+    //     self
+    // }
 
-    pub fn unmap_now(&mut self) -> OclResult<()> {
-        if self.core.is_unmapped() { return Err("ocl::MappedMem::unmap: \
-            This 'MappedMem' is already unmapped.".into()); }
+    // pub fn unmap_now(&mut self) -> OclResult<()> {
+    //     if self.core.is_unmapped() { return Err("ocl::MappedMem::unmap: \
+    //         This 'MappedMem' is already unmapped.".into()); }
 
-        match self.delayed_unmap {
-            DelayedUnmap::Some { ref queue, ref mem, ref ewait, ref mut enew } => {
-                self.core.unmap_mem_object(queue, mem,
-                    match *ewait {
-                        Some(ref el) => Some(el as &ClWaitList),
-                        None => None,
-                    },
-                    match *enew {
-                        Some(ref mut e) => Some(e as &mut ClEventPtrNew),
-                        None => None,
-                    },
-                )
-            },
-            DelayedUnmap::None => Err("ocl::MappedMem::set_unmap_events: Can only be called \
-                after '::unmap_later' has already been called.".into()),
-        }
-    }
+    //     match self.delayed_unmap {
+    //         DelayedUnmap::Some { ref queue, ref mem, ref ewait, ref mut enew } => {
+    //             self.core.unmap_mem_object(queue, mem,
+    //                 match *ewait {
+    //                     Some(ref el) => Some(el as &ClWaitList),
+    //                     None => None,
+    //                 },
+    //                 match *enew {
+    //                     Some(ref mut e) => Some(e as &mut ClEventPtrNew),
+    //                     None => None,
+    //                 },
+    //             )
+    //         },
+    //         DelayedUnmap::None => Err("ocl::MappedMem::set_unmap_events: Can only be called \
+    //             after '::unmap_later' has already been called.".into()),
+    //     }
+    // }
 }
 
 impl<T> Deref for MappedMem<T> where T: OclPrm {
@@ -141,27 +141,27 @@ impl<T> DerefMut for MappedMem<T> where T: OclPrm {
     }
 }
 
-impl<T> Drop for MappedMem<T> where T: OclPrm {
-    fn drop(&mut self) {
-        if self.core.is_unmapped() { return; }
+// impl<T> Drop for MappedMem<T> where T: OclPrm {
+//     fn drop(&mut self) {
+//         if self.core.is_unmapped() { return; }
 
-        match self.delayed_unmap {
-            DelayedUnmap::Some { ref queue, ref mem, ref ewait, ref mut enew } => {
-                self.core.unmap_mem_object(queue, mem,
-                    match *ewait {
-                        Some(ref el) => Some(el as &ClWaitList),
-                        None => None,
-                    },
-                    match *enew {
-                        Some(ref mut e) => Some(e as &mut ClEventPtrNew),
-                        None => None,
-                    },
-                ).unwrap()
-            },
-            DelayedUnmap::None => (),
-        }
-    }
-}
+//         match self.delayed_unmap {
+//             DelayedUnmap::Some { ref queue, ref mem, ref ewait, ref mut enew } => {
+//                 self.core.unmap_mem_object(queue, mem,
+//                     match *ewait {
+//                         Some(ref el) => Some(el as &ClWaitList),
+//                         None => None,
+//                     },
+//                     match *enew {
+//                         Some(ref mut e) => Some(e as &mut ClEventPtrNew),
+//                         None => None,
+//                     },
+//                 ).unwrap()
+//             },
+//             DelayedUnmap::None => (),
+//         }
+//     }
+// }
 
 // impl<T: OclPrm> Future for MappedMem<T> {
 //     type Item = &'a mut [T];
@@ -597,7 +597,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         // Verify dims given.
                         // try!(Ok(()));
 
-                        if dst_offset.is_some() || len.is_some() { return OclError::err(
+                        if dst_offset.is_some() || len.is_some() { return OclError::err_string(
                             "ocl::BufferCmd::enq(): For 'rect' shaped copies, destination \
                             offset and length must be 'None'. Ex.: \
                             'cmd().copy(&{{buf_name}}, None, None)..'.");
@@ -619,7 +619,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         core::enqueue_fill_buffer(self.queue, self.obj_core, pattern,
                             offset, len, self.ewait, self.enew, Some(&self.queue.device_version()))
                     },
-                    BufferCmdDataShape::Rect { .. } => OclError::err("ocl::BufferCmd::enq(): \
+                    BufferCmdDataShape::Rect { .. } => OclError::err_string("ocl::BufferCmd::enq(): \
                         Rectangular fill is not a valid operation. Please use the default shape, linear.")
                 }
             },
@@ -629,9 +629,9 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
             BufferCmdKind::GLRelease => {
                 core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
             },
-            BufferCmdKind::Unspecified => OclError::err("ocl::BufferCmd::enq(): No operation \
+            BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
-            BufferCmdKind::Map { .. } => OclError::err("ocl::BufferCmd::enq(): \
+            BufferCmdKind::Map { .. } => OclError::err_string("ocl::BufferCmd::enq(): \
                 For map operations use '::enq_map()' instead."),
             _ => unimplemented!(),
         }
@@ -659,14 +659,14 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                             self.enew )?)) }
                     },
                     BufferCmdDataShape::Rect { .. } => {
-                        OclError::err("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
+                        OclError::err_string("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
                             operation. Please use the default shape, linear.")
                     },
                 }
             },
-            BufferCmdKind::Unspecified => OclError::err("ocl::BufferCmd::enq_map(): No operation \
+            BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq_map(): No operation \
                 specified. Use '::map', before calling '::enq_map'."),
-            _ => OclError::err("ocl::BufferCmd::enq_map(): For non-map operations use '::enq' instead."),
+            _ => OclError::err_string("ocl::BufferCmd::enq_map(): For non-map operations use '::enq' instead."),
         }
     }
 
@@ -696,14 +696,14 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         Ok(future)
                     },
                     BufferCmdDataShape::Rect { .. } => {
-                        OclError::err("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
+                        OclError::err_string("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
                             operation. Please use the default shape, linear.")
                     },
                 }
             },
-            BufferCmdKind::Unspecified => OclError::err("ocl::BufferCmd::enq_map(): No operation \
+            BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq_map(): No operation \
                 specified. Use '::map', before calling '::enq_map'."),
-            _ => OclError::err("ocl::BufferCmd::enq_map(): For non-map operations use '::enq' instead."),
+            _ => OclError::err_string("ocl::BufferCmd::enq_map(): For non-map operations use '::enq' instead."),
         }
     }
 }
@@ -1056,12 +1056,12 @@ impl<T: OclPrm> SubBuffer<T> {
         let size_len = size.to_len();
 
         if origin_len > buffer_len {
-            return OclError::err(format!("SubBuffer::new: Origin ({:?}) is outside of the \
+            return OclError::err_string(format!("SubBuffer::new: Origin ({:?}) is outside of the \
                 dimensions of the source buffer ({:?}).", origin, buffer.dims()));
         }
 
         if origin_len + size_len > buffer_len {
-            return OclError::err(format!("SubBuffer::new: Sub-buffer region (origin: '{:?}', \
+            return OclError::err_string(format!("SubBuffer::new: Sub-buffer region (origin: '{:?}', \
                 size: '{:?}') exceeds the dimensions of the source buffer ({:?}).", origin, size,
                 buffer.dims()));
         }
