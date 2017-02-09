@@ -64,13 +64,14 @@ pub enum Error {
 }
 
 impl self::Error {
-    /// [DEPRICATED] Returns a new `Error` with the description string: `desc`.
+    /// [DEPRICATED] Returns a new `Error` with the description string:
+    /// `desc`.
     ///
     /// ### Depricated
     ///
     /// Use `::string` instead.
     //
-    #[deprecated(since="0.4.0", note="please use `string` instead")]
+    #[deprecated(since="0.4.0", note="Use `::string` instead.")]
     pub fn new<S: Into<String>>(desc: S) -> self::Error {
         self::Error::String(desc.into())
     }
@@ -80,9 +81,21 @@ impl self::Error {
         self::Error::String(desc.into())
     }
 
-    /// Returns a new `ocl::Result::Err` containing an `ocl::Error::String`
-    /// variant with the given description.
+    /// [DEPRICATED] Returns a new `ocl_core::Result::Err` containing an
+    /// `ocl_core::Error::String` variant with the given description.
+    ///
+    /// ### Depricated
+    ///
+    /// Use `::string` instead.
+    //
+    #[deprecated(since="0.4.0", note="Use `::err_string` instead.")]
     pub fn err<T, S: Into<String>>(desc: S) -> self::Result<T> {
+        Err(Error::String(desc.into()))
+    }
+
+    /// Returns a new `Err(ocl_core::Error::String(...))` variant with the
+    /// given description.
+    pub fn err_string<T, S: Into<String>>(desc: S) -> self::Result<T> {
         Err(Error::String(desc.into()))
     }
 

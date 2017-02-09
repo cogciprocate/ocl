@@ -97,7 +97,7 @@ pub unsafe fn bytes_to<T>(bytes: &[u8]) -> OclResult<T> {
         ptr::copy(bytes.as_ptr(), &mut new_val as *mut _ as *mut u8, bytes.len());
         Ok(new_val)
     } else {
-        OclError::err(format!("The size of the source byte slice ({} bytes) \
+        OclError::err_string(format!("The size of the source byte slice ({} bytes) \
         does not match the size of the destination type ({} bytes).", bytes.len(),
         mem::size_of::<T>()))
     }
@@ -120,7 +120,7 @@ pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> OclResult<T> {
         ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec.len());
         Ok(new_val)
     } else {
-        OclError::err(format!("The size of the source byte vector ({} bytes) \
+        OclError::err_string(format!("The size of the source byte vector ({} bytes) \
         does not match the size of the destination type ({} bytes).", vec.len(),
         mem::size_of::<T>()))
     }
@@ -244,7 +244,7 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &[usize],
                 rebuild_threshold: usize) -> OclResult<()> {
     if remove_list.len() > orig_vec.len() {
-        return OclError::err("ocl::util::vec_remove_rebuild: Remove list is longer than source
+        return OclError::err_string("ocl::util::vec_remove_rebuild: Remove list is longer than source
             vector.");
     }
     let orig_len = orig_vec.len();
@@ -255,7 +255,7 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
             if idx < orig_len {
                  orig_vec.remove(idx);
             } else {
-                return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' \
+                return OclError::err_string(format!("ocl::util::remove_rebuild_vec: 'remove_list' \
                     contains at least one out of range index: [{}] ('orig_vec.len()': {}).",
                     idx, orig_len));
             }
@@ -269,7 +269,7 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
                 if idx < orig_len {
                     *remove_markers.get_unchecked_mut(idx) = false;
                 } else {
-                    return OclError::err(format!("ocl::util::remove_rebuild_vec: 'remove_list' \
+                    return OclError::err_string(format!("ocl::util::remove_rebuild_vec: 'remove_list' \
                         contains at least one out of range index: [{}] ('orig_vec.len()': {}).",
                         idx, orig_len));
                 }

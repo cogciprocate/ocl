@@ -87,6 +87,9 @@ pub trait ClVersions {
 
 
 /// Types with a mutable pointer to a new, null raw event pointer.
+///
+/// [TODO]: Create an enum to be used with this trait.
+///
 pub unsafe trait ClEventPtrNew: Debug {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
 }
@@ -106,12 +109,13 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
 /// Types with a reference to a raw event array and an associated element
 /// count.
 ///
+/// [TODO]: Create an enum to be used with this trait.
+///
 pub unsafe trait ClWaitList: Debug {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event;
     fn count (&self) -> u32;
 }
 
-// [TODO]: TEST ME:
 unsafe impl<'a> ClWaitList for &'a [cl_event] {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         self.as_ptr()
@@ -148,7 +152,13 @@ pub unsafe trait ClDeviceIdPtr: Sized {
 
 /// Wrapper used by `EventList` to send event pointers to core functions
 /// cheaply.
-pub struct EventRefWrapper(pub cl_event);
+pub struct EventRefWrapper(cl_event);
+
+impl EventRefWrapper {
+    pub unsafe fn new(ptr: cl_event) -> EventRefWrapper {
+        EventRefWrapper(ptr)
+    }
+}
 
 impl<'e> ClEventRef<'e> for EventRefWrapper {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
@@ -183,7 +193,7 @@ impl PlatformId {
         if !self.0.is_null() {
             functions::get_platform_info(self, PlatformInfo::Version).as_opencl_version()
         } else {
-            OclError::err("PlatformId::version(): This platform_id is invalid.")
+            OclError::err_string("PlatformId::version(): This platform_id is invalid.")
         }
     }
 }
@@ -245,7 +255,7 @@ impl DeviceId {
         if !self.0.is_null() {
             functions::get_device_info(self, DeviceInfo::Version).as_opencl_version()
         } else {
-            OclError::err("DeviceId::device_versions(): This device_id is invalid.")
+            OclError::err_string("DeviceId::device_versions(): This device_id is invalid.")
         }
     }
 }
@@ -557,6 +567,9 @@ impl ClVersions for Program {
 /// be revisited in the future (please provide input by filing an issue if you
 /// have any thoughts on the matter).
 ///
+/// [UPDATE]: Enabling `Send` for a while to test.
+///
+///
 #[derive(Debug)]
 pub struct Kernel(cl_kernel);
 
@@ -607,8 +620,7 @@ impl ClVersions for Kernel {
     }
 }
 
-
-extern "C" fn _dummy_callback(_: ffi::cl_event, _: i32, _: *mut c_void) {}
+unsafe impl Send for Kernel {}
 
 
 /// cl_event
@@ -633,7 +645,7 @@ impl Event {
             try!(functions::retain_event(&new_core));
             Ok(new_core)
         } else {
-            OclError::err("core::Event::from_copied_ptr: Invalid pointer `ptr`.")
+            OclError::err_string("core::Event::from_copied_ptr: Invalid pointer `ptr`.")
         }
     }
 
@@ -653,27 +665,27 @@ impl Event {
         functions::event_is_complete(self)
     }
 
-    /// Sets a callback function, `callback_receiver`, to trigger upon
-    /// completion of this event list with an optional reference to user data.
-    ///
-    /// # Safety
-    ///
-    /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
-    /// is ever called.
-    ///
-    /// TODO: Create a safer type wrapper for `callback_receiver` (using an
-    /// `Arc`?, etc.) within `ocl`.
-    ///
-    pub unsafe fn set_callback<T>(&self,
-            callback_receiver: Option<EventCallbackFn>,
-            user_data: Option<&mut T>,
-            ) -> OclResult<()>
-    {
-        let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut c_void)
-            .unwrap_or(ptr::null_mut());
+    // /// Sets a callback function, `callback_receiver`, to trigger upon
+    // /// completion of this event list with an optional reference to user data.
+    // ///
+    // /// # Safety
+    // ///
+    // /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
+    // /// is ever called.
+    // ///
+    // /// TODO: Create a safer type wrapper for `callback_receiver` (using an
+    // /// `Arc`?, etc.) within `ocl`.
+    // ///
+    // pub unsafe fn set_callback<T>(&self,
+    //         callback_receiver: Option<EventCallbackFn>,
+    //         user_data: Option<&mut T>,
+    //         ) -> OclResult<()>
+    // {
+    //     let user_data_ptr = user_data.map(|ud| ud as *mut _ as *mut c_void)
+    //         .unwrap_or(ptr::null_mut());
 
-        self.set_callback_with_ptr(callback_receiver, user_data_ptr)
-    }
+    //     self.set_callback_with_ptr(callback_receiver, user_data_ptr)
+    // }
 
     /// Sets a callback function, `callback_receiver`, to trigger upon
     /// completion of this event list with an optional pointer to user data.
@@ -686,7 +698,7 @@ impl Event {
     /// TODO: Create a safer type wrapper for `callback_receiver` (using an
     /// `Arc`?, etc.) within `ocl`.
     ///
-    pub unsafe fn set_callback_with_ptr(&self,
+    pub unsafe fn set_callback(&self,
             callback_receiver_opt: Option<EventCallbackFn>,
             user_data_ptr: *mut c_void,
             ) -> OclResult<()>
@@ -694,7 +706,7 @@ impl Event {
         if self.is_valid() {
             let callback_receiver = match callback_receiver_opt {
                 Some(cbr) => Some(cbr),
-                None => Some(_dummy_callback as EventCallbackFn),
+                None => Some(::_dummy_event_callback as EventCallbackFn),
             };
 
             ::set_event_callback(
@@ -717,6 +729,7 @@ impl Event {
 
     /// Returns an immutable reference to a pointer, do not deref and store it unless
     /// you will manage its associated reference count carefully.
+    ///
     #[inline]
     pub unsafe fn as_ptr_ref(&self) -> &cl_event {
         &self.0
@@ -724,6 +737,7 @@ impl Event {
 
     /// Returns a mutable reference to a pointer, do not deref then modify or store it
     /// unless you will manage its associated reference count carefully.
+    ///
     #[inline]
     pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
         &mut self.0
@@ -734,9 +748,34 @@ impl Event {
     ///
     /// This still leads to crazy segfaults when non-event pointers (random
     /// whatever addresses) are passed. Need better check.
+    ///
     #[inline]
     pub fn is_valid(&self) -> bool {
         !self.0.is_null()
+    }
+
+    /// Consumes the `Event`, returning the wrapped `cl_event` pointer.
+    ///
+    /// To avoid a memory leak the pointer must be converted back to an `Event` using
+    /// [`Event::from_raw`][from_raw].
+    ///
+    /// [from_raw]: struct.Event.html#method.from_raw
+    ///
+    pub fn into_raw(self) -> cl_event {
+        let ptr = self.0;
+        mem::forget(self);
+        ptr
+    }
+
+
+    /// Constructs an `Event` from a raw `cl_event` pointer.
+    ///
+    /// The raw pointer must have been previously returned by a call to a
+    /// [`Event::into_raw`][into_raw].
+    ///
+    /// [into_raw]: struct.Event.html#method.into_raw
+    pub unsafe fn from_raw(ptr: cl_event) -> Event {
+        Event(ptr)
     }
 }
 
@@ -815,7 +854,7 @@ impl UserEvent {
             try!(functions::retain_event(&new_core));
             Ok(new_core)
         } else {
-            OclError::err("core::UserEvent::from_copied_ptr: Invalid pointer `ptr`.")
+            OclError::err_string("core::UserEvent::from_copied_ptr: Invalid pointer `ptr`.")
         }
     }
 
@@ -883,6 +922,30 @@ impl UserEvent {
     #[inline]
     pub fn is_valid(&self) -> bool {
         !self.0.is_null()
+    }
+
+    /// Consumes the `UserEvent`, returning the wrapped `cl_event` pointer.
+    ///
+    /// To avoid a memory leak the pointer must be converted back to an `UserEvent` using
+    /// [`UserEvent::from_raw`][from_raw].
+    ///
+    /// [from_raw]: struct.UserEvent.html#method.from_raw
+    ///
+    pub fn into_raw(self) -> cl_event {
+        let ptr = self.0;
+        mem::forget(self);
+        ptr
+    }
+
+
+    /// Constructs an `UserEvent` from a raw `cl_event` pointer.
+    ///
+    /// The raw pointer must have been previously returned by a call to a
+    /// [`UserEvent::into_raw`][into_raw].
+    ///
+    /// [into_raw]: struct.UserEvent.html#method.into_raw
+    pub unsafe fn from_raw(ptr: cl_event) -> Event {
+        Event(ptr)
     }
 }
 

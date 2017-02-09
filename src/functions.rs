@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem, FutureMappedMem, UserEvent, EventRefWrapper};
+    CommandQueueProperties, MappedMem, FutureMappedMem, UserEvent, /*EventRefWrapper*/};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -53,6 +53,19 @@ const CL_GL_SHARING_EXT: &'static str = "cl_khr_gl_sharing";
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
 
 
+/// Don't be a dummy. Buckle your `_dummy_callback`.
+pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void) {}
+
+
+/// If `event_status` is `CommandExecutionStatus::Complete`, the `cl_event`
+/// pointed to by `user_data` will be set to the same.
+///
+/// `user_data` must be a `cl_event` which has not yet had its destructor run
+/// (`::release_event`).
+///
+/// `src_event_ptr` is not used and does not need anything special done with
+/// its destructor (it will already have been managed by the call to `::set_event_callback`.
+///
 #[cfg(feature = "future_event_callbacks")]
 pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
     let _ = src_event_ptr;
@@ -60,8 +73,11 @@ pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, us
     if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
         let tar_event_ptr = user_data as *mut _ as cl_event;
 
-        ::set_user_event_status(&EventRefWrapper(tar_event_ptr),
-            CommandExecutionStatus::Complete).unwrap();
+        unsafe {
+            let user_event = UserEvent::from_raw(tar_event_ptr);
+
+            ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
+        }
 
         println!("Event status set to complete for event: {:?}", tar_event_ptr);
     } else {
@@ -122,7 +138,7 @@ fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
 ///
 pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids: &[D]) -> OclResult<()> {
     if device_ids.len() == 0 {
-        return OclError::err("ocl::core::program_build_err(): Device list is empty. Aborting.");
+        return OclError::err_string("ocl::core::program_build_err(): Device list is empty. Aborting.");
     }
 
     for device_id in device_ids.iter() {
@@ -137,7 +153,7 @@ pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids
                         \n\n",
                         log);
 
-                    return OclError::err(log_readable);
+                    return OclError::err_string(log_readable);
                 }
             },
             ProgramBuildInfoResult::Error(err) => return Err(*err),
@@ -154,7 +170,7 @@ pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -
 
     for dev_v in versions {
         if dev_v < &reqd_ver {
-            return OclError::err(format!("OpenCL version too low to use this feature \
+            return OclError::err_string(format!("OpenCL version too low to use this feature \
                 (detected: {}, required: {}).", dev_v, reqd_ver));
         }
     }
@@ -225,7 +241,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 
         while errcode == Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
             if iters_rmng == 0 {
-                return OclError::err(format!("core::get_platform_ids(): \
+                return OclError::err_string(format!("core::get_platform_ids(): \
                     CL_PLATFORM_NOT_FOUND_KHR... Unable to get platform id list after {} \
                     seconds of waiting.", (iters_rmng * sleep_ms) / 1000));
             }
@@ -328,7 +344,7 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
     let devices_max = match devices_max {
         Some(d) => {
             if d == 0 {
-                return OclError::err("ocl::core::get_device_ids(): `devices_max` can not be zero.");
+                return OclError::err_string("ocl::core::get_device_ids(): `devices_max` can not be zero.");
             } else {
                 d
             }
@@ -464,7 +480,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         ) -> OclResult<Context>
 {
     if device_ids.len() == 0 {
-        return OclError::err("ocl::core::create_context(): No devices specified.");
+        return OclError::err_string("ocl::core::create_context(): No devices specified.");
     }
 
     // [DEBUG]:
@@ -477,7 +493,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
             for device in device_ids {
                 match device_support_cl_gl_sharing(device) {
                     Ok(true) => {},
-                    Ok(false) => return OclError::err("A device doesn't support cl_gl_sharing extension."),
+                    Ok(false) => return OclError::err_string("A device doesn't support cl_gl_sharing extension."),
                     Err(err) => return Err(err),
                 }
             }
@@ -548,7 +564,7 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
     //         for device in device_ids {
     //             match device_support_cl_gl_sharing(device) {
     //                 Ok(true) => {},
-    //                 Ok(false) => return OclError::err("A device doesn't support cl_gl_sharing extension."),
+    //                 Ok(false) => return OclError::err_string("A device doesn't support cl_gl_sharing extension."),
     //                 Err(err) => return Err(err),
     //             }
     //         }
@@ -764,7 +780,7 @@ pub unsafe fn create_buffer<T: OclPrm>(
     let host_ptr = match data {
         Some(d) => {
             if d.len() != len {
-                return OclError::err("ocl::create_buffer(): Data length mismatch.");
+                return OclError::err_string("ocl::create_buffer(): Data length mismatch.");
             }
             d.as_ptr() as cl_mem
         },
@@ -1237,9 +1253,9 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
 {
     // assert!(devices.len() > 0);
     // assert!(devices.len() == binaries.len());
-    if devices.len() == 0 { return OclError::err("ocl::create_program_with_binary: \
+    if devices.len() == 0 { return OclError::err_string("ocl::create_program_with_binary: \
         Length of 'devices' must be greater than zero."); }
-    if devices.len() != binaries.len() { return OclError::err("ocl::create_program_with_binary: \
+    if devices.len() != binaries.len() { return OclError::err_string("ocl::create_program_with_binary: \
         Length of 'devices' must equal the length of 'binaries' (e.g. one binary per device)."); }
 
     let lengths: Vec<usize> = binaries.iter().map(|bin| bin.len()).collect();
@@ -1310,7 +1326,7 @@ pub fn build_program<D: ClDeviceIdPtr + Debug>(
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::build_program(): Callback functions not yet implemented.");
 
-    if devices.len() == 0 { return OclError::err("ocl::core::build_program: \
+    if devices.len() == 0 { return OclError::err_string("ocl::core::build_program: \
         No devices specified."); }
 
     let user_data = match user_data {
@@ -3093,7 +3109,7 @@ pub unsafe fn get_extension_function_address_for_platform(
     );
 
     if ext_fn == 0 as *mut c_void {
-        OclError::err("The specified function does not exist for the implementation or 'platform' \
+        OclError::err_string("The specified function does not exist for the implementation or 'platform' \
             is not a valid platform.")
     } else {
         Ok(ext_fn)
@@ -3132,11 +3148,11 @@ pub fn default_platform() -> OclResult<PlatformId> {
     let platform_list = try!(get_platform_ids());
 
     if platform_list.is_empty() {
-        OclError::err("No platforms found!")
+        OclError::err_string("No platforms found!")
     } else {
         let default_platform_idx = default_platform_idx();
         if default_platform_idx > platform_list.len() - 1 {
-            OclError::err(format!("The default platform set by the environment variable \
+            OclError::err_string(format!("The default platform set by the environment variable \
                 'OCL_DEFAULT_PLATFORM_IDX' has an index which is out of range \
                 (index: [{}], max: [{}]).", default_platform_idx, platform_list.len() - 1))
         } else {
@@ -3156,7 +3172,7 @@ pub fn default_device_type() -> OclResult<DeviceType> {
             "ACCELERATOR" => Ok(::DEVICE_TYPE_ACCELERATOR),
             "CUSTOM" => Ok(::DEVICE_TYPE_CUSTOM),
             "ALL" => Ok(::DEVICE_TYPE_ALL),
-            _ => OclError::err(format!("The default device type set by the environment variable \
+            _ => OclError::err_string(format!("The default device type set by the environment variable \
                 'OCL_DEFAULT_DEVICE_TYPE': ('{}') is invalid. Valid types are: 'DEFAULT', 'CPU', \
                 'GPU', 'ACCELERATOR', 'CUSTOM', and 'ALL'.", s)),
         },

@@ -132,7 +132,7 @@ impl PlatformInfoResult {
         if let PlatformInfoResult::Version(ref ver) = *self {
             OpenclVersion::from_info_str(ver)
         } else {
-            OclError::err(format!("PlatformInfoResult::as_opencl_version(): Invalid platform info \
+            OclError::err_string(format!("PlatformInfoResult::as_opencl_version(): Invalid platform info \
                 result variant: ({:?}). This function can only be called on a \
                 'PlatformInfoResult::Version' variant.", self))
         }
@@ -706,7 +706,7 @@ impl DeviceInfoResult {
         if let DeviceInfoResult::Version(ref ver) = *self {
             OpenclVersion::from_info_str(ver)
         } else {
-            OclError::err(format!("DeviceInfoResult::as_opencl_version(): Invalid device info \
+            OclError::err_string(format!("DeviceInfoResult::as_opencl_version(): Invalid device info \
                 result variant: ({:?}). This function can only be called on a \
                 'DeviceInfoResult::Version' variant.", self))
         }

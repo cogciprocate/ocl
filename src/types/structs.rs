@@ -41,13 +41,14 @@ pub unsafe fn mapped_mem_set_unmapped<T: OclPrm>(mm: &mut MappedMem<T>) {
     mm.is_unmapped = true;
 }
 
-
 pub fn mapped_mem_ptr<T: OclPrm>(mm: &MappedMem<T>) -> cl_mem {
     mm.as_ptr()
 }
 
 
 /// A view of memory mapped by `clEnqueueMap{...}`.
+///
+///
 ///
 /// ### [UNSTABLE]
 ///
@@ -80,30 +81,46 @@ impl<T> MappedMem<T>  where T: OclPrm {
         }
     }
 
-    pub fn get_unmap_event(&self) -> Option<&UserEvent> {
-        self.unmap_event.as_ref()
-    }
-
-    // #[cfg(feature = "future_event_callbacks")]
-    pub fn unmap(&mut self, queue: Option<&CommandQueue>, wait_list: Option<&ClWaitList>)
+    /// Enqueues an unmap command for this memory object immediately.
+    ///
+    //
+    // [NOTE]: Passing `enew_opt` is yet untested.
+    pub fn unmap(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<&ClWaitList>,
+            enew_opt: Option<&mut ClEventPtrNew>)
             -> OclResult<()>
     {
         if !self.is_unmapped {
-            let mut nev_opt = if self.unmap_event.is_some() {
+            let mut new_event_opt = if self.unmap_event.is_some() || enew_opt.is_some() {
                 unsafe { Some(Event::null()) }
             } else {
                 None
             };
 
             ::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
-                self, wait_list, nev_opt.as_mut().map(|ev| ev as &mut ClEventPtrNew))?;
+                self, ewait_opt, new_event_opt.as_mut().map(|ev| ev as &mut ClEventPtrNew))?;
 
             self.is_unmapped = true;
 
-            if cfg!(feature = "future_event_callbacks") {
-                if let Some(nev) = nev_opt {
-                    if nev.is_valid() {
-                        return self.register_event_trigger(&nev);
+            if let Some(new_event) = new_event_opt {
+                // new_event refcount: 1
+                if new_event.is_valid() {
+                    // If enew_opt is `Some`, update its internal event ptr.
+                    if let Some(enew) = enew_opt {
+                        unsafe {
+                            ::retain_event(&new_event)?;
+                            // new_event refcount: 2
+                            if let Ok(ptr_ptr) = enew.ptr_mut_ptr_new() {
+                                *ptr_ptr = *(new_event.as_ptr_ref());
+                            }
+                        }
+                    }
+
+                    if cfg!(feature = "future_event_callbacks") {
+                        self.register_event_trigger(&new_event)?;
+                        // `new_event` will be reconstructed by the callback
+                        // function using `UserEvent::from_raw` so that the
+                        // destructor will be run.
+                        mem::forget(new_event);
                     }
                 }
             }
@@ -125,7 +142,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
                     None => ptr::null_mut(),
                 };
 
-                event.set_callback_with_ptr(Some(::_complete_event), unmap_event_ptr)?;
+                event.set_callback(Some(::_complete_event), unmap_event_ptr)?;
                 println!("Callback set for event: {:?}", unmap_event_ptr);
             };
 
@@ -134,6 +151,10 @@ impl<T> MappedMem<T>  where T: OclPrm {
         } else {
             Err("Callback already set.".into())
         }
+    }
+
+    pub fn get_unmap_event(&self) -> Option<&UserEvent> {
+        self.unmap_event.as_ref()
     }
 
     // #[inline]
@@ -168,7 +189,7 @@ impl<T: OclPrm> Drop for MappedMem<T> {
     #[cfg(feature = "future_event_callbacks")]
     fn drop(&mut self) {
         if !self.is_unmapped {
-            self.unmap(None, None).ok();
+            self.unmap(None, None, None).ok();
         }
     }
 
@@ -241,7 +262,7 @@ impl OpenclVersion {
 
         match version {
             Some(cl_ver) => Ok(cl_ver),
-            None => OclError::err(format!("DeviceInfoResult::as_opencl_version(): \
+            None => OclError::err_string(format!("DeviceInfoResult::as_opencl_version(): \
                 Error parsing version from the string: '{}'.", ver)),
         }
     }

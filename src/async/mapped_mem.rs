@@ -1,12 +1,12 @@
 #![allow(dead_code, unused_imports)]
 
+use std::ptr;
 use std::thread::Thread;
 use std::sync::Arc;
 use libc::c_void;
 
 use futures;
-use futures::{future, Future, Poll, Async, AndThen};
-use futures::future::*;
+use futures::{future, Future, Poll, Async};
 use futures::sync::oneshot::{self, Sender};
 use futures::task::{self, Task, UnparkEvent, EventSet};
 
@@ -15,7 +15,6 @@ use functions;
 use ::{Error as OclError, Result as OclResult, Event, UserEvent, OclPrm, MappedMem,
     MappedMemPtr, Mem, CommandQueue, CommandQueueInfo, CommandQueueInfoResult,
     CommandExecutionStatus, EventList};
-
 
 
 #[cfg(feature = "future_event_callbacks")]
@@ -36,13 +35,11 @@ extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *m
 }
 
 
-
 pub struct EventListTrigger {
     wait_events: EventList,
     completion_event: UserEvent,
     callback_is_set: bool,
 }
-
 
 
 pub struct EventTrigger {
@@ -60,7 +57,6 @@ impl EventTrigger {
         }
     }
 }
-
 
 
 pub struct FutureMappedMem<T: OclPrm> {
@@ -117,11 +113,11 @@ impl<T: OclPrm> FutureMappedMem<T> {
                 unsafe { Ok(MappedMem::new(self.ptr.as_ptr(), self.len,
                     self.unmap_event.take(), buffer, queue )) }
             },
-            _ => Err("FutureMappedMem::create_unmap_event: \
-                No queue and/or buffer found!".into()),
+            _ => Err("FutureMappedMem::create_unmap_event: No queue and/or buffer found!".into()),
         }
     }
 
+    /// Returns the unmap event if it has been created.
     #[inline]
     pub fn get_unmap_event(&self) -> Option<&UserEvent> {
         self.unmap_event.as_ref()
@@ -164,7 +160,7 @@ impl<T> Future for FutureMappedMem<T> where T: OclPrm + 'static {
                     println!("Task completed on first poll.");
                 } else {
                     println!("Unsetting callback...");
-                    unsafe { self.map_event.set_callback::<T>(None, None)?; }
+                    unsafe { self.map_event.set_callback(None, ptr::null_mut())?; }
                     self.callback_is_set = false;
                 }
 
@@ -175,7 +171,7 @@ impl<T> Future for FutureMappedMem<T> where T: OclPrm + 'static {
                     let task_box = Box::new(task::park());
                     let task_ptr = Box::into_raw(task_box) as *mut _ as *mut c_void;
                     println!("Setting callback...");
-                    unsafe { self.map_event.set_callback_with_ptr(Some(_unpark_task), task_ptr)?; };
+                    unsafe { self.map_event.set_callback(Some(_unpark_task), task_ptr)?; };
                     self.callback_is_set = true;
                 }
 
