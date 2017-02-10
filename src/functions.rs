@@ -38,7 +38,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo,
     KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
-    KernelWorkGroupInfoResult, ClEventRef, ClWaitList, EventInfo, EventInfoResult, ProfilingInfo,
+    KernelWorkGroupInfoResult, ClEventRef, ClWaitListPtr, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
@@ -100,7 +100,7 @@ fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info
 }
 
 // /// Maps options of slices to pointers and a length.
-// fn resolve_event_ptrs(wait_list: Option<&ClWaitList>,
+// fn resolve_event_ptrs(wait_list: Option<&ClWaitListPtr>,
 //             new_event: Option<E>) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
 // {
 //     // If the wait list is empty or if its containing option is none, map to (0, null),
@@ -125,7 +125,7 @@ fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info
 // }
 
 /// Maps options of slices to pointers and a length.
-fn resolve_event_ptrs<E: ClEventPtrNew>(wait_list: Option<&ClWaitList>,
+fn resolve_event_ptrs<E: ClEventPtrNew>(wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
@@ -1732,7 +1732,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D
 //============================================================================
 
 /// Blocks until the first `num_events` events in `event_list` are complete.
-pub fn wait_for_events(num_events: u32, event_list: &ClWaitList) -> OclResult<()> {
+pub fn wait_for_events(num_events: u32, event_list: &ClWaitListPtr) -> OclResult<()> {
     assert!(event_list.count() >= num_events);
 
     let errcode = unsafe {
@@ -1916,7 +1916,7 @@ pub unsafe fn enqueue_read_buffer<T, E>(
         block: bool,
         offset: usize,
         data: &mut [T],
-        wait_list: Option<&ClWaitList>,
+        wait_list: Option<&ClWaitListPtr>,
         new_event: Option<E>,
         ) -> OclResult<()>
         where T: OclPrm, E: ClEventPtrNew
@@ -1968,7 +1968,7 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, E: ClEventPtrNew>(
             host_row_pitch: usize,
             host_slc_pitch: usize,
             data: &mut [T],
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2022,7 +2022,7 @@ pub fn enqueue_write_buffer<T: OclPrm, E: ClEventPtrNew>(
             block: bool,
             offset: usize,
             data: &[T],
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2065,7 +2065,7 @@ pub fn enqueue_write_buffer_rect<T: OclPrm, E: ClEventPtrNew>(
             host_row_pitch: usize,
             host_slc_pitch: usize,
             data: &[T],
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
     ) -> OclResult<()>
 {
@@ -2112,7 +2112,7 @@ pub fn enqueue_fill_buffer<T, E>(
             pattern: T,
             offset: usize,
             len: usize,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
@@ -2150,7 +2150,7 @@ pub fn enqueue_copy_buffer<T: OclPrm, E: ClEventPtrNew>(
             src_offset: usize,
             dst_offset: usize,
             len: usize,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2191,7 +2191,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, E: ClEventPtrNew>(
             src_slc_pitch: usize,
             dst_row_pitch: usize,
             dst_slc_pitch: usize,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2231,7 +2231,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, E: ClEventPtrNew>(
 pub fn enqueue_acquire_gl_buffer<E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             buffer: &Mem,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2254,7 +2254,7 @@ pub fn enqueue_acquire_gl_buffer<E: ClEventPtrNew>(
 pub fn enqueue_release_gl_buffer<E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             buffer: &Mem,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2293,7 +2293,7 @@ pub unsafe fn enqueue_read_image<T, E: ClEventPtrNew>(
             row_pitch: usize,
             slc_pitch: usize,
             data: &mut [T],
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2332,7 +2332,7 @@ pub fn enqueue_write_image<T, E: ClEventPtrNew>(
             input_row_pitch: usize,
             input_slc_pitch: usize,
             data: &[T],
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2380,7 +2380,7 @@ pub fn enqueue_fill_image<T, E: ClEventPtrNew>(
             color: &[T],
             origin: [usize; 3],
             region: [usize; 3],
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
@@ -2415,7 +2415,7 @@ pub fn enqueue_copy_image<E: ClEventPtrNew>(
             src_origin: [usize; 3],
             dst_origin: [usize; 3],
             region: [usize; 3],
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2447,7 +2447,7 @@ pub fn enqueue_copy_image_to_buffer<T: OclPrm, E: ClEventPtrNew>(
             src_origin: [usize; 3],
             region: [usize; 3],
             dst_offset: usize,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2481,7 +2481,7 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm, E: ClEventPtrNew>(
             src_offset: usize,
             dst_origin: [usize; 3],
             region: [usize; 3],
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2511,7 +2511,7 @@ unsafe fn _enqueue_map_buffer<T>(
         map_flags: MapFlags,
         offset: usize,
         len: usize,
-        // wait_list: Option<&ClWaitList>,
+        // wait_list: Option<&ClWaitListPtr>,
         // new_event: Option<E>,
         wait_list_len: cl_uint,
         wait_list_ptr: *const cl_event,
@@ -2556,7 +2556,7 @@ pub unsafe fn enqueue_map_buffer_async<T, E>(
         map_flags: MapFlags,
         offset: usize,
         len: usize,
-        wait_list: Option<&ClWaitList>,
+        wait_list: Option<&ClWaitListPtr>,
         new_event: Option<E>,
         ) -> OclResult<FutureMappedMem<T>>
         where T: OclPrm, E: ClEventPtrNew
@@ -2616,7 +2616,7 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm, E: ClEventPtrNew>(
             map_flags: MapFlags,
             offset: usize,
             len: usize,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<MappedMem<T>>
 {
@@ -2686,7 +2686,7 @@ pub unsafe fn enqueue_map_image<T: OclPrm, E: ClEventPtrNew>(
             region: [usize; 3],
             row_pitch: usize,
             slc_pitch: usize,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<MappedMem<T>>
 {
@@ -2734,7 +2734,7 @@ pub fn enqueue_unmap_mem_object<T: OclPrm, E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             memobj: &Mem,
             mapped_mem: &MappedMem<T>,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
         ) -> OclResult<()>
 {
@@ -2771,7 +2771,7 @@ pub fn enqueue_migrate_mem_objects<E: ClEventPtrNew>(
             num_mem_objects: u32,
             mem_objects: &[Mem],
             flags: MemMigrationFlags,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
@@ -2811,7 +2811,7 @@ pub fn enqueue_kernel<E: ClEventPtrNew>(
             global_work_offset: Option<[usize; 3]>,
             global_work_dims: &[usize; 3],
             local_work_dims: Option<[usize; 3]>,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
             // kernel_name: Option<&str>
         ) -> OclResult<()>
@@ -2905,7 +2905,7 @@ pub fn enqueue_kernel<E: ClEventPtrNew>(
 pub fn enqueue_task<E: ClEventPtrNew>(
             command_queue: &CommandQueue,
             kernel: &Kernel,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
             kernel_name: Option<&str>
         ) -> OclResult<()>
@@ -2947,7 +2947,7 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_marker_with_wait_list<E: ClEventPtrNew>(
             command_queue: &CommandQueue,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
@@ -2975,7 +2975,7 @@ pub fn enqueue_marker_with_wait_list<E: ClEventPtrNew>(
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_barrier_with_wait_list<E: ClEventPtrNew>(
             command_queue: &CommandQueue,
-            wait_list: Option<&ClWaitList>,
+            wait_list: Option<&ClWaitListPtr>,
             new_event: Option<E>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>

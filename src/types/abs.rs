@@ -86,15 +86,6 @@ pub trait ClVersions {
 }
 
 
-/// Types with a mutable pointer to a new, null raw event pointer.
-///
-/// [TODO]: Create an enum to be used with this trait.
-///
-pub unsafe trait ClEventPtrNew: Debug {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
-}
-
-
 /// Types with a reference to a raw event pointer.
 ///
 pub trait ClEventRef<'e> {
@@ -107,17 +98,25 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
     }
 }
 
+
+/// Types with a mutable pointer to a new, null raw event pointer.
+///
+pub unsafe trait ClEventPtrNew: Debug {
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
+}
+
+
 /// Types with a reference to a raw event array and an associated element
 /// count.
 ///
 /// [TODO]: Create an enum to be used with this trait.
 ///
-pub unsafe trait ClWaitList: Debug {
+pub unsafe trait ClWaitListPtr: Debug {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event;
     fn count (&self) -> u32;
 }
 
-unsafe impl<'a> ClWaitList for &'a [cl_event] {
+unsafe impl<'a> ClWaitListPtr for &'a [cl_event] {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         self.as_ptr()
     }
@@ -856,7 +855,7 @@ impl<'e> ClEventRef<'e> for Event {
     }
 }
 
-unsafe impl ClWaitList for Event {
+unsafe impl ClWaitListPtr for Event {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
     }
@@ -1008,7 +1007,7 @@ impl<'e> ClEventRef<'e> for UserEvent {
     }
 }
 
-unsafe impl ClWaitList for UserEvent {
+unsafe impl ClWaitListPtr for UserEvent {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
     }
@@ -1212,7 +1211,7 @@ unsafe impl ClEventPtrNew for EventList {
     }
 }
 
-unsafe impl ClWaitList for EventList {
+unsafe impl ClWaitListPtr for EventList {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         match self.event_ptrs.first() {
             Some(ele) => ele as *const cl_event,

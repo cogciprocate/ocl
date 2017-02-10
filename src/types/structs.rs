@@ -12,7 +12,7 @@ use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-    PlatformId, OclPrm, CommandQueue, ClWaitList, UserEvent, Event, ClEventPtrNew};
+    PlatformId, OclPrm, CommandQueue, ClWaitListPtr, UserEvent, Event, ClEventPtrNew};
 
 
 // Until everything can be implemented:
@@ -85,7 +85,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
     ///
     //
     // [NOTE]: Passing `enew_opt` is yet untested.
-    pub fn unmap(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<&ClWaitList>,
+    pub fn unmap(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<&ClWaitListPtr>,
             enew_opt: Option<&mut ClEventPtrNew>)
             // enew_opt: Option<E>)
             -> OclResult<()>
