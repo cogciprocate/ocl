@@ -28,11 +28,13 @@ fn fill() {
     let buffer = unsafe { ::create_buffer::<f32>(&context, ::MEM_READ_WRITE, DATASET_SIZE, None).unwrap() };
 
     // buffer.cmd().fill(5.0f32, None).enq().unwrap();
-    ::enqueue_fill_buffer::<f32>(&queue, &buffer, 5.0f32, 0, DATASET_SIZE, None, None, None).unwrap();
+    ::enqueue_fill_buffer::<f32, _, _>(&queue, &buffer, 5.0f32, 0, DATASET_SIZE,
+        None::<::EventList>, None::<::EventList>, None).unwrap();
 
     let mut vec = vec![0.0f32; DATASET_SIZE];
     // buffer.read(&mut vec).enq().unwrap();
-    unsafe { ::enqueue_read_buffer::<f32>(&queue, &buffer, true, 0, &mut vec, None, None).unwrap() };
+    unsafe { ::enqueue_read_buffer::<f32, _, _>(&queue, &buffer, true, 0, &mut vec,
+        None::<::EventList>, None::<::EventList>).unwrap() };
 
     assert!(vec.iter().all(|x| *x == 5.0f32));
     // for &ele in vec.iter() {

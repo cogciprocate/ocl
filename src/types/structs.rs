@@ -12,7 +12,78 @@ use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-    PlatformId, OclPrm, CommandQueue, ClWaitListPtr, UserEvent, Event, ClEventPtrNew};
+    PlatformId, OclPrm, CommandQueue, ClWaitListPtr, UserEvent, Event, ClNullEventPtr,
+    EventList};
+
+
+
+// pub struct MemCmdUnmap<'b> {
+//     queue: &'b CommandQueue,
+//     obj_core: &'b MemCore,
+//     ewait: Option<ClWaitListPtrEnum<'b>>,
+//     enew: Option<ClNullEventPtrEnum<'b>>,
+// }
+
+// impl<'b> MemCmdUnmap<'b> {
+//     fn new(queue: &'b Queue, obj_core: &'b MemCore) -> MemCmdUnmap<'b>
+//     {
+//         MemCmdUnmap {
+//             queue: queue,
+//             obj_core: obj_core,
+//             block: true,
+//             lock_block: false,
+//             kind: MemCmdUnmapKind::Unspecified,
+//             shape: MemCmdUnmapDataShape::Lin { offset: 0 },
+//             ewait: None,
+//             enew: None,
+//             mem_len: mem_len,
+//         }
+//     }
+
+//     /// Specifies a queue to use for this call only.
+//     pub fn queue(mut self, queue: &'b Queue) -> MemCmdUnmap<'b> {
+//         self.queue = queue;
+//         self
+//     }
+
+
+//     /// Specifies a list of events to wait on before the command will run.
+//     pub fn ewait<EWL>(mut self, ewait: EWL) -> MemCmdUnmap<'b> where EWL: Into<ClWaitListPtrEnum<'b>> {
+//         self.ewait = Some(ewait.into());
+//         self
+//     }
+
+//     /// Specifies a list of events to wait on before the command will run or
+//     /// resets it to `None`.
+//     pub fn ewait_opt<EWL>(mut self, ewait: Option<EWL>) -> MemCmdUnmap<'b> where EWL: Into<ClWaitListPtrEnum<'b>> {
+//         self.ewait = ewait.map(|el| el.into());
+//         self
+//     }
+
+//     /// Specifies the destination for a new, optionally created event
+//     /// associated with this command.
+//     pub fn enew<NE>(mut self, enew: NE) -> MemCmdUnmap<'b>
+//             where NE: Into<ClNullEventPtrEnum<'b>>
+//     {
+//         self.enew = Some(enew.into());
+//         self
+//     }
+
+//     /// Specifies a destination for a new, optionally created event
+//     /// associated with this command or resets it to `None`.
+//     pub fn enew_opt<NE>(mut self, enew: Option<NE>) -> MemCmdUnmap<'b>
+//             where NE: Into<ClNullEventPtrEnum<'b>>
+//     {
+//         self.enew = enew.map(|e| e.into());
+//         self
+//     }
+
+//     /// Enqueues this command.
+//     ///
+//     pub fn enq(self) -> OclResult<()> {
+
+//     }
+// }
 
 
 // Until everything can be implemented:
@@ -41,7 +112,7 @@ pub unsafe fn mapped_mem_set_unmapped<T: OclPrm>(mm: &mut MappedMem<T>) {
     mm.is_unmapped = true;
 }
 
-pub fn mapped_mem_ptr<T: OclPrm>(mm: &MappedMem<T>) -> cl_mem {
+pub fn mapped_mem_as_ptr<T: OclPrm>(mm: &MappedMem<T>) -> cl_mem {
     mm.as_ptr()
 }
 
@@ -85,10 +156,10 @@ impl<T> MappedMem<T>  where T: OclPrm {
     ///
     //
     // [NOTE]: Passing `enew_opt` is yet untested.
-    pub fn unmap(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<&ClWaitListPtr>,
-            enew_opt: Option<&mut ClEventPtrNew>)
-            // enew_opt: Option<E>)
+    pub fn enqueue_unmap<En, Ewl>(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<Ewl>,
+            enew_opt: Option<En>)
             -> OclResult<()>
+            where En: ClNullEventPtr, Ewl: ClWaitListPtr
     {
         if !self.is_unmapped {
             let mut new_event_opt = if self.unmap_event.is_some() || enew_opt.is_some() {
@@ -107,7 +178,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
                 let new_event = new_event_null.validate()?;
 
                 // If enew_opt is `Some`, update its internal event ptr.
-                if let Some(enew) = enew_opt {
+                if let Some(mut enew) = enew_opt {
                     unsafe {
                         ::retain_event(&new_event)?;
                         // new_event refcount: 2
@@ -190,7 +261,7 @@ impl<T: OclPrm> Drop for MappedMem<T> {
     #[cfg(feature = "future_event_callbacks")]
     fn drop(&mut self) {
         if !self.is_unmapped {
-            self.unmap(None, None, None).ok();
+            self.enqueue_unmap::<EventList, Event>(None, None, None).ok();
         }
     }
 

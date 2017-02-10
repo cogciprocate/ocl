@@ -101,9 +101,16 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
 
 /// Types with a mutable pointer to a new, null raw event pointer.
 ///
-pub unsafe trait ClEventPtrNew: Debug {
+pub unsafe trait ClNullEventPtr: Debug {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
 }
+
+// unsafe impl<'a, En> ClNullEventPtr for &'a mut En where En: ClNullEventPtr + ?Sized {
+//     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+//         self.ptr_mut_ptr_new()
+//     }
+
+// }
 
 
 /// Types with a reference to a raw event array and an associated element
@@ -116,6 +123,17 @@ pub unsafe trait ClWaitListPtr: Debug {
     fn count (&self) -> u32;
 }
 
+// unsafe impl<'a, Ewl> ClWaitListPtr for &'a Ewl where Ewl: ClWaitListPtr + ?Sized {
+//     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+//         self.as_ptr_ptr()
+//     }
+
+//     fn count (&self) -> u32 {
+//         self.count()
+//     }
+
+// }
+
 unsafe impl<'a> ClWaitListPtr for &'a [cl_event] {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         self.as_ptr()
@@ -126,6 +144,7 @@ unsafe impl<'a> ClWaitListPtr for &'a [cl_event] {
     }
 }
 
+
 /// Types with a reference to a raw platform_id pointer.
 pub unsafe trait ClPlatformIdPtr: Sized {
     unsafe fn as_ptr(&self) -> cl_platform_id {
@@ -135,6 +154,7 @@ pub unsafe trait ClPlatformIdPtr: Sized {
         (*core).as_ptr()
     }
 }
+
 
 /// Types with a reference to a raw device_id pointer.
 pub unsafe trait ClDeviceIdPtr: Sized {
@@ -663,14 +683,14 @@ impl NullEvent {
     }
 }
 
-unsafe impl<'a> ClEventPtrNew for &'a mut NullEvent {
+unsafe impl<'a> ClNullEventPtr for &'a mut NullEvent {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         if self.0.is_null() {
             Ok(&mut self.0)
         } else {
             // unsafe { try!(functions::release_event(self)); }
             // Ok(&mut self.0)
-            panic!("<NullEvent as ClEventPtrNew>::ptr_mut_ptr_new: Called with non-null internal \
+            panic!("<NullEvent as ClNullEventPtr>::ptr_mut_ptr_new: Called with non-null internal \
                 pointer. Non-null events can not be used in place of null (new) ones.");
         }
     }
@@ -838,7 +858,7 @@ impl From<UserEvent> for Event {
     }
 }
 
-// unsafe impl ClEventPtrNew for Event {
+// unsafe impl ClNullEventPtr for Event {
 //     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
 //         if self.0.is_null() {
 //             Ok(&mut self.0)
@@ -1205,7 +1225,7 @@ impl EventList {
     }
 }
 
-unsafe impl ClEventPtrNew for EventList {
+unsafe impl ClNullEventPtr for EventList {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         Ok(self.allot())
     }
