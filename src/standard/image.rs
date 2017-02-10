@@ -8,9 +8,9 @@ use std::marker::PhantomData;
 use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
-    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList,
+    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, /*ClEventPtrNew,*/ ClWaitList,
     ImageChannelOrder, ImageChannelDataType, GlTextureTarget};
-use standard::{Context, Queue, MemLen, SpatialDims, AsMemRef};
+use standard::{Context, Queue, MemLen, SpatialDims, AsMemRef, ClEventPtrNewEnum};
 use ffi::{cl_GLuint, cl_GLint};
 
 /// A builder for `Image`.
@@ -343,8 +343,10 @@ pub struct ImageCmd<'b, E: 'b + OclPrm> {
     row_pitch: usize,
     slc_pitch: usize,
     kind: ImageCmdKind<'b, E>,
+    // ewait: Option<&'b ClWaitList>,
+    // enew: Option<&'b mut ClEventPtrNew>,
     ewait: Option<&'b ClWaitList>,
-    enew: Option<&'b mut ClEventPtrNew>,
+    enew: Option<ClEventPtrNewEnum<'b>>,
     mem_dims: [usize; 3],
 }
 
@@ -600,15 +602,15 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> ImageCmd<'b, E> {
-        self.enew = Some(enew);
+    pub fn enew<EPN: Into<ClEventPtrNewEnum<'b>>>(mut self, enew: EPN) -> ImageCmd<'b, E> {
+        self.enew = Some(enew.into());
         self
     }
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> ImageCmd<'b, E> {
-        self.enew = enew;
+    pub fn enew_opt<EPN: Into<ClEventPtrNewEnum<'b>>>(mut self, enew: Option<EPN>) -> ImageCmd<'b, E> {
+        self.enew = enew.map(|e| e.into());
         self
     }
 
@@ -629,7 +631,7 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
                     self.enew)
             },
             ImageCmdKind::Copy { dst_image, dst_origin } => {
-                core::enqueue_copy_image::<E>(self.queue, self.obj_core, dst_image, self.origin,
+                core::enqueue_copy_image(self.queue, self.obj_core, dst_image, self.origin,
                     dst_origin, self.region, self.ewait, self.enew)
             },
             ImageCmdKind::GLAcquire => {

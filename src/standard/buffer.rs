@@ -8,8 +8,9 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 // use futures::{Future, Poll, Async};
 use ffi::cl_GLuint;
+use standard::ClEventPtrNewEnum;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore, /*CommandQueue,*/
-    MemFlags, MemInfo, MemInfoResult, ClEventPtrNew, ClWaitList, BufferRegion,
+    MemFlags, MemInfo, MemInfoResult, /*ClEventPtrNew,*/ ClWaitList, BufferRegion,
     MappedMem as MappedMemCore, FutureMappedMem, /*Event as EventCore, EventList as EventListCore,*/
     MapFlags};
 // use core::error::{};
@@ -242,6 +243,18 @@ pub enum BufferCmdDataShape {
 ///
 /// ```
 ///
+//
+// pub struct BufferCmd<'b, T: 'b + OclPrm> {
+//     queue: &'b Queue,
+//     obj_core: &'b MemCore,
+//     block: bool,
+//     lock_block: bool,
+//     kind: BufferCmdKind<'b, T>,
+//     shape: BufferCmdDataShape,
+//     ewait: Option<&'b ClWaitList>,
+//     enew: Option<&'b mut ClEventPtrNew>,
+//     mem_len: usize,
+// }
 pub struct BufferCmd<'b, T: 'b + OclPrm> {
     queue: &'b Queue,
     obj_core: &'b MemCore,
@@ -249,8 +262,10 @@ pub struct BufferCmd<'b, T: 'b + OclPrm> {
     lock_block: bool,
     kind: BufferCmdKind<'b, T>,
     shape: BufferCmdDataShape,
+    // ewait: Option<&'b ClWaitList>,
+    // enew: Option<&'b mut ClEventPtrNew>,
     ewait: Option<&'b ClWaitList>,
-    enew: Option<&'b mut ClEventPtrNew>,
+    enew: Option<ClEventPtrNewEnum<'b>>,
     mem_len: usize,
 }
 
@@ -273,46 +288,6 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
             enew: None,
             mem_len: mem_len,
         }
-    }
-
-    /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T> {
-        self.queue = queue;
-        self
-    }
-
-    /// Specifies whether or not to block thread until completion.
-    ///
-    /// Ignored if this is a copy, fill, or copy to image operation.
-    ///
-    /// ## Panics
-    ///
-    /// Will panic if `::read` has already been called. Use `::read_async`
-    /// (unsafe) for a non-blocking read operation.
-    ///
-    pub fn block(mut self, block: bool) -> BufferCmd<'b, T> {
-        if !block && self.lock_block {
-            panic!("ocl::BufferCmd::block(): Blocking for this command has been disabled by \
-                the '::read' method. For non-blocking reads use '::read_async'.");
-        }
-        self.block = block;
-        self
-    }
-
-    /// Sets the linear offset for an operation.
-    ///
-    /// ## Panics
-    ///
-    /// The 'shape' may not have already been set to rectangular by the
-    /// `::rect` function.
-    pub fn offset(mut self, offset: usize)  -> BufferCmd<'b, T> {
-        if let BufferCmdDataShape::Rect { .. } = self.shape {
-            panic!("ocl::BufferCmd::offset(): This command builder has already been set to \
-                rectangular mode with '::rect`. You cannot call both '::offset' and '::rect'.");
-        }
-
-        self.shape = BufferCmdDataShape::Lin { offset: offset };
-        self
     }
 
     /// Specifies that this command will be a blocking read operation.
@@ -375,11 +350,11 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn map(mut self, flags: Option<MapFlags>, len: Option<usize>) -> BufferCmd<'b, T> {
+    pub fn map(mut self, flags: Option<MapFlags>, len: Option<usize>) -> BufferCmdMap<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Map{ flags: flags, len: len };
-        self
+        BufferCmdMap(self)
     }
 
 
@@ -481,6 +456,46 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         self
     }
 
+    /// Specifies a queue to use for this call only.
+    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T> {
+        self.queue = queue;
+        self
+    }
+
+    /// Specifies whether or not to block thread until completion.
+    ///
+    /// Ignored if this is a copy, fill, or copy to image operation.
+    ///
+    /// ## Panics
+    ///
+    /// Will panic if `::read` has already been called. Use `::read_async`
+    /// (unsafe) for a non-blocking read operation.
+    ///
+    pub fn block(mut self, block: bool) -> BufferCmd<'b, T> {
+        if !block && self.lock_block {
+            panic!("ocl::BufferCmd::block(): Blocking for this command has been disabled by \
+                the '::read' method. For non-blocking reads use '::read_async'.");
+        }
+        self.block = block;
+        self
+    }
+
+    /// Sets the linear offset for an operation.
+    ///
+    /// ## Panics
+    ///
+    /// The 'shape' may not have already been set to rectangular by the
+    /// `::rect` function.
+    pub fn offset(mut self, offset: usize)  -> BufferCmd<'b, T> {
+        if let BufferCmdDataShape::Rect { .. } = self.shape {
+            panic!("ocl::BufferCmd::offset(): This command builder has already been set to \
+                rectangular mode with '::rect`. You cannot call both '::offset' and '::rect'.");
+        }
+
+        self.shape = BufferCmdDataShape::Lin { offset: offset };
+        self
+    }
+
     /// Specifies that this will be a rectangularly shaped operation
     /// (the default being linear).
     ///
@@ -514,17 +529,35 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         self
     }
 
+    // /// Specifies the destination for a new, optionally created event
+    // /// associated with this command.
+    // pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
+    //     self.enew = Some(enew);
+    //     self
+    // }
+
+    // /// Specifies a destination for a new, optionally created event
+    // /// associated with this command or resets it to `None`.
+    // pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
+    //     self.enew = enew;
+    //     self
+    // }
+
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
-        self.enew = Some(enew);
+    pub fn enew<E>(mut self, enew: E) -> BufferCmd<'b, T>
+            where E: Into<ClEventPtrNewEnum<'b>>
+    {
+        self.enew = Some(enew.into());
         self
     }
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
-        self.enew = enew;
+    pub fn enew_opt<E>(mut self, enew: Option<E>) -> BufferCmd<'b, T>
+            where E: Into<ClEventPtrNewEnum<'b>>
+    {
+        self.enew = enew.map(|e| e.into());
         self
     }
 
@@ -564,6 +597,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                 match self.shape {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.mem_len, data.len(), offset));
+
                         core::enqueue_write_buffer(self.queue, self.obj_core, self.block,
                             offset, data, self.ewait, self.enew)
                     },
@@ -587,7 +621,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         try!(check_len(self.mem_len, len, offset));
                         let dst_offset = dst_offset.unwrap_or(0);
 
-                        core::enqueue_copy_buffer::<T>(self.queue,
+                        core::enqueue_copy_buffer::<T, _>(self.queue,
                             self.obj_core, dst_buffer, offset, dst_offset, len,
                             self.ewait, self.enew)
                     },
@@ -602,7 +636,8 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                             offset and length must be 'None'. Ex.: \
                             'cmd().copy(&{{buf_name}}, None, None)..'.");
                         }
-                        core::enqueue_copy_buffer_rect::<T>(self.queue, self.obj_core, dst_buffer,
+
+                        core::enqueue_copy_buffer_rect::<T, _>(self.queue, self.obj_core, dst_buffer,
                             src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
                             dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
                     },
@@ -616,6 +651,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                             None => self.mem_len,
                         };
                         try!(check_len(self.mem_len, len, offset));
+
                         core::enqueue_fill_buffer(self.queue, self.obj_core, pattern,
                             offset, len, self.ewait, self.enew, Some(&self.queue.device_version()))
                     },
@@ -624,10 +660,14 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                 }
             },
             BufferCmdKind::GLAcquire => {
-                core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+                panic!("[FIXME]");
+
+                // core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
             },
             BufferCmdKind::GLRelease => {
-                core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+                panic!("[FIXME]");
+
+                // core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
             },
             BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
@@ -637,11 +677,160 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         }
     }
 
+    // /// Enqueues a map command.
+    // ///
+    // /// For all other operation types use `::map` instead.
+    // ///
+    // pub fn enq_map(self) -> OclResult<MappedMem<T>> {
+    //     match self.kind {
+    //         BufferCmdKind::Map { flags, len } => {
+    //             match self.shape {
+    //                 BufferCmdDataShape::Lin { offset } => {
+    //                     let len = match len {
+    //                         Some(l) => l,
+    //                         None => self.mem_len,
+    //                     };
+
+    //                     check_len(self.mem_len, len, offset)?;
+    //                     let flags = flags.unwrap_or(MapFlags::empty());
+
+    //                     unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T, _>(self.queue,
+    //                         self.obj_core, self.block, flags, offset, len, self.ewait,
+    //                         self.enew )?)) }
+    //                 },
+    //                 BufferCmdDataShape::Rect { .. } => {
+    //                     OclError::err_string("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
+    //                         operation. Please use the default shape, linear.")
+    //                 },
+    //             }
+    //         },
+    //         BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq_map(): No operation \
+    //             specified. Use '::map', before calling '::enq_map'."),
+    //         _ => OclError::err_string("ocl::BufferCmd::enq_map(): For non-map operations use '::enq' instead."),
+    //     }
+    // }
+
+
+    // /// Enqueues a map command and returns a future representing the
+    // /// completion of that map command and containing a reference to the
+    // /// mapped memory.
+    // ///
+    // /// For all other operation types use `::map` instead.
+    // ///
+    // pub fn enq_map_async(self) -> OclResult<FutureMappedMem<T>> {
+    //     match self.kind {
+    //         BufferCmdKind::Map { flags, len } => {
+    //             match self.shape {
+    //                 BufferCmdDataShape::Lin { offset } => {
+    //                     let len = match len {
+    //                         Some(l) => l,
+    //                         None => self.mem_len,
+    //                     };
+
+    //                     check_len(self.mem_len, len, offset)?;
+    //                     let flags = flags.unwrap_or(MapFlags::empty());
+
+    //                     let future = unsafe { core::enqueue_map_buffer_async::<T, _>(self.queue,
+    //                         self.obj_core, flags, offset, len, self.ewait, self.enew )? };
+
+    //                     Ok(future)
+    //                 },
+    //                 BufferCmdDataShape::Rect { .. } => {
+    //                     OclError::err_string("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
+    //                         operation. Please use the default shape, linear.")
+    //                 },
+    //             }
+    //         },
+    //         BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq_map(): No operation \
+    //             specified. Use '::map', before calling '::enq_map'."),
+    //         _ => OclError::err_string("ocl::BufferCmd::enq_map(): For non-map operations use '::enq' instead."),
+    //     }
+    // }
+}
+
+
+pub struct BufferCmdMap<'b, T: 'b + OclPrm>(BufferCmd<'b, T>);
+
+impl<'b, T: 'b + OclPrm> BufferCmdMap<'b, T> {
+    /// Specifies a queue to use for this call only.
+    pub fn queue(mut self, queue: &'b Queue) -> BufferCmdMap<'b, T> {
+        self.queue = queue;
+        self
+    }
+
+    /// Specifies whether or not to block thread until completion.
+    ///
+    /// Ignored if this is a copy, fill, or copy to image operation.
+    ///
+    /// ## Panics
+    ///
+    /// Will panic if `::read` has already been called. Use `::read_async`
+    /// (unsafe) for a non-blocking read operation.
+    ///
+    pub fn block(self, block: bool) -> BufferCmdMap<'b, T> {
+        BufferCmdMap(self.0.block(block))
+    }
+
+    /// Sets the linear offset for an operation.
+    ///
+    /// ## Panics
+    ///
+    /// The 'shape' may not have already been set to rectangular by the
+    /// `::rect` function.
+    pub fn offset(self, offset: usize)  -> BufferCmdMap<'b, T> {
+        BufferCmdMap(self.0.offset(offset))
+    }
+
+        /// Specifies a list of events to wait on before the command will run.
+    pub fn ewait(mut self, ewait: &'b ClWaitList) -> BufferCmdMap<'b, T> {
+        self.ewait = Some(ewait);
+        self
+    }
+
+    /// Specifies a list of events to wait on before the command will run or
+    /// resets it to `None`.
+    pub fn ewait_opt(mut self, ewait: Option<&'b ClWaitList>) -> BufferCmdMap<'b, T> {
+        self.ewait = ewait;
+        self
+    }
+
+    // /// Specifies the destination for a new, optionally created event
+    // /// associated with this command.
+    // pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
+    //     self.enew = Some(enew);
+    //     self
+    // }
+
+    // /// Specifies a destination for a new, optionally created event
+    // /// associated with this command or resets it to `None`.
+    // pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
+    //     self.enew = enew;
+    //     self
+    // }
+
+    /// Specifies the destination for a new, optionally created event
+    /// associated with this command.
+    pub fn enew<E>(mut self, enew: E) -> BufferCmdMap<'b, T>
+            where E: Into<ClEventPtrNewEnum<'b>>
+    {
+        self.enew = Some(enew.into());
+        self
+    }
+
+    /// Specifies a destination for a new, optionally created event
+    /// associated with this command or resets it to `None`.
+    pub fn enew_opt<E>(mut self, enew: Option<E>) -> BufferCmdMap<'b, T>
+            where E: Into<ClEventPtrNewEnum<'b>>
+    {
+        self.enew = enew.map(|e| e.into());
+        self
+    }
+
     /// Enqueues a map command.
     ///
     /// For all other operation types use `::map` instead.
     ///
-    pub fn enq_map(self) -> OclResult<MappedMem<T>> {
+    pub fn enq(mut self) -> OclResult<MappedMem<T>> {
         match self.kind {
             BufferCmdKind::Map { flags, len } => {
                 match self.shape {
@@ -654,9 +843,9 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         check_len(self.mem_len, len, offset)?;
                         let flags = flags.unwrap_or(MapFlags::empty());
 
-                        unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T>(self.queue,
+                        unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T, _>(self.queue,
                             self.obj_core, self.block, flags, offset, len, self.ewait,
-                            self.enew )?)) }
+                            self.enew.take() )?)) }
                     },
                     BufferCmdDataShape::Rect { .. } => {
                         OclError::err_string("ocl::BufferCmd::enq_map(): A rectangular map is not a valid \
@@ -677,7 +866,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// For all other operation types use `::map` instead.
     ///
-    pub fn enq_map_async(self) -> OclResult<FutureMappedMem<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureMappedMem<T>> {
         match self.kind {
             BufferCmdKind::Map { flags, len } => {
                 match self.shape {
@@ -690,8 +879,8 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         check_len(self.mem_len, len, offset)?;
                         let flags = flags.unwrap_or(MapFlags::empty());
 
-                        let future = unsafe { core::enqueue_map_buffer_async::<T>(self.queue,
-                            self.obj_core, flags, offset, len, self.ewait, self.enew )? };
+                        let future = unsafe { core::enqueue_map_buffer_async::<T, _>(self.queue,
+                            self.obj_core, flags, offset, len, self.ewait, self.enew.take() )? };
 
                         Ok(future)
                     },
@@ -707,6 +896,21 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         }
     }
 }
+
+impl<'b, T: 'b + OclPrm> Deref for BufferCmdMap<'b, T> {
+    type Target = BufferCmd<'b, T>;
+
+    fn deref(&self) -> &BufferCmd<'b, T> {
+        &self.0
+    }
+}
+
+impl<'b, T: 'b + OclPrm> DerefMut for BufferCmdMap<'b, T> {
+    fn deref_mut(&mut self) -> &mut BufferCmd<'b, T> {
+        &mut self.0
+    }
+}
+
 
 
 /// A chunk of memory physically located on a device, such as a GPU.
@@ -759,7 +963,7 @@ impl<T: OclPrm> Buffer<T> {
             // Useful on platforms (PoCL) that have trouble with fill. Creates
             // a temporary zeroed `Vec` in host memory and writes from there
             // instead. Add `features = ["buffer_no_fill"]` to your Cargo.toml.
-            if cfg!(feature = "buffer_no_fill") {
+            if !cfg!(feature = "buffer_no_fill") {
                 // println!("#### no fill");
                 try!(buf.cmd().fill(Default::default(), None).enq());
             } else {

@@ -5,9 +5,10 @@ use std::convert::Into;
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
-    KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrNew, ClWaitList};
+    KernelWorkGroupInfo, KernelWorkGroupInfoResult, /*ClEventPtrNew,*/ ClWaitList};
 use core::error::{Result as OclResult, Error as OclError};
-use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, AsMemRef};
+use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, AsMemRef,
+    ClEventPtrNewEnum};
 
 const PRINT_DEBUG: bool = false;
 
@@ -19,8 +20,10 @@ pub struct KernelCmd<'k> {
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
+    // wait_list: Option<&'k ClWaitList>,
+    // dest_list: Option<&'k mut ClEventPtrNew>,
     wait_list: Option<&'k ClWaitList>,
-    dest_list: Option<&'k mut ClEventPtrNew>,
+    dest_list: Option<ClEventPtrNewEnum<'k>>,
 }
 
 /// [UNSTABLE]: All methods still being tuned.
@@ -63,15 +66,16 @@ impl<'k> KernelCmd<'k> {
 
     /// Specifies the destination list or empty event for a new, optionally
     /// created event associated with this command.
-    pub fn enew(mut self, new_event_dest: &'k mut ClEventPtrNew) -> KernelCmd<'k> {
-        self.dest_list = Some(new_event_dest);
+    // pub fn enew(mut self, new_event_dest: &'k mut ClEventPtrNew) -> KernelCmd<'k> {
+    pub fn enew<E: Into<ClEventPtrNewEnum<'k>>>(mut self, new_event_dest: E) -> KernelCmd<'k> {
+        self.dest_list = Some(new_event_dest.into());
         self
     }
 
     /// Specifies a destination list for a new, optionally created event
     /// associated with this command.
-    pub fn enew_opt(mut self, new_event_list: Option<&'k mut ClEventPtrNew>) -> KernelCmd<'k> {
-        self.dest_list = new_event_list;
+    pub fn enew_opt<E: Into<ClEventPtrNewEnum<'k>>>(mut self, new_event_list: Option<E>) -> KernelCmd<'k> {
+        self.dest_list = new_event_list.map(|e| e.into());
         self
     }
 

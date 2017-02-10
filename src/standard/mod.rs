@@ -46,6 +46,7 @@ pub use self::event::{Event, EventList};
 // pub use self::event_list::EventList;
 pub use self::spatial_dims::SpatialDims;
 pub use self::traits::{MemLen, WorkDims, AsMemRef, AsMemMut};
+pub use self::types::{ClEventPtrNewEnum};
 
 
 //=============================================================================
@@ -58,7 +59,57 @@ pub use self::traits::{MemLen, WorkDims, AsMemRef, AsMemMut};
 //================================== TYPES ====================================
 //=============================================================================
 
+mod types {
+    use ::{Event, EventList};
+    use core::ffi::cl_event;
+    use core::{Result as OclResult, NullEvent as NullEventCore, EventList as EventListCore,
+        ClEventPtrNew, };
 
+    #[derive(Debug)]
+    pub enum ClEventPtrNewEnum<'a> {
+        NullEventCore(&'a mut NullEventCore),
+        EventListCore(&'a mut EventListCore),
+        Event(&'a mut Event),
+        EventList(&'a mut EventList),
+    }
+
+    unsafe impl<'a> ClEventPtrNew for ClEventPtrNewEnum<'a> {
+        fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+            match *self {
+                ClEventPtrNewEnum::NullEventCore(ref mut e) => e.ptr_mut_ptr_new(),
+                ClEventPtrNewEnum::EventListCore(ref mut e) => e.ptr_mut_ptr_new(),
+                ClEventPtrNewEnum::Event(ref mut e) => e.ptr_mut_ptr_new(),
+                ClEventPtrNewEnum::EventList(ref mut e) => e.ptr_mut_ptr_new(),
+            }
+        }
+    }
+
+    impl<'a> From<&'a mut NullEventCore> for ClEventPtrNewEnum<'a> {
+        fn from(e: &'a mut NullEventCore) -> ClEventPtrNewEnum<'a> {
+            ClEventPtrNewEnum::NullEventCore(e)
+        }
+    }
+
+    impl<'a> From<&'a mut EventListCore> for ClEventPtrNewEnum<'a> {
+        fn from(e: &'a mut EventListCore) -> ClEventPtrNewEnum<'a> {
+            ClEventPtrNewEnum::EventListCore(e)
+        }
+    }
+
+    impl<'a> From<&'a mut Event> for ClEventPtrNewEnum<'a> {
+        fn from(e: &'a mut Event) -> ClEventPtrNewEnum<'a> {
+            ClEventPtrNewEnum::Event(e)
+        }
+    }
+
+    impl<'a> From<&'a mut EventList> for ClEventPtrNewEnum<'a> {
+        fn from(el: &'a mut EventList) -> ClEventPtrNewEnum<'a> {
+            ClEventPtrNewEnum::EventList(el)
+        }
+    }
+
+
+}
 
 //=============================================================================
 //================================== TRAITS ===================================
