@@ -94,6 +94,7 @@ pub unsafe trait ClEventPtrNew: Debug {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
 }
 
+
 /// Types with a reference to a raw event pointer.
 ///
 pub trait ClEventRef<'e> {
@@ -625,7 +626,7 @@ unsafe impl Send for Kernel {}
 
 
 /// cl_event
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct NullEvent(cl_event);
 
 impl NullEvent {
@@ -663,13 +664,15 @@ impl NullEvent {
     }
 }
 
-unsafe impl ClEventPtrNew for NullEvent {
+unsafe impl<'a> ClEventPtrNew for &'a mut NullEvent {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         if self.0.is_null() {
             Ok(&mut self.0)
         } else {
-            unsafe { try!(functions::release_event(self)); }
-            Ok(&mut self.0)
+            // unsafe { try!(functions::release_event(self)); }
+            // Ok(&mut self.0)
+            panic!("<NullEvent as ClEventPtrNew>::ptr_mut_ptr_new: Called with non-null internal \
+                pointer. Non-null events can not be used in place of null (new) ones.");
         }
     }
 }
@@ -712,7 +715,7 @@ impl Event {
         let new_core = Event(ptr);
 
         if !ptr.is_null() {
-            try!(functions::retain_event(&new_core));
+            functions::retain_event(&new_core)?;
             Ok(new_core)
         } else {
             OclError::err_string("core::Event::from_copied_ptr: Invalid pointer `ptr`.")
@@ -811,7 +814,6 @@ impl Event {
         mem::forget(self);
         ptr
     }
-
 
     /// Constructs an `Event` from a raw `cl_event` pointer.
     ///

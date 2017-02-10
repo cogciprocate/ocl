@@ -87,6 +87,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
     // [NOTE]: Passing `enew_opt` is yet untested.
     pub fn unmap(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<&ClWaitList>,
             enew_opt: Option<&mut ClEventPtrNew>)
+            // enew_opt: Option<E>)
             -> OclResult<()>
     {
         if !self.is_unmapped {
@@ -97,7 +98,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
             };
 
             ::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
-                self, ewait_opt, new_event_opt.as_mut().map(|ev| ev as &mut ClEventPtrNew))?;
+                self, ewait_opt, new_event_opt.as_mut())?;
 
             self.is_unmapped = true;
 
