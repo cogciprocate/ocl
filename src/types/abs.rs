@@ -681,10 +681,8 @@ impl NullEvent {
     pub fn is_valid(&self) -> bool {
         !self.0.is_null()
     }
-}
 
-unsafe impl<'a> ClNullEventPtr for &'a mut NullEvent {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+    fn _ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         if self.0.is_null() {
             Ok(&mut self.0)
         } else {
@@ -697,9 +695,16 @@ unsafe impl<'a> ClNullEventPtr for &'a mut NullEvent {
 }
 
 impl<'e> ClEventRef<'e> for NullEvent {
-    unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
-        &self.0
-    }
+    #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
+}
+
+unsafe impl ClNullEventPtr for NullEvent {
+    #[inline] fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> { self._ptr_mut_ptr_new() }
+}
+
+unsafe impl<'a> ClNullEventPtr for &'a mut NullEvent {
+    #[inline(always)]
+    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> { self._ptr_mut_ptr_new() }
 }
 
 // unsafe impl EventPtr for Event {}
@@ -840,14 +845,23 @@ impl Event {
     /// [`Event::into_raw`][into_raw].
     ///
     /// [into_raw]: struct.Event.html#method.into_raw
+    #[inline]
     pub unsafe fn from_raw(ptr: cl_event) -> Event {
         Event(ptr)
+    }
+
+    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
+        if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
+    }
+
+    fn _count(&self) -> u32 {
+        if self.0.is_null() { 0 } else { 1 }
     }
 }
 
 impl From<NullEvent> for Event {
     fn from(null_event: NullEvent) -> Event {
-        assert!(null_event.is_valid(), "Invalid null event.");
+        assert!(null_event.is_valid(), "Event::from::<NullEvent>: Invalid NullEvent.");
         Event(null_event.0)
     }
 }
@@ -858,31 +872,18 @@ impl From<UserEvent> for Event {
     }
 }
 
-// unsafe impl ClNullEventPtr for Event {
-//     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-//         if self.0.is_null() {
-//             Ok(&mut self.0)
-//         } else {
-//             unsafe { try!(functions::release_event(self)); }
-//             Ok(&mut self.0)
-//         }
-//     }
-// }
-
 impl<'e> ClEventRef<'e> for Event {
-    unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
-        &self.0
-    }
+    #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
 }
 
 unsafe impl ClWaitListPtr for Event {
-    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-        if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
-    }
+    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline(always)] fn count(&self) -> u32 { self._count() }
+}
 
-    fn count(&self) -> u32 {
-        if self.0.is_null() { 0 } else { 1 }
-    }
+unsafe impl<'a> ClWaitListPtr for &'a Event {
+    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline(always)] fn count(&self) -> u32 { self._count() }
 }
 
 impl Clone for Event {
@@ -1019,6 +1020,14 @@ impl UserEvent {
     pub unsafe fn from_raw(ptr: cl_event) -> UserEvent {
         UserEvent(ptr)
     }
+
+    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
+        if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
+    }
+
+    fn _count(&self) -> u32 {
+        if self.0.is_null() { 0 } else { 1 }
+    }
 }
 
 impl<'e> ClEventRef<'e> for UserEvent {
@@ -1028,13 +1037,13 @@ impl<'e> ClEventRef<'e> for UserEvent {
 }
 
 unsafe impl ClWaitListPtr for UserEvent {
-    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-        if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
-    }
+    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline(always)] fn count(&self) -> u32 { self._count() }
+}
 
-    fn count(&self) -> u32 {
-        if self.0.is_null() { 0 } else { 1 }
-    }
+unsafe impl<'a> ClWaitListPtr for &'a UserEvent {
+    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline(always)] fn count(&self) -> u32 { self._count() }
 }
 
 impl Deref for UserEvent {
@@ -1121,18 +1130,6 @@ impl EventList {
     pub fn allot(&mut self) -> &mut cl_event {
         self.event_ptrs.push(0 as cl_event);
         self.event_ptrs.last_mut().unwrap()
-    }
-
-    pub fn len(&self) -> usize {
-        self.event_ptrs.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub fn count(&self) -> u32 {
-        self.event_ptrs.len() as u32
     }
 
     /// Returns an immutable reference to a pointer, do not deref and store it unless
@@ -1223,25 +1220,44 @@ impl EventList {
             }
         }
     }
-}
 
-unsafe impl ClNullEventPtr for EventList {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+    #[inline(always)] pub fn len(&self) -> usize { self.event_ptrs.len() }
+    #[inline(always)] pub fn is_empty(&self) -> bool { self.len() == 0 }
+    #[inline(always)] pub fn count(&self) -> u32 { self.event_ptrs.len() as u32 }
+
+    fn _ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
         Ok(self.allot())
     }
-}
 
-unsafe impl ClWaitListPtr for EventList {
-    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
         match self.event_ptrs.first() {
             Some(ele) => ele as *const cl_event,
             None => ptr::null(),
         }
     }
 
-    fn count(&self) -> u32 {
+    #[inline(always)]
+    fn _count(&self) -> u32 {
         self.event_ptrs.len() as u32
     }
+}
+
+unsafe impl ClNullEventPtr for EventList {
+    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> { self._ptr_mut_ptr_new() }
+}
+
+unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
+    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> { self._ptr_mut_ptr_new() }
+}
+
+unsafe impl ClWaitListPtr for EventList {
+    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline(always)] fn count(&self) -> u32 { self.count() }
+}
+
+unsafe impl<'a> ClWaitListPtr for &'a EventList {
+    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline(always)] fn count(&self) -> u32 { self._count() }
 }
 
 impl Clone for EventList {
