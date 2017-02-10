@@ -8,9 +8,9 @@ use std::marker::PhantomData;
 use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
-    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, /*ClEventPtrNew,*/ ClWaitList,
+    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
     ImageChannelOrder, ImageChannelDataType, GlTextureTarget};
-use standard::{Context, Queue, MemLen, SpatialDims, AsMemRef, ClEventPtrNewEnum};
+use standard::{Context, Queue, MemLen, SpatialDims, AsMemRef, ClNullEventPtrEnum, ClWaitListPtrEnum};
 use ffi::{cl_GLuint, cl_GLint};
 
 /// A builder for `Image`.
@@ -343,10 +343,10 @@ pub struct ImageCmd<'b, E: 'b + OclPrm> {
     row_pitch: usize,
     slc_pitch: usize,
     kind: ImageCmdKind<'b, E>,
-    // ewait: Option<&'b ClWaitList>,
-    // enew: Option<&'b mut ClEventPtrNew>,
-    ewait: Option<&'b ClWaitList>,
-    enew: Option<ClEventPtrNewEnum<'b>>,
+    // ewait: Option<&'b ClWaitListPtr>,
+    // enew: Option<&'b mut ClNullEventPtr>,
+    ewait: Option<ClWaitListPtrEnum<'b>>,
+    enew: Option<ClNullEventPtrEnum<'b>>,
     mem_dims: [usize; 3],
 }
 
@@ -588,28 +588,32 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait(mut self, ewait: &'b ClWaitList) -> ImageCmd<'b, E> {
-        self.ewait = Some(ewait);
+    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> ImageCmd<'b, E>
+            where Ewl: Into<ClWaitListPtrEnum<'b>>
+    {
+        self.ewait = Some(ewait.into());
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt(mut self, ewait: Option<&'b ClWaitList>) -> ImageCmd<'b, E> {
-        self.ewait = ewait;
+    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> ImageCmd<'b, E>
+            where Ewl: Into<ClWaitListPtrEnum<'b>>
+    {
+        self.ewait = ewait.map(|el| el.into());
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew<EPN: Into<ClEventPtrNewEnum<'b>>>(mut self, enew: EPN) -> ImageCmd<'b, E> {
+    pub fn enew<EPN: Into<ClNullEventPtrEnum<'b>>>(mut self, enew: EPN) -> ImageCmd<'b, E> {
         self.enew = Some(enew.into());
         self
     }
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt<EPN: Into<ClEventPtrNewEnum<'b>>>(mut self, enew: Option<EPN>) -> ImageCmd<'b, E> {
+    pub fn enew_opt<EPN: Into<ClNullEventPtrEnum<'b>>>(mut self, enew: Option<EPN>) -> ImageCmd<'b, E> {
         self.enew = enew.map(|e| e.into());
         self
     }

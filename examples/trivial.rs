@@ -93,7 +93,7 @@ fn main_explained() {
 #[allow(dead_code)]
 fn main_exploded() {
     use ocl::{flags, Platform, Device, Context, Queue, Program,
-        Buffer, Kernel};
+        Buffer, Kernel, Event, EventList};
 
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {
@@ -137,8 +137,8 @@ fn main_exploded() {
         .gwo(kernel.get_gwo())
         .gws(&dims)
         .lws(kernel.get_lws())
-        .ewait_opt(None)
-        .enew_opt(None)
+        .ewait_opt(None::<&EventList>)
+        .enew_opt(None::<&mut Event>)
         .enq().unwrap();
 
     // (5) Read results from the device into a vector:
@@ -147,8 +147,8 @@ fn main_exploded() {
         .block(true)
         .offset(0)
         .read(&mut vec)
-        .ewait_opt(None)
-        .enew_opt(None)
+        .ewait_opt(None::<&EventList>)
+        .enew_opt(None::<&mut Event>)
         .enq().unwrap();
 
     // Print an element:
@@ -205,11 +205,11 @@ fn main_cored() {
 
     // (4) Run the kernel:
     core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-        None, None, None).unwrap();
+        None, None::<core::EventList>, None::<core::NullEvent>).unwrap();
 
     // (5) Read results from the device into a vector:
     unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,
-        None, None).unwrap() };
+        None::<core::EventList>, None::<core::NullEvent>).unwrap() };
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);

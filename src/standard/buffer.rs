@@ -1,19 +1,13 @@
 //! Interfaces with a buffer.
 
-// [TEMP]:
-#![allow(dead_code)]
-
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-// use futures::{Future, Poll, Async};
 use ffi::cl_GLuint;
-use standard::ClEventPtrNewEnum;
-use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore, /*CommandQueue,*/
-    MemFlags, MemInfo, MemInfoResult, /*ClEventPtrNew,*/ ClWaitList, BufferRegion,
-    MappedMem as MappedMemCore, FutureMappedMem, /*Event as EventCore, EventList as EventListCore,*/
-    MapFlags};
-// use core::error::{};
+use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
+use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
+    MemFlags, MemInfo, MemInfoResult, BufferRegion,
+    MappedMem as MappedMemCore, FutureMappedMem, MapFlags};
 use standard::{Queue, MemLen, SpatialDims, AsMemRef};
 
 
@@ -29,18 +23,6 @@ fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
 }
 
 
-// /// Information about what to do when `MappedMem` goes out of scope.
-// enum DelayedUnmap {
-//     Some {
-//         queue: CommandQueue,
-//         mem: MemCore,
-//         ewait: Option<EventListCore>,
-//         enew: Option<EventCore>,
-//     },
-//     None,
-// }
-
-
 /// A view of mapped memory.
 ///
 /// ### [UNSTABLE]
@@ -49,7 +31,6 @@ fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
 ///
 pub struct MappedMem<T: OclPrm> {
     core: MappedMemCore<T>,
-    // delayed_unmap: DelayedUnmap,
 }
 
 impl<T: OclPrm> MappedMem<T> {
@@ -57,75 +38,8 @@ impl<T: OclPrm> MappedMem<T> {
     pub fn new(core: MappedMemCore<T>) -> MappedMem<T> {
         MappedMem {
             core: core,
-            // delayed_unmap: DelayedUnmap::None,
         }
     }
-
-    // /// Automatically unmaps when this `MappedMem` goes out of scope or by
-    // /// calling `::unmap`.
-    // ///
-    // /// Automatically adds the event associated with the original map event to
-    // /// the wait event list.
-    // ///
-    // pub fn unmap_later<EVL, EV>(&mut self, queue: CommandQueue, mem: MemCore,
-    //         wait_list: Option<EVL>, new_event: Option<EV>)
-    //         where EVL: Into<EventListCore>, EV: Into<EventCore>
-    // {
-    //     self.delayed_unmap = DelayedUnmap::Some {
-    //         queue: queue,
-    //         mem: mem,
-    //         ewait: wait_list.map(|evl| evl.into()),
-    //         enew: new_event.map(|ev| ev.into()),
-    //     }
-    // }
-
-    // /// Sets events for a `MappedMem` which has already had `::unmap_later`
-    // /// called first.
-    // pub fn set_unmap_events<'a, EVL, EV>(&'a mut self, wait_list: Option<EVL>, new_event: Option<EV>)
-    //         -> &'a mut MappedMem<T>
-    //         where EVL: Into<EventListCore>, EV: Into<EventCore>
-    // {
-    //     assert!(!self.core.is_unmapped(), "ocl::MappedMem::unmap: \
-    //         This 'MappedMem' is already unmapped.");
-
-    //     match self.delayed_unmap {
-    //         DelayedUnmap::Some { ref mut ewait, ref mut enew, .. } => {
-    //             if let Some(evl) = wait_list {
-    //                 *ewait = Some(evl.into())
-    //             }
-
-    //             if let Some(ev) = new_event {
-    //                 *enew = Some(ev.into())
-    //             }
-    //         },
-    //         DelayedUnmap::None => panic!("ocl::MappedMem::set_unmap_events: Can only be called \
-    //             after '::unmap_later' has already been called."),
-    //     }
-
-    //     self
-    // }
-
-    // pub fn unmap_now(&mut self) -> OclResult<()> {
-    //     if self.core.is_unmapped() { return Err("ocl::MappedMem::unmap: \
-    //         This 'MappedMem' is already unmapped.".into()); }
-
-    //     match self.delayed_unmap {
-    //         DelayedUnmap::Some { ref queue, ref mem, ref ewait, ref mut enew } => {
-    //             self.core.unmap_mem_object(queue, mem,
-    //                 match *ewait {
-    //                     Some(ref el) => Some(el as &ClWaitList),
-    //                     None => None,
-    //                 },
-    //                 match *enew {
-    //                     Some(ref mut e) => Some(e as &mut ClEventPtrNew),
-    //                     None => None,
-    //                 },
-    //             )
-    //         },
-    //         DelayedUnmap::None => Err("ocl::MappedMem::set_unmap_events: Can only be called \
-    //             after '::unmap_later' has already been called.".into()),
-    //     }
-    // }
 }
 
 impl<T> Deref for MappedMem<T> where T: OclPrm {
@@ -141,42 +55,6 @@ impl<T> DerefMut for MappedMem<T> where T: OclPrm {
         &mut self.core
     }
 }
-
-// impl<T> Drop for MappedMem<T> where T: OclPrm {
-//     fn drop(&mut self) {
-//         if self.core.is_unmapped() { return; }
-
-//         match self.delayed_unmap {
-//             DelayedUnmap::Some { ref queue, ref mem, ref ewait, ref mut enew } => {
-//                 self.core.unmap_mem_object(queue, mem,
-//                     match *ewait {
-//                         Some(ref el) => Some(el as &ClWaitList),
-//                         None => None,
-//                     },
-//                     match *enew {
-//                         Some(ref mut e) => Some(e as &mut ClEventPtrNew),
-//                         None => None,
-//                     },
-//                 ).unwrap()
-//             },
-//             DelayedUnmap::None => (),
-//         }
-//     }
-// }
-
-// impl<T: OclPrm> Future for MappedMem<T> {
-//     type Item = &'a mut [T];
-//     type Error = OclError;
-
-//     fn poll(&'a mut self) -> Poll<Self::Item, Self::Error> {
-//         // self.core.is_accessible().map(|_| Async::Ready(()))
-//         match self.core.is_accessible() {
-//             Ok(true) => self,
-//             Ok(false) => Async::NotReady,
-//             Err(err) => Err(err),
-//         }
-//     }
-// }
 
 
 
@@ -251,8 +129,8 @@ pub enum BufferCmdDataShape {
 //     lock_block: bool,
 //     kind: BufferCmdKind<'b, T>,
 //     shape: BufferCmdDataShape,
-//     ewait: Option<&'b ClWaitList>,
-//     enew: Option<&'b mut ClEventPtrNew>,
+//     ewait: Option<&'b ClWaitListPtr>,
+//     enew: Option<&'b mut ClNullEventPtr>,
 //     mem_len: usize,
 // }
 pub struct BufferCmd<'b, T: 'b + OclPrm> {
@@ -262,10 +140,10 @@ pub struct BufferCmd<'b, T: 'b + OclPrm> {
     lock_block: bool,
     kind: BufferCmdKind<'b, T>,
     shape: BufferCmdDataShape,
-    // ewait: Option<&'b ClWaitList>,
-    // enew: Option<&'b mut ClEventPtrNew>,
-    ewait: Option<&'b ClWaitList>,
-    enew: Option<ClEventPtrNewEnum<'b>>,
+    // ewait: Option<&'b ClWaitListPtr>,
+    // enew: Option<&'b mut ClNullEventPtr>,
+    ewait: Option<ClWaitListPtrEnum<'b>>,
+    enew: Option<ClNullEventPtrEnum<'b>>,
     mem_len: usize,
 }
 
@@ -350,11 +228,11 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn map(mut self, flags: Option<MapFlags>, len: Option<usize>) -> BufferCmdMap<'b, T> {
+    pub fn map(mut self, flags: Option<MapFlags>, len: Option<usize>) -> BufferMapCmd<'b, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Map{ flags: flags, len: len };
-        BufferCmdMap(self)
+        BufferMapCmd(self)
     }
 
 
@@ -516,37 +394,50 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         self
     }
 
+    // /// Specifies a list of events to wait on before the command will run.
+    // pub fn ewait(mut self, ewait: &'b ClWaitListPtr) -> BufferCmd<'b, T> {
+    //     self.ewait = Some(ewait);
+    //     self
+    // }
+
+    // /// Specifies a list of events to wait on before the command will run or
+    // /// resets it to `None`.
+    // pub fn ewait_opt(mut self, ewait: Option<&'b ClWaitListPtr>) -> BufferCmd<'b, T> {
+    //     self.ewait = ewait;
+    //     self
+    // }
+
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait(mut self, ewait: &'b ClWaitList) -> BufferCmd<'b, T> {
-        self.ewait = Some(ewait);
+    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> BufferCmd<'b, T> where Ewl: Into<ClWaitListPtrEnum<'b>> {
+        self.ewait = Some(ewait.into());
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt(mut self, ewait: Option<&'b ClWaitList>) -> BufferCmd<'b, T> {
-        self.ewait = ewait;
+    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> BufferCmd<'b, T> where Ewl: Into<ClWaitListPtrEnum<'b>> {
+        self.ewait = ewait.map(|el| el.into());
         self
     }
 
     // /// Specifies the destination for a new, optionally created event
     // /// associated with this command.
-    // pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
+    // pub fn enew(mut self, enew: &'b mut ClNullEventPtr) -> BufferCmd<'b, T> {
     //     self.enew = Some(enew);
     //     self
     // }
 
     // /// Specifies a destination for a new, optionally created event
     // /// associated with this command or resets it to `None`.
-    // pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
+    // pub fn enew_opt(mut self, enew: Option<&'b mut ClNullEventPtr>) -> BufferCmd<'b, T> {
     //     self.enew = enew;
     //     self
     // }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew<E>(mut self, enew: E) -> BufferCmd<'b, T>
-            where E: Into<ClEventPtrNewEnum<'b>>
+    pub fn enew<En>(mut self, enew: En) -> BufferCmd<'b, T>
+            where En: Into<ClNullEventPtrEnum<'b>>
     {
         self.enew = Some(enew.into());
         self
@@ -554,21 +445,14 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt<E>(mut self, enew: Option<E>) -> BufferCmd<'b, T>
-            where E: Into<ClEventPtrNewEnum<'b>>
+    pub fn enew_opt<En>(mut self, enew: Option<En>) -> BufferCmd<'b, T>
+            where En: Into<ClNullEventPtrEnum<'b>>
     {
         self.enew = enew.map(|e| e.into());
         self
     }
 
-
-    // core::enqueue_copy_buffer::<f32, core::EventList>(&queue, &src_buffer, &dst_buffer,
-    //     copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None,
-    //     None).unwrap();
-
     /// Enqueues this command.
-    ///
-    /// For map operations use `::enq_map` instead.
     ///
     pub fn enq(self) -> OclResult<()> {
         match self.kind {
@@ -621,7 +505,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                         try!(check_len(self.mem_len, len, offset));
                         let dst_offset = dst_offset.unwrap_or(0);
 
-                        core::enqueue_copy_buffer::<T, _>(self.queue,
+                        core::enqueue_copy_buffer::<T, _, _>(self.queue,
                             self.obj_core, dst_buffer, offset, dst_offset, len,
                             self.ewait, self.enew)
                     },
@@ -637,7 +521,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                             'cmd().copy(&{{buf_name}}, None, None)..'.");
                         }
 
-                        core::enqueue_copy_buffer_rect::<T, _>(self.queue, self.obj_core, dst_buffer,
+                        core::enqueue_copy_buffer_rect::<T, _, _>(self.queue, self.obj_core, dst_buffer,
                             src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
                             dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
                     },
@@ -660,14 +544,10 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
                 }
             },
             BufferCmdKind::GLAcquire => {
-                panic!("[FIXME]");
-
-                // core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+                core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
             },
             BufferCmdKind::GLRelease => {
-                panic!("[FIXME]");
-
-                // core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+                core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
             },
             BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
@@ -749,11 +629,11 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 }
 
 
-pub struct BufferCmdMap<'b, T: 'b + OclPrm>(BufferCmd<'b, T>);
+pub struct BufferMapCmd<'b, T: 'b + OclPrm>(BufferCmd<'b, T>);
 
-impl<'b, T: 'b + OclPrm> BufferCmdMap<'b, T> {
+impl<'b, T: 'b + OclPrm> BufferMapCmd<'b, T> {
     /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'b Queue) -> BufferCmdMap<'b, T> {
+    pub fn queue(mut self, queue: &'b Queue) -> BufferMapCmd<'b, T> {
         self.queue = queue;
         self
     }
@@ -767,8 +647,8 @@ impl<'b, T: 'b + OclPrm> BufferCmdMap<'b, T> {
     /// Will panic if `::read` has already been called. Use `::read_async`
     /// (unsafe) for a non-blocking read operation.
     ///
-    pub fn block(self, block: bool) -> BufferCmdMap<'b, T> {
-        BufferCmdMap(self.0.block(block))
+    pub fn block(self, block: bool) -> BufferMapCmd<'b, T> {
+        BufferMapCmd(self.0.block(block))
     }
 
     /// Sets the linear offset for an operation.
@@ -777,41 +657,27 @@ impl<'b, T: 'b + OclPrm> BufferCmdMap<'b, T> {
     ///
     /// The 'shape' may not have already been set to rectangular by the
     /// `::rect` function.
-    pub fn offset(self, offset: usize)  -> BufferCmdMap<'b, T> {
-        BufferCmdMap(self.0.offset(offset))
+    pub fn offset(self, offset: usize)  -> BufferMapCmd<'b, T> {
+        BufferMapCmd(self.0.offset(offset))
     }
 
-        /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait(mut self, ewait: &'b ClWaitList) -> BufferCmdMap<'b, T> {
-        self.ewait = Some(ewait);
+    /// Specifies a list of events to wait on before the command will run.
+    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> BufferMapCmd<'b, T> where Ewl: Into<ClWaitListPtrEnum<'b>> {
+        self.ewait = Some(ewait.into());
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt(mut self, ewait: Option<&'b ClWaitList>) -> BufferCmdMap<'b, T> {
-        self.ewait = ewait;
+    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> BufferMapCmd<'b, T> where Ewl: Into<ClWaitListPtrEnum<'b>> {
+        self.ewait = ewait.map(|el| el.into());
         self
     }
 
-    // /// Specifies the destination for a new, optionally created event
-    // /// associated with this command.
-    // pub fn enew(mut self, enew: &'b mut ClEventPtrNew) -> BufferCmd<'b, T> {
-    //     self.enew = Some(enew);
-    //     self
-    // }
-
-    // /// Specifies a destination for a new, optionally created event
-    // /// associated with this command or resets it to `None`.
-    // pub fn enew_opt(mut self, enew: Option<&'b mut ClEventPtrNew>) -> BufferCmd<'b, T> {
-    //     self.enew = enew;
-    //     self
-    // }
-
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew<E>(mut self, enew: E) -> BufferCmdMap<'b, T>
-            where E: Into<ClEventPtrNewEnum<'b>>
+    pub fn enew<E>(mut self, enew: E) -> BufferMapCmd<'b, T>
+            where E: Into<ClNullEventPtrEnum<'b>>
     {
         self.enew = Some(enew.into());
         self
@@ -819,8 +685,8 @@ impl<'b, T: 'b + OclPrm> BufferCmdMap<'b, T> {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt<E>(mut self, enew: Option<E>) -> BufferCmdMap<'b, T>
-            where E: Into<ClEventPtrNewEnum<'b>>
+    pub fn enew_opt<E>(mut self, enew: Option<E>) -> BufferMapCmd<'b, T>
+            where E: Into<ClNullEventPtrEnum<'b>>
     {
         self.enew = enew.map(|e| e.into());
         self
@@ -843,8 +709,8 @@ impl<'b, T: 'b + OclPrm> BufferCmdMap<'b, T> {
                         check_len(self.mem_len, len, offset)?;
                         let flags = flags.unwrap_or(MapFlags::empty());
 
-                        unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T, _>(self.queue,
-                            self.obj_core, self.block, flags, offset, len, self.ewait,
+                        unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T, _, _>(self.queue,
+                            self.obj_core, self.block, flags, offset, len, self.ewait.take(),
                             self.enew.take() )?)) }
                     },
                     BufferCmdDataShape::Rect { .. } => {
@@ -879,8 +745,8 @@ impl<'b, T: 'b + OclPrm> BufferCmdMap<'b, T> {
                         check_len(self.mem_len, len, offset)?;
                         let flags = flags.unwrap_or(MapFlags::empty());
 
-                        let future = unsafe { core::enqueue_map_buffer_async::<T, _>(self.queue,
-                            self.obj_core, flags, offset, len, self.ewait, self.enew.take() )? };
+                        let future = unsafe { core::enqueue_map_buffer_async::<T, _, _>(self.queue,
+                            self.obj_core, flags, offset, len, self.ewait.take(), self.enew.take() )? };
 
                         Ok(future)
                     },
@@ -897,7 +763,7 @@ impl<'b, T: 'b + OclPrm> BufferCmdMap<'b, T> {
     }
 }
 
-impl<'b, T: 'b + OclPrm> Deref for BufferCmdMap<'b, T> {
+impl<'b, T: 'b + OclPrm> Deref for BufferMapCmd<'b, T> {
     type Target = BufferCmd<'b, T>;
 
     fn deref(&self) -> &BufferCmd<'b, T> {
@@ -905,7 +771,7 @@ impl<'b, T: 'b + OclPrm> Deref for BufferCmdMap<'b, T> {
     }
 }
 
-impl<'b, T: 'b + OclPrm> DerefMut for BufferCmdMap<'b, T> {
+impl<'b, T: 'b + OclPrm> DerefMut for BufferMapCmd<'b, T> {
     fn deref_mut(&mut self) -> &mut BufferCmd<'b, T> {
         &mut self.0
     }

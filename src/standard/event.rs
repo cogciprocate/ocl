@@ -8,18 +8,11 @@ use futures::{Future, Poll, Async};
 use ffi::cl_event;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, NullEvent as NullEventCore, UserEvent as UserEventCore,
-    EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, ClEventPtrNew, ClWaitList,
+    EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr,
     EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
 
 
-// enum EventState {
-//     Null(NullEventCore),
-//     Valid(EventCore),
-// }
-
-
 /// An event representing a command or user created event.
-///
 ///
 #[derive(Clone, Debug)]
 pub struct Event(Option<EventCore>);
@@ -65,14 +58,13 @@ impl Event {
 
     /// Returns true if this event is 'empty' and has not yet been associated
     /// with a command.
+    ///
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.0.is_none()
     }
 
-
-
-        /// Returns info about the event.
+    /// Returns info about the event.
     pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
         match self.0 {
             Some(ref core) => {
@@ -102,6 +94,7 @@ impl Event {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    ///
     #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     #[inline]
     pub fn core_as_ref(&self) -> Option<&EventCore> {
@@ -110,6 +103,7 @@ impl Event {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    ///
     #[inline]
     pub fn core(&self) -> Option<&EventCore> {
         self.0.as_ref()
@@ -117,6 +111,7 @@ impl Event {
 
     /// Returns a mutable reference to the core pointer wrapper usable by
     /// functions in the `core` module.
+    ///
     #[deprecated(since="0.13.0", note="Use `::core_mut` instead.")]
     #[inline]
     pub fn core_as_mut(&mut self) -> Option<&mut EventCore> {
@@ -145,9 +140,36 @@ impl Event {
             .field("Context", &self.info(EventInfo::Context))
             .finish()
     }
+
+    fn _ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+        if !self.is_empty() {
+            return OclError::err_string("ocl::Event: Attempting to use a non-empty event as a new event
+                is not allowed. Please create a new, empty, event with ocl::Event::empty().");
+        }
+
+        unsafe {
+            self.0 = Some(EventCore::from_raw(0 as *mut c_void));
+            Ok(self.0.as_mut().unwrap().as_ptr_mut())
+        }
+    }
+
+    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
+        match self.0 {
+            Some(ref ec) => ec.as_ptr_ptr(),
+            None => 0 as *const cl_event,
+        }
+    }
+
+    fn _count(&self) -> u32 {
+        match self.0 {
+            Some(ref ec) => ec.count(),
+            None => 0,
+        }
+    }
 }
 
 impl From<NullEventCore> for Event {
+    #[inline]
     fn from(nev: NullEventCore) -> Event {
         match nev.validate() {
             Ok(nev) => Event(Some(nev)),
@@ -157,12 +179,14 @@ impl From<NullEventCore> for Event {
 }
 
 impl From<EventCore> for Event {
+    #[inline]
     fn from(ev: EventCore) -> Event {
         Event(Some(ev))
     }
 }
 
 impl From<UserEventCore> for Event {
+    #[inline]
     fn from(uev: UserEventCore) -> Event {
         if uev.is_valid() {
             Event(Some(uev.into()))
@@ -214,48 +238,41 @@ impl DerefMut for Event {
     }
 }
 
-unsafe impl ClEventPtrNew for Event {
+unsafe impl ClNullEventPtr for Event {
+    #[inline]
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        if !self.is_empty() {
-            return OclError::err_string("ocl::Event: Attempting to use a non-empty event as a new event
-                is not allowed. Please create a new, empty, event with ocl::Event::empty().");
-        }
-
-        unsafe {
-            self.0 = Some(EventCore::from_raw(0 as *mut c_void));
-            Ok(self.0.as_mut().unwrap().as_ptr_mut())
-        }
+        self._ptr_mut_ptr_new()
     }
 }
 
-unsafe impl<'a> ClEventPtrNew for &'a mut Event {
+unsafe impl<'a> ClNullEventPtr for &'a mut Event {
+    #[inline]
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        if !self.is_empty() {
-            return OclError::err_string("ocl::Event: Attempting to use a non-empty event as a new event
-                is not allowed. Please create a new, empty, event with ocl::Event::empty().");
-        }
-
-        unsafe {
-            self.0 = Some(EventCore::from_raw(0 as *mut c_void));
-            Ok(self.0.as_mut().unwrap().as_ptr_mut())
-        }
+        self._ptr_mut_ptr_new()
     }
 }
 
-unsafe impl ClWaitList for Event {
+unsafe impl ClWaitListPtr for Event {
+    #[inline]
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-        // self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::as_ref()").as_ptr_ptr()
-        match self.0 {
-            Some(ref ec) => ec.as_ptr_ptr(),
-            None => 0 as *const cl_event,
-        }
+        self._as_ptr_ptr()
     }
 
+    #[inline]
     fn count(&self) -> u32 {
-        match self.0 {
-            Some(ref ec) => ec.count(),
-            None => 0,
-        }
+        self._count()
+    }
+}
+
+unsafe impl<'a> ClWaitListPtr for  &'a Event {
+    #[inline]
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+        self._as_ptr_ptr()
+    }
+
+    #[inline]
+    fn count(&self) -> u32 {
+        self._count()
     }
 }
 
@@ -304,24 +321,8 @@ impl EventList {
 
     /// Removes the last event from the list and returns it.
     pub fn pop(&mut self) -> Option<Event> {
-        // match self.event_list_core.pop() {
-        //     Some(ev_res) => {
-        //         match ev_res {
-        //             Ok(ev) => unsafe { Some(Event::from_core(ev)) },
-        //             Err(_) => None,
-        //         }
-        //     },
-        //     None => None,
-        // }
         self.event_list_core.pop().map(|ev| unsafe { Event::from_core(ev) })
     }
-
-    // /// Appends a new null element to the end of the list and returns...
-    // /// [FIXME]: Update
-    // pub fn allot(&mut self) -> &mut Event {
-    //     unsafe { self.event_list_core.push(EventCore::null()); }
-    //     self.event_list_core.last_mut().unwrap()
-    // }
 
     /// Returns a new copy of an event by index.
     pub fn get_clone(&self, index: usize) -> Option<Event> {
@@ -362,7 +363,7 @@ impl EventList {
     /// TODO: Move this method to `Event`.
     pub unsafe fn set_callback<T>(&self,
                 callback_receiver: Option<EventCallbackFn>,
-                user_data: &mut T,
+                user_data: *mut T,
                 ) -> OclResult<()>
     {
         let event_core = try!(try!(self.event_list_core.last_clone().ok_or(
@@ -393,6 +394,7 @@ impl EventList {
     }
 
     /// Returns a reference to the underlying `core` event list.
+    ///
     #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     #[inline]
     pub fn core_as_ref(&self) -> &EventListCore {
@@ -400,12 +402,14 @@ impl EventList {
     }
 
     /// Returns a reference to the underlying `core` event list.
+    ///
     #[inline]
     pub fn core(&self) -> &EventListCore {
         &self.event_list_core
     }
 
     /// Returns a mutable reference to the underlying `core` event list.
+    ///
     #[deprecated(since="0.13.0", note="Use `::core_mut` instead.")]
     #[inline]
     pub fn core_as_mut(&mut self) -> &mut EventListCore {
@@ -413,6 +417,7 @@ impl EventList {
     }
 
     /// Returns a mutable reference to the underlying `core` event list.
+    ///
     #[inline]
     pub fn core_mut(&mut self) -> &mut EventListCore {
         &mut self.event_list_core
@@ -426,15 +431,32 @@ impl EventList {
             Ok(())
         }
     }
+
+    #[inline]
+    fn _ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+        Ok(self.event_list_core.allot())
+    }
+
+    #[inline]
+    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
+        self.event_list_core.as_ptr_ptr()
+    }
+
+    #[inline]
+    fn _count(&self) -> u32 {
+        self.event_list_core.count()
+    }
 }
 
 impl Into<EventListCore> for EventList {
+    #[inline]
     fn into(self) ->  EventListCore {
         self.event_list_core
     }
 }
 
 impl AsRef<EventListCore> for EventList {
+    #[inline]
     fn as_ref(&self) -> &EventListCore {
         &self.event_list_core
     }
@@ -443,35 +465,53 @@ impl AsRef<EventListCore> for EventList {
 impl Deref for EventList {
     type Target = EventListCore;
 
+    #[inline]
     fn deref(&self) -> &EventListCore {
         &self.event_list_core
     }
 }
 
 impl DerefMut for EventList {
+    #[inline]
     fn deref_mut(&mut self) -> &mut EventListCore {
         &mut self.event_list_core
     }
 }
 
-unsafe impl ClEventPtrNew for EventList {
+unsafe impl ClNullEventPtr for EventList {
+    #[inline]
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        Ok(self.event_list_core.allot())
+        self._ptr_mut_ptr_new()
     }
 }
 
-unsafe impl<'a> ClEventPtrNew for &'a mut EventList {
+unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
+    #[inline]
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        Ok(self.event_list_core.allot())
+        self._ptr_mut_ptr_new()
     }
 }
 
-unsafe impl ClWaitList for EventList {
+unsafe impl ClWaitListPtr for EventList {
+    #[inline]
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-        self.event_list_core.as_ptr_ptr()
+        self._as_ptr_ptr()
     }
 
+    #[inline]
     fn count(&self) -> u32 {
-        self.event_list_core.count()
+        self._count()
+    }
+}
+
+unsafe impl<'a> ClWaitListPtr for &'a mut EventList {
+    #[inline]
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+        self._as_ptr_ptr()
+    }
+
+    #[inline]
+    fn count(&self) -> u32 {
+        self._count()
     }
 }

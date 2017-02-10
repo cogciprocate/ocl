@@ -505,20 +505,20 @@ impl Task{
 
         buf.cmd().map(Some(flags), None)
             .ewait(self.cmd_graph.get_req_events(cmd_idx).unwrap())
-            .enq_map().unwrap()
+            .enq().unwrap()
     }
 
     /// Unmap mapped memory.
-    pub fn unmap<T: OclPrm>(&mut self, mut data: MappedMem<T>, cmd_idx: usize, buf_pool: &BufferPool<T>) {
-        let buffer_id = match self.cmd_graph.commands[cmd_idx].details {
-            CommandDetails::Write { target } => target,
-            CommandDetails::Read { source } => source,
-            _ => panic!("Task::unmap: Not a write or read command."),
-        };
+    pub fn unmap<T: OclPrm>(&mut self, mut data: MappedMem<T>, cmd_idx: usize, _: &BufferPool<T>) {
+        // let buffer_id = match self.cmd_graph.commands[cmd_idx].details {
+        //     CommandDetails::Write { target } => target,
+        //     CommandDetails::Read { source } => source,
+        //     _ => panic!("Task::unmap: Not a write or read command."),
+        // };
 
         let mut ev = Event::empty();
 
-        data.unmap(Some(&self.queue), None, Some(&mut ev)).unwrap();
+        data.enqueue_unmap(Some(&self.queue), None::<EventList>, Some(&mut ev)).unwrap();
 
         self.cmd_graph.set_cmd_event(cmd_idx, ev).unwrap();
     }

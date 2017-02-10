@@ -5,10 +5,10 @@ use std::convert::Into;
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
-    KernelWorkGroupInfo, KernelWorkGroupInfoResult, /*ClEventPtrNew,*/ ClWaitList};
+    KernelWorkGroupInfo, KernelWorkGroupInfoResult};
 use core::error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, AsMemRef,
-    ClEventPtrNewEnum};
+    ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 const PRINT_DEBUG: bool = false;
 
@@ -20,10 +20,10 @@ pub struct KernelCmd<'k> {
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
-    // wait_list: Option<&'k ClWaitList>,
-    // dest_list: Option<&'k mut ClEventPtrNew>,
-    wait_list: Option<&'k ClWaitList>,
-    dest_list: Option<ClEventPtrNewEnum<'k>>,
+    // wait_list: Option<&'k ClWaitListPtr>,
+    // dest_list: Option<&'k mut ClNullEventPtr>,
+    wait_list: Option<ClWaitListPtrEnum<'k>>,
+    new_event: Option<ClNullEventPtrEnum<'k>>,
 }
 
 /// [UNSTABLE]: All methods still being tuned.
@@ -52,30 +52,47 @@ impl<'k> KernelCmd<'k> {
         self
     }
 
-    /// Specifies the list of events to wait on before the command will run.
-    pub fn ewait(mut self, wait_list: &'k ClWaitList) -> KernelCmd<'k> {
-        self.wait_list = Some(wait_list);
+    // /// Specifies the list of events to wait on before the command will run.
+    // pub fn ewait(mut self, wait_list: &'k ClWaitListPtr) -> KernelCmd<'k> {
+    //     self.wait_list = Some(wait_list);
+    //     self
+    // }
+
+    // /// Specifies a list of events to wait on before the command will run.
+    // pub fn ewait_opt(mut self, wait_list: Option<&'k ClWaitListPtr>) -> KernelCmd<'k> {
+    //     self.wait_list = wait_list;
+    //     self
+    // }
+
+        /// Specifies a list of events to wait on before the command will run.
+    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> KernelCmd<'k>
+            where Ewl: Into<ClWaitListPtrEnum<'k>>
+    {
+        self.wait_list = Some(ewait.into());
         self
     }
 
-    /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait_opt(mut self, wait_list: Option<&'k ClWaitList>) -> KernelCmd<'k> {
-        self.wait_list = wait_list;
+    /// Specifies a list of events to wait on before the command will run or
+    /// resets it to `None`.
+    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> KernelCmd<'k>
+            where Ewl: Into<ClWaitListPtrEnum<'k>>
+    {
+        self.wait_list = ewait.map(|el| el.into());
         self
     }
 
     /// Specifies the destination list or empty event for a new, optionally
     /// created event associated with this command.
-    // pub fn enew(mut self, new_event_dest: &'k mut ClEventPtrNew) -> KernelCmd<'k> {
-    pub fn enew<E: Into<ClEventPtrNewEnum<'k>>>(mut self, new_event_dest: E) -> KernelCmd<'k> {
-        self.dest_list = Some(new_event_dest.into());
+    // pub fn enew(mut self, new_event_dest: &'k mut ClNullEventPtr) -> KernelCmd<'k> {
+    pub fn enew<E: Into<ClNullEventPtrEnum<'k>>>(mut self, new_event_dest: E) -> KernelCmd<'k> {
+        self.new_event = Some(new_event_dest.into());
         self
     }
 
     /// Specifies a destination list for a new, optionally created event
     /// associated with this command.
-    pub fn enew_opt<E: Into<ClEventPtrNewEnum<'k>>>(mut self, new_event_list: Option<E>) -> KernelCmd<'k> {
-        self.dest_list = new_event_list.map(|e| e.into());
+    pub fn enew_opt<E: Into<ClNullEventPtrEnum<'k>>>(mut self, new_event_list: Option<E>) -> KernelCmd<'k> {
+        self.new_event = new_event_list.map(|e| e.into());
         self
     }
 
@@ -95,7 +112,7 @@ impl<'k> KernelCmd<'k> {
         }
 
         core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(),
-            &gws, self.lws.to_work_size(), self.wait_list, self.dest_list)
+            &gws, self.lws.to_work_size(), self.wait_list, self.new_event)
     }
 }
 
@@ -384,7 +401,7 @@ impl Kernel {
     pub fn cmd(&self) -> KernelCmd {
         KernelCmd { queue: &self.queue, kernel: &self.obj_core,
             gwo: self.gwo, gws: self.gws, lws: self.lws,
-            wait_list: None, dest_list: None }
+            wait_list: None, new_event: None }
     }
 
     /// Enqueues this kernel on the default queue and returns the result.

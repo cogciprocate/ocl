@@ -492,7 +492,7 @@ impl Task{
 
         buf.cmd().map(Some(flags), None)
             .ewait(self.cmd_graph.get_req_events(cmd_idx).unwrap())
-            .enq_map_async().unwrap()
+            .enq_async().unwrap()
     }
 
     /// Unmap mapped memory.
@@ -507,7 +507,7 @@ impl Task{
 
         let mut ev = Event::empty();
 
-        data.unmap(Some(&self.queue), None, Some(&mut ev)).unwrap();
+        data.enqueue_unmap(Some(&self.queue), None::<EventList>, Some(&mut ev)).unwrap();
 
         self.cmd_graph.set_cmd_event(cmd_idx, ev).unwrap();
     }
