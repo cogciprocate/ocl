@@ -98,7 +98,7 @@ pub mod aliases {
 pub mod traits {
     //! Commonly used traits.
 
-    pub use standard::{WorkDims, MemLen, AsMemRef, AsMemMut};
+    pub use standard::{WorkDims, MemLen};
     pub use core::{OclPrm, OclScl, OclVec};
 }
 

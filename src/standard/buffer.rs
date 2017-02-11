@@ -6,9 +6,9 @@ use std::ops::{Deref, DerefMut};
 use ffi::cl_GLuint;
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
-    MemFlags, MemInfo, MemInfoResult, BufferRegion,
-    MappedMem as MappedMemCore, FutureMappedMem, MapFlags};
-use standard::{Queue, MemLen, SpatialDims, AsMemRef};
+    MemFlags, MemInfo, MemInfoResult, BufferRegion, MappedMem as MappedMemCore,
+    FutureMappedMem, MapFlags, AsMem, MemCmdRw, MemCmdAll};
+use standard::{Queue, MemLen, SpatialDims};
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -251,12 +251,12 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     ///
     pub fn copy<M>(mut self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
             -> BufferCmd<'c, T>
-            where M: AsMemRef<T>
+            where M: AsMem<T>
     {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Copy {
-            dst_buffer: dst_buffer.as_mem_ref(),
+            dst_buffer: dst_buffer.as_mem(),
             dst_offset: dst_offset,
             len: len,
         };
@@ -510,7 +510,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                         try!(check_len(self.mem_len, len, offset));
                         let dst_offset = dst_offset.unwrap_or(0);
 
-                        core::enqueue_copy_buffer::<T, _, _>(self.queue,
+                        core::enqueue_copy_buffer::<T, _, _, _>(self.queue,
                             self.obj_core, dst_buffer, offset, dst_offset, len,
                             self.ewait, self.enew)
                     },
@@ -526,7 +526,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                             'cmd().copy(&{{buf_name}}, None, None)..'.");
                         }
 
-                        core::enqueue_copy_buffer_rect::<T, _, _>(self.queue, self.obj_core, dst_buffer,
+                        core::enqueue_copy_buffer_rect::<T, _, _, _>(self.queue, self.obj_core, dst_buffer,
                             src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
                             dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
                     },
@@ -720,7 +720,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                         check_len(self.mem_len, len, offset)?;
                         let flags = flags.unwrap_or(MapFlags::empty());
 
-                        unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T, _, _>(self.queue,
+                        unsafe { Ok(MappedMem::new(core::enqueue_map_buffer::<T, _, _, _>(self.queue,
                             self.obj_core, self.block, flags, offset, len, self.ewait.take(),
                             self.enew.take() )?)) }
                     },
@@ -756,7 +756,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                         check_len(self.mem_len, len, offset)?;
                         let flags = flags.unwrap_or(MapFlags::empty());
 
-                        let future = unsafe { core::enqueue_map_buffer_async::<T, _, _>(self.queue,
+                        let future = unsafe { core::enqueue_map_buffer_async::<T, _, _, _>(self.queue,
                             self.obj_core, flags, offset, len, self.ewait.take(), self.enew.take() )? };
 
                         Ok(future)
@@ -787,7 +787,6 @@ impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm{
         &mut self.0
     }
 }
-
 
 
 /// A chunk of memory physically located on a device, such as a GPU.
@@ -888,47 +887,76 @@ impl<T: OclPrm> Buffer<T> {
         Ok(buf)
     }
 
-    /// Returns a buffer command builder used to read, write, copy, etc.
+    /// Returns a command builder used to read, write, copy, etc.
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
-    /// for more info.
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
     ///
     #[inline]
     pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
         BufferCmd::new(&self.queue, &self.obj_core, self.len)
     }
 
-    /// Returns a buffer command builder used to read.
+    /// Returns a command builder used to read data.
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
-    /// for more info.
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
     ///
     #[inline]
-    pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferCmd<'c, T> where 'd: 'c {
+    pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferCmd<'c, T>
+            where 'd: 'c
+    {
         self.cmd().read(data)
     }
 
-    /// Returns a buffer command builder used to write.
+    /// Returns a command builder used to write data.
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
-    /// for more info.
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
     ///
     #[inline]
-    pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferCmd<'c, T> where 'd: 'c {
+    pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferCmd<'c, T>
+            where 'd: 'c
+    {
         self.cmd().write(data)
+    }
+
+    /// Returns a command builder used to map data for reading or writing.
+    ///
+    /// Call `.enq()` to enqueue the command.
+    ///
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
+    ///
+    #[inline]
+    pub fn map<'c>(&'c self, flags: Option<MapFlags>, len: Option<usize>) -> BufferMapCmd<'c, T> {
+        self.cmd().map(flags, len)
+    }
+
+    /// Specifies that this command will be a copy operation.
+    ///
+    /// Call `.enq()` to enqueue the command.
+    ///
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
+    ///
+    #[inline]
+    pub fn copy<'c, M>(&'c self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
+            -> BufferCmd<'c, T>
+            where M: AsMem<T>
+    {
+        self.cmd().copy(dst_buffer, dst_offset, len)
     }
 
     /// Returns the length of the buffer.
     #[inline]
     pub fn len(&self) -> usize {
-        // debug_assert!((if let VecOption::Some(ref vec) = self.vec { vec.len() }
-        //     else { self.len }) == self.len);
         self.len
     }
 
@@ -941,10 +969,6 @@ impl<T: OclPrm> Buffer<T> {
     /// Returns info about the underlying memory object.
     #[inline]
     pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
-        // match core::get_mem_object_info(&self.obj_core, info_kind) {
-        //     Ok(res) => res,
-        //     Err(err) => MemInfoResult::Error(Box::new(err)),
-        // }
         core::get_mem_object_info(&self.obj_core, info_kind)
     }
 
@@ -958,9 +982,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[inline]
     pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Buffer<T> {
-        // [FIXME]: Set this up:
-        // assert!(queue.device == self.queue.device);
-        // [/FIXME]
+        assert!(queue.device() == self.queue.device());
         self.queue = queue.clone();
         self
     }
@@ -1065,41 +1087,26 @@ impl<T: OclPrm> AsMut<MemCore> for Buffer<T> {
     }
 }
 
-impl<T: OclPrm> AsMemRef<T> for Buffer<T> {
-    fn as_mem_ref(&self) -> &MemCore {
+impl<T: OclPrm> AsMem<T> for Buffer<T> {
+    fn as_mem(&self) -> &MemCore {
         &self.obj_core
     }
 }
 
-impl<'a, T: OclPrm> AsMemRef<T> for &'a Buffer<T> {
-    fn as_mem_ref(&self) -> &MemCore {
+impl<'a, T: OclPrm> AsMem<T> for &'a mut Buffer<T> {
+    fn as_mem(&self) -> &MemCore {
         &self.obj_core
     }
 }
-
-impl<'a, T: OclPrm> AsMemRef<T> for &'a mut Buffer<T> {
-    fn as_mem_ref(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
-
-// impl<T: OclPrm> AsMemRef<T> for Buffer<T> {
-//     fn as_mem_ref(&mut self) -> &mut MemCore {
-//         &self.obj_core
-//     }
-// }
-
-// impl<'a, T: OclPrm> AsMemRef<T> for &'a Buffer<T> {
-//     fn as_mem_ref(&self) -> &mut MemCore {
-//         &self.obj_core
-//     }
-// }
 
 impl<T: OclPrm> std::fmt::Display for Buffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_mem_info(f)
     }
 }
+
+unsafe impl<T: OclPrm> MemCmdRw for Buffer<T> {}
+unsafe impl<T: OclPrm> MemCmdAll for Buffer<T> {}
 
 
 /// A subsection of buffer memory physically located on a device, such as a
@@ -1170,40 +1177,72 @@ impl<T: OclPrm> SubBuffer<T> {
         })
     }
 
-    /// Returns a buffer command builder used to read, write, copy, etc.
+
+    /// Returns a command builder used to read, write, copy, etc.
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
-    /// for more info.
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
     ///
     #[inline]
     pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
         BufferCmd::new(&self.queue, &self.obj_core, self.len)
     }
 
-    /// Returns a buffer command builder used to read.
+    /// Returns a command builder used to read data.
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
-    /// for more info.
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
     ///
     #[inline]
-    pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferCmd<'c, T> where 'd: 'c {
+    pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferCmd<'c, T>
+            where 'd: 'c
+    {
         self.cmd().read(data)
     }
 
-    /// Returns a buffer command builder used to write.
+    /// Returns a command builder used to write data.
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
-    /// for more info.
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
     ///
     #[inline]
-    pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferCmd<'c, T> where 'd: 'c {
+    pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferCmd<'c, T>
+            where 'd: 'c
+    {
         self.cmd().write(data)
+    }
+
+    /// Returns a command builder used to map data for reading or writing.
+    ///
+    /// Call `.enq()` to enqueue the command.
+    ///
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
+    ///
+    #[inline]
+    pub fn map<'c>(&'c self, flags: Option<MapFlags>, len: Option<usize>) -> BufferMapCmd<'c, T> {
+        self.cmd().map(flags, len)
+    }
+
+    /// Specifies that this command will be a copy operation.
+    ///
+    /// Call `.enq()` to enqueue the command.
+    ///
+    /// See the command builder documentation linked in the function signature
+    /// for more information.
+    ///
+    #[inline]
+    pub fn copy<'c, M>(&'c self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
+            -> BufferCmd<'c, T>
+            where M: AsMem<T>
+    {
+        self.cmd().copy(dst_buffer, dst_offset, len)
     }
 
     /// Returns the origin of the sub-buffer within the buffer.
@@ -1230,8 +1269,7 @@ impl<T: OclPrm> SubBuffer<T> {
         core::get_mem_object_info(&self.obj_core, info_kind)
     }
 
-    /// Changes the default queue used by this `SubBuffer` for reads and
-    /// writes, etc.
+    /// Changes the default queue used by this sub-buffer for reads and writes, etc.
     ///
     /// Returns a mutable reference for optional chaining i.e.:
     ///
@@ -1240,11 +1278,9 @@ impl<T: OclPrm> SubBuffer<T> {
     /// `buffer.set_default_queue(queue).read(....);`
     ///
     #[inline]
-    pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut SubBuffer<T> {
-        // [FIXME]: Set this up:
-        // assert!(queue.device == self.queue.device);
-        // [/FIXME]
-        self.queue = queue;
+    pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut SubBuffer<T> {
+        assert!(queue.device() == self.queue.device());
+        self.queue = queue.clone();
         self
     }
 
@@ -1321,20 +1357,14 @@ impl<T: OclPrm> AsMut<MemCore> for SubBuffer<T> {
     }
 }
 
-impl<'a, T: OclPrm> AsMemRef<T> for SubBuffer<T> {
-    fn as_mem_ref(&self) -> &MemCore {
+impl<'a, T: OclPrm> AsMem<T> for SubBuffer<T> {
+    fn as_mem(&self) -> &MemCore {
         &self.obj_core
     }
 }
 
-impl<'a, T: OclPrm> AsMemRef<T> for &'a SubBuffer<T> {
-    fn as_mem_ref(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
-
-impl<'a, T: OclPrm> AsMemRef<T> for &'a mut SubBuffer<T> {
-    fn as_mem_ref(&self) -> &MemCore {
+impl<'a, T: OclPrm> AsMem<T> for &'a mut SubBuffer<T> {
+    fn as_mem(&self) -> &MemCore {
         &self.obj_core
     }
 }
@@ -1344,3 +1374,4 @@ impl<T: OclPrm> std::fmt::Display for SubBuffer<T> {
         self.fmt_mem_info(f)
     }
 }
+

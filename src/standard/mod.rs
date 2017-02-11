@@ -27,7 +27,7 @@ pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};
 pub use self::event::{Event, EventList};
 pub use self::spatial_dims::SpatialDims;
-pub use self::traits::{MemLen, WorkDims, AsMemRef, AsMemMut};
+pub use self::traits::{MemLen, WorkDims};
 pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 
@@ -172,22 +172,8 @@ mod types {
 mod traits {
     use std::fmt::Debug;
     use num::{Num, ToPrimitive};
-    use core::Mem as MemCore;
-    use ::{SpatialDims, OclPrm};
+    use ::SpatialDims;
     use super::spatial_dims::to_usize;
-
-
-    /// `AsRef` with a type being carried along for convenience.
-    pub trait AsMemRef<T: OclPrm> {
-        fn as_mem_ref(&self) -> &MemCore;
-    }
-
-
-    /// `AsMut` with a type being carried along for convenience.
-    pub trait AsMemMut<T: OclPrm> {
-        fn as_mem_mut(&mut self) -> &mut MemCore;
-    }
-
 
     /// Types which have properties describing the amount of work to be done
     /// in multiple dimensions.

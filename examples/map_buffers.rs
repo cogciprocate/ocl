@@ -35,7 +35,7 @@ fn scalar_map() {
         .expect("Creating buffer failed");
 
     unsafe {
-        let mut buff_datum = ocl_core::enqueue_map_buffer::<f32, _, _>(&queue,
+        let mut buff_datum = ocl_core::enqueue_map_buffer::<f32, _, _, _>(&queue,
                                                              in_buff.core(),
                                                              true,
                                                              ocl_core::MAP_WRITE,
@@ -113,7 +113,7 @@ fn vector_map() {
     unsafe {
         let mut event = ocl::EventList::new();
         let mut buff_datum =
-            ocl_core::enqueue_map_buffer::<ocl::aliases::ClFloat16, _, _>(&queue,
+            ocl_core::enqueue_map_buffer::<ocl::aliases::ClFloat16, _, _, _>(&queue,
                                                                     in_buff.core(),
                                                                     true,
                                                                     ocl_core::MAP_WRITE,

@@ -278,7 +278,7 @@ fn buffer_ops_rect() {
             None::<core::EventList>, None::<core::NullEvent>).unwrap();
 
         // Copy from the source buffer to the random region on the destination buffer:
-        core::enqueue_copy_buffer_rect::<f32, _, _>(proque.queue(), &buf_src, &buf_dst,
+        core::enqueue_copy_buffer_rect::<f32, _, _, _>(proque.queue(), &buf_src, &buf_dst,
             src_origin, dst_origin, read_region.clone(), row_pitch, slc_pitch,
             row_pitch, slc_pitch, None::<core::EventList>, None::<core::NullEvent>).unwrap();
         // Read the entire destination buffer into the destination vec:

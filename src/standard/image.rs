@@ -8,9 +8,9 @@ use std::marker::PhantomData;
 use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
-    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
-    ImageChannelOrder, ImageChannelDataType, GlTextureTarget};
-use standard::{Context, Queue, MemLen, SpatialDims, AsMemRef, ClNullEventPtrEnum, ClWaitListPtrEnum};
+    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ImageChannelOrder, ImageChannelDataType,
+    GlTextureTarget, AsMem, MemCmdRw, MemCmdAll};
+use standard::{Context, Queue, MemLen, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum};
 use ffi::{cl_GLuint, cl_GLint};
 
 /// A builder for `Image`.
@@ -951,20 +951,17 @@ impl<E: OclPrm> DerefMut for Image<E> {
     }
 }
 
-impl<T: OclPrm> AsMemRef<T> for Image<T> {
-    fn as_mem_ref(&self) -> &MemCore {
+impl<T: OclPrm> AsMem<T> for Image<T> {
+    fn as_mem(&self) -> &MemCore {
         &self.obj_core
     }
 }
 
-impl<'a, T: OclPrm> AsMemRef<T> for &'a Image<T> {
-    fn as_mem_ref(&self) -> &MemCore {
+impl<'a, T: OclPrm> AsMem<T> for &'a mut Image<T> {
+    fn as_mem(&self) -> &MemCore {
         &self.obj_core
     }
 }
 
-impl<'a, T: OclPrm> AsMemRef<T> for &'a mut Image<T> {
-    fn as_mem_ref(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
+unsafe impl<T: OclPrm> MemCmdRw for Image<T> {}
+unsafe impl<T: OclPrm> MemCmdAll for Image<T> {}

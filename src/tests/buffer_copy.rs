@@ -51,7 +51,7 @@ fn buffer_copy_core() {
 
     // Copy src_buffer to dst_buffer:
     let copy_range = (153, 150000);
-    core::enqueue_copy_buffer::<f32, _, _>(&queue, &src_buffer, &dst_buffer,
+    core::enqueue_copy_buffer::<f32, _, _, _>(&queue, &src_buffer, &dst_buffer,
         copy_range.0, copy_range.0, copy_range.1 - copy_range.0, None::<core::EventList>,
         None::<core::NullEvent>).unwrap();
 
