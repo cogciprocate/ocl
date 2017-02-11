@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem, FutureMappedMem, UserEvent, /*EventRefWrapper*/};
+    CommandQueueProperties, MappedMem, FutureMappedMem, UserEvent, AsMem, MemCmdRw, MemCmdAll};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -1911,16 +1911,16 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 ///
 /// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
-pub unsafe fn enqueue_read_buffer<T, En, Ewl>(
+pub unsafe fn enqueue_read_buffer<T, M, En, Ewl>(
         command_queue: &CommandQueue,
-        buffer: &Mem,
+        buffer: M,
         block: bool,
         offset: usize,
         data: &mut [T],
         wait_list: Option<Ewl>,
         new_event: Option<En>,
         ) -> OclResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -1929,7 +1929,7 @@ pub unsafe fn enqueue_read_buffer<T, En, Ewl>(
 
     let errcode = ffi::clEnqueueReadBuffer(
         command_queue.as_ptr(),
-        buffer.as_ptr(),
+        buffer.as_mem().as_ptr(),
         block as cl_uint,
         offset_bytes,
         (data.len() * mem::size_of::<T>()) as size_t,
@@ -1957,9 +1957,9 @@ pub unsafe fn enqueue_read_buffer<T, En, Ewl>(
 ///
 /// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
-pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: &Mem,
+            buffer: M,
             block: bool,
             buffer_origin: [usize; 3],
             host_origin: [usize; 3],
@@ -1972,6 +1972,7 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWai
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let buffer_origin_bytes = [buffer_origin[0] * mem::size_of::<T>(),
         buffer_origin[1], buffer_origin[2]];
@@ -1997,7 +1998,7 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWai
 
     let errcode = ffi::clEnqueueReadBufferRect(
         command_queue.as_ptr(),
-        buffer.as_ptr(),
+        buffer.as_mem().as_ptr(),
         block as cl_uint,
         &buffer_origin_bytes as *const _ as *const usize,
         &host_origin_bytes as *const _ as *const usize,
@@ -2017,15 +2018,16 @@ pub unsafe fn enqueue_read_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWai
 
 /// Enqueues a write from host memory, `data`, to device memory referred to by
 /// `buffer`.
-pub fn enqueue_write_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_write_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: &Mem,
+            buffer: M,
             block: bool,
             offset: usize,
             data: &[T],
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -2034,7 +2036,7 @@ pub fn enqueue_write_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 
     let errcode = unsafe { ffi::clEnqueueWriteBuffer(
         command_queue.as_ptr(),
-        buffer.as_ptr(),
+        buffer.as_mem().as_ptr(),
         block as cl_uint,
         offset_bytes,
         (data.len() * mem::size_of::<T>()) as size_t,
@@ -2054,9 +2056,9 @@ pub fn enqueue_write_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 ///
 /// [SDK - clEnqueueWriteBufferRect]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteBufferRect.html
 ///
-pub fn enqueue_write_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_write_buffer_rect<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: &Mem,
+            buffer: M,
             block: bool,
             buffer_origin: [usize; 3],
             host_origin: [usize; 3],
@@ -2069,6 +2071,7 @@ pub fn enqueue_write_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListP
             wait_list: Option<Ewl>,
             new_event: Option<En>,
     ) -> OclResult<()>
+    where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -2085,7 +2088,7 @@ pub fn enqueue_write_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListP
 
     let errcode = unsafe { ffi::clEnqueueWriteBufferRect(
         command_queue.as_ptr(),
-        buffer.as_ptr(),
+        buffer.as_mem().as_ptr(),
         block as cl_uint,
         &buffer_origin_bytes as *const _ as *const usize,
         &host_origin_bytes as *const _ as *const usize,
@@ -2107,9 +2110,9 @@ pub fn enqueue_write_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListP
 /// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub fn enqueue_fill_buffer<T, En, Ewl>(
+pub fn enqueue_fill_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: &Mem,
+            buffer: M,
             pattern: T,
             offset: usize,
             len: usize,
@@ -2117,7 +2120,7 @@ pub fn enqueue_fill_buffer<T, En, Ewl>(
             new_event: Option<En>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     try!(verify_device_version(device_version, [1, 2], command_queue));
 
@@ -2130,7 +2133,7 @@ pub fn enqueue_fill_buffer<T, En, Ewl>(
 
     let errcode = unsafe { ffi::clEnqueueFillBuffer(
         command_queue.as_ptr(),
-        buffer.as_ptr(),
+        buffer.as_mem().as_ptr(),
         &pattern as *const _ as *const c_void,
         pattern_size,
         offset_bytes,
@@ -2144,16 +2147,17 @@ pub fn enqueue_fill_buffer<T, En, Ewl>(
 
 /// [UNTESTED]
 /// Copies the contents of one buffer to another.
-pub fn enqueue_copy_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_copy_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            src_buffer: &Mem,
-            dst_buffer: &Mem,
+            src_buffer: M,
+            dst_buffer: M,
             src_offset: usize,
             dst_offset: usize,
             len: usize,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = try!(resolve_event_ptrs(wait_list, new_event));
@@ -2164,8 +2168,8 @@ pub fn enqueue_copy_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 
     let errcode = unsafe { ffi::clEnqueueCopyBuffer(
         command_queue.as_ptr(),
-        src_buffer.as_ptr(),
-        dst_buffer.as_ptr(),
+        src_buffer.as_mem().as_ptr(),
+        dst_buffer.as_mem().as_ptr(),
         src_offset_bytes,
         dst_offset_bytes,
         len_bytes,
@@ -2181,10 +2185,10 @@ pub fn enqueue_copy_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferRect.html)
 ///
-pub fn enqueue_copy_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            src_buffer: &Mem,
-            dst_buffer: &Mem,
+            src_buffer: M,
+            dst_buffer: M,
             src_origin: [usize; 3],
             dst_origin: [usize; 3],
             region: [usize; 3],
@@ -2195,6 +2199,7 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPt
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -2211,8 +2216,8 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPt
 
     let errcode = unsafe { ffi::clEnqueueCopyBufferRect(
         command_queue.as_ptr(),
-        src_buffer.as_ptr(),
-        dst_buffer.as_ptr(),
+        src_buffer.as_mem().as_ptr(),
+        dst_buffer.as_mem().as_ptr(),
         &src_origin_bytes as *const _ as *const usize,
         &dst_origin_bytes as *const _ as *const usize,
         &region_bytes as *const _ as *const usize,
@@ -2229,12 +2234,13 @@ pub fn enqueue_copy_buffer_rect<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPt
 
 /// [UNTESTED]
 /// Enqueue acquire OpenCL memory objects that have been created from `OpenGL` objects.
-pub fn enqueue_acquire_gl_buffer<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_acquire_gl_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: &Mem,
+            buffer: M,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -2242,7 +2248,7 @@ pub fn enqueue_acquire_gl_buffer<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     let errcode = unsafe { clEnqueueAcquireGLObjects(
         command_queue.as_ptr(),
         1,
-        &buffer.as_ptr(),
+        &buffer.as_mem().as_ptr(),
         wait_list_len,
         wait_list_ptr,
         new_event_ptr
@@ -2252,12 +2258,13 @@ pub fn enqueue_acquire_gl_buffer<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 
 /// [UNTESTED]
 /// Enqueue release OpenCL memory objects that have been created from `OpenGL` objects.
-pub fn enqueue_release_gl_buffer<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_release_gl_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: &Mem,
+            buffer: M,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -2265,7 +2272,7 @@ pub fn enqueue_release_gl_buffer<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     let errcode = unsafe { clEnqueueReleaseGLObjects(
         command_queue.as_ptr(),
         1,
-        &buffer.as_ptr(),
+        &buffer.as_mem().as_ptr(),
         wait_list_len,
         wait_list_ptr,
         new_event_ptr
@@ -2285,9 +2292,9 @@ pub fn enqueue_release_gl_buffer<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 /// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
 ///
 // pub unsafe fn enqueue_read_image<T>(
-pub unsafe fn enqueue_read_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            image: &Mem,
+            image: M,
             block: bool,
             origin: [usize; 3],
             region: [usize; 3],
@@ -2297,6 +2304,7 @@ pub unsafe fn enqueue_read_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let row_pitch_bytes = row_pitch * mem::size_of::<T>();
     let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
@@ -2306,7 +2314,7 @@ pub unsafe fn enqueue_read_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 
     let errcode = ffi::clEnqueueReadImage(
         command_queue.as_ptr(),
-        image.as_ptr(),
+        image.as_mem().as_ptr(),
         block as cl_uint,
         &origin as *const _ as *const usize,
         &region as *const _ as *const usize,
@@ -2324,9 +2332,9 @@ pub unsafe fn enqueue_read_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 /// Enqueues a command to write to an image or image array object from host memory.
 ///
 /// TODO: Size check (rather than leaving it to API).
-pub fn enqueue_write_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_write_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            image: &Mem,
+            image: M,
             block: bool,
             origin: [usize; 3],
             region: [usize; 3],
@@ -2336,6 +2344,7 @@ pub fn enqueue_write_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let input_row_pitch_bytes = input_row_pitch * mem::size_of::<T>();
     let input_slc_pitch_bytes = input_slc_pitch * mem::size_of::<T>();
@@ -2345,7 +2354,7 @@ pub fn enqueue_write_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 
     let errcode = unsafe { ffi::clEnqueueWriteImage(
         command_queue.as_ptr(),
-        image.as_ptr(),
+        image.as_mem().as_ptr(),
         block as cl_uint,
         &origin as *const _ as *const usize,
         &region as *const _ as *const usize,
@@ -2375,9 +2384,9 @@ pub fn enqueue_write_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 /// TODO: Trait constraints for `T`. Presumably it should be 32bits? Testing needed.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub fn enqueue_fill_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_fill_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            image: &Mem,
+            image: M,
             color: &[T],
             origin: [usize; 3],
             region: [usize; 3],
@@ -2385,6 +2394,7 @@ pub fn enqueue_fill_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             new_event: Option<En>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     // Verify device version:
     try!(verify_device_version(device_version, [1, 2], command_queue));
@@ -2394,7 +2404,7 @@ pub fn enqueue_fill_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 
     let errcode = unsafe { ffi::clEnqueueFillImage(
         command_queue.as_ptr(),
-        image.as_ptr(),
+        image.as_mem().as_ptr(),
         color as *const _ as *const c_void,
         &origin as *const _ as *const usize,
         &region as *const _ as *const usize,
@@ -2409,24 +2419,25 @@ pub fn enqueue_fill_image<T, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 /// Enqueues a command to copy image objects.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImage.html)
-pub fn enqueue_copy_image<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_copy_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            src_image: &Mem,
-            dst_image: &Mem,
+            src_image: M,
+            dst_image: M,
             src_origin: [usize; 3],
             dst_origin: [usize; 3],
             region: [usize; 3],
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = try!(resolve_event_ptrs(wait_list, new_event));
 
     let errcode = unsafe { ffi::clEnqueueCopyImage(
         command_queue.as_ptr(),
-        src_image.as_ptr(),
-        dst_image.as_ptr(),
+        src_image.as_mem().as_ptr(),
+        dst_image.as_mem().as_ptr(),
         &src_origin as *const _ as *const usize,
         &dst_origin as *const _ as *const usize,
         &region as *const _ as *const usize,
@@ -2441,16 +2452,17 @@ pub fn enqueue_copy_image<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 /// Enqueues a command to copy an image object to a buffer object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImageToBuffer.html)
-pub fn enqueue_copy_image_to_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            src_image: &Mem,
-            dst_buffer: &Mem,
+            src_image: M,
+            dst_buffer: M,
             src_origin: [usize; 3],
             region: [usize; 3],
             dst_offset: usize,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let dst_offset_bytes = dst_offset * mem::size_of::<T>();
 
@@ -2459,8 +2471,8 @@ pub fn enqueue_copy_image_to_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitLi
 
     let errcode = unsafe { ffi::clEnqueueCopyImageToBuffer(
         command_queue.as_ptr(),
-        src_image.as_ptr(),
-        dst_buffer.as_ptr(),
+        src_image.as_mem().as_ptr(),
+        dst_buffer.as_mem().as_ptr(),
         &src_origin as *const _ as *const usize,
         &region as *const _ as *const usize,
         dst_offset_bytes,
@@ -2475,16 +2487,17 @@ pub fn enqueue_copy_image_to_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitLi
 /// Enqueues a command to copy a buffer object to an image object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferToImage.html)
-pub fn enqueue_copy_buffer_to_image<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_copy_buffer_to_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            src_buffer: &Mem,
-            dst_image: &Mem,
+            src_buffer: M,
+            dst_image: M,
             src_offset: usize,
             dst_origin: [usize; 3],
             region: [usize; 3],
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let src_offset_bytes = src_offset * mem::size_of::<T>();
 
@@ -2493,8 +2506,8 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitLi
 
     let errcode = unsafe { ffi::clEnqueueCopyBufferToImage(
         command_queue.as_ptr(),
-        src_buffer.as_ptr(),
-        dst_image.as_ptr(),
+        src_buffer.as_mem().as_ptr(),
+        dst_image.as_mem().as_ptr(),
         src_offset_bytes,
         &dst_origin as *const _ as *const usize,
         &region as *const _ as *const usize,
@@ -2505,32 +2518,28 @@ pub fn enqueue_copy_buffer_to_image<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitLi
     eval_errcode(errcode, (), "clEnqueueCopyBufferToImage", "")
 }
 
-unsafe fn _enqueue_map_buffer<T>(
+#[inline]
+unsafe fn _enqueue_map_buffer<T, M>(
         command_queue: &CommandQueue,
-        buffer: &Mem,
+        buffer: M,
         block: bool,
         map_flags: MapFlags,
         offset: usize,
         len: usize,
-        // wait_list: Option<Ewl>,
-        // new_event: Option<En>,
         wait_list_len: cl_uint,
         wait_list_ptr: *const cl_event,
         new_event_ptr: *mut cl_event,
         ) -> OclResult<*mut T>
-        where T: OclPrm
+        where T: OclPrm, M: AsMem<T> + MemCmdAll
 {
     let offset_bytes = offset * mem::size_of::<T>();
     let size_bytes = len * mem::size_of::<T>();
-
-    // let (wait_list_len, wait_list_ptr, new_event_ptr) =
-    //     try!(resolve_event_ptrs(wait_list, new_event));
 
     let mut errcode = 0i32;
 
     let mapped_ptr = ffi::clEnqueueMapBuffer(
         command_queue.as_ptr(),
-        buffer.as_ptr(),
+        buffer.as_mem().as_ptr(),
         block as cl_uint,
         map_flags.bits(),
         offset_bytes,
@@ -2541,26 +2550,19 @@ unsafe fn _enqueue_map_buffer<T>(
         &mut errcode,
     );
 
-    // let map_event_core = if !new_event_ptr.is_null() {
-    //     *new_event_ptr = map_event;
-    //     Event::from_copied_ptr(map_event)?
-    // } else {
-    //     Event::from_fresh_ptr(map_event)
-    // };
-
     eval_errcode(errcode, mapped_ptr as *mut T, "clEnqueueMapBuffer", "")
 }
 
-pub unsafe fn enqueue_map_buffer_async<T, En, Ewl>(
+pub unsafe fn enqueue_map_buffer_async<T, M, En, Ewl>(
         command_queue: &CommandQueue,
-        buffer: &Mem,
+        buffer: M,
         map_flags: MapFlags,
         offset: usize,
         len: usize,
         wait_list: Option<Ewl>,
         new_event: Option<En>,
         ) -> OclResult<FutureMappedMem<T>>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -2569,7 +2571,7 @@ pub unsafe fn enqueue_map_buffer_async<T, En, Ewl>(
 
     let mapped_ptr = _enqueue_map_buffer(
         command_queue,
-        buffer,
+        buffer.as_mem(),
         false,
         map_flags,
         offset,
@@ -2586,7 +2588,7 @@ pub unsafe fn enqueue_map_buffer_async<T, En, Ewl>(
         Event::from_raw(new_map_event_ptr)
     };
 
-    mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core, buffer.clone(),
+    mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core, buffer.as_mem().clone(),
         command_queue.clone()))
 }
 
@@ -2610,9 +2612,9 @@ pub unsafe fn enqueue_map_buffer_async<T, En, Ewl>(
 /// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
 ///
 ///
-pub unsafe fn enqueue_map_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: &Mem,
+            buffer: M,
             block: bool,
             map_flags: MapFlags,
             offset: usize,
@@ -2620,44 +2622,15 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListP
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<MappedMem<T>>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
-    // let offset_bytes = offset * mem::size_of::<T>();
-    // let size_bytes = len * mem::size_of::<T>();
-
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
 
-    // let mut errcode = 0i32;
-    // let mut map_event = 0 as cl_event;
-
-    // let mapped_ptr = ffi::clEnqueueMapBuffer(
-    //     command_queue.as_ptr(),
-    //     buffer.as_ptr(),
-    //     block as cl_uint,
-    //     map_flags.bits(),
-    //     offset_bytes,
-    //     size_bytes,
-    //     wait_list_len,
-    //     wait_list_ptr,
-    //     new_event_ptr,
-    //     // &mut map_event,
-    //     &mut errcode,
-    // );
-
-    // let map_event_core = if !new_event_ptr.is_null() {
-    //     *new_event_ptr = map_event;
-    //     Event::from_copied_ptr(map_event)?
-    // } else {
-    //     Event::from_fresh_ptr(map_event)
-    // };
-
-    // eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, len, /*map_event_core*/),
-    //     "clEnqueueMapBuffer", "")
-
-    let mapped_ptr_res = _enqueue_map_buffer(command_queue, buffer, block, map_flags, offset, len,
+    let mapped_ptr_res = _enqueue_map_buffer(command_queue, buffer.as_mem(), block, map_flags, offset, len,
         wait_list_len, wait_list_ptr, new_event_ptr);
 
-    mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None, buffer.clone(),
+    mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None, buffer.as_mem().clone(),
         command_queue.clone()))
 }
 
@@ -2681,9 +2654,9 @@ pub unsafe fn enqueue_map_buffer<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListP
 /// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
 ///
 ///
-pub unsafe fn enqueue_map_image<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            image: &Mem,
+            image: M,
             block: bool,
             map_flags: MapFlags,
             origin: [usize; 3],
@@ -2693,6 +2666,7 @@ pub unsafe fn enqueue_map_image<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPt
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<MappedMem<T>>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let row_pitch_bytes = row_pitch * mem::size_of::<T>();
     let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
@@ -2705,7 +2679,7 @@ pub unsafe fn enqueue_map_image<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPt
 
     let mapped_ptr = ffi::clEnqueueMapImage(
         command_queue.as_ptr(),
-        image.as_ptr(),
+        image.as_mem().as_ptr(),
         block as cl_uint,
         map_flags.bits(),
         &origin as *const _ as *const usize,
@@ -2727,20 +2701,21 @@ pub unsafe fn enqueue_map_image<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPt
     // };
 
     eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2],
-        None, image.clone(), command_queue.clone()), "clEnqueueMapImage", "")
+        None, image.as_mem().clone(), command_queue.clone()), "clEnqueueMapImage", "")
 }
 
 /// Enqueues a command to unmap a previously mapped region of a memory object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueUnmapMemObject.html)
 ///
-pub fn enqueue_unmap_mem_object<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
             command_queue: &CommandQueue,
-            memobj: &Mem,
+            memobj: M,
             mapped_mem: &MappedMem<T>,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
+        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
 
     if mapped_mem.is_unmapped() {
@@ -2753,7 +2728,7 @@ pub fn enqueue_unmap_mem_object<T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPt
 
     let errcode = unsafe { ffi::clEnqueueUnmapMemObject(
         command_queue.as_ptr(),
-        memobj.as_ptr(),
+        memobj.as_mem().as_ptr(),
         ::structs::mapped_mem_as_ptr(mapped_mem),
         wait_list_len,
         wait_list_ptr,

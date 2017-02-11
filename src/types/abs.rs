@@ -49,7 +49,7 @@ use ffi::{/*self,*/ cl_platform_id, cl_device_id,  cl_context, cl_command_queue,
     cl_kernel, cl_event, cl_sampler};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
-    ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn};
+    ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm};
 use error::{Result as OclResult, Error as OclError};
 use functions;
 use util;
@@ -69,6 +69,41 @@ const DEBUG_PRINT: bool = false;
 //=============================================================================
 //================================== TRAITS ===================================
 //=============================================================================
+
+/// `AsRef` with a type being carried along for convenience.
+pub trait AsMem<T>: Clone
+        where T: OclPrm
+{
+    fn as_mem(&self) -> &Mem;
+}
+
+impl<'a, T, M> AsMem<T> for &'a M where T: OclPrm, M: AsMem<T> {
+    fn as_mem(&self) -> &Mem {
+        (*self).as_mem()
+    }
+}
+
+/// Types which can be passed as the primary (`ptr`) argument value to
+/// `::enqueue_read_buffer`, `::enqueue_write_buffer`,
+/// `::enqueue_read_buffer_rect`, `::enqueue_write_buffer_rect`,
+/// `::enqueue_read_image`, or `::enqueue_write_image`.
+///
+/// Types returned from `::enqueue_map_...` and all of their derivatives as
+/// well as types created with `::create_buffer` and `::create_image` all
+/// implement this trait.
+///
+pub unsafe trait MemCmdRw {}
+unsafe impl<'a, M> MemCmdRw for &'a M where M: MemCmdRw {}
+
+
+/// Types which can be passed to any and all `::enqueue_...` functions as the
+/// primary (`ptr`) argument and can also be passed as kernel arguments.
+///
+/// Types created with `::create_buffer` and `::create_image` implement this
+/// trait.
+pub unsafe trait MemCmdAll {}
+unsafe impl<'a, M> MemCmdAll for &'a M where M: MemCmdRw {}
+
 
 /// Types with a fixed set of associated devices and an associated platform.
 pub trait ClVersions {
@@ -105,13 +140,6 @@ pub unsafe trait ClNullEventPtr: Debug {
     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
 }
 
-// unsafe impl<'a, En> ClNullEventPtr for &'a mut En where En: ClNullEventPtr + ?Sized {
-//     fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-//         self.ptr_mut_ptr_new()
-//     }
-
-// }
-
 
 /// Types with a reference to a raw event array and an associated element
 /// count.
@@ -122,17 +150,6 @@ pub unsafe trait ClWaitListPtr: Debug {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event;
     fn count (&self) -> u32;
 }
-
-// unsafe impl<'a, Ewl> ClWaitListPtr for &'a Ewl where Ewl: ClWaitListPtr + ?Sized {
-//     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-//         self.as_ptr_ptr()
-//     }
-
-//     fn count (&self) -> u32 {
-//         self.count()
-//     }
-
-// }
 
 unsafe impl<'a> ClWaitListPtr for &'a [cl_event] {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
@@ -488,6 +505,7 @@ impl Mem {
 	// }
 
     /// Returns a pointer, do not store it.
+    #[inline(always)]
     pub unsafe fn as_ptr(&self) -> cl_mem {
         self.0
     }
@@ -506,8 +524,51 @@ impl Drop for Mem {
     }
 }
 
+impl<T> AsMem<T> for Mem where T: OclPrm {
+    #[inline(always)]
+    fn as_mem(&self) -> &Mem {
+        self
+    }
+}
+
+unsafe impl MemCmdRw for Mem {}
+unsafe impl MemCmdAll for Mem {}
+
 unsafe impl Sync for Mem {}
 unsafe impl Send for Mem {}
+
+
+
+
+// impl<T: OclPrm> AsRef<MemCore> for SubBuffer<T> {
+//     fn as_ref(&self) -> &MemCore {
+//         &self.obj_core
+//     }
+// }
+
+// impl<T: OclPrm> AsMut<MemCore> for SubBuffer<T> {
+//     fn as_mut(&mut self) -> &mut MemCore {
+//         &mut self.obj_core
+//     }
+// }
+
+// impl<'a, T: OclPrm> AsMemRef<T> for SubBuffer<T> {
+//     fn as_mem_ref(&self) -> &MemCore {
+//         &self.obj_core
+//     }
+// }
+
+// impl<'a, T: OclPrm> AsMemRef<T> for &'a SubBuffer<T> {
+//     fn as_mem_ref(&self) -> &MemCore {
+//         &self.obj_core
+//     }
+// }
+
+// impl<'a, T: OclPrm> AsMemRef<T> for &'a mut SubBuffer<T> {
+//     fn as_mem_ref(&self) -> &MemCore {
+//         &self.obj_core
+//     }
+// }
 
 
 
@@ -531,6 +592,7 @@ impl Program {
 	}
 
 	/// Returns a pointer, do not store it.
+    #[inline(always)]
 	pub unsafe fn as_ptr(&self) -> cl_program {
 		self.0
 	}
@@ -601,6 +663,7 @@ impl Kernel {
     }
 
     /// Returns a pointer, do not store it.
+    #[inline(always)]
     pub unsafe fn as_ptr(&self) -> cl_kernel {
         self.0
     }

@@ -123,9 +123,10 @@ use rand::distributions::range::SampleRange;
 
 pub use self::error::{Error, Result};
 
-pub use self::types::abs::{ClNullEventPtr, ClEventRef, ClPlatformIdPtr, ClDeviceIdPtr,
-    EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem, Program, Kernel, NullEvent,
-    Event, UserEvent, EventList, Sampler, ClWaitListPtr, ClVersions};
+pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventRef, ClPlatformIdPtr,
+    ClDeviceIdPtr, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem, Program,
+    Kernel, NullEvent, Event, UserEvent, EventList, Sampler, ClVersions, AsMem, MemCmdRw,
+    MemCmdAll};
 
 pub use self::types::structs::{self, MappedMemPtr, MappedMem, OpenclVersion, ContextProperties,
     ImageFormat, ImageDescriptor, BufferRegion, ContextPropertyValue};
