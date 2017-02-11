@@ -42,7 +42,8 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem, FutureMappedMem, UserEvent, AsMem, MemCmdRw, MemCmdAll};
+    CommandQueueProperties, MappedMem, UserEvent, AsMem, MemCmdRw, MemCmdAll};
+
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -66,7 +67,6 @@ pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void
 /// `src_event_ptr` is not used and does not need anything special done with
 /// its destructor (it will already have been managed by the call to `::set_event_callback`.
 ///
-#[cfg(feature = "future_event_callbacks")]
 pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
     let _ = src_event_ptr;
 
@@ -126,7 +126,7 @@ fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info
 
 /// Maps options of slices to pointers and a length.
 fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<Ewl>,
-            new_event: Option<En>) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
+            new_event: Option<En>) -> (cl_uint, *const cl_event, *mut cl_event)
 {
     // If the wait list is empty or if its containing option is none, map to (0, null),
     // otherwise map to the length and pointer:
@@ -142,11 +142,11 @@ fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<
     };
 
     let new_event_ptr = match new_event {
-        Some(mut ne) => try!(ne.ptr_mut_ptr_new()),
+        Some(mut ne) => ne.ptr_mut_ptr_new(),
         None => ptr::null_mut() as *mut cl_event,
     };
 
-    Ok((wait_list_len, wait_list_ptr, new_event_ptr))
+    (wait_list_len, wait_list_ptr, new_event_ptr)
 }
 
 /// Converts an array option reference into a pointer to the contained array.
@@ -553,7 +553,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
 
     let mut errcode: cl_int = 0;
 
-    let context = unsafe { Context::from_fresh_ptr(ffi::clCreateContext(
+    let context = unsafe { Context::from_raw_create_ptr(ffi::clCreateContext(
         properties_ptr,
         device_ids.len() as cl_uint,
         device_ids.as_ptr()  as *const cl_device_id,
@@ -624,7 +624,7 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
 
     let mut errcode: cl_int = 0;
 
-    let context = unsafe { Context::from_fresh_ptr(ffi::clCreateContextFromType(
+    let context = unsafe { Context::from_raw_create_ptr(ffi::clCreateContextFromType(
         properties_ptr,
         device_type.bits(),
         pfn_notify,
@@ -726,7 +726,7 @@ pub fn create_command_queue<D: ClDeviceIdPtr>(
 
     let mut errcode: cl_int = 0;
 
-    let cq = unsafe { CommandQueue::from_fresh_ptr(ffi::clCreateCommandQueue(
+    let cq = unsafe { CommandQueue::from_raw_create_ptr(ffi::clCreateCommandQueue(
         context.as_ptr(),
         device.as_ptr(),
         // ffi::CL_QUEUE_PROFILING_ENABLE,
@@ -821,7 +821,7 @@ pub unsafe fn create_buffer<T: OclPrm>(
         &mut errcode,
     );
 
-    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateBuffer", "")
+    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateBuffer", "")
 }
 
 /// [UNTESTED]
@@ -843,7 +843,7 @@ pub unsafe fn create_from_gl_buffer(
             gl_object,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLBuffer", "")
+    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLBuffer", "")
 }
 
 /// [UNTESTED]
@@ -865,7 +865,7 @@ pub unsafe fn create_from_gl_renderbuffer(
             renderbuffer,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLRenderbuffer", "")
+    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLRenderbuffer", "")
 }
 
 /// [UNTESTED]
@@ -891,7 +891,7 @@ pub unsafe fn create_from_gl_texture(
             texture,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLTexture", "")
+    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLTexture", "")
 }
 
 /// [UNTESTED] [DEPRICATED]
@@ -917,7 +917,7 @@ pub unsafe fn create_from_gl_texture_2d(
             texture,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLTexture2D", "")
+    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLTexture2D", "")
 }
 
 /// [UNTESTED] [DEPRICATED]
@@ -943,7 +943,7 @@ pub unsafe fn create_from_gl_texture_3d(
             texture,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_fresh_ptr(buf_ptr), "clCreateFromGLTexture3D", "")
+    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLTexture3D", "")
 }
 
 /// [UNTESTED]
@@ -973,7 +973,7 @@ pub fn create_sub_buffer<T>(
         &mut errcode,
     ) };
 
-    unsafe { eval_errcode(errcode, Mem::from_fresh_ptr(sub_buf_ptr), "clCreateSubBuffer", "") }
+    unsafe { eval_errcode(errcode, Mem::from_raw_create_ptr(sub_buf_ptr), "clCreateSubBuffer", "") }
 }
 
 /// Returns a new image (mem) pointer.
@@ -1014,7 +1014,7 @@ pub unsafe fn create_image<T>(
         &mut errcode as *mut cl_int,
     );
 
-    eval_errcode(errcode, Mem::from_fresh_ptr(image_ptr), "clCreateImage", "")
+    eval_errcode(errcode, Mem::from_raw_create_ptr(image_ptr), "clCreateImage", "")
 }
 
 /// Increments the reference counter of a mem object.
@@ -1173,7 +1173,7 @@ pub fn create_sampler(context: &Context, normalize_coords: bool, addressing_mode
 {
     let mut errcode = 0;
 
-    let sampler = unsafe { Sampler::from_fresh_ptr(ffi::clCreateSampler(
+    let sampler = unsafe { Sampler::from_raw_create_ptr(ffi::clCreateSampler(
         context.as_ptr(),
         normalize_coords as cl_bool,
         addressing_mode as cl_addressing_mode,
@@ -1262,7 +1262,7 @@ pub fn create_program_with_source(
         ks_lens.as_ptr() as *const usize,
         &mut errcode,
     ) };
-    unsafe { eval_errcode(errcode, Program::from_fresh_ptr(program), "clCreateProgramWithSource", "") }
+    unsafe { eval_errcode(errcode, Program::from_raw_create_ptr(program), "clCreateProgramWithSource", "") }
 }
 
 /// [UNTESTED]
@@ -1303,7 +1303,7 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
         try!(eval_errcode(*item, (), "clCreateProgramWithBinary", &format!("(): Device [{}]", i)));
     }
 
-    unsafe { Ok(Program::from_fresh_ptr(program)) }
+    unsafe { Ok(Program::from_raw_create_ptr(program)) }
 }
 
 /// [UNIMPLEMENTED]
@@ -1511,7 +1511,7 @@ pub fn create_kernel(
 {
     let mut err: cl_int = 0;
 
-    let kernel = unsafe { Kernel::from_fresh_ptr(ffi::clCreateKernel(
+    let kernel = unsafe { Kernel::from_raw_create_ptr(ffi::clCreateKernel(
         program.as_ptr(),
         // 0 as cl_program,
         try!(CString::new(name.as_bytes())).as_ptr(),
@@ -1923,7 +1923,7 @@ pub unsafe fn enqueue_read_buffer<T, M, En, Ewl>(
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let offset_bytes = offset * mem::size_of::<T>();
 
@@ -1994,7 +1994,7 @@ pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
     }
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let errcode = ffi::clEnqueueReadBufferRect(
         command_queue.as_ptr(),
@@ -2030,7 +2030,7 @@ pub fn enqueue_write_buffer<T, M, En, Ewl>(
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let offset_bytes = offset * mem::size_of::<T>();
 
@@ -2074,7 +2074,7 @@ pub fn enqueue_write_buffer_rect<T, M, En, Ewl>(
     where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let buffer_origin_bytes = [buffer_origin[0] * mem::size_of::<T>(),
         buffer_origin[1], buffer_origin[2]];
@@ -2129,7 +2129,7 @@ pub fn enqueue_fill_buffer<T, M, En, Ewl>(
     let size_bytes = len * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueFillBuffer(
         command_queue.as_ptr(),
@@ -2160,7 +2160,7 @@ pub fn enqueue_copy_buffer<T, M, En, Ewl>(
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let src_offset_bytes = src_offset * mem::size_of::<T>();
     let dst_offset_bytes = dst_offset * mem::size_of::<T>();
@@ -2202,7 +2202,7 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let src_origin_bytes = [src_origin[0] * mem::size_of::<T>(),
         src_origin[1], src_origin[2]];
@@ -2243,7 +2243,7 @@ pub fn enqueue_acquire_gl_buffer<En, Ewl>(
         where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { clEnqueueAcquireGLObjects(
         command_queue.as_ptr(),
@@ -2267,7 +2267,7 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
         where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { clEnqueueReleaseGLObjects(
         command_queue.as_ptr(),
@@ -2310,7 +2310,7 @@ pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
     let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = ffi::clEnqueueReadImage(
         command_queue.as_ptr(),
@@ -2350,7 +2350,7 @@ pub fn enqueue_write_image<T, M, En, Ewl>(
     let input_slc_pitch_bytes = input_slc_pitch * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueWriteImage(
         command_queue.as_ptr(),
@@ -2400,7 +2400,7 @@ pub fn enqueue_fill_image<T, M, En, Ewl>(
     try!(verify_device_version(device_version, [1, 2], command_queue));
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueFillImage(
         command_queue.as_ptr(),
@@ -2432,7 +2432,7 @@ pub fn enqueue_copy_image<En, Ewl>(
         where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueCopyImage(
         command_queue.as_ptr(),
@@ -2467,7 +2467,7 @@ pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
     let dst_offset_bytes = dst_offset * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueCopyImageToBuffer(
         command_queue.as_ptr(),
@@ -2502,7 +2502,7 @@ pub fn enqueue_copy_buffer_to_image<T, M, En, Ewl>(
     let src_offset_bytes = src_offset * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueCopyBufferToImage(
         command_queue.as_ptr(),
@@ -2553,44 +2553,47 @@ unsafe fn _enqueue_map_buffer<T, M>(
     eval_errcode(errcode, mapped_ptr as *mut T, "clEnqueueMapBuffer", "")
 }
 
-pub unsafe fn enqueue_map_buffer_async<T, M, En, Ewl>(
-        command_queue: &CommandQueue,
-        buffer: M,
-        map_flags: MapFlags,
-        offset: usize,
-        len: usize,
-        wait_list: Option<Ewl>,
-        new_event: Option<En>,
-        ) -> OclResult<FutureMappedMem<T>>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
-{
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+// pub unsafe fn enqueue_map_buffer_async<T, M, En, Ewl>(
+//         command_queue: &CommandQueue,
+//         buffer: M,
+//         map_flags: MapFlags,
+//         offset: usize,
+//         len: usize,
+//         wait_list: Option<Ewl>,
+//         new_event: En,
+//         // ) -> OclResult<FutureMappedMem<T>>
+//         ) -> OclResult<MappedMem<T>>
+//         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+// {
+//     let (wait_list_len, wait_list_ptr, new_event_ptr) =
+//         try!(resolve_event_ptrs(wait_list, Some(new_event)));
 
-    let mut new_map_event_ptr = 0 as cl_event;
+//     // let mut new_map_event_ptr = 0 as cl_event;
 
-    let mapped_ptr = _enqueue_map_buffer(
-        command_queue,
-        buffer.as_mem(),
-        false,
-        map_flags,
-        offset,
-        len,
-        wait_list_len,
-        wait_list_ptr,
-        &mut new_map_event_ptr,
-    );
+//     let mapped_ptr_res = _enqueue_map_buffer(
+//         command_queue,
+//         buffer.as_mem(),
+//         false,
+//         map_flags,
+//         offset,
+//         len,
+//         wait_list_len,
+//         wait_list_ptr,
+//         new_event_ptr,
+//     );
 
-    let new_map_event_core = if !new_event_ptr.is_null() {
-        *new_event_ptr = new_map_event_ptr;
-        Event::from_copied_ptr(new_map_event_ptr)?
-    } else {
-        Event::from_raw(new_map_event_ptr)
-    };
+//     // let new_map_event_core = if !new_event_ptr.is_null() {
+//     //     *new_event_ptr = new_map_event_ptr;
+//     //     Event::from_raw_copied_ptr(new_map_event_ptr)?
+//     // } else {
+//     //     Event::from_raw(new_map_event_ptr)
+//     // };
 
-    mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core, buffer.as_mem().clone(),
-        command_queue.clone()))
-}
+//     // mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core, buffer.as_mem().clone(),
+//     //     command_queue.clone()))
+
+//     mapped_ptr_res.map(|ptr| MappedMem::from_raw(ptr))
+// }
 
 /// Enqueues a command to map a region of the buffer object given
 /// by `buffer` into the host address space and returns a pointer to this
@@ -2625,13 +2628,15 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let mapped_ptr_res = _enqueue_map_buffer(command_queue, buffer.as_mem(), block, map_flags, offset, len,
         wait_list_len, wait_list_ptr, new_event_ptr);
 
-    mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None, buffer.as_mem().clone(),
-        command_queue.clone()))
+    // mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None, buffer.as_mem().clone(),
+    //     command_queue.clone()))
+
+    mapped_ptr_res.map(|ptr| MappedMem::from_raw(ptr))
 }
 
 /// [UNTESTED]
@@ -2672,7 +2677,7 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
     let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let mut errcode = 0i32;
     // let mut map_event = 0 as cl_event;
@@ -2695,13 +2700,16 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
 
     // let map_event_core = if !new_event_ptr.is_null() {
     //     *new_event_ptr = map_event;
-    //     Event::from_copied_ptr(map_event)?
+    //     Event::from_raw_copied_ptr(map_event)?
     // } else {
-    //     Event::from_fresh_ptr(map_event)
+    //     Event::from_raw_create_ptr(map_event)
     // };
 
-    eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2],
-        None, image.as_mem().clone(), command_queue.clone()), "clEnqueueMapImage", "")
+    // eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2],
+    //     None, image.as_mem().clone(), command_queue.clone()), "clEnqueueMapImage", "")
+
+    let mapped_mem = MappedMem::from_raw(mapped_ptr as *mut _ as *mut T);
+    eval_errcode(errcode, mapped_mem, "clEnqueueMapImage", "")
 }
 
 /// Enqueues a command to unmap a previously mapped region of a memory object.
@@ -2718,18 +2726,18 @@ pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
 
-    if mapped_mem.is_unmapped() {
-        return Err("ocl_core::enqueue_unmap_mem_object: The 'MappedMem' object passed is already \
-            unmapped.".into());
-    }
+    // if mapped_mem.is_unmapped() {
+    //     return Err("ocl_core::enqueue_unmap_mem_object: The 'MappedMem' object passed is already \
+    //         unmapped.".into());
+    // }
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueUnmapMemObject(
         command_queue.as_ptr(),
         memobj.as_mem().as_ptr(),
-        ::structs::mapped_mem_as_ptr(mapped_mem),
+        mapped_mem.as_void_ptr(),
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
@@ -2759,10 +2767,10 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     try!(verify_device_version(device_version, [1, 2], command_queue));
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
-        = try!(resolve_event_ptrs(wait_list, new_event));
+        = resolve_event_ptrs(wait_list, new_event);
 
     let mem_ptr_list: Vec<cl_mem> = mem_objects.iter()
-        .map(|ref mem_obj| unsafe { mem_obj.as_ptr() } ).collect();
+        .map(|ref mem_obj| mem_obj.as_ptr()).collect();
 
     let errcode = unsafe { ffi::clEnqueueMigrateMemObjects(
         command_queue.as_ptr(),
@@ -2804,7 +2812,7 @@ pub fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     // println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     // #[cfg(feature="kernel_debug_print")]
     // println!("Resolving global work offset: {:?}...", global_work_offset);
@@ -2890,7 +2898,7 @@ pub fn enqueue_task<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
         ) -> OclResult<()>
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueTask(
             command_queue.as_ptr(),
@@ -2935,7 +2943,7 @@ pub fn enqueue_marker_with_wait_list<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     try!(verify_device_version(device_version, [1, 2], command_queue));
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueMarkerWithWaitList(
         command_queue.as_ptr(),
@@ -2963,7 +2971,7 @@ pub fn enqueue_barrier_with_wait_list<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     try!(verify_device_version(device_version, [1, 2], command_queue));
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        try!(resolve_event_ptrs(wait_list, new_event));
+        resolve_event_ptrs(wait_list, new_event);
 
     let errcode = unsafe { ffi::clEnqueueBarrierWithWaitList(
         command_queue.as_ptr(),

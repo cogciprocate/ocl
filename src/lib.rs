@@ -111,7 +111,7 @@ pub extern crate cl_sys as ffi;
 
 #[cfg(test)] mod tests;
 mod functions;
-mod async;
+// mod async;
 pub mod types;
 pub mod error;
 pub mod util;
@@ -126,9 +126,9 @@ pub use self::error::{Error, Result};
 pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventRef, ClPlatformIdPtr,
     ClDeviceIdPtr, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem, Program,
     Kernel, NullEvent, Event, UserEvent, EventList, Sampler, ClVersions, AsMem, MemCmdRw,
-    MemCmdAll};
+    MemCmdAll, MappedMem};
 
-pub use self::types::structs::{self, MappedMemPtr, MappedMem, OpenclVersion, ContextProperties,
+pub use self::types::structs::{self, OpenclVersion, ContextProperties,
     ImageFormat, ImageDescriptor, BufferRegion, ContextPropertyValue};
 
 pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult,
@@ -150,7 +150,7 @@ pub use self::types::vectors::{
     ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16,
 };
 
-pub use self::async::mapped_mem::{FutureMappedMem};
+// pub use self::async::mapped_mem::{FutureMappedMem};
 
 pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids,
     get_device_info, create_sub_devices, retain_device, release_device,
@@ -178,7 +178,7 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids,
     enqueue_read_image, enqueue_write_image, enqueue_fill_image,
     enqueue_copy_image, enqueue_copy_image_to_buffer,
     enqueue_copy_buffer_to_image, enqueue_map_buffer,
-    enqueue_map_buffer_async, enqueue_map_image, enqueue_unmap_mem_object,
+    /*enqueue_map_buffer_async,*/ enqueue_map_image, enqueue_unmap_mem_object,
     enqueue_migrate_mem_objects, enqueue_kernel, enqueue_task,
     enqueue_native_kernel, enqueue_marker_with_wait_list,
     enqueue_barrier_with_wait_list,

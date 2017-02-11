@@ -2,275 +2,22 @@
 
 use libc::c_void;
 use std;
-use std::ptr;
-use std::slice;
+// use std::ptr;
+// use std::slice;
 use std::mem;
-use std::ops::{Deref, DerefMut};
+// use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-    PlatformId, OclPrm, CommandQueue, ClWaitListPtr, UserEvent, Event, ClNullEventPtr,
-    EventList};
-
-
-
-// pub struct MemCmdUnmap<'b> {
-//     queue: &'b CommandQueue,
-//     obj_core: &'b MemCore,
-//     ewait: Option<ClWaitListPtrEnum<'b>>,
-//     enew: Option<ClNullEventPtrEnum<'b>>,
-// }
-
-// impl<'b> MemCmdUnmap<'b> {
-//     fn new(queue: &'b Queue, obj_core: &'b MemCore) -> MemCmdUnmap<'b>
-//     {
-//         MemCmdUnmap {
-//             queue: queue,
-//             obj_core: obj_core,
-//             block: true,
-//             lock_block: false,
-//             kind: MemCmdUnmapKind::Unspecified,
-//             shape: MemCmdUnmapDataShape::Lin { offset: 0 },
-//             ewait: None,
-//             enew: None,
-//             mem_len: mem_len,
-//         }
-//     }
-
-//     /// Specifies a queue to use for this call only.
-//     pub fn queue(mut self, queue: &'b Queue) -> MemCmdUnmap<'b> {
-//         self.queue = queue;
-//         self
-//     }
-
-
-//     /// Specifies a list of events to wait on before the command will run.
-//     pub fn ewait<EWL>(mut self, ewait: EWL) -> MemCmdUnmap<'b> where EWL: Into<ClWaitListPtrEnum<'b>> {
-//         self.ewait = Some(ewait.into());
-//         self
-//     }
-
-//     /// Specifies a list of events to wait on before the command will run or
-//     /// resets it to `None`.
-//     pub fn ewait_opt<EWL>(mut self, ewait: Option<EWL>) -> MemCmdUnmap<'b> where EWL: Into<ClWaitListPtrEnum<'b>> {
-//         self.ewait = ewait.map(|el| el.into());
-//         self
-//     }
-
-//     /// Specifies the destination for a new, optionally created event
-//     /// associated with this command.
-//     pub fn enew<NE>(mut self, enew: NE) -> MemCmdUnmap<'b>
-//             where NE: Into<ClNullEventPtrEnum<'b>>
-//     {
-//         self.enew = Some(enew.into());
-//         self
-//     }
-
-//     /// Specifies a destination for a new, optionally created event
-//     /// associated with this command or resets it to `None`.
-//     pub fn enew_opt<NE>(mut self, enew: Option<NE>) -> MemCmdUnmap<'b>
-//             where NE: Into<ClNullEventPtrEnum<'b>>
-//     {
-//         self.enew = enew.map(|e| e.into());
-//         self
-//     }
-
-//     /// Enqueues this command.
-//     ///
-//     pub fn enq(self) -> OclResult<()> {
-
-//     }
-// }
+    PlatformId, /*OclPrm, CommandQueue, ClWaitListPtr, UserEvent, Event, ClNullEventPtr,
+    EventList*/};
 
 
 // Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
-
-
-pub struct MappedMemPtr<T: OclPrm>(*mut T);
-
-impl<T: OclPrm> MappedMemPtr<T> {
-    #[inline(always)]
-    pub fn new(ptr: *mut T) -> MappedMemPtr<T> {
-        MappedMemPtr(ptr)
-    }
-
-    #[inline(always)]
-    pub fn as_ptr(&self) -> *mut T {
-        self.0
-    }
-}
-
-unsafe impl<T: OclPrm> Send for MappedMemPtr<T> {}
-unsafe impl<T: OclPrm> Sync for MappedMemPtr<T> {}
-
-
-pub unsafe fn mapped_mem_set_unmapped<T: OclPrm>(mm: &mut MappedMem<T>) {
-    mm.is_unmapped = true;
-}
-
-pub fn mapped_mem_as_ptr<T: OclPrm>(mm: &MappedMem<T>) -> cl_mem {
-    mm.as_ptr()
-}
-
-
-/// A view of memory mapped by `clEnqueueMap{...}`.
-///
-///
-///
-/// ### [UNSTABLE]
-///
-/// Still in a state of flux but is ~80% stable.
-///
-pub struct MappedMem<T: OclPrm> {
-    ptr: MappedMemPtr<T>,
-    len: usize,
-    buffer: Mem,
-    queue: CommandQueue,
-    unmap_event: Option<UserEvent>,
-    callback_is_set: bool,
-    is_unmapped: bool,
-}
-
-impl<T> MappedMem<T>  where T: OclPrm {
-    pub unsafe fn new(ptr: *mut T, len: usize, unmap_event: Option<UserEvent>, buffer: Mem,
-            queue: CommandQueue) -> MappedMem<T>
-    {
-        assert!(!ptr.is_null(), "MappedMem::new: Null pointer passed.");
-
-        MappedMem {
-            ptr: MappedMemPtr::new(ptr),
-            len: len,
-            buffer: buffer,
-            queue: queue,
-            unmap_event: unmap_event,
-            callback_is_set: false,
-            is_unmapped: false,
-        }
-    }
-
-    /// Enqueues an unmap command for this memory object immediately.
-    ///
-    //
-    // [NOTE]: Passing `enew_opt` is yet untested.
-    pub fn enqueue_unmap<En, Ewl>(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<Ewl>,
-            enew_opt: Option<En>)
-            -> OclResult<()>
-            where En: ClNullEventPtr, Ewl: ClWaitListPtr
-    {
-        if !self.is_unmapped {
-            let mut new_event_opt = if self.unmap_event.is_some() || enew_opt.is_some() {
-                Some(Event::null())
-            } else {
-                None
-            };
-
-            ::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
-                self, ewait_opt, new_event_opt.as_mut())?;
-
-            self.is_unmapped = true;
-
-            if let Some(new_event_null) = new_event_opt {
-                // new_event refcount: 1
-                let new_event = new_event_null.validate()?;
-
-                // If enew_opt is `Some`, update its internal event ptr.
-                if let Some(mut enew) = enew_opt {
-                    unsafe {
-                        ::retain_event(&new_event)?;
-                        // new_event refcount: 2
-                        if let Ok(ptr_ptr) = enew.ptr_mut_ptr_new() {
-                            *ptr_ptr = *(new_event.as_ptr_ref());
-                        }
-                    }
-                }
-
-                if cfg!(feature = "future_event_callbacks") {
-                    self.register_event_trigger(&new_event)?;
-                    // `new_event` will be reconstructed by the callback
-                    // function using `UserEvent::from_raw` so that the
-                    // destructor will be run.
-                    mem::forget(new_event);
-                }
-            }
-
-            Ok(())
-        } else {
-            Err("ocl_core::MappedMem::unmap: Already unmapped.".into())
-        }
-    }
-
-    #[cfg(feature = "future_event_callbacks")]
-    fn register_event_trigger(&mut self, event: &Event) -> OclResult<()> {
-        debug_assert!(self.is_unmapped && self.unmap_event.is_some());
-
-        if !self.callback_is_set {
-            unsafe {
-                let unmap_event_ptr = match self.unmap_event {
-                    Some(ref ev) => (*(ev.as_ptr_ref())) as *mut _ as *mut c_void,
-                    None => ptr::null_mut(),
-                };
-
-                event.set_callback(Some(::_complete_event), unmap_event_ptr)?;
-                println!("Callback set for event: {:?}", unmap_event_ptr);
-            };
-
-            self.callback_is_set = true;
-            Ok(())
-        } else {
-            Err("Callback already set.".into())
-        }
-    }
-
-    pub fn get_unmap_event(&self) -> Option<&UserEvent> {
-        self.unmap_event.as_ref()
-    }
-
-    // #[inline]
-    // pub fn is_accessible(&self) -> OclResult<bool> {
-    //     // self.map_event.is_complete().map(|cmplt| cmplt && !self.is_unmapped)
-    //     Ok(!self.is_unmapped)
-    // }
-
-    #[inline] pub fn is_unmapped(&self) -> bool { self.is_unmapped }
-    #[inline] fn as_ptr(&self) -> cl_mem { self.ptr.as_ptr() as cl_mem }
-}
-
-impl<T> Deref for MappedMem<T> where T: OclPrm {
-    type Target = [T];
-
-    fn deref(&self) -> &[T] {
-        assert!(!self.is_unmapped, "Mapped memory inaccessible. Check with '::is_accessable'
-            before attempting to access.");
-        unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
-    }
-}
-
-impl<T> DerefMut for MappedMem<T> where T: OclPrm {
-    fn deref_mut(&mut self) -> &mut [T] {
-        assert!(!self.is_unmapped, "Mapped memory inaccessible. Check with '::is_accessable'
-            before attempting to access.");
-        unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
-    }
-}
-
-impl<T: OclPrm> Drop for MappedMem<T> {
-    #[cfg(feature = "future_event_callbacks")]
-    fn drop(&mut self) {
-        if !self.is_unmapped {
-            self.enqueue_unmap::<EventList, Event>(None, None, None).ok();
-        }
-    }
-
-    #[cfg(not(feature = "future_event_callbacks"))]
-    fn drop(&mut self) {
-        assert!(self.is_unmapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
-            Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
-    }
-}
 
 
 /// Parsed OpenCL version in the layout `({major}, {minor})`.
@@ -551,31 +298,29 @@ impl ContextProperties {
     pub fn to_raw(&self) -> Vec<isize> {
         let mut props_raw = Vec::with_capacity(32);
 
-        unsafe {
-            // For each property ...
-            for (key, val) in self.0.iter() {
-                // convert both the kind of property (a u32 originally) and
-                // the value (variable type/size) to an isize:
-                match *val {
-                    ContextPropertyValue::Platform(ref platform_id_core) => {
-                        props_raw.push(key.clone() as isize);
-                        props_raw.push(platform_id_core.as_ptr() as isize);
-                    },
-                    ContextPropertyValue::InteropUserSync(sync) => {
-                        props_raw.push(key.clone() as isize);
-                        props_raw.push(sync as isize);
-                    },
-                    ContextPropertyValue::CglSharegroupKhr(sync) => {
-                        props_raw.push(key.clone() as isize);
-                        props_raw.push(sync as isize);
-                    },
-                    _ => panic!("'{:?}' is not yet a supported variant.", key),
-                };
-            }
-
-            // Add a terminating 0:
-            props_raw.push(0);
+        // For each property ...
+        for (key, val) in self.0.iter() {
+            // convert both the kind of property (a u32 originally) and
+            // the value (variable type/size) to an isize:
+            match *val {
+                ContextPropertyValue::Platform(ref platform_id_core) => {
+                    props_raw.push(key.clone() as isize);
+                    props_raw.push(platform_id_core.as_ptr() as isize);
+                },
+                ContextPropertyValue::InteropUserSync(sync) => {
+                    props_raw.push(key.clone() as isize);
+                    props_raw.push(sync as isize);
+                },
+                ContextPropertyValue::CglSharegroupKhr(sync) => {
+                    props_raw.push(key.clone() as isize);
+                    props_raw.push(sync as isize);
+                },
+                _ => panic!("'{:?}' is not yet a supported variant.", key),
+            };
         }
+
+        // Add a terminating 0:
+        props_raw.push(0);
 
         props_raw.shrink_to_fit();
         props_raw
@@ -861,7 +606,7 @@ impl ImageDescriptor {
             num_mip_levels: self.num_mip_levels,
             num_samples: self.num_mip_levels,
             buffer: match self.buffer {
-                        Some(ref b) => unsafe { b.as_ptr() },
+                        Some(ref b) => b.as_ptr(),
                         None => 0 as cl_mem,
                     },
         }

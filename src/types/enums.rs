@@ -639,7 +639,7 @@ impl DeviceInfoResult {
                         if ptr.is_null() {
                             DeviceInfoResult::ParentDevice(None)
                         } else {
-                            DeviceInfoResult::ParentDevice(Some(unsafe { DeviceId::from_copied_ptr(ptr) }))
+                            DeviceInfoResult::ParentDevice(Some(unsafe { DeviceId::from_raw(ptr) }))
                         }
                     },
                     DeviceInfo::PartitionMaxSubDevices => {
@@ -931,7 +931,7 @@ impl CommandQueueInfoResult {
                 match request {
                     CommandQueueInfo::Context => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
-                        CommandQueueInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                        CommandQueueInfoResult::Context(unsafe { Context::from_raw_copied_ptr(ptr) })
                     },
                     CommandQueueInfo::Device => {
                         let device = unsafe { try_ir!(util::bytes_into::<DeviceId>(result)) };
@@ -1093,14 +1093,14 @@ impl MemInfoResult {
                     },
                     MemInfo::Context => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
-                        MemInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                        MemInfoResult::Context(unsafe { Context::from_raw_copied_ptr(ptr) })
                     },
                     MemInfo::AssociatedMemobject => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
                         if ptr.is_null() {
                             MemInfoResult::AssociatedMemobject(None)
                         } else {
-                            MemInfoResult::AssociatedMemobject(Some(unsafe { Mem::from_copied_ptr(ptr) }))
+                            MemInfoResult::AssociatedMemobject(Some(unsafe { Mem::from_raw_copied_ptr(ptr) }))
                         }
                     },
                     MemInfo::Offset => {
@@ -1233,7 +1233,7 @@ impl ImageInfoResult {
                         if ptr.is_null() {
                             ImageInfoResult::Buffer(None)
                         } else {
-                            ImageInfoResult::Buffer(Some(unsafe { Mem::from_copied_ptr(ptr) }))
+                            ImageInfoResult::Buffer(Some(unsafe { Mem::from_raw_copied_ptr(ptr) }))
                         }
                     },
                     ImageInfo::NumMipLevels => {
@@ -1330,7 +1330,7 @@ impl SamplerInfoResult {
                     },
                     SamplerInfo::Context => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
-                        SamplerInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                        SamplerInfoResult::Context(unsafe { Context::from_raw_copied_ptr(ptr) })
                     },
                     SamplerInfo::NormalizedCoords => {
                         let r = unsafe { try_ir!(util::bytes_into::<u32>(result)) };
@@ -1440,7 +1440,7 @@ impl ProgramInfoResult {
                     },
                     ProgramInfo::Context => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
-                        ProgramInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                        ProgramInfoResult::Context(unsafe { Context::from_raw_copied_ptr(ptr) })
                     },
                     ProgramInfo::NumDevices => {
                         let r = unsafe { try_ir!(util::bytes_into::<u32>(result)) };
@@ -1662,11 +1662,11 @@ impl KernelInfoResult {
                     },
                     KernelInfo::Context => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
-                        KernelInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                        KernelInfoResult::Context(unsafe { Context::from_raw_copied_ptr(ptr) })
                     },
                     KernelInfo::Program => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
-                        KernelInfoResult::Program(unsafe { Program::from_copied_ptr(ptr) })
+                        KernelInfoResult::Program(unsafe { Program::from_raw_copied_ptr(ptr) })
                     },
                     KernelInfo::Attributes => {
                         match util::bytes_into_string(result) {
@@ -1970,7 +1970,7 @@ impl EventInfoResult {
                 match request {
                     EventInfo::CommandQueue => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
-                        EventInfoResult::CommandQueue(unsafe { CommandQueue::from_copied_ptr(ptr) })
+                        EventInfoResult::CommandQueue(unsafe { CommandQueue::from_raw_copied_ptr(ptr) })
                     },
                     EventInfo::CommandType => {
                         let code = unsafe { try_ir!(util::bytes_into::<u32>(result)) };
@@ -1994,7 +1994,7 @@ impl EventInfoResult {
                     },
                     EventInfo::Context => {
                         let ptr = unsafe { try_ir!(util::bytes_into::<*mut c_void>(result)) };
-                        EventInfoResult::Context(unsafe { Context::from_copied_ptr(ptr) })
+                        EventInfoResult::Context(unsafe { Context::from_raw_copied_ptr(ptr) })
                     },
                 }
             },

@@ -88,6 +88,8 @@ impl<'a, T, M> AsMem<T> for &'a M where T: OclPrm, M: AsMem<T> {
 /// `::enqueue_read_buffer_rect`, `::enqueue_write_buffer_rect`,
 /// `::enqueue_read_image`, or `::enqueue_write_image`.
 ///
+/// These may be device or host side memory buffers.
+///
 /// Types returned from `::enqueue_map_...` and all of their derivatives as
 /// well as types created with `::create_buffer` and `::create_image` all
 /// implement this trait.
@@ -97,7 +99,9 @@ unsafe impl<'a, M> MemCmdRw for &'a M where M: MemCmdRw {}
 // unsafe impl<M> MemCmdRw for M where M: MemCmdAll {}
 
 /// Types which can be passed to any and all `::enqueue_...` functions as the
-/// primary (`ptr`) argument and can also be passed as kernel arguments.
+/// primary (`ptr`) argument and can also be passed as kernel `cl_mem` arguments.
+///
+/// These are strictly device side memory buffers.
 ///
 /// Types created with `::create_buffer` and `::create_image` implement this
 /// trait.
@@ -137,7 +141,7 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
 /// Types with a mutable pointer to a new, null raw event pointer.
 ///
 pub unsafe trait ClNullEventPtr: Debug {
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event>;
+    fn ptr_mut_ptr_new(&mut self) -> *mut cl_event;
 }
 
 
@@ -210,18 +214,20 @@ impl<'e> ClEventRef<'e> for EventRefWrapper {
 pub struct PlatformId(cl_platform_id);
 
 impl PlatformId {
-    /// Only call this when passing **the original** newly created pointer
-    /// directly from `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_fresh_ptr(ptr: cl_platform_id) -> PlatformId {
+    /// Creates a new `PlatformId` wrapper from a raw pointer.
+    pub unsafe fn from_raw(ptr: cl_platform_id) -> PlatformId {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         PlatformId(ptr)
     }
 
+    /// Returns an invalid `PlatformId` used for initializing data structures
+    /// meant to be filled with valid ones.
     pub unsafe fn null() -> PlatformId {
         PlatformId(0 as *mut c_void)
     }
 
     /// Returns a pointer.
-    pub unsafe fn as_ptr(&self) -> cl_platform_id {
+    pub fn as_ptr(&self) -> cl_platform_id {
         self.0
     }
 
@@ -266,24 +272,20 @@ impl ClVersions for PlatformId {
 pub struct DeviceId(cl_device_id);
 
 impl DeviceId {
-    /// Only call this when passing **the original** newly created pointer
-    /// directly from `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_fresh_ptr(ptr: cl_device_id) -> DeviceId {
+    /// Creates a new `DeviceId` wrapper from a raw pointer.
+    pub unsafe fn from_raw(ptr: cl_device_id) -> DeviceId {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         DeviceId(ptr)
     }
 
-    /// Only call this when passing a copied pointer such as from an
-    /// `clGet*****Info` function.
-    pub unsafe fn from_copied_ptr(ptr: cl_device_id) -> DeviceId {
-        DeviceId(ptr)
-    }
-
+    /// Returns an invalid `DeviceId` used for initializing data structures
+    /// meant to be filled with valid ones.
     pub unsafe fn null() -> DeviceId {
         DeviceId(0 as *mut c_void)
     }
 
     /// Returns a pointer.
-    pub unsafe fn as_ptr(&self) -> cl_device_id {
+    pub fn as_ptr(&self) -> cl_device_id {
         self.0
     }
 
@@ -333,20 +335,22 @@ pub struct Context(cl_context);
 impl Context {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_fresh_ptr(ptr: cl_context) -> Context {
+    pub unsafe fn from_raw_create_ptr(ptr: cl_context) -> Context {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         Context(ptr)
     }
 
     /// Only call this when passing a copied pointer such as from an
     /// `clGet*****Info` function.
-    pub unsafe fn from_copied_ptr(ptr: cl_context) -> Context {
+    pub unsafe fn from_raw_copied_ptr(ptr: cl_context) -> Context {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         let copy = Context(ptr);
         functions::retain_context(&copy).unwrap();
         copy
     }
 
     /// Returns a pointer, do not store it.
-    pub unsafe fn as_ptr(&self) -> cl_context {
+    pub fn as_ptr(&self) -> cl_context {
         self.0
     }
 
@@ -419,20 +423,22 @@ pub struct CommandQueue(cl_command_queue);
 impl CommandQueue {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_fresh_ptr(ptr: cl_command_queue) -> CommandQueue {
+    pub unsafe fn from_raw_create_ptr(ptr: cl_command_queue) -> CommandQueue {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         CommandQueue(ptr)
     }
 
     /// Only call this when passing a copied pointer such as from an
     /// `clGet*****Info` function.
-    pub unsafe fn from_copied_ptr(ptr: cl_command_queue) -> CommandQueue {
+    pub unsafe fn from_raw_copied_ptr(ptr: cl_command_queue) -> CommandQueue {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         let copy = CommandQueue(ptr);
         functions::retain_command_queue(&copy).unwrap();
         copy
     }
 
     /// Returns a pointer, do not store it.
-    pub unsafe fn as_ptr(&self) -> cl_command_queue {
+    pub fn as_ptr(&self) -> cl_command_queue {
         self.0
     }
 
@@ -488,25 +494,23 @@ pub struct Mem(cl_mem);
 impl Mem {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_fresh_ptr(ptr: cl_mem) -> Mem {
+    pub unsafe fn from_raw_create_ptr(ptr: cl_mem) -> Mem {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         Mem(ptr)
     }
 
 	/// Only call this when passing a copied pointer such as from an
 	/// `clGet*****Info` function.
-	pub unsafe fn from_copied_ptr(ptr: cl_mem) -> Mem {
+	pub unsafe fn from_raw_copied_ptr(ptr: cl_mem) -> Mem {
+        assert!(!ptr.is_null(), "Null pointer passed.");
 		let copy = Mem(ptr);
 		functions::retain_mem_object(&copy).unwrap();
 		copy
 	}
 
-	// pub unsafe fn null() -> Mem {
-	// 	Mem(0 as *mut c_void, PhantomData)
-	// }
-
     /// Returns a pointer, do not store it.
     #[inline(always)]
-    pub unsafe fn as_ptr(&self) -> cl_mem {
+    pub fn as_ptr(&self) -> cl_mem {
         self.0
     }
 }
@@ -533,42 +537,40 @@ impl<T> AsMem<T> for Mem where T: OclPrm {
 
 unsafe impl MemCmdRw for Mem {}
 unsafe impl MemCmdAll for Mem {}
-
 unsafe impl Sync for Mem {}
 unsafe impl Send for Mem {}
 
 
+pub struct MappedMem<T: OclPrm>(*mut T);
 
+impl<T: OclPrm> MappedMem<T> {
+    #[inline(always)]
+    pub unsafe fn from_raw(ptr: *mut T) -> MappedMem<T> {
+        assert!(!ptr.is_null(), "MappedMem::from_raw: Null pointer passed.");
+        MappedMem(ptr)
+    }
 
-// impl<T: OclPrm> AsRef<MemCore> for SubBuffer<T> {
-//     fn as_ref(&self) -> &MemCore {
-//         &self.obj_core
-//     }
-// }
+    #[inline(always)]
+    pub fn as_ptr(&self) -> *mut T {
+        self.0
+    }
 
-// impl<T: OclPrm> AsMut<MemCore> for SubBuffer<T> {
-//     fn as_mut(&mut self) -> &mut MemCore {
-//         &mut self.obj_core
-//     }
-// }
+    #[inline(always)]
+    pub fn as_void_ptr(&self) -> *mut c_void {
+        self.0 as *mut _ as *mut c_void
+    }
+}
 
-// impl<'a, T: OclPrm> AsMemRef<T> for SubBuffer<T> {
-//     fn as_mem_ref(&self) -> &MemCore {
-//         &self.obj_core
-//     }
-// }
+impl<T> AsMem<T> for MappedMem<T> where T: OclPrm {
+    #[inline(always)]
+    fn as_mem(&self) -> &Mem {
+        unsafe { &*(self as *const _ as *const Mem) }
+    }
+}
 
-// impl<'a, T: OclPrm> AsMemRef<T> for &'a SubBuffer<T> {
-//     fn as_mem_ref(&self) -> &MemCore {
-//         &self.obj_core
-//     }
-// }
-
-// impl<'a, T: OclPrm> AsMemRef<T> for &'a mut SubBuffer<T> {
-//     fn as_mem_ref(&self) -> &MemCore {
-//         &self.obj_core
-//     }
-// }
+unsafe impl<T: OclPrm> MemCmdRw for MappedMem<T> {}
+unsafe impl<T: OclPrm> Send for MappedMem<T> {}
+unsafe impl<T: OclPrm> Sync for MappedMem<T> {}
 
 
 
@@ -579,13 +581,15 @@ pub struct Program(cl_program);
 impl Program {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_fresh_ptr(ptr: cl_program) -> Program {
+    pub unsafe fn from_raw_create_ptr(ptr: cl_program) -> Program {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         Program(ptr)
     }
 
 	/// Only call this when passing a copied pointer such as from an
 	/// `clGet*****Info` function.
-	pub unsafe fn from_copied_ptr(ptr: cl_program) -> Program {
+	pub unsafe fn from_raw_copied_ptr(ptr: cl_program) -> Program {
+        assert!(!ptr.is_null(), "Null pointer passed.");
 		let copy = Program(ptr);
 		functions::retain_program(&copy).unwrap();
 		copy
@@ -593,7 +597,7 @@ impl Program {
 
 	/// Returns a pointer, do not store it.
     #[inline(always)]
-	pub unsafe fn as_ptr(&self) -> cl_program {
+	pub fn as_ptr(&self) -> cl_program {
 		self.0
 	}
 
@@ -658,13 +662,14 @@ pub struct Kernel(cl_kernel);
 impl Kernel {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_fresh_ptr(ptr: cl_kernel) -> Kernel {
+    pub unsafe fn from_raw_create_ptr(ptr: cl_kernel) -> Kernel {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         Kernel(ptr)
     }
 
     /// Returns a pointer, do not store it.
     #[inline(always)]
-    pub unsafe fn as_ptr(&self) -> cl_kernel {
+    pub fn as_ptr(&self) -> cl_kernel {
         self.0
     }
 
@@ -706,7 +711,6 @@ impl ClVersions for Kernel {
 unsafe impl Send for Kernel {}
 
 
-
 /// cl_event
 #[derive(Clone, Debug)]
 pub struct NullEvent(cl_event);
@@ -745,15 +749,9 @@ impl NullEvent {
         !self.0.is_null()
     }
 
-    fn _ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        if self.0.is_null() {
-            Ok(&mut self.0)
-        } else {
-            // unsafe { try!(functions::release_event(self)); }
-            // Ok(&mut self.0)
-            panic!("<NullEvent as ClNullEventPtr>::ptr_mut_ptr_new: Called with non-null internal \
-                pointer. Non-null events can not be used in place of null (new) ones.");
-        }
+    fn _ptr_mut_ptr_new(&mut self) -> *mut cl_event {
+        assert!(self.0.is_null(), "NullEvent (new event) has been used twice.");
+        &mut self.0
     }
 }
 
@@ -762,12 +760,12 @@ impl<'e> ClEventRef<'e> for NullEvent {
 }
 
 unsafe impl ClNullEventPtr for NullEvent {
-    #[inline] fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> { self._ptr_mut_ptr_new() }
+    #[inline] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self._ptr_mut_ptr_new() }
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut NullEvent {
     #[inline(always)]
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> { self._ptr_mut_ptr_new() }
+    fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self._ptr_mut_ptr_new() }
 }
 
 // unsafe impl EventPtr for Event {}
@@ -790,7 +788,7 @@ impl Event {
     // /// Only call this when passing **the original** newly created pointer
     // /// directly from `clCreate...`. Do not use this to clone or copy.
     // #[inline]
-    // pub unsafe fn from_fresh_ptr(ptr: cl_event) -> Event {
+    // pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> Event {
     //     Event(ptr)
     // }
 
@@ -798,15 +796,11 @@ impl Event {
     /// `cl_event`.
     ///
     #[inline]
-    pub unsafe fn from_copied_ptr(ptr: cl_event) -> OclResult<Event> {
+    pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclResult<Event> {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         let new_core = Event(ptr);
-
-        if !ptr.is_null() {
-            functions::retain_event(&new_core)?;
-            Ok(new_core)
-        } else {
-            OclError::err_string("core::Event::from_copied_ptr: Invalid pointer `ptr`.")
-        }
+        functions::retain_event(&new_core)?;
+        Ok(new_core)
     }
 
     /// Queries the command status associated with this event and returns true
@@ -910,6 +904,7 @@ impl Event {
     /// [into_raw]: struct.Event.html#method.into_raw
     #[inline]
     pub unsafe fn from_raw(ptr: cl_event) -> Event {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         Event(ptr)
     }
 
@@ -983,7 +978,7 @@ impl UserEvent {
     // /// Only call this when passing **the original** newly created pointer
     // /// directly from `clCreate...`. Do not use this to clone or copy.
     // #[inline]
-    // pub unsafe fn from_fresh_ptr(ptr: cl_event) -> UserEvent {
+    // pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> UserEvent {
     //     UserEvent(ptr)
     // }
 
@@ -991,15 +986,11 @@ impl UserEvent {
     /// `cl_event`.
     ///
     #[inline]
-    pub unsafe fn from_copied_ptr(ptr: cl_event) -> OclResult<UserEvent> {
+    pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclResult<UserEvent> {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         let new_core = UserEvent(ptr);
-
-        if !ptr.is_null() {
-            try!(functions::retain_event(&new_core));
-            Ok(new_core)
-        } else {
-            OclError::err_string("core::UserEvent::from_copied_ptr: Invalid pointer `ptr`.")
-        }
+        try!(functions::retain_event(&new_core));
+        Ok(new_core)
     }
 
     /// Sets the status for this user created event. Setting status to
@@ -1081,6 +1072,7 @@ impl UserEvent {
     ///
     /// [into_raw]: struct.UserEvent.html#method.into_raw
     pub unsafe fn from_raw(ptr: cl_event) -> UserEvent {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         UserEvent(ptr)
     }
 
@@ -1185,7 +1177,7 @@ impl EventList {
     // when added to list.
     //
     pub fn pop(&mut self) -> Option<Event> {
-        // self.event_ptrs.pop().map(|ptr| unsafe { Event::from_copied_ptr(ptr) } )
+        // self.event_ptrs.pop().map(|ptr| unsafe { Event::from_raw_copied_ptr(ptr) } )
         self.event_ptrs.pop().map(|ptr| Event(ptr))
     }
 
@@ -1204,12 +1196,12 @@ impl EventList {
 
     /// Clones an event by index.
     pub fn get_clone(&self, index: usize) -> Option<OclResult<Event>> {
-        self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_copied_ptr(*ptr) } )
+        self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
     }
 
     /// Clones the last event.
     pub fn last_clone(&self) -> Option<OclResult<Event>> {
-        self.event_ptrs.last().map(|ptr| unsafe { Event::from_copied_ptr(*ptr) } )
+        self.event_ptrs.last().map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
     }
 
     /// Clears the list.
@@ -1288,8 +1280,8 @@ impl EventList {
     #[inline(always)] pub fn is_empty(&self) -> bool { self.len() == 0 }
     #[inline(always)] pub fn count(&self) -> u32 { self.event_ptrs.len() as u32 }
 
-    fn _ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        Ok(self.allot())
+    fn _ptr_mut_ptr_new(&mut self) -> *mut cl_event {
+        self.allot()
     }
 
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
@@ -1306,11 +1298,11 @@ impl EventList {
 }
 
 unsafe impl ClNullEventPtr for EventList {
-    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> { self._ptr_mut_ptr_new() }
+    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self._ptr_mut_ptr_new() }
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
-    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> { self._ptr_mut_ptr_new() }
+    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self._ptr_mut_ptr_new() }
 }
 
 unsafe impl ClWaitListPtr for EventList {
@@ -1376,7 +1368,8 @@ pub struct Sampler(cl_sampler);
 impl Sampler {
     /// Only call this when passing a newly created pointer directly from
     /// `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_fresh_ptr(ptr: cl_sampler) -> Sampler {
+    pub unsafe fn from_raw_create_ptr(ptr: cl_sampler) -> Sampler {
+        assert!(!ptr.is_null(), "Null pointer passed.");
         Sampler(ptr)
     }
 
