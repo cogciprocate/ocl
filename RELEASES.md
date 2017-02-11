@@ -2,15 +2,16 @@ Version 0.13.0 (UNRELEASED)
 ===========================
 
 
-[TODO]: Add links to documentation.
+[FIXME: TODO]: Add links to documentation.
 
 
-[FIXME]: ADD SECTION FOR:
-* `core_as_ref` & `core_as_mut` rename
-* Buffer mapping...
-* [BREAKING] Buffer command (optional params)...
-  * `::copy`
 
+* Asynchrony and Futures... [FIXME: complete]
+  * [FIXME] Buffer mapping...
+  * [FIXME] `BufferCmd`, `ImageCmd`, and `KernelCmd`
+  * [FIXME] have received some streamlining and optimizing to events.
+  * [FIXME] comment on changes to the types that `::enew` and `::ewait` accept.
+  * [FIXME] refer to the breaking changes below
 
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
   be used just as you would `Buffer`. Use `SubBuffer::new` or
@@ -29,6 +30,10 @@ Version 0.13.0 (UNRELEASED)
 
 Breaking Changes
 ----------------
+* `BufferCmd`, `ImageCmd`, and `KernelCmd` now [FIXME: complete]  
+  * [FIXME] `::copy` signature change (`offset` and `len` (size))
+  * [FIXME] `::enew`, `::enew_opt`, `::ewait`,  and `::ewait_opt` signature
+    changes (trait obj -> enum)
 * `Kernel` named argument declaration functions such as `::arg_buf_named` or
   `::set_arg_img_named` called with a `None` variant must now specify the full
   type of the image, buffer, or sub-buffer which will be used for that
@@ -46,13 +51,40 @@ Breaking Changes
   `Image::set_default_queue`, `Kernel::new`, `Kernel::set_default_queue` now
   accept a `Queue` instead of a `&Queue`.
 * `Buffer::is_empty` has been removed.
-* ocl-core:
-  * `EventList::pop` now returns an `Option<Event>` instead of an
-    `Option<Result<Event>>`.
-  * `::create_command_queue` now takes a third argument: `properties`, an
-    optional bitfield described in the [clCreateCommandQueue SDK
-    Documentation]. Valid options include
-    `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and `QUEUE_PROFILING_ENABLE`.
+* [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
+
+### `ocl-core` specific breaking changes
+* Passing event wait list and new event references has been completely
+  overhauled. Previously, references of this type had to be converted into the
+  trait objects `ClWaitList` and `ClEventPtrNew`. This was convenient (outside
+  of the occasional awkward conversion) and obviated the need to type annotate
+  every time you passed `None` to an `enqueue...` function. Now that futures
+  have come to the library though, every ounce of performance must be wrung
+  out how events are processed and handled. This means that events and event
+  lists are now treated as normal generics, not trait objects, and are
+  therefore slightly more efficient, at the cost of it being less convenient
+  to call functions when you are *not* using them. This leads to the following
+  breaking changes:
+  * The `ClWaitList` trait has been renamed to `ClWaitListPtr`
+  * The `ClEventPtrNew` trait has been renamed to `ClNullEventPtr`
+  * All `core::enqueue...` functions (and a few others) may now require
+    additional type annotations when `None` is passed as either the event wait
+    list or new event reference. Passing a `None::<EventList>` will suffice
+    for either parameter (because it can serve either role) and is the easiest
+    way to shut the compiler up. If you were previously annotating a type
+    using the 'turbo-fish' syntax ('::<...>') on one of these functions, you
+    will also have to include two additional type annotations. It may be more
+    convenient to do all the annotation in one spot in that case and remove it
+    from the `None`s.
+
+* `EventList::pop` now returns an `Option<Event>` instead of an
+  `Option<Result<Event>>`.
+* `::create_command_queue` now takes a third argument: `properties`, an
+  optional bitfield described in the [clCreateCommandQueue SDK
+  Documentation]. Valid options include
+  `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and `QUEUE_PROFILING_ENABLE`.
+
+
 
   [FIXME]:
   * `enqueue_map_buffer`, `enqueue_map_image`, `enqueue_unmap_mem_object`

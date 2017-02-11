@@ -108,6 +108,7 @@ pub mod builders {
     pub use standard::{ContextBuilder, BuildOpt, ProgramBuilder, ImageBuilder, ProQueBuilder,
         DeviceSpecifier, BufferCmd, BufferCmdKind, BufferCmdDataShape,
         ImageCmd, ImageCmdKind, KernelCmd};
+    pub use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
     pub use core::{ImageFormat, ImageDescriptor, ContextProperties};
     // #[cfg(not(release))] pub use standard::BufferTest;
 }

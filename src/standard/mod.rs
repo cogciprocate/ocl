@@ -55,6 +55,7 @@ mod types {
         EventListCore(&'a EventListCore),
         Event(&'a Event),
         EventList(&'a EventList),
+        EventPtrSlice(&'a [cl_event]),
     }
 
     unsafe impl<'a> ClWaitListPtr for ClWaitListPtrEnum<'a> {
@@ -65,6 +66,7 @@ mod types {
                 ClWaitListPtrEnum::EventListCore(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::Event(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventList(ref e) => e.as_ptr_ptr(),
+                ClWaitListPtrEnum::EventPtrSlice(ref e) => e.as_ptr_ptr(),
             }
         }
 
@@ -75,6 +77,7 @@ mod types {
                 ClWaitListPtrEnum::EventListCore(ref e) => e.count(),
                 ClWaitListPtrEnum::Event(ref e) => e.count(),
                 ClWaitListPtrEnum::EventList(ref e) => e.count(),
+                ClWaitListPtrEnum::EventPtrSlice(ref e) => e.count(),
             }
         }
     }
@@ -106,6 +109,12 @@ mod types {
     impl<'a> From<&'a EventList> for ClWaitListPtrEnum<'a> {
         fn from(el: &'a EventList) -> ClWaitListPtrEnum<'a> {
             ClWaitListPtrEnum::EventList(el)
+        }
+    }
+
+    impl<'a> From<&'a [cl_event]> for ClWaitListPtrEnum<'a> {
+        fn from(el: &'a [cl_event]) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventPtrSlice(el)
         }
     }
 

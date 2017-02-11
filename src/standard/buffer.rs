@@ -59,20 +59,20 @@ impl<T> DerefMut for MappedMem<T> where T: OclPrm {
 
 
 /// The type of operation to be performed by a command.
-pub enum BufferCmdKind<'b, T: 'b> {
+pub enum BufferCmdKind<'c, T> where T: 'c {
     Unspecified,
-    Read { data: &'b mut [T] },
-    Write { data: &'b [T] },
+    Read { data: &'c mut [T] },
+    Write { data: &'c [T] },
     Map { flags: Option<MapFlags>, len: Option<usize> },
-    Copy { dst_buffer: &'b MemCore, dst_offset: Option<usize>, len: Option<usize> },
+    Copy { dst_buffer: &'c MemCore, dst_offset: Option<usize>, len: Option<usize> },
     Fill { pattern: T, len: Option<usize> },
-    CopyToImage { image: &'b MemCore, dst_origin: [usize; 3], region: [usize; 3] },
+    CopyToImage { image: &'c MemCore, dst_origin: [usize; 3], region: [usize; 3] },
     GLAcquire,
     GLRelease,
 }
 
-impl<'b, T: 'b> BufferCmdKind<'b, T> {
-    fn is_unspec(&'b self) -> bool {
+impl<'c, T> BufferCmdKind<'c, T> /*where T: 'c*/ {
+    fn is_unspec(&'c self) -> bool {
         if let BufferCmdKind::Unspecified = *self {
             true
         } else {
@@ -133,27 +133,27 @@ pub enum BufferCmdDataShape {
 //     enew: Option<&'b mut ClNullEventPtr>,
 //     mem_len: usize,
 // }
-pub struct BufferCmd<'b, T: 'b + OclPrm> {
-    queue: &'b Queue,
-    obj_core: &'b MemCore,
+pub struct BufferCmd<'c, T> where T: 'c {
+    queue: &'c Queue,
+    obj_core: &'c MemCore,
     block: bool,
     lock_block: bool,
-    kind: BufferCmdKind<'b, T>,
+    kind: BufferCmdKind<'c, T>,
     shape: BufferCmdDataShape,
-    // ewait: Option<&'b ClWaitListPtr>,
-    // enew: Option<&'b mut ClNullEventPtr>,
-    ewait: Option<ClWaitListPtrEnum<'b>>,
-    enew: Option<ClNullEventPtrEnum<'b>>,
+    // ewait: Option<&'c ClWaitListPtr>,
+    // enew: Option<&'c mut ClNullEventPtr>,
+    ewait: Option<ClWaitListPtrEnum<'c>>,
+    enew: Option<ClNullEventPtrEnum<'c>>,
     mem_len: usize,
 }
 
 /// [UNSTABLE]: All methods still in a state of tweakification.
-impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
+impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// Returns a new buffer command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `mem_len`
     /// (the length of the device side buffer).
-    pub fn new(queue: &'b Queue, obj_core: &'b MemCore, mem_len: usize)
-            -> BufferCmd<'b, T>
+    pub fn new(queue: &'c Queue, obj_core: &'c MemCore, mem_len: usize)
+            -> BufferCmd<'c, T>
     {
         BufferCmd {
             queue: queue,
@@ -177,7 +177,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified.
     ///
-    pub fn read(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
+    pub fn read(mut self, dst_data: &'c mut [T]) -> BufferCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Read { data: dst_data };
@@ -202,7 +202,8 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub unsafe fn read_async(mut self, dst_data: &'b mut [T]) -> BufferCmd<'b, T> {
+    #[deprecated(since="0.13.0", note="Use ::enq_async for asyncronous reads.")]
+    pub unsafe fn read_async(mut self, dst_data: &'c mut [T]) -> BufferCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Read { data: dst_data };
@@ -215,7 +216,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn write(mut self, src_data: &'b [T]) -> BufferCmd<'b, T> {
+    pub fn write(mut self, src_data: &'c [T]) -> BufferCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Write { data: src_data };
@@ -228,7 +229,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn map(mut self, flags: Option<MapFlags>, len: Option<usize>) -> BufferMapCmd<'b, T> {
+    pub fn map(mut self, flags: Option<MapFlags>, len: Option<usize>) -> BufferMapCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Map{ flags: flags, len: len };
@@ -248,8 +249,8 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy<M>(mut self, dst_buffer: &'b M, dst_offset: Option<usize>, len: Option<usize>)
-            -> BufferCmd<'b, T>
+    pub fn copy<M>(mut self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
+            -> BufferCmd<'c, T>
             where M: AsMemRef<T>
     {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy(): Operation kind \
@@ -262,7 +263,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
         self
     }
 
-    /// Specifies that this command will be a copy to image.
+    /// Specifies that this command will be a copy to image operation.
     ///
     /// If `.block(..)` has been set it will be ignored.
     ///
@@ -271,8 +272,8 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy_to_image(mut self, image: &'b MemCore, dst_origin: [usize; 3],
-                region: [usize; 3]) -> BufferCmd<'b, T>
+    pub fn copy_to_image(mut self, image: &'c MemCore, dst_origin: [usize; 3],
+                region: [usize; 3]) -> BufferCmd<'c, T>
     {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind \
             already set for this command.");
@@ -288,7 +289,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn gl_acquire(mut self) -> BufferCmd<'b, T> {
+    pub fn gl_acquire(mut self) -> BufferCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::gl_acquire(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::GLAcquire;
@@ -303,14 +304,14 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn gl_release(mut self) -> BufferCmd<'b, T> {
+    pub fn gl_release(mut self) -> BufferCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::gl_release(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::GLRelease;
         self
     }
 
-    /// Specifies that this command will be a fill.
+    /// Specifies that this command will be a fill operation.
     ///
     /// If `.block(..)` has been set it will be ignored.
     ///
@@ -327,7 +328,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn fill(mut self, pattern: T, len: Option<usize>) -> BufferCmd<'b, T> {
+    pub fn fill(mut self, pattern: T, len: Option<usize>) -> BufferCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Fill { pattern: pattern, len: len };
@@ -335,7 +336,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     }
 
     /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'b Queue) -> BufferCmd<'b, T> {
+    pub fn queue(mut self, queue: &'c Queue) -> BufferCmd<'c, T> {
         self.queue = queue;
         self
     }
@@ -349,7 +350,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     /// Will panic if `::read` has already been called. Use `::read_async`
     /// (unsafe) for a non-blocking read operation.
     ///
-    pub fn block(mut self, block: bool) -> BufferCmd<'b, T> {
+    pub fn block(mut self, block: bool) -> BufferCmd<'c, T> {
         if !block && self.lock_block {
             panic!("ocl::BufferCmd::block(): Blocking for this command has been disabled by \
                 the '::read' method. For non-blocking reads use '::read_async'.");
@@ -364,7 +365,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     ///
     /// The 'shape' may not have already been set to rectangular by the
     /// `::rect` function.
-    pub fn offset(mut self, offset: usize)  -> BufferCmd<'b, T> {
+    pub fn offset(mut self, offset: usize)  -> BufferCmd<'c, T> {
         if let BufferCmdDataShape::Rect { .. } = self.shape {
             panic!("ocl::BufferCmd::offset(): This command builder has already been set to \
                 rectangular mode with '::rect`. You cannot call both '::offset' and '::rect'.");
@@ -381,7 +382,7 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     /// with any other mode.
     pub fn rect(mut self, src_origin: [usize; 3], dst_origin: [usize; 3], region: [usize; 3],
                 src_row_pitch: usize, src_slc_pitch: usize, dst_row_pitch: usize,
-                dst_slc_pitch: usize) -> BufferCmd<'b, T>
+                dst_slc_pitch: usize) -> BufferCmd<'c, T>
     {
         if let BufferCmdDataShape::Lin { offset } = self.shape {
             assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
@@ -395,49 +396,53 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
     }
 
     // /// Specifies a list of events to wait on before the command will run.
-    // pub fn ewait(mut self, ewait: &'b ClWaitListPtr) -> BufferCmd<'b, T> {
+    // pub fn ewait(mut self, ewait: &'c ClWaitListPtr) -> BufferCmd<'c, T> {
     //     self.ewait = Some(ewait);
     //     self
     // }
 
     // /// Specifies a list of events to wait on before the command will run or
     // /// resets it to `None`.
-    // pub fn ewait_opt(mut self, ewait: Option<&'b ClWaitListPtr>) -> BufferCmd<'b, T> {
+    // pub fn ewait_opt(mut self, ewait: Option<&'c ClWaitListPtr>) -> BufferCmd<'c, T> {
     //     self.ewait = ewait;
     //     self
     // }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> BufferCmd<'b, T> where Ewl: Into<ClWaitListPtrEnum<'b>> {
+    pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> BufferCmd<'c, T>
+            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
+    {
         self.ewait = Some(ewait.into());
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> BufferCmd<'b, T> where Ewl: Into<ClWaitListPtrEnum<'b>> {
+    pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferCmd<'c, T>
+            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
+    {
         self.ewait = ewait.map(|el| el.into());
         self
     }
 
     // /// Specifies the destination for a new, optionally created event
     // /// associated with this command.
-    // pub fn enew(mut self, enew: &'b mut ClNullEventPtr) -> BufferCmd<'b, T> {
+    // pub fn enew(mut self, enew: &'c mut ClNullEventPtr) -> BufferCmd<'c, T> {
     //     self.enew = Some(enew);
     //     self
     // }
 
     // /// Specifies a destination for a new, optionally created event
     // /// associated with this command or resets it to `None`.
-    // pub fn enew_opt(mut self, enew: Option<&'b mut ClNullEventPtr>) -> BufferCmd<'b, T> {
+    // pub fn enew_opt(mut self, enew: Option<&'c mut ClNullEventPtr>) -> BufferCmd<'c, T> {
     //     self.enew = enew;
     //     self
     // }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew<En>(mut self, enew: En) -> BufferCmd<'b, T>
-            where En: Into<ClNullEventPtrEnum<'b>>
+    pub fn enew<'e, En>(mut self, enew: En) -> BufferCmd<'c, T>
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
         self.enew = Some(enew.into());
         self
@@ -445,8 +450,8 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt<En>(mut self, enew: Option<En>) -> BufferCmd<'b, T>
-            where En: Into<ClNullEventPtrEnum<'b>>
+    pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> BufferCmd<'c, T>
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
         self.enew = enew.map(|e| e.into());
         self
@@ -629,11 +634,11 @@ impl<'b, T: 'b + OclPrm> BufferCmd<'b, T> {
 }
 
 
-pub struct BufferMapCmd<'b, T: 'b + OclPrm>(BufferCmd<'b, T>);
+pub struct BufferMapCmd<'c, T>(BufferCmd<'c, T>) where T: 'c;
 
-impl<'b, T: 'b + OclPrm> BufferMapCmd<'b, T> {
+impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'b Queue) -> BufferMapCmd<'b, T> {
+    pub fn queue(mut self, queue: &'c Queue) -> BufferMapCmd<'c, T> {
         self.queue = queue;
         self
     }
@@ -647,7 +652,7 @@ impl<'b, T: 'b + OclPrm> BufferMapCmd<'b, T> {
     /// Will panic if `::read` has already been called. Use `::read_async`
     /// (unsafe) for a non-blocking read operation.
     ///
-    pub fn block(self, block: bool) -> BufferMapCmd<'b, T> {
+    pub fn block(self, block: bool) -> BufferMapCmd<'c, T> {
         BufferMapCmd(self.0.block(block))
     }
 
@@ -657,27 +662,32 @@ impl<'b, T: 'b + OclPrm> BufferMapCmd<'b, T> {
     ///
     /// The 'shape' may not have already been set to rectangular by the
     /// `::rect` function.
-    pub fn offset(self, offset: usize)  -> BufferMapCmd<'b, T> {
+    pub fn offset(self, offset: usize)  -> BufferMapCmd<'c, T> {
         BufferMapCmd(self.0.offset(offset))
     }
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> BufferMapCmd<'b, T> where Ewl: Into<ClWaitListPtrEnum<'b>> {
+    pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> BufferMapCmd<'c, T>
+            where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
+    {
         self.ewait = Some(ewait.into());
         self
     }
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> BufferMapCmd<'b, T> where Ewl: Into<ClWaitListPtrEnum<'b>> {
+    pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferMapCmd<'c, T>
+            where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
+    {
         self.ewait = ewait.map(|el| el.into());
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew<E>(mut self, enew: E) -> BufferMapCmd<'b, T>
-            where E: Into<ClNullEventPtrEnum<'b>>
+    pub fn enew<'e, En>(mut self, enew: En) -> BufferMapCmd<'c, T>
+            // where E: Into<ClNullEventPtrEnum<'e>>
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
         self.enew = Some(enew.into());
         self
@@ -685,8 +695,9 @@ impl<'b, T: 'b + OclPrm> BufferMapCmd<'b, T> {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt<E>(mut self, enew: Option<E>) -> BufferMapCmd<'b, T>
-            where E: Into<ClNullEventPtrEnum<'b>>
+    pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> BufferMapCmd<'c, T>
+            // where E: Into<ClNullEventPtrEnum<'e>>
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
         self.enew = enew.map(|e| e.into());
         self
@@ -763,16 +774,16 @@ impl<'b, T: 'b + OclPrm> BufferMapCmd<'b, T> {
     }
 }
 
-impl<'b, T: 'b + OclPrm> Deref for BufferMapCmd<'b, T> {
-    type Target = BufferCmd<'b, T>;
+impl<'c, T> Deref for BufferMapCmd<'c, T> where T: OclPrm {
+    type Target = BufferCmd<'c, T>;
 
-    fn deref(&self) -> &BufferCmd<'b, T> {
+    fn deref(&self) -> &BufferCmd<'c, T> {
         &self.0
     }
 }
 
-impl<'b, T: 'b + OclPrm> DerefMut for BufferMapCmd<'b, T> {
-    fn deref_mut(&mut self) -> &mut BufferCmd<'b, T> {
+impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm{
+    fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> {
         &mut self.0
     }
 }
@@ -885,7 +896,7 @@ impl<T: OclPrm> Buffer<T> {
     /// for more info.
     ///
     #[inline]
-    pub fn cmd(&self) -> BufferCmd<T> {
+    pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
         BufferCmd::new(&self.queue, &self.obj_core, self.len)
     }
 
@@ -897,7 +908,7 @@ impl<T: OclPrm> Buffer<T> {
     /// for more info.
     ///
     #[inline]
-    pub fn read<'b>(&'b self, data: &'b mut [T]) -> BufferCmd<'b, T> {
+    pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferCmd<'c, T> where 'd: 'c {
         self.cmd().read(data)
     }
 
@@ -909,7 +920,7 @@ impl<T: OclPrm> Buffer<T> {
     /// for more info.
     ///
     #[inline]
-    pub fn write<'b>(&'b self, data: &'b [T]) -> BufferCmd<'b, T> {
+    pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferCmd<'c, T> where 'd: 'c {
         self.cmd().write(data)
     }
 
@@ -1167,7 +1178,7 @@ impl<T: OclPrm> SubBuffer<T> {
     /// for more info.
     ///
     #[inline]
-    pub fn cmd(&self) -> BufferCmd<T> {
+    pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
         BufferCmd::new(&self.queue, &self.obj_core, self.len)
     }
 
@@ -1179,7 +1190,7 @@ impl<T: OclPrm> SubBuffer<T> {
     /// for more info.
     ///
     #[inline]
-    pub fn read<'b>(&'b self, data: &'b mut [T]) -> BufferCmd<'b, T> {
+    pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferCmd<'c, T> where 'd: 'c {
         self.cmd().read(data)
     }
 
@@ -1191,7 +1202,7 @@ impl<T: OclPrm> SubBuffer<T> {
     /// for more info.
     ///
     #[inline]
-    pub fn write<'b>(&'b self, data: &'b [T]) -> BufferCmd<'b, T> {
+    pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferCmd<'c, T> where 'd: 'c {
         self.cmd().write(data)
     }
 
