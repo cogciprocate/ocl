@@ -71,7 +71,7 @@ const DEBUG_PRINT: bool = false;
 //=============================================================================
 
 /// `AsRef` with a type being carried along for convenience.
-pub trait AsMem<T>: Clone
+pub trait AsMem<T>
         where T: OclPrm
 {
     fn as_mem(&self) -> &Mem;
@@ -94,7 +94,7 @@ impl<'a, T, M> AsMem<T> for &'a M where T: OclPrm, M: AsMem<T> {
 ///
 pub unsafe trait MemCmdRw {}
 unsafe impl<'a, M> MemCmdRw for &'a M where M: MemCmdRw {}
-
+// unsafe impl<M> MemCmdRw for M where M: MemCmdAll {}
 
 /// Types which can be passed to any and all `::enqueue_...` functions as the
 /// primary (`ptr`) argument and can also be passed as kernel arguments.
@@ -102,7 +102,7 @@ unsafe impl<'a, M> MemCmdRw for &'a M where M: MemCmdRw {}
 /// Types created with `::create_buffer` and `::create_image` implement this
 /// trait.
 pub unsafe trait MemCmdAll {}
-unsafe impl<'a, M> MemCmdAll for &'a M where M: MemCmdRw {}
+unsafe impl<'a, M> MemCmdAll for &'a M where M: MemCmdAll {}
 
 
 /// Types with a fixed set of associated devices and an associated platform.

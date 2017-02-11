@@ -2234,13 +2234,13 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
 
 /// [UNTESTED]
 /// Enqueue acquire OpenCL memory objects that have been created from `OpenGL` objects.
-pub fn enqueue_acquire_gl_buffer<T, M, En, Ewl>(
+pub fn enqueue_acquire_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: M,
+            buffer: &Mem,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -2248,7 +2248,7 @@ pub fn enqueue_acquire_gl_buffer<T, M, En, Ewl>(
     let errcode = unsafe { clEnqueueAcquireGLObjects(
         command_queue.as_ptr(),
         1,
-        &buffer.as_mem().as_ptr(),
+        &buffer.as_ptr(),
         wait_list_len,
         wait_list_ptr,
         new_event_ptr
@@ -2258,13 +2258,13 @@ pub fn enqueue_acquire_gl_buffer<T, M, En, Ewl>(
 
 /// [UNTESTED]
 /// Enqueue release OpenCL memory objects that have been created from `OpenGL` objects.
-pub fn enqueue_release_gl_buffer<T, M, En, Ewl>(
+pub fn enqueue_release_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
-            buffer: M,
+            buffer: &Mem,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         try!(resolve_event_ptrs(wait_list, new_event));
@@ -2272,7 +2272,7 @@ pub fn enqueue_release_gl_buffer<T, M, En, Ewl>(
     let errcode = unsafe { clEnqueueReleaseGLObjects(
         command_queue.as_ptr(),
         1,
-        &buffer.as_mem().as_ptr(),
+        &buffer.as_ptr(),
         wait_list_len,
         wait_list_ptr,
         new_event_ptr
@@ -2419,25 +2419,25 @@ pub fn enqueue_fill_image<T, M, En, Ewl>(
 /// Enqueues a command to copy image objects.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImage.html)
-pub fn enqueue_copy_image<T, M, En, Ewl>(
+pub fn enqueue_copy_image<En, Ewl>(
             command_queue: &CommandQueue,
-            src_image: M,
-            dst_image: M,
+            src_image: &Mem,
+            dst_image: &Mem,
             src_origin: [usize; 3],
             dst_origin: [usize; 3],
             region: [usize; 3],
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
-        where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = try!(resolve_event_ptrs(wait_list, new_event));
 
     let errcode = unsafe { ffi::clEnqueueCopyImage(
         command_queue.as_ptr(),
-        src_image.as_mem().as_ptr(),
-        dst_image.as_mem().as_ptr(),
+        src_image.as_ptr(),
+        dst_image.as_ptr(),
         &src_origin as *const _ as *const usize,
         &dst_origin as *const _ as *const usize,
         &region as *const _ as *const usize,
