@@ -13,5 +13,8 @@ exclude = ["target/*", "bak/*"]
 build = "build.rs"
 # categories = ["api-bindings", "external-ffi-bindings", "asynchronous", "science"]
 
+[features]
+opencl_version_2_1 = []
+
 [dependencies]
 libc = "0.2"

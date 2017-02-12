@@ -967,6 +967,7 @@ extern "system" {
     //                      size_t         /* length */,
     //                      cl_int*        /* errcode_ret */) CL_API_SUFFIX__VERSION_2_1;
     //############################### NEW 2.1 #################################
+    #[cfg(feature = "opencl_version_2_1")]
     pub fn clCreateProgramWithIL(context: cl_context,
                                  il: *const c_void,
                                  length: size_t,

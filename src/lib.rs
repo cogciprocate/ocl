@@ -240,4 +240,5 @@ pub use self::cl_h::{clGetPlatformIDs, clGetPlatformInfo, clGetDeviceIDs, clGetD
     clEnqueueSVMMigrateMem, clEnqueueBarrier, clGetExtensionFunctionAddress,
     clGetExtensionFunctionAddressForPlatform};
 
+#[cfg(feature = "opencl_version_2_1")]
 pub use self::cl_h::{clCreateProgramWithIL};
