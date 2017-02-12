@@ -305,7 +305,7 @@ impl Context {
     }
 
     /// Returns the devices associated with this context.
-    fn devices(&self) -> OclResult<Vec<DeviceId>> {
+    pub fn devices(&self) -> OclResult<Vec<DeviceId>> {
         match functions::get_context_info(self, ContextInfo::Devices) {
             ContextInfoResult::Devices(ds) => Ok(ds),
             ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
