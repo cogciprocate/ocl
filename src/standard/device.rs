@@ -452,6 +452,12 @@ impl Device {
 unsafe impl ClDeviceIdPtr for Device {}
 unsafe impl<'a> ClDeviceIdPtr for &'a Device {}
 
+impl From<DeviceIdCore> for Device {
+    fn from(core: DeviceIdCore) -> Device {
+        Device(core)
+    }
+}
+
 impl Into<String> for Device {
     fn into(self) -> String {
         format!("{}", self)

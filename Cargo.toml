@@ -36,10 +36,8 @@ bitflags = "0.7"
 futures = "0.1"
 
 [replace]
-# "ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core", branch = "futures" }
-# "ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core", branch = "futures" }
-"ocl-core:0.3.2" = { path = "/home/nick/src/github.com/cogciprocate/ocl-core" }
-# "ocl-core:0.3.2" = { path = "/home/nick/src/github.com/cogciprocate/ocl-core" }
+"cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }
+"ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 [dev-dependencies]
 find_folder = "0.3"
