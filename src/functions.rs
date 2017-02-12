@@ -1279,6 +1279,7 @@ pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersio
 /// Returns a new `Program` loaded with the provided IL bytes.
 ///
 /// [Version Controlled: OpenCL 2.1+] See module docs for more info.
+#[cfg(feature = "opencl_version_2_1")]
 pub fn create_program_with_il(
         context: &Context,
         il: &[u8],
@@ -1303,9 +1304,6 @@ pub fn create_program_with_il(
 
     unsafe { eval_errcode(errcode, Program::from_fresh_ptr(program), "clCreateProgramWithIL", "") }
 }
-
-
-
 
 /// Increments a program reference counter.
 pub unsafe fn retain_program(program: &Program) -> OclResult<()> {

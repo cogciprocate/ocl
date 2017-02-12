@@ -29,4 +29,4 @@ rand = { version = "0.3", optional = true }
 colorify = "0.2"
 
 [replace]
-"cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }
+"cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys", features = ["opencl_version_2_1"] }
