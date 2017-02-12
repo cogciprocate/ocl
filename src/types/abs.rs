@@ -40,6 +40,7 @@
 
 use std::mem;
 use std::ptr;
+use std::slice;
 use std::fmt::Debug;
 use std::marker::Sized;
 use std::ops::Deref;
@@ -62,7 +63,7 @@ use util;
 const EL_INIT_CAPACITY: usize = 64;
 const EL_CLEAR_MAX_LEN: usize = 48;
 const EL_CLEAR_INTERVAL: i32 = 32;
-const EL_CLEAR_AUTO: bool = true;
+const EL_CLEAR_AUTO: bool = false;
 
 const DEBUG_PRINT: bool = false;
 
@@ -95,8 +96,6 @@ impl<'a, T, M> AsMem<T> for &'a M where T: OclPrm, M: AsMem<T> {
 /// implement this trait.
 ///
 pub unsafe trait MemCmdRw {}
-unsafe impl<'a, M> MemCmdRw for &'a M where M: MemCmdRw {}
-// unsafe impl<M> MemCmdRw for M where M: MemCmdAll {}
 
 /// Types which can be passed to any and all `::enqueue_...` functions as the
 /// primary (`ptr`) argument and can also be passed as kernel `cl_mem` arguments.
@@ -106,7 +105,6 @@ unsafe impl<'a, M> MemCmdRw for &'a M where M: MemCmdRw {}
 /// Types created with `::create_buffer` and `::create_image` implement this
 /// trait.
 pub unsafe trait MemCmdAll {}
-unsafe impl<'a, M> MemCmdAll for &'a M where M: MemCmdAll {}
 
 
 /// Types with a fixed set of associated devices and an associated platform.
@@ -535,8 +533,13 @@ impl<T> AsMem<T> for Mem where T: OclPrm {
     }
 }
 
-unsafe impl MemCmdRw for Mem {}
-unsafe impl MemCmdAll for Mem {}
+
+unsafe impl<'a> MemCmdRw for Mem {}
+unsafe impl<'a> MemCmdRw for &'a Mem {}
+unsafe impl<'a> MemCmdRw for &'a mut Mem {}
+unsafe impl<'a> MemCmdAll for Mem {}
+unsafe impl<'a> MemCmdAll for &'a Mem {}
+unsafe impl<'a> MemCmdAll for &'a mut Mem {}
 unsafe impl Sync for Mem {}
 unsafe impl Send for Mem {}
 
@@ -559,6 +562,16 @@ impl<T: OclPrm> MappedMem<T> {
     pub fn as_void_ptr(&self) -> *mut c_void {
         self.0 as *mut _ as *mut c_void
     }
+
+    #[inline(always)]
+    pub unsafe fn as_slice<'a>(&self, len: usize) -> &'a [T] {
+        slice::from_raw_parts(self.0, len)
+    }
+
+    #[inline(always)]
+    pub unsafe fn as_slice_mut<'a>(&mut self, len: usize) -> &'a mut [T] {
+        slice::from_raw_parts_mut(self.0, len)
+    }
 }
 
 impl<T> AsMem<T> for MappedMem<T> where T: OclPrm {
@@ -569,6 +582,8 @@ impl<T> AsMem<T> for MappedMem<T> where T: OclPrm {
 }
 
 unsafe impl<T: OclPrm> MemCmdRw for MappedMem<T> {}
+unsafe impl<'a, T: OclPrm> MemCmdRw for &'a MappedMem<T> {}
+unsafe impl<'a, T: OclPrm> MemCmdRw for &'a mut MappedMem<T> {}
 unsafe impl<T: OclPrm> Send for MappedMem<T> {}
 unsafe impl<T: OclPrm> Sync for MappedMem<T> {}
 
@@ -724,7 +739,9 @@ impl NullEvent {
 
     pub fn validate(self) -> OclResult<Event> {
         if self.is_valid() {
-            Ok(Event(self.0))
+            let event = Ok(Event(self.0));
+            mem::forget(self);
+            event
         } else {
             Err("NullEvent::validate: Event is not valid.".into())
         }
@@ -785,12 +802,12 @@ impl Event {
         NullEvent::new()
     }
 
-    // /// Only call this when passing **the original** newly created pointer
-    // /// directly from `clCreate...`. Do not use this to clone or copy.
-    // #[inline]
-    // pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> Event {
-    //     Event(ptr)
-    // }
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
+    #[inline]
+    pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> Event {
+        Event(ptr)
+    }
 
     /// Only use when cloning or copying from a pre-existing and valid
     /// `cl_event`.
@@ -872,16 +889,16 @@ impl Event {
         &mut self.0
     }
 
-    // /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
-    // /// NULL CHECK IS NOT ENOUGH
-    // ///
-    // /// This still leads to crazy segfaults when non-event pointers (random
-    // /// whatever addresses) are passed. Need better check.
-    // ///
-    // #[inline]
-    // pub fn is_valid(&self) -> bool {
-    //     !self.0.is_null()
-    // }
+    /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
+    /// NULL CHECK IS NOT ENOUGH
+    ///
+    /// This still leads to crazy segfaults when non-event pointers (random
+    /// whatever addresses) are passed. Need better check.
+    ///
+    #[inline]
+    pub fn is_valid(&self) -> bool {
+        !self.0.is_null()
+    }
 
     /// Consumes the `Event`, returning the wrapped `cl_event` pointer.
     ///
@@ -924,11 +941,11 @@ impl From<NullEvent> for Event {
     }
 }
 
-impl From<UserEvent> for Event {
-    fn from(uev: UserEvent) -> Event {
-        Event(uev.0)
-    }
-}
+// impl From<UserEvent> for Event {
+//     fn from(uev: UserEvent) -> Event {
+//         uev.into()
+//     }
+// }
 
 impl<'e> ClEventRef<'e> for Event {
     #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
@@ -953,10 +970,9 @@ impl Clone for Event {
 
 impl Drop for Event {
     fn drop(&mut self) {
-        // if self.is_valid() {
-            debug_assert!(!self.0.is_null());
+        if !self.0.is_null() {
             unsafe { functions::release_event(self).unwrap(); }
-        // }
+        }
     }
 }
 
@@ -1009,6 +1025,7 @@ impl UserEvent {
     ///
     #[inline]
     pub fn set_status(&self, status: CommandExecutionStatus) -> OclResult<()> {
+        println!("UserEvent::set_status: Setting user event status for event: {:?}", self);
         functions::set_user_event_status(self, status)
     }
 
@@ -1131,21 +1148,63 @@ unsafe impl Send for UserEvent {}
 
 
 
+#[derive(Debug, Clone)]
+enum EventKind {
+    NullEvent,
+    Event,
+    UserEvent,
+}
+
+
+#[derive(Clone, Debug)]
+pub enum EventVariant {
+    NullEvent(NullEvent),
+    Event(Event),
+    UserEvent(UserEvent),
+
+}
+
+
+#[derive(Clone, Debug)]
+pub enum EventVariantRef<'a> {
+    NullEvent(&'a NullEvent),
+    Event(&'a Event),
+    UserEvent(&'a UserEvent),
+}
+
+
+#[derive(Debug)]
+pub enum EventVariantMut<'a> {
+    NullEvent(&'a mut NullEvent),
+    Event(&'a mut Event),
+    UserEvent(&'a mut UserEvent),
+}
+
+
+
+
 /// List of `cl_event`s.
 #[derive(Debug)]
 pub struct EventList {
     event_ptrs: Vec<cl_event>,
+    event_kinds: Vec<EventKind>,
     clear_max_len: usize,
     clear_counter_max: i32,
-    clear_auto: bool,
     clear_counter: i32,
+    clear_auto: bool,
 }
 
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
+        EventList::with_capacity(EL_INIT_CAPACITY)
+    }
+
+    /// Returns a new, empty, `EventList` with an initial capacity of `cap`.
+    pub fn with_capacity(cap: usize) -> EventList {
         EventList {
-            event_ptrs: Vec::with_capacity(EL_INIT_CAPACITY),
+            event_ptrs: Vec::with_capacity(cap),
+            event_kinds: Vec::with_capacity(cap),
             clear_max_len: EL_CLEAR_MAX_LEN,
             clear_counter_max: EL_CLEAR_INTERVAL,
             clear_auto: EL_CLEAR_AUTO,
@@ -1154,24 +1213,43 @@ impl EventList {
     }
 
     /// Pushes a new event onto the list.
-    ///
     //
     // Technically, copies `event`'s contained pointer (a `cl_event`) then
     // `mem::forget`s it. This seems preferrable to incrementing the reference
     // count (with `functions::retain_event`) then letting `event` drop which just decrements it right back.
     //
-    pub fn push(&mut self, event: Event) {
+    pub fn push_event(&mut self, event: Event) {
         // assert!(event.is_valid(), "Cannot push an empty (null) 'Event' into an 'EventList'.");
+        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
+        self.event_kinds.push(EventKind::Event);
 
         unsafe {
             self.event_ptrs.push((*event.as_ptr_ref()));
             mem::forget(event);
         }
+
+        self.decr_counter();
+    }
+
+    /// Pushes a new event onto the list.
+    //
+    // Technically, copies `event`'s contained pointer (a `cl_event`) then
+    // `mem::forget`s it. This seems preferrable to incrementing the reference
+    // count (with `functions::retain_event`) then letting `event` drop which just decrements it right back.
+    //
+    pub fn push_user_event(&mut self, user_event: UserEvent) {
+        // assert!(event.is_valid(), "Cannot push an empty (null) 'Event' into an 'EventList'.");
+        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
+        self.event_kinds.push(EventKind::UserEvent);
+
+        unsafe {
+            self.event_ptrs.push((*user_event.as_ptr_ref()));
+            mem::forget(user_event);
+        }
         self.decr_counter();
     }
 
     /// Removes the last event from the list and returns it.
-    ///
     //
     // Does not increment reference count as it will not have been decremented
     // when added to list.
@@ -1183,6 +1261,7 @@ impl EventList {
 
     /// Appends a new null element to the end of the list and returns a reference to it.
     pub fn allot(&mut self) -> &mut cl_event {
+        self.event_kinds.push(EventKind::NullEvent);
         self.event_ptrs.push(0 as cl_event);
         self.event_ptrs.last_mut().unwrap()
     }
@@ -1245,24 +1324,16 @@ impl EventList {
     }
 
 
-    // /// Merges the copied contents of this list and another into a new list and returns it.
-    // pub fn union(&self, other_list: &EventList) -> EventList {
-    //     let new_cap = other_list.events().len() + self.events.len() + EXTRA_CAPACITY;
+    /// Merges the copied contents of this list and another into a new list and returns it.
+    pub fn union(&self, other_list: &EventList) -> EventList {
+        let new_cap = other_list.event_ptrs.len() + self.event_ptrs.len() + 8;
+        let mut new_list = EventList::with_capacity(new_cap);
 
-    //     let mut new_list = EventList {
-    //         events: Vec::with_capacity(new_cap),
-    //         clear_counter: 0,
-    //     };
+        new_list.event_ptrs.extend(self.event_ptrs.iter().cloned());
+        new_list.event_ptrs.extend(other_list.event_ptrs.iter().cloned());
 
-    //     new_list.events.extend(self.events().iter().cloned());
-    //     new_list.events.extend(other_list.events().iter().cloned());
-
-    //     if AUTO_CLEAR {
-    //         new_list.clear_completed();
-    //     }
-
-    //     new_list
-    // }
+        new_list
+    }
 
     /// Counts down the auto-list-clear counter.
     fn decr_counter(&mut self) {
@@ -1271,7 +1342,6 @@ impl EventList {
 
             if self.clear_counter <= 0 && self.event_ptrs.len() > EL_CLEAR_MAX_LEN {
                 self.clear_completed().unwrap();
-                // unimplemented!();
             }
         }
     }
@@ -1279,10 +1349,6 @@ impl EventList {
     #[inline(always)] pub fn len(&self) -> usize { self.event_ptrs.len() }
     #[inline(always)] pub fn is_empty(&self) -> bool { self.len() == 0 }
     #[inline(always)] pub fn count(&self) -> u32 { self.event_ptrs.len() as u32 }
-
-    fn _ptr_mut_ptr_new(&mut self) -> *mut cl_event {
-        self.allot()
-    }
 
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
         match self.event_ptrs.first() {
@@ -1298,11 +1364,11 @@ impl EventList {
 }
 
 unsafe impl ClNullEventPtr for EventList {
-    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self._ptr_mut_ptr_new() }
+    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self.allot() }
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
-    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self._ptr_mut_ptr_new() }
+    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self.allot() }
 }
 
 unsafe impl ClWaitListPtr for EventList {
@@ -1327,6 +1393,7 @@ impl Clone for EventList {
 
         EventList {
             event_ptrs: self.event_ptrs.clone(),
+            event_kinds: self.event_kinds.clone(),
             clear_max_len: self.clear_max_len,
             clear_counter_max: self.clear_counter_max,
             clear_auto: self.clear_auto,
@@ -1339,11 +1406,7 @@ impl Drop for EventList {
     fn drop(&mut self) {
         if DEBUG_PRINT { print!("Dropping events... "); }
         for &event_ptr in &self.event_ptrs {
-            if cfg!(release) {
-                unsafe { functions::release_event(&EventRefWrapper(event_ptr)).unwrap(); }
-            } else {
-                unsafe { functions::release_event(&EventRefWrapper(event_ptr)).ok(); }
-            }
+            unsafe { functions::release_event(&EventRefWrapper(event_ptr)).unwrap(); }
             if DEBUG_PRINT { print!("{{.}}"); }
         }
         if DEBUG_PRINT { print!("\n"); }

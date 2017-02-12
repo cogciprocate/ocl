@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem, UserEvent, AsMem, MemCmdRw, MemCmdAll};
+    CommandQueueProperties, MappedMem, UserEvent, AsMem, MemCmdRw, MemCmdAll, EventRefWrapper};
 
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
@@ -68,7 +68,9 @@ pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void
 /// its destructor (it will already have been managed by the call to `::set_event_callback`.
 ///
 pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
-    let _ = src_event_ptr;
+    // let _ = src_event_ptr;
+
+    println!("::_complete_event (source: {:?}, target: {:?}):", src_event_ptr, user_data);
 
     if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
         let tar_event_ptr = user_data as *mut _ as cl_event;
@@ -77,11 +79,22 @@ pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, us
             let user_event = UserEvent::from_raw(tar_event_ptr);
 
             ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
+            println!("    Source event status: {:?}", ::get_event_status(&EventRefWrapper::new(src_event_ptr)));
+            println!("    Target event status: {:?}", ::get_event_status(&user_event));
+
+            println!("    Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, user_event);
+
+            ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
         }
 
-        println!("Event status set to complete for event: {:?}", tar_event_ptr);
+        println!("    Event status has been set to 'CommandExecutionStatus::Complete' for event: {:?}", tar_event_ptr);
     } else {
-        panic!("Wake up user data is null or event is not complete.");
+        match CommandExecutionStatus::from_i32(event_status) {
+            Some(status_enum) => panic!("ocl_core::_complete_event: User data is null or event \
+                is not complete. Status: '{:?}'", status_enum),
+            None => eval_errcode(event_status, (), "clSetEventCallback",
+                &format!("src_event_ptr: {:?}", src_event_ptr)).unwrap(),
+        }
     }
 }
 
@@ -1275,7 +1288,7 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
             context: &Context,
             devices: &[D],
             binaries: &[&[u8]],
-        ) -> OclResult<(Program)>
+        ) -> OclResult<Program>
 {
     // assert!(devices.len() > 0);
     // assert!(devices.len() == binaries.len());
@@ -1805,6 +1818,8 @@ pub fn set_user_event_status<'e,E: ClEventRef<'e>>(event: &'e E,
             execution_status: CommandExecutionStatus) -> OclResult<()>
 {
     unsafe {
+        println!("::set_user_event_status: Setting user event status for event: {:?}", *event.as_ptr_ref());
+
         eval_errcode(ffi::clSetUserEventStatus(*event.as_ptr_ref(), execution_status as cl_int),
             (), "clSetUserEventStatus", ""
         )

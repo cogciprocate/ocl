@@ -98,8 +98,6 @@
 //! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/types/functions.rs`]: /ocl-core/src/ocl-core/src/types/functions.rs.html
 
-// #![cfg_attr(feature = "future_event_callbacks", feature(rc_raw))]
-// #![cfg_attr(feature = "future_event_callbacks", feature(conservative_impl_trait))]
 
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate enum_primitive;
@@ -178,7 +176,7 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids,
     enqueue_read_image, enqueue_write_image, enqueue_fill_image,
     enqueue_copy_image, enqueue_copy_image_to_buffer,
     enqueue_copy_buffer_to_image, enqueue_map_buffer,
-    /*enqueue_map_buffer_async,*/ enqueue_map_image, enqueue_unmap_mem_object,
+    enqueue_map_image, enqueue_unmap_mem_object,
     enqueue_migrate_mem_objects, enqueue_kernel, enqueue_task,
     enqueue_native_kernel, enqueue_marker_with_wait_list,
     enqueue_barrier_with_wait_list,
