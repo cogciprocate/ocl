@@ -199,9 +199,8 @@ impl std::error::Error for PlatformInfoResult {
 }
 
 
-/// [UNSTABLE][INCOMPLETE] A device info result.
+/// A device info result.
 ///
-/// [FIXME]: Implement the rest of this beast... eventually...
 // #[derive(Debug)]
 pub enum DeviceInfoResult {
     // TemporaryPlaceholderVariant(Vec<u8>),
@@ -831,9 +830,9 @@ impl std::error::Error for DeviceInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] A context info result.
+/// A context info result.
 ///
-/// [FIXME]: Figure out what to do with the properties variant.
+/// [INCOMPLETE][FIXME]: Figure out what to do with the properties variant.
 pub enum ContextInfoResult {
     ReferenceCount(u32),
     Devices(Vec<DeviceId>),
@@ -998,9 +997,11 @@ impl std::error::Error for CommandQueueInfoResult {
 
 
 
-/// [UNSTABLE][INCOMPLETE] A mem info result. /
+/// A mem info result.
 ///
-// [TODO]: Do something with `HostPtr`. It should not be be a raw pointer.
+/// [UNSTABLE][INCOMPLETE]
+///
+/// [TODO]: Do something with `HostPtr`. It should not be be a raw pointer.
 //
 // ### From Docs:
 //
@@ -1015,7 +1016,6 @@ impl std::error::Error for CommandQueueInfoResult {
 // value is returned.
 //
 pub enum MemInfoResult {
-    // TemporaryPlaceholderVariant(Vec<u8>),
     Type(MemObjectType),
     Flags(MemFlags),
     Size(usize),

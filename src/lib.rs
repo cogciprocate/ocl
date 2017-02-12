@@ -109,7 +109,6 @@ pub extern crate cl_sys as ffi;
 
 #[cfg(test)] mod tests;
 mod functions;
-// mod async;
 pub mod types;
 pub mod error;
 pub mod util;
@@ -148,8 +147,6 @@ pub use self::types::vectors::{
     ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16,
 };
 
-// pub use self::async::mapped_mem::{FutureMappedMem};
-
 pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids,
     get_device_info, create_sub_devices, retain_device, release_device,
     create_context, create_context_from_type, retain_context, release_context,
@@ -184,6 +181,9 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids,
     get_event_status, default_platform_idx, program_build_err, verify_context,
     default_platform, default_device_type, device_versions,
     event_is_complete, _dummy_event_callback, _complete_event};
+
+#[cfg(feature = "opencl_version_2_1")]
+pub use self::functions::{create_program_with_il};
 
 //=============================================================================
 //================================ CONSTANTS ==================================
