@@ -48,8 +48,8 @@ fn scalar_map() {
         queue.finish();
 
         let datum: Vec<f32> = vec![10_f32; BUFFER_DIMENSIONS];
-        buff_datum.copy_from_slice(&datum);
-
+        let mut datum_slice = buff_datum.as_slice_mut(datum.len());
+        datum_slice.copy_from_slice(&datum);
         ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<ocl::Event>)
             .expect("Unmap of memory object failed");
         // Wait until unmapping is finished
@@ -128,7 +128,8 @@ fn vector_map() {
         // Use only first value
         value.0 = 10_f32;
         let datum: Vec<ocl::aliases::ClFloat16> = vec![value; BUFFER_DIMENSIONS];
-        buff_datum.copy_from_slice(&datum);
+        let mut datum_slice = buff_datum.as_slice_mut(datum.len());
+        datum_slice.copy_from_slice(&datum);
         ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<ocl::Event>)
             .expect("Unmap of memory object failed");
         queue.finish();

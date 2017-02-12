@@ -1,7 +1,7 @@
 //! An `OpenCL` event.
 
 use std;
-use std::ops::{Deref, DerefMut};
+// use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use libc::c_void;
 use futures::{Future, Poll, Async};
@@ -12,16 +12,40 @@ use core::{self, Event as EventCore, NullEvent as NullEventCore, UserEvent as Us
     EventList as EventListCore, CommandExecutionStatus, EventCallbackFn};
 
 
+#[derive(Clone, Debug)]
+pub enum EventCoreKind {
+    Event(EventCore),
+    UserEvent(UserEventCore),
+    Null,
+}
+
+#[derive(Clone, Debug)]
+pub enum EventCoreKindRef<'a> {
+    Event(&'a EventCore),
+    UserEvent(&'a UserEventCore),
+    Null,
+}
+
+#[derive(Debug)]
+pub enum EventCoreKindMut<'a> {
+    Event(&'a mut EventCore),
+    UserEvent(&'a mut UserEventCore),
+    Null,
+}
+
+
 /// An event representing a command or user created event.
 ///
 #[derive(Clone, Debug)]
-pub struct Event(Option<EventCore>);
+// pub struct Event(Option<EventCore>);
+pub struct Event(EventCoreKind);
 
 impl Event {
     /// Creates a new, empty event which must be filled by a newly initiated
     /// command, becoming associated with it.
     pub fn empty() -> Event {
-        Event(None)
+        // Event(None)
+        Event(EventCoreKind::Null)
     }
 
     /// Creates a new `Event` from a `EventCore`.
@@ -30,7 +54,8 @@ impl Event {
     ///
     /// Not meant to be called directly.
     pub unsafe fn from_core(event_core: EventCore) -> Event {
-        Event(Some(event_core))
+        // Event(Some(event_core))
+        Event(EventCoreKind::Event(event_core))
     }
 
     /// Returns true if this event is complete, false if it is not complete or
@@ -41,19 +66,30 @@ impl Event {
     ///
     #[inline]
     pub fn is_complete(&self) -> OclResult<bool> {
+        // match self.0 {
+        //     Some(ref core) => core.is_complete(),
+        //     None => Ok(false),
+        // }
+
         match self.0 {
-            Some(ref core) => core.is_complete(),
-            None => Ok(false),
+            EventCoreKind::Event(core) => core.is_complete(),
+            EventCoreKind::UserEvent(core) => core.is_complete(),
+            EventCoreKind::Null => Err(().into()),
         }
     }
 
-    /// Waits for all events in list to complete before returning.
+    /// Waits for event to complete (blocks) before returning.
     ///
     /// Similar in function to `Queue::finish()`.
     ///
     pub fn wait(&self) -> OclResult<()> {
-        assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
-        core::wait_for_event(self.0.as_ref().unwrap())
+        // assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
+        // core::wait_for_event(self.0.as_ref().unwrap())
+        match self.0 {
+            EventCoreKind::Event(ref core) => core::wait_for_event(core),
+            EventCoreKind::UserEvent(ref core) => core::wait_for_event(core),
+            EventCoreKind::Null => Err(format!("ocl::Event::wait(): {}", self.err_empty()).into()),
+        }
     }
 
     /// Returns true if this event is 'empty' and has not yet been associated
@@ -61,69 +97,80 @@ impl Event {
     ///
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.0.is_none()
+        match self.0 {
+            EventCoreKind::Event(_) => false,
+            EventCoreKind::UserEvent(_) => false,
+            EventCoreKind::Null => true,
+        }
     }
 
     /// Returns info about the event.
     pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
+        // match self.0 {
+        //     Some(ref core) => {
+        //         // match core::get_event_info(core, info_kind) {
+        //         //     Ok(pi) => pi,
+        //         //     Err(err) => EventInfoResult::Error(Box::new(err)),
+        //         // }
+        //         core::get_event_info(core, info_kind)
+        //     },
+        //     None => EventInfoResult::Error(Box::new(self.err_empty())),
+        // }
         match self.0 {
-            Some(ref core) => {
-                // match core::get_event_info(core, info_kind) {
-                //     Ok(pi) => pi,
-                //     Err(err) => EventInfoResult::Error(Box::new(err)),
-                // }
-                core::get_event_info(core, info_kind)
-            },
-            None => EventInfoResult::Error(Box::new(self.err_empty())),
+            EventCoreKind::Event(ref core) => core::get_event_info(core, info_kind),
+            EventCoreKind::UserEvent(ref core) => core::get_event_info(core, info_kind),
+            EventCoreKind::Null => EventInfoResult::Error(Box::new(self.err_empty())),
         }
     }
 
     /// Returns info about the event.
     pub fn profiling_info(&self, info_kind: ProfilingInfo) -> ProfilingInfoResult {
+        // match self.0 {
+        //     Some(ref core) => {
+        //         // match core::get_event_profiling_info(core, info_kind) {
+        //         //     Ok(pi) => pi,
+        //         //     Err(err) => ProfilingInfoResult::Error(Box::new(err)),
+        //         // }
+        //         core::get_event_profiling_info(core, info_kind)
+        //     },
+        //     None => ProfilingInfoResult::Error(Box::new(self.err_empty())),
+        // }
         match self.0 {
-            Some(ref core) => {
-                // match core::get_event_profiling_info(core, info_kind) {
-                //     Ok(pi) => pi,
-                //     Err(err) => ProfilingInfoResult::Error(Box::new(err)),
-                // }
-                core::get_event_profiling_info(core, info_kind)
-            },
-            None => ProfilingInfoResult::Error(Box::new(self.err_empty())),
+            EventCoreKind::Event(ref core) => core::get_event_profiling_info(core, info_kind),
+            EventCoreKind::UserEvent(ref core) => core::get_event_profiling_info(core, info_kind),
+            EventCoreKind::Null => ProfilingInfoResult::Error(Box::new(self.err_empty())),
         }
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
     ///
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     #[inline]
-    pub fn core_as_ref(&self) -> Option<&EventCore> {
-        self.0.as_ref()
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
-    ///
-    #[inline]
-    pub fn core(&self) -> Option<&EventCore> {
-        self.0.as_ref()
-    }
-
-    /// Returns a mutable reference to the core pointer wrapper usable by
-    /// functions in the `core` module.
-    ///
-    #[deprecated(since="0.13.0", note="Use `::core_mut` instead.")]
-    #[inline]
-    pub fn core_as_mut(&mut self) -> Option<&mut EventCore> {
-        self.0.as_mut()
+    pub fn core(&self) -> EventCoreKindRef {
+        // self.0.as_ref()
+        // match self.0 {
+        //     Core::Event(ref core) => core::wait_for_event(core),
+        //     Core::UserEvent(ref core) => core::wait_for_event(core),
+        //     Core::Null => Err(format!("ocl::Event::wait(): {}", self.err_empty()).into()),
+        // }
+        match self.0 {
+            EventCoreKind::Event(ref core) => EventCoreKindRef::Event(core),
+            EventCoreKind::UserEvent(ref core) => EventCoreKindRef::UserEvent(core),
+            EventCoreKind::Null => EventCoreKindRef::Null,
+        }
     }
 
     /// Returns a mutable reference to the core pointer wrapper usable by
     /// functions in the `core` module.
     ///
     #[inline]
-    pub fn core_mut(&mut self) -> Option<&mut EventCore> {
-        self.0.as_mut()
+    pub fn core_mut(&mut self) -> EventCoreKindMut {
+        // self.0.as_mut()
+        match self.0 {
+            EventCoreKind::Event(ref mut core) => EventCoreKindMut::Event(core),
+            EventCoreKind::UserEvent(ref mut core) => EventCoreKindMut::UserEvent(core),
+            EventCoreKind::Null => EventCoreKindMut::Null,
+        }
     }
 
     fn err_empty(&self) -> OclError {
@@ -141,29 +188,42 @@ impl Event {
             .finish()
     }
 
-    fn _ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        if !self.is_empty() {
-            return OclError::err_string("ocl::Event: Attempting to use a non-empty event as a new event
-                is not allowed. Please create a new, empty, event with ocl::Event::empty().");
-        }
+    fn _ptr_mut_ptr_new(&mut self) -> *mut cl_event {
+        // assert!(self.is_empty(), "ocl::Event: Attempting to use a non-empty event as a new event
+        //     is not allowed. Please create a new, empty, event with ocl::Event::empty().");
+        if self.is_empty() {
+            unsafe {
+                self.0 = EventCoreKind::Event(EventCore::from_raw_create_ptr(0 as *mut c_void));
 
-        unsafe {
-            self.0 = Some(EventCore::from_raw(0 as *mut c_void));
-            Ok(self.0.as_mut().unwrap().as_ptr_mut())
+                if let EventCoreKind::Event(ref mut ev) = self.0 {
+                    ev.as_ptr_mut()
+                } else {
+                    unreachable!();
+                }
+            }
+        } else {
+            panic!("ocl::Event: Attempting to use a non-empty event as a new event
+                is not allowed. Please create a new, empty, event with ocl::Event::empty().");
         }
     }
 
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
+        // match self.0 {
+        //     Some(ref ec) => ec.as_ptr_ptr(),
+        //     None => 0 as *const cl_event,
+        // }
         match self.0 {
-            Some(ref ec) => ec.as_ptr_ptr(),
-            None => 0 as *const cl_event,
+            EventCoreKind::Event(ref core) => core.as_ptr_ptr(),
+            EventCoreKind::UserEvent(ref core) => core.as_ptr_ptr(),
+            EventCoreKind::Null => panic!("<ocl::Event as ClWaitListPtr>::as_ptr_ptr: Event is null"),
         }
     }
 
     fn _count(&self) -> u32 {
         match self.0 {
-            Some(ref ec) => ec.count(),
-            None => 0,
+            EventCoreKind::Event(ref core) => core.count(),
+            EventCoreKind::UserEvent(ref core) => core.count(),
+            EventCoreKind::Null => panic!("<ocl::Event as ClWaitListPtr>::as_ptr_ptr: Event is null"),
         }
     }
 }
@@ -172,8 +232,8 @@ impl From<NullEventCore> for Event {
     #[inline]
     fn from(nev: NullEventCore) -> Event {
         match nev.validate() {
-            Ok(nev) => Event(Some(nev)),
-            Err(_) => Event(None),
+            Ok(nev) => Event(EventCoreKind::Event(nev)),
+            Err(err) => panic!("ocl::Event::from::<NullEventCore>: {}", err),
         }
     }
 }
@@ -181,7 +241,11 @@ impl From<NullEventCore> for Event {
 impl From<EventCore> for Event {
     #[inline]
     fn from(ev: EventCore) -> Event {
-        Event(Some(ev))
+        if ev.is_valid() {
+            Event(EventCoreKind::Event(ev))
+        } else {
+            panic!("ocl::Event::from::<EventCore>: Invalid event.");
+        }
     }
 }
 
@@ -189,21 +253,12 @@ impl From<UserEventCore> for Event {
     #[inline]
     fn from(uev: UserEventCore) -> Event {
         if uev.is_valid() {
-            Event(Some(uev.into()))
+            Event(EventCoreKind::UserEvent(uev))
         } else {
-            Event(None)
+            panic!("ocl::Event::from::<UserEventCore>: Invalid event.");
         }
     }
 }
-
-// impl Into<EventCore> for Event {
-//     fn into(self) -> EventCore {
-//         match self.0 {
-//             Some(evc) => evc,
-//             None => unsafe { EventCore::null() },
-//         }
-//     }
-// }
 
 impl Into<String> for Event {
     fn into(self) -> String {
@@ -217,37 +272,37 @@ impl std::fmt::Display for Event {
     }
 }
 
-impl AsRef<EventCore> for Event {
-    fn as_ref(&self) -> &EventCore {
-        self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::as_ref()")
-    }
-}
+// impl AsRef<EventCore> for Event {
+//     fn as_ref(&self) -> &EventCore {
+//         self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::as_ref()")
+//     }
+// }
 
-impl Deref for Event {
-    type Target = EventCore;
+// impl Deref for Event {
+//     type Target = EventCore;
 
-    fn deref(&self) -> &EventCore {
-        self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::deref()")
-    }
-}
+//     fn deref(&self) -> &EventCore {
+//         self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::deref()")
+//     }
+// }
 
-impl DerefMut for Event {
-    fn deref_mut(&mut self) -> &mut EventCore {
-        assert!(!self.is_empty(), "ocl::Event::deref_mut(): {}", self.err_empty());
-        self.0.as_mut().unwrap()
-    }
-}
+// impl DerefMut for Event {
+//     fn deref_mut(&mut self) -> &mut EventCore {
+//         assert!(!self.is_empty(), "ocl::Event::deref_mut(): {}", self.err_empty());
+//         self.0.as_mut().unwrap()
+//     }
+// }
 
 unsafe impl ClNullEventPtr for Event {
     #[inline]
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+    fn ptr_mut_ptr_new(&mut self) -> *mut cl_event {
         self._ptr_mut_ptr_new()
     }
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
     #[inline]
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+    fn ptr_mut_ptr_new(&mut self) -> *mut cl_event {
         self._ptr_mut_ptr_new()
     }
 }
@@ -316,7 +371,12 @@ impl EventList {
         match event.0 {
             Some(ecore) => self.event_list_core.push(ecore),
             None => panic!("EventList::push: Unable to push null (empty) event."),
+
+            EventCoreKind::Event(ref core) => core::get_event_profiling_info(core, info_kind),
+            EventCoreKind::UserEvent(ref core) => core::get_event_profiling_info(core, info_kind),
+            EventCoreKind::Null => ProfilingInfoResult::Error(Box::new(self.err_empty())),
         }
+
     }
 
     /// Removes the last event from the list and returns it.
@@ -433,8 +493,8 @@ impl EventList {
     }
 
     #[inline]
-    fn _ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
-        Ok(self.event_list_core.allot())
+    fn _ptr_mut_ptr_new(&mut self) -> *mut cl_event {
+        self.event_list_core.allot()
     }
 
     #[inline]
@@ -462,32 +522,32 @@ impl AsRef<EventListCore> for EventList {
     }
 }
 
-impl Deref for EventList {
-    type Target = EventListCore;
+// impl Deref for EventList {
+//     type Target = EventListCore;
 
-    #[inline]
-    fn deref(&self) -> &EventListCore {
-        &self.event_list_core
-    }
-}
+//     #[inline]
+//     fn deref(&self) -> &EventListCore {
+//         &self.event_list_core
+//     }
+// }
 
-impl DerefMut for EventList {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut EventListCore {
-        &mut self.event_list_core
-    }
-}
+// impl DerefMut for EventList {
+//     #[inline]
+//     fn deref_mut(&mut self) -> &mut EventListCore {
+//         &mut self.event_list_core
+//     }
+// }
 
 unsafe impl ClNullEventPtr for EventList {
     #[inline]
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+    fn ptr_mut_ptr_new(&mut self) -> *mut cl_event {
         self._ptr_mut_ptr_new()
     }
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
     #[inline]
-    fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+    fn ptr_mut_ptr_new(&mut self) -> *mut cl_event {
         self._ptr_mut_ptr_new()
     }
 }

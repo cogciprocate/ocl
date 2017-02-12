@@ -18,8 +18,8 @@ use rand::{Rng, XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use std::collections::{LinkedList, HashMap, BTreeSet};
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
-    Event, EventList};
-use ocl::core::{FutureMappedMem, MappedMem};
+    Event, EventList, MappedMem, FutureMappedMem};
+// use ocl::core::{FutureMappedMem, MappedMem};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 

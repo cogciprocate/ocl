@@ -55,7 +55,7 @@ impl Queue {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
+    #[inline]
     pub fn core(&self) -> &CommandQueueCore {
         &self.obj_core
     }

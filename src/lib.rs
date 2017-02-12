@@ -62,7 +62,7 @@ mod standard;
 
 pub use core::ffi;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, SubBuffer, Image,
-    Event, EventList, Sampler, SpatialDims, ProQue, MappedMem};
+    Event, EventList, Sampler, SpatialDims, ProQue, MappedMem, FutureMappedMem};
 pub use core::error::{Error, Result};
 pub use core::util;
 

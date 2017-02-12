@@ -9,6 +9,7 @@ mod program;
 mod kernel;
 mod queue;
 mod buffer;
+mod mapped_mem;
 mod image;
 mod sampler;
 mod pro_que;
@@ -21,8 +22,9 @@ pub use self::context::{Context, ContextBuilder};
 pub use self::program::{Program, ProgramBuilder, BuildOpt};
 pub use self::queue::Queue;
 pub use self::kernel::{Kernel, KernelCmd};
-pub use self::buffer::{MappedMem, BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, SubBuffer};
+pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, SubBuffer};
 pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};
+pub use self::mapped_mem::{FutureMappedMem, MappedMem};
 pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};
 pub use self::event::{Event, EventList};
@@ -44,7 +46,7 @@ pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 mod types {
     use ::{Event, EventList};
     use core::ffi::cl_event;
-    use core::{Result as OclResult, NullEvent as NullEventCore, Event as EventCore,
+    use core::{NullEvent as NullEventCore, Event as EventCore,
         UserEvent as UserEventCore, EventList as EventListCore, ClNullEventPtr, ClWaitListPtr};
 
 
@@ -128,7 +130,7 @@ mod types {
     }
 
     unsafe impl<'a> ClNullEventPtr for ClNullEventPtrEnum<'a> {
-        fn ptr_mut_ptr_new(&mut self) -> OclResult<*mut cl_event> {
+        fn ptr_mut_ptr_new(&mut self) -> *mut cl_event {
             match *self {
                 ClNullEventPtrEnum::NullEventCore(ref mut e) => e.ptr_mut_ptr_new(),
                 ClNullEventPtrEnum::EventListCore(ref mut e) => e.ptr_mut_ptr_new(),

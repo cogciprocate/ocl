@@ -3,6 +3,7 @@
 
 use std;
 use std::mem;
+// use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 use std::convert::Into;
@@ -886,12 +887,14 @@ impl<E: OclPrm> Image<E> {
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
     #[deprecated(since="0.13.0", note="Use `::core` instead.")]
+    #[inline]
     pub fn core_as_ref(&self) -> &MemCore {
         &self.obj_core
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
+    #[inline]
     pub fn core(&self) -> &MemCore {
         &self.obj_core
     }
@@ -963,5 +966,9 @@ impl<'a, T: OclPrm> AsMem<T> for &'a mut Image<T> {
     }
 }
 
-unsafe impl<T: OclPrm> MemCmdRw for Image<T> {}
-unsafe impl<T: OclPrm> MemCmdAll for Image<T> {}
+unsafe impl<'a, T> MemCmdRw for Image<T> where T: OclPrm {}
+unsafe impl<'a, T> MemCmdRw for &'a Image<T> where T: OclPrm {}
+unsafe impl<'a, T> MemCmdRw for &'a mut Image<T> where T: OclPrm {}
+unsafe impl<'a, T> MemCmdAll for Image<T> where T: OclPrm {}
+unsafe impl<'a, T> MemCmdAll for &'a Image<T> where T: OclPrm {}
+unsafe impl<'a, T> MemCmdAll for &'a mut Image<T> where T: OclPrm {}

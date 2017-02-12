@@ -5,7 +5,7 @@ use std::convert::Into;
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
-    KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem};
+    KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll};
 use core::error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum};
@@ -217,7 +217,7 @@ impl Kernel {
     /// order.
     // pub fn arg_buf<T: OclPrm>(mut self, buffer: &Buffer<T>) -> Kernel {
     pub fn arg_buf<T, M>(mut self, buffer: M) -> Kernel
-            where T: OclPrm, M: AsMem<T>
+            where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         self.new_arg_buf::<T, _>(Some(buffer));
         self
@@ -227,7 +227,7 @@ impl Kernel {
     /// by 'image' (builder-style). Argument is added to the bottom of the argument
     /// order.
     pub fn arg_img<T, M>(mut self, image: M) -> Kernel
-        where T: OclPrm, M: AsMem<T>
+        where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         self.new_arg_img::<T, _>(Some(image));
         self
@@ -290,7 +290,7 @@ impl Kernel {
     ///
     /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
     pub fn arg_buf_named<T, M>(mut self, name: &'static str, buffer_opt: Option<M>) -> Kernel
-            where T: OclPrm, M: AsMem<T>
+            where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
         self.named_args.insert(name, arg_idx);
@@ -302,7 +302,7 @@ impl Kernel {
     ///
     /// Named arguments can be easily modified later using `::set_arg_img_named()`.
     pub fn arg_img_named<T, M>(mut self, name: &'static str, image_opt: Option<M>) -> Kernel
-            where T: OclPrm, M: AsMem<T>
+            where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         let arg_idx = self.new_arg_img::<T, _>(image_opt);
         self.named_args.insert(name, arg_idx);
@@ -350,7 +350,7 @@ impl Kernel {
     pub fn set_arg_buf_named<'a, T, M>(&'a mut self, name: &'static str,
             buffer_opt: Option<M>)
             -> OclResult<&'a mut Kernel>
-            where T: OclPrm, M: AsMem<T>
+            where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
@@ -371,7 +371,7 @@ impl Kernel {
     pub fn set_arg_img_named<'a, T, M>(&'a mut self, name: &'static str,
             image_opt: Option<M>)
             -> OclResult<&'a mut Kernel>
-            where T: OclPrm, M: AsMem<T>
+            where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
@@ -584,7 +584,7 @@ impl Kernel {
 
     /// Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T, M>(&mut self, buffer_opt: Option<M>) -> u32
-            where T: OclPrm, M: AsMem<T>
+            where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         match buffer_opt {
             Some(buffer) => {
@@ -598,7 +598,7 @@ impl Kernel {
 
     /// Non-builder-style version of `::arg_img()`.
     fn new_arg_img<T, M>(&mut self, image_opt: Option<M>) -> u32
-        where T: OclPrm, M: AsMem<T>
+        where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         match image_opt {
             Some(image) => {
