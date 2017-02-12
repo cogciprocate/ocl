@@ -967,7 +967,10 @@ extern "system" {
     //                      size_t         /* length */,
     //                      cl_int*        /* errcode_ret */) CL_API_SUFFIX__VERSION_2_1;
     //############################### NEW 2.1 #################################
-
+    pub fn clCreateProgramWithIL(context: cl_context,
+                                 il: *const c_void,
+                                 length: size_t,
+                                 errcode_ret: *mut cl_int) -> cl_program;
 
     pub fn clRetainProgram(program: cl_program) -> cl_int;
 

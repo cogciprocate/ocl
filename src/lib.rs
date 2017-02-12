@@ -239,3 +239,5 @@ pub use self::cl_h::{clGetPlatformIDs, clGetPlatformInfo, clGetDeviceIDs, clGetD
     clEnqueueSVMFree, clEnqueueSVMMemcpy, clEnqueueSVMMemFill, clEnqueueSVMMap, clEnqueueSVMUnmap,
     clEnqueueSVMMigrateMem, clEnqueueBarrier, clGetExtensionFunctionAddress,
     clGetExtensionFunctionAddressForPlatform};
+
+pub use self::cl_h::{clCreateProgramWithIL};
