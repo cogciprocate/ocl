@@ -42,11 +42,11 @@ fn main() {
 
     // (4) Run the kernel:
     core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-        None, None::<EventList>, None::<EventList>).unwrap();
+        None, None::<EventList>, None::<&mut EventList>).unwrap();
 
     // (5) Read results from the device into a vector:
     unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,
-        None::<EventList>, None::<EventList>).unwrap() };
+        None::<EventList>, None::<&mut EventList>).unwrap() };
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);

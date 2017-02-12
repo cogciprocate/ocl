@@ -130,7 +130,7 @@ fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info
 //     };
 
 //     let new_event_ptr = match new_event {
-//         Some(ne) => try!(ne.ptr_mut_ptr_new()),
+//         Some(ne) => try!(ne.alloc_new()),
 //         None => ptr::null_mut() as *mut cl_event,
 //     };
 
@@ -155,7 +155,7 @@ fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<
     };
 
     let new_event_ptr = match new_event {
-        Some(mut ne) => ne.ptr_mut_ptr_new(),
+        Some(ne) => ne.alloc_new(),
         None => ptr::null_mut() as *mut cl_event,
     };
 

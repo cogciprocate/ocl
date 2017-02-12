@@ -29,12 +29,12 @@ fn fill() {
 
     // buffer.cmd().fill(5.0f32, None).enq().unwrap();
     ::enqueue_fill_buffer::<f32, _, _, _>(&queue, &buffer, 5.0f32, 0, DATASET_SIZE,
-        None::<::EventList>, None::<::EventList>, None).unwrap();
+        None::<::EventList>, None::<&mut ::EventList>, None).unwrap();
 
     let mut vec = vec![0.0f32; DATASET_SIZE];
     // buffer.read(&mut vec).enq().unwrap();
     unsafe { ::enqueue_read_buffer::<f32, _, _, _>(&queue, &buffer, true, 0, &mut vec,
-        None::<::EventList>, None::<::EventList>).unwrap() };
+        None::<::EventList>, None::<&mut ::EventList>).unwrap() };
 
     assert!(vec.iter().all(|x| *x == 5.0f32));
     // for &ele in vec.iter() {

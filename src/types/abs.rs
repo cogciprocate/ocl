@@ -65,7 +65,7 @@ const EL_CLEAR_MAX_LEN: usize = 48;
 const EL_CLEAR_INTERVAL: i32 = 32;
 const EL_CLEAR_AUTO: bool = false;
 
-const DEBUG_PRINT: bool = false;
+// const DEBUG_PRINT: bool = false;
 
 //=============================================================================
 //================================== TRAITS ===================================
@@ -139,7 +139,7 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
 /// Types with a mutable pointer to a new, null raw event pointer.
 ///
 pub unsafe trait ClNullEventPtr: Debug {
-    fn ptr_mut_ptr_new(&mut self) -> *mut cl_event;
+    fn alloc_new(self) -> *mut cl_event;
 }
 
 
@@ -149,7 +149,9 @@ pub unsafe trait ClNullEventPtr: Debug {
 /// [TODO]: Create an enum to be used with this trait.
 ///
 pub unsafe trait ClWaitListPtr: Debug {
+    /// Returns a pointer to the first pointer in this list.
     unsafe fn as_ptr_ptr(&self) -> *const cl_event;
+    /// Returns the number of items in this wait list.
     fn count (&self) -> u32;
 }
 
@@ -724,68 +726,69 @@ impl ClVersions for Kernel {
 unsafe impl Send for Kernel {}
 
 
-/// cl_event
-#[derive(Clone, Debug)]
-pub struct NullEvent(cl_event);
 
-impl NullEvent {
-    /// For passage directly to an 'event creation' function (such as enqueue...).
-    #[inline]
-    pub fn new() -> NullEvent {
-        NullEvent(0 as cl_event)
-    }
+// /// cl_event
+// #[derive(Clone, Debug)]
+// pub struct NullEvent(cl_event);
 
-    pub fn validate(self) -> OclResult<Event> {
-        if self.is_valid() {
-            let event = Ok(Event(self.0));
-            mem::forget(self);
-            event
-        } else {
-            Err("NullEvent::validate: Event is not valid.".into())
-        }
-    }
+// impl NullEvent {
+//     /// For passage directly to an 'event creation' function (such as enqueue...).
+//     #[inline]
+//     pub fn new() -> NullEvent {
+//         NullEvent(0 as cl_event)
+//     }
 
-    /// Returns a mutable reference to a pointer, do not deref then modify or store it
-    /// unless you will manage its associated reference count carefully.
-    ///
-    #[inline]
-    pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
-        &mut self.0
-    }
+//     pub fn validate(&mut self) -> OclResult<Event> {
+//         if self.is_valid() {
+//             let event = Ok(Event(self.0));
+//             mem::forget(self);
+//             event
+//         } else {
+//             Err("NullEvent::validate: Event is not valid.".into())
+//         }
+//     }
 
-    /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
-    /// NULL CHECK IS NOT ENOUGH
-    ///
-    /// This still leads to crazy segfaults when non-event pointers (random
-    /// whatever addresses) are passed. Need better check.
-    ///
-    #[inline]
-    pub fn is_valid(&self) -> bool {
-        !self.0.is_null()
-    }
+//     /// Returns a mutable reference to a pointer, do not deref then modify or store it
+//     /// unless you will manage its associated reference count carefully.
+//     ///
+//     #[inline]
+//     pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
+//         &mut self.0
+//     }
 
-    fn _ptr_mut_ptr_new(&mut self) -> *mut cl_event {
-        assert!(self.0.is_null(), "NullEvent (new event) has been used twice.");
-        &mut self.0
-    }
-}
+//     /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
+//     /// NULL CHECK IS NOT ENOUGH
+//     ///
+//     /// This still leads to crazy segfaults when non-event pointers (random
+//     /// whatever addresses) are passed. Need better check.
+//     ///
+//     #[inline]
+//     pub fn is_valid(&self) -> bool {
+//         !self.0.is_null()
+//     }
 
-impl<'e> ClEventRef<'e> for NullEvent {
-    #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
-}
+//     fn _alloc_new(&mut self) -> *mut cl_event {
+//         assert!(self.0.is_null(), "NullEvent (new event) has been used twice.");
+//         &mut self.0
+//     }
+// }
 
-unsafe impl ClNullEventPtr for NullEvent {
-    #[inline] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self._ptr_mut_ptr_new() }
-}
+// impl<'e> ClEventRef<'e> for NullEvent {
+//     #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
+// }
 
-unsafe impl<'a> ClNullEventPtr for &'a mut NullEvent {
-    #[inline(always)]
-    fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self._ptr_mut_ptr_new() }
-}
+// unsafe impl<'a> ClNullEventPtr for &'a mut NullEvent {
+//     #[inline(always)] fn alloc_new(self) -> *mut cl_event { self._alloc_new() }
 
-// unsafe impl EventPtr for Event {}
-unsafe impl Sync for NullEvent {}
-unsafe impl Send for NullEvent {}
+//     #[inline(always)] fn validate(self) -> OclResult<Event> {
+//         let valid_event = self.validate();
+//         self.0 = 0 as cl_event;
+//         valid_event
+//     }
+// }
+
+// unsafe impl Sync for NullEvent {}
+// unsafe impl Send for NullEvent {}
 
 
 
@@ -796,14 +799,15 @@ pub struct Event(cl_event);
 impl Event {
     /// For passage directly to an 'event creation' function (such as enqueue...).
     #[inline]
-    pub fn null() -> NullEvent {
-        NullEvent::new()
+    pub fn null() -> Event {
+        Event(0 as cl_event)
     }
 
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
     #[inline]
     pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> Event {
+        assert!(!ptr.is_null(), "ocl_core::Event::from_raw_create_ptr: Null pointer passed.");
         Event(ptr)
     }
 
@@ -812,7 +816,7 @@ impl Event {
     ///
     #[inline]
     pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclResult<Event> {
-        assert!(!ptr.is_null(), "Null pointer passed.");
+        assert!(!ptr.is_null(), "ocl_core::Event::from_raw_copied_ptr: Null pointer passed.");
         let new_core = Event(ptr);
         functions::retain_event(&new_core)?;
         Ok(new_core)
@@ -825,6 +829,8 @@ impl Event {
     ///
     #[inline]
     pub fn is_complete(&self) -> OclResult<bool> {
+        // assert!(!self.0.is_null(), "ocl_core::Event::is_complete: Event is null.");
+        if self.0.is_null() { return Err("ocl_core::Event::is_complete: Event is null.".into()) }
         functions::event_is_complete(self)
     }
 
@@ -844,9 +850,7 @@ impl Event {
             user_data_ptr: *mut c_void,
             ) -> OclResult<()>
     {
-        // if self.is_valid() {
-            debug_assert!(!self.0.is_null());
-
+        if self.is_valid() {
             let callback_receiver = match callback_receiver_opt {
                 Some(cbr) => Some(cbr),
                 None => Some(::_dummy_event_callback as EventCallbackFn),
@@ -859,10 +863,10 @@ impl Event {
                 user_data_ptr as *mut _ as *mut c_void,
             )
 
-        // } else {
-        //     Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
-        //         internal event pointer is actually created by a `clCreate...` function.".into())
-        // }
+        } else {
+            Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
+                internal event pointer is actually created by a `clCreate...` function.".into())
+        }
     }
 
     // /// Returns a pointer, do not store it unless you will manage its
@@ -923,27 +927,40 @@ impl Event {
         Event(ptr)
     }
 
+    /// Ensures this contains a null event and returns a mutable pointer to it.
+    fn _alloc_new(&mut self) -> *mut cl_event {
+        assert!(self.0.is_null(), "ocl_core::Event::alloc_new: An 'Event' cannot be \
+            used as target for event creation (as a new event) more than once.");
+        &mut self.0
+    }
+
+    /// Returns a pointer pointer expected when used as a wait list.
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
         if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
     }
 
+    /// Returns a count expected when used as a wait list.
     fn _count(&self) -> u32 {
         if self.0.is_null() { 0 } else { 1 }
     }
 }
 
-impl From<NullEvent> for Event {
-    fn from(null_event: NullEvent) -> Event {
-        assert!(null_event.is_valid(), "Event::from::<NullEvent>: Invalid NullEvent.");
-        Event(null_event.0)
-    }
-}
+// impl From<NullEvent> for Event {
+//     fn from(null_event: NullEvent) -> Event {
+//         assert!(null_event.is_valid(), "Event::from::<NullEvent>: Invalid NullEvent.");
+//         Event(null_event.0)
+//     }
+// }
 
 // impl From<UserEvent> for Event {
 //     fn from(uev: UserEvent) -> Event {
 //         uev.into()
 //     }
 // }
+
+unsafe impl<'a> ClNullEventPtr for &'a mut Event {
+    #[inline(always)] fn alloc_new(self) -> *mut cl_event { self._alloc_new() }
+}
 
 impl<'e> ClEventRef<'e> for Event {
     #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
@@ -1147,25 +1164,25 @@ unsafe impl Send for UserEvent {}
 
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum EventKind {
-    NullEvent,
+    // Null,
     Event,
     UserEvent,
 }
 
 
-#[derive(Clone, Debug)]
+// #[derive(Clone, Debug)]
 pub enum EventVariant {
-    NullEvent(NullEvent),
+    Null,
     Event(Event),
     UserEvent(UserEvent),
-
 }
 
 
 #[derive(Clone, Debug)]
 pub enum EventVariantRef<'a> {
-    NullEvent(&'a NullEvent),
+    Null,
     Event(&'a Event),
     UserEvent(&'a UserEvent),
 }
@@ -1173,7 +1190,7 @@ pub enum EventVariantRef<'a> {
 
 #[derive(Debug)]
 pub enum EventVariantMut<'a> {
-    NullEvent(&'a mut NullEvent),
+    Null,
     Event(&'a mut Event),
     UserEvent(&'a mut UserEvent),
 }
@@ -1252,14 +1269,28 @@ impl EventList {
     // Does not increment reference count as it will not have been decremented
     // when added to list.
     //
-    pub fn pop(&mut self) -> Option<Event> {
+    pub fn pop(&mut self) -> Option<EventVariant> {
         // self.event_ptrs.pop().map(|ptr| unsafe { Event::from_raw_copied_ptr(ptr) } )
-        self.event_ptrs.pop().map(|ptr| Event(ptr))
+        // self.event_ptrs.pop().map(|ptr| Event(ptr))
+
+        let kind = self.event_kinds.pop();
+        let ptr = self.event_ptrs.pop();
+
+        match kind.and_then(|kind| ptr.and_then(|ptr| Some((kind, ptr)))) {
+            Some((kind, ptr)) => {
+                match kind {
+                    // EventKind::Null => Some(EventVariant::Null),
+                    EventKind::Event => Some(EventVariant::Event(Event(ptr))),
+                    EventKind::UserEvent => Some(EventVariant::UserEvent(UserEvent(ptr))),
+                }
+            },
+            None => None
+        }
     }
 
     /// Appends a new null element to the end of the list and returns a reference to it.
     pub fn allot(&mut self) -> &mut cl_event {
-        self.event_kinds.push(EventKind::NullEvent);
+        self.event_kinds.push(EventKind::Event);
         self.event_ptrs.push(0 as cl_event);
         self.event_ptrs.last_mut().unwrap()
     }
@@ -1322,16 +1353,19 @@ impl EventList {
     }
 
 
-    /// Merges the copied contents of this list and another into a new list and returns it.
-    pub fn union(&self, other_list: &EventList) -> EventList {
-        let new_cap = other_list.event_ptrs.len() + self.event_ptrs.len() + 8;
-        let mut new_list = EventList::with_capacity(new_cap);
+    // /// Merges thecontents of this list and another into a new list and returns it.
+    // /// Make these merge without dropping the damn pointers
+    // pub fn union(self, other_list: EventList) -> EventList {
+    //     let new_cap = other_list.event_ptrs.len() + self.event_ptrs.len() + 8;
+    //     let mut new_list = EventList::with_capacity(new_cap);
 
-        new_list.event_ptrs.extend(self.event_ptrs.iter().cloned());
-        new_list.event_ptrs.extend(other_list.event_ptrs.iter().cloned());
+    //     new_list.event_ptrs.extend(self.event_ptrs.iter().cloned());
+    //     new_list.event_kinds.extend(self.event_kinds.iter().cloned());
+    //     new_list.event_ptrs.extend(other_list.event_ptrs.iter().cloned());
+    //     new_list.event_kinds.extend(other_list.event_kinds.iter().cloned());
 
-        new_list
-    }
+    //     new_list
+    // }
 
     /// Counts down the auto-list-clear counter.
     fn decr_counter(&mut self) {
@@ -1361,12 +1395,8 @@ impl EventList {
     }
 }
 
-unsafe impl ClNullEventPtr for EventList {
-    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self.allot() }
-}
-
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
-    #[inline(always)] fn ptr_mut_ptr_new(&mut self) -> *mut cl_event { self.allot() }
+    #[inline(always)] fn alloc_new(self) -> *mut cl_event { self.allot() }
 }
 
 unsafe impl ClWaitListPtr for EventList {
@@ -1401,13 +1431,17 @@ impl Clone for EventList {
 }
 
 impl Drop for EventList {
+    /// Re-creates the appropriate event wrapper for each pointer in the list
+    /// and drops it.
     fn drop(&mut self) {
-        if DEBUG_PRINT { print!("Dropping events... "); }
-        for &event_ptr in &self.event_ptrs {
-            unsafe { functions::release_event(&EventRefWrapper(event_ptr)).unwrap(); }
-            if DEBUG_PRINT { print!("{{.}}"); }
+        for (&event_ptr, event_kind) in self.event_ptrs.iter().zip(self.event_kinds.iter()) {
+            // unsafe { functions::release_event(&EventRefWrapper(event_ptr)).unwrap(); }
+            match *event_kind {
+                // EventKind::Null => (),
+                EventKind::Event => { mem::drop(Event(event_ptr)) },
+                EventKind::UserEvent => { mem::drop(UserEvent(event_ptr)) },
+            }
         }
-        if DEBUG_PRINT { print!("\n"); }
     }
 }
 
