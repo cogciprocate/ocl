@@ -11,6 +11,8 @@ use std::convert::Into;
 use core::error::{Result as OclResult, Error as OclError};
 use core::{self, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
+#[cfg(feature = "opencl_version_2_1")]
+use core::ClVersions;
 use standard::{Context, Device, DeviceSpecifier};
 
 
@@ -62,6 +64,7 @@ impl BuildOpt {
 pub struct ProgramBuilder {
     options: Vec<BuildOpt>,
     src_files: Vec<PathBuf>,
+    il: Option<Vec<u8>>,
     device_spec: Option<DeviceSpecifier>,
 }
 
@@ -71,6 +74,7 @@ impl ProgramBuilder {
         ProgramBuilder {
             options: Vec::with_capacity(64),
             src_files: Vec::with_capacity(16),
+            il: None,
             device_spec: None,
         }
     }
@@ -82,7 +86,8 @@ impl ProgramBuilder {
     /// device list will cause an `OpenCL` error in that case.
     ///
     /// [TODO]: Check for duplicate devices in the final device list.
-    pub fn build(&self, context: &Context) -> OclResult<Program> {
+    #[cfg(not(feature = "opencl_version_2_1"))]
+    pub fn build(self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
             Some(ref ds) => try!(ds.to_device_list(context.platform())),
             None => vec![],
@@ -92,11 +97,65 @@ impl ProgramBuilder {
             return OclError::err("ocl::ProgramBuilder::build: No devices found.");
         }
 
-        Program::new(
-            try!(self.get_src_strings().map_err(|e| e.to_string())),
-            try!(self.get_compiler_options().map_err(|e| e.to_string())),
-            context,
-            &device_list[..])
+        match self.il {
+            Some(_) => {
+                return Err("ocl::ProgramBuilder::build: Unreachable section (IL).".into());
+            },
+            None => {
+                Program::new(
+                    try!(self.get_src_strings().map_err(|e| e.to_string())),
+                    try!(self.get_compiler_options().map_err(|e| e.to_string())),
+                    context,
+                    &device_list[..]
+                )
+            },
+        }
+    }
+
+
+    /// Returns a newly built Program.
+    ///
+    /// [TODO]: If the context is associated with more than one device,
+    /// check that at least one of those devices has been specified. An empty
+    /// device list will cause an `OpenCL` error in that case.
+    ///
+    /// [TODO]: Check for duplicate devices in the final device list.
+    #[cfg(feature = "opencl_version_2_1")]
+    pub fn build(self, context: &Context) -> OclResult<Program> {
+        let device_list = match self.device_spec {
+            Some(ref ds) => try!(ds.to_device_list(context.platform())),
+            None => vec![],
+        };
+
+        if device_list.is_empty() {
+            return OclError::err("ocl::ProgramBuilder::build: No devices found.");
+        }
+
+        match self.il {
+            Some(il) => {
+                if cfg!(feature = "opencl_version_2_1") {
+                    if self.options.len() > 0 { return Err("ProgramBuilder::build: \
+                        No options may be set when building with IR.".into()); }
+                    if self.src_files.len() > 0 { return Err("ProgramBuilder::build: \
+                        No source files may be set when building with IR.".into()); }
+                    if self.device_spec.is_some() { return Err("ProgramBuilder::build: \
+                        No devices may be specified when building with IR. They are automatically \
+                        determined using the provided context.".into()); }
+
+                    Program::with_il(il, context)
+                } else {
+                    return Err("ocl::ProgramBuilder::build: Unreachable section.");
+                }
+            },
+            None => {
+                Program::new(
+                    try!(self.get_src_strings().map_err(|e| e.to_string())),
+                    try!(self.get_compiler_options().map_err(|e| e.to_string())),
+                    context,
+                    &device_list[..]
+                )
+            },
+        }
     }
 
     /// Adds a build option containing a compiler command line definition.
@@ -144,6 +203,22 @@ impl ProgramBuilder {
         self
     }
 
+    /// Adds SPIR-V or an implementation-defined intermediate language to this program.
+    ///
+    /// Any source files or source text added to this build will cause an
+    /// error upon building.
+    ///
+    /// Use the `include_bytes!` macro to include source code from a file statically.
+    ///
+    /// [TODO]: Future addition: Allow IL to be loaded directly from a file
+    /// in the same way that text source is.
+    ///
+    #[cfg(feature = "opencl_version_2_1")]
+    pub fn il(mut self, il: Vec<u8>) -> ProgramBuilder {
+        self.il = Some(il);
+        self
+    }
+
     /// Specify a list of devices to build this program on. The devices must
     /// also be associated with the context passed to `::build` later on.
     ///
@@ -165,7 +240,7 @@ impl ProgramBuilder {
         &self.device_spec
     }
 
-    /// Returns a contatenated string of command line options to be passed to
+    /// Returns a concatenated string of command line options to be passed to
     /// the compiler when building this program.
     pub fn get_compiler_options(&self) -> OclResult<CString> {
         let mut opts: Vec<String> = Vec::with_capacity(64);
@@ -221,7 +296,7 @@ impl ProgramBuilder {
         }
 
         src_strings.extend_from_slice(&try!(self.get_includes_eof()));
-
+        src_strings.shrink_to_fit();
         Ok(src_strings)
     }
 
@@ -248,6 +323,7 @@ impl ProgramBuilder {
 
         }
 
+        strings.shrink_to_fit();
         Ok(strings)
     }
 
@@ -263,6 +339,7 @@ impl ProgramBuilder {
             }
         }
 
+        strings.shrink_to_fit();
         Ok(strings)
     }
 }
@@ -300,11 +377,27 @@ impl Program {
                 device_ids: &[Device]) -> OclResult<Program>
     {
         let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts,
-             device_ids).map_err(|e| e.to_string()));
+             device_ids));
 
         Ok(Program {
             obj_core: obj_core,
             devices: Vec::from(device_ids),
+        })
+    }
+
+    /// Returns a new program built from pre-created build components and device
+    /// list for programs with intermediate language byte source.
+    #[cfg(feature = "opencl_version_2_1")]
+    pub fn with_il(il: Vec<u8>, context_obj_core: &ContextCore) -> OclResult<Program> {
+        let device_versions = context_obj_core.device_versions()?;
+
+        let obj_core = core::create_program_with_il(context_obj_core, &il, Some(&device_versions))?;
+
+        let devices = context_obj_core.devices()?.into_iter().map(|d| d.into()).collect();
+
+        Ok(Program {
+            obj_core: obj_core,
+            devices: devices,
         })
     }
 
