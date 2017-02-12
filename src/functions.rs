@@ -180,6 +180,21 @@ fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersi
     }
 }
 
+// // Looks up the first device for a context and verifies its version.
+// fn verify_device_versions_from_context(provided_versions: Option<&[OpenclVersion]>,
+//             required_version: [u16; 2], context: &Context) -> OclResult<()> {
+//     let device_ids = match get_context_info(context, ContextInfo::Devices) {
+//         ContextInfoResult::Devices(ids) => ids,
+//         ContextInfoResult::Error(err) => return Err(*err),
+//         _ => unreachable!(),
+//     };
+
+//     if device_ids.len() == 0 { return Err("Unable to verify context-platform version. \
+//         No devices found.".into()) }
+
+//     verify device_version(provided_versions)
+// }
+
 //============================================================================
 //============================================================================
 //======================= OPENCL FUNCTION WRAPPERS ===========================
@@ -1260,6 +1275,37 @@ pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersio
     let _ =  device_version;
     unimplemented!();
 }
+
+/// Returns a new `Program` loaded with the provided IL bytes.
+///
+/// [Version Controlled: OpenCL 2.1+] See module docs for more info.
+pub fn create_program_with_il(
+        context: &Context,
+        il: &[u8],
+        device_versions: Option<&[OpenclVersion]>,
+        ) -> OclResult<Program>
+{
+    verify_device_versions(device_versions, [2, 1], context)?;
+
+    let mut errcode: cl_int = 0;
+
+    // pub fn clCreateProgramWithIL(context: cl_context,
+    //                              il: *const c_void,
+    //                              length: size_t,
+    //                              errcode_ret: *mut cl_int) -> cl_program;
+
+    let program = unsafe { ffi::clCreateProgramWithIL(
+        context.as_ptr(),
+        il.as_ptr() as *mut c_void,
+        il.len(),
+        &mut errcode,
+    ) };
+
+    unsafe { eval_errcode(errcode, Program::from_fresh_ptr(program), "clCreateProgramWithIL", "") }
+}
+
+
+
 
 /// Increments a program reference counter.
 pub unsafe fn retain_program(program: &Program) -> OclResult<()> {

@@ -361,8 +361,6 @@ impl ClVersions for Context {
         let devices = try!(self.devices());
         devices[0].platform_version()
     }
-
-
 }
 
 
