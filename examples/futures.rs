@@ -1,3 +1,6 @@
+//! [TODO]: Update this with code from experimental project.
+
+
 #![allow(dead_code, unused_variables, unused_imports)]
 
 extern crate futures;
@@ -7,395 +10,29 @@ extern crate rand;
 extern crate chrono;
 extern crate ocl;
 
+mod extras;
+
 // use std::io;
-use std::time::Duration;
-use futures::future::*;
-// use futures::{Future, Async};
+// use std::time::Duration;
+// use futures::future::*;
+use futures::{Future};
 use futures_cpupool::{CpuPool, CpuFuture};
-use tokio_timer::{Timer, Sleep, TimerError};
+// use tokio_timer::{Timer, Sleep, TimerError};
 
 use rand::{Rng, XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
-use std::collections::{LinkedList, HashMap, BTreeSet};
-use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
+// use std::collections::{LinkedList, HashMap, BTreeSet};
+use ocl::{Platform, Device, Context, Queue, Program, /*Buffer,*/ Kernel, /*SubBuffer,*/ OclPrm,
     Event, EventList, MappedMem, FutureMappedMem};
 // use ocl::core::{FutureMappedMem, MappedMem};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 
+use extras::{BufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 
 const INITIAL_BUFFER_LEN: u32 = 2 << 23; // 256MiB of ClFloat4
 const SUB_BUF_MIN_LEN: u32 = 2 << 11; // 64KiB of ClFloat4
 const SUB_BUF_MAX_LEN: u32 = 2 << 15; // 1MiB of ClFloat4
-
-
-struct PoolRegion {
-    buffer_id: usize,
-    origin: u32,
-    len: u32,
-}
-
-/// A simple (linear search) sub-buffer allocator.
-struct BufferPool<T: OclPrm> {
-    buffer: Buffer<T>,
-    regions: LinkedList<PoolRegion>,
-    sub_buffers: HashMap<usize, SubBuffer<T>>,
-    align: u32,
-    _next_uid: usize,
-}
-
-impl<T: OclPrm> BufferPool<T> {
-    /// Returns a new buffer pool.
-    pub fn new(len: u32, default_queue: Queue) -> BufferPool<T> {
-        let align = default_queue.device().mem_base_addr_align().unwrap();
-        let flags = Some(MemFlags::alloc_host_ptr() | MemFlags::read_write());
-        let buffer = Buffer::<T>::new(default_queue, flags, len, None).unwrap();
-
-        BufferPool {
-            buffer: buffer,
-            regions: LinkedList::new(),
-            sub_buffers: HashMap::new(),
-            align: align,
-            _next_uid: 0,
-        }
-    }
-
-    fn next_valid_align(&self, unaligned_origin: u32) -> u32 {
-        ((unaligned_origin / self.align) + 1) * self.align
-    }
-
-    fn next_uid(&mut self) -> usize {
-        self._next_uid += 1;
-        self._next_uid - 1
-    }
-
-    fn insert_region(&mut self, region: PoolRegion, region_idx: usize) {
-        let mut tail = self.regions.split_off(region_idx);
-        self.regions.push_back(region);
-        self.regions.append(&mut tail);
-    }
-
-    fn create_sub_buffer(&mut self, region_idx: usize, flags: Option<MemFlags>,
-            origin: u32, len: u32) -> usize
-    {
-        let buffer_id = self.next_uid();
-        let region = PoolRegion { buffer_id: buffer_id, origin: origin, len: len };
-        let sbuf = self.buffer.create_sub_buffer(flags, region.origin, region.len).unwrap();
-        if let Some(idx) = self.sub_buffers.insert(region.buffer_id, sbuf) {
-            panic!("Duplicate indexes: {}", idx); }
-        self.insert_region(region, region_idx);
-        buffer_id
-    }
-
-    /// Allocates space for and creates a new sub-buffer then returns the
-    /// buffer id which can be used to `::get` or `::free` it.
-    pub fn alloc(&mut self, len: u32, flags: Option<MemFlags>) -> Result<usize, ()> {
-        assert!(self.regions.len() == self.sub_buffers.len());
-
-        match self.regions.front() {
-            Some(_) => {
-                let mut end_prev = 0;
-                let mut create_at = None;
-
-                for (region_idx, region) in self.regions.iter().enumerate() {
-                    if region.origin - end_prev >= len {
-                        create_at = Some(region_idx);
-                        break;
-                    } else {
-                        end_prev = self.next_valid_align(region.origin + region.len);
-                    }
-                }
-
-                if let Some(region_idx) = create_at {
-                    Ok(self.create_sub_buffer(region_idx, flags, end_prev, len))
-                } else if self.buffer.len() as u32 - end_prev >= len {
-                    let region_idx = self.regions.len();
-                    Ok(self.create_sub_buffer(region_idx, flags, end_prev, len))
-                } else {
-                    Err(())
-                }
-            },
-            None => {
-                Ok(self.create_sub_buffer(0, flags, 0, len))
-            },
-        }
-    }
-
-    /// Deallocates the buffer identified by `buffer_id` or returns it back in
-    /// the event of a failure.
-    pub fn free(&mut self, buffer_id: usize) -> Result<(), usize> {
-        let mut region_idx = None;
-
-        // The `SubBuffer` drops here when it goes out of scope:
-        if let Some(_) = self.sub_buffers.remove(&buffer_id) {
-            region_idx = self.regions.iter().position(|r| r.buffer_id == buffer_id);
-        }
-
-        if let Some(r_idx) = region_idx {
-            let mut tail = self.regions.split_off(r_idx);
-            tail.pop_front().ok_or(buffer_id)   ?;
-            self.regions.append(&mut tail);
-            Ok(())
-        } else {
-            Err(buffer_id)
-        }
-    }
-
-    /// Returns a reference to the sub-buffer identified by `buffer_id`.
-    pub fn get(&self, buffer_id: usize) -> Option<&SubBuffer<T>> {
-        self.sub_buffers.get(&buffer_id)
-    }
-
-    /// Returns a mutable reference to the sub-buffer identified by `buffer_id`.
-    #[allow(dead_code)]
-    pub fn get_mut(&mut self, buffer_id: usize) -> Option<&mut SubBuffer<T>> {
-        self.sub_buffers.get_mut(&buffer_id)
-    }
-
-    /// Defragments the buffer. Be sure to `::finish()` any and all command
-    /// queues you may be using before doing this.
-    ///
-    /// All kernels with a buffer argument set to any of the sub-buffers in
-    /// this pool will need to be created anew or arguments refreshed (use
-    /// `Kernel::arg_..._named` when initializing arguments in order to change
-    /// them later).
-    #[allow(dead_code)]
-    pub fn defrag(&mut self) {
-        // - Iterate through sub-buffers, dropping and recreating at the
-        //   leftmost (lowest) available address within the buffer, optionally
-        //   copying old data to the new position in device memory.
-        // - Rebuild regions list (or just update offsets).
-        unimplemented!();
-    }
-
-    /// Shrinks or grows and defragments the main buffer. Invalidates all
-    /// kernels referencing sub-buffers in this pool. See `::defrag` for more
-    /// information.
-    #[allow(dead_code, unused_variables)]
-    pub fn resize(&mut self, len: u32) {
-        // Allocate a new buffer then copy old buffer contents one sub-buffer
-        // at a time, defragmenting in the process.
-        unimplemented!();
-    }
-}
-
-
-struct RwCmdIdxs {
-    writers: Vec<usize>,
-    readers: Vec<usize>,
-}
-
-impl RwCmdIdxs {
-    fn new() -> RwCmdIdxs {
-        RwCmdIdxs { writers: Vec::new(), readers: Vec::new() }
-    }
-}
-
-#[allow(dead_code)]
-struct KernelArgBuffer {
-    arg_idx: usize, // Will be used when refreshing kernels after defragging or resizing.
-    buffer_id: usize,
-}
-
-impl KernelArgBuffer {
-    pub fn new(arg_idx: usize, buffer_id: usize) -> KernelArgBuffer {
-        KernelArgBuffer { arg_idx: arg_idx, buffer_id: buffer_id }
-    }
-}
-
-
-/// Details of a queuable command.
-enum CommandDetails {
-    Fill { target: usize },
-    Write { target: usize },
-    Read { source: usize },
-    Copy { source: usize, target: usize },
-    Kernel { id: usize, sources: Vec<KernelArgBuffer>, targets: Vec<KernelArgBuffer> },
-}
-
-impl CommandDetails {
-    pub fn sources(&self) -> Vec<usize> {
-        match *self {
-            CommandDetails::Fill { .. } => vec![],
-            CommandDetails::Read { source } => vec![source],
-            CommandDetails::Write { .. } => vec![],
-            CommandDetails::Copy { source, .. } => vec![source],
-            CommandDetails::Kernel { ref sources, .. } => {
-                sources.iter().map(|arg| arg.buffer_id).collect()
-            },
-        }
-    }
-
-    pub fn targets(&self) -> Vec<usize> {
-        match *self {
-            CommandDetails::Fill { target } => vec![target],
-            CommandDetails::Read { .. } => vec![],
-            CommandDetails::Write { target } => vec![target],
-            CommandDetails::Copy { target, .. } => vec![target],
-            CommandDetails::Kernel { ref targets, .. } => {
-                targets.iter().map(|arg| arg.buffer_id).collect()
-            },
-        }
-    }
-}
-
-
-struct Command {
-    details: CommandDetails,
-    event: Option<Event>,
-    requisite_events: EventList,
-}
-
-impl Command {
-    pub fn new(details: CommandDetails) -> Command {
-        Command {
-            details: details,
-            event: None,
-            requisite_events: EventList::new(),
-        }
-    }
-
-    /// Returns a list of commands which both precede a command and which
-    /// write to a block of memory which is read from by that command.
-    pub fn preceding_writers(&self, cmds: &HashMap<usize, RwCmdIdxs>) -> BTreeSet<usize> {
-        let pre_writers = self.details.sources().iter().flat_map(|cmd_src_block|
-                cmds.get(cmd_src_block).unwrap().writers.iter().cloned()).collect();
-
-        pre_writers
-    }
-
-    /// Returns a list of commands which both follow a command and which read
-    /// from a block of memory which is written to by that command.
-    pub fn following_readers(&self, cmds: &HashMap<usize, RwCmdIdxs>) -> BTreeSet<usize> {
-        let fol_readers = self.details.targets().iter().flat_map(|cmd_tar_block|
-                cmds.get(cmd_tar_block).unwrap().readers.iter().cloned()).collect();
-
-        fol_readers
-    }
-}
-
-
-/// A sequence dependency graph representing the temporal requirements of each
-/// asynchronous read, write, copy, and kernel (commands) for a particular
-/// task.
-///
-/// Obviously this is an overkill for this example but this graph is flexible
-/// enough to schedule execution correctly and optimally with arbitrarily many
-/// parallel tasks with arbitrary duration reads, writes and kernels.
-///
-/// Note that in this example we are using `buffer_id` a `usize` to represent
-/// memory regions (because that's what the allocator above is using) but we
-/// could easily use multiple part, complex identifiers/keys. For example, we
-/// may have a program with a large number of buffers which are organized into
-/// a complex hierarchy or some other arbitrary structure. We could swap
-/// `buffer_id` for some value which represented that as long as the
-/// identifier we used could uniquely identify each subsection of memory. We
-/// could also use ranges of values and do an overlap check and have
-/// byte-level precision.
-///
-struct CommandGraph {
-    commands: Vec<Command>,
-    command_requisites: Vec<Vec<usize>>,
-    locked: bool,
-    next_cmd_idx: usize,
-}
-
-impl CommandGraph {
-    /// Returns a new, empty graph.
-    pub fn new() -> CommandGraph {
-        CommandGraph {
-            commands: Vec::new(),
-            command_requisites: Vec::new(),
-            locked: false,
-            next_cmd_idx: 0,
-        }
-    }
-
-    /// Adds a new command and returns the command index if successful.
-    pub fn add(&mut self, command: Command) -> Result<usize, ()> {
-        if self.locked { return Err(()); }
-        self.commands.push(command);
-        self.command_requisites.push(Vec::new());
-        Ok(self.commands.len() - 1)
-    }
-
-    /// Returns a sub-buffer map which contains every command that reads from
-    /// or writes to each sub-buffer.
-    fn readers_and_writers_by_sub_buffer(&self) -> HashMap<usize, RwCmdIdxs> {
-        let mut cmds = HashMap::new();
-
-        for (cmd_idx, cmd) in self.commands.iter().enumerate() {
-            for cmd_src_block in cmd.details.sources().into_iter() {
-                let rw_cmd_idxs = cmds.entry(cmd_src_block.clone())
-                    .or_insert(RwCmdIdxs::new());
-
-                rw_cmd_idxs.readers.push(cmd_idx);
-            }
-
-            for cmd_tar_block in cmd.details.targets().into_iter() {
-                let rw_cmd_idxs = cmds.entry(cmd_tar_block.clone())
-                    .or_insert(RwCmdIdxs::new());
-
-                rw_cmd_idxs.writers.push(cmd_idx);
-            }
-        }
-
-        cmds
-    }
-
-    /// Populates the list of requisite commands necessary for building the
-    /// correct event wait list for each command.
-    pub fn populate_requisites(&mut self) {
-        let cmds = self.readers_and_writers_by_sub_buffer();
-
-        for (cmd_idx, cmd) in self.commands.iter_mut().enumerate() {
-            assert!(self.command_requisites[cmd_idx].is_empty());
-
-            for &req_cmd_idx in cmd.preceding_writers(&cmds).iter()
-                    .chain(cmd.following_readers(&cmds).iter())
-            {
-                self.command_requisites[cmd_idx].push(req_cmd_idx);
-            }
-
-            self.command_requisites[cmd_idx].shrink_to_fit();
-        }
-
-        self.commands.shrink_to_fit();
-        self.command_requisites.shrink_to_fit();
-        self.locked = true;
-    }
-
-    /// Returns the list of requisite events for a command.
-    pub fn get_req_events(&mut self, cmd_idx: usize) -> Result<&EventList, &'static str> {
-        if !self.locked { return Err("Call '::populate_requisites' first."); }
-        if self.next_cmd_idx != cmd_idx { return Err("Command events requested out of order."); }
-
-        self.commands[cmd_idx].requisite_events.clear().unwrap();
-
-        for &req_idx in self.command_requisites[cmd_idx].iter() {
-            if let Some(event) = self.commands[req_idx].event.clone() {
-                self.commands[cmd_idx].requisite_events.push(event);
-            }
-        }
-
-        Ok(&self.commands[cmd_idx].requisite_events)
-    }
-
-    /// Sets the event associated with the completion of a command.
-    pub fn set_cmd_event(&mut self, cmd_idx: usize, event: Event) -> Result<(), &'static str> {
-        if !self.locked { return Err("Call '::populate_requisites' first."); }
-
-        self.commands[cmd_idx].event = Some(event);
-
-        if (self.next_cmd_idx + 1) == self.commands.len() {
-            self.next_cmd_idx = 0;
-        } else {
-            self.next_cmd_idx += 1;
-        }
-
-        Ok(())
-    }
-}
 
 
 /// The specific details and pieces needed to execute the commands in the
@@ -462,7 +99,7 @@ impl Task{
 
     /// Fill a buffer with a pattern of data:
     pub fn fill<T: OclPrm>(&mut self, pattern: T, cmd_idx: usize, buf_pool: &BufferPool<T>) {
-        let buffer_id = match self.cmd_graph.commands[cmd_idx].details {
+        let buffer_id = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Fill { target } => target,
             _ => panic!("Task::fill: Not a fill command."),
         };
@@ -482,7 +119,7 @@ impl Task{
     pub fn map<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &BufferPool<T>,
             thread_pool: &CpuPool) -> FutureMappedMem<T>
     {
-        let (buffer_id, flags) = match self.cmd_graph.commands[cmd_idx].details {
+        let (buffer_id, flags) = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Write { target } => (target, MapFlags::write_invalidate_region()),
             CommandDetails::Read { source } => (source, MapFlags::read()),
             _ => panic!("Task::map: Not a write or read command."),
@@ -499,7 +136,7 @@ impl Task{
     pub fn unmap<T: OclPrm>(&mut self, data: &mut MappedMem<T>, cmd_idx: usize,
             buf_pool: &BufferPool<T>, thread_pool: &CpuPool)
     {
-        let buffer_id = match self.cmd_graph.commands[cmd_idx].details {
+        let buffer_id = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Write { target } => target,
             CommandDetails::Read { source } => source,
             _ => panic!("Task::unmap: Not a write or read command."),
@@ -514,7 +151,7 @@ impl Task{
 
     /// Copy contents of one buffer to another.
     pub fn copy<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &BufferPool<T>) {
-        let (src_buf_id, tar_buf_id) = match self.cmd_graph.commands[cmd_idx].details {
+        let (src_buf_id, tar_buf_id) = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Copy { source, target } => (source, target),
             _ => panic!("Task::copy: Not a copy command."),
         };
@@ -533,7 +170,7 @@ impl Task{
 
     /// Enqueue a kernel.
     pub fn kernel(&mut self, cmd_idx: usize) {
-        let kernel_id = match self.cmd_graph.commands[cmd_idx].details {
+        let kernel_id = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Kernel { id, .. } => id,
             _ => panic!("Task::kernel: Not a kernel command."),
         };
@@ -548,9 +185,12 @@ impl Task{
     }
 }
 
+
+/// A positive or negative coefficient.
 fn coeff(add: bool) -> f32 {
     if add { 1. } else { -1. }
 }
+
 
 /// A very simple kernel source generator. Imagine something cooler here.
 ///
@@ -991,10 +631,6 @@ fn main() {
 
         let pooled_data = thread_pool.spawn(future_data
             .and_then(|mut data| {
-                println!("Yo");
-
-                println!("Data Ready.");
-
                 for val in data.iter_mut() {
                     *val = ClFloat4(50., 50., 50., 50.);
                 }
