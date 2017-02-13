@@ -139,7 +139,7 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
 /// Types with a mutable pointer to a new, null raw event pointer.
 ///
 pub unsafe trait ClNullEventPtr: Debug {
-    fn alloc_new(self) -> *mut cl_event;
+    fn alloc_new(&mut self) -> *mut cl_event;
 }
 
 
@@ -959,7 +959,7 @@ impl Event {
 // }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
-    #[inline(always)] fn alloc_new(self) -> *mut cl_event { self._alloc_new() }
+    #[inline(always)] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
 }
 
 impl<'e> ClEventRef<'e> for Event {
@@ -1431,7 +1431,7 @@ impl EventList {
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
-    #[inline(always)] fn alloc_new(self) -> *mut cl_event { self.allot() }
+    #[inline(always)] fn alloc_new(&mut self) -> *mut cl_event { self.allot() }
 }
 
 unsafe impl ClWaitListPtr for EventList {

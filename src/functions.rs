@@ -155,7 +155,7 @@ fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<
     };
 
     let new_event_ptr = match new_event {
-        Some(ne) => ne.alloc_new(),
+        Some(mut ne) => ne.alloc_new(),
         None => ptr::null_mut() as *mut cl_event,
     };
 
