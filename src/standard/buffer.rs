@@ -669,7 +669,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
                         // If a 'new/null event' has been set, copy pointer
                         // into it and increase refcount (to 2).
-                        if let Some(self_enew) = self.enew.take() {
+                        if let Some(ref mut self_enew) = self.enew.take() {
                             core::retain_event(&map_event)?;
                             *(self_enew.alloc_new()) = *(map_event.as_ptr_ref());
                             // map_event/self_enew refcount: 2

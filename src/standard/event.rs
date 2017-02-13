@@ -217,7 +217,7 @@ impl Event {
         //     is not allowed. Please create a new, empty, event with ocl::Event::empty().");
         if self.is_empty() {
             unsafe {
-                *self = Event::Event(EventCore::from_raw_create_ptr(0 as *mut c_void));
+                *self = Event::Event(EventCore::null());
 
                 if let Event::Event(ref mut ev) = *self {
                     ev.as_ptr_mut()
@@ -357,7 +357,7 @@ impl<'e> ClEventRef<'e> for Event {
 // }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
-    #[inline] fn alloc_new(self) -> *mut cl_event { (*self)._alloc_new() }
+    #[inline] fn alloc_new(&mut self) -> *mut cl_event { (*self)._alloc_new() }
 }
 
 unsafe impl ClWaitListPtr for Event {
@@ -587,7 +587,7 @@ impl AsRef<EventListCore> for EventList {
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
     #[inline]
-    fn alloc_new(self) -> *mut cl_event {
+    fn alloc_new(&mut self) -> *mut cl_event {
         self._alloc_new()
     }
 }

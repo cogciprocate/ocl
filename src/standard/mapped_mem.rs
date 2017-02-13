@@ -244,7 +244,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
     //
     // [NOTE]: Passing `enew_opt` is yet untested.
     pub fn enqueue_unmap<Ewl, En>(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<Ewl>,
-            enew_opt: Option<En>)
+            mut enew_opt: Option<En>)
             -> OclResult<()>
             where En: ClNullEventPtr, Ewl: ClWaitListPtr
     {
@@ -264,10 +264,10 @@ impl<T> MappedMem<T>  where T: OclPrm {
                 // new_event refcount: 1
 
                 // If enew_opt is `Some`, update its internal event ptr.
-                if let Some(enew) = enew_opt {
+                if let Some(ref mut enew) = enew_opt {
                     unsafe {
                         core::retain_event(&new_event)?;
-                        *enew.alloc_new() = *(new_event.as_ptr_ref());
+                        *(enew.alloc_new()) = *(new_event.as_ptr_ref());
                         // new_event/enew refcount: 2
                     }
                 }

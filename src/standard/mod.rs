@@ -130,12 +130,12 @@ mod types {
     }
 
     unsafe impl<'a> ClNullEventPtr for ClNullEventPtrEnum<'a> {
-        fn alloc_new(self) -> *mut cl_event {
-            match self {
+        fn alloc_new(&mut self) -> *mut cl_event {
+            match *self {
                 // ClNullEventPtrEnum::NullEventCore(ref mut e) => e.alloc_new(),
-                ClNullEventPtrEnum::EventListCore(e) => e.alloc_new(),
-                ClNullEventPtrEnum::Event(e) => e.alloc_new(),
-                ClNullEventPtrEnum::EventList(e) => e.alloc_new(),
+                ClNullEventPtrEnum::EventListCore(ref mut e) => e.alloc_new(),
+                ClNullEventPtrEnum::Event(ref mut e) => e.alloc_new(),
+                ClNullEventPtrEnum::EventList(ref mut e) => e.alloc_new(),
             }
         }
     }
