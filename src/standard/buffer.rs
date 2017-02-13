@@ -617,7 +617,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
                         unsafe {
                             let mm_core = core::enqueue_map_buffer::<T, _, _, _>(self.queue,
-                                self.obj_core, self.block, flags, offset, len, self.ewait.take(),
+                                self.obj_core, true, flags, offset, len, self.ewait.take(),
                                 self.enew.take())?;
 
                             let unmap_event = None;

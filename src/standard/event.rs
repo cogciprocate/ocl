@@ -277,6 +277,7 @@ impl From<UserEventCore> for Event {
     #[inline]
     fn from(uev: UserEventCore) -> Event {
         if uev.is_valid() {
+            println!("Creating 'Event' from 'UserEventCore': {:?}.", uev);
             Event::UserEvent(uev)
         } else {
             panic!("ocl::Event::from::<UserEventCore>: Invalid event.");
@@ -428,28 +429,32 @@ impl EventList {
 
     /// Returns a new copy of an event by index.
     pub fn get_clone(&self, index: usize) -> Option<Event> {
-        match self.event_list_core.get_clone(index) {
-            Some(ev_res) => {
-                match ev_res {
-                    Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
-                    Err(_) => None,
-                }
-            },
-            None => None,
-        }
+        panic!("FIXME: core");
+
+        // match self.event_list_core.get_clone(index) {
+        //     Some(ev_res) => {
+        //         match ev_res {
+        //             Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
+        //             Err(_) => None,
+        //         }
+        //     },
+        //     None => None,
+        // }
     }
 
     /// Returns a copy of the last event in the list.
     pub fn last_clone(&self) -> Option<Event> {
-        match self.event_list_core.last_clone() {
-            Some(ev_res) => {
-                match ev_res {
-                    Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
-                    Err(_) => None,
-                }
-            },
-            None => None,
-        }
+        panic!("FIXME: core");
+
+        // match self.event_list_core.last_clone() {
+        //     Some(ev_res) => {
+        //         match ev_res {
+        //             Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
+        //             Err(_) => None,
+        //         }
+        //     },
+        //     None => None,
+        // }
     }
 
     /// Sets a callback function, `callback_receiver`, to trigger upon completion of
