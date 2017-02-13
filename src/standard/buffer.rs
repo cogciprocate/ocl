@@ -672,6 +672,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                         if let Some(self_enew) = self.enew.take() {
                             core::retain_event(&map_event)?;
                             *(self_enew.alloc_new()) = *(map_event.as_ptr_ref());
+                            // map_event/self_enew refcount: 2
                         }
 
                         FutureMappedMem::new(mm_core, len, map_event, self.obj_core.clone(),

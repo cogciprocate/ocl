@@ -151,7 +151,9 @@ impl<T: OclPrm> Future for FutureMappedMem<T> {
             match self.map_event.is_complete() {
                 Ok(true) => return self.to_mapped_mem().map(|mm| Async::Ready(mm)),
                 Ok(false) => {
-                    task::park();
+                    // task::park();
+
+                    // sleep somehow?
                     continue;
                 },
                 Err(err) => return Err(err),
@@ -265,8 +267,8 @@ impl<T> MappedMem<T>  where T: OclPrm {
                 if let Some(enew) = enew_opt {
                     unsafe {
                         core::retain_event(&new_event)?;
-                        // new_event refcount: 2
                         *enew.alloc_new() = *(new_event.as_ptr_ref());
+                        // new_event/enew refcount: 2
                     }
                 }
 
