@@ -69,15 +69,9 @@ fn main() {
     let device = context.devices()[0];
     let queue = Queue::new(&context, device, None).unwrap();
 
-    // let program = Program::builder()
-    //     .src(KERNEL_SRC)
-    //     .devices(device)
-    //     .build(&context).unwrap();
-
-    let il: Vec<u8> = Vec::new();
-
-    let program = ocl::Program::builder()
-        .il(il)
+    let program = Program::builder()
+        .src(KERNEL_SRC)
+        .devices(device)
         .build(&context).unwrap();
 
     let sup_img_formats = Image::<u8>::supported_formats(&context, ocl::flags::MEM_READ_WRITE,
