@@ -69,9 +69,15 @@ fn main() {
     let device = context.devices()[0];
     let queue = Queue::new(&context, device, None).unwrap();
 
-    let program = Program::builder()
-        .src(KERNEL_SRC)
-        .devices(device)
+    // let program = Program::builder()
+    //     .src(KERNEL_SRC)
+    //     .devices(device)
+    //     .build(&context).unwrap();
+
+    let il: Vec<u8> = Vec::new();
+
+    let program = ocl::Program::builder()
+        .il(il)
         .build(&context).unwrap();
 
     let sup_img_formats = Image::<u8>::supported_formats(&context, ocl::flags::MEM_READ_WRITE,
@@ -101,7 +107,7 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .build_with_data(&queue, &img).unwrap();
+        .build_with_data(queue.clone(), &img).unwrap();
 
     let dst_image = Image::<u8>::builder()
         .channel_order(ImageChannelOrder::Rgba)
@@ -109,12 +115,12 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .build_with_data(&queue, &img).unwrap();
+        .build_with_data(queue.clone(), &img).unwrap();
 
     // Not sure why you'd bother creating a sampler on the host but here's how:
     let sampler = Sampler::new(&context, true, AddressingMode::None, FilterMode::Nearest).unwrap();
 
-    let kernel = Kernel::new("increase_blue", &program, &queue).unwrap()
+    let kernel = Kernel::new("increase_blue", &program, queue.clone()).unwrap()
         .gws(&dims)
         .arg_smp(&sampler)
         .arg_img(&src_image)

@@ -3,10 +3,31 @@ name = "images"
 version = "0.1.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 
+# [features]
+# opencl_version_2_1 = []
+# default = ["opencl_version_2_1"]
+
+# ocl = ["opencl_version_2_1"]
+# ocl-core = ["opencl_version_2_1"]
+# cl-sys = ["opencl_version_2_1"]
+# opencl_version_2_1 = ["ocl", "ocl-core", "cl-sys"]
+
 [dependencies]
 ocl = { path = "../../" }
+
+# ocl = { path = "/home/nick/src/github.com/cogciprocate/ocl", features = ["opencl_version_2_1"] }
+# ocl-core = { path = "/home/nick/src/github.com/cogciprocate/ocl-core", features = ["opencl_version_2_1"] }
+# cl-sys = { path = "/home/nick/src/github.com/cogciprocate/cl-sys", features = ["opencl_version_2_1"] }
+
+# cl-sys = { git = "https://github.com/cogciprocate/cl-sys", features = ["opencl_version_2_1"] }
+# ocl-core = { git = "https://github.com/cogciprocate/ocl-core", features = ["opencl_version_2_1"] }
+
 colorify = "*"
 image = "*"
 
 [replace]
-"ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core" }
+# "cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys", features = ["opencl_version_2_1"] }
+# "cl-sys:0.2.1" = { path = "/home/nick/src/github.com/cogciprocate/cl-sys", features = ["opencl_version_2_1"] }
+# "ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core", features = ["opencl_version_2_1"] }
+# "ocl-core:0.3.2" = { path = "/home/nick/src/github.com/cogciprocate/ocl-core", features = ["opencl_version_2_1"] }
+# # "ocl:0.12.0" = { git = "https://github.com/cogciprocate/ocl", features = ["opencl_version_2_1"] }
