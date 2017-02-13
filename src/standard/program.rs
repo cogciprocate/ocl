@@ -144,7 +144,7 @@ impl ProgramBuilder {
 
                     Program::with_il(il, context)
                 } else {
-                    return Err("ocl::ProgramBuilder::build: Unreachable section.");
+                    return Err("ocl::ProgramBuilder::build: Unreachable section.".into());
                 }
             },
             None => {
