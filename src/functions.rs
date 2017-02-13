@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem, UserEvent, AsMem, MemCmdRw, MemCmdAll, EventRefWrapper};
+    CommandQueueProperties, MappedMem, UserEvent, AsMem, MemCmdRw, MemCmdAll};
 
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
@@ -69,8 +69,7 @@ pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void
 ///
 pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
     // let _ = src_event_ptr;
-
-    println!("::_complete_event (source: {:?}, target: {:?}):", src_event_ptr, user_data);
+    println!("    ::_complete_event (source: {:?}, target: {:?}):", src_event_ptr, user_data);
 
     if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
         let tar_event_ptr = user_data as *mut _ as cl_event;
@@ -78,13 +77,14 @@ pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, us
         unsafe {
             let user_event = UserEvent::from_raw(tar_event_ptr);
 
-            ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
-            println!("    Source event status: {:?}", ::get_event_status(&EventRefWrapper::new(src_event_ptr)));
+            println!("    Source event status: {:?}", ::get_event_status(&::EventRefWrapper::new(src_event_ptr)));
             println!("    Target event status: {:?}", ::get_event_status(&user_event));
-
             println!("    Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, user_event);
 
             ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
+
+            println!("    Source event status: {:?}", ::get_event_status(&::EventRefWrapper::new(src_event_ptr)));
+            println!("    Target event status: {:?}", ::get_event_status(&user_event));
         }
 
         println!("    Event status has been set to 'CommandExecutionStatus::Complete' for event: {:?}", tar_event_ptr);

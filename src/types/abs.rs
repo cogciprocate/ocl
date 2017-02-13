@@ -986,7 +986,8 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if !self.0.is_null() {
-            unsafe { functions::release_event(self).unwrap(); }
+            // Ignore errors here, some platforms just suck.
+            unsafe { functions::release_event(self).ok(); }
         }
     }
 }
@@ -1185,10 +1186,9 @@ impl Clone for UserEvent {
 
 impl Drop for UserEvent {
     fn drop(&mut self) {
-        // if self.is_valid() {
-            debug_assert!(!self.0.is_null());
-            unsafe { functions::release_event(self).unwrap(); }
-        // }
+        debug_assert!(!self.0.is_null());
+        // Ignore errors here, some platforms just suck.
+        unsafe { functions::release_event(self).ok(); }
     }
 }
 
@@ -1198,7 +1198,7 @@ unsafe impl Send for UserEvent {}
 
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 enum EventKind {
     // Null,
@@ -1274,7 +1274,7 @@ impl EventList {
         self.event_kinds.push(EventKind::Event);
 
         unsafe {
-            self.event_ptrs.push((*event.as_ptr_ref()));
+            self.event_ptrs.push(*event.as_ptr_ref());
             mem::forget(event);
         }
 
@@ -1293,9 +1293,10 @@ impl EventList {
         self.event_kinds.push(EventKind::UserEvent);
 
         unsafe {
-            self.event_ptrs.push((*user_event.as_ptr_ref()));
+            self.event_ptrs.push(*user_event.as_ptr_ref());
             mem::forget(user_event);
         }
+
         self.decr_counter();
     }
 
@@ -1307,6 +1308,7 @@ impl EventList {
     pub fn pop(&mut self) -> Option<EventVariant> {
         // self.event_ptrs.pop().map(|ptr| unsafe { Event::from_raw_copied_ptr(ptr) } )
         // self.event_ptrs.pop().map(|ptr| Event(ptr))
+        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
 
         let kind = self.event_kinds.pop();
         let ptr = self.event_ptrs.pop();
@@ -1325,6 +1327,7 @@ impl EventList {
 
     /// Appends a new null element to the end of the list and returns a reference to it.
     pub fn allot(&mut self) -> &mut cl_event {
+        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
         self.event_kinds.push(EventKind::Event);
         self.event_ptrs.push(0 as cl_event);
         self.event_ptrs.last_mut().unwrap()
@@ -1339,12 +1342,14 @@ impl EventList {
 
     /// Clones an event by index.
     pub fn get_clone(&self, index: usize) -> Option<OclResult<Event>> {
-        self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
+        panic!("FIXME: core");
+        // self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
     }
 
     /// Clones the last event.
     pub fn last_clone(&self) -> Option<OclResult<Event>> {
-        self.event_ptrs.last().map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
+        panic!("FIXME: core");
+        // self.event_ptrs.last().map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
     }
 
     /// Clears the list.
@@ -1354,7 +1359,9 @@ impl EventList {
         }
 
         self.clear_counter = EL_CLEAR_INTERVAL;
-        Ok(self.event_ptrs.clear())
+        self.event_ptrs.clear();
+        self.event_kinds.clear();
+        Ok(())
     }
 
     /// Clears each completed event from the list.
@@ -1381,6 +1388,9 @@ impl EventList {
         }
 
         try!(util::vec_remove_rebuild(&mut self.event_ptrs, &cmpltd_events[..], 2));
+        try!(util::vec_remove_rebuild(&mut self.event_kinds, &cmpltd_events[..], 2));
+
+        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
 
         self.clear_counter = EL_CLEAR_INTERVAL;
 
