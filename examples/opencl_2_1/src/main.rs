@@ -5,17 +5,27 @@ extern crate ocl;
 use ocl::{flags, Platform, Device, Context, Queue, Program, Buffer, Kernel};
 
 #[cfg(feature = "opencl_version_2_1")]
-const PLATFORM_NAME: &'static str = "Experimental OpenCL 2.1 CPU Only Platform";
+static PLATFORM_NAME: &'static str = "Experimental OpenCL 2.1 CPU Only Platform";
+
 
 fn main() {
-
     // let src = r#"
     //     __kernel void add(__global float* buffer, float scalar) {
     //         buffer[get_global_id(0)] += scalar;
     //     }
     // "#;
 
-    let il_src = Vec::<u8>::new();
+    let il_src: Vec<u8> = vec![
+    // Magic number.           Version number: 1.0.
+    0x03, 0x02, 0x23, 0x07,    0x00, 0x00, 0x01, 0x00,
+    // Generator number: 0.    Bound: 0.
+    0x00, 0x00, 0x00, 0x00,    0x00, 0x00, 0x00, 0x00,
+    // Reserved word: 0.
+    0x00, 0x00, 0x00, 0x00,
+    // OpMemoryModel.          Logical.
+    0x0e, 0x00, 0x03, 0x00,    0x00, 0x00, 0x00, 0x00,
+    // GLSL450.
+    0x01, 0x00, 0x00, 0x00];
 
     #[cfg(feature = "opencl_version_2_1")]
     let platform = Platform::list().into_iter().find(|plat| plat.name() == PLATFORM_NAME)
