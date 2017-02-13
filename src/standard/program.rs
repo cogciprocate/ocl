@@ -104,9 +104,10 @@ impl ProgramBuilder {
             None => {
                 Program::new(
                     try!(self.get_src_strings().map_err(|e| e.to_string())),
+                    &device_list[..],
                     try!(self.get_compiler_options().map_err(|e| e.to_string())),
                     context,
-                    &device_list[..]
+
                 )
             },
         }
@@ -121,7 +122,7 @@ impl ProgramBuilder {
     ///
     /// [TODO]: Check for duplicate devices in the final device list.
     #[cfg(feature = "opencl_version_2_1")]
-    pub fn build(self, context: &Context) -> OclResult<Program> {
+    pub fn build(mut self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
             Some(ref ds) => try!(ds.to_device_list(context.platform())),
             None => vec![],
@@ -131,18 +132,18 @@ impl ProgramBuilder {
             return OclError::err("ocl::ProgramBuilder::build: No devices found.");
         }
 
-        match self.il {
+        match self.il.take() {
             Some(il) => {
                 if cfg!(feature = "opencl_version_2_1") {
-                    if self.options.len() > 0 { return Err("ProgramBuilder::build: \
-                        No options may be set when building with IR.".into()); }
                     if self.src_files.len() > 0 { return Err("ProgramBuilder::build: \
                         No source files may be set when building with IR.".into()); }
-                    if self.device_spec.is_some() { return Err("ProgramBuilder::build: \
-                        No devices may be specified when building with IR. They are automatically \
-                        determined using the provided context.".into()); }
 
-                    Program::with_il(il, context)
+                    Program::with_il(
+                        il,
+                        &device_list[..],
+                        self.get_compiler_options().map_err(|e| e.to_string())?,
+                        context
+                    )
                 } else {
                     return Err("ocl::ProgramBuilder::build: Unreachable section.".into());
                 }
@@ -150,9 +151,9 @@ impl ProgramBuilder {
             None => {
                 Program::new(
                     try!(self.get_src_strings().map_err(|e| e.to_string())),
+                    &device_list[..],
                     try!(self.get_compiler_options().map_err(|e| e.to_string())),
                     context,
-                    &device_list[..]
                 )
             },
         }
@@ -373,8 +374,8 @@ impl Program {
     ///
     /// Prefer `::builder` to create a new `Program`.
     ///
-    pub fn new(src_strings: Vec<CString>, cmplr_opts: CString, context_obj_core: &ContextCore,
-                device_ids: &[Device]) -> OclResult<Program>
+    pub fn new(src_strings: Vec<CString>, device_ids: &[Device], cmplr_opts: CString,
+            context_obj_core: &ContextCore) -> OclResult<Program>
     {
         let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts,
              device_ids));
@@ -388,10 +389,14 @@ impl Program {
     /// Returns a new program built from pre-created build components and device
     /// list for programs with intermediate language byte source.
     #[cfg(feature = "opencl_version_2_1")]
-    pub fn with_il(il: Vec<u8>, context_obj_core: &ContextCore) -> OclResult<Program> {
+    pub fn with_il(il: Vec<u8>, device_ids: &[Device], cmplr_opts: CString,
+            context_obj_core: &ContextCore) -> OclResult<Program>
+    {
         let device_versions = context_obj_core.device_versions()?;
 
         let obj_core = core::create_program_with_il(context_obj_core, &il, Some(&device_versions))?;
+
+        core::build_program(&obj_core, device_ids, &cmplr_opts, None, None)?;
 
         let devices = context_obj_core.devices()?.into_iter().map(|d| d.into()).collect();
 
