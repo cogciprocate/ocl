@@ -241,7 +241,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
     ///
     //
     // [NOTE]: Passing `enew_opt` is yet untested.
-    pub fn enqueue_unmap<En, Ewl>(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<Ewl>,
+    pub fn enqueue_unmap<Ewl, En>(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<Ewl>,
             enew_opt: Option<En>)
             -> OclResult<()>
             where En: ClNullEventPtr, Ewl: ClWaitListPtr
@@ -258,16 +258,15 @@ impl<T> MappedMem<T>  where T: OclPrm {
 
             self.is_unmapped = true;
 
-            if let Some(new_event_null) = new_event_opt {
+            if let Some(new_event) = new_event_opt {
                 // new_event refcount: 1
-                let new_event = new_event_null.validate()?;
 
                 // If enew_opt is `Some`, update its internal event ptr.
-                if let Some(mut enew) = enew_opt {
+                if let Some(enew) = enew_opt {
                     unsafe {
                         core::retain_event(&new_event)?;
                         // new_event refcount: 2
-                        *enew.ptr_mut_ptr_new() = *(new_event.as_ptr_ref());
+                        *enew.alloc_new() = *(new_event.as_ptr_ref());
                     }
                 }
 
@@ -350,7 +349,7 @@ impl<T: OclPrm> Drop for MappedMem<T> {
     #[cfg(not(feature = "disable_event_callbacks"))]
     fn drop(&mut self) {
         if !self.is_unmapped {
-            self.enqueue_unmap::<EventListCore, EventCore>(None, None, None).ok();
+            self.enqueue_unmap::<EventListCore, &mut EventCore>(None, None, None).ok();
         }
     }
 

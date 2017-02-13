@@ -46,7 +46,7 @@ pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 mod types {
     use ::{Event, EventList};
     use core::ffi::cl_event;
-    use core::{NullEvent as NullEventCore, Event as EventCore,
+    use core::{Event as EventCore,
         UserEvent as UserEventCore, EventList as EventListCore, ClNullEventPtr, ClWaitListPtr};
 
 
@@ -123,28 +123,28 @@ mod types {
 
     #[derive(Debug)]
     pub enum ClNullEventPtrEnum<'a> {
-        NullEventCore(&'a mut NullEventCore),
+        // NullEventCore(&'a mut NullEventCore),
         EventListCore(&'a mut EventListCore),
         Event(&'a mut Event),
         EventList(&'a mut EventList),
     }
 
     unsafe impl<'a> ClNullEventPtr for ClNullEventPtrEnum<'a> {
-        fn ptr_mut_ptr_new(&mut self) -> *mut cl_event {
-            match *self {
-                ClNullEventPtrEnum::NullEventCore(ref mut e) => e.ptr_mut_ptr_new(),
-                ClNullEventPtrEnum::EventListCore(ref mut e) => e.ptr_mut_ptr_new(),
-                ClNullEventPtrEnum::Event(ref mut e) => e.ptr_mut_ptr_new(),
-                ClNullEventPtrEnum::EventList(ref mut e) => e.ptr_mut_ptr_new(),
+        fn alloc_new(self) -> *mut cl_event {
+            match self {
+                // ClNullEventPtrEnum::NullEventCore(ref mut e) => e.alloc_new(),
+                ClNullEventPtrEnum::EventListCore(e) => e.alloc_new(),
+                ClNullEventPtrEnum::Event(e) => e.alloc_new(),
+                ClNullEventPtrEnum::EventList(e) => e.alloc_new(),
             }
         }
     }
 
-    impl<'a> From<&'a mut NullEventCore> for ClNullEventPtrEnum<'a> {
-        fn from(e: &'a mut NullEventCore) -> ClNullEventPtrEnum<'a> {
-            ClNullEventPtrEnum::NullEventCore(e)
-        }
-    }
+    // impl<'a> From<&'a mut NullEventCore> for ClNullEventPtrEnum<'a> {
+    //     fn from(e: &'a mut NullEventCore) -> ClNullEventPtrEnum<'a> {
+    //         ClNullEventPtrEnum::NullEventCore(e)
+    //     }
+    // }
 
     impl<'a> From<&'a mut EventListCore> for ClNullEventPtrEnum<'a> {
         fn from(e: &'a mut EventListCore) -> ClNullEventPtrEnum<'a> {

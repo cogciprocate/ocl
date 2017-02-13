@@ -24,8 +24,8 @@ const RESULTS_TO_PRINT: usize = 5;
 
 
 struct TestEventsStuff {
-    seed_vec: *const Vec<u32>,
-    result_vec: *const Vec<u32>,
+    seed_vec: *const [u32],
+    result_vec: *const [u32],
     data_set_size: usize,
     addend: u32,
     itr: usize,
@@ -39,8 +39,8 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
     let buncha_stuff = user_data as *const TestEventsStuff;
 
     unsafe {
-        let seed_vec: *const Vec<u32> = (*buncha_stuff).seed_vec as *const Vec<u32>;
-        let result_vec: *const Vec<u32> = (*buncha_stuff).result_vec as *const Vec<u32>;
+        let seed_vec = (*buncha_stuff).seed_vec as *const [u32];
+        let result_vec = (*buncha_stuff).result_vec as *const [u32];
         let data_set_size: usize = (*buncha_stuff).data_set_size;
         let addend: u32 = (*buncha_stuff).addend;
         let itr: usize = (*buncha_stuff).itr;
@@ -133,8 +133,8 @@ fn main() {
         // which will persist until all of the commands have completed (as long as
         // we are sure to allow the queue to finish before returning).
         buncha_stuffs.push(TestEventsStuff {
-            seed_vec: &seed_vec as *const Vec<u32>,
-            result_vec: &result_vec as *const Vec<u32>,
+            seed_vec: seed_vec.as_slice() as *const [u32],
+            result_vec: result_vec.as_slice() as *const [u32],
             data_set_size: dims[0],
             addend: addend,
             itr: itr,
@@ -156,7 +156,7 @@ fn main() {
         unsafe { result_buffer.cmd().read_async(&mut result_vec)
             .enew(&mut read_event).enq().unwrap(); }
 
-        // Clone event list just for fun:
+        // Clone event list just for fun (test drop a bit):
         let read_event = read_event.clone();
 
         let last_idx = buncha_stuffs.len() - 1;
@@ -164,7 +164,7 @@ fn main() {
         unsafe {
             if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...",
                 last_idx, itr); }
-            read_event.set_callback(Some(_test_events_verify_result),
+            read_event.last_set_callback(Some(_test_events_verify_result),
                 &mut buncha_stuffs[last_idx]).unwrap();
         }
     }

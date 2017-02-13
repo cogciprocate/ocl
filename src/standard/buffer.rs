@@ -661,19 +661,17 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                     let flags = flags.unwrap_or(MapFlags::empty());
 
                     let future = unsafe {
-                        let mut new_map_event = EventCore::null();
+                        let mut map_event = EventCore::null();
 
                         let mm_core = core::enqueue_map_buffer::<T, _, _, _>(self.queue,
                             self.obj_core, false, flags, offset, len, self.ewait.take(),
-                            Some(&mut new_map_event))?;
-
-                        let map_event = new_map_event.validate()?;
+                            Some(&mut map_event))?;
 
                         // If a 'new/null event' has been set, copy pointer
                         // into it and increase refcount (to 2).
-                        if let Some(mut self_enew) = self.enew.take() {
+                        if let Some(self_enew) = self.enew.take() {
                             core::retain_event(&map_event)?;
-                            *(self_enew.ptr_mut_ptr_new()) = *(map_event.as_ptr_ref());
+                            *(self_enew.alloc_new()) = *(map_event.as_ptr_ref());
                         }
 
                         FutureMappedMem::new(mm_core, len, map_event, self.obj_core.clone(),

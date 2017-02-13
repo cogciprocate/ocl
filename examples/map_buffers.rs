@@ -42,7 +42,7 @@ fn scalar_map() {
                                                              0,
                                                              BUFFER_DIMENSIONS,
                                                              None::<ocl::Event>,
-                                                             None::<ocl::Event>)
+                                                             None::<&mut ocl::Event>)
             .expect("Mapping memory object failed");
         // Wait until mapping is finished
         queue.finish();
@@ -50,7 +50,7 @@ fn scalar_map() {
         let datum: Vec<f32> = vec![10_f32; BUFFER_DIMENSIONS];
         let mut datum_slice = buff_datum.as_slice_mut(datum.len());
         datum_slice.copy_from_slice(&datum);
-        ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<ocl::Event>)
+        ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<&mut ocl::Event>)
             .expect("Unmap of memory object failed");
         // Wait until unmapping is finished
         queue.finish();
@@ -130,7 +130,7 @@ fn vector_map() {
         let datum: Vec<ocl::aliases::ClFloat16> = vec![value; BUFFER_DIMENSIONS];
         let mut datum_slice = buff_datum.as_slice_mut(datum.len());
         datum_slice.copy_from_slice(&datum);
-        ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<ocl::Event>)
+        ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<&mut ocl::Event>)
             .expect("Unmap of memory object failed");
         queue.finish();
     }

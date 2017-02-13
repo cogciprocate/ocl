@@ -130,7 +130,7 @@ fn image_ops() {
         // Write to src:
         core::enqueue_write_image(proque.queue(), &img_src, true,
             origin, region, 0, 0,
-            &vec, None::<core::EventList>, None::<core::NullEvent>).unwrap();
+            &vec, None::<core::EventList>, None::<&mut core::Event>).unwrap();
 
         // Add from src to dst:
         kernel_add.enq().expect("[FIXME]: HANDLE ME!");
@@ -140,7 +140,7 @@ fn image_ops() {
         // Read into vec:
         unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
             origin, region, 0, 0,
-            &mut vec, None::<core::EventList>, None::<core::NullEvent>).unwrap(); }
+            &mut vec, None::<core::EventList>, None::<&mut core::Event>).unwrap(); }
 
         // Just to make sure read is complete:
         proque.queue().finish();
@@ -157,12 +157,12 @@ fn image_ops() {
         kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         core::enqueue_copy_image::<_, _>(proque.queue(), &img_src, &img_dst,
-            origin, origin, region, None::<core::EventList>, None::<core::NullEvent>).unwrap();
+            origin, origin, region, None::<core::EventList>, None::<&mut core::Event>).unwrap();
 
         // Read into vec:
         unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
             origin, region, 0, 0,
-            &mut vec, None::<core::EventList>, None::<core::NullEvent>).unwrap(); }
+            &mut vec, None::<core::EventList>, None::<&mut core::Event>).unwrap(); }
 
         // Just to make sure read is complete:
         proque.queue().finish();
