@@ -51,6 +51,7 @@ Breaking Changes
   `Image::set_default_queue`, `Kernel::new`, `Kernel::set_default_queue` now
   accept a `Queue` instead of a `&Queue`.
 * `Buffer::is_empty` has been removed.
+* `Program::new` has had its arguments rearranged for consistency.
 * [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
 
 ### `ocl-core` specific breaking changes
