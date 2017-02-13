@@ -1060,6 +1060,41 @@ impl UserEvent {
         functions::event_is_complete(self)
     }
 
+    /// Sets a callback function, `callback_receiver`, to trigger upon
+    /// completion of this event list with an optional pointer to user data.
+    ///
+    /// # Safety
+    ///
+    /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
+    /// is ever called.
+    ///
+    /// TODO: Create a safer type wrapper for `callback_receiver` (using an
+    /// `Arc`?, etc.) within `ocl`.
+    ///
+    pub unsafe fn set_callback(&self,
+            callback_receiver_opt: Option<EventCallbackFn>,
+            user_data_ptr: *mut c_void,
+            ) -> OclResult<()>
+    {
+        if self.is_valid() {
+            let callback_receiver = match callback_receiver_opt {
+                Some(cbr) => Some(cbr),
+                None => Some(::_dummy_event_callback as EventCallbackFn),
+            };
+
+            ::set_event_callback(
+                self,
+                CommandExecutionStatus::Complete,
+                callback_receiver,
+                user_data_ptr as *mut _ as *mut c_void,
+            )
+
+        } else {
+            Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
+                internal event pointer is actually created by a `clCreate...` function.".into())
+        }
+    }
+
     /// Returns an immutable reference to a pointer, do not deref and store it unless
     /// you will manage its associated reference count carefully.
     #[inline]

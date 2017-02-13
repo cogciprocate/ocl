@@ -1801,9 +1801,7 @@ pub fn wait_for_events(num_events: u32, event_list: &ClWaitListPtr) -> OclResult
 }
 
 /// Get event info.
-pub fn get_event_info(event: &Event, request: EventInfo,
-        ) -> EventInfoResult
-{
+pub fn get_event_info<'e, E: ClEventRef<'e>>(event: &'e E, request: EventInfo) -> EventInfoResult {
     let mut result_size: size_t = 0;
 
     let errcode = unsafe { ffi::clGetEventInfo(
@@ -1892,7 +1890,7 @@ pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
 //============================================================================
 
 /// Get event profiling info (for debugging / benchmarking).
-pub fn get_event_profiling_info(event: &Event, request: ProfilingInfo,
+pub fn get_event_profiling_info<'e, E: ClEventRef<'e>>(event: &'e E, request: ProfilingInfo,
         ) -> ProfilingInfoResult
 {
     let mut result_size: size_t = 0;
