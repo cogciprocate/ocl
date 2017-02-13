@@ -123,9 +123,10 @@ impl ProQueBuilder {
 
         let program = try!(Program::new(
             src_strings,
+            &[device],
             cmplr_opts,
             &context,
-            &[device],
+
         ));
 
         Ok(ProQue::new(context, queue, program, self.dims))
