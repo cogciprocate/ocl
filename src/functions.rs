@@ -32,7 +32,7 @@ use ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devic
 use error::{Error as OclError, Result as OclResult};
 use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel,
-    ClNullEventPtr, Event, Sampler, KernelArg, DeviceType, ImageFormat,
+    ClNullEventPtr, Sampler, KernelArg, DeviceType, ImageFormat,
     ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo,
     PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult,
     MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult,
@@ -67,7 +67,7 @@ pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void
 /// `src_event_ptr` is not used and does not need anything special done with
 /// its destructor (it will already have been managed by the call to `::set_event_callback`.
 ///
-pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
+pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
     // let _ = src_event_ptr;
     println!("    ::_complete_event (source: {:?}, target: {:?}):", src_event_ptr, user_data);
 
@@ -77,14 +77,9 @@ pub extern "C" fn _complete_event(src_event_ptr: cl_event, event_status: i32, us
         unsafe {
             let user_event = UserEvent::from_raw(tar_event_ptr);
 
-            println!("    Source event status: {:?}", ::get_event_status(&::EventRefWrapper::new(src_event_ptr)));
-            println!("    Target event status: {:?}", ::get_event_status(&user_event));
-            println!("    Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, user_event);
+            println!("    Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
 
             ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
-
-            println!("    Source event status: {:?}", ::get_event_status(&::EventRefWrapper::new(src_event_ptr)));
-            println!("    Target event status: {:?}", ::get_event_status(&user_event));
         }
 
         println!("    Event status has been set to 'CommandExecutionStatus::Complete' for event: {:?}", tar_event_ptr);
@@ -581,17 +576,18 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
 
     let mut errcode: cl_int = 0;
 
-    let context = unsafe { Context::from_raw_create_ptr(ffi::clCreateContext(
+    let context_ptr = unsafe { ffi::clCreateContext(
         properties_ptr,
         device_ids.len() as cl_uint,
         device_ids.as_ptr()  as *const cl_device_id,
         pfn_notify,
         user_data_ptr,
         &mut errcode,
-    )) };
+    ) };
     // [DEBUG]:
     // println!("CREATE_CONTEXT: CONTEXT PTR: {:?}", context);
-    eval_errcode(errcode, context, "clCreateContext", "")
+    eval_errcode(errcode, context_ptr, "clCreateContext", "")
+        .map(|ctx_ptr| unsafe { Context::from_raw_create_ptr(ctx_ptr) })
 }
 
 
@@ -652,14 +648,15 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
 
     let mut errcode: cl_int = 0;
 
-    let context = unsafe { Context::from_raw_create_ptr(ffi::clCreateContextFromType(
+    let context_ptr = unsafe { ffi::clCreateContextFromType(
         properties_ptr,
         device_type.bits(),
         pfn_notify,
         user_data_ptr,
         &mut errcode,
-    )) };
-    eval_errcode(errcode, context, "clCreateContextFromType", "")
+    ) };
+    eval_errcode(errcode, context_ptr, "clCreateContextFromType", "")
+        .map(|ctx_ptr| unsafe { Context::from_raw_create_ptr(ctx_ptr) })
 }
 
 
@@ -754,14 +751,15 @@ pub fn create_command_queue<D: ClDeviceIdPtr>(
 
     let mut errcode: cl_int = 0;
 
-    let cq = unsafe { CommandQueue::from_raw_create_ptr(ffi::clCreateCommandQueue(
+    let cq_ptr = unsafe { ffi::clCreateCommandQueue(
         context.as_ptr(),
         device.as_ptr(),
-        // ffi::CL_QUEUE_PROFILING_ENABLE,
         cmd_queue_props,
         &mut errcode
-    )) };
-    eval_errcode(errcode, cq, "clCreateCommandQueue", "")
+    ) };
+    eval_errcode(errcode, cq_ptr, "clCreateCommandQueue", "")
+        .map(|cq_ptr| unsafe { CommandQueue::from_raw_create_ptr(cq_ptr) })
+
 }
 
 /// Increments the reference count of a command queue.
@@ -850,7 +848,8 @@ pub unsafe fn create_buffer<T: OclPrm>(
     );
 
     // [TODO]: Convert back the return style to this:
-    eval_errcode(errcode, buf_ptr, "clCreateBuffer", "").map(|ptr| Mem::from_raw_create_ptr(ptr))
+    eval_errcode(errcode, buf_ptr, "clCreateBuffer", "")
+        .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED]
@@ -872,7 +871,8 @@ pub unsafe fn create_from_gl_buffer(
             gl_object,
             &mut errcode);
 
-    eval_errcode(errcode, buf_ptr, "clCreateFromGLBuffer", "").map(|ptr| Mem::from_raw_create_ptr(ptr))
+    eval_errcode(errcode, buf_ptr, "clCreateFromGLBuffer", "")
+        .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED]
@@ -894,7 +894,8 @@ pub unsafe fn create_from_gl_renderbuffer(
             renderbuffer,
             &mut errcode);
 
-    eval_errcode(errcode, buf_ptr, "clCreateFromGLRenderbuffer", "").map(|ptr| Mem::from_raw_create_ptr(ptr))
+    eval_errcode(errcode, buf_ptr, "clCreateFromGLRenderbuffer", "")
+        .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED]
@@ -920,7 +921,8 @@ pub unsafe fn create_from_gl_texture(
             texture,
             &mut errcode);
 
-    eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture", "").map(|ptr| Mem::from_raw_create_ptr(ptr))
+    eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture", "")
+        .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED] [DEPRICATED]
@@ -946,7 +948,8 @@ pub unsafe fn create_from_gl_texture_2d(
             texture,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLTexture2D", "")
+    eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture2D", "")
+        .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED] [DEPRICATED]
@@ -972,7 +975,8 @@ pub unsafe fn create_from_gl_texture_3d(
             texture,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLTexture3D", "")
+    eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture3D", "")
+        .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED]
@@ -1002,7 +1006,8 @@ pub fn create_sub_buffer<T>(
         &mut errcode,
     ) };
 
-    unsafe { eval_errcode(errcode, Mem::from_raw_create_ptr(sub_buf_ptr), "clCreateSubBuffer", "") }
+    eval_errcode(errcode, sub_buf_ptr, "clCreateSubBuffer", "")
+        .map(|ptr| unsafe { Mem::from_raw_create_ptr(ptr) })
 }
 
 /// Returns a new image (mem) pointer.
@@ -1043,7 +1048,8 @@ pub unsafe fn create_image<T>(
         &mut errcode as *mut cl_int,
     );
 
-    eval_errcode(errcode, Mem::from_raw_create_ptr(image_ptr), "clCreateImage", "")
+    eval_errcode(errcode, image_ptr, "clCreateImage", "")
+        .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// Increments the reference counter of a mem object.
@@ -1284,14 +1290,16 @@ pub fn create_program_with_source(
 
     let mut errcode: cl_int = 0;
 
-    let program = unsafe { ffi::clCreateProgramWithSource(
+    let program_ptr = unsafe { ffi::clCreateProgramWithSource(
         context.as_ptr(),
         kern_string_ptrs.len() as cl_uint,
         kern_string_ptrs.as_ptr() as *const *const _,
         ks_lens.as_ptr() as *const usize,
         &mut errcode,
     ) };
-    unsafe { eval_errcode(errcode, Program::from_raw_create_ptr(program), "clCreateProgramWithSource", "") }
+
+    eval_errcode(errcode, program_ptr, "clCreateProgramWithSource", "")
+        .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
 }
 
 /// [UNTESTED]
@@ -1326,6 +1334,7 @@ pub fn create_program_with_binary<D: ClDeviceIdPtr>(
         binary_status.as_mut_ptr(),
         &mut errcode,
     ) };
+
     try!(eval_errcode(errcode, (), "clCreateProgramWithBinary", ""));
 
     for (i, item) in binary_status.iter().enumerate() {
@@ -1363,19 +1372,15 @@ pub fn create_program_with_il(
 
     let mut errcode: cl_int = 0;
 
-    // pub fn clCreateProgramWithIL(context: cl_context,
-    //                              il: *const c_void,
-    //                              length: size_t,
-    //                              errcode_ret: *mut cl_int) -> cl_program;
-
-    let program = unsafe { ffi::clCreateProgramWithIL(
+    let program_ptr = unsafe { ffi::clCreateProgramWithIL(
         context.as_ptr(),
         il.as_ptr() as *mut c_void,
         il.len(),
         &mut errcode,
     ) };
 
-    unsafe { eval_errcode(errcode, Program::from_fresh_ptr(program), "clCreateProgramWithIL", "") }
+    eval_errcode(errcode, program_ptr, "clCreateProgramWithIL", "")
+        .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
 }
 
 /// Increments a program reference counter.
@@ -1412,9 +1417,6 @@ pub fn build_program<D: ClDeviceIdPtr>(
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::build_program(): Callback functions not yet implemented.");
 
-    // if devices.len() == 0 { return OclError::err_string("ocl::core::build_program: \
-    //     No devices specified."); }
-
     let (devices_len, devices_ptr) = match devices {
         Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
         None => (0, ptr::null() as *const cl_device_id),
@@ -1427,8 +1429,6 @@ pub fn build_program<D: ClDeviceIdPtr>(
 
     let errcode = unsafe { ffi::clBuildProgram(
         program.as_ptr() as cl_program,
-        // devices.len() as cl_uint,
-        // devices.as_ptr() as *const cl_device_id,
         devices_len,
         devices_ptr,
         options.as_ptr() as *const _,
@@ -1850,7 +1850,7 @@ pub fn get_event_info<'e, E: ClEventRef<'e>>(event: &'e E, request: EventInfo) -
 /// Creates an event not already associated with any command.
 pub fn create_user_event(context: &Context) -> OclResult<UserEvent> {
     let mut errcode = 0;
-    let event = unsafe { UserEvent::from_raw(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
+    let event = unsafe { UserEvent::from_raw_create_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
     eval_errcode(errcode, event, "clCreateUserEvent", "")
 }
 
@@ -2703,6 +2703,8 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
     // mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None, buffer.as_mem().clone(),
     //     command_queue.clone()))
 
+    // eval_errcode(errcode, mapped_ptr, "clEnqueueMapImage", "")
+    //     .map(|ptr| MappedMem::from_raw(ptr as *mut _ as *mut T))
     mapped_ptr_res.map(|ptr| MappedMem::from_raw(ptr))
 }
 
@@ -2775,8 +2777,8 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
     // eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2],
     //     None, image.as_mem().clone(), command_queue.clone()), "clEnqueueMapImage", "")
 
-    let mapped_mem = MappedMem::from_raw(mapped_ptr as *mut _ as *mut T);
-    eval_errcode(errcode, mapped_mem, "clEnqueueMapImage", "")
+    eval_errcode(errcode, mapped_ptr, "clEnqueueMapImage", "")
+        .map(|ptr| MappedMem::from_raw(ptr as *mut _ as *mut T))
 }
 
 /// Enqueues a command to unmap a previously mapped region of a memory object.
@@ -3211,10 +3213,11 @@ pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
 
 #[allow(dead_code)]
 /// Blocks until an event is complete.
-pub fn wait_for_event(event: &Event) -> OclResult<()> {
+pub fn wait_for_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
     let errcode = unsafe {
-        let event_ptr = *event.as_ptr_ref();
-        ffi::clWaitForEvents(1, &event_ptr)
+        // let event_ptr = *event.as_ptr_ref();
+        // ffi::clWaitForEvents(1, &event_ptr)
+        ffi::clWaitForEvents(1, event.as_ptr_ref())
     };
     eval_errcode(errcode, (), "clWaitForEvents", "")
 }
@@ -3253,9 +3256,14 @@ pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<bool>
     };
 
     // [REMOVE ME]:
-    println!("Event Status: {:?}", CommandExecutionStatus::from_i32(status_int).unwrap());
+    unsafe {
+        println!("Event Status: {:?} (ptr: {:?})",
+            CommandExecutionStatus::from_i32(status_int).unwrap(),
+            *event.as_ptr_ref());
+    }
 
-    eval_errcode(errcode, status_int == CommandExecutionStatus::Complete as i32, "", "")
+    eval_errcode(errcode, status_int == CommandExecutionStatus::Complete as i32,
+        "clEventGetInfo", "CL_EVENT_COMMAND_EXECUTION_STATUS")
 }
 
 

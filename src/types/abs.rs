@@ -304,7 +304,7 @@ pub struct DeviceId(cl_device_id);
 impl DeviceId {
     /// Creates a new `DeviceId` wrapper from a raw pointer.
     pub unsafe fn from_raw(ptr: cl_device_id) -> DeviceId {
-        // assert!(!ptr.is_null(), "Null pointer passed.");
+        assert!(!ptr.is_null(), "Null pointer passed.");
         DeviceId(ptr)
     }
 
@@ -366,7 +366,7 @@ impl Context {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_raw_create_ptr(ptr: cl_context) -> Context {
-        // assert!(!ptr.is_null(), "Null pointer passed.");
+        assert!(!ptr.is_null(), "Null pointer passed.");
         Context(ptr)
     }
 
@@ -452,7 +452,7 @@ impl CommandQueue {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_raw_create_ptr(ptr: cl_command_queue) -> CommandQueue {
-        // assert!(!ptr.is_null(), "Null pointer passed.");
+        assert!(!ptr.is_null(), "Null pointer passed.");
         CommandQueue(ptr)
     }
 
@@ -523,8 +523,7 @@ impl Mem {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_raw_create_ptr(ptr: cl_mem) -> Mem {
-        // Don't bother checking this, sometimes null pointers get passed during an error.
-        // assert!(!ptr.is_null(), "Null pointer passed.");
+        assert!(!ptr.is_null(), "Null pointer passed.");
         Mem(ptr)
     }
 
@@ -579,6 +578,8 @@ pub struct MappedMem<T: OclPrm>(*mut T);
 
 impl<T: OclPrm> MappedMem<T> {
     #[inline(always)]
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_raw(ptr: *mut T) -> MappedMem<T> {
         assert!(!ptr.is_null(), "MappedMem::from_raw: Null pointer passed.");
         MappedMem(ptr)
@@ -865,6 +866,12 @@ impl Event {
         functions::event_is_complete(self)
     }
 
+    /// Causes the command queue to wait until this event is complete before returning.
+    #[inline]
+    pub fn wait_for(&self) -> OclResult <()> {
+        ::wait_for_event(self)
+    }
+
     /// Sets a callback function, `callback_receiver`, to trigger upon
     /// completion of this event list with an optional pointer to user data.
     ///
@@ -900,14 +907,18 @@ impl Event {
         }
     }
 
-    /// Returns a pointer, do not store it unless you will manage its
-    /// associated reference count carefully (as does `EventList`).
-    pub fn as_ptr(&self) -> cl_event {
-        self.0
-    }
-
     /// Returns an immutable reference to a pointer, do not deref and store it unless
     /// you will manage its associated reference count carefully.
+    ///
+    ///
+    /// ### Warning
+    ///
+    /// DO NOT store this pointer.
+    ///
+    /// DO NOT send this pointer across threads unless you are incrementing
+    /// the reference count before sending and decrementing after sending.
+    ///
+    /// Use `::into_raw` for these purposes. Thank you.
     ///
     #[inline]
     pub unsafe fn as_ptr_ref(&self) -> &cl_event {
@@ -916,6 +927,16 @@ impl Event {
 
     /// Returns a mutable reference to a pointer, do not deref then modify or store it
     /// unless you will manage its associated reference count carefully.
+    ///
+    ///
+    /// ### Warning
+    ///
+    /// DO NOT store this pointer.
+    ///
+    /// DO NOT send this pointer across threads unless you are incrementing
+    /// the reference count before sending and decrementing after sending.
+    ///
+    /// Use `::into_raw` for these purposes. Thank you.
     ///
     #[inline]
     pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
@@ -1038,12 +1059,18 @@ impl UserEvent {
         functions::create_user_event(context)
     }
 
-    // /// Only call this when passing **the original** newly created pointer
-    // /// directly from `clCreate...`. Do not use this to clone or copy.
-    // #[inline]
-    // pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> UserEvent {
-    //     UserEvent(ptr)
-    // }
+    /// Only call this when passing **the original** newly created pointer
+    /// directly from `clCreate...`. Do not use this to clone or copy.
+    ///
+    /// ### Unsafety
+    ///
+    /// This is equivalent to `::from_raw` but has no null check so don't screw
+    /// around!
+    ///
+    #[inline]
+    pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> UserEvent {
+        UserEvent(ptr)
+    }
 
     /// Only use when cloning or copying from a pre-existing and valid
     /// `cl_event`.
@@ -1092,6 +1119,12 @@ impl UserEvent {
         functions::event_is_complete(self)
     }
 
+    /// Causes the command queue to wait until this event is complete before returning.
+    #[inline]
+    pub fn wait_for(&self) -> OclResult <()> {
+        ::wait_for_event(self)
+    }
+
     /// Sets a callback function, `callback_receiver`, to trigger upon
     /// completion of this event list with an optional pointer to user data.
     ///
@@ -1127,14 +1160,18 @@ impl UserEvent {
         }
     }
 
-    /// Returns a pointer, do not store it unless you will manage its
-    /// associated reference count carefully (as does `EventList`).
-    pub fn as_ptr(&self) -> cl_event {
-        self.0
-    }
-
     /// Returns an immutable reference to a pointer, do not deref and store it unless
     /// you will manage its associated reference count carefully.
+    ///
+    /// ### Warning
+    ///
+    /// DO NOT store this pointer.
+    ///
+    /// DO NOT send this pointer across threads unless you are incrementing
+    /// the reference count before sending and decrementing after sending.
+    ///
+    /// Use `::into_raw` for these purposes. Thank you.
+    ///
     #[inline]
     pub unsafe fn as_ptr_ref(&self) -> &cl_event {
         &self.0
@@ -1142,6 +1179,16 @@ impl UserEvent {
 
     /// Returns a mutable reference to a pointer, do not deref then modify or store it
     /// unless you will manage its associated reference count carefully.
+    ///
+    /// ### Warning
+    ///
+    /// DO NOT store this pointer.
+    ///
+    /// DO NOT send this pointer across threads unless you are incrementing
+    /// the reference count before sending and decrementing after sending.
+    ///
+    /// Use `::into_raw` for these purposes. Thank you.
+    ///
     #[inline]
     pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
         &mut self.0
@@ -1216,6 +1263,8 @@ impl Deref for UserEvent {
 
 impl Clone for UserEvent {
     fn clone(&self) -> UserEvent {
+        println!("####################################### UserEvent::clone: called.");
+
         unsafe { functions::retain_event(self).expect("core::Event::clone"); }
         UserEvent(self.0)
     }
