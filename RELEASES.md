@@ -52,6 +52,7 @@ Breaking Changes
   accept a `Queue` instead of a `&Queue`.
 * `Buffer::is_empty` has been removed.
 * `Program::new` has had its arguments rearranged for consistency.
+* `Event::wait` and `EventList::wait` have both been renamed to `::wait_for`.
 * [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
 
 ### `ocl-core` specific breaking changes
@@ -84,6 +85,9 @@ Breaking Changes
   optional bitfield described in the [clCreateCommandQueue SDK
   Documentation]. Valid options include
   `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and `QUEUE_PROFILING_ENABLE`.
+* `::build_program` the `devices` argument is not optional. Not specifying any
+  devices will cause the program to be built for all available devices within
+  the provided context.
 
 
 

@@ -134,7 +134,7 @@ fn main_from_example() {
                     thread::sleep(Duration::from_millis(100));
 
                     // Basically redundant in this situation.
-                    event_list.wait().unwrap();
+                    event_list.wait_for().unwrap();
 
                     // Again, just playing with queues...
                     buffer.set_default_queue(&queueball_th[2]).read(&mut vec).enq().unwrap();

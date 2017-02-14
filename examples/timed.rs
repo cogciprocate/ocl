@@ -152,9 +152,9 @@ fn main() {
     ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
 
-    kern_events.wait().unwrap();
+    kern_events.wait_for().unwrap();
     kern_events.clear_completed().unwrap();
-    buf_events.wait().unwrap();
+    buf_events.wait_for().unwrap();
     buf_events.clear_completed().unwrap();
 
     verify_results(&vec_init, &vec_result,
@@ -178,8 +178,8 @@ fn main() {
     ocl_pq.queue().finish();
     print_elapsed("queue finished", kern_buf_start);
 
-    kern_events.wait().unwrap();
-    buf_events.wait().unwrap();
+    kern_events.wait_for().unwrap();
+    buf_events.wait_for().unwrap();
 
     verify_results(&vec_init, &vec_result,
         KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);

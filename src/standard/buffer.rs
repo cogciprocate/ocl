@@ -194,10 +194,10 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn map(mut self, flags: Option<MapFlags>, len: Option<usize>) -> BufferMapCmd<'c, T> {
+    pub fn map(mut self) -> BufferMapCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
-        self.kind = BufferCmdKind::Map{ flags: flags, len: len };
+        self.kind = BufferCmdKind::Map{ flags: None, len: None };
         BufferMapCmd(self)
     }
 
@@ -532,6 +532,24 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 pub struct BufferMapCmd<'c, T>(BufferCmd<'c, T>) where T: 'c;
 
 impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
+    pub fn flags(mut self, map_flags: MapFlags) -> BufferMapCmd<'c, T> {
+        match self.kind {
+            BufferCmdKind::Map { ref mut flags, .. } => *flags = Some(map_flags),
+            _ => unreachable!(),
+        }
+
+        self
+    }
+
+    pub fn len(mut self, map_len: usize) -> BufferMapCmd<'c, T> {
+        match self.kind {
+            BufferCmdKind::Map { ref mut len, .. } => *len = Some(map_len),
+            _ => unreachable!(),
+        }
+
+        self
+    }
+
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferMapCmd<'c, T> {
         self.queue = queue;
@@ -854,8 +872,8 @@ impl<T: OclPrm> Buffer<T> {
     /// for more information.
     ///
     #[inline]
-    pub fn map<'c>(&'c self, flags: Option<MapFlags>, len: Option<usize>) -> BufferMapCmd<'c, T> {
-        self.cmd().map(flags, len)
+    pub fn map<'c>(&'c self) -> BufferMapCmd<'c, T> {
+        self.cmd().map()
     }
 
     /// Specifies that this command will be a copy operation.
@@ -1149,8 +1167,8 @@ impl<T: OclPrm> SubBuffer<T> {
     /// for more information.
     ///
     #[inline]
-    pub fn map<'c>(&'c self, flags: Option<MapFlags>, len: Option<usize>) -> BufferMapCmd<'c, T> {
-        self.cmd().map(flags, len)
+    pub fn map<'c>(&'c self) -> BufferMapCmd<'c, T> {
+        self.cmd().map()
     }
 
     /// Specifies that this command will be a copy operation.

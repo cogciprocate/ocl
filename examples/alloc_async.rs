@@ -503,7 +503,7 @@ impl Task{
 
         let buf = buf_pool.get(buffer_id).unwrap();
 
-        buf.cmd().map(Some(flags), None)
+        buf.cmd().map().flags(flags)
             .ewait(self.cmd_graph.get_req_events(cmd_idx).unwrap())
             .enq().unwrap()
     }

@@ -2,7 +2,7 @@
 //!
 
 use standard::ProQue;
-use aliases::ClFloat4;
+use aliases::ClInt4;
 
 const DATASET_SIZE: usize = 2 << 20;
 
@@ -10,14 +10,14 @@ const DATASET_SIZE: usize = 2 << 20;
 fn test_vector_types() {
 
     let src = r#"
-        __kernel void add_float3(__global float4* in_buffer, float4 addend, __global float4* out_buffer) {
+        __kernel void add_int4(__global int4* in_buffer, int4 addend, __global int4* out_buffer) {
             uint idx = get_global_id(0);
-            out_buffer[idx] = in_buffer[idx] + addend + (float4)(idx, idx, idx, idx);
+            out_buffer[idx] = in_buffer[idx] + addend + (int4)(idx, idx, idx, idx);
         }
     "#;
 
-    let start_val = ClFloat4::new(9., 11., 14., 19.);
-    let addend = ClFloat4::new(10., 10., 10., 10.0f32);
+    let start_val = ClInt4(9, 11, 14, 19);
+    let addend = ClInt4(10, 10, 10, 10);
     let final_val = start_val + addend;
 
     let pro_que = ProQue::builder()
@@ -25,7 +25,7 @@ fn test_vector_types() {
         .dims([DATASET_SIZE])
         .build().unwrap();
 
-    let in_buffer = pro_que.create_buffer::<ClFloat4>().unwrap();
+    let in_buffer = pro_que.create_buffer::<ClInt4>().unwrap();
 
     in_buffer.cmd().fill(start_val, None).enq().unwrap();
 
@@ -36,9 +36,9 @@ fn test_vector_types() {
         assert_eq!(ele, start_val);
     }
 
-    let out_buffer = pro_que.create_buffer::<ClFloat4>().unwrap();
+    let out_buffer = pro_que.create_buffer::<ClInt4>().unwrap();
 
-    let kernel = pro_que.create_kernel("add_float3").unwrap()
+    let kernel = pro_que.create_kernel("add_int4").unwrap()
         .arg_buf(&in_buffer)
         .arg_vec(addend)
         .arg_buf(&out_buffer);
@@ -47,10 +47,9 @@ fn test_vector_types() {
 
     out_buffer.read(&mut vec).enq().unwrap();
 
-    let mut i = 0;
+    let mut i = 0i32;
     for &ele in vec.iter() {
-        let i_float = i as f32;
-        assert_eq!(ele, final_val + ClFloat4::new(i_float, i_float, i_float, i_float));
+        assert_eq!(ele, final_val + ClInt4(i, i, i, i));
         i += 1;
     }
 }

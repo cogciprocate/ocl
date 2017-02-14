@@ -89,15 +89,19 @@ impl ContextBuilder {
         self
     }
 
-    /// Specifies a `DeviceSpecifer` which specifies how specifically
-    /// the relevant devices shall be specified.
+    /// Specifies a list of devices with which to associate the context.
     ///
-    /// See [`DeviceSpecifier`](/ocl/ocl/enum.DeviceSpecifier.html) for actually
-    /// useful documentation.
+    /// Devices may be specified in any number of ways including simply
+    /// passing a device or slice of devices. See the [`impl From`] section of
+    /// [`DeviceSpecifier`][device_specifier] for more information.
+    ///
     ///
     /// ## Panics
     ///
-    /// Panics if any devices have already been specified.
+    /// Devices must not have already been specified.
+    ///
+    /// [device_specifier_from]: enum.DeviceSpecifier.html#method.from
+    /// [device_specifier]: enum.DeviceSpecifier.html
     ///
     pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
             -> &mut ContextBuilder

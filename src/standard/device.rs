@@ -337,7 +337,7 @@ impl Device {
     /// Returns the maximum workgroup size or an error.
     pub fn max_wg_size(&self) -> OclResult<usize> {
         match self.info(DeviceInfo::MaxWorkGroupSize) {
-            DeviceInfoResult::MaxWorkGroupSize(s) => Ok(s),
+            DeviceInfoResult::MaxWorkGroupSize(r) => Ok(r),
             DeviceInfoResult::Error(err) => Err(*err),
             _ => panic!("Device::max_wg_size: Unexpected 'DeviceInfoResult' variant."),
         }
@@ -346,9 +346,18 @@ impl Device {
     /// Returns the memory base address alignment offset or an error.
     pub fn mem_base_addr_align(&self) -> OclResult<u32> {
         match self.info(DeviceInfo::MemBaseAddrAlign) {
-            DeviceInfoResult::MemBaseAddrAlign(s) => Ok(s),
+            DeviceInfoResult::MemBaseAddrAlign(r) => Ok(r),
             DeviceInfoResult::Error(err) => Err(*err),
             _ => panic!("Device::mem_base_addr_align: Unexpected 'DeviceInfoResult' variant."),
+        }
+    }
+
+    /// Returns whether or not the device is available for use.
+    pub fn is_available(&self) -> OclResult<bool> {
+        match self.info(DeviceInfo::Available) {
+            DeviceInfoResult::Available(r) => Ok(r),
+            DeviceInfoResult::Error(err) => Err(*err),
+            _ => panic!("Device::is_available: Unexpected 'DeviceInfoResult' variant."),
         }
     }
 

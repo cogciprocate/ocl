@@ -4,7 +4,7 @@ use std;
 // use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use libc::c_void;
-use futures::{Future, Poll, /*Async*/};
+use futures::{Future, Poll, Async};
 use ffi::cl_event;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, UserEvent as UserEventCore,
@@ -88,7 +88,7 @@ impl Event {
     ///
     /// Similar in function to `Queue::finish()`.
     ///
-    pub fn wait(&self) -> OclResult<()> {
+    pub fn wait_for(&self) -> OclResult<()> {
         // assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
         // core::wait_for_event(self.0.as_ref().unwrap())
         match *self {
@@ -376,10 +376,12 @@ impl Future for Event {
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        unimplemented!();
+        while !self.is_complete()? {}
+        // unimplemented!();
 
         // // Do this right:
-        // self.is_complete().map(|_| Async::Ready(()))
+        // self.is_complete().map(|_| )
+        Ok(Async::Ready(()))
     }
 }
 
@@ -429,32 +431,28 @@ impl EventList {
 
     /// Returns a new copy of an event by index.
     pub fn get_clone(&self, index: usize) -> Option<Event> {
-        panic!("FIXME: core");
-
-        // match self.event_list_core.get_clone(index) {
-        //     Some(ev_res) => {
-        //         match ev_res {
-        //             Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
-        //             Err(_) => None,
-        //         }
-        //     },
-        //     None => None,
-        // }
+        match self.event_list_core.get_event_cloned(index) {
+            Some(ev_res) => {
+                match ev_res {
+                    Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
+                    Err(_) => None,
+                }
+            },
+            None => None,
+        }
     }
 
     /// Returns a copy of the last event in the list.
     pub fn last_clone(&self) -> Option<Event> {
-        panic!("FIXME: core");
-
-        // match self.event_list_core.last_clone() {
-        //     Some(ev_res) => {
-        //         match ev_res {
-        //             Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
-        //             Err(_) => None,
-        //         }
-        //     },
-        //     None => None,
-        // }
+        match self.event_list_core.last_event_cloned() {
+            Some(ev_res) => {
+                match ev_res {
+                    Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
+                    Err(_) => None,
+                }
+            },
+            None => None,
+        }
     }
 
     /// Sets a callback function, `callback_receiver`, to trigger upon completion of
@@ -471,7 +469,7 @@ impl EventList {
                 user_data: *mut T,
                 ) -> OclResult<()>
     {
-        let event_core = self.event_list_core.last_clone().ok_or(
+        let event_core = self.event_list_core.last_event_cloned().ok_or(
             OclError::string("ocl::EventList::set_callback: This event list is empty."))??;
 
         core::set_event_callback(&event_core, CommandExecutionStatus::Complete,
@@ -529,7 +527,7 @@ impl EventList {
     }
 
     /// Waits for all events in list to complete.
-    pub fn wait(&self) -> OclResult<()> {
+    pub fn wait_for(&self) -> OclResult<()> {
         if !self.event_list_core.is_empty() {
             core::wait_for_events(self.event_list_core.count(), &self.event_list_core)
         } else {

@@ -81,6 +81,9 @@ impl ProgramBuilder {
 
     /// Returns a newly built Program.
     ///
+    ///
+    ///
+    ///
     /// [TODO]: If the context is associated with more than one device,
     /// check that at least one of those devices has been specified. An empty
     /// device list will cause an `OpenCL` error in that case.
@@ -90,12 +93,12 @@ impl ProgramBuilder {
     pub fn build(self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
             Some(ref ds) => try!(ds.to_device_list(context.platform())),
-            None => vec![],
+            None => context.devices().to_owned(),
         };
 
-        if device_list.is_empty() {
-            return OclError::err_string("ocl::ProgramBuilder::build: No devices found.");
-        }
+        // if device_list.is_empty() {
+        //     return OclError::err_string("ocl::ProgramBuilder::build: No devices found.");
+        // }
 
         match self.il {
             Some(_) => {
@@ -104,7 +107,7 @@ impl ProgramBuilder {
             None => {
                 Program::new(
                     try!(self.get_src_strings().map_err(|e| e.to_string())),
-                    &device_list[..],
+                    Some(&device_list[..]),
                     try!(self.get_compiler_options().map_err(|e| e.to_string())),
                     context,
 
@@ -125,12 +128,12 @@ impl ProgramBuilder {
     pub fn build(mut self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
             Some(ref ds) => try!(ds.to_device_list(context.platform())),
-            None => vec![],
+            None => context.devices().to_owned(),
         };
 
-        if device_list.is_empty() {
-            return OclError::err("ocl::ProgramBuilder::build: No devices found.");
-        }
+        // if device_list.is_empty() {
+        //     return OclError::err("ocl::ProgramBuilder::build: No devices found.");
+        // }
 
         match self.il.take() {
             Some(il) => {
@@ -220,14 +223,22 @@ impl ProgramBuilder {
         self
     }
 
-    /// Specify a list of devices to build this program on. The devices must
-    /// also be associated with the context passed to `::build` later on.
+    /// Specifies a list of devices to build this program on. The devices must
+    /// be associated with the context passed to `::build` later on.
     ///
-    /// [FIXME]: Include `DeviceSpecifier` usage instructions.
+    /// Devices may be specified in any number of ways including simply
+    /// passing a device or slice of devices. See the [`impl
+    /// From`][device_specifier_from] section of
+    /// [`DeviceSpecifier`][device_specifier] for more information.
+    ///
     ///
     /// ## Panics
     ///
-    /// Devices may not have already been specified.
+    /// Devices must not have already been specified.
+    ///
+    /// [device_specifier_from]: enum.DeviceSpecifier.html#method.from
+    /// [device_specifier]: enum.DeviceSpecifier.html
+    ///
     pub fn devices<D: Into<DeviceSpecifier>>(mut self, device_spec: D)
             -> ProgramBuilder
     {
@@ -374,7 +385,7 @@ impl Program {
     ///
     /// Prefer `::builder` to create a new `Program`.
     ///
-    pub fn new(src_strings: Vec<CString>, device_ids: &[Device], cmplr_opts: CString,
+    pub fn new(src_strings: Vec<CString>, device_ids: Option<&[Device]>, cmplr_opts: CString,
             context_obj_core: &ContextCore) -> OclResult<Program>
     {
         let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts,
@@ -382,7 +393,7 @@ impl Program {
 
         Ok(Program {
             obj_core: obj_core,
-            devices: Vec::from(device_ids),
+            devices: Vec::from(device_ids.unwrap_or(&[])),
         })
     }
 

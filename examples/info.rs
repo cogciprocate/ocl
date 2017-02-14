@@ -72,11 +72,11 @@ fn main() {
 
             let mut event_list = EventList::new();
             kernel.cmd().enew(&mut event_list).enq().unwrap();
-            event_list.wait().unwrap();
+            event_list.wait_for().unwrap();
 
             let mut event = Event::empty();
             buffer.cmd().write(&vec![0.0; dims[0]]).enew(&mut event).enq().unwrap();
-            event.wait().unwrap();
+            event.wait_for().unwrap();
 
             // Print all but device (just once per platform):
             if d_idx == 0 {

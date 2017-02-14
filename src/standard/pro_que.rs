@@ -123,7 +123,7 @@ impl ProQueBuilder {
 
         let program = try!(Program::new(
             src_strings,
-            &[device],
+            Some(&[device]),
             cmplr_opts,
             &context,
 
