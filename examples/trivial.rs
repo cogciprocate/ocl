@@ -25,7 +25,7 @@ fn main() {
         &[device_id], None, None).unwrap();
     let src_cstring = CString::new(src).unwrap();
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
-    core::build_program(&program, &[device_id], &CString::new("").unwrap(),
+    core::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
         None, None).unwrap();
     let queue = core::create_command_queue(&context, &device_id, None).unwrap();
     let dims = [2 << 20, 1, 1];

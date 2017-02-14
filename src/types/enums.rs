@@ -526,7 +526,7 @@ impl DeviceInfoResult {
                         DeviceInfoResult::QueueProperties(r)
                     },
                     DeviceInfo::Name => {
-                        match util::bytes_into_string(result) {
+                        match util::bytes_into_trimmed_string(result) {
                             Ok(s) => DeviceInfoResult::Name(s),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }

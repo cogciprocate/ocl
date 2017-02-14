@@ -136,11 +136,19 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
 }
 
 
+
 /// Types with a mutable pointer to a new, null raw event pointer.
 ///
 pub unsafe trait ClNullEventPtr: Debug {
     fn alloc_new(&mut self) -> *mut cl_event;
 }
+
+unsafe impl ClNullEventPtr for () {
+    fn alloc_new(&mut self) -> *mut cl_event {
+        ptr::null_mut() as *mut _ as *mut cl_event
+    }
+}
+
 
 
 /// Types with a reference to a raw event array and an associated element
@@ -165,9 +173,19 @@ unsafe impl<'a> ClWaitListPtr for &'a [cl_event] {
     }
 }
 
+unsafe impl<'a> ClWaitListPtr for () {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+        ptr::null() as *const _ as *const cl_event
+    }
+
+    fn count (&self) -> u32 {
+        0 as u32
+    }
+}
+
 
 /// Types with a reference to a raw platform_id pointer.
-pub unsafe trait ClPlatformIdPtr: Sized {
+pub unsafe trait ClPlatformIdPtr: Sized + Debug {
     unsafe fn as_ptr(&self) -> cl_platform_id {
         debug_assert!(mem::size_of_val(self) == mem::size_of::<PlatformId>());
         // mem::transmute_copy()
@@ -176,14 +194,26 @@ pub unsafe trait ClPlatformIdPtr: Sized {
     }
 }
 
+unsafe impl ClPlatformIdPtr for () {
+    unsafe fn as_ptr(&self) -> cl_platform_id {
+        ptr::null_mut() as *mut _ as cl_platform_id
+    }
+}
+
 
 /// Types with a reference to a raw device_id pointer.
-pub unsafe trait ClDeviceIdPtr: Sized {
+pub unsafe trait ClDeviceIdPtr: Sized + Debug {
     unsafe fn as_ptr(&self) -> cl_device_id {
         debug_assert!(mem::size_of_val(self) == mem::size_of::<DeviceId>());
         // mem::transmute_copy(self)
         let core = self as *const Self as *const _ as *const DeviceId;
         (*core).as_ptr()
+    }
+}
+
+unsafe impl ClDeviceIdPtr for () {
+    unsafe fn as_ptr(&self) -> cl_device_id {
+        ptr::null_mut() as *mut _ as cl_device_id
     }
 }
 
@@ -216,7 +246,7 @@ pub struct PlatformId(cl_platform_id);
 impl PlatformId {
     /// Creates a new `PlatformId` wrapper from a raw pointer.
     pub unsafe fn from_raw(ptr: cl_platform_id) -> PlatformId {
-        assert!(!ptr.is_null(), "Null pointer passed.");
+        // assert!(!ptr.is_null(), "Null pointer passed.");
         PlatformId(ptr)
     }
 
@@ -274,7 +304,7 @@ pub struct DeviceId(cl_device_id);
 impl DeviceId {
     /// Creates a new `DeviceId` wrapper from a raw pointer.
     pub unsafe fn from_raw(ptr: cl_device_id) -> DeviceId {
-        assert!(!ptr.is_null(), "Null pointer passed.");
+        // assert!(!ptr.is_null(), "Null pointer passed.");
         DeviceId(ptr)
     }
 
@@ -336,7 +366,7 @@ impl Context {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_raw_create_ptr(ptr: cl_context) -> Context {
-        assert!(!ptr.is_null(), "Null pointer passed.");
+        // assert!(!ptr.is_null(), "Null pointer passed.");
         Context(ptr)
     }
 
@@ -422,7 +452,7 @@ impl CommandQueue {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_raw_create_ptr(ptr: cl_command_queue) -> CommandQueue {
-        assert!(!ptr.is_null(), "Null pointer passed.");
+        // assert!(!ptr.is_null(), "Null pointer passed.");
         CommandQueue(ptr)
     }
 
@@ -493,7 +523,8 @@ impl Mem {
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
     pub unsafe fn from_raw_create_ptr(ptr: cl_mem) -> Mem {
-        assert!(!ptr.is_null(), "Null pointer passed.");
+        // Don't bother checking this, sometimes null pointers get passed during an error.
+        // assert!(!ptr.is_null(), "Null pointer passed.");
         Mem(ptr)
     }
 
@@ -869,11 +900,11 @@ impl Event {
         }
     }
 
-    // /// Returns a pointer, do not store it unless you will manage its
-    // /// associated reference count carefully (as does `EventList`).
-    // pub unsafe fn as_ptr(&self) -> cl_event {
-    //  self.0
-    // }
+    /// Returns a pointer, do not store it unless you will manage its
+    /// associated reference count carefully (as does `EventList`).
+    pub fn as_ptr(&self) -> cl_event {
+        self.0
+    }
 
     /// Returns an immutable reference to a pointer, do not deref and store it unless
     /// you will manage its associated reference count carefully.
@@ -1094,6 +1125,12 @@ impl UserEvent {
             Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
                 internal event pointer is actually created by a `clCreate...` function.".into())
         }
+    }
+
+    /// Returns a pointer, do not store it unless you will manage its
+    /// associated reference count carefully (as does `EventList`).
+    pub fn as_ptr(&self) -> cl_event {
+        self.0
     }
 
     /// Returns an immutable reference to a pointer, do not deref and store it unless
@@ -1341,15 +1378,41 @@ impl EventList {
     }
 
     /// Clones an event by index.
-    pub fn get_clone(&self, index: usize) -> Option<OclResult<Event>> {
-        panic!("FIXME: core");
-        // self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
+    pub fn get_event_cloned(&self, index: usize) -> Option<OclResult<Event>> {
+        match self.event_kinds.get(index) {
+            Some(kind) => {
+                if let EventKind::UserEvent = *kind {
+                    return Some(Err("EventList::event_cloned: Cannot clone a `UserEvent` with this \
+                        method. Use `::get_user_event_cloned` instead.".into()))
+                }
+            },
+            None => return None,
+        }
+
+        self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
     }
 
     /// Clones the last event.
-    pub fn last_clone(&self) -> Option<OclResult<Event>> {
-        panic!("FIXME: core");
-        // self.event_ptrs.last().map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
+    pub fn last_event_cloned(&self) -> Option<OclResult<Event>> {
+        match self.event_kinds.last() {
+            Some(kind) => {
+                if let EventKind::UserEvent = *kind {
+                    return Some(Err("EventList::event_cloned: Cannot clone a `UserEvent` with this \
+                        method. Use `::last_user_event_cloned` instead.".into()))
+                }
+            },
+            None => return None,
+        }
+
+        self.event_ptrs.last().map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
+    }
+
+    pub fn get_user_event_cloned(&self) -> Option<OclResult<UserEvent>> {
+        unimplemented!()
+    }
+
+    pub fn last_user_event_cloned(&self) -> Option<OclResult<UserEvent>> {
+        unimplemented!()
     }
 
     /// Clears the list.

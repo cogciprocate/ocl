@@ -184,6 +184,19 @@ pub fn bytes_into_string(mut bytes: Vec<u8>) -> OclResult<String> {
 }
 
 
+/// Converts a byte Vec into a string, removing the trailing null byte if it
+/// exists, then removes leading and trailing whitespace.
+pub fn bytes_into_trimmed_string(mut bytes: Vec<u8>) -> OclResult<String> {
+    if bytes.last() == Some(&0u8) {
+        bytes.pop();
+    }
+
+    let string = String::from_utf8(bytes).map_err(OclError::from)?;
+    Ok(String::from(string.trim()))
+}
+
+
+
 /// [UNTESTED] Copies an arbitrary primitive or struct into core bytes.
 ///
 /// ### Depth

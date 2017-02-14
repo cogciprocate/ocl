@@ -21,5 +21,5 @@ fn bad_kernel_variable_names() {
         &[device], None, None).unwrap();
 
     ::create_build_program(&context, &[CString::new(kernel).unwrap()], &CString::new("").unwrap(),
-                           &[device]).unwrap();
+                           None::<&[()]>).unwrap();
 }

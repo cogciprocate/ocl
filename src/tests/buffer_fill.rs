@@ -19,7 +19,7 @@ fn fill() {
 
     let src_cstring = CString::new(src).unwrap();
     let program = ::create_program_with_source(&context, &[src_cstring]).unwrap();
-    ::build_program(&program, &[device], &CString::new("").unwrap(),
+    ::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
         None, None).unwrap();
     let queue = ::create_command_queue(&context, &device, Some(::QUEUE_PROFILING_ENABLE))
         .unwrap();

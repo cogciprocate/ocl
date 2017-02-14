@@ -849,7 +849,8 @@ pub unsafe fn create_buffer<T: OclPrm>(
         &mut errcode,
     );
 
-    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateBuffer", "")
+    // [TODO]: Convert back the return style to this:
+    eval_errcode(errcode, buf_ptr, "clCreateBuffer", "").map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED]
@@ -871,7 +872,7 @@ pub unsafe fn create_from_gl_buffer(
             gl_object,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLBuffer", "")
+    eval_errcode(errcode, buf_ptr, "clCreateFromGLBuffer", "").map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED]
@@ -893,7 +894,7 @@ pub unsafe fn create_from_gl_renderbuffer(
             renderbuffer,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLRenderbuffer", "")
+    eval_errcode(errcode, buf_ptr, "clCreateFromGLRenderbuffer", "").map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED]
@@ -919,7 +920,7 @@ pub unsafe fn create_from_gl_texture(
             texture,
             &mut errcode);
 
-    eval_errcode(errcode, Mem::from_raw_create_ptr(buf_ptr), "clCreateFromGLTexture", "")
+    eval_errcode(errcode, buf_ptr, "clCreateFromGLTexture", "").map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
 /// [UNTESTED] [DEPRICATED]
@@ -1397,10 +1398,12 @@ impl UserDataPh {
 
 /// Builds a program.
 ///
-/// Callback functions are not yet supported.
-pub fn build_program<D: ClDeviceIdPtr + Debug>(
+/// Callback functions are not yet supported. Please file an issue if you have
+/// need of this functionality.
+///
+pub fn build_program<D: ClDeviceIdPtr>(
             program: &Program,
-            devices: &[D],
+            devices: Option<&[D]>,
             options: &CString,
             pfn_notify: Option<BuildProgramCallbackFn>,
             user_data: Option<Box<UserDataPh>>,
@@ -1409,8 +1412,13 @@ pub fn build_program<D: ClDeviceIdPtr + Debug>(
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::build_program(): Callback functions not yet implemented.");
 
-    if devices.len() == 0 { return OclError::err_string("ocl::core::build_program: \
-        No devices specified."); }
+    // if devices.len() == 0 { return OclError::err_string("ocl::core::build_program: \
+    //     No devices specified."); }
+
+    let (devices_len, devices_ptr) = match devices {
+        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
+        None => (0, ptr::null() as *const cl_device_id),
+    };
 
     let user_data = match user_data {
         Some(ud) => ud.unwrapped(),
@@ -1419,15 +1427,17 @@ pub fn build_program<D: ClDeviceIdPtr + Debug>(
 
     let errcode = unsafe { ffi::clBuildProgram(
         program.as_ptr() as cl_program,
-        devices.len() as cl_uint,
-        devices.as_ptr() as *const cl_device_id,
+        // devices.len() as cl_uint,
+        // devices.as_ptr() as *const cl_device_id,
+        devices_len,
+        devices_ptr,
         options.as_ptr() as *const _,
         pfn_notify,
         user_data,
     ) };
 
     if errcode == Status::CL_BUILD_PROGRAM_FAILURE as i32 {
-        program_build_err(program, devices)
+        program_build_err(program, devices.unwrap_or(&[]))
     } else {
         eval_errcode(errcode, (), "clBuildProgram", "")
     }
@@ -3190,7 +3200,7 @@ pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
             context: &Context,
             src_strings: &[CString],
             cmplr_opts: &CString,
-            device_ids: &[D],
+            device_ids: Option<&[D]>,
         ) -> OclResult<Program>
 {
     let program = try!(create_program_with_source(context, src_strings));

@@ -216,6 +216,20 @@ pub struct ClInt4(pub i32, pub i32, pub i32, pub i32);
 unsafe impl OclPrm for ClInt4 {}
 unsafe impl OclVec for ClInt4 {}
 
+impl ClInt4 {
+    pub fn new(s0: i32, s1: i32, s2: i32, s3: i32) -> ClInt4 {
+        ClInt4(s0, s1, s2, s3)
+    }
+}
+
+impl Add<ClInt4> for ClInt4 {
+    type Output = ClInt4;
+
+    fn add(self, rhs: ClInt4) -> ClInt4 {
+        ClInt4(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2, self.3 + rhs.3)
+    }
+}
+
 
 // pub type ClInt3 = ClInt4;
 
