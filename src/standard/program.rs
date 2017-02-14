@@ -143,7 +143,7 @@ impl ProgramBuilder {
 
                     Program::with_il(
                         il,
-                        &device_list[..],
+                        Some(&device_list[..]),
                         self.get_compiler_options().map_err(|e| e.to_string())?,
                         context
                     )
@@ -154,7 +154,7 @@ impl ProgramBuilder {
             None => {
                 Program::new(
                     try!(self.get_src_strings().map_err(|e| e.to_string())),
-                    &device_list[..],
+                    Some(&device_list[..]),
                     try!(self.get_compiler_options().map_err(|e| e.to_string())),
                     context,
                 )
@@ -400,7 +400,7 @@ impl Program {
     /// Returns a new program built from pre-created build components and device
     /// list for programs with intermediate language byte source.
     #[cfg(feature = "opencl_version_2_1")]
-    pub fn with_il(il: Vec<u8>, device_ids: &[Device], cmplr_opts: CString,
+    pub fn with_il(il: Vec<u8>, device_ids: Option<&[Device]>, cmplr_opts: CString,
             context_obj_core: &ContextCore) -> OclResult<Program>
     {
         let device_versions = context_obj_core.device_versions()?;
