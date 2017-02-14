@@ -85,7 +85,7 @@ Breaking Changes
   optional bitfield described in the [clCreateCommandQueue SDK
   Documentation]. Valid options include
   `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and `QUEUE_PROFILING_ENABLE`.
-* `::build_program` the `devices` argument is not optional. Not specifying any
+* `::build_program` the `devices` argument is now optional. Not specifying any
   devices will cause the program to be built for all available devices within
   the provided context.
 

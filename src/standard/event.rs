@@ -10,7 +10,7 @@ use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, UserEvent as UserEventCore,
     EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr,
     EventList as EventListCore, CommandExecutionStatus, EventCallbackFn, EventVariant, EventVariantRef,
-    EventVariantMut, ClEventRef};
+    EventVariantMut, ClEventRef, Context};
 
 
 // #[derive(Clone, Debug)]
@@ -54,6 +54,12 @@ impl Event {
         Event::Empty
     }
 
+    /// Creates a new, empty event which must be filled by a newly initiated
+    /// command, associating the event with it.
+    pub fn user(context: &Context) -> OclResult<Event> {
+        UserEventCore::new(context).map(Event::UserEvent)
+    }
+
     /// Creates a new `Event` from a `EventCore`.
     ///
     /// ## Safety
@@ -84,16 +90,14 @@ impl Event {
         }
     }
 
-    /// Waits for event to complete (blocks) before returning.
-    ///
-    /// Similar in function to `Queue::finish()`.
+    /// Causes
     ///
     pub fn wait_for(&self) -> OclResult<()> {
         // assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
         // core::wait_for_event(self.0.as_ref().unwrap())
         match *self {
-            Event::Event(ref core) => core::wait_for_event(core),
-            Event::UserEvent(ref core) => core::wait_for_event(core),
+            Event::Event(ref core) => core.wait_for(),
+            Event::UserEvent(ref core) => core.wait_for(),
             Event::Empty => Err(format!("ocl::Event::wait(): {}", self.err_empty()).into()),
         }
     }
@@ -196,6 +200,14 @@ impl Event {
             Event::Empty => Err("ocl::Event::set_callback: This event is uninitialized (null).".into()),
         }
     }
+
+    // pub fn as_ptr(&self) -> cl_event {
+    //     match *self {
+    //         Event::Event(ref core) => core.as_ptr(),
+    //         Event::UserEvent(ref core) => core.as_ptr(),
+    //         Event::Empty => 0 as cl_event,
+    //     }
+    // }
 
     fn err_empty(&self) -> OclError {
         OclError::string("This `ocl::Event` is empty and cannot be used until \

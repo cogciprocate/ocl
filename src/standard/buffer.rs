@@ -638,6 +638,8 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                                 self.obj_core, true, flags, offset, len, self.ewait.take(),
                                 self.enew.take())?;
 
+                            // println!("BufferMapCmd::enq: enew: {:?}", enew);
+
                             let unmap_event = None;
 
                             Ok(MappedMem::new(mm_core, len, unmap_event, self.obj_core.clone(),
@@ -688,9 +690,13 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                         // If a 'new/null event' has been set, copy pointer
                         // into it and increase refcount (to 2).
                         if let Some(ref mut self_enew) = self.enew.take() {
+                            println!("BufferMapCmd::enq_async: enew: {:?}, map_event: {:?}", self_enew, map_event);
+
                             core::retain_event(&map_event)?;
                             *(self_enew.alloc_new()) = *(map_event.as_ptr_ref());
                             // map_event/self_enew refcount: 2
+
+                            println!("BufferMapCmd::enq_async: enew: {:?}", self_enew);
                         }
 
                         FutureMappedMem::new(mm_core, len, map_event, self.obj_core.clone(),

@@ -316,8 +316,8 @@ impl<T> MappedMem<T>  where T: OclPrm {
         if !self.callback_is_set {
             if let Some(ref ev) = self.unmap_target {
                 unsafe {
-                    let unmap_target_ptr = (*(ev.as_ptr_ref())) as *mut _ as *mut c_void;
-                    event.set_callback(Some(core::_complete_event), unmap_target_ptr)?;
+                    let unmap_target_ptr = ev.clone().into_raw();
+                    event.set_callback(Some(core::_complete_user_event), unmap_target_ptr)?;
                     println!("Callback set from trigger: {:?} to target: {:?}", event, unmap_target_ptr);
                 }
 
