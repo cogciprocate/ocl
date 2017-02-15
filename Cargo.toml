@@ -13,11 +13,14 @@ exclude = ["target/*", "bak/*"]
 # categories = ["asynchronous", "concurrency", "science"]
 
 [features]
-opencl_version_2_1 = []
-default = ["rand"]
+opencl_version_1_1 = ["cl-sys/opencl_version_1_1"]
+opencl_version_1_2 = ["cl-sys/opencl_version_1_2"]
+opencl_version_2_0 = ["cl-sys/opencl_version_2_0"]
+opencl_version_2_1 = ["cl-sys/opencl_version_2_1"]
+default = ["rand", "opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
-cl-sys = "0.2"
+cl-sys = "0.2.1"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
@@ -30,4 +33,4 @@ rand = { version = "0.3", optional = true }
 colorify = "0.2"
 
 [replace]
-"cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys", features = ["opencl_version_2_1"] }
+"cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }

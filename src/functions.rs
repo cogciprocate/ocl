@@ -180,21 +180,6 @@ fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersi
     }
 }
 
-// // Looks up the first device for a context and verifies its version.
-// fn verify_device_versions_from_context(provided_versions: Option<&[OpenclVersion]>,
-//             required_version: [u16; 2], context: &Context) -> OclResult<()> {
-//     let device_ids = match get_context_info(context, ContextInfo::Devices) {
-//         ContextInfoResult::Devices(ids) => ids,
-//         ContextInfoResult::Error(err) => return Err(*err),
-//         _ => unreachable!(),
-//     };
-
-//     if device_ids.len() == 0 { return Err("Unable to verify context-platform version. \
-//         No devices found.".into()) }
-
-//     verify device_version(provided_versions)
-// }
-
 //============================================================================
 //============================================================================
 //======================= OPENCL FUNCTION WRAPPERS ===========================
