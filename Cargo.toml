@@ -15,7 +15,11 @@ exclude = ["target/*", "*.png", "bak/*"]
 [features]
 kernel_debug_print = []
 kernel_debug_sleep = []
-opencl_version_2_1 = []
+opencl_version_1_1 = ["ocl-core/opencl_version_1_1"]
+opencl_version_1_2 = ["ocl-core/opencl_version_1_2"]
+opencl_version_2_0 = ["ocl-core/opencl_version_2_0"]
+opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
+default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 # Useful on platforms (such as PoCL) that have trouble with fill. Creates a
 # temporary zeroed `Vec` in host memory during creation and writes zeros from
@@ -33,7 +37,8 @@ ocl-core = "0.3"
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
-bitflags = "0.7"
+bitflags = "0.8"
+
 futures = "0.1"
 
 [replace]
