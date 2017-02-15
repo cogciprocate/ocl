@@ -19,7 +19,6 @@ opencl_version_1_1 = ["ocl-core/opencl_version_1_1"]
 opencl_version_1_2 = ["ocl-core/opencl_version_1_2"]
 opencl_version_2_0 = ["ocl-core/opencl_version_2_0"]
 opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
-default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 # Useful on platforms (such as PoCL) that have trouble with fill. Creates a
 # temporary zeroed `Vec` in host memory during creation and writes zeros from
@@ -29,7 +28,7 @@ buffer_no_fill = []
 # Use exclusively polling instead of OpenCL callbacks for task unparking.
 disable_event_callbacks = []
 
-default = []
+default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 
 [dependencies]
