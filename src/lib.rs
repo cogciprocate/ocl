@@ -101,7 +101,6 @@
 
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate enum_primitive;
-extern crate futures;
 extern crate libc;
 extern crate rand;
 extern crate num;
