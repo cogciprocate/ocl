@@ -14,7 +14,15 @@ build = "build.rs"
 # categories = ["api-bindings", "external-ffi-bindings", "asynchronous", "science"]
 
 [features]
+# Specifies the OpenCL version supported by the library being used. Generally,
+# OpenCL v2.0+ support is still sparse.
+opencl_version_1_1 = []
+opencl_version_1_2 = []
+opencl_version_2_0 = []
 opencl_version_2_1 = []
+opencl_version_2_2 = []
+
+default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 libc = "0.2"
