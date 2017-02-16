@@ -43,7 +43,7 @@ use std::ptr;
 use std::slice;
 use std::fmt::Debug;
 use std::marker::Sized;
-use std::ops::Deref;
+// use std::ops::Deref;
 // use std::borrow::Borrow;
 use libc::c_void;
 use ffi::{/*self,*/ cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
@@ -53,17 +53,11 @@ use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceIn
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm};
 use error::{Result as OclResult, Error as OclError};
 use functions;
-use util;
+// use util;
 
 //=============================================================================
 //================================ CONSTANTS ==================================
 //=============================================================================
-
-// TODO: Evaluate optimal parameters:
-const EL_INIT_CAPACITY: usize = 64;
-const EL_CLEAR_MAX_LEN: usize = 48;
-const EL_CLEAR_INTERVAL: i32 = 32;
-const EL_CLEAR_AUTO: bool = false;
 
 // const DEBUG_PRINT: bool = false;
 
@@ -831,8 +825,8 @@ unsafe impl Send for Kernel {}
 
 
 /// cl_event
-#[derive(Debug)]
 #[repr(C)]
+#[derive(Debug)]
 pub struct Event(cl_event);
 
 impl Event {
@@ -840,6 +834,16 @@ impl Event {
     #[inline]
     pub fn null() -> Event {
         Event(0 as cl_event)
+    }
+
+    /// Creates and returns a new 'user' event.
+    ///
+    /// User events are events which are meant to have their completion status
+    /// set from the host side (that means you).
+    ///
+    #[inline]
+    pub fn user(context: &Context) -> OclResult<Event> {
+        functions::create_user_event(context)
     }
 
     /// Only call this when passing **the original** newly created pointer
@@ -861,6 +865,38 @@ impl Event {
         Ok(new_core)
     }
 
+    /// Sets the status for this event. Setting status to completion will
+    /// cause commands waiting upon this event to execute.
+    ///
+    ///  Will return an error if this event is not a 'user' event (created
+    /// with `::user()`).
+    ///
+    /// Valid options are (for OpenCL versions 1.1 - 2.1):
+    ///
+    /// `CommandExecutionStatus::Complete`
+    /// `CommandExecutionStatus::Running`
+    /// `CommandExecutionStatus::Submitted`
+    /// `CommandExecutionStatus::Queued`
+    ///
+    /// To the best of the author's knowledge, the only variant that matters
+    /// is `::Complete`. Everything else is functionally equivalent and is
+    /// useful only for debugging or profiling purposes (this may change).
+    ///
+    #[inline]
+    pub fn set_status(&self, status: CommandExecutionStatus) -> OclResult<()> {
+        functions::set_user_event_status(self, status)
+    }
+
+    /// Sets this user created event to `CommandExecutionStatus::Complete`.
+    ///
+    /// Will return an error if this event is not a 'user' event (created
+    /// with `::user()`).
+    ///
+    #[inline]
+    pub fn set_complete(&self) -> OclResult<()> {
+        self.set_status(CommandExecutionStatus::Complete)
+    }
+
     /// Queries the command status associated with this event and returns true
     /// if it is complete, false if incomplete or upon error.
     ///
@@ -868,8 +904,6 @@ impl Event {
     ///
     #[inline]
     pub fn is_complete(&self) -> OclResult<bool> {
-        // assert!(!self.0.is_null(), "ocl_core::Event::is_complete: Event is null.");
-        if self.0.is_null() { return Err("ocl_core::Event::is_complete: Event is null.".into()) }
         functions::event_is_complete(self)
     }
 
@@ -1004,25 +1038,8 @@ impl Event {
     }
 }
 
-// impl From<NullEvent> for Event {
-//     fn from(null_event: NullEvent) -> Event {
-//         assert!(null_event.is_valid(), "Event::from::<NullEvent>: Invalid NullEvent.");
-//         Event(null_event.0)
-//     }
-// }
-
-// impl From<UserEvent> for Event {
-//     fn from(uev: UserEvent) -> Event {
-//         uev.into()
-//     }
-// }
-
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
     #[inline(always)] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
-}
-
-impl<'e> ClEventRef<'e> for Event {
-    #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
 }
 
 unsafe impl ClWaitListPtr for Event {
@@ -1033,6 +1050,10 @@ unsafe impl ClWaitListPtr for Event {
 unsafe impl<'a> ClWaitListPtr for &'a Event {
     #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
     #[inline(always)] fn count(&self) -> u32 { self._count() }
+}
+
+impl<'e> ClEventRef<'e> for Event {
+    #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
 }
 
 impl Clone for Event {
@@ -1054,568 +1075,6 @@ impl Drop for Event {
 // unsafe impl EventPtr for Event {}
 unsafe impl Sync for Event {}
 unsafe impl Send for Event {}
-
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct UserEvent(cl_event);
-
-impl UserEvent {
-    #[inline]
-    pub fn new(context: &Context) -> OclResult<UserEvent> {
-        functions::create_user_event(context)
-    }
-
-    /// Only call this when passing **the original** newly created pointer
-    /// directly from `clCreate...`. Do not use this to clone or copy.
-    ///
-    /// ### Unsafety
-    ///
-    /// This is equivalent to `::from_raw` but has no null check so don't screw
-    /// around!
-    ///
-    #[inline]
-    pub unsafe fn from_raw_create_ptr(ptr: cl_event) -> UserEvent {
-        UserEvent(ptr)
-    }
-
-    /// Only use when cloning or copying from a pre-existing and valid
-    /// `cl_event`.
-    ///
-    #[inline]
-    pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclResult<UserEvent> {
-        assert!(!ptr.is_null(), "Null pointer passed.");
-        let new_core = UserEvent(ptr);
-        try!(functions::retain_event(&new_core));
-        Ok(new_core)
-    }
-
-    /// Sets the status for this user created event. Setting status to
-    /// completion will cause commands waiting upon this event to execute
-    ///
-    /// Valid options are (for OpenCL versions 1.1 - 2.1):
-    ///
-    /// `CommandExecutionStatus::Complete`
-    /// `CommandExecutionStatus::Running`
-    /// `CommandExecutionStatus::Submitted`
-    /// `CommandExecutionStatus::Queued`
-    ///
-    /// To the best of the author's knowledge, the only variant that matters
-    /// is `::Complete`. Everything else is functionally equivalent and is
-    /// useful only for debugging or profiling purposes (this may change).
-    ///
-    #[inline]
-    pub fn set_status(&self, status: CommandExecutionStatus) -> OclResult<()> {
-        println!("UserEvent::set_status: Setting user event status for event: {:?}", self);
-        functions::set_user_event_status(self, status)
-    }
-
-    /// Sets this user created event to `CommandExecutionStatus::Complete`.
-    #[inline]
-    pub fn set_complete(&self) -> OclResult<()> {
-        self.set_status(CommandExecutionStatus::Complete)
-    }
-
-    /// Queries the command status associated with this event and returns true
-    /// if it is complete, false if incomplete or upon error.
-    ///
-    /// This is the fastest possible way to determine event status.
-    ///
-    #[inline]
-    pub fn is_complete(&self) -> OclResult<bool> {
-        functions::event_is_complete(self)
-    }
-
-    /// Causes the command queue to wait until this event is complete before returning.
-    #[inline]
-    pub fn wait_for(&self) -> OclResult <()> {
-        ::wait_for_event(self)
-    }
-
-    /// Sets a callback function, `callback_receiver`, to trigger upon
-    /// completion of this event list with an optional pointer to user data.
-    ///
-    /// # Safety
-    ///
-    /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
-    /// is ever called.
-    ///
-    /// TODO: Create a safer type wrapper for `callback_receiver` (using an
-    /// `Arc`?, etc.) within `ocl`.
-    ///
-    pub unsafe fn set_callback(&self,
-            callback_receiver_opt: Option<EventCallbackFn>,
-            user_data_ptr: *mut c_void,
-            ) -> OclResult<()>
-    {
-        if self.is_valid() {
-            let callback_receiver = match callback_receiver_opt {
-                Some(cbr) => Some(cbr),
-                None => Some(::_dummy_event_callback as EventCallbackFn),
-            };
-
-            ::set_event_callback(
-                self,
-                CommandExecutionStatus::Complete,
-                callback_receiver,
-                user_data_ptr as *mut _ as *mut c_void,
-            )
-
-        } else {
-            Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \
-                internal event pointer is actually created by a `clCreate...` function.".into())
-        }
-    }
-
-    /// Returns an immutable reference to a pointer, do not deref and store it unless
-    /// you will manage its associated reference count carefully.
-    ///
-    /// ### Warning
-    ///
-    /// DO NOT store this pointer.
-    ///
-    /// DO NOT send this pointer across threads unless you are incrementing
-    /// the reference count before sending and decrementing after sending.
-    ///
-    /// Use `::into_raw` for these purposes. Thank you.
-    ///
-    #[inline]
-    pub unsafe fn as_ptr_ref(&self) -> &cl_event {
-        &self.0
-    }
-
-    /// Returns a mutable reference to a pointer, do not deref then modify or store it
-    /// unless you will manage its associated reference count carefully.
-    ///
-    /// ### Warning
-    ///
-    /// DO NOT store this pointer.
-    ///
-    /// DO NOT send this pointer across threads unless you are incrementing
-    /// the reference count before sending and decrementing after sending.
-    ///
-    /// Use `::into_raw` for these purposes. Thank you.
-    ///
-    #[inline]
-    pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
-        &mut self.0
-    }
-
-    /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
-    /// NULL CHECK IS NOT ENOUGH
-    ///
-    /// This still leads to crazy segfaults when non-event pointers (random
-    /// whatever addresses) are passed. Need better check.
-    #[inline]
-    pub fn is_valid(&self) -> bool {
-        !self.0.is_null()
-    }
-
-    /// Consumes the `UserEvent`, returning the wrapped `cl_event` pointer.
-    ///
-    /// To avoid a memory leak the pointer must be converted back to an `UserEvent` using
-    /// [`UserEvent::from_raw`][from_raw].
-    ///
-    /// [from_raw]: struct.UserEvent.html#method.from_raw
-    ///
-    pub fn into_raw(self) -> cl_event {
-        let ptr = self.0;
-        mem::forget(self);
-        ptr
-    }
-
-    /// Constructs an `UserEvent` from a raw `cl_event` pointer.
-    ///
-    /// The raw pointer must have been previously returned by a call to a
-    /// [`UserEvent::into_raw`][into_raw].
-    ///
-    /// [into_raw]: struct.UserEvent.html#method.into_raw
-    pub unsafe fn from_raw(ptr: cl_event) -> UserEvent {
-        assert!(!ptr.is_null(), "Null pointer passed.");
-        UserEvent(ptr)
-    }
-
-    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
-    }
-
-    fn _count(&self) -> u32 {
-        if self.0.is_null() { 0 } else { 1 }
-    }
-}
-
-impl<'e> ClEventRef<'e> for UserEvent {
-    unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
-        &self.0
-    }
-}
-
-unsafe impl ClWaitListPtr for UserEvent {
-    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
-    #[inline(always)] fn count(&self) -> u32 { self._count() }
-}
-
-unsafe impl<'a> ClWaitListPtr for &'a UserEvent {
-    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
-    #[inline(always)] fn count(&self) -> u32 { self._count() }
-}
-
-impl Deref for UserEvent {
-    type Target = Event;
-
-    fn deref(&self) -> &Event {
-        unsafe { &*(&self as *const _ as *const Event) }
-    }
-}
-
-impl Clone for UserEvent {
-    fn clone(&self) -> UserEvent {
-        unsafe { functions::retain_event(self).expect("core::Event::clone"); }
-        UserEvent(self.0)
-    }
-}
-
-impl Drop for UserEvent {
-    fn drop(&mut self) {
-        debug_assert!(!self.0.is_null());
-        // Ignore errors here, some platforms just suck.
-        unsafe { functions::release_event(self).ok(); }
-    }
-}
-
-// unsafe impl EventPtr for Event {}
-unsafe impl Sync for UserEvent {}
-unsafe impl Send for UserEvent {}
-
-
-
-#[derive(Debug, Clone, Copy)]
-#[allow(dead_code)]
-enum EventKind {
-    // Null,
-    Event,
-    UserEvent,
-}
-
-
-// #[derive(Clone, Debug)]
-pub enum EventVariant {
-    Null,
-    Event(Event),
-    UserEvent(UserEvent),
-}
-
-
-#[derive(Clone, Debug)]
-pub enum EventVariantRef<'a> {
-    Null,
-    Event(&'a Event),
-    UserEvent(&'a UserEvent),
-}
-
-
-#[derive(Debug)]
-pub enum EventVariantMut<'a> {
-    Null,
-    Event(&'a mut Event),
-    UserEvent(&'a mut UserEvent),
-}
-
-
-
-
-/// List of `cl_event`s.
-#[derive(Debug)]
-pub struct EventList {
-    event_ptrs: Vec<cl_event>,
-    event_kinds: Vec<EventKind>,
-    clear_max_len: usize,
-    clear_counter_max: i32,
-    clear_counter: i32,
-    clear_auto: bool,
-}
-
-impl EventList {
-    /// Returns a new, empty, `EventList`.
-    pub fn new() -> EventList {
-        EventList::with_capacity(EL_INIT_CAPACITY)
-    }
-
-    /// Returns a new, empty, `EventList` with an initial capacity of `cap`.
-    pub fn with_capacity(cap: usize) -> EventList {
-        EventList {
-            event_ptrs: Vec::with_capacity(cap),
-            event_kinds: Vec::with_capacity(cap),
-            clear_max_len: EL_CLEAR_MAX_LEN,
-            clear_counter_max: EL_CLEAR_INTERVAL,
-            clear_auto: EL_CLEAR_AUTO,
-            clear_counter: 0,
-        }
-    }
-
-    /// Pushes a new event onto the list.
-    //
-    // Technically, copies `event`'s contained pointer (a `cl_event`) then
-    // `mem::forget`s it. This seems preferrable to incrementing the reference
-    // count (with `functions::retain_event`) then letting `event` drop which just decrements it right back.
-    //
-    pub fn push_event(&mut self, event: Event) {
-        // assert!(event.is_valid(), "Cannot push an empty (null) 'Event' into an 'EventList'.");
-        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
-        self.event_kinds.push(EventKind::Event);
-
-        unsafe {
-            self.event_ptrs.push(*event.as_ptr_ref());
-            mem::forget(event);
-        }
-
-        self.decr_counter();
-    }
-
-    /// Pushes a new event onto the list.
-    //
-    // Technically, copies `event`'s contained pointer (a `cl_event`) then
-    // `mem::forget`s it. This seems preferrable to incrementing the reference
-    // count (with `functions::retain_event`) then letting `event` drop which just decrements it right back.
-    //
-    pub fn push_user_event(&mut self, user_event: UserEvent) {
-        // assert!(event.is_valid(), "Cannot push an empty (null) 'Event' into an 'EventList'.");
-        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
-        self.event_kinds.push(EventKind::UserEvent);
-
-        unsafe {
-            self.event_ptrs.push(*user_event.as_ptr_ref());
-            mem::forget(user_event);
-        }
-
-        self.decr_counter();
-    }
-
-    /// Removes the last event from the list and returns it.
-    //
-    // Does not increment reference count as it will not have been decremented
-    // when added to list.
-    //
-    pub fn pop(&mut self) -> Option<EventVariant> {
-        // self.event_ptrs.pop().map(|ptr| unsafe { Event::from_raw_copied_ptr(ptr) } )
-        // self.event_ptrs.pop().map(|ptr| Event(ptr))
-        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
-
-        let kind = self.event_kinds.pop();
-        let ptr = self.event_ptrs.pop();
-
-        match kind.and_then(|kind| ptr.and_then(|ptr| Some((kind, ptr)))) {
-            Some((kind, ptr)) => {
-                match kind {
-                    // EventKind::Null => Some(EventVariant::Null),
-                    EventKind::Event => Some(EventVariant::Event(Event(ptr))),
-                    EventKind::UserEvent => Some(EventVariant::UserEvent(UserEvent(ptr))),
-                }
-            },
-            None => None
-        }
-    }
-
-    /// Appends a new null element to the end of the list and returns a reference to it.
-    pub fn allot(&mut self) -> &mut cl_event {
-        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
-        self.event_kinds.push(EventKind::Event);
-        self.event_ptrs.push(0 as cl_event);
-        self.event_ptrs.last_mut().unwrap()
-    }
-
-    /// Returns an immutable reference to a pointer, do not deref and store it unless
-    /// you will manage its associated reference count carefully.
-    pub unsafe fn as_ptr_ref(&self) -> &cl_event {
-        self.event_ptrs.first().expect("ocl::core::EventList::as_ptr_ref(): \
-            Attempted to take a reference to the first element of an empty list.")
-    }
-
-    /// Clones an event by index.
-    pub fn get_event_cloned(&self, index: usize) -> Option<OclResult<Event>> {
-        match self.event_kinds.get(index) {
-            Some(kind) => {
-                if let EventKind::UserEvent = *kind {
-                    return Some(Err("EventList::event_cloned: Cannot clone a `UserEvent` with this \
-                        method. Use `::get_user_event_cloned` instead.".into()))
-                }
-            },
-            None => return None,
-        }
-
-        self.event_ptrs.get(index).map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
-    }
-
-    /// Clones the last event.
-    pub fn last_event_cloned(&self) -> Option<OclResult<Event>> {
-        match self.event_kinds.last() {
-            Some(kind) => {
-                if let EventKind::UserEvent = *kind {
-                    return Some(Err("EventList::event_cloned: Cannot clone a `UserEvent` with this \
-                        method. Use `::last_user_event_cloned` instead.".into()))
-                }
-            },
-            None => return None,
-        }
-
-        self.event_ptrs.last().map(|ptr| unsafe { Event::from_raw_copied_ptr(*ptr) } )
-    }
-
-    pub fn get_user_event_cloned(&self) -> Option<OclResult<UserEvent>> {
-        unimplemented!()
-    }
-
-    pub fn last_user_event_cloned(&self) -> Option<OclResult<UserEvent>> {
-        unimplemented!()
-    }
-
-    /// Clears the list.
-    pub fn clear(&mut self) -> OclResult<()> {
-        for &ptr in self.event_ptrs.iter() {
-            unsafe { functions::release_event(&EventRefWrapper(ptr))?; }
-        }
-
-        self.clear_counter = EL_CLEAR_INTERVAL;
-        self.event_ptrs.clear();
-        self.event_kinds.clear();
-        Ok(())
-    }
-
-    /// Clears each completed event from the list.
-    ///
-    /// TODO: TEST THIS
-    pub fn clear_completed(&mut self) -> OclResult<()> {
-        if self.len() < 16 { return Ok(()) }
-
-        let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_LEN);
-
-        for (idx, &event_ptr) in self.event_ptrs.iter().enumerate() {
-            let status = try!(functions::event_status(&EventRefWrapper(event_ptr)));
-
-            if status == CommandExecutionStatus::Complete {
-                cmpltd_events.push(idx)
-            }
-        }
-
-        // Release completed events:
-        for &idx in &cmpltd_events {
-            unsafe {
-                try!(functions::release_event(&EventRefWrapper(self.event_ptrs[idx])));
-            }
-        }
-
-        try!(util::vec_remove_rebuild(&mut self.event_ptrs, &cmpltd_events[..], 2));
-        try!(util::vec_remove_rebuild(&mut self.event_kinds, &cmpltd_events[..], 2));
-
-        debug_assert!(self.event_ptrs.len() == self.event_kinds.len());
-
-        self.clear_counter = EL_CLEAR_INTERVAL;
-
-        Ok(())
-    }
-
-
-    // /// Merges thecontents of this list and another into a new list and returns it.
-    // /// Make these merge without dropping the damn pointers
-    // pub fn union(self, other_list: EventList) -> EventList {
-    //     let new_cap = other_list.event_ptrs.len() + self.event_ptrs.len() + 8;
-    //     let mut new_list = EventList::with_capacity(new_cap);
-
-    //     new_list.event_ptrs.extend(self.event_ptrs.iter().cloned());
-    //     new_list.event_kinds.extend(self.event_kinds.iter().cloned());
-    //     new_list.event_ptrs.extend(other_list.event_ptrs.iter().cloned());
-    //     new_list.event_kinds.extend(other_list.event_kinds.iter().cloned());
-
-    //     new_list
-    // }
-
-    /// Counts down the auto-list-clear counter.
-    fn decr_counter(&mut self) {
-        if EL_CLEAR_AUTO {
-            self.clear_counter -= 1;
-
-            if self.clear_counter <= 0 && self.event_ptrs.len() > EL_CLEAR_MAX_LEN {
-                self.clear_completed().unwrap();
-            }
-        }
-    }
-
-    #[inline(always)] pub fn len(&self) -> usize { self.event_ptrs.len() }
-    #[inline(always)] pub fn is_empty(&self) -> bool { self.len() == 0 }
-    #[inline(always)] pub fn count(&self) -> u32 { self.event_ptrs.len() as u32 }
-
-    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        match self.event_ptrs.first() {
-            Some(ele) => ele as *const cl_event,
-            None => ptr::null(),
-        }
-    }
-
-    #[inline(always)]
-    fn _count(&self) -> u32 {
-        self.event_ptrs.len() as u32
-    }
-}
-
-unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
-    #[inline(always)] fn alloc_new(&mut self) -> *mut cl_event { self.allot() }
-}
-
-unsafe impl ClWaitListPtr for EventList {
-    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
-    #[inline(always)] fn count(&self) -> u32 { self.count() }
-}
-
-unsafe impl<'a> ClWaitListPtr for &'a EventList {
-    #[inline(always)] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
-    #[inline(always)] fn count(&self) -> u32 { self._count() }
-}
-
-impl Clone for EventList {
-    /// Clones this list in a thread safe manner.
-    fn clone(&self) -> EventList {
-        for &event_ptr in &self.event_ptrs {
-            if !event_ptr.is_null() {
-                unsafe { functions::retain_event(&EventRefWrapper(event_ptr))
-                    .expect("core::EventList::clone") }
-            }
-        }
-
-        EventList {
-            event_ptrs: self.event_ptrs.clone(),
-            event_kinds: self.event_kinds.clone(),
-            clear_max_len: self.clear_max_len,
-            clear_counter_max: self.clear_counter_max,
-            clear_auto: self.clear_auto,
-            clear_counter: self.clear_counter,
-        }
-    }
-}
-
-impl Drop for EventList {
-    /// Re-creates the appropriate event wrapper for each pointer in the list
-    /// and drops it.
-    fn drop(&mut self) {
-        for (&event_ptr, event_kind) in self.event_ptrs.iter().zip(self.event_kinds.iter()) {
-            // unsafe { functions::release_event(&EventRefWrapper(event_ptr)).unwrap(); }
-            match *event_kind {
-                // EventKind::Null => (),
-                EventKind::Event => { mem::drop(Event(event_ptr)) },
-                EventKind::UserEvent => { mem::drop(UserEvent(event_ptr)) },
-            }
-        }
-    }
-}
-
-impl AsRef<EventList> for EventList {
-    fn as_ref(&self) -> &EventList {
-        self
-    }
-}
-
-unsafe impl Sync for EventList {}
-unsafe impl Send for EventList {}
-
 
 
 /// cl_sampler

@@ -12,8 +12,7 @@ use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-    PlatformId, /*OclPrm, CommandQueue, ClWaitListPtr, UserEvent, Event, ClNullEventPtr,
-    EventList*/};
+    PlatformId};
 
 
 // Until everything can be implemented:

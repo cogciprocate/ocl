@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem, UserEvent, AsMem, MemCmdRw, MemCmdAll};
+    CommandQueueProperties, MappedMem, AsMem, MemCmdRw, MemCmdAll, Event};
 
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
@@ -78,7 +78,7 @@ pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i3
         let tar_event_ptr = user_data as *mut _ as cl_event;
 
         unsafe {
-            let user_event = UserEvent::from_raw(tar_event_ptr);
+            let user_event = Event::from_raw(tar_event_ptr);
 
             #[cfg(feature = "event_debug_print")]
             println!("  - Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
@@ -1838,9 +1838,9 @@ pub fn get_event_info<'e, E: ClEventRef<'e>>(event: &'e E, request: EventInfo) -
 
 /// [UNTESTED]
 /// Creates an event not already associated with any command.
-pub fn create_user_event(context: &Context) -> OclResult<UserEvent> {
+pub fn create_user_event(context: &Context) -> OclResult<Event> {
     let mut errcode = 0;
-    let event = unsafe { UserEvent::from_raw_create_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
+    let event = unsafe { Event::from_raw_create_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
     eval_errcode(errcode, event, "clCreateUserEvent", "")
 }
 
