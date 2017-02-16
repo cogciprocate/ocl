@@ -23,18 +23,6 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 
 # Causes a map command with either write flag set to block regardless of
 # whether or not the command was enqueued asynchronously or not.
-#
-# This corrects a somewhat rare issue on some platforms (CPU only?) when
-# mapping commands, out-of-order queues, and event synchronization are used
-# together.
-#
-# The performance implications are probably negligible when
-# `CL_MAP_WRITE_INVALIDATE_REGION` (aka.
-# `MapFlags::write_invalidate_region()`) is set but may be significant if
-# `CL_MAP_WRITE` (aka. `MapFlags::write()`) is used.
-#
-# Run the `device_check` example to determine if this option is necessary on
-# your device.
 always_block_on_map_writes = []
 
 # Useful on platforms (such as PoCL) that have trouble with fill. Creates a
