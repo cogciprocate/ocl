@@ -223,6 +223,7 @@ unsafe impl ClDeviceIdPtr for () {
 
 /// Wrapper used by `EventList` to send event pointers to core functions
 /// cheaply.
+#[repr(C)]
 pub struct EventRefWrapper(cl_event);
 
 impl EventRefWrapper {
@@ -359,6 +360,7 @@ impl ClVersions for DeviceId {
 
 
 /// cl_context
+#[repr(C)]
 #[derive(Debug)]
 pub struct Context(cl_context);
 
@@ -445,6 +447,7 @@ impl ClVersions for Context {
 
 
 /// cl_command_queue
+#[repr(C)]
 #[derive(Debug)]
 pub struct CommandQueue(cl_command_queue);
 
@@ -516,6 +519,7 @@ impl ClVersions for CommandQueue{
 
 
 /// cl_mem
+#[repr(C)]
 #[derive(Debug)]
 pub struct Mem(cl_mem);
 
@@ -573,7 +577,7 @@ unsafe impl<'a> MemCmdAll for &'a mut Mem {}
 unsafe impl Sync for Mem {}
 unsafe impl Send for Mem {}
 
-
+#[repr(C)]
 pub struct MappedMem<T: OclPrm>(*mut T);
 
 impl<T: OclPrm> MappedMem<T> {
@@ -622,6 +626,7 @@ unsafe impl<T: OclPrm> Sync for MappedMem<T> {}
 
 
 /// cl_program
+#[repr(C)]
 #[derive(Debug)]
 pub struct Program(cl_program);
 
@@ -703,6 +708,7 @@ impl ClVersions for Program {
 /// [UPDATE]: Enabling `Send` for a while to test.
 ///
 ///
+#[repr(C)]
 #[derive(Debug)]
 pub struct Kernel(cl_kernel);
 
@@ -826,6 +832,7 @@ unsafe impl Send for Kernel {}
 
 /// cl_event
 #[derive(Debug)]
+#[repr(C)]
 pub struct Event(cl_event);
 
 impl Event {
@@ -1049,7 +1056,7 @@ unsafe impl Sync for Event {}
 unsafe impl Send for Event {}
 
 
-
+#[repr(C)]
 #[derive(Debug)]
 pub struct UserEvent(cl_event);
 
@@ -1612,6 +1619,7 @@ unsafe impl Send for EventList {}
 
 
 /// cl_sampler
+#[repr(C)]
 #[derive(Debug)]
 pub struct Sampler(cl_sampler);
 

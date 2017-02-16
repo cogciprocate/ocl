@@ -98,7 +98,6 @@
 //! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/types/functions.rs`]: /ocl-core/src/ocl-core/src/types/functions.rs.html
 
-
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate enum_primitive;
 extern crate libc;
