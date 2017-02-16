@@ -38,6 +38,8 @@
 //!
 //! [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html
 
+// #![doc(html_root_url="https://docs.rs/ocl-core/0.3/")]
+
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -160,6 +162,16 @@ pub unsafe trait ClWaitListPtr: Debug {
 unsafe impl<'a> ClWaitListPtr for &'a [cl_event] {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
         self.as_ptr()
+    }
+
+    fn count (&self) -> u32 {
+        self.len() as u32
+    }
+}
+
+unsafe impl<'a> ClWaitListPtr for &'a [Event] {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+        self.as_ptr() as *const _ as *const cl_event
     }
 
     fn count (&self) -> u32 {
@@ -913,6 +925,24 @@ impl Event {
         ::wait_for_event(self)
     }
 
+    /// Returns whether or not this event is associated with a command or is a
+    /// user event.
+    #[inline]
+    pub fn is_null(&self) -> bool {
+        self.0.is_null()
+    }
+
+    /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
+    /// NULL CHECK IS NOT ENOUGH
+    ///
+    /// This still leads to crazy segfaults when non-event pointers (random
+    /// whatever addresses) are passed. Need better check.
+    ///
+    #[inline]
+    pub fn is_valid(&self) -> bool {
+        !self.0.is_null()
+    }
+
     /// Sets a callback function, `callback_receiver`, to trigger upon
     /// completion of this event list with an optional pointer to user data.
     ///
@@ -982,17 +1012,6 @@ impl Event {
     #[inline]
     pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
         &mut self.0
-    }
-
-    /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
-    /// NULL CHECK IS NOT ENOUGH
-    ///
-    /// This still leads to crazy segfaults when non-event pointers (random
-    /// whatever addresses) are passed. Need better check.
-    ///
-    #[inline]
-    pub fn is_valid(&self) -> bool {
-        !self.0.is_null()
     }
 
     /// Consumes the `Event`, returning the wrapped `cl_event` pointer.
