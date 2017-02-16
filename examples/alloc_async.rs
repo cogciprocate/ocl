@@ -385,7 +385,7 @@ impl CommandGraph {
         if !self.locked { return Err("Call '::populate_requisites' first."); }
         if self.next_cmd_idx != cmd_idx { return Err("Command events requested out of order."); }
 
-        self.commands[cmd_idx].requisite_events.clear().unwrap();
+        self.commands[cmd_idx].requisite_events.clear();
 
         for &req_idx in self.command_requisites[cmd_idx].iter() {
             if let Some(event) = self.commands[req_idx].event.clone() {

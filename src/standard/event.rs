@@ -1,16 +1,15 @@
-//! An `OpenCL` event.
+//! An OpenCL event.
 
 use std;
-// use std::ops::{Deref, DerefMut};
-use std::convert::Into;
-use libc::c_void;
+use std::ops::{Deref, DerefMut};
+// use std::convert::Into;
+// use libc::c_void;
 use futures::{Future, Poll, Async};
 use ffi::cl_event;
 use core::error::{Error as OclError, Result as OclResult};
-use core::{self, Event as EventCore, UserEvent as UserEventCore,
-    EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr,
-    EventList as EventListCore, CommandExecutionStatus, EventCallbackFn, EventVariant, EventVariantRef,
-    EventVariantMut, ClEventRef, Context, CommandQueue as CommandQueueCore};
+use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
+    ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, /*CommandExecutionStatus,*/ /*EventCallbackFn,*/
+    ClEventRef, Context, CommandQueue as CommandQueueCore};
 
 
 // #[derive(Clone, Debug)]
@@ -40,79 +39,83 @@ use core::{self, Event as EventCore, UserEvent as UserEventCore,
 #[derive(Clone, Debug)]
 // pub struct Event(Option<EventCore>);
 // pub struct Event(EventCoreKind);
-pub enum Event {
-    Event(EventCore),
-    UserEvent(UserEventCore),
-    Empty,
-}
+// pub enum Event {
+//     Event(EventCore),
+//     UserEvent(UserEventCore),
+//     Empty,
+// }
+#[repr(C)]
+pub struct Event(EventCore);
 
 impl Event {
-    /// Creates a new, empty event which must be filled by a newly initiated
-    /// command, associating the event with it.
+    /// Creates a new, empty (null) event which must be filled by a command,
+    /// associating the event with it.
     pub fn empty() -> Event {
         // Event(None)
-        Event::Empty
+        Event(EventCore::null())
     }
 
     /// Creates a new, empty event which must be filled by a newly initiated
     /// command, associating the event with it.
     pub fn user(context: &Context) -> OclResult<Event> {
-        UserEventCore::new(context).map(Event::UserEvent)
+        EventCore::user(context).map(Event)
     }
 
-    /// Creates a new `Event` from a `EventCore`.
-    ///
-    /// ## Safety
-    ///
-    /// Not meant to be called directly.
-    pub unsafe fn from_core_unchecked(event_core: EventCore) -> Event {
-        // Event(Some(event_core))
-        Event::Event(event_core)
-    }
+    // /// Creates a new `Event` from a `EventCore`.
+    // ///
+    // /// ## Safety
+    // ///
+    // /// Not meant to be called directly.
+    // pub unsafe fn from_core_unchecked(event_core: EventCore) -> Event {
+    //     Event::Event(event_core)
+    // }
 
-    /// Returns true if this event is complete, false if it is not complete or
-    /// if this event is not yet associated with a command.
-    ///
-    /// This is the fastest possible way to determine the event completion
-    /// status.
-    ///
-    #[inline]
-    pub fn is_complete(&self) -> OclResult<bool> {
-        // match *self {
-        //     Some(ref core) => core.is_complete(),
-        //     None => Ok(false),
-        // }
+    // /// Returns true if this event is complete, false if it is not complete or
+    // /// if this event is not yet associated with a command.
+    // ///
+    // /// This is the fastest possible way to determine the event completion
+    // /// status.
+    // ///
+    // #[inline]
+    // pub fn is_complete(&self) -> OclResult<bool> {
+    //     // match *self {
+    //     //     Some(ref core) => core.is_complete(),
+    //     //     None => Ok(false),
+    //     // }
 
-        match *self {
-            Event::Event(ref core) => core.is_complete(),
-            Event::UserEvent(ref core) => core.is_complete(),
-            Event::Empty => Err(().into()),
-        }
-    }
+    //     // match *self {
+    //     //     Event::Event(ref core) => core.is_complete(),
+    //     //     Event::UserEvent(ref core) => core.is_complete(),
+    //     //     Event::Empty => Err(().into()),
+    //     // }
 
-    /// Waits on the host thread for commands identified by this event object
-    /// to complete.
-    ///
-    pub fn wait_for(&self) -> OclResult<()> {
-        // assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
-        // core::wait_for_event(self.0.as_ref().unwrap())
-        match *self {
-            Event::Event(ref core) => core.wait_for(),
-            Event::UserEvent(ref core) => core.wait_for(),
-            Event::Empty => Err(format!("ocl::Event::wait(): {}", self.err_empty()).into()),
-        }
-    }
+    //     self.0.is_complete()
+    // }
+
+    // /// Waits on the host thread for commands identified by this event object
+    // /// to complete.
+    // ///
+    // pub fn wait_for(&self) -> OclResult<()> {
+    //     // assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
+    //     // core::wait_for_event(self.0.as_ref().unwrap())
+    //     match *self {
+    //         Event::Event(ref core) => core.wait_for(),
+    //         Event::UserEvent(ref core) => core.wait_for(),
+    //         Event::Empty => Err(format!("ocl::Event::wait(): {}", self.err_empty()).into()),
+    //     }
+    // }
 
     /// Returns true if this event is 'empty' and has not yet been associated
     /// with a command.
     ///
     #[inline]
     pub fn is_empty(&self) -> bool {
-        match *self {
-            Event::Event(_) => false,
-            Event::UserEvent(_) => false,
-            Event::Empty => true,
-        }
+        // match *self {
+        //     Event::Event(_) => false,
+        //     Event::UserEvent(_) => false,
+        //     Event::Empty => true,
+        // }
+        self.0.is_null()
     }
 
     /// Returns info about the event.
@@ -127,11 +130,12 @@ impl Event {
         //     },
         //     None => EventInfoResult::Error(Box::new(self.err_empty())),
         // }
-        match *self {
-            Event::Event(ref core) => core::get_event_info(core, info_kind),
-            Event::UserEvent(ref core) => core::get_event_info(core, info_kind),
-            Event::Empty => EventInfoResult::Error(Box::new(self.err_empty())),
-        }
+        // match *self {
+        //     Event::Event(ref core) => core::get_event_info(core, info_kind),
+        //     Event::UserEvent(ref core) => core::get_event_info(core, info_kind),
+        //     Event::Empty => EventInfoResult::Error(Box::new(self.err_empty())),
+        // }
+        core::get_event_info(&self.0, info_kind)
     }
 
     /// Returns info about the event.
@@ -146,11 +150,12 @@ impl Event {
         //     },
         //     None => ProfilingInfoResult::Error(Box::new(self.err_empty())),
         // }
-        match *self {
-            Event::Event(ref core) => core::get_event_profiling_info(core, info_kind),
-            Event::UserEvent(ref core) => core::get_event_profiling_info(core, info_kind),
-            Event::Empty => ProfilingInfoResult::Error(Box::new(self.err_empty())),
-        }
+        // match *self {
+        //     Event::Event(ref core) => core::get_event_profiling_info(core, info_kind),
+        //     Event::UserEvent(ref core) => core::get_event_profiling_info(core, info_kind),
+        //     Event::Empty => ProfilingInfoResult::Error(Box::new(self.err_empty())),
+        // }
+        core::get_event_profiling_info(&self.0, info_kind)
     }
 
     /// Returns this event's associated command queue.
@@ -166,50 +171,51 @@ impl Event {
     /// the `core` module.
     ///
     #[inline]
-    pub fn core(&self) -> EventVariantRef {
+    pub fn core(&self) -> &EventCore {
         // self.0.as_ref()
         // match *self {
         //     Core::Event(ref core) => core::wait_for_event(core),
         //     Core::UserEvent(ref core) => core::wait_for_event(core),
         //     Core::Null => Err(format!("ocl::Event::wait(): {}", self.err_empty()).into()),
         // }
-        match *self {
-            Event::Event(ref core) => EventVariantRef::Event(core),
-            Event::UserEvent(ref core) => EventVariantRef::UserEvent(core),
-            Event::Empty => EventVariantRef::Null,
-        }
+        // match *self {
+        //     Event::Event(ref core) => EventVariantRef::Event(core),
+        //     Event::UserEvent(ref core) => EventVariantRef::UserEvent(core),
+        //     Event::Empty => EventVariantRef::Null,
+        // }
+        &self.0
     }
 
-    /// Returns a mutable reference to the core pointer wrapper usable by
-    /// functions in the `core` module.
-    ///
-    #[inline]
-    pub fn core_mut(&mut self) -> EventVariantMut {
-        // self.0.as_mut()
-        match *self {
-            Event::Event(ref mut core) => EventVariantMut::Event(core),
-            Event::UserEvent(ref mut core) => EventVariantMut::UserEvent(core),
-            Event::Empty => EventVariantMut::Null,
-        }
-    }
+    // /// Returns a mutable reference to the core pointer wrapper usable by
+    // /// functions in the `core` module.
+    // ///
+    // #[inline]
+    // pub fn core_mut(&mut self) -> EventVariantMut {
+    //     // self.0.as_mut()
+    //     match *self {
+    //         Event::Event(ref mut core) => EventVariantMut::Event(core),
+    //         Event::UserEvent(ref mut core) => EventVariantMut::UserEvent(core),
+    //         Event::Empty => EventVariantMut::Null,
+    //     }
+    // }
 
-    /// Sets a callback function, `callback_receiver`, to trigger upon
-    /// completion of this event passing an optional reference to user data.
-    ///
-    /// # Safety
-    ///
-    /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
-    /// is called.
-    ///
-    pub unsafe fn set_callback(&self, receiver: Option<EventCallbackFn>,
-            user_data_ptr: *mut c_void) -> OclResult<()>
-    {
-        match *self {
-            Event::Event(ref core) => core.set_callback(receiver, user_data_ptr),
-            Event::UserEvent(ref core) => core.set_callback(receiver, user_data_ptr),
-            Event::Empty => Err("ocl::Event::set_callback: This event is uninitialized (null).".into()),
-        }
-    }
+    // /// Sets a callback function, `callback_receiver`, to trigger upon
+    // /// completion of this event passing an optional reference to user data.
+    // ///
+    // /// # Safety
+    // ///
+    // /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
+    // /// is called.
+    // ///
+    // pub unsafe fn set_callback(&self, receiver: Option<EventCallbackFn>,
+    //         user_data_ptr: *mut c_void) -> OclResult<()>
+    // {
+    //     match *self {
+    //         Event::Event(ref core) => core.set_callback(receiver, user_data_ptr),
+    //         Event::UserEvent(ref core) => core.set_callback(receiver, user_data_ptr),
+    //         Event::Empty => Err("ocl::Event::set_callback: This event is uninitialized (null).".into()),
+    //     }
+    // }
 
     // pub fn as_ptr(&self) -> cl_event {
     //     match *self {
@@ -219,10 +225,10 @@ impl Event {
     //     }
     // }
 
-    fn err_empty(&self) -> OclError {
-        OclError::string("This `ocl::Event` is empty and cannot be used until \
-            filled by a command.")
-    }
+    // fn err_empty(&self) -> OclError {
+    //     OclError::string("This `ocl::Event` is empty and cannot be used until \
+    //         filled by a command.")
+    // }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Event")
@@ -234,105 +240,79 @@ impl Event {
             .finish()
     }
 
-    fn _alloc_new(&mut self) -> *mut cl_event {
-        // assert!(self.is_empty(), "ocl::Event: Attempting to use a non-empty event as a new event
-        //     is not allowed. Please create a new, empty, event with ocl::Event::empty().");
-        if self.is_empty() {
-            unsafe {
-                *self = Event::Event(EventCore::null());
+    // fn _alloc_new(&mut self) -> *mut cl_event {
+    //     // assert!(self.is_empty(), "ocl::Event: Attempting to use a non-empty event as a new event
+    //     //     is not allowed. Please create a new, empty, event with ocl::Event::empty().");
+    //     if self.is_empty() {
+    //         // unsafe {
+    //         //     *self = Event::Event(EventCore::null());
 
-                if let Event::Event(ref mut ev) = *self {
-                    ev.as_ptr_mut()
-                } else {
-                    unreachable!();
-                }
-            }
-        } else {
-            panic!("ocl::Event: Attempting to use a non-empty event as a new event
-                is not allowed. Please create a new, empty, event with ocl::Event::empty().");
-        }
-    }
+    //         //     if let Event::Event(ref mut ev) = *self {
+    //         //         ev.as_ptr_mut()
+    //         //     } else {
+    //         //         unreachable!();
+    //         //     }
+    //         // }
+    //         self.0 = EventCore::null();
+    //         self.0.as_ptr_mut()
+    //     } else {
+    //         panic!("ocl::Event: Attempting to use a non-empty event as a new event
+    //             is not allowed. Please create a new, empty, event with ocl::Event::empty().");
+    //     }
+    // }
 
-    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        // match *self {
-        //     Some(ref ec) => ec.as_ptr_ptr(),
-        //     None => 0 as *const cl_event,
-        // }
-        match *self {
-            Event::Event(ref core) => core.as_ptr_ptr(),
-            Event::UserEvent(ref core) => core.as_ptr_ptr(),
-            Event::Empty => panic!("<ocl::Event as ClWaitListPtr>::as_ptr_ptr: Event is null"),
-        }
-    }
+    // unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
+    //     // match *self {
+    //     //     Some(ref ec) => ec.as_ptr_ptr(),
+    //     //     None => 0 as *const cl_event,
+    //     // }
+    //     // match *self {
+    //     //     Event::Event(ref core) => core.as_ptr_ptr(),
+    //     //     Event::UserEvent(ref core) => core.as_ptr_ptr(),
+    //     //     Event::Empty => panic!("<ocl::Event as ClWaitListPtr>::as_ptr_ptr: Event is null"),
+    //     // }
+    //     self.0.as_ptr_ptr()
+    // }
 
+    #[inline]
     fn _count(&self) -> u32 {
-        match *self {
-            Event::Event(ref core) => core.count(),
-            Event::UserEvent(ref core) => core.count(),
-            Event::Empty => panic!("<ocl::Event as ClWaitListPtr>::as_ptr_ptr: Event is null"),
-        }
+        // match *self {
+        //     Event::Event(ref core) => core.count(),
+        //     Event::UserEvent(ref core) => core.count(),
+        //     Event::Empty => panic!("<ocl::Event as ClWaitListPtr>::as_ptr_ptr: Event is null"),
+        // }
+        if self.0.is_null() { 0 } else { 1 }
     }
 }
 
-// impl From<NullEventCore> for Event {
-//     #[inline]
-//     fn from(nev: NullEventCore) -> Event {
-//         match nev.validate() {
-//             Ok(nev) => Event(Event::Event(nev)),
-//             Err(err) => panic!("ocl::Event::from::<NullEventCore>: {}", err),
-//         }
-//     }
-// }
+impl Deref for Event {
+    type Target = EventCore;
+
+    fn deref(&self) -> &EventCore {
+        &self.0
+    }
+}
+
+impl DerefMut for Event {
+    fn deref_mut(&mut self) -> &mut EventCore {
+        &mut self.0
+    }
+}
+
+impl AsRef<EventCore> for Event {
+    fn as_ref(&self) -> &EventCore {
+        &self.0
+    }
+}
 
 impl From<EventCore> for Event {
     #[inline]
     fn from(ev: EventCore) -> Event {
         if ev.is_valid() {
-            Event::Event(ev)
+            Event(ev)
         } else {
             panic!("ocl::Event::from::<EventCore>: Invalid event.");
         }
-    }
-}
-
-impl From<UserEventCore> for Event {
-    #[inline]
-    fn from(uev: UserEventCore) -> Event {
-        if uev.is_valid() {
-            // println!("Creating 'Event' from 'UserEventCore': {:?}.", uev);
-            Event::UserEvent(uev)
-        } else {
-            panic!("ocl::Event::from::<UserEventCore>: Invalid event.");
-        }
-    }
-}
-
-impl From<EventVariant> for Event {
-    #[inline]
-    fn from(variant: EventVariant) -> Event {
-        match variant {
-            EventVariant::Null => panic!("ocl::Event::from::<EventVariant>: Invalid event variant (`Null`)."),
-            EventVariant::Event(ev) => {
-                if ev.is_valid() {
-                    Event::Event(ev)
-                } else {
-                    panic!("ocl::Event::from::<UserEventCore>: Invalid (likely null) event.");
-                }
-            }
-            EventVariant::UserEvent(uev) => {
-                if uev.is_valid() {
-                    Event::UserEvent(uev)
-                } else {
-                    panic!("ocl::Event::from::<UserEventCore>: Invalid (likely null) user event.");
-                }
-            }
-        }
-    }
-}
-
-impl Into<String> for Event {
-    fn into(self) -> String {
-        format!("{}", self)
     }
 }
 
@@ -344,52 +324,26 @@ impl std::fmt::Display for Event {
 
 impl<'e> ClEventRef<'e> for Event {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
-        match *self {
-            Event::Event(ref core) => core.as_ptr_ref(),
-            Event::UserEvent(ref core) => core.as_ptr_ref(),
-            Event::Empty => panic!("<ocl::Event as ClWaitListPtr>::as_ptr_ptr: Event is null"),
-        }
+    //     match *self {
+    //         Event::Event(ref core) => core.as_ptr_ref(),
+    //         Event::UserEvent(ref core) => core.as_ptr_ref(),
+    //         Event::Empty => panic!("<ocl::Event as ClWaitListPtr>::as_ptr_ptr: Event is null"),
+    //     }
+        self.0.as_ptr_ref()
     }
 }
 
-// impl AsRef<EventCore> for Event {
-//     fn as_ref(&self) -> &EventCore {
-//         self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::as_ref()")
-//     }
-// }
-
-// impl Deref for Event {
-//     type Target = EventCore;
-
-//     fn deref(&self) -> &EventCore {
-//         // self.0.as_ref().ok_or(self.err_empty()).expect("ocl::Event::deref()")
-
-//         match *self {
-//             Event::Event(ref core) => core,
-//             Event::UserEvent(_) => panic!("ocl::Event::deref::<EventCore>: Event is a user event."),
-//             Event::Empty => panic!("ocl::Event::deref::<EventCore>: Event is null."),
-//         }
-//     }
-// }
-
-// impl DerefMut for Event {
-//     fn deref_mut(&mut self) -> &mut EventCore {
-//         assert!(!self.is_empty(), "ocl::Event::deref_mut(): {}", self.err_empty());
-//         self.0.as_mut().unwrap()
-//     }
-// }
-
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
-    #[inline] fn alloc_new(&mut self) -> *mut cl_event { (*self)._alloc_new() }
+    #[inline] fn alloc_new(&mut self) -> *mut cl_event { (&mut self.0).alloc_new() }
 }
 
 unsafe impl ClWaitListPtr for Event {
-    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self.0.as_ptr_ptr() }
     #[inline] fn count(&self) -> u32 { self._count() }
 }
 
 unsafe impl<'a> ClWaitListPtr for  &'a Event {
-    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self.0.as_ptr_ptr() }
     #[inline] fn count(&self) -> u32 { self._count() }
 }
 
@@ -398,7 +352,7 @@ impl Future for Event {
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        while !self.is_complete()? {}
+        while !self.0.is_complete()? {}
         // unimplemented!();
 
         // // Do this right:
@@ -406,7 +360,6 @@ impl Future for Event {
         Ok(Async::Ready(()))
     }
 }
-
 
 
 
@@ -422,178 +375,123 @@ impl Future for Event {
 // [FIXME] TODO: impl Index.
 #[derive(Debug, Clone)]
 pub struct EventList {
-    event_list_core: EventListCore,
+    // event_list_core: EventListCore,
+    events: Vec<Event>,
 }
 
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
+
         EventList {
-            event_list_core: EventListCore::new(),
+            events: Vec::new(),
         }
     }
 
     /// Returns a new, empty, `EventList` with an initial capacity of `cap`.
     pub fn with_capacity(cap: usize) -> EventList {
         EventList {
-            event_list_core: EventListCore::with_capacity(cap),
+            events: Vec::with_capacity(cap),
         }
     }
 
     /// Adds an event to the list.
     pub fn push(&mut self, event: Event) {
-        match event {
-            // Some(ecore) => self.event_list_core.push(core),
-            // None => panic!("EventList::push: Unable to push null (empty) event."),
-
-            Event::Event(core) =>  self.event_list_core.push_event(core),
-            Event::UserEvent(core) => self.event_list_core.push_user_event(core),
-            Event::Empty => panic!("EventList::push: Unable to push null (empty) event."),
-        }
-
+        self.events.push(event)
     }
 
     /// Removes the last event from the list and returns it.
     pub fn pop(&mut self) -> Option<Event> {
-        self.event_list_core.pop().map(|ev| Event::from(ev))
+        self.events.pop()
     }
 
-    /// Returns a new copy of an event by index.
-    pub fn get_clone(&self, index: usize) -> Option<Event> {
-        match self.event_list_core.get_event_cloned(index) {
-            Some(ev_res) => {
-                match ev_res {
-                    Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
-                    Err(_) => None,
-                }
-            },
-            None => None,
-        }
-    }
+    // /// Returns a new copy of an event by index.
+    // pub fn get(&self, index: usize) -> Option<&Event> {
+    //     self.events.get(index)
+    // }
 
-    /// Returns a copy of the last event in the list.
-    pub fn last_clone(&self) -> Option<Event> {
-        match self.event_list_core.last_event_cloned() {
-            Some(ev_res) => {
-                match ev_res {
-                    Ok(ev) => unsafe { Some(Event::from_core_unchecked(ev)) },
-                    Err(_) => None,
-                }
-            },
-            None => None,
-        }
-    }
-
-    /// Sets a callback function, `callback_receiver`, to trigger upon completion of
-    /// the *last event* added to the event list with an optional reference to user
-    /// data.
-    ///
-    /// # Safety
-    ///
-    /// `user_data` must be guaranteed to still exist if and when `callback_receiver`
-    /// is ever called.
-    ///
-    pub unsafe fn last_set_callback<T>(&self,
-                callback_receiver: Option<EventCallbackFn>,
-                user_data: *mut T,
-                ) -> OclResult<()>
-    {
-        let event_core = self.event_list_core.last_event_cloned().ok_or(
-            OclError::string("ocl::EventList::set_callback: This event list is empty."))??;
-
-        core::set_event_callback(&event_core, CommandExecutionStatus::Complete,
-                    callback_receiver, user_data as *mut _ as *mut c_void)
-    }
+    // /// Returns a copy of the last event in the list.
+    // pub fn last(&self) -> Option<&Event> {
+    //     self.events.last()
+    // }
 
     /// Clears all events from the list whether or not they have completed.
     ///
     /// Forwards any errors related to releasing events.
     ///
-    pub fn clear(&mut self) -> OclResult<()> {
-        self.event_list_core.clear()
+    #[inline]
+    pub fn clear(&mut self) {
+        self.events.clear()
     }
 
     /// Clears events which have completed.
+    //
+    // [TODO]: Reimplement optimized version using `util::vec_remove_rebuild`
+    // (from old `EventListCore`).
     pub fn clear_completed(&mut self) -> OclResult<()> {
-        self.event_list_core.clear_completed()
+        let mut events = Vec::with_capacity(self.events.len());
+
+        std::mem::swap(&mut events, &mut self.events);
+
+        for event in events {
+            if !event.is_complete()? {
+                self.events.push(event);
+            }
+        }
+
+        Ok(())
     }
 
-    /// Returns the number of events in the list.
-    pub fn len(&self) -> usize {
-        self.event_list_core.len()
-    }
+    // /// Returns the number of events in the list.
+    // pub fn len(&self) -> usize {
+    //     self.events.len()
+    // }
 
-    /// Returns if there is no events.
-    pub fn is_empty(&self) -> bool {
-        self.event_list_core.len() == 0
-    }
-
-    /// Returns a reference to the underlying `core` event list.
-    ///
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
-    #[inline]
-    pub fn core_as_ref(&self) -> &EventListCore {
-        &self.event_list_core
-    }
-
-    /// Returns a reference to the underlying `core` event list.
-    ///
-    #[inline]
-    pub fn core(&self) -> &EventListCore {
-        &self.event_list_core
-    }
-
-    /// Returns a mutable reference to the underlying `core` event list.
-    ///
-    #[deprecated(since="0.13.0", note="Use `::core_mut` instead.")]
-    #[inline]
-    pub fn core_as_mut(&mut self) -> &mut EventListCore {
-        &mut self.event_list_core
-    }
-
-    /// Returns a mutable reference to the underlying `core` event list.
-    ///
-    #[inline]
-    pub fn core_mut(&mut self) -> &mut EventListCore {
-        &mut self.event_list_core
-    }
+    // /// Returns if there are no events.
+    // pub fn is_empty(&self) -> bool {
+    //     self.events.len() == 0
+    // }
 
     /// Waits on the host thread for all events in list to complete.
     pub fn wait_for(&self) -> OclResult<()> {
-        if !self.event_list_core.is_empty() {
-            core::wait_for_events(self.event_list_core.count(), &self.event_list_core)
-        } else {
-            Ok(())
+        for event in self.events.iter() {
+            event.wait_for()?;
         }
+
+        Ok(())
     }
 
     #[inline]
     fn _alloc_new(&mut self) -> *mut cl_event {
-        self.event_list_core.allot()
+        self.events.push(Event::empty());
+        self.events.last_mut().unwrap() as *mut _ as *mut cl_event
     }
 
     #[inline]
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        self.event_list_core.as_ptr_ptr()
+        match self.events.first() {
+            Some(ev) => ev as *const _ as *const cl_event,
+            None => 0 as *const cl_event,
+        }
     }
 
     #[inline]
     fn _count(&self) -> u32 {
-        self.event_list_core.count()
+        self.events.len() as u32
     }
 }
 
-impl Into<EventListCore> for EventList {
-    #[inline]
-    fn into(self) ->  EventListCore {
-        self.event_list_core
+impl Deref for EventList {
+    type Target = [Event];
+
+    fn deref(&self) -> &[Event] {
+        self.events.as_slice()
     }
 }
 
-impl AsRef<EventListCore> for EventList {
-    #[inline]
-    fn as_ref(&self) -> &EventListCore {
-        &self.event_list_core
+impl DerefMut for EventList {
+    fn deref_mut(&mut self) -> &mut [Event] {
+        self.events.as_mut_slice()
     }
 }
 
@@ -610,26 +508,3 @@ unsafe impl<'a> ClWaitListPtr for &'a EventList {
     #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
     #[inline] fn count(&self) -> u32 { self._count() }
 }
-
-// impl Deref for EventList {
-//     type Target = EventListCore;
-
-//     #[inline]
-//     fn deref(&self) -> &EventListCore {
-//         &self.event_list_core
-//     }
-// }
-
-// impl DerefMut for EventList {
-//     #[inline]
-//     fn deref_mut(&mut self) -> &mut EventListCore {
-//         &mut self.event_list_core
-//     }
-// }
-
-// unsafe impl ClNullEventPtr for EventList {
-//     #[inline]
-//     fn alloc_new(&mut self) -> *mut cl_event {
-//         self._alloc_new()
-//     }
-// }

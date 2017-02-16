@@ -12,18 +12,31 @@
 //!
 //!
 
+#![allow(dead_code, unused_variables, unused_imports, unused_mut, unreachable_code)]
+
+extern crate libc;
+extern crate futures;
+extern crate futures_cpupool;
+extern crate tokio_timer;
+extern crate rand;
+extern crate chrono;
+extern crate ocl;
+#[macro_use] extern crate colorify;
+#[macro_use] extern crate lazy_static;
+
+
 use std::fmt::{Display, Debug};
 use std::ops::Add;
 use libc::c_void;
 use futures::{Future, Async};
 use futures_cpupool::{CpuPool, CpuFuture};
-use rand::{self, Rng, XorShiftRng};
+use rand::{Rng, XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use ocl::{util, Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
     Event, EventList, FutureMappedMem, MappedMem, Result as OclResult};
 use ocl::flags::{self, MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
-use ocl::core::{self, UserEvent as UserEventCore};
+use ocl::core::{self, Event as EventCore};
 
 
 fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> String {
@@ -81,7 +94,7 @@ pub fn create_queues(device: Device, context: &Context, out_of_order: bool)
 fn wire_callback(wire_callback: bool, context: &Context, map_event: &Event) -> Option<Event> {
     if wire_callback {
         unsafe {
-            let user_map_event = UserEventCore::new(context).unwrap();
+            let user_map_event = EventCore::user(context).unwrap();
             let unmap_target_ptr = user_map_event.clone().into_raw();
             map_event.set_callback(Some(core::_complete_user_event), unmap_target_ptr).unwrap();
             Some(Event::from(user_map_event))

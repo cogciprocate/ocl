@@ -505,6 +505,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                             Some(l) => l,
                             None => self.mem_len,
                         };
+
                         try!(check_len(self.mem_len, len, offset));
 
                         core::enqueue_fill_buffer(self.queue, self.obj_core, pattern,

@@ -15,9 +15,9 @@ use futures::sync::oneshot::{self, Sender};
 use futures::task::{self, Task, UnparkEvent, EventSet};
 
 use ffi::{cl_event, cl_mem};
-use core::{self, Error as OclError, Result as OclResult, Event as EventCore, UserEvent as UserEventCore, OclPrm,
+use core::{self, Error as OclError, Result as OclResult, Event as EventCore, OclPrm,
     MappedMem as MappedMemCore, Mem, CommandQueue, CommandQueueInfo, CommandQueueInfoResult,
-    CommandExecutionStatus, EventList as EventListCore, MemObjectType, ImageChannelOrder, ImageChannelDataType,
+    CommandExecutionStatus, MemObjectType, ImageChannelOrder, ImageChannelDataType,
     ContextProperty, PlatformId, ClWaitListPtr, ClNullEventPtr};
 
 
@@ -69,7 +69,7 @@ pub struct FutureMappedMem<T: OclPrm> {
     core: Option<MappedMemCore<T>>,
     len: usize,
     map_event: EventCore,
-    unmap_target: Option<UserEventCore>,
+    unmap_target: Option<EventCore>,
     buffer: Option<Mem>,
     queue: Option<CommandQueue>,
     callback_is_set: bool,
@@ -92,7 +92,7 @@ impl<T: OclPrm> FutureMappedMem<T> {
     }
 
     #[cfg(not(feature = "disable_event_callbacks"))]
-    pub fn create_unmap_event(&mut self) -> OclResult<&mut UserEventCore> {
+    pub fn create_unmap_event(&mut self) -> OclResult<&mut EventCore> {
         if let Some(ref queue) = self.queue {
             let context = match core::get_command_queue_info(queue,
                     CommandQueueInfo::Context)
@@ -102,7 +102,7 @@ impl<T: OclPrm> FutureMappedMem<T> {
                 _ => unreachable!(),
             };
 
-            match UserEventCore::new(&context) {
+            match EventCore::user(&context) {
                 Ok(uev) => {
                     self.unmap_target = Some(uev);
                     Ok(self.unmap_target.as_mut().unwrap())
@@ -134,7 +134,7 @@ impl<T: OclPrm> FutureMappedMem<T> {
 
     /// Returns the unmap event if it has been created.
     #[inline]
-    pub fn get_unmap_target(&self) -> Option<&UserEventCore> {
+    pub fn get_unmap_target(&self) -> Option<&EventCore> {
         self.unmap_target.as_ref()
     }
 }
@@ -220,13 +220,13 @@ pub struct MappedMem<T: OclPrm> {
     len: usize,
     buffer: Mem,
     queue: CommandQueue,
-    unmap_target: Option<UserEventCore>,
+    unmap_target: Option<EventCore>,
     callback_is_set: bool,
     is_unmapped: bool,
 }
 
 impl<T> MappedMem<T>  where T: OclPrm {
-    pub unsafe fn new(core: MappedMemCore<T>, len: usize, unmap_target: Option<UserEventCore>,
+    pub unsafe fn new(core: MappedMemCore<T>, len: usize, unmap_target: Option<EventCore>,
         buffer: Mem, queue: CommandQueue) -> MappedMem<T>
     {
         MappedMem {
@@ -332,7 +332,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
         }
     }
 
-    pub fn get_unmap_target(&self) -> Option<&UserEventCore> {
+    pub fn get_unmap_target(&self) -> Option<&EventCore> {
         self.unmap_target.as_ref()
     }
 
@@ -370,7 +370,7 @@ impl<T: OclPrm> Drop for MappedMem<T> {
     #[cfg(not(feature = "disable_event_callbacks"))]
     fn drop(&mut self) {
         if !self.is_unmapped {
-            self.enqueue_unmap::<EventListCore, &mut EventCore>(None, None, None).ok();
+            self.enqueue_unmap::<&EventCore, &mut EventCore>(None, None, None).ok();
         }
     }
 

@@ -199,6 +199,7 @@ impl From<DeviceType> for DeviceSpecifier {
 /// An individual device identifier (an OpenCL device_id).
 ///
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(C)]
 pub struct Device(DeviceIdCore);
 
 impl Device {
@@ -273,7 +274,8 @@ impl Device {
     /// [`ocl::core::Status`]: /ocl_core/ocl_core/enum.Status.html
     ///
     pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
-        let list_core = try!(core::get_device_ids(platform.as_core(), device_types, None));
+        let list_core = core::get_device_ids(platform.as_core(), device_types, None)
+            .unwrap_or(vec![]);
         Ok(list_core.into_iter().map(Device).collect())
     }
 

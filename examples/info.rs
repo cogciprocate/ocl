@@ -39,6 +39,8 @@ fn main() {
 
         let devices = Device::list_all(platform).unwrap();
 
+        if devices.is_empty() { continue; }
+
         // [NOTE]: A new context can also be created for each device if desired.
         let context = Context::builder()
             .platform(platform.clone())
