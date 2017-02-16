@@ -315,6 +315,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// Will panic if `::read` has already been called. Use `::read_async`
     /// (unsafe) for a non-blocking read operation.
     ///
+    #[deprecated(since="0.13.0", note="Use ::enq_async for non-blocking reads.")]
     pub fn block(mut self, block: bool) -> BufferCmd<'c, T> {
         if !block && self.lock_block {
             panic!("ocl::BufferCmd::block(): Blocking for this command has been disabled by \
@@ -556,19 +557,6 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
         self
     }
 
-    /// Specifies whether or not to block thread until completion.
-    ///
-    /// Ignored if this is a copy, fill, or copy to image operation.
-    ///
-    /// ## Panics
-    ///
-    /// Will panic if `::read` has already been called. Use `::read_async`
-    /// (unsafe) for a non-blocking read operation.
-    ///
-    pub fn block(self, block: bool) -> BufferMapCmd<'c, T> {
-        BufferMapCmd(self.0.block(block))
-    }
-
     /// Sets the linear offset for an operation.
     ///
     /// ## Panics
@@ -638,8 +626,6 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                                 self.obj_core, true, flags, offset, len, self.ewait.take(),
                                 self.enew.take())?;
 
-                            // println!("BufferMapCmd::enq: enew: {:?}", enew);
-
                             let unmap_event = None;
 
                             Ok(MappedMem::new(mm_core, len, unmap_event, self.obj_core.clone(),
@@ -683,20 +669,24 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                     let future = unsafe {
                         let mut map_event = EventCore::null();
 
+                        #[cfg(not(feature = "always_block_on_map_writes"))]
+                        let block = false;
+
+                        #[cfg(feature = "always_block_on_map_writes")]
+                        let block = if flags.contains(MapFlags::write_invalidate_region()) ||
+                            flags.contains(MapFlags::write()) { true } else { false };
+
                         let mm_core = core::enqueue_map_buffer::<T, _, _, _>(self.queue,
-                            self.obj_core, false, flags, offset, len, self.ewait.take(),
+                            self.obj_core, block, flags, offset, len, self.ewait.take(),
                             Some(&mut map_event))?;
 
                         // If a 'new/null event' has been set, copy pointer
                         // into it and increase refcount (to 2).
                         if let Some(ref mut self_enew) = self.enew.take() {
-                            println!("BufferMapCmd::enq_async: enew: {:?}, map_event: {:?}", self_enew, map_event);
-
+                            // Should be equivalent to `.clone().into_raw()` [TODO]: test.
                             core::retain_event(&map_event)?;
                             *(self_enew.alloc_new()) = *(map_event.as_ptr_ref());
                             // map_event/self_enew refcount: 2
-
-                            println!("BufferMapCmd::enq_async: enew: {:?}", self_enew);
                         }
 
                         FutureMappedMem::new(mm_core, len, map_event, self.obj_core.clone(),

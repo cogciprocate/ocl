@@ -41,6 +41,11 @@ impl Queue {
         })
     }
 
+    /// Issues all previously queued OpenCL commands to the device.
+    pub fn flush(&self) {
+        core::flush(&self.obj_core).unwrap();
+    }
+
     /// Blocks until all commands in this queue have completed before returning.
     pub fn finish(&self) {
         core::finish(&self.obj_core).unwrap();

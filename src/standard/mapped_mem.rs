@@ -25,11 +25,11 @@ use core::{self, Error as OclError, Result as OclResult, Event as EventCore, Use
 #[cfg(not(feature = "disable_event_callbacks"))]
 extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
     let _ = event_ptr;
-    println!("'_unpark_task' has been called.");
+    // println!("'_unpark_task' has been called.");
 
     if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
         unsafe {
-            println!("Unparking task via callback...");
+            // println!("Unparking task via callback...");
 
             let task_ptr = user_data as *mut _ as *mut Task;
             let task = Box::from_raw(task_ptr);
@@ -92,7 +92,7 @@ impl<T: OclPrm> FutureMappedMem<T> {
     }
 
     #[cfg(not(feature = "disable_event_callbacks"))]
-    pub fn create_unmap_target_event(&mut self) -> OclResult<&mut UserEventCore> {
+    pub fn create_unmap_event(&mut self) -> OclResult<&mut UserEventCore> {
         if let Some(ref queue) = self.queue {
             let context = match core::get_command_queue_info(queue,
                     CommandQueueInfo::Context)
@@ -146,7 +146,7 @@ impl<T: OclPrm> Future for FutureMappedMem<T> {
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        println!("Polling FutureMappedMem...");
+        // println!("Polling FutureMappedMem...");
 
         loop {
             match self.map_event.is_complete() {
@@ -169,14 +169,14 @@ impl<T> Future for FutureMappedMem<T> where T: OclPrm + 'static {
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        println!("Polling FutureMappedMem...");
+        // println!("Polling FutureMappedMem...");
 
         match self.map_event.is_complete() {
             Ok(true) => {
                 if !self.callback_is_set {
-                    println!("Task completed on first poll.");
+                    // println!("Task completed on first poll.");
                 } else {
-                    println!("Unsetting callback...");
+                    // println!("Unsetting callback...");
                     unsafe { self.map_event.set_callback(None, ptr::null_mut())?; }
                     self.callback_is_set = false;
                 }
@@ -187,9 +187,9 @@ impl<T> Future for FutureMappedMem<T> where T: OclPrm + 'static {
                 if !self.callback_is_set {
                     let task_box = Box::new(task::park());
                     let task_ptr = Box::into_raw(task_box) as *mut _ as *mut c_void;
-                    println!("Setting callback...");
+                    // println!("Setting callback...");
                     unsafe { self.map_event.set_callback(Some(_unpark_task), task_ptr)?; };
-                    println!("Task callback is set for event: {:?}.", self.map_event);
+                    // println!("Task callback is set for event: {:?}.", self.map_event);
                     self.callback_is_set = true;
                 }
 
@@ -249,38 +249,38 @@ impl<T> MappedMem<T>  where T: OclPrm {
             -> OclResult<()>
             where En: ClNullEventPtr, Ewl: ClWaitListPtr
     {
-
-        println!("########### MappedMem::enqueue_unmap...");
-
         if !self.is_unmapped {
             let mut new_event_opt = if self.unmap_target.is_some() || enew_opt.is_some() {
-                println!("########### MappedMem::enqueue_unmap: new_event_opt = 'Some(EventCore::null())'.");
                 Some(EventCore::null())
             } else {
-                println!("########### MappedMem::enqueue_unmap: new_event_opt = 'None'.");
                 None
             };
+
+            // print!("MappedMem::enqueue_unmap: 'core::enqueue_unmap_mem_object' (PRE): \n\
+            //     {t}{t}Unmapping with: \n\
+            //     {t}{t}- ewait_opt: {:?}, \n\
+            //     {t}{t}- new_event_opt: {:?}",
+            //     &ewait_opt, &new_event_opt, t="  ");
 
             core::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
                 &self.core, ewait_opt, new_event_opt.as_mut())?;
 
-            println!("########### MappedMem::enqueue_unmap: 'core::enqueue_unmap_mem_object' has been called.");
+            // println!(" --> (POST): {:?}", &new_event_opt);
 
             self.is_unmapped = true;
 
             if let Some(new_event) = new_event_opt {
-                println!("########### MappedMem::enqueue_unmap: 'Some(new_event) = new_event_opt'.");
                 // new_event refcount: 1
 
                 // If enew_opt is `Some`, update its internal event ptr.
                 if let Some(ref mut enew) = enew_opt {
-                    println!("########### MappedMem::enqueue_unmap: 'Some(ref mut enew) = enew_opt'.");
+                    // println!("- ::enqueue_unmap: 'Some(ref mut enew) = enew_opt'.");
                     unsafe {
+                        // Should be equivalent to `.clone().into_raw()` [TODO]: test.
                         core::retain_event(&new_event)?;
-                        println!("########### MappedMem::enqueue_unmap: 'core::retain_event(&new_event)' has been called.");
                         *(enew.alloc_new()) = *(new_event.as_ptr_ref());
                         // new_event/enew refcount: 2
-                        println!("########### MappedMem::enqueue_unmap: '*(enew.alloc_new()) = *(new_event.as_ptr_ref())' has been set.");
+                        // println!("- ::enqueue_unmap: '*(enew.alloc_new()) = *(new_event.as_ptr_ref())' has been set.");
                     }
                 }
 
@@ -289,8 +289,8 @@ impl<T> MappedMem<T>  where T: OclPrm {
                         #[cfg(not(feature = "disable_event_callbacks"))]
                         self.register_event_trigger(&new_event)?;
 
-                        #[cfg(not(feature = "disable_event_callbacks"))]
-                        println!("########### MappedMem::enqueue_unmap: 'self.register_event_trigger(&new_event)' is complete.");
+                        // #[cfg(not(feature = "disable_event_callbacks"))]
+                        // println!("- ::enqueue_unmap: 'self.register_event_trigger(&new_event)' is complete.");
 
                         // `new_event` will be reconstructed by the callback
                         // function using `UserEvent::from_raw` and `::drop`
@@ -301,11 +301,11 @@ impl<T> MappedMem<T>  where T: OclPrm {
                 }
             }
 
-            println!("########### MappedMem::enqueue_unmap: Returning 'Ok(())'....");
+            // println!("- ::enqueue_unmap: Returning 'Ok(())'....");
 
             Ok(())
         } else {
-            Err("ocl_core::MappedMem::unmap: Already unmapped.".into())
+            Err("ocl_core::- ::unmap: Already unmapped.".into())
         }
     }
 
@@ -318,13 +318,13 @@ impl<T> MappedMem<T>  where T: OclPrm {
                 unsafe {
                     let unmap_target_ptr = ev.clone().into_raw();
                     event.set_callback(Some(core::_complete_user_event), unmap_target_ptr)?;
-                    println!("Callback set from trigger: {:?} to target: {:?}", event, unmap_target_ptr);
+                    // println!("Callback set from trigger: {:?} to target: {:?}", event, unmap_target_ptr);
                 }
 
                 self.callback_is_set = true;
                 Ok(())
             } else {
-                panic!("MappedMem::register_event_trigger: No unmap event target \
+                panic!("- ::register_event_trigger: No unmap event target \
                     has been configured with this MappedMem.");
             }
         } else {

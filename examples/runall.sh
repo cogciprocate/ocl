@@ -1,6 +1,6 @@
 #!/bin/bash
 cargo run --example basics "$@"
-cargo run --example events "$@"
+cargo run --example event_callbacks "$@"
 cargo run --example img_formats "$@"
 cargo run --example info_core "$@"
 cargo run --example info "$@"

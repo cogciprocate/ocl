@@ -10,7 +10,7 @@ use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, UserEvent as UserEventCore,
     EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr,
     EventList as EventListCore, CommandExecutionStatus, EventCallbackFn, EventVariant, EventVariantRef,
-    EventVariantMut, ClEventRef, Context};
+    EventVariantMut, ClEventRef, Context, CommandQueue as CommandQueueCore};
 
 
 // #[derive(Clone, Debug)]
@@ -90,7 +90,8 @@ impl Event {
         }
     }
 
-    /// Causes
+    /// Waits on the host thread for commands identified by this event object
+    /// to complete.
     ///
     pub fn wait_for(&self) -> OclResult<()> {
         // assert!(!self.is_empty(), "ocl::Event::wait(): {}", self.err_empty());
@@ -149,6 +150,15 @@ impl Event {
             Event::Event(ref core) => core::get_event_profiling_info(core, info_kind),
             Event::UserEvent(ref core) => core::get_event_profiling_info(core, info_kind),
             Event::Empty => ProfilingInfoResult::Error(Box::new(self.err_empty())),
+        }
+    }
+
+    /// Returns this event's associated command queue.
+    pub fn queue_core(&self) -> OclResult<CommandQueueCore> {
+        match self.info(EventInfo::CommandQueue) {
+            EventInfoResult::CommandQueue(queue_core) => Ok(queue_core),
+            EventInfoResult::Error(err) => Err(*err),
+            _ => unreachable!(),
         }
     }
 
@@ -289,7 +299,7 @@ impl From<UserEventCore> for Event {
     #[inline]
     fn from(uev: UserEventCore) -> Event {
         if uev.is_valid() {
-            println!("Creating 'Event' from 'UserEventCore': {:?}.", uev);
+            // println!("Creating 'Event' from 'UserEventCore': {:?}.", uev);
             Event::UserEvent(uev)
         } else {
             panic!("ocl::Event::from::<UserEventCore>: Invalid event.");
@@ -423,6 +433,13 @@ impl EventList {
         }
     }
 
+    /// Returns a new, empty, `EventList` with an initial capacity of `cap`.
+    pub fn with_capacity(cap: usize) -> EventList {
+        EventList {
+            event_list_core: EventListCore::with_capacity(cap),
+        }
+    }
+
     /// Adds an event to the list.
     pub fn push(&mut self, event: Event) {
         match event {
@@ -538,7 +555,7 @@ impl EventList {
         &mut self.event_list_core
     }
 
-    /// Waits for all events in list to complete.
+    /// Waits on the host thread for all events in list to complete.
     pub fn wait_for(&self) -> OclResult<()> {
         if !self.event_list_core.is_empty() {
             core::wait_for_events(self.event_list_core.count(), &self.event_list_core)
@@ -577,6 +594,20 @@ impl AsRef<EventListCore> for EventList {
     }
 }
 
+unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
+    #[inline] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
+}
+
+unsafe impl ClWaitListPtr for EventList {
+    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline] fn count(&self) -> u32 { self._count() }
+}
+
+unsafe impl<'a> ClWaitListPtr for &'a EventList {
+    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline] fn count(&self) -> u32 { self._count() }
+}
+
 // impl Deref for EventList {
 //     type Target = EventListCore;
 
@@ -599,34 +630,3 @@ impl AsRef<EventListCore> for EventList {
 //         self._alloc_new()
 //     }
 // }
-
-unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
-    #[inline]
-    fn alloc_new(&mut self) -> *mut cl_event {
-        self._alloc_new()
-    }
-}
-
-unsafe impl ClWaitListPtr for EventList {
-    #[inline]
-    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-        self._as_ptr_ptr()
-    }
-
-    #[inline]
-    fn count(&self) -> u32 {
-        self._count()
-    }
-}
-
-unsafe impl<'a> ClWaitListPtr for &'a mut EventList {
-    #[inline]
-    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
-        self._as_ptr_ptr()
-    }
-
-    #[inline]
-    fn count(&self) -> u32 {
-        self._count()
-    }
-}
