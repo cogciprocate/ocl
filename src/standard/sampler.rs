@@ -7,6 +7,7 @@ use core::{self, Sampler as SamplerCore, AddressingMode, FilterMode, SamplerInfo
 use standard::Context;
 
 /// An image sampler used to process images.
+#[repr(C)]
 pub struct Sampler(SamplerCore);
 
 impl Sampler {

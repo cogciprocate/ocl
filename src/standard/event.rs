@@ -506,6 +506,9 @@ impl EventList {
     }
 
     /// Clears all events from the list whether or not they have completed.
+    ///
+    /// Forwards any errors related to releasing events.
+    ///
     pub fn clear(&mut self) -> OclResult<()> {
         self.event_list_core.clear()
     }
