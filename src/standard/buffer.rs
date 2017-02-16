@@ -669,15 +669,8 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                     let future = unsafe {
                         let mut map_event = EventCore::null();
 
-                        #[cfg(not(feature = "always_block_on_map_writes"))]
-                        let block = false;
-
-                        #[cfg(feature = "always_block_on_map_writes")]
-                        let block = if flags.contains(MapFlags::write_invalidate_region()) ||
-                            flags.contains(MapFlags::write()) { true } else { false };
-
                         let mm_core = core::enqueue_map_buffer::<T, _, _, _>(self.queue,
-                            self.obj_core, block, flags, offset, len, self.ewait.take(),
+                            self.obj_core, false, flags, offset, len, self.ewait.take(),
                             Some(&mut map_event))?;
 
                         // If a 'new/null event' has been set, copy pointer

@@ -12,9 +12,6 @@
 //!
 //!
 
-
-#![allow(dead_code, unused_variables, unused_assignments, unused_imports, unused_mut, deprecated)]
-
 use std::fmt::{Display, Debug};
 use std::ops::Add;
 use libc::c_void;
@@ -131,6 +128,7 @@ pub struct Switches<T: OclPrm> {
     pub alloc_source_vec: bool,
     pub event_callback: bool,
     pub queue_out_of_order: bool,
+    pub futures: bool,
 }
 
 lazy_static! {
@@ -170,87 +168,6 @@ lazy_static! {
     //     use_source_vec: true,
     // };
 
-    pub static ref CONFIG_MAPPED_WRITE_INO_ASYNC_CB: Switches<ClFloat4> = Switches {
-        config_name: "In-Order | Async-Future ",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            work_size_range: (2 << 23, 2 << 24),
-            alloc_host_ptr: false,
-        },
-
-        map_write: true,
-        map_read: false,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: false,
-        queue_out_of_order: false,
-        event_callback: true,
-    };
-
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP: Switches<ClFloat4> = Switches {
-        config_name: "Out of Order | NonBlocking | Callback",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            work_size_range: ((2 << 24) - 1, 2 << 24),
-            alloc_host_ptr: false,
-        },
-
-        map_write: true,
-        map_read: false,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: false,
-        queue_out_of_order: true,
-        event_callback: false,
-    };
-
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP_CB: Switches<ClFloat4> = Switches {
-        config_name: "Out of Order | NonBlocking | Callback",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            work_size_range: ((2 << 24) - 1, 2 << 24),
-            alloc_host_ptr: false,
-        },
-
-        map_write: true,
-        map_read: false,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: false,
-        queue_out_of_order: true,
-        event_callback: true,
-    };
-
     pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC: Switches<ClFloat4> = Switches {
         config_name: "Out of Order | Async-Future ",
         kern: Kern {
@@ -265,7 +182,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            work_size_range: ((2 << 24) - 1, 2 << 24),
+            // work_size_range: ((2 << 24) - 1, 2 << 24),
+            work_size_range: (2 << 21, 2 << 22),
             alloc_host_ptr: false,
         },
 
@@ -276,6 +194,7 @@ lazy_static! {
         alloc_source_vec: false,
         queue_out_of_order: true,
         event_callback: false,
+        futures: true,
     };
 
     pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC_AHP: Switches<ClFloat4> = Switches {
@@ -292,7 +211,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            work_size_range: ((2 << 24) - 1, 2 << 24),
+            // work_size_range: ((2 << 24) - 1, 2 << 24),
+            work_size_range: (2 << 21, 2 << 22),
             alloc_host_ptr: true,
         },
 
@@ -303,6 +223,7 @@ lazy_static! {
         alloc_source_vec: false,
         queue_out_of_order: true,
         event_callback: false,
+        futures: true,
     };
 
     pub static ref CONFIG_MAPPED_READ_OOO_ASYNC_CB: Switches<ClFloat4> = Switches {
@@ -319,7 +240,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            work_size_range: ((2 << 24) - 1, 2 << 24),
+            // work_size_range: ((2 << 24) - 1, 2 << 24),
+            work_size_range: (2 << 21, 2 << 22),
             alloc_host_ptr: false,
         },
 
@@ -329,7 +251,95 @@ lazy_static! {
         async_read: true,
         alloc_source_vec: true,
         queue_out_of_order: true,
+        event_callback: false,
+        futures: true,
+    };
+
+    pub static ref CONFIG_MAPPED_WRITE_INO_ASYNC_CB: Switches<ClFloat4> = Switches {
+        config_name: "In-Order | Async-Future ",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        vals: Vals {
+            type_str: "float4",
+            zero: ClFloat4(0., 0., 0., 0.),
+            addend: ClFloat4(50., 50., 50., 50.),
+            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((2 << 24) - 1, 2 << 24),
+            work_size_range: (2 << 21, 2 << 22),
+            alloc_host_ptr: false,
+        },
+
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: false,
         event_callback: true,
+        futures: true,
+    };
+
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP: Switches<ClFloat4> = Switches {
+        config_name: "Out of Order | NonBlocking",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        vals: Vals {
+            type_str: "float4",
+            zero: ClFloat4(0., 0., 0., 0.),
+            addend: ClFloat4(50., 50., 50., 50.),
+            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((2 << 24) - 1, 2 << 24),
+            work_size_range: (2 << 21, 2 << 22),
+            alloc_host_ptr: false,
+        },
+
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: true,
+        event_callback: false,
+        futures: true,
+    };
+
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP_CB: Switches<ClFloat4> = Switches {
+        config_name: "Out of Order | NonBlocking | Callback",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        vals: Vals {
+            type_str: "float4",
+            zero: ClFloat4(0., 0., 0., 0.),
+            addend: ClFloat4(50., 50., 50., 50.),
+            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((2 << 24) - 1, 2 << 24),
+            work_size_range: (2 << 21, 2 << 22),
+            alloc_host_ptr: false,
+        },
+
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: true,
+        event_callback: true,
+        futures: true,
     };
 
 }
@@ -396,20 +406,18 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
 
     if cfg.map_write {
         //###################### cfg.MAP_WRITE ############################
-        let mut map_event = Event::empty();
 
-        let mut mapped_mem = if cfg.async_write {
-            //################# cfg.ASYNC_WRITE #######################
+        let mut mapped_mem = if cfg.futures {
             let mut future_mem = source_buf.cmd().map()
                 .flags(MapFlags::write_invalidate_region())
                 // .flags(MapFlags::write())
                 .ewait(&wait_events)
-                .enew(&mut map_event)
+                // .enew(&mut map_event)
                 .enq_async()?;
 
-            if let Some(tar_ev) = wire_callback(cfg.event_callback, context, &mut map_event) {
-                map_event = tar_ev;
-            }
+            // if let Some(tar_ev) = wire_callback(cfg.event_callback, context, &mut map_event) {
+            //     map_event = tar_ev;
+            // }
 
             // // Print map event status:
             // printlnc!(dark_grey: "    Map Event Status (PRE-wait) : {:?} => {:?}",
@@ -423,7 +431,8 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             // Wait for event completion:
             future_mem.wait()?
         } else {
-            //############## !(cfg.ASYNC_WRITE) #######################
+            let mut map_event = Event::empty();
+
             let new_mm = unsafe {
                 let mm_core = core::enqueue_map_buffer::<ClFloat4, _, _, _>(
                     source_buf.default_queue(),
@@ -650,8 +659,8 @@ pub fn main() {
     let thread_pool = CpuPool::new_num_cpus();
     let mut rng = rand::weak_rng();
 
-    // for platform in Platform::list() {
-    for &platform in &[Platform::default()] {
+    for platform in Platform::list() {
+    // for &platform in &[Platform::default()] {
 
         let devices = Device::list_all(&platform).unwrap();
 
@@ -676,18 +685,6 @@ pub fn main() {
                 //     CONFIG_MAPPED_WRITE_CLFLOAT4_OOO.clone());
                 // print_result("Out-of-order:         ", out_of_order_result);
 
-                let in_order_result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_WRITE_INO_ASYNC_CB.clone());
-                print_result("In-order MW/ASync+CB:         ", in_order_result);
-
-                let in_order_result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_WRITE_OOO_ELOOP.clone());
-                print_result("Out-of-order MW/ELOOP:        ", in_order_result);
-
-                let in_order_result = check(device, &context, &mut rng,
-                    CONFIG_MAPPED_WRITE_OOO_ELOOP_CB.clone());
-                print_result("Out-of-order MW/ELOOP+CB:     ", in_order_result);
-
                 let out_of_order_result = check(device, &context, &mut rng,
                     CONFIG_MAPPED_WRITE_OOO_ASYNC.clone());
                 print_result("Out-of-order MW/Async-CB:     ", out_of_order_result);
@@ -699,6 +696,18 @@ pub fn main() {
                 let in_order_result = check(device, &context, &mut rng,
                     CONFIG_MAPPED_READ_OOO_ASYNC_CB.clone());
                 print_result("Out-of-order MW/ASync+CB/MR:  ", in_order_result);
+
+                let in_order_result = check(device, &context, &mut rng,
+                    CONFIG_MAPPED_WRITE_INO_ASYNC_CB.clone());
+                print_result("In-order MW/ASync+CB:         ", in_order_result);
+
+                let in_order_result = check(device, &context, &mut rng,
+                    CONFIG_MAPPED_WRITE_OOO_ELOOP.clone());
+                print_result("Out-of-order MW/ELOOP:        ", in_order_result);
+
+                let in_order_result = check(device, &context, &mut rng,
+                    CONFIG_MAPPED_WRITE_OOO_ELOOP_CB.clone());
+                print_result("Out-of-order MW/ELOOP+CB:     ", in_order_result);
 
             } else {
                 printlnc!(red: "    [UNAVAILABLE]");

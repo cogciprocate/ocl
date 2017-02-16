@@ -21,16 +21,7 @@ opencl_version_1_2 = ["ocl-core/opencl_version_1_2"]
 opencl_version_2_0 = ["ocl-core/opencl_version_2_0"]
 opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 
-# Causes a map command with either write flag set to block regardless of
-# whether or not the command was enqueued asynchronously or not.
-always_block_on_map_writes = []
-
-# Useful on platforms (such as PoCL) that have trouble with fill. Creates a
-# temporary zeroed `Vec` in host memory during creation and writes zeros from
-# there instead of calling `clEnqueueFillBuffer`:
-buffer_no_fill = []
-
-# Use exclusively polling instead of OpenCL callbacks for task unparking.
+# Use polling exclusively instead of OpenCL callbacks for task unparking.
 disable_event_callbacks = []
 
 default = ["opencl_version_1_1", "opencl_version_1_2"]
