@@ -20,7 +20,8 @@ opencl_version_2_1 = ["cl-sys/opencl_version_2_1"]
 default = ["rand", "opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
-cl-sys = "0.2.1"
+# cl-sys = "0.2.1"
+cl-sys = { version = "0.2.1", git = "https://github.com/cogciprocate/cl-sys" }
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
@@ -32,5 +33,5 @@ rand = { version = "0.3", optional = true }
 [dev-dependencies]
 colorify = "0.2"
 
-[replace]
-"cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }
+# [replace]
+# "cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }

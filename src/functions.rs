@@ -68,8 +68,11 @@ pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void
 /// its destructor (it will already have been managed by the call to `::set_event_callback`.
 ///
 pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
-    // let _ = src_event_ptr;
-    println!("    ::_complete_event (source: {:?}, target: {:?}):", src_event_ptr, user_data);
+    #[cfg(not(feature = "event_debug_print"))]
+    let _ = src_event_ptr;
+
+    #[cfg(feature = "event_debug_print")]
+    println!("::_complete_user_event (source: {:?}, target: {:?}):", src_event_ptr, user_data);
 
     if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
         let tar_event_ptr = user_data as *mut _ as cl_event;
@@ -77,12 +80,14 @@ pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i3
         unsafe {
             let user_event = UserEvent::from_raw(tar_event_ptr);
 
-            println!("    Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
+            #[cfg(feature = "event_debug_print")]
+            println!("  - Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
 
             ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
         }
 
-        println!("    Event status has been set to 'CommandExecutionStatus::Complete' for event: {:?}", tar_event_ptr);
+        #[cfg(feature = "event_debug_print")]
+        println!("  - Event status has been set to 'CommandExecutionStatus::Complete' for event: {:?}", tar_event_ptr);
     } else {
         match CommandExecutionStatus::from_i32(event_status) {
             Some(status_enum) => panic!("ocl_core::_complete_event: User data is null or event \
@@ -1855,6 +1860,7 @@ pub fn set_user_event_status<'e,E: ClEventRef<'e>>(event: &'e E,
             execution_status: CommandExecutionStatus) -> OclResult<()>
 {
     unsafe {
+        #[cfg(feature = "event_debug_print")]
         println!("::set_user_event_status: Setting user event status for event: {:?}", *event.as_ptr_ref());
 
         eval_errcode(ffi::clSetUserEventStatus(*event.as_ptr_ref(), execution_status as cl_int),
@@ -2862,51 +2868,49 @@ pub fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     //     #[allow(unused_imports)] use std::time::Duration;
     // }
 
-    // #[cfg(feature="kernel_debug_print")]
-    // println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
+    #[cfg(feature="kernel_debug_print")]
+    println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
 
-    // #[cfg(feature="kernel_debug_print")]
-    // println!("Resolving global work offset: {:?}...", global_work_offset);
+    #[cfg(feature="kernel_debug_print")]
+    println!("Resolving global work offset: {:?}...", global_work_offset);
 
     let gwo = resolve_work_dims(global_work_offset.as_ref());
 
-    // #[cfg(feature="kernel_debug_print")]
-    // println!("Assigning global work size: {:?}...", global_work_dims);
+    #[cfg(feature="kernel_debug_print")]
+    println!("Assigning global work size: {:?}...", global_work_dims);
 
     let gws = global_work_dims as *const size_t;
 
-    // #[cfg(feature="kernel_debug_print")]
-    // println!("Resolving local work size: {:?}...", local_work_dims);
+    #[cfg(feature="kernel_debug_print")]
+    println!("Resolving local work size: {:?}...", local_work_dims);
 
     let lws = resolve_work_dims(local_work_dims.as_ref());
 
-    // #[cfg(feature="kernel_debug_print")]
-    // println!("Preparing to print all details...");
+    #[cfg(feature="kernel_debug_print")]
+    println!("Preparing to print all details...");
 
-    // #[cfg(feature="kernel_debug_print")]
-    if cfg!(feature="kernel_debug_print") {
-        print!("core::enqueue_kernel('{}': \
-            work_dims: {}, \
-            gwo: {:?}, \
-            gws: {:?}, \
-            lws: {:?}, \
-            wait_list_len: {}, \
-            wait_list_ptr: {:?}, \
-            new_event_ptr: {:?}) \
-            ",
-            get_kernel_name(&kernel),
-            work_dims,
-            global_work_offset,
-            global_work_dims,
-            local_work_dims,
-            wait_list_len,
-            wait_list_ptr,
-            new_event_ptr,
-        );
-    }
+    #[cfg(feature="kernel_debug_print")]
+    print!("core::enqueue_kernel('{}': \
+        work_dims: {}, \
+        gwo: {:?}, \
+        gws: {:?}, \
+        lws: {:?}, \
+        wait_list_len: {}, \
+        wait_list_ptr: {:?}, \
+        new_event_ptr: {:?}) \
+        ",
+        get_kernel_name(&kernel),
+        work_dims,
+        global_work_offset,
+        global_work_dims,
+        local_work_dims,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    );
 
     let errcode = unsafe { ffi::clEnqueueNDRangeKernel(
             command_queue.as_ptr(),
@@ -3208,7 +3212,7 @@ pub fn wait_for_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
 }
 
 /// Returns the status of `event`.
-pub fn get_event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<CommandExecutionStatus> {
+pub fn event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<CommandExecutionStatus> {
     let mut status_int: cl_int = 0;
 
     let errcode = unsafe {
@@ -3240,7 +3244,7 @@ pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<bool>
         )
     };
 
-    // [REMOVE ME]:
+    #[cfg(feature = "event_debug_print")]
     unsafe {
         println!("Event Status: {:?} (ptr: {:?})",
             CommandExecutionStatus::from_i32(status_int).unwrap(),

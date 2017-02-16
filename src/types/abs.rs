@@ -1263,8 +1263,6 @@ impl Deref for UserEvent {
 
 impl Clone for UserEvent {
     fn clone(&self) -> UserEvent {
-        println!("####################################### UserEvent::clone: called.");
-
         unsafe { functions::retain_event(self).expect("core::Event::clone"); }
         UserEvent(self.0)
     }
@@ -1485,7 +1483,7 @@ impl EventList {
         let mut cmpltd_events: Vec<usize> = Vec::with_capacity(EL_CLEAR_MAX_LEN);
 
         for (idx, &event_ptr) in self.event_ptrs.iter().enumerate() {
-            let status = try!(functions::get_event_status(&EventRefWrapper(event_ptr)));
+            let status = try!(functions::event_status(&EventRefWrapper(event_ptr)));
 
             if status == CommandExecutionStatus::Complete {
                 cmpltd_events.push(idx)
