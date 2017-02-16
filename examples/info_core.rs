@@ -14,7 +14,7 @@ use core::{util, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInf
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
     EventInfo, ProfilingInfo, ContextProperties, PlatformId, DeviceId, ImageFormat,
     ImageDescriptor, MemObjectType, AddressingMode, FilterMode, Event, ContextInfoResult,
-    KernelArg, EventList};
+    KernelArg};
 
 const DIMS: [usize; 3] = [1024, 64, 16];
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -62,7 +62,7 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     core::set_kernel_arg(&kernel, 0, KernelArg::Scalar(10.0f32)).unwrap();
     core::set_kernel_arg::<usize>(&kernel, 1, KernelArg::Mem(&buffer)).unwrap(); // usize or anything :)
 
-    core::enqueue_kernel(&queue, &kernel, DIMS.len() as u32, None, &DIMS, None, None::<Event>, None::<&mut EventList>).unwrap();
+    core::enqueue_kernel(&queue, &kernel, DIMS.len() as u32, None, &DIMS, None, None::<Event>, None::<&mut Event>).unwrap();
     core::finish(&queue).unwrap();
 
     let mut event = Event::null();

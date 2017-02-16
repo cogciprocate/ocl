@@ -5,7 +5,7 @@
 extern crate ocl_core as core;
 
 use std::ffi::CString;
-use core::{KernelArg, ContextProperties, EventList};
+use core::{KernelArg, ContextProperties, Event};
 
 #[allow(dead_code, unused_variables, unused_mut)]
 fn main() {
@@ -42,11 +42,11 @@ fn main() {
 
     // (4) Run the kernel:
     core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-        None, None::<EventList>, None::<&mut EventList>).unwrap();
+        None, None::<Event>, None::<&mut Event>).unwrap();
 
     // (5) Read results from the device into a vector:
     unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,
-        None::<EventList>, None::<&mut EventList>).unwrap() };
+        None::<Event>, None::<&mut Event>).unwrap() };
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
