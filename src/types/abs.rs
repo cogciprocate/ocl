@@ -584,15 +584,15 @@ unsafe impl Sync for Mem {}
 unsafe impl Send for Mem {}
 
 #[repr(C)]
-pub struct MappedMem<T: OclPrm>(*mut T);
+pub struct MemMap<T: OclPrm>(*mut T);
 
-impl<T: OclPrm> MappedMem<T> {
+impl<T: OclPrm> MemMap<T> {
     #[inline(always)]
     /// Only call this when passing **the original** newly created pointer
     /// directly from `clCreate...`. Do not use this to clone or copy.
-    pub unsafe fn from_raw(ptr: *mut T) -> MappedMem<T> {
-        assert!(!ptr.is_null(), "MappedMem::from_raw: Null pointer passed.");
-        MappedMem(ptr)
+    pub unsafe fn from_raw(ptr: *mut T) -> MemMap<T> {
+        assert!(!ptr.is_null(), "MemMap::from_raw: Null pointer passed.");
+        MemMap(ptr)
     }
 
     #[inline(always)]
@@ -616,18 +616,18 @@ impl<T: OclPrm> MappedMem<T> {
     }
 }
 
-impl<T> AsMem<T> for MappedMem<T> where T: OclPrm {
+impl<T> AsMem<T> for MemMap<T> where T: OclPrm {
     #[inline(always)]
     fn as_mem(&self) -> &Mem {
         unsafe { &*(self as *const _ as *const Mem) }
     }
 }
 
-unsafe impl<T: OclPrm> MemCmdRw for MappedMem<T> {}
-unsafe impl<'a, T: OclPrm> MemCmdRw for &'a MappedMem<T> {}
-unsafe impl<'a, T: OclPrm> MemCmdRw for &'a mut MappedMem<T> {}
-unsafe impl<T: OclPrm> Send for MappedMem<T> {}
-unsafe impl<T: OclPrm> Sync for MappedMem<T> {}
+unsafe impl<T: OclPrm> MemCmdRw for MemMap<T> {}
+unsafe impl<'a, T: OclPrm> MemCmdRw for &'a MemMap<T> {}
+unsafe impl<'a, T: OclPrm> MemCmdRw for &'a mut MemMap<T> {}
+unsafe impl<T: OclPrm> Send for MemMap<T> {}
+unsafe impl<T: OclPrm> Sync for MemMap<T> {}
 
 
 

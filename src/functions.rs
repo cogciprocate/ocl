@@ -42,7 +42,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MappedMem, AsMem, MemCmdRw, MemCmdAll, Event};
+    CommandQueueProperties, MemMap, AsMem, MemCmdRw, MemCmdAll, Event};
 
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
@@ -1967,7 +1967,7 @@ pub fn finish(command_queue: &CommandQueue) -> OclResult<()> {
 /// an event list as `new_event`).
 ///
 ///
-/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
+/// [`core::EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer<T, M, En, Ewl>(
         command_queue: &CommandQueue,
@@ -2013,7 +2013,7 @@ pub unsafe fn enqueue_read_buffer<T, M, En, Ewl>(
 /// [SDK - clEnqueueReadBufferRect](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueReadBufferRect.html)
 ///
 ///
-/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
+/// [`core::EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
 pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
             command_queue: &CommandQueue,
@@ -2347,7 +2347,7 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
 /// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
 /// an event list as `new_event`).
 ///
-/// [`core::EventList::get_clone`]: /ocl/ocl/core/struct.EventList.html#method.last_clone
+/// [`core::EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
 // pub unsafe fn enqueue_read_image<T>(
 pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
@@ -2619,8 +2619,8 @@ unsafe fn _enqueue_map_buffer<T, M>(
 //         len: usize,
 //         wait_list: Option<Ewl>,
 //         new_event: En,
-//         // ) -> OclResult<FutureMappedMem<T>>
-//         ) -> OclResult<MappedMem<T>>
+//         // ) -> OclResult<FutureMemMap<T>>
+//         ) -> OclResult<MemMap<T>>
 //         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 // {
 //     let (wait_list_len, wait_list_ptr, new_event_ptr) =
@@ -2647,10 +2647,10 @@ unsafe fn _enqueue_map_buffer<T, M>(
 //     //     Event::from_raw(new_map_event_ptr)
 //     // };
 
-//     // mapped_ptr.map(|ptr| FutureMappedMem::new(ptr, len, new_map_event_core, buffer.as_mem().clone(),
+//     // mapped_ptr.map(|ptr| FutureMemMap::new(ptr, len, new_map_event_core, buffer.as_mem().clone(),
 //     //     command_queue.clone()))
 
-//     mapped_ptr_res.map(|ptr| MappedMem::from_raw(ptr))
+//     mapped_ptr_res.map(|ptr| MemMap::from_raw(ptr))
 // }
 
 /// Enqueues a command to map a region of the buffer object given
@@ -2670,7 +2670,7 @@ unsafe fn _enqueue_map_buffer<T, M>(
 ///
 /// TODO: Return a new wrapped type representing the newly mapped memory.
 ///
-/// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
+/// [`EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
 ///
 pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
@@ -2682,7 +2682,7 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
             len: usize,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
-        ) -> OclResult<MappedMem<T>>
+        ) -> OclResult<MemMap<T>>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
@@ -2691,12 +2691,12 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
     let mapped_ptr_res = _enqueue_map_buffer(command_queue, buffer.as_mem(), block, map_flags, offset, len,
         wait_list_len, wait_list_ptr, new_event_ptr);
 
-    // mapped_ptr_res.map(|ptr| MappedMem::new(ptr as *mut T, len, None, buffer.as_mem().clone(),
+    // mapped_ptr_res.map(|ptr| MemMap::new(ptr as *mut T, len, None, buffer.as_mem().clone(),
     //     command_queue.clone()))
 
     // eval_errcode(errcode, mapped_ptr, "clEnqueueMapImage", "")
-    //     .map(|ptr| MappedMem::from_raw(ptr as *mut _ as *mut T))
-    mapped_ptr_res.map(|ptr| MappedMem::from_raw(ptr))
+    //     .map(|ptr| MemMap::from_raw(ptr as *mut _ as *mut T))
+    mapped_ptr_res.map(|ptr| MemMap::from_raw(ptr))
 }
 
 /// [UNTESTED]
@@ -2716,7 +2716,7 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
 ///
 /// TODO: Return a new wrapped type representing the newly mapped memory.
 ///
-/// [`EventList::get_clone`]: /ocl/ocl/struct.EventList.html#method.last_clone
+/// [`EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
 ///
 pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
@@ -2730,7 +2730,7 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
             slc_pitch: usize,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
-        ) -> OclResult<MappedMem<T>>
+        ) -> OclResult<MemMap<T>>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     let row_pitch_bytes = row_pitch * mem::size_of::<T>();
@@ -2765,11 +2765,11 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
     //     Event::from_raw_create_ptr(map_event)
     // };
 
-    // eval_errcode(errcode, MappedMem::new(mapped_ptr as *mut T, slc_pitch * region[2],
+    // eval_errcode(errcode, MemMap::new(mapped_ptr as *mut T, slc_pitch * region[2],
     //     None, image.as_mem().clone(), command_queue.clone()), "clEnqueueMapImage", "")
 
     eval_errcode(errcode, mapped_ptr, "clEnqueueMapImage", "")
-        .map(|ptr| MappedMem::from_raw(ptr as *mut _ as *mut T))
+        .map(|ptr| MemMap::from_raw(ptr as *mut _ as *mut T))
 }
 
 /// Enqueues a command to unmap a previously mapped region of a memory object.
@@ -2779,7 +2779,7 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
 pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             memobj: M,
-            mapped_mem: &MappedMem<T>,
+            mapped_mem: &MemMap<T>,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
@@ -2787,7 +2787,7 @@ pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
 {
 
     // if mapped_mem.is_unmapped() {
-    //     return Err("ocl_core::enqueue_unmap_mem_object: The 'MappedMem' object passed is already \
+    //     return Err("ocl_core::enqueue_unmap_mem_object: The 'MemMap' object passed is already \
     //         unmapped.".into());
     // }
 

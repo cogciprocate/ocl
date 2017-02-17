@@ -120,7 +120,7 @@ pub use self::error::{Error, Result};
 
 pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventRef, ClPlatformIdPtr,
     ClDeviceIdPtr, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem, Program,
-    Kernel, Event, Sampler, ClVersions, AsMem, MemCmdRw, MemCmdAll, MappedMem};
+    Kernel, Event, Sampler, ClVersions, AsMem, MemCmdRw, MemCmdAll, MemMap};
 
 pub use self::types::structs::{self, OpenclVersion, ContextProperties, ImageFormat,
     ImageDescriptor, BufferRegion, ContextPropertyValue};
