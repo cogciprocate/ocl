@@ -35,7 +35,7 @@ use rand::{Rng, XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use std::collections::{LinkedList, HashMap, BTreeSet};
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
-    Event, EventList, MappedMem};
+    Event, EventList, MemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 
@@ -494,7 +494,7 @@ impl Task{
     }
 
     /// Map some memory for reading or writing.
-    pub fn map<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &BufferPool<T>) -> MappedMem<T> {
+    pub fn map<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &BufferPool<T>) -> MemMap<T> {
         let (buffer_id, flags) = match self.cmd_graph.commands[cmd_idx].details {
             CommandDetails::Write { target } => (target, MapFlags::write_invalidate_region()),
             CommandDetails::Read { source } => (source, MapFlags::read()),
@@ -509,7 +509,7 @@ impl Task{
     }
 
     /// Unmap mapped memory.
-    pub fn unmap<T: OclPrm>(&mut self, mut data: MappedMem<T>, cmd_idx: usize, _: &BufferPool<T>) {
+    pub fn unmap<T: OclPrm>(&mut self, mut data: MemMap<T>, cmd_idx: usize, _: &BufferPool<T>) {
         // let buffer_id = match self.cmd_graph.commands[cmd_idx].details {
         //     CommandDetails::Write { target } => target,
         //     CommandDetails::Read { source } => source,

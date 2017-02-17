@@ -24,7 +24,7 @@ pub use self::queue::Queue;
 pub use self::kernel::{Kernel, KernelCmd};
 pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, SubBuffer};
 pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};
-pub use self::mapped_mem::{FutureMappedMem, MappedMem};
+pub use self::mapped_mem::{FutureMemMap, MemMap};
 pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};
 pub use self::event::{Event, EventList};

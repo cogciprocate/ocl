@@ -10,7 +10,7 @@ use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion,
     MapFlags, AsMem, MemCmdRw, MemCmdAll, Event as EventCore, ClNullEventPtr};
-use standard::{Queue, MemLen, SpatialDims, FutureMappedMem, MappedMem};
+use standard::{Queue, MemLen, SpatialDims, FutureMemMap, MemMap};
 #[cfg(feature = "experimental_async_rw")]
 use standard::{Event, _unpark_task, box_raw_void};
 
@@ -1010,7 +1010,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     ///
     /// For all other operation types use `::map` instead.
     ///
-    pub fn enq(mut self) -> OclResult<MappedMem<T>> {
+    pub fn enq(mut self) -> OclResult<MemMap<T>> {
         match self.cmd.kind {
             BufferCmdKind::Map => {
                 match self.cmd.shape {
@@ -1030,7 +1030,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
                             let unmap_event = None;
 
-                            Ok(MappedMem::new(mm_core, len, unmap_event, self.cmd.obj_core.clone(),
+                            Ok(MemMap::new(mm_core, len, unmap_event, self.cmd.obj_core.clone(),
                                 self.cmd.queue.core().clone()))
                         }
                     },
@@ -1052,7 +1052,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     ///
     /// For all other operation types use `::map` instead.
     ///
-    pub fn enq_async(mut self) -> OclResult<FutureMappedMem<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureMemMap<T>> {
         match self.cmd.kind {
             BufferCmdKind::Map => {
                 if let BufferCmdDataShape::Lin { offset } = self.shape {
@@ -1083,7 +1083,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                             *(self_enew.alloc_new()) = map_event.clone().into_raw();
                         }
 
-                        FutureMappedMem::new(mm_core, len, map_event, self.obj_core.clone(),
+                        FutureMemMap::new(mm_core, len, map_event, self.obj_core.clone(),
                             self.queue.core().clone())
 
                     };

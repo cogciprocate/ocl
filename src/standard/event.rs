@@ -23,6 +23,7 @@ use standard::{_unpark_task, box_raw_void};
 //     Empty,
 // }
 #[repr(C)]
+#[must_use]
 pub struct Event(EventCore);
 
 impl Event {
@@ -326,6 +327,10 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
 }
 
 /// Non-blocking, proper implementation.
+///
+/// [NOTE]: There is currently no check to ensure that only one callback is
+/// created (is this ok?).
+///
 #[cfg(not(feature = "disable_event_callbacks"))]
 impl Future for Event {
     type Item = ();

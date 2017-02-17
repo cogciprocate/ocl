@@ -30,7 +30,7 @@ use futures::{Future};
 use rand::{XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
-    Event, EventList, MappedMem, Result as OclResult};
+    Event, EventList, MemMap, Result as OclResult};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 use ocl::core::Event as EventCore;
@@ -456,7 +456,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                     Some(&mut map_event),
                 )?;
 
-                MappedMem::new(mm_core, source_buf.len(), None, source_buf.core().clone(),
+                MemMap::new(mm_core, source_buf.len(), None, source_buf.core().clone(),
                     source_buf.default_queue().core().clone())
             };
 
@@ -574,7 +574,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                 Some(&mut read_event),
             )?;
 
-            target_map = Some(MappedMem::new(mm_core, source_buf.len(), None,
+            target_map = Some(MemMap::new(mm_core, source_buf.len(), None,
                 source_buf.core().clone(), source_buf.default_queue().core().clone()));
         }
     } else {

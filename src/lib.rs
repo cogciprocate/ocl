@@ -59,13 +59,14 @@ pub extern crate ocl_core as core;
 
 #[cfg(test)] mod tests;
 mod standard;
+pub mod async;
 
-pub use core::ffi;
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, SubBuffer, Image,
-    Event, EventList, Sampler, SpatialDims, ProQue, MappedMem, FutureMappedMem};
+    Event, EventList, Sampler, SpatialDims, ProQue, MemMap, FutureMemMap};
+#[doc(no_inline)] pub use core::ffi;
+#[doc(no_inline)] pub use core::util;
 pub use core::error::{Error, Result};
-pub use core::util;
-
+// pub use self::async::{Error as AsyncError, Result as AsyncResult};
 #[doc(no_inline)]
 pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
 

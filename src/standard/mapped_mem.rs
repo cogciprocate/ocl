@@ -16,10 +16,10 @@ use futures::task::{self, Task, UnparkEvent, EventSet};
 
 use ffi::{cl_event, cl_mem};
 use core::{self, Error as OclError, Result as OclResult, Event as EventCore, OclPrm,
-    MappedMem as MappedMemCore, Mem, CommandQueue, CommandQueueInfo, CommandQueueInfoResult,
+    MemMap as MemMapCore, Mem, CommandQueue, CommandQueueInfo, CommandQueueInfoResult,
     CommandExecutionStatus, MemObjectType, ImageChannelOrder, ImageChannelDataType,
     ContextProperty, PlatformId, ClWaitListPtr, ClNullEventPtr};
-use standard::_unpark_task;
+use standard::{box_raw_void, _unpark_task};
 
 
 
@@ -45,9 +45,9 @@ use standard::_unpark_task;
 //     }
 // }
 
-
-pub struct FutureMappedMem<T: OclPrm> {
-    core: Option<MappedMemCore<T>>,
+#[must_use]
+pub struct FutureMemMap<T: OclPrm> {
+    core: Option<MemMapCore<T>>,
     len: usize,
     map_event: EventCore,
     unmap_target: Option<EventCore>,
@@ -57,11 +57,11 @@ pub struct FutureMappedMem<T: OclPrm> {
 
 }
 
-impl<T: OclPrm> FutureMappedMem<T> {
-    pub unsafe fn new(core: MappedMemCore<T>, len: usize, map_event: EventCore, buffer: Mem, queue: CommandQueue)
-            -> FutureMappedMem<T>
+impl<T: OclPrm> FutureMemMap<T> {
+    pub unsafe fn new(core: MemMapCore<T>, len: usize, map_event: EventCore, buffer: Mem, queue: CommandQueue)
+            -> FutureMemMap<T>
     {
-        FutureMappedMem {
+        FutureMemMap {
             core: Some(core),
             len: len,
             map_event: map_event,
@@ -91,11 +91,11 @@ impl<T: OclPrm> FutureMappedMem<T> {
                 Err(err) => Err(err)
             }
         } else {
-            Err("FutureMappedMem::create_unmap_target: No queue found!".into())
+            Err("FutureMemMap::create_unmap_target: No queue found!".into())
         }
     }
 
-    pub fn to_mapped_mem(&mut self) -> OclResult<MappedMem<T>> {
+    pub fn to_mapped_mem(&mut self) -> OclResult<MemMap<T>> {
         let joined = self.core.take().and_then(|core| {
             self.buffer.take().and_then(|buf| {
                 self.queue.take().and_then(|queue| {
@@ -106,10 +106,10 @@ impl<T: OclPrm> FutureMappedMem<T> {
 
         match joined {
             Some((core, buffer, queue)) => {
-                unsafe { Ok(MappedMem::new(core, self.len,
+                unsafe { Ok(MemMap::new(core, self.len,
                     self.unmap_target.take(), buffer, queue )) }
             },
-            _ => Err("FutureMappedMem::create_unmap_target: No queue and/or buffer found!".into()),
+            _ => Err("FutureMemMap::create_unmap_target: No queue and/or buffer found!".into()),
         }
     }
 
@@ -121,68 +121,62 @@ impl<T: OclPrm> FutureMappedMem<T> {
 }
 
 #[cfg(not(feature = "disable_event_callbacks"))]
-impl<T> Future for FutureMappedMem<T> where T: OclPrm + 'static {
-    type Item = MappedMem<T>;
+impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
+    type Item = MemMap<T>;
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        // println!("Polling FutureMappedMem...");
+        // println!("Polling FutureMemMap...");
 
         match self.map_event.is_complete() {
             Ok(true) => {
-                // if !self.callback_is_set {
-                //     // println!("Task completed on first poll.");
-                // } else {
-                //     // println!("Unsetting callback...");
-                //     // unsafe { self.map_event.set_callback(None, ptr::null_mut())?; }
-                //     // self.callback_is_set = false;
-                // }
-
-                return self.to_mapped_mem().map(|mm| Async::Ready(mm));
+                self.to_mapped_mem().map(|mm| Async::Ready(mm))
             }
             Ok(false) => {
                 if !self.callback_is_set {
-                    let task_box = Box::new(task::park());
-                    let task_ptr = Box::into_raw(task_box) as *mut _ as *mut c_void;
-                    // println!("Setting callback...");
-                    unsafe { self.map_event.set_callback(Some(_unpark_task), task_ptr)?; };
+                    unsafe {
+                        // println!("Setting callback...");
+                        self.map_event.set_callback(Some(_unpark_task),
+                            box_raw_void(task::park()))?;
+                    }
                     // println!("Task callback is set for event: {:?}.", self.map_event);
                     self.callback_is_set = true;
                 }
 
-                return Ok(Async::NotReady)
+                Ok(Async::NotReady)
             },
-            Err(err) => return Err(err),
+            Err(err) => Err(err),
         }
     }
 }
 
-/// Polling / blocking only implementation.
+/// Blocking implementation.
 #[cfg(feature = "disable_event_callbacks")]
-impl<T: OclPrm> Future for FutureMappedMem<T> {
-    type Item = MappedMem<T>;
+impl<T: OclPrm> Future for FutureMemMap<T> {
+    type Item = MemMap<T>;
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        // println!("Polling FutureMappedMem...");
+        // loop {
+        //     match self.map_event.is_complete() {
+        //         Ok(true) => return self.to_mapped_mem().map(|mm| Async::Ready(mm)),
+        //         Ok(false) => {
+        //             // task::park();
 
-        loop {
-            match self.map_event.is_complete() {
-                Ok(true) => return self.to_mapped_mem().map(|mm| Async::Ready(mm)),
-                Ok(false) => {
-                    // task::park();
+        //             // sleep somehow?
+        //             continue;
+        //         },
+        //         Err(err) => return Err(err),
+        //     };
+        // }
 
-                    // sleep somehow?
-                    continue;
-                },
-                Err(err) => return Err(err),
-            };
-        }
+        self.map_event.wait_for()?;
+        self.to_mapped_mem().map(|mm| Async::Ready(mm))
     }
 }
 
-unsafe impl<T: OclPrm> Send for FutureMappedMem<T> {}
-unsafe impl<T: OclPrm> Sync for FutureMappedMem<T> {}
+unsafe impl<T: OclPrm> Send for FutureMemMap<T> {}
+unsafe impl<T: OclPrm> Sync for FutureMemMap<T> {}
 
 
 
@@ -196,8 +190,8 @@ unsafe impl<T: OclPrm> Sync for FutureMappedMem<T> {}
 ///
 /// Still in a state of flux but is ~80% stable.
 ///
-pub struct MappedMem<T: OclPrm> {
-    core: MappedMemCore<T>,
+pub struct MemMap<T: OclPrm> {
+    core: MemMapCore<T>,
     len: usize,
     buffer: Mem,
     queue: CommandQueue,
@@ -206,11 +200,11 @@ pub struct MappedMem<T: OclPrm> {
     is_unmapped: bool,
 }
 
-impl<T> MappedMem<T>  where T: OclPrm {
-    pub unsafe fn new(core: MappedMemCore<T>, len: usize, unmap_target: Option<EventCore>,
-        buffer: Mem, queue: CommandQueue) -> MappedMem<T>
+impl<T> MemMap<T>  where T: OclPrm {
+    pub unsafe fn new(core: MemMapCore<T>, len: usize, unmap_target: Option<EventCore>,
+        buffer: Mem, queue: CommandQueue) -> MemMap<T>
     {
-        MappedMem {
+        MemMap {
             core: core,
             len: len,
             buffer: buffer,
@@ -237,7 +231,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
                 None
             };
 
-            // print!("MappedMem::enqueue_unmap: 'core::enqueue_unmap_mem_object' (PRE): \n\
+            // print!("MemMap::enqueue_unmap: 'core::enqueue_unmap_mem_object' (PRE): \n\
             //     {t}{t}Unmapping with: \n\
             //     {t}{t}- ewait_opt: {:?}, \n\
             //     {t}{t}- new_event_opt: {:?}",
@@ -310,7 +304,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
                 Ok(())
             } else {
                 panic!("- ::register_event_trigger: No unmap event target \
-                    has been configured with this MappedMem.");
+                    has been configured with this MemMap.");
             }
         } else {
             Err("Callback already set.".into())
@@ -331,7 +325,7 @@ impl<T> MappedMem<T>  where T: OclPrm {
     #[inline] fn as_ptr(&self) -> cl_mem { self.core.as_ptr() as cl_mem }
 }
 
-impl<T> Deref for MappedMem<T> where T: OclPrm {
+impl<T> Deref for MemMap<T> where T: OclPrm {
     type Target = [T];
 
     fn deref(&self) -> &[T] {
@@ -342,7 +336,7 @@ impl<T> Deref for MappedMem<T> where T: OclPrm {
     }
 }
 
-impl<T> DerefMut for MappedMem<T> where T: OclPrm {
+impl<T> DerefMut for MemMap<T> where T: OclPrm {
     fn deref_mut(&mut self) -> &mut [T] {
         assert!(!self.is_unmapped, "Mapped memory inaccessible. Check with '::is_accessable'
             before attempting to access.");
@@ -351,7 +345,7 @@ impl<T> DerefMut for MappedMem<T> where T: OclPrm {
     }
 }
 
-impl<T: OclPrm> Drop for MappedMem<T> {
+impl<T: OclPrm> Drop for MemMap<T> {
     #[cfg(not(feature = "disable_event_callbacks"))]
     fn drop(&mut self) {
         if !self.is_unmapped {
@@ -361,8 +355,8 @@ impl<T: OclPrm> Drop for MappedMem<T> {
 
     #[cfg(feature = "disable_event_callbacks")]
     fn drop(&mut self) {
-        assert!(self.is_unmapped, "ocl_core::MappedMem: '::drop' called while still mapped. \
-            Call '::unmap' before allowing this 'MappedMem' to fall out of scope.");
+        assert!(self.is_unmapped, "ocl_core::MemMap: '::drop' called while still mapped. \
+            Call '::unmap' before allowing this 'MemMap' to fall out of scope.");
     }
 }
 
@@ -458,7 +452,7 @@ impl<T: OclPrm> Drop for MappedMem<T> {
 //     let _ = event_ptr;
 
 //     if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
-//         // let future = user_data as *mut _ as *mut FutureMappedMem<T>;
+//         // let future = user_data as *mut _ as *mut FutureMemMap<T>;
 //         // let task_ptr = user_data as *mut _ as *mut Arc<Task>;
 //         let tx_ptr = user_data as *mut _ as *mut Sender<T>;
 
@@ -495,12 +489,12 @@ impl<T: OclPrm> Drop for MappedMem<T> {
 
 
 // #[cfg(not(feature = "disable_event_callbacks"))]
-// impl<T: OclPrm> Future for FutureMappedMem<T> {
-//     type Item = MappedMem<T>;
+// impl<T: OclPrm> Future for FutureMemMap<T> {
+//     type Item = MemMap<T>;
 //     type Error = OclError;
 
 //     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-//         println!("Polling FutureMappedMem...");
+//         println!("Polling FutureMemMap...");
 
 //         loop {
 //             match self.map_event.is_complete() {
@@ -528,7 +522,7 @@ impl<T: OclPrm> Drop for MappedMem<T> {
 //                         unsafe {
 //                             println!("Setting event callback...");
 
-//                             // // [`FutureMappedMem<T>`]:
+//                             // // [`FutureMemMap<T>`]:
 //                             // let self_ptr = self as *mut _ as *mut c_void;
 //                             // self.map_event.set_callback_with_ptr(Some(_unpark_task::<T>), self_ptr)?;
 
