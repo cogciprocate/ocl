@@ -24,6 +24,9 @@ fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
 
 
 
+
+
+
 /// The type of operation to be performed by a command.
 pub enum BufferCmdKind<'c, T> where T: 'c {
     Unspecified,
@@ -458,6 +461,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 }
 
 
+
 /// A buffer command builder used to enqueue reads.
 pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
@@ -578,7 +582,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     }
                 }
             },
-            _ => Err("ocl::BufferReadCmd::enq():".into()),
+            _ => Err("ocl::BufferReadCmd::enq(): Invalid command kind.".into()),
         }
     }
 
@@ -608,9 +612,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
                 Ok(self.data)
             },
-            _ => Err("ocl::BufferReadCmd::enq_async(): This operation type does not support \
-                asynchronous enqueuing. Use the '::enew' function to create an event with \
-                which to synchronize on. ".into()),
+            _ => Err("ocl::BufferReadCmd::enq_async(): Invalid command kind.".into()),
         }
     }
 }
@@ -624,6 +626,7 @@ impl<'c, 'd, T> Deref for BufferReadCmd<'c, 'd, T> where T: OclPrm {
 impl<'c, 'd, T> DerefMut for BufferReadCmd<'c, 'd, T> where T: OclPrm{
     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
 }
+
 
 
 /// A buffer command builder used to enqueue writes.
@@ -741,7 +744,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     }
                 }
             },
-            _ => unimplemented!(),
+            _ => Err("ocl::BufferWriteCmd::enq(): Invalid command kind.".into()),
         }
     }
 
@@ -766,7 +769,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     }
                 }
             },
-            _ => unimplemented!(),
+            _ => Err("ocl::BufferWriteCmd::enq_async(): Invalid command kind.".into()),
         }
     }
 }
@@ -958,6 +961,7 @@ impl<'c, T> Deref for BufferMapCmd<'c, T> where T: OclPrm {
 impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm{
     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
 }
+
 
 
 /// A chunk of memory physically located on a device, such as a GPU.
