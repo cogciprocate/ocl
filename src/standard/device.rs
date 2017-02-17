@@ -270,8 +270,8 @@ impl Device {
     /// an `Option(``[ocl::core::Status]``)` which can be unwrapped then
     /// matched to determine the precise reason for failure.
     ///
-    /// [`.status()`]: /ocl_core/ocl_core/error/enum.Error.html#method.status
-    /// [`ocl::core::Status`]: /ocl_core/ocl_core/enum.Status.html
+    /// [`.status()`]: enum.Error.html#method.status
+    /// [`ocl::core::Status`]: enum.Status.html
     ///
     pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
         let list_core = core::get_device_ids(platform.as_core(), device_types, None)
@@ -283,7 +283,7 @@ impl Device {
     ///
     /// Equivalent to `::list(platform, None)`.
     ///
-    /// See [`::list`](/ocl/ocl/struct.Device.html#method.list) for other
+    /// See [`::list`](struct.Device.html#method.list) for other
     /// error information.
     ///
     pub fn list_all(platform: &Platform) -> OclResult<Vec<Device>> {
@@ -298,7 +298,7 @@ impl Device {
     ///
     /// All indices in `idxs` must be valid.
     ///
-    /// See [`::list`](/ocl/ocl/struct.Device.html#method.list) for other
+    /// See [`::list`](struct.Device.html#method.list) for other
     /// error information.
     ///
     pub fn list_select(platform: &Platform, device_types: Option<DeviceType>,
@@ -314,7 +314,7 @@ impl Device {
     ///
     /// ### Errors
     ///
-    /// See [`::list`](/ocl/ocl/struct.Device.html#method.list)
+    /// See [`::list`](struct.Device.html#method.list)
     ///
     pub fn list_select_wrap(platform: &Platform, device_types: Option<DeviceType>,
                 idxs: &[usize]) -> OclResult<Vec<Device>> {

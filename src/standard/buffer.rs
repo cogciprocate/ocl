@@ -3,14 +3,16 @@
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+#[cfg(feature = "experimental_async_rw")]
 use futures::{task, Future, Poll, Async};
 use ffi::cl_GLuint;
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion,
     MapFlags, AsMem, MemCmdRw, MemCmdAll, Event as EventCore, ClNullEventPtr};
-use standard::{Queue, MemLen, SpatialDims, FutureMappedMem, MappedMem, Event, _unpark_task,
-    box_raw_void};
+use standard::{Queue, MemLen, SpatialDims, FutureMappedMem, MappedMem};
+#[cfg(feature = "experimental_async_rw")]
+use standard::{Event, _unpark_task, box_raw_void};
 
 
 
@@ -26,6 +28,58 @@ fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
 }
 
 
+#[allow(dead_code)]
+#[cfg(feature = "experimental_async_rw")]
+pub struct ReadCompletion<'d, T> where T: 'd {
+    event: Event,
+    data: &'d mut [T],
+}
+
+#[allow(dead_code)]
+#[cfg(feature = "experimental_async_rw")]
+impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
+    pub fn new(event: Event, data: &'d mut [T]) -> ReadCompletion<'d, T> {
+        ReadCompletion {
+            event: event,
+            data: data,
+        }
+    }
+}
+
+/// Non-blocking, proper implementation.
+#[cfg(not(feature = "disable_event_callbacks"))]
+#[cfg(feature = "experimental_async_rw")]
+impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
+    type Item = ();
+    type Error = OclError;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        match self.event.is_complete() {
+            Ok(true) => {
+                Ok(Async::Ready(()))
+            }
+            Ok(false) => {
+                let task_ptr = box_raw_void(task::park());
+                unsafe { self.event.set_callback(Some(_unpark_task), task_ptr)?; };
+                Ok(Async::NotReady)
+            },
+            Err(err) => Err(err),
+        }
+    }
+}
+
+/// Blocking implementation (yuk).
+#[cfg(feature = "disable_event_callbacks")]
+#[cfg(feature = "experimental_async_rw")]
+impl<'d, T> Future for ReadCompletion<'d, T> {
+    type Item = &'d mut [T];
+    type Error = OclError;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.event.wait_for()?;
+        Ok(Async::Ready(()))
+    }
+}
 
 
 /// The type of operation to be performed by a command.
@@ -106,7 +160,7 @@ pub enum BufferCmdDataShape {
 pub struct BufferCmd<'c, T> where T: 'c {
     queue: &'c Queue,
     obj_core: &'c MemCore,
-    // block: bool,
+    block: bool,
     // lock_block: bool,
     kind: BufferCmdKind<'c, T>,
     shape: BufferCmdDataShape,
@@ -126,7 +180,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         BufferCmd {
             queue: queue,
             obj_core: obj_core,
-            // block: true,
+            block: true,
             // lock_block: false,
             kind: BufferCmdKind::Unspecified,
             shape: BufferCmdDataShape::Lin { offset: 0 },
@@ -170,11 +224,12 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     ///
     /// The command operation kind must not have already been specified
     ///
-    #[deprecated(since="0.13.0", note="Use '::read' and '::enq_async' for asynchronous reads.")]
+    #[deprecated(since="0.13.0", note="Use '::read' with '::block(true)' for unsafe asynchronous reads.")]
     pub unsafe fn read_async<'d>(mut self, dst_data: &'d mut [T]) -> BufferReadCmd<'c, 'd, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Read;
+        self.block = false;
         BufferReadCmd { cmd: self, data: dst_data }
     }
 
@@ -328,6 +383,32 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     //     self
     // }
 
+    /// Specifies whether or not to block the current thread until completion.
+    ///
+    /// Ignored if this is not a read or write operation.
+    ///
+    /// Default is `block = true`.
+    ///
+    /// ## Safety
+    ///
+    /// When performing non-blocking reads or writes, the caller must ensure
+    /// that the data being read from or written to is not accessed improperly
+    /// until the command completes. Use events (`Event::wait_for`) or the
+    /// command queue (`Queue::finish`) to synchronize.
+    ///
+    /// If possible, prefer instead to use [`::map`] with [`::enq_async`] for
+    /// optimal performance and data integrity.
+    ///
+    /// [`::map`]: struct.BufferMapCmd.html
+    /// [`::enq_async`]: struct.BufferMapCmd.html
+    //
+    // [FIXME]: Check/fix links.
+    //
+    pub unsafe fn block(mut self, block: bool) -> BufferCmd<'c, T> {
+        self.block = block;
+        self
+    }
+
     /// Sets the linear offset for an operation.
     ///
     /// ## Panics
@@ -462,56 +543,6 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 }
 
 
-pub struct ReadCompletion<'d, T> where T: 'd {
-    event: Event,
-    data: &'d mut [T],
-}
-
-
-impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
-    pub fn new(event: Event, data: &'d mut [T]) -> ReadCompletion<'d, T> {
-        ReadCompletion {
-            event: event,
-            data: data,
-        }
-    }
-}
-
-/// Non-blocking, proper implementation.
-#[cfg(not(feature = "disable_event_callbacks"))]
-impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
-    type Item = ();
-    type Error = OclError;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        match self.event.is_complete() {
-            Ok(true) => {
-                Ok(Async::Ready(()))
-            }
-            Ok(false) => {
-                let task_ptr = box_raw_void(task::park());
-                unsafe { self.event.set_callback(Some(_unpark_task), task_ptr)?; };
-                Ok(Async::NotReady)
-            },
-            Err(err) => Err(err),
-        }
-    }
-}
-
-/// Blocking implementation (yuk).
-#[cfg(feature = "disable_event_callbacks")]
-impl<'d, T> Future for ReadCompletion<'d, T> {
-    type Item = &'d mut [T];
-    type Error = OclError;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        self.event.wait_for()?;
-        Ok(Async::Ready(()))
-    }
-}
-
-
-
 /// A buffer command builder used to enqueue reads.
 pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
@@ -522,6 +553,46 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferReadCmd<'c, 'd, T> {
         self.queue = queue;
+        self
+    }
+
+    // #[deprecated(since="0.13.0", note="Use ::enq_async for non-blocking reads.")]
+    // pub fn block(self, _: bool) -> BufferReadCmd<'c, 'd, T> {
+    //     panic!("ocl::Buffer::cmd...block(): This method no longer has any effect and will soon be
+    //         removed. Use '::enq' for a blocking read and '::enq_async' for non-blocking.");
+
+    //     // if !block && self.lock_block {
+    //     //     panic!("ocl::BufferReadCmd::block(): Blocking for this command has been disabled by \
+    //     //         the '::read' method. For non-blocking reads use '::read_async'.");
+    //     // }
+
+    //     // self.block = block;
+    //     // self
+    // }
+
+    /// Specifies whether or not to block the current thread until completion.
+    ///
+    /// Ignored if this is not a read or write operation.
+    ///
+    /// Default is `block = true`.
+    ///
+    /// ## Safety
+    ///
+    /// When performing non-blocking reads or writes, the caller must ensure
+    /// that the data being read from or written to is not accessed improperly
+    /// until the command completes. Use events (`Event::wait_for`) or the
+    /// command queue (`Queue::finish`) to synchronize.
+    ///
+    /// If possible, prefer instead to use [`::map`] with [`::enq_async`] for
+    /// optimal performance and data integrity.
+    ///
+    /// [`::map`]: struct.BufferMapCmd.html
+    /// [`::enq_async`]: struct.BufferMapCmd.html
+    //
+    // [FIXME]: Check/fix links.
+    //
+    pub unsafe fn block(mut self, block: bool) -> BufferReadCmd<'c, 'd, T> {
+        self.block = block;
         self
     }
 
@@ -554,20 +625,6 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             dst_row_pitch: dst_row_pitch, dst_slc_pitch: dst_slc_pitch };
 
         self
-    }
-
-    #[deprecated(since="0.13.0", note="Use ::enq_async for non-blocking reads.")]
-    pub fn block(self, _: bool) -> BufferReadCmd<'c, 'd, T> {
-        panic!("ocl::Buffer::cmd...block(): This method no longer has any effect and will soon be
-            removed. Use '::enq' for a blocking read and '::enq_async' for non-blocking.");
-
-        // if !block && self.lock_block {
-        //     panic!("ocl::BufferReadCmd::block(): Blocking for this command has been disabled by \
-        //         the '::read' method. For non-blocking reads use '::read_async'.");
-        // }
-
-        // self.block = block;
-        // self
     }
 
     /// Specifies a list of events to wait on before the command will run.
@@ -616,7 +673,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.cmd.mem_len, self.data.len(), offset));
 
-                        unsafe { core::enqueue_read_buffer(self.cmd.queue, self.cmd.obj_core, true,
+                        unsafe { core::enqueue_read_buffer(self.cmd.queue, self.cmd.obj_core, self.block,
                             offset, self.data, self.cmd.ewait, self.cmd.enew) }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
@@ -626,7 +683,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         // try!(Ok(()));
 
                         unsafe { core::enqueue_read_buffer_rect(self.cmd.queue, self.cmd.obj_core,
-                            true, src_origin, dst_origin, region, src_row_pitch,
+                            self.block, src_origin, dst_origin, region, src_row_pitch,
                             src_slc_pitch, dst_row_pitch, dst_slc_pitch, self.data,
                             self.cmd.ewait, self.cmd.enew) }
                     }
@@ -638,7 +695,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
     /// Enqueues this command asynchronously.
     ///
-    pub fn enq_async(mut self) -> OclResult<ReadCompletion<'d, T>> {
+    #[allow(unused_unsafe)]
+    #[cfg(feature = "experimental_async_rw")]
+    pub unsafe fn enq_unsafely(mut self) -> OclResult<ReadCompletion<'d, T>> {
         match self.cmd.kind {
             BufferCmdKind::Read => {
                 // let data = unsafe { std::mem::replace(data, std::mem::uninitialized()) };
@@ -702,6 +761,45 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
         self
     }
 
+    // #[deprecated(since="0.13.0", note="Use ::enq_async for non-blocking writes.")]
+    // pub fn block(self, _: bool) -> BufferWriteCmd<'c, 'd, T> {
+    //     panic!("ocl::Buffer::cmd...block(): This method no longer has any effect and will soon be
+    //         removed. Use '::enq' for a blocking write and '::enq_async' for non-blocking.");
+
+    //     // if !block && self.lock_block {
+    //     //     panic!("ocl::BufferWriteCmd::block(): Blocking for this command has been disabled by \
+    //     //         the '::read' method. For non-blocking reads use '::read_async'.");
+    //     // }
+    //     // self.block = block;
+    //     // self
+    // }
+
+    /// Specifies whether or not to block the current thread until completion.
+    ///
+    /// Ignored if this is not a read or write operation.
+    ///
+    /// Default is `block = true`.
+    ///
+    /// ## Safety
+    ///
+    /// When performing non-blocking reads or writes, the caller must ensure
+    /// that the data being read from or written to is not accessed improperly
+    /// until the command completes. Use events (`Event::wait_for`) or the
+    /// command queue (`Queue::finish`) to synchronize.
+    ///
+    /// If possible, prefer instead to use [`::map`] with [`::enq_async`] for
+    /// optimal performance and data integrity.
+    ///
+    /// [`::map`]: struct.BufferMapCmd.html
+    /// [`::enq_async`]: struct.BufferMapCmd.html
+    //
+    // [FIXME]: Check/fix links.
+    //
+    pub unsafe fn block(mut self, block: bool) -> BufferWriteCmd<'c, 'd, T> {
+        self.block = block;
+        self
+    }
+
     /// Sets the linear offset for an operation.
     ///
     /// ## Panics
@@ -731,19 +829,6 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             dst_row_pitch: dst_row_pitch, dst_slc_pitch: dst_slc_pitch };
 
         self
-    }
-
-    #[deprecated(since="0.13.0", note="Use ::enq_async for non-blocking writes.")]
-    pub fn block(self, _: bool) -> BufferWriteCmd<'c, 'd, T> {
-        panic!("ocl::Buffer::cmd...block(): This method no longer has any effect and will soon be
-            removed. Use '::enq' for a blocking write and '::enq_async' for non-blocking.");
-
-        // if !block && self.lock_block {
-        //     panic!("ocl::BufferWriteCmd::block(): Blocking for this command has been disabled by \
-        //         the '::read' method. For non-blocking reads use '::read_async'.");
-        // }
-        // self.block = block;
-        // self
     }
 
     /// Specifies a list of events to wait on before the command will run.
@@ -791,14 +876,14 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.cmd.mem_len, self.data.len(), offset));
 
-                        core::enqueue_write_buffer(self.cmd.queue, self.cmd.obj_core, true,
+                        core::enqueue_write_buffer(self.cmd.queue, self.cmd.obj_core, self.block,
                             offset, self.data, self.cmd.ewait, self.cmd.enew)
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
                             dst_row_pitch, dst_slc_pitch } =>
                     {
                         core::enqueue_write_buffer_rect(self.cmd.queue, self.cmd.obj_core,
-                            true, src_origin, dst_origin, region, src_row_pitch,
+                            self.block, src_origin, dst_origin, region, src_row_pitch,
                             src_slc_pitch, dst_row_pitch, dst_slc_pitch, self.data,
                             self.cmd.ewait, self.cmd.enew)
                     }
@@ -809,7 +894,9 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     }
 
     /// Enqueues this command.
-    pub fn enq_async(self) -> OclResult<()> {
+    #[allow(unused_unsafe)]
+    #[cfg(feature = "experimental_async_rw")]
+    pub fn enq_unsafely(self) -> OclResult<()> {
         match self.cmd.kind {
             BufferCmdKind::Write => {
                 match self.cmd.shape {
@@ -963,9 +1050,6 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// For all other operation types use `::map` instead.
     ///
     pub fn enq_async(mut self) -> OclResult<FutureMappedMem<T>> {
-        // if self.block { return Err("BufferMapCmd::enq_async: \
-        //     Can not be used with '.block(true)'.".into()) };
-
         match self.cmd.kind {
             BufferCmdKind::Map => {
                 if let BufferCmdDataShape::Lin { offset } = self.shape {
@@ -1084,7 +1168,7 @@ impl<T: OclPrm> Buffer<T> {
     /// Don't forget to `.cmd().gl_acquire().enq()` before using it and
     /// `.cmd().gl_release().enq()` after.
     ///
-    /// See the [`BufferCmd` docs](/ocl/ocl/build/struct.BufferCmd.html)
+    /// See the [`BufferCmd` docs](struct.BufferCmd.html)
     /// for more info.
     ///
     pub fn from_gl_buffer<D: MemLen>(queue: Queue, flags_opt: Option<MemFlags>, dims: D,

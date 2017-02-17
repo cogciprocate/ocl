@@ -27,8 +27,11 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 # `Async::NotReady` to its executor and will be a less performant solution.
 # Use only if your platform has issues with event callbacks (old/non-compliant
 # hardware).
-# 
 disable_event_callbacks = []
+
+# Allows use of unstable experimental types and functions for to reading from
+# and writing to buffers.
+experimental_async_rw = []
 
 
 default = ["opencl_version_1_1", "opencl_version_1_2"]
