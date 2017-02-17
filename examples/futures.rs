@@ -23,8 +23,8 @@ use rand::{Rng, XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 // use std::collections::{LinkedList, HashMap, BTreeSet};
 use ocl::{Platform, Device, Context, Queue, Program, /*Buffer,*/ Kernel, /*SubBuffer,*/ OclPrm,
-    Event, EventList, MappedMem, FutureMappedMem};
-// use ocl::core::{FutureMappedMem, MappedMem};
+    Event, EventList, MemMap, FutureMemMap};
+// use ocl::core::{FutureMemMap, MemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 
@@ -117,7 +117,7 @@ impl Task{
 
     /// Map some memory for reading or writing.
     pub fn map<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &BufferPool<T>,
-            thread_pool: &CpuPool) -> FutureMappedMem<T>
+            thread_pool: &CpuPool) -> FutureMemMap<T>
     {
         let (buffer_id, flags) = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Write { target } => (target, MapFlags::write_invalidate_region()),
@@ -133,7 +133,7 @@ impl Task{
     }
 
     /// Unmap mapped memory.
-    pub fn unmap<T: OclPrm>(&mut self, data: &mut MappedMem<T>, cmd_idx: usize,
+    pub fn unmap<T: OclPrm>(&mut self, data: &mut MemMap<T>, cmd_idx: usize,
             buf_pool: &BufferPool<T>, thread_pool: &CpuPool)
     {
         let buffer_id = match *self.cmd_graph.commands()[cmd_idx].details() {
@@ -432,7 +432,7 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
 
 // fn enqueue_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, thread_pool: &CpuPool) {
 //     // (0) Write a bunch of 50's:
-//     let future_data: FutureMappedMem<ClFloat4> = task.map(0, buf_pool, thread_pool);
+//     let future_data: FutureMemMap<ClFloat4> = task.map(0, buf_pool, thread_pool);
 
 //     println!("Awaiting Data...");
 
@@ -625,7 +625,7 @@ fn main() {
         // enqueue_simple_task(task, &buf_pool, &thread_pool);
 
         // (0) Write a bunch of 50's:
-        let future_data: FutureMappedMem<ClFloat4> = task.map(0, &buf_pool, &thread_pool);
+        let future_data: FutureMemMap<ClFloat4> = task.map(0, &buf_pool, &thread_pool);
 
         println!("Awaiting Data...");
 

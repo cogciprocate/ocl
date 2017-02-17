@@ -96,6 +96,15 @@ impl Into<String> for self::Error {
     }
 }
 
+impl Into<OclError> for self::Error {
+    fn into(self) -> OclError {
+        match self {
+            Error::Ocl(err) => err,
+            _ => format!("{}", self).into(),
+        }
+    }
+}
+
 impl std::fmt::Display for self::Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use std::error::Error;

@@ -62,10 +62,11 @@ mod standard;
 pub mod async;
 
 pub use standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, SubBuffer, Image,
-    Event, EventList, Sampler, SpatialDims, ProQue, MemMap, FutureMemMap};
+    Event, EventList, Sampler, SpatialDims, ProQue};
+pub use async::{MemMap, FutureMemMap};
+pub use core::error::{Error, Result};
 #[doc(no_inline)] pub use core::ffi;
 #[doc(no_inline)] pub use core::util;
-pub use core::error::{Error, Result};
 // pub use self::async::{Error as AsyncError, Result as AsyncResult};
 #[doc(no_inline)]
 pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};

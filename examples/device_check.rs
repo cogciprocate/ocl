@@ -30,7 +30,8 @@ use futures::{Future};
 use rand::{XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
-    Event, EventList, MemMap, Result as OclResult};
+    Event, EventList, MemMap};
+use ocl::async::Result as AsyncResult;
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 use ocl::core::Event as EventCore;
@@ -358,7 +359,7 @@ lazy_static! {
 
 
 pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<ClFloat4>)
-        -> OclResult<()>
+        -> AsyncResult<()>
 {
     let work_size_range = RandRange::new(cfg.misc.work_size_range.0, cfg.misc.work_size_range.1);
     let work_size = work_size_range.ind_sample(rng);
@@ -629,7 +630,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
 }
 
 
-fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> OclResult<()> {
+fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> AsyncResult<()> {
     if tar != src {
         let fail_reason = format!(colorify!(red_bold:
             "VALUE MISMATCH AT INDEX [{}]: {:?} != {:?}"),
@@ -642,7 +643,7 @@ fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> OclResult<()>
 }
 
 
-fn print_result(operation: &str, result: OclResult<()>) {
+fn print_result(operation: &str, result: AsyncResult<()>) {
     match result {
         Ok(_) => {
             printc!(white: "    {}  ", operation);

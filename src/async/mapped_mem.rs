@@ -1,26 +1,27 @@
 
-#![allow(dead_code, unused_imports)]
+// #![allow(dead_code, unused_imports)]
 
 use std::mem;
-use std::ptr;
-use std::slice;
+// use std::ptr;
+// use std::slice;
 use std::ops::{Deref, DerefMut};
-use std::thread::Thread;
-use std::sync::Arc;
-use libc::c_void;
+// use std::thread::Thread;
+// use std::sync::Arc;
+// use libc::c_void;
 
-use futures;
-use futures::{future, Future, Poll, Async};
-use futures::sync::oneshot::{self, Sender};
-use futures::task::{self, Task, UnparkEvent, EventSet};
+// use futures;
+use futures::{Future, Poll, Async};
+// use futures::sync::oneshot::{self, Sender};
+use futures::task::{self, /*Task, UnparkEvent, EventSet*/};
 
-use ffi::{cl_event, cl_mem};
-use core::{self, Error as OclError, Result as OclResult, Event as EventCore, OclPrm,
+// use ffi::{cl_event, cl_mem};
+use core::{self, Event as EventCore, OclPrm, ClWaitListPtr, ClNullEventPtr,
     MemMap as MemMapCore, Mem, CommandQueue, CommandQueueInfo, CommandQueueInfoResult,
-    CommandExecutionStatus, MemObjectType, ImageChannelOrder, ImageChannelDataType,
-    ContextProperty, PlatformId, ClWaitListPtr, ClNullEventPtr};
+    /*CommandExecutionStatus, MemObjectType, ImageChannelOrder, ImageChannelDataType,
+    ContextProperty, PlatformId,*/};
 use standard::{box_raw_void, _unpark_task};
-
+use ::{Error as OclError, Result as OclResult};
+use super::{Error as AsyncError, Result as AsyncResult};
 
 
 // pub struct EventListTrigger {
@@ -73,13 +74,13 @@ impl<T: OclPrm> FutureMemMap<T> {
     }
 
     #[cfg(not(feature = "disable_event_callbacks"))]
-    pub fn create_unmap_event(&mut self) -> OclResult<&mut EventCore> {
+    pub fn create_unmap_event(&mut self) -> AsyncResult<&mut EventCore> {
         if let Some(ref queue) = self.queue {
             let context = match core::get_command_queue_info(queue,
                     CommandQueueInfo::Context)
             {
                 CommandQueueInfoResult::Context(ctx) => ctx,
-                CommandQueueInfoResult::Error(err) => return Err(*err),
+                CommandQueueInfoResult::Error(err) => return Err((*err).into()),
                 _ => unreachable!(),
             };
 
@@ -88,14 +89,14 @@ impl<T: OclPrm> FutureMemMap<T> {
                     self.unmap_target = Some(uev);
                     Ok(self.unmap_target.as_mut().unwrap())
                 }
-                Err(err) => Err(err)
+                Err(err) => Err(err.into())
             }
         } else {
             Err("FutureMemMap::create_unmap_target: No queue found!".into())
         }
     }
 
-    pub fn to_mapped_mem(&mut self) -> OclResult<MemMap<T>> {
+    pub fn to_mapped_mem(&mut self) -> AsyncResult<MemMap<T>> {
         let joined = self.core.take().and_then(|core| {
             self.buffer.take().and_then(|buf| {
                 self.queue.take().and_then(|queue| {
@@ -123,7 +124,7 @@ impl<T: OclPrm> FutureMemMap<T> {
 #[cfg(not(feature = "disable_event_callbacks"))]
 impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
     type Item = MemMap<T>;
-    type Error = OclError;
+    type Error = AsyncError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // println!("Polling FutureMemMap...");
@@ -145,7 +146,7 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
 
                 Ok(Async::NotReady)
             },
-            Err(err) => Err(err),
+            Err(err) => Err(err.into()),
         }
     }
 }
@@ -154,7 +155,7 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
 #[cfg(feature = "disable_event_callbacks")]
 impl<T: OclPrm> Future for FutureMemMap<T> {
     type Item = MemMap<T>;
-    type Error = OclError;
+    type Error = AsyncError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // loop {
@@ -316,13 +317,14 @@ impl<T> MemMap<T>  where T: OclPrm {
     }
 
     // #[inline]
-    // pub fn is_accessible(&self) -> OclResult<bool> {
+    // pub fn is_accessible(&self) -> AsyncResult<bool> {
     //     // self.map_event.is_complete().map(|cmplt| cmplt && !self.is_unmapped)
     //     Ok(!self.is_unmapped)
     // }
 
     #[inline] pub fn is_unmapped(&self) -> bool { self.is_unmapped }
-    #[inline] fn as_ptr(&self) -> cl_mem { self.core.as_ptr() as cl_mem }
+    #[inline] pub fn as_ptr(&self) -> *const T { self.core.as_ptr() }
+    #[inline] pub fn as_mut_ptr(&mut self) -> *mut T { self.core.as_mut_ptr() }
 }
 
 impl<T> Deref for MemMap<T> where T: OclPrm {
@@ -425,7 +427,7 @@ impl<T: OclPrm> Drop for MemMap<T> {
 
 //     /// Enqueues this command.
 //     ///
-//     pub fn enq(self) -> OclResult<()> {
+//     pub fn enq(self) -> AsyncResult<()> {
 
 //     }
 // }
@@ -491,7 +493,7 @@ impl<T: OclPrm> Drop for MemMap<T> {
 // #[cfg(not(feature = "disable_event_callbacks"))]
 // impl<T: OclPrm> Future for FutureMemMap<T> {
 //     type Item = MemMap<T>;
-//     type Error = OclError;
+//     type Error = AsyncError;
 
 //     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
 //         println!("Polling FutureMemMap...");

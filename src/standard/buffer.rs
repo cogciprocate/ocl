@@ -6,11 +6,11 @@ use std::ops::{Deref, DerefMut};
 #[cfg(feature = "experimental_async_rw")]
 use futures::{task, Future, Poll, Async};
 use ffi::cl_GLuint;
-use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion,
     MapFlags, AsMem, MemCmdRw, MemCmdAll, Event as EventCore, ClNullEventPtr};
-use standard::{Queue, MemLen, SpatialDims, FutureMemMap, MemMap};
+use ::{Queue, SpatialDims, FutureMemMap, MemMap};
+use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, MemLen};
 #[cfg(feature = "experimental_async_rw")]
 use standard::{Event, _unpark_task, box_raw_void};
 
