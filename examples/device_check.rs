@@ -581,10 +581,11 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         //##################### !(cfg.MAP_READ) ###########################
         let mut tvec = vec![cfg.vals.zero; work_size as usize];
 
-        target_buf.cmd().read(&mut tvec)
+        unsafe { target_buf.cmd().read(&mut tvec)
             .ewait(&kern_event)
             .enew(&mut read_event)
-            .enq_async()?;
+            .block(true)
+            .enq()?; }
 
         target_vec = Some(tvec);
     };

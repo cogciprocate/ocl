@@ -85,6 +85,9 @@ impl<'d, T> Future for ReadCompletion<'d, T> {
 /// The type of operation to be performed by a command.
 pub enum BufferCmdKind<'c, T> where T: 'c {
     Unspecified,
+    // Read { data: &'c mut [T] },
+    // Write { data: &'c [T] },
+    // Map { flags: Option<MapFlags>, len: Option<usize> },
     Read,
     Write,
     Map,
