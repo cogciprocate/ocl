@@ -3,14 +3,14 @@
 use std;
 use std::ops::{Deref, DerefMut};
 // use std::convert::Into;
-use libc::c_void;
+// use libc::c_void;
 use futures::{task, Future, Poll, Async};
 use ffi::cl_event;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventRef, Context,
     CommandQueue as CommandQueueCore};
-use standard::_unpark_task;
+use standard::{_unpark_task, box_raw_void};
 
 /// An event representing a command or user created event.
 ///
@@ -337,8 +337,7 @@ impl Future for Event {
                 Ok(Async::Ready(()))
             }
             Ok(false) => {
-                let task_box = Box::new(task::park());
-                let task_ptr = Box::into_raw(task_box) as *mut _ as *mut c_void;
+                let task_ptr = box_raw_void(task::park());
                 unsafe { self.0.set_callback(Some(_unpark_task), task_ptr)?; };
                 Ok(Async::NotReady)
             },

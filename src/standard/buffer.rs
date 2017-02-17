@@ -3,12 +3,15 @@
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use futures::{task, Future, Poll, Async};
 use ffi::cl_GLuint;
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion,
     MapFlags, AsMem, MemCmdRw, MemCmdAll, Event as EventCore, ClNullEventPtr};
-use standard::{Queue, MemLen, SpatialDims, FutureMappedMem, MappedMem};
+use standard::{Queue, MemLen, SpatialDims, FutureMappedMem, MappedMem, Event, _unpark_task,
+    box_raw_void};
+
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -21,8 +24,6 @@ fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
         Ok(())
     }
 }
-
-
 
 
 
@@ -461,6 +462,55 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 }
 
 
+pub struct ReadCompletion<'d, T> where T: 'd {
+    event: Event,
+    data: &'d mut [T],
+}
+
+
+impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
+    pub fn new(event: Event, data: &'d mut [T]) -> ReadCompletion<'d, T> {
+        ReadCompletion {
+            event: event,
+            data: data,
+        }
+    }
+}
+
+/// Non-blocking, proper implementation.
+#[cfg(not(feature = "disable_event_callbacks"))]
+impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
+    type Item = ();
+    type Error = OclError;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        match self.event.is_complete() {
+            Ok(true) => {
+                Ok(Async::Ready(()))
+            }
+            Ok(false) => {
+                let task_ptr = box_raw_void(task::park());
+                unsafe { self.event.set_callback(Some(_unpark_task), task_ptr)?; };
+                Ok(Async::NotReady)
+            },
+            Err(err) => Err(err),
+        }
+    }
+}
+
+/// Blocking implementation (yuk).
+#[cfg(feature = "disable_event_callbacks")]
+impl<'d, T> Future for ReadCompletion<'d, T> {
+    type Item = &'d mut [T];
+    type Error = OclError;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.event.wait_for()?;
+        Ok(Async::Ready(()))
+    }
+}
+
+
 
 /// A buffer command builder used to enqueue reads.
 pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
@@ -588,17 +638,18 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
     /// Enqueues this command asynchronously.
     ///
-    pub fn enq_async(mut self) -> OclResult<&'d mut [T]> {
+    pub fn enq_async(mut self) -> OclResult<ReadCompletion<'d, T>> {
         match self.cmd.kind {
             BufferCmdKind::Read => {
                 // let data = unsafe { std::mem::replace(data, std::mem::uninitialized()) };
+                let mut read_event = EventCore::null();
 
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.cmd.mem_len, self.data.len(), offset));
 
                         unsafe { core::enqueue_read_buffer(self.cmd.queue, self.cmd.obj_core, false,
-                            offset, self.data, self.cmd.ewait, self.cmd.enew)?; }
+                            offset, self.data, self.cmd.ewait.take(), Some(&mut read_event))?; }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
                             dst_row_pitch, dst_slc_pitch } =>
@@ -606,11 +657,20 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         unsafe { core::enqueue_read_buffer_rect(self.cmd.queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch,
                             src_slc_pitch, dst_row_pitch, dst_slc_pitch, self.data,
-                            self.cmd.ewait, self.cmd.enew)?; }
+                            self.cmd.ewait.take(), Some(&mut read_event))?; }
                     }
                 }
 
-                Ok(self.data)
+                if let Some(ref mut self_enew) = self.enew.take() {
+                    // Should be equivalent to `.clone().into_raw()` [TODO]: test.
+                    // core::retain_event(&read_event)?;
+                    // *(self_enew.alloc_new()) = *(read_event.as_ptr_ref());
+                    // read_event/self_enew refcount: 2
+
+                    unsafe { *(self_enew.alloc_new()) = read_event.clone().into_raw(); }
+                }
+
+                Ok(ReadCompletion::new(Event::from(read_event), self.data))
             },
             _ => Err("ocl::BufferReadCmd::enq_async(): Invalid command kind.".into()),
         }
@@ -928,10 +988,12 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                         // If a 'new/null event' has been set, copy pointer
                         // into it and increase refcount (to 2).
                         if let Some(ref mut self_enew) = self.enew.take() {
-                            // Should be equivalent to `.clone().into_raw()` [TODO]: test.
-                            core::retain_event(&map_event)?;
-                            *(self_enew.alloc_new()) = *(map_event.as_ptr_ref());
-                            // map_event/self_enew refcount: 2
+                            // // Should be equivalent to `.clone().into_raw()` [TODO]: test.
+                            // core::retain_event(&map_event)?;
+                            // *(self_enew.alloc_new()) = *(map_event.as_ptr_ref());
+                            // // map_event/self_enew refcount: 2
+
+                            *(self_enew.alloc_new()) = map_event.clone().into_raw();
                         }
 
                         FutureMappedMem::new(mm_core, len, map_event, self.obj_core.clone(),
