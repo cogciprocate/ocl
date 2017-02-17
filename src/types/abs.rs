@@ -894,6 +894,8 @@ impl Event {
     /// is `::Complete`. Everything else is functionally equivalent and is
     /// useful only for debugging or profiling purposes (this may change).
     ///
+    /// `::set_complete` is probably what you want.
+    ///
     #[inline]
     pub fn set_status(&self, status: CommandExecutionStatus) -> OclResult<()> {
         functions::set_user_event_status(self, status)
