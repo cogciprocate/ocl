@@ -30,8 +30,8 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 # 
 disable_event_callbacks = []
 
-default = ["opencl_version_1_1", "opencl_version_1_2"]
 
+default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 # ocl-core = "0.3"
