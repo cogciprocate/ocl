@@ -21,7 +21,13 @@ opencl_version_1_2 = ["ocl-core/opencl_version_1_2"]
 opencl_version_2_0 = ["ocl-core/opencl_version_2_0"]
 opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 
-# Use polling exclusively instead of OpenCL callbacks for task unparking.
+# Use blocking instead of OpenCL callbacks for task unparking.
+#
+# This will cause each task to block its thread instead of returning
+# `Async::NotReady` to its executor and will be a less performant solution.
+# Use only if your platform has issues with event callbacks (old/non-compliant
+# hardware).
+# 
 disable_event_callbacks = []
 
 default = ["opencl_version_1_1", "opencl_version_1_2"]

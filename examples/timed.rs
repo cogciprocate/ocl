@@ -171,7 +171,7 @@ fn main() {
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         kern.cmd().enew(&mut kern_events).enq().unwrap();
-        unsafe { buffer_result.cmd().read_async(&mut vec_result).enew(&mut buf_events).enq().unwrap() }
+        buffer_result.cmd().read(&mut vec_result).enew(&mut buf_events).enq_async().unwrap();
     }
 
     print_elapsed("queue unfinished", kern_buf_start);

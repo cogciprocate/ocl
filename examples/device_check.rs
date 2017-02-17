@@ -1,18 +1,19 @@
 //! Checks all platforms and devices for driver bugs.
 //!
-//! Originally designed to isolate a severe glitch on an Intel i5 2500k (Sandy
-//! Bridge) under the following circumstances:
+//! Originally designed to isolate a severe glitch on a particular device and
+//! grew into a general purpose device stress tester.
+//!
+//! Far from complete but will check for a few possible problems.
 //!
 //! - Buffer without `CL_ALLOC_HOST_PTR` [FIXME: list flags]
-//! -
+//! - [FIXME]: Finish this
+//!
+//!
+//! [FIXME]: List future plans here
 //!
 //!
 //!
 //!
-//!
-//!
-
-#![allow(dead_code, unused_variables, unused_imports, unused_mut, unreachable_code)]
 
 extern crate libc;
 extern crate futures;
@@ -21,22 +22,18 @@ extern crate tokio_timer;
 extern crate rand;
 extern crate chrono;
 extern crate ocl;
-#[macro_use] extern crate colorify;
 #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate colorify;
 
-
-use std::fmt::{Display, Debug};
-use std::ops::Add;
-use libc::c_void;
-use futures::{Future, Async};
-use futures_cpupool::{CpuPool, CpuFuture};
-use rand::{Rng, XorShiftRng};
+use std::fmt::{Debug};
+use futures::{Future};
+use rand::{XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
-use ocl::{util, Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
-    Event, EventList, FutureMappedMem, MappedMem, Result as OclResult};
-use ocl::flags::{self, MemFlags, MapFlags, CommandQueueProperties};
+use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
+    Event, EventList, MappedMem, Result as OclResult};
+use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
-use ocl::core::{self, Event as EventCore};
+use ocl::core::Event as EventCore;
 
 
 fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> String {
@@ -409,7 +406,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     };
 
     // Extra wait list for certain scenarios:
-    let mut wait_events = EventList::with_capacity(8);
+    let wait_events = EventList::with_capacity(8);
 
     //#########################################################################
     //############################## WRITE ####################################
@@ -421,7 +418,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         //###################### cfg.MAP_WRITE ############################
 
         let mut mapped_mem = if cfg.futures {
-            let mut future_mem = source_buf.cmd().map()
+            let future_mem = source_buf.cmd().map()
                 .flags(MapFlags::write_invalidate_region())
                 // .flags(MapFlags::write())
                 .ewait(&wait_events)
@@ -524,7 +521,6 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         assert!(cfg.alloc_source_vec);
 
         source_buf.write(&source_vec)
-            .block(!cfg.async_write)
             .enew(&mut write_event)
             .enq()?;
     }
@@ -585,11 +581,10 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         //##################### !(cfg.MAP_READ) ###########################
         let mut tvec = vec![cfg.vals.zero; work_size as usize];
 
-        unsafe { target_buf.cmd().read_async(&mut tvec)
-            .block(!cfg.async_read)
+        target_buf.cmd().read(&mut tvec)
             .ewait(&kern_event)
             .enew(&mut read_event)
-            .enq()? }
+            .enq_async()?;
 
         target_vec = Some(tvec);
     };
@@ -669,7 +664,6 @@ fn print_result(operation: &str, result: OclResult<()>) {
 
 
 pub fn main() {
-    let thread_pool = CpuPool::new_num_cpus();
     let mut rng = rand::weak_rng();
 
     for platform in Platform::list() {

@@ -81,28 +81,24 @@ impl Command {
     /// Returns a list of commands which both precede a command and which
     /// write to a block of memory which is read from by that command.
     pub fn preceding_writers(&self, cmds: &HashMap<usize, RwCmdIdxs>) -> BTreeSet<usize> {
-        let pre_writers = self.details.sources().iter().flat_map(|cmd_src_block|
-                cmds.get(cmd_src_block).unwrap().writers.iter().cloned()).collect();
-
-        pre_writers
+        self.details.sources().iter().flat_map(|cmd_src_block|
+            cmds.get(cmd_src_block).unwrap().writers.iter().cloned()).collect()
     }
 
     /// Returns a list of commands which both follow a command and which read
     /// from a block of memory which is written to by that command.
     pub fn following_readers(&self, cmds: &HashMap<usize, RwCmdIdxs>) -> BTreeSet<usize> {
-        let fol_readers = self.details.targets().iter().flat_map(|cmd_tar_block|
-                cmds.get(cmd_tar_block).unwrap().readers.iter().cloned()).collect();
-
-        fol_readers
+        self.details.targets().iter().flat_map(|cmd_tar_block|
+            cmds.get(cmd_tar_block).unwrap().readers.iter().cloned()).collect()
     }
 
     pub fn details(&self) -> &CommandDetails { &self.details }
 }
 
 
-/// A sequence dependency graph representing the temporal requirements of each
-/// asynchronous read, write, copy, and kernel (commands) for a particular
-/// task.
+/// A directional sequence dependency graph representing the temporal
+/// requirements of each asynchronous read, write, copy, and kernel (commands)
+/// for a particular task.
 ///
 /// Obviously this is an overkill for this example but this graph is flexible
 /// enough to schedule execution correctly and optimally with arbitrarily many
@@ -121,6 +117,7 @@ impl Command {
 pub struct CommandGraph {
     commands: Vec<Command>,
     command_requisites: Vec<Vec<usize>>,
+    ends: (Vec<usize>, Vec<usize>),
     locked: bool,
     next_cmd_idx: usize,
 }
@@ -131,6 +128,7 @@ impl CommandGraph {
         CommandGraph {
             commands: Vec::new(),
             command_requisites: Vec::new(),
+            ends: (Vec::new(), Vec::new()),
             locked: false,
             next_cmd_idx: 0,
         }
@@ -146,7 +144,7 @@ impl CommandGraph {
 
     /// Returns a sub-buffer map which contains every command that reads from
     /// or writes to each sub-buffer.
-    fn readers_and_writers_by_sub_buffer(&self) -> HashMap<usize, RwCmdIdxs> {
+    fn readers_and_writers_by_buffer(&self) -> HashMap<usize, RwCmdIdxs> {
         let mut cmds = HashMap::new();
 
         for (cmd_idx, cmd) in self.commands.iter().enumerate() {
@@ -168,17 +166,44 @@ impl CommandGraph {
         cmds
     }
 
-    /// Populates the list of requisite commands necessary for building the
-    /// correct event wait list for each command.
+    /// Populates the list of requisite commands necessary for each command.
+    ///
+    /// Requisite commands (preceding writers and following readers) for a
+    /// command are those which are causally linked and must come either
+    /// directly before or after. By determining whether or not a command
+    /// comes directly before or after another we can determine the
+    /// causal/temporal relationship between any two nodes on the graph.
+    ///
+    /// Nodes without any preceding writers or following readers are start or
+    /// finish endpoints respectively. It's possible for a graph to have no
+    /// endpoints, in which case the graph is closed and at least partially
+    /// cyclical.
+    ///
     pub fn populate_requisites(&mut self) {
-        let cmds = self.readers_and_writers_by_sub_buffer();
+        let cmds = self.readers_and_writers_by_buffer();
 
         for (cmd_idx, cmd) in self.commands.iter_mut().enumerate() {
             assert!(self.command_requisites[cmd_idx].is_empty());
 
-            for &req_cmd_idx in cmd.preceding_writers(&cmds).iter()
-                    .chain(cmd.following_readers(&cmds).iter())
-            {
+            // Get all commands which must precede the current `cmd`.
+            let preceding_writers = cmd.preceding_writers(&cmds);
+
+            // If there are none, `cmd` is a start endpoint.
+            if preceding_writers.len() == 0 { self.ends.0.push(cmd_idx); }
+
+            // Otherwise add them to the list of requisites.
+            for &req_cmd_idx in preceding_writers.iter() {
+                self.command_requisites[cmd_idx].push(req_cmd_idx);
+            }
+
+            // Get all commands which must follow the current `cmd`.
+            let following_readers = cmd.following_readers(&cmds);
+
+            // If there are none, `cmd` is a finish endpoint.
+            if following_readers.len() == 0 { self.ends.1.push(cmd_idx); }
+
+            // Otherwise add them to the list of requisites.
+            for &req_cmd_idx in following_readers.iter() {
                 self.command_requisites[cmd_idx].push(req_cmd_idx);
             }
 
@@ -223,5 +248,16 @@ impl CommandGraph {
 
     pub fn commands<'a>(&'a self) -> &'a [Command] {
         self.commands.as_slice()
+    }
+
+    pub fn get_finish_events (&self, event_list: &mut EventList) {
+        assert!(self.next_cmd_idx == 0, "Finish events can only be determined \
+            for each cycle just after the graph has set its last cmd event.");
+
+        for &cmd_idx in self.ends.1.iter() {
+            if let Some(event) = self.commands[cmd_idx].event.clone() {
+                event_list.push(event);
+            }
+        }
     }
 }

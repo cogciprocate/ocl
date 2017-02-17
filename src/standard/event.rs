@@ -3,36 +3,14 @@
 use std;
 use std::ops::{Deref, DerefMut};
 // use std::convert::Into;
-// use libc::c_void;
-use futures::{Future, Poll, Async};
+use libc::c_void;
+use futures::{task, Future, Poll, Async};
 use ffi::cl_event;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
-    ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, /*CommandExecutionStatus,*/ /*EventCallbackFn,*/
-    ClEventRef, Context, CommandQueue as CommandQueueCore};
-
-
-// #[derive(Clone, Debug)]
-// pub enum EventCoreKind {
-//     Event(EventCore),
-//     UserEvent(UserEventCore),
-//     Null,
-// }
-
-// #[derive(Clone, Debug)]
-// pub enum EventCoreKindRef<'a> {
-//     Event(&'a EventCore),
-//     UserEvent(&'a UserEventCore),
-//     Null,
-// }
-
-// #[derive(Debug)]
-// pub enum EventCoreKindMut<'a> {
-//     Event(&'a mut EventCore),
-//     UserEvent(&'a mut UserEventCore),
-//     Null,
-// }
-
+    ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventRef, Context,
+    CommandQueue as CommandQueueCore};
+use standard::_unpark_task;
 
 /// An event representing a command or user created event.
 ///
@@ -347,21 +325,39 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
     #[inline] fn count(&self) -> u32 { self._count() }
 }
 
+/// Non-blocking, proper implementation.
+#[cfg(not(feature = "disable_event_callbacks"))]
 impl Future for Event {
     type Item = ();
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        while !self.0.is_complete()? {}
-        // unimplemented!();
-
-        // // Do this right:
-        // self.is_complete().map(|_| )
-        Ok(Async::Ready(()))
+        match self.is_complete() {
+            Ok(true) => {
+                Ok(Async::Ready(()))
+            }
+            Ok(false) => {
+                let task_box = Box::new(task::park());
+                let task_ptr = Box::into_raw(task_box) as *mut _ as *mut c_void;
+                unsafe { self.0.set_callback(Some(_unpark_task), task_ptr)?; };
+                Ok(Async::NotReady)
+            },
+            Err(err) => Err(err),
+        }
     }
 }
 
+/// Blocking implementation (yuk).
+#[cfg(feature = "disable_event_callbacks")]
+impl Future for Event {
+    type Item = ();
+    type Error = OclError;
 
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.wait_for()?;
+        Ok(Async::Ready(()))
+    }
+}
 
 /// A list of events for coordinating enqueued commands.
 ///

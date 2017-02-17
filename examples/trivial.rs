@@ -144,7 +144,6 @@ fn main_exploded() {
     // (5) Read results from the device into a vector:
     buffer.cmd()
         .queue(&queue)
-        .block(true)
         .offset(0)
         .read(&mut vec)
         .ewait_opt(None::<&EventList>)

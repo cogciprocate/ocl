@@ -5,13 +5,15 @@ Version 0.13.0 (UNRELEASED)
 [FIXME: TODO]: Add links to documentation.
 
 
-
 * Asynchrony and Futures... [FIXME: complete]
   * [FIXME] Buffer mapping...
   * [FIXME] `BufferCmd`, `ImageCmd`, and `KernelCmd`
   * [FIXME] have received some streamlining and optimizing to events.
   * [FIXME] comment on changes to the types that `::enew` and `::ewait` accept.
   * [FIXME] refer to the breaking changes below
+  * [FIXME] ::read, ::write, ::map
+    * read no longer unsafe
+    * how to use futures, etc.
 
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
   be used just as you would `Buffer`. Use `SubBuffer::new` or

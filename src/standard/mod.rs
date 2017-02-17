@@ -29,6 +29,7 @@ pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};
 pub use self::event::{Event, EventList};
 pub use self::spatial_dims::SpatialDims;
+pub use self::functions::_unpark_task;
 pub use self::traits::{MemLen, WorkDims};
 pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
@@ -38,6 +39,36 @@ pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 //=============================================================================
 
 // pub const INFO_FORMAT_MULTILINE: bool = false;
+
+//=============================================================================
+//================================ FUNCTIONS ==================================
+//=============================================================================
+
+mod functions {
+    use libc::c_void;
+    use futures::task::Task;
+    use ffi::cl_event;
+    use core::CommandExecutionStatus;
+
+    pub extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
+    let _ = event_ptr;
+    // println!("'_unpark_task' has been called.");
+
+    if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
+        unsafe {
+            // println!("Unparking task via callback...");
+
+            let task_ptr = user_data as *mut _ as *mut Task;
+            let task = Box::from_raw(task_ptr);
+            (*task).unpark();
+        }
+    } else {
+        panic!("Wake up user data is null or event is not complete.");
+    }
+}
+}
+
+
 
 //=============================================================================
 //================================== TYPES ====================================

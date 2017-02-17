@@ -19,26 +19,8 @@ use core::{self, Error as OclError, Result as OclResult, Event as EventCore, Ocl
     MappedMem as MappedMemCore, Mem, CommandQueue, CommandQueueInfo, CommandQueueInfoResult,
     CommandExecutionStatus, MemObjectType, ImageChannelOrder, ImageChannelDataType,
     ContextProperty, PlatformId, ClWaitListPtr, ClNullEventPtr};
+use standard::_unpark_task;
 
-
-
-#[cfg(not(feature = "disable_event_callbacks"))]
-extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
-    let _ = event_ptr;
-    // println!("'_unpark_task' has been called.");
-
-    if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
-        unsafe {
-            // println!("Unparking task via callback...");
-
-            let task_ptr = user_data as *mut _ as *mut Task;
-            let task = Box::from_raw(task_ptr);
-            (*task).unpark();
-        }
-    } else {
-        panic!("Wake up user data is null or event is not complete.");
-    }
-}
 
 
 // pub struct EventListTrigger {
@@ -46,7 +28,6 @@ extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *m
 //     completion_event: UserEvent,
 //     callback_is_set: bool,
 // }
-
 
 // pub struct EventTrigger {
 //     wait_event: Event,
@@ -139,7 +120,44 @@ impl<T: OclPrm> FutureMappedMem<T> {
     }
 }
 
-/// Polling implementation.
+#[cfg(not(feature = "disable_event_callbacks"))]
+impl<T> Future for FutureMappedMem<T> where T: OclPrm + 'static {
+    type Item = MappedMem<T>;
+    type Error = OclError;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        // println!("Polling FutureMappedMem...");
+
+        match self.map_event.is_complete() {
+            Ok(true) => {
+                // if !self.callback_is_set {
+                //     // println!("Task completed on first poll.");
+                // } else {
+                //     // println!("Unsetting callback...");
+                //     // unsafe { self.map_event.set_callback(None, ptr::null_mut())?; }
+                //     // self.callback_is_set = false;
+                // }
+
+                return self.to_mapped_mem().map(|mm| Async::Ready(mm));
+            }
+            Ok(false) => {
+                if !self.callback_is_set {
+                    let task_box = Box::new(task::park());
+                    let task_ptr = Box::into_raw(task_box) as *mut _ as *mut c_void;
+                    // println!("Setting callback...");
+                    unsafe { self.map_event.set_callback(Some(_unpark_task), task_ptr)?; };
+                    // println!("Task callback is set for event: {:?}.", self.map_event);
+                    self.callback_is_set = true;
+                }
+
+                return Ok(Async::NotReady)
+            },
+            Err(err) => return Err(err),
+        }
+    }
+}
+
+/// Polling / blocking only implementation.
 #[cfg(feature = "disable_event_callbacks")]
 impl<T: OclPrm> Future for FutureMappedMem<T> {
     type Item = MappedMem<T>;
@@ -159,43 +177,6 @@ impl<T: OclPrm> Future for FutureMappedMem<T> {
                 },
                 Err(err) => return Err(err),
             };
-        }
-    }
-}
-
-#[cfg(not(feature = "disable_event_callbacks"))]
-impl<T> Future for FutureMappedMem<T> where T: OclPrm + 'static {
-    type Item = MappedMem<T>;
-    type Error = OclError;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        // println!("Polling FutureMappedMem...");
-
-        match self.map_event.is_complete() {
-            Ok(true) => {
-                if !self.callback_is_set {
-                    // println!("Task completed on first poll.");
-                } else {
-                    // println!("Unsetting callback...");
-                    unsafe { self.map_event.set_callback(None, ptr::null_mut())?; }
-                    self.callback_is_set = false;
-                }
-
-                return self.to_mapped_mem().map(|mm| Async::Ready(mm));
-            }
-            Ok(false) => {
-                if !self.callback_is_set {
-                    let task_box = Box::new(task::park());
-                    let task_ptr = Box::into_raw(task_box) as *mut _ as *mut c_void;
-                    // println!("Setting callback...");
-                    unsafe { self.map_event.set_callback(Some(_unpark_task), task_ptr)?; };
-                    // println!("Task callback is set for event: {:?}.", self.map_event);
-                    self.callback_is_set = true;
-                }
-
-                return Ok(Async::NotReady)
-            },
-            Err(err) => return Err(err),
         }
     }
 }
@@ -285,18 +266,22 @@ impl<T> MappedMem<T>  where T: OclPrm {
                 }
 
                 if !cfg!(feature = "disable_event_callbacks") {
+                    // Async version:
                     if self.unmap_target.is_some() {
                         #[cfg(not(feature = "disable_event_callbacks"))]
                         self.register_event_trigger(&new_event)?;
-
-                        // #[cfg(not(feature = "disable_event_callbacks"))]
-                        // println!("- ::enqueue_unmap: 'self.register_event_trigger(&new_event)' is complete.");
 
                         // `new_event` will be reconstructed by the callback
                         // function using `UserEvent::from_raw` and `::drop`
                         // will be run there. Do not also run it here.
                         #[cfg(not(feature = "disable_event_callbacks"))]
                         mem::forget(new_event);
+                    }
+                } else {
+                    // Blocking version:
+                    if let Some(ref mut um_tar) = self.unmap_target {
+                        new_event.wait_for()?;
+                        um_tar.set_complete()?;
                     }
                 }
             }
