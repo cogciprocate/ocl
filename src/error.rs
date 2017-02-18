@@ -6,9 +6,29 @@ use std::convert::Into;
 use num::FromPrimitive;
 use ::Status;
 
-
 /// `ocl::Error` result type.
 pub type Result<T> = std::result::Result<T, self::Error>;
+
+static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
+static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
+
+
+fn fmt_status_desc(status: Status, fn_name: &'static str, fn_info: &str) -> String {
+    let fn_info_string = if fn_info.is_empty() == false {
+        format!("(\"{}\")", fn_info)
+    } else {
+        String::with_capacity(0)
+    };
+
+    format!("\n\n\
+        ################################ OPENCL ERROR ############################### \
+        \n\nError executing function: {}{}  \
+        \n\nStatus error code: {:?} ({})  \
+        \n\nPlease visit the following url for more information: \n\n{}{}{}  \n\n\
+        ############################################################################# \n",
+        fn_name, fn_info_string, status.clone(), status as i32,
+        SDK_DOCS_URL_PRE, fn_name, SDK_DOCS_URL_SUF)
+}
 
 
 fn gen_status_error<S: Into<String>>(errcode: i32, fn_name: &'static str, fn_info: S) -> self::Error {
@@ -228,22 +248,4 @@ impl std::fmt::Debug for self::Error {
     }
 }
 
-static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
-static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
-
-fn fmt_status_desc(status: Status, fn_name: &'static str, fn_info: &str) -> String {
-    let fn_info_string = if fn_info.is_empty() == false {
-        format!("(\"{}\")", fn_info)
-    } else {
-        String::with_capacity(0)
-    };
-
-    format!("\n\n\
-        ################################ OPENCL ERROR ############################### \
-        \n\nError executing function: {}{}  \
-        \n\nStatus error code: {:?} ({})  \
-        \n\nPlease visit the following url for more information: \n\n{}{}{}  \n\n\
-        ############################################################################# \n",
-        fn_name, fn_info_string, status.clone(), status as i32,
-        SDK_DOCS_URL_PRE, fn_name, SDK_DOCS_URL_SUF)
-}
+unsafe impl std::marker::Send for self::Error {}

@@ -596,7 +596,12 @@ impl<T: OclPrm> MemMap<T> {
     }
 
     #[inline(always)]
-    pub fn as_ptr(&self) -> *mut T {
+    pub fn as_ptr(&self) -> *const T {
+        self.0
+    }
+
+    #[inline(always)]
+    pub fn as_mut_ptr(&mut self) -> *mut T {
         self.0
     }
 
