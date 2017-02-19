@@ -13,6 +13,7 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 pub enum Error {
     Ocl(OclError),
     FuturesSendError(String),
+    Other(Box<std::error::Error>),
 }
 
 impl self::Error {
@@ -39,7 +40,7 @@ impl std::error::Error for self::Error {
         match *self {
             Error::Ocl(ref err) => err.description(),
             Error::FuturesSendError(ref err) => err,
-
+            Error::Other(ref err) => err.description(),
         }
     }
 }
@@ -56,6 +57,12 @@ impl<T> From<SendError<T>> for self::Error where T: std::fmt::Debug {
         let display = format!("{}", err);
         let msg = err.into_inner();
         Error::FuturesSendError(format!("{:?}: '{}' (msg: '{:?}')", debug, display, msg))
+    }
+}
+
+impl From<Box<std::error::Error>> for self::Error {
+    fn from(err: Box<std::error::Error>) -> self::Error {
+        self::Error::Other(err)
     }
 }
 
@@ -118,3 +125,5 @@ impl std::fmt::Debug for self::Error {
         f.write_str(self.description())
     }
 }
+
+unsafe impl std::marker::Send for self::Error {}

@@ -171,6 +171,6 @@ fn main() {
 
     // Wait for all queued tasks to finish so that verify_result() will be
     // called before returning:
-    ocl_pq.queue().finish();
+    ocl_pq.queue().finish().unwrap();
 }
 

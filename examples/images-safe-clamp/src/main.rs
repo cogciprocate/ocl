@@ -115,7 +115,7 @@ fn main() {
     kernel.enq().unwrap();
     print_elapsed("kernel enqueued", start_time);
 
-    queue.finish();
+    queue.finish().unwrap();
     print_elapsed("queue finished", start_time);
 
     cl_dest_unrolled.read(&mut result_unrolled).enq().unwrap();
@@ -195,7 +195,7 @@ fn main() {
     kernel_corner.enq().unwrap();
     print_elapsed("kernels enqueued", start_time);
 
-    queue.finish();
+    queue.finish().unwrap();
     print_elapsed("queue finished", start_time);
 
     cl_dest_patches.read(&mut result_patches).enq().unwrap();

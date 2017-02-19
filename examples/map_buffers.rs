@@ -45,7 +45,7 @@ fn scalar_map() {
                                                              None::<&mut ocl::Event>)
             .expect("Mapping memory object failed");
         // Wait until mapping is finished
-        queue.finish();
+        queue.finish().unwrap();
 
         let datum: Vec<f32> = vec![10_f32; BUFFER_DIMENSIONS];
         let mut datum_slice = buff_datum.as_slice_mut(datum.len());
@@ -53,7 +53,7 @@ fn scalar_map() {
         ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<&mut ocl::Event>)
             .expect("Unmap of memory object failed");
         // Wait until unmapping is finished
-        queue.finish();
+        queue.finish().unwrap();
         // Don't deallocate vector, it'll lead to double free of the buffer pointed by buff_datum
     }
     let mut check_datum: Vec<f32> = vec![0_f32; BUFFER_DIMENSIONS];
@@ -64,14 +64,13 @@ fn scalar_map() {
         assert_eq!(ele, 10_f32);
     }
 
-    ocl::Kernel::new(String::from("add"), &program, queue.clone())
+    let kern = ocl::Kernel::new(String::from("add"), &program, queue.clone())
         .expect("Kernel creation failed")
         .gws(BUFFER_DIMENSIONS)
         .arg_buf(&in_buff)
-        .arg_scl(5_f32)
-        .cmd()
-        .enq()
-        .expect("Kernel execution failed");
+        .arg_scl(5_f32);
+
+    kern.cmd().enq().unwrap();
 
     let mut read_datum: Vec<f32> = vec![0_f32; BUFFER_DIMENSIONS];
     in_buff.read(&mut read_datum)
@@ -122,7 +121,7 @@ fn vector_map() {
                                                                     None::<ocl::Event>,
                                                                     Some(&mut event))
                 .expect("Mapping memory object failed");
-        queue.finish();
+        queue.finish().unwrap();
 
         let mut value: ocl::aliases::ClFloat16 = Default::default();
         // Use only first value
@@ -132,7 +131,7 @@ fn vector_map() {
         datum_slice.copy_from_slice(&datum);
         ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<&mut ocl::Event>)
             .expect("Unmap of memory object failed");
-        queue.finish();
+        queue.finish().unwrap();
     }
     let mut check_datum: Vec<ocl::aliases::ClFloat16> = vec![Default::default(); BUFFER_DIMENSIONS];
 
@@ -144,14 +143,13 @@ fn vector_map() {
         assert_eq!(ele.0, 10_f32);
     }
 
-    ocl::Kernel::new(String::from("add"), &program, queue.clone())
+    let kern = ocl::Kernel::new(String::from("add"), &program, queue.clone())
         .expect("Kernel creation failed")
         .gws(BUFFER_DIMENSIONS)
         .arg_buf(&in_buff)
-        .arg_scl(5_f32)
-        .cmd()
-        .enq()
-        .expect("Kernel execution failed");
+        .arg_scl(5_f32);
+
+    kern.cmd().enq().unwrap();
 
     let mut read_datum: Vec<ocl::aliases::ClFloat16> = vec![Default::default(); BUFFER_DIMENSIONS];
     in_buff.read(&mut read_datum)

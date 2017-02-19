@@ -139,5 +139,5 @@ fn events() {
     }
 
     // Wait for all queued tasks to finish so that verify_result() will be called:
-    ocl_pq.queue().finish();
+    ocl_pq.queue().finish().unwrap();
 }

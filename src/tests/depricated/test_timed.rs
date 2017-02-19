@@ -82,7 +82,7 @@ fn timed() {
     }
 
     // Wait for all kernels to run:
-    ocl_pq.queue().finish();
+    ocl_pq.queue().finish().unwrap();
 
     // Print elapsed time for kernels:
     print_elapsed("total elapsed", kern_start);
@@ -103,7 +103,7 @@ fn timed() {
     }
 
     print_elapsed("queue unfinished", buffer_start);
-    ocl_pq.queue().finish();
+    ocl_pq.queue().finish().unwrap();
     print_elapsed("queue finished", buffer_start);
 
     verify_results(&buffer_init, &buffer_result, KERNEL_RUN_ITERS);
@@ -123,7 +123,7 @@ fn timed() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();
+    ocl_pq.queue().finish().unwrap();
     print_elapsed("queue finished", kern_buf_start);
 
     verify_results(&buffer_init, &buffer_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
@@ -148,7 +148,7 @@ fn timed() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();
+    ocl_pq.queue().finish().unwrap();
     print_elapsed("queue finished", kern_buf_start);
 
     verify_results(&buffer_init, &buffer_result,
@@ -172,7 +172,7 @@ fn timed() {
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish();
+    ocl_pq.queue().finish().unwrap();
     print_elapsed("queue finished", kern_buf_start);
 
     verify_results(&buffer_init, &buffer_result,

@@ -407,6 +407,8 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     //
     // [FIXME]: Check/fix links.
     //
+    // [TODO]: Should this error when calling non-rw `::enq`?
+    //
     pub unsafe fn block(mut self, block: bool) -> BufferCmd<'c, T> {
         self.block = block;
         self

@@ -143,7 +143,7 @@ fn image_ops() {
             &mut vec, None::<core::Event>, None::<&mut core::Event>).unwrap(); }
 
         // Just to make sure read is complete:
-        proque.queue().finish();
+        proque.queue().finish().unwrap();
 
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val,
@@ -165,7 +165,7 @@ fn image_ops() {
             &mut vec, None::<core::Event>, None::<&mut core::Event>).unwrap(); }
 
         // Just to make sure read is complete:
-        proque.queue().finish();
+        proque.queue().finish().unwrap();
 
         // Verify:
         tests::verify_vec_rect(origin, region, cur_val, old_val,

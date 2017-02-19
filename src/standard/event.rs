@@ -23,7 +23,7 @@ use standard::{_unpark_task, box_raw_void};
 //     Empty,
 // }
 #[repr(C)]
-#[must_use]
+#[must_use = "futures do nothing unless polled"]
 pub struct Event(EventCore);
 
 impl Event {

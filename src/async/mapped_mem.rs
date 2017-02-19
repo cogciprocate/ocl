@@ -20,7 +20,7 @@ use core::{self, Event as EventCore, OclPrm, ClWaitListPtr, ClNullEventPtr,
     /*CommandExecutionStatus, MemObjectType, ImageChannelOrder, ImageChannelDataType,
     ContextProperty, PlatformId,*/};
 use standard::{box_raw_void, _unpark_task};
-use ::{Error as OclError, Result as OclResult};
+// use ::{Error as OclError, Result as OclResult};
 use super::{Error as AsyncError, Result as AsyncResult};
 
 
@@ -46,7 +46,7 @@ use super::{Error as AsyncError, Result as AsyncResult};
 //     }
 // }
 
-#[must_use]
+#[must_use = "futures do nothing unless polled"]
 pub struct FutureMemMap<T: OclPrm> {
     core: Option<MemMapCore<T>>,
     len: usize,
@@ -222,7 +222,7 @@ impl<T> MemMap<T>  where T: OclPrm {
     // [NOTE]: Passing `enew_opt` is yet untested.
     pub fn enqueue_unmap<Ewl, En>(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<Ewl>,
             mut enew_opt: Option<En>)
-            -> OclResult<()>
+            -> AsyncResult<()>
             where En: ClNullEventPtr, Ewl: ClWaitListPtr
     {
         if !self.is_unmapped {
@@ -263,6 +263,10 @@ impl<T> MemMap<T>  where T: OclPrm {
                 if !cfg!(feature = "disable_event_callbacks") {
                     // Async version:
                     if self.unmap_target.is_some() {
+
+                        // // [DEBUG]:
+                        // println!("Registering event trigger...");
+
                         #[cfg(not(feature = "disable_event_callbacks"))]
                         self.register_event_trigger(&new_event)?;
 
@@ -290,7 +294,7 @@ impl<T> MemMap<T>  where T: OclPrm {
     }
 
     #[cfg(not(feature = "disable_event_callbacks"))]
-    fn register_event_trigger(&mut self, event: &EventCore) -> OclResult<()> {
+    fn register_event_trigger(&mut self, event: &EventCore) -> AsyncResult<()> {
         debug_assert!(self.is_unmapped && self.unmap_target.is_some());
 
         if !self.callback_is_set {
@@ -298,7 +302,10 @@ impl<T> MemMap<T>  where T: OclPrm {
                 unsafe {
                     let unmap_target_ptr = ev.clone().into_raw();
                     event.set_callback(Some(core::_complete_user_event), unmap_target_ptr)?;
+
+                    // // [DEBUG]:
                     // println!("Callback set from trigger: {:?} to target: {:?}", event, unmap_target_ptr);
+
                 }
 
                 self.callback_is_set = true;
@@ -350,8 +357,14 @@ impl<T> DerefMut for MemMap<T> where T: OclPrm {
 impl<T: OclPrm> Drop for MemMap<T> {
     #[cfg(not(feature = "disable_event_callbacks"))]
     fn drop(&mut self) {
+
+        // // [DEBUG]:
+        // println!("Dropping MemMap.");
+
         if !self.is_unmapped {
             self.enqueue_unmap::<&EventCore, &mut EventCore>(None, None, None).ok();
+            // core::flush(&self.queue).unwrap();
+            // core::finish(&self.queue).unwrap();
         }
     }
 

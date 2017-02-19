@@ -79,6 +79,7 @@ mod cb {
 //=============================================================================
 
 mod types {
+    use std::cell::Ref;
     use ::{Event, EventList};
     use core::ffi::cl_event;
     use core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
@@ -92,6 +93,9 @@ mod types {
         Event(&'a Event),
         EventList(&'a EventList),
         EventPtrSlice(&'a [cl_event]),
+        RefEventList(Ref<'a, EventList>),
+        RefTraitObj(Ref<'a, ClWaitListPtr>),
+        BoxTraitObj(Box<ClWaitListPtr>),
     }
 
     unsafe impl<'a> ClWaitListPtr for ClWaitListPtrEnum<'a> {
@@ -103,6 +107,9 @@ mod types {
                 ClWaitListPtrEnum::Event(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventList(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventPtrSlice(ref e) => e.as_ptr_ptr(),
+                ClWaitListPtrEnum::RefEventList(ref e) => e.as_ptr_ptr(),
+                ClWaitListPtrEnum::RefTraitObj(ref e) => e.as_ptr_ptr(),
+                ClWaitListPtrEnum::BoxTraitObj(ref e) => e.as_ptr_ptr(),
             }
         }
 
@@ -114,7 +121,28 @@ mod types {
                 ClWaitListPtrEnum::Event(ref e) => e.count(),
                 ClWaitListPtrEnum::EventList(ref e) => e.count(),
                 ClWaitListPtrEnum::EventPtrSlice(ref e) => e.count(),
+                ClWaitListPtrEnum::RefEventList(ref e) => e.count(),
+                ClWaitListPtrEnum::RefTraitObj(ref e) => e.count(),
+                ClWaitListPtrEnum::BoxTraitObj(ref e) => e.count(),
             }
+        }
+    }
+
+    impl<'a> From<Ref<'a, EventList>> for ClWaitListPtrEnum<'a> {
+        fn from(e: Ref<'a, EventList>) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::RefTraitObj(e)
+        }
+    }
+
+    impl<'a> From<Ref<'a, ClWaitListPtr>> for ClWaitListPtrEnum<'a> {
+        fn from(e: Ref<'a, ClWaitListPtr>) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::RefTraitObj(e)
+        }
+    }
+
+    impl<'a> From<Box<ClWaitListPtr>> for ClWaitListPtrEnum<'a> {
+        fn from(e: Box<ClWaitListPtr>) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::BoxTraitObj(e)
         }
     }
 

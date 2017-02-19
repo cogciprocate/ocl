@@ -437,7 +437,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             /////// [TODO]: ADD THIS AS AN OPTION?:
             // // Wait for queue completion:
             // source_buf.default_queue().flush();
-            // source_buf.default_queue().finish();
+            // source_buf.default_queue().finish().unwrap();
 
             // Wait for event completion:
             future_mem.wait()?
@@ -480,7 +480,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             /////// [TODO]: ADD THIS AS AN OPTION:
             // // Wait for queue completion:
             // source_buf.default_queue().flush();
-            // source_buf.default_queue().finish();
+            // source_buf.default_queue().finish().unwrap();
 
             // Wait for event completion:
             // while !map_event.is_complete()? {}
