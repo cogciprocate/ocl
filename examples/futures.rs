@@ -5,26 +5,20 @@
 
 extern crate futures;
 extern crate futures_cpupool;
-extern crate tokio_timer;
 extern crate rand;
 extern crate chrono;
 extern crate ocl;
 
 mod extras;
 
-// use std::io;
-// use std::time::Duration;
-// use futures::future::*;
+
 use futures::{Future};
 use futures_cpupool::{CpuPool, CpuFuture};
-// use tokio_timer::{Timer, Sleep, TimerError};
 
 use rand::{Rng, XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
-// use std::collections::{LinkedList, HashMap, BTreeSet};
-use ocl::{Platform, Device, Context, Queue, Program, /*Buffer,*/ Kernel, /*SubBuffer,*/ OclPrm,
+use ocl::{Platform, Device, Context, Queue, Program, Kernel, OclPrm,
     Event, EventList, MemMap, FutureMemMap};
-// use ocl::core::{FutureMemMap, MemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 

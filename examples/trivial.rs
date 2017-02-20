@@ -10,7 +10,7 @@ fn main() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims([2 << 20])
+        .dims(2 << 20)
         .build().unwrap();
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();
@@ -51,7 +51,7 @@ fn main_explained() {
     // buffer dimensions:
     let pro_que = ProQue::builder()
         .src(src)
-        .dims([2 << 20])
+        .dims(2 << 20)
         .build().unwrap();
 
     // (2) Create a `Buffer`:
@@ -114,20 +114,20 @@ fn main_exploded() {
         .src(src)
         .build(&context).unwrap();
     let queue = Queue::new(&context, device, None).unwrap();
-    let dims = [2 << 20];
+    let dims = 2 << 20;
     // [NOTE]: At this point we could manually assemble a ProQue by calling:
     // `ProQue::new(context, queue, program, Some(dims))`. One might want to
     // do this when only one program and queue are all that's needed. Wrapping
     // it up into a single struct makes passing it around much simpler.
 
     // (2) Create a `Buffer`:
-    let mut vec = vec![0.0f32; dims[0]];
+    let mut vec = vec![0.0f32; dims];
     let buffer = Buffer::<f32>::new(queue.clone(), Some(flags::MEM_READ_WRITE |
         flags::MEM_COPY_HOST_PTR), dims, Some(&vec)).unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = Kernel::new("add", &program, queue.clone()).unwrap()
-        .gws(&dims)
+        .gws(dims)
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
@@ -135,7 +135,7 @@ fn main_exploded() {
     kernel.cmd()
         .queue(&queue)
         .gwo(kernel.get_gwo())
-        .gws(&dims)
+        .gws(dims)
         .lws(kernel.get_lws())
         .ewait_opt(None::<&EventList>)
         .enew_opt(None::<&mut Event>)

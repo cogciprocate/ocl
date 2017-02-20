@@ -27,14 +27,15 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 # `Async::NotReady` to its executor and will be a less performant solution.
 # Use only if your platform has issues with event callbacks (old/non-compliant
 # hardware).
-disable_event_callbacks = []
+event_callbacks = []
 
 # Allows use of unstable experimental types and functions for to reading from
 # and writing to buffers.
 experimental_async_rw = []
 
 
-default = ["opencl_version_1_1", "opencl_version_1_2"]
+default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
+
 
 [dependencies]
 # ocl-core = "0.3"
@@ -54,8 +55,8 @@ rand = "0.3"
 chrono = "0.2"
 futures = "0.1"
 futures-cpupool = "0.1"
-tokio-core = "0.1"
-tokio-timer = { git = "https://github.com/tokio-rs/tokio-timer" }
+# tokio-core = "0.1"
+# tokio-timer = { git = "https://github.com/tokio-rs/tokio-timer" }
 lazy_static = "0.2"
 
 [replace]

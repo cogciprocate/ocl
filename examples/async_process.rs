@@ -45,12 +45,7 @@ pub fn main() {
     let platform = Platform::default();
     println!("Platform: {}", platform.name());
 
-    let device_idx = 1;
-
-    let device = Device::specifier()
-        .wrapping_indices(vec![device_idx])
-        .to_device_list(Some(&platform)).unwrap()[0];
-
+    let device = Device::first(platform);
     println!("Device: {} {}", device.vendor(), device.name());
 
     let context = Context::builder()
@@ -76,11 +71,13 @@ pub fn main() {
         let write_buf_flags = Some(MemFlags::read_only() | MemFlags::host_write_only());
         let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only());
 
+        // Create a write and read buffer:
         let write_buf: Buffer<ClFloat4> = Buffer::new(write_queue.clone(),
             write_buf_flags, work_size, None).unwrap();
         let read_buf: Buffer<ClFloat4> = Buffer::new(read_queue.clone(),
             read_buf_flags, work_size, None).unwrap();
 
+        // Create program and kernel:
         let program = Program::builder()
             .devices(device)
             .src(KERN_SRC)
@@ -92,11 +89,13 @@ pub fn main() {
             .arg_vec(ClFloat4(100., 100., 100., 100.))
             .arg_buf(&read_buf);
 
-        // (-1) INIT: With -500's:
+        // (0) INIT: Fill buffer with -999's just to ensure the upcoming
+        // write misses nothing:
         let mut fill_event = Event::empty();
-        write_buf.cmd().fill(ClFloat4(-500., -500., -500., -500.), None).enew(&mut fill_event).enq().unwrap();
+        write_buf.cmd().fill(ClFloat4(-999., -999., -999., -999.), None).enew(&mut fill_event).enq().unwrap();
 
-        // (0) WRITE: Write a bunch of 50's:
+        // (1) WRITE: Map the buffer and write 50's to the entire buffer, then
+        // unmap to 'flush' data to the device:
         let mut future_write_data = write_buf.cmd().map().flags(MapFlags::write_invalidate_region())
             .ewait(&fill_event)
             .enq_async().unwrap();
@@ -117,7 +116,7 @@ pub fn main() {
 
         let spawned_write = thread_pool.spawn(write);
 
-        // (1) KERNEL: Run kernel (adds 100 to everything):
+        // (2) KERNEL: Run kernel: Add 100 to everything (total should now be 150):
         let mut kern_event = Event::empty();
 
         kern.cmd()
@@ -125,7 +124,8 @@ pub fn main() {
             .ewait(&write_unmap_event)
             .enq().unwrap();
 
-        // (2) READ: Read results and verify them:
+        // (3) READ: Read results and verify that the write and kernel have
+        // both completed successfully:
         let future_read_data = read_buf.cmd().map().flags(MapFlags::read())
             .ewait(&kern_event)
             .enq_async().unwrap();
@@ -149,7 +149,7 @@ pub fn main() {
             });
 
         let spawned_read = thread_pool.spawn(read);
-        // Presumably this could be either `join` or `and_then` in this case:
+        // Presumably this could be either `join` or `and_then`:
         let offload = spawned_write.join(spawned_read);
 
         offloads.push_back(offload);
@@ -159,6 +159,7 @@ pub fn main() {
     let create_duration = chrono::Local::now() - start_time;
     let correct_val_count = Cell::new(0usize);
 
+    // Finish things up (basically a thread join):
     stream::futures_unordered(offloads).for_each(|(task_id, val_count)| {
         correct_val_count.set(correct_val_count.get() + val_count);
         println!("Task: {} has completed.", task_id);

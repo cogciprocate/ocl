@@ -73,7 +73,7 @@ impl<T: OclPrm> FutureMemMap<T> {
         }
     }
 
-    #[cfg(not(feature = "disable_event_callbacks"))]
+    #[cfg(feature = "event_callbacks")]
     pub fn create_unmap_event(&mut self) -> AsyncResult<&mut EventCore> {
         if let Some(ref queue) = self.queue {
             let context = match core::get_command_queue_info(queue,
@@ -121,7 +121,7 @@ impl<T: OclPrm> FutureMemMap<T> {
     }
 }
 
-#[cfg(not(feature = "disable_event_callbacks"))]
+#[cfg(feature = "event_callbacks")]
 impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
     type Item = MemMap<T>;
     type Error = AsyncError;
@@ -152,7 +152,7 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
 }
 
 /// Blocking implementation.
-#[cfg(feature = "disable_event_callbacks")]
+#[cfg(not(feature = "event_callbacks"))]
 impl<T: OclPrm> Future for FutureMemMap<T> {
     type Item = MemMap<T>;
     type Error = AsyncError;
@@ -268,20 +268,20 @@ impl<T> MemMap<T>  where T: OclPrm {
                     }
                 }
 
-                if !cfg!(feature = "disable_event_callbacks") {
+                if !cfg!(not(feature = "event_callbacks")) {
                     // Async version:
                     if self.unmap_target.is_some() {
 
                         // // [DEBUG]:
                         // println!("Registering event trigger (complete: {})...", origin_event.is_complete().unwrap());
 
-                        #[cfg(not(feature = "disable_event_callbacks"))]
+                        #[cfg(feature = "event_callbacks")]
                         self.register_event_trigger(&origin_event)?;
 
                         // `origin_event` will be reconstructed by the callback
                         // function using `UserEvent::from_raw` and `::drop`
                         // will be run there. Do not also run it here.
-                        #[cfg(not(feature = "disable_event_callbacks"))]
+                        #[cfg(feature = "event_callbacks")]
                         mem::forget(origin_event);
                     }
                 } else {
@@ -304,7 +304,7 @@ impl<T> MemMap<T>  where T: OclPrm {
         }
     }
 
-    #[cfg(not(feature = "disable_event_callbacks"))]
+    #[cfg(feature = "event_callbacks")]
     fn register_event_trigger(&mut self, event: &EventCore) -> AsyncResult<()> {
         debug_assert!(self.is_unmapped && self.unmap_target.is_some());
 
@@ -369,7 +369,7 @@ impl<T> DerefMut for MemMap<T> where T: OclPrm {
 }
 
 impl<T: OclPrm> Drop for MemMap<T> {
-    #[cfg(not(feature = "disable_event_callbacks"))]
+    #[cfg(feature = "event_callbacks")]
     fn drop(&mut self) {
 
         // // [DEBUG]:
@@ -385,7 +385,7 @@ impl<T: OclPrm> Drop for MemMap<T> {
         // println!("MemMap::drop: Unmap enqueued.");
     }
 
-    #[cfg(feature = "disable_event_callbacks")]
+    #[cfg(not(feature = "event_callbacks"))]
     fn drop(&mut self) {
         assert!(self.is_unmapped, "ocl_core::MemMap: '::drop' called while still mapped. \
             Call '::unmap' before allowing this 'MemMap' to fall out of scope.");
@@ -476,7 +476,7 @@ impl<T: OclPrm> Drop for MemMap<T> {
 //#############################################################################
 //#############################################################################
 
-// #[cfg(not(feature = "disable_event_callbacks"))]
+// #[cfg(feature = "event_callbacks")]
 // extern "C" fn _unpark_task<T: OclPrm>(event_ptr: ffi::cl_event, event_status: i32,
 //         user_data: *mut c_void)
 // {
@@ -516,11 +516,11 @@ impl<T: OclPrm> Drop for MemMap<T> {
 // }
 
 
-// #[cfg(not(feature = "disable_event_callbacks"))]
+// #[cfg(feature = "event_callbacks")]
 // extern "C" fn _dummy(_: ffi::cl_event, _: i32, _: *mut c_void) {}
 
 
-// #[cfg(not(feature = "disable_event_callbacks"))]
+// #[cfg(feature = "event_callbacks")]
 // impl<T: OclPrm> Future for FutureMemMap<T> {
 //     type Item = MemMap<T>;
 //     type Error = AsyncError;

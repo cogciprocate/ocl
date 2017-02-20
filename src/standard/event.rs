@@ -341,7 +341,7 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
 /// [NOTE]: There is currently no check to ensure that only one callback is
 /// created (is this ok?).
 ///
-#[cfg(not(feature = "disable_event_callbacks"))]
+#[cfg(feature = "event_callbacks")]
 impl Future for Event {
     type Item = ();
     type Error = OclError;
@@ -362,7 +362,7 @@ impl Future for Event {
 }
 
 /// Blocking implementation (yuk).
-#[cfg(feature = "disable_event_callbacks")]
+#[cfg(not(feature = "event_callbacks"))]
 impl Future for Event {
     type Item = ();
     type Error = OclError;

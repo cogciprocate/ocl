@@ -22,7 +22,7 @@ fn test_vector_types() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims([DATASET_SIZE])
+        .dims(DATASET_SIZE)
         .build().unwrap();
 
     let in_buffer = pro_que.create_buffer::<ClInt4>().unwrap();

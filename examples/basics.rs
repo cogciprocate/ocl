@@ -26,7 +26,7 @@ fn main() {
     // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
     let ocl_pq = ProQue::builder()
         .src(KERNEL_SRC)
-        .dims([DATA_SET_SIZE])
+        .dims(DATA_SET_SIZE)
         .build().expect("Build ProQue");
 
     // Create a source buffer and initialize it with random floats between 0.0

@@ -85,7 +85,7 @@ fn buffer_copy_standard() {
     let pro_que = ProQue::builder()
         .src(src)
         .device(1)
-        .dims([DATASET_SIZE])
+        .dims(DATASET_SIZE)
         .build().unwrap();
 
     let src_buffer = pro_que.create_buffer::<f32>().unwrap();

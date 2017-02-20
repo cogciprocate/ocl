@@ -43,7 +43,7 @@ fn main() {
     "#;
 
     // Create an all-in-one context, program, and command queue:
-    let ocl_pq = ProQue::builder().src(src).dims([DATASET_SIZE]).build().unwrap();
+    let ocl_pq = ProQue::builder().src(src).dims(DATASET_SIZE).build().unwrap();
 
     // Create init and result buffers and vectors:
     let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());

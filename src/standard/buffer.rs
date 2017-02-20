@@ -47,7 +47,7 @@ impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
 }
 
 /// Non-blocking, proper implementation.
-#[cfg(not(feature = "disable_event_callbacks"))]
+#[cfg(feature = "event_callbacks")]
 #[cfg(feature = "experimental_async_rw")]
 impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
     type Item = ();
@@ -69,7 +69,7 @@ impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
 }
 
 /// Blocking implementation (yuk).
-#[cfg(feature = "disable_event_callbacks")]
+#[cfg(not(feature = "event_callbacks"))]
 #[cfg(feature = "experimental_async_rw")]
 impl<'d, T> Future for ReadCompletion<'d, T> {
     type Item = &'d mut [T];

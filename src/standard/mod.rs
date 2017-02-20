@@ -42,7 +42,7 @@ pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 //================================ FUNCTIONS ==================================
 //=============================================================================
 
-#[cfg(not(feature = "disable_event_callbacks"))]
+#[cfg(feature = "event_callbacks")]
 mod cb {
     use libc::c_void;
     use futures::task::Task;
