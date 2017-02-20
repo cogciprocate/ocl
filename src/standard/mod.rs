@@ -92,6 +92,7 @@ mod types {
         // EventListCore(&'a EventListCore),
         Event(&'a Event),
         EventList(&'a EventList),
+        EventSlice(&'a [Event]),
         EventPtrSlice(&'a [cl_event]),
         RefEventList(Ref<'a, EventList>),
         RefTraitObj(Ref<'a, ClWaitListPtr>),
@@ -106,6 +107,7 @@ mod types {
                 // ClWaitListPtrEnum::EventListCore(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::Event(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventList(ref e) => e.as_ptr_ptr(),
+                ClWaitListPtrEnum::EventSlice(ref e) => e.as_ptr() as *const _ as *const cl_event,
                 ClWaitListPtrEnum::EventPtrSlice(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::RefEventList(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::RefTraitObj(ref e) => e.as_ptr_ptr(),
@@ -120,6 +122,7 @@ mod types {
                 // ClWaitListPtrEnum::EventListCore(ref e) => e.count(),
                 ClWaitListPtrEnum::Event(ref e) => e.count(),
                 ClWaitListPtrEnum::EventList(ref e) => e.count(),
+                ClWaitListPtrEnum::EventSlice(ref e) => e.len() as u32,
                 ClWaitListPtrEnum::EventPtrSlice(ref e) => e.count(),
                 ClWaitListPtrEnum::RefEventList(ref e) => e.count(),
                 ClWaitListPtrEnum::RefTraitObj(ref e) => e.count(),
@@ -173,6 +176,12 @@ mod types {
     impl<'a> From<&'a EventList> for ClWaitListPtrEnum<'a> {
         fn from(el: &'a EventList) -> ClWaitListPtrEnum<'a> {
             ClWaitListPtrEnum::EventList(el)
+        }
+    }
+
+    impl<'a> From<&'a [Event]> for ClWaitListPtrEnum<'a> {
+        fn from(es: &'a [Event]) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventSlice(es)
         }
     }
 

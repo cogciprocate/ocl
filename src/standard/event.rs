@@ -326,6 +326,16 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
     #[inline] fn count(&self) -> u32 { self._count() }
 }
 
+// unsafe impl<'a> ClWaitListPtr for &'a [Event] {
+//     unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+//         self.as_ptr() as *const _ as *const cl_event
+//     }
+
+//     fn count (&self) -> u32 {
+//         self.len() as u32
+//     }
+// }
+
 /// Non-blocking, proper implementation.
 ///
 /// [NOTE]: There is currently no check to ensure that only one callback is
