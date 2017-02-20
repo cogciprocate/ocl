@@ -71,9 +71,6 @@ pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i3
     #[cfg(not(feature = "event_debug_print"))]
     let _ = src_event_ptr;
 
-    #[cfg(feature = "event_debug_print")]
-    println!("::_complete_user_event (source: {:?}, target: {:?}):", src_event_ptr, user_data);
-
     if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
         let tar_event_ptr = user_data as *mut _ as cl_event;
 
@@ -81,7 +78,10 @@ pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i3
             let user_event = Event::from_raw(tar_event_ptr);
 
             #[cfg(feature = "event_debug_print")]
-            println!("  - Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
+            println!("::_complete_user_event: Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
+
+            // // [DEBUG]:
+            // println!("::_complete_user_event: Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
 
             ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
         }
@@ -1560,22 +1560,21 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + Debug>(obj: &Program, device_ob
 //========================== Kernel Object APIs ==============================
 //============================================================================
 
-/// Returns a new kernel pointer.
-pub fn create_kernel(
-            program: &Program,
-            name: &str,
-        ) -> OclResult<Kernel>
-{
+/// Returns a new kernel.
+pub fn create_kernel(program: &Program, name: &str) -> OclResult<Kernel> {
     let mut err: cl_int = 0;
 
-    let kernel = unsafe { Kernel::from_raw_create_ptr(ffi::clCreateKernel(
-        program.as_ptr(),
-        // 0 as cl_program,
-        try!(CString::new(name.as_bytes())).as_ptr(),
-        &mut err,
-    )) };
+    unsafe {
+        let kernel_ptr = ffi::clCreateKernel(
+            program.as_ptr(),
+            // 0 as cl_program,
+            try!(CString::new(name.as_bytes())).as_ptr(),
+            &mut err,
+        );
 
-    eval_errcode(err, kernel, "clCreateKernel", name)
+        eval_errcode(err, kernel_ptr, "clCreateKernel", name)
+            .map(|ptr| Kernel::from_raw_create_ptr(ptr))
+    }
 }
 
 /// [UNIMPLEMENTED]

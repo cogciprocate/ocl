@@ -43,6 +43,7 @@
 use std::mem;
 use std::ptr;
 use std::slice;
+use std::cell::Ref;
 use std::fmt::Debug;
 use std::marker::Sized;
 // use std::ops::Deref;
@@ -157,6 +158,16 @@ pub unsafe trait ClWaitListPtr: Debug {
     unsafe fn as_ptr_ptr(&self) -> *const cl_event;
     /// Returns the number of items in this wait list.
     fn count (&self) -> u32;
+}
+
+unsafe impl<'a, W> ClWaitListPtr for Ref<'a, W> where W: ClWaitListPtr {
+    unsafe fn as_ptr_ptr(&self) -> *const cl_event {
+        (*(*self)).as_ptr_ptr()
+    }
+
+    fn count (&self) -> u32 {
+        0 as u32
+    }
 }
 
 unsafe impl<'a> ClWaitListPtr for &'a [cl_event] {
@@ -583,7 +594,12 @@ unsafe impl<'a> MemCmdAll for &'a mut Mem {}
 unsafe impl Sync for Mem {}
 unsafe impl Send for Mem {}
 
+/// A pointer to a region of mapped (pinned) memory.
+//
+// [NOTE]: Do not derive/impl `Clone`. Will not be thread safe without a mutex.
+//
 #[repr(C)]
+#[derive(Debug)]
 pub struct MemMap<T: OclPrm>(*mut T);
 
 impl<T: OclPrm> MemMap<T> {
@@ -1093,7 +1109,7 @@ impl Drop for Event {
     fn drop(&mut self) {
         if !self.0.is_null() {
             // Ignore errors here, some platforms just suck.
-            unsafe { functions::release_event(self).ok(); }
+            unsafe { functions::release_event(self).unwrap(); }
         }
     }
 }
