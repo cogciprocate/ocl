@@ -12,9 +12,8 @@ extern crate ocl;
 
 use std::cell::Cell;
 use std::collections::VecDeque;
-use futures::{stream, Sink, Stream};
+use futures::{stream, Stream};
 use futures::future::{Future};
-use futures::sync::mpsc;
 use futures_cpupool::CpuPool;
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, Event};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
@@ -127,11 +126,11 @@ pub fn main() {
             .enq().unwrap();
 
         // (2) READ: Read results and verify them:
-        let mut future_read_data = read_buf.cmd().map().flags(MapFlags::read())
+        let future_read_data = read_buf.cmd().map().flags(MapFlags::read())
             .ewait(&kern_event)
             .enq_async().unwrap();
 
-        let read_unmap_event = future_read_data.create_unmap_event().unwrap().clone();
+        // let read_unmap_event = future_read_data.create_unmap_event().unwrap().clone();
 
         let read = future_read_data.and_then(move |data| {
                 let mut val_count = 0usize;
@@ -160,7 +159,7 @@ pub fn main() {
 
     println!("Running tasks...");
     let create_duration = chrono::Local::now() - start_time;
-    let mut correct_val_count = Cell::new(0usize);
+    let correct_val_count = Cell::new(0usize);
 
     stream::futures_unordered(offloads).for_each(|(task_id, val_count)| {
         correct_val_count.set(correct_val_count.get() + val_count);

@@ -191,6 +191,10 @@ unsafe impl<T: OclPrm> Sync for FutureMemMap<T> {}
 ///
 /// Still in a state of flux but is ~80% stable.
 ///
+//
+// [NOTE]: Do not derive/impl `Clone`. Will not be thread safe without a mutex.
+//
+#[derive(Debug)]
 pub struct MemMap<T: OclPrm> {
     core: MemMapCore<T>,
     len: usize,
