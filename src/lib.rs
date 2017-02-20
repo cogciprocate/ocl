@@ -275,11 +275,12 @@ bitflags! {
 }
 
 impl DeviceType {
-    #[inline] pub fn system_default() -> DeviceType { DEVICE_TYPE_DEFAULT }
-    #[inline] pub fn cpu() -> DeviceType { DEVICE_TYPE_CPU }
-    #[inline] pub fn gpu() -> DeviceType { DEVICE_TYPE_GPU }
-    #[inline] pub fn accelerator() -> DeviceType { DEVICE_TYPE_ACCELERATOR }
-    #[inline] pub fn custom() -> DeviceType { DEVICE_TYPE_CUSTOM }
+    #[inline] pub fn new() -> DeviceType { DeviceType::empty() }
+    #[inline] pub fn system_default(self) -> DeviceType { self | DEVICE_TYPE_DEFAULT }
+    #[inline] pub fn cpu(self) -> DeviceType { self | DEVICE_TYPE_CPU }
+    #[inline] pub fn gpu(self) -> DeviceType { self | DEVICE_TYPE_GPU }
+    #[inline] pub fn accelerator(self) -> DeviceType { self | DEVICE_TYPE_ACCELERATOR }
+    #[inline] pub fn custom(self) -> DeviceType { self | DEVICE_TYPE_CUSTOM }
     // #[inline] pub fn all() -> DeviceType { DEVICE_TYPE_ALL }
 }
 
@@ -323,8 +324,9 @@ bitflags! {
 }
 
 impl CommandQueueProperties {
-    #[inline] pub fn out_of_order() -> CommandQueueProperties { QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE }
-    #[inline] pub fn profiling() -> CommandQueueProperties { QUEUE_PROFILING_ENABLE }
+    #[inline] pub fn new() -> CommandQueueProperties { CommandQueueProperties::empty() }
+    #[inline] pub fn out_of_order(self) -> CommandQueueProperties { self | QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE }
+    #[inline] pub fn profiling(self) -> CommandQueueProperties { self | QUEUE_PROFILING_ENABLE }
 }
 
 impl Default for CommandQueueProperties {
@@ -362,15 +364,16 @@ bitflags! {
 }
 
 impl MemFlags {
-    #[inline] pub fn read_write() -> MemFlags { MEM_READ_WRITE }
-    #[inline] pub fn write_only() -> MemFlags { MEM_WRITE_ONLY }
-    #[inline] pub fn read_only() -> MemFlags { MEM_READ_ONLY }
-    #[inline] pub fn use_host_ptr() -> MemFlags { MEM_USE_HOST_PTR }
-    #[inline] pub fn alloc_host_ptr() -> MemFlags { MEM_ALLOC_HOST_PTR }
-    #[inline] pub fn copy_host_ptr() -> MemFlags { MEM_COPY_HOST_PTR }
-    #[inline] pub fn host_write_only() -> MemFlags { MEM_HOST_WRITE_ONLY }
-    #[inline] pub fn host_read_only() -> MemFlags { MEM_HOST_READ_ONLY }
-    #[inline] pub fn host_no_access() -> MemFlags { MEM_HOST_NO_ACCESS }
+    #[inline] pub fn new() -> MemFlags { MemFlags::empty() }
+    #[inline] pub fn read_write(self) -> MemFlags { self | MEM_READ_WRITE }
+    #[inline] pub fn write_only(self) -> MemFlags { self | MEM_WRITE_ONLY }
+    #[inline] pub fn read_only(self) -> MemFlags { self | MEM_READ_ONLY }
+    #[inline] pub fn use_host_ptr(self) -> MemFlags { self | MEM_USE_HOST_PTR }
+    #[inline] pub fn alloc_host_ptr(self) -> MemFlags { self | MEM_ALLOC_HOST_PTR }
+    #[inline] pub fn copy_host_ptr(self) -> MemFlags { self | MEM_COPY_HOST_PTR }
+    #[inline] pub fn host_write_only(self) -> MemFlags { self | MEM_HOST_WRITE_ONLY }
+    #[inline] pub fn host_read_only(self) -> MemFlags { self | MEM_HOST_READ_ONLY }
+    #[inline] pub fn host_no_access(self) -> MemFlags { self | MEM_HOST_NO_ACCESS }
 }
 
 impl Default for MemFlags {
@@ -397,9 +400,10 @@ bitflags! {
 }
 
 impl MapFlags {
-    #[inline] pub fn read() -> MapFlags { MAP_READ }
-    #[inline] pub fn write() -> MapFlags { MAP_WRITE }
-    #[inline] pub fn write_invalidate_region() -> MapFlags { MAP_WRITE_INVALIDATE_REGION }
+    #[inline] pub fn new() -> MapFlags { MapFlags::empty() }
+    #[inline] pub fn read(self) -> MapFlags { self | MAP_READ }
+    #[inline] pub fn write(self) -> MapFlags { self | MAP_WRITE }
+    #[inline] pub fn write_invalidate_region(self) -> MapFlags { self | MAP_WRITE_INVALIDATE_REGION }
 }
 
 impl Default for MapFlags {
