@@ -78,10 +78,6 @@ See the the remainder of [`examples/trivial.rs`] for more information about
 how this library leverages Rust's zero-cost abstractions to provide the full
 power and performance of the C API in a simple package.
 
-Also see the new [alloc_async] example for an assortment of more advanced
-uses.
-
-
 ## Development Status
 
 More feedback needed before we can start to stabilize. File an issue just to
@@ -179,7 +175,6 @@ additional terms or conditions.
 permission by Khronos.”* <br/>*“Vulkan and the Vulkan logo are trademarks of
 the Khronos Group Inc.”*
 
-[alloc_async]: https://github.com/cogciprocate/ocl/blob/master/examples/alloc_async.rs
 [OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
 [AMD]: https://software.intel.com/en-us/intel-opencl/download
 [`ocl-core`]: https://github.com/cogciprocate/ocl-core

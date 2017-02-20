@@ -47,6 +47,7 @@ Breaking Changes
     ```.arg_buf_named::<f32, Buffer<f32>>("buf", None)```.
 * `Queue::new` now takes a third argument: `properties` (details below in
   ocl-core section).
+* `Queue::finish` now returns a result instead of unwrapping.
 * `Buffer::from_gl_buffer`, `Buffer::set_default_queue`,
   `ImageBuilder::build`, `ImageBuilder::build_with_data`, `Image::new`,
   `Image::from_gl_texture`, `Image::from_gl_renderbuffer`,

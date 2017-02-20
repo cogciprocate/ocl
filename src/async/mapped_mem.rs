@@ -216,17 +216,21 @@ impl<T> MemMap<T>  where T: OclPrm {
         }
     }
 
+    // [TODO]: MAKE THIS A COMMANDBUILDERTHINGY:
+    pub fn unmap() {
+        unimplemented!();
+    }
+
     /// Enqueues an unmap command for this memory object immediately.
     ///
     //
     // [NOTE]: Passing `enew_opt` is yet untested.
     pub fn enqueue_unmap<Ewl, En>(&mut self, queue: Option<&CommandQueue>, ewait_opt: Option<Ewl>,
-            mut enew_opt: Option<En>)
-            -> AsyncResult<()>
+            mut enew_opt: Option<En>) -> AsyncResult<()>
             where En: ClNullEventPtr, Ewl: ClWaitListPtr
     {
         if !self.is_unmapped {
-            let mut new_event_opt = if self.unmap_target.is_some() || enew_opt.is_some() {
+            let mut origin_event_opt = if self.unmap_target.is_some() || enew_opt.is_some() {
                 Some(EventCore::null())
             } else {
                 None
@@ -235,28 +239,28 @@ impl<T> MemMap<T>  where T: OclPrm {
             // print!("MemMap::enqueue_unmap: 'core::enqueue_unmap_mem_object' (PRE): \n\
             //     {t}{t}Unmapping with: \n\
             //     {t}{t}- ewait_opt: {:?}, \n\
-            //     {t}{t}- new_event_opt: {:?}",
-            //     &ewait_opt, &new_event_opt, t="  ");
+            //     {t}{t}- origin_event_opt: {:?}",
+            //     &ewait_opt, &origin_event_opt, t="  ");
 
             core::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
-                &self.core, ewait_opt, new_event_opt.as_mut())?;
+                &self.core, ewait_opt, origin_event_opt.as_mut())?;
 
-            // println!(" --> (POST): {:?}", &new_event_opt);
+            // println!(" --> (POST): {:?}", &origin_event_opt);
 
             self.is_unmapped = true;
 
-            if let Some(new_event) = new_event_opt {
-                // new_event refcount: 1
+            if let Some(origin_event) = origin_event_opt {
+                // origin_event refcount: 1
 
                 // If enew_opt is `Some`, update its internal event ptr.
                 if let Some(ref mut enew) = enew_opt {
                     // println!("- ::enqueue_unmap: 'Some(ref mut enew) = enew_opt'.");
                     unsafe {
                         // Should be equivalent to `.clone().into_raw()` [TODO]: test.
-                        core::retain_event(&new_event)?;
-                        *(enew.alloc_new()) = *(new_event.as_ptr_ref());
-                        // new_event/enew refcount: 2
-                        // println!("- ::enqueue_unmap: '*(enew.alloc_new()) = *(new_event.as_ptr_ref())' has been set.");
+                        core::retain_event(&origin_event)?;
+                        *(enew.alloc_new()) = *(origin_event.as_ptr_ref());
+                        // origin_event/enew refcount: 2
+                        // println!("- ::enqueue_unmap: '*(enew.alloc_new()) = *(origin_event.as_ptr_ref())' has been set.");
                     }
                 }
 
@@ -265,25 +269,28 @@ impl<T> MemMap<T>  where T: OclPrm {
                     if self.unmap_target.is_some() {
 
                         // // [DEBUG]:
-                        // println!("Registering event trigger...");
+                        // println!("Registering event trigger (complete: {})...", origin_event.is_complete().unwrap());
 
                         #[cfg(not(feature = "disable_event_callbacks"))]
-                        self.register_event_trigger(&new_event)?;
+                        self.register_event_trigger(&origin_event)?;
 
-                        // `new_event` will be reconstructed by the callback
+                        // `origin_event` will be reconstructed by the callback
                         // function using `UserEvent::from_raw` and `::drop`
                         // will be run there. Do not also run it here.
                         #[cfg(not(feature = "disable_event_callbacks"))]
-                        mem::forget(new_event);
+                        mem::forget(origin_event);
                     }
                 } else {
                     // Blocking version:
                     if let Some(ref mut um_tar) = self.unmap_target {
-                        new_event.wait_for()?;
+                        origin_event.wait_for()?;
                         um_tar.set_complete()?;
                     }
                 }
             }
+
+            // core::flush(&self.queue)?;
+            // println!("MemMap::enqueue_unmap: Queue flushed.");
 
             // println!("- ::enqueue_unmap: Returning 'Ok(())'....");
 
@@ -302,6 +309,8 @@ impl<T> MemMap<T>  where T: OclPrm {
                 unsafe {
                     let unmap_target_ptr = ev.clone().into_raw();
                     event.set_callback(Some(core::_complete_user_event), unmap_target_ptr)?;
+
+                    // core::flush(&self.queue)?;
 
                     // // [DEBUG]:
                     // println!("Callback set from trigger: {:?} to target: {:?}", event, unmap_target_ptr);
@@ -332,6 +341,7 @@ impl<T> MemMap<T>  where T: OclPrm {
     #[inline] pub fn is_unmapped(&self) -> bool { self.is_unmapped }
     #[inline] pub fn as_ptr(&self) -> *const T { self.core.as_ptr() }
     #[inline] pub fn as_mut_ptr(&mut self) -> *mut T { self.core.as_mut_ptr() }
+    #[inline] pub fn queue(&self) -> &CommandQueue { &self.queue }
 }
 
 impl<T> Deref for MemMap<T> where T: OclPrm {
@@ -366,6 +376,9 @@ impl<T: OclPrm> Drop for MemMap<T> {
             // core::flush(&self.queue).unwrap();
             // core::finish(&self.queue).unwrap();
         }
+
+        // // [DEBUG]:
+        // println!("MemMap::drop: Unmap enqueued.");
     }
 
     #[cfg(feature = "disable_event_callbacks")]
