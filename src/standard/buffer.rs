@@ -1293,7 +1293,7 @@ impl<T: OclPrm> Buffer<T> {
     /// `buffer.set_default_queue(queue).read(....);`
     ///
     #[inline]
-    pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut Buffer<T> {
+    pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Buffer<T> {
         assert!(queue.device() == self.queue.device());
         self.queue = queue.clone();
         self
@@ -1594,7 +1594,7 @@ impl<T: OclPrm> SubBuffer<T> {
     /// `buffer.set_default_queue(queue).read(....);`
     ///
     #[inline]
-    pub fn set_default_queue<'a>(&'a mut self, queue: &Queue) -> &'a mut SubBuffer<T> {
+    pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut SubBuffer<T> {
         assert!(queue.device() == self.queue.device());
         self.queue = queue.clone();
         self

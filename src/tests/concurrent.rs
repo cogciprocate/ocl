@@ -127,7 +127,7 @@ fn main_from_example() {
 
                     // Change queues around just for fun:
                     kernel.cmd().enew(&mut event_list).enq().unwrap();
-                    kernel.set_default_queue(queueball_th[1].clone()).unwrap().enq().unwrap();
+                    kernel.set_default_queue(queueball_th[1].clone()).enq().unwrap();
                     kernel.cmd().queue(&queueball_th[2]).enq().unwrap();
 
                     // Sleep just so the results don't print too quickly.
@@ -137,7 +137,7 @@ fn main_from_example() {
                     event_list.wait_for().unwrap();
 
                     // Again, just playing with queues...
-                    buffer.set_default_queue(&queueball_th[2]).read(&mut vec).enq().unwrap();
+                    buffer.set_default_queue(queueball_th[2].clone()).read(&mut vec).enq().unwrap();
                     buffer.read(&mut vec).queue(&queueball_th[1]).enq().unwrap();
                     buffer.read(&mut vec).queue(&queueball_th[0]).enq().unwrap();
                     buffer.read(&mut vec).enq().unwrap();

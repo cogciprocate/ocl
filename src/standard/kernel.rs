@@ -431,10 +431,10 @@ impl Kernel {
     /// The new queue must be associated with a device associated with the
     /// kernel's program.
     ///
-    pub fn set_default_queue(&mut self, queue: Queue) -> OclResult<&mut Kernel> {
+    pub fn set_default_queue(&mut self, queue: Queue) -> &mut Kernel {
         // self.command_queue_obj_core = queue.core().clone();
         self.queue = queue;
-        Ok(self)
+        self
     }
 
     /// Returns the default `core::CommandQueue` for this kernel.

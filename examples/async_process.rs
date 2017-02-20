@@ -1,13 +1,13 @@
+//! Use a thread pool to offload host pre- and post-processing on multiple
+//! asynchronous tasks.
+//!
+//!
+//!
 
-extern crate libc;
 extern crate futures;
 extern crate futures_cpupool;
-extern crate tokio_core;
-extern crate tokio_timer;
-extern crate rand;
 extern crate chrono;
 extern crate ocl;
-#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate colorify;
 
 use std::cell::Cell;
@@ -129,8 +129,6 @@ pub fn main() {
         let future_read_data = read_buf.cmd().map().flags(MapFlags::read())
             .ewait(&kern_event)
             .enq_async().unwrap();
-
-        // let read_unmap_event = future_read_data.create_unmap_event().unwrap().clone();
 
         let read = future_read_data.and_then(move |data| {
                 let mut val_count = 0usize;

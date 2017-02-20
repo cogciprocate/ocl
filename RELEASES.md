@@ -36,6 +36,14 @@ Breaking Changes
   * [FIXME] `::copy` signature change (`offset` and `len` (size))
   * [FIXME] `::enew`, `::enew_opt`, `::ewait`,  and `::ewait_opt` signature
     changes (trait obj -> enum)
+* `Buffer::is_empty` has been removed.
+* `Buffer::from_gl_buffer`, `Buffer::set_default_queue`,
+  `ImageBuilder::build`, `ImageBuilder::build_with_data`, `Image::new`,
+  `Image::from_gl_texture`, `Image::from_gl_renderbuffer`,
+  `Image::set_default_queue`, `Kernel::new`, `Kernel::set_default_queue` now
+  take an owned `Queue` instead of a `&Queue` (clone it yourself).
+* `Kernel::set_default_queue` no longer result-wraps its `&'mut Kernel` return
+  value.
 * `Kernel` named argument declaration functions such as `::arg_buf_named` or
   `::set_arg_img_named` called with a `None` variant must now specify the full
   type of the image, buffer, or sub-buffer which will be used for that
@@ -48,12 +56,6 @@ Breaking Changes
 * `Queue::new` now takes a third argument: `properties` (details below in
   ocl-core section).
 * `Queue::finish` now returns a result instead of unwrapping.
-* `Buffer::from_gl_buffer`, `Buffer::set_default_queue`,
-  `ImageBuilder::build`, `ImageBuilder::build_with_data`, `Image::new`,
-  `Image::from_gl_texture`, `Image::from_gl_renderbuffer`,
-  `Image::set_default_queue`, `Kernel::new`, `Kernel::set_default_queue` now
-  accept a `Queue` instead of a `&Queue`.
-* `Buffer::is_empty` has been removed.
 * `Program::new` has had its arguments rearranged for consistency.
 * `Event::wait` and `EventList::wait` have both been renamed to `::wait_for`.
 * [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
