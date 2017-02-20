@@ -9,7 +9,7 @@ use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion,
     MapFlags, AsMem, MemCmdRw, MemCmdAll, Event as EventCore, ClNullEventPtr};
-use ::{Queue, SpatialDims, FutureMemMap, MemMap};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, MemLen};
 #[cfg(feature = "experimental_async_rw")]
 use standard::{Event, _unpark_task, box_raw_void};
@@ -1109,8 +1109,87 @@ impl<'c, T> Deref for BufferMapCmd<'c, T> where T: OclPrm {
     #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
 }
 
-impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm{
+impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm {
     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
+}
+
+
+#[derive(Debug, Clone)]
+pub enum QueueOption {
+    Queue(Queue),
+    Context(Context),
+    None,
+}
+
+
+/// A buffer builder.
+#[derive(Debug, Clone)]
+pub struct BufferBuilder<'a, T> where T: 'a {
+    // context: Option<Context>,
+    // queue: Option<Queue>,
+    queue_option: QueueOption,
+    flags: Option<MemFlags>,
+    dims: Option<SpatialDims>,
+    data: Option<&'a [T]>,
+    init_val: Option<T>
+}
+
+impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
+    pub fn new() -> BufferBuilder<'a, T> {
+        BufferBuilder {
+            // queue: None,
+            queue_option: QueueOption::None,
+            flags: None,
+            dims: None,
+            data: None,
+            init_val: None,
+        }
+    }
+
+    pub fn context<'b>(&'b mut self, context: Context) -> &'b mut BufferBuilder<'a, T> {
+        self.queue_option = QueueOption::Context(context);
+        self
+    }
+
+    pub fn queue<'b>(&'b mut self, queue: Queue) -> &'b mut BufferBuilder<'a, T> {
+        self.queue_option = QueueOption::Queue(queue);
+        self
+    }
+
+    pub fn flags<'b>(&'b mut self, flags: MemFlags) -> &'b mut BufferBuilder<'a, T> {
+        self.flags = Some(flags);
+        self
+    }
+
+    pub fn dims<'b>(&'b mut self, dims: SpatialDims) -> &'b mut BufferBuilder<'a, T> {
+        self.dims = Some(dims);
+        self
+    }
+
+    pub fn data<'b>(&'b mut self, data: &'a [T]) -> &'b mut BufferBuilder<'a, T> {
+        self.data = Some(data);
+        self
+    }
+
+    pub fn init_val<'b>(&'b mut self, init_val: T) -> &'b mut BufferBuilder<'a, T> {
+        self.init_val = Some(init_val);
+        self
+    }
+
+    // pub fn build(&mut self) -> Buffer<T> {
+    //     let queue = match self.queue {
+    //         Some(q) => q.clone(),
+    //         None => panic!("ocl::BufferBuilder::build: The default queue must be set with '.queue(...)'."),
+    //     };
+
+    //     let dims = match self.dims {
+    //         Some(d) => d,
+    //         None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
+    //     };
+
+    //     // Buffer::new(queue, )
+
+    // }
 }
 
 
@@ -1131,6 +1210,13 @@ pub struct Buffer<T: OclPrm> {
 }
 
 impl<T: OclPrm> Buffer<T> {
+    /// Returns a new buffer builder.
+    ///
+    /// This is the preferred (and forward compatible) way to create a buffer.
+    pub fn builder<'a>() -> BufferBuilder<'a, T> {
+        BufferBuilder::new()
+    }
+
     /// Creates a new sub-buffer.
     ///
     /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
@@ -1145,7 +1231,10 @@ impl<T: OclPrm> Buffer<T> {
     /// [UNSTABLE]: Arguments may still be in a state of flux.
     ///
     pub fn new<D: Into<SpatialDims>>(queue: Queue, flags_opt: Option<MemFlags>, dims: D,
-                data: Option<&[T]>) -> OclResult<Buffer<T>> {
+                data: Option<&[T]>, init_val: Option<T>) -> OclResult<Buffer<T>> {
+        if data.is_some() && init_val.is_some() { panic!("ocl::Buffer::new: Cannot initialize a \
+            buffer ('init_val') when the 'data' argument is 'Some(...)'.") };
+
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
         let dims: SpatialDims = dims.into();
         let len = dims.to_len();
@@ -1160,6 +1249,10 @@ impl<T: OclPrm> Buffer<T> {
             flags: flags,
             _data: PhantomData,
         };
+
+        if let Some(val) = init_val {
+            try!(buf.cmd().fill(val, None).enq());
+        }
 
         Ok(buf)
     }

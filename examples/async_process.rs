@@ -53,7 +53,7 @@ pub fn main() {
         .devices(device)
         .build().unwrap();
 
-    let queue_flags = Some(CommandQueueProperties::out_of_order());
+    let queue_flags = Some(CommandQueueProperties::new().out_of_order());
     let write_queue = Queue::new(&context, device, queue_flags).unwrap();
     let read_queue = Queue::new(&context, device, queue_flags).unwrap();
     let kern_queue = Queue::new(&context, device, queue_flags).unwrap();
@@ -68,8 +68,8 @@ pub fn main() {
     for task_id in 0..task_count {
         let work_size = 2 << 14;
 
-        let write_buf_flags = Some(MemFlags::read_only() | MemFlags::host_write_only());
-        let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only());
+        let write_buf_flags = Some(MemFlags::new().read_only().host_write_only());
+        let read_buf_flags = Some(MemFlags::new().write_only().host_read_only());
 
         // Create a write and read buffer:
         let write_buf: Buffer<ClFloat4> = Buffer::new(write_queue.clone(),
@@ -96,7 +96,7 @@ pub fn main() {
 
         // (1) WRITE: Map the buffer and write 50's to the entire buffer, then
         // unmap to 'flush' data to the device:
-        let mut future_write_data = write_buf.cmd().map().flags(MapFlags::write_invalidate_region())
+        let mut future_write_data = write_buf.cmd().map().flags(MapFlags::new().write_invalidate_region())
             .ewait(&fill_event)
             .enq_async().unwrap();
 
@@ -126,7 +126,7 @@ pub fn main() {
 
         // (3) READ: Read results and verify that the write and kernel have
         // both completed successfully:
-        let future_read_data = read_buf.cmd().map().flags(MapFlags::read())
+        let future_read_data = read_buf.cmd().map().flags(MapFlags::new().read())
             .ewait(&kern_event)
             .enq_async().unwrap();
 

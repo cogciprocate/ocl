@@ -166,7 +166,6 @@ pub struct Kernel {
 
 impl Kernel {
     /// Returns a new kernel.
-    // TODO: Implement proper error handling (return result etc.).
     pub fn new<S: Into<String>, >(name: S, program: &Program, queue: Queue,
             ) -> OclResult<Kernel>
     {

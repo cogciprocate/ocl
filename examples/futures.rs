@@ -114,8 +114,8 @@ impl Task{
             thread_pool: &CpuPool) -> FutureMemMap<T>
     {
         let (buffer_id, flags) = match *self.cmd_graph.commands()[cmd_idx].details() {
-            CommandDetails::Write { target } => (target, MapFlags::write_invalidate_region()),
-            CommandDetails::Read { source } => (source, MapFlags::read()),
+            CommandDetails::Write { target } => (target, MapFlags::new().write_invalidate_region()),
+            CommandDetails::Read { source } => (source, MapFlags::new().read()),
             _ => panic!("Task::map: Not a write or read command."),
         };
 
@@ -243,8 +243,8 @@ fn gen_kern_src(kernel_name: &str, simple: bool, add: bool) -> String {
 fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPool<ClFloat4>,
     work_size: u32, queue: Queue) -> Result<Task, ()>
 {
-    let write_buf_flags = Some(MemFlags::read_only() | MemFlags::host_write_only());
-    let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only());
+    let write_buf_flags = Some(MemFlags::new().read_only().host_write_only());
+    let read_buf_flags = Some(MemFlags::new().write_only().host_read_only());
 
     // The container for this task:
     let mut task = Task::new(queue.clone());
@@ -318,9 +318,9 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
     // Allocate our buffers:
     let buffer_id_res: Vec<_> = (0..buffer_count).map(|i| {
         let flags = match i {
-            0 => Some(MemFlags::read_only() | MemFlags::host_write_only()),
-            1...5 => Some(MemFlags::read_write() | MemFlags::host_no_access()),
-            6 => Some(MemFlags::write_only() | MemFlags::host_read_only()),
+            0 => Some(MemFlags::new().read_only().host_write_only()),
+            1...5 => Some(MemFlags::new().read_write().host_no_access()),
+            6 => Some(MemFlags::new().write_only().host_read_only()),
             _ => panic!("Only 7 buffers are configured."),
         };
 
@@ -552,8 +552,8 @@ fn main() {
         .build().unwrap();
 
     // Out of order queues (coordinated by the command graph):
-    let io_queue = Queue::new(&context, device, Some(CommandQueueProperties::out_of_order())).unwrap();
-    let kern_queue = Queue::new(&context, device, Some(CommandQueueProperties::out_of_order())).unwrap();
+    let io_queue = Queue::new(&context, device, Some(CommandQueueProperties::new().out_of_order())).unwrap();
+    let kern_queue = Queue::new(&context, device, Some(CommandQueueProperties::new().out_of_order())).unwrap();
 
     let thread_pool = CpuPool::new_num_cpus();
     let mut buf_pool: BufferPool<ClFloat4> = BufferPool::new(INITIAL_BUFFER_LEN, io_queue);

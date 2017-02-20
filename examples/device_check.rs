@@ -72,12 +72,12 @@ pub fn create_queues(device: Device, context: &Context, out_of_order: bool)
         -> (Queue, Queue, Queue)
 {
     let ooo_flag = if out_of_order {
-        CommandQueueProperties::out_of_order()
+        CommandQueueProperties::new().out_of_order()
     } else {
         CommandQueueProperties::empty()
     };
 
-    let flags = Some( ooo_flag | CommandQueueProperties::profiling());
+    let flags = Some( ooo_flag | CommandQueueProperties::new().profiling());
 
     let write_queue = Queue::new(&context, device, flags.clone()).unwrap();
     let kernel_queue = Queue::new(&context, device, flags.clone()).unwrap();
@@ -366,14 +366,16 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     let (write_queue, kernel_queue, read_queue) = create_queues(device, &context, cfg.queue_out_of_order);
 
     let ahp_flag = if cfg.misc.alloc_host_ptr {
-        MemFlags::alloc_host_ptr()
+        MemFlags::new().alloc_host_ptr()
     } else {
         MemFlags::empty()
     };
 
     // Create buffers:
-    let write_buf_flags = Some(MemFlags::read_only() | MemFlags::host_write_only() | ahp_flag);
-    let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only() | ahp_flag);
+    // let write_buf_flags = Some(MemFlags::read_only() | MemFlags::host_write_only() | ahp_flag);
+    let write_buf_flags = Some(ahp_flag.read_only().host_write_only());
+    // let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only() | ahp_flag);
+    let read_buf_flags = Some(ahp_flag.write_only().host_read_only());
 
     let source_buf = Buffer::<ClFloat4>::new(write_queue.clone(), write_buf_flags, work_size,
         None)?;
@@ -418,7 +420,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
 
         let mut mapped_mem = if cfg.futures {
             let future_mem = source_buf.cmd().map()
-                .flags(MapFlags::write_invalidate_region())
+                .flags(MapFlags::new().write_invalidate_region())
                 // .flags(MapFlags::write())
                 .ewait(&wait_events)
                 // .enew(&mut map_event)
@@ -447,7 +449,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                     source_buf.default_queue(),
                     source_buf.core(),
                     !cfg.async_write,
-                    MapFlags::write_invalidate_region(),
+                    MapFlags::new().write_invalidate_region(),
                     // MapFlags::write(),
                     0,
                     source_buf.len(),
@@ -566,7 +568,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                 target_buf.default_queue(),
                 target_buf.core(),
                 false,
-                MapFlags::read(),
+                MapFlags::new().read(),
                 0,
                 target_buf.len(),
                 Some(&kern_event),
