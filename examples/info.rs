@@ -58,7 +58,7 @@ fn main() {
             let device = devices[d_idx];
 
             let queue = Queue::new(&context, device, Some(ocl::core::QUEUE_PROFILING_ENABLE)).unwrap();
-            let buffer = Buffer::<f32>::new(queue.clone(), None, &dims, None).unwrap();
+            let buffer = Buffer::<f32>::new(queue.clone(), None, &dims, None, None).unwrap();
             let image = Image::<u8>::builder()
                 .dims(dims)
                 .build(queue.clone()).unwrap();

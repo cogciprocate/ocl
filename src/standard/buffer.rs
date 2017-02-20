@@ -7,10 +7,10 @@ use std::ops::{Deref, DerefMut};
 use futures::{task, Future, Poll, Async};
 use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
-    MemFlags, MemInfo, MemInfoResult, BufferRegion,
+    MemFlags, MemInfo, MemInfoResult, BufferRegion, Context as ContextCore,
     MapFlags, AsMem, MemCmdRw, MemCmdAll, Event as EventCore, ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap};
-use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, MemLen};
+use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, /*MemLen*/};
 #[cfg(feature = "experimental_async_rw")]
 use standard::{Event, _unpark_task, box_raw_void};
 
@@ -161,7 +161,7 @@ pub enum BufferCmdDataShape {
 //     mem_len: usize,
 // }
 pub struct BufferCmd<'c, T> where T: 'c {
-    queue: &'c Queue,
+    queue: Option<&'c Queue>,
     obj_core: &'c MemCore,
     block: bool,
     // lock_block: bool,
@@ -177,7 +177,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// Returns a new buffer command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `mem_len`
     /// (the length of the device side buffer).
-    pub fn new(queue: &'c Queue, obj_core: &'c MemCore, mem_len: usize)
+    pub fn new(queue: Option<&'c Queue>, obj_core: &'c MemCore, mem_len: usize)
             -> BufferCmd<'c, T>
     {
         BufferCmd {
@@ -363,7 +363,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferCmd<'c, T> {
-        self.queue = queue;
+        self.queue = Some(queue);
         self
     }
 
@@ -488,6 +488,11 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// Enqueues this command.
     ///
     pub fn enq(self) -> OclResult<()> {
+        let queue = match self.queue {
+            Some(q) => q,
+            None => return Err("BufferCmd::enq: No queue set.".into()),
+        };
+
         match self.kind {
             BufferCmdKind::Copy { dst_buffer, dst_offset, len } => {
                 match self.shape {
@@ -496,7 +501,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                         try!(check_len(self.mem_len, len, offset));
                         let dst_offset = dst_offset.unwrap_or(0);
 
-                        core::enqueue_copy_buffer::<T, _, _, _>(self.queue,
+                        core::enqueue_copy_buffer::<T, _, _, _>(queue,
                             self.obj_core, dst_buffer, offset, dst_offset, len,
                             self.ewait, self.enew)
                     },
@@ -509,7 +514,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                             'cmd().copy(&{{buf_name}}, None, None)..'.");
                         }
 
-                        core::enqueue_copy_buffer_rect::<T, _, _, _>(self.queue, self.obj_core, dst_buffer,
+                        core::enqueue_copy_buffer_rect::<T, _, _, _>(queue, self.obj_core, dst_buffer,
                             src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
                             dst_row_pitch, dst_slc_pitch, self.ewait, self.enew)
                     },
@@ -525,18 +530,18 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 
                         try!(check_len(self.mem_len, len, offset));
 
-                        core::enqueue_fill_buffer(self.queue, self.obj_core, pattern,
-                            offset, len, self.ewait, self.enew, Some(&self.queue.device_version()))
+                        core::enqueue_fill_buffer(queue, self.obj_core, pattern,
+                            offset, len, self.ewait, self.enew, Some(&queue.device_version()))
                     },
                     BufferCmdDataShape::Rect { .. } => OclError::err_string("ocl::BufferCmd::enq(): \
                         Rectangular fill is not a valid operation. Please use the default shape, linear.")
                 }
             },
             BufferCmdKind::GLAcquire => {
-                core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+                core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
             },
             BufferCmdKind::GLRelease => {
-                core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+                core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
             },
             BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
@@ -557,7 +562,7 @@ pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
 impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferReadCmd<'c, 'd, T> {
-        self.queue = queue;
+        self.queue = Some(queue);
         self
     }
 
@@ -672,13 +677,18 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// Enqueues this command.
     ///
     pub fn enq(self) -> OclResult<()> {
+        let queue = match self.cmd.queue {
+            Some(q) => q,
+            None => return Err("BufferCmd::enq: No queue set.".into()),
+        };
+
         match self.cmd.kind {
             BufferCmdKind::Read => {
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.cmd.mem_len, self.data.len(), offset));
 
-                        unsafe { core::enqueue_read_buffer(self.cmd.queue, self.cmd.obj_core, self.block,
+                        unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, self.block,
                             offset, self.data, self.cmd.ewait, self.cmd.enew) }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
@@ -687,7 +697,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         // Verify dims given.
                         // try!(Ok(()));
 
-                        unsafe { core::enqueue_read_buffer_rect(self.cmd.queue, self.cmd.obj_core,
+                        unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
                             self.block, src_origin, dst_origin, region, src_row_pitch,
                             src_slc_pitch, dst_row_pitch, dst_slc_pitch, self.data,
                             self.cmd.ewait, self.cmd.enew) }
@@ -703,6 +713,11 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     #[allow(unused_unsafe)]
     #[cfg(feature = "experimental_async_rw")]
     pub unsafe fn enq_unsafely(mut self) -> OclResult<ReadCompletion<'d, T>> {
+        let queue = match self.queue {
+            Some(q) => q,
+            None => return Err("BufferCmd::enq: No queue set.".into()),
+        };
+
         match self.cmd.kind {
             BufferCmdKind::Read => {
                 // let data = unsafe { std::mem::replace(data, std::mem::uninitialized()) };
@@ -762,7 +777,7 @@ pub struct BufferWriteCmd<'c, 'd, T> where T: 'c + 'd {
 impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferWriteCmd<'c, 'd, T> {
-        self.queue = queue;
+        self.queue = Some(queue);
         self
     }
 
@@ -875,19 +890,24 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
     /// Enqueues this command.
     pub fn enq(self) -> OclResult<()> {
+        let queue = match self.cmd.queue {
+            Some(q) => q,
+            None => return Err("BufferCmd::enq: No queue set.".into()),
+        };
+
         match self.cmd.kind {
             BufferCmdKind::Write => {
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.cmd.mem_len, self.data.len(), offset));
 
-                        core::enqueue_write_buffer(self.cmd.queue, self.cmd.obj_core, self.block,
+                        core::enqueue_write_buffer(queue, self.cmd.obj_core, self.block,
                             offset, self.data, self.cmd.ewait, self.cmd.enew)
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
                             dst_row_pitch, dst_slc_pitch } =>
                     {
-                        core::enqueue_write_buffer_rect(self.cmd.queue, self.cmd.obj_core,
+                        core::enqueue_write_buffer_rect(queue, self.cmd.obj_core,
                             self.block, src_origin, dst_origin, region, src_row_pitch,
                             src_slc_pitch, dst_row_pitch, dst_slc_pitch, self.data,
                             self.cmd.ewait, self.cmd.enew)
@@ -902,6 +922,11 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     #[allow(unused_unsafe)]
     #[cfg(feature = "experimental_async_rw")]
     pub fn enq_unsafely(self) -> OclResult<()> {
+        let queue = match self.queue {
+            Some(q) => q,
+            None => return Err("BufferCmd::enq: No queue set.".into()),
+        };
+
         match self.cmd.kind {
             BufferCmdKind::Write => {
                 match self.cmd.shape {
@@ -958,7 +983,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferMapCmd<'c, T> {
-        self.queue = queue;
+        self.queue = Some(queue);
         self
     }
 
@@ -1013,6 +1038,11 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// For all other operation types use `::map` instead.
     ///
     pub fn enq(mut self) -> OclResult<MemMap<T>> {
+        let queue = match self.cmd.queue {
+            Some(q) => q,
+            None => return Err("BufferCmd::enq: No queue set.".into()),
+        };
+
         match self.cmd.kind {
             BufferCmdKind::Map => {
                 match self.cmd.shape {
@@ -1026,14 +1056,14 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                         let flags = self.flags.unwrap_or(MapFlags::empty());
 
                         unsafe {
-                            let mm_core = core::enqueue_map_buffer::<T, _, _, _>(self.cmd.queue,
+                            let mm_core = core::enqueue_map_buffer::<T, _, _, _>(queue,
                                 self.cmd.obj_core, true, flags, offset, len, self.cmd.ewait.take(),
                                 self.cmd.enew.take())?;
 
                             let unmap_event = None;
 
                             Ok(MemMap::new(mm_core, len, unmap_event, self.cmd.obj_core.clone(),
-                                self.cmd.queue.core().clone()))
+                                queue.core().clone()))
                         }
                     },
                     BufferCmdDataShape::Rect { .. } => {
@@ -1055,6 +1085,11 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// For all other operation types use `::map` instead.
     ///
     pub fn enq_async(mut self) -> OclResult<FutureMemMap<T>> {
+        let queue = match self.cmd.queue {
+            Some(q) => q,
+            None => return Err("BufferCmd::enq: No queue set.".into()),
+        };
+
         match self.cmd.kind {
             BufferCmdKind::Map => {
                 if let BufferCmdDataShape::Lin { offset } = self.shape {
@@ -1070,7 +1105,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                     let future = unsafe {
                         let mut map_event = EventCore::null();
 
-                        let mm_core = core::enqueue_map_buffer::<T, _, _, _>(self.queue,
+                        let mm_core = core::enqueue_map_buffer::<T, _, _, _>(queue,
                             self.obj_core, false, flags, offset, len, self.ewait.take(),
                             Some(&mut map_event))?;
 
@@ -1086,7 +1121,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                         }
 
                         FutureMemMap::new(mm_core, len, map_event, self.obj_core.clone(),
-                            self.queue.core().clone())
+                            queue.core().clone())
 
                     };
 
@@ -1121,11 +1156,52 @@ pub enum QueueOption {
     None,
 }
 
+impl QueueOption {
+    pub fn context_core(&self) -> Option<&ContextCore> {
+        match *self {
+            QueueOption::Queue(ref q) => Some(q.context_core()),
+            QueueOption::Context(ref c) => Some(c),
+            QueueOption::None => None,
+        }
+    }
+
+    pub fn queue(&self) -> Option<&Queue> {
+        match *self {
+            QueueOption::Queue(ref q) => Some(q),
+            QueueOption::Context(_) => None,
+            QueueOption::None => None,
+        }
+    }
+}
+
+impl From<Queue> for QueueOption {
+    fn from(q: Queue) -> QueueOption {
+        QueueOption::Queue(q)
+    }
+}
+
+impl<'a> From<&'a Queue> for QueueOption {
+    fn from(q: &Queue) -> QueueOption {
+        QueueOption::Queue(q.clone())
+    }
+}
+
+impl From<Context> for QueueOption {
+    fn from(c: Context) -> QueueOption {
+        QueueOption::Context(c)
+    }
+}
+
+impl<'a> From<&'a Context> for QueueOption {
+    fn from(c: &Context) -> QueueOption {
+        QueueOption::Context(c.clone())
+    }
+}
+
 
 /// A buffer builder.
 #[derive(Debug, Clone)]
 pub struct BufferBuilder<'a, T> where T: 'a {
-    // context: Option<Context>,
     // queue: Option<Queue>,
     queue_option: QueueOption,
     flags: Option<MemFlags>,
@@ -1176,20 +1252,20 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
         self
     }
 
-    // pub fn build(&mut self) -> Buffer<T> {
-    //     let queue = match self.queue {
-    //         Some(q) => q.clone(),
-    //         None => panic!("ocl::BufferBuilder::build: The default queue must be set with '.queue(...)'."),
-    //     };
+    pub fn build(&mut self) -> OclResult<Buffer<T>> {
+        if let QueueOption::None = self.queue_option {
+            panic!("ocl::BufferBuilder::build: A context or default queue must be set \
+                with '.context(...)' or '.queue(...)'.");
+        }
 
-    //     let dims = match self.dims {
-    //         Some(d) => d,
-    //         None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
-    //     };
+        let dims = match self.dims {
+            Some(d) => d,
+            None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
+        };
 
-    //     // Buffer::new(queue, )
+        Buffer::new(self.queue_option.clone(), self.flags, dims, self.data, self.init_val)
 
-    // }
+    }
 }
 
 
@@ -1202,7 +1278,8 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
-    queue: Queue,
+    // queue: Queue,
+    queue_opt: QueueOption,
     dims: SpatialDims,
     len: usize,
     flags: MemFlags,
@@ -1230,20 +1307,26 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// [UNSTABLE]: Arguments may still be in a state of flux.
     ///
-    pub fn new<D: Into<SpatialDims>>(queue: Queue, flags_opt: Option<MemFlags>, dims: D,
-                data: Option<&[T]>, init_val: Option<T>) -> OclResult<Buffer<T>> {
+    pub fn new<D, Q>(queue_opt: Q, flags_opt: Option<MemFlags>, dims: D,
+            data: Option<&[T]>, init_val: Option<T>) -> OclResult<Buffer<T>>
+            where D: Into<SpatialDims>, Q: Into<QueueOption>
+    {
         if data.is_some() && init_val.is_some() { panic!("ocl::Buffer::new: Cannot initialize a \
             buffer ('init_val') when the 'data' argument is 'Some(...)'.") };
 
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
         let dims: SpatialDims = dims.into();
         let len = dims.to_len();
-        let obj_core = unsafe { try!(core::create_buffer(queue.context_core(), flags, len,
-            data)) };
+        let queue_opt = queue_opt.into();
+
+        let obj_core = match queue_opt.context_core() {
+            Some(c) => unsafe { core::create_buffer(c, flags, len, data)? },
+            None => panic!("ocl::Buffer::new: A context or default queue must be set."),
+        };
 
         let buf = Buffer {
             obj_core: obj_core,
-            queue: queue,
+            queue_opt: queue_opt,
             dims: dims,
             len: len,
             flags: flags,
@@ -1269,20 +1352,23 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](struct.BufferCmd.html)
     /// for more info.
     ///
-    pub fn from_gl_buffer<D: MemLen>(queue: Queue, flags_opt: Option<MemFlags>, dims: D,
-            gl_object: cl_GLuint) -> OclResult<Buffer<T>> {
+    pub fn from_gl_buffer<D, Q>(queue_opt: Q, flags_opt: Option<MemFlags>, dims: D,
+            gl_object: cl_GLuint) -> OclResult<Buffer<T>>
+            where D: Into<SpatialDims>, Q: Into<QueueOption>
+    {
         let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
-        let dims: SpatialDims = dims.to_lens().into();
+        let dims: SpatialDims = dims.into();
         let len = dims.to_len();
-        let obj_core = unsafe { try!(core::create_from_gl_buffer(
-            queue.context_core(),
-            gl_object,
-            flags))
+        let queue_opt = queue_opt.into();
+
+        let obj_core = match queue_opt.context_core() {
+            Some(cc) => unsafe { core::create_from_gl_buffer(cc, gl_object, flags)? },
+            None => panic!("ocl::Buffer::new: A context or default queue must be set."),
         };
 
         let buf = Buffer {
             obj_core: obj_core,
-            queue: queue,
+            queue_opt: queue_opt,
             dims: dims,
             len: len,
             _data: PhantomData,
@@ -1301,7 +1387,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[inline]
     pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
-        BufferCmd::new(&self.queue, &self.obj_core, self.len)
+        BufferCmd::new(self.queue_opt.queue(), &self.obj_core, self.len)
     }
 
     /// Returns a command builder used to read data.
@@ -1387,16 +1473,18 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[inline]
     pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Buffer<T> {
-        assert!(queue.device() == self.queue.device());
-        self.queue = queue.clone();
+        // [FIXME]: Update this to check whether new queue.device is within
+        // context or matching existing queue.
+        // assert!(queue.device() == self.queue_opt.queue().device());
+        self.queue_opt = queue.into();
         self
     }
 
     /// Returns a reference to the default queue.
     ///
     #[inline]
-    pub fn default_queue(&self) -> &Queue {
-        &self.queue
+    pub fn default_queue(&self) -> Option<&Queue> {
+        self.queue_opt.queue()
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
@@ -1524,7 +1612,8 @@ unsafe impl<'a, T> MemCmdAll for &'a mut Buffer<T> where T: OclPrm {}
 #[derive(Debug, Clone)]
 pub struct SubBuffer<T: OclPrm> {
     obj_core: MemCore,
-    queue: Queue,
+    // queue: Queue,
+    queue_opt: QueueOption,
     origin: SpatialDims,
     size: SpatialDims,
     len: usize,
@@ -1577,7 +1666,7 @@ impl<T: OclPrm> SubBuffer<T> {
 
         Ok(SubBuffer {
             obj_core: obj_core,
-            queue: buffer.default_queue().clone(),
+            queue_opt: buffer.queue_opt.clone(),
             origin: origin,
             size: size,
             len: size_len,
@@ -1596,7 +1685,7 @@ impl<T: OclPrm> SubBuffer<T> {
     ///
     #[inline]
     pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
-        BufferCmd::new(&self.queue, &self.obj_core, self.len)
+        BufferCmd::new(self.queue_opt.queue(), &self.obj_core, self.len)
     }
 
     /// Returns a command builder used to read data.
@@ -1688,15 +1777,18 @@ impl<T: OclPrm> SubBuffer<T> {
     ///
     #[inline]
     pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut SubBuffer<T> {
-        assert!(queue.device() == self.queue.device());
-        self.queue = queue.clone();
+        // [FIXME]: Update this to check whether new queue.device is within
+        // context or matching existing queue.
+        // assert!(queue.device() == self.queue_opt.queue().device());
+        self.queue_opt = queue.into();
         self
     }
 
     /// Returns a reference to the default queue.
+    ///
     #[inline]
-    pub fn default_queue(&self) -> &Queue {
-        &self.queue
+    pub fn default_queue(&self) -> Option<&Queue> {
+        self.queue_opt.queue()
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in

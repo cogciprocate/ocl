@@ -42,7 +42,7 @@ fn buffer_ops_rect() {
     //     flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec), proque.queue()) };
     let buf = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec)).unwrap();
+        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec), None).unwrap();
 
     let kernel_add = proque.create_kernel("add").unwrap()
         .arg_buf(&buf)
@@ -229,7 +229,7 @@ fn buffer_ops_rect() {
     //     flags::MEM_READ_ONLY | flags::MEM_HOST_WRITE_ONLY | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec_src), proque.queue()) };
     let buf_src = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src)).unwrap();
+        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src), None).unwrap();
 
     // Destination Buffer:
     let mut vec_dst = vec![0.0f32; proque.dims().to_len()];
@@ -237,7 +237,7 @@ fn buffer_ops_rect() {
     //     flags::MEM_WRITE_ONLY | flags::MEM_HOST_READ_ONLY | flags::MEM_COPY_HOST_PTR,
     //     proque.dims().to_len().unwrap(), Some(&vec_dst), proque.queue()) };
     let buf_dst = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_dst)).unwrap();
+        core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_dst), None).unwrap();
 
     // Source origin doesn't matter for this:
     let src_origin = [0, 0, 0];

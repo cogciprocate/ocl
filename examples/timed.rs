@@ -48,11 +48,11 @@ fn main() {
     // Create init and result buffers and vectors:
     let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
     let buffer_init = Buffer::new(ocl_pq.queue().clone(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_init)).unwrap();
+        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_init), None).unwrap();
 
     let mut vec_result = vec![0.0f32; DATASET_SIZE];
     let buffer_result = Buffer::<f32>::new(ocl_pq.queue().clone(), None,
-        ocl_pq.dims(), None).unwrap();
+        ocl_pq.dims(), None, None).unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
     let mut kern = ocl_pq.create_kernel("add").unwrap()

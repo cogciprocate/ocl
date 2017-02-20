@@ -378,10 +378,10 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     let read_buf_flags = Some(ahp_flag.write_only().host_read_only());
 
     let source_buf = Buffer::<ClFloat4>::new(write_queue.clone(), write_buf_flags, work_size,
-        None)?;
+        None, None)?;
 
     let target_buf = Buffer::<ClFloat4>::new(read_queue.clone(), read_buf_flags, work_size,
-        None)?;
+        None, None)?;
 
     // Generate kernel source:
     let kern_src = gen_kern_src(cfg.kern.name, cfg.vals.type_str, true, cfg.kern.op_add);
@@ -446,7 +446,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
 
             let new_mm = unsafe {
                 let mm_core = core::enqueue_map_buffer::<ClFloat4, _, _, _>(
-                    source_buf.default_queue(),
+                    &write_queue,
                     source_buf.core(),
                     !cfg.async_write,
                     MapFlags::new().write_invalidate_region(),
@@ -458,7 +458,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                 )?;
 
                 MemMap::new(mm_core, source_buf.len(), None, source_buf.core().clone(),
-                    source_buf.default_queue().core().clone())
+                    write_queue.core().clone())
             };
 
             if let Some(tar_ev) = wire_callback(cfg.event_callback, context, &mut map_event) {
@@ -565,7 +565,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         //###################### cfg.MAP_READ #############################
         unsafe {
             let mm_core = core::enqueue_map_buffer::<ClFloat4, _, _, _>(
-                target_buf.default_queue(),
+                &read_queue,
                 target_buf.core(),
                 false,
                 MapFlags::new().read(),
@@ -576,7 +576,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             )?;
 
             target_map = Some(MemMap::new(mm_core, source_buf.len(), None,
-                source_buf.core().clone(), source_buf.default_queue().core().clone()));
+                source_buf.core().clone(), read_queue.core().clone()));
         }
     } else {
         //##################### !(cfg.MAP_READ) ###########################

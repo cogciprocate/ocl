@@ -33,7 +33,7 @@ fn main() {
     // and 20.0 using a temporary init vector, `vec_source`:
     let vec_source = util::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
     let source_buffer = Buffer::new(ocl_pq.queue().clone(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_source)).unwrap();
+        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_source), None).unwrap();
 
     // Create another empty buffer and vector for results:
     let mut vec_result = vec![0.0f32; DATA_SET_SIZE];

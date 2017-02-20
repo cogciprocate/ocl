@@ -73,9 +73,9 @@ pub fn main() {
 
         // Create a write and read buffer:
         let write_buf: Buffer<ClFloat4> = Buffer::new(write_queue.clone(),
-            write_buf_flags, work_size, None).unwrap();
+            write_buf_flags, work_size, None, None).unwrap();
         let read_buf: Buffer<ClFloat4> = Buffer::new(read_queue.clone(),
-            read_buf_flags, work_size, None).unwrap();
+            read_buf_flags, work_size, None, None).unwrap();
 
         // Create program and kernel:
         let program = Program::builder()

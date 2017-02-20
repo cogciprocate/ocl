@@ -100,7 +100,7 @@ fn main() {
                 let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
                     // let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
                     let mut buffer = Buffer::<f32>::new(queueball_th[0].clone(), None,
-                        &dims_th, None).unwrap();
+                        &dims_th, None, None).unwrap();
                     let mut vec = vec![0.0f32; buffer.len()];
 
                     let mut kernel = Kernel::new("add", &program_th, queueball_th[0].clone()).unwrap()

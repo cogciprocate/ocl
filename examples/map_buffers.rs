@@ -31,7 +31,8 @@ fn scalar_map() {
     let in_buff = ocl::Buffer::new(queue.clone(),
                                    Some(ocl::core::MEM_ALLOC_HOST_PTR),
                                    BUFFER_DIMENSIONS,
-                                   None::<&[f32]>)
+                                   None::<&[f32]>,
+                                   None)
         .expect("Creating buffer failed");
 
     unsafe {
@@ -106,7 +107,8 @@ fn vector_map() {
     let in_buff = ocl::Buffer::new(queue.clone(),
                                    Some(ocl::core::MEM_ALLOC_HOST_PTR),
                                    BUFFER_DIMENSIONS,
-                                   None::<&[ocl::aliases::ClFloat16]>)
+                                   None::<&[ocl::aliases::ClFloat16]>,
+                                   None)
         .expect("Creating buffer failed");
 
     unsafe {
