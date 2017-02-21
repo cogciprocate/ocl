@@ -16,7 +16,6 @@ const DEBUG_PRINT: bool = false;
 pub struct ProQueBuilder {
     platform: Option<Platform>,
     context: Option<Context>,
-    // device_idx: usize,
     device_spec: Option<DeviceSpecifier>,
     program_builder: Option<ProgramBuilder>,
     dims: Option<SpatialDims>,
@@ -39,7 +38,6 @@ impl ProQueBuilder {
         ProQueBuilder {
             platform: None,
             context: None,
-            // device_idx: 0,
             device_spec: None,
             program_builder: None,
             dims: None,
@@ -166,18 +164,6 @@ impl ProQueBuilder {
         self.device_spec = Some(device_spec.into());
         self
     }
-
-    // /// Sets a device index to be used and returns the `ProQueBuilder`.
-    // ///
-    // /// Defaults to `0`, the first available.
-    // ///
-    // /// This index WILL round robin, in other words, it cannot be invalid.
-    // /// If you need to guarantee a certain device, create your parts without
-    // /// using this builder and just call `ProQue::new` directly.
-    // pub fn device_idx<'p>(&'p mut self, device_idx: usize) -> &'p mut ProQueBuilder {
-    //     self.device_idx = device_idx;
-    //     self
-    // }
 
     /// Adds some source code to be compiled and returns the `ProQueBuilder`.
     ///

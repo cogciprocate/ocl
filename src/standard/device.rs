@@ -207,10 +207,7 @@ pub struct Device(DeviceIdCore);
 impl Device {
     /// Returns the first available device on a platform.
     ///
-    ///
-    /// ### Errors
-    ///
-    ///
+    /// Panics upon OpenCL error.
     ///
     pub fn first(platform: Platform) -> Device {
         let first_core = core::get_device_ids(&platform, None, None)
@@ -235,7 +232,6 @@ impl Device {
     /// lists which may contain out of bounds indices.
     ///
     pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclResult<Vec<Device>> {
-        // idxs.iter().map(|&idx| devices.get(idx)).collect()
         let mut result = Vec::with_capacity(idxs.len());
         for &idx in idxs.iter() {
             match devices.get(idx) {
@@ -325,7 +321,6 @@ impl Device {
 
     /// Returns a list of `Device`s from a list of `DeviceIdCore`s
     pub fn list_from_core(mut devices: Vec<DeviceIdCore>) -> Vec<Device> {
-        // devices.into_iter().map(Device).collect()
         use std::mem;
         debug_assert!(mem::size_of::<DeviceIdCore>() == mem::size_of::<Device>());
         unsafe {
@@ -474,7 +469,6 @@ unsafe impl ClDeviceIdPtr for Device {
         self.0.as_ptr()
     }
 }
-// unsafe impl<'a> ClDeviceIdPtr for &'a Device {}
 
 impl From<DeviceIdCore> for Device {
     fn from(core: DeviceIdCore) -> Device {

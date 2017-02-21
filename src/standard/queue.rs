@@ -11,12 +11,19 @@ use standard::{Context, Device};
 /// images.
 ///
 ///
-/// ## Destruction
-///
-/// Underlying queue object is destroyed automatically.
-///
 //
-// TODO: Implement a constructor which accepts a DeviceIdCore.
+// TODO: Consider implementing a constructor which accepts a DeviceIdCore and
+// creates a context and queue from it.
+//
+// [NOTE]: The `context_obj_core` and `device` fields could easily be removed
+// and their values retrieved via `::info`. It's a matter of whether or not
+// the two extra pointers reference count increment/decrement is worth the
+// tradeoff of slower information access. It's a balance between how often the
+// queue is cloned and how often it's queried for info. Right now the balance
+// is heavily in favor of persisting the context and device here due to the
+// frequency of access from various enqueue functions on kernel, buffer, et
+// al. If the enqueuers stored their own context it could be removed here but
+// it doesn't seem worth worrying about.
 //
 #[derive(Clone, Debug)]
 pub struct Queue {

@@ -96,10 +96,6 @@ impl ProgramBuilder {
             None => context.devices(),
         };
 
-        // if device_list.is_empty() {
-        //     return OclError::err_string("ocl::ProgramBuilder::build: No devices found.");
-        // }
-
         match self.il {
             Some(_) => {
                 return Err("ocl::ProgramBuilder::build: Unreachable section (IL).".into());
@@ -130,10 +126,6 @@ impl ProgramBuilder {
             Some(ref ds) => try!(ds.to_device_list(context.platform())),
             None => context.devices().to_owned(),
         };
-
-        // if device_list.is_empty() {
-        //     return OclError::err("ocl::ProgramBuilder::build: No devices found.");
-        // }
 
         match self.il.take() {
             Some(il) => {
@@ -369,10 +361,7 @@ impl ProgramBuilder {
 /// as you please.
 ///
 #[derive(Clone, Debug)]
-pub struct Program {
-    obj_core: ProgramCore,
-    // devices: Vec<Device>,
-}
+pub struct Program(ProgramCore);
 
 impl Program {
     /// Returns a new `ProgramBuilder`.
@@ -391,10 +380,7 @@ impl Program {
         let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts,
              device_ids));
 
-        Ok(Program {
-            obj_core: obj_core,
-            // devices: Vec::from(device_ids.unwrap_or(&[])),
-        })
+        Ok(Program(obj_core))
     }
 
     /// Returns a new program built from pre-created build components and device
@@ -413,7 +399,6 @@ impl Program {
 
         Ok(Program {
             obj_core: obj_core,
-            // devices: devices,
         })
     }
 
@@ -421,39 +406,32 @@ impl Program {
     /// the `core` module.
     #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     pub fn core_as_ref(&self) -> &ProgramCore {
-        &self.obj_core
+        &self.0
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
     #[inline]
     pub fn core(&self) -> &ProgramCore {
-        &self.obj_core
+        &self.0
     }
 
-    // /// Returns the list of devices associated with this program.
-    // pub fn devices(&self) -> &[Device] {
-    //     &self.devices
-    // }
+    /// Returns the list of devices associated with this program.
+    #[deprecated(since="0.13.0", note="Use `::info` with `ProgramInfo::Devices` instead.")]
+    pub fn devices(&self) -> Vec<Device> {
+        unimplemented!();
+    }
 
     /// Returns info about this program.
     pub fn info(&self, info_kind: ProgramInfo) -> ProgramInfoResult {
-        // match core::get_program_info(&self.obj_core, info_kind) {
-        //     Ok(res) => res,
-        //     Err(err) => ProgramInfoResult::Error(Box::new(err)),
-        // }
-        core::get_program_info(&self.obj_core, info_kind)
+        core::get_program_info(&self.0, info_kind)
     }
 
     /// Returns info about this program's build.
     ///
     /// TODO: Check that device is valid.
     pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo) -> ProgramBuildInfoResult {
-        // match core::get_program_build_info(&self.obj_core, &device, info_kind) {
-        //     Ok(res) => res,
-        //     Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
-        // }
-        core::get_program_build_info(&self.obj_core, &device, info_kind)
+        core::get_program_build_info(&self.0, &device, info_kind)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -482,12 +460,12 @@ impl Deref for Program {
     type Target = ProgramCore;
 
     fn deref(&self) -> &ProgramCore {
-        &self.obj_core
+        &self.0
     }
 }
 
 impl DerefMut for Program {
     fn deref_mut(&mut self) -> &mut ProgramCore {
-        &mut self.obj_core
+        &mut self.0
     }
 }

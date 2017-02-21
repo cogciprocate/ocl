@@ -199,11 +199,6 @@ impl Context {
 
     /// Returns info about the platform associated with the context.
     pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
-        // match core::get_platform_info(self.platform_id_core.clone(), info_kind) {
-        // match core::get_platform_info(self.platform().clone(), info_kind) {
-        //     Ok(pi) => pi,
-        //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
-        // }
         match self.platform() {
             Ok(plat_opt) => match plat_opt {
                 Some(ref p) => core::get_platform_info(p, info_kind),
@@ -234,7 +229,6 @@ impl Context {
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
     #[deprecated(since="0.13.0", note="Use `::core` instead.")]
-    #[inline]
     pub fn core_as_ref(&self) -> &ContextCore {
         &self.0
     }
