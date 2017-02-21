@@ -7,7 +7,7 @@ use std::ops::{Deref, DerefMut};
 use futures::{task, Future, Poll, Async};
 use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
-    MemFlags, MemInfo, MemInfoResult, BufferRegion, Context as ContextCore,
+    MemFlags, MemInfo, MemInfoResult, BufferRegion, /*Context as ContextCore*/
     MapFlags, AsMem, MemCmdRw, MemCmdAll, Event as EventCore, ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, /*MemLen*/};
@@ -1157,10 +1157,10 @@ pub enum QueueOption {
 }
 
 impl QueueOption {
-    pub fn context_core(&self) -> Option<&ContextCore> {
+    pub fn context_core(&self) -> Option<Context> {
         match *self {
-            QueueOption::Queue(ref q) => Some(q.context_core()),
-            QueueOption::Context(ref c) => Some(c),
+            QueueOption::Queue(ref q) => Some(q.context()),
+            QueueOption::Context(ref c) => Some(c.clone()),
             QueueOption::None => None,
         }
     }
@@ -1202,7 +1202,6 @@ impl<'a> From<&'a Context> for QueueOption {
 /// A buffer builder.
 #[derive(Debug, Clone)]
 pub struct BufferBuilder<'a, T> where T: 'a {
-    // queue: Option<Queue>,
     queue_option: QueueOption,
     flags: Option<MemFlags>,
     dims: Option<SpatialDims>,
@@ -1213,7 +1212,6 @@ pub struct BufferBuilder<'a, T> where T: 'a {
 impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     pub fn new() -> BufferBuilder<'a, T> {
         BufferBuilder {
-            // queue: None,
             queue_option: QueueOption::None,
             flags: None,
             dims: None,
@@ -1278,7 +1276,6 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
-    // queue: Queue,
     queue_opt: QueueOption,
     dims: SpatialDims,
     len: usize,
@@ -1320,7 +1317,7 @@ impl<T: OclPrm> Buffer<T> {
         let queue_opt = queue_opt.into();
 
         let obj_core = match queue_opt.context_core() {
-            Some(c) => unsafe { core::create_buffer(c, flags, len, data)? },
+            Some(ref c) => unsafe { core::create_buffer(c, flags, len, data)? },
             None => panic!("ocl::Buffer::new: A context or default queue must be set."),
         };
 
@@ -1362,7 +1359,7 @@ impl<T: OclPrm> Buffer<T> {
         let queue_opt = queue_opt.into();
 
         let obj_core = match queue_opt.context_core() {
-            Some(cc) => unsafe { core::create_from_gl_buffer(cc, gl_object, flags)? },
+            Some(ref cc) => unsafe { core::create_from_gl_buffer(cc, gl_object, flags)? },
             None => panic!("ocl::Buffer::new: A context or default queue must be set."),
         };
 

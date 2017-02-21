@@ -685,7 +685,7 @@ impl<E: OclPrm> Image<E> {
             image_desc: ImageDescriptor, image_data: Option<&[E]>) -> OclResult<Image<E>>
     {
         let obj_core = unsafe { try!(core::create_image(
-            queue.context_core(),
+            &queue.context(),
             flags,
             &image_format,
             &image_desc,
@@ -740,7 +740,7 @@ impl<E: OclPrm> Image<E> {
         //     _ => unimplemented!() // FIXME: return an error ? or panic! ?
         // };
         let obj_core = unsafe { try!(core::create_from_gl_texture(
-                                        queue.context_core(),
+                                        &queue.context(),
                                         texture_target as u32,
                                         miplevel,
                                         texture,
@@ -773,7 +773,7 @@ impl<E: OclPrm> Image<E> {
             renderbuffer: cl_GLuint) -> OclResult<Image<E>>
     {
         let obj_core = unsafe { try!(core::create_from_gl_renderbuffer(
-                                        queue.context_core(),
+                                        &queue.context(),
                                         renderbuffer,
                                         flags)) };
 

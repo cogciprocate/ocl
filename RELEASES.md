@@ -15,6 +15,8 @@ Version 0.13.0 (UNRELEASED)
     * read no longer unsafe
     * how to use futures, etc.
 
+* [FIXME]: All types have been trimmed down and streamlined.
+
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
   be used just as you would `Buffer`. Use `SubBuffer::new` or
   `Buffer::create_sub_buffer` to create one.

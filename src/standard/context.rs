@@ -260,6 +260,12 @@ impl Context {
     }
 }
 
+impl From<ContextCore> for Context {
+    fn from(c: ContextCore) -> Context {
+        Context(c)
+    }
+}
+
 impl std::fmt::Display for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_info(f)

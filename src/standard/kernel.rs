@@ -20,8 +20,6 @@ pub struct KernelCmd<'k> {
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
-    // wait_list: Option<&'k ClWaitListPtr>,
-    // dest_list: Option<&'k mut ClNullEventPtr>,
     wait_list: Option<ClWaitListPtrEnum<'k>>,
     new_event: Option<ClNullEventPtrEnum<'k>>,
 }
@@ -52,19 +50,8 @@ impl<'k> KernelCmd<'k> {
         self
     }
 
-    // /// Specifies the list of events to wait on before the command will run.
-    // pub fn ewait(mut self, wait_list: &'k ClWaitListPtr) -> KernelCmd<'k> {
-    //     self.wait_list = Some(wait_list);
-    //     self
-    // }
 
-    // /// Specifies a list of events to wait on before the command will run.
-    // pub fn ewait_opt(mut self, wait_list: Option<&'k ClWaitListPtr>) -> KernelCmd<'k> {
-    //     self.wait_list = wait_list;
-    //     self
-    // }
-
-        /// Specifies a list of events to wait on before the command will run.
+    /// Specifies a list of events to wait on before the command will run.
     pub fn ewait<Ewl>(mut self, ewait: Ewl) -> KernelCmd<'k>
             where Ewl: Into<ClWaitListPtrEnum<'k>>
     {
@@ -478,31 +465,19 @@ impl Kernel {
 
     /// Returns information about this kernel.
     pub fn info(&self, info_kind: KernelInfo) -> KernelInfoResult {
-        // match core::get_kernel_info(&self.obj_core, info_kind) {
-        //     Ok(res) => res,
-        //     Err(err) => KernelInfoResult::Error(Box::new(err)),
-        // }
         core::get_kernel_info(&self.obj_core, info_kind)
     }
 
     /// Returns argument information for this kernel.
     pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
-        // match core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind) {
-        //     Ok(res) => res,
-        //     Err(err) => KernelArgInfoResult::Error(Box::new(err)),
-        // }
         core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind,
             Some(&[self.queue.device_version()]))
     }
 
     /// Returns work group information for this kernel.
-    pub fn wg_info(&self, device: &Device, info_kind: KernelWorkGroupInfo)
+    pub fn wg_info(&self, device: Device, info_kind: KernelWorkGroupInfo)
             -> KernelWorkGroupInfoResult
     {
-        // match core::get_kernel_work_group_info(&self.obj_core, device, info_kind) {
-        //     Ok(res) => res,
-        //     Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
-        // }
         core::get_kernel_work_group_info(&self.obj_core, device, info_kind)
     }
 
@@ -558,7 +533,7 @@ impl Kernel {
     //         .finish()
     // }
 
-    fn fmt_wg_info(&self, f: &mut std::fmt::Formatter, device: &Device) -> std::fmt::Result {
+    fn fmt_wg_info(&self, f: &mut std::fmt::Formatter, device: Device) -> std::fmt::Result {
         f.debug_struct("WorkGroup")
             .field("WorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize))
             .field("CompileWorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize))
@@ -635,10 +610,7 @@ impl Kernel {
 
     /// Non-builder-style version of `::arg_vec()`.
     fn new_arg_vec<T: OclPrm>(&mut self, vector_opt: Option<T>) -> u32 {
-        // match vector_opt {
-        //     Some(v) => self.new_arg::<T>(KernelArg::Vector(v)),
-        //     None => self.new_arg::<T>(KernelArg::Vector(&[Default::default(); 4])),
-        // }
+
         let vector = match vector_opt {
             Some(s) => s,
             None => Default::default(),
