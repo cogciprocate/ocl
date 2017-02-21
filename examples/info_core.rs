@@ -23,7 +23,6 @@ static SRC: &'static str = r#"
 
 fn main() {
     let platforms = Platform::list();
-    // let platform = platforms[platforms.len() - 1];
     for platform in platforms.iter() {
         print_platform(platform.clone());
     }

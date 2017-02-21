@@ -14,7 +14,6 @@ use standard::{Platform, Device, DeviceSpecifier};
 /// TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
 pub struct ContextBuilder {
     properties: ContextProperties,
-    // platform: Option<Platform>,
     device_spec: Option<DeviceSpecifier>,
 }
 
@@ -39,7 +38,6 @@ impl ContextBuilder {
 
         ContextBuilder {
             properties: properties,
-            // platform: None,
             device_spec: None,
         }
     }
@@ -125,11 +123,7 @@ impl ContextBuilder {
 // before we can eliminate `platform`.
 //
 #[derive(Debug, Clone)]
-pub struct Context {
-    obj_core: ContextCore,
-    platform: Option<Platform>,
-    // devices: Vec<Device>,
-}
+pub struct Context(ContextCore);
 
 impl Context {
     /// Returns a [`ContextBuilder`](/ocl/ocl/struct.ContextBuilder.html).
@@ -160,14 +154,14 @@ impl Context {
     /// ## Panics
     ///
     /// [TEMPORARY] Passing a `Some` variant for `pfn_notify` or `user_data` is
-    /// not yet supported.
+    /// not yet supported. File an issue if you need this.
     ///
     pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>,
                 pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>)
             -> OclResult<Context>
     {
         assert!(pfn_notify.is_none() && user_data.is_none(),
-            "Context creation callbacks not yet implemented.");
+            "Context creation callbacks not yet implemented - file issue if you need this.");
 
         let platform: Option<Platform> = match properties {
             Some(ref props) => props.get_platform().map(Platform::new),
@@ -183,11 +177,7 @@ impl Context {
 
         let obj_core = try!(core::create_context(properties.as_ref(), &device_list, pfn_notify, user_data));
 
-        Ok(Context {
-            obj_core: obj_core,
-            platform: platform,
-            // devices: device_list,
-        })
+        Ok(Context(obj_core))
     }
 
     /// Resolves a list of zero-based device indices into a list of Devices.
@@ -238,40 +228,32 @@ impl Context {
 
     /// Returns info about the context.
     pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
-        core::get_context_info(&self.obj_core, info_kind)
+        core::get_context_info(&self.0, info_kind)
     }
-
-    // /// Returns a string containing a formatted list of context properties.
-    // pub fn to_string(&self) -> String {
-    //     String::new()
-    // }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
     #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     #[inline]
     pub fn core_as_ref(&self) -> &ContextCore {
-        &self.obj_core
+        &self.0
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
     #[inline]
     pub fn core(&self) -> &ContextCore {
-        &self.obj_core
+        &self.0
     }
 
     /// Returns the list of devices associated with this context.
     pub fn devices(&self) -> Vec<Device> {
-        // &self.devices[..]
-        Device::list_from_core(self.obj_core.devices().unwrap())
+        Device::list_from_core(self.0.devices().unwrap())
     }
 
     /// Returns the platform this context is associated with.
     pub fn platform(&self) -> OclResult<Option<Platform>> {
-        // self.platform.as_ref()
-        // self.info(ContextInfo::Properties).platform().map(|p| p.into())
-        self.obj_core.platform().map(|opt| opt.map(Platform::from))
+        self.0.platform().map(|opt| opt.map(Platform::from))
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -294,12 +276,12 @@ impl Deref for Context {
     type Target = ContextCore;
 
     fn deref(&self) -> &ContextCore {
-        &self.obj_core
+        &self.0
     }
 }
 
 impl DerefMut for Context {
     fn deref_mut(&mut self) -> &mut ContextCore {
-        &mut self.obj_core
+        &mut self.0
     }
 }
