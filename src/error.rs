@@ -84,37 +84,39 @@ pub enum Error {
 }
 
 impl self::Error {
-    /// [DEPRICATED] Returns a new `Error` with the description string:
+    /// Returns a new `Error` with the description string:
     /// `desc`.
     ///
     /// ### Depricated
     ///
-    /// Use `::string` instead.
+    /// Use `::from` instead.
     //
-    #[deprecated(since="0.4.0", note="Use `::string` instead.")]
+    #[deprecated(since="0.4.0", note="Use `::from` instead.")]
     pub fn new<S: Into<String>>(desc: S) -> self::Error {
         self::Error::String(desc.into())
     }
 
     /// Returns a new `Error::String` with the given description.
+    #[deprecated(since="0.4.0", note="Use `::from` instead.")]
     pub fn string<S: Into<String>>(desc: S) -> self::Error {
         self::Error::String(desc.into())
     }
 
-    /// [DEPRICATED] Returns a new `ocl_core::Result::Err` containing an
+    /// Returns a new `ocl_core::Result::Err` containing an
     /// `ocl_core::Error::String` variant with the given description.
     ///
     /// ### Depricated
     ///
-    /// Use `::string` instead.
+    /// Use `::err_string` or `Err("...".into())` instead.
     //
-    #[deprecated(since="0.4.0", note="Use `::err_string` instead.")]
+    #[deprecated(since="0.4.0", note="Use `Err(\"...\".into())` instead.")]
     pub fn err<T, S: Into<String>>(desc: S) -> self::Result<T> {
         Err(Error::String(desc.into()))
     }
 
     /// Returns a new `Err(ocl_core::Error::String(...))` variant with the
     /// given description.
+    // #[deprecated(since="0.4.0", note="Use `Err(\"...\".into())` instead.")]
     pub fn err_string<T, S: Into<String>>(desc: S) -> self::Result<T> {
         Err(Error::String(desc.into()))
     }
@@ -193,13 +195,13 @@ impl From<()> for self::Error {
 
 impl From<String> for self::Error {
     fn from(desc: String) -> self::Error {
-        self::Error::string(desc)
+        self::Error::String(desc)
     }
 }
 
 impl<'a> From<&'a str> for self::Error {
     fn from(desc: &'a str) -> self::Error {
-        self::Error::string(String::from(desc))
+        self::Error::from(String::from(desc))
     }
 }
 

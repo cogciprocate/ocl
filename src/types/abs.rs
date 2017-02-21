@@ -45,7 +45,7 @@ use std::ptr;
 use std::slice;
 use std::cell::Ref;
 use std::fmt::Debug;
-use std::marker::Sized;
+// use std::marker::Sized;
 // use std::ops::Deref;
 // use std::borrow::Borrow;
 use libc::c_void;
@@ -202,34 +202,51 @@ unsafe impl<'a> ClWaitListPtr for () {
 
 
 /// Types with a reference to a raw platform_id pointer.
-pub unsafe trait ClPlatformIdPtr: Sized + Debug {
-    unsafe fn as_ptr(&self) -> cl_platform_id {
-        debug_assert!(mem::size_of_val(self) == mem::size_of::<PlatformId>());
-        // mem::transmute_copy()
-        let core = self as *const Self as *const _ as *const PlatformId;
-        (*core).as_ptr()
+// pub unsafe trait ClPlatformIdPtr: Sized + Debug {
+pub unsafe trait ClPlatformIdPtr: Debug {
+    // unsafe fn as_ptr(&self) -> cl_platform_id {
+    //     debug_assert!(mem::size_of_val(self) == mem::size_of::<PlatformId>());
+    //     // mem::transmute_copy()
+    //     let core = self as *const Self as *const _ as *const PlatformId;
+    //     (*core).as_ptr()
+    // }
+    fn as_ptr(&self) -> cl_platform_id;
+}
+
+unsafe impl<'a, P> ClPlatformIdPtr for &'a P where P: ClPlatformIdPtr {
+    fn as_ptr(&self) -> cl_platform_id {
+        (*self).as_ptr()
     }
 }
 
 unsafe impl ClPlatformIdPtr for () {
-    unsafe fn as_ptr(&self) -> cl_platform_id {
+    fn as_ptr(&self) -> cl_platform_id {
         ptr::null_mut() as *mut _ as cl_platform_id
     }
 }
 
 
 /// Types with a reference to a raw device_id pointer.
-pub unsafe trait ClDeviceIdPtr: Sized + Debug {
-    unsafe fn as_ptr(&self) -> cl_device_id {
-        debug_assert!(mem::size_of_val(self) == mem::size_of::<DeviceId>());
-        // mem::transmute_copy(self)
-        let core = self as *const Self as *const _ as *const DeviceId;
-        (*core).as_ptr()
+// pub unsafe trait ClDeviceIdPtr: Sized + Debug {
+pub unsafe trait ClDeviceIdPtr: Debug {
+    // unsafe fn as_ptr(&self) -> cl_device_id {
+    //     debug_assert!(mem::size_of_val(self) == mem::size_of::<DeviceId>());
+    //     // mem::transmute_copy(self)
+    //     let core = self as *const Self as *const _ as *const DeviceId;
+    //     (*core).as_ptr()
+    // }
+    fn as_ptr(&self) -> cl_device_id;
+}
+
+
+unsafe impl<'a, P> ClDeviceIdPtr for &'a P where P: ClDeviceIdPtr {
+    fn as_ptr(&self) -> cl_device_id {
+        (*self).as_ptr()
     }
 }
 
 unsafe impl ClDeviceIdPtr for () {
-    unsafe fn as_ptr(&self) -> cl_device_id {
+    fn as_ptr(&self) -> cl_device_id {
         ptr::null_mut() as *mut _ as cl_device_id
     }
 }
@@ -289,8 +306,19 @@ impl PlatformId {
     }
 }
 
-unsafe impl ClPlatformIdPtr for PlatformId {}
-unsafe impl<'a> ClPlatformIdPtr for &'a PlatformId {}
+unsafe impl ClPlatformIdPtr for PlatformId {
+    fn as_ptr(&self) -> cl_platform_id {
+        self.0
+    }
+}
+
+// unsafe impl<'a> ClPlatformIdPtr for &'a PlatformId {
+//     fn as_ptr(&self) -> cl_platform_id {
+//         (*self).0
+//     }
+// }
+
+// unsafe impl<'a> ClPlatformIdPtr for &'a PlatformId {}
 unsafe impl Sync for PlatformId {}
 unsafe impl Send for PlatformId {}
 
@@ -347,8 +375,21 @@ impl DeviceId {
     }
 }
 
-unsafe impl ClDeviceIdPtr for DeviceId {}
-unsafe impl<'a> ClDeviceIdPtr for &'a DeviceId {}
+// unsafe impl ClDeviceIdPtr for DeviceId {}
+// unsafe impl<'a> ClDeviceIdPtr for &'a DeviceId {}
+
+unsafe impl ClDeviceIdPtr for DeviceId {
+    fn as_ptr(&self) -> cl_device_id {
+        self.0
+    }
+}
+
+// unsafe impl<'a> ClDeviceIdPtr for &'a DeviceId {
+//     fn as_ptr(&self) -> cl_device_id {
+//         (*self).0
+//     }
+// }
+
 unsafe impl Sync for DeviceId {}
 unsafe impl Send for DeviceId {}
 
@@ -410,6 +451,11 @@ impl Context {
             ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
             _ => unreachable!(),
         }
+    }
+
+    /// Returns the platform associated with this context, if any.
+    pub fn platform(&self) -> OclResult<Option<PlatformId>> {
+        functions::get_context_platform(self)
     }
 }
 

@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use std::collections::HashMap;
 use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
-use ffi::{self, cl_mem, cl_buffer_region};
+use ffi::{self, cl_mem, cl_buffer_region, cl_context_properties, cl_platform_id};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
     PlatformId};
 
@@ -162,10 +162,10 @@ pub enum ContextPropertyValue {
     CglSharegroupKhr(*mut c_void),
     // Not sure about this type:
     WglHdcKhr(*mut c_void),
-    AdapterD3d9Khr(TemporaryPlaceholderType),
-    AdapterD3d9exKhr(TemporaryPlaceholderType),
-    AdapterDxvaKhr(TemporaryPlaceholderType),
-    D3d11DeviceKhr(TemporaryPlaceholderType),
+    AdapterD3d9Khr(isize),
+    AdapterD3d9exKhr(isize),
+    AdapterDxvaKhr(isize),
+    D3d11DeviceKhr(isize),
 }
 
 
@@ -294,6 +294,8 @@ impl ContextProperties {
     // [NOTE]: Meant to replace `::to_bytes`.
     //
     // Return type is `Vec<cl_context_properties>` => `Vec<isize>`
+    //
+    // [FIXME]: Change return type to `Vec<(cl_context_properties, isize)>`
     pub fn to_raw(&self) -> Vec<isize> {
         let mut props_raw = Vec::with_capacity(32);
 
@@ -323,6 +325,140 @@ impl ContextProperties {
 
         props_raw.shrink_to_fit();
         props_raw
+    }
+
+        // Platform = ffi::CL_CONTEXT_PLATFORM as isize,
+        // InteropUserSync = ffi::CL_CONTEXT_INTEROP_USER_SYNC as isize,
+        // D3d10DeviceKhr = ffi::CL_CONTEXT_D3D10_DEVICE_KHR as isize,
+        // GlContextKhr = ffi::CL_GL_CONTEXT_KHR as isize,
+        // EglDisplayKhr = ffi::CL_EGL_DISPLAY_KHR as isize,
+        // GlxDisplayKhr = ffi::CL_GLX_DISPLAY_KHR as isize,
+        // CglSharegroupKhr = CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC,
+        // WglHdcKhr = ffi::CL_WGL_HDC_KHR as isize,
+        // AdapterD3d9Khr = ffi::CL_CONTEXT_ADAPTER_D3D9_KHR as isize,
+        // AdapterD3d9exKhr = ffi::CL_CONTEXT_ADAPTER_D3D9EX_KHR as isize,
+        // AdapterDxvaKhr = ffi::CL_CONTEXT_ADAPTER_DXVA_KHR as isize,
+        // D3d11DeviceKhr = ffi::CL_CONTEXT_D3D11_DEVICE_KHR as isize,
+
+    /// Returns a single context property value.
+    pub unsafe fn extract_property_from_raw(property: ContextProperty,
+            raw_context_properties: &[isize]) -> Option<ContextPropertyValue>
+    {
+        // REMEMBER: It's null terminated;
+
+        // The raw properties **should** be `(isize, isize)` pairs + isize (null) terminator.
+        assert!(raw_context_properties.len() % 2 == 1);
+        assert!(*raw_context_properties.last().unwrap() == 0);
+
+        let pair_count = raw_context_properties.len() / 2;
+
+        match property {
+            ContextProperty::Platform => {
+                for pair_idx in 0..pair_count {
+                    let idz = pair_idx * 2;
+                    let key_raw = *raw_context_properties.get_unchecked(idz);
+                    let val_raw = *raw_context_properties.get_unchecked(idz + 1);
+
+                    if key_raw == property as cl_context_properties {
+                        return Some(ContextPropertyValue::Platform(
+                            PlatformId::from_raw(val_raw as cl_platform_id)));
+                    }
+                }
+            },
+            _ => unimplemented!(),
+        }
+
+        None
+    }
+
+
+    /// Converts raw stuff into other stuff.
+    ///
+    ///
+    #[allow(unused_variables, unused_mut)]
+    pub unsafe fn from_raw(raw_context_properties: &[isize]) -> OclResult<ContextProperties> {
+        // The raw properties **should** be `(isize, isize)` pairs + isize (null) terminator.
+        assert!(mem::size_of::<cl_context_properties>() == mem::size_of::<isize>());
+        assert!(raw_context_properties.len() % 2 == 1);
+        assert!(*raw_context_properties.last().unwrap() == 0);
+
+        let pair_count = raw_context_properties.len() / 2;
+        let mut context_props = ContextProperties(HashMap::with_capacity(pair_count));
+
+        for pair_idx in 0..pair_count {
+            let idz = pair_idx * 2;
+            let key_raw = *raw_context_properties.get_unchecked(idz);
+            let val_raw = *raw_context_properties.get_unchecked(idz + 1);
+
+            let key = ContextProperty::from_isize(key_raw).ok_or(OclError::from(
+                format!("ContextProperties::from_raw: Unable to convert '{}' using \
+                    'ContextProperty::from_isize'.", key_raw)))?;
+
+            match key {
+                    ContextProperty::Platform => {
+                        context_props.0.insert(ContextProperty::Platform,
+                            ContextPropertyValue::Platform(PlatformId::from_raw(val_raw as cl_platform_id))
+                        );
+                    },
+                    ContextProperty::InteropUserSync => {
+                        context_props.0.insert(ContextProperty::InteropUserSync,
+                            ContextPropertyValue::InteropUserSync(val_raw > 0),
+                        );
+                    },
+                    ContextProperty::D3d10DeviceKhr => {
+                        context_props.0.insert(ContextProperty::D3d10DeviceKhr,
+                            ContextPropertyValue::D3d10DeviceKhr(val_raw as *mut ffi::cl_d3d10_device_source_khr),
+                        );
+                    },
+                    ContextProperty::GlContextKhr => {
+                        context_props.0.insert(ContextProperty::GlContextKhr,
+                            ContextPropertyValue::GlContextKhr(val_raw as ffi::cl_GLuint),
+                        );
+                    },
+                    ContextProperty::EglDisplayKhr => {
+                        context_props.0.insert(ContextProperty::EglDisplayKhr,
+                            ContextPropertyValue::EglDisplayKhr(val_raw as ffi::CLeglDisplayKHR),
+                        );
+                    },
+                    ContextProperty::GlxDisplayKhr => {
+                        context_props.0.insert(ContextProperty::GlxDisplayKhr,
+                            ContextPropertyValue::GlxDisplayKhr(val_raw as *mut c_void),
+                        );
+                    },
+                    ContextProperty::CglSharegroupKhr => {
+                        context_props.0.insert(ContextProperty::CglSharegroupKhr,
+                            ContextPropertyValue::CglSharegroupKhr(val_raw as *mut c_void),
+                        );
+                    },
+                    ContextProperty::WglHdcKhr => {
+                        context_props.0.insert(ContextProperty::WglHdcKhr,
+                            ContextPropertyValue::WglHdcKhr(val_raw as *mut c_void),
+                        );
+                    },
+                    ContextProperty::AdapterD3d9Khr => {
+                        context_props.0.insert(ContextProperty::AdapterD3d9Khr,
+                            ContextPropertyValue::AdapterD3d9Khr(val_raw),
+                        );
+                    },
+                    ContextProperty::AdapterD3d9exKhr => {
+                        context_props.0.insert(ContextProperty::AdapterD3d9exKhr,
+                            ContextPropertyValue::AdapterD3d9exKhr(val_raw),
+                        );
+                    },
+                    ContextProperty::AdapterDxvaKhr => {
+                        context_props.0.insert(ContextProperty::AdapterDxvaKhr,
+                            ContextPropertyValue::AdapterDxvaKhr(val_raw),
+                        );
+                    },
+                    ContextProperty::D3d11DeviceKhr => {
+                        context_props.0.insert(ContextProperty::D3d11DeviceKhr,
+                            ContextPropertyValue::D3d11DeviceKhr(val_raw),
+                        );
+                    },
+            }
+        }
+
+        Ok(context_props)
     }
 }
 
@@ -421,9 +557,9 @@ impl ImageFormat {
     pub fn from_raw(raw: ffi::cl_image_format) -> OclResult<ImageFormat> {
         Ok(ImageFormat {
             channel_order: try!(ImageChannelOrder::from_u32(raw.image_channel_order)
-                .ok_or(OclError::string("Error converting to 'ImageChannelOrder'."))),
+                .ok_or(OclError::from("Error converting to 'ImageChannelOrder'."))),
             channel_data_type: try!(ImageChannelDataType::from_u32(raw.image_channel_data_type)
-                .ok_or(OclError::string("Error converting to 'ImageChannelDataType'."))),
+                .ok_or(OclError::from("Error converting to 'ImageChannelDataType'."))),
         })
     }
 

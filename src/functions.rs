@@ -174,7 +174,7 @@ fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
 /// `device_ids` has a build log of any length, it will be returned as an
 /// errcode result.
 ///
-pub fn program_build_err<D: ClDeviceIdPtr + Debug>(program: &Program, device_ids: &[D]) -> OclResult<()> {
+pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) -> OclResult<()> {
     if device_ids.len() == 0 {
         return OclError::err_string("ocl::core::program_build_err(): Device list is empty. Aborting.");
     }
@@ -325,7 +325,7 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 }
 
 /// Returns platform information of the requested type.
-pub fn get_platform_info<P: ClPlatformIdPtr>(platform: &P, request: PlatformInfo,
+pub fn get_platform_info<P: ClPlatformIdPtr>(platform: P, request: PlatformInfo,
         ) -> PlatformInfoResult
 {
     let mut result_size = 0 as size_t;
@@ -370,8 +370,8 @@ pub fn get_platform_info<P: ClPlatformIdPtr>(platform: &P, request: PlatformInfo
 //============================================================================
 
 /// Returns a list of available devices for a particular platform.
-pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
-            platform: &PlatformId,
+pub fn get_device_ids<P: ClPlatformIdPtr>(
+            platform: P,
             device_types: Option<DeviceType>,
             devices_max: Option<u32>,
         ) -> OclResult<Vec<DeviceId>>
@@ -410,7 +410,7 @@ pub fn get_device_ids/*<P: ClPlatformIdPtr>*/(
 }
 
 /// Returns information about a device.
-pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
+pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
         -> DeviceInfoResult
 {
     let mut result_size: size_t = 0;
@@ -427,7 +427,7 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: &D, request: DeviceInfo)
     // just an extension unsupported by the device (i.e.
     // `CL_DEVICE_HALF_FP_CONFIG` on Intel):
     if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-        return DeviceInfoResult::Error(Box::new(OclError::string("[UNAVAILABLE (CL_INVALID_VALUE)]")));
+        return DeviceInfoResult::Error(Box::new(OclError::from("[UNAVAILABLE (CL_INVALID_VALUE)]")));
     }
 
     // try!(eval_errcode(errcode, result, "clGetDeviceInfo", ""));
@@ -660,17 +660,9 @@ pub unsafe fn release_context(context: &Context) -> OclResult<()> {
     eval_errcode(ffi::clReleaseContext(context.as_ptr()), (), "clReleaseContext", "")
 }
 
-/// Returns various kinds of context information.
-///
-/// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
-///
-/// # Errors
-///
-/// Returns an error result for all the reasons listed in the SDK in addition
-/// to an additional error when called with `CL_CONTEXT_DEVICES` as described
-/// in in the `verify_context()` documentation below.
-pub fn get_context_info(context: &Context, request: ContextInfo)
-        -> ContextInfoResult
+
+fn get_context_info_unparsed(context: &Context, request: ContextInfo)
+        -> OclResult<Vec<u8>>
 {
    let mut result_size: size_t = 0;
 
@@ -682,9 +674,11 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
         &mut result_size as *mut usize,
     ) };
 
-    if let Err(err) = eval_errcode(errcode, (), "clGetContextInfo", "") {
-        return ContextInfoResult::Error(Box::new(err));
-    }
+    eval_errcode(errcode, (), "clGetContextInfo", "")?;
+
+    // if let Err(err) = eval_errcode(errcode, (), "clGetContextInfo", "") {
+    //     return ContextInfoResult::Error(Box::new(err));
+    // }
 
     // Check for invalid context pointer (a potentially hard to track down bug)
     // using ridiculous and probably platform-specific logic [if the `Devices`
@@ -693,17 +687,23 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
         let err_if_zero_result_size = request as cl_context_info == ffi::CL_CONTEXT_DEVICES;
 
         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-            return ContextInfoResult::Error(Box::new(OclError::string("\n\nocl::core::context_info(): \
+            // return ContextInfoResult::Error(Box::new(OclError::from("\n\nocl::core::context_info(): \
+            //     Possible invalid context detected. \n\
+            //     Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
+            //     invalid context object. If not, please file an issue at: \n\
+            //     https://github.com/cogciprocate/ocl/issues.\n\n")));
+            return Err(OclError::from("\n\nocl::core::context_info(): \
                 Possible invalid context detected. \n\
                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
                 invalid context object. If not, please file an issue at: \n\
-                https://github.com/cogciprocate/ocl/issues.\n\n")));
+                https://github.com/cogciprocate/ocl/issues.\n\n"));
         }
     }
 
     // If result size is zero, return an empty info result directly:
     if result_size == 0 {
-        return ContextInfoResult::from_bytes(request, Ok(vec![]));
+        // return ContextInfoResult::from_bytes(request, Ok(vec![]));
+        return Ok(vec![]);
     }
 
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
@@ -716,9 +716,98 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
         0 as *mut usize,
     ) };
 
-    let result = eval_errcode(errcode, result, "clGetContextInfo", "");
-    ContextInfoResult::from_bytes(request, result)
+    eval_errcode(errcode, result, "clGetContextInfo", "")
 }
+
+
+/// Returns various kinds of context information.
+///
+/// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
+///
+/// # Errors
+///
+/// Returns an error result for all the reasons listed in the SDK in addition
+/// to an additional error when called with `CL_CONTEXT_DEVICES` as described
+/// in in the `verify_context()` documentation below.
+pub fn get_context_info(context: &Context, request: ContextInfo) -> ContextInfoResult {
+    ContextInfoResult::from_bytes(request, get_context_info_unparsed(context, request))
+}
+
+/// Returns the platform for a context.
+pub fn get_context_platform(context: &Context) -> OclResult<Option<PlatformId>> {
+    let props_raw_bytes = get_context_info_unparsed(context, ContextInfo::Properties)?;
+
+    let prop = unsafe {
+        let props_raw = ::util::bytes_into_vec::<isize>(props_raw_bytes)?;
+        ContextProperties::extract_property_from_raw(::ContextProperty::Platform, &props_raw)
+    };
+
+    if let Some(::ContextPropertyValue::Platform(plat)) = prop {
+        Ok(Some(plat))
+    } else {
+        Ok(None)
+    }
+}
+
+// /// Returns various kinds of context information.
+// ///
+// /// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
+// ///
+// /// # Errors
+// ///
+// /// Returns an error result for all the reasons listed in the SDK in addition
+// /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
+// /// in in the `verify_context()` documentation below.
+// pub fn get_context_info(context: &Context, request: ContextInfo)
+//         -> ContextInfoResult
+// {
+//    let mut result_size: size_t = 0;
+
+//     let errcode = unsafe { ffi::clGetContextInfo(
+//         context.as_ptr() as cl_context,
+//         request as cl_context_info,
+//         0 as size_t,
+//         0 as *mut c_void,
+//         &mut result_size as *mut usize,
+//     ) };
+
+//     if let Err(err) = eval_errcode(errcode, (), "clGetContextInfo", "") {
+//         return ContextInfoResult::Error(Box::new(err));
+//     }
+
+//     // Check for invalid context pointer (a potentially hard to track down bug)
+//     // using ridiculous and probably platform-specific logic [if the `Devices`
+//     // variant is passed and we're not in the release config]:
+//     if !cfg!(release) {
+//         let err_if_zero_result_size = request as cl_context_info == ffi::CL_CONTEXT_DEVICES;
+
+//         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
+//             return ContextInfoResult::Error(Box::new(OclError::from("\n\nocl::core::context_info(): \
+//                 Possible invalid context detected. \n\
+//                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
+//                 invalid context object. If not, please file an issue at: \n\
+//                 https://github.com/cogciprocate/ocl/issues.\n\n")));
+//         }
+//     }
+
+//     // If result size is zero, return an empty info result directly:
+//     if result_size == 0 {
+//         return ContextInfoResult::from_bytes(request, Ok(vec![]));
+//     }
+
+//     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
+
+//     let errcode = unsafe { ffi::clGetContextInfo(
+//         context.as_ptr() as cl_context,
+//         request as cl_context_info,
+//         result_size as size_t,
+//         result.as_mut_ptr() as *mut c_void,
+//         0 as *mut usize,
+//     ) };
+
+//     let result = eval_errcode(errcode, result, "clGetContextInfo", "");
+//     ContextInfoResult::from_bytes(request, result)
+// }
 
 //============================================================================
 //========================== Command Queue APIs ==============================
@@ -727,7 +816,7 @@ pub fn get_context_info(context: &Context, request: ContextInfo)
 /// Returns a new command queue pointer.
 pub fn create_command_queue<D: ClDeviceIdPtr>(
             context: &Context,
-            device: &D,
+            device: D,
             properties: Option<CommandQueueProperties>,
         ) -> OclResult<CommandQueue>
 {
@@ -1515,7 +1604,7 @@ pub fn get_program_info(obj: &Program, request: ProgramInfo) -> ProgramInfoResul
 }
 
 /// Get program build info.
-pub fn get_program_build_info<D: ClDeviceIdPtr + Debug>(obj: &Program, device_obj: &D,
+pub fn get_program_build_info<D: ClDeviceIdPtr + Debug>(obj: &Program, device_obj: D,
             request: ProgramBuildInfo) -> ProgramBuildInfoResult
 {
     let mut result_size: size_t = 0;
@@ -1745,7 +1834,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
 }
 
 /// Get kernel work group info.
-pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: &D,
+pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
             request: KernelWorkGroupInfo) -> KernelWorkGroupInfoResult
 {
     let mut result_size: size_t = 0;
@@ -3225,7 +3314,7 @@ pub fn event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<CommandExe
     };
     try!(eval_errcode(errcode, (), "clGetEventInfo", ""));
 
-    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::string("Error converting \
+    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::from("Error converting \
         'clGetEventInfo' status output."))
 }
 
@@ -3290,7 +3379,7 @@ pub fn verify_context(context: &Context) -> OclResult<()> {
 
 /// Checks to see if a device supports the `CL_GL_SHARING_EXT` extension.
 //
-fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: &D) -> OclResult<bool> {
+fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclResult<bool> {
     match get_device_info(device, DeviceInfo::Extensions) {
         DeviceInfoResult::Extensions(extensions) => Ok(extensions.contains(CL_GL_SHARING_EXT)),
         DeviceInfoResult::Error(err) => Err(*err),
