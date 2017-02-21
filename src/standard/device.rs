@@ -5,6 +5,7 @@ use std::ops::{Deref, DerefMut};
 use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use standard::Platform;
+use ffi::cl_device_id;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
 use core::util;
 
@@ -109,11 +110,12 @@ impl DeviceSpecifier {
     /// `Platform`. If no `platform` has been specified, this behaviour is
     /// undefined and could end up using any platform at all.
     ///
-    pub fn to_device_list(&self, platform: Option<&Platform>) -> OclResult<Vec<Device>> {
-        let platform = match platform {
-            Some(p) => p.clone(),
-            None => Platform::default(),
-        };
+    pub fn to_device_list(&self, platform: Option<Platform>) -> OclResult<Vec<Device>> {
+        // let platform = match platform {
+        //     Some(p) => p.clone(),
+        //     None => Platform::default(),
+        // };
+        let platform = platform.unwrap_or(Platform::default());
 
         match *self {
             DeviceSpecifier::All => {
@@ -322,8 +324,15 @@ impl Device {
     }
 
     /// Returns a list of `Device`s from a list of `DeviceIdCore`s
-    pub fn list_from_core(devices: Vec<DeviceIdCore>) -> Vec<Device> {
-        devices.into_iter().map(Device).collect()
+    pub fn list_from_core(mut devices: Vec<DeviceIdCore>) -> Vec<Device> {
+        // devices.into_iter().map(Device).collect()
+        use std::mem;
+        debug_assert!(mem::size_of::<DeviceIdCore>() == mem::size_of::<Device>());
+        unsafe {
+            let (ptr, len, cap) = (devices.as_mut_ptr(), devices.len(), devices.capacity());
+            mem::forget(devices);
+            Vec::from_raw_parts(ptr as *mut Device, len, cap)
+        }
     }
 
     /// Returns the device name.
@@ -460,8 +469,12 @@ impl Device {
     }
 }
 
-unsafe impl ClDeviceIdPtr for Device {}
-unsafe impl<'a> ClDeviceIdPtr for &'a Device {}
+unsafe impl ClDeviceIdPtr for Device {
+    fn as_ptr(&self) -> cl_device_id {
+        self.0.as_ptr()
+    }
+}
+// unsafe impl<'a> ClDeviceIdPtr for &'a Device {}
 
 impl From<DeviceIdCore> for Device {
     fn from(core: DeviceIdCore) -> Device {

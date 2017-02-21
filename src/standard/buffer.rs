@@ -1252,7 +1252,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
         self
     }
 
-    pub fn build(&mut self) -> OclResult<Buffer<T>> {
+    pub fn build(&self) -> OclResult<Buffer<T>> {
         if let QueueOption::None = self.queue_option {
             panic!("ocl::BufferBuilder::build: A context or default queue must be set \
                 with '.context(...)' or '.queue(...)'.");

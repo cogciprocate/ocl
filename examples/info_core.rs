@@ -82,11 +82,11 @@ fn print_platform_device(platform: Platform, device: Device) {
             {t}Vendor: {}\n\
             {t}Extensions: {}\n\
         ",
-        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Profile),
-        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Version),
-        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Name),
-        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Vendor),
-        core::get_platform_info(context.platform().unwrap(), PlatformInfo::Extensions),
+        core::get_platform_info(context.platform().unwrap().unwrap_or(Platform::default()), PlatformInfo::Profile),
+        core::get_platform_info(context.platform().unwrap().unwrap_or(Platform::default()), PlatformInfo::Version),
+        core::get_platform_info(context.platform().unwrap().unwrap_or(Platform::default()), PlatformInfo::Name),
+        core::get_platform_info(context.platform().unwrap().unwrap_or(Platform::default()), PlatformInfo::Vendor),
+        core::get_platform_info(context.platform().unwrap().unwrap_or(Platform::default()), PlatformInfo::Extensions),
         t = util::colors::TAB,
     );
 

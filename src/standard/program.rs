@@ -92,8 +92,8 @@ impl ProgramBuilder {
     #[cfg(not(feature = "opencl_version_2_1"))]
     pub fn build(self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
-            Some(ref ds) => try!(ds.to_device_list(context.platform())),
-            None => context.devices().to_owned(),
+            Some(ref ds) => ds.to_device_list(context.platform()?)?,
+            None => context.devices(),
         };
 
         // if device_list.is_empty() {
@@ -371,7 +371,7 @@ impl ProgramBuilder {
 #[derive(Clone, Debug)]
 pub struct Program {
     obj_core: ProgramCore,
-    devices: Vec<Device>,
+    // devices: Vec<Device>,
 }
 
 impl Program {
@@ -393,7 +393,7 @@ impl Program {
 
         Ok(Program {
             obj_core: obj_core,
-            devices: Vec::from(device_ids.unwrap_or(&[])),
+            // devices: Vec::from(device_ids.unwrap_or(&[])),
         })
     }
 
@@ -413,7 +413,7 @@ impl Program {
 
         Ok(Program {
             obj_core: obj_core,
-            devices: devices,
+            // devices: devices,
         })
     }
 
@@ -431,10 +431,10 @@ impl Program {
         &self.obj_core
     }
 
-    /// Returns the list of devices associated with this program.
-    pub fn devices(&self) -> &[Device] {
-        &self.devices
-    }
+    // /// Returns the list of devices associated with this program.
+    // pub fn devices(&self) -> &[Device] {
+    //     &self.devices
+    // }
 
     /// Returns info about this program.
     pub fn info(&self, info_kind: ProgramInfo) -> ProgramInfoResult {

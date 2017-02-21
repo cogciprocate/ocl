@@ -8,6 +8,7 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::convert::Into;
+use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 
 /// A platform identifier.
@@ -157,8 +158,12 @@ impl Platform {
     }
 }
 
-unsafe impl ClPlatformIdPtr for Platform {}
-unsafe impl<'a> ClPlatformIdPtr for &'a Platform {}
+unsafe impl ClPlatformIdPtr for Platform {
+    fn as_ptr(&self) -> cl_platform_id {
+        self.0.as_ptr()
+    }
+}
+// unsafe impl<'a> ClPlatformIdPtr for &'a Platform {}
 
 impl Default for Platform {
     fn default() -> Platform {
@@ -170,6 +175,12 @@ impl Default for Platform {
 
         let dflt_plat_core = core::default_platform().expect("Platform::default()");
         Platform::new(dflt_plat_core)
+    }
+}
+
+impl From<PlatformIdCore> for Platform {
+    fn from(core: PlatformIdCore) -> Platform {
+        Platform(core)
     }
 }
 

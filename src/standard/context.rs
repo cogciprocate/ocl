@@ -118,14 +118,17 @@ impl ContextBuilder {
 /// Thread safety and destruction for any enclosed pointers are all handled automatically.
 /// Clone, store, and share between threads to your heart's content.
 ///
-/// [TODO]: Consider removing contained copies of the device id list and
-/// platform id. Can be easily ascertained via the API.
-///
+//
+// [TODO]: Remove contained copies of the device id list and platform id. Can
+// be easily ascertained via the API. [UPDATE]: devices list removed. Need to
+// parse the `ContextProperties` out of the `ContextInfoResult::Properties`
+// before we can eliminate `platform`.
+//
 #[derive(Debug, Clone)]
 pub struct Context {
     obj_core: ContextCore,
     platform: Option<Platform>,
-    devices: Vec<Device>,
+    // devices: Vec<Device>,
 }
 
 impl Context {
@@ -176,14 +179,14 @@ impl Context {
             None => DeviceSpecifier::All,
         };
 
-        let device_list = try!(device_spec.to_device_list(platform.as_ref()));
+        let device_list = try!(device_spec.to_device_list(platform));
 
         let obj_core = try!(core::create_context(properties.as_ref(), &device_list, pfn_notify, user_data));
 
         Ok(Context {
             obj_core: obj_core,
             platform: platform,
-            devices: device_list,
+            // devices: device_list,
         })
     }
 
@@ -193,7 +196,7 @@ impl Context {
     /// valid device index.
     ///
     pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
-        Device::resolve_idxs_wrap(idxs, &self.devices)
+        Device::resolve_idxs_wrap(idxs, &self.devices())
     }
 
     /// Returns a device by its ordinal count within this context.
@@ -212,28 +215,25 @@ impl Context {
         //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
         // }
         match self.platform() {
-            Some(ref p) => core::get_platform_info(p, info_kind),
-            None => PlatformInfoResult::from(OclError::string("Context::platform_info: \
+            Ok(plat_opt) => match plat_opt {
+                Some(ref p) => core::get_platform_info(p, info_kind),
+                None => PlatformInfoResult::from(OclError::from("Context::platform_info: \
                 This context has no associated platform.")),
+            },
+            Err(e) => PlatformInfoResult::from(e),
         }
     }
 
     /// Returns info about the device indexed by `index` associated with this
     /// context.
     pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> DeviceInfoResult {
-        let device = match self.devices.get(index) {
-            Some(d) => d,
+        match self.devices().get(index) {
+            Some(d) => core::get_device_info(d, info_kind),
             None => {
                 return DeviceInfoResult::Error(Box::new(
-                    OclError::string("Context::device_info: Invalid device index")));
+                    OclError::from("Context::device_info: Invalid device index")));
             },
-        };
-
-        // match core::get_device_info(device, info_kind) {
-        //     Ok(pi) => pi,
-        //     Err(err) => DeviceInfoResult::Error(Box::new(err)),
-        // }
-        core::get_device_info(device, info_kind)
+        }
     }
 
     /// Returns info about the context.
@@ -262,13 +262,16 @@ impl Context {
     }
 
     /// Returns the list of devices associated with this context.
-    pub fn devices(&self) -> &[Device] {
-        &self.devices[..]
+    pub fn devices(&self) -> Vec<Device> {
+        // &self.devices[..]
+        Device::list_from_core(self.obj_core.devices().unwrap())
     }
 
     /// Returns the platform this context is associated with.
-    pub fn platform(&self) -> Option<&Platform> {
-        self.platform.as_ref()
+    pub fn platform(&self) -> OclResult<Option<Platform>> {
+        // self.platform.as_ref()
+        // self.info(ContextInfo::Properties).platform().map(|p| p.into())
+        self.obj_core.platform().map(|opt| opt.map(Platform::from))
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
