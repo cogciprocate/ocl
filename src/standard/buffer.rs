@@ -7,10 +7,10 @@ use std::ops::{Deref, DerefMut};
 use futures::{task, Future, Poll, Async};
 use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
-    MemFlags, MemInfo, MemInfoResult, BufferRegion, /*Context as ContextCore*/
-    MapFlags, AsMem, MemCmdRw, MemCmdAll, Event as EventCore, ClNullEventPtr};
+    MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
+    MemCmdAll, Event as EventCore, ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap};
-use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, /*MemLen*/};
+use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 #[cfg(feature = "experimental_async_rw")]
 use standard::{Event, _unpark_task, box_raw_void};
 
@@ -367,25 +367,6 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         self
     }
 
-    // /// Specifies whether or not to block thread until completion.
-    // ///
-    // /// Ignored if this is a copy, fill, or copy to image operation.
-    // ///
-    // /// ## Panics
-    // ///
-    // /// Will panic if `::read` has already been called. Use `::read_async`
-    // /// (unsafe) for a non-blocking read operation.
-    // ///
-    // #[deprecated(since="0.13.0", note="Use ::enq_async for non-blocking reads.")]
-    // pub fn block(mut self, block: bool) -> BufferCmd<'c, T> {
-    //     if !block && self.lock_block {
-    //         panic!("ocl::BufferCmd::block(): Blocking for this command has been disabled by \
-    //             the '::read' method. For non-blocking reads use '::read_async'.");
-    //     }
-    //     self.block = block;
-    //     self
-    // }
-
     /// Specifies whether or not to block the current thread until completion.
     ///
     /// Ignored if this is not a read or write operation.
@@ -562,23 +543,9 @@ pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
 impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferReadCmd<'c, 'd, T> {
-        self.queue = Some(queue);
+        self.cmd.queue = Some(queue);
         self
     }
-
-    // #[deprecated(since="0.13.0", note="Use ::enq_async for non-blocking reads.")]
-    // pub fn block(self, _: bool) -> BufferReadCmd<'c, 'd, T> {
-    //     panic!("ocl::Buffer::cmd...block(): This method no longer has any effect and will soon be
-    //         removed. Use '::enq' for a blocking read and '::enq_async' for non-blocking.");
-
-    //     // if !block && self.lock_block {
-    //     //     panic!("ocl::BufferReadCmd::block(): Blocking for this command has been disabled by \
-    //     //         the '::read' method. For non-blocking reads use '::read_async'.");
-    //     // }
-
-    //     // self.block = block;
-    //     // self
-    // }
 
     /// Specifies whether or not to block the current thread until completion.
     ///
@@ -602,7 +569,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     // [FIXME]: Check/fix links.
     //
     pub unsafe fn block(mut self, block: bool) -> BufferReadCmd<'c, 'd, T> {
-        self.block = block;
+        self.cmd.block = block;
         self
     }
 
@@ -625,12 +592,12 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 src_row_pitch: usize, src_slc_pitch: usize, dst_row_pitch: usize,
                 dst_slc_pitch: usize) -> BufferReadCmd<'c, 'd, T>
     {
-        if let BufferCmdDataShape::Lin { offset } = self.shape {
+        if let BufferCmdDataShape::Lin { offset } = self.cmd.shape {
             assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
                 set to linear mode with '::offset`. You cannot call both '::offset' and '::rect'.");
         }
 
-        self.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
+        self.cmd.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
             region: region, src_row_pitch: src_row_pitch, src_slc_pitch: src_slc_pitch,
             dst_row_pitch: dst_row_pitch, dst_slc_pitch: dst_slc_pitch };
 
@@ -641,7 +608,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> BufferReadCmd<'c, 'd, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
-        self.ewait = Some(ewait.into());
+        self.cmd.ewait = Some(ewait.into());
         self
     }
 
@@ -650,7 +617,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferReadCmd<'c, 'd, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
-        self.ewait = ewait.map(|el| el.into());
+        self.cmd.ewait = ewait.map(|el| el.into());
         self
     }
 
@@ -660,7 +627,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             // where E: Into<ClNullEventPtrEnum<'e>>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
-        self.enew = Some(enew.into());
+        self.cmd.enew = Some(enew.into());
         self
     }
 
@@ -670,7 +637,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             // where E: Into<ClNullEventPtrEnum<'e>>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
-        self.enew = enew.map(|e| e.into());
+        self.cmd.enew = enew.map(|e| e.into());
         self
     }
 
@@ -688,7 +655,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.cmd.mem_len, self.data.len(), offset));
 
-                        unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, self.block,
+                        unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, self.cmd.block,
                             offset, self.data, self.cmd.ewait, self.cmd.enew) }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
@@ -698,7 +665,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         // try!(Ok(()));
 
                         unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
-                            self.block, src_origin, dst_origin, region, src_row_pitch,
+                            self.cmd.block, src_origin, dst_origin, region, src_row_pitch,
                             src_slc_pitch, dst_row_pitch, dst_slc_pitch, self.data,
                             self.cmd.ewait, self.cmd.enew) }
                     }
@@ -756,15 +723,15 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     }
 }
 
-impl<'c, 'd, T> Deref for BufferReadCmd<'c, 'd, T> where T: OclPrm {
-    type Target = BufferCmd<'c, T>;
+// impl<'c, 'd, T> Deref for BufferReadCmd<'c, 'd, T> where T: OclPrm {
+//     type Target = BufferCmd<'c, T>;
 
-    #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
-}
+//     #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
+// }
 
-impl<'c, 'd, T> DerefMut for BufferReadCmd<'c, 'd, T> where T: OclPrm{
-    #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
-}
+// impl<'c, 'd, T> DerefMut for BufferReadCmd<'c, 'd, T> where T: OclPrm{
+//     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
+// }
 
 
 
@@ -777,22 +744,9 @@ pub struct BufferWriteCmd<'c, 'd, T> where T: 'c + 'd {
 impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferWriteCmd<'c, 'd, T> {
-        self.queue = Some(queue);
+        self.cmd.queue = Some(queue);
         self
     }
-
-    // #[deprecated(since="0.13.0", note="Use ::enq_async for non-blocking writes.")]
-    // pub fn block(self, _: bool) -> BufferWriteCmd<'c, 'd, T> {
-    //     panic!("ocl::Buffer::cmd...block(): This method no longer has any effect and will soon be
-    //         removed. Use '::enq' for a blocking write and '::enq_async' for non-blocking.");
-
-    //     // if !block && self.lock_block {
-    //     //     panic!("ocl::BufferWriteCmd::block(): Blocking for this command has been disabled by \
-    //     //         the '::read' method. For non-blocking reads use '::read_async'.");
-    //     // }
-    //     // self.block = block;
-    //     // self
-    // }
 
     /// Specifies whether or not to block the current thread until completion.
     ///
@@ -816,7 +770,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     // [FIXME]: Check/fix links.
     //
     pub unsafe fn block(mut self, block: bool) -> BufferWriteCmd<'c, 'd, T> {
-        self.block = block;
+        self.cmd.block = block;
         self
     }
 
@@ -839,12 +793,12 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 src_row_pitch: usize, src_slc_pitch: usize, dst_row_pitch: usize,
                 dst_slc_pitch: usize) -> BufferWriteCmd<'c, 'd, T>
     {
-        if let BufferCmdDataShape::Lin { offset } = self.shape {
+        if let BufferCmdDataShape::Lin { offset } = self.cmd.shape {
             assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
                 set to linear mode with '::offset`. You cannot call both '::offset' and '::rect'.");
         }
 
-        self.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
+        self.cmd.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
             region: region, src_row_pitch: src_row_pitch, src_slc_pitch: src_slc_pitch,
             dst_row_pitch: dst_row_pitch, dst_slc_pitch: dst_slc_pitch };
 
@@ -855,7 +809,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> BufferWriteCmd<'c, 'd, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
-        self.ewait = Some(ewait.into());
+        self.cmd.ewait = Some(ewait.into());
         self
     }
 
@@ -864,7 +818,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferWriteCmd<'c, 'd, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
-        self.ewait = ewait.map(|el| el.into());
+        self.cmd.ewait = ewait.map(|el| el.into());
         self
     }
 
@@ -874,7 +828,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             // where E: Into<ClNullEventPtrEnum<'e>>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
-        self.enew = Some(enew.into());
+        self.cmd.enew = Some(enew.into());
         self
     }
 
@@ -884,7 +838,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             // where E: Into<ClNullEventPtrEnum<'e>>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
-        self.enew = enew.map(|e| e.into());
+        self.cmd.enew = enew.map(|e| e.into());
         self
     }
 
@@ -901,14 +855,14 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     BufferCmdDataShape::Lin { offset } => {
                         try!(check_len(self.cmd.mem_len, self.data.len(), offset));
 
-                        core::enqueue_write_buffer(queue, self.cmd.obj_core, self.block,
+                        core::enqueue_write_buffer(queue, self.cmd.obj_core, self.cmd.block,
                             offset, self.data, self.cmd.ewait, self.cmd.enew)
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch, src_slc_pitch,
                             dst_row_pitch, dst_slc_pitch } =>
                     {
                         core::enqueue_write_buffer_rect(queue, self.cmd.obj_core,
-                            self.block, src_origin, dst_origin, region, src_row_pitch,
+                            self.cmd.block, src_origin, dst_origin, region, src_row_pitch,
                             src_slc_pitch, dst_row_pitch, dst_slc_pitch, self.data,
                             self.cmd.ewait, self.cmd.enew)
                     }
@@ -951,15 +905,15 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     }
 }
 
-impl<'c, 'd, T> Deref for BufferWriteCmd<'c, 'd, T> where T: OclPrm {
-    type Target = BufferCmd<'c, T>;
+// impl<'c, 'd, T> Deref for BufferWriteCmd<'c, 'd, T> where T: OclPrm {
+//     type Target = BufferCmd<'c, T>;
 
-    #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
-}
+//     #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
+// }
 
-impl<'c, 'd, T> DerefMut for BufferWriteCmd<'c, 'd, T> where T: OclPrm{
-    #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
-}
+// impl<'c, 'd, T> DerefMut for BufferWriteCmd<'c, 'd, T> where T: OclPrm{
+//     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
+// }
 
 
 /// A buffer command builder used to enqueue maps.
@@ -983,7 +937,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a queue to use for this call only.
     pub fn queue(mut self, queue: &'c Queue) -> BufferMapCmd<'c, T> {
-        self.queue = Some(queue);
+        self.cmd.queue = Some(queue);
         self
     }
 
@@ -1001,7 +955,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> BufferMapCmd<'c, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
-        self.ewait = Some(ewait.into());
+        self.cmd.ewait = Some(ewait.into());
         self
     }
 
@@ -1010,7 +964,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferMapCmd<'c, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
-        self.ewait = ewait.map(|el| el.into());
+        self.cmd.ewait = ewait.map(|el| el.into());
         self
     }
 
@@ -1020,7 +974,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
             // where E: Into<ClNullEventPtrEnum<'e>>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
-        self.enew = Some(enew.into());
+        self.cmd.enew = Some(enew.into());
         self
     }
 
@@ -1029,7 +983,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> BufferMapCmd<'c, T>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
-        self.enew = enew.map(|e| e.into());
+        self.cmd.enew = enew.map(|e| e.into());
         self
     }
 
@@ -1092,13 +1046,13 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
         match self.cmd.kind {
             BufferCmdKind::Map => {
-                if let BufferCmdDataShape::Lin { offset } = self.shape {
+                if let BufferCmdDataShape::Lin { offset } = self.cmd.shape {
                     let len = match self.len {
                         Some(l) => l,
-                        None => self.mem_len,
+                        None => self.cmd.mem_len,
                     };
 
-                    check_len(self.mem_len, len, offset)?;
+                    check_len(self.cmd.mem_len, len, offset)?;
 
                     let flags = self.flags.unwrap_or(MapFlags::empty());
 
@@ -1106,12 +1060,12 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                         let mut map_event = EventCore::null();
 
                         let mm_core = core::enqueue_map_buffer::<T, _, _, _>(queue,
-                            self.obj_core, false, flags, offset, len, self.ewait.take(),
+                            self.cmd.obj_core, false, flags, offset, len, self.cmd.ewait.take(),
                             Some(&mut map_event))?;
 
                         // If a 'new/null event' has been set, copy pointer
                         // into it and increase refcount (to 2).
-                        if let Some(ref mut self_enew) = self.enew.take() {
+                        if let Some(ref mut self_enew) = self.cmd.enew.take() {
                             // // Should be equivalent to `.clone().into_raw()` [TODO]: test.
                             // core::retain_event(&map_event)?;
                             // *(self_enew.alloc_new()) = *(map_event.as_ptr_ref());
@@ -1120,7 +1074,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                             *(self_enew.alloc_new()) = map_event.clone().into_raw();
                         }
 
-                        FutureMemMap::new(mm_core, len, map_event, self.obj_core.clone(),
+                        FutureMemMap::new(mm_core, len, map_event, self.cmd.obj_core.clone(),
                             queue.core().clone())
 
                     };
@@ -1138,15 +1092,15 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     }
 }
 
-impl<'c, T> Deref for BufferMapCmd<'c, T> where T: OclPrm {
-    type Target = BufferCmd<'c, T>;
+// impl<'c, T> Deref for BufferMapCmd<'c, T> where T: OclPrm {
+//     type Target = BufferCmd<'c, T>;
 
-    #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
-}
+//     #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
+// }
 
-impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm {
-    #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
-}
+// impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm {
+//     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
+// }
 
 
 #[derive(Debug, Clone)]
