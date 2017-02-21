@@ -9,7 +9,7 @@ use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, Event as EventCore, ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 #[cfg(feature = "experimental_async_rw")]
 use standard::{Event, _unpark_task, box_raw_void};
@@ -1148,6 +1148,9 @@ impl<'a> From<&'a Context> for QueCtx {
 
 
 /// A buffer builder.
+///
+/// [TODO]: Add examples and details. For now see project examples folder.
+///
 #[derive(Debug)]
 pub struct BufferBuilder<'a, T> where T: 'a {
     queue_option: Option<QueCtx>,
@@ -1158,6 +1161,7 @@ pub struct BufferBuilder<'a, T> where T: 'a {
 }
 
 impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
+    /// Creates a new buffer builder.
     pub fn new() -> BufferBuilder<'a, T> {
         BufferBuilder {
             queue_option: None,
@@ -1262,6 +1266,31 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
         self
     }
 
+    /// Allows the caller to automatically fill the buffer with a value (such
+    /// as zero) immediately after creation.
+    ///
+    /// Platforms that have trouble with `clEnqueueFillBuffer` such as
+    /// [pocl](http://portablecl.org/) should not use this option and should
+    /// handle initializing buffers manually (using a kernel or copy host data
+    /// flag).
+    ///
+    /// The `enew` argument is provided to allow an empty event to be
+    /// associated with the `fill` command which will be enqueued after
+    /// creation and just before returning the new buffer. It is up to the
+    /// caller to ensure that the command has completed before performing any
+    /// other operations on the buffer. Failure to do so may cause the fill
+    /// command to run **after** subsequently queued commands if multiple or
+    /// out-of-order queues are being used. Passing `None` for `enew` (use
+    /// `None::<()>` to avoid the the type inference error) will cause the
+    /// fill command to block before returning the new buffer and is the safe
+    /// option if you don't want to worry about it.
+    ///
+    /// ### Examples
+    ///
+    /// [TODO]: Provide examples once this stabilizes.
+    ///
+    ///
+    /// [UNSTABLE]: May be changed or removed.
     pub fn fill_val<'b, 'e, En>(mut self, fill_val: T, enew: Option<En>)
             -> BufferBuilder<'a, T>
             where 'e: 'a, En: Into<ClNullEventPtrEnum<'e>>
@@ -1350,18 +1379,16 @@ impl<T: OclPrm> Buffer<T> {
             _data: PhantomData,
         };
 
-        if let Some((val, en)) = fill_val {
-            let enew = en.map(|e| e.into());
-
-            // Create a new event and use it then copy that created event into enew if it exists.
-
-            buf.cmd()
-                .fill(val, None)
-                .enew_opt(enew)
-                .enq()?;
-
-
-
+        // Fill with `fill_val` if specified, blocking if the associated event is `None`.
+        if let Some((val, enew_opt)) = fill_val {
+            match enew_opt {
+                Some(enew) => buf.cmd().fill(val, None).enew(enew.into()).enq()?,
+                None => {
+                    let mut new_event = Event::empty();
+                    buf.cmd().fill(val, None).enew(&mut new_event).enq()?;
+                    new_event.wait_for()?;
+                }
+            }
         }
 
         Ok(buf)
@@ -1682,6 +1709,15 @@ impl<T: OclPrm> SubBuffer<T> {
         size: D) -> OclResult<SubBuffer<T>>
     {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
+
+        // Check flags here to preempt a somewhat vague OpenCL runtime error message:
+        assert!(!flags.contains(::flags::MEM_USE_HOST_PTR) &&
+            !flags.contains(::flags::MEM_ALLOC_HOST_PTR) &&
+            !flags.contains(::flags::MEM_COPY_HOST_PTR),
+            "'MEM_USE_HOST_PTR', 'MEM_ALLOC_HOST_PTR', or 'MEM_COPY_HOST_PTR' flags may \
+            not be specified when creating a sub-buffer. They will be inherited from \
+            the containing buffer.");
+
         let origin: SpatialDims = origin.into();
         let size: SpatialDims = size.into();
 
