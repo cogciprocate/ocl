@@ -45,18 +45,14 @@ use std::ptr;
 use std::slice;
 use std::cell::Ref;
 use std::fmt::Debug;
-// use std::marker::Sized;
-// use std::ops::Deref;
-// use std::borrow::Borrow;
 use libc::c_void;
-use ffi::{/*self,*/ cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
+use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm};
 use error::{Result as OclResult, Error as OclError};
 use functions;
-// use util;
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -837,72 +833,6 @@ impl ClVersions for Kernel {
 unsafe impl Send for Kernel {}
 
 
-
-// /// cl_event
-// #[derive(Clone, Debug)]
-// pub struct NullEvent(cl_event);
-
-// impl NullEvent {
-//     /// For passage directly to an 'event creation' function (such as enqueue...).
-//     #[inline]
-//     pub fn new() -> NullEvent {
-//         NullEvent(0 as cl_event)
-//     }
-
-//     pub fn validate(&mut self) -> OclResult<Event> {
-//         if self.is_valid() {
-//             let event = Ok(Event(self.0));
-//             mem::forget(self);
-//             event
-//         } else {
-//             Err("NullEvent::validate: Event is not valid.".into())
-//         }
-//     }
-
-//     /// Returns a mutable reference to a pointer, do not deref then modify or store it
-//     /// unless you will manage its associated reference count carefully.
-//     ///
-//     #[inline]
-//     pub unsafe fn as_ptr_mut(&mut self) -> &mut cl_event {
-//         &mut self.0
-//     }
-
-//     /// [FIXME]: ADD VALIDITY CHECK BY CALLING '_INFO' OR SOMETHING:
-//     /// NULL CHECK IS NOT ENOUGH
-//     ///
-//     /// This still leads to crazy segfaults when non-event pointers (random
-//     /// whatever addresses) are passed. Need better check.
-//     ///
-//     #[inline]
-//     pub fn is_valid(&self) -> bool {
-//         !self.0.is_null()
-//     }
-
-//     fn _alloc_new(&mut self) -> *mut cl_event {
-//         assert!(self.0.is_null(), "NullEvent (new event) has been used twice.");
-//         &mut self.0
-//     }
-// }
-
-// impl<'e> ClEventRef<'e> for NullEvent {
-//     #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
-// }
-
-// unsafe impl<'a> ClNullEventPtr for &'a mut NullEvent {
-//     #[inline(always)] fn alloc_new(self) -> *mut cl_event { self._alloc_new() }
-
-//     #[inline(always)] fn validate(self) -> OclResult<Event> {
-//         let valid_event = self.validate();
-//         self.0 = 0 as cl_event;
-//         valid_event
-//     }
-// }
-
-// unsafe impl Sync for NullEvent {}
-// unsafe impl Send for NullEvent {}
-
-
-
 /// cl_event
 #[repr(C)]
 #[derive(Debug)]
@@ -1154,7 +1084,7 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if !self.0.is_null() {
-            // Ignore errors here, some platforms just suck.
+            // Ignore errors here? Some platforms just suck.
             unsafe { functions::release_event(self).unwrap(); }
         }
     }

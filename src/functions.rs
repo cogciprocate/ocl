@@ -1067,7 +1067,7 @@ pub unsafe fn create_from_gl_texture_3d(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html)
 ///
-pub fn create_sub_buffer<T>(
+pub fn create_sub_buffer<T: OclPrm>(
             buffer: &Mem,
             flags: MemFlags,
             buffer_create_info: &BufferRegion<T>,
@@ -1092,7 +1092,7 @@ pub fn create_sub_buffer<T>(
 /// Returns a new image (mem) pointer.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub unsafe fn create_image<T>(
+pub unsafe fn create_image<T: OclPrm>(
             context: &Context,
             flags: MemFlags,
             format: &ImageFormat,

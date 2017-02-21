@@ -12,7 +12,7 @@ use num::FromPrimitive;
 use error::{Error as OclError, Result as OclResult};
 use ffi::{self, cl_mem, cl_buffer_region, cl_context_properties, cl_platform_id};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-    PlatformId};
+    PlatformId, OclPrm};
 
 
 // Until everything can be implemented:
@@ -327,19 +327,6 @@ impl ContextProperties {
         props_raw
     }
 
-        // Platform = ffi::CL_CONTEXT_PLATFORM as isize,
-        // InteropUserSync = ffi::CL_CONTEXT_INTEROP_USER_SYNC as isize,
-        // D3d10DeviceKhr = ffi::CL_CONTEXT_D3D10_DEVICE_KHR as isize,
-        // GlContextKhr = ffi::CL_GL_CONTEXT_KHR as isize,
-        // EglDisplayKhr = ffi::CL_EGL_DISPLAY_KHR as isize,
-        // GlxDisplayKhr = ffi::CL_GLX_DISPLAY_KHR as isize,
-        // CglSharegroupKhr = CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC,
-        // WglHdcKhr = ffi::CL_WGL_HDC_KHR as isize,
-        // AdapterD3d9Khr = ffi::CL_CONTEXT_ADAPTER_D3D9_KHR as isize,
-        // AdapterD3d9exKhr = ffi::CL_CONTEXT_ADAPTER_D3D9EX_KHR as isize,
-        // AdapterDxvaKhr = ffi::CL_CONTEXT_ADAPTER_DXVA_KHR as isize,
-        // D3d11DeviceKhr = ffi::CL_CONTEXT_D3D11_DEVICE_KHR as isize,
-
     /// Returns a single context property value.
     pub unsafe fn extract_property_from_raw(property: ContextProperty,
             raw_context_properties: &[isize]) -> Option<ContextPropertyValue>
@@ -497,13 +484,7 @@ pub struct BufferRegion<T> {
     _data: PhantomData<T>,
 }
 
-// #[repr(C)]
-// pub struct cl_buffer_region {
-//     pub origin:     size_t,
-//     pub size:       size_t,
-// }
-
-impl<T> BufferRegion<T> {
+impl<T: OclPrm> BufferRegion<T> {
     pub fn new(origin: usize, len: usize) -> BufferRegion<T> {
         BufferRegion {
             origin: origin,
@@ -511,11 +492,20 @@ impl<T> BufferRegion<T> {
             _data: PhantomData,
         }
     }
+
     pub fn to_bytes(&self) -> cl_buffer_region {
         cl_buffer_region {
             origin: self.origin * mem::size_of::<T>(),
             size: self.len * mem::size_of::<T>(),
         }
+    }
+
+    pub fn from_bytes(ffi_struct: cl_buffer_region) -> BufferRegion<T> {
+        assert!(ffi_struct.origin % mem::size_of::<T>() == 0);
+        assert!(ffi_struct.size % mem::size_of::<T>() == 0);
+
+        BufferRegion::new(ffi_struct.origin / mem::size_of::<T>(),
+            ffi_struct.size / mem::size_of::<T>())
     }
 }
 
