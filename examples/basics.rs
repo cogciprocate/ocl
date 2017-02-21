@@ -1,11 +1,11 @@
 extern crate ocl;
 
-use ocl::{util, core, ProQue, Buffer};
+use ocl::{util, ProQue, Buffer, MemFlags};
 
 // Number of results to print out:
 const RESULTS_TO_PRINT: usize = 20;
 
-// Our arbitrary data set size and coefficent:
+// Our arbitrary data set size (about a million) and coefficent:
 const DATA_SET_SIZE: usize = 2 << 20;
 const COEFF: f32 = 5432.1;
 
@@ -29,13 +29,20 @@ fn main() {
         .dims(DATA_SET_SIZE)
         .build().expect("Build ProQue");
 
-    // Create a source buffer and initialize it with random floats between 0.0
-    // and 20.0 using a temporary init vector, `vec_source`:
+    // Create a temporary init vector and the source buffer. Initialize them
+    // with random floats between 0.0 and 20.0:
     let vec_source = util::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
-    let source_buffer = Buffer::new(ocl_pq.queue().clone(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_source), None).unwrap();
+    let source_buffer = Buffer::builder()
+        .queue(ocl_pq.queue().clone())
+        .flags(MemFlags::new().read_write().copy_host_ptr())
+        .dims(ocl_pq.dims().clone())
+        .host_data(&vec_source)
+        .build().unwrap();
 
-    // Create another empty buffer and vector for results:
+    // Create an empty vec and buffer (the quick way) for results. Note that
+    // there is no need to initialize the buffer as we did above because we
+    // will be writing to the entire buffer first thing, overwriting any junk
+    // data that may be there.
     let mut vec_result = vec![0.0f32; DATA_SET_SIZE];
     let result_buffer: Buffer<f32> = ocl_pq.create_buffer().unwrap();
 

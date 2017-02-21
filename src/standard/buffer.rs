@@ -98,7 +98,7 @@ pub enum BufferCmdKind<'c, T> where T: 'c {
     GLRelease,
 }
 
-impl<'c, T> BufferCmdKind<'c, T> /*where T: 'c*/ {
+impl<'c, T> BufferCmdKind<'c, T> {
     fn is_unspec(&'c self) -> bool {
         if let BufferCmdKind::Unspecified = *self {
             true
@@ -164,7 +164,6 @@ pub struct BufferCmd<'c, T> where T: 'c {
     queue: Option<&'c Queue>,
     obj_core: &'c MemCore,
     block: bool,
-    // lock_block: bool,
     kind: BufferCmdKind<'c, T>,
     shape: BufferCmdDataShape,
     ewait: Option<ClWaitListPtrEnum<'c>>,
@@ -184,7 +183,6 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             queue: queue,
             obj_core: obj_core,
             block: true,
-            // lock_block: false,
             kind: BufferCmdKind::Unspecified,
             shape: BufferCmdDataShape::Lin { offset: 0 },
             ewait: None,
@@ -206,8 +204,6 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Read;
-        // self.block = true;
-        // self.lock_block = true;
         BufferReadCmd { cmd: self, data: dst_data }
     }
 
@@ -227,7 +223,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     ///
     /// The command operation kind must not have already been specified
     ///
-    #[deprecated(since="0.13.0", note="Use '::read' with '::block(true)' for unsafe asynchronous reads.")]
+    #[deprecated(since="0.13.0", note="Use '::read' with '::block(false)' for unsafe asynchronous reads.")]
     pub unsafe fn read_async<'d>(mut self, dst_data: &'d mut [T]) -> BufferReadCmd<'c, 'd, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
@@ -1152,13 +1148,13 @@ impl<'a> From<&'a Context> for QueCtx {
 
 
 /// A buffer builder.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BufferBuilder<'a, T> where T: 'a {
     queue_option: Option<QueCtx>,
     flags: Option<MemFlags>,
     dims: Option<SpatialDims>,
-    data: Option<&'a [T]>,
-    init_val: Option<T>
+    host_data: Option<&'a [T]>,
+    fill_val: Option<(T, Option<ClNullEventPtrEnum<'a>>)>
 }
 
 impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
@@ -1167,52 +1163,122 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
             queue_option: None,
             flags: None,
             dims: None,
-            data: None,
-            init_val: None,
+            host_data: None,
+            fill_val: None,
         }
     }
 
-    pub fn context<'b>(&'b mut self, context: Context) -> &'b mut BufferBuilder<'a, T> {
+    /// Sets the context with which to associate the buffer.
+    ///
+    /// May not be used in combination with `::queue` (use one or the other).
+    pub fn context<'b>(mut self, context: Context) -> BufferBuilder<'a, T> {
         assert!(self.queue_option.is_none());
         self.queue_option = Some(QueCtx::Context(context));
         self
     }
 
-    pub fn queue<'b>(&'b mut self, queue: Queue) -> &'b mut BufferBuilder<'a, T> {
+    /// Sets the default queue.
+    ///
+    /// If this is set, the context associated with the `default_queue` will
+    /// be used when creating the buffer (use one or the other).
+    pub fn queue<'b>(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
         assert!(self.queue_option.is_none());
-        self.queue_option = Some(QueCtx::Queue(queue));
+        self.queue_option = Some(QueCtx::Queue(default_queue));
         self
     }
 
-    pub fn flags<'b>(&'b mut self, flags: MemFlags) -> &'b mut BufferBuilder<'a, T> {
+    /// Sets the flags used when creating the buffer.
+    ///
+    /// Defaults to `flags::MEM_READ_WRITE` aka. `MemFlags::new().read_write()`
+    /// if this is not set. See the [SDK Docs] for more information about
+    /// flags. Note that the `host_ptr` mentioned in the [SDK Docs] is
+    /// equivalent to the slice optionally passed as the `host_data` argument.
+    /// Also note that the names of all flags in this library have the `CL_`
+    /// prefix removed for brevity.
+    ///
+    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    pub fn flags<'b>(mut self, flags: MemFlags) -> BufferBuilder<'a, T> {
         self.flags = Some(flags);
         self
     }
 
-    pub fn dims<'b>(&'b mut self, dims: SpatialDims) -> &'b mut BufferBuilder<'a, T> {
-        self.dims = Some(dims);
+    /// Sets the dimensions for this buffer.
+    ///
+    /// Typically a single integer value to set the total length is used
+    /// however up to three dimensions may be specified in order to more
+    /// easily coordinate with kernel work sizes.
+    ///
+    /// Note that although sizes in the standard OpenCL API are expressed in
+    /// bytes, sizes, lengths, and dimensions in this library are always
+    /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
+    /// otherwise noted.
+    pub fn dims<'b, D>(mut self, dims: D) -> BufferBuilder<'a, T>
+            where D: Into<SpatialDims>
+    {
+        self.dims = Some(dims.into());
         self
     }
 
-    pub fn data<'b>(&'b mut self, data: &'a [T]) -> &'b mut BufferBuilder<'a, T> {
-        self.data = Some(data);
+    /// A slice use to designate a region of memory for use in combination of
+    /// one of the two following flags:
+    ///
+    /// * `flags::MEM_USE_HOST_PTR` aka. `MemFlags::new().use_host_ptr()`:
+    ///   * This flag is valid only if `host_data` is not `None`. If
+    ///     specified, it indicates that the application wants the OpenCL
+    ///     implementation to use memory referenced by `host_data` as the
+    ///     storage bits for the memory object (buffer/image).
+    ///   * OpenCL implementations are allowed to cache the buffer contents
+    ///     pointed to by `host_data` in device memory. This cached copy can
+    ///     be used when kernels are executed on a device.
+    ///   * The result of OpenCL commands that operate on multiple buffer
+    ///     objects created with the same `host_data` or overlapping host
+    ///     regions is considered to be undefined.
+    ///   * Refer to the [description of the alignment][align_rules] rules for
+    ///     `host_data` for memory objects (buffer and images) created using
+    ///     `MEM_USE_HOST_PTR`.
+    ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
+    ///
+    /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
+    ///   * This flag is valid only if `host_data` is not NULL. If specified, it
+    ///     indicates that the application wants the OpenCL implementation to
+    ///     allocate memory for the memory object and copy the data from
+    ///     memory referenced by `host_data`.
+    ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
+    ///     exclusive.
+    ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to
+    ///     initialize the contents of the cl_mem object allocated using
+    ///     host-accessible (e.g. PCIe) memory.
+    ///
+    /// Note: Descriptions adapted from:
+    /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
+    ///
+    ///
+    /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
+    /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    pub fn host_data<'d>(mut self, host_data: &'d [T]) -> BufferBuilder<'a, T>
+            where 'd: 'a
+    {
+        self.host_data = Some(host_data);
         self
     }
 
-    pub fn init_val<'b>(&'b mut self, init_val: T) -> &'b mut BufferBuilder<'a, T> {
-        self.init_val = Some(init_val);
+    pub fn fill_val<'b, 'e, En>(mut self, fill_val: T, enew: Option<En>)
+            -> BufferBuilder<'a, T>
+            where 'e: 'a, En: Into<ClNullEventPtrEnum<'e>>
+    {
+        self.fill_val = Some((fill_val, enew.map(|e| e.into())));
         self
     }
 
-    pub fn build(&self) -> OclResult<Buffer<T>> {
+    pub fn build(mut self) -> OclResult<Buffer<T>> {
         match self.queue_option {
-            Some(ref qo) => {
+            Some(qo) => {
                 let dims = match self.dims {
                     Some(d) => d,
                     None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
                 };
 
-                Buffer::new(qo.clone(), self.flags, dims, self.data, self.init_val)
+                Buffer::new(qo.clone(), self.flags.take(), dims, self.host_data.take(), self.fill_val.take())
             },
             None => panic!("ocl::BufferBuilder::build: A context or default queue must be set \
                 with '.context(...)' or '.queue(...)'."),
@@ -1245,25 +1311,23 @@ impl<T: OclPrm> Buffer<T> {
         BufferBuilder::new()
     }
 
-    /// Creates a new sub-buffer.
+    /// Creates a new buffer. **[NOTE]: Use `::builder` instead now.**
     ///
-    /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
-    /// the [SDK Docs] for more information about flags. Note that the
-    /// `host_ptr` mentioned in the [SDK Docs] is equivalent to the slice
-    /// optionally passed as the `data` argument. Also note that the names of
-    /// the flags in this library have the `CL_` prefix removed for brevity.
+    /// See the [`BufferBuilder`] and [SDK] documentation for argument
+    /// details.
     ///
-    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    /// [UNSTABLE]: Arguments may still be in a state of flux. It is
+    /// recommended to use `::builder` instead.
     ///
+    /// [`BufferBuilder`]: struct.BufferBuilder.html
+    /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     ///
-    /// [UNSTABLE]: Arguments may still be in a state of flux.
-    ///
-    pub fn new<D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
-            data: Option<&[T]>, init_val: Option<T>) -> OclResult<Buffer<T>>
-            where D: Into<SpatialDims>, Q: Into<QueCtx>
+    pub fn new<'e, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
+            host_data: Option<&[T]>, fill_val: Option<(T, Option<En>)>) -> OclResult<Buffer<T>>
+            where D: Into<SpatialDims>, Q: Into<QueCtx>, En: Into<ClNullEventPtrEnum<'e>>
     {
-        if data.is_some() && init_val.is_some() { panic!("ocl::Buffer::new: Cannot initialize a \
-            buffer ('init_val') when the 'data' argument is 'Some(...)'.") };
+        if host_data.is_some() && fill_val.is_some() { panic!("ocl::Buffer::new: Cannot initialize a \
+            buffer ('fill_val') when the 'data' argument is 'Some(...)'.") };
 
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
         let dims: SpatialDims = dims.into();
@@ -1271,8 +1335,10 @@ impl<T: OclPrm> Buffer<T> {
         let que_ctx = que_ctx.into();
 
         let obj_core = match que_ctx {
-            QueCtx::Queue(ref q) => unsafe { core::create_buffer(&q.context(), flags, len, data)? },
-            QueCtx::Context(ref c) => unsafe { core::create_buffer(c, flags, len, data)? },
+            QueCtx::Queue(ref q) => unsafe { core::create_buffer(&q.context(),
+                flags, len, host_data)? },
+            QueCtx::Context(ref c) => unsafe { core::create_buffer(c,
+                flags, len, host_data)? },
         };
 
         let buf = Buffer {
@@ -1284,8 +1350,18 @@ impl<T: OclPrm> Buffer<T> {
             _data: PhantomData,
         };
 
-        if let Some(val) = init_val {
-            try!(buf.cmd().fill(val, None).enq());
+        if let Some((val, en)) = fill_val {
+            let enew = en.map(|e| e.into());
+
+            // Create a new event and use it then copy that created event into enew if it exists.
+
+            buf.cmd()
+                .fill(val, None)
+                .enew_opt(enew)
+                .enq()?;
+
+
+
         }
 
         Ok(buf)
@@ -1471,21 +1547,9 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Creates a new sub-buffer and returns it if successful.
     ///
-    /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
-    /// the [SDK Docs] for more information about flags. Note that the names
-    /// of the flags in this library have the `CL_` prefix removed for
-    /// brevity.
+    /// See [`SubBuffer::new`][subbuf_new] for more information about arguments.
     ///
-    /// `origin` and `size` set up the region of the sub-buffer within the
-    ///  original buffer and must not fall beyond the boundaries of it.
-    ///
-    /// `origin` must be a multiple of the `DeviceInfo::MemBaseAddrAlign`
-    /// otherwise you will get a `CL_MISALIGNED_SUB_BUFFER_OFFSET` error. To
-    /// determine, use `Device::mem_base_addr_align` for the device associated
-    /// with the queue which will be use with this sub-buffer.
-    ///
-    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
-    ///
+    /// [subbuf_new]: struct.SubBuffer.html#method.new
     #[inline]
     pub fn create_sub_buffer<D: Into<SpatialDims>>(&self, flags: Option<MemFlags>, origin: D,
         size: D) -> OclResult<SubBuffer<T>>
@@ -1579,10 +1643,28 @@ pub struct SubBuffer<T: OclPrm> {
 impl<T: OclPrm> SubBuffer<T> {
     /// Creates a new sub-buffer.
     ///
-    /// `flags` defaults to `flags::MEM_READ_WRITE` if `None` is passed. See
-    /// the [SDK Docs] for more information about flags. Note that the names
-    /// of the flags in this library have the `CL_` prefix removed for
-    /// brevity.
+    /// ### Flags (adapted from [SDK])
+    ///
+    /// [NOTE]: Flags described below can be found in the [`ocl::flags`] module
+    /// or within the [`MemFlags`][mem_flags] type (example:
+    /// [`MemFlags::new().read_write()`]).
+    ///
+    /// `flags`: A bit-field that is used to specify allocation and usage
+    /// information about the sub-buffer memory object being created and is
+    /// described in the table below. If the `MEM_READ_WRITE`, `MEM_READ_ONLY`
+    /// or `MEM_WRITE_ONLY` values are not specified in flags, they are
+    /// inherited from the corresponding memory access qualifers associated
+    /// with buffer. The `MEM_USE_HOST_PTR`, `MEM_ALLOC_HOST_PTR` and
+    /// `MEM_COPY_HOST_PTR` values cannot be specified in flags but are
+    /// inherited from the corresponding memory access qualifiers associated
+    /// with buffer. If `MEM_COPY_HOST_PTR` is specified in the memory access
+    /// qualifier values associated with buffer it does not imply any
+    /// additional copies when the sub-buffer is created from buffer. If the
+    /// `MEM_HOST_WRITE_ONLY`, `MEM_HOST_READ_ONLY` or `MEM_HOST_NO_ACCESS`
+    /// values are not specified in flags, they are inherited from the
+    /// corresponding memory access qualifiers associated with buffer.
+    ///
+    /// ### Offset and Dimensions
     ///
     /// `origin` and `size` set up the region of the sub-buffer within the
     ///  original buffer and must not fall beyond the boundaries of it.
@@ -1592,8 +1674,10 @@ impl<T: OclPrm> SubBuffer<T> {
     /// determine, use `Device::mem_base_addr_align` for the device associated
     /// with the queue which will be use with this sub-buffer.
     ///
-    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
-    ///
+    /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
+    /// [`ocl::flags`]: flags/index.html
+    /// [mem_flags]: struct.MemFlags.html
+    /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
     pub fn new<D: Into<SpatialDims>>(buffer: &Buffer<T>, flags_opt: Option<MemFlags>, origin: D,
         size: D) -> OclResult<SubBuffer<T>>
     {

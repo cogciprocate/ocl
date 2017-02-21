@@ -79,6 +79,7 @@ mod cb {
 //=============================================================================
 
 mod types {
+    use std::ptr;
     use std::cell::Ref;
     use ::{Event, EventList};
     use core::ffi::cl_event;
@@ -87,6 +88,7 @@ mod types {
 
     #[derive(Debug)]
     pub enum ClWaitListPtrEnum<'a> {
+        Null,
         EventCore(&'a EventCore),
         // UserEventCore(&'a UserEventCore),
         // EventListCore(&'a EventListCore),
@@ -102,6 +104,7 @@ mod types {
     unsafe impl<'a> ClWaitListPtr for ClWaitListPtrEnum<'a> {
         unsafe fn as_ptr_ptr(&self) -> *const cl_event {
             match *self {
+                ClWaitListPtrEnum::Null => ptr::null() as *const _ as *const cl_event,
                 ClWaitListPtrEnum::EventCore(ref e) => e.as_ptr_ptr(),
                 // ClWaitListPtrEnum::UserEventCore(ref e) => e.as_ptr_ptr(),
                 // ClWaitListPtrEnum::EventListCore(ref e) => e.as_ptr_ptr(),
@@ -112,11 +115,13 @@ mod types {
                 ClWaitListPtrEnum::RefEventList(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::RefTraitObj(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::BoxTraitObj(ref e) => e.as_ptr_ptr(),
+
             }
         }
 
         fn count(&self) -> u32 {
             match *self {
+                ClWaitListPtrEnum::Null => 0,
                 ClWaitListPtrEnum::EventCore(ref e) => e.count(),
                 // ClWaitListPtrEnum::UserEventCore(ref e) => e.count(),
                 // ClWaitListPtrEnum::EventListCore(ref e) => e.count(),
@@ -191,11 +196,16 @@ mod types {
         }
     }
 
+    impl<'a> From<()> for ClWaitListPtrEnum<'a> {
+        fn from(_: ()) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::Null
+        }
+    }
+
 
     #[derive(Debug)]
     pub enum ClNullEventPtrEnum<'a> {
-        // NullEventCore(&'a mut NullEventCore),
-        // EventListCore(&'a mut EventListCore),
+        Null,
         Event(&'a mut Event),
         EventList(&'a mut EventList),
     }
@@ -203,25 +213,12 @@ mod types {
     unsafe impl<'a> ClNullEventPtr for ClNullEventPtrEnum<'a> {
         fn alloc_new(&mut self) -> *mut cl_event {
             match *self {
-                // ClNullEventPtrEnum::NullEventCore(ref mut e) => e.alloc_new(),
-                // ClNullEventPtrEnum::EventListCore(ref mut e) => e.alloc_new(),
+                ClNullEventPtrEnum::Null => ptr::null_mut() as *mut _ as *mut cl_event,
                 ClNullEventPtrEnum::Event(ref mut e) => e.alloc_new(),
                 ClNullEventPtrEnum::EventList(ref mut e) => e.alloc_new(),
             }
         }
     }
-
-    // impl<'a> From<&'a mut NullEventCore> for ClNullEventPtrEnum<'a> {
-    //     fn from(e: &'a mut NullEventCore) -> ClNullEventPtrEnum<'a> {
-    //         ClNullEventPtrEnum::NullEventCore(e)
-    //     }
-    // }
-
-    // impl<'a> From<&'a mut EventListCore> for ClNullEventPtrEnum<'a> {
-    //     fn from(e: &'a mut EventListCore) -> ClNullEventPtrEnum<'a> {
-    //         ClNullEventPtrEnum::EventListCore(e)
-    //     }
-    // }
 
     impl<'a> From<&'a mut Event> for ClNullEventPtrEnum<'a> {
         fn from(e: &'a mut Event) -> ClNullEventPtrEnum<'a> {
@@ -232,6 +229,12 @@ mod types {
     impl<'a> From<&'a mut EventList> for ClNullEventPtrEnum<'a> {
         fn from(el: &'a mut EventList) -> ClNullEventPtrEnum<'a> {
             ClNullEventPtrEnum::EventList(el)
+        }
+    }
+
+    impl<'a> From<()> for ClNullEventPtrEnum<'a> {
+        fn from(_: ()) -> ClNullEventPtrEnum<'a> {
+            ClNullEventPtrEnum::Null
         }
     }
 

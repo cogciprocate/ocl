@@ -6,7 +6,7 @@
 //!
 //! Due to buggy and/or intentionally crippled drivers, this example may not
 //! work on NVIDIA hardware. Until NVIDIA's implementation is corrected this
-//! example will likely fail on that platform.
+//! example may fail on that platform.
 
 extern crate ocl;
 extern crate time;
@@ -47,12 +47,19 @@ fn main() {
 
     // Create init and result buffers and vectors:
     let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
-    let buffer_init = Buffer::new(ocl_pq.queue().clone(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&vec_init), None).unwrap();
+
+    let buffer_init = Buffer::builder()
+        .queue(ocl_pq.queue().clone())
+        .flags(core::MemFlags::new().read_write().copy_host_ptr())
+        .dims(ocl_pq.dims().clone())
+        .host_data(&vec_init)
+        .build().unwrap();
 
     let mut vec_result = vec![0.0f32; DATASET_SIZE];
-    let buffer_result = Buffer::<f32>::new(ocl_pq.queue().clone(), None,
-        ocl_pq.dims(), None, None).unwrap();
+    let buffer_result = Buffer::<f32>::builder()
+        .queue(ocl_pq.queue().clone())
+        .dims(ocl_pq.dims())
+        .build().unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
     let mut kern = ocl_pq.create_kernel("add").unwrap()
@@ -188,7 +195,9 @@ fn main() {
 }
 
 
-// [KEEP]: Convert back to this once `Instant` stabilizes:
+// [KEEP]:
+// Convert back to this once `Instant` stabilizes:
+//
 // fn print_elapsed(title: &str, start: Instant) {
 //     let time_elapsed = time::get_time() - start;
 //     // let time_elapsed = time::get_time().duration_since(start);
@@ -196,6 +205,7 @@ fn main() {
 //     let separator = if title.len() > 0 { ": " } else { "" };
 //     println!("    {}{}: {}.{:03}", title, separator, time_elapsed.as_secs(), elapsed_ms);
 // }
+//
 // [/KEEP]
 
 fn print_elapsed(title: &str, start: time::Timespec) {

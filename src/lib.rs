@@ -67,6 +67,7 @@ pub use self::async::{MemMap, FutureMemMap};
 pub use core::error::{Error, Result};
 #[doc(no_inline)] pub use core::ffi;
 #[doc(no_inline)] pub use core::util;
+// #[doc(no_inline)] pub use ocl_core as core;
 // pub use self::async::{Error as AsyncError, Result as AsyncResult};
 #[doc(no_inline)]
 pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};

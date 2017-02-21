@@ -23,8 +23,12 @@ impl<T: OclPrm> BufferPool<T> {
     /// Returns a new buffer pool.
     pub fn new(len: u32, default_queue: Queue) -> BufferPool<T> {
         let align = default_queue.device().mem_base_addr_align().unwrap();
-        let flags = Some(MemFlags::new().alloc_host_ptr().read_write());
-        let buffer = Buffer::<T>::new(default_queue, flags, len, None, None).unwrap();
+        let flags = MemFlags::new().alloc_host_ptr().read_write();
+        let buffer = Buffer::<T>::builder()
+            .queue(default_queue)
+            .flags(flags)
+            .dims(len)
+            .build().unwrap();
 
         BufferPool {
             buffer: buffer,

@@ -101,13 +101,23 @@ fn main() {
     // Create source and result buffers (our data containers):
     // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
     let seed_vec = util::scrambled_vec((0u32, 500u32), ocl_pq.dims().to_len());
-    let seed_buffer = Buffer::new(ocl_pq.queue().clone(), Some(core::MEM_READ_WRITE |
-        core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&seed_vec), None).unwrap();
+    // let seed_buffer = Buffer::new(ocl_pq.queue().clone(), Some(core::MEM_READ_WRITE |
+    //     core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&seed_vec), None).unwrap();
+    let seed_buffer = Buffer::builder()
+        .queue(ocl_pq.queue().clone())
+        .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
+        .dims(ocl_pq.dims().clone())
+        .host_data(&seed_vec)
+        .build().unwrap();
 
     // let mut result_buffer = Buffer::with_vec(&dims, &ocl_pq.queue());
     let mut result_vec = vec![0; dims[0]];
-    let mut result_buffer = Buffer::<u32>::new(ocl_pq.queue().clone(), None,
-        ocl_pq.dims(), None, None).unwrap();
+    // let mut result_buffer = Buffer::<u32>::new(ocl_pq.queue().clone(), None,
+    //     ocl_pq.dims(), None, None).unwrap();
+    let mut result_buffer = Buffer::<u32>::builder()
+        .queue(ocl_pq.queue().clone())
+        .dims(ocl_pq.dims().clone())
+        .build().unwrap();
 
     // Our arbitrary addend:
     let addend = 11u32;

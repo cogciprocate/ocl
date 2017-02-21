@@ -373,15 +373,21 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
 
     // Create buffers:
     // let write_buf_flags = Some(MemFlags::read_only() | MemFlags::host_write_only() | ahp_flag);
-    let write_buf_flags = Some(ahp_flag.read_only().host_write_only());
+    let write_buf_flags = ahp_flag.read_only().host_write_only();
     // let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only() | ahp_flag);
-    let read_buf_flags = Some(ahp_flag.write_only().host_read_only());
+    let read_buf_flags = ahp_flag.write_only().host_read_only();
 
-    let source_buf = Buffer::<ClFloat4>::new(write_queue.clone(), write_buf_flags, work_size,
-        None, None)?;
+    let source_buf = Buffer::<ClFloat4>::builder()
+        .queue(write_queue.clone())
+        .flags(write_buf_flags)
+        .dims(work_size)
+        .build()?;
 
-    let target_buf = Buffer::<ClFloat4>::new(read_queue.clone(), read_buf_flags, work_size,
-        None, None)?;
+    let target_buf = Buffer::<ClFloat4>::builder()
+        .queue(read_queue.clone())
+        .flags(read_buf_flags)
+        .dims(work_size)
+        .build()?;
 
     // Generate kernel source:
     let kern_src = gen_kern_src(cfg.kern.name, cfg.vals.type_str, true, cfg.kern.op_add);

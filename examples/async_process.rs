@@ -68,14 +68,21 @@ pub fn main() {
     for task_id in 0..task_count {
         let work_size = 2 << 14;
 
-        let write_buf_flags = Some(MemFlags::new().read_only().host_write_only());
-        let read_buf_flags = Some(MemFlags::new().write_only().host_read_only());
+        let write_buf_flags = MemFlags::new().read_only().host_write_only();
+        let read_buf_flags = MemFlags::new().write_only().host_read_only();
 
-        // Create a write and read buffer:
-        let write_buf: Buffer<ClFloat4> = Buffer::new(write_queue.clone(),
-            write_buf_flags, work_size, None, None).unwrap();
-        let read_buf: Buffer<ClFloat4> = Buffer::new(read_queue.clone(),
-            read_buf_flags, work_size, None, None).unwrap();
+        // Create write and read buffers:
+        let write_buf: Buffer<ClFloat4> = Buffer::builder()
+            .queue(write_queue.clone())
+            .flags(write_buf_flags)
+            .dims(work_size)
+            .build().unwrap();
+
+        let read_buf: Buffer<ClFloat4> = Buffer::builder()
+            .queue(read_queue.clone())
+            .flags(read_buf_flags)
+            .dims(work_size)
+            .build().unwrap();
 
         // Create program and kernel:
         let program = Program::builder()
@@ -96,7 +103,8 @@ pub fn main() {
 
         // (1) WRITE: Map the buffer and write 50's to the entire buffer, then
         // unmap to 'flush' data to the device:
-        let mut future_write_data = write_buf.cmd().map().flags(MapFlags::new().write_invalidate_region())
+        let mut future_write_data = write_buf.cmd().map()
+            .flags(MapFlags::new().write_invalidate_region())
             .ewait(&fill_event)
             .enq_async().unwrap();
 
@@ -126,7 +134,8 @@ pub fn main() {
 
         // (3) READ: Read results and verify that the write and kernel have
         // both completed successfully:
-        let future_read_data = read_buf.cmd().map().flags(MapFlags::new().read())
+        let future_read_data = read_buf.cmd().map()
+            .flags(MapFlags::new().read())
             .ewait(&kern_event)
             .enq_async().unwrap();
 

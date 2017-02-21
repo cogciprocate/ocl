@@ -28,7 +28,7 @@ fn scalar_map() {
         .unwrap();
 
     // Creation of buffer using ocl API will result in filling of the buffer as well
-    let in_buff = ocl::Buffer::new(queue.clone(),
+    let in_buff = ocl::Buffer::new::<_, _, &mut ocl::Event>(queue.clone(),
                                    Some(ocl::core::MEM_ALLOC_HOST_PTR),
                                    BUFFER_DIMENSIONS,
                                    None::<&[f32]>,
@@ -104,7 +104,7 @@ fn vector_map() {
         .devices(dev)
         .build(&context)
         .unwrap();
-    let in_buff = ocl::Buffer::new(queue.clone(),
+    let in_buff = ocl::Buffer::new::<_, _, &mut ocl::Event>(queue.clone(),
                                    Some(ocl::core::MEM_ALLOC_HOST_PTR),
                                    BUFFER_DIMENSIONS,
                                    None::<&[ocl::aliases::ClFloat16]>,

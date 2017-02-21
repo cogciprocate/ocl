@@ -314,7 +314,11 @@ impl ProQue {
     pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
         let dims = try!(self.dims_result());
         // Buffer::<T>::new(self.queue.clone(), None, dims, None)
-        Buffer::<T>::new(self.queue.clone(), None, dims, None, None)
+        // Buffer::<T>::new(self.queue.clone(), None, dims, None, None)
+        Buffer::<T>::builder()
+            .queue(self.queue.clone())
+            .dims(dims)
+            .build()
     }
 
     /// Sets the default dimensions used when creating buffers and kernels.
