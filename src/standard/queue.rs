@@ -59,12 +59,6 @@ impl Queue {
         &self.obj_core
     }
 
-    // /// Returns a reference to the core pointer wrapper of the context
-    // /// associated with this queue, usable by functions in the `core` module.
-    // pub fn context_core(&self) -> &ContextCore {
-    //     &self.context_obj_core
-    // }
-
     /// Returns a copy of the Context associated with this queue.
     pub fn context(&self) -> Context {
         self.obj_core.context().map(Context::from).unwrap()

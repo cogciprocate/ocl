@@ -1150,51 +1150,49 @@ impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm {
 
 
 #[derive(Debug, Clone)]
-pub enum QueueOption {
+pub enum QueCtx {
     Queue(Queue),
     Context(Context),
-    None,
 }
 
-impl QueueOption {
-    pub fn context_core(&self) -> Option<Context> {
-        match *self {
-            QueueOption::Queue(ref q) => Some(q.context()),
-            QueueOption::Context(ref c) => Some(c.clone()),
-            QueueOption::None => None,
-        }
-    }
+impl QueCtx {
+    // pub fn context(&self) -> Option<Context> {
+    //     match *self {
+    //         QueCtx::Queue(ref q) => Some(q.context()),
+    //         QueCtx::Context(ref c) => Some(c.clone()),
+    //         QueCtx::None => None,
+    //     }
+    // }
 
     pub fn queue(&self) -> Option<&Queue> {
         match *self {
-            QueueOption::Queue(ref q) => Some(q),
-            QueueOption::Context(_) => None,
-            QueueOption::None => None,
+            QueCtx::Queue(ref q) => Some(q),
+            QueCtx::Context(_) => None,
         }
     }
 }
 
-impl From<Queue> for QueueOption {
-    fn from(q: Queue) -> QueueOption {
-        QueueOption::Queue(q)
+impl From<Queue> for QueCtx {
+    fn from(q: Queue) -> QueCtx {
+        QueCtx::Queue(q)
     }
 }
 
-impl<'a> From<&'a Queue> for QueueOption {
-    fn from(q: &Queue) -> QueueOption {
-        QueueOption::Queue(q.clone())
+impl<'a> From<&'a Queue> for QueCtx {
+    fn from(q: &Queue) -> QueCtx {
+        QueCtx::Queue(q.clone())
     }
 }
 
-impl From<Context> for QueueOption {
-    fn from(c: Context) -> QueueOption {
-        QueueOption::Context(c)
+impl From<Context> for QueCtx {
+    fn from(c: Context) -> QueCtx {
+        QueCtx::Context(c)
     }
 }
 
-impl<'a> From<&'a Context> for QueueOption {
-    fn from(c: &Context) -> QueueOption {
-        QueueOption::Context(c.clone())
+impl<'a> From<&'a Context> for QueCtx {
+    fn from(c: &Context) -> QueCtx {
+        QueCtx::Context(c.clone())
     }
 }
 
@@ -1202,7 +1200,7 @@ impl<'a> From<&'a Context> for QueueOption {
 /// A buffer builder.
 #[derive(Debug, Clone)]
 pub struct BufferBuilder<'a, T> where T: 'a {
-    queue_option: QueueOption,
+    queue_option: Option<QueCtx>,
     flags: Option<MemFlags>,
     dims: Option<SpatialDims>,
     data: Option<&'a [T]>,
@@ -1212,7 +1210,7 @@ pub struct BufferBuilder<'a, T> where T: 'a {
 impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     pub fn new() -> BufferBuilder<'a, T> {
         BufferBuilder {
-            queue_option: QueueOption::None,
+            queue_option: None,
             flags: None,
             dims: None,
             data: None,
@@ -1221,12 +1219,14 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     }
 
     pub fn context<'b>(&'b mut self, context: Context) -> &'b mut BufferBuilder<'a, T> {
-        self.queue_option = QueueOption::Context(context);
+        assert!(self.queue_option.is_none());
+        self.queue_option = Some(QueCtx::Context(context));
         self
     }
 
     pub fn queue<'b>(&'b mut self, queue: Queue) -> &'b mut BufferBuilder<'a, T> {
-        self.queue_option = QueueOption::Queue(queue);
+        assert!(self.queue_option.is_none());
+        self.queue_option = Some(QueCtx::Queue(queue));
         self
     }
 
@@ -1251,18 +1251,18 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     }
 
     pub fn build(&self) -> OclResult<Buffer<T>> {
-        if let QueueOption::None = self.queue_option {
-            panic!("ocl::BufferBuilder::build: A context or default queue must be set \
-                with '.context(...)' or '.queue(...)'.");
+        match self.queue_option {
+            Some(ref qo) => {
+                let dims = match self.dims {
+                    Some(d) => d,
+                    None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
+                };
+
+                Buffer::new(qo.clone(), self.flags, dims, self.data, self.init_val)
+            },
+            None => panic!("ocl::BufferBuilder::build: A context or default queue must be set \
+                with '.context(...)' or '.queue(...)'."),
         }
-
-        let dims = match self.dims {
-            Some(d) => d,
-            None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
-        };
-
-        Buffer::new(self.queue_option.clone(), self.flags, dims, self.data, self.init_val)
-
     }
 }
 
@@ -1276,7 +1276,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
-    queue_opt: QueueOption,
+    queue: Option<Queue>,
     dims: SpatialDims,
     len: usize,
     flags: MemFlags,
@@ -1304,9 +1304,9 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// [UNSTABLE]: Arguments may still be in a state of flux.
     ///
-    pub fn new<D, Q>(queue_opt: Q, flags_opt: Option<MemFlags>, dims: D,
+    pub fn new<D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
             data: Option<&[T]>, init_val: Option<T>) -> OclResult<Buffer<T>>
-            where D: Into<SpatialDims>, Q: Into<QueueOption>
+            where D: Into<SpatialDims>, Q: Into<QueCtx>
     {
         if data.is_some() && init_val.is_some() { panic!("ocl::Buffer::new: Cannot initialize a \
             buffer ('init_val') when the 'data' argument is 'Some(...)'.") };
@@ -1314,16 +1314,16 @@ impl<T: OclPrm> Buffer<T> {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
         let dims: SpatialDims = dims.into();
         let len = dims.to_len();
-        let queue_opt = queue_opt.into();
+        let que_ctx = que_ctx.into();
 
-        let obj_core = match queue_opt.context_core() {
-            Some(ref c) => unsafe { core::create_buffer(c, flags, len, data)? },
-            None => panic!("ocl::Buffer::new: A context or default queue must be set."),
+        let obj_core = match que_ctx {
+            QueCtx::Queue(ref q) => unsafe { core::create_buffer(&q.context(), flags, len, data)? },
+            QueCtx::Context(ref c) => unsafe { core::create_buffer(c, flags, len, data)? },
         };
 
         let buf = Buffer {
             obj_core: obj_core,
-            queue_opt: queue_opt,
+            queue: que_ctx.queue().cloned(),
             dims: dims,
             len: len,
             flags: flags,
@@ -1349,23 +1349,28 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](struct.BufferCmd.html)
     /// for more info.
     ///
-    pub fn from_gl_buffer<D, Q>(queue_opt: Q, flags_opt: Option<MemFlags>, dims: D,
+    pub fn from_gl_buffer<D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
             gl_object: cl_GLuint) -> OclResult<Buffer<T>>
-            where D: Into<SpatialDims>, Q: Into<QueueOption>
+            where D: Into<SpatialDims>, Q: Into<QueCtx>
     {
         let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
         let dims: SpatialDims = dims.into();
         let len = dims.to_len();
-        let queue_opt = queue_opt.into();
+        let que_ctx = que_ctx.into();
 
-        let obj_core = match queue_opt.context_core() {
-            Some(ref cc) => unsafe { core::create_from_gl_buffer(cc, gl_object, flags)? },
-            None => panic!("ocl::Buffer::new: A context or default queue must be set."),
+        // let obj_core = match que_ctx.context_core() {
+        //     Some(ref cc) => unsafe { core::create_from_gl_buffer(cc, gl_object, flags)? },
+        //     None => panic!("ocl::Buffer::new: A context or default queue must be set."),
+        // };
+
+        let obj_core = match que_ctx {
+            QueCtx::Queue(ref q) => unsafe { core::create_from_gl_buffer(&q.context(), gl_object, flags)? },
+            QueCtx::Context(ref c) => unsafe { core::create_from_gl_buffer(c, gl_object, flags)? },
         };
 
         let buf = Buffer {
             obj_core: obj_core,
-            queue_opt: queue_opt,
+            queue: que_ctx.queue().cloned(),
             dims: dims,
             len: len,
             _data: PhantomData,
@@ -1384,7 +1389,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[inline]
     pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
-        BufferCmd::new(self.queue_opt.queue(), &self.obj_core, self.len)
+        BufferCmd::new(self.queue.as_ref(), &self.obj_core, self.len)
     }
 
     /// Returns a command builder used to read data.
@@ -1472,8 +1477,8 @@ impl<T: OclPrm> Buffer<T> {
     pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Buffer<T> {
         // [FIXME]: Update this to check whether new queue.device is within
         // context or matching existing queue.
-        // assert!(queue.device() == self.queue_opt.queue().device());
-        self.queue_opt = queue.into();
+        // assert!(queue.device() == self.que_ctx.queue().device());
+        self.queue = Some(queue);
         self
     }
 
@@ -1481,7 +1486,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[inline]
     pub fn default_queue(&self) -> Option<&Queue> {
-        self.queue_opt.queue()
+        self.queue.as_ref()
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
@@ -1609,8 +1614,7 @@ unsafe impl<'a, T> MemCmdAll for &'a mut Buffer<T> where T: OclPrm {}
 #[derive(Debug, Clone)]
 pub struct SubBuffer<T: OclPrm> {
     obj_core: MemCore,
-    // queue: Queue,
-    queue_opt: QueueOption,
+    queue: Option<Queue>,
     origin: SpatialDims,
     size: SpatialDims,
     len: usize,
@@ -1663,7 +1667,7 @@ impl<T: OclPrm> SubBuffer<T> {
 
         Ok(SubBuffer {
             obj_core: obj_core,
-            queue_opt: buffer.queue_opt.clone(),
+            queue: buffer.default_queue().cloned(),
             origin: origin,
             size: size,
             len: size_len,
@@ -1682,7 +1686,7 @@ impl<T: OclPrm> SubBuffer<T> {
     ///
     #[inline]
     pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
-        BufferCmd::new(self.queue_opt.queue(), &self.obj_core, self.len)
+        BufferCmd::new(self.queue.as_ref(), &self.obj_core, self.len)
     }
 
     /// Returns a command builder used to read data.
@@ -1776,8 +1780,8 @@ impl<T: OclPrm> SubBuffer<T> {
     pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut SubBuffer<T> {
         // [FIXME]: Update this to check whether new queue.device is within
         // context or matching existing queue.
-        // assert!(queue.device() == self.queue_opt.queue().device());
-        self.queue_opt = queue.into();
+        // assert!(queue.device() == self.que_ctx.queue().device());
+        self.queue = Some(queue);
         self
     }
 
@@ -1785,7 +1789,7 @@ impl<T: OclPrm> SubBuffer<T> {
     ///
     #[inline]
     pub fn default_queue(&self) -> Option<&Queue> {
-        self.queue_opt.queue()
+        self.queue.as_ref()
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
