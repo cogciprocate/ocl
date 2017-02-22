@@ -1,5 +1,6 @@
 //! A command requisite-dependency graph.
 
+use std::cell::{Cell, RefCell, Ref};
 use std::collections::{HashMap, BTreeSet};
 use ocl::{Event, EventList};
 
@@ -65,16 +66,16 @@ impl CommandDetails {
 
 pub struct Command {
     details: CommandDetails,
-    event: Option<Event>,
-    requisite_events: EventList,
+    event: RefCell<Option<Event>>,
+    requisite_events: RefCell<EventList>,
 }
 
 impl Command {
     pub fn new(details: CommandDetails) -> Command {
         Command {
             details: details,
-            event: None,
-            requisite_events: EventList::new(),
+            event: RefCell::new(None),
+            requisite_events: RefCell::new(EventList::new()),
         }
     }
 
@@ -119,7 +120,7 @@ pub struct CommandGraph {
     command_requisites: Vec<Vec<usize>>,
     ends: (Vec<usize>, Vec<usize>),
     locked: bool,
-    next_cmd_idx: usize,
+    next_cmd_idx: Cell<usize>,
 }
 
 impl CommandGraph {
@@ -130,7 +131,7 @@ impl CommandGraph {
             command_requisites: Vec::new(),
             ends: (Vec::new(), Vec::new()),
             locked: false,
-            next_cmd_idx: 0,
+            next_cmd_idx: Cell::new(0),
         }
     }
 
@@ -216,31 +217,36 @@ impl CommandGraph {
     }
 
     /// Returns the list of requisite events for a command.
-    pub fn get_req_events(&mut self, cmd_idx: usize) -> Result<&EventList, &'static str> {
+    pub fn get_req_events(&self, cmd_idx: usize) -> Result<Ref<EventList>, &'static str> {
         if !self.locked { return Err("Call '::populate_requisites' first."); }
-        if self.next_cmd_idx != cmd_idx { return Err("Command events requested out of order."); }
+        if self.next_cmd_idx.get() != cmd_idx { return Err("Command events requested out of order."); }
 
-        self.commands[cmd_idx].requisite_events.clear();
+        self.commands.get(cmd_idx).unwrap().requisite_events.borrow_mut().clear();
 
         for &req_idx in self.command_requisites[cmd_idx].iter() {
-            if let Some(event) = self.commands[req_idx].event.clone() {
-                self.commands[cmd_idx].requisite_events.push(event);
+            let event_opt = self.commands[req_idx].event.borrow().clone();
+
+            if let Some(event) = event_opt {
+                self.commands[cmd_idx].requisite_events.borrow_mut().push(event);
             }
         }
 
-        Ok(&self.commands[cmd_idx].requisite_events)
+        Ok(self.commands[cmd_idx].requisite_events.borrow())
     }
 
     /// Sets the event associated with the completion of a command.
-    pub fn set_cmd_event(&mut self, cmd_idx: usize, event: Event) -> Result<(), &'static str> {
+    pub fn set_cmd_event(&self, cmd_idx: usize, event: Event) -> Result<(), &'static str> {
         if !self.locked { return Err("Call '::populate_requisites' first."); }
 
-        self.commands[cmd_idx].event = Some(event);
+        // let event_opt = self.commands[req_idx].event.borrow();
 
-        if (self.next_cmd_idx + 1) == self.commands.len() {
-            self.next_cmd_idx = 0;
+        *self.commands.get(cmd_idx).unwrap().event.borrow_mut() = Some(event);
+
+        if (self.next_cmd_idx.get() + 1) == self.commands.len() {
+            self.next_cmd_idx.set(0);
         } else {
-            self.next_cmd_idx += 1;
+            // self.next_cmd_idx += 1;
+            self.next_cmd_idx.set(self.next_cmd_idx.get() + 1);
         }
 
         Ok(())
@@ -251,11 +257,13 @@ impl CommandGraph {
     }
 
     pub fn get_finish_events (&self, event_list: &mut EventList) {
-        assert!(self.next_cmd_idx == 0, "Finish events can only be determined \
+        assert!(self.next_cmd_idx.get() == 0, "Finish events can only be determined \
             for each cycle just after the graph has set its last cmd event.");
 
         for &cmd_idx in self.ends.1.iter() {
-            if let Some(event) = self.commands[cmd_idx].event.clone() {
+            let event_opt = self.commands[cmd_idx].event.borrow().clone();
+
+            if let Some(event) = event_opt {
                 event_list.push(event);
             }
         }

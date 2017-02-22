@@ -2,10 +2,10 @@ Version 0.13.0 (UNRELEASED)
 ===========================
 
 The futures have arrived! [futures-rs] has begun to find its way into ocl.
-This makes doing things embedding (slipstreaming?) host processing work into
-the natural chain of enqueued commands, something that was previously
-cumbersome to implement, very easy and intuitive now. See the `FutureMemMap`
-and `MemMap` types and the new examples. [FIXME] Add links at release
+This makes doing things like embedding (slipstreaming?) host processing work
+into the chain of enqueued commands, something that was previously cumbersome
+to implement, very easy and intuitive now. See the `FutureMemMap` and `MemMap`
+types and ... [FIXME] Add links
 
 This library will be approaching forward-compatible stabilization over the
 next year for all top level types. Before that point can be reached, we'll
@@ -13,7 +13,7 @@ have to break a few eggs. This release brings consistency and simplification
 changes to a few important functions, notably `Buffer::new` and `Kernel::new`.
 See the breaking changes section below for details.
 
-[FIXME] Add doc links at release
+[FIXME] Update all doc links at release
 
 * Asynchrony and Futures...
   * [FIXME] Buffer mapping (`MemMap` and `FutureMemMap`)...

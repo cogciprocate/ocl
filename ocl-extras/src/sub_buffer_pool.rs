@@ -4,14 +4,16 @@ use std::collections::{LinkedList, HashMap};
 use ocl::{Queue, Buffer, SubBuffer, OclPrm};
 use ocl::flags::MemFlags;
 
+
 pub struct PoolRegion {
     buffer_id: usize,
     origin: u32,
     len: u32,
 }
 
+
 /// A simple (linear search) sub-buffer allocator.
-pub struct BufferPool<T: OclPrm> {
+pub struct SubBufferPool<T: OclPrm> {
     buffer: Buffer<T>,
     regions: LinkedList<PoolRegion>,
     sub_buffers: HashMap<usize, SubBuffer<T>>,
@@ -19,18 +21,19 @@ pub struct BufferPool<T: OclPrm> {
     _next_uid: usize,
 }
 
-impl<T: OclPrm> BufferPool<T> {
+impl<T: OclPrm> SubBufferPool<T> {
     /// Returns a new buffer pool.
-    pub fn new(len: u32, default_queue: Queue) -> BufferPool<T> {
+    pub fn new(len: u32, default_queue: Queue) -> SubBufferPool<T> {
         let align = default_queue.device().mem_base_addr_align().unwrap();
         let flags = MemFlags::new().alloc_host_ptr().read_write();
+
         let buffer = Buffer::<T>::builder()
             .queue(default_queue)
             .flags(flags)
             .dims(len)
             .build().unwrap();
 
-        BufferPool {
+        SubBufferPool {
             buffer: buffer,
             regions: LinkedList::new(),
             sub_buffers: HashMap::new(),
