@@ -61,7 +61,8 @@ fn read_source_image(loco : &str) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>
 
 fn main() {
     let compute_program = Search::ParentsThenKids(3, 3)
-        .for_folder("images-safe-clamp").expect("Cannot find program file").join("src/parallel.cl");
+        .for_folder("cl_src").expect("Error locating 'cl_src'")
+        .join("cl/parallel.cl");
 
     let context = Context::builder().devices(Device::specifier()
         .type_flags(ocl::flags::DEVICE_TYPE_GPU).first()).build().unwrap();
@@ -84,8 +85,9 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .build_with_data(queue.clone(), &img)
-        .unwrap();
+        .queue(queue.clone())
+        .host_data(&img)
+        .build().unwrap();
 
 
     // ##################################################
@@ -100,8 +102,9 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .build_with_data(queue.clone(), &result_unrolled)
-        .unwrap();
+        .queue(queue.clone())
+        .host_data(&result_unrolled)
+        .build().unwrap();
 
     let kernel = Kernel::new("rgb2gray_unrolled", &program, queue.clone()).unwrap()
         .gws(&dims)
@@ -138,8 +141,9 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .build_with_data(queue.clone(), &result_patches)
-        .unwrap();
+        .queue(queue.clone())
+        .host_data(&result_patches)
+        .build().unwrap();
 
 
     let patch_size = 32;

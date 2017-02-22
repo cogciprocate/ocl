@@ -17,7 +17,7 @@ cargo update
 cargo run "$@"
 cd ..
 
-cd images-safe-clamp
+cd images_safe_clamp
 cargo update
 cargo run "$@"
 cd ../..
