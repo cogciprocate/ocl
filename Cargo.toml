@@ -22,6 +22,7 @@ default = ["rand", "opencl_version_1_1", "opencl_version_1_2"]
 [dependencies]
 # cl-sys = "0.2.1"
 cl-sys = { version = "0.2.1", git = "https://github.com/cogciprocate/cl-sys" }
+
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
@@ -39,3 +40,4 @@ colorify = "0.2"
 
 [build-dependencies]
 rustc_version = "0.1"
+
