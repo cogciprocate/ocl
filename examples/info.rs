@@ -71,7 +71,8 @@ fn main() {
                 .src(SRC)
                 .devices(device)
                 .build(&context).unwrap();
-            let kernel = Kernel::new("multiply", &program, queue.clone()).unwrap()
+            let kernel = Kernel::new("multiply", &program).unwrap()
+                .queue(queue.clone())
                 .gws(&dims)
                 .arg_buf(&buffer)
                 .arg_scl(10.0f32);

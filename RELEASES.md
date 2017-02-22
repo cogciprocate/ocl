@@ -57,6 +57,8 @@ Breaking Changes
     ```.arg_buf_named("buf", None::<Buffer<f32>>)``` 
   or 
     ```.arg_buf_named::<f32, Buffer<f32>>("buf", None)```.
+* `Kernel::new` no longer accepts a queue as an argument. Instead use the
+  `::queue` (builder-style) or `::set_default_queue` methods.
 * `Queue::new` now takes a third argument: `properties` (details below in
   ocl-core section).
 * `Queue::finish` now returns a result instead of unwrapping.

@@ -52,7 +52,8 @@ fn print_platform_device(platform: Platform, device: Device) {
         .queue(queue.clone())
         .build().unwrap();
     let sampler = Sampler::with_defaults(&context).unwrap();
-        let kernel = Kernel::new("multiply", &program, queue.clone()).unwrap()
+        let kernel = Kernel::new("multiply", &program).unwrap()
+        .queue(queue.clone())
         .gws(&DIMS)
         .arg_scl(10.0f32)
         .arg_buf(&buffer);

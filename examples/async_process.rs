@@ -90,7 +90,8 @@ pub fn main() {
             .src(KERN_SRC)
             .build(&context).unwrap();
 
-        let kern = Kernel::new("add", &program, kern_queue.clone()).unwrap()
+        let kern = Kernel::new("add", &program).unwrap()
+            .queue(kern_queue.clone())
             .gws(work_size)
             .arg_buf(&write_buf)
             .arg_vec(ClFloat4(100., 100., 100., 100.))

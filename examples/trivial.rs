@@ -130,7 +130,8 @@ fn main_exploded() {
         .build().unwrap();
 
     // (3) Create a kernel with arguments matching those in the source above:
-    let kernel = Kernel::new("add", &program, queue.clone()).unwrap()
+    let kernel = Kernel::new("add", &program).unwrap()
+        .queue(queue.clone())
         .gws(dims)
         .arg_buf(&buffer)
         .arg_scl(10.0f32);

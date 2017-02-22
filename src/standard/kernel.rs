@@ -5,7 +5,7 @@ use std::convert::Into;
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
-    KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll};
+    KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
 use core::error::{Result as OclResult, Error as OclError};
 use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum};
@@ -15,7 +15,7 @@ const PRINT_DEBUG: bool = false;
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
 pub struct KernelCmd<'k> {
-    queue: &'k CommandQueueCore,
+    queue: Option<&'k CommandQueueCore>,
     kernel: &'k KernelCore,
     gwo: SpatialDims,
     gws: SpatialDims,
@@ -29,10 +29,10 @@ pub struct KernelCmd<'k> {
 /// [UNSTABLE]: Methods still being tuned.
 impl<'k> KernelCmd<'k> {
     /// Specifies a queue to use for this call only.
-    pub fn queue<Q>(mut self, queue: &'k Q) -> KernelCmd<'k>
-            where Q: AsRef<CommandQueueCore>
+    pub fn queue<'q, Q>(mut self, queue: &'q Q) -> KernelCmd<'k>
+            where 'q: 'k, Q: 'k + AsRef<CommandQueueCore>
     {
-        self.queue = queue.as_ref();
+        self.queue = Some(queue.as_ref());
         self
     }
 
@@ -93,6 +93,11 @@ impl<'k> KernelCmd<'k> {
 
     /// Enqueues this kernel command.
     pub fn enq(self) -> OclResult<()> {
+        let queue = match self.queue {
+            Some(q) => q,
+            None => return Err("KernelCmd::enq: No queue set.".into()),
+        };
+
         let dim_count = self.gws.dim_count();
 
         let gws = match self.gws.to_work_size() {
@@ -106,7 +111,7 @@ impl<'k> KernelCmd<'k> {
                 core::get_kernel_info(self.kernel, KernelInfo::FunctionName));
         }
 
-        core::enqueue_kernel(self.queue, self.kernel, dim_count, self.gwo.to_work_offset(),
+        core::enqueue_kernel(queue, self.kernel, dim_count, self.gwo.to_work_offset(),
             &gws, self.lws.to_work_size(), self.wait_list, self.new_event)
     }
 }
@@ -137,7 +142,7 @@ pub struct Kernel {
     named_args: HashMap<&'static str, u32>,
     mem_args: Vec<Option<MemCore>>,
     arg_count: u32,
-    queue: Queue,
+    queue: Option<Queue>,
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
@@ -161,8 +166,7 @@ pub struct Kernel {
 
 impl Kernel {
     /// Returns a new kernel.
-    pub fn new<S: Into<String>, >(name: S, program: &Program, queue: Queue,
-            ) -> OclResult<Kernel>
+    pub fn new<S: Into<String>, >(name: S, program: &Program) -> OclResult<Kernel>
     {
         let name = name.into();
         let obj_core = try!(core::create_kernel(program, &name));
@@ -172,11 +176,16 @@ impl Kernel {
             named_args: HashMap::with_capacity(5),
             arg_count: 0,
             mem_args: Vec::with_capacity(16),
-            queue: queue,
+            queue: None,
             gwo: SpatialDims::Unspecified,
             gws: SpatialDims::Unspecified,
             lws: SpatialDims::Unspecified,
         })
+    }
+
+    pub fn queue(mut self, queue: Queue) -> Kernel {
+        self.queue = Some(queue);
+        self
     }
 
     /// Sets the default global work offset (builder-style).
@@ -393,7 +402,7 @@ impl Kernel {
     /// Returns a command builder which is used to chain parameters of an
     /// 'enqueue' command together.
     pub fn cmd(&self) -> KernelCmd {
-        KernelCmd { queue: &self.queue, kernel: &self.obj_core,
+        KernelCmd { queue: self.queue.as_ref().map(|q| q.as_ref()), kernel: &self.obj_core,
             gwo: self.gwo, gws: self.gws, lws: self.lws,
             wait_list: None, new_event: None }
     }
@@ -427,13 +436,13 @@ impl Kernel {
     ///
     pub fn set_default_queue(&mut self, queue: Queue) -> &mut Kernel {
         // self.command_queue_obj_core = queue.core().clone();
-        self.queue = queue;
+        self.queue = Some(queue);
         self
     }
 
     /// Returns the default `core::CommandQueue` for this kernel.
-    pub fn default_queue(&self) -> &Queue {
-        &self.queue
+    pub fn default_queue(&self) -> Option<&Queue> {
+        self.queue.as_ref()
     }
 
     /// Returns the default global work offset.
@@ -478,8 +487,13 @@ impl Kernel {
 
     /// Returns argument information for this kernel.
     pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
+        let device_versions = match self.obj_core.device_versions() {
+            Ok(vers) => vers,
+            Err(e) => return e.into(),
+        };
+
         core::get_kernel_arg_info(&self.obj_core, arg_index, info_kind,
-            Some(&[self.queue.device_version()]))
+            Some(&device_versions))
     }
 
     /// Returns work group information for this kernel.
@@ -541,16 +555,25 @@ impl Kernel {
     //         .finish()
     // }
 
-    fn fmt_wg_info(&self, f: &mut std::fmt::Formatter, device: Device) -> std::fmt::Result {
-        f.debug_struct("WorkGroup")
-            .field("WorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize))
-            .field("CompileWorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize))
-            .field("LocalMemSize", &self.wg_info(device, KernelWorkGroupInfo::LocalMemSize))
-            .field("PreferredWorkGroupSizeMultiple",
-                &self.wg_info(device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple))
-            .field("PrivateMemSize", &self.wg_info(device, KernelWorkGroupInfo::PrivateMemSize))
-            // .field("GlobalWorkSize", &self.wg_info(device, KernelWorkGroupInfo::GlobalWorkSize))
-            .finish()
+    fn fmt_wg_info<D>(&self, f: &mut std::fmt::Formatter, devices: Vec<D>) -> std::fmt::Result
+            where D: Into<Device>
+    {
+        for device in devices {
+            let device = device.into();
+
+            f.debug_struct("WorkGroup")
+                .field("WorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize))
+                .field("CompileWorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize))
+                .field("LocalMemSize", &self.wg_info(device, KernelWorkGroupInfo::LocalMemSize))
+                .field("PreferredWorkGroupSizeMultiple",
+                    &self.wg_info(device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple))
+                .field("PrivateMemSize", &self.wg_info(device, KernelWorkGroupInfo::PrivateMemSize))
+                // .field("GlobalWorkSize", &self.wg_info(device, KernelWorkGroupInfo::GlobalWorkSize))
+                .finish()?;
+
+        }
+
+        Ok(())
     }
 
     /// Resolves the index of a named argument.
@@ -659,7 +682,7 @@ impl std::fmt::Display for Kernel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         try!(self.fmt_info(f));
         try!(write!(f, " "));
-        self.fmt_wg_info(f, self.queue.device())
+        self.fmt_wg_info(f, self.obj_core.devices().unwrap())
     }
 }
 

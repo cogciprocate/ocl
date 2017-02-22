@@ -293,7 +293,8 @@ impl ProQue {
 
     /// Creates a kernel with pre-assigned dimensions.
     pub fn create_kernel(&self, name: &str) -> OclResult<Kernel> {
-        let kernel = try!(Kernel::new(name.to_string(), &self.program, self.queue.clone()));
+        let kernel = Kernel::new(name.to_string(), &self.program)?
+            .queue(self.queue.clone());
 
         match self.dims {
             Some(d) => Ok(kernel.gws(d)),

@@ -111,7 +111,8 @@ fn main() {
                         .build().unwrap();
                     let mut vec = vec![0.0f32; buffer.len()];
 
-                    let mut kernel = Kernel::new("add", &program_th, queueball_th[0].clone()).unwrap()
+                    let mut kernel = Kernel::new("add", &program_th).unwrap()
+                        .queue(queueball_th[0].clone())
                         .gws(&dims_th)
                         .arg_buf(&buffer)
                         .arg_scl(1000.0f32);
