@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "*.png", "bak/*"]
-# categories = ["asynchronous", "concurrency", "science"]
+categories = ["asynchronous", "concurrency", "science"]
 
 [features]
 event_debug_print = []
@@ -39,7 +39,7 @@ default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 # ocl-core = "0.3"
-ocl-core = { version = "0.3.2", path = "/home/nick/src/github.com/cogciprocate/ocl-core" }
+ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core" }
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"

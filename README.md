@@ -134,7 +134,7 @@ on both Intel and AMD processors and is great if you don't mind installing all
 of the extra tools (which are pretty decent by the way).
 
 A short HOWTO for getting OpenCL drivers installed properly and working with
-Rust-Windows-GNU (MSVC too eventually) is in the works. For now just be sure
+Rust-Windows-GNU (MSVC too eventually) is coming someday. For now just be sure
 to put a copy of the platform-agnostic ICD loader, OpenCL.dll, usually found
 somewhere within the `C:\Windows` folder tree, into the Rust library folder
 (defaults to `C:\Program Files\{Rust

@@ -16,13 +16,12 @@ See the breaking changes section below for details.
 [FIXME] Add doc links at release
 
 * Asynchrony and Futures...
-  * [FIXME] Buffer mapping...
+  * [FIXME] Buffer mapping (`MemMap` and `FutureMemMap`)...
   * [FIXME] `BufferCmd`, `ImageCmd`, and `KernelCmd`
   * [FIXME] have received some streamlining and optimizing to events.
   * [FIXME] comment on changes to the types that `::enew` and `::ewait` accept.
   * [FIXME] refer to the breaking changes below
   * [FIXME] ::read, ::write, ::map
-    * read no longer unsafe
     * how to use futures, etc.
 
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
@@ -42,7 +41,7 @@ See the breaking changes section below for details.
 
 Breaking Changes
 ----------------
-* `Buffer::new` continues to be unstable and is not reccommended for use
+* `Buffer::new` continues to be unstable and is not recommended for use
   directly. Instead use the new [`BufferBuilder`] by calling
   [`Buffer::builder()`].
   * Before: 
