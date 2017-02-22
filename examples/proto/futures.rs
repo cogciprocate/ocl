@@ -8,8 +8,9 @@ extern crate futures_cpupool;
 extern crate rand;
 extern crate chrono;
 extern crate ocl;
+extern crate ocl_extras as extras;
 
-mod extras;
+// mod extras;
 
 
 use futures::{Future};
@@ -22,7 +23,7 @@ use ocl::{Platform, Device, Context, Queue, Program, Kernel, OclPrm,
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 
-use extras::{BufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
+use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 
 const INITIAL_BUFFER_LEN: u32 = 2 << 23; // 256MiB of ClFloat4
 const SUB_BUF_MIN_LEN: u32 = 2 << 11; // 64KiB of ClFloat4
@@ -92,7 +93,7 @@ impl Task{
     }
 
     /// Fill a buffer with a pattern of data:
-    pub fn fill<T: OclPrm>(&mut self, pattern: T, cmd_idx: usize, buf_pool: &BufferPool<T>) {
+    pub fn fill<T: OclPrm>(&mut self, pattern: T, cmd_idx: usize, buf_pool: &SubBufferPool<T>) {
         let buffer_id = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Fill { target } => target,
             _ => panic!("Task::fill: Not a fill command."),
@@ -110,7 +111,7 @@ impl Task{
     }
 
     /// Map some memory for reading or writing.
-    pub fn map<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &BufferPool<T>,
+    pub fn map<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &SubBufferPool<T>,
             thread_pool: &CpuPool) -> FutureMemMap<T>
     {
         let (buffer_id, flags) = match *self.cmd_graph.commands()[cmd_idx].details() {
@@ -128,7 +129,7 @@ impl Task{
 
     /// Unmap mapped memory.
     pub fn unmap<T: OclPrm>(&mut self, data: &mut MemMap<T>, cmd_idx: usize,
-            buf_pool: &BufferPool<T>, thread_pool: &CpuPool)
+            buf_pool: &SubBufferPool<T>, thread_pool: &CpuPool)
     {
         let buffer_id = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Write { target } => target,
@@ -144,7 +145,7 @@ impl Task{
     }
 
     /// Copy contents of one buffer to another.
-    pub fn copy<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &BufferPool<T>) {
+    pub fn copy<T: OclPrm>(&mut self, cmd_idx: usize, buf_pool: &SubBufferPool<T>) {
         let (src_buf_id, tar_buf_id) = match *self.cmd_graph.commands()[cmd_idx].details() {
             CommandDetails::Copy { source, target } => (source, target),
             _ => panic!("Task::copy: Not a copy command."),
@@ -240,7 +241,7 @@ fn gen_kern_src(kernel_name: &str, simple: bool, add: bool) -> String {
 /// (1) Run one kernel
 /// (2) Read data
 ///
-fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPool<ClFloat4>,
+fn create_simple_task(device: Device, context: &Context, buf_pool: &mut SubBufferPool<ClFloat4>,
     work_size: u32, queue: Queue) -> Result<Task, ()>
 {
     let write_buf_flags = Some(MemFlags::new().read_only().host_write_only());
@@ -269,7 +270,8 @@ fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPo
         .src(gen_kern_src("kern", true, true))
         .build(context).unwrap();
 
-    let kern = Kernel::new("kern", &program, queue).unwrap()
+    let kern = Kernel::new("kern", &program).unwrap()
+        .queue(queue)
         .gws(work_size)
         .arg_buf(buf_pool.get(write_buf_id).unwrap())
         .arg_vec(ClFloat4(100., 100., 100., 100.))
@@ -307,7 +309,7 @@ fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPo
 /// (6) Kernel:  buffer[5] -> kernel_c -> buffer[6]
 /// (7) Read:    buffer[6] -> host_mem
 ///
-fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferPool<ClFloat4>,
+fn create_complex_task(device: Device, context: &Context, buf_pool: &mut SubBufferPool<ClFloat4>,
     work_size: u32, queue: Queue, rng: &mut XorShiftRng) -> Result<Task, ()>
 {
     // The container for this task:
@@ -424,7 +426,7 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
 }
 
 
-// fn enqueue_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, thread_pool: &CpuPool) {
+// fn enqueue_simple_task(task: &mut Task, buf_pool: &SubBufferPool<ClFloat4>, thread_pool: &CpuPool) {
 //     // (0) Write a bunch of 50's:
 //     let future_data: FutureMemMap<ClFloat4> = task.map(0, buf_pool, thread_pool);
 
@@ -464,7 +466,7 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
 //     task.kernel(1);
 // }
 
-// fn enqueue_complex_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, thread_pool: &CpuPool) {
+// fn enqueue_complex_task(task: &mut Task, buf_pool: &SubBufferPool<ClFloat4>, thread_pool: &CpuPool) {
 //     // (0) Initially write 500s:
 //     let write_cmd_idx = 0;
 //     let future_data = task.map(write_cmd_idx, buf_pool, thread_pool);
@@ -500,7 +502,7 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
 // }
 
 
-// fn verify_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, thread_pool: &CpuPool,
+// fn verify_simple_task(task: &mut Task, buf_pool: &SubBufferPool<ClFloat4>, thread_pool: &CpuPool,
 //         correct_val_count: &mut usize)
 // {
 //     // (2) Read results and verifies them:
@@ -516,7 +518,7 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
 //     task.unmap(&mut data, 2, buf_pool, thread_pool);
 // }
 
-// fn verify_complex_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, thread_pool: &CpuPool,
+// fn verify_complex_task(task: &mut Task, buf_pool: &SubBufferPool<ClFloat4>, thread_pool: &CpuPool,
 //         correct_val_count: &mut usize)
 // {
 //     // (7) Final read from device:
@@ -556,7 +558,7 @@ fn main() {
     let kern_queue = Queue::new(&context, device, Some(CommandQueueProperties::new().out_of_order())).unwrap();
 
     let thread_pool = CpuPool::new_num_cpus();
-    let mut buf_pool: BufferPool<ClFloat4> = BufferPool::new(INITIAL_BUFFER_LEN, io_queue);
+    let mut buf_pool: SubBufferPool<ClFloat4> = SubBufferPool::new(INITIAL_BUFFER_LEN, io_queue);
     let mut simple_tasks: Vec<Task> = Vec::new();
     let mut complex_tasks: Vec<Task> = Vec::new();
     let mut pool_full = false;
