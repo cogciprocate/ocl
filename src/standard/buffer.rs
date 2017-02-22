@@ -15,6 +15,230 @@ use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 use standard::{Event, _unpark_task, box_raw_void};
 
 
+#[derive(Debug, Clone)]
+pub enum QueCtx {
+    Queue(Queue),
+    Context(Context),
+}
+
+impl QueCtx {
+    // pub fn context(&self) -> Option<Context> {
+    //     match *self {
+    //         QueCtx::Queue(ref q) => Some(q.context()),
+    //         QueCtx::Context(ref c) => Some(c.clone()),
+    //         QueCtx::None => None,
+    //     }
+    // }
+
+    pub fn queue(&self) -> Option<&Queue> {
+        match *self {
+            QueCtx::Queue(ref q) => Some(q),
+            QueCtx::Context(_) => None,
+        }
+    }
+}
+
+impl From<Queue> for QueCtx {
+    fn from(q: Queue) -> QueCtx {
+        QueCtx::Queue(q)
+    }
+}
+
+impl<'a> From<&'a Queue> for QueCtx {
+    fn from(q: &Queue) -> QueCtx {
+        QueCtx::Queue(q.clone())
+    }
+}
+
+impl From<Context> for QueCtx {
+    fn from(c: Context) -> QueCtx {
+        QueCtx::Context(c)
+    }
+}
+
+impl<'a> From<&'a Context> for QueCtx {
+    fn from(c: &Context) -> QueCtx {
+        QueCtx::Context(c.clone())
+    }
+}
+
+
+/// A buffer builder.
+///
+/// [TODO]: Add examples and details. For now see project examples folder.
+///
+#[derive(Debug)]
+pub struct BufferBuilder<'a, T> where T: 'a {
+    queue_option: Option<QueCtx>,
+    flags: Option<MemFlags>,
+    dims: Option<SpatialDims>,
+    host_data: Option<&'a [T]>,
+    fill_val: Option<(T, Option<ClNullEventPtrEnum<'a>>)>
+}
+
+impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
+    /// Returns a new buffer builder.
+    pub fn new() -> BufferBuilder<'a, T> {
+        BufferBuilder {
+            queue_option: None,
+            flags: None,
+            dims: None,
+            host_data: None,
+            fill_val: None,
+        }
+    }
+
+    /// Sets the context with which to associate the buffer.
+    ///
+    /// May not be used in combination with `::queue` (use one or the other).
+    pub fn context<'b>(mut self, context: Context) -> BufferBuilder<'a, T> {
+        assert!(self.queue_option.is_none());
+        self.queue_option = Some(QueCtx::Context(context));
+        self
+    }
+
+    /// Sets the default queue.
+    ///
+    /// If this is set, the context associated with the `default_queue` will
+    /// be used when creating the buffer (use one or the other).
+    pub fn queue<'b>(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
+        assert!(self.queue_option.is_none());
+        self.queue_option = Some(QueCtx::Queue(default_queue));
+        self
+    }
+
+    /// Sets the flags used when creating the buffer.
+    ///
+    /// Defaults to `flags::MEM_READ_WRITE` aka. `MemFlags::new().read_write()`
+    /// if this is not set. See the [SDK Docs] for more information about
+    /// flags. Note that the `host_ptr` mentioned in the [SDK Docs] is
+    /// equivalent to the slice optionally passed as the `host_data` argument.
+    /// Also note that the names of all flags in this library have the `CL_`
+    /// prefix removed for brevity.
+    ///
+    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    pub fn flags<'b>(mut self, flags: MemFlags) -> BufferBuilder<'a, T> {
+        self.flags = Some(flags);
+        self
+    }
+
+    /// Sets the dimensions for this buffer.
+    ///
+    /// Typically a single integer value to set the total length is used
+    /// however up to three dimensions may be specified in order to more
+    /// easily coordinate with kernel work sizes.
+    ///
+    /// Note that although sizes in the standard OpenCL API are expressed in
+    /// bytes, sizes, lengths, and dimensions in this library are always
+    /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
+    /// otherwise noted.
+    pub fn dims<'b, D>(mut self, dims: D) -> BufferBuilder<'a, T>
+            where D: Into<SpatialDims>
+    {
+        self.dims = Some(dims.into());
+        self
+    }
+
+    /// A slice use to designate a region of memory for use in combination of
+    /// one of the two following flags:
+    ///
+    /// * `flags::MEM_USE_HOST_PTR` aka. `MemFlags::new().use_host_ptr()`:
+    ///   * This flag is valid only if `host_data` is not `None`. If
+    ///     specified, it indicates that the application wants the OpenCL
+    ///     implementation to use memory referenced by `host_data` as the
+    ///     storage bits for the memory object (buffer/image).
+    ///   * OpenCL implementations are allowed to cache the buffer contents
+    ///     pointed to by `host_data` in device memory. This cached copy can
+    ///     be used when kernels are executed on a device.
+    ///   * The result of OpenCL commands that operate on multiple buffer
+    ///     objects created with the same `host_data` or overlapping host
+    ///     regions is considered to be undefined.
+    ///   * Refer to the [description of the alignment][align_rules] rules for
+    ///     `host_data` for memory objects (buffer and images) created using
+    ///     `MEM_USE_HOST_PTR`.
+    ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
+    ///
+    /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
+    ///   * This flag is valid only if `host_data` is not NULL. If specified, it
+    ///     indicates that the application wants the OpenCL implementation to
+    ///     allocate memory for the memory object and copy the data from
+    ///     memory referenced by `host_data`.
+    ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
+    ///     exclusive.
+    ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to
+    ///     initialize the contents of the cl_mem object allocated using
+    ///     host-accessible (e.g. PCIe) memory.
+    ///
+    /// Note: Descriptions adapted from:
+    /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
+    ///
+    ///
+    /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
+    /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    pub fn host_data<'d>(mut self, host_data: &'d [T]) -> BufferBuilder<'a, T>
+            where 'd: 'a
+    {
+        self.host_data = Some(host_data);
+        self
+    }
+
+    /// Allows the caller to automatically fill the buffer with a value (such
+    /// as zero) immediately after creation.
+    ///
+    /// Platforms that have trouble with `clEnqueueFillBuffer` such as
+    /// [pocl](http://portablecl.org/) should not use this option and should
+    /// handle initializing buffers manually (using a kernel or copy host data
+    /// flag).
+    ///
+    /// The `enew` argument is provided to allow an empty event to be
+    /// associated with the `fill` command which will be enqueued after
+    /// creation and just before returning the new buffer. It is up to the
+    /// caller to ensure that the command has completed before performing any
+    /// other operations on the buffer. Failure to do so may cause the fill
+    /// command to run **after** subsequently queued commands if multiple or
+    /// out-of-order queues are being used. Passing `None` for `enew` (use
+    /// `None::<()>` to avoid the the type inference error) will cause the
+    /// fill command to block before returning the new buffer and is the safe
+    /// option if you don't want to worry about it.
+    ///
+    /// ### Examples
+    ///
+    /// [TODO]: Provide examples once this stabilizes.
+    ///
+    ///
+    /// [UNSTABLE]: May be changed or removed.
+    pub fn fill_val<'b, 'e, En>(mut self, fill_val: T, enew: Option<En>)
+            -> BufferBuilder<'a, T>
+            where 'e: 'a, En: Into<ClNullEventPtrEnum<'e>>
+    {
+        self.fill_val = Some((fill_val, enew.map(|e| e.into())));
+        self
+    }
+
+    /// Creates a buffer and returns it.
+    ///
+    /// Dimensions and either a context or default queue must be specified
+    /// before calling `::build`.
+    pub fn build(mut self) -> OclResult<Buffer<T>> {
+        match self.queue_option {
+            Some(qo) => {
+                let dims = match self.dims {
+                    Some(d) => d,
+                    None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
+                };
+
+                Buffer::new(qo.clone(), self.flags.take(), dims, self.host_data.take(), self.fill_val.take())
+            },
+            None => panic!("ocl::BufferBuilder::build: A context or default queue must be set \
+                with '.context(...)' or '.queue(...)'."),
+        }
+    }
+}
+
+
+
+
+
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     if offset >= mem_len {
@@ -196,10 +420,15 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// After calling this method, the blocking state of this command will
     /// be locked to true and a call to `::block` will cause a panic.
     ///
-    /// ## Panics
+    /// ### Panics
     ///
     /// The command operation kind must not have already been specified.
     ///
+    /// ### More Information
+    ///
+    /// See [SDK][read_buffer] docs for more details.
+    ///
+    /// [read_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueReadBuffer.html
     pub fn read<'d>(mut self, dst_data: &'d mut [T]) -> BufferReadCmd<'c, 'd, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
@@ -234,10 +463,15 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 
     /// Specifies that this command will be a write operation.
     ///
-    /// ## Panics
+    /// ### Panics
     ///
     /// The command operation kind must not have already been specified
     ///
+    /// ### More Information
+    ///
+    /// See [SDK][write_buffer] docs for more details.
+    ///
+    /// [write_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueWriteBuffer.html
     pub fn write<'d>(mut self, src_data: &'d [T]) -> BufferWriteCmd<'c, 'd, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
@@ -251,6 +485,11 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     ///
     /// The command operation kind must not have already been specified
     ///
+    /// ### More Information
+    ///
+    /// See [SDK][map_buffer] docs for more details.
+    ///
+    /// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
     pub fn map(mut self) -> BufferMapCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
@@ -271,6 +510,11 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     ///
     /// The command operation kind must not have already been specified
     ///
+    /// ### More Information
+    ///
+    /// See [SDK][copy_buffer] docs for more details.
+    ///
+    /// [copy_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueCopyBuffer.html
     pub fn copy<M>(mut self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
             -> BufferCmd<'c, T>
             where M: AsMem<T>
@@ -531,6 +775,10 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 
 
 /// A buffer command builder used to enqueue reads.
+///
+/// See [SDK][read_buffer] docs for more details.
+///
+/// [read_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueReadBuffer.html
 pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
     data: &'d mut [T],
@@ -719,19 +967,12 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     }
 }
 
-// impl<'c, 'd, T> Deref for BufferReadCmd<'c, 'd, T> where T: OclPrm {
-//     type Target = BufferCmd<'c, T>;
-
-//     #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
-// }
-
-// impl<'c, 'd, T> DerefMut for BufferReadCmd<'c, 'd, T> where T: OclPrm{
-//     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
-// }
-
-
 
 /// A buffer command builder used to enqueue writes.
+///
+/// See [SDK][write_buffer] docs for more details.
+///
+/// [write_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueWriteBuffer.html
 pub struct BufferWriteCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
     data: &'d [T],
@@ -901,18 +1142,12 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     }
 }
 
-// impl<'c, 'd, T> Deref for BufferWriteCmd<'c, 'd, T> where T: OclPrm {
-//     type Target = BufferCmd<'c, T>;
-
-//     #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
-// }
-
-// impl<'c, 'd, T> DerefMut for BufferWriteCmd<'c, 'd, T> where T: OclPrm{
-//     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
-// }
-
 
 /// A buffer command builder used to enqueue maps.
+///
+/// See [SDK][map_buffer] docs for more details.
+///
+/// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
 pub struct BufferMapCmd<'c, T> where T: 'c {
     cmd: BufferCmd<'c, T>,
     flags: Option<MapFlags>,
@@ -920,12 +1155,19 @@ pub struct BufferMapCmd<'c, T> where T: 'c {
 }
 
 impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
+    /// Specifies the flags to be used with this map command.
+    ///
+    /// See [SDK] docs for more details.
+    ///
+    /// [SDK]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
     pub fn flags(mut self, flags: MapFlags) -> BufferMapCmd<'c, T> {
          self.flags = Some(flags);
-
         self
     }
 
+    /// Specifies the length of the region to map.
+    ///
+    /// If unspecified the entire buffer will be mapped.
     pub fn len(mut self, len: usize) -> BufferMapCmd<'c, T> {
         self.len = Some(len);
         self
@@ -1088,233 +1330,6 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     }
 }
 
-// impl<'c, T> Deref for BufferMapCmd<'c, T> where T: OclPrm {
-//     type Target = BufferCmd<'c, T>;
-
-//     #[inline] fn deref(&self) -> &BufferCmd<'c, T> { &self.cmd }
-// }
-
-// impl<'c, T> DerefMut for BufferMapCmd<'c, T> where T: OclPrm {
-//     #[inline] fn deref_mut(&mut self) -> &mut BufferCmd<'c, T> { &mut self.cmd }
-// }
-
-
-#[derive(Debug, Clone)]
-pub enum QueCtx {
-    Queue(Queue),
-    Context(Context),
-}
-
-impl QueCtx {
-    // pub fn context(&self) -> Option<Context> {
-    //     match *self {
-    //         QueCtx::Queue(ref q) => Some(q.context()),
-    //         QueCtx::Context(ref c) => Some(c.clone()),
-    //         QueCtx::None => None,
-    //     }
-    // }
-
-    pub fn queue(&self) -> Option<&Queue> {
-        match *self {
-            QueCtx::Queue(ref q) => Some(q),
-            QueCtx::Context(_) => None,
-        }
-    }
-}
-
-impl From<Queue> for QueCtx {
-    fn from(q: Queue) -> QueCtx {
-        QueCtx::Queue(q)
-    }
-}
-
-impl<'a> From<&'a Queue> for QueCtx {
-    fn from(q: &Queue) -> QueCtx {
-        QueCtx::Queue(q.clone())
-    }
-}
-
-impl From<Context> for QueCtx {
-    fn from(c: Context) -> QueCtx {
-        QueCtx::Context(c)
-    }
-}
-
-impl<'a> From<&'a Context> for QueCtx {
-    fn from(c: &Context) -> QueCtx {
-        QueCtx::Context(c.clone())
-    }
-}
-
-
-/// A buffer builder.
-///
-/// [TODO]: Add examples and details. For now see project examples folder.
-///
-#[derive(Debug)]
-pub struct BufferBuilder<'a, T> where T: 'a {
-    queue_option: Option<QueCtx>,
-    flags: Option<MemFlags>,
-    dims: Option<SpatialDims>,
-    host_data: Option<&'a [T]>,
-    fill_val: Option<(T, Option<ClNullEventPtrEnum<'a>>)>
-}
-
-impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
-    /// Creates a new buffer builder.
-    pub fn new() -> BufferBuilder<'a, T> {
-        BufferBuilder {
-            queue_option: None,
-            flags: None,
-            dims: None,
-            host_data: None,
-            fill_val: None,
-        }
-    }
-
-    /// Sets the context with which to associate the buffer.
-    ///
-    /// May not be used in combination with `::queue` (use one or the other).
-    pub fn context<'b>(mut self, context: Context) -> BufferBuilder<'a, T> {
-        assert!(self.queue_option.is_none());
-        self.queue_option = Some(QueCtx::Context(context));
-        self
-    }
-
-    /// Sets the default queue.
-    ///
-    /// If this is set, the context associated with the `default_queue` will
-    /// be used when creating the buffer (use one or the other).
-    pub fn queue<'b>(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
-        assert!(self.queue_option.is_none());
-        self.queue_option = Some(QueCtx::Queue(default_queue));
-        self
-    }
-
-    /// Sets the flags used when creating the buffer.
-    ///
-    /// Defaults to `flags::MEM_READ_WRITE` aka. `MemFlags::new().read_write()`
-    /// if this is not set. See the [SDK Docs] for more information about
-    /// flags. Note that the `host_ptr` mentioned in the [SDK Docs] is
-    /// equivalent to the slice optionally passed as the `host_data` argument.
-    /// Also note that the names of all flags in this library have the `CL_`
-    /// prefix removed for brevity.
-    ///
-    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub fn flags<'b>(mut self, flags: MemFlags) -> BufferBuilder<'a, T> {
-        self.flags = Some(flags);
-        self
-    }
-
-    /// Sets the dimensions for this buffer.
-    ///
-    /// Typically a single integer value to set the total length is used
-    /// however up to three dimensions may be specified in order to more
-    /// easily coordinate with kernel work sizes.
-    ///
-    /// Note that although sizes in the standard OpenCL API are expressed in
-    /// bytes, sizes, lengths, and dimensions in this library are always
-    /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
-    /// otherwise noted.
-    pub fn dims<'b, D>(mut self, dims: D) -> BufferBuilder<'a, T>
-            where D: Into<SpatialDims>
-    {
-        self.dims = Some(dims.into());
-        self
-    }
-
-    /// A slice use to designate a region of memory for use in combination of
-    /// one of the two following flags:
-    ///
-    /// * `flags::MEM_USE_HOST_PTR` aka. `MemFlags::new().use_host_ptr()`:
-    ///   * This flag is valid only if `host_data` is not `None`. If
-    ///     specified, it indicates that the application wants the OpenCL
-    ///     implementation to use memory referenced by `host_data` as the
-    ///     storage bits for the memory object (buffer/image).
-    ///   * OpenCL implementations are allowed to cache the buffer contents
-    ///     pointed to by `host_data` in device memory. This cached copy can
-    ///     be used when kernels are executed on a device.
-    ///   * The result of OpenCL commands that operate on multiple buffer
-    ///     objects created with the same `host_data` or overlapping host
-    ///     regions is considered to be undefined.
-    ///   * Refer to the [description of the alignment][align_rules] rules for
-    ///     `host_data` for memory objects (buffer and images) created using
-    ///     `MEM_USE_HOST_PTR`.
-    ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
-    ///
-    /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
-    ///   * This flag is valid only if `host_data` is not NULL. If specified, it
-    ///     indicates that the application wants the OpenCL implementation to
-    ///     allocate memory for the memory object and copy the data from
-    ///     memory referenced by `host_data`.
-    ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
-    ///     exclusive.
-    ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to
-    ///     initialize the contents of the cl_mem object allocated using
-    ///     host-accessible (e.g. PCIe) memory.
-    ///
-    /// Note: Descriptions adapted from:
-    /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
-    ///
-    ///
-    /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
-    /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub fn host_data<'d>(mut self, host_data: &'d [T]) -> BufferBuilder<'a, T>
-            where 'd: 'a
-    {
-        self.host_data = Some(host_data);
-        self
-    }
-
-    /// Allows the caller to automatically fill the buffer with a value (such
-    /// as zero) immediately after creation.
-    ///
-    /// Platforms that have trouble with `clEnqueueFillBuffer` such as
-    /// [pocl](http://portablecl.org/) should not use this option and should
-    /// handle initializing buffers manually (using a kernel or copy host data
-    /// flag).
-    ///
-    /// The `enew` argument is provided to allow an empty event to be
-    /// associated with the `fill` command which will be enqueued after
-    /// creation and just before returning the new buffer. It is up to the
-    /// caller to ensure that the command has completed before performing any
-    /// other operations on the buffer. Failure to do so may cause the fill
-    /// command to run **after** subsequently queued commands if multiple or
-    /// out-of-order queues are being used. Passing `None` for `enew` (use
-    /// `None::<()>` to avoid the the type inference error) will cause the
-    /// fill command to block before returning the new buffer and is the safe
-    /// option if you don't want to worry about it.
-    ///
-    /// ### Examples
-    ///
-    /// [TODO]: Provide examples once this stabilizes.
-    ///
-    ///
-    /// [UNSTABLE]: May be changed or removed.
-    pub fn fill_val<'b, 'e, En>(mut self, fill_val: T, enew: Option<En>)
-            -> BufferBuilder<'a, T>
-            where 'e: 'a, En: Into<ClNullEventPtrEnum<'e>>
-    {
-        self.fill_val = Some((fill_val, enew.map(|e| e.into())));
-        self
-    }
-
-    pub fn build(mut self) -> OclResult<Buffer<T>> {
-        match self.queue_option {
-            Some(qo) => {
-                let dims = match self.dims {
-                    Some(d) => d,
-                    None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
-                };
-
-                Buffer::new(qo.clone(), self.flags.take(), dims, self.host_data.take(), self.fill_val.take())
-            },
-            None => panic!("ocl::BufferBuilder::build: A context or default queue must be set \
-                with '.context(...)' or '.queue(...)'."),
-        }
-    }
-}
-
 
 
 /// A chunk of memory physically located on a device, such as a GPU.
@@ -1453,8 +1468,8 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
+    /// See the [command builder documentation](struct.BufferCmd#method.read)
+    /// for more details.
     ///
     #[inline]
     pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferReadCmd<'c, 'd, T>
@@ -1467,8 +1482,8 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
+    /// See the [command builder documentation](struct.BufferCmd#method.write)
+    /// for more details.
     ///
     #[inline]
     pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferWriteCmd<'c, 'd, T>
@@ -1481,8 +1496,8 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
+    /// See the [command builder documentation](struct.BufferCmd#method.map)
+    /// for more details.
     ///
     #[inline]
     pub fn map<'c>(&'c self) -> BufferMapCmd<'c, T> {
@@ -1493,8 +1508,8 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
+    /// See the [command builder documentation](struct.BufferCmd#method.copy)
+    /// for more details.
     ///
     #[inline]
     pub fn copy<'c, M>(&'c self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
@@ -1767,8 +1782,8 @@ impl<T: OclPrm> SubBuffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
+    /// See the [command builder documentation](struct.BufferCmd#method.read)
+    /// for more details.
     ///
     #[inline]
     pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferReadCmd<'c, 'd, T>
@@ -1781,8 +1796,8 @@ impl<T: OclPrm> SubBuffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
+    /// See the [command builder documentation](struct.BufferCmd#method.write)
+    /// for more details.
     ///
     #[inline]
     pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferWriteCmd<'c, 'd, T>
@@ -1795,8 +1810,8 @@ impl<T: OclPrm> SubBuffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
+    /// See the [command builder documentation](struct.BufferCmd#method.map)
+    /// for more details.
     ///
     #[inline]
     pub fn map<'c>(&'c self) -> BufferMapCmd<'c, T> {
@@ -1807,8 +1822,8 @@ impl<T: OclPrm> SubBuffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
+    /// See the [command builder documentation](struct.BufferCmd#method.copy)
+    /// for more details.
     ///
     #[inline]
     pub fn copy<'b, 'c, M>(&'c self, dst_buffer: &'b M, dst_offset: Option<usize>, len: Option<usize>)
