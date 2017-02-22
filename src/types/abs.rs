@@ -647,11 +647,12 @@ unsafe impl Send for Mem {}
 
 /// A pointer to a region of mapped (pinned) memory.
 //
-// [NOTE]: Do not derive/impl `Clone`. Will not be thread safe without a mutex.
+// [NOTE]: Do not derive/impl `Clone` or `Sync`. Will not be thread safe
+// without a mutex.
 //
 #[repr(C)]
 #[derive(Debug)]
-pub struct MemMap<T: OclPrm>(*mut T);
+pub struct MemMap<T>(*mut T);
 
 impl<T: OclPrm> MemMap<T> {
     #[inline(always)]
@@ -699,7 +700,7 @@ unsafe impl<T: OclPrm> MemCmdRw for MemMap<T> {}
 unsafe impl<'a, T: OclPrm> MemCmdRw for &'a MemMap<T> {}
 unsafe impl<'a, T: OclPrm> MemCmdRw for &'a mut MemMap<T> {}
 unsafe impl<T: OclPrm> Send for MemMap<T> {}
-unsafe impl<T: OclPrm> Sync for MemMap<T> {}
+// unsafe impl<T: OclPrm> Sync for MemMap<T> {}
 
 
 
@@ -811,6 +812,10 @@ impl Kernel {
             KernelInfoResult::Error(e) => Err(OclError::from(*e)),
             _ => unreachable!(),
         }
+    }
+
+    pub fn devices(&self) -> OclResult<Vec<DeviceId>> {
+        self.program().and_then(|p| p.devices())
     }
 }
 
