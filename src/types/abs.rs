@@ -540,6 +540,15 @@ impl CommandQueue {
             _ => unreachable!(),
         }
     }
+
+    /// Returns the `Context` associated with this command queue.
+    pub fn context(&self) -> OclResult<Context> {
+        match functions::get_command_queue_info(self, CommandQueueInfo::Context) {
+            CommandQueueInfoResult::Context(c) => Ok(c),
+            CommandQueueInfoResult::Error(e) => Err(OclError::from(*e)),
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Clone for CommandQueue {

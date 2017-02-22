@@ -78,16 +78,15 @@ pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i3
             let user_event = Event::from_raw(tar_event_ptr);
 
             #[cfg(feature = "event_debug_print")]
-            println!("::_complete_user_event: Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
-
-            // // [DEBUG]:
-            // println!("::_complete_user_event: Setting event complete for: source: {:?}, target: {:?}...", src_event_ptr, &user_event);
+            println!("::_complete_user_event: Setting event complete for: \
+                source: {:?}, target: {:?}...", src_event_ptr, &user_event);
 
             ::set_user_event_status(&user_event, CommandExecutionStatus::Complete).unwrap();
         }
 
         #[cfg(feature = "event_debug_print")]
-        println!("  - Event status has been set to 'CommandExecutionStatus::Complete' for event: {:?}", tar_event_ptr);
+        println!("  - Event status has been set to 'CommandExecutionStatus::Complete' \
+            for event: {:?}", tar_event_ptr);
     } else {
         match CommandExecutionStatus::from_i32(event_status) {
             Some(status_enum) => panic!("ocl_core::_complete_event: User data is null or event \
@@ -108,7 +107,9 @@ pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i3
 /// not 0 (Status::CL_SUCCESS).
 ///
 #[inline(always)]
-fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info: &str) -> OclResult<T> {
+fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info: &str)
+        -> OclResult<T>
+{
     OclError::eval_errcode(errcode, result, cl_fn_name, fn_info)
 }
 
@@ -124,7 +125,7 @@ fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info
 //                 (wl.count(), unsafe { wl.as_ptr_ptr() } as *const cl_event)
 //             } else {
 //                 (0, ptr::null() as *const cl_event)
-//             }3
+//             }
 //         },
 //         None => (0, ptr::null() as *const cl_event),
 //     };
@@ -176,7 +177,8 @@ fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
 ///
 pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) -> OclResult<()> {
     if device_ids.len() == 0 {
-        return OclError::err_string("ocl::core::program_build_err(): Device list is empty. Aborting.");
+        return OclError::err_string("ocl::core::program_build_err(): \
+            Device list is empty. Aborting.");
     }
 
     for device_id in device_ids.iter() {
@@ -185,9 +187,11 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) 
                 if log.len() > 1 {
                     let log_readable = format!(
                         "\n\n\
-                        ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT ######################\
+                        ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT \
+                        ######################\
                         \n\n{}\n\
-                        ###############################################################################\
+                        ########################################################\
+                        #######################\
                         \n\n",
                         log);
 
@@ -195,7 +199,8 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) 
                 }
             },
             ProgramBuildInfoResult::Error(err) => return Err(*err),
-            _ => panic!("ocl::core::program_build_err(): Unexpected 'ProgramBuildInfoResult' variant."),
+            _ => panic!("ocl::core::program_build_err(): \
+                Unexpected 'ProgramBuildInfoResult' variant."),
         }
     }
 
@@ -382,7 +387,8 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
     let devices_max = match devices_max {
         Some(d) => {
             if d == 0 {
-                return OclError::err_string("ocl::core::get_device_ids(): `devices_max` can not be zero.");
+                return OclError::err_string("ocl::core::get_device_ids(): \
+                    `devices_max` can not be zero.");
             } else {
                 d
             }
@@ -979,16 +985,41 @@ pub unsafe fn create_from_gl_renderbuffer(
 
 /// [UNTESTED]
 /// Return a texture2D pointer from a `OpenGL` texture2D object.
+///
+/// [TODO]: If version is < 1.2, automatically use older versions.
+///
+/// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn create_from_gl_texture(
             context: &Context,
             texture_target: cl_GLenum,
             miplevel: cl_GLint,
             texture: cl_GLuint,
-            flags: MemFlags
+            flags: MemFlags,
+            device_versions: Option<&[OpenclVersion]>,
         ) -> OclResult<Mem>
 {
     // Verify that the context is valid
     try!(verify_context(context));
+
+    // Verify device versions:
+    try!(verify_device_versions(device_versions, [1, 2], context));
+
+    // [TODO]: Forward old versions to these:
+    // let obj_core = match image_desc.image_depth {
+    //     2 => unsafe { try!(core::create_from_gl_texture_2d(
+    //                         queue.context_core(),
+    //                         texture_target,
+    //                         miplevel,
+    //                         texture,
+    //                         flags)) },
+    //     3 => unsafe { try!(core::create_from_gl_texture_3d(
+    //                         queue.context_core(),
+    //                         texture_target,
+    //                         miplevel,
+    //                         texture,
+    //                         flags)) },
+    //     _ => unimplemented!() // FIXME: return an error ? or panic! ?
+    // };
 
     let mut errcode: cl_int = 0;
 
@@ -1091,6 +1122,8 @@ pub fn create_sub_buffer<T: OclPrm>(
 
 /// Returns a new image (mem) pointer.
 ///
+/// [TODO]: If version is < 1.2, automatically use older versions.
+///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn create_image<T: OclPrm>(
             context: &Context,
@@ -1104,7 +1137,7 @@ pub unsafe fn create_image<T: OclPrm>(
     // Verify that the context is valid:
     try!(verify_context(context));
 
-    // Verify device version:
+    // Verify device versions:
     try!(verify_device_versions(device_versions, [1, 2], context));
 
     let mut errcode: cl_int = 0;
@@ -2110,10 +2143,10 @@ pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
             buffer_origin: [usize; 3],
             host_origin: [usize; 3],
             region: [usize; 3],
-            buffer_row_pitch: usize,
-            buffer_slc_pitch: usize,
-            host_row_pitch: usize,
-            host_slc_pitch: usize,
+            buffer_row_pitch_bytes: usize,
+            buffer_slc_pitch_bytes: usize,
+            host_row_pitch_bytes: usize,
+            host_slc_pitch_bytes: usize,
             data: &mut [T],
             wait_list: Option<Ewl>,
             new_event: Option<En>,
@@ -2125,10 +2158,10 @@ pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
     let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(),
         host_origin[1], host_origin[2]];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
-    let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
-    let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
-    let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
-    let host_slc_pitch_bytes = host_slc_pitch * mem::size_of::<T>();
+    // let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
+    // let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
+    // let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
+    // let host_slc_pitch_bytes = host_slc_pitch * mem::size_of::<T>();
 
     // DEBUG:
     if false {
@@ -2209,10 +2242,10 @@ pub fn enqueue_write_buffer_rect<T, M, En, Ewl>(
             buffer_origin: [usize; 3],
             host_origin: [usize; 3],
             region: [usize; 3],
-            buffer_row_pitch: usize,
-            buffer_slc_pitch: usize,
-            host_row_pitch: usize,
-            host_slc_pitch: usize,
+            buffer_row_pitch_bytes: usize,
+            buffer_slc_pitch_bytes: usize,
+            host_row_pitch_bytes: usize,
+            host_slc_pitch_bytes: usize,
             data: &[T],
             wait_list: Option<Ewl>,
             new_event: Option<En>,
@@ -2227,10 +2260,10 @@ pub fn enqueue_write_buffer_rect<T, M, En, Ewl>(
     let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(),
         host_origin[1], host_origin[2]];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
-    let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
-    let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
-    let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
-    let host_slc_pitch_bytes = host_slc_pitch * mem::size_of::<T>();
+    // let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
+    // let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
+    // let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
+    // let host_slc_pitch_bytes = host_slc_pitch * mem::size_of::<T>();
 
     let errcode = unsafe { ffi::clEnqueueWriteBufferRect(
         command_queue.as_ptr(),
@@ -2338,10 +2371,10 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
             src_origin: [usize; 3],
             dst_origin: [usize; 3],
             region: [usize; 3],
-            src_row_pitch: usize,
-            src_slc_pitch: usize,
-            dst_row_pitch: usize,
-            dst_slc_pitch: usize,
+            src_row_pitch_bytes: usize,
+            src_slc_pitch_bytes: usize,
+            dst_row_pitch_bytes: usize,
+            dst_slc_pitch_bytes: usize,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
@@ -2355,10 +2388,10 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
     let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(),
         dst_origin[1], dst_origin[2]];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
-    let src_row_pitch_bytes = src_row_pitch * mem::size_of::<T>();
-    let src_slc_pitch_bytes = src_slc_pitch * mem::size_of::<T>();
-    let dst_row_pitch_bytes = dst_row_pitch * mem::size_of::<T>();
-    let dst_slc_pitch_bytes = dst_slc_pitch * mem::size_of::<T>();
+    // let src_row_pitch_bytes = src_row_pitch * mem::size_of::<T>();
+    // let src_slc_pitch_bytes = src_slc_pitch * mem::size_of::<T>();
+    // let dst_row_pitch_bytes = dst_row_pitch * mem::size_of::<T>();
+    // let dst_slc_pitch_bytes = dst_slc_pitch * mem::size_of::<T>();
 
     let errcode = unsafe { ffi::clEnqueueCopyBufferRect(
         command_queue.as_ptr(),
@@ -2444,16 +2477,16 @@ pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
             block: bool,
             origin: [usize; 3],
             region: [usize; 3],
-            row_pitch: usize,
-            slc_pitch: usize,
+            row_pitch_bytes: usize,
+            slc_pitch_bytes: usize,
             data: &mut [T],
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
-    let row_pitch_bytes = row_pitch * mem::size_of::<T>();
-    let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
+    // let row_pitch_bytes = row_pitch * mem::size_of::<T>();
+    // let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
@@ -2484,16 +2517,16 @@ pub fn enqueue_write_image<T, M, En, Ewl>(
             block: bool,
             origin: [usize; 3],
             region: [usize; 3],
-            input_row_pitch: usize,
-            input_slc_pitch: usize,
+            input_row_pitch_bytes: usize,
+            input_slc_pitch_bytes: usize,
             data: &[T],
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<()>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
-    let input_row_pitch_bytes = input_row_pitch * mem::size_of::<T>();
-    let input_slc_pitch_bytes = input_slc_pitch * mem::size_of::<T>();
+    // let input_row_pitch_bytes = input_row_pitch * mem::size_of::<T>();
+    // let input_slc_pitch_bytes = input_slc_pitch * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
@@ -2699,48 +2732,6 @@ unsafe fn _enqueue_map_buffer<T, M>(
     eval_errcode(errcode, mapped_ptr as *mut T, "clEnqueueMapBuffer", "")
 }
 
-// pub unsafe fn enqueue_map_buffer_async<T, M, En, Ewl>(
-//         command_queue: &CommandQueue,
-//         buffer: M,
-//         map_flags: MapFlags,
-//         offset: usize,
-//         len: usize,
-//         wait_list: Option<Ewl>,
-//         new_event: En,
-//         // ) -> OclResult<FutureMemMap<T>>
-//         ) -> OclResult<MemMap<T>>
-//         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
-// {
-//     let (wait_list_len, wait_list_ptr, new_event_ptr) =
-//         try!(resolve_event_ptrs(wait_list, Some(new_event)));
-
-//     // let mut new_map_event_ptr = 0 as cl_event;
-
-//     let mapped_ptr_res = _enqueue_map_buffer(
-//         command_queue,
-//         buffer.as_mem(),
-//         false,
-//         map_flags,
-//         offset,
-//         len,
-//         wait_list_len,
-//         wait_list_ptr,
-//         new_event_ptr,
-//     );
-
-//     // let new_map_event_core = if !new_event_ptr.is_null() {
-//     //     *new_event_ptr = new_map_event_ptr;
-//     //     Event::from_raw_copied_ptr(new_map_event_ptr)?
-//     // } else {
-//     //     Event::from_raw(new_map_event_ptr)
-//     // };
-
-//     // mapped_ptr.map(|ptr| FutureMemMap::new(ptr, len, new_map_event_core, buffer.as_mem().clone(),
-//     //     command_queue.clone()))
-
-//     mapped_ptr_res.map(|ptr| MemMap::from_raw(ptr))
-// }
-
 /// Enqueues a command to map a region of the buffer object given
 /// by `buffer` into the host address space and returns a pointer to this
 /// mapped region.
@@ -2814,15 +2805,15 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
             map_flags: MapFlags,
             origin: [usize; 3],
             region: [usize; 3],
-            row_pitch: usize,
-            slc_pitch: usize,
+            row_pitch_bytes: &mut usize,
+            slc_pitch_bytes: &mut usize,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
         ) -> OclResult<MemMap<T>>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
-    let row_pitch_bytes = row_pitch * mem::size_of::<T>();
-    let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
+    // let row_pitch_bytes = row_pitch * mem::size_of::<T>();
+    // let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
