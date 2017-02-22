@@ -12,6 +12,32 @@ pub use self::future_mem_map::{FutureMemMap};
 pub type FutureResult<T> = future::FutureResult<T, self::Error>;
 
 
+// [TODO]: Implement this:
+//
+// pub struct EventListTrigger {
+//     wait_events: EventList,
+//     completion_event: UserEvent,
+//     callback_is_set: bool,
+// }
+
+// pub struct EventTrigger {
+//     wait_event: Event,
+//     completion_event: UserEvent,
+//     callback_is_set: bool,
+// }
+
+// impl EventTrigger {
+//     pub fn new(wait_event: Event, completion_event: UserEvent) -> EventTrigger {
+//         EventTrigger {
+//             wait_event: wait_event,
+//             completion_event: completion_event ,
+//             callback_is_set: false,
+//         }
+//     }
+// }
+
+
+
 /// Creates a new "leaf future" which will resolve with the given result.
 ///
 /// The returned future represents a computation which is finshed immediately.

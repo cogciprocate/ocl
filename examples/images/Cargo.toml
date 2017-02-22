@@ -8,10 +8,11 @@ colorify = "*"
 image = "*"
 ocl = { path = "../../" }
 # ocl = { git = "https://github.com/cogciprocate/ocl" }
-ocl-core = { git = "https://github.com/cogciprocate/ocl-core" }
-cl-sys = { git = "https://github.com/cogciprocate/cl-sys" }
+ocl-core = "0.3"
+# ocl-core = { git = "https://github.com/cogciprocate/ocl-core" }
+# cl-sys = { git = "https://github.com/cogciprocate/cl-sys" }
 
 
 [replace]
-"cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }
-"ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core" }
+# "cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }
+"ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core", branch = "futures" }

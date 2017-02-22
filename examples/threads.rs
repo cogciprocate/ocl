@@ -45,11 +45,11 @@ fn main() {
     // Loop through each avaliable platform:
     for p_idx in 0..platforms.len() {
         let platform = &platforms[p_idx];
-        printlnc!(green: "Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
+        printlnc!(green: "\nPlatform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
 
         let devices = Device::list_all(platform).unwrap();
 
-        println!("DEVICES: {:?}", devices);
+        printc!(blue: "DEVICES: {:?}", devices);
 
         // Loop through each device:
         for device_idx in 0..devices.len() {
@@ -57,7 +57,7 @@ fn main() {
             // let dev_idx = rng.gen_range(0, devices.len());
 
             let device = devices[device_idx];
-            printlnc!(royal_blue: "Device[{}]: {} ({})", device_idx, device.name(), device.vendor());
+            printlnc!(royal_blue: "\nDevice[{}]: {} ({})", device_idx, device.name(), device.vendor());
 
             // Make a context to share around:
             let context = Context::builder().platform(*platform).build().unwrap();
@@ -74,7 +74,7 @@ fn main() {
                 Queue::new(&context, device, None).unwrap(),
                 Queue::new(&context, device, None).unwrap()];
 
-            printc!(orange: "    Spawning threads... ");
+            printlnc!(orange: "Spawning threads... ");
 
             for i in 0..5 {
                 let thread_name = format!("{}:[D{}.I{}]", threads.len(), device_idx, i);
@@ -98,6 +98,12 @@ fn main() {
                 print!("{}, ", thread_name);
 
                 let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
+                    // Move these into thread:
+                    let context_th = context_th;
+                    let program_th = program_th;
+                    let dims_th = dims_th;
+                    let queueball_th = queueball_th;
+
                     // let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
                     let mut buffer = Buffer::<f32>::builder()
                         .queue(queueball_th[0].clone())
@@ -132,7 +138,7 @@ fn main() {
 
                     // Print results (won't appear until later):
                     let check_idx = data_set_size / 2;
-                    print!("{{{}}}={}, ", &thread_name, vec[check_idx]);
+                    format!("{{{}}}={}, ", &thread_name, vec[check_idx])
                 }).expect("Error creating thread");
 
                 threads.push(th);
@@ -142,10 +148,14 @@ fn main() {
         }
     }
 
-    print!("\nResults: ");
+    printlnc!(orange: "\nResults: ");
 
     for th in threads.into_iter() {
-        if let Err(e) = th.join() { println!("Error joining thread: '{:?}'", e); }
+        // if let Err(e) = th.join() { println!("Error joining thread: '{:?}'", e); }
+        match th.join() {
+            Ok(r) => print!("{}", r),
+            Err(e) => println!("Error joining thread: '{:?}'", e),
+        }
     }
 
     print!("\n");

@@ -11,4 +11,4 @@ find_folder = "*"
 colorify = "*"
 
 [replace]
-"ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core" }
+"ocl-core:0.3.2" = { git = "https://github.com/cogciprocate/ocl-core", branch = "futures" }
