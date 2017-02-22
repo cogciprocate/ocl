@@ -122,14 +122,16 @@ impl<'k> KernelCmd<'k> {
 ///
 /// Corresponds to code which must have already been compiled into a program.
 ///
+/// Set arguments using any of the `::arg...` (builder-style) or
+/// `::set_arg...` functions or use `::set_arg` to set arguments by index.
 ///
-/// ## Clonability
+/// ### Clonability
 ///
 /// Cloning a kernel after creation should virtually never be necessary (and
-/// may indicate that your design needs improvement). If you really really
-/// need to clone and store something, clone the kernel core with
-/// `::core.clone()` and use `ocl::core::enqueue_kernel(...)` to
-/// enqueue.
+/// may indicate that your design needs improvement). If an Rc<Kernel> is
+/// insufficient and you really really need to clone and store a kernel, clone
+/// the kernel core with `::core.clone()` and use
+/// `ocl::core::enqueue_kernel(...)` to enqueue.
 ///
 ///
 /// TODO: Add more details, examples, etc.
@@ -182,6 +184,12 @@ impl Kernel {
         })
     }
 
+    /// Sets the default queue to be used by all subsequent enqueue commands
+    /// unless otherwise changed (with `::set_default_queue`) or overridden
+    /// (by `::cmd().queue(...)...`).
+    ///
+    /// The queue must be associated with a device associated with the
+    /// kernel's program.
     pub fn queue(mut self, queue: Queue) -> Kernel {
         self.queue = Some(queue);
         self
@@ -439,7 +447,7 @@ impl Kernel {
         self
     }
 
-    /// Returns the default `core::CommandQueue` for this kernel.
+    /// Returns the default queue for this kernel.
     pub fn default_queue(&self) -> Option<&Queue> {
         self.queue.as_ref()
     }
@@ -502,10 +510,12 @@ impl Kernel {
         core::get_kernel_work_group_info(&self.obj_core, device, info_kind)
     }
 
+    /// Returns the name of this kernel.
     pub fn name(&self) -> String {
         core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName).into()
     }
 
+    /// Returns the argument index of a named argument if it exists.
     pub fn named_arg_idx(&self, name: &'static str) -> Option<u32> {
         self.named_args.get(name).cloned()
     }
@@ -514,8 +524,8 @@ impl Kernel {
     pub fn set_arg<T: OclPrm>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
         // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
         // refers to, store it in `self.mem_args`, and create a new
-        // `KernelArg::Mem` refering to the locally stored copy. This prevents
-        // a buffer which has gone out of scope from being erroneously refered
+        // `KernelArg::Mem` referring to the locally stored copy. This prevents
+        // a buffer which has gone out of scope from being erroneously referred
         // to when this kernel is enqueued and causing either a misleading
         // error message or a hard to debug segfault depending on the
         // platform.

@@ -1,7 +1,7 @@
 ocl
 ===
 
-#### [Documentation](https://docs.rs/ocl) ([master](http://docs.cogciprocate.com/ocl/ocl/)) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
+#### Documentation: [Stable](https://docs.rs/ocl)/[Master](http://docs.cogciprocate.com/ocl/ocl/) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
 
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) [![](https://docs.rs/ocl/badge.svg)](https://docs.rs/ocl)
 [![Supported platforms](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux%20%7C%20bsd-orange.svg)](https://en.wikipedia.org/wiki/Cross-platform)
@@ -78,11 +78,9 @@ See the the remainder of [`examples/trivial.rs`] for more information about
 how this library leverages Rust's zero-cost abstractions to provide the full
 power and performance of the C API in a simple package.
 
-## Development Status
+## What's new?
 
-More feedback needed before we can start to stabilize. File an issue just to
-let us know what you think or if you have ideas on what could be improved and
-smoothed out (nitpicks welcome and appreciated).
+* 0.13.0: [The futures have arrived](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
 
 
 #### Diving Deeper

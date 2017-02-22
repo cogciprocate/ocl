@@ -5,7 +5,7 @@ The futures have arrived! [futures-rs] has begun to find its way into ocl.
 This makes doing things embedding (slipstreaming?) host processing work into
 the natural chain of enqueued commands, something that was previously
 cumbersome to implement, very easy and intuitive now. See the `FutureMemMap`
-and `MemMap` types and the new examples [FIXME: INSERT LINKS TO NEW EXAMPLES].
+and `MemMap` types and the new examples. [FIXME] Add links at release
 
 This library will be approaching forward-compatible stabilization over the
 next year for all top level types. Before that point can be reached, we'll
@@ -13,10 +13,9 @@ have to break a few eggs. This release brings consistency and simplification
 changes to a few important functions, notably `Buffer::new` and `Kernel::new`.
 See the breaking changes section below for details.
 
+[FIXME] Add doc links at release
 
-[FIXME: TODO]: Add links to documentation throughout this list.
-
-* Asynchrony and Futures... [FIXME: complete]
+* Asynchrony and Futures...
   * [FIXME] Buffer mapping...
   * [FIXME] `BufferCmd`, `ImageCmd`, and `KernelCmd`
   * [FIXME] have received some streamlining and optimizing to events.
@@ -25,8 +24,6 @@ See the breaking changes section below for details.
   * [FIXME] ::read, ::write, ::map
     * read no longer unsafe
     * how to use futures, etc.
-
-* [FIXME]: All types have been trimmed down and streamlined.
 
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
   be used just as you would `Buffer`. Use `SubBuffer::new` or
@@ -45,11 +42,38 @@ See the breaking changes section below for details.
 
 Breaking Changes
 ----------------
-* `Kernel::new` no longer accepts a queue as an argument. Instead use the
-  `::queue` (builder-style) or `::set_default_queue` methods.
-  * [FIXME]: Provide before and after examples.
-* `Buffer::new` has been 
+* `Buffer::new` continues to be unstable and is not reccommended for use
+  directly. Instead use the new [`BufferBuilder`] by calling
+  [`Buffer::builder()`].
+  * Before: 
 
+    ```
+    Buffer::new(queue, Some(flags), dims, Some(&data))
+    ```
+  * Now: 
+
+    ```
+    Buffer::builder()
+      .queue(queue)
+      .flags(flags)
+      .dims(dims)
+      .host_data(&data)
+      .build()
+    ```
+* [`Kernel::new`] no longer accepts a queue as a third argument. Instead use the
+  [`::queue`][kernel_queue] (builder-style) or
+  [`::set_default_queue`][kernel_set_default_queue] methods. For example:
+  * Before: 
+
+    ```
+    Kernel::new("kernel_name", &program, queue).unwrap()
+    ```
+  * Now: 
+
+    ```
+    Kernel::new("kernel_name", &program).unwrap().queue(queue)
+    ```
+    [FIXME] Add/update links
 * `BufferCmd`, `ImageCmd`, and `KernelCmd` now [FIXME: complete]  
   * [FIXME] `::copy` signature change (`offset` and `len` (size))
   * [FIXME] `::enew`, `::enew_opt`, `::ewait`,  and `::ewait_opt` signature
@@ -80,7 +104,7 @@ Breaking Changes
 * `Event::wait` and `EventList::wait` have both been renamed to `::wait_for`.
 * [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
 
-### `ocl-core` specific breaking changes
+### Breaking Changes to `ocl-core`
 * Passing event wait list and new event references has been completely
   overhauled. Previously, references of this type had to be converted into the
   trait objects `ClWaitList` and `ClEventPtrNew`. This was convenient (outside
@@ -117,8 +141,7 @@ Breaking Changes
   the provided context.
 
 
-
-  [FIXME]:
+  [FIXME]
   * `enqueue_map_buffer`, `enqueue_map_image`, `enqueue_unmap_mem_object`
 
 Other Changes
@@ -127,6 +150,13 @@ Other Changes
 * `EventList` auto-clearing has been experimentally re-enabled.
 
 
+[FIXME] Update links
+
+[`Buffer::builder()`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html#method.builder
+[`BufferBuilder`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.BufferBuilder.html
+[`Kernel::new`]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.new
+[kernel_queue]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.queue
+[kernel_set_default_queue]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.set_default_queue
 [futures-rs]: https://github.com/alexcrichton/futures-rs
 [clCreateCommandQueue SDK Documentation]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateCommandQueue.html
 
