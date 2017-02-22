@@ -441,6 +441,7 @@ bitflags! {
 // #[derive(PartialEq, Debug, FromPrimitive)]
 enum_from_primitive! {
     /// The status of an OpenCL API call. Used for returning success/error codes.
+    #[allow(non_camel_case_types)]
     #[repr(C)]
     #[derive(Debug, PartialEq, Clone)]
     pub enum Status {
@@ -858,9 +859,9 @@ enum_from_primitive! {
         SnormInt16 = ffi::CL_SNORM_INT16 as isize,
         UnormInt8 = ffi::CL_UNORM_INT8 as isize,
         UnormInt16 = ffi::CL_UNORM_INT16 as isize,
-        UnormShort_565 = ffi::CL_UNORM_SHORT_565 as isize,
-        UnormShort_555 = ffi::CL_UNORM_SHORT_555 as isize,
-        UnormInt_101010 = ffi::CL_UNORM_INT_101010 as isize,
+        UnormShort565 = ffi::CL_UNORM_SHORT_565 as isize,
+        UnormShort555 = ffi::CL_UNORM_SHORT_555 as isize,
+        UnormInt101010 = ffi::CL_UNORM_INT_101010 as isize,
         SignedInt8 = ffi::CL_SIGNED_INT8 as isize,
         SignedInt16 = ffi::CL_SIGNED_INT16 as isize,
         SignedInt32 = ffi::CL_SIGNED_INT32 as isize,
