@@ -5,11 +5,15 @@ use std;
 // use futures::future::Result;
 use futures::future;
 
+#[cfg(feature = "experimental_async_rw")]
+use futures::{task, Future, Poll, Async};
 // pub use futures::future::{result, ok, err};
 pub use self::error::{Error, Result};
 pub use self::future_mem_map::{FutureMemMap};
 
+
 pub type FutureResult<T> = future::FutureResult<T, self::Error>;
+
 
 
 // [TODO]: Implement this:
@@ -36,6 +40,61 @@ pub type FutureResult<T> = future::FutureResult<T, self::Error>;
 //     }
 // }
 
+
+
+
+#[allow(dead_code)]
+#[cfg(feature = "experimental_async_rw")]
+pub struct ReadCompletion<'d, T> where T: 'd {
+    event: Event,
+    data: &'d mut [T],
+}
+
+#[allow(dead_code)]
+#[cfg(feature = "experimental_async_rw")]
+impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
+    pub fn new(event: Event, data: &'d mut [T]) -> ReadCompletion<'d, T> {
+        ReadCompletion {
+            event: event,
+            data: data,
+        }
+    }
+}
+
+/// Non-blocking, proper implementation.
+#[cfg(feature = "event_callbacks")]
+#[cfg(feature = "experimental_async_rw")]
+impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
+    type Item = ();
+    type Error = OclError;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        match self.event.is_complete() {
+            Ok(true) => {
+                Ok(Async::Ready(()))
+            }
+            Ok(false) => {
+                let task_ptr = box_raw_void(task::park());
+                unsafe { self.event.set_callback(Some(_unpark_task), task_ptr)?; };
+                Ok(Async::NotReady)
+            },
+            Err(err) => Err(err),
+        }
+    }
+}
+
+/// Blocking implementation (yuk).
+#[cfg(not(feature = "event_callbacks"))]
+#[cfg(feature = "experimental_async_rw")]
+impl<'d, T> Future for ReadCompletion<'d, T> {
+    type Item = &'d mut [T];
+    type Error = OclError;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.event.wait_for()?;
+        Ok(Async::Ready(()))
+    }
+}
 
 
 /// Creates a new "leaf future" which will resolve with the given result.

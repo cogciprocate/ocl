@@ -13,6 +13,20 @@ use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 #[cfg(feature = "experimental_async_rw")]
 use standard::{Event, _unpark_task, box_raw_void};
+#[cfg(feature = "experimental_async_rw")]
+use async::ReadCompletion;
+
+
+fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
+    if offset >= mem_len {
+        OclError::err_string(format!("ocl::Buffer::enq(): Offset out of range. \
+            (mem_len: {}, data_len: {}, offset: {}", mem_len, data_len, offset))
+    } else if data_len > (mem_len - offset) {
+        OclError::err_string("ocl::Buffer::enq(): Data length exceeds buffer length.")
+    } else {
+        Ok(())
+    }
+}
 
 
 #[derive(Debug, Clone)]
@@ -237,82 +251,9 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
 }
 
 
-
-
-
-
-fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
-    if offset >= mem_len {
-        OclError::err_string(format!("ocl::Buffer::enq(): Offset out of range. \
-            (mem_len: {}, data_len: {}, offset: {}", mem_len, data_len, offset))
-    } else if data_len > (mem_len - offset) {
-        OclError::err_string("ocl::Buffer::enq(): Data length exceeds buffer length.")
-    } else {
-        Ok(())
-    }
-}
-
-
-#[allow(dead_code)]
-#[cfg(feature = "experimental_async_rw")]
-pub struct ReadCompletion<'d, T> where T: 'd {
-    event: Event,
-    data: &'d mut [T],
-}
-
-#[allow(dead_code)]
-#[cfg(feature = "experimental_async_rw")]
-impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
-    pub fn new(event: Event, data: &'d mut [T]) -> ReadCompletion<'d, T> {
-        ReadCompletion {
-            event: event,
-            data: data,
-        }
-    }
-}
-
-/// Non-blocking, proper implementation.
-#[cfg(feature = "event_callbacks")]
-#[cfg(feature = "experimental_async_rw")]
-impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
-    type Item = ();
-    type Error = OclError;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        match self.event.is_complete() {
-            Ok(true) => {
-                Ok(Async::Ready(()))
-            }
-            Ok(false) => {
-                let task_ptr = box_raw_void(task::park());
-                unsafe { self.event.set_callback(Some(_unpark_task), task_ptr)?; };
-                Ok(Async::NotReady)
-            },
-            Err(err) => Err(err),
-        }
-    }
-}
-
-/// Blocking implementation (yuk).
-#[cfg(not(feature = "event_callbacks"))]
-#[cfg(feature = "experimental_async_rw")]
-impl<'d, T> Future for ReadCompletion<'d, T> {
-    type Item = &'d mut [T];
-    type Error = OclError;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        self.event.wait_for()?;
-        Ok(Async::Ready(()))
-    }
-}
-
-
 /// The type of operation to be performed by a command.
 pub enum BufferCmdKind<'c, T> where T: 'c {
     Unspecified,
-    // Read { data: &'c mut [T] },
-    // Write { data: &'c [T] },
-    // Map { flags: Option<MapFlags>, len: Option<usize> },
     Read,
     Write,
     Map,
@@ -373,18 +314,6 @@ pub enum BufferCmdDataShape {
 ///
 /// ```
 ///
-//
-// pub struct BufferCmd<'b, T: 'b + OclPrm> {
-//     queue: &'b Queue,
-//     obj_core: &'b MemCore,
-//     block: bool,
-//     lock_block: bool,
-//     kind: BufferCmdKind<'b, T>,
-//     shape: BufferCmdDataShape,
-//     ewait: Option<&'b ClWaitListPtr>,
-//     enew: Option<&'b mut ClNullEventPtr>,
-//     mem_len: usize,
-// }
 pub struct BufferCmd<'c, T> where T: 'c {
     queue: Option<&'c Queue>,
     obj_core: &'c MemCore,
@@ -715,7 +644,6 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     }
 
     /// Enqueues this command.
-    ///
     pub fn enq(self) -> OclResult<()> {
         let queue = match self.queue {
             Some(q) => q,

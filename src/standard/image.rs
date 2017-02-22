@@ -880,7 +880,7 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
                 let mut slc_pitch_bytes = 0usize;
 
                 unsafe {
-                    let mm_core = core::enqueue_map_image(
+                    let mm_core = core::enqueue_map_image::<T, _, _, _>(
                         queue,
                         self.cmd.obj_core,
                         self.cmd.block,
@@ -901,15 +901,15 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
                         unimplemented!();
                     };
 
-                    let unmap_event = None;
+                    // let unmap_event = None;
 
                     // [TODO]: Create a special container for mapped images
                     // that can take into account row and slice pitch. It
                     // cannot deref into a &[T] as the size of rows (and
                     // slices) can vary with byte-sized precision.
 
-                    Ok(MemMap::new(mm_core, 0, unmap_event, self.cmd.obj_core.clone(),
-                        queue.core().clone()))
+                    // Ok(MemMap::new(mm_core, 0, unmap_event, self.cmd.obj_core.clone(),
+                    //     queue.core().clone()))
                 }
             },
             _ => unreachable!(),
