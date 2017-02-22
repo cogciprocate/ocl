@@ -1,9 +1,20 @@
 Version 0.13.0 (UNRELEASED)
 ===========================
 
+The futures have arrived! [futures-rs] has begun to find its way into ocl.
+This makes doing things embedding (slipstreaming?) host processing work into
+the natural chain of enqueued commands, something that was previously
+cumbersome to implement, very easy and intuitive now. See the `FutureMemMap`
+and `MemMap` types and the new examples [FIXME: INSERT LINKS TO NEW EXAMPLES].
 
-[FIXME: TODO]: Add links to documentation.
+This library will be approaching forward-compatible stabilization over the
+next year for all top level types. Before that point can be reached, we'll
+have to break a few eggs. This release brings consistency and simplification
+changes to a few important functions, notably `Buffer::new` and `Kernel::new`.
+See the breaking changes section below for details.
 
+
+[FIXME: TODO]: Add links to documentation throughout this list.
 
 * Asynchrony and Futures... [FIXME: complete]
   * [FIXME] Buffer mapping...
@@ -34,6 +45,11 @@ Version 0.13.0 (UNRELEASED)
 
 Breaking Changes
 ----------------
+* `Kernel::new` no longer accepts a queue as an argument. Instead use the
+  `::queue` (builder-style) or `::set_default_queue` methods.
+  * [FIXME]: Provide before and after examples.
+* `Buffer::new` has been 
+
 * `BufferCmd`, `ImageCmd`, and `KernelCmd` now [FIXME: complete]  
   * [FIXME] `::copy` signature change (`offset` and `len` (size))
   * [FIXME] `::enew`, `::enew_opt`, `::ewait`,  and `::ewait_opt` signature
@@ -57,8 +73,6 @@ Breaking Changes
     ```.arg_buf_named("buf", None::<Buffer<f32>>)``` 
   or 
     ```.arg_buf_named::<f32, Buffer<f32>>("buf", None)```.
-* `Kernel::new` no longer accepts a queue as an argument. Instead use the
-  `::queue` (builder-style) or `::set_default_queue` methods.
 * `Queue::new` now takes a third argument: `properties` (details below in
   ocl-core section).
 * `Queue::finish` now returns a result instead of unwrapping.
@@ -113,6 +127,7 @@ Other Changes
 * `EventList` auto-clearing has been experimentally re-enabled.
 
 
+[futures-rs]: https://github.com/alexcrichton/futures-rs
 [clCreateCommandQueue SDK Documentation]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateCommandQueue.html
 
 

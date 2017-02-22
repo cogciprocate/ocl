@@ -1,7 +1,7 @@
 //! An `OpenCL` kernel.
 
 use std;
-use std::convert::Into;
+use std::ops::{Deref, DerefMut};
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
@@ -95,7 +95,7 @@ impl<'k> KernelCmd<'k> {
     pub fn enq(self) -> OclResult<()> {
         let queue = match self.queue {
             Some(q) => q,
-            None => return Err("KernelCmd::enq: No queue set.".into()),
+            None => return Err("KernelCmd::enq: No queue specified.".into()),
         };
 
         let dim_count = self.gws.dim_count();
@@ -115,7 +115,6 @@ impl<'k> KernelCmd<'k> {
             &gws, self.lws.to_work_size(), self.wait_list, self.new_event)
     }
 }
-
 
 
 
@@ -676,8 +675,6 @@ impl Kernel {
     }
 }
 
-
-
 impl std::fmt::Display for Kernel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         try!(self.fmt_info(f));
@@ -685,8 +682,6 @@ impl std::fmt::Display for Kernel {
         self.fmt_wg_info(f, self.obj_core.devices().unwrap())
     }
 }
-
-use std::ops::{Deref, DerefMut};
 
 impl Deref for Kernel {
     type Target = KernelCore;
