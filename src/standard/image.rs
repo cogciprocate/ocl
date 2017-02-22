@@ -10,21 +10,24 @@ use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ImageChannelOrder, ImageChannelDataType,
-    GlTextureTarget, AsMem, MemCmdRw, MemCmdAll};
-use standard::{Context, Queue, MemLen, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum};
+    GlTextureTarget, AsMem, MemCmdRw, MemCmdAll, MapFlags};
+use standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum,
+    QueCtx, MemMap};
 use ffi::{cl_GLuint, cl_GLint};
 
 /// A builder for `Image`.
-pub struct ImageBuilder<S: OclPrm> {
+pub struct ImageBuilder<'a, T> where T: 'a {
+    queue_option: Option<QueCtx>,
     flags: MemFlags,
+    host_data: Option<&'a [T]>,
     image_format: ImageFormat,
     image_desc: ImageDescriptor,
-    _pixel: PhantomData<S>,
-    // image_data: Option<&'a [S]>,
+    _pixel: PhantomData<T>,
+    // host_data: Option<&'a [S]>,
 }
 
 
-impl<S: OclPrm> ImageBuilder<S> {
+impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     /// Returns a new `ImageBuilder` with very basic defaults.
     ///
     /// ## Defaults
@@ -57,55 +60,112 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// Some descriptions here are adapted from various SDK docs.
     ///
     /// [official SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html
-    pub fn new() -> ImageBuilder<S> {
+    pub fn new() -> ImageBuilder<'a, T> {
         ImageBuilder {
+            queue_option: None,
             flags: core::MEM_READ_WRITE,
+            host_data: None,
             image_format: ImageFormat::new_rgba(),
             image_desc: ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None),
             _pixel: PhantomData,
-            // image_data: None,
+            // host_data: None,
         }
     }
 
-    /// Builds with no host side image data memory specified and returns a
-    /// new `Image`.
-    pub fn build(&self, queue: Queue) -> OclResult<Image<S>> {
-        Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
-            None)
+    /// Sets the context with which to associate the buffer.
+    ///
+    /// May not be used in combination with `::queue` (use one or the other).
+    pub fn context<'b>(mut self, context: Context) -> ImageBuilder<'a, T> {
+        assert!(self.queue_option.is_none());
+        self.queue_option = Some(QueCtx::Context(context));
+        self
     }
 
-    /// Builds with the host side image data specified by `image_data`
-    /// and returns a new `Image`.
+    /// Sets the default queue.
     ///
-    /// Useful with the `ocl::MEM_COPY_HOST_PTR` flag for initializing device
-    /// memory by copying the contents of `image_data`.
-    ///
-    /// Also used with the `ocl::MEM_USE_HOST_PTR` and `ocl::ALLOC_HOST_PTR`
-    /// flags. See the [official SDK docs] for more info.
-    ///
-    /// [official SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateImage.html
-    pub fn build_with_data(&self, queue: Queue, image_data: &[S]) -> OclResult<Image<S>> {
-        Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
-            Some(image_data))
+    /// If this is set, the context associated with the `default_queue` will
+    /// be used when creating the buffer (use one or the other).
+    pub fn queue<'b>(mut self, default_queue: Queue) -> ImageBuilder<'a, T> {
+        assert!(self.queue_option.is_none());
+        self.queue_option = Some(QueCtx::Queue(default_queue));
+        self
     }
 
-    pub fn channel_order(&mut self, order: ImageChannelOrder) -> &mut ImageBuilder<S> {
+    /// Sets the flags for the memory to be created.
+    ///
+    /// Setting this overwrites any previously set flags. To combine them,
+    /// use the bitwise or operator (`|`), for example:
+    ///
+    /// ```text
+    /// ocl::Image::builder().flags(ocl::MEM_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)...
+    /// ```
+    ///
+    /// Defaults to `core::MEM_READ_WRITE` if not set.
+
+    pub fn flags(mut self, flags: MemFlags) -> ImageBuilder<'a, T> {
+        self.flags = flags;
+        self
+    }
+
+    /// A slice use to designate a region of memory for use in combination of
+    /// one of the two following flags:
+    ///
+    /// * `flags::MEM_USE_HOST_PTR` aka. `MemFlags::new().use_host_ptr()`:
+    ///   * This flag is valid only if `host_data` is not `None`. If
+    ///     specified, it indicates that the application wants the OpenCL
+    ///     implementation to use memory referenced by `host_data` as the
+    ///     storage bits for the memory object (buffer/image).
+    ///   * OpenCL implementations are allowed to cache the buffer contents
+    ///     pointed to by `host_data` in device memory. This cached copy can
+    ///     be used when kernels are executed on a device.
+    ///   * The result of OpenCL commands that operate on multiple buffer
+    ///     objects created with the same `host_data` or overlapping host
+    ///     regions is considered to be undefined.
+    ///   * Refer to the [description of the alignment][align_rules] rules for
+    ///     `host_data` for memory objects (buffer and images) created using
+    ///     `MEM_USE_HOST_PTR`.
+    ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
+    ///
+    /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
+    ///   * This flag is valid only if `host_data` is not NULL. If specified, it
+    ///     indicates that the application wants the OpenCL implementation to
+    ///     allocate memory for the memory object and copy the data from
+    ///     memory referenced by `host_data`.
+    ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
+    ///     exclusive.
+    ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to
+    ///     initialize the contents of the cl_mem object allocated using
+    ///     host-accessible (e.g. PCIe) memory.
+    ///
+    /// Note: Descriptions adapted from:
+    /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
+    ///
+    ///
+    /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
+    /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    pub fn host_data<'d>(mut self, host_data: &'d [T]) -> ImageBuilder<'a, T>
+            where 'd: 'a
+    {
+        self.host_data = Some(host_data);
+        self
+    }
+
+    pub fn channel_order(mut self, order: ImageChannelOrder) -> ImageBuilder<'a, T> {
         self.image_format.channel_order = order;
         self
     }
 
-    pub fn channel_data_type(&mut self, data_type: ImageChannelDataType) -> &mut ImageBuilder<S> {
+    pub fn channel_data_type(mut self, data_type: ImageChannelDataType) -> ImageBuilder<'a, T> {
         self.image_format.channel_data_type = data_type;
         self
     }
-
 
     /// Sets the type of image (technically the type of memory buffer).
     ///
     /// Describes the image type and must be either `Image1d`, `Image1dBuffer`,
     /// `Image1dArray`, `Image2d`, `Image2dArray`, or `Image3d`.
     ///
-    pub fn image_type(&mut self, image_type: MemObjectType) -> &mut ImageBuilder<S> {
+    pub fn image_type(mut self, image_type: MemObjectType) -> ImageBuilder<'a, T> {
         self.image_desc.image_type = image_type;
         self
     }
@@ -144,10 +204,12 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// * To set the dimensions of a 3d image use:
     ///   `SpatialDims::Three(width, height, depth)`.
     ///
-    pub fn dims<D: MemLen>(&mut self, dims: D) -> &mut ImageBuilder<S> {
-        let dims = dims.to_lens();
+    pub fn dims<D>(mut self, dims: D) -> ImageBuilder<'a, T>
+            where D: Into<SpatialDims>
+    {
+        let dims = dims.into().to_lens().unwrap();
         // let size = dims.to_lens().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
-     //        dimensions: {:?}", dims));
+        //        dimensions: {:?}", dims));
         self.image_desc.image_width = dims[0];
         self.image_desc.image_height = dims[1];
         self.image_desc.image_depth = dims[2];
@@ -163,7 +225,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// Note that reading and writing 2D image arrays from a kernel with
     /// image_array_size = 1 may be lower performance than 2D images.
     ///
-    pub fn array_size(&mut self, array_size: usize) -> &mut ImageBuilder<S> {
+    pub fn array_size(mut self, array_size: usize) -> ImageBuilder<'a, T> {
         self.image_desc.image_array_size = array_size;
         self
     }
@@ -177,11 +239,10 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// If image_row_pitch is not 0, it must be a multiple of the image element
     /// size in bytes.
     ///
-    pub fn row_pitch_bytes(&mut self, row_pitch: usize) -> &mut ImageBuilder<S> {
+    pub fn row_pitch_bytes(mut self, row_pitch: usize) -> ImageBuilder<'a, T> {
         self.image_desc.image_row_pitch = row_pitch;
         self
     }
-
 
     /// Image slice pitch.
     ///
@@ -195,7 +256,7 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// image_row_pitch for a 1D image array. If image_slice_pitch is not 0, it
     /// must be a multiple of the image_row_pitch.
     ///
-    pub fn slc_pitch_bytes(&mut self, slc_pitch: usize) -> &mut ImageBuilder<S> {
+    pub fn slc_pitch_bytes(mut self, slc_pitch: usize) -> ImageBuilder<'a, T> {
         self.image_desc.image_slice_pitch = slc_pitch;
         self
     }
@@ -211,27 +272,10 @@ impl<S: OclPrm> ImageBuilder<S> {
     /// image_width * size of element in bytes must be ≤ size of buffer object
     /// data store.
     ///
-    pub fn buffer_sync(&mut self, buffer: MemCore) -> &mut ImageBuilder<S> {
+    pub fn buffer_sync(mut self, buffer: MemCore) -> ImageBuilder<'a, T> {
         self.image_desc.buffer = Some(buffer);
         self
     }
-
-
-    /// Sets the flags for the memory to be created.
-    ///
-    /// Setting this overwrites any previously set flags. To combine them,
-    /// use the bitwise or operator (`|`), for example:
-    ///
-    /// ```text
-    /// ocl::Image::builder().flags(ocl::MEM_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)...
-    /// ```
-    ///
-    /// Defaults to `core::MEM_READ_WRITE` if not set.
-    pub fn flags(&mut self, flags: MemFlags) -> &mut ImageBuilder<S> {
-        self.flags = flags;
-        self
-    }
-
 
     /// Specifies the image pixel format.
     ///
@@ -243,11 +287,10 @@ impl<S: OclPrm> ImageBuilder<S> {
     ///    channel_data_type: ImageChannelDataType::SnormInt8,
     /// }
     /// ```
-    pub fn image_format(&mut self, image_format: ImageFormat) -> &mut ImageBuilder<S> {
+    pub fn image_format(mut self, image_format: ImageFormat) -> ImageBuilder<'a, T> {
         self.image_format = image_format;
         self
     }
-
 
     /// Specifies the image descriptor containing a number of important settings.
     ///
@@ -282,27 +325,50 @@ impl<S: OclPrm> ImageBuilder<S> {
     ///
     /// Setting this overwrites any previously set type, dimensions, array size, pitch, etc.
     ///
-    pub unsafe fn image_desc(&mut self, image_desc: ImageDescriptor) -> &mut ImageBuilder<S> {
+    pub unsafe fn image_desc(mut self, image_desc: ImageDescriptor) -> ImageBuilder<'a, T> {
         self.image_desc = image_desc;
         self
+    }
+
+    /// Builds with the host side image data specified by `host_data`
+    /// and returns a new `Image`.
+    #[deprecated(since="0.13.0", note="Use '::host_data' and '::build' instead.")]
+    pub fn build_with_data(self, queue: Queue, host_data: &[T]) -> OclResult<Image<T>> {
+        Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
+            Some(host_data))
+    }
+
+    /// Builds with no host side image data memory specified and returns a
+    /// new `Image`.
+    pub fn build(self) -> OclResult<Image<T>> {
+        match self.queue_option {
+            Some(qo) => {
+                Image::new(qo, self.flags, self.image_format.clone(),
+                    self.image_desc.clone(), self.host_data)
+            },
+            None => panic!("ocl::ImageBuilder::build: A context or default queue must be set \
+                with '.context(...)' or '.queue(...)'."),
+        }
+
     }
 }
 
 /// The type of operation to be performed by a command.
 #[derive(Debug)]
-pub enum ImageCmdKind<'b, E: 'b> {
+pub enum ImageCmdKind<'c, T: 'c> {
     Unspecified,
-    Read { data: &'b mut [E] },
-    Write { data: &'b [E] },
-    Fill { color: E },
-    Copy { dst_image: &'b MemCore, dst_origin: [usize; 3] },
-    CopyToBuffer { buffer: &'b MemCore, dst_origin: usize },
+    Read { data: &'c mut [T] },
+    Write { data: &'c [T] },
+    Map,
+    Fill { color: T },
+    Copy { dst_image: &'c MemCore, dst_origin: [usize; 3] },
+    CopyToBuffer { buffer: &'c MemCore, dst_origin: usize },
     GLAcquire,
     GLRelease,
 }
 
-impl<'b, E: 'b> ImageCmdKind<'b, E> {
-    fn is_unspec(&'b self) -> bool {
+impl<'c, T: 'c> ImageCmdKind<'c, T> {
+    fn is_unspec(&'c self) -> bool {
         if let ImageCmdKind::Unspecified = *self {
             true
         } else {
@@ -334,123 +400,42 @@ impl<'b, E: 'b> ImageCmdKind<'b, E> {
 ///
 /// [FIXME]: Fills not yet implemented.
 #[allow(dead_code)]
-pub struct ImageCmd<'b, E: 'b + OclPrm> {
-    queue: &'b Queue,
-    obj_core: &'b MemCore,
+pub struct ImageCmd<'c, T: 'c> {
+    queue: Option<&'c Queue>,
+    obj_core: &'c MemCore,
     block: bool,
-    lock_block: bool,
     origin: [usize; 3],
     region: [usize; 3],
-    row_pitch: usize,
-    slc_pitch: usize,
-    kind: ImageCmdKind<'b, E>,
-    // ewait: Option<&'b ClWaitListPtr>,
-    // enew: Option<&'b mut ClNullEventPtr>,
-    ewait: Option<ClWaitListPtrEnum<'b>>,
-    enew: Option<ClNullEventPtrEnum<'b>>,
+    row_pitch_bytes: usize,
+    slc_pitch_bytes: usize,
+    kind: ImageCmdKind<'c, T>,
+    ewait: Option<ClWaitListPtrEnum<'c>>,
+    enew: Option<ClNullEventPtrEnum<'c>>,
     mem_dims: [usize; 3],
 }
 
 /// [UNSTABLE]: All methods still in a state of adjustifulsomeness.
-impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
+impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// Returns a new image command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `to_len`
     /// (the length of the device side image).
-    pub fn new(queue: &'b Queue, obj_core: &'b MemCore, dims: [usize; 3])
-            -> ImageCmd<'b, E>
+    pub fn new(queue: Option<&'c Queue>, obj_core: &'c MemCore, dims: [usize; 3])
+            -> ImageCmd<'c, T>
     {
         ImageCmd {
             queue: queue,
             obj_core: obj_core,
             block: true,
-            lock_block: false,
             origin: [0, 0, 0],
             region: dims,
-            row_pitch: 0,
-            slc_pitch: 0,
+            row_pitch_bytes: 0,
+            slc_pitch_bytes: 0,
             kind: ImageCmdKind::Unspecified,
             ewait: None,
             enew: None,
             mem_dims: dims,
         }
     }
-
-    /// Specifies a queue to use for this call only.
-    pub fn queue(mut self, queue: &'b Queue) -> ImageCmd<'b, E> {
-        self.queue = queue;
-        self
-    }
-
-    /// Specifies whether or not to block thread until completion.
-    ///
-    /// Ignored if this is a copy, fill, or copy to image operation.
-    ///
-    /// ## Panics
-    ///
-    /// Will panic if `::read` has already been called. Use `::read_async`
-    /// (unsafe) for a non-blocking read operation.
-    ///
-    pub fn block(mut self, block: bool) -> ImageCmd<'b, E> {
-        if !block && self.lock_block {
-            panic!("ocl::ImageCmd::block(): Blocking for this command has been disabled by \
-                the '::read' method. For non-blocking reads use '::read_async'.");
-        }
-        self.block = block;
-        self
-    }
-
-    /// Sets the three dimensional offset, the origin point, for an operation.
-    ///
-    /// Defaults to [0, 0, 0] if not set.
-    ///
-    /// ## Panics
-    ///
-    /// The 'shape' may not have already been set to rectangular by the
-    /// `::rect` function.
-    pub fn origin(mut self, origin: [usize; 3]) -> ImageCmd<'b, E> {
-        self.origin = origin;
-        self
-    }
-
-    /// Sets the region size for an operation.
-    ///
-    /// Defaults to the full region size of the image(s) as defined when first
-    /// created if not set.
-    ///
-    /// ## Panics [TENATIVE]
-    ///
-    /// Panics if the region is out of range on any of the three dimensions.
-    ///
-    /// [FIXME]: Probably delay checking this until enq().
-    ///
-    pub fn region(mut self, region: [usize; 3]) -> ImageCmd<'b, E> {
-        self.region = region;
-        self
-    }
-
-    /// [UNSTABLE] Sets the row and slice pitch for a read or write operation.
-    ///
-    /// `row_pitch`: Must be greater than or equal to the region width
-    /// (region[0]).
-    ///
-    /// `slice_pitch: Must be greater than or equal to `row_pitch` * region
-    /// height (region[1]).
-    ///
-    /// Only needs to be set if region has been set to something other than
-    /// the (default) image buffer size.
-    ///
-    /// ## Stability
-    ///
-    /// Probably will be depricated unless I can think of a reason why you'd
-    /// set the pitches to something other than the image dims.
-    ///
-    /// [FIXME]: Remove this or figure out if it's necessary at all.
-    ///
-    #[allow(unused_variables, unused_mut)]
-    pub unsafe fn pitch(mut self, row_pitch: usize, slc_pitch: usize) -> ImageCmd<'b, E> {
-        unimplemented!();
-    }
-
 
     /// Specifies that this command will be a blocking read operation.
     ///
@@ -461,17 +446,23 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified.
     ///
-    pub fn read(mut self, dst_data: &'b mut [E]) -> ImageCmd<'b, E> {
+    /// ### More Information
+    ///
+    /// See [SDK][read_image] docs for more details.
+    ///
+    /// [read_image]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueReadImage.html
+    pub fn read<'d>(mut self, dst_data: &'d mut [T]) -> ImageCmd<'c, T>
+            where 'd: 'c
+    {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::read(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Read { data: dst_data };
         self.block = true;
-        self.lock_block = true;
         self
     }
 
     /// Specifies that this command will be a non-blocking, asynchronous read
-    /// operation.
+    /// operation. [DEPRICATED]
     ///
     /// Sets the block mode to false automatically but it may still be freely
     /// toggled back. If set back to `true` this method call becomes equivalent
@@ -486,7 +477,8 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub unsafe fn read_async(mut self, dst_data: &'b mut [E]) -> ImageCmd<'b, E> {
+    #[deprecated(since="0.13.0", note="Use '::read' with '::block(false)' for unsafe asynchronous reads.")]
+    pub unsafe fn read_async(mut self, dst_data: &'c mut [T]) -> ImageCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::read(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Read { data: dst_data };
@@ -499,11 +491,41 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn write(mut self, src_data: &'b [E]) -> ImageCmd<'b, E> {
+    /// ### More Information
+    ///
+    /// See [SDK][read_buffer] docs for more details.
+    ///
+    /// [read_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueReadBuffer.html
+    pub fn write<'d>(mut self, src_data: &'d [T]) -> ImageCmd<'c, T>
+            where 'd: 'c
+    {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::write(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Write { data: src_data };
         self
+    }
+
+    /// Specifies that this command will be a map operation.
+    ///
+    /// If `.block(..)` has been set it will be ignored. Non-blocking map
+    /// commands are enqueued using `::enq_async`.
+    ///
+    /// ## Panics
+    ///
+    /// The command operation kind must not have already been specified
+    ///
+    /// ### More Information
+    ///
+    /// See [SDK][map_image] docs for more details.
+    ///
+    /// [map_image]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapImage.html
+    pub fn map(mut self) -> ImageMapCmd<'c, T> {
+        assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
+            already set for this command.");
+        self.kind = ImageCmdKind::Map;
+
+        unimplemented!();
+        // ImageMapCmd { cmd: self }
     }
 
     /// Specifies that this command will be a copy operation.
@@ -518,7 +540,9 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy(mut self, dst_image: &'b Image<E>, dst_origin: [usize; 3]) -> ImageCmd<'b, E> {
+    pub fn copy<'d>(mut self, dst_image: &'d Image<T>, dst_origin: [usize; 3]) -> ImageCmd<'c, T>
+            where 'd: 'c,
+    {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::copy(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Copy {
@@ -536,7 +560,9 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn copy_to_buffer(mut self, buffer: &'b MemCore, dst_origin: usize) -> ImageCmd<'b, E> {
+    pub fn copy_to_buffer<'d>(mut self, buffer: &'d MemCore, dst_origin: usize) -> ImageCmd<'c, T>
+            where 'd: 'c,
+    {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::copy_to_buffer(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::CopyToBuffer { buffer: buffer, dst_origin: dst_origin };
@@ -551,7 +577,7 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn gl_acquire(mut self) -> ImageCmd<'b, E> {
+    pub fn gl_acquire(mut self) -> ImageCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::gl_acquire(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::GLAcquire;
@@ -566,7 +592,7 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn gl_release(mut self) -> ImageCmd<'b, E> {
+    pub fn gl_release(mut self) -> ImageCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::gl_release(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::GLRelease;
@@ -581,16 +607,96 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// The command operation kind must not have already been specified
     ///
-    pub fn fill(mut self, color: E) -> ImageCmd<'b, E> {
+    pub fn fill(mut self, color: T) -> ImageCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::fill(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Fill { color: color };
         self
     }
 
+    /// Specifies a queue to use for this call only.
+    pub fn queue(mut self, queue: &'c Queue) -> ImageCmd<'c, T> {
+        self.queue = Some(queue);
+        self
+    }
+
+    /// Specifies whether or not to block the current thread until completion.
+    ///
+    /// Ignored if this is not a read or write operation.
+    ///
+    /// Default is `block = true`.
+    ///
+    /// ## Safety
+    ///
+    /// When performing non-blocking reads or writes, the caller must ensure
+    /// that the data being read from or written to is not accessed improperly
+    /// until the command completes. Use events (`Event::wait_for`) or the
+    /// command queue (`Queue::finish`) to synchronize.
+    ///
+    /// If possible, prefer instead to use [`::map`] with [`::enq_async`] for
+    /// optimal performance and data integrity.
+    ///
+    /// [`::map`]: struct.ImageMapCmd.html
+    /// [`::enq_async`]: struct.ImageMapCmd.html#method.enq_async
+    ///
+    pub unsafe fn block(mut self, block: bool) -> ImageCmd<'c, T> {
+        self.block = block;
+        self
+    }
+
+    /// Sets the three dimensional offset, the origin point, for an operation.
+    ///
+    /// Defaults to [0, 0, 0] if not set.
+    ///
+    /// ## Panics
+    ///
+    /// The 'shape' may not have already been set to rectangular by the
+    /// `::rect` function.
+    pub fn origin<D>(mut self, origin: D) -> ImageCmd<'c, T>
+            where D: Into<SpatialDims>
+    {
+        self.origin = origin.into().to_offset().unwrap();
+        self
+    }
+
+    /// Sets the region size for an operation.
+    ///
+    /// Defaults to the full region size of the image(s) as defined when first
+    /// created if not set.
+    ///
+    /// ## Panics [TENATIVE]
+    ///
+    /// Panics if the region is out of range on any of the three dimensions.
+    ///
+    /// [FIXME]: Probably delay checking this until enq().
+    ///
+    pub fn region<D>(mut self, region: D) -> ImageCmd<'c, T>
+        where D: Into<SpatialDims>
+    {
+        self.region = region.into().to_lens().unwrap();
+        self
+    }
+
+    /// Sets the row and slice pitch for a read or write operation in bytes.
+    ///
+    /// `row_pitch_bytes`: Must be greater than or equal to the region width
+    /// in bytes (region[0] * sizeof(T)).
+    ///
+    /// `slice_pitch: Must be greater than or equal to `row_pitch` * region
+    /// height in bytes (region[1] * sizeof(T)).
+    ///
+    /// Only needs to be set if region has been set to something other than
+    /// the (default) image buffer size.
+    ///
+    pub unsafe fn pitch_bytes(mut self, row_pitch_bytes: usize, slc_pitch_bytes: usize) -> ImageCmd<'c, T> {
+        self.row_pitch_bytes = row_pitch_bytes;
+        self.slc_pitch_bytes = slc_pitch_bytes;
+        self
+    }
+
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> ImageCmd<'b, E>
-            where Ewl: Into<ClWaitListPtrEnum<'b>>
+    pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> ImageCmd<'c, T>
+            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
         self.ewait = Some(ewait.into());
         self
@@ -598,8 +704,8 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> ImageCmd<'b, E>
-            where Ewl: Into<ClWaitListPtrEnum<'b>>
+    pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> ImageCmd<'c, T>
+            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
         self.ewait = ewait.map(|el| el.into());
         self
@@ -607,14 +713,18 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew<EPN: Into<ClNullEventPtrEnum<'b>>>(mut self, enew: EPN) -> ImageCmd<'b, E> {
+    pub fn enew<'e, En>(mut self, enew: En) -> ImageCmd<'c, T>
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
+    {
         self.enew = Some(enew.into());
         self
     }
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt<EPN: Into<ClNullEventPtrEnum<'b>>>(mut self, enew: Option<EPN>) -> ImageCmd<'b, E> {
+    pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> ImageCmd<'c, T>
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
+    {
         self.enew = enew.map(|e| e.into());
         self
     }
@@ -623,27 +733,32 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     ///
     /// TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH UNSET.
     pub fn enq(self) -> OclResult<()> {
+        let queue = match self.queue {
+            Some(q) => q,
+            None => return Err("ImageCmd::enq: No queue set.".into()),
+        };
+
         match self.kind {
             ImageCmdKind::Read { data } => {
                 // try!(check_len(self.to_len, data.len(), offset));
-                unsafe { core::enqueue_read_image(self.queue, self.obj_core, self.block,
-                    self.origin, self.region, self.row_pitch, self.slc_pitch, data, self.ewait,
+                unsafe { core::enqueue_read_image(queue, self.obj_core, self.block,
+                    self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
                     self.enew) }
             },
             ImageCmdKind::Write { data } => {
-                core::enqueue_write_image(self.queue, self.obj_core, self.block,
-                    self.origin, self.region, self.row_pitch, self.slc_pitch, data, self.ewait,
+                core::enqueue_write_image(queue, self.obj_core, self.block,
+                    self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
                     self.enew)
             },
             ImageCmdKind::Copy { dst_image, dst_origin } => {
-                core::enqueue_copy_image(self.queue, self.obj_core, dst_image, self.origin,
+                core::enqueue_copy_image(queue, self.obj_core, dst_image, self.origin,
                     dst_origin, self.region, self.ewait, self.enew)
             },
             ImageCmdKind::GLAcquire => {
-                core::enqueue_acquire_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+                core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
             },
             ImageCmdKind::GLRelease => {
-                core::enqueue_release_gl_buffer(self.queue, self.obj_core, self.ewait, self.enew)
+                core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
             },
             ImageCmdKind::Unspecified => OclError::err_string("ocl::ImageCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
@@ -652,20 +767,172 @@ impl<'b, E: 'b + OclPrm> ImageCmd<'b, E> {
     }
 }
 
+
+
+/// A buffer command builder used to enqueue maps.
+///
+/// See [SDK][map_buffer] docs for more details.
+///
+/// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
+
+    // const size_t  * origin ,
+    // const size_t  * region ,
+    // size_t  *image_row_pitch ,
+    // size_t  *image_slice_pitch ,
+
+pub struct ImageMapCmd<'c, T> where T: 'c {
+    cmd: ImageCmd<'c, T>,
+    flags: Option<MapFlags>,
+}
+
+impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
+    /// Specifies the flags to be used with this map command.
+    ///
+    /// See [SDK] docs for more details.
+    ///
+    /// [SDK]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
+    pub fn flags(mut self, flags: MapFlags) -> ImageMapCmd<'c, T> {
+        self.flags = Some(flags);
+        self
+    }
+
+    /// Sets the three dimensional offset, the origin point, for an operation.
+    ///
+    /// Defaults to [0, 0, 0] if not set.
+    ///
+    /// ## Panics
+    ///
+    /// The 'shape' may not have already been set to rectangular by the
+    /// `::rect` function.
+    pub fn origin(mut self, origin: [usize; 3]) -> ImageMapCmd<'c, T> {
+        self.cmd.origin = origin;
+        self
+    }
+
+    /// Sets the region size for an operation.
+    ///
+    /// Defaults to the full region size of the image(s) as defined when first
+    /// created if not set.
+    ///
+    /// ## Panics [TENATIVE]
+    ///
+    /// Panics if the region is out of range on any of the three dimensions.
+    ///
+    /// [FIXME]: Probably delay checking this until enq().
+    ///
+    pub fn region(mut self, region: [usize; 3]) -> ImageMapCmd<'c, T> {
+        self.cmd.region = region;
+        self
+    }
+
+    /// Specifies a list of events to wait on before the command will run.
+    pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> ImageMapCmd<'c, T>
+            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
+    {
+        self.cmd.ewait = Some(ewait.into());
+        self
+    }
+
+    /// Specifies a list of events to wait on before the command will run or
+    /// resets it to `None`.
+    pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> ImageMapCmd<'c, T>
+            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
+    {
+        self.cmd.ewait = ewait.map(|el| el.into());
+        self
+    }
+
+    /// Specifies the destination for a new, optionally created event
+    /// associated with this command.
+    pub fn enew<'e, En>(mut self, enew: En) -> ImageMapCmd<'c, T>
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
+    {
+        self.cmd.enew = Some(enew.into());
+        self
+    }
+
+    /// Specifies a destination for a new, optionally created event
+    /// associated with this command or resets it to `None`.
+    pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> ImageMapCmd<'c, T>
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
+    {
+        self.cmd.enew = enew.map(|e| e.into());
+        self
+    }
+
+    /// Enqueues this command.
+    ///
+    /// TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH UNSET.
+    #[allow(unused_variables, unreachable_code)]
+    pub fn enq(self) -> OclResult<MemMap<T>> {
+        let queue = match self.cmd.queue {
+            Some(q) => q,
+            None => return Err("ImageCmd::enq: No queue set.".into()),
+        };
+
+        let flags = self.flags.unwrap_or(MapFlags::empty());
+
+        match self.cmd.kind {
+            ImageCmdKind::Map => {
+                // try!(check_len(self.cmd.to_len, data.len(), offset));
+
+                let mut row_pitch_bytes = 0usize;
+                let mut slc_pitch_bytes = 0usize;
+
+                unsafe {
+                    let mm_core = core::enqueue_map_image(
+                        queue,
+                        self.cmd.obj_core,
+                        self.cmd.block,
+                        flags,
+                        self.cmd.origin,
+                        self.cmd.region,
+                        &mut row_pitch_bytes,
+                        &mut slc_pitch_bytes,
+                        self.cmd.ewait,
+                        self.cmd.enew,
+                    )?;
+
+                    let len_bytes = if slc_pitch_bytes == 0 {
+                        // 1D or 2D image.
+                        unimplemented!();
+                    } else {
+                        // 1D image array, 2D image array, or 3D image.
+                        unimplemented!();
+                    };
+
+                    let unmap_event = None;
+
+                    // [TODO]: Create a special container for mapped images
+                    // that can take into account row and slice pitch. It
+                    // cannot deref into a &[T] as the size of rows (and
+                    // slices) can vary with byte-sized precision.
+
+                    Ok(MemMap::new(mm_core, 0, unmap_event, self.cmd.obj_core.clone(),
+                        queue.core().clone()))
+                }
+            },
+            _ => unreachable!(),
+        }
+    }
+}
+
+
+
 /// A section of device memory which represents one or many images.
 ///
 /// Use `::builder` for an easy way to create. [UNIMPLEMENTED]
 ///
 #[derive(Clone, Debug)]
-pub struct Image<E: OclPrm> {
+pub struct Image<T: OclPrm> {
     obj_core: MemCore,
-    queue: Queue,
+    queue: Option<Queue>,
     dims: SpatialDims,
     pixel_element_len: usize,
-    _pixel: PhantomData<E>
+    _pixel: PhantomData<T>
 }
 
-impl<E: OclPrm> Image<E> {
+impl<T: OclPrm> Image<T> {
     /// Returns a list of supported image formats.
     pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType,
                 ) -> OclResult<Vec<ImageFormat>> {
@@ -674,27 +941,34 @@ impl<E: OclPrm> Image<E> {
 
     /// Returns an `ImageBuilder`. This is the recommended method to create
     /// a new `Image`.
-    pub fn builder() -> ImageBuilder<E> {
+    pub fn builder<'a>() -> ImageBuilder<'a, T> {
         ImageBuilder::new()
     }
 
     /// Returns a new `Image`.
     ///
     /// Prefer `::builder` to create a new image.
-    pub fn new(queue: Queue, flags: MemFlags, image_format: ImageFormat,
-            image_desc: ImageDescriptor, image_data: Option<&[E]>) -> OclResult<Image<E>>
+    // pub fn new(queue: Queue, flags: MemFlags, image_format: ImageFormat,
+    //         image_desc: ImageDescriptor, host_data: Option<&[E]>) -> OclResult<Image<E>>
+    pub fn new<Q>(que_ctx: Q, flags: MemFlags, image_format: ImageFormat,
+            image_desc: ImageDescriptor, host_data: Option<&[T]>) -> OclResult<Image<T>>
+            where Q: Into<QueCtx>
     {
+        let que_ctx = que_ctx.into();
+        let context = que_ctx.context_cloned();
+        let device_versions = context.device_versions()?;
+
         let obj_core = unsafe { try!(core::create_image(
-            &queue.context(),
+            &context,
             flags,
             &image_format,
             &image_desc,
-            image_data,
-            Some(&[queue.device_version()]),
+            host_data,
+            Some(&device_versions),
         )) };
 
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
-            ImageInfoResult::ElementSize(s) => s / mem::size_of::<E>(),
+            ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
             _ => return OclError::err_string("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant."),
@@ -704,7 +978,7 @@ impl<E: OclPrm> Image<E> {
 
         let new_img = Image {
             obj_core: obj_core,
-            queue: queue,
+            queue: que_ctx.into(),
             dims: dims,
             pixel_element_len: pixel_element_len,
             _pixel: PhantomData,
@@ -715,40 +989,32 @@ impl<E: OclPrm> Image<E> {
 
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
-    pub fn from_gl_texture(queue: Queue, flags: MemFlags, image_desc: ImageDescriptor,
+    pub fn from_gl_texture<Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             texture_target: GlTextureTarget, miplevel: cl_GLint, texture: cl_GLuint)
-            -> OclResult<Image<E>>
+            -> OclResult<Image<T>>
+            where Q: Into<QueCtx>
     {
+        let que_ctx = que_ctx.into();
+        let context = que_ctx.context_cloned();
+        let device_versions = context.device_versions()?;
+
         if texture_target == GlTextureTarget::GlTextureBuffer && miplevel != 0 {
             return OclError::err_string("If texture_target is GL_TEXTURE_BUFFER, miplevel must be 0.\
                 Implementations may return CL_INVALID_OPERATION for miplevel values > 0");
         }
 
-        // let obj_core = match image_desc.image_depth {
-        //     2 => unsafe { try!(core::create_from_gl_texture_2d(
-        //                         queue.context_core(),
-        //                         texture_target,
-        //                         miplevel,
-        //                         texture,
-        //                         flags)) },
-        //     3 => unsafe { try!(core::create_from_gl_texture_3d(
-        //                         queue.context_core(),
-        //                         texture_target,
-        //                         miplevel,
-        //                         texture,
-        //                         flags)) },
-        //     _ => unimplemented!() // FIXME: return an error ? or panic! ?
-        // };
         let obj_core = unsafe { try!(core::create_from_gl_texture(
-                                        &queue.context(),
-                                        texture_target as u32,
-                                        miplevel,
-                                        texture,
-                                        flags)) };
+            &context,
+            texture_target as u32,
+            miplevel,
+            texture,
+            flags,
+            Some(&device_versions),
+        )) };
 
         // FIXME can I do this from a GLTexture ?
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
-            ImageInfoResult::ElementSize(s) => s / mem::size_of::<E>(),
+            ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
             _ => return OclError::err_string("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant."),
@@ -758,7 +1024,7 @@ impl<E: OclPrm> Image<E> {
 
         let new_img = Image {
             obj_core: obj_core,
-            queue: queue,
+            queue: que_ctx.into(),
             dims: dims,
             pixel_element_len: pixel_element_len,
             _pixel: PhantomData,
@@ -769,17 +1035,22 @@ impl<E: OclPrm> Image<E> {
 
     /// Returns a new `Image` from an existant renderbuffer.
     // [WORK IN PROGRESS]
-    pub fn from_gl_renderbuffer(queue: Queue, flags: MemFlags, image_desc: ImageDescriptor,
-            renderbuffer: cl_GLuint) -> OclResult<Image<E>>
+    pub fn from_gl_renderbuffer<Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
+            renderbuffer: cl_GLuint) -> OclResult<Image<T>>
+            where Q: Into<QueCtx>
     {
+        let que_ctx = que_ctx.into();
+        let context = que_ctx.context_cloned();
+
         let obj_core = unsafe { try!(core::create_from_gl_renderbuffer(
-                                        &queue.context(),
-                                        renderbuffer,
-                                        flags)) };
+            &context,
+            renderbuffer,
+            flags,
+        )) };
 
         // FIXME can I do this from a renderbuffer ?
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
-            ImageInfoResult::ElementSize(s) => s / mem::size_of::<E>(),
+            ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
             _ => return OclError::err_string("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant."),
@@ -789,7 +1060,7 @@ impl<E: OclPrm> Image<E> {
 
         let new_img = Image {
             obj_core: obj_core,
-            queue: queue,
+            queue: que_ctx.into(),
             dims: dims,
             pixel_element_len: pixel_element_len,
             _pixel: PhantomData,
@@ -800,28 +1071,66 @@ impl<E: OclPrm> Image<E> {
 
     /// Returns an image command builder used to read, write, copy, etc.
     ///
-    /// Run `.enq()` to enqueue the command.
+    /// Call `.enq()` to enqueue the command.
     ///
-    pub fn cmd(&self) -> ImageCmd<E> {
-        ImageCmd::new(&self.queue, &self.obj_core,
+    /// See the [command builder documentation](struct.ImageCmd)
+    /// for more details.
+    pub fn cmd(&self) -> ImageCmd<T> {
+        ImageCmd::new(self.queue.as_ref(), &self.obj_core,
             self.dims.to_lens().expect("ocl::Image::cmd"))
     }
 
     /// Returns an image command builder set to read.
     ///
-    /// Run `.enq()` to enqueue the command.
+    /// Call `.enq()` to enqueue the command.
     ///
-    pub fn read<'b>(&'b self, data: &'b mut [E]) -> ImageCmd<'b, E> {
+    /// See the [command builder documentation](struct.ImageCmd#method.read)
+    /// for more details.
+    pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> ImageCmd<'c, T>
+        where 'd: 'c
+    {
         self.cmd().read(data)
     }
 
     /// Returns an image command builder set to write.
     ///
-    /// Run `.enq()` to enqueue the command.
+    /// Call `.enq()` to enqueue the command.
     ///
-    pub fn write<'b>(&'b self, data: &'b [E]) -> ImageCmd<'b, E> {
+    /// See the [command builder documentation](struct.ImageCmd#method.write)
+    /// for more details.
+    pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> ImageCmd<'c, T>
+        where 'd: 'c
+    {
         self.cmd().write(data)
     }
+
+    /// Returns a command builder used to map data for reading or writing.
+    ///
+    /// Call `.enq()` to enqueue the command.
+    ///
+    /// See the [command builder documentation](struct.ImageCmd#method.map)
+    /// for more details.
+    ///
+    #[inline]
+    pub fn map<'c>(&'c self) -> ImageMapCmd<'c, T> {
+        unimplemented!();
+        // self.cmd().map()
+    }
+
+    // /// Specifies that this command will be a copy operation.
+    // ///
+    // /// Call `.enq()` to enqueue the command.
+    // ///
+    // /// See the [command builder documentation](struct.ImageCmd#method.copy)
+    // /// for more details.
+    // ///
+    // #[inline]
+    // pub fn copy<'c, M>(&'c self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
+    //         -> BufferCmd<'c, T>
+    //         where M: AsMem<T>
+    // {
+    //     self.cmd().copy(dst_buffer, dst_offset, len)
+    // }
 
     /// Changes the default queue.
     ///
@@ -835,15 +1144,15 @@ impl<E: OclPrm> Image<E> {
     ///
     /// The new queue must be associated with a valid device.
     ///
-    pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Image<E> {
+    pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Image<T> {
         // self.command_queue_obj_core = queue.core().clone();
-        self.queue = queue;
+        self.queue = Some(queue);
         self
     }
 
     /// Returns a reference to the default queue.
-    pub fn default_queue(&self) -> &Queue {
-        &self.queue
+    pub fn default_queue(&self) -> Option<&Queue> {
+        self.queue.as_ref()
     }
 
     /// Returns this image's dimensions.
@@ -932,7 +1241,7 @@ impl<E: OclPrm> Image<E> {
     }
 }
 
-impl<E: OclPrm> std::fmt::Display for Image<E> {
+impl<T: OclPrm> std::fmt::Display for Image<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         try!(self.fmt_info(f));
         try!(write!(f, " "));
@@ -940,7 +1249,7 @@ impl<E: OclPrm> std::fmt::Display for Image<E> {
     }
 }
 
-impl<E: OclPrm> Deref for Image<E> {
+impl<T: OclPrm> Deref for Image<T> {
     type Target = MemCore;
 
     fn deref(&self) -> &MemCore {
@@ -948,7 +1257,7 @@ impl<E: OclPrm> Deref for Image<E> {
     }
 }
 
-impl<E: OclPrm> DerefMut for Image<E> {
+impl<T: OclPrm> DerefMut for Image<T> {
     fn deref_mut(&mut self) -> &mut MemCore {
         &mut self.obj_core
     }

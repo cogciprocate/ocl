@@ -24,10 +24,14 @@ pub struct KernelCmd<'k> {
     new_event: Option<ClNullEventPtrEnum<'k>>,
 }
 
-/// [UNSTABLE]: All methods still being tuned.
+/// A kernel enqueue command.
+///
+/// [UNSTABLE]: Methods still being tuned.
 impl<'k> KernelCmd<'k> {
     /// Specifies a queue to use for this call only.
-    pub fn queue<Q: AsRef<CommandQueueCore>>(mut self, queue: &'k Q) -> KernelCmd<'k> {
+    pub fn queue<Q>(mut self, queue: &'k Q) -> KernelCmd<'k>
+            where Q: AsRef<CommandQueueCore>
+    {
         self.queue = queue.as_ref();
         self
     }
@@ -52,8 +56,8 @@ impl<'k> KernelCmd<'k> {
 
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> KernelCmd<'k>
-            where Ewl: Into<ClWaitListPtrEnum<'k>>
+    pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> KernelCmd<'k>
+            where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
         self.wait_list = Some(ewait.into());
         self
@@ -61,8 +65,8 @@ impl<'k> KernelCmd<'k> {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> KernelCmd<'k>
-            where Ewl: Into<ClWaitListPtrEnum<'k>>
+    pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> KernelCmd<'k>
+            where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
         self.wait_list = ewait.map(|el| el.into());
         self
@@ -71,14 +75,18 @@ impl<'k> KernelCmd<'k> {
     /// Specifies the destination list or empty event for a new, optionally
     /// created event associated with this command.
     // pub fn enew(mut self, new_event_dest: &'k mut ClNullEventPtr) -> KernelCmd<'k> {
-    pub fn enew<E: Into<ClNullEventPtrEnum<'k>>>(mut self, new_event_dest: E) -> KernelCmd<'k> {
+    pub fn enew<'e, En>(mut self, new_event_dest: En) -> KernelCmd<'k>
+            where 'e: 'k, En: Into<ClNullEventPtrEnum<'e>>
+    {
         self.new_event = Some(new_event_dest.into());
         self
     }
 
     /// Specifies a destination list for a new, optionally created event
     /// associated with this command.
-    pub fn enew_opt<E: Into<ClNullEventPtrEnum<'k>>>(mut self, new_event_list: Option<E>) -> KernelCmd<'k> {
+    pub fn enew_opt<'e, En>(mut self, new_event_list: Option<En>) -> KernelCmd<'k>
+            where 'e: 'k, En: Into<ClNullEventPtrEnum<'e>>
+    {
         self.new_event = new_event_list.map(|e| e.into());
         self
     }

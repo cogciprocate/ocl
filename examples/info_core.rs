@@ -49,7 +49,8 @@ fn print_platform_device(platform: Platform, device: Device) {
         .build().unwrap();
     let image = Image::<u8>::builder()
         .dims(&DIMS)
-        .build(queue.clone()).unwrap();
+        .queue(queue.clone())
+        .build().unwrap();
     let sampler = Sampler::with_defaults(&context).unwrap();
         let kernel = Kernel::new("multiply", &program, queue.clone()).unwrap()
         .gws(&DIMS)

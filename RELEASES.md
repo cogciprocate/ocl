@@ -44,6 +44,8 @@ Breaking Changes
   `Image::from_gl_texture`, `Image::from_gl_renderbuffer`,
   `Image::set_default_queue`, `Kernel::new`, `Kernel::set_default_queue` now
   take an owned `Queue` instead of a `&Queue` (clone it yourself).
+* All row pitch and slice pitch arguments (used with image and rectangular
+  buffer operations) must now be expressed in bytes.
 * `Kernel::set_default_queue` no longer result-wraps its `&'mut Kernel` return
   value.
 * `Kernel` named argument declaration functions such as `::arg_buf_named` or
@@ -85,6 +87,8 @@ Breaking Changes
     will also have to include two additional type annotations. It may be more
     convenient to do all the annotation in one spot in that case and remove it
     from the `None`s.
+* All row pitch and slice pitch arguments (for image and rectangular buffer
+  operations) must now be expressed in bytes.
 
 * `EventList::pop` now returns an `Option<Event>` instead of an
   `Option<Result<Event>>`.

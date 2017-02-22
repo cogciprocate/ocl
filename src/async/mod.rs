@@ -1,5 +1,5 @@
 mod error;
-mod mapped_mem;
+mod future_mem_map;
 
 use std;
 // use futures::future::Result;
@@ -7,7 +7,7 @@ use futures::future;
 
 // pub use futures::future::{result, ok, err};
 pub use self::error::{Error, Result};
-pub use self::mapped_mem::{FutureMemMap, MemMap};
+pub use self::future_mem_map::{FutureMemMap};
 
 pub type FutureResult<T> = future::FutureResult<T, self::Error>;
 

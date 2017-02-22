@@ -4,7 +4,7 @@ use std;
 use std::ops::{Deref, DerefMut};
 use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
     ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformId as PlatformIdCore, PlatformInfo,
-    PlatformInfoResult, CreateContextCallbackFn, UserDataPtr};
+    PlatformInfoResult, CreateContextCallbackFn, UserDataPtr, OpenclVersion};
 use core::error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier};
 
@@ -241,8 +241,15 @@ impl Context {
     }
 
     /// Returns the list of devices associated with this context.
+    ///
+    /// Panics upon any OpenCL error.
     pub fn devices(&self) -> Vec<Device> {
         Device::list_from_core(self.0.devices().unwrap())
+    }
+
+    /// Returns the list of device versions associated with this context.
+    pub fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        Device::list_from_core(self.0.devices()?).into_iter().map(|d| d.version()).collect()
     }
 
     /// Returns the platform this context is associated with.

@@ -64,7 +64,8 @@ fn main() {
                 .build().unwrap();
             let image = Image::<u8>::builder()
                 .dims(dims)
-                .build(queue.clone()).unwrap();
+                .queue(queue.clone())
+                .build().unwrap();
             let sampler = Sampler::with_defaults(&context).unwrap();
             let program = Program::builder()
                 .src(SRC)
