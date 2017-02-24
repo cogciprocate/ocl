@@ -945,103 +945,163 @@ pub mod arg_type {
         pub fn is_match<T: OclPrm + Any + 'static>(&self) -> bool {
             match self.base_type {
                 BaseType::Char => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_char>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClChar2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClChar3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClChar4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClChar8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClChar16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_char>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Uchar => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_uchar>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClUchar2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClUchar3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClUchar4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClUchar8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClUchar16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_uchar>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Short => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_short>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClShort2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClShort3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClShort4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClShort8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClShort16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_short>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Ushort => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_ushort>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClUshort2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClUshort3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClUshort4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClUshort8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClUshort16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_ushort>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Int => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_int>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClInt2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClInt3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClInt4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClInt8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClInt16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_int>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Uint => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_uint>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClUint2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClUint3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClUint4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClUint8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClUint16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_uint>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Long => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_long>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClLong2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClLong3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClLong4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClLong8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClLong16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_long>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Ulong => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_ulong>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClUlong2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClUlong3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClUlong4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClUlong8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClUlong16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_ulong>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Float => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_float>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClFloat2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClFloat3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClFloat4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClFloat8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClFloat16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_float>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Double => {
-                    match self.cardinality {
+                    let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_double>() == TypeId::of::<T>(),
                         Cardinality::Two => TypeId::of::<ClDouble2>() == TypeId::of::<T>(),
                         Cardinality::Three => TypeId::of::<ClDouble3>() == TypeId::of::<T>(),
                         Cardinality::Four => TypeId::of::<ClDouble4>() == TypeId::of::<T>(),
                         Cardinality::Eight => TypeId::of::<ClDouble8>() == TypeId::of::<T>(),
                         Cardinality::Sixteen => TypeId::of::<ClDouble16>() == TypeId::of::<T>(),
+                    };
+
+                    if self.is_ptr {
+                        card_match || TypeId::of::<cl_double>() == TypeId::of::<T>()
+                    } else {
+                        card_match
                     }
                 },
                 BaseType::Sampler => TypeId::of::<u64>() == TypeId::of::<T>(),

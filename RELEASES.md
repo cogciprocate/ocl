@@ -92,10 +92,10 @@ Breaking Changes
 * `Buffer::from_gl_buffer`, `Buffer::set_default_queue`,
   `ImageBuilder::build`, `ImageBuilder::build_with_data`, `Image::new`,
   `Image::from_gl_texture`, `Image::from_gl_renderbuffer`,
-  `Image::set_default_queue`, `Kernel::new`, `Kernel::set_default_queue` now
-  take an owned `Queue` instead of a `&Queue` (clone it yourself).
-* All row pitch and slice pitch arguments (used with image and rectangular
-  buffer operations) must now be expressed in bytes.
+  `Image::set_default_queue`, `Kernel::set_default_queue` now take an owned
+  `Queue` instead of a `&Queue` (clone it yourself).
+* All row pitch and slice pitch arguments (for image and rectangular buffer
+  enqueue operations) must now be expressed in bytes.
 * `Kernel::set_default_queue` no longer result-wraps its `&'mut Kernel` return
   value.
 * `Kernel` named argument declaration functions such as `::arg_buf_named` or
@@ -113,8 +113,7 @@ Breaking Changes
 * `Program::new` has had its arguments rearranged for consistency.
 * `Event::wait` and `EventList::wait` have both been renamed to `::wait_for`.
 * [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
-* All row pitch and slice pitch arguments (for image and rectangular buffer
-  enqueue operations) must now be expressed in bytes.
+
 
 ### Breaking Changes to `ocl-core`
 * Passing event wait list and new event references has been completely
@@ -141,7 +140,6 @@ Breaking Changes
     from the `None`s.
 * All row pitch and slice pitch arguments (for image and rectangular buffer
   operations) must now be expressed in bytes.
-
 * `EventList::pop` now returns an `Option<Event>` instead of an
   `Option<Result<Event>>`.
 * `::create_command_queue` now takes a third argument: `properties`, an
