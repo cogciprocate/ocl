@@ -122,7 +122,7 @@ impl ProgramBuilder {
     #[cfg(feature = "opencl_version_2_1")]
     pub fn build(mut self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
-            Some(ref ds) => try!(ds.to_device_list(context.platform())),
+            Some(ref ds) => try!(ds.to_device_list(context.platform()?)),
             None => context.devices().to_owned(),
         };
 
@@ -144,10 +144,10 @@ impl ProgramBuilder {
             },
             None => {
                 Program::new(
+                    context,
                     try!(self.get_src_strings().map_err(|e| e.to_string())),
                     Some(&device_list[..]),
                     try!(self.get_compiler_options().map_err(|e| e.to_string())),
-                    context,
                 )
             },
         }
@@ -394,11 +394,9 @@ impl Program {
 
         core::build_program(&obj_core, device_ids, &cmplr_opts, None, None)?;
 
-        let devices = context_obj_core.devices()?.into_iter().map(|d| d.into()).collect();
+        // let devices = context_obj_core.devices()?.into_iter().map(|d| d.into()).collect();
 
-        Ok(Program {
-            obj_core: obj_core,
-        })
+        Ok(Program(obj_core))
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
