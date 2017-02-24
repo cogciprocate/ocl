@@ -450,6 +450,10 @@ impl Context {
     }
 
     /// Returns the platform associated with this context, if any.
+    ///
+    /// Errors upon the usual OpenCL errors.
+    ///
+    /// Returns `None` if the context properties do not specify a platform.
     pub fn platform(&self) -> OclResult<Option<PlatformId>> {
         functions::get_context_platform(self)
     }
@@ -799,6 +803,17 @@ impl Kernel {
         Kernel(ptr)
     }
 
+    /// Only call this when passing a copied pointer such as from an
+    /// `clGet*****Info` function.
+    ///
+    // [TODO]: Evaluate usefulness.
+    pub unsafe fn from_raw_copied_ptr(ptr: cl_kernel) -> Kernel {
+        assert!(!ptr.is_null(), "Null pointer passed.");
+        let copy = Kernel(ptr);
+        functions::retain_kernel(&copy).unwrap();
+        copy
+    }
+
     /// Returns a pointer, do not store it.
     #[inline(always)]
     pub fn as_ptr(&self) -> cl_kernel {
@@ -882,9 +897,9 @@ impl Event {
     #[inline]
     pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclResult<Event> {
         assert!(!ptr.is_null(), "ocl_core::Event::from_raw_copied_ptr: Null pointer passed.");
-        let new_core = Event(ptr);
-        functions::retain_event(&new_core)?;
-        Ok(new_core)
+        let copy = Event(ptr);
+        functions::retain_event(&copy)?;
+        Ok(copy)
     }
 
     /// Sets the status for this event. Setting status to completion will
@@ -1089,6 +1104,8 @@ impl<'e> ClEventRef<'e> for Event {
 
 impl Clone for Event {
     fn clone(&self) -> Event {
+        assert!(!self.0.is_null(), "ocl_core::Event::clone: \
+            Cannot clone a null (empty) event.");
         unsafe { functions::retain_event(self).expect("core::Event::clone"); }
         Event(self.0)
     }

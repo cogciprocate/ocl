@@ -20,6 +20,6 @@ fn bad_kernel_variable_names() {
     let context = ::create_context(Some(&context_properties),
         &[device], None, None).unwrap();
 
-    ::create_build_program(&context, &[CString::new(kernel).unwrap()], &CString::new("").unwrap(),
-                           None::<&[()]>).unwrap();
+    ::create_build_program(&context, &[CString::new(kernel).unwrap()],
+        None::<&[()]>, &CString::new("").unwrap()).unwrap();
 }

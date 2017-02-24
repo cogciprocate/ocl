@@ -740,6 +740,10 @@ pub fn get_context_info(context: &Context, request: ContextInfo) -> ContextInfoR
 }
 
 /// Returns the platform for a context.
+///
+/// Errors upon the usual OpenCL errors.
+///
+/// Returns `None` if the context properties do not specify a platform.
 pub fn get_context_platform(context: &Context) -> OclResult<Option<PlatformId>> {
     let props_raw_bytes = get_context_info_unparsed(context, ContextInfo::Properties)?;
 
@@ -1518,6 +1522,9 @@ impl UserDataPh {
 /// Callback functions are not yet supported. Please file an issue if you have
 /// need of this functionality.
 ///
+//
+// [NOTE]: Despite what the spec says, some platforms segfault when `null` is
+// passed for `devices_ptr`.
 pub fn build_program<D: ClDeviceIdPtr>(
             program: &Program,
             devices: Option<&[D]>,
@@ -1543,7 +1550,7 @@ pub fn build_program<D: ClDeviceIdPtr>(
         program.as_ptr() as cl_program,
         devices_len,
         devices_ptr,
-        options.as_ptr() as *const _,
+        options.as_ptr(),
         pfn_notify,
         user_data,
     ) };
@@ -3270,8 +3277,8 @@ pub fn get_kernel_name(kernel: &Kernel) -> String {
 pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
             context: &Context,
             src_strings: &[CString],
-            cmplr_opts: &CString,
             device_ids: Option<&[D]>,
+            cmplr_opts: &CString,
         ) -> OclResult<Program>
 {
     let program = try!(create_program_with_source(context, src_strings));

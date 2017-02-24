@@ -44,7 +44,7 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     let context = core::create_context(Some(&context_properties), &[device], None, None).unwrap();
 
     let program = core::create_build_program(&context, &[CString::new(SRC).unwrap()],
-        &CString::new("").unwrap(), None::<&[()]>).unwrap();
+        None::<&[()]>, &CString::new("").unwrap()).unwrap();
 
     let queue = core::create_command_queue(&context, &device,
         Some(core::QUEUE_PROFILING_ENABLE)).unwrap();
