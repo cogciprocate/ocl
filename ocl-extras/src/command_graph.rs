@@ -1,4 +1,22 @@
 //! A command requisite-dependency graph.
+//!
+//! ### Queues and Deadlocks
+//!
+//! When offloading host-side processing to a thread pool or foreign thread, a
+//! few important guidelines are important to keep in mind in order to avoid
+//! deadlocks. This usually applies to unmap or write commands but could
+//! equally apply to any other command which triggers a delayed-user-callback
+//! chain.
+//!
+//! Let's say we have a host-mapped buffer (`MemMap`) which needs to write
+//! data to that mapped area and then enqueue an unmap moving the data to a
+//! device... [TODO: FINISH THIS]
+//!
+//! When an offloaded task completes, it will inevitably enqueue another
+//! command or trigger some other action which will affect commands which are
+//! **already** in a command queue.
+//!
+//!
 
 use std::cell::{Cell, RefCell, Ref};
 use std::collections::{HashMap, BTreeSet};

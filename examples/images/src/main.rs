@@ -101,7 +101,9 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .build_with_data(queue.clone(), &img).unwrap();
+        .host_data(&img)
+        .queue(queue.clone())
+        .build().unwrap();
 
     let dst_image = Image::<u8>::builder()
         .channel_order(ImageChannelOrder::Rgba)
@@ -109,12 +111,15 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .build_with_data(queue.clone(), &img).unwrap();
+        .host_data(&img)
+        .queue(queue.clone())
+        .build().unwrap();
 
     // Not sure why you'd bother creating a sampler on the host but here's how:
     let sampler = Sampler::new(&context, true, AddressingMode::None, FilterMode::Nearest).unwrap();
 
-    let kernel = Kernel::new("increase_blue", &program, queue.clone()).unwrap()
+    let kernel = Kernel::new("increase_blue", &program).unwrap()
+        .queue(queue.clone())
         .gws(&dims)
         .arg_smp(&sampler)
         .arg_img(&src_image)

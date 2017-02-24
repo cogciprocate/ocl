@@ -106,7 +106,8 @@ fn main() {
         .host_data(&result_unrolled)
         .build().unwrap();
 
-    let kernel = Kernel::new("rgb2gray_unrolled", &program, queue.clone()).unwrap()
+    let kernel = Kernel::new("rgb2gray_unrolled", &program).unwrap()
+        .queue(queue.clone())
         .gws(&dims)
         .arg_img(&cl_source)
         .arg_img(&cl_dest_unrolled);
@@ -151,9 +152,10 @@ fn main() {
     // The number of `patch_size` squares that fit into the image.
     let gws_patch_count = (dims.0 / patch_size, dims.1 / patch_size);
 
-    let kernel_bulk = Kernel::new("rgb2gray_patches", &program, queue.clone()).unwrap()
+    let kernel_bulk = Kernel::new("rgb2gray_patches", &program).unwrap()
+        .queue(queue.clone())
         .gws(&gws_patch_count)
-        .arg_scl(patch_size)
+        .arg_scl(patch_size as i32)
         .arg_img(&cl_source)
         .arg_img(&cl_dest_patches);
 
@@ -163,7 +165,8 @@ fn main() {
 
     let gwo_rght_edge = (dims.0 - edge_sizes.0, 0);
     let gws_rght_edge = (edge_sizes.0, dims.1 - edge_sizes.1);
-    let kernel_rght_edge = Kernel::new("rgb2gray_unrolled", &program, queue.clone()).unwrap()
+    let kernel_rght_edge = Kernel::new("rgb2gray_unrolled", &program).unwrap()
+        .queue(queue.clone())
         .gwo(&gwo_rght_edge)
         .gws(&gws_rght_edge)
         .arg_img(&cl_source)
@@ -171,7 +174,8 @@ fn main() {
 
     let gwo_bot_edge = (0, dims.1 - edge_sizes.1);
     let gws_bot_edge = (dims.0 - edge_sizes.0, edge_sizes.1);
-    let kernel_bot_edge = Kernel::new("rgb2gray_unrolled", &program, queue.clone()).unwrap()
+    let kernel_bot_edge = Kernel::new("rgb2gray_unrolled", &program).unwrap()
+        .queue(queue.clone())
         .gwo(&gwo_bot_edge)
         .gws(&gws_bot_edge)
         .arg_img(&cl_source)
@@ -179,7 +183,8 @@ fn main() {
 
     let gwo_corner = (dims.0 - edge_sizes.0, dims.1 - edge_sizes.1);
     let gws_corner = (edge_sizes.0, edge_sizes.1);
-    let kernel_corner = Kernel::new("rgb2gray_unrolled", &program, queue.clone()).unwrap()
+    let kernel_corner = Kernel::new("rgb2gray_unrolled", &program).unwrap()
+        .queue(queue.clone())
         .gwo(&gwo_corner)
         .gws(&gws_corner)
         .arg_img(&cl_source)

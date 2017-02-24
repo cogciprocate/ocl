@@ -605,8 +605,10 @@ pub fn main() {
 
     // Queues (events coordinated by command graph):
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-    let queues_simple: Vec<_> = (0..3).map(|_| Queue::new(&context, device, queue_flags).unwrap()).collect();
-    let queues_complex: Vec<_> = (0..8).map(|_| Queue::new(&context, device, queue_flags).unwrap()).collect();
+    let queues_simple: Vec<_> = (0..3).map(|_| Queue::new(&context, device, queue_flags).unwrap())
+        .collect();
+    let queues_complex: Vec<_> = (0..8).map(|_| Queue::new(&context, device, queue_flags).unwrap())
+        .collect();
 
     // A pool of available device side memory (one big buffer with an attached allocator).
     let mut buf_pool: SubBufferPool<ClFloat4> = SubBufferPool::new(INITIAL_BUFFER_LEN,
