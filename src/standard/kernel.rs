@@ -852,6 +852,7 @@ pub mod arg_type {
         Double,
         Sampler,
         Image,
+        Unknown,
     }
 
     /// The cartinality of an OpenCL primitive.
@@ -925,8 +926,9 @@ pub mod arg_type {
             } else if type_name.contains("image") {
                 BaseType::Image
             } else {
-                return Err(format!("Unable to determine type of: {}. Please file an issue at \
-                    'https://github.com/cogciprocate/ocl/issues'.", type_name).into());
+                // return Err(format!("Unable to determine type of: {}. Please file an issue at \
+                //     'https://github.com/cogciprocate/ocl/issues'.", type_name).into());
+                BaseType::Unknown
             };
 
             Ok(ArgType {
@@ -955,7 +957,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_char>() == TypeId::of::<T>()
+                        TypeId::of::<cl_char>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -971,7 +973,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_uchar>() == TypeId::of::<T>()
+                        TypeId::of::<cl_uchar>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -987,7 +989,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_short>() == TypeId::of::<T>()
+                        TypeId::of::<cl_short>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -1003,7 +1005,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_ushort>() == TypeId::of::<T>()
+                        TypeId::of::<cl_ushort>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -1019,7 +1021,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_int>() == TypeId::of::<T>()
+                        TypeId::of::<cl_int>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -1035,7 +1037,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_uint>() == TypeId::of::<T>()
+                        TypeId::of::<cl_uint>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -1051,7 +1053,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_long>() == TypeId::of::<T>()
+                        TypeId::of::<cl_long>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -1067,7 +1069,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_ulong>() == TypeId::of::<T>()
+                        TypeId::of::<cl_ulong>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -1083,7 +1085,7 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_float>() == TypeId::of::<T>()
+                        TypeId::of::<cl_float>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
@@ -1099,14 +1101,15 @@ pub mod arg_type {
                     };
 
                     if self.is_ptr {
-                        card_match || TypeId::of::<cl_double>() == TypeId::of::<T>()
+                        TypeId::of::<cl_double>() == TypeId::of::<T>() || card_match
                     } else {
                         card_match
                     }
                 },
                 BaseType::Sampler => TypeId::of::<u64>() == TypeId::of::<T>(),
                 BaseType::Image => TypeId::of::<u64>() == TypeId::of::<T>(),
-                // _ => false,
+                // Everything matches if type was undetermined (escape hatch):
+                BaseType::Unknown => true,
             }
         }
 
