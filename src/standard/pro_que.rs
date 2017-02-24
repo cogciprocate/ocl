@@ -10,7 +10,7 @@ use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use
     'ProQueBuilder::dims' during creation or 'ProQue::set_dims' after creation to specify.";
 
-const DEBUG_PRINT: bool = true;
+const DEBUG_PRINT: bool = false;
 
 /// A builder for `ProQue`.
 pub struct ProQueBuilder {
