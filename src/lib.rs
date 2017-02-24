@@ -201,9 +201,9 @@ pub type UserDataPtr = *mut libc::c_void;
 /// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
 /// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
 ///
-pub unsafe trait OclPrm: PartialEq + Copy + Clone + Default + Debug {}
+pub unsafe trait OclPrm: PartialEq + Copy + Clone + Default + Debug + 'static {}
 
-unsafe impl<S> OclPrm for S where S: OclScl {}
+unsafe impl<S> OclPrm for S where S: OclScl + 'static {}
 
 
 /// A scalar type usable within `OpenCL` kernels.

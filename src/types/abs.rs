@@ -879,7 +879,6 @@ impl Event {
 
     /// Only use when cloning or copying from a pre-existing and valid
     /// `cl_event`.
-    ///
     #[inline]
     pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclResult<Event> {
         assert!(!ptr.is_null(), "ocl_core::Event::from_raw_copied_ptr: Null pointer passed.");

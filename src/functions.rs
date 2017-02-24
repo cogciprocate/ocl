@@ -1730,7 +1730,8 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
         ) -> OclResult<()>
 {
     // [DEBUG] LEAVE THIS HERE:
-    // println!("SET_KERNEL_ARG: KERNELARG: {:?}", arg);
+        // println!("SET_KERNEL_ARG: KERNELARG: {:?}", arg);
+    // [/DEBUG]
 
     let (arg_size, arg_value): (size_t, *const c_void) = match arg {
         KernelArg::Mem(mem_core_ref) => (
@@ -1758,12 +1759,12 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
     };
 
     // [DEBUG] LEAVE THIS HERE:
-    // println!("SET_KERNEL_ARG: KERNEL: {:?}", kernel);
-    // println!("SET_KERNEL_ARG: index: {:?}", arg_index);
-    // println!("SET_KERNEL_ARG: size: {:?}", arg_size);
-    // println!("SET_KERNEL_ARG: value: {:?}", arg_value);
-    // println!("SET_KERNEL_ARG: name: {:?}", name);
-    // print!("\n");
+        // println!("SET_KERNEL_ARG: KERNEL: {:?}", kernel);
+        // println!("SET_KERNEL_ARG: index: {:?}", arg_index);
+        // println!("SET_KERNEL_ARG: size: {:?}", arg_size);
+        // println!("SET_KERNEL_ARG: value: {:?}", arg_value);
+        // println!("SET_KERNEL_ARG: name: {:?}", name);
+        // print!("\n");
     // [/DEBUG]
 
     let err = unsafe { ffi::clSetKernelArg(
