@@ -102,11 +102,10 @@ impl ProgramBuilder {
             },
             None => {
                 Program::new(
+                    context,
                     try!(self.get_src_strings().map_err(|e| e.to_string())),
                     Some(&device_list[..]),
                     try!(self.get_compiler_options().map_err(|e| e.to_string())),
-                    context,
-
                 )
             },
         }
@@ -374,11 +373,11 @@ impl Program {
     ///
     /// Prefer `::builder` to create a new `Program`.
     ///
-    pub fn new(src_strings: Vec<CString>, device_ids: Option<&[Device]>, cmplr_opts: CString,
-            context_obj_core: &ContextCore) -> OclResult<Program>
+    pub fn new(context_obj_core: &ContextCore, src_strings: Vec<CString>,
+            device_ids: Option<&[Device]>, cmplr_opts: CString) -> OclResult<Program>
     {
-        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, &cmplr_opts,
-             device_ids));
+        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, device_ids,
+            &cmplr_opts));
 
         Ok(Program(obj_core))
     }

@@ -10,7 +10,7 @@ use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use
     'ProQueBuilder::dims' during creation or 'ProQue::set_dims' after creation to specify.";
 
-const DEBUG_PRINT: bool = false;
+const DEBUG_PRINT: bool = true;
 
 /// A builder for `ProQue`.
 pub struct ProQueBuilder {
@@ -43,91 +43,6 @@ impl ProQueBuilder {
             dims: None,
             queue_properties: None,
         }
-    }
-
-    /// Returns a new `ProQue`.
-    ///
-    /// ## Errors
-    ///
-    /// A `ProgramBuilder` or some source code must have been specified with
-    /// `::prog_bldr` or `::src` before building.
-    ///
-    pub fn build(&self) -> OclResult<ProQue> {
-        let program_builder = match self.program_builder {
-            // Some(program_builder) => ProQueBuilder::_build(self.context, self.device_idx, program_builder),
-            Some(ref program_builder) => program_builder,
-            None => return OclError::err_string("ProQueBuilder::build(): No program builder or kernel source defined. \
-                OpenCL programs must have some source code to be compiled. Use '::src' to directly \
-                add source code or '::program_builder' for more complex builds. Please see the \
-                'ProQueBuilder' and 'ProgramBuilder' documentation for more information."),
-        };
-
-        // If no platform is set or no context platform is set, use the first available:
-        let platform = match self.platform {
-            Some(ref plt) => {
-                assert!(self.context.is_none(), "ocl::ProQueBuilder::build: \
-                    platform and context cannot both be set.");
-                plt.clone()
-            },
-            None => match self.context {
-                Some(ref context) => match context.platform()? {
-                    Some(platform) => platform.clone(),
-                    None => Platform::default(),
-                },
-                None => Platform::default(),
-            },
-        };
-
-
-        // Resolve the device and ensure only one was specified.
-        let device = match self.device_spec {
-            Some(ref ds) => {
-                let device_list = try!(ds.to_device_list(Some(platform)));
-
-                if device_list.len() == 1 {
-                    device_list[0]
-                } else {
-                    return OclError::err_string(format!("Invalid number of devices specified ({}). Each 'ProQue' \
-                        can only be associated with a single device. Use 'Context', 'Program', and \
-                        'Queue' separately for multi-device configurations.", device_list.len()));
-                }
-            },
-            None => Device::first(platform),
-        };
-
-        if DEBUG_PRINT { println!("ProQue::build(): device: {:?}", device); }
-
-        // If no context was set, creates one using the above platform and
-        // the pre-set device index (default [0]).
-        let context = match self.context {
-            Some(ref ctx) => ctx.clone(),
-            None => {
-                try!(Context::builder()
-                    .platform(platform)
-                    .devices(device)
-                    .build())
-            },
-        };
-
-        if DEBUG_PRINT { println!("ProQue::build(): context.devices(): {:?}", context.devices()); }
-
-        let queue = try!(Queue::new(&context, device, self.queue_properties));
-
-        // println!("PROQUEBUILDER: About to load SRC_STRINGS.");
-        let src_strings = try!(program_builder.get_src_strings().map_err(|e| e.to_string()));
-        // println!("PROQUEBUILDER: About to load CMPLR_OPTS.");
-        let cmplr_opts = try!(program_builder.get_compiler_options().map_err(|e| e.to_string()));
-        // println!("PROQUEBUILDER: All done.");
-
-        let program = try!(Program::new(
-            src_strings,
-            Some(&[device]),
-            cmplr_opts,
-            &context,
-
-        ));
-
-        Ok(ProQue::new(context, queue, program, self.dims))
     }
 
     /// Sets the platform to be used and returns the builder.
@@ -228,6 +143,103 @@ impl ProQueBuilder {
     pub fn queue_properties(&mut self, props: CommandQueueProperties) -> &mut ProQueBuilder {
         self.queue_properties = Some(props);
         self
+    }
+
+
+    /// Returns a new `ProQue`.
+    ///
+    /// ## Errors
+    ///
+    /// A `ProgramBuilder` or some source code must have been specified with
+    /// `::prog_bldr` or `::src` before building.
+    ///
+    pub fn build(&self) -> OclResult<ProQue> {
+        let program_builder = match self.program_builder {
+            // Some(program_builder) => ProQueBuilder::_build(self.context, self.device_idx, program_builder),
+            Some(ref program_builder) => program_builder,
+            None => return OclError::err_string("ProQueBuilder::build(): No program builder or kernel source defined. \
+                OpenCL programs must have some source code to be compiled. Use '::src' to directly \
+                add source code or '::program_builder' for more complex builds. Please see the \
+                'ProQueBuilder' and 'ProgramBuilder' documentation for more information."),
+        };
+
+        // If no platform is set or no context platform is set, use the first available:
+        let platform = match self.platform {
+            Some(ref plt) => {
+                assert!(self.context.is_none(), "ocl::ProQueBuilder::build: \
+                    platform and context cannot both be set.");
+                plt.clone()
+            },
+            None => match self.context {
+                Some(ref context) => {
+                    let plat = context.platform()?;
+
+                    println!("####### plat: {:?}, default: {:?}", plat, Platform::default());
+
+                    match plat {
+                        Some(platform) => platform.clone(),
+                        None => Platform::default(),
+                    }
+                },
+                None => Platform::default(),
+            },
+        };
+
+
+        // Resolve the device and ensure only one was specified.
+        let device = match self.device_spec {
+            Some(ref ds) => {
+                let device_list = try!(ds.to_device_list(Some(platform)));
+
+                if device_list.len() == 1 {
+                    device_list[0]
+                } else {
+                    return OclError::err_string(format!("Invalid number of devices specified ({}). Each 'ProQue' \
+                        can only be associated with a single device. Use 'Context', 'Program', and \
+                        'Queue' separately for multi-device configurations.", device_list.len()));
+                }
+            },
+            None => Device::first(platform),
+        };
+
+        if DEBUG_PRINT { println!("ProQue::build(): device: {:?}", device); }
+
+        // If no context was set, creates one using the above platform and the
+        // pre-set device index (default [0]).
+        let context = match self.context {
+            Some(ref ctx) => {
+                assert!(ctx.devices().contains(&device));
+                ctx.clone()
+            }
+            None => {
+                try!(Context::builder()
+                    .platform(platform)
+                    .devices(device)
+                    .build())
+            },
+        };
+
+        if DEBUG_PRINT { println!("ProQue::build(): context.devices(): {:?}", context.devices()); }
+
+        let queue = try!(Queue::new(&context, device, self.queue_properties));
+
+        // println!("PROQUEBUILDER: About to load SRC_STRINGS.");
+        let src_strings = try!(program_builder.get_src_strings().map_err(|e| e.to_string()));
+        // println!("PROQUEBUILDER: About to load CMPLR_OPTS.");
+        let cmplr_opts = try!(program_builder.get_compiler_options().map_err(|e| e.to_string()));
+        // println!("PROQUEBUILDER: All done.");
+
+        let program = try!(Program::new(
+            &context,
+            src_strings,
+            Some(&[device]),
+            // None,
+            cmplr_opts,
+
+
+        ));
+
+        Ok(ProQue::new(context, queue, program, self.dims))
     }
 }
 

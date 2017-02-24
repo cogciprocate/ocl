@@ -186,7 +186,9 @@ impl Context {
     /// valid device index.
     ///
     pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
+    // pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> OclResult<Vec<Device>> {
         Device::resolve_idxs_wrap(idxs, &self.devices())
+        // self.devices().map(|ds| Device::resolve_idxs_wrap(idxs, &ds))
     }
 
     /// Returns a device by its ordinal count within this context.
@@ -219,6 +221,19 @@ impl Context {
                     OclError::from("Context::device_info: Invalid device index")));
             },
         }
+
+        // match self.devices() {
+        //     Ok(ds) => {
+        //         match ds.get(index) {
+        //             Some(d) => core::get_device_info(d, info_kind),
+        //             None => {
+        //                 return DeviceInfoResult::Error(Box::new(
+        //                     OclError::from("Context::device_info: Invalid device index")));
+        //             },
+        //         }
+        //     },
+        //     Err(err) => DeviceInfoResult::Error(Box::new(err)),
+        // }
     }
 
     /// Returns info about the context.
@@ -244,7 +259,9 @@ impl Context {
     ///
     /// Panics upon any OpenCL error.
     pub fn devices(&self) -> Vec<Device> {
+    // pub fn devices(&self) -> OclResult<Vec<Device>> {
         Device::list_from_core(self.0.devices().unwrap())
+        // self.0.devices().map(|dl| Device::list_from_core(dl))
     }
 
     /// Returns the list of device versions associated with this context.

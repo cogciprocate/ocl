@@ -112,6 +112,12 @@ impl From<EventCore> for Event {
     }
 }
 
+impl Into<EventCore> for Event {
+    fn into(self) -> EventCore {
+        self.0
+    }
+}
+
 impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_info(f)
