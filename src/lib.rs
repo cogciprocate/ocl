@@ -201,9 +201,9 @@ pub type UserDataPtr = *mut libc::c_void;
 /// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
 /// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
 ///
-pub unsafe trait OclPrm: PartialEq + Copy + Clone + Default + Debug + 'static {}
+pub unsafe trait OclPrm: 'static + PartialEq + Copy + Clone + Default + Debug {}
 
-unsafe impl<S> OclPrm for S where S: OclScl + 'static {}
+unsafe impl<S> OclPrm for S where S: OclScl {}
 
 
 /// A scalar type usable within `OpenCL` kernels.
@@ -215,11 +215,11 @@ unsafe impl<S> OclPrm for S where S: OclScl + 'static {}
 /// To describe the contents of buffers, etc., prefer using the more general
 /// `OclPrm` trait unless scalar operations are required.
 ///
-pub unsafe trait OclScl: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/ Add + Sub +
-    Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+pub unsafe trait OclScl: 'static + Copy + Clone + PartialOrd + NumCast + Default +  Add + Sub + Mul
+    + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-unsafe impl<T> OclScl for T where T: Copy + Clone + PartialOrd + NumCast + Default + /*Zero + One +*/
-    Add + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+unsafe impl<T> OclScl for T where T: 'static + Copy + Clone + PartialOrd + NumCast + Default + Add
+    + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
 
 /// A vector type usable within `OpenCL` kernels.
