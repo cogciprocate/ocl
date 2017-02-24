@@ -185,7 +185,7 @@ impl Kernel {
         let mut arg_types = Vec::with_capacity(num_args as usize);
 
         for arg_idx in 0..num_args {
-            arg_types.push(arg_type(&obj_core, arg_idx)?);
+            arg_types.push(ArgType::from_kern_and_idx(&obj_core, arg_idx)?);
         }
 
         let mem_args = vec![None; num_args as usize];
@@ -785,7 +785,7 @@ impl DerefMut for Kernel {
 }
 
 
-/// Returns argument information for this kernel.
+/// Returns argument information for a kernel.
 pub fn arg_info(core: &KernelCore, arg_index: u32, info_kind: KernelArgInfo)
         -> KernelArgInfoResult
 {
@@ -798,18 +798,13 @@ pub fn arg_info(core: &KernelCore, arg_index: u32, info_kind: KernelArgInfo)
         Some(&device_versions))
 }
 
-
+/// Returns the type name for a kernel argument at the specified index.
 pub fn arg_type_name(core: &KernelCore, arg_index: u32) -> OclResult<String> {
     match arg_info(core, arg_index, KernelArgInfo::TypeName) {
         KernelArgInfoResult::TypeName(type_name) => Ok(type_name),
         KernelArgInfoResult::Error(e) => Err(*e),
         _ => unreachable!(),
     }
-}
-
-pub fn arg_type(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
-    let type_name = arg_type_name(core, arg_index)?;
-    ArgType::from_str(type_name.as_str())
 }
 
 
@@ -829,8 +824,20 @@ pub mod arg_type {
         ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
         ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
         ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16};
+    use core::Kernel as KernelCore;
     use standard::Sampler;
+    use super::{arg_info, arg_type_name};
 
+
+
+
+    // /// Returns a new argument type specifier.
+    // pub fn arg_type(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
+    //     let type_name = arg_type_name(core, arg_index)?;
+    //     ArgType::from_str(type_name.as_str())
+    // }
+
+    /// The base type of an OpenCL primitive.
     #[derive(Clone, Debug, Copy, PartialEq, Eq)]
     pub enum BaseType {
         Char,
@@ -847,6 +854,9 @@ pub mod arg_type {
         Image,
     }
 
+    /// The cartinality of an OpenCL primitive.
+    ///
+    /// (ex. `float4`: 4)
     #[derive(Clone, Debug, Copy, PartialEq, Eq)]
     pub enum Cardinality {
         One,
@@ -857,6 +867,7 @@ pub mod arg_type {
         Sixteen,
     }
 
+    /// The type of a kernel argument derived from its string representation.
     #[allow(dead_code)]
     #[derive(Clone, Debug)]
     pub struct ArgType {
@@ -869,7 +880,9 @@ pub mod arg_type {
         /// Ascertains a `KernelArgType` from the contents of a
         /// `KernelArgInfoResult::TypeName`.
         ///
-        /// [TODO]: Optimize or outsource this.
+        /// [TODO]: Optimize or outsource this if possible. Is `::contains`
+        /// the fastest way to parse these in this situation? Should
+        /// `::starts_with` be used for base type names instead?
         pub fn from_str(type_name: &str) -> OclResult<ArgType> {
             let is_ptr = type_name.contains("*");
 
@@ -912,7 +925,8 @@ pub mod arg_type {
             } else if type_name.contains("image") {
                 BaseType::Image
             } else {
-                return Err(format!("Unable to determine type of: {}", type_name).into());
+                return Err(format!("Unable to determine type of: {}. Please file an issue at \
+                    'https://github.com/cogciprocate/ocl/issues'.", type_name).into());
             };
 
             Ok(ArgType {
@@ -920,6 +934,12 @@ pub mod arg_type {
                 cardinality: card,
                 is_ptr: is_ptr,
             })
+        }
+
+        /// Returns a new argument type specifier.
+        pub fn from_kern_and_idx(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
+            let type_name = arg_type_name(core, arg_index)?;
+            ArgType::from_str(type_name.as_str())
         }
 
         pub fn is_match<T: OclPrm + Any + 'static>(&self) -> bool {

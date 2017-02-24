@@ -150,10 +150,10 @@ pub fn main() {
             Ok(task_iter)
         });
 
-        // let spawned_write = thread_pool.spawn(write);
+        let spawned_write = thread_pool.spawn(write);
 
-        // [DEBUG]:
-        let spawned_write = thread_pool.spawn(write).wait().unwrap();
+        // // [DEBUG]:
+        // let spawned_write = thread_pool.spawn(write).wait().unwrap();
 
         // (2) KERNEL: Run kernel: Add 100 to everything (total should now be 150):
         let mut kern_event = Event::empty();
@@ -163,8 +163,8 @@ pub fn main() {
             .ewait(&write_unmap_event)
             .enq().unwrap();
 
-        // [DEBUG]:
-        kern_event.wait_for().unwrap();
+        // // [DEBUG]:
+        // kern_event.wait_for().unwrap();
 
         // (3) READ: Read results and verify that the write and kernel have
         // both completed successfully:
@@ -194,13 +194,13 @@ pub fn main() {
 
         let spawned_read = thread_pool.spawn(read);
 
-        // [DEBUG]:
-        spawned_read.wait().unwrap();
+        // // [DEBUG]:
+        // spawned_read.wait().unwrap();
 
-        // let join = spawned_write.join(spawned_read);
+        let join = spawned_write.join(spawned_read);
 
         // tx.send(Some(join)).unwrap();
-        // join.wait().unwrap();
+        join.wait().unwrap();
     }
 
     // tx.send(None);

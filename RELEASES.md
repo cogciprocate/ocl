@@ -27,13 +27,23 @@ See the breaking changes section below for details.
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
   be used just as you would `Buffer`. Use `SubBuffer::new` or
   `Buffer::create_sub_buffer` to create one.
+* Default queues on kernels, buffers, and images are no longer mandatory. See
+  the breaking changes section below for details on how this impacts existing
+  code.
+* When setting a kernel argument, the type associated with the argument is
+  checked against the type specified in the kernel's source code. The argument
+  type list is created when `Kernel::new` is called and the performance impact
+  when setting arguments is negligible (an if statement). If this causes any
+  errors (for unidentifiable types) please report the issue immediately. You
+  can opt out of this check by using the new `Kernel::set_arg_unchecked`
+  function described below.
+* `Kernel::set_arg_unchecked` and `Kernel::named_arg_idx` have been added
+  allowing the ability to set a kernel argument by index and retrieve the
+  index of a named argument. Argument indexes always correspond exactly to the
+  order arguments are declared.
 * `Kernel` buffer and image related functions (such as `arg_buf`) can now
   interchangeably accept either `Buffer<T>`, `SubBuffer<T>`, or `Image<T>`
   types.
-* `Kernel::set_arg` and `Kernel::named_arg_idx` have been added allowing the
-  ability to set a kernel argument by index and retrieve the index of a named
-  argument. Argument indexes always correspond exactly to the order arguments
-  are declared.
 * Command queue properties can now be specified when creating a `Queue` or
   `ProQue` allowing out of order execution and profiling to be enabled.
   Profiling had previously been enabled by default but now must be explicitly
@@ -59,9 +69,10 @@ Breaking Changes
       .host_data(&data)
       .build()
     ```
-* [`Kernel::new`] no longer accepts a queue as a third argument. Instead use the
-  [`::queue`][kernel_queue] (builder-style) or
-  [`::set_default_queue`][kernel_set_default_queue] methods. For example:
+* [`Kernel::new`] no longer accepts a queue as a third argument (and can now
+  be considered stabilized). Instead use the [`::queue`][kernel_queue]
+  (builder-style) or [`::set_default_queue`][kernel_set_default_queue]
+  methods. For example:
   * Before: 
 
     ```
@@ -102,6 +113,8 @@ Breaking Changes
 * `Program::new` has had its arguments rearranged for consistency.
 * `Event::wait` and `EventList::wait` have both been renamed to `::wait_for`.
 * [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
+* All row pitch and slice pitch arguments (for image and rectangular buffer
+  enqueue operations) must now be expressed in bytes.
 
 ### Breaking Changes to `ocl-core`
 * Passing event wait list and new event references has been completely
@@ -119,7 +132,7 @@ Breaking Changes
   * The `ClEventPtrNew` trait has been renamed to `ClNullEventPtr`
   * All `core::enqueue...` functions (and a few others) may now require
     additional type annotations when `None` is passed as either the event wait
-    list or new event reference. Passing a `None::<EventList>` will suffice
+    list or new event reference. Passing a `None::<Event>` will suffice
     for either parameter (because it can serve either role) and is the easiest
     way to shut the compiler up. If you were previously annotating a type
     using the 'turbo-fish' syntax ('::<...>') on one of these functions, you
@@ -146,7 +159,6 @@ Breaking Changes
 Other Changes
 -------------
 * `EventList::clear` has been added.
-* `EventList` auto-clearing has been experimentally re-enabled.
 
 
 [FIXME] Update links
