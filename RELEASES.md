@@ -33,10 +33,10 @@ See the breaking changes section below for details.
 * When setting a kernel argument, the type associated with the argument is
   checked against the type specified in the kernel's source code. The argument
   type list is created when `Kernel::new` is called and the performance impact
-  when setting arguments is negligible (an if statement). If this causes any
-  errors (for unidentifiable types) please report the issue immediately. You
-  can opt out of this check by using the new `Kernel::set_arg_unchecked`
-  function described below.
+  when setting arguments is negligible. If this causes any errors (for
+  unidentifiable types) please report the issue immediately. You can opt out
+  of this check by using the new `Kernel::set_arg_unchecked` function
+  described below.
 * `Kernel::set_arg_unchecked` and `Kernel::named_arg_idx` have been added
   allowing the ability to set a kernel argument by index and retrieve the
   index of a named argument. Argument indexes always correspond exactly to the

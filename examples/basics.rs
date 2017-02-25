@@ -6,7 +6,7 @@ use ocl::{util, ProQue, Buffer, MemFlags};
 const RESULTS_TO_PRINT: usize = 20;
 
 // Our arbitrary data set size (about a million) and coefficent:
-const DATA_SET_SIZE: usize = 2 << 20;
+const DATA_SET_SIZE: usize = 1 << 20;
 const COEFF: f32 = 5432.1;
 
 // Our kernel source code:

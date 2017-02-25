@@ -1,7 +1,7 @@
 extern crate ocl;
 extern crate ocl_core;
 
-const BUFFER_DIMENSIONS: usize = 2 << 20;
+const BUFFER_DIMENSIONS: usize = 1 << 20;
 const PLATFORM_ID: usize = 0;
 const DEVICE_ID: usize = 0;
 

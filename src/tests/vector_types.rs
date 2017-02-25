@@ -4,7 +4,7 @@
 use standard::ProQue;
 use aliases::ClInt4;
 
-const DATASET_SIZE: usize = 2 << 20;
+const DATASET_SIZE: usize = 1 << 20;
 
 #[test]
 fn test_vector_types() {

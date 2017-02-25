@@ -59,7 +59,7 @@ fn main() {
 
 
     // let queue = Queue::new(&context, device, None).unwrap();
-    // let dims = [2 << 20];
+    // let dims = [1 << 20];
 
     // let mut vec = vec![0.0f32; dims[0]];
     // let buffer = Buffer::<f32>::new(queue.clone(), Some(flags::MEM_READ_WRITE |

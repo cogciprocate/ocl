@@ -56,7 +56,7 @@ fn main() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims(2 << 20)
+        .dims(1 << 20)
         .build().unwrap();
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();

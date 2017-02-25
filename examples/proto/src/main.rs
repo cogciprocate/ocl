@@ -1,3 +1,7 @@
+//! `async_cycles.rs`
+//!
+//! Cyclical asynchronous processing with back-pressure.
+//!
 
 #![allow(dead_code, unused_variables, unused_imports)]
 
@@ -27,11 +31,11 @@ use ocl::aliases::ClInt4;
 use ocl::async::{Error as AsyncError};
 use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 
-// const INITIAL_BUFFER_LEN: u32 = 2 << 24; // 512MiB of ClInt4
-// const SUB_BUF_MIN_LEN: u32 = 2 << 15; // 1MiB of ClInt4
-// const SUB_BUF_MAX_LEN: u32 = 2 << 19; // 16MiB of ClInt4
+// const INITIAL_BUFFER_LEN: u32 = 1 << 24; // 512MiB of ClInt4
+// const SUB_BUF_MIN_LEN: u32 = 1 << 15; // 1MiB of ClInt4
+// const SUB_BUF_MAX_LEN: u32 = 1 << 19; // 16MiB of ClInt4
 
-const WORK_SIZE: usize = 2 << 14;
+const WORK_SIZE: usize = 1 << 14;
 const TASK_ITERS: usize = 128;
 
 pub static KERN_SRC: &'static str = r#"
@@ -98,23 +102,30 @@ pub fn main() {
         .arg_vec(ClInt4(100, 100, 100, 100))
         .arg_buf(&read_buf);
 
-    // // A channel with room to keep 24 tasks in-flight.
-    // let (mut tx, rx) = mpsc::sync_channel(24);
+    // A channel with room to keep 24 tasks in-flight.
+    let (tx, rx) = mpsc::sync_channel::<Option<Join<CpuFuture<usize, AsyncError>, CpuFuture<usize, AsyncError>>>>(4);
 
-    // // Create a thread to handle the stream of work:
-    // let completion_thread = thread::spawn(|| {
-    //     let mut in_flight = HashMap::with_capacity(36);
+    // Create a thread to handle the stream of work:
+    let completion_thread = thread::spawn(move || {
+        // let mut in_flight = HashMap::with_capacity(12);
+        let mut task_i = 0usize;
 
-    //     match rx.recv().unwrap() {
-    //         Some(join) => {
-    //             in_flight
-    //             continue,
-    //         },
-    //         None => break,
-    //     }
+        loop {
+            match rx.recv().unwrap() {
+                Some(task) => {
+                    // let task:  = task;
+                    task.wait().unwrap();
+                    println!("Task {} complete.", task_i);
 
-    //     println!("All sent futures complete.");
-    // });
+                    task_i += 1;
+                    continue;
+                },
+                None => break,
+            }
+        }
+
+        println!("All {} futures complete.", task_i);
+    });
 
 
     // Thread pool for offloaded tasks.
@@ -152,7 +163,7 @@ pub fn main() {
 
         let spawned_write = thread_pool.spawn(write);
 
-        // // [DEBUG]:
+        // // [DEBUG: WAIT]
         // let spawned_write = thread_pool.spawn(write).wait().unwrap();
 
         // (2) KERNEL: Run kernel: Add 100 to everything (total should now be 150):
@@ -163,7 +174,7 @@ pub fn main() {
             .ewait(&write_unmap_event)
             .enq().unwrap();
 
-        // // [DEBUG]:
+        // // [DEBUG: WAIT]
         // kern_event.wait_for().unwrap();
 
         // (3) READ: Read results and verify that the write and kernel have
@@ -194,16 +205,16 @@ pub fn main() {
 
         let spawned_read = thread_pool.spawn(read);
 
-        // // [DEBUG]:
+        // // [DEBUG: WAIT]
         // spawned_read.wait().unwrap();
 
         let join = spawned_write.join(spawned_read);
 
-        // tx.send(Some(join)).unwrap();
-        join.wait().unwrap();
+        tx.send(Some(join)).unwrap();
+        // join.wait().unwrap();
     }
 
-    // tx.send(None);
+    tx.send(None).unwrap();
 
-    // completion_thread.join().unwrap();
+    completion_thread.join().unwrap();
 }

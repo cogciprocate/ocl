@@ -66,7 +66,7 @@ pub fn main() {
     println!("Creating and enqueuing tasks...");
 
     for task_id in 0..task_count {
-        let work_size = 2 << 14;
+        let work_size = 1 << 14;
 
         let write_buf_flags = MemFlags::new().read_only().host_write_only();
         let read_buf_flags = MemFlags::new().write_only().host_read_only();

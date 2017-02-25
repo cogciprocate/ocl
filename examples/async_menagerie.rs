@@ -28,9 +28,9 @@ use ocl::aliases::ClFloat4;
 use ocl::async::{Error as AsyncError};
 use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 
-const INITIAL_BUFFER_LEN: u32 = 2 << 24; // 512MiB of ClFloat4
-const SUB_BUF_MIN_LEN: u32 = 2 << 15; // 1MiB of ClFloat4
-const SUB_BUF_MAX_LEN: u32 = 2 << 19; // 16MiB of ClFloat4
+const INITIAL_BUFFER_LEN: u32 = 1 << 24; // 512MiB of ClFloat4
+const SUB_BUF_MIN_LEN: u32 = 1 << 15; // 1MiB of ClFloat4
+const SUB_BUF_MAX_LEN: u32 = 1 << 19; // 16MiB of ClFloat4
 
 
 enum TaskKind {

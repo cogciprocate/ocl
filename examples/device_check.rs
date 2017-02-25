@@ -150,7 +150,7 @@ lazy_static! {
     //     addend: 100.0f32,
     //     val_range: (-2000.0, 2000.0f32),
     //     queue_ordering: flags::QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-    //     work_size_range: (2 << 19, 2 << 22),
+    //     work_size_range: (1 << 19, 1 << 22),
     //     async_write: false,
     //     async_read: false,
     //     map_write: false,
@@ -168,7 +168,7 @@ lazy_static! {
     //     addend: ClFloat4(50., 50., 50., 50.),
     //     val_range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
     //     queue_ordering: CommandQueueProperties::empty(),
-    //     work_size_range: (2 << 19, 2 << 22),
+    //     work_size_range: (1 << 19, 1 << 22),
     //     async_write: true,
     //     async_read: true,
     //     map_write: true,
@@ -191,8 +191,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            // work_size_range: ((2 << 24) - 1, 2 << 24),
-            work_size_range: (2 << 21, 2 << 22),
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 21, 1 << 22),
             alloc_host_ptr: false,
         },
 
@@ -220,8 +220,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            // work_size_range: ((2 << 24) - 1, 2 << 24),
-            work_size_range: (2 << 21, 2 << 22),
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 21, 1 << 22),
             alloc_host_ptr: true,
         },
 
@@ -249,8 +249,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            // work_size_range: ((2 << 24) - 1, 2 << 24),
-            work_size_range: (2 << 21, 2 << 22),
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 21, 1 << 22),
             alloc_host_ptr: false,
         },
 
@@ -278,8 +278,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            // work_size_range: ((2 << 24) - 1, 2 << 24),
-            work_size_range: (2 << 21, 2 << 22),
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 21, 1 << 22),
             alloc_host_ptr: false,
         },
 
@@ -307,8 +307,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            // work_size_range: ((2 << 24) - 1, 2 << 24),
-            work_size_range: (2 << 21, 2 << 22),
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 21, 1 << 22),
             alloc_host_ptr: false,
         },
 
@@ -336,8 +336,8 @@ lazy_static! {
             use_source_vec: false,
         },
         misc: Misc {
-            // work_size_range: ((2 << 24) - 1, 2 << 24),
-            work_size_range: (2 << 21, 2 << 22),
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 21, 1 << 22),
             alloc_host_ptr: false,
         },
 

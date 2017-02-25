@@ -39,9 +39,9 @@ use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, 
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClFloat4;
 
-const INITIAL_BUFFER_LEN: u32 = 2 << 23; // 256MiB of ClFloat4
-const SUB_BUF_MIN_LEN: u32 = 2 << 11; // 64KiB of ClFloat4
-const SUB_BUF_MAX_LEN: u32 = 2 << 15; // 1MiB of ClFloat4
+const INITIAL_BUFFER_LEN: u32 = 1 << 23; // 256MiB of ClFloat4
+const SUB_BUF_MIN_LEN: u32 = 1 << 11; // 64KiB of ClFloat4
+const SUB_BUF_MAX_LEN: u32 = 1 << 15; // 1MiB of ClFloat4
 
 
 struct PoolRegion {

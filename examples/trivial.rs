@@ -10,7 +10,7 @@ fn main() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims(2 << 20)
+        .dims(1 << 20)
         .build().unwrap();
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();
@@ -51,7 +51,7 @@ fn main_explained() {
     // buffer dimensions:
     let pro_que = ProQue::builder()
         .src(src)
-        .dims(2 << 20)
+        .dims(1 << 20)
         .build().unwrap();
 
     // (2) Create a `Buffer`:
@@ -114,7 +114,7 @@ fn main_exploded() {
         .src(src)
         .build(&context).unwrap();
     let queue = Queue::new(&context, device, None).unwrap();
-    let dims = 2 << 20;
+    let dims = 1 << 20;
     // [NOTE]: At this point we could manually assemble a ProQue by calling:
     // `ProQue::new(context, queue, program, Some(dims))`. One might want to
     // do this when only one program and queue are all that's needed. Wrapping
@@ -195,7 +195,7 @@ fn main_cored() {
     core::build_program(&program, Some(&[device_id]), &CString::new("").unwrap(),
         None, None).unwrap();
     let queue = core::create_command_queue(&context, &device_id, None).unwrap();
-    let dims = [2 << 20, 1, 1];
+    let dims = [1 << 20, 1, 1];
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];

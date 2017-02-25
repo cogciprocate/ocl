@@ -16,7 +16,7 @@ extern crate time;
 
 use ocl::{util, core, ProQue, Buffer, EventList};
 
-const DATASET_SIZE: usize = 2 << 12;
+const DATASET_SIZE: usize = 1 << 12;
 
 const KERNEL_RUN_ITERS: i32 = 800;
 const BUFFER_READ_ITERS: i32 = 20;
