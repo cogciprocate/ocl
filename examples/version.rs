@@ -29,7 +29,7 @@ fn main() {
     core::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
         None, None).unwrap();
     // let queue = core::create_command_queue(&context, &device_id).unwrap();
-    // let dims = [2 << 20, 1, 1];
+    // let dims = [1 << 20, 1, 1];
 
     let dv0 = core::get_device_info(&device_id, core::DeviceInfo::Version);
     println!("Pre-Parse: 'DeviceInfo::Version': {}", dv0);

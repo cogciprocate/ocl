@@ -28,7 +28,7 @@ fn main() {
     core::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
         None, None).unwrap();
     let queue = core::create_command_queue(&context, &device_id, None).unwrap();
-    let dims = [2 << 20, 1, 1];
+    let dims = [1 << 20, 1, 1];
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims[0]];

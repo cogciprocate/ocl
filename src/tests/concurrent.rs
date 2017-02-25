@@ -20,7 +20,7 @@ const THREAD_COUNT: u32 = 2;
 #[test]
 fn concurrent() {
     let mut rng = rand::weak_rng();
-    let data_set_size = 2 << 10;
+    let data_set_size = 1 << 10;
     let dims = [data_set_size];
     let mut threads = Vec::with_capacity(THREAD_COUNT as usize);
 
@@ -48,7 +48,7 @@ fn concurrent() {
 // UNUSED
 fn main_from_example() {
     let mut rng = rand::weak_rng();
-    let data_set_size = 2 << 10;
+    let data_set_size = 1 << 10;
     let dims = [data_set_size];
     let mut threads = Vec::new();
 

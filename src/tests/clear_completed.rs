@@ -8,7 +8,7 @@ fn clear_completed() {
 
     let pro_que = ProQue::builder()
         .src(src)
-        .dims([2 << 10])
+        .dims([1 << 10])
         .build().unwrap();
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();

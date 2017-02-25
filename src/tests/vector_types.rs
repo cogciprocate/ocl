@@ -1,7 +1,7 @@
 //! [INCOMPLETE]: [TODO]: Test various types with an assortment of operations.
 //!
 
-const DATASET_SIZE: usize = 2 << 20;
+const DATASET_SIZE: usize = 1 << 20;
 
 #[test]
 fn test_vector_types() {

@@ -1,6 +1,6 @@
 use std::ffi::CString;
 
-const DATASET_SIZE: usize = 2 << 20;
+const DATASET_SIZE: usize = 1 << 20;
 
 #[test]
 fn fill() {

@@ -552,10 +552,10 @@ mod tests {
 
     #[test]
     fn remove_rebuild() {
-        let mut primary_vals: Vec<u32> = (0..(2 << 18)).map(|v| v).collect();
+        let mut primary_vals: Vec<u32> = (0..(1 << 18)).map(|v| v).collect();
         let orig_len = primary_vals.len();
 
-        let mut bad_indices: Vec<usize> = Vec::<usize>::with_capacity(2 << 16);
+        let mut bad_indices: Vec<usize> = Vec::<usize>::with_capacity(1 << 16);
         let mut idx = 0;
 
         // Mark every whateverth value 'bad':
