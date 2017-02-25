@@ -80,7 +80,7 @@ power and performance of the C API in a simple package.
 
 ## What's new?
 
-* 0.13.0: [The futures have arrived](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
+* Upcoming: v0.13.0: [The futures have arrived](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
 
 
 #### Diving Deeper
