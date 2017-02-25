@@ -1,9 +1,9 @@
 
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use core::{self, Event as EventCore, OclPrm, ClWaitListPtr, ClNullEventPtr,
-    MemMap as MemMapCore, Mem, CommandQueue as CommandQueueCore};
-use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum};
+use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem,
+    CommandQueue as CommandQueueCore};
+use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event};
 use async::{Result as AsyncResult};
 
 
@@ -95,13 +95,13 @@ pub struct MemMap<T> where T: OclPrm {
     len: usize,
     buffer: Mem,
     queue: CommandQueueCore,
-    unmap_target: Option<EventCore>,
+    unmap_target: Option<Event>,
     callback_is_set: bool,
     is_unmapped: bool,
 }
 
 impl<T> MemMap<T>  where T: OclPrm {
-    pub unsafe fn new(core: MemMapCore<T>, len: usize, unmap_target: Option<EventCore>,
+    pub unsafe fn new(core: MemMapCore<T>, len: usize, unmap_target: Option<Event>,
         buffer: Mem, queue: CommandQueueCore) -> MemMap<T>
     {
         MemMap {
@@ -131,7 +131,7 @@ impl<T> MemMap<T>  where T: OclPrm {
     {
         if !self.is_unmapped {
             let mut origin_event_opt = if self.unmap_target.is_some() || enew_opt.is_some() {
-                Some(EventCore::null())
+                Some(Event::empty())
             } else {
                 None
             };
@@ -180,7 +180,7 @@ impl<T> MemMap<T>  where T: OclPrm {
     }
 
     #[cfg(feature = "event_callbacks")]
-    fn register_event_trigger(&mut self, event: &EventCore) -> AsyncResult<()> {
+    fn register_event_trigger(&mut self, event: &Event) -> AsyncResult<()> {
         debug_assert!(self.is_unmapped && self.unmap_target.is_some());
 
         if !self.callback_is_set {
@@ -204,7 +204,7 @@ impl<T> MemMap<T>  where T: OclPrm {
         }
     }
 
-    pub fn get_unmap_target(&self) -> Option<&EventCore> {
+    pub fn get_unmap_target(&self) -> Option<&Event> {
         self.unmap_target.as_ref()
     }
 
@@ -242,7 +242,7 @@ impl<T: OclPrm> Drop for MemMap<T> {
     #[cfg(feature = "event_callbacks")]
     fn drop(&mut self) {
         if !self.is_unmapped {
-            self.enqueue_unmap::<&EventCore, &mut EventCore>(None, None, None).ok();
+            self.enqueue_unmap::<&Event, &mut Event>(None, None, None).ok();
         }
     }
 

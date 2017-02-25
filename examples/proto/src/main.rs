@@ -3,40 +3,35 @@
 //! Cyclical asynchronous processing with back-pressure.
 //!
 
-#![allow(dead_code, unused_variables, unused_imports)]
+// #![allow(dead_code, unused_variables, unused_imports)]
 
-extern crate libc;
-extern crate rand;
+// extern crate rand;
 extern crate chrono;
 extern crate futures;
 extern crate futures_cpupool;
-extern crate tokio_core;
+// extern crate tokio_core;
 extern crate ocl;
-extern crate ocl_extras as extras;
+// extern crate ocl_extras as extras;
 #[macro_use] extern crate colorify;
 
 use std::thread;
 use std::sync::mpsc;
-use std::collections::HashMap;
-use rand::{Rng, XorShiftRng};
-use rand::distributions::{IndependentSample, Range as RandRange};
-use chrono::{Duration, DateTime, Local};
-use futures::{stream, Future, Sink, Stream, Join};
-// use futures::sync::mpsc::{self, Sender};
-use futures_cpupool::{CpuPool, CpuFuture, Builder};
-use ocl::{Platform, Device, Context, Queue, Program, Kernel, OclPrm,
-    Event, EventList, FutureMemMap, Buffer};
+// use rand::{Rng, XorShiftRng};
+// use rand::distributions::{IndependentSample, Range as RandRange};
+use chrono::{Duration, Local};
+use futures::{Future, Join};
+use futures_cpupool::{CpuPool, CpuFuture};
+use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClInt4;
 use ocl::async::{Error as AsyncError};
-use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 
-// const INITIAL_BUFFER_LEN: u32 = 1 << 24; // 512MiB of ClInt4
-// const SUB_BUF_MIN_LEN: u32 = 1 << 15; // 1MiB of ClInt4
-// const SUB_BUF_MAX_LEN: u32 = 1 << 19; // 16MiB of ClInt4
 
-const WORK_SIZE: usize = 1 << 14;
-const TASK_ITERS: usize = 128;
+const WORK_SIZE: usize = 1 << 24;
+const TASK_ITERS: usize = 32;
+// Number of tasks running at any given time (minimum 2):
+const CONCURRENT_TASK_MAX: usize = 4;
+
 
 pub static KERN_SRC: &'static str = r#"
     __kernel void add(
@@ -58,7 +53,7 @@ pub fn fmt_duration(duration: Duration) -> String {
 
 
 pub fn main() {
-    let start_time = extras::now();
+    let start_time = Local::now();
 
     let platform = Platform::default();
     println!("Platform: {}", platform.name());
@@ -102,18 +97,17 @@ pub fn main() {
         .arg_vec(ClInt4(100, 100, 100, 100))
         .arg_buf(&read_buf);
 
-    // A channel with room to keep 24 tasks in-flight.
-    let (tx, rx) = mpsc::sync_channel::<Option<Join<CpuFuture<usize, AsyncError>, CpuFuture<usize, AsyncError>>>>(4);
+    // A channel with room to keep a pre-specified number of tasks in-flight.
+    let (tx, rx) = mpsc::sync_channel::<Option<Join<CpuFuture<usize, AsyncError>,
+        CpuFuture<usize, AsyncError>>>>(CONCURRENT_TASK_MAX - 2);
 
     // Create a thread to handle the stream of work:
     let completion_thread = thread::spawn(move || {
-        // let mut in_flight = HashMap::with_capacity(12);
         let mut task_i = 0usize;
 
         loop {
             match rx.recv().unwrap() {
                 Some(task) => {
-                    // let task:  = task;
                     task.wait().unwrap();
                     println!("Task {} complete.", task_i);
 
@@ -124,7 +118,7 @@ pub fn main() {
             }
         }
 
-        println!("All {} futures complete.", task_i);
+        printlnc!(white_bold: "All {} futures complete.", task_i);
     });
 
 
@@ -136,7 +130,7 @@ pub fn main() {
     let mut start_event = Event::empty();
     // write_buf.cmd().fill(ClInt4(0, 0, 0, 0), None).enew(&mut start_event).enq().unwrap();
 
-    read_buf.cmd().fill(ClInt4(99, 5, 0, 5), None).enew(&mut start_event).enq().unwrap();
+    read_buf.cmd().fill(ClInt4(-999, -999, -999, -999), None).enew(&mut start_event).enq().unwrap();
 
     start_event.wait_for().unwrap();
 
@@ -156,15 +150,12 @@ pub fn main() {
                 *val = ClInt4(50, 50, 50, 50);
             }
 
-            println!("Mapped write complete (iter: {}). ", task_iter);
+            printlnc!(green: "Mapped write complete (iter: {}). ", task_iter);
 
             Ok(task_iter)
         });
 
         let spawned_write = thread_pool.spawn(write);
-
-        // // [DEBUG: WAIT]
-        // let spawned_write = thread_pool.spawn(write).wait().unwrap();
 
         // (2) KERNEL: Run kernel: Add 100 to everything (total should now be 150):
         let mut kern_event = Event::empty();
@@ -174,9 +165,6 @@ pub fn main() {
             .ewait(&write_unmap_event)
             .enq().unwrap();
 
-        // // [DEBUG: WAIT]
-        // kern_event.wait_for().unwrap();
-
         // (3) READ: Read results and verify that the write and kernel have
         // both completed successfully:
         let mut future_read_data = read_buf.cmd().map()
@@ -185,7 +173,7 @@ pub fn main() {
             .enq_async().unwrap();
 
         // Put the read unmap event into the `start_event` for the next iter.
-        let start_event = future_read_data.create_unmap_event().unwrap().clone();
+        start_event = future_read_data.create_unmap_event().unwrap().clone();
 
         let read = future_read_data.and_then(move |data| {
                 let mut val_count = 0usize;
@@ -198,23 +186,21 @@ pub fn main() {
                     val_count += 1;
                 }
 
-                println!("Mapped read and verify complete (task: {}). ", task_iter);
+                printlnc!(green_bold: "Mapped read and verify complete (task: {}). ", task_iter);
 
                 Ok(val_count)
             });
 
         let spawned_read = thread_pool.spawn(read);
 
-        // // [DEBUG: WAIT]
-        // spawned_read.wait().unwrap();
-
         let join = spawned_write.join(spawned_read);
-
         tx.send(Some(join)).unwrap();
-        // join.wait().unwrap();
     }
 
     tx.send(None).unwrap();
-
     completion_thread.join().unwrap();
+    let total_duration = chrono::Local::now() - start_time;
+
+    printlnc!(yellow_bold: "All {} result values are correct! \n\
+        Durations => | Total: {} |", TASK_ITERS, fmt_duration(total_duration));
 }

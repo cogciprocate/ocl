@@ -3,7 +3,7 @@ use futures::{task, Future, Poll, Async};
 
 use core::{self, Event as EventCore, OclPrm, MemMap as MemMapCore, Mem, CommandQueue,
     CommandQueueInfo, CommandQueueInfoResult};
-use standard::{box_raw_void, _unpark_task, MemMap};
+use standard::{box_raw_void, _unpark_task, MemMap, Event};
 use super::{Error as AsyncError, Result as AsyncResult};
 
 
@@ -12,8 +12,8 @@ use super::{Error as AsyncError, Result as AsyncResult};
 pub struct FutureMemMap<T: OclPrm> {
     core: Option<MemMapCore<T>>,
     len: usize,
-    map_event: EventCore,
-    unmap_target: Option<EventCore>,
+    map_event: Event,
+    unmap_target: Option<Event>,
     buffer: Option<Mem>,
     queue: Option<CommandQueue>,
     callback_is_set: bool,
@@ -27,7 +27,7 @@ impl<T: OclPrm> FutureMemMap<T> {
         FutureMemMap {
             core: Some(core),
             len: len,
-            map_event: map_event,
+            map_event: map_event.into(),
             unmap_target: None,
             buffer: Some(buffer),
             queue: Some(queue),
@@ -36,7 +36,7 @@ impl<T: OclPrm> FutureMemMap<T> {
     }
 
     #[cfg(feature = "event_callbacks")]
-    pub fn create_unmap_event(&mut self) -> AsyncResult<&mut EventCore> {
+    pub fn create_unmap_event(&mut self) -> AsyncResult<&mut Event> {
         if let Some(ref queue) = self.queue {
             let context = match core::get_command_queue_info(queue,
                     CommandQueueInfo::Context)
@@ -46,13 +46,18 @@ impl<T: OclPrm> FutureMemMap<T> {
                 _ => unreachable!(),
             };
 
-            match EventCore::user(&context) {
-                Ok(uev) => {
-                    self.unmap_target = Some(uev);
-                    Ok(self.unmap_target.as_mut().unwrap())
-                }
-                Err(err) => Err(err.into())
-            }
+            // match EventCore::user(&context) {
+            //     Ok(uev) => {
+            //         self.unmap_target = Some(uev.into());
+            //         Ok(self.unmap_target.as_mut().unwrap())
+            //     }
+            //     Err(err) => Err(err.into())
+            // }
+
+            let uev = EventCore::user(&context)?;
+            self.unmap_target = Some(uev.into());
+            Ok(self.unmap_target.as_mut().unwrap())
+
         } else {
             Err("FutureMemMap::create_unmap_target: No queue found!".into())
         }
@@ -78,7 +83,7 @@ impl<T: OclPrm> FutureMemMap<T> {
 
     /// Returns the unmap event if it has been created.
     #[inline]
-    pub fn get_unmap_target(&self) -> Option<&EventCore> {
+    pub fn get_unmap_target(&self) -> Option<&Event> {
         self.unmap_target.as_ref()
     }
 }

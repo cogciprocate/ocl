@@ -65,6 +65,29 @@ impl Event {
         &self.0
     }
 
+    /// Consumes the `Event`, returning the wrapped `cl_event` pointer.
+    ///
+    /// To avoid a memory leak the pointer must be converted back to an `Event` using
+    /// [`Event::from_raw`][from_raw].
+    ///
+    /// [from_raw]: struct.Event.html#method.from_raw
+    ///
+    #[inline]
+    pub fn into_raw(self) -> cl_event {
+        self.0.into_raw()
+    }
+
+    /// Constructs an `Event` from a raw `cl_event` pointer.
+    ///
+    /// The raw pointer must have been previously returned by a call to a
+    /// [`Event::into_raw`][into_raw].
+    ///
+    /// [into_raw]: struct.Event.html#method.into_raw
+    #[inline]
+    pub unsafe fn from_raw(ptr: cl_event) -> Event {
+        EventCore::from_raw(ptr).into()
+    }
+
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("Event")
             .field("CommandQueue", &self.info(EventInfo::CommandQueue))
