@@ -184,7 +184,7 @@ impl Future for Event {
             }
             Ok(false) => {
                 let task_ptr = box_raw_void(task::park());
-                unsafe { self.0.set_callback(Some(_unpark_task), task_ptr)?; };
+                unsafe { self.0.set_callback(_unpark_task, task_ptr)?; };
                 Ok(Async::NotReady)
             },
             Err(err) => Err(err),

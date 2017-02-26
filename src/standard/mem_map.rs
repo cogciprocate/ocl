@@ -190,7 +190,7 @@ impl<T> MemMap<T>  where T: OclPrm {
             if let Some(ref ev) = self.unmap_target {
                 unsafe {
                     let unmap_target_ptr = ev.clone().into_raw();
-                    event.set_callback(Some(core::_complete_user_event), unmap_target_ptr)?;
+                    event.set_callback(core::_complete_user_event, unmap_target_ptr)?;
 
                     // // [DEBUG]:
                     // println!("Callback set from trigger: {:?} to target: {:?}", event, unmap_target_ptr);

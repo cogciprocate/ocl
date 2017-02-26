@@ -92,7 +92,7 @@ fn wire_callback(wire_callback: bool, context: &Context, map_event: &Event) -> O
         unsafe {
             let user_map_event = EventCore::user(context).unwrap();
             let unmap_target_ptr = user_map_event.clone().into_raw();
-            map_event.set_callback(Some(core::_complete_user_event), unmap_target_ptr).unwrap();
+            map_event.set_callback(core::_complete_user_event, unmap_target_ptr).unwrap();
             Some(Event::from(user_map_event))
         }
     } else {

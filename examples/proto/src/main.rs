@@ -31,6 +31,7 @@
 
 
 #![allow(unused_imports)]
+#![feature(conservative_impl_trait)]
 
 extern crate chrono;
 extern crate futures;
@@ -41,14 +42,16 @@ extern crate ocl;
 use std::thread;
 use std::sync::mpsc;
 use chrono::{Duration, Local};
-use futures::{Future, Join};
+use futures::{Future, Join, AndThen};
 use futures_cpupool::{CpuPool, CpuFuture};
-use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer};
+use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
+    FutureMemMap, MemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::aliases::ClInt4;
+use ocl::async;
 
 // Size of buffers and kernel work size:
-const WORK_SIZE: usize = 1 << 25;
+const WORK_SIZE: usize = 1 << 24;
 
 // Number of times to run the loop:
 const TASK_ITERS: usize = 10;
@@ -64,14 +67,24 @@ const TASK_ITERS: usize = 10;
 // processed concurrently.
 const MAX_CONCURRENT_TASK_COUNT: usize = 2;
 
+
 pub static KERN_SRC: &'static str = r#"
-    __kernel void add(
+    // Makes a career out of adding values.
+    __kernel void add_slowly(
         __global int4* in,
-        __private int4 values,
+        __private int value,
         __global int4* out)
     {
-        uint idx = get_global_id(0);
-        out[idx] = in[idx] + values;
+        uint const idx = get_global_id(0);
+
+        float4 const inflated_val = (float4)((value)) * (float4)(255.0);
+        int4 sum = (int4)(0);
+
+        for (int i = 0; i < value; i++) {
+            sum += convert_int4((inflated_val / (float4)(255.0)) / (float4)(value));
+        }
+
+        out[idx] = in[idx] + sum;
     }
 "#;
 
@@ -80,6 +93,84 @@ pub fn fmt_duration(duration: Duration) -> String {
     let el_ms = duration.num_milliseconds() - (el_sec * 1000);
     format!("{}.{} seconds", el_sec, el_ms)
 }
+
+
+// 1. Map-Write
+// ============
+pub fn map_write(write_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event: Option<&Event>,
+        write_unmap_event: &mut Option<Event>, write_unmap_queue: &Queue, write_val: i32,
+        task_iter: usize)
+        -> AndThen<FutureMemMap<ClInt4>, async::Result<usize>,
+            impl FnOnce(MemMap<ClInt4>) -> async::Result<usize>>
+{
+    // Map the buffer and write 50's to the entire buffer, then
+    // unmap to actually move data to the device. The `map` will use
+    // the common queue and the `unmap` will automatically use the
+    // dedicated queue passed to the buffer during creation (unless we
+    // specify otherwise).
+    let mut future_write_data = write_buf.cmd().map()
+        .queue(common_queue)
+        .flags(MapFlags::new().write_invalidate_region())
+        .ewait_opt(wait_event)
+        .enq_async().unwrap();
+
+    // Set the write unmap completion event which will be set to complete
+    // (triggered) after the CPU-side processing is complete:
+    *write_unmap_event = Some(future_write_data.create_unmap_event().unwrap().clone());
+    let write_queue_copy = write_unmap_queue.clone();
+
+    let write = future_write_data.and_then(move |mut data| {
+        printlnc!(teal_bold: "* Mapped write starting (iter: {}) ...", task_iter);
+
+        for val in data.iter_mut() {
+            *val = ClInt4(write_val, write_val, write_val, write_val);
+        }
+
+        printlnc!(teal_bold: "* Mapped write complete (iter: {})", task_iter);
+
+        // Normally we could just let `data` (a `MemMap`) fall out of
+        // scope and it would unmap itself. Since we need to specify a
+        // special dedicated queue to avoid deadlocks in this case, we
+        // call it explicitly.
+        data.unmap().queue(&write_queue_copy).enq()?;
+
+        Ok(task_iter)
+    });
+
+    // let write_spawned = thread_pool.spawn(write);
+
+    printlnc!(teal: "Mapped write enqueued (iter: {})", task_iter);
+    write
+}
+
+
+// 2. Kernel-Add
+// =============
+pub fn kernel_add(kern: &Kernel, common_queue: &Queue, kernel_wait_list: &mut EventList,
+        write_unmap_event: &Option<Event>, read_unmap_event: &Option<Event>,
+        kernel_event: &mut Option<Event>, task_iter: usize)
+{
+    kernel_wait_list.clear();
+    if let Some(ref write_ev) = *write_unmap_event { kernel_wait_list.push(write_ev.clone()); };
+    if let Some(ref read_ev) = *read_unmap_event { kernel_wait_list.push(read_ev.clone()); };
+    *kernel_event = Some(Event::empty());
+
+    // Enqueues the kernel. Since we did not specify a default queue upon
+    // creation (for no particular reason) we must specify it here. Also note
+    // that the events that this kernel depends on are linked to the *unmap*,
+    // not the map commands of the preceding read and writes.
+    kern.cmd()
+        .queue(&common_queue)
+        .enew_opt(kernel_event.as_mut())
+        .ewait(&kernel_wait_list[..])
+        .enq().unwrap();
+
+    printlnc!(magenta: "Kernel enqueued (iter: {})", task_iter);
+
+    // kernel_event.as_ref().unwrap().set_callback()
+}
+
+
 
 pub fn main() {
     let start_time = Local::now();
@@ -129,10 +220,10 @@ pub fn main() {
         .src(KERN_SRC)
         .build(&context).unwrap();
 
-    let kern = Kernel::new("add", &program).unwrap()
+    let kern = Kernel::new("add_slowly", &program).unwrap()
         .gws(WORK_SIZE)
         .arg_buf(&write_buf)
-        .arg_vec(ClInt4(100, 100, 100, 100))
+        .arg_scl(100)
         .arg_buf(&read_buf);
 
     // Thread pool for offloaded tasks.
@@ -165,82 +256,42 @@ pub fn main() {
     });
 
     // Our events for synchronization:
-    let mut write_unmap_event;
+    let mut write_unmap_event = None;
     let mut kernel_event = Some(Event::empty());
     let mut read_unmap_event = None::<Event>;
     let mut kernel_wait_list = EventList::with_capacity(2);
 
-    // // (0) INIT: Fill buffer with -999's just to ensure the upcoming
-    // // write misses nothing:
-    // write_buf.cmd().fill(ClInt4(-999, -999, -999, -999), None)
-    //     .enew_opt(kernel_event.as_mut()).enq().unwrap();
+    // 0. Init-Fill
+    // ============
+    // Fill buffer with -999's just to ensure the upcoming write misses
+    // nothing:
+    write_buf.cmd().fill(ClInt4(-999, -999, -999, -999), None)
+        .queue(&common_queue)
+        .enew_opt(kernel_event.as_mut())
+        .enq().unwrap();
 
-    // kernel_event.as_ref().unwrap().wait_for().unwrap();
+    kernel_event.as_ref().unwrap().wait_for().unwrap();
 
-
-    // Run our main loop. This could run indefinitely if we had a source of input.
+    // Our main loop. Could run indefinitely if we had a stream of input.
     for task_iter in 0..TASK_ITERS {
-        // (1) WRITE: Map the buffer and write 50's to the entire buffer, then
-        //     unmap to actually move data to the device. The `map` will use
-        //     the common queue and the `unmap` will automatically use the
-        //     dedicated queue passed to the buffer during creation (unless we
-        //     specify otherwise).
-        let mut future_write_data = write_buf.cmd().map()
-            .queue(&common_queue)
-            .flags(MapFlags::new().write_invalidate_region())
-            .ewait_opt(kernel_event.as_ref())
-            .enq_async().unwrap();
+        // 1. Map-Write
+        // ============
+        let write = map_write(&write_buf, &common_queue, kernel_event.as_ref(),
+            &mut write_unmap_event, &write_unmap_queue, 50, task_iter);
 
-        // Set the write unmap completion event which will be set to complete
-        // (triggered) after the CPU-side processing is complete:
-        write_unmap_event = Some(future_write_data.create_unmap_event().unwrap().clone());
-        let write_queue_copy = write_unmap_queue.clone();
 
-        let write = future_write_data.and_then(move |mut data| {
-            printlnc!(teal_bold: "* Mapped write starting (iter: {}) ...", task_iter);
+        // 2. Kernel-Add
+        // =============
+        kernel_add(&kern, &common_queue, &mut kernel_wait_list, &write_unmap_event, &read_unmap_event,
+            &mut kernel_event, task_iter);
 
-            for val in data.iter_mut() {
-                *val = ClInt4(50, 50, 50, 50);
-            }
 
-            printlnc!(teal_bold: "* Mapped write complete (iter: {})", task_iter);
-
-            // Normally we could just let `data` (a `MemMap`) fall out of
-            // scope and it would unmap itself. Since we need to specify a
-            // special dedicated queue to avoid deadlocks in this case, we
-            // call it explicitly.
-            data.unmap().queue(&write_queue_copy).enq()?;
-
-            Ok(task_iter)
-        });
-
-        // let write_spawned = thread_pool.spawn(write);
-
-        printlnc!(teal: "Mapped write enqueued (iter: {})", task_iter);
-
-        // (2) KERNEL: Run kernel: Add 100 to everything (total should now be
-        //    150). Note that the events that this kernel depends on are
-        //    linked to the *unmap*, not the map commands of the preceding
-        //    read and writes.
-        kernel_wait_list.clear();
-        if let Some(ref write_ev) = write_unmap_event { kernel_wait_list.push(write_ev.clone()); };
-        if let Some(ref read_ev) = read_unmap_event { kernel_wait_list.push(read_ev.clone()); };
-        kernel_event = Some(Event::empty());
-
-        // Enqueues the kernel. Since we did not specify a default queue upon
-        // creation (for no particular reason) we must specify it here.
-        kern.cmd()
-            .queue(&common_queue)
-            .enew_opt(kernel_event.as_mut())
-            .ewait(&kernel_wait_list[..])
-            .enq().unwrap();
-
-        printlnc!(magenta: "Kernel enqueued (iter: {})", task_iter);
-
-        // (3) READ: Read results and verify that the write and kernel have
-        //     both completed successfully. The `map` will use
-        //     the common queue and the `unmap` will use the dedicated queue
-        //     passed to the buffer during creation.
+        // 3. Map-Read/Verify
+        // ==================
+        // Read results and verify that the write and kernel have both
+        // completed successfully. The `map` will use the common queue and the
+        // `unmap` will use the dedicated queue passed to the buffer during
+        // creation.
         let mut future_read_data = read_buf.cmd().map()
             .queue(&common_queue)
             .flags(MapFlags::new().read())

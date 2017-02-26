@@ -104,7 +104,7 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
                 if !self.callback_is_set {
                     unsafe {
                         // println!("Setting callback...");
-                        self.map_event.set_callback(Some(_unpark_task),
+                        self.map_event.set_callback(_unpark_task,
                             box_raw_void(task::park()))?;
                     }
                     // println!("Task callback is set for event: {:?}.", self.map_event);
