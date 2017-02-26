@@ -587,7 +587,7 @@ pub fn main() {
 
     // Set up context using defaults:
     let platform = Platform::default();
-    println!("Platform: {}", platform.name());
+    printlnc!(blue: "Platform: {}", platform.name());
 
     // let device = Device::first(platform);
     let device_idx = RandRange::new(0, 15).ind_sample(&mut rng);
@@ -596,7 +596,7 @@ pub fn main() {
         .wrapping_indices(vec![device_idx])
         .to_device_list(Some(platform)).unwrap()[0];
 
-    println!("Device: {} {}", device.vendor(), device.name());
+    printlnc!(teal: "Device: {} {}", device.vendor(), device.name());
 
     let context = Context::builder()
         .platform(platform)

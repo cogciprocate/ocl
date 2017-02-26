@@ -60,6 +60,7 @@ impl BuildOpt {
 // [SOMEDAY TODO]: Keep track of line number range for each string and print
 // out during build failure.
 //
+#[must_use = "builders do nothing unless '::build' is called"]
 #[derive(Clone, Debug)]
 pub struct ProgramBuilder {
     options: Vec<BuildOpt>,

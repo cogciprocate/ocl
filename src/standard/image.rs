@@ -16,8 +16,9 @@ use standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnu
 use ffi::{cl_GLuint, cl_GLint};
 
 /// A builder for `Image`.
+#[must_use = "builders do nothing unless '::build' is called"]
 pub struct ImageBuilder<'a, T> where T: 'a {
-    queue_option: Option<QueCtx>,
+    queue_option: Option<QueCtx<'a>>,
     flags: MemFlags,
     host_data: Option<&'a [T]>,
     image_format: ImageFormat,
@@ -75,7 +76,9 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     /// Sets the context with which to associate the buffer.
     ///
     /// May not be used in combination with `::queue` (use one or the other).
-    pub fn context<'b>(mut self, context: Context) -> ImageBuilder<'a, T> {
+    pub fn context<'o>(mut self, context: &'o Context) -> ImageBuilder<'a, T>
+            where 'o: 'a
+    {
         assert!(self.queue_option.is_none());
         self.queue_option = Some(QueCtx::Context(context));
         self
@@ -399,6 +402,7 @@ impl<'c, T: 'c> ImageCmdKind<'c, T> {
 /// ```
 ///
 /// [FIXME]: Fills not yet implemented.
+#[must_use = "commands do nothing unless enqueued"]
 #[allow(dead_code)]
 pub struct ImageCmd<'c, T: 'c> {
     queue: Option<&'c Queue>,
@@ -950,9 +954,9 @@ impl<T: OclPrm> Image<T> {
     /// Prefer `::builder` to create a new image.
     // pub fn new(queue: Queue, flags: MemFlags, image_format: ImageFormat,
     //         image_desc: ImageDescriptor, host_data: Option<&[E]>) -> OclResult<Image<E>>
-    pub fn new<Q>(que_ctx: Q, flags: MemFlags, image_format: ImageFormat,
+    pub fn new<'o, Q>(que_ctx: Q, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, host_data: Option<&[T]>) -> OclResult<Image<T>>
-            where Q: Into<QueCtx>
+            where Q: Into<QueCtx<'o>>
     {
         let que_ctx = que_ctx.into();
         let context = que_ctx.context_cloned();
@@ -989,10 +993,10 @@ impl<T: OclPrm> Image<T> {
 
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
-    pub fn from_gl_texture<Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
+    pub fn from_gl_texture<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             texture_target: GlTextureTarget, miplevel: cl_GLint, texture: cl_GLuint)
             -> OclResult<Image<T>>
-            where Q: Into<QueCtx>
+            where Q: Into<QueCtx<'o>>
     {
         let que_ctx = que_ctx.into();
         let context = que_ctx.context_cloned();
@@ -1035,9 +1039,9 @@ impl<T: OclPrm> Image<T> {
 
     /// Returns a new `Image` from an existant renderbuffer.
     // [WORK IN PROGRESS]
-    pub fn from_gl_renderbuffer<Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
+    pub fn from_gl_renderbuffer<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             renderbuffer: cl_GLuint) -> OclResult<Image<T>>
-            where Q: Into<QueCtx>
+            where Q: Into<QueCtx<'o>>
     {
         let que_ctx = que_ctx.into();
         let context = que_ctx.context_cloned();

@@ -8,6 +8,7 @@ use async::{Result as AsyncResult};
 
 
 /// An unmap command builder.
+#[must_use = "commands do nothing unless enqueued"]
 pub struct MemUnmapCmd<'c, T> where T: 'c + OclPrm {
     queue: Option<&'c CommandQueueCore>,
     mem_map: &'c mut MemMap<T>,
@@ -37,7 +38,9 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait<EWL>(mut self, ewait: EWL) -> MemUnmapCmd<'c, T> where EWL: Into<ClWaitListPtrEnum<'c>> {
+    pub fn ewait<EWL>(mut self, ewait: EWL) -> MemUnmapCmd<'c, T>
+            where EWL: Into<ClWaitListPtrEnum<'c>>
+    {
         self.ewait = Some(ewait.into());
         self
     }

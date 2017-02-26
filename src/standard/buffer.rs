@@ -28,47 +28,46 @@ fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     }
 }
 
-
 #[derive(Debug, Clone)]
-pub enum QueCtx {
+pub enum QueCtx<'o> {
     Queue(Queue),
-    Context(Context),
+    Context(&'o Context),
 }
 
-impl QueCtx {
+impl<'o> QueCtx<'o> {
     pub fn context_cloned(&self) -> Context {
         match *self {
             QueCtx::Queue(ref q) => q.context(),
-            QueCtx::Context(ref c) => c.clone(),
+            QueCtx::Context(c) => c.clone(),
         }
     }
 }
 
-impl From<Queue> for QueCtx {
-    fn from(q: Queue) -> QueCtx {
+impl<'o> From<Queue> for QueCtx<'o> {
+    fn from(q: Queue) -> QueCtx<'o> {
         QueCtx::Queue(q)
     }
 }
 
-impl<'a> From<&'a Queue> for QueCtx {
-    fn from(q: &Queue) -> QueCtx {
+impl<'a, 'o> From<&'a Queue> for QueCtx<'o> {
+    fn from(q: &Queue) -> QueCtx<'o> {
         QueCtx::Queue(q.clone())
     }
 }
 
-impl From<Context> for QueCtx {
-    fn from(c: Context) -> QueCtx {
+impl<'o> From<&'o Context> for QueCtx<'o> {
+    fn from(c: &'o Context) -> QueCtx<'o> {
         QueCtx::Context(c)
     }
 }
 
-impl<'a> From<&'a Context> for QueCtx {
-    fn from(c: &Context) -> QueCtx {
-        QueCtx::Context(c.clone())
-    }
-}
+// impl<'a, 'o> From<&'a Context> for QueCtx<'o> {
+//     fn from(c: &Context) -> QueCtx<'o> {
+//         QueCtx::Context(c.clone())
+//     }
+// }
 
-impl Into<Option<Queue>> for QueCtx {
+impl<'o> Into<Option<Queue>> for QueCtx<'o> {
     fn into(self) -> Option<Queue> {
         match self {
             QueCtx::Queue(q) => Some(q),
@@ -82,9 +81,10 @@ impl Into<Option<Queue>> for QueCtx {
 ///
 /// [TODO]: Add examples and details. For now see project examples folder.
 ///
+#[must_use = "builders do nothing unless '::build' is called"]
 #[derive(Debug)]
 pub struct BufferBuilder<'a, T> where T: 'a {
-    queue_option: Option<QueCtx>,
+    queue_option: Option<QueCtx<'a>>,
     flags: Option<MemFlags>,
     host_data: Option<&'a [T]>,
     dims: Option<SpatialDims>,
@@ -106,7 +106,9 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// Sets the context with which to associate the buffer.
     ///
     /// May not be used in combination with `::queue` (use one or the other).
-    pub fn context<'b>(mut self, context: Context) -> BufferBuilder<'a, T> {
+    pub fn context<'o>(mut self, context: &'o Context) -> BufferBuilder<'a, T>
+            where 'o: 'a
+    {
         assert!(self.queue_option.is_none());
         self.queue_option = Some(QueCtx::Context(context));
         self
@@ -314,6 +316,7 @@ pub enum BufferCmdDataShape {
 ///
 /// ```
 ///
+#[must_use = "commands do nothing unless enqueued"]
 pub struct BufferCmd<'c, T> where T: 'c {
     queue: Option<&'c Queue>,
     obj_core: &'c MemCore,
@@ -718,6 +721,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 /// See [SDK][read_buffer] docs for more details.
 ///
 /// [read_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueReadBuffer.html
+#[must_use = "commands do nothing unless enqueued"]
 pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
     data: &'d mut [T],
@@ -917,6 +921,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 /// See [SDK][write_buffer] docs for more details.
 ///
 /// [write_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueWriteBuffer.html
+#[must_use = "commands do nothing unless enqueued"]
 pub struct BufferWriteCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
     data: &'d [T],
@@ -1097,6 +1102,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 /// See [SDK][map_buffer] docs for more details.
 ///
 /// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
+#[must_use = "commands do nothing unless enqueued"]
 pub struct BufferMapCmd<'c, T> where T: 'c {
     cmd: BufferCmd<'c, T>,
     flags: Option<MapFlags>,
@@ -1302,9 +1308,9 @@ impl<T: OclPrm> Buffer<T> {
     /// [`BufferBuilder`]: struct.BufferBuilder.html
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     ///
-    pub fn new<'e, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
+    pub fn new<'e, 'o, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
             host_data: Option<&[T]>, fill_val: Option<(T, Option<En>)>) -> OclResult<Buffer<T>>
-            where D: Into<SpatialDims>, Q: Into<QueCtx>, En: Into<ClNullEventPtrEnum<'e>>
+            where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>, En: Into<ClNullEventPtrEnum<'e>>
     {
         if host_data.is_some() && fill_val.is_some() { panic!("ocl::Buffer::new: Cannot initialize a \
             buffer ('fill_val') when the 'data' argument is 'Some(...)'.") };
@@ -1357,9 +1363,9 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](struct.BufferCmd.html)
     /// for more info.
     ///
-    pub fn from_gl_buffer<D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
+    pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
             gl_object: cl_GLuint) -> OclResult<Buffer<T>>
-            where D: Into<SpatialDims>, Q: Into<QueCtx>
+            where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>
     {
         let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
         let dims: SpatialDims = dims.into();

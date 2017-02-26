@@ -43,10 +43,10 @@ pub fn main() {
     let start_time = chrono::Local::now();
 
     let platform = Platform::default();
-    println!("Platform: {}", platform.name());
+    printlnc!(blue: "Platform: {}", platform.name());
 
     let device = Device::first(platform);
-    println!("Device: {} {}", device.vendor(), device.name());
+    printlnc!(teal: "Device: {} {}", device.vendor(), device.name());
 
     let context = Context::builder()
         .platform(platform)

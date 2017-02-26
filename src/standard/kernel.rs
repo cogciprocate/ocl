@@ -16,6 +16,7 @@ const PRINT_DEBUG: bool = false;
 
 /// A kernel command builder used to queue a kernel with a mix of default
 /// and optionally specified arguments.
+#[must_use = "commands do nothing unless enqueued"]
 pub struct KernelCmd<'k> {
     queue: Option<&'k CommandQueueCore>,
     kernel: &'k KernelCore,

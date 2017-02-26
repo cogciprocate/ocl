@@ -13,6 +13,7 @@ static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions sp
 const DEBUG_PRINT: bool = false;
 
 /// A builder for `ProQue`.
+#[must_use = "builders do nothing unless '::build' is called"]
 pub struct ProQueBuilder {
     platform: Option<Platform>,
     context: Option<Context>,

@@ -12,6 +12,7 @@ use standard::{Platform, Device, DeviceSpecifier};
 /// A builder for `Context`.
 ///
 /// TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
+#[must_use = "builders do nothing unless '::build' is called"]
 pub struct ContextBuilder {
     properties: ContextProperties,
     device_spec: Option<DeviceSpecifier>,
