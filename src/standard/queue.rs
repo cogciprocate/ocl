@@ -4,7 +4,7 @@ use std;
 use std::ops::{Deref, DerefMut};
 use core::error::{Result as OclResult};
 use core::{self, CommandQueue as CommandQueueCore, CommandQueueInfo, CommandQueueInfoResult,
-    OpenclVersion, CommandQueueProperties};
+    OpenclVersion, CommandQueueProperties, ClNullEventPtr, ClWaitListPtr};
 use standard::{Context, Device};
 
 /// A command queue which manages all actions taken on kernels, buffers, and
@@ -43,6 +43,14 @@ impl Queue {
     /// Blocks until all commands in this queue have completed before returning.
     pub fn finish(&self) -> OclResult<()> {
         core::finish(&self.obj_core)
+    }
+
+    /// Enqueues a marker command which waits for either a list of events to
+    /// complete, or all previously enqueued commands to complete.
+    pub fn enqueue_marker<En, Ewl>(&self, ewait: Option<Ewl>, enew: Option<En>) -> OclResult<()>
+            where En: ClNullEventPtr, Ewl: ClWaitListPtr
+    {
+        core::enqueue_marker_with_wait_list(&self.obj_core, ewait, enew, Some(&self.device_version))
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
