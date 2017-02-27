@@ -317,13 +317,16 @@ impl ProQue {
 
     /// Returns a new buffer
     ///
-    /// The default dimensions for this `ProQue` will be used when creating.
+    /// The default dimensions and queue for this `ProQue` will be used.
+    ///
+    /// The buffer will be filled with zeros upon creation, blocking the
+    /// current thread until completion.
     ///
     /// # Errors
     ///
-    /// This `ProQue` must have been pre-configured with default dimensions to
-    /// use this method. If not, set them with `::set_dims`, or just create a
-    /// buffer using `Buffer::new()`.
+    /// This `ProQue` must have been pre-configured with default dimensions.
+    /// If not, set them with `::set_dims`, or just create a buffer using
+    /// `Buffer::builder()` instead.
     ///
     pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
         let dims = try!(self.dims_result());
@@ -332,6 +335,7 @@ impl ProQue {
         Buffer::<T>::builder()
             .queue(self.queue.clone())
             .dims(dims)
+            .fill_val(Default::default(), None::<&mut ::Event>)
             .build()
     }
 
