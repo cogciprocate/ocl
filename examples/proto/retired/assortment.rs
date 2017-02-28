@@ -37,11 +37,11 @@ use std::collections::{LinkedList, HashMap, BTreeSet};
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
     Event, EventList, MemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::ClFloat4;
+use ocl::aliases::Float4;
 
-const INITIAL_BUFFER_LEN: u32 = 1 << 23; // 256MiB of ClFloat4
-const SUB_BUF_MIN_LEN: u32 = 1 << 11; // 64KiB of ClFloat4
-const SUB_BUF_MAX_LEN: u32 = 1 << 15; // 1MiB of ClFloat4
+const INITIAL_BUFFER_LEN: u32 = 1 << 23; // 256MiB of Float4
+const SUB_BUF_MIN_LEN: u32 = 1 << 11; // 64KiB of Float4
+const SUB_BUF_MAX_LEN: u32 = 1 << 15; // 1MiB of Float4
 
 
 struct PoolRegion {
@@ -424,7 +424,7 @@ struct Task {
     cmd_graph: CommandGraph,
     queue: Queue,
     kernels: Vec<Kernel>,
-    expected_result: Option<ClFloat4>,
+    expected_result: Option<Float4>,
 }
 
 impl Task{
@@ -476,7 +476,7 @@ impl Task{
         }))
     }
 
-    pub fn set_expected_result(&mut self, expected_result: ClFloat4) {
+    pub fn set_expected_result(&mut self, expected_result: Float4) {
         self.expected_result = Some(expected_result)
     }
 
@@ -622,7 +622,7 @@ fn gen_kern_src(kernel_name: &str, simple: bool, add: bool) -> String {
 /// 1.) Run one kernel
 /// 2.) Read data
 ///
-fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPool<ClFloat4>,
+fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPool<Float4>,
     work_size: u32, queue: Queue) -> Result<Task, ()>
 {
     let write_buf_flags = Some(MemFlags::new().read_only().host_write_only());
@@ -654,7 +654,7 @@ fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPo
     let kern = Kernel::new("kern", &program, queue).unwrap()
         .gws(work_size)
         .arg_buf(buf_pool.get(write_buf_id).unwrap())
-        .arg_vec(ClFloat4::new(100., 100., 100., 100.))
+        .arg_vec(Float4::new(100., 100., 100., 100.))
         .arg_buf(buf_pool.get(read_buf_id).unwrap());
 
     // 0.) Initial write to device:
@@ -673,12 +673,12 @@ fn create_simple_task(device: Device, context: &Context, buf_pool: &mut BufferPo
     Ok(task)
 }
 
-fn run_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>) {
+fn run_simple_task(task: &mut Task, buf_pool: &BufferPool<Float4>) {
     // 0.) Write a bunch of 50's:
     let mut data = task.map(0, buf_pool);
 
     for val in data.iter_mut() {
-        *val = ClFloat4::new(50., 50., 50., 50.);
+        *val = Float4::new(50., 50., 50., 50.);
     }
 
     task.unmap(data, 0, buf_pool);
@@ -688,12 +688,12 @@ fn run_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>) {
 }
 
 
-fn verify_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, correct_val_count: &mut usize) {
+fn verify_simple_task(task: &mut Task, buf_pool: &BufferPool<Float4>, correct_val_count: &mut usize) {
     // 2.) Read results and verifies them:
     let data = task.map(2, buf_pool);
 
     for val in data.iter() {
-        assert_eq!(*val, ClFloat4::new(150., 150., 150., 150.));
+        assert_eq!(*val, Float4::new(150., 150., 150., 150.));
         *correct_val_count += 1;
     }
 
@@ -716,7 +716,7 @@ fn verify_simple_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, correct_
 /// 6.) Kernel:  buffer[5] -> kernel_C -> buffer[6]
 /// 7.) Read:    buffer[6] -> host_mem
 ///
-fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferPool<ClFloat4>,
+fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferPool<Float4>,
     work_size: u32, queue: Queue, rng: &mut XorShiftRng) -> Result<Task, ()>
 {
     // The container for this task:
@@ -769,7 +769,7 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
     let kernel_A = Kernel::new("kernel_A", &program, queue.clone()).unwrap()
         .gws(work_size)
         .arg_buf(buf_pool.get(buffer_ids[0]).unwrap())
-        .arg_vec(ClFloat4::new(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
+        .arg_vec(Float4::new(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
         .arg_buf(buf_pool.get(buffer_ids[1]).unwrap());
 
     let kernel_B = Kernel::new("kernel_B", &program, queue.clone()).unwrap()
@@ -777,13 +777,13 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
         .arg_buf(buf_pool.get(buffer_ids[2]).unwrap())
         .arg_buf(buf_pool.get(buffer_ids[3]).unwrap())
         .arg_buf(buf_pool.get(buffer_ids[4]).unwrap())
-        .arg_vec(ClFloat4::new(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
+        .arg_vec(Float4::new(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
         .arg_buf(buf_pool.get(buffer_ids[5]).unwrap());
 
     let kernel_C = Kernel::new("kernel_C", &program, queue).unwrap()
         .gws(work_size)
         .arg_buf(buf_pool.get(buffer_ids[5]).unwrap())
-        .arg_vec(ClFloat4::new(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
+        .arg_vec(Float4::new(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
         .arg_buf(buf_pool.get(buffer_ids[6]).unwrap());
 
     // 0.) Initially write 500s:
@@ -825,20 +825,20 @@ fn create_complex_task(device: Device, context: &Context, buf_pool: &mut BufferP
         (coeff(kern_b_sign) * 50.) +
         (coeff(kern_b_sign) * kern_b_val);
     let kern_c_out_val = kern_b_out_val + (coeff(kern_c_sign) * kern_c_val);
-    task.set_expected_result(ClFloat4::new(kern_c_out_val, kern_c_out_val, kern_c_out_val, kern_c_out_val));
+    task.set_expected_result(Float4::new(kern_c_out_val, kern_c_out_val, kern_c_out_val, kern_c_out_val));
 
     // Populate the command graph:
     task.cmd_graph.populate_requisites();
     Ok(task)
 }
 
-fn run_complex_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>) {
+fn run_complex_task(task: &mut Task, buf_pool: &BufferPool<Float4>) {
     // 0.) Initially write 500s:
     let write_cmd_idx = 0;
     let mut data = task.map(write_cmd_idx, buf_pool);
 
     for val in data.iter_mut() {
-        *val = ClFloat4::new(500., 500., 500., 500.);
+        *val = Float4::new(500., 500., 500., 500.);
     }
 
     task.unmap(data, write_cmd_idx, buf_pool);
@@ -853,7 +853,7 @@ fn run_complex_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>) {
     task.copy(3, buf_pool);
 
     // 4.) Fill buffer[4] with 50s:
-    task.fill(ClFloat4::new(50., 50., 50., 50.), 4, buf_pool);
+    task.fill(Float4::new(50., 50., 50., 50.), 4, buf_pool);
 
     // 5.) Kernel B -- Sum buffers and add values:
     task.kernel(5);
@@ -863,7 +863,7 @@ fn run_complex_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>) {
 
 }
 
-fn verify_complex_task(task: &mut Task, buf_pool: &BufferPool<ClFloat4>, correct_val_count: &mut usize) {
+fn verify_complex_task(task: &mut Task, buf_pool: &BufferPool<Float4>, correct_val_count: &mut usize) {
     // 7.) Final read from device:
     let read_cmd_idx = 7;
     let data = task.map(read_cmd_idx, buf_pool);
@@ -898,7 +898,7 @@ fn main() {
     let io_queue = Queue::new(&context, device, Some(CommandQueueProperties::new().out_of_order())).unwrap();
     let kern_queue = Queue::new(&context, device, Some(CommandQueueProperties::new().out_of_order())).unwrap();
 
-    let mut buf_pool: BufferPool<ClFloat4> = BufferPool::new(INITIAL_BUFFER_LEN, io_queue);
+    let mut buf_pool: BufferPool<Float4> = BufferPool::new(INITIAL_BUFFER_LEN, io_queue);
     let mut simple_tasks: Vec<Task> = Vec::new();
     let mut complex_tasks: Vec<Task> = Vec::new();
     let mut pool_full = false;

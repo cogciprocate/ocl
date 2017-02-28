@@ -43,7 +43,7 @@ fn fill() {
 
 #[test]
 fn fill_with_float4() {
-    use aliases::ClFloat4;
+    use aliases::Float4;
 
     let src = r#"
         __kernel void add_float4(__global float4* buffer, float4 addend) {
@@ -51,10 +51,10 @@ fn fill_with_float4() {
         }
     "#;
 
-    let start_val = ClFloat4::new(9.0f32, 11.0f32, 14.0f32, 18.0f32);
-    // let start_val = ClFloat4::new(5.0f32, 5.0f32, 5.0f32, 5.0f32);
-    let addend = ClFloat4::new(10.0f32, 10.0f32, 10.0f32, 10.0f32);
-    // let final_val = ClFloat4::new(15.0f32, 15.0f32, 15.0f32, 15.0f32);
+    let start_val = Float4::new(9.0f32, 11.0f32, 14.0f32, 18.0f32);
+    // let start_val = Float4::new(5.0f32, 5.0f32, 5.0f32, 5.0f32);
+    let addend = Float4::new(10.0f32, 10.0f32, 10.0f32, 10.0f32);
+    // let final_val = Float4::new(15.0f32, 15.0f32, 15.0f32, 15.0f32);
     let final_val = start_val + addend;
 
     let pro_que = ProQue::builder()
@@ -62,7 +62,7 @@ fn fill_with_float4() {
         .dims(DATASET_SIZE)
         .build().unwrap();
 
-    let buffer = pro_que.create_buffer::<ClFloat4>().unwrap();
+    let buffer = pro_que.create_buffer::<Float4>().unwrap();
 
     buffer.cmd().fill(start_val, None).enq().unwrap();
 

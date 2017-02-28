@@ -45,7 +45,7 @@ use futures::{Future, Join};
 use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::ClInt4;
+use ocl::aliases::Int4;
 
 // Size of buffers and kernel work size:
 const WORK_SIZE: usize = 1 << 25;
@@ -111,13 +111,13 @@ pub fn main() {
     let read_buf_flags = MemFlags::new().alloc_host_ptr().write_only().host_read_only();
 
     // Create write and read buffers:
-    let write_buf: Buffer<ClInt4> = Buffer::builder()
+    let write_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(write_buf_flags)
         .dims(WORK_SIZE)
         .build().unwrap();
 
-    let read_buf: Buffer<ClInt4> = Buffer::builder()
+    let read_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(read_buf_flags)
         .dims(WORK_SIZE)
@@ -132,7 +132,7 @@ pub fn main() {
     let kern = Kernel::new("add", &program).unwrap()
         .gws(WORK_SIZE)
         .arg_buf(&write_buf)
-        .arg_vec(ClInt4::new(100, 100, 100, 100))
+        .arg_vec(Int4::new(100, 100, 100, 100))
         .arg_buf(&read_buf);
 
     // Thread pool for offloaded tasks.
@@ -172,7 +172,7 @@ pub fn main() {
 
     // // (0) INIT: Fill buffer with -999's just to ensure the upcoming
     // // write misses nothing:
-    // write_buf.cmd().fill(ClInt4::new(-999, -999, -999, -999), None)
+    // write_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None)
     //     .enew_opt(kernel_event.as_mut()).enq().unwrap();
 
     // kernel_event.as_ref().unwrap().wait_for().unwrap();
@@ -200,7 +200,7 @@ pub fn main() {
             printlnc!(teal_bold: "* Mapped write starting (iter: {}) ...", task_iter);
 
             for val in data.iter_mut() {
-                *val = ClInt4::new(50, 50, 50, 50);
+                *val = Int4::new(50, 50, 50, 50);
             }
 
             printlnc!(teal_bold: "* Mapped write complete (iter: {})", task_iter);
@@ -257,7 +257,7 @@ pub fn main() {
                 printlnc!(lime_bold: "* Mapped read/verify starting (iter: {}) ...", task_iter);
 
                 for (idx, val) in data.iter().enumerate() {
-                    let correct_val = ClInt4::new(150, 150, 150, 150);
+                    let correct_val = Int4::new(150, 150, 150, 150);
                     if *val != correct_val {
                         return Err(format!("Result value mismatch: {:?} != {:?} @ [{}]", val, correct_val, idx).into());
                     }

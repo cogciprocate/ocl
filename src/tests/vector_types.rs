@@ -2,7 +2,7 @@
 //!
 
 use standard::ProQue;
-use aliases::ClInt4;
+use aliases::Int4;
 
 const DATASET_SIZE: usize = 1 << 20;
 
@@ -16,8 +16,8 @@ fn test_vector_types() {
         }
     "#;
 
-    let start_val = ClInt4::new(9, 11, 14, 19);
-    let addend = ClInt4::new(10, 10, 10, 10);
+    let start_val = Int4::new(9, 11, 14, 19);
+    let addend = Int4::new(10, 10, 10, 10);
     let final_val = start_val + addend;
 
     let pro_que = ProQue::builder()
@@ -25,7 +25,7 @@ fn test_vector_types() {
         .dims(DATASET_SIZE)
         .build().unwrap();
 
-    let in_buffer = pro_que.create_buffer::<ClInt4>().unwrap();
+    let in_buffer = pro_que.create_buffer::<Int4>().unwrap();
 
     in_buffer.cmd().fill(start_val, None).enq().unwrap();
 
@@ -36,7 +36,7 @@ fn test_vector_types() {
         assert_eq!(ele, start_val);
     }
 
-    let out_buffer = pro_que.create_buffer::<ClInt4>().unwrap();
+    let out_buffer = pro_que.create_buffer::<Int4>().unwrap();
 
     let kernel = pro_que.create_kernel("add_int4").unwrap()
         .arg_buf(&in_buffer)
@@ -49,7 +49,7 @@ fn test_vector_types() {
 
     let mut i = 0i32;
     for &ele in vec.iter() {
-        assert_eq!(ele, final_val + ClInt4::new(i, i, i, i));
+        assert_eq!(ele, final_val + Int4::new(i, i, i, i));
         i += 1;
     }
 }

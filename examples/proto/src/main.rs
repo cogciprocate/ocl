@@ -48,7 +48,7 @@ use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{async, Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
     FutureMemMap, MemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::ClInt4;
+use ocl::aliases::Int4;
 use ocl::ffi::{cl_event, c_void};
 
 // Size of buffers and kernel work size:
@@ -138,7 +138,7 @@ pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
 /// ============
 ///
 /// Fill buffer with -999's just to ensure the upcoming write misses nothing:
-pub fn fill_junk(src_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event: Option<&Event>,
+pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: Option<&Event>,
         fill_event: &mut Option<Event>, task_iter: usize)
 {
     // These just print status messages...
@@ -158,7 +158,7 @@ pub fn fill_junk(src_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event: Opt
     }
 
     *fill_event = Some(Event::empty());
-    src_buf.cmd().fill(ClInt4::new(-999, -999, -999, -999), None).queue(common_queue)
+    src_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None).queue(common_queue)
         .ewait_opt(wait_event).enew_opt(fill_event.as_mut()).enq().unwrap();
 
     unsafe { fill_event.as_ref().unwrap()
@@ -174,11 +174,11 @@ pub fn fill_junk(src_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event: Opt
 /// the common queue and the `unmap` will automatically use the
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
-pub fn map_write_init(src_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event: Option<&Event>,
+pub fn map_write_init(src_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: Option<&Event>,
         write_init_unmap_event: &mut Option<Event>, write_init_unmap_queue: Queue, write_val: i32,
         task_iter: usize)
-        -> AndThen<FutureMemMap<ClInt4>, async::Result<usize>,
-            impl FnOnce(MemMap<ClInt4>) -> async::Result<usize>>
+        -> AndThen<FutureMemMap<Int4>, async::Result<usize>,
+            impl FnOnce(MemMap<Int4>) -> async::Result<usize>>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(teal_bold: "* Mapped write complete \t(iter: {}, t: {}s)",
@@ -203,7 +203,7 @@ pub fn map_write_init(src_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event
             task_iter, timestamp());
 
         for val in data.iter_mut() {
-            *val = ClInt4::new(write_val, write_val, write_val, write_val);
+            *val = Int4::new(write_val, write_val, write_val, write_val);
         }
 
         // Normally we could just let `data` (a `MemMap`) fall out of
@@ -223,11 +223,11 @@ pub fn map_write_init(src_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event
 // /// =================
 // /// Read results and verify that the initial mapped write has completed
 // /// successfully. This read will use the common queue.
-// pub fn read_verify_init(src_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event: Option<&Event>,
+// pub fn read_verify_init(src_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: Option<&Event>,
 //         verify_add_unmap_event: &mut Option<Event>, /*verify_add_unmap_queue: Queue,*/ correct_val: i32,
 //         task_iter: usize)
-//         -> AndThen<FutureMemMap<ClInt4>, async::Result<usize>,
-//             impl FnOnce(MemMap<ClInt4>) -> async::Result<usize>>
+//         -> AndThen<FutureMemMap<Int4>, async::Result<usize>,
+//             impl FnOnce(MemMap<Int4>) -> async::Result<usize>>
 // {
 //     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
 //         printlnc!(lime_bold: "* Mapped verify-add starting \t(iter: {}, t: {}s) ...",
@@ -250,7 +250,7 @@ pub fn map_write_init(src_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event
 //             let mut val_count = 0usize;
 
 //             for (idx, val) in data.iter().enumerate() {
-//                 let cval = ClInt4::new(correct_val, correct_val, correct_val, correct_val);
+//                 let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
 //                 if *val != cval {
 //                     return Err(format!("Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
 //                 }
@@ -338,11 +338,11 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue, kernel_wait_list: &mut Ev
 /// This occasionally shows as having begun a few microseconds before the
 /// kernel has completed but that's just due to the slight callback delay on
 /// the kernel completion event.
-pub fn map_verify_add(dst_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event: Option<&Event>,
+pub fn map_verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: Option<&Event>,
         verify_add_unmap_event: &mut Option<Event>, verify_add_unmap_queue: Queue, correct_val: i32,
         task_iter: usize)
-        -> AndThen<FutureMemMap<ClInt4>, async::Result<usize>,
-            impl FnOnce(MemMap<ClInt4>) -> async::Result<usize>>
+        -> AndThen<FutureMemMap<Int4>, async::Result<usize>,
+            impl FnOnce(MemMap<Int4>) -> async::Result<usize>>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Mapped verify-add starting \t(iter: {}, t: {}s) ...",
@@ -365,7 +365,7 @@ pub fn map_verify_add(dst_buf: &Buffer<ClInt4>, common_queue: &Queue, wait_event
             let mut val_count = 0usize;
 
             for (idx, val) in data.iter().enumerate() {
-                let cval = ClInt4::new(correct_val, correct_val, correct_val, correct_val);
+                let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
                 if *val != cval {
                     return Err(format!("Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
                 }
@@ -424,13 +424,13 @@ pub fn main() {
     let dst_buf_flags = MemFlags::new().alloc_host_ptr().write_only().host_read_only();
 
     // Create write and read buffers:
-    let src_buf: Buffer<ClInt4> = Buffer::builder()
+    let src_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(src_buf_flags)
         .dims(WORK_SIZE)
         .build().unwrap();
 
-    let dst_buf: Buffer<ClInt4> = Buffer::builder()
+    let dst_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(dst_buf_flags)
         .dims(WORK_SIZE)

@@ -8,7 +8,7 @@ use core;
 use flags;
 use standard::{ProQue, Image, Sampler};
 use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
-use aliases::{ClInt4};
+use aliases::{Int4};
 use tests;
 
 // const ADDEND: [i32; 4] = [1; 4];
@@ -18,7 +18,7 @@ const TEST_ITERS: i32 = 4;
 #[test]
 fn image_ops() {
     #[allow(non_snake_case)]
-    let ADDEND: ClInt4 = ClInt4::new(1, 1, 1, 1);
+    let ADDEND: Int4 = Int4::new(1, 1, 1, 1);
 
     let src = r#"
         __kernel void add(
@@ -81,7 +81,7 @@ fn image_ops() {
 
     let mut kernel_fill_src = proque.create_kernel("fill").unwrap()
         .arg_smp(&sampler)
-        .arg_vec_named::<ClInt4>("pixel", None)
+        .arg_vec_named::<Int4>("pixel", None)
         .arg_img(&img_src);
 
     //========================================================================
@@ -159,7 +159,7 @@ fn image_ops() {
         // Run kernel:
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
-        let cur_pixel = ClInt4::new(cur_val, cur_val, cur_val, cur_val);
+        let cur_pixel = Int4::new(cur_val, cur_val, cur_val, cur_val);
         kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         core::enqueue_copy_image::<_, _>(proque.queue(), &img_src, &img_dst,
@@ -199,7 +199,7 @@ fn image_ops() {
         // Run kernel:
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
-        let cur_pixel = ClInt4::new(cur_val, cur_val, cur_val, cur_val);
+        let cur_pixel = Int4::new(cur_val, cur_val, cur_val, cur_val);
         kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         img_src.cmd().copy(&img_dst, origin).enq().unwrap();

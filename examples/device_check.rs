@@ -31,7 +31,7 @@ use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPr
     Event, EventList, MemMap};
 use ocl::async::Result as AsyncResult;
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::ClFloat4;
+use ocl::aliases::Float4;
 use ocl::core::Event as EventCore;
 
 
@@ -159,14 +159,14 @@ lazy_static! {
     //     use_source_vec: true,
     // };
 
-    // pub static ref CONFIG_MAPPED_WRITE_CLFLOAT4_CALLBACK: Switches<ClFloat4> = Switches {
-    //     config_name: "Buffer | Mapped Write | Read | ClFloat4 | Callback",
+    // pub static ref CONFIG_MAPPED_WRITE_CLFLOAT4_CALLBACK: Switches<Float4> = Switches {
+    //     config_name: "Buffer | Mapped Write | Read | Float4 | Callback",
     //     kernel_name: "add_values",
     //     type_str: "float4",
     //     op_add: true,
-    //     zero_val: ClFloat4::new(0., 0., 0., 0.),
-    //     addend: ClFloat4::new(50., 50., 50., 50.),
-    //     val_range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
+    //     zero_val: Float4::new(0., 0., 0., 0.),
+    //     addend: Float4::new(50., 50., 50., 50.),
+    //     val_range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
     //     queue_ordering: CommandQueueProperties::empty(),
     //     work_size_range: (1 << 19, 1 << 22),
     //     async_write: true,
@@ -177,7 +177,7 @@ lazy_static! {
     //     use_source_vec: true,
     // };
 
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC: Switches<ClFloat4> = Switches {
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC: Switches<Float4> = Switches {
         config_name: "Out of Order | Async-Future ",
         kern: Kern {
             name: "add_values",
@@ -185,9 +185,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4::new(0., 0., 0., 0.),
-            addend: ClFloat4::new(50., 50., 50., 50.),
-            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -206,7 +206,7 @@ lazy_static! {
         futures: true,
     };
 
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC_AHP: Switches<ClFloat4> = Switches {
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC_AHP: Switches<Float4> = Switches {
         config_name: "Out of Order | Async-Future | Alloc Host Ptr",
         kern: Kern {
             name: "add_values",
@@ -214,9 +214,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4::new(0., 0., 0., 0.),
-            addend: ClFloat4::new(50., 50., 50., 50.),
-            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -235,7 +235,7 @@ lazy_static! {
         futures: true,
     };
 
-    pub static ref CONFIG_MAPPED_READ_OOO_ASYNC_CB: Switches<ClFloat4> = Switches {
+    pub static ref CONFIG_MAPPED_READ_OOO_ASYNC_CB: Switches<Float4> = Switches {
         config_name: "In-Order | Async-Future ",
         kern: Kern {
             name: "add_values",
@@ -243,9 +243,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4::new(0., 0., 0., 0.),
-            addend: ClFloat4::new(50., 50., 50., 50.),
-            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -264,7 +264,7 @@ lazy_static! {
         futures: true,
     };
 
-    pub static ref CONFIG_MAPPED_WRITE_INO_ASYNC_CB: Switches<ClFloat4> = Switches {
+    pub static ref CONFIG_MAPPED_WRITE_INO_ASYNC_CB: Switches<Float4> = Switches {
         config_name: "In-Order | Async-Future ",
         kern: Kern {
             name: "add_values",
@@ -272,9 +272,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4::new(0., 0., 0., 0.),
-            addend: ClFloat4::new(50., 50., 50., 50.),
-            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -293,7 +293,7 @@ lazy_static! {
         futures: true,
     };
 
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP: Switches<ClFloat4> = Switches {
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP: Switches<Float4> = Switches {
         config_name: "Out of Order | NonBlocking",
         kern: Kern {
             name: "add_values",
@@ -301,9 +301,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4::new(0., 0., 0., 0.),
-            addend: ClFloat4::new(50., 50., 50., 50.),
-            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -322,7 +322,7 @@ lazy_static! {
         futures: true,
     };
 
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP_CB: Switches<ClFloat4> = Switches {
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP_CB: Switches<Float4> = Switches {
         config_name: "Out of Order | NonBlocking | Callback",
         kern: Kern {
             name: "add_values",
@@ -330,9 +330,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4::new(0., 0., 0., 0.),
-            addend: ClFloat4::new(50., 50., 50., 50.),
-            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -356,7 +356,7 @@ lazy_static! {
 
 
 
-pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<ClFloat4>)
+pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Float4>)
         -> AsyncResult<()>
 {
     let work_size_range = RandRange::new(cfg.misc.work_size_range.0, cfg.misc.work_size_range.1);
@@ -377,13 +377,13 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     // let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only() | ahp_flag);
     let read_buf_flags = ahp_flag.write_only().host_read_only();
 
-    let source_buf = Buffer::<ClFloat4>::builder()
+    let source_buf = Buffer::<Float4>::builder()
         .queue(write_queue.clone())
         .flags(write_buf_flags)
         .dims(work_size)
         .build()?;
 
-    let target_buf = Buffer::<ClFloat4>::builder()
+    let target_buf = Buffer::<Float4>::builder()
         .queue(read_queue.clone())
         .flags(read_buf_flags)
         .dims(work_size)
@@ -452,7 +452,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             let mut map_event = Event::empty();
 
             let new_mm = unsafe {
-                let mm_core = core::enqueue_map_buffer::<ClFloat4, _, _, _>(
+                let mm_core = core::enqueue_map_buffer::<Float4, _, _, _>(
                     &write_queue,
                     source_buf.core(),
                     !cfg.async_write,
@@ -571,7 +571,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     if cfg.map_read {
         //###################### cfg.MAP_READ #############################
         unsafe {
-            let mm_core = core::enqueue_map_buffer::<ClFloat4, _, _, _>(
+            let mm_core = core::enqueue_map_buffer::<Float4, _, _, _>(
                 &read_queue,
                 target_buf.core(),
                 false,

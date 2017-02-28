@@ -17,7 +17,7 @@ use futures::future::{Future};
 use futures_cpupool::CpuPool;
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, Event};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::ClFloat4;
+use ocl::aliases::Float4;
 
 
 static KERN_SRC: &'static str = r#"
@@ -72,13 +72,13 @@ pub fn main() {
         let read_buf_flags = MemFlags::new().write_only().host_read_only();
 
         // Create write and read buffers:
-        let write_buf: Buffer<ClFloat4> = Buffer::builder()
+        let write_buf: Buffer<Float4> = Buffer::builder()
             .queue(write_queue.clone())
             .flags(write_buf_flags)
             .dims(work_size)
             .build().unwrap();
 
-        let read_buf: Buffer<ClFloat4> = Buffer::builder()
+        let read_buf: Buffer<Float4> = Buffer::builder()
             .queue(read_queue.clone())
             .flags(read_buf_flags)
             .dims(work_size)
@@ -94,13 +94,13 @@ pub fn main() {
             .queue(kern_queue.clone())
             .gws(work_size)
             .arg_buf(&write_buf)
-            .arg_vec(ClFloat4::new(100., 100., 100., 100.))
+            .arg_vec(Float4::new(100., 100., 100., 100.))
             .arg_buf(&read_buf);
 
         // (0) INIT: Fill buffer with -999's just to ensure the upcoming
         // write misses nothing:
         let mut fill_event = Event::empty();
-        write_buf.cmd().fill(ClFloat4::new(-999., -999., -999., -999.), None).enew(&mut fill_event).enq().unwrap();
+        write_buf.cmd().fill(Float4::new(-999., -999., -999., -999.), None).enew(&mut fill_event).enq().unwrap();
 
         // (1) WRITE: Map the buffer and write 50's to the entire buffer, then
         // unmap to 'flush' data to the device:
@@ -114,7 +114,7 @@ pub fn main() {
         let write = future_write_data.and_then(move |mut data| {
             for _ in 0..redundancy_count {
                 for val in data.iter_mut() {
-                    *val = ClFloat4::new(50., 50., 50., 50.);
+                    *val = Float4::new(50., 50., 50., 50.);
                 }
             }
 
@@ -145,7 +145,7 @@ pub fn main() {
 
                 for _ in 0..redundancy_count {
                     for val in data.iter() {
-                        let correct_val = ClFloat4::new(150., 150., 150., 150.);
+                        let correct_val = Float4::new(150., 150., 150., 150.);
                         if *val != correct_val {
                             return Err(format!("Result value mismatch: {:?} != {:?}", val, correct_val).into())
                         }

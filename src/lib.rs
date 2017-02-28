@@ -84,16 +84,17 @@ pub mod aliases {
     pub use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
 
-    pub use core::{ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
-        ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16,
-        ClShort2, ClShort3, ClShort4, ClShort8, ClShort16,
-        ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16,
-        ClInt2, ClInt3, ClInt4, ClInt8, ClInt16,
-        ClUint2, ClUint3, ClUint4, ClUint8, ClUint16,
-        ClLong, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
-        ClUlong, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
-        ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
-        ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16};
+    pub use core::{
+        Char, Char2, Char3, Char4, Char8, Char16,
+        Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+        Short, Short2, Short3, Short4, Short8, Short16,
+        Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+        Int, Int2, Int3, Int4, Int8, Int16,
+        Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+        Long, Long2, Long3, Long4, Long8, Long16,
+        Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+        Float, Float2, Float3, Float4, Float8, Float16,
+        Double, Double2, Double3, Double4, Double8, Double16};
 
     pub use ffi::{ cl_GLuint, cl_GLint, cl_GLenum };
 }

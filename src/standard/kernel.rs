@@ -815,16 +815,18 @@ pub mod arg_type {
     use ::{OclPrm, Result as OclResult};
     use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
-    use core::{ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
-        ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16,
-        ClShort2, ClShort3, ClShort4, ClShort8, ClShort16,
-        ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16,
-        ClInt2, ClInt3, ClInt4, ClInt8, ClInt16,
-        ClUint2, ClUint3, ClUint4, ClUint8, ClUint16,
-        ClLong, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
-        ClUlong, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
-        ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
-        ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16};
+    pub use core::{
+        Char, Char2, Char3, Char4, Char8, Char16,
+        Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+        Short, Short2, Short3, Short4, Short8, Short16,
+        Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+        Int, Int2, Int3, Int4, Int8, Int16,
+        Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+        Long, Long2, Long3, Long4, Long8, Long16,
+        Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+        Float, Float2, Float3, Float4, Float8, Float16,
+        Double, Double2, Double3, Double4, Double8, Double16};
+
     use core::Kernel as KernelCore;
     use standard::Sampler;
     use super::{arg_info, arg_type_name};
@@ -950,11 +952,11 @@ pub mod arg_type {
                 BaseType::Char => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_char>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClChar2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClChar3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClChar4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClChar8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClChar16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Char2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Char3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Char4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Char8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Char16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -966,11 +968,11 @@ pub mod arg_type {
                 BaseType::Uchar => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_uchar>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClUchar2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClUchar3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClUchar4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClUchar8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClUchar16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Uchar2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Uchar3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Uchar4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Uchar8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Uchar16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -982,11 +984,11 @@ pub mod arg_type {
                 BaseType::Short => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_short>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClShort2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClShort3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClShort4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClShort8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClShort16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Short2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Short3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Short4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Short8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Short16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -998,11 +1000,11 @@ pub mod arg_type {
                 BaseType::Ushort => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_ushort>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClUshort2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClUshort3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClUshort4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClUshort8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClUshort16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Ushort2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Ushort3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Ushort4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Ushort8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Ushort16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -1014,11 +1016,11 @@ pub mod arg_type {
                 BaseType::Int => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_int>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClInt2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClInt3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClInt4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClInt8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClInt16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Int2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Int3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Int4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Int8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Int16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -1030,11 +1032,11 @@ pub mod arg_type {
                 BaseType::Uint => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_uint>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClUint2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClUint3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClUint4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClUint8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClUint16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Uint2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Uint3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Uint4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Uint8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Uint16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -1046,11 +1048,11 @@ pub mod arg_type {
                 BaseType::Long => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_long>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClLong2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClLong3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClLong4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClLong8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClLong16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Long2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Long3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Long4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Long8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Long16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -1062,11 +1064,11 @@ pub mod arg_type {
                 BaseType::Ulong => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_ulong>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClUlong2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClUlong3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClUlong4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClUlong8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClUlong16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Ulong2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Ulong3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Ulong4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Ulong8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Ulong16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -1078,11 +1080,11 @@ pub mod arg_type {
                 BaseType::Float => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_float>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClFloat2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClFloat3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClFloat4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClFloat8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClFloat16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Float2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Float3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Float4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Float8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Float16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
@@ -1094,11 +1096,11 @@ pub mod arg_type {
                 BaseType::Double => {
                     let card_match = match self.cardinality {
                         Cardinality::One => TypeId::of::<cl_double>() == TypeId::of::<T>(),
-                        Cardinality::Two => TypeId::of::<ClDouble2>() == TypeId::of::<T>(),
-                        Cardinality::Three => TypeId::of::<ClDouble3>() == TypeId::of::<T>(),
-                        Cardinality::Four => TypeId::of::<ClDouble4>() == TypeId::of::<T>(),
-                        Cardinality::Eight => TypeId::of::<ClDouble8>() == TypeId::of::<T>(),
-                        Cardinality::Sixteen => TypeId::of::<ClDouble16>() == TypeId::of::<T>(),
+                        Cardinality::Two => TypeId::of::<Double2>() == TypeId::of::<T>(),
+                        Cardinality::Three => TypeId::of::<Double3>() == TypeId::of::<T>(),
+                        Cardinality::Four => TypeId::of::<Double4>() == TypeId::of::<T>(),
+                        Cardinality::Eight => TypeId::of::<Double8>() == TypeId::of::<T>(),
+                        Cardinality::Sixteen => TypeId::of::<Double16>() == TypeId::of::<T>(),
                     };
 
                     if self.is_ptr {
