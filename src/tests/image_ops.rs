@@ -12,12 +12,14 @@ use aliases::{ClInt4};
 use tests;
 
 // const ADDEND: [i32; 4] = [1; 4];
-const ADDEND: ClInt4 = ClInt4(1, 1, 1, 1);
 const DIMS: [usize; 3] = [64, 128, 4];
 const TEST_ITERS: i32 = 4;
 
 #[test]
 fn image_ops() {
+    #[allow(non_snake_case)]
+    let ADDEND: ClInt4 = ClInt4::new(1, 1, 1, 1);
+
     let src = r#"
         __kernel void add(
                     sampler_t sampler_host,
@@ -109,14 +111,14 @@ fn image_ops() {
 
     // Verify that the `verify_vec_rect` function isn't letting something slip:
     for idx in 0..vec.len() {
-        assert!(vec[idx] == ADDEND.0 * ttl_runs, "vec[{}]: {}", idx, vec[idx]);
+        assert!(vec[idx] == ADDEND[0] * ttl_runs, "vec[{}]: {}", idx, vec[idx]);
     }
 
     print!("\n");
 
     // Warm up the verify function:
-    tests::verify_vec_rect([0, 0, 0], dims, ADDEND.0 * ttl_runs,
-        ADDEND.0 * (ttl_runs - 1), dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
+    tests::verify_vec_rect([0, 0, 0], dims, ADDEND[0] * ttl_runs,
+        ADDEND[0] * (ttl_runs - 1), dims, pixel_element_len, &vec, ttl_runs, true).unwrap();
 
     //========================================================================
     //========================================================================
@@ -139,7 +141,7 @@ fn image_ops() {
         // Add from src to dst:
         kernel_add.enq().expect("[FIXME]: HANDLE ME!");
         ttl_runs += 1;
-        let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
+        let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
 
         // Read into vec:
         unsafe { core::enqueue_read_image(proque.queue(), &img_dst, true,
@@ -156,8 +158,8 @@ fn image_ops() {
 
         // Run kernel:
         ttl_runs += 1;
-        let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
-        let cur_pixel = ClInt4(cur_val, cur_val, cur_val, cur_val);
+        let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
+        let cur_pixel = ClInt4::new(cur_val, cur_val, cur_val, cur_val);
         kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         core::enqueue_copy_image::<_, _>(proque.queue(), &img_src, &img_dst,
@@ -184,7 +186,7 @@ fn image_ops() {
         // Add from src to dst:
         kernel_add.enq().expect("[FIXME]: HANDLE ME!");
         ttl_runs += 1;
-        let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
+        let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
 
         // // Read into vec:
         img_dst.cmd().read(&mut vec).enq().unwrap();
@@ -196,8 +198,8 @@ fn image_ops() {
 
         // Run kernel:
         ttl_runs += 1;
-        let (cur_val, old_val) = (ADDEND.0 * ttl_runs, ADDEND.0 * (ttl_runs - 1));
-        let cur_pixel = ClInt4(cur_val, cur_val, cur_val, cur_val);
+        let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
+        let cur_pixel = ClInt4::new(cur_val, cur_val, cur_val, cur_val);
         kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
 
         img_src.cmd().copy(&img_dst, origin).enq().unwrap();

@@ -292,7 +292,7 @@ fn create_simple_task(task_id: usize, device: Device, context: &Context,
         .queue(queues[2].clone())
         .gws(work_size)
         .arg_buf(buf_pool.get(write_buf_id).unwrap())
-        .arg_vec(ClFloat4(100., 100., 100., 100.))
+        .arg_vec(ClFloat4::new(100., 100., 100., 100.))
         .arg_buf(buf_pool.get(read_buf_id).unwrap());
 
     // (0) Initial write to device:
@@ -321,7 +321,7 @@ fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<ClFloat4>, thread_p
     // (0) Write a bunch of 50's:
     let write = task.map(0, &buf_pool).and_then(move |mut data| {
         for val in data.iter_mut() {
-            *val = ClFloat4(50., 50., 50., 50.);
+            *val = ClFloat4::new(50., 50., 50., 50.);
         }
 
         printlnc!(green: "Task [{}] (simple): Buffer initialized.", task_id);
@@ -341,7 +341,7 @@ fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<ClFloat4>, thread_p
             let mut val_count = 0usize;
 
             for val in data.iter() {
-                let correct_val = ClFloat4(150., 150., 150., 150.);
+                let correct_val = ClFloat4::new(150., 150., 150., 150.);
                 if *val != correct_val {
                     return Err(format!("Result value mismatch: {:?} != {:?}", val, correct_val).into())
                 }
@@ -441,7 +441,7 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
         .queue(queues[7].clone())
         .gws(work_size)
         .arg_buf(buf_pool.get(buffer_ids[0]).unwrap())
-        .arg_vec(ClFloat4(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
+        .arg_vec(ClFloat4::new(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
         .arg_buf(buf_pool.get(buffer_ids[1]).unwrap());
 
     let kernel_b = Kernel::new("kernel_b", &program).unwrap()
@@ -450,14 +450,14 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
         .arg_buf(buf_pool.get(buffer_ids[2]).unwrap())
         .arg_buf(buf_pool.get(buffer_ids[3]).unwrap())
         .arg_buf(buf_pool.get(buffer_ids[4]).unwrap())
-        .arg_vec(ClFloat4(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
+        .arg_vec(ClFloat4::new(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
         .arg_buf(buf_pool.get(buffer_ids[5]).unwrap());
 
     let kernel_c = Kernel::new("kernel_c", &program).unwrap()
         .queue(queues[7].clone())
         .gws(work_size)
         .arg_buf(buf_pool.get(buffer_ids[5]).unwrap())
-        .arg_vec(ClFloat4(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
+        .arg_vec(ClFloat4::new(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
         .arg_buf(buf_pool.get(buffer_ids[6]).unwrap());
 
     // (0) Initially write 500s:
@@ -499,7 +499,7 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
         (coeff(kern_b_sign) * 50.) +
         (coeff(kern_b_sign) * kern_b_val);
     let kern_c_out_val = kern_b_out_val + (coeff(kern_c_sign) * kern_c_val);
-    task.set_expected_result(ClFloat4(kern_c_out_val, kern_c_out_val, kern_c_out_val, kern_c_out_val));
+    task.set_expected_result(ClFloat4::new(kern_c_out_val, kern_c_out_val, kern_c_out_val, kern_c_out_val));
 
     // Populate the command graph:
     task.cmd_graph.populate_requisites();
@@ -515,7 +515,7 @@ fn enqueue_complex_task(task: &Task, buf_pool: &SubBufferPool<ClFloat4>, thread_
     // (0) Initially write 500s:
     let write = task.map(0, &buf_pool).and_then(move |mut data| {
         for val in data.iter_mut() {
-            *val = ClFloat4(500., 500., 500., 500.);
+            *val = ClFloat4::new(500., 500., 500., 500.);
         }
 
         printlnc!(green_bold: "Task [{}] (complex): Buffer initialized.", task_id);
@@ -533,7 +533,7 @@ fn enqueue_complex_task(task: &Task, buf_pool: &SubBufferPool<ClFloat4>, thread_
     task.copy(3, buf_pool);
 
     // (4) Fill buffer[4] with 50s:
-    task.fill(ClFloat4(50., 50., 50., 50.), 4, buf_pool);
+    task.fill(ClFloat4::new(50., 50., 50., 50.), 4, buf_pool);
 
     // (5) Kernel B -- Sum buffers and add values:
     task.kernel(5);

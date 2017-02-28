@@ -34,7 +34,7 @@ fn main() {
 
 /// Expanded version with explanations.
 ///
-/// This function is identical to the following two in all but looks :)
+/// All four functions in this example are identical in all but appearance.
 ///
 /// Continue along to the next few functions after this to see a little bit
 /// more about what's going on under the hood.
@@ -118,7 +118,7 @@ fn main_exploded() {
     // [NOTE]: At this point we could manually assemble a ProQue by calling:
     // `ProQue::new(context, queue, program, Some(dims))`. One might want to
     // do this when only one program and queue are all that's needed. Wrapping
-    // it up into a single struct makes passing it around much simpler.
+    // it up into a single struct makes passing it around simpler.
 
     // (2) Create a `Buffer`:
     let mut vec = vec![0.0f32; dims];
@@ -146,7 +146,7 @@ fn main_exploded() {
         .enew_opt(None::<&mut Event>)
         .enq().unwrap();
 
-    // (5) Read results from the device into a vector:
+    // (5) Read results from the device into a vector (`::block` not shown):
     buffer.cmd()
         .queue(&queue)
         .offset(0)

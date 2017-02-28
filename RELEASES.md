@@ -48,6 +48,7 @@ See the breaking changes section below for details.
   `ProQue` allowing out of order execution and profiling to be enabled.
   Profiling had previously been enabled by default but now must be explicitly
   enabled by setting the `QUEUE_PROFILING_ENABLE` flag.
+* Complete redesign and macro based reimplementation of all vector types.
 
 Breaking Changes
 ----------------
@@ -113,9 +114,10 @@ Breaking Changes
 * `Program::new` has had its arguments rearranged for consistency.
 * `Event::wait` and `EventList::wait` have both been renamed to `::wait_for`.
 * [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
+* Vector types can no longer be created using the tuple struct notation. Use
+  `::new`.
 
-
-### Breaking Changes to `ocl-core`
+### Breaking changes specific to `ocl-core`
 * Passing event wait list and new event references has been completely
   overhauled. Previously, references of this type had to be converted into the
   trait objects `ClWaitList` and `ClEventPtrNew`. This was convenient (outside

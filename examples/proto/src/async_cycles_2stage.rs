@@ -132,7 +132,7 @@ pub fn main() {
     let kern = Kernel::new("add", &program).unwrap()
         .gws(WORK_SIZE)
         .arg_buf(&write_buf)
-        .arg_vec(ClInt4(100, 100, 100, 100))
+        .arg_vec(ClInt4::new(100, 100, 100, 100))
         .arg_buf(&read_buf);
 
     // Thread pool for offloaded tasks.
@@ -172,7 +172,7 @@ pub fn main() {
 
     // // (0) INIT: Fill buffer with -999's just to ensure the upcoming
     // // write misses nothing:
-    // write_buf.cmd().fill(ClInt4(-999, -999, -999, -999), None)
+    // write_buf.cmd().fill(ClInt4::new(-999, -999, -999, -999), None)
     //     .enew_opt(kernel_event.as_mut()).enq().unwrap();
 
     // kernel_event.as_ref().unwrap().wait_for().unwrap();
@@ -200,7 +200,7 @@ pub fn main() {
             printlnc!(teal_bold: "* Mapped write starting (iter: {}) ...", task_iter);
 
             for val in data.iter_mut() {
-                *val = ClInt4(50, 50, 50, 50);
+                *val = ClInt4::new(50, 50, 50, 50);
             }
 
             printlnc!(teal_bold: "* Mapped write complete (iter: {})", task_iter);
@@ -257,7 +257,7 @@ pub fn main() {
                 printlnc!(lime_bold: "* Mapped read/verify starting (iter: {}) ...", task_iter);
 
                 for (idx, val) in data.iter().enumerate() {
-                    let correct_val = ClInt4(150, 150, 150, 150);
+                    let correct_val = ClInt4::new(150, 150, 150, 150);
                     if *val != correct_val {
                         return Err(format!("Result value mismatch: {:?} != {:?} @ [{}]", val, correct_val, idx).into());
                     }

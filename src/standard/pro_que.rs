@@ -315,12 +315,15 @@ impl ProQue {
         }
     }
 
-    /// Returns a new buffer
+    /// Returns a new buffer.
     ///
-    /// The default dimensions and queue for this `ProQue` will be used.
+    /// The default dimensions and queue from this `ProQue` will be used.
     ///
     /// The buffer will be filled with zeros upon creation, blocking the
     /// current thread until completion.
+    ///
+    /// Use `Buffer::builder()` (or `BufferBuilder::new()`) for access to the
+    /// full range of buffer creation options.
     ///
     /// # Errors
     ///

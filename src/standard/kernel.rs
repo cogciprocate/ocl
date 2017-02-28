@@ -821,8 +821,8 @@ pub mod arg_type {
         ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16,
         ClInt2, ClInt3, ClInt4, ClInt8, ClInt16,
         ClUint2, ClUint3, ClUint4, ClUint8, ClUint16,
-        ClLong1, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
-        ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
+        ClLong, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
+        ClUlong, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
         ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
         ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16};
     use core::Kernel as KernelCore;

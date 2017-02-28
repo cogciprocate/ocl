@@ -51,10 +51,10 @@ fn fill_with_float4() {
         }
     "#;
 
-    let start_val = ClFloat4(9.0f32, 11.0f32, 14.0f32, 18.0f32);
-    // let start_val = ClFloat4(5.0f32, 5.0f32, 5.0f32, 5.0f32);
-    let addend = ClFloat4(10.0f32, 10.0f32, 10.0f32, 10.0f32);
-    // let final_val = ClFloat4(15.0f32, 15.0f32, 15.0f32, 15.0f32);
+    let start_val = ClFloat4::new(9.0f32, 11.0f32, 14.0f32, 18.0f32);
+    // let start_val = ClFloat4::new(5.0f32, 5.0f32, 5.0f32, 5.0f32);
+    let addend = ClFloat4::new(10.0f32, 10.0f32, 10.0f32, 10.0f32);
+    // let final_val = ClFloat4::new(15.0f32, 15.0f32, 15.0f32, 15.0f32);
     let final_val = start_val + addend;
 
     let pro_que = ProQue::builder()

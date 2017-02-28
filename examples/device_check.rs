@@ -164,9 +164,9 @@ lazy_static! {
     //     kernel_name: "add_values",
     //     type_str: "float4",
     //     op_add: true,
-    //     zero_val: ClFloat4(0., 0., 0., 0.),
-    //     addend: ClFloat4(50., 50., 50., 50.),
-    //     val_range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+    //     zero_val: ClFloat4::new(0., 0., 0., 0.),
+    //     addend: ClFloat4::new(50., 50., 50., 50.),
+    //     val_range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
     //     queue_ordering: CommandQueueProperties::empty(),
     //     work_size_range: (1 << 19, 1 << 22),
     //     async_write: true,
@@ -185,9 +185,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            zero: ClFloat4::new(0., 0., 0., 0.),
+            addend: ClFloat4::new(50., 50., 50., 50.),
+            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -214,9 +214,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            zero: ClFloat4::new(0., 0., 0., 0.),
+            addend: ClFloat4::new(50., 50., 50., 50.),
+            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -243,9 +243,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            zero: ClFloat4::new(0., 0., 0., 0.),
+            addend: ClFloat4::new(50., 50., 50., 50.),
+            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -272,9 +272,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            zero: ClFloat4::new(0., 0., 0., 0.),
+            addend: ClFloat4::new(50., 50., 50., 50.),
+            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -301,9 +301,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            zero: ClFloat4::new(0., 0., 0., 0.),
+            addend: ClFloat4::new(50., 50., 50., 50.),
+            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {
@@ -330,9 +330,9 @@ lazy_static! {
         },
         vals: Vals {
             type_str: "float4",
-            zero: ClFloat4(0., 0., 0., 0.),
-            addend: ClFloat4(50., 50., 50., 50.),
-            range: (ClFloat4(-200., -200., -200., -200.), ClFloat4(-200., -200., -200., -200.)),
+            zero: ClFloat4::new(0., 0., 0., 0.),
+            addend: ClFloat4::new(50., 50., 50., 50.),
+            range: (ClFloat4::new(-200., -200., -200., -200.), ClFloat4::new(-200., -200., -200., -200.)),
             use_source_vec: false,
         },
         misc: Misc {

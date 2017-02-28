@@ -16,8 +16,8 @@ fn test_vector_types() {
         }
     "#;
 
-    let start_val = ClInt4(9, 11, 14, 19);
-    let addend = ClInt4(10, 10, 10, 10);
+    let start_val = ClInt4::new(9, 11, 14, 19);
+    let addend = ClInt4::new(10, 10, 10, 10);
     let final_val = start_val + addend;
 
     let pro_que = ProQue::builder()
@@ -49,7 +49,7 @@ fn test_vector_types() {
 
     let mut i = 0i32;
     for &ele in vec.iter() {
-        assert_eq!(ele, final_val + ClInt4(i, i, i, i));
+        assert_eq!(ele, final_val + ClInt4::new(i, i, i, i));
         i += 1;
     }
 }
