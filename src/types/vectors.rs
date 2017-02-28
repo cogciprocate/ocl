@@ -9,7 +9,7 @@
 
 // #![allow(unused_imports)]
 
-use std::fmt::{self, Display, Formatter, Result as FmtResult};
+use std::fmt::{Display, Formatter, Result as FmtResult};
 pub use std::ops::*;
 pub use num::{Zero, One, NumCast};
 pub use ::{OclPrm, OclVec, OclScl};
@@ -482,6 +482,54 @@ macro_rules! impl_cl_vec {
 // exists, if ever.
 #[macro_export]
 macro_rules! decl_impl_cl_vec {
+    ($name:ident, 1, $ty:ty, $ty_fam:ident, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
+        #[derive(Debug, Clone, Copy, Default, PartialOrd)]
+        pub struct $name([$ty; 1]);
+
+        impl $name {
+            #[inline]
+            pub fn new($( $field: $ty, )+) -> $name {
+                $name([$( $field, )*])
+            }
+        }
+
+        impl From<[$ty; 1]> for $name {
+            #[inline]
+            fn from(a: [$ty; 1]) -> $name {
+                $name::new(a[0])
+            }
+        }
+
+        impl From<$name> for [$ty; 1] {
+            #[inline]
+            fn from(v: $name) -> [$ty; 1] {
+                [v.0[0]]
+            }
+        }
+
+        impl From<$ty> for $name {
+            #[inline]
+            fn from(s: $ty) -> $name {
+                $name::new(s)
+            }
+        }
+
+        impl From<$name> for $ty {
+            #[inline]
+            fn from(v: $name) -> $ty {
+                v.0[0]
+            }
+        }
+
+        impl PartialEq for $name {
+            #[inline]
+            fn eq(&self, rhs: &Self) -> bool {
+                self.0[0] == rhs.0[0]
+            }
+        }
+
+        impl_cl_vec!($name, 1, $ty, $ty_fam, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+    };
     ($name:ident, 3, $ty:ty, $ty_fam:ident, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         #[derive(Debug, Clone, Copy, Default, PartialOrd)]
         pub struct $name([$ty; 4]);
