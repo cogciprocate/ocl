@@ -131,16 +131,16 @@ pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult, Co
     EventInfoResult, ProfilingInfoResult};
 
 pub use self::types::vectors::{
-    ClChar2, ClChar3, ClChar4, ClChar8, ClChar16,
-    ClUchar2, ClUchar3, ClUchar4, ClUchar8, ClUchar16,
-    ClShort2, ClShort3, ClShort4, ClShort8, ClShort16,
-    ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16,
-    ClInt2, ClInt3, ClInt4, ClInt8, ClInt16,
-    ClUint2, ClUint3, ClUint4, ClUint8, ClUint16,
-    ClLong, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
-    ClUlong, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
-    ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
-    ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16,
+    Char, Char2, Char3, Char4, Char8, Char16,
+    Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+    Short, Short2, Short3, Short4, Short8, Short16,
+    Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+    Int, Int2, Int3, Int4, Int8, Int16,
+    Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+    Long, Long2, Long3, Long4, Long8, Long16,
+    Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+    Float, Float2, Float3, Float4, Float8, Float16,
+    Double, Double2, Double3, Double4, Double8, Double16,
 };
 
 pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, get_device_info,
@@ -203,7 +203,11 @@ pub type UserDataPtr = *mut libc::c_void;
 ///
 pub unsafe trait OclPrm: 'static + Debug + Clone + Copy + PartialEq + PartialOrd + Default + Add {}
 
-unsafe impl<S> OclPrm for S where S: 'static + Debug + Clone + Copy + PartialEq + PartialOrd + Default + Add {}
+unsafe impl<S> OclPrm for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
+    Zero<Output=S> + One<Output=S> + Add<S> + Sub<S, Output=S> +
+    Mul<S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
+    'static {}
+// unsafe impl<S> OclPrm for S where S: OclScl {}
 // unsafe impl<S> OclPrm for S where S: OclVec {}
 
 
@@ -230,23 +234,23 @@ pub unsafe trait OclScl: Debug + Display + Clone + Copy + Default + PartialOrd +
     Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
     NumCast + FromPrimitive + ToPrimitive + SampleRange + 'static {}
 
-unsafe impl<T> OclScl for T where T: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=T> + One<Output=T> + Add<T> + Sub<T, Output=T> +
-    Mul<T> + Div<T, Output=T> + Rem<T, Output=T> + PartialEq<T> +
+unsafe impl<S> OclScl for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
+    Zero<Output=S> + One<Output=S> + Add<S> + Sub<S, Output=S> +
+    Mul<S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
     NumCast + FromPrimitive + ToPrimitive + SampleRange + 'static {}
 
 // Zero<Output=Self> + One<Output=Self> + Add<Self> + Sub<Self, Output=Self> + Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self>
 
 /// A vector type usable within `OpenCL` kernels.
-pub unsafe trait OclVec: Debug + /*Display +*/ Clone + Copy + Default + PartialOrd +
+pub unsafe trait OclVec: Debug + Display + Clone + Copy + Default + PartialOrd +
     Zero<Output=Self> + One<Output=Self> + Add<Self> + Sub<Self, Output=Self> +
     Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
     'static {}
 
-unsafe impl<T> OclVec for T where T: Debug + /*Display +*/ Clone + Copy + Default + PartialOrd +
-    Zero<Output=T> + One<Output=T> + Add<T> + Sub<T, Output=T> +
-    Mul<T> + Div<T, Output=T> + Rem<T, Output=T> + PartialEq<T> +
-    'static {}
+// unsafe impl<T> OclVec for T where T: Debug + Display + Clone + Copy + Default + PartialOrd +
+//     Zero<Output=T> + One<Output=T> + Add<T> + Sub<T, Output=T> +
+//     Mul<T> + Div<T, Output=T> + Rem<T, Output=T> + PartialEq<T> +
+//     'static {}
 
 // impl<T> Add for T where T: OclVec {
 //     type Output = T;

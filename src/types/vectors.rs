@@ -1,22 +1,21 @@
 //! OpenCL vector types.
 //!
+//! All operations use wrapped arithmetic and will not overflow.
 //!
-//! [TODO]: Create a macro to implement mathematical operations such
-//! as `Add`, `Mul`, etc., and whatever else.
+//! Some of these macros have been adapted (shamelessly copied) from those in
+//! the standard library.
 //!
-//!
-//!
+//! [TODO (someday)]: Add scalar-widening operations (allowing vec * scl for example).
 
-#![allow(unused_imports)]
+// #![allow(unused_imports)]
 
-use std::fmt::{self, Display, Formatter, Result as FmtResult, Error as FmtError};
-pub use std::ops::{Add, Sub, Mul, Div, Rem, Index, Deref};
-pub use num::{Zero, One, NumCast, Float, PrimInt};
+use std::fmt::{self, Display, Formatter, Result as FmtResult};
+pub use std::ops::*;
+pub use num::{Zero, One, NumCast};
 pub use ::{OclPrm, OclVec, OclScl};
 
 pub trait Splat {
     type Scalar: OclPrm;
-    // type Output: OclVec;
 
     fn splat(Self::Scalar) -> Self;
 }
@@ -27,14 +26,368 @@ macro_rules! expand_val {
     ($( $junk:expr, $val:expr ),+) => ( $($val),+ );
 }
 
+// implements the unary operator "op &T"
+// based on "op T" where T is expected to be `Copy`able
+macro_rules! forward_ref_unop {
+    (impl $imp:ident, $method:ident for $t:ty) => {
+        impl<'a> $imp for &'a $t {
+            type Output = <$t as $imp>::Output;
+
+            #[inline]
+            fn $method(self) -> <$t as $imp>::Output {
+                $imp::$method(*self)
+            }
+        }
+    }
+}
+
+// implements binary operators "&T op U", "T op &U", "&T op &U"
+// based on "T op U" where T and U are expected to be `Copy`able
+macro_rules! forward_ref_binop {
+    (impl $imp:ident, $method:ident for $t:ty, $u:ty) => {
+        impl<'a> $imp<$u> for &'a $t {
+            type Output = <$t as $imp<$u>>::Output;
+
+            #[inline]
+            fn $method(self, rhs: $u) -> <$t as $imp<$u>>::Output {
+                $imp::$method(*self, rhs)
+            }
+        }
+
+        impl<'a> $imp<&'a $u> for $t {
+            type Output = <$t as $imp<$u>>::Output;
+
+            #[inline]
+            fn $method(self, rhs: &'a $u) -> <$t as $imp<$u>>::Output {
+                $imp::$method(self, *rhs)
+            }
+        }
+
+        impl<'a, 'b> $imp<&'a $u> for &'b $t {
+            type Output = <$t as $imp<$u>>::Output;
+
+            #[inline]
+            fn $method(self, rhs: &'a $u) -> <$t as $imp<$u>>::Output {
+                $imp::$method(*self, *rhs)
+            }
+        }
+    }
+}
+
+// Adapted from `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
+#[macro_export]
+macro_rules! sh_impl_signed {
+    ($t:ident, $f:ident) => (
+        impl Shl<$f> for Wrapping<$t> {
+            type Output = Wrapping<$t>;
+
+            #[inline(always)]
+            fn shl(self, rhs: $f) -> Wrapping<$t> {
+                if rhs < 0 {
+                    self.0.wrapping_shr((-rhs & self::shift_max::$t as $f) as u32)
+                } else {
+                    self.0.wrapping_shl((rhs & self::shift_max::$t as $f) as u32)
+                }
+            }
+        }
+
+        impl ShlAssign<$f> for Wrapping<$t> {
+            #[inline(always)]
+            fn shl_assign(&mut self, rhs: $f) {
+                *self = *self << rhs;
+            }
+        }
+
+        impl Shr<$f> for Wrapping<$t> {
+            type Output = Wrapping<$t>;
+
+            #[inline(always)]
+            fn shr(self, rhs: $f) -> Wrapping<$t> {
+                if rhs < 0 {
+                    self.0.wrapping_shl((-rhs & self::shift_max::$t as $f) as u32)
+                } else {
+                    self.0.wrapping_shr((rhs & self::shift_max::$t as $f) as u32)
+                }
+            }
+        }
+
+        impl ShrAssign<$f> for Wrapping<$t> {
+            #[inline(always)]
+            fn shr_assign(&mut self, rhs: $f) {
+                *self = *self >> rhs;
+            }
+        }
+    )
+}
+
+// Adapted from `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
+#[macro_export]
+macro_rules! sh_impl_unsigned {
+    ($t:ident, $f:ident) => (
+        impl Shl<$f> for Wrapping<$t> {
+            type Output = Wrapping<$t>;
+
+            #[inline(always)]
+            fn shl(self, rhs: $f) -> Wrapping<$t> {
+                self.0.wrapping_shl((rhs & self::shift_max::$t as $f) as u32)
+            }
+        }
+
+        impl ShlAssign<$f> for Wrapping<$t> {
+            #[inline(always)]
+            fn shl_assign(&mut self, rhs: $f) {
+                *self = *self << rhs;
+            }
+        }
+
+        impl Shr<$f> for Wrapping<$t> {
+            type Output = Wrapping<$t>;
+
+            #[inline(always)]
+            fn shr(self, rhs: $f) -> Wrapping<$t> {
+                self.0.wrapping_shr((rhs & self::shift_max::$t as $f) as u32)
+            }
+        }
+
+        impl ShrAssign<$f> for Wrapping<$t> {
+            #[inline(always)]
+            fn shr_assign(&mut self, rhs: $f) {
+                *self = *self >> rhs;
+            }
+        }
+    )
+}
+
+// Adapted from `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
+#[macro_export]
+macro_rules! impl_cl_vec_int_ops {
+    // ($($t:ty)*) => ($(
+    ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
+        impl Add for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn add(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx].wrapping_add(rhs[$idx]) ),+])
+            }
+        }
+        forward_ref_binop! { impl Add, add for $name, $name }
+
+        impl AddAssign for $name {
+            #[inline(always)]
+            fn add_assign(&mut self, rhs: $name) {
+                *self = *self + rhs;
+            }
+        }
+
+        impl Sub for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn sub(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx].wrapping_sub(rhs[$idx]) ),+])
+            }
+        }
+        forward_ref_binop! { impl Sub, sub for $name, $name }
+
+        impl SubAssign for $name {
+            #[inline(always)]
+            fn sub_assign(&mut self, rhs: $name) {
+                *self = *self - rhs;
+            }
+        }
+
+        impl Mul for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn mul(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx].wrapping_mul(rhs[$idx]) ),+])
+            }
+        }
+        forward_ref_binop! { impl Mul, mul for $name, $name }
+
+        impl MulAssign for $name {
+            #[inline(always)]
+            fn mul_assign(&mut self, rhs: $name) {
+                *self = *self * rhs;
+            }
+        }
+
+        impl Div for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn div(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx].wrapping_div(rhs[$idx]) ),+])
+            }
+        }
+        forward_ref_binop! { impl Div, div for $name, $name }
+
+        impl DivAssign for $name {
+            #[inline(always)]
+            fn div_assign(&mut self, rhs: $name) {
+                *self = *self / rhs;
+            }
+        }
+
+        impl Rem for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn rem(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx].wrapping_rem(rhs[$idx]) ),+])
+            }
+        }
+        forward_ref_binop! { impl Rem, rem for $name, $name }
+
+        impl RemAssign for $name {
+            #[inline(always)]
+            fn rem_assign(&mut self, rhs: $name) {
+                *self = *self % rhs;
+            }
+        }
+
+        impl Not for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn not(self) -> $name {
+                $name::from([$( !self[$idx] ),+])
+            }
+        }
+        forward_ref_unop! { impl Not, not for $name }
+
+        impl BitXor for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn bitxor(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx] ^ rhs[$idx] ),+])
+            }
+        }
+        forward_ref_binop! { impl BitXor, bitxor for $name, $name }
+
+        impl BitXorAssign for $name {
+            #[inline(always)]
+            fn bitxor_assign(&mut self, rhs: $name) {
+                *self = *self ^ rhs;
+            }
+        }
+
+        impl BitOr for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn bitor(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx] | rhs[$idx] ),+])
+            }
+        }
+        forward_ref_binop! { impl BitOr, bitor for $name, $name }
+
+        impl BitOrAssign for $name {
+            #[inline(always)]
+            fn bitor_assign(&mut self, rhs: $name) {
+                *self = *self | rhs;
+            }
+        }
+
+        impl BitAnd for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn bitand(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx] & rhs[$idx] ),+])
+            }
+        }
+        forward_ref_binop! { impl BitAnd, bitand for $name, $name }
+
+        impl BitAndAssign for $name {
+            #[inline(always)]
+            fn bitand_assign(&mut self, rhs: $name) {
+                *self = *self & rhs;
+            }
+        }
+
+        impl Neg for $name {
+            type Output = $name;
+            #[inline(always)]
+            fn neg(self) -> $name {
+                $name::from([$( 0 - self[$idx] ),+])
+            }
+        }
+        forward_ref_unop! { impl Neg, neg for $name }
+    }
+}
 
 #[macro_export]
-macro_rules! impl_common_cl_vec {
-    ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $c:expr ),+) => {
+macro_rules! impl_cl_vec_float_ops {
+    ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
+        impl Add for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn add(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx] + rhs[$idx] ),+])
+            }
+        }
+
+        impl Sub for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn sub(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx] - rhs[$idx] ),+])
+            }
+        }
+
+        impl Mul for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn mul(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx] * rhs[$idx] ),+])
+            }
+        }
+
+        impl Div for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn div(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx] / rhs[$idx] ),+])
+            }
+        }
+
+        impl Rem for $name {
+            type Output = $name;
+
+            #[inline(always)]
+            fn rem(self, rhs: $name) -> $name {
+                $name::from([$( self[$idx] / rhs[$idx] ),+])
+            }
+        }
+
+        impl Neg for $name {
+            type Output = $name;
+            #[inline(always)]
+            fn neg(self) -> $name {
+                $name::from([$( 0. - self[$idx] ),+])
+            }
+        }
+    }
+}
+
+
+
+
+#[macro_export]
+macro_rules! impl_cl_vec_common {
+    ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         impl $name {
             #[inline]
-            pub fn splat(val: $ty) -> $name {
-                $name::new($( expand_val!($c, val)),+)
+            pub fn splat(val: $ty) -> Self {
+                $name::new($( expand_val!($idx, val)),+)
             }
 
             #[inline]
@@ -53,12 +406,19 @@ macro_rules! impl_common_cl_vec {
             }
         }
 
-        impl $crate::types::vectors::Deref for $name {
+        impl Deref for $name {
             type Target = [$ty];
 
             #[inline]
             fn deref(&self) -> &[$ty] {
                 &self.0
+            }
+        }
+
+        impl DerefMut for $name {
+            #[inline]
+            fn deref_mut(&mut self) -> &mut [$ty] {
+                &mut self.0
             }
         }
 
@@ -81,66 +441,40 @@ macro_rules! impl_common_cl_vec {
             }
         }
 
-        impl Add for $name {
-            type Output = Self;
-
-            #[inline]
-            fn add(self, rhs: $name) -> Self {
-                $name::from([$( self[$c] + rhs[$c] ),+])
-            }
-        }
-
-        impl Sub for $name {
-            type Output = Self;
-
-            #[inline]
-            fn sub(self, rhs: $name) -> Self {
-                $name::from([$( self[$c] - rhs[$c] ),+])
-            }
-        }
-
-        impl Mul for $name {
-            type Output = Self;
-
-            #[inline]
-            fn mul(self, rhs: $name) -> Self {
-                $name::from([$( self[$c] * rhs[$c] ),+])
-            }
-        }
-
-        impl Div for $name {
-            type Output = Self;
-
-            #[inline]
-            fn div(self, rhs: $name) -> Self {
-                $name::from([$( self[$c] / rhs[$c] ),+])
-            }
-        }
-
-        impl Rem for $name {
-            type Output = Self;
-
-            #[inline]
-            fn rem(self, rhs: $name) -> Self {
-                $name::from([$( self[$c] / rhs[$c] ),+])
-            }
-        }
-
         impl Splat for $name {
             type Scalar = $ty;
-            // type Output = Self;
 
+            #[inline]
             fn splat(val: $ty) -> Self {
                 $name::splat(val)
             }
         }
 
-        // impl $crate::types::vectors::Display for $name {
-        //     fn fmt(&self, &mut $crate::types::vectors::Formatter) -> $crate::types::vectors::FmtResult<()> {
-        //         write!(f, "{:?}", self)
-        //     }
-        // }
+        impl Display for $name {
+            fn fmt(&self, f: &mut Formatter) -> FmtResult {
+                write!(f, "{:?}", self)
+            }
+        }
+
+        unsafe impl OclVec for $name {}
+        // unsafe impl OclPrm for $name {}
     }
+}
+
+#[macro_export]
+macro_rules! impl_cl_vec {
+    ($name:ident, $cardinality:expr, $ty:ty, f, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
+        impl_cl_vec_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_cl_vec_float_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+    };
+    ($name:ident, $cardinality:expr, $ty:ty, i, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
+        impl_cl_vec_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_cl_vec_int_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+    };
+    ($name:ident, $cardinality:expr, $ty:ty, u, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
+        impl_cl_vec_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_cl_vec_int_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+    };
 }
 
 
@@ -148,108 +482,115 @@ macro_rules! impl_common_cl_vec {
 // exists, if ever.
 #[macro_export]
 macro_rules! decl_impl_cl_vec {
-    ($name:ident, 3, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $c:expr ),+) => {
+    ($name:ident, 3, $ty:ty, $ty_fam:ident, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         #[derive(Debug, Clone, Copy, Default, PartialOrd)]
         pub struct $name([$ty; 4]);
 
         impl $name {
+            #[inline]
             pub fn new($( $field: $ty, )+) -> $name {
                 $name([$( $field, )* Zero::zero()])
             }
         }
 
         impl From<[$ty; 3]> for $name {
+            #[inline]
             fn from(a: [$ty; 3]) -> $name {
                 $name::new(a[0], a[1], a[2])
             }
         }
 
         impl From<$name> for [$ty; 3] {
+            #[inline]
             fn from(v: $name) -> [$ty; 3] {
                 [v.0[0], v.0[1], v.0[2]]
             }
         }
 
         impl PartialEq for $name {
-            fn eq(&self, other: &Self) -> bool {
-                (self.0[0] == other.0[0]) & (self.0[1] == other.0[1]) & (self.0[2] == other.0[2])
+            #[inline]
+            fn eq(&self, rhs: &Self) -> bool {
+                (self.0[0] == rhs.0[0]) & (self.0[1] == rhs.0[1]) & (self.0[2] == rhs.0[2])
             }
         }
 
-        impl_common_cl_vec!($name, 3, $ty, $( $field ),+: $( $tr ),+: $( $c ),+ );
+        impl_cl_vec!($name, 3, $ty, $ty_fam, $( $field ),+: $( $tr ),+: $( $idx ),+ );
     };
-    ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $c:expr ),+) => {
+    ($name:ident, $cardinality:expr, $ty:ty, $ty_fam:ident, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         #[derive(Debug, Clone, Copy, Default, PartialOrd)]
         pub struct $name([$ty; $cardinality]);
 
         impl $name {
+            #[inline]
             pub fn new($( $field: $ty, )+) -> $name {
                 $name([$( $field, )*])
             }
         }
 
         impl From<[$ty; $cardinality]> for $name {
+            #[inline]
             fn from(a: [$ty; $cardinality]) -> $name {
                 $name(a)
             }
         }
 
         impl From<$name> for [$ty; $cardinality] {
+            #[inline]
             fn from(v: $name) -> [$ty; $cardinality] {
                 v.0
             }
         }
 
         impl PartialEq for $name {
-            fn eq(&self, other: &Self) -> bool {
-                $( (self[$c] == other[$c]) ) & +
+            #[inline]
+            fn eq(&self, rhs: &Self) -> bool {
+                $( (self[$idx] == rhs[$idx]) ) & +
             }
         }
 
-        impl_common_cl_vec!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $c ),+ );
+        impl_cl_vec!($name, $cardinality, $ty, $ty_fam, $( $field ),+: $( $tr ),+: $( $idx ),+ );
     }
 }
 
 
-#[macro_export]
 macro_rules! cl_vec {
-    ($name:ident, 1, $ty:ty) => (
-        decl_impl_cl_vec!($name, 1, $ty,
+    ($name:ident, 1, $ty:ty, $ty_fam:ident) => (
+        decl_impl_cl_vec!($name, 1, $ty, $ty_fam,
             s0:
             $ty:
             0
         );
     );
-    ($name:ident, 2, $ty:ty) => (
-        decl_impl_cl_vec!($name, 2, $ty,
+    ($name:ident, 2, $ty:ty, $ty_fam:ident) => (
+        decl_impl_cl_vec!($name, 2, $ty, $ty_fam,
             s0, s1:
             $ty, $ty:
             0, 1
         );
     );
-    ($name:ident, 3, $ty:ty) => (
-        decl_impl_cl_vec!($name, 3, $ty,
+    ($name:ident, 3, $ty:ty, $ty_fam:ident) => (
+        decl_impl_cl_vec!($name, 3, $ty, $ty_fam,
             s0, s1, s2:
             $ty, $ty, $ty:
             0, 1, 2
         );
     );
-    ($name:ident, 4, $ty:ty) => (
-        decl_impl_cl_vec!($name, 4, $ty,
+    ($name:ident, 4, $ty:ty, $ty_fam:ident) => (
+        decl_impl_cl_vec!($name, 4, $ty, $ty_fam,
             s0, s1, s2, s3:
             $ty, $ty, $ty, $ty:
             0, 1, 2, 3
         );
     );
-    ($name:ident, 8, $ty:ty) => (
-        decl_impl_cl_vec!($name, 8, $ty,
+    ($name:ident, 8, $ty:ty, $ty_fam:ident) => (
+        decl_impl_cl_vec!($name, 8, $ty, $ty_fam,
             s0, s1, s2, s3, s4, s5, s6, s7:
             $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty:
             0, 1, 2, 3, 4, 5, 6, 7
         );
     );
-    ($name:ident, 16, $ty:ty) => (
-        decl_impl_cl_vec!($name, 16, $ty,
+    ($name:ident, 16, $ty:ty, $ty_fam:ident) => (
+        decl_impl_cl_vec!($name, 16, $ty, $ty_fam,
             s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15:
             $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty, $ty:
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
@@ -260,24 +601,16 @@ macro_rules! cl_vec {
 
 
 
-cl_vec!(ClInt2, 2, i32);
-cl_vec!(ClInt4, 4, i32);
-
-cl_vec!(ClFloat2, 2, f32);
-cl_vec!(ClFloat4, 4, f32);
-
-
-
 
 
 // // ###### CL_CHAR ######
+cl_vec!(Char, 1, i8, i);
+
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClChar2(pub i8, pub i8);
 // unsafe impl OclPrm for ClChar2 {}
 // unsafe impl OclVec for ClChar2 {}
-cl_vec!(ClChar2, 2, i8);
-
-
+cl_vec!(Char2, 2, i8, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClChar3(pub i8, pub i8, pub i8, i8);
@@ -290,7 +623,7 @@ cl_vec!(ClChar2, 2, i8);
 
 // unsafe impl OclPrm for ClChar3 {}
 // unsafe impl OclVec for ClChar3 {}
-cl_vec!(ClChar3, 3, i8);
+cl_vec!(Char3, 3, i8, i);
 
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
@@ -298,13 +631,13 @@ cl_vec!(ClChar3, 3, i8);
 // unsafe impl OclPrm for ClChar4 {}
 // unsafe impl OclVec for ClChar4 {}
 
-cl_vec!(ClChar4, 4, i8);
+cl_vec!(Char4, 4, i8, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClChar8(pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8);
 // unsafe impl OclPrm for ClChar8 {}
 // unsafe impl OclVec for ClChar8 {}
-cl_vec!(ClChar8, 8, i8);
+cl_vec!(Char8, 8, i8, i);
 
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
@@ -312,16 +645,18 @@ cl_vec!(ClChar8, 8, i8);
 //     pub i8, pub i8, pub i8, pub i8, pub i8, pub i8, pub i8);
 // unsafe impl OclPrm for ClChar16 {}
 // unsafe impl OclVec for ClChar16 {}
-cl_vec!(ClChar16, 16, i8);
+cl_vec!(Char16, 16, i8, i);
 
 
 // // ###### CL_UCHAR ######
+cl_vec!(Uchar, 1, u8, u);
+
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUchar2(pub u8, pub u8);
 // unsafe impl OclPrm for ClUchar2 {}
 // unsafe impl OclVec for ClUchar2 {}
-cl_vec!(ClUchar2, 2, u8);
 
+cl_vec!(Uchar2, 2, u8, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUchar3(pub u8, pub u8, pub u8, u8);
@@ -334,41 +669,37 @@ cl_vec!(ClUchar2, 2, u8);
 
 // unsafe impl OclPrm for ClUchar3 {}
 // unsafe impl OclVec for ClUchar3 {}
-cl_vec!(ClUchar3, 3, u8);
+cl_vec!(Uchar3, 3, u8, u);
 
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUchar4(pub u8, pub u8, pub u8, pub u8);
 // unsafe impl OclPrm for ClUchar4 {}
 // unsafe impl OclVec for ClUchar4 {}
-cl_vec!(ClUchar4, 4, u8);
-
-
-// pub type ClUchar3 = ClUchar4;
-
+cl_vec!(Uchar4, 4, u8, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUchar8(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
 // unsafe impl OclPrm for ClUchar8 {}
 // unsafe impl OclVec for ClUchar8 {}
-cl_vec!(ClUchar8, 8, u8);
-
+cl_vec!(Uchar8, 8, u8, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUchar16(pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8,
 //     pub u8, pub u8, pub u8, pub u8, pub u8, pub u8, pub u8);
 // unsafe impl OclPrm for ClUchar16 {}
 // unsafe impl OclVec for ClUchar16 {}
-cl_vec!(ClUchar16, 16, u8);
-
+cl_vec!(Uchar16, 16, u8, u);
 
 // // ###### CL_SHORT ######
+cl_vec!(Short, 1, i16, i);
+
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClShort2(pub i16, pub i16);
 // unsafe impl OclPrm for ClShort2 {}
 // unsafe impl OclVec for ClShort2 {}
-cl_vec!(ClShort2, 2, i16);
 
+cl_vec!(Short2, 2, i16, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClShort3(pub i16, pub i16, pub i16, i16);
@@ -381,24 +712,21 @@ cl_vec!(ClShort2, 2, i16);
 
 // unsafe impl OclPrm for ClShort3 {}
 // unsafe impl OclVec for ClShort3 {}
-cl_vec!(ClShort3, 3, i16);
+cl_vec!(Short3, 3, i16, i);
 
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClShort4(pub i16, pub i16, pub i16, pub i16);
 // unsafe impl OclPrm for ClShort4 {}
 // unsafe impl OclVec for ClShort4 {}
-cl_vec!(ClShort4, 4, i16);
-
-
-// pub type ClShort3 = ClShort4;
+cl_vec!(Short4, 4, i16, i);
 
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClShort8(pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16);
 // unsafe impl OclPrm for ClShort8 {}
 // unsafe impl OclVec for ClShort8 {}
-cl_vec!(ClShort8, 8, i16);
+cl_vec!(Short8, 8, i16, i);
 
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
@@ -406,15 +734,17 @@ cl_vec!(ClShort8, 8, i16);
 //     pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16, pub i16);
 // unsafe impl OclPrm for ClShort16 {}
 // unsafe impl OclVec for ClShort16 {}
-cl_vec!(ClShort16, 16, i16);
+cl_vec!(Short16, 16, i16, i);
 
 // // ###### CL_USHORT ######
+cl_vec!(Ushort, 1, u16, u);
+
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUshort2(pub u16, pub u16);
 // unsafe impl OclPrm for ClUshort2 {}
 // unsafe impl OclVec for ClUshort2 {}
-cl_vec!(ClUshort2, 2, u16);
 
+cl_vec!(Ushort2, 2, u16, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUshort3(pub u16, pub u16, pub u16, u16);
@@ -428,16 +758,14 @@ cl_vec!(ClUshort2, 2, u16);
 // unsafe impl OclPrm for ClUshort3 {}
 // unsafe impl OclVec for ClUshort3 {}
 
-cl_vec!(ClUshort3, 3, u16);
-
+cl_vec!(Ushort3, 3, u16, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUshort4(pub u16, pub u16, pub u16, pub u16);
 // unsafe impl OclPrm for ClUshort4 {}
 // unsafe impl OclVec for ClUshort4 {}
 
-cl_vec!(ClUshort4, 4, u16);
-
+cl_vec!(Ushort4, 4, u16, u);
 
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
@@ -445,8 +773,7 @@ cl_vec!(ClUshort4, 4, u16);
 // unsafe impl OclPrm for ClUshort8 {}
 // unsafe impl OclVec for ClUshort8 {}
 
-cl_vec!(ClUshort8, 8, u16);
-
+cl_vec!(Ushort8, 8, u16, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUshort16(pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16, pub u16,
@@ -454,15 +781,17 @@ cl_vec!(ClUshort8, 8, u16);
 // unsafe impl OclPrm for ClUshort16 {}
 // unsafe impl OclVec for ClUshort16 {}
 
-cl_vec!(ClUshort16, 16, u16);
+cl_vec!(Ushort16, 16, u16, u);
 
 // ###### CL_INT ######
+cl_vec!(Int, 1, i32, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClInt2(pub i32, pub i32);
 // unsafe impl OclPrm for ClInt2 {}
 // unsafe impl OclVec for ClInt2 {}
 
+cl_vec!(Int2, 2, i32, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClInt3(pub i32, pub i32, pub i32, i32);
@@ -476,8 +805,7 @@ cl_vec!(ClUshort16, 16, u16);
 // unsafe impl OclPrm for ClInt3 {}
 // unsafe impl OclVec for ClInt3 {}
 
-cl_vec!(ClInt3, 3, i32);
-
+cl_vec!(Int3, 3, i32, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClInt4(pub i32, pub i32, pub i32, pub i32);
@@ -498,16 +826,14 @@ cl_vec!(ClInt3, 3, i32);
 //     }
 // }
 
-
-
+cl_vec!(Int4, 4, i32, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClInt8(pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32);
 // unsafe impl OclPrm for ClInt8 {}
 // unsafe impl OclVec for ClInt8 {}
 
-cl_vec!(ClInt8, 8, i32);
-
+cl_vec!(Int8, 8, i32, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClInt16(pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32, pub i32,
@@ -515,16 +841,17 @@ cl_vec!(ClInt8, 8, i32);
 // unsafe impl OclPrm for ClInt16 {}
 // unsafe impl OclVec for ClInt16 {}
 
-
-cl_vec!(ClInt16, 16, i32);
+cl_vec!(Int16, 16, i32, i);
 
 // // ###### CL_UINT ######
+cl_vec!(Uint, 1, u32, u);
+
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUint2(pub u32, pub u32);
 // unsafe impl OclPrm for ClUint2 {}
 // unsafe impl OclVec for ClUint2 {}
 
-cl_vec!(ClUint2, 2, u32);
+cl_vec!(Uint2, 2, u32, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUint3(pub u32, pub u32, pub u32, u32);
@@ -538,25 +865,21 @@ cl_vec!(ClUint2, 2, u32);
 // unsafe impl OclPrm for ClUint3 {}
 // unsafe impl OclVec for ClUint3 {}
 
-cl_vec!(ClUint3, 3, u32);
+cl_vec!(Uint3, 3, u32, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUint4(pub u32, pub u32, pub u32, pub u32);
 // unsafe impl OclPrm for ClUint4 {}
 // unsafe impl OclVec for ClUint4 {}
 
-cl_vec!(ClUint4, 4, u32);
-
-// pub type ClUint3 = ClUint4;
-
+cl_vec!(Uint4, 4, u32, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUint8(pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32);
 // unsafe impl OclPrm for ClUint8 {}
 // unsafe impl OclVec for ClUint8 {}
 
-cl_vec!(ClUint8, 8, i8);
-
+cl_vec!(Uint8, 8, i8, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUint16(pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32, pub u32,
@@ -564,7 +887,7 @@ cl_vec!(ClUint8, 8, i8);
 // unsafe impl OclPrm for ClUint16 {}
 // unsafe impl OclVec for ClUint16 {}
 
-cl_vec!(ClUint16, 16, u32);
+cl_vec!(Uint16, 16, u32, u);
 
 // // ###### CL_LONG ######
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
@@ -572,14 +895,14 @@ cl_vec!(ClUint16, 16, u32);
 // unsafe impl OclPrm for ClLong1 {}
 // unsafe impl OclVec for ClLong1 {}
 
-cl_vec!(ClLong, 1, i64);
+cl_vec!(Long, 1, i64, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClLong2(pub i64, pub i64);
 // unsafe impl OclPrm for ClLong2 {}
 // unsafe impl OclVec for ClLong2 {}
 
-cl_vec!(ClLong2, 2, i64);
+cl_vec!(Long2, 2, i64, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClLong3(pub i64, pub i64, pub i64, i64);
@@ -593,25 +916,21 @@ cl_vec!(ClLong2, 2, i64);
 // unsafe impl OclPrm for ClLong3 {}
 // unsafe impl OclVec for ClLong3 {}
 
-cl_vec!(ClLong3, 3, i64);
+cl_vec!(Long3, 3, i64, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClLong4(pub i64, pub i64, pub i64, pub i64);
 // unsafe impl OclPrm for ClLong4 {}
 // unsafe impl OclVec for ClLong4 {}
 
-cl_vec!(ClLong4, 4, i64);
-
-// pub type ClLong3 = ClLong4;
-
+cl_vec!(Long4, 4, i64, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClLong8(pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64);
 // unsafe impl OclPrm for ClLong8 {}
 // unsafe impl OclVec for ClLong8 {}
 
-cl_vec!(ClLong8, 8, i64);
-
+cl_vec!(Long8, 8, i64, i);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClLong16(pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64, pub i64,
@@ -619,8 +938,7 @@ cl_vec!(ClLong8, 8, i64);
 // unsafe impl OclPrm for ClLong16 {}
 // unsafe impl OclVec for ClLong16 {}
 
-cl_vec!(ClLong16, 16, i64);
-
+cl_vec!(Long16, 16, i64, i);
 
 // // ###### CL_ULONG ######
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
@@ -628,15 +946,14 @@ cl_vec!(ClLong16, 16, i64);
 // unsafe impl OclPrm for ClUlong1 {}
 // unsafe impl OclVec for ClUlong1 {}
 
-cl_vec!(ClUlong, 1, u64);
+cl_vec!(Ulong, 1, u64, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUlong2(pub u64, pub u64);
 // unsafe impl OclPrm for ClUlong2 {}
 // unsafe impl OclVec for ClUlong2 {}
 
-cl_vec!(ClUlong2, 2, u64);
-
+cl_vec!(Ulong2, 2, u64, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUlong3(pub u64, pub u64, pub u64, u64);
@@ -650,25 +967,21 @@ cl_vec!(ClUlong2, 2, u64);
 // unsafe impl OclPrm for ClUlong3 {}
 // unsafe impl OclVec for ClUlong3 {}
 
-cl_vec!(ClUlong3, 3, u64);
-
+cl_vec!(Ulong3, 3, u64, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUlong4(pub u64, pub u64, pub u64, pub u64);
 // unsafe impl OclPrm for ClUlong4 {}
 // unsafe impl OclVec for ClUlong4 {}
 
-
-cl_vec!(ClUlong4, 4, u64);
-
+cl_vec!(Ulong4, 4, u64, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUlong8(pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64);
 // unsafe impl OclPrm for ClUlong8 {}
 // unsafe impl OclVec for ClUlong8 {}
 
-cl_vec!(ClUlong8, 8, u64);
-
+cl_vec!(Ulong8, 8, u64, u);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClUlong16(pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64, pub u64,
@@ -676,14 +989,17 @@ cl_vec!(ClUlong8, 8, u64);
 // unsafe impl OclPrm for ClUlong16 {}
 // unsafe impl OclVec for ClUlong16 {}
 
-cl_vec!(ClUlong16, 16, u64);
+cl_vec!(Ulong16, 16, u64, u);
 
 // // ###### CL_FLOAT ######
+cl_vec!(Float, 1, f32, f);
+
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClFloat2(pub f32, pub f32);
 // unsafe impl OclPrm for ClFloat2 {}
 // unsafe impl OclVec for ClFloat2 {}
 
+cl_vec!(Float2, 2, f32, f);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClFloat3(pub f32, pub f32, pub f32, f32);
@@ -717,8 +1033,7 @@ cl_vec!(ClUlong16, 16, u64);
 // unsafe impl OclPrm for ClFloat3 {}
 // unsafe impl OclVec for ClFloat3 {}
 
-cl_vec!(ClFloat3, 3, f32);
-
+cl_vec!(Float3, 3, f32, f);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // // pub struct ClFloat4(pub f32, pub f32, pub f32, pub f32);
@@ -760,16 +1075,14 @@ cl_vec!(ClFloat3, 3, f32);
 // unsafe impl OclPrm for ClFloat4 {}
 // unsafe impl OclVec for ClFloat4 {}
 
-// pub type ClFloat3 = ClFloat4;
-
+cl_vec!(Float4, 4, f32, f);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClFloat8(pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32);
 // unsafe impl OclPrm for ClFloat8 {}
 // unsafe impl OclVec for ClFloat8 {}
 
-cl_vec!(ClFloat8, 8, f32);
-
+cl_vec!(Float8, 8, f32, f);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClFloat16(pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32, pub f32,
@@ -777,17 +1090,17 @@ cl_vec!(ClFloat8, 8, f32);
 // unsafe impl OclPrm for ClFloat16 {}
 // unsafe impl OclVec for ClFloat16 {}
 
-cl_vec!(ClFloat16, 16, f32);
-
+cl_vec!(Float16, 16, f32, f);
 
 // // ###### CL_DOUBLE ######
+cl_vec!(Double, 1, f64, f);
+
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClDouble2(pub f64, pub f64);
 // unsafe impl OclPrm for ClDouble2 {}
 // unsafe impl OclVec for ClDouble2 {}
 
-cl_vec!(ClDouble2, 2, f64);
-
+cl_vec!(Double2, 2, f64, f);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClDouble3(pub f64, pub f64, pub f64, f64);
@@ -801,24 +1114,21 @@ cl_vec!(ClDouble2, 2, f64);
 // unsafe impl OclPrm for ClDouble3 {}
 // unsafe impl OclVec for ClDouble3 {}
 
-cl_vec!(ClDouble3, 3, f64);
-
+cl_vec!(Double3, 3, f64, f);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClDouble4(pub f64, pub f64, pub f64, pub f64);
 // unsafe impl OclPrm for ClDouble4 {}
 // unsafe impl OclVec for ClDouble4 {}
 
-cl_vec!(ClDouble4, 4, f64);
-
+cl_vec!(Double4, 4, f64, f);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClDouble8(pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64);
 // unsafe impl OclPrm for ClDouble8 {}
 // unsafe impl OclVec for ClDouble8 {}
 
-cl_vec!(ClDouble8, 8, f64);
-
+cl_vec!(Double8, 8, f64, f);
 
 // #[derive(PartialEq, Debug, Clone, Copy, Default)]
 // pub struct ClDouble16(pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64, pub f64,
@@ -826,4 +1136,40 @@ cl_vec!(ClDouble8, 8, f64);
 // unsafe impl OclPrm for ClDouble16 {}
 // unsafe impl OclVec for ClDouble16 {}
 
-cl_vec!(ClDouble16, 16, f64);
+cl_vec!(Double16, 16, f64, f);
+
+
+// Copied from `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
+mod shift_max {
+    #![allow(non_upper_case_globals, dead_code)]
+
+    #[cfg(target_pointer_width = "16")]
+    mod platform {
+        pub const usize: u32 = super::u16;
+        pub const isize: u32 = super::i16;
+    }
+
+    #[cfg(target_pointer_width = "32")]
+    mod platform {
+        pub const usize: u32 = super::u32;
+        pub const isize: u32 = super::i32;
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    mod platform {
+        pub const usize: u32 = super::u64;
+        pub const isize: u32 = super::i64;
+    }
+
+    pub const i8: u32 = (1 << 3) - 1;
+    pub const i16: u32 = (1 << 4) - 1;
+    pub const i32: u32 = (1 << 5) - 1;
+    pub const i64: u32 = (1 << 6) - 1;
+    pub use self::platform::isize;
+
+    pub const u8: u32 = i8;
+    pub const u16: u32 = i16;
+    pub const u32: u32 = i32;
+    pub const u64: u32 = i64;
+    pub use self::platform::usize;
+}
