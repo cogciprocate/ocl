@@ -973,6 +973,9 @@ impl Event {
     /// Sets a callback function, `callback_receiver`, to trigger upon
     /// completion of this event list with an optional pointer to user data.
     ///
+    /// The callback function must have a signature matching:
+    /// `extern "C" fn (ffi::cl_event, i32, *mut libc::c_void)`
+    ///
     /// # Safety
     ///
     /// `user_data` must be guaranteed to still exist if and when `callback_receiver`

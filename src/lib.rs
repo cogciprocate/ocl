@@ -113,7 +113,7 @@ pub mod util;
 
 use std::fmt::{Display, Debug};
 use std::ops::{Add, Sub, Mul, Div, Rem};
-use num::{NumCast, FromPrimitive, ToPrimitive};
+use num::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
 use rand::distributions::range::SampleRange;
 
 pub use self::error::{Error, Result};
@@ -137,8 +137,8 @@ pub use self::types::vectors::{
     ClUshort2, ClUshort3, ClUshort4, ClUshort8, ClUshort16,
     ClInt2, ClInt3, ClInt4, ClInt8, ClInt16,
     ClUint2, ClUint3, ClUint4, ClUint8, ClUint16,
-    ClLong1, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
-    ClUlong1, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
+    ClLong, ClLong2, ClLong3, ClLong4, ClLong8, ClLong16,
+    ClUlong, ClUlong2, ClUlong3, ClUlong4, ClUlong8, ClUlong16,
     ClFloat2, ClFloat3, ClFloat4, ClFloat8, ClFloat16,
     ClDouble2, ClDouble3, ClDouble4, ClDouble8, ClDouble16,
 };
@@ -201,9 +201,10 @@ pub type UserDataPtr = *mut libc::c_void;
 /// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
 /// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
 ///
-pub unsafe trait OclPrm: 'static + PartialEq + Copy + Clone + Default + Debug {}
+pub unsafe trait OclPrm: 'static + Debug + Clone + Copy + PartialEq + PartialOrd + Default + Add {}
 
-unsafe impl<S> OclPrm for S where S: OclScl {}
+unsafe impl<S> OclPrm for S where S: 'static + Debug + Clone + Copy + PartialEq + PartialOrd + Default + Add {}
+// unsafe impl<S> OclPrm for S where S: OclVec {}
 
 
 /// A scalar type usable within `OpenCL` kernels.
@@ -215,15 +216,41 @@ unsafe impl<S> OclPrm for S where S: OclScl {}
 /// To describe the contents of buffers, etc., prefer using the more general
 /// `OclPrm` trait unless scalar operations are required.
 ///
-pub unsafe trait OclScl: 'static + Copy + Clone + PartialOrd + NumCast + Default +  Add + Sub + Mul
-    + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
 
-unsafe impl<T> OclScl for T where T: 'static + Copy + Clone + PartialOrd + NumCast + Default + Add
-    + Sub + Mul + Div + Rem + Display + Debug + FromPrimitive + ToPrimitive + SampleRange {}
+// pub unsafe trait OclScl: 'static + Debug + Display + Clone + Copy + PartialEq + PartialOrd +
+//     Default + Add + Sub + Mul + Div + Rem + NumCast + FromPrimitive + ToPrimitive +
+//     SampleRange + Zero + One {}
 
+// unsafe impl<T> OclScl for T where T: 'static + Copy + Clone + PartialOrd + Default +
+//     Add + Sub + Mul + Div + Rem + Display + Debug + NumCast + FromPrimitive + ToPrimitive + SampleRange +
+//     PartialEq + Zero + One {}
+
+pub unsafe trait OclScl: Debug + Display + Clone + Copy + Default + PartialOrd +
+    Zero<Output=Self> + One<Output=Self> + Add<Self> + Sub<Self, Output=Self> +
+    Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
+    NumCast + FromPrimitive + ToPrimitive + SampleRange + 'static {}
+
+unsafe impl<T> OclScl for T where T: Debug + Display + Clone + Copy + Default + PartialOrd +
+    Zero<Output=T> + One<Output=T> + Add<T> + Sub<T, Output=T> +
+    Mul<T> + Div<T, Output=T> + Rem<T, Output=T> + PartialEq<T> +
+    NumCast + FromPrimitive + ToPrimitive + SampleRange + 'static {}
+
+// Zero<Output=Self> + One<Output=Self> + Add<Self> + Sub<Self, Output=Self> + Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self>
 
 /// A vector type usable within `OpenCL` kernels.
-pub unsafe trait OclVec {}
+pub unsafe trait OclVec: Debug + /*Display +*/ Clone + Copy + Default + PartialOrd +
+    Zero<Output=Self> + One<Output=Self> + Add<Self> + Sub<Self, Output=Self> +
+    Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
+    'static {}
+
+unsafe impl<T> OclVec for T where T: Debug + /*Display +*/ Clone + Copy + Default + PartialOrd +
+    Zero<Output=T> + One<Output=T> + Add<T> + Sub<T, Output=T> +
+    Mul<T> + Div<T, Output=T> + Rem<T, Output=T> + PartialEq<T> +
+    'static {}
+
+// impl<T> Add for T where T: OclVec {
+//     type Output = T;
+// }
 
 // unsafe impl<P> OclVec for [P] where P: OclPrm {}
 

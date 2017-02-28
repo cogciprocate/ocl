@@ -1556,7 +1556,12 @@ pub fn build_program<D: ClDeviceIdPtr>(
     ) };
 
     if errcode == Status::CL_BUILD_PROGRAM_FAILURE as i32 {
-        program_build_err(program, devices.unwrap_or(&[]))
+        if let Some(ds) = devices {
+            program_build_err(program, ds)
+        } else {
+            let ds = program.devices()?;
+            program_build_err(program, &ds)
+        }
     } else {
         eval_errcode(errcode, (), "clBuildProgram", "")
     }
@@ -3077,12 +3082,13 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMarkerWithWaitList.html)
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub fn enqueue_marker_with_wait_list<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_marker_with_wait_list<En, Ewl>(
             command_queue: &CommandQueue,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     // Verify device version:
     try!(verify_device_version(device_version, [1, 2], command_queue));
@@ -3105,12 +3111,13 @@ pub fn enqueue_marker_with_wait_list<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueBarrierWithWaitList.html)
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub fn enqueue_barrier_with_wait_list<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub fn enqueue_barrier_with_wait_list<En, Ewl>(
             command_queue: &CommandQueue,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
             device_version: Option<&OpenclVersion>
         ) -> OclResult<()>
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     // Verify device version:
     try!(verify_device_version(device_version, [1, 2], command_queue));

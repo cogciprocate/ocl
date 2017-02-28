@@ -20,16 +20,41 @@ pub mod buffer_fill;
 // pub mod clear_completed;
 // pub mod concurrent;
 // pub mod kernel_arg_ptr;
-// pub mod vector_types;
+pub mod vector_types;
 // pub mod context_props;
 
 use rand::{self, Rng};
 use error::{Error as OclError, Result as OclResult};
-use OclScl;
+use ::{OclScl, PlatformId, DeviceId, Context};
 
 const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 16;
 const PRINT: bool = false;
+
+
+/// Returns one context for each device on each platform available.
+pub fn get_available_contexts() -> Vec<(PlatformId, DeviceId, Context)> {
+    use ::{DeviceInfo, DeviceInfoResult};
+    let mut contexts = Vec::with_capacity(16);
+
+    for platform in ::get_platform_ids().unwrap() {
+        for device in ::get_device_ids(&platform, None, None).unwrap() {
+            match ::get_device_info(device, DeviceInfo::Available) {
+                DeviceInfoResult::Available(r) => if !r { continue; },
+                DeviceInfoResult::Error(err) => panic!("{}", err),
+                _ => unreachable!(),
+            }
+
+            let context_properties = ::ContextProperties::new().platform(platform);
+            let context = ::create_context(Some(&context_properties),
+                &[device], None, None).unwrap();
+
+            contexts.push((platform, device, context));
+        }
+    }
+
+    contexts
+}
 
 fn gen_region_origin(dims: &[usize; 3]) -> ([usize; 3], [usize; 3]) {
     let mut rng = rand::weak_rng();
