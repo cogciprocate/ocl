@@ -73,17 +73,24 @@ pub use core::error::{Error, Result};
 pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
 
 
-pub mod aliases {
-    //! Type aliases and structs meant to mirror those available within a
-    //! kernel.
+pub mod prm {
+    //! OpenCL scalar and vector primitive types.
     //!
-    //! Vector type fields can be accessed using .0, .1, .2 ... etc.
+    //! Includes types which are meant for API usage such as `cl_...` and
+    //! types which behave identically to how they do within kernels
+    //! (wrappping arithmetic, etc.).
+    //!
+    //! Vector type fields can be accessed using index operations i.e. [0],
+    //! [1], [2] ... etc.
     //!
     //! [NOTE]: This module may be renamed.
 
     pub use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
 
+    pub use ffi::{ cl_GLuint, cl_GLint, cl_GLenum };
+
+    // Wrapping types. Use these to mimic in-kernel behaviour:
     pub use core::{
         Char, Char2, Char3, Char4, Char8, Char16,
         Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
@@ -95,8 +102,6 @@ pub mod aliases {
         Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
         Float, Float2, Float3, Float4, Float8, Float16,
         Double, Double2, Double3, Double4, Double8, Double16};
-
-    pub use ffi::{ cl_GLuint, cl_GLint, cl_GLenum };
 }
 
 pub mod traits {

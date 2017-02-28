@@ -48,7 +48,11 @@ See the breaking changes section below for details.
   `ProQue` allowing out of order execution and profiling to be enabled.
   Profiling had previously been enabled by default but now must be explicitly
   enabled by setting the `QUEUE_PROFILING_ENABLE` flag.
-* Complete redesign and macro based reimplementation of all vector types.
+* Complete rename, redesign, and macro-based reimplementation of all vector
+  types. Vector types now implement all of the same operations as scalar types
+  and use wrapping arithmetic (see breaking changes for more). There is also
+  now a scalar version for each type using all of the same (wrapping)
+  operations and naming conventions (ex.: Double, Int, Uchar).
 
 Breaking Changes
 ----------------
@@ -85,10 +89,13 @@ Breaking Changes
     Kernel::new("kernel_name", &program).unwrap().queue(queue)
     ```
     [FIXME] Add/update links
-* `BufferCmd`, `ImageCmd`, and `KernelCmd` now [FIXME: complete]  
-  * [FIXME] `::copy` signature change (`offset` and `len` (size))
-  * [FIXME] `::enew`, `::enew_opt`, `::ewait`,  and `::ewait_opt` signature
-    changes (trait obj -> enum)
+* `BufferCmd`, `ImageCmd`, and `KernelCmd` have undergone changes:
+  * `::copy` signature change `offset` and `len` (size) are now optional.
+    Offset will default to zero and length will default to the entire length
+    of the buffer.
+  * `::enew`, `::enew_opt`, `::ewait`,  and `::ewait_opt` for command builders
+    have had a signature change and now use generics. This may affect certain
+    types of casts.
 * `Buffer::is_empty` has been removed.
 * `Buffer::from_gl_buffer`, `Buffer::set_default_queue`,
   `ImageBuilder::build`, `ImageBuilder::build_with_data`, `Image::new`,
@@ -113,9 +120,14 @@ Breaking Changes
 * `Queue::finish` now returns a result instead of unwrapping.
 * `Program::new` has had its arguments rearranged for consistency.
 * `Event::wait` and `EventList::wait` have both been renamed to `::wait_for`.
-* [FIXME: elaborate] `core_as_ref` & `core_as_mut` rename
-* Vector types can no longer be created using the tuple struct notation. Use
-  `::new`.
+* `::core_as_ref` and `::core_as_mut` for several types have been renamed to
+  `::core` and `::core_mut`.
+* Vector types have been redesigned:
+  * The `Cl` prefix for each type has been removed.
+  * Tuple struct notation for creation has been removed. Use `::new`.
+  * All arithmetic operations are fully implemented and are wrapping.
+  * Bitwise and shift operators have been added for integer types.
+  * Now located within `ocl::prm`.
 
 ### Breaking changes specific to `ocl-core`
 * Passing event wait list and new event references has been completely
@@ -151,10 +163,8 @@ Breaking Changes
 * `::build_program` the `devices` argument is now optional. Not specifying any
   devices will cause the program to be built for all available devices within
   the provided context.
-
-
-  [FIXME]
-  * `enqueue_map_buffer`, `enqueue_map_image`, `enqueue_unmap_mem_object`
+* `enqueue_map_buffer`, `enqueue_map_image`, and `enqueue_unmap_mem_object`
+  have had signature changes.
 
 Other Changes
 -------------

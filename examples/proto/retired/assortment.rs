@@ -37,7 +37,7 @@ use std::collections::{LinkedList, HashMap, BTreeSet};
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, SubBuffer, OclPrm,
     Event, EventList, MemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::Float4;
+use ocl::prm::Float4;
 
 const INITIAL_BUFFER_LEN: u32 = 1 << 23; // 256MiB of Float4
 const SUB_BUF_MIN_LEN: u32 = 1 << 11; // 64KiB of Float4

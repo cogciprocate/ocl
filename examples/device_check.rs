@@ -31,7 +31,7 @@ use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPr
     Event, EventList, MemMap};
 use ocl::async::Result as AsyncResult;
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::Float4;
+use ocl::prm::Float4;
 use ocl::core::Event as EventCore;
 
 

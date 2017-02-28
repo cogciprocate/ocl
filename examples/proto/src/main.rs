@@ -48,7 +48,7 @@ use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{async, Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
     FutureMemMap, MemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::Int4;
+use ocl::prm::Int4;
 use ocl::ffi::{cl_event, c_void};
 
 // Size of buffers and kernel work size:

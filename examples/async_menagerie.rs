@@ -24,7 +24,7 @@ use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, OclPrm,
     Event, EventList, FutureMemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::Float4;
+use ocl::prm::Float4;
 use ocl::async::{Error as AsyncError};
 use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 

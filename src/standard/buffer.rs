@@ -438,9 +438,12 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     ///
     /// If `.block(..)` has been set it will be ignored.
     ///
+    /// `dst_offset` defaults to `0`, `len` defaults to the full length of the
+    /// source buffer.
+    ///
     /// ## Errors
     ///
-    /// If this is a rectangular copy, `dst_offset` and `len` must be zero.
+    /// If this is a rectangular copy, `dst_offset` and `len` must be None.
     ///
     /// ## Panics
     ///

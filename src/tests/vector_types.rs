@@ -2,7 +2,7 @@
 //!
 
 use standard::ProQue;
-use aliases::Int4;
+use prm::Int4;
 
 const DATASET_SIZE: usize = 1 << 20;
 

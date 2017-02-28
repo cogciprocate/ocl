@@ -21,7 +21,7 @@ use rand::distributions::{IndependentSample, Range as RandRange};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, OclPrm,
     Event, EventList, MemMap, FutureMemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::Float4;
+use ocl::prm::Float4;
 
 use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 

@@ -107,14 +107,14 @@ fn vector_map() {
     let in_buff = ocl::Buffer::new::<_, _, &mut ocl::Event>(queue.clone(),
                                    Some(ocl::core::MEM_ALLOC_HOST_PTR),
                                    BUFFER_DIMENSIONS,
-                                   None::<&[ocl::aliases::ClFloat16]>,
+                                   None::<&[ocl::prm::ClFloat16]>,
                                    None)
         .expect("Creating buffer failed");
 
     unsafe {
         let mut event = ocl::EventList::new();
         let mut buff_datum =
-            ocl_core::enqueue_map_buffer::<ocl::aliases::ClFloat16, _, _, _>(&queue,
+            ocl_core::enqueue_map_buffer::<ocl::prm::ClFloat16, _, _, _>(&queue,
                                                                     in_buff.core(),
                                                                     true,
                                                                     ocl_core::MAP_WRITE,
@@ -125,17 +125,17 @@ fn vector_map() {
                 .expect("Mapping memory object failed");
         queue.finish().unwrap();
 
-        let mut value: ocl::aliases::ClFloat16 = Default::default();
+        let mut value: ocl::prm::ClFloat16 = Default::default();
         // Use only first value
         value.0 = 10_f32;
-        let datum: Vec<ocl::aliases::ClFloat16> = vec![value; BUFFER_DIMENSIONS];
+        let datum: Vec<ocl::prm::ClFloat16> = vec![value; BUFFER_DIMENSIONS];
         let mut datum_slice = buff_datum.as_slice_mut(datum.len());
         datum_slice.copy_from_slice(&datum);
         ocl_core::enqueue_unmap_mem_object(&queue, in_buff.core(), &mut buff_datum, None::<ocl::Event>, None::<&mut ocl::Event>)
             .expect("Unmap of memory object failed");
         queue.finish().unwrap();
     }
-    let mut check_datum: Vec<ocl::aliases::ClFloat16> = vec![Default::default(); BUFFER_DIMENSIONS];
+    let mut check_datum: Vec<ocl::prm::ClFloat16> = vec![Default::default(); BUFFER_DIMENSIONS];
 
     in_buff.read(&mut check_datum)
         .enq()
@@ -153,7 +153,7 @@ fn vector_map() {
 
     kern.cmd().enq().unwrap();
 
-    let mut read_datum: Vec<ocl::aliases::ClFloat16> = vec![Default::default(); BUFFER_DIMENSIONS];
+    let mut read_datum: Vec<ocl::prm::ClFloat16> = vec![Default::default(); BUFFER_DIMENSIONS];
     in_buff.read(&mut read_datum)
         .enq()
         .expect("Reading from in_buff after kernel exec failed");

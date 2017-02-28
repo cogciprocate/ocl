@@ -17,7 +17,7 @@ use futures::future::{Future};
 use futures_cpupool::CpuPool;
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, Event};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::Float4;
+use ocl::prm::Float4;
 
 
 static KERN_SRC: &'static str = r#"

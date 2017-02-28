@@ -8,7 +8,7 @@ use core;
 use flags;
 use standard::{ProQue, Image, Sampler};
 use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
-use aliases::{Int4};
+use prm::{Int4};
 use tests;
 
 // const ADDEND: [i32; 4] = [1; 4];

@@ -45,7 +45,7 @@ use futures::{Future, Join};
 use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::aliases::Int4;
+use ocl::prm::Int4;
 
 // Size of buffers and kernel work size:
 const WORK_SIZE: usize = 1 << 25;

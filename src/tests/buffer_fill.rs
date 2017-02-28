@@ -43,7 +43,7 @@ fn fill() {
 
 #[test]
 fn fill_with_float4() {
-    use aliases::Float4;
+    use prm::Float4;
 
     let src = r#"
         __kernel void add_float4(__global float4* buffer, float4 addend) {
