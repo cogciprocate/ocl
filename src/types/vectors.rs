@@ -10,9 +10,10 @@
 // #![allow(unused_imports)]
 
 use std::fmt::{Display, Formatter, Result as FmtResult};
-pub use std::ops::*;
-pub use num::{Zero, One, NumCast};
-pub use ::{OclPrm, OclVec, OclScl};
+use std::ops::*;
+use std::iter::{Sum, Product};
+use num::{Zero, One};
+use ::{OclPrm, OclVec};
 
 pub trait Splat {
     type Scalar: OclPrm;
@@ -21,13 +22,15 @@ pub trait Splat {
 }
 
 
-#[macro_export]
 macro_rules! expand_val {
     ($( $junk:expr, $val:expr ),+) => ( $($val),+ );
 }
 
+
 // implements the unary operator "op &T"
 // based on "op T" where T is expected to be `Copy`able
+//
+// Adapted from: `https://doc.rust-lang.org/src/core/internal_macros.rs.html`.
 macro_rules! forward_ref_unop {
     (impl $imp:ident, $method:ident for $t:ty) => {
         impl<'a> $imp for &'a $t {
@@ -43,6 +46,8 @@ macro_rules! forward_ref_unop {
 
 // implements binary operators "&T op U", "T op &U", "&T op &U"
 // based on "T op U" where T and U are expected to be `Copy`able
+//
+// Adapted from: `https://doc.rust-lang.org/src/core/internal_macros.rs.html`.
 macro_rules! forward_ref_binop {
     (impl $imp:ident, $method:ident for $t:ty, $u:ty) => {
         impl<'a> $imp<$u> for &'a $t {
@@ -74,44 +79,37 @@ macro_rules! forward_ref_binop {
     }
 }
 
-// Adapted from `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
-#[macro_export]
-macro_rules! sh_impl_signed {
-    ($t:ident, $f:ident) => (
-        impl Shl<$f> for Wrapping<$t> {
-            type Output = Wrapping<$t>;
+
+macro_rules! impl_sh_unsigned {
+    ($name:ident, $f:ident: $( $idx:expr ),+) => (
+        impl Shl<$f> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn shl(self, rhs: $f) -> Wrapping<$t> {
-                if rhs < 0 {
-                    self.0.wrapping_shr((-rhs & self::shift_max::$t as $f) as u32)
-                } else {
-                    self.0.wrapping_shl((rhs & self::shift_max::$t as $f) as u32)
-                }
+            fn shl(self, rhs: $f) -> $name {
+                // self.0.wrapping_shl((rhs & self::shift_max::$name as $f) as u32)
+                $name::from([$( self[$idx] << rhs ),+])
             }
         }
 
-        impl ShlAssign<$f> for Wrapping<$t> {
+        impl ShlAssign<$f> for $name {
             #[inline(always)]
             fn shl_assign(&mut self, rhs: $f) {
                 *self = *self << rhs;
             }
         }
 
-        impl Shr<$f> for Wrapping<$t> {
-            type Output = Wrapping<$t>;
+        impl Shr<$f> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn shr(self, rhs: $f) -> Wrapping<$t> {
-                if rhs < 0 {
-                    self.0.wrapping_shl((-rhs & self::shift_max::$t as $f) as u32)
-                } else {
-                    self.0.wrapping_shr((rhs & self::shift_max::$t as $f) as u32)
-                }
+            fn shr(self, rhs: $f) -> $name {
+                // self.0.wrapping_shr((rhs & self::shift_max::$name as $f) as u32)
+                $name::from([$( self[$idx] >> rhs ),+])
             }
         }
 
-        impl ShrAssign<$f> for Wrapping<$t> {
+        impl ShrAssign<$f> for $name {
             #[inline(always)]
             fn shr_assign(&mut self, rhs: $f) {
                 *self = *self >> rhs;
@@ -120,36 +118,47 @@ macro_rules! sh_impl_signed {
     )
 }
 
-// Adapted from `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
-#[macro_export]
-macro_rules! sh_impl_unsigned {
-    ($t:ident, $f:ident) => (
-        impl Shl<$f> for Wrapping<$t> {
-            type Output = Wrapping<$t>;
+
+macro_rules! impl_sh_signed {
+    ($name:ident, $f:ident: $( $idx:expr ),+) => (
+        impl Shl<$f> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn shl(self, rhs: $f) -> Wrapping<$t> {
-                self.0.wrapping_shl((rhs & self::shift_max::$t as $f) as u32)
+            fn shl(self, rhs: $f) -> $name {
+                if rhs < 0 {
+                    // self.0.wrapping_shr((-rhs & self::shift_max::$name as $f) as u32)
+                    $name::from([$( self[$idx] >> -rhs ),+])
+                } else {
+                    // self.0.wrapping_shl((rhs & self::shift_max::$name as $f) as u32)
+                    $name::from([$( self[$idx] << rhs ),+])
+                }
             }
         }
 
-        impl ShlAssign<$f> for Wrapping<$t> {
+        impl ShlAssign<$f> for $name {
             #[inline(always)]
             fn shl_assign(&mut self, rhs: $f) {
                 *self = *self << rhs;
             }
         }
 
-        impl Shr<$f> for Wrapping<$t> {
-            type Output = Wrapping<$t>;
+        impl Shr<$f> for $name {
+            type Output = $name;
 
             #[inline(always)]
-            fn shr(self, rhs: $f) -> Wrapping<$t> {
-                self.0.wrapping_shr((rhs & self::shift_max::$t as $f) as u32)
+            fn shr(self, rhs: $f) -> $name {
+                if rhs < 0 {
+                    // self.0.wrapping_shl((-rhs & self::shift_max::$name as $f) as u32)
+                    $name::from([$( self[$idx] << -rhs ),+])
+                } else {
+                    // self.0.wrapping_shr((rhs & self::shift_max::$name as $f) as u32)
+                    $name::from([$( self[$idx] >> rhs ),+])
+                }
             }
         }
 
-        impl ShrAssign<$f> for Wrapping<$t> {
+        impl ShrAssign<$f> for $name {
             #[inline(always)]
             fn shr_assign(&mut self, rhs: $f) {
                 *self = *self >> rhs;
@@ -158,9 +167,57 @@ macro_rules! sh_impl_unsigned {
     )
 }
 
-// Adapted from `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
-#[macro_export]
-macro_rules! impl_cl_vec_int_ops {
+// FIXME (#23545): uncomment the remaining impls
+macro_rules! impl_sh_all {
+    ($name:ident: $( $idx:expr ),+) => (
+        //impl_sh_unsigned! { $name, u8: $( $idx ),+ }
+        //impl_sh_unsigned! { $name, u16: $( $idx ),+ }
+        //impl_sh_unsigned! { $name, u32: $( $idx ),+ }
+        //impl_sh_unsigned! { $name, u64: $( $idx ),+ }
+        impl_sh_unsigned! { $name, usize: $( $idx ),+ }
+
+        //impl_sh_signed! { $name, i8: $( $idx ),+ }
+        //impl_sh_signed! { $name, i16: $( $idx ),+ }
+        //impl_sh_signed! { $name, i32: $( $idx ),+ }
+        //impl_sh_signed! { $name, i64: $( $idx ),+ }
+        //impl_sh_signed! { $name, isize: $( $idx ),+ }
+    )
+}
+
+
+// Adapted from: `https://doc.rust-lang.org/src/core/iter/traits.rs.html`.
+macro_rules! impl_sum_product {
+    ($a:ident) => (
+        impl Sum for $a {
+            fn sum<I: Iterator<Item=$a>>(iter: I) -> $a {
+                iter.fold($a::zero(), |a, b| a + b)
+            }
+        }
+
+        impl Product for $a {
+            fn product<I: Iterator<Item=$a>>(iter: I) -> $a {
+                iter.fold($a::one(), |a, b| a * b)
+            }
+        }
+
+        impl<'a> Sum<&'a $a> for $a {
+            fn sum<I: Iterator<Item=&'a $a>>(iter: I) -> $a {
+                iter.fold($a::zero(), |a, b| a + *b)
+            }
+        }
+
+        impl<'a> Product<&'a $a> for $a {
+            fn product<I: Iterator<Item=&'a $a>>(iter: I) -> $a {
+                iter.fold($a::one(), |a, b| a * *b)
+            }
+        }
+    )
+}
+
+// Implements integer-specific operators.
+//
+// Adapted from: `https://doc.rust-lang.org/src/core/num/wrapping.rs.html`.
+macro_rules! impl_int_ops {
     // ($($t:ty)*) => ($(
     ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         impl Add for $name {
@@ -169,14 +226,6 @@ macro_rules! impl_cl_vec_int_ops {
             #[inline(always)]
             fn add(self, rhs: $name) -> $name {
                 $name::from([$( self[$idx].wrapping_add(rhs[$idx]) ),+])
-            }
-        }
-        forward_ref_binop! { impl Add, add for $name, $name }
-
-        impl AddAssign for $name {
-            #[inline(always)]
-            fn add_assign(&mut self, rhs: $name) {
-                *self = *self + rhs;
             }
         }
 
@@ -188,14 +237,6 @@ macro_rules! impl_cl_vec_int_ops {
                 $name::from([$( self[$idx].wrapping_sub(rhs[$idx]) ),+])
             }
         }
-        forward_ref_binop! { impl Sub, sub for $name, $name }
-
-        impl SubAssign for $name {
-            #[inline(always)]
-            fn sub_assign(&mut self, rhs: $name) {
-                *self = *self - rhs;
-            }
-        }
 
         impl Mul for $name {
             type Output = $name;
@@ -203,14 +244,6 @@ macro_rules! impl_cl_vec_int_ops {
             #[inline(always)]
             fn mul(self, rhs: $name) -> $name {
                 $name::from([$( self[$idx].wrapping_mul(rhs[$idx]) ),+])
-            }
-        }
-        forward_ref_binop! { impl Mul, mul for $name, $name }
-
-        impl MulAssign for $name {
-            #[inline(always)]
-            fn mul_assign(&mut self, rhs: $name) {
-                *self = *self * rhs;
             }
         }
 
@@ -222,14 +255,6 @@ macro_rules! impl_cl_vec_int_ops {
                 $name::from([$( self[$idx].wrapping_div(rhs[$idx]) ),+])
             }
         }
-        forward_ref_binop! { impl Div, div for $name, $name }
-
-        impl DivAssign for $name {
-            #[inline(always)]
-            fn div_assign(&mut self, rhs: $name) {
-                *self = *self / rhs;
-            }
-        }
 
         impl Rem for $name {
             type Output = $name;
@@ -237,14 +262,6 @@ macro_rules! impl_cl_vec_int_ops {
             #[inline(always)]
             fn rem(self, rhs: $name) -> $name {
                 $name::from([$( self[$idx].wrapping_rem(rhs[$idx]) ),+])
-            }
-        }
-        forward_ref_binop! { impl Rem, rem for $name, $name }
-
-        impl RemAssign for $name {
-            #[inline(always)]
-            fn rem_assign(&mut self, rhs: $name) {
-                *self = *self % rhs;
             }
         }
 
@@ -316,12 +333,12 @@ macro_rules! impl_cl_vec_int_ops {
                 $name::from([$( 0 - self[$idx] ),+])
             }
         }
-        forward_ref_unop! { impl Neg, neg for $name }
     }
 }
 
-#[macro_export]
-macro_rules! impl_cl_vec_float_ops {
+
+// Implements floating-point-specific operators.
+macro_rules! impl_float_ops {
     ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         impl Add for $name {
             type Output = $name;
@@ -364,7 +381,7 @@ macro_rules! impl_cl_vec_float_ops {
 
             #[inline(always)]
             fn rem(self, rhs: $name) -> $name {
-                $name::from([$( self[$idx] / rhs[$idx] ),+])
+                $name::from([$( self[$idx] % rhs[$idx] ),+])
             }
         }
 
@@ -375,14 +392,13 @@ macro_rules! impl_cl_vec_float_ops {
                 $name::from([$( 0. - self[$idx] ),+])
             }
         }
+
     }
 }
 
 
-
-
-#[macro_export]
-macro_rules! impl_cl_vec_common {
+// Implements operators common to both floating point and integer types.
+macro_rules! impl_common {
     ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         impl $name {
             #[inline]
@@ -456,31 +472,82 @@ macro_rules! impl_cl_vec_common {
             }
         }
 
-        unsafe impl OclVec for $name {}
-        // unsafe impl OclPrm for $name {}
+        forward_ref_binop! { impl Add, add for $name, $name }
+
+        impl AddAssign for $name {
+            #[inline(always)]
+            fn add_assign(&mut self, rhs: $name) {
+                *self = *self + rhs;
+            }
+        }
+
+        forward_ref_binop! { impl Sub, sub for $name, $name }
+
+        impl SubAssign for $name {
+            #[inline(always)]
+            fn sub_assign(&mut self, rhs: $name) {
+                *self = *self - rhs;
+            }
+        }
+
+        forward_ref_binop! { impl Mul, mul for $name, $name }
+
+        impl MulAssign for $name {
+            #[inline(always)]
+            fn mul_assign(&mut self, rhs: $name) {
+                *self = *self * rhs;
+            }
+        }
+
+        forward_ref_binop! { impl Div, div for $name, $name }
+
+        impl DivAssign for $name {
+            #[inline(always)]
+            fn div_assign(&mut self, rhs: $name) {
+                *self = *self / rhs;
+            }
+        }
+
+        forward_ref_binop! { impl Rem, rem for $name, $name }
+
+        impl RemAssign for $name {
+            #[inline(always)]
+            fn rem_assign(&mut self, rhs: $name) {
+                *self = *self % rhs;
+            }
+        }
+
+        forward_ref_unop! { impl Neg, neg for $name }
+
+        impl_sum_product!($name);
+
+        unsafe impl OclVec for $name {
+            type Scalar = $ty;
+        }
     }
 }
 
-#[macro_export]
+// [NOTE]: Signed and unsigned paths are identical.
 macro_rules! impl_cl_vec {
     ($name:ident, $cardinality:expr, $ty:ty, f, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
-        impl_cl_vec_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
-        impl_cl_vec_float_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_float_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
     };
     ($name:ident, $cardinality:expr, $ty:ty, i, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
-        impl_cl_vec_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
-        impl_cl_vec_int_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_int_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_sh_all!($name: $( $idx ),+);
     };
     ($name:ident, $cardinality:expr, $ty:ty, u, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
-        impl_cl_vec_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
-        impl_cl_vec_int_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_int_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
+        impl_sh_all!($name: $( $idx ),+);
     };
 }
 
 
 // Vec3s need their own special treatment until some sort of repr(align)
 // exists, if ever.
-#[macro_export]
 macro_rules! decl_impl_cl_vec {
     ($name:ident, 1, $ty:ty, $ty_fam:ident, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         #[derive(Debug, Clone, Copy, Default, PartialOrd)]
@@ -600,7 +667,6 @@ macro_rules! decl_impl_cl_vec {
     }
 }
 
-
 macro_rules! cl_vec {
     ($name:ident, 1, $ty:ty, $ty_fam:ident) => (
         decl_impl_cl_vec!($name, 1, $ty, $ty_fam,
@@ -645,8 +711,6 @@ macro_rules! cl_vec {
         );
     );
 }
-
-
 
 
 
@@ -1220,4 +1284,15 @@ mod shift_max {
     pub const u32: u32 = i32;
     pub const u64: u32 = i64;
     pub use self::platform::usize;
+
+    // Char, Char2, Char3, Char4, Char8, Char16,
+    // Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+    // Short, Short2, Short3, Short4, Short8, Short16,
+    // Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+    // Int, Int2, Int3, Int4, Int8, Int16,
+    // Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+    // Long, Long2, Long3, Long4, Long8, Long16,
+    // Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+    // Float, Float2, Float3, Float4, Float8, Float16,
+    // Double, Double2, Double3, Double4, Double8, Double16,
 }

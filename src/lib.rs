@@ -112,7 +112,8 @@ pub mod error;
 pub mod util;
 
 use std::fmt::{Display, Debug};
-use std::ops::{Add, Sub, Mul, Div, Rem};
+use std::ops::*;
+use std::iter::{Sum, Product};
 use num::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
 use rand::distributions::range::SampleRange;
 
@@ -201,12 +202,17 @@ pub type UserDataPtr = *mut libc::c_void;
 /// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
 /// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
 ///
-pub unsafe trait OclPrm: 'static + Debug + Clone + Copy + PartialEq + PartialOrd + Default + Add {}
+pub unsafe trait OclPrm: Debug + Display + Clone + Copy + Default + PartialOrd +
+    Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
+    Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
+    AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
+    Sum<Self> + Product<Self> + 'static {}
 
 unsafe impl<S> OclPrm for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=S> + One<Output=S> + Add<S> + Sub<S, Output=S> +
-    Mul<S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
-    'static {}
+    Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
+    Mul<S, Output=S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
+    AddAssign<S> + SubAssign<S> + MulAssign<S> + DivAssign<S> + RemAssign<S> +
+    Sum<S> + Product<S> + 'static {}
 // unsafe impl<S> OclPrm for S where S: OclScl {}
 // unsafe impl<S> OclPrm for S where S: OclVec {}
 
@@ -230,22 +236,23 @@ unsafe impl<S> OclPrm for S where S: Debug + Display + Clone + Copy + Default + 
 //     PartialEq + Zero + One {}
 
 pub unsafe trait OclScl: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=Self> + One<Output=Self> + Add<Self> + Sub<Self, Output=Self> +
-    Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
-    NumCast + FromPrimitive + ToPrimitive + SampleRange + 'static {}
+    Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
+    Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
+    AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
+    NumCast + FromPrimitive + ToPrimitive + SampleRange + Sum<Self> + Product<Self> + 'static {}
 
 unsafe impl<S> OclScl for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=S> + One<Output=S> + Add<S> + Sub<S, Output=S> +
-    Mul<S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
-    NumCast + FromPrimitive + ToPrimitive + SampleRange + 'static {}
-
-// Zero<Output=Self> + One<Output=Self> + Add<Self> + Sub<Self, Output=Self> + Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self>
+    Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
+    Mul<S, Output=S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
+    AddAssign<S> + SubAssign<S> + MulAssign<S> + DivAssign<S> + RemAssign<S> +
+    NumCast + FromPrimitive + ToPrimitive + SampleRange + Sum<S> + Product<S> + 'static {}
 
 /// A vector type usable within `OpenCL` kernels.
 pub unsafe trait OclVec: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=Self> + One<Output=Self> + Add<Self> + Sub<Self, Output=Self> +
-    Mul<Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
-    'static {}
+    Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
+    Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
+    AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
+    Sum<Self> + Product<Self> + 'static { type Scalar: OclScl; }
 
 // unsafe impl<T> OclVec for T where T: Debug + Display + Clone + Copy + Default + PartialOrd +
 //     Zero<Output=T> + One<Output=T> + Add<T> + Sub<T, Output=T> +

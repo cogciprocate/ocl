@@ -28,7 +28,7 @@ fn create_enqueue_verify<V>(context: &Context, queue: &CommandQueue,
         where V: OclVec
 {
     // Create vec and buffer:
-    let vec = vec![start_val; DATASET_SIZE];
+    let mut vec = vec![start_val; DATASET_SIZE];
     let buf = unsafe { ::create_buffer(context, ::MEM_READ_WRITE |
         ::MEM_COPY_HOST_PTR, DATASET_SIZE, Some(&vec)).unwrap() };
 
@@ -49,7 +49,7 @@ fn create_enqueue_verify<V>(context: &Context, queue: &CommandQueue,
     for &ele in vec.iter() {
         let final_val = start_val + addend + iter_v;
         assert_eq!(ele, final_val);
-        iter_v = iter_v + V::one()
+        iter_v += V::one()
     }
 }
 
