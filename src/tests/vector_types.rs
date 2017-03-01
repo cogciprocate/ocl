@@ -1,7 +1,7 @@
 //! [INCOMPLETE]: [TODO]: Test various types with an assortment of operations.
 //!
 
-#![cfg(feature = "ocl-core-vectors")]
+#![cfg(feature = "ocl-core-vector")]
 
 use std::ffi::CString;
 use ::{OclVec, Kernel, Context, CommandQueue, Mem};
