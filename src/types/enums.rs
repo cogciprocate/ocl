@@ -13,7 +13,7 @@ use std;
 // use std::mem;
 // use std::error::Error;
 // use std::ffi::CString;
-use std::convert::Into;
+// use std::convert::Into;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
@@ -159,9 +159,9 @@ impl std::fmt::Display for PlatformInfoResult {
     }
 }
 
-impl Into<String> for PlatformInfoResult {
-    fn into(self) -> String {
-        match self {
+impl From<PlatformInfoResult> for String {
+    fn from(ir: PlatformInfoResult) -> String {
+        match ir {
             PlatformInfoResult::Profile(string)
             | PlatformInfoResult::Version(string)
             | PlatformInfoResult::Name(string)
@@ -175,6 +175,15 @@ impl Into<String> for PlatformInfoResult {
 impl From<OclError> for PlatformInfoResult {
     fn from(err: OclError) -> PlatformInfoResult {
         PlatformInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<PlatformInfoResult> for OclError {
+    fn from(err: PlatformInfoResult) -> OclError {
+        match err {
+            PlatformInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<PlatformInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -808,15 +817,24 @@ impl std::fmt::Display for DeviceInfoResult {
     }
 }
 
-impl Into<String> for DeviceInfoResult {
-    fn into(self) -> String {
-        self.to_string()
+impl From<DeviceInfoResult> for OclError {
+    fn from(err: DeviceInfoResult) -> OclError {
+        match err {
+            DeviceInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<DeviceInfoResult>: Not an error."),
+        }
     }
 }
 
 impl From<OclError> for DeviceInfoResult {
     fn from(err: OclError) -> DeviceInfoResult {
         DeviceInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<DeviceInfoResult> for String {
+    fn from(ir: DeviceInfoResult) -> String {
+        ir.to_string()
     }
 }
 
@@ -912,15 +930,24 @@ impl std::fmt::Display for ContextInfoResult {
     }
 }
 
-impl Into<String> for ContextInfoResult {
-    fn into(self) -> String {
-        self.to_string()
+impl From<ContextInfoResult> for String {
+    fn from(ir: ContextInfoResult) -> String {
+        ir.to_string()
     }
 }
 
 impl From<OclError> for ContextInfoResult {
     fn from(err: OclError) -> ContextInfoResult {
         ContextInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<ContextInfoResult> for OclError {
+    fn from(err: ContextInfoResult) -> OclError {
+        match err {
+            ContextInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<ContextInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1003,15 +1030,30 @@ impl std::fmt::Display for CommandQueueInfoResult {
     }
 }
 
-impl Into<String> for CommandQueueInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for CommandQueueInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for CommandQueueInfoResult {
     fn from(err: OclError) -> CommandQueueInfoResult {
         CommandQueueInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<CommandQueueInfoResult> for String {
+    fn from(ir: CommandQueueInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<CommandQueueInfoResult> for OclError {
+    fn from(err: CommandQueueInfoResult) -> OclError {
+        match err {
+            CommandQueueInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<CommandQueueInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1172,15 +1214,30 @@ impl std::fmt::Display for MemInfoResult {
     }
 }
 
-impl Into<String> for MemInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for MemInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for MemInfoResult {
     fn from(err: OclError) -> MemInfoResult {
         MemInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<MemInfoResult> for String {
+    fn from(ir: MemInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<MemInfoResult> for OclError {
+    fn from(err: MemInfoResult) -> OclError {
+        match err {
+            MemInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<MemInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1310,15 +1367,30 @@ impl std::fmt::Display for ImageInfoResult {
     }
 }
 
-impl Into<String> for ImageInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for ImageInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for ImageInfoResult {
     fn from(err: OclError) -> ImageInfoResult {
         ImageInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<ImageInfoResult> for String {
+    fn from(ir: ImageInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<ImageInfoResult> for OclError {
+    fn from(err: ImageInfoResult) -> OclError {
+        match err {
+            ImageInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<ImageInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1414,15 +1486,30 @@ impl std::fmt::Display for SamplerInfoResult {
     }
 }
 
-impl Into<String> for SamplerInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for SamplerInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for SamplerInfoResult {
     fn from(err: OclError) -> SamplerInfoResult {
         SamplerInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<SamplerInfoResult> for String {
+    fn from(ir: SamplerInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<SamplerInfoResult> for OclError {
+    fn from(err: SamplerInfoResult) -> OclError {
+        match err {
+            SamplerInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<SamplerInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1538,15 +1625,30 @@ impl std::fmt::Display for ProgramInfoResult {
     }
 }
 
-impl Into<String> for ProgramInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for ProgramInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for ProgramInfoResult {
     fn from(err: OclError) -> ProgramInfoResult {
         ProgramInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<ProgramInfoResult> for String {
+    fn from(ir: ProgramInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<ProgramInfoResult> for OclError {
+    fn from(err: ProgramInfoResult) -> OclError {
+        match err {
+            ProgramInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<ProgramInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1630,15 +1732,30 @@ impl std::fmt::Display for ProgramBuildInfoResult {
     }
 }
 
-impl Into<String> for ProgramBuildInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for ProgramBuildInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for ProgramBuildInfoResult {
     fn from(err: OclError) -> ProgramBuildInfoResult {
         ProgramBuildInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<ProgramBuildInfoResult> for String {
+    fn from(ir: ProgramBuildInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<ProgramBuildInfoResult> for OclError {
+    fn from(err: ProgramBuildInfoResult) -> OclError {
+        match err {
+            ProgramBuildInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<ProgramBuildInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1730,15 +1847,30 @@ impl std::fmt::Display for KernelInfoResult {
     }
 }
 
-impl Into<String> for KernelInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for KernelInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for KernelInfoResult {
     fn from(err: OclError) -> KernelInfoResult {
         KernelInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<KernelInfoResult> for String {
+    fn from(ir: KernelInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<KernelInfoResult> for OclError {
+    fn from(err: KernelInfoResult) -> OclError {
+        match err {
+            KernelInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<KernelInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1834,15 +1966,30 @@ impl std::fmt::Display for KernelArgInfoResult {
     }
 }
 
-impl Into<String> for KernelArgInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for KernelArgInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for KernelArgInfoResult {
     fn from(err: OclError) -> KernelArgInfoResult {
         KernelArgInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<KernelArgInfoResult> for String {
+    fn from(ir: KernelArgInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<KernelArgInfoResult> for OclError {
+    fn from(err: KernelArgInfoResult) -> OclError {
+        match err {
+            KernelArgInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<KernelArgInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -1953,15 +2100,30 @@ impl std::fmt::Display for KernelWorkGroupInfoResult {
     }
 }
 
-impl Into<String> for KernelWorkGroupInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for KernelWorkGroupInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for KernelWorkGroupInfoResult {
     fn from(err: OclError) -> KernelWorkGroupInfoResult {
         KernelWorkGroupInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<KernelWorkGroupInfoResult> for String {
+    fn from(ir: KernelWorkGroupInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<KernelWorkGroupInfoResult> for OclError {
+    fn from(err: KernelWorkGroupInfoResult) -> OclError {
+        match err {
+            KernelWorkGroupInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<KernelWorkGroupInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -2051,15 +2213,30 @@ impl std::fmt::Display for EventInfoResult {
     }
 }
 
-impl Into<String> for EventInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for EventInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for EventInfoResult {
     fn from(err: OclError) -> EventInfoResult {
         EventInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<EventInfoResult> for String {
+    fn from(ir: EventInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<EventInfoResult> for OclError {
+    fn from(err: EventInfoResult) -> OclError {
+        match err {
+            EventInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<EventInfoResult>: Not an error."),
+        }
     }
 }
 
@@ -2127,15 +2304,30 @@ impl std::fmt::Display for ProfilingInfoResult {
     }
 }
 
-impl Into<String> for ProfilingInfoResult {
-    fn into(self) -> String {
-        self.to_string()
-    }
-}
+// impl Into<String> for ProfilingInfoResult {
+//     fn into(self) -> String {
+//         self.to_string()
+//     }
+// }
 
 impl From<OclError> for ProfilingInfoResult {
     fn from(err: OclError) -> ProfilingInfoResult {
         ProfilingInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<ProfilingInfoResult> for String {
+    fn from(ir: ProfilingInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<ProfilingInfoResult> for OclError {
+    fn from(err: ProfilingInfoResult) -> OclError {
+        match err {
+            ProfilingInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<ProfilingInfoResult>: Not an error."),
+        }
     }
 }
 

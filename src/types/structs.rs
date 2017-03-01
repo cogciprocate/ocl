@@ -449,9 +449,15 @@ impl ContextProperties {
     }
 }
 
-impl Into<Vec<isize>> for ContextProperties {
-    fn into(self) -> Vec<isize> {
-        self.to_raw()
+// impl Into<Vec<isize>> for ContextProperties {
+//     fn into(self) -> Vec<isize> {
+//         self.to_raw()
+//     }
+// }
+
+impl From<ContextProperties> for Vec<isize> {
+    fn from(cp: ContextProperties) -> Vec<isize> {
+        cp.to_raw()
     }
 }
 

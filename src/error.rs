@@ -2,7 +2,6 @@
 //!
 
 use std;
-use std::convert::Into;
 use num::FromPrimitive;
 use ::Status;
 
@@ -199,6 +198,14 @@ impl From<String> for self::Error {
     }
 }
 
+impl From<self::Error> for String {
+    fn from(err: self::Error) -> String {
+        // use std::error::Error;
+        // err.description().to_string()
+        format!("{}", err)
+    }
+}
+
 impl<'a> From<&'a str> for self::Error {
     fn from(desc: &'a str) -> self::Error {
         self::Error::from(String::from(desc))
@@ -229,12 +236,12 @@ impl From<std::ffi::IntoStringError> for self::Error {
     }
 }
 
-impl Into<String> for self::Error {
-    fn into(self) -> String {
-        use std::error::Error;
-        self.description().to_string()
-    }
-}
+// impl Into<String> for self::Error {
+//     fn into(self) -> String {
+//         use std::error::Error;
+//         self.description().to_string()
+//     }
+// }
 
 impl std::fmt::Display for self::Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
