@@ -45,8 +45,9 @@ use std::sync::mpsc::{self, Receiver};
 use chrono::{Duration, DateTime, Local, Timelike};
 use futures::{Future, Join, AndThen};
 use futures_cpupool::{CpuPool, CpuFuture};
-use ocl::{async, Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
-    FutureMemMap, MemMap};
+use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
+    FutureMemMap, MemMap, RwVec};
+use ocl::async::{Error as AsyncError, Result as AsyncResult, ReadCompletion, RwLockWriteGuard};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Int4;
 use ocl::ffi::{cl_event, c_void};
@@ -177,8 +178,8 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: Optio
 pub fn map_write_init(src_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: Option<&Event>,
         write_init_unmap_event: &mut Option<Event>, write_init_unmap_queue: Queue, write_val: i32,
         task_iter: usize)
-        -> AndThen<FutureMemMap<Int4>, async::Result<usize>,
-            impl FnOnce(MemMap<Int4>) -> async::Result<usize>>
+        -> AndThen<FutureMemMap<Int4>, AsyncResult<usize>,
+            impl FnOnce(MemMap<Int4>) -> AsyncResult<usize>>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(teal_bold: "* Mapped write complete \t(iter: {}, t: {}s)",
@@ -219,55 +220,55 @@ pub fn map_write_init(src_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: 
 }
 
 
-// /// 2. Read-Verify-Init
-// /// =================
-// /// Read results and verify that the initial mapped write has completed
-// /// successfully. This read will use the common queue.
-// pub fn read_verify_init(src_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: Option<&Event>,
-//         verify_add_unmap_event: &mut Option<Event>, /*verify_add_unmap_queue: Queue,*/ correct_val: i32,
-//         task_iter: usize)
-//         -> AndThen<FutureMemMap<Int4>, async::Result<usize>,
-//             impl FnOnce(MemMap<Int4>) -> async::Result<usize>>
-// {
-//     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-//         printlnc!(lime_bold: "* Mapped verify-add starting \t(iter: {}, t: {}s) ...",
-//             task_iter as usize, timestamp());
-//     }
+/// 2. Read-Verify-Init
+/// =================
+/// Read results and verify that the initial mapped write has completed
+/// successfully. This read will use the common queue.
+pub fn read_verify_init<'d>(src_buf: &Buffer<Int4>, dst_vec: &'d RwVec<Int4>, common_queue: &Queue,
+        wait_event: Option<&Event>, /*verify_add_unmap_event: &mut Option<Event>,*/
+        /*verify_init_completion_queue: Queue,*/ correct_val: i32, task_iter: usize)
+        -> AndThen<ReadCompletion<'d, Int4>, AsyncResult<usize>,
+            impl FnOnce(RwLockWriteGuard<'d, Vec<Int4>>) -> AsyncResult<usize>>
+{
+    extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
+        printlnc!(lime_bold: "* Mapped verify-add starting \t(iter: {}, t: {}s) ...",
+            task_iter as usize, timestamp());
+    }
 
-//     unsafe { wait_event.as_ref().unwrap()
-//         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
+    unsafe { wait_event.as_ref().unwrap()
+        .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
-//     let mut future_read_data = dst_buf.cmd().map()
-//         .queue(&common_queue)
-//         .flags(MapFlags::new().read())
-//         .ewait_opt(wait_event)
-//         .enq_async().unwrap();
+    let future_read_data = src_buf.cmd().read(dst_vec.write())
+        .queue(&common_queue)
+        // .flags(MapFlags::new().read())
+        .ewait_opt(wait_event)
+        .enq_async().unwrap();
 
-//     // Set the read unmap completion event:
-//     *verify_add_unmap_event = Some(future_read_data.create_unmap_event().unwrap().clone());
+    // // Set the verify completion event:
+    // *verify_init_completion_event = Some(future_read_data.create_unmap_event().unwrap().clone());
 
-//     let read = future_read_data.and_then(move |mut data| {
-//             let mut val_count = 0usize;
+    let read = future_read_data.and_then(move |data| {
+            let mut val_count = 0usize;
 
-//             for (idx, val) in data.iter().enumerate() {
-//                 let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
-//                 if *val != cval {
-//                     return Err(format!("Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
-//                 }
-//                 val_count += 1;
-//             }
+            for (idx, val) in data.iter().enumerate() {
+                let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
+                if *val != cval {
+                    return Err(format!("Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
+                }
+                val_count += 1;
+            }
 
-//             printlnc!(lime_bold: "* Mapped verify-add complete \t(iter: {}, t: {}s)",
-//                 task_iter, timestamp());
+            printlnc!(lime_bold: "* Mapped verify-add complete \t(iter: {}, t: {}s)",
+                task_iter, timestamp());
 
-//             // Explicitly enqueuing the unmap with our dedicated queue.
-//             data.unmap().queue(&verify_add_unmap_queue).enq()?;
+            // // Explicitly enqueuing the unmap with our dedicated queue.
+            // data.unmap().queue(&verify_add_unmap_queue).enq()?;
 
-//             Ok(val_count)
-//         });
+            Ok(val_count)
+        });
 
-//     read
-// }
+    read
+}
 
 
 
@@ -341,8 +342,8 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue, kernel_wait_list: &mut Ev
 pub fn map_verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: Option<&Event>,
         verify_add_unmap_event: &mut Option<Event>, verify_add_unmap_queue: Queue, correct_val: i32,
         task_iter: usize)
-        -> AndThen<FutureMemMap<Int4>, async::Result<usize>,
-            impl FnOnce(MemMap<Int4>) -> async::Result<usize>>
+        -> AndThen<FutureMemMap<Int4>, AsyncResult<usize>,
+            impl FnOnce(MemMap<Int4>) -> AsyncResult<usize>>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Mapped verify-add starting \t(iter: {}, t: {}s) ...",
@@ -412,7 +413,7 @@ pub fn main() {
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
     let common_queue = Queue::new(&context, device, queue_flags).unwrap();
     let write_init_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
-    // let verify_init_complete_queue = Queue::new(&context, device, queue_flags).unwrap();
+    // let verify_init_completion_queue = Queue::new(&context, device, queue_flags).unwrap();
     let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
 
     // Allocating host memory allows the OpenCL runtime to use special pinned
@@ -448,6 +449,9 @@ pub fn main() {
         .arg_scl(SCALAR_ADDEND)
         .arg_buf(&dst_buf);
 
+    // A lockable vector for non-map reads.
+    let rw_vec = RwVec::new(WORK_SIZE);
+
     // Thread pool for offloaded tasks.
     let thread_pool = CpuPool::new_num_cpus();
 
@@ -481,10 +485,10 @@ pub fn main() {
         let write_init = map_write_init(&src_buf, &common_queue, fill_event.as_ref(),
                 &mut write_init_unmap_event, write_init_unmap_queue.clone(), 50, task_iter);
 
-        // // 2. Read-Verify-Init
-        // // ============
-        // let verify_init = read_verify_init(&src_buf, &common_queue, kernel_event.as_ref(),
-        //     &mut verify_add_unmap_event, verify_add_unmap_queue.clone(), 150, task_iter);
+        // 2. Read-Verify-Init
+        // ============
+        let verify_init = read_verify_init(&src_buf, &rw_vec, &common_queue, kernel_event.as_ref(),
+            /*&mut verify_add_unmap_event,*/ 50, task_iter);
 
         // 3. Kernel-Add
         // =============

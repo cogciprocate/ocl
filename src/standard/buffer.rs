@@ -3,16 +3,14 @@
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-#[cfg(feature = "experimental_async_rw")]
-use futures::{task, Future, Poll, Async};
+use parking_lot::RwLockWriteGuard;
 use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, Event as EventCore, ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, /*RwVec*/};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
-#[cfg(feature = "experimental_async_rw")]
-use standard::{Event, _unpark_task, box_raw_void};
+
 #[cfg(feature = "experimental_async_rw")]
 use async::ReadCompletion;
 
@@ -61,20 +59,25 @@ impl<'o> From<&'o Context> for QueCtx<'o> {
     }
 }
 
-// impl<'a, 'o> From<&'a Context> for QueCtx<'o> {
-//     fn from(c: &Context) -> QueCtx<'o> {
-//         QueCtx::Context(c.clone())
+// impl<'o> Into<Option<Queue>> for QueCtx<'o> {
+//     fn into(self) -> Option<Queue> {
+//         match self {
+//             QueCtx::Queue(q) => Some(q),
+//             QueCtx::Context(_) => None,
+//         }
 //     }
 // }
 
-impl<'o> Into<Option<Queue>> for QueCtx<'o> {
-    fn into(self) -> Option<Queue> {
-        match self {
+impl<'o> From<QueCtx<'o>> for Option<Queue> {
+    fn from(qc: QueCtx<'o>) -> Option<Queue> {
+        match qc {
             QueCtx::Queue(q) => Some(q),
             QueCtx::Context(_) => None,
         }
     }
 }
+
+
 
 
 /// A buffer builder.
@@ -362,11 +365,13 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// See [SDK][read_buffer] docs for more details.
     ///
     /// [read_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueReadBuffer.html
-    pub fn read<'d>(mut self, dst_data: &'d mut [T]) -> BufferReadCmd<'c, 'd, T> {
+    pub fn read<'d, R>(mut self, dst_data: R) -> BufferReadCmd<'c, 'd, T>
+            where R: Into<ReadDst<'d, T>>
+    {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Read;
-        BufferReadCmd { cmd: self, data: dst_data }
+        BufferReadCmd { cmd: self, dst: dst_data.into() }
     }
 
     /// Specifies that this command will be a non-blocking, asynchronous read
@@ -391,7 +396,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             already set for this command.");
         self.kind = BufferCmdKind::Read;
         self.block = false;
-        BufferReadCmd { cmd: self, data: dst_data }
+        BufferReadCmd { cmd: self, dst: dst_data.into() }
     }
 
     /// Specifies that this command will be a write operation.
@@ -409,7 +414,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Write;
-        BufferWriteCmd { cmd: self, data: src_data }
+        BufferWriteCmd { cmd: self, src: src_data }
     }
 
     /// Specifies that this command will be a map operation.
@@ -719,6 +724,25 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 }
 
 
+/// The destination of a buffer read.
+pub enum ReadDst<'d, T> where T: 'd {
+    Slice(&'d mut [T]),
+    Guard(RwLockWriteGuard<'d, Vec<T>>),
+}
+
+impl<'d, T> From<&'d mut [T]> for ReadDst<'d, T> {
+    fn from(slice: &'d mut [T]) -> ReadDst<'d, T> {
+        ReadDst::Slice(slice)
+    }
+}
+
+impl<'d, T> From<RwLockWriteGuard<'d, Vec<T>>> for ReadDst<'d, T> {
+    fn from(guard: RwLockWriteGuard<'d, Vec<T>>) -> ReadDst<'d, T> {
+        ReadDst::Guard(guard)
+    }
+}
+
+
 /// A buffer command builder used to enqueue reads.
 ///
 /// See [SDK][read_buffer] docs for more details.
@@ -727,7 +751,8 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 #[must_use = "commands do nothing unless enqueued"]
 pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
-    data: &'d mut [T],
+    dst: ReadDst<'d, T>,
+    // data: RwVec<T>,
 }
 
 impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
@@ -839,17 +864,23 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     pub fn enq(self) -> OclResult<()> {
         let queue = match self.cmd.queue {
             Some(q) => q,
-            None => return Err("BufferCmd::enq: No queue set.".into()),
+            None => return Err("BufferReadCmd::enq: No queue set.".into()),
+        };
+
+        let dst = match self.dst {
+            ReadDst::Slice(slice) => slice,
+            _ => return Err("BufferReadCmd::enq: Invalid data destination kind for a synchronous \
+                enqueue. The read destination must be a mutable slice.".into()),
         };
 
         match self.cmd.kind {
             BufferCmdKind::Read => {
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.cmd.mem_len, self.data.len(), offset));
+                        try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
                         unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, self.cmd.block,
-                            offset, self.data, self.cmd.ewait, self.cmd.enew) }
+                            offset, dst, self.cmd.ewait, self.cmd.enew) }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch_bytes, src_slc_pitch_bytes,
                             dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
@@ -859,7 +890,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
                         unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
                             self.cmd.block, src_origin, dst_origin, region, src_row_pitch_bytes,
-                            src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes, self.data,
+                            src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes, dst,
                             self.cmd.ewait, self.cmd.enew) }
                     }
                 }
@@ -872,10 +903,17 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     ///
     #[allow(unused_unsafe)]
     #[cfg(feature = "experimental_async_rw")]
-    pub unsafe fn enq_unsafely(mut self) -> OclResult<ReadCompletion<'d, T>> {
-        let queue = match self.queue {
+    pub fn enq_async(mut self) -> OclResult<ReadCompletion<'d, T>> {
+        let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
+        };
+
+        let mut dst = match self.dst {
+            ReadDst::Guard(guard) => guard,
+            _ => return Err("BufferReadCmd::enq: Invalid data destination kind for an
+                asynchronous enqueue. The read destination must be a write guard, \
+                the result of a call to 'RwVec::write'.".into()),
         };
 
         match self.cmd.kind {
@@ -885,24 +923,24 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.cmd.mem_len, self.data.len(), offset));
+                        try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
-                        unsafe { core::enqueue_read_buffer(self.cmd.queue, self.cmd.obj_core, false,
-                            offset, self.data, self.cmd.ewait.take(), Some(&mut read_event))?; }
+                        unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
+                            offset, dst.as_mut_slice(), self.cmd.ewait.take(), Some(&mut read_event))?; }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes,
                             dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
                     {
-                        unsafe { core::enqueue_read_buffer_rect(self.cmd.queue, self.cmd.obj_core,
+                        unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            self.data,
+                            dst.as_mut_slice(),
                             self.cmd.ewait.take(), Some(&mut read_event))?; }
                     }
                 }
 
-                if let Some(ref mut self_enew) = self.enew.take() {
+                if let Some(ref mut self_enew) = self.cmd.enew.take() {
                     // Should be equivalent to `.clone().into_raw()` [TODO]: test.
                     // core::retain_event(&read_event)?;
                     // *(self_enew.alloc_new()) = *(read_event.as_ptr_ref());
@@ -911,7 +949,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     unsafe { *(self_enew.alloc_new()) = read_event.clone().into_raw(); }
                 }
 
-                Ok(ReadCompletion::new(Event::from(read_event), self.data))
+                Ok(ReadCompletion::new(Event::from(read_event), dst))
             },
             _ => unreachable!(),
         }
@@ -927,7 +965,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 #[must_use = "commands do nothing unless enqueued"]
 pub struct BufferWriteCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
-    data: &'d [T],
+    src: &'d [T],
  }
 
 impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
@@ -1045,10 +1083,10 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             BufferCmdKind::Write => {
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.cmd.mem_len, self.data.len(), offset));
+                        try!(check_len(self.cmd.mem_len, self.src.len(), offset));
 
                         core::enqueue_write_buffer(queue, self.cmd.obj_core, self.cmd.block,
-                            offset, self.data, self.cmd.ewait, self.cmd.enew)
+                            offset, self.src, self.cmd.ewait, self.cmd.enew)
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes, dst_row_pitch_bytes,
@@ -1057,7 +1095,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                         core::enqueue_write_buffer_rect(queue, self.cmd.obj_core,
                             self.cmd.block, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            self.data, self.cmd.ewait, self.cmd.enew)
+                            self.src, self.cmd.ewait, self.cmd.enew)
                     }
                 }
             },
@@ -1068,8 +1106,8 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     /// Enqueues this command.
     #[allow(unused_unsafe)]
     #[cfg(feature = "experimental_async_rw")]
-    pub fn enq_unsafely(self) -> OclResult<()> {
-        let queue = match self.queue {
+    pub fn enq_async(self) -> OclResult<()> {
+        let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
         };
@@ -1078,19 +1116,19 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             BufferCmdKind::Write => {
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.cmd.mem_len, self.data.len(), offset));
+                        try!(check_len(self.cmd.mem_len, self.src.len(), offset));
 
-                        core::enqueue_write_buffer(self.cmd.queue, self.cmd.obj_core, false,
-                            offset, self.data, self.cmd.ewait, self.cmd.enew)
+                        core::enqueue_write_buffer(queue, self.cmd.obj_core, false,
+                            offset, self.src, self.cmd.ewait, self.cmd.enew)
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes,
                             dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
                     {
-                        core::enqueue_write_buffer_rect(self.cmd.queue, self.cmd.obj_core,
+                        core::enqueue_write_buffer_rect(queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            self.data, self.cmd.ewait, self.cmd.enew)
+                            self.src, self.cmd.ewait, self.cmd.enew)
                     }
                 }
             },
@@ -1418,10 +1456,10 @@ impl<T: OclPrm> Buffer<T> {
     /// for more details.
     ///
     #[inline]
-    pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> BufferReadCmd<'c, 'd, T>
-            where 'd: 'c
+    pub fn read<'c, 'd, R>(&'c self, dst: R) -> BufferReadCmd<'c, 'd, T>
+            where 'd: 'c, R: Into<ReadDst<'d, T>>
     {
-        self.cmd().read(data)
+        self.cmd().read(dst)
     }
 
     /// Returns a command builder used to write data.
@@ -1432,10 +1470,10 @@ impl<T: OclPrm> Buffer<T> {
     /// for more details.
     ///
     #[inline]
-    pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> BufferWriteCmd<'c, 'd, T>
+    pub fn write<'c, 'd>(&'c self, src: &'d [T]) -> BufferWriteCmd<'c, 'd, T>
             where 'd: 'c
     {
-        self.cmd().write(data)
+        self.cmd().write(src)
     }
 
     /// Returns a command builder used to map data for reading or writing.

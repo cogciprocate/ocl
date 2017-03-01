@@ -7,7 +7,7 @@
 // use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
 use std::ops::{Deref, DerefMut};
-use std::convert::Into;
+// use std::convert::Into;
 use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 
@@ -184,15 +184,27 @@ impl From<PlatformIdCore> for Platform {
     }
 }
 
-impl Into<String> for Platform {
-    fn into(self) -> String {
-        format!("{}", self)
+// impl Into<String> for Platform {
+//     fn into(self) -> String {
+//         format!("{}", self)
+//     }
+// }
+
+impl From<Platform> for String {
+    fn from(p: Platform) -> String {
+        format!("{}", p)
     }
 }
 
-impl Into<PlatformIdCore> for Platform {
-    fn into(self) -> PlatformIdCore {
-        self.0
+// impl Into<PlatformIdCore> for Platform {
+//     fn into(self) -> PlatformIdCore {
+//         self.0
+//     }
+// }
+
+impl From<Platform> for PlatformIdCore {
+    fn from(p: Platform) -> PlatformIdCore {
+        p.0
     }
 }
 
@@ -202,11 +214,11 @@ impl std::fmt::Display for Platform {
     }
 }
 
-impl AsRef<Platform> for Platform {
-    fn as_ref(&self) -> &Platform {
-        self
-    }
-}
+// impl AsRef<Platform> for Platform {
+//     fn as_ref(&self) -> &Platform {
+//         self
+//     }
+// }
 
 impl Deref for Platform {
     type Target = PlatformIdCore;

@@ -55,6 +55,7 @@ extern crate libc;
 extern crate num;
 #[cfg(test)] extern crate rand;
 extern crate futures;
+extern crate parking_lot;
 pub extern crate ocl_core as core;
 
 #[cfg(test)] mod tests;
@@ -62,7 +63,7 @@ mod standard;
 pub mod async;
 
 pub use self::standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, SubBuffer,
-    Image, Event, EventList, Sampler, SpatialDims, ProQue, MemMap};
+    Image, Event, EventList, Sampler, SpatialDims, ProQue, MemMap, RwVec};
 pub use self::async::{FutureMemMap};
 pub use core::error::{Error, Result};
 #[doc(no_inline)] pub use core::ffi;

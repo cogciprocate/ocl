@@ -6,7 +6,7 @@ use std::mem;
 // use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
-use std::convert::Into;
+// use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ImageChannelOrder, ImageChannelDataType,

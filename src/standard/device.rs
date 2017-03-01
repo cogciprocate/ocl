@@ -2,7 +2,7 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use std::convert::Into;
+// use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use standard::Platform;
 use ffi::cl_device_id;
@@ -476,15 +476,27 @@ impl From<DeviceIdCore> for Device {
     }
 }
 
-impl Into<String> for Device {
-    fn into(self) -> String {
-        format!("{}", self)
+// impl Into<String> for Device {
+//     fn into(self) -> String {
+//         format!("{}", self)
+//     }
+// }
+
+impl From<Device> for String {
+    fn from(d: Device) -> String {
+        format!("{}", d)
     }
 }
 
-impl Into<DeviceIdCore> for Device {
-    fn into(self) -> DeviceIdCore {
-        self.0
+// impl Into<DeviceIdCore> for Device {
+//     fn into(self) -> DeviceIdCore {
+//         self.0
+//     }
+// }
+
+impl From<Device> for DeviceIdCore {
+    fn from(d: Device) -> DeviceIdCore {
+        d.0
     }
 }
 

@@ -135,11 +135,17 @@ impl From<EventCore> for Event {
     }
 }
 
-impl Into<EventCore> for Event {
-    fn into(self) -> EventCore {
-        self.0
+impl From<Event> for EventCore {
+    #[inline]
+    fn from(ev: Event) -> EventCore {
+        if ev.is_valid() {
+            ev.0
+        } else {
+            panic!("ocl::EventCore::from::<Event>: Invalid event.");
+        }
     }
 }
+
 
 impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

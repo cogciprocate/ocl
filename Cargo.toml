@@ -35,7 +35,8 @@ event_callbacks = []
 experimental_async_rw = []
 
 
-default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
+# default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
+default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2", "experimental_async_rw"]
 
 
 [dependencies]
@@ -46,8 +47,8 @@ num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.8"
-
 futures = "0.1"
+parking_lot="0.3"
 
 [dev-dependencies]
 find_folder = "0.3"

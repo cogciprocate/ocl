@@ -15,6 +15,7 @@ mod pro_que;
 mod event;
 mod spatial_dims;
 mod mem_map;
+mod rw_vec;
 
 pub use self::platform::Platform;
 pub use self::device::{Device, DeviceSpecifier};
@@ -33,6 +34,7 @@ pub use self::spatial_dims::SpatialDims;
 pub use self::cb::{_unpark_task, box_raw_void};
 pub use self::traits::{MemLen, WorkDims};
 pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
+pub use self::rw_vec::{RwVec};
 
 
 //=============================================================================

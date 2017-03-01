@@ -51,6 +51,15 @@ impl From<OclError> for self::Error {
     }
 }
 
+impl From<self::Error> for OclError {
+    fn from(err: self::Error) -> OclError {
+        match err {
+            Error::Ocl(err) => err,
+            _ => format!("{}", err).into(),
+        }
+    }
+}
+
 impl<T> From<SendError<T>> for self::Error where T: std::fmt::Debug {
     fn from(err: SendError<T>) -> self::Error {
         let debug = format!("{:?}", err);
@@ -96,19 +105,16 @@ impl From<std::io::Error> for self::Error {
     }
 }
 
-impl Into<String> for self::Error {
-    fn into(self) -> String {
-        use std::error::Error;
-        self.description().to_string()
-    }
-}
+// impl Into<String> for self::Error {
+//     fn into(self) -> String {
+//         use std::error::Error;
+//         self.description().to_string()
+//     }
+// }
 
-impl Into<OclError> for self::Error {
-    fn into(self) -> OclError {
-        match self {
-            Error::Ocl(err) => err,
-            _ => format!("{}", self).into(),
-        }
+impl From<self::Error> for String {
+    fn from(err: self::Error) -> String {
+        err.to_string()
     }
 }
 
@@ -127,3 +133,4 @@ impl std::fmt::Debug for self::Error {
 }
 
 unsafe impl std::marker::Send for self::Error {}
+unsafe impl std::marker::Sync for self::Error {}

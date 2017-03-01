@@ -1,6 +1,6 @@
 //! A convenient wrapper for `Program` and `Queue`.
 
-use std::convert::Into;
+// use std::convert::Into;
 use std::ops::Deref;
 use core::error::{Result as OclResult, Error as OclError};
 use core::{OclPrm, CommandQueueProperties};
