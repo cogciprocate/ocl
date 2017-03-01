@@ -27,7 +27,7 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 # Disabling this will cause each task to block its thread instead of returning
 # `Async::NotReady` to its executor and will be a less performant solution.
 # Disable only if your platform has issues with event callbacks (old/non-compliant
-# hardware).
+# drivers).
 event_callbacks = []
 
 # Allows use of unstable experimental types and functions for to reading from
@@ -48,7 +48,7 @@ libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "0.8"
 futures = "0.1"
-parking_lot="0.3"
+parking_lot = "0.3"
 
 [dev-dependencies]
 find_folder = "0.3"

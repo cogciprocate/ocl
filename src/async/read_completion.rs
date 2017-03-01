@@ -1,18 +1,21 @@
+#![allow(unused_imports, dead_code)]
+
 // use std::ops::{Deref, DerefMut};
 use standard::{_unpark_task, box_raw_void};
 use futures::{task, Future, Poll, Async};
-use async::{/*RwLockReadGuard,*/ RwLockWriteGuard, Error as AsyncError};
+use async::{RwVec, RwLockWriteGuard, Error as AsyncError};
 use ::{OclPrm, /*Error as OclError,*/ Event};
 
 #[allow(dead_code)]
-pub struct ReadCompletion<'d, T> where T: 'd {
+pub struct ReadCompletion<T> {
     event: Event,
-    data: Option<RwLockWriteGuard<'d, Vec<T>>>,
+    // data: Option<RwLockWriteGuard<'d, Vec<T>>>,
+    data: Option<RwVec<T>>
 }
 
 #[allow(dead_code)]
-impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
-    pub fn new(event: Event, data: RwLockWriteGuard<'d, Vec<T>>) -> ReadCompletion<'d, T> {
+impl<T> ReadCompletion<T> where T: OclPrm {
+    pub fn new(event: Event, data: RwVec<T>) -> ReadCompletion<T> {
         ReadCompletion {
             event: event,
             data: Some(data),
@@ -20,7 +23,7 @@ impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
     }
 }
 
-// impl<'d, T> Deref for ReadCompletion<'d, T> where T: OclPrm {
+// impl<T> Deref for ReadCompletion<T> where T: OclPrm {
 //     type Target = [T];
 
 //     fn deref(&self) -> &[T] {
@@ -28,7 +31,7 @@ impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
 //     }
 // }
 
-// impl<'d, T> DerefMut for ReadCompletion<'d, T> where T: OclPrm {
+// impl<T> DerefMut for ReadCompletion<T> where T: OclPrm {
 //     fn deref_mut(&mut self) -> &mut [T] {
 //         self.data.as_mut_slice()
 //     }
@@ -36,15 +39,20 @@ impl<'d, T> ReadCompletion<'d, T> where T: 'd + OclPrm {
 
 /// Non-blocking, proper implementation.
 #[cfg(feature = "event_callbacks")]
-impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
-    type Item = RwLockWriteGuard<'d, Vec<T>>;
+impl<T> Future for ReadCompletion<T> where T: OclPrm {
+    type Item = RwVec<T>;
     type Error = AsyncError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         match self.event.is_complete() {
             Ok(true) => {
-                Ok(Async::Ready(self.data.take().unwrap()))
-            }
+                self.data.take()
+                    .ok_or(AsyncError::from("ReadCompletion::poll: Data has already been taken."))
+                    .map(|d| {
+                        unsafe { d.raw_unlock_write(); }
+                        Async::Ready(d)
+                    })
+            },
             Ok(false) => {
                 let task_ptr = box_raw_void(task::park());
                 unsafe { self.event.set_callback(_unpark_task, task_ptr)?; };
@@ -57,7 +65,7 @@ impl<'d, T> Future for ReadCompletion<'d, T> where T: 'd + OclPrm {
 
 /// Blocking implementation (yuk).
 #[cfg(not(feature = "event_callbacks"))]
-impl<'d, T> Future for ReadCompletion<'d, T> {
+impl<T> Future for ReadCompletion<T> {
     type Item = RwLockWriteGuard<'d, Vec<T>>;
     type Error = AsyncError;
 

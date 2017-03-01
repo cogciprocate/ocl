@@ -30,7 +30,7 @@
 //!
 
 
-#![allow(unused_imports)]
+#![allow(unused_imports, unused_variables)]
 #![feature(conservative_impl_trait, unboxed_closures)]
 
 extern crate chrono;
@@ -221,31 +221,26 @@ pub fn map_write_init(src_buf: &Buffer<Int4>, common_queue: &Queue, wait_event: 
 
 
 /// 2. Read-Verify-Init
-/// =================
+/// ===================
 /// Read results and verify that the initial mapped write has completed
 /// successfully. This read will use the common queue.
-pub fn read_verify_init<'d>(src_buf: &Buffer<Int4>, dst_vec: &'d RwVec<Int4>, common_queue: &Queue,
-        wait_event: Option<&Event>, /*verify_add_unmap_event: &mut Option<Event>,*/
-        /*verify_init_completion_queue: Queue,*/ correct_val: i32, task_iter: usize)
-        -> AndThen<ReadCompletion<'d, Int4>, AsyncResult<usize>,
-            impl FnOnce(RwLockWriteGuard<'d, Vec<Int4>>) -> AsyncResult<usize>>
+pub fn read_verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: &Queue,
+        wait_event: Option<&Event>, correct_val: i32, task_iter: usize)
+        -> AndThen<ReadCompletion<Int4>, AsyncResult<usize>,
+            impl FnOnce(RwVec<Int4>) -> AsyncResult<usize>>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(lime_bold: "* Mapped verify-add starting \t(iter: {}, t: {}s) ...",
+        printlnc!(lime_bold: "* Mapped verify-init starting \t(iter: {}, t: {}s) ...",
             task_iter as usize, timestamp());
     }
 
     unsafe { wait_event.as_ref().unwrap()
         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
-    let future_read_data = src_buf.cmd().read(dst_vec.write())
+    let future_read_data = src_buf.cmd().read(dst_vec)
         .queue(&common_queue)
-        // .flags(MapFlags::new().read())
         .ewait_opt(wait_event)
         .enq_async().unwrap();
-
-    // // Set the verify completion event:
-    // *verify_init_completion_event = Some(future_read_data.create_unmap_event().unwrap().clone());
 
     let read = future_read_data.and_then(move |data| {
             let mut val_count = 0usize;
@@ -258,19 +253,14 @@ pub fn read_verify_init<'d>(src_buf: &Buffer<Int4>, dst_vec: &'d RwVec<Int4>, co
                 val_count += 1;
             }
 
-            printlnc!(lime_bold: "* Mapped verify-add complete \t(iter: {}, t: {}s)",
+            printlnc!(lime_bold: "* Mapped verify-init complete \t(iter: {}, t: {}s)",
                 task_iter, timestamp());
-
-            // // Explicitly enqueuing the unmap with our dedicated queue.
-            // data.unmap().queue(&verify_add_unmap_queue).enq()?;
 
             Ok(val_count)
         });
 
     read
 }
-
-
 
 
 /// 3. Kernel-Add
@@ -421,7 +411,8 @@ pub fn main() {
     // operations for devices that do not already use host memory (GPUs,
     // etc.). Adding read and write only specifiers also allows for other
     // optimizations.
-    let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only().host_write_only();
+    // let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only().host_write_only();
+    let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only();
     let dst_buf_flags = MemFlags::new().alloc_host_ptr().write_only().host_read_only();
 
     // Create write and read buffers:
@@ -487,8 +478,8 @@ pub fn main() {
 
         // 2. Read-Verify-Init
         // ============
-        let verify_init = read_verify_init(&src_buf, &rw_vec, &common_queue, kernel_event.as_ref(),
-            /*&mut verify_add_unmap_event,*/ 50, task_iter);
+        let verify_init = read_verify_init(&src_buf, &rw_vec, &common_queue,
+            write_init_unmap_event.as_ref(), 50, task_iter);
 
         // 3. Kernel-Add
         // =============
@@ -502,7 +493,8 @@ pub fn main() {
             &mut verify_add_unmap_event, verify_add_unmap_queue.clone(), 150, task_iter);
 
 
-        let join = write_init.join(verify_add);
+        // let join = write_init.join(verify_add);
+        let join = write_init.join3(verify_init, verify_add);
         let join_spawned = thread_pool.spawn(join);
 
         printlnc!(orange: "All commands for iteration {} enqueued    (t: {}s)",

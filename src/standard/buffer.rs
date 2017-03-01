@@ -3,12 +3,12 @@
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use parking_lot::RwLockWriteGuard;
+// use parking_lot::RwLockWriteGuard;
 use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, Event as EventCore, ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, /*RwVec*/};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 #[cfg(feature = "experimental_async_rw")]
@@ -727,18 +727,30 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 /// The destination of a buffer read.
 pub enum ReadDst<'d, T> where T: 'd {
     Slice(&'d mut [T]),
-    Guard(RwLockWriteGuard<'d, Vec<T>>),
+    RwVec(RwVec<T>),
 }
 
-impl<'d, T> From<&'d mut [T]> for ReadDst<'d, T> {
+impl<'d, T> From<&'d mut [T]> for ReadDst<'d, T>  where T: OclPrm {
     fn from(slice: &'d mut [T]) -> ReadDst<'d, T> {
         ReadDst::Slice(slice)
     }
 }
 
-impl<'d, T> From<RwLockWriteGuard<'d, Vec<T>>> for ReadDst<'d, T> {
-    fn from(guard: RwLockWriteGuard<'d, Vec<T>>) -> ReadDst<'d, T> {
-        ReadDst::Guard(guard)
+impl<'d, T> From<&'d mut Vec<T>> for ReadDst<'d, T>  where T: OclPrm {
+    fn from(slice: &'d mut Vec<T>) -> ReadDst<'d, T> {
+        ReadDst::Slice(slice.as_mut_slice())
+    }
+}
+
+impl<'d, T> From<RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
+    fn from(rw_vec: RwVec<T>) -> ReadDst<'d, T> {
+        ReadDst::RwVec(rw_vec)
+    }
+}
+
+impl<'a, 'd, T> From<&'a RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
+    fn from(rw_vec: &'a RwVec<T>) -> ReadDst<'d, T> {
+        ReadDst::RwVec((*rw_vec).clone())
     }
 }
 
@@ -903,53 +915,61 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     ///
     #[allow(unused_unsafe)]
     #[cfg(feature = "experimental_async_rw")]
-    pub fn enq_async(mut self) -> OclResult<ReadCompletion<'d, T>> {
+    pub fn enq_async(mut self) -> OclResult<ReadCompletion<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
         };
 
-        let mut dst = match self.dst {
-            ReadDst::Guard(guard) => guard,
+        let rw_vec = match self.dst {
+            ReadDst::RwVec(rw_vec) => rw_vec,
             _ => return Err("BufferReadCmd::enq: Invalid data destination kind for an
-                asynchronous enqueue. The read destination must be a write guard, \
-                the result of a call to 'RwVec::write'.".into()),
+                asynchronous enqueue. The read destination must be an 'RwVec'.".into()),
         };
 
         match self.cmd.kind {
             BufferCmdKind::Read => {
-                // let data = unsafe { std::mem::replace(data, std::mem::uninitialized()) };
                 let mut read_event = EventCore::null();
 
-                match self.cmd.shape {
-                    BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.cmd.mem_len, dst.len(), offset));
+                {
+                    let mut dst = rw_vec.try_write().ok_or(OclError::from("BufferReadCmd::enq_async: \
+                        Unable to lock the provided `RwVec` read destination."))?;
 
-                        unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
-                            offset, dst.as_mut_slice(), self.cmd.ewait.take(), Some(&mut read_event))?; }
-                    },
-                    BufferCmdDataShape::Rect { src_origin, dst_origin, region,
-                        src_row_pitch_bytes, src_slc_pitch_bytes,
-                            dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
-                    {
-                        unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
-                            false, src_origin, dst_origin, region, src_row_pitch_bytes,
-                            src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            dst.as_mut_slice(),
-                            self.cmd.ewait.take(), Some(&mut read_event))?; }
+                    // let data = unsafe { std::mem::replace(data, std::mem::uninitialized()) };
+
+                    match self.cmd.shape {
+                        BufferCmdDataShape::Lin { offset } => {
+                            try!(check_len(self.cmd.mem_len, dst.len(), offset));
+
+                            unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
+                                offset, dst.as_mut_slice(), self.cmd.ewait.take(), Some(&mut read_event))?; }
+                        },
+                        BufferCmdDataShape::Rect { src_origin, dst_origin, region,
+                            src_row_pitch_bytes, src_slc_pitch_bytes,
+                                dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
+                        {
+                            unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
+                                false, src_origin, dst_origin, region, src_row_pitch_bytes,
+                                src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
+                                dst.as_mut_slice(),
+                                self.cmd.ewait.take(), Some(&mut read_event))?; }
+                        }
                     }
+
+                    if let Some(ref mut self_enew) = self.cmd.enew.take() {
+                        // Should be equivalent to `.clone().into_raw()` [TODO]: test.
+                        // core::retain_event(&read_event)?;
+                        // *(self_enew.alloc_new()) = *(read_event.as_ptr_ref());
+                        // read_event/self_enew refcount: 2
+
+                        unsafe { *(self_enew.alloc_new()) = read_event.clone().into_raw(); }
+                    }
+
+                    // Keep rw_vec write-locked:
+                    ::std::mem::forget(dst);
                 }
 
-                if let Some(ref mut self_enew) = self.cmd.enew.take() {
-                    // Should be equivalent to `.clone().into_raw()` [TODO]: test.
-                    // core::retain_event(&read_event)?;
-                    // *(self_enew.alloc_new()) = *(read_event.as_ptr_ref());
-                    // read_event/self_enew refcount: 2
-
-                    unsafe { *(self_enew.alloc_new()) = read_event.clone().into_raw(); }
-                }
-
-                Ok(ReadCompletion::new(Event::from(read_event), dst))
+                Ok(ReadCompletion::new(Event::from(read_event), rw_vec))
             },
             _ => unreachable!(),
         }

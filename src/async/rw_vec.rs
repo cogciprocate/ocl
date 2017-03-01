@@ -1,21 +1,24 @@
 #![allow(unused_imports, dead_code)]
 
 use ::{OclPrm};
-// use std::sync::Arc;
+use std::sync::Arc;
 use parking_lot::RwLock;
 pub use parking_lot::{RwLockReadGuard, RwLockWriteGuard};
 
+
+/// A locking `Vec`.
+// #[derive(Clone)]
 pub struct RwVec<T> {
-    // lock: Arc<RwLock<Vec<T>>>,
-    lock: RwLock<Vec<T>>,
+    lock: Arc<RwLock<Vec<T>>>,
+    // lock: RwLock<Vec<T>>,
 }
 
 impl<T> RwVec<T> where T: OclPrm {
-    /// Creates and returns a new `RwVec` initialized with the default value of `T`.
-    pub fn new(len: usize) -> RwVec<T> {
+    /// Creates and returns a new `RwVec`.
+    pub fn new() -> RwVec<T> {
         RwVec {
-            // lock: Arc::new(RwLock::new(vec![Default::default(); len]))
-            lock: RwLock::new(vec![Default::default(); len])
+            lock: Arc::new(RwLock::new(Vec::new())),
+            // lock: RwLock::new(vec![Default::default(); len])
         }
     }
 
@@ -66,10 +69,49 @@ impl<T> RwVec<T> where T: OclPrm {
     /// Since this call borrows the `RwLock` mutably, no actual locking needs to
     /// take place---the mutable borrow statically guarantees no locks exist.
     #[inline]
-    // pub fn get_mut(&mut self) -> Option<&mut Vec<T>> {
-    pub fn get_mut(&mut self) -> &mut Vec<T> {
-        // Arc::get_mut(&mut self.lock).map(|l| l.get_mut())
-        self.lock.get_mut()
+    pub fn get_mut(&mut self) -> Option<&mut Vec<T>> {
+    // pub fn get_mut(&mut self) -> &mut Vec<T> {
+        Arc::get_mut(&mut self.lock).map(|l| l.get_mut())
+        // self.lock.get_mut()
+    }
+
+    /// Releases exclusive write access of the rwlock.
+    ///
+    /// # Safety
+    ///
+    /// This function must only be called if the rwlock was locked using
+    /// `raw_write` or `raw_try_write`, or if an `RwLockWriteGuard` from this
+    /// rwlock was leaked (e.g. with `mem::forget`). The rwlock must be locked
+    /// with exclusive write access.
+    #[inline]
+    pub unsafe fn raw_unlock_write(&self) {
+        self.lock.raw_unlock_write();
+    }
+
+    /// Returns a cloned RwVec which refers to the same underlying data.
+    ///
+    /// This function does not create a new `Vec` nor does it allocate
+    /// anything, it simply increases the internal reference count and returns
+    /// a copied reference. Locking the cloned `RwVec` will also lock it's
+    /// source.
+    ///
+    /// To clone underlying data, first lock (`::read` or `::write`) then
+    /// clone using the returned guard.
+    ///
+    #[inline]
+    pub fn clone(&self) -> RwVec<T> {
+        RwVec {
+            lock: self.lock.clone(),
+        }
+    }
+}
+
+
+impl<T> From<Vec<T>> for RwVec<T> where T: OclPrm {
+    fn from(vec: Vec<T>) -> RwVec<T> {
+        RwVec {
+            lock: Arc::new(RwLock::new(vec))
+        }
     }
 }
 

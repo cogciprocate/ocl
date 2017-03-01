@@ -3,6 +3,7 @@
 mod error;
 mod future_mem_map;
 mod read_completion;
+mod rw_vec;
 
 use std;
 // use futures::future::Result;
@@ -11,9 +12,11 @@ use futures::future;
 // pub use futures::future::{result, ok, err};
 pub use self::error::{Error, Result};
 pub use self::future_mem_map::FutureMemMap;
+pub use parking_lot::{RwLockWriteGuard, RwLockReadGuard};
+pub use self::rw_vec::{RwVec};
+
 #[cfg(feature = "experimental_async_rw")]
 pub use self::read_completion::ReadCompletion;
-pub use parking_lot::{RwLockWriteGuard, RwLockReadGuard};
 
 
 pub type FutureResult<T> = future::FutureResult<T, self::Error>;
