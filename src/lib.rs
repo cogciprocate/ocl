@@ -252,7 +252,7 @@ pub unsafe trait OclVec: Debug + Display + Clone + Copy + Default + PartialOrd +
     Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
     Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
     AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-    Sum<Self> + Product<Self> + 'static { type Scalar: OclScl; }
+    Sum<Self> + Product<Self> + 'static {}
 
 // unsafe impl<T> OclVec for T where T: Debug + Display + Clone + Copy + Default + PartialOrd +
 //     Zero<Output=T> + One<Output=T> + Add<T> + Sub<T, Output=T> +

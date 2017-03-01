@@ -521,9 +521,10 @@ macro_rules! impl_common {
 
         impl_sum_product!($name);
 
-        unsafe impl OclVec for $name {
-            type Scalar = $ty;
-        }
+        // unsafe impl OclVec for $name {
+        //     type Scalar = $ty;
+        // }
+        unsafe impl OclVec for $name {}
     }
 }
 
