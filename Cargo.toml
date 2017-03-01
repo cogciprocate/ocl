@@ -17,12 +17,12 @@ opencl_version_1_1 = ["cl-sys/opencl_version_1_1"]
 opencl_version_1_2 = ["cl-sys/opencl_version_1_2"]
 opencl_version_2_0 = ["cl-sys/opencl_version_2_0"]
 opencl_version_2_1 = ["cl-sys/opencl_version_2_1"]
-default = ["rand", "opencl_version_1_1", "opencl_version_1_2"]
+
+default = ["ocl-core-vectors", "rand", "opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 # cl-sys = "0.2.1"
 cl-sys = { version = "0.2.1", git = "https://github.com/cogciprocate/cl-sys" }
-
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
@@ -30,6 +30,9 @@ bitflags = "0.8"
 
 # Optionally used for generating a buffer full of random data:
 rand = { version = "0.3", optional = true }
+
+# Implements all of the vector types and traits.
+ocl-core-vectors = { version = "0.1", path = "ocl-core-vectors", optional = true }
 
 # [replace]
 # "cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }

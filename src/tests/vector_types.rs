@@ -1,6 +1,8 @@
 //! [INCOMPLETE]: [TODO]: Test various types with an assortment of operations.
 //!
 
+#![cfg(feature = "ocl-core-vectors")]
+
 use std::ffi::CString;
 use ::{OclVec, Kernel, Context, CommandQueue, Mem};
 use tests::{get_available_contexts};

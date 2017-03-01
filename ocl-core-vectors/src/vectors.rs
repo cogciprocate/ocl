@@ -5,7 +5,7 @@
 //! Some of these macros have been adapted (shamelessly copied) from those in
 //! the standard library.
 //!
-//! [TODO (someday)]: Add scalar-widening operations (allowing vec * scl for example).
+//! [TODO]: Add scalar-widening operations (allowing vec * scl for example).
 
 // #![allow(unused_imports)]
 
@@ -13,13 +13,13 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::ops::*;
 use std::iter::{Sum, Product};
 use num::{Zero, One};
-use ::{OclPrm, OclVec};
+// use ::{OclPrm, OclVec};
 
-pub trait Splat {
-    type Scalar: OclPrm;
+// pub trait Splat {
+//     type Scalar: OclPrm;
 
-    fn splat(Self::Scalar) -> Self;
-}
+//     fn splat(Self::Scalar) -> Self;
+// }
 
 
 macro_rules! expand_val {
@@ -457,14 +457,14 @@ macro_rules! impl_common {
             }
         }
 
-        impl Splat for $name {
-            type Scalar = $ty;
+        // impl Splat for $name {
+        //     type Scalar = $ty;
 
-            #[inline]
-            fn splat(val: $ty) -> Self {
-                $name::splat(val)
-            }
-        }
+        //     #[inline]
+        //     fn splat(val: $ty) -> Self {
+        //         $name::splat(val)
+        //     }
+        // }
 
         impl Display for $name {
             fn fmt(&self, f: &mut Formatter) -> FmtResult {
@@ -524,7 +524,7 @@ macro_rules! impl_common {
         // unsafe impl OclVec for $name {
         //     type Scalar = $ty;
         // }
-        unsafe impl OclVec for $name {}
+        // unsafe impl OclVec for $name {}
     }
 }
 
@@ -537,12 +537,14 @@ macro_rules! impl_cl_vec {
     ($name:ident, $cardinality:expr, $ty:ty, i, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         impl_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
         impl_int_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
-        impl_sh_all!($name: $( $idx ),+);
+        // impl_sh_all!($name: $( $idx ),+);
+        impl_sh_unsigned! { $name, usize: $( $idx ),+ }
     };
     ($name:ident, $cardinality:expr, $ty:ty, u, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
         impl_common!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
         impl_int_ops!($name, $cardinality, $ty, $( $field ),+: $( $tr ),+: $( $idx ),+ );
-        impl_sh_all!($name: $( $idx ),+);
+        // impl_sh_all!($name: $( $idx ),+);
+        impl_sh_unsigned! { $name, usize: $( $idx ),+ }
     };
 }
 

@@ -103,6 +103,8 @@
 extern crate libc;
 extern crate rand;
 extern crate num;
+#[cfg(feature = "ocl-core-vectors")]
+extern crate ocl_core_vectors as vectors;
 pub extern crate cl_sys as ffi;
 
 #[cfg(test)] mod tests;
@@ -110,12 +112,6 @@ mod functions;
 pub mod types;
 pub mod error;
 pub mod util;
-
-use std::fmt::{Display, Debug};
-use std::ops::*;
-use std::iter::{Sum, Product};
-use num::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
-use rand::distributions::range::SampleRange;
 
 pub use self::error::{Error, Result};
 
@@ -130,19 +126,6 @@ pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult, Co
     CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult, ProgramInfoResult,
     ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
     EventInfoResult, ProfilingInfoResult};
-
-pub use self::types::vectors::{
-    Char, Char2, Char3, Char4, Char8, Char16,
-    Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
-    Short, Short2, Short3, Short4, Short8, Short16,
-    Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
-    Int, Int2, Int3, Int4, Int8, Int16,
-    Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
-    Long, Long2, Long3, Long4, Long8, Long16,
-    Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
-    Float, Float2, Float3, Float4, Float8, Float16,
-    Double, Double2, Double3, Double4, Double8, Double16,
-};
 
 pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, get_device_info,
     create_sub_devices, retain_device, release_device, create_context, create_context_from_type,
@@ -170,8 +153,32 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, g
     device_versions, event_is_complete, _dummy_event_callback, _complete_user_event,
     get_context_platform};
 
+#[cfg(feature = "ocl-core-vectors")]
+pub use self::vectors::{
+// pub use self::types::vectors::{
+    Char, Char2, Char3, Char4, Char8, Char16,
+    Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+    Short, Short2, Short3, Short4, Short8, Short16,
+    Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+    Int, Int2, Int3, Int4, Int8, Int16,
+    Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+    Long, Long2, Long3, Long4, Long8, Long16,
+    Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+    Float, Float2, Float3, Float4, Float8, Float16,
+    Double, Double2, Double3, Double4, Double8, Double16,
+};
+
+pub use traits::OclPrm;
+pub use traits::OclScl;
+
+#[cfg(feature = "ocl-core-vectors")]
+pub use traits::OclVec;
+
 #[cfg(feature = "opencl_version_2_1")]
 pub use self::functions::{create_program_with_il};
+
+
+
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -196,93 +203,131 @@ pub type UserDataPtr = *mut libc::c_void;
 //================================== TRAITS ===================================
 //=============================================================================
 
-/// A type usable within `OpenCL` kernels.
-///
-/// Includes all of the signed, unsigned, and floating point 8 bit - 64 bit
-/// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
-/// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
-///
-pub unsafe trait OclPrm: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
-    Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
-    AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-    Sum<Self> + Product<Self> + 'static {}
+mod traits {
+    use std::fmt::{Display, Debug};
+    use std::ops::*;
+    use std::iter::{Sum, Product};
+    use num::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
+    use rand::distributions::range::SampleRange;
 
-unsafe impl<S> OclPrm for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
-    Mul<S, Output=S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
-    AddAssign<S> + SubAssign<S> + MulAssign<S> + DivAssign<S> + RemAssign<S> +
-    Sum<S> + Product<S> + 'static {}
-// unsafe impl<S> OclPrm for S where S: OclScl {}
-// unsafe impl<S> OclPrm for S where S: OclVec {}
+    #[cfg(feature = "ocl-core-vectors")]
+    pub use self::ocl_vec::OclVec;
 
+    /// A primitive type usable within `OpenCL` kernels.
+    ///
+    /// Includes all of the signed, unsigned, and floating point 8 bit - 64 bit
+    /// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
+    /// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
+    pub unsafe trait OclPrm: Debug + Display + Clone + Copy + Default + PartialOrd +
+        Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
+        Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
+        AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
+        Sum<Self> + Product<Self> + 'static {}
 
-/// A scalar type usable within `OpenCL` kernels.
-///
-/// Meant as a grab bag of potentially useful traits for dealing with various
-/// scalar primitives. Primarily (solely?) used by testing and formatting
-/// functions.
-///
-/// To describe the contents of buffers, etc., prefer using the more general
-/// `OclPrm` trait unless scalar operations are required.
-///
+    // unsafe impl<S> OclPrm for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
+    //     Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
+    //     Mul<S, Output=S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
+    //     AddAssign<S> + SubAssign<S> + MulAssign<S> + DivAssign<S> + RemAssign<S> +
+    //     Sum<S> + Product<S> + 'static {}
 
-// pub unsafe trait OclScl: 'static + Debug + Display + Clone + Copy + PartialEq + PartialOrd +
-//     Default + Add + Sub + Mul + Div + Rem + NumCast + FromPrimitive + ToPrimitive +
-//     SampleRange + Zero + One {}
+    unsafe impl OclPrm for u8 {}
+    unsafe impl OclPrm for i8 {}
+    unsafe impl OclPrm for u16 {}
+    unsafe impl OclPrm for i16 {}
+    unsafe impl OclPrm for u32 {}
+    unsafe impl OclPrm for i32 {}
+    unsafe impl OclPrm for u64 {}
+    unsafe impl OclPrm for i64 {}
+    unsafe impl OclPrm for usize {}
+    unsafe impl OclPrm for isize {}
+    unsafe impl OclPrm for f32 {}
+    unsafe impl OclPrm for f64 {}
 
-// unsafe impl<T> OclScl for T where T: 'static + Copy + Clone + PartialOrd + Default +
-//     Add + Sub + Mul + Div + Rem + Display + Debug + NumCast + FromPrimitive + ToPrimitive + SampleRange +
-//     PartialEq + Zero + One {}
+    #[cfg(feature = "ocl-core-vectors")]
+    unsafe impl<V> OclPrm for V where V: OclVec {}
 
-pub unsafe trait OclScl: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
-    Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
-    AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-    NumCast + FromPrimitive + ToPrimitive + SampleRange + Sum<Self> + Product<Self> + 'static {}
+    /// A scalar type usable within `OpenCL` kernels.
+    ///
+    /// Meant as a grab bag of potentially useful traits for dealing with various
+    /// scalar primitives. Primarily (solely?) used by testing and formatting
+    /// functions.
+    ///
+    /// To describe the contents of buffers, etc., prefer using the more general
+    /// `OclPrm` trait unless scalar conversion operations are required.
+    pub unsafe trait OclScl: Debug + Display + Clone + Copy + Default + PartialOrd +
+        Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
+        Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
+        AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
+        NumCast + FromPrimitive + ToPrimitive + SampleRange + Sum<Self> + Product<Self> + 'static {}
 
-unsafe impl<S> OclScl for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
-    Mul<S, Output=S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
-    AddAssign<S> + SubAssign<S> + MulAssign<S> + DivAssign<S> + RemAssign<S> +
-    NumCast + FromPrimitive + ToPrimitive + SampleRange + Sum<S> + Product<S> + 'static {}
+    // unsafe impl<S> OclScl for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
+    //     Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
+    //     Mul<S, Output=S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
+    //     AddAssign<S> + SubAssign<S> + MulAssign<S> + DivAssign<S> + RemAssign<S> +
+    //     NumCast + FromPrimitive + ToPrimitive + SampleRange + Sum<S> + Product<S> + 'static {}
 
-/// A vector type usable within `OpenCL` kernels.
-pub unsafe trait OclVec: Debug + Display + Clone + Copy + Default + PartialOrd +
-    Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
-    Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
-    AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-    Sum<Self> + Product<Self> + 'static {}
+    unsafe impl OclScl for u8 {}
+    unsafe impl OclScl for i8 {}
+    unsafe impl OclScl for u16 {}
+    unsafe impl OclScl for i16 {}
+    unsafe impl OclScl for u32 {}
+    unsafe impl OclScl for i32 {}
+    unsafe impl OclScl for u64 {}
+    unsafe impl OclScl for i64 {}
+    unsafe impl OclScl for usize {}
+    unsafe impl OclScl for isize {}
+    unsafe impl OclScl for f32 {}
+    unsafe impl OclScl for f64 {}
 
-// unsafe impl<T> OclVec for T where T: Debug + Display + Clone + Copy + Default + PartialOrd +
-//     Zero<Output=T> + One<Output=T> + Add<T> + Sub<T, Output=T> +
-//     Mul<T> + Div<T, Output=T> + Rem<T, Output=T> + PartialEq<T> +
-//     'static {}
+    #[cfg(feature = "ocl-core-vectors")]
+    mod ocl_vec {
+        use std::fmt::{Display, Debug};
+        use std::ops::*;
+        use std::iter::{Sum, Product};
+        use num::{Zero, One};
 
-// impl<T> Add for T where T: OclVec {
-//     type Output = T;
-// }
+        /// A vector type usable within `OpenCL` kernels.
+        pub unsafe trait OclVec: Debug + Display + Clone + Copy + Default + PartialOrd +
+            Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
+            Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
+            AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
+            Sum<Self> + Product<Self> + 'static {}
 
-// unsafe impl<P> OclVec for [P] where P: OclPrm {}
+        use ::{
+            Char, Char2, Char3, Char4, Char8, Char16,
+            Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+            Short, Short2, Short3, Short4, Short8, Short16,
+            Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+            Int, Int2, Int3, Int4, Int8, Int16,
+            Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+            Long, Long2, Long3, Long4, Long8, Long16,
+            Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+            Float, Float2, Float3, Float4, Float8, Float16,
+            Double, Double2, Double3, Double4, Double8, Double16,
+        };
 
-
-// impl<'a, T> OclPrm for &'a T where T: Copy + Clone + PartialOrd + NumCast +
-//     Default + Zero + One + Add + Sub + Mul + Div + Rem + Display + Debug +
-//     FromPrimitive + ToPrimitive + SampleRange {}
-
-
-// pub unsafe trait EventPtr: Debug {
-//     unsafe fn as_ptr(&self) -> cl_event {
-//         *(self as *const Self as *const _ as *const cl_event)
-//     }
-// }
-
-// /// Types which are physically arrays of cl_events.
-// pub unsafe trait EventListPtr: Debug {
-//     unsafe fn as_ptr(&self) -> *const cl_event {
-//         self as *const Self as *const _ as *const cl_event
-//     }
-// }
+        unsafe impl OclVec for Char {} unsafe impl OclVec for Char2 {} unsafe impl OclVec for Char3 {}
+        unsafe impl OclVec for Char4 {} unsafe impl OclVec for Char8 {} unsafe impl OclVec for Char16 {}
+        unsafe impl OclVec for Uchar {} unsafe impl OclVec for Uchar2 {} unsafe impl OclVec for Uchar3 {}
+        unsafe impl OclVec for Uchar4 {} unsafe impl OclVec for Uchar8 {} unsafe impl OclVec for Uchar16 {}
+        unsafe impl OclVec for Short {} unsafe impl OclVec for Short2 {} unsafe impl OclVec for Short3 {}
+        unsafe impl OclVec for Short4 {} unsafe impl OclVec for Short8 {} unsafe impl OclVec for Short16 {}
+        unsafe impl OclVec for Ushort {} unsafe impl OclVec for Ushort2 {} unsafe impl OclVec for Ushort3 {}
+        unsafe impl OclVec for Ushort4 {} unsafe impl OclVec for Ushort8 {} unsafe impl OclVec for Ushort16 {}
+        unsafe impl OclVec for Int {} unsafe impl OclVec for Int2 {} unsafe impl OclVec for Int3 {}
+        unsafe impl OclVec for Int4 {} unsafe impl OclVec for Int8 {} unsafe impl OclVec for Int16 {}
+        unsafe impl OclVec for Uint {} unsafe impl OclVec for Uint2 {} unsafe impl OclVec for Uint3 {}
+        unsafe impl OclVec for Uint4 {} unsafe impl OclVec for Uint8 {} unsafe impl OclVec for Uint16 {}
+        unsafe impl OclVec for Long {} unsafe impl OclVec for Long2 {} unsafe impl OclVec for Long3 {}
+        unsafe impl OclVec for Long4 {} unsafe impl OclVec for Long8 {} unsafe impl OclVec for Long16 {}
+        unsafe impl OclVec for Ulong {} unsafe impl OclVec for Ulong2 {} unsafe impl OclVec for Ulong3 {}
+        unsafe impl OclVec for Ulong4 {} unsafe impl OclVec for Ulong8 {} unsafe impl OclVec for Ulong16 {}
+        unsafe impl OclVec for Float {} unsafe impl OclVec for Float2 {} unsafe impl OclVec for Float3 {}
+        unsafe impl OclVec for Float4 {} unsafe impl OclVec for Float8 {} unsafe impl OclVec for Float16 {}
+        unsafe impl OclVec for Double {} unsafe impl OclVec for Double2 {} unsafe impl OclVec for Double3 {}
+        unsafe impl OclVec for Double4 {} unsafe impl OclVec for Double8 {} unsafe impl OclVec for Double16 {}
+    }
+}
 
 //=============================================================================
 //================================ BITFIELDS ==================================

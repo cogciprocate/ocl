@@ -1,0 +1,7 @@
+[package]
+name = "ocl-core-vectors"
+version = "0.1.0"
+authors = ["Nick Sanders <cogciprocate@gmail.com>"]
+
+[dependencies]
+num = "0.1"

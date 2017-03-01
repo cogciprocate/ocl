@@ -67,7 +67,9 @@ pub extern "C" fn _dummy_event_callback(_: ffi::cl_event, _: i32, _: *mut c_void
 /// `src_event_ptr` is not used and does not need anything special done with
 /// its destructor (it will already have been managed by the call to `::set_event_callback`.
 ///
-pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
+pub extern "C" fn _complete_user_event(src_event_ptr: cl_event, event_status: i32,
+        user_data: *mut c_void)
+{
     #[cfg(not(feature = "event_debug_print"))]
     let _ = src_event_ptr;
 
@@ -112,31 +114,6 @@ fn eval_errcode<T>(errcode: cl_int, result: T, cl_fn_name: &'static str, fn_info
 {
     OclError::eval_errcode(errcode, result, cl_fn_name, fn_info)
 }
-
-// /// Maps options of slices to pointers and a length.
-// fn resolve_event_ptrs(wait_list: Option<Ewl>,
-//             new_event: Option<NE>) -> OclResult<(cl_uint, *const cl_event, *mut cl_event)>
-// {
-//     // If the wait list is empty or if its containing option is none, map to (0, null),
-//     // otherwise map to the length and pointer:
-//     let (wait_list_len, wait_list_ptr) = match wait_list {
-//         Some(wl) => {
-//             if wl.count() > 0 {
-//                 (wl.count(), unsafe { wl.as_ptr_ptr() } as *const cl_event)
-//             } else {
-//                 (0, ptr::null() as *const cl_event)
-//             }
-//         },
-//         None => (0, ptr::null() as *const cl_event),
-//     };
-
-//     let new_event_ptr = match new_event {
-//         Some(ne) => try!(ne.alloc_new()),
-//         None => ptr::null_mut() as *mut cl_event,
-//     };
-
-//     Ok((wait_list_len, wait_list_ptr, new_event_ptr))
-// }
 
 /// Maps options of slices to pointers and a length.
 fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<Ewl>,
@@ -433,12 +410,14 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
     // just an extension unsupported by the device (i.e.
     // `CL_DEVICE_HALF_FP_CONFIG` on Intel):
     if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-        return DeviceInfoResult::Error(Box::new(OclError::from("[UNAVAILABLE (CL_INVALID_VALUE)]")));
+        // return DeviceInfoResult::Error(Box::new(OclError::from("[UNAVAILABLE (CL_INVALID_VALUE)]")));
+        return OclError::from("[UNAVAILABLE (CL_INVALID_VALUE)]").into();
     }
 
-    // try!(eval_errcode(errcode, result, "clGetDeviceInfo", ""));
+    // try!(eval_errcode(errcode, (), "clGetDeviceInfo", ""));
     if let Err(err) = eval_errcode(errcode, (), "clGetDeviceInfo", "") {
-        return DeviceInfoResult::Error(Box::new(err));
+        // return DeviceInfoResult::Error(Box::new(err));
+        return err.into();
     }
 
     // If result size is zero, return an empty info result directly:
@@ -2337,7 +2316,6 @@ pub fn enqueue_fill_buffer<T, M, En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueFillBuffer", "")
 }
 
-/// [UNTESTED]
 /// Copies the contents of one buffer to another.
 pub fn enqueue_copy_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
