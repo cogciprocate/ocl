@@ -18,7 +18,7 @@ opencl_version_1_2 = ["cl-sys/opencl_version_1_2"]
 opencl_version_2_0 = ["cl-sys/opencl_version_2_0"]
 opencl_version_2_1 = ["cl-sys/opencl_version_2_1"]
 
-default = ["ocl-core-vectors", "rand", "opencl_version_1_1", "opencl_version_1_2"]
+default = ["ocl-core-vector", "rand", "opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 # cl-sys = "0.2.1"
@@ -32,7 +32,7 @@ bitflags = "0.8"
 rand = { version = "0.3", optional = true }
 
 # Implements all of the vector types and traits.
-ocl-core-vectors = { version = "0.1", path = "ocl-core-vectors", optional = true }
+ocl-core-vector = { version = "0.1", path = "ocl-core-vector", optional = true }
 
 # [replace]
 # "cl-sys:0.2.1" = { git = "https://github.com/cogciprocate/cl-sys" }

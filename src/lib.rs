@@ -103,8 +103,8 @@
 extern crate libc;
 extern crate rand;
 extern crate num;
-#[cfg(feature = "ocl-core-vectors")]
-extern crate ocl_core_vectors as vectors;
+#[cfg(feature = "ocl-core-vector")]
+extern crate ocl_core_vector as vector;
 pub extern crate cl_sys as ffi;
 
 #[cfg(test)] mod tests;
@@ -153,9 +153,9 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, g
     device_versions, event_is_complete, _dummy_event_callback, _complete_user_event,
     get_context_platform};
 
-#[cfg(feature = "ocl-core-vectors")]
-pub use self::vectors::{
-// pub use self::types::vectors::{
+#[cfg(feature = "ocl-core-vector")]
+pub use self::vector::{
+// pub use self::types::vector::{
     Char, Char2, Char3, Char4, Char8, Char16,
     Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
     Short, Short2, Short3, Short4, Short8, Short16,
@@ -171,7 +171,7 @@ pub use self::vectors::{
 pub use traits::OclPrm;
 pub use traits::OclScl;
 
-#[cfg(feature = "ocl-core-vectors")]
+#[cfg(feature = "ocl-core-vector")]
 pub use traits::OclVec;
 
 #[cfg(feature = "opencl_version_2_1")]
@@ -210,7 +210,7 @@ mod traits {
     use num::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
     use rand::distributions::range::SampleRange;
 
-    #[cfg(feature = "ocl-core-vectors")]
+    #[cfg(feature = "ocl-core-vector")]
     pub use self::ocl_vec::OclVec;
 
     /// A primitive type usable within `OpenCL` kernels.
@@ -243,7 +243,7 @@ mod traits {
     unsafe impl OclPrm for f32 {}
     unsafe impl OclPrm for f64 {}
 
-    #[cfg(feature = "ocl-core-vectors")]
+    #[cfg(feature = "ocl-core-vector")]
     unsafe impl<V> OclPrm for V where V: OclVec {}
 
     /// A scalar type usable within `OpenCL` kernels.
@@ -279,7 +279,7 @@ mod traits {
     unsafe impl OclScl for f32 {}
     unsafe impl OclScl for f64 {}
 
-    #[cfg(feature = "ocl-core-vectors")]
+    #[cfg(feature = "ocl-core-vector")]
     mod ocl_vec {
         use std::fmt::{Display, Debug};
         use std::ops::*;

@@ -1,5 +1,5 @@
 [package]
-name = "ocl-core-vectors"
+name = "ocl-core-vector"
 version = "0.1.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 
