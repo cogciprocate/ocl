@@ -4,14 +4,14 @@
 #![cfg(feature = "ocl-core-vector")]
 
 use std::ffi::CString;
-use ::{OclVec, OclPrm, Kernel, Context, CommandQueue, Mem};
+use ::{OclVec, Kernel, Context, CommandQueue, Mem};
 use tests::{get_available_contexts};
 
 const DATASET_SIZE: usize = 1 << 14;
 const DIMS: [usize; 3] = [DATASET_SIZE, 1, 1usize];
 
 fn kernel<V>(context: &Context, src: &str, buffer: &Mem, addend: V) -> Kernel
-        where V: OclVec + OclPrm
+        where V: OclVec
 {
     // Create program:
     let src_cstring = CString::new(src).unwrap();
@@ -29,7 +29,7 @@ fn kernel<V>(context: &Context, src: &str, buffer: &Mem, addend: V) -> Kernel
 
 fn create_enqueue_verify<V>(context: &Context, queue: &CommandQueue,
         src: &str, start_val: V, addend: V)
-        where V: OclVec + OclPrm
+        where V: OclVec
 {
     // Create vec and buffer:
     let mut vec = vec![start_val; DATASET_SIZE];

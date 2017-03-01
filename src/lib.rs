@@ -254,11 +254,7 @@ mod traits {
     ///
     /// To describe the contents of buffers, etc., prefer using the more general
     /// `OclPrm` trait unless scalar conversion operations are required.
-    pub unsafe trait OclScl: Debug + Display + Clone + Copy + Default + PartialOrd +
-        Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
-        Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
-        AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-        NumCast + FromPrimitive + ToPrimitive + SampleRange + Sum<Self> + Product<Self> + 'static {}
+    pub unsafe trait OclScl: OclPrm + NumCast + FromPrimitive + ToPrimitive + SampleRange {}
 
     // unsafe impl<S> OclScl for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
     //     Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
@@ -281,18 +277,10 @@ mod traits {
 
     #[cfg(feature = "ocl-core-vector")]
     mod ocl_vec {
-        use std::fmt::{Display, Debug};
-        use std::ops::*;
-        use std::iter::{Sum, Product};
-        use num::{Zero, One};
         use super::OclPrm;
 
         /// A vector type usable within `OpenCL` kernels.
-        pub unsafe trait OclVec: Debug + Display + Clone + Copy + Default + PartialOrd +
-            Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
-            Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
-            AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-            Sum<Self> + Product<Self> + 'static {}
+        pub unsafe trait OclVec: OclPrm {}
 
         use vector::{
             Char, Char2, Char3, Char4, Char8, Char16,
@@ -306,27 +294,6 @@ mod traits {
             Float, Float2, Float3, Float4, Float8, Float16,
             Double, Double2, Double3, Double4, Double8, Double16,
         };
-
-        unsafe impl OclVec for Char {} unsafe impl OclVec for Char2 {} unsafe impl OclVec for Char3 {}
-        unsafe impl OclVec for Char4 {} unsafe impl OclVec for Char8 {} unsafe impl OclVec for Char16 {}
-        unsafe impl OclVec for Uchar {} unsafe impl OclVec for Uchar2 {} unsafe impl OclVec for Uchar3 {}
-        unsafe impl OclVec for Uchar4 {} unsafe impl OclVec for Uchar8 {} unsafe impl OclVec for Uchar16 {}
-        unsafe impl OclVec for Short {} unsafe impl OclVec for Short2 {} unsafe impl OclVec for Short3 {}
-        unsafe impl OclVec for Short4 {} unsafe impl OclVec for Short8 {} unsafe impl OclVec for Short16 {}
-        unsafe impl OclVec for Ushort {} unsafe impl OclVec for Ushort2 {} unsafe impl OclVec for Ushort3 {}
-        unsafe impl OclVec for Ushort4 {} unsafe impl OclVec for Ushort8 {} unsafe impl OclVec for Ushort16 {}
-        unsafe impl OclVec for Int {} unsafe impl OclVec for Int2 {} unsafe impl OclVec for Int3 {}
-        unsafe impl OclVec for Int4 {} unsafe impl OclVec for Int8 {} unsafe impl OclVec for Int16 {}
-        unsafe impl OclVec for Uint {} unsafe impl OclVec for Uint2 {} unsafe impl OclVec for Uint3 {}
-        unsafe impl OclVec for Uint4 {} unsafe impl OclVec for Uint8 {} unsafe impl OclVec for Uint16 {}
-        unsafe impl OclVec for Long {} unsafe impl OclVec for Long2 {} unsafe impl OclVec for Long3 {}
-        unsafe impl OclVec for Long4 {} unsafe impl OclVec for Long8 {} unsafe impl OclVec for Long16 {}
-        unsafe impl OclVec for Ulong {} unsafe impl OclVec for Ulong2 {} unsafe impl OclVec for Ulong3 {}
-        unsafe impl OclVec for Ulong4 {} unsafe impl OclVec for Ulong8 {} unsafe impl OclVec for Ulong16 {}
-        unsafe impl OclVec for Float {} unsafe impl OclVec for Float2 {} unsafe impl OclVec for Float3 {}
-        unsafe impl OclVec for Float4 {} unsafe impl OclVec for Float8 {} unsafe impl OclVec for Float16 {}
-        unsafe impl OclVec for Double {} unsafe impl OclVec for Double2 {} unsafe impl OclVec for Double3 {}
-        unsafe impl OclVec for Double4 {} unsafe impl OclVec for Double8 {} unsafe impl OclVec for Double16 {}
 
         unsafe impl OclPrm for Char {} unsafe impl OclPrm for Char2 {} unsafe impl OclPrm for Char3 {}
         unsafe impl OclPrm for Char4 {} unsafe impl OclPrm for Char8 {} unsafe impl OclPrm for Char16 {}
@@ -348,6 +315,27 @@ mod traits {
         unsafe impl OclPrm for Float4 {} unsafe impl OclPrm for Float8 {} unsafe impl OclPrm for Float16 {}
         unsafe impl OclPrm for Double {} unsafe impl OclPrm for Double2 {} unsafe impl OclPrm for Double3 {}
         unsafe impl OclPrm for Double4 {} unsafe impl OclPrm for Double8 {} unsafe impl OclPrm for Double16 {}
+
+        unsafe impl OclVec for Char {} unsafe impl OclVec for Char2 {} unsafe impl OclVec for Char3 {}
+        unsafe impl OclVec for Char4 {} unsafe impl OclVec for Char8 {} unsafe impl OclVec for Char16 {}
+        unsafe impl OclVec for Uchar {} unsafe impl OclVec for Uchar2 {} unsafe impl OclVec for Uchar3 {}
+        unsafe impl OclVec for Uchar4 {} unsafe impl OclVec for Uchar8 {} unsafe impl OclVec for Uchar16 {}
+        unsafe impl OclVec for Short {} unsafe impl OclVec for Short2 {} unsafe impl OclVec for Short3 {}
+        unsafe impl OclVec for Short4 {} unsafe impl OclVec for Short8 {} unsafe impl OclVec for Short16 {}
+        unsafe impl OclVec for Ushort {} unsafe impl OclVec for Ushort2 {} unsafe impl OclVec for Ushort3 {}
+        unsafe impl OclVec for Ushort4 {} unsafe impl OclVec for Ushort8 {} unsafe impl OclVec for Ushort16 {}
+        unsafe impl OclVec for Int {} unsafe impl OclVec for Int2 {} unsafe impl OclVec for Int3 {}
+        unsafe impl OclVec for Int4 {} unsafe impl OclVec for Int8 {} unsafe impl OclVec for Int16 {}
+        unsafe impl OclVec for Uint {} unsafe impl OclVec for Uint2 {} unsafe impl OclVec for Uint3 {}
+        unsafe impl OclVec for Uint4 {} unsafe impl OclVec for Uint8 {} unsafe impl OclVec for Uint16 {}
+        unsafe impl OclVec for Long {} unsafe impl OclVec for Long2 {} unsafe impl OclVec for Long3 {}
+        unsafe impl OclVec for Long4 {} unsafe impl OclVec for Long8 {} unsafe impl OclVec for Long16 {}
+        unsafe impl OclVec for Ulong {} unsafe impl OclVec for Ulong2 {} unsafe impl OclVec for Ulong3 {}
+        unsafe impl OclVec for Ulong4 {} unsafe impl OclVec for Ulong8 {} unsafe impl OclVec for Ulong16 {}
+        unsafe impl OclVec for Float {} unsafe impl OclVec for Float2 {} unsafe impl OclVec for Float3 {}
+        unsafe impl OclVec for Float4 {} unsafe impl OclVec for Float8 {} unsafe impl OclVec for Float16 {}
+        unsafe impl OclVec for Double {} unsafe impl OclVec for Double2 {} unsafe impl OclVec for Double3 {}
+        unsafe impl OclVec for Double4 {} unsafe impl OclVec for Double8 {} unsafe impl OclVec for Double16 {}
     }
 }
 
