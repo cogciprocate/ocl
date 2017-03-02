@@ -153,6 +153,8 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, g
     device_versions, event_is_complete, _dummy_event_callback, _complete_user_event,
     get_context_platform};
 
+pub use traits::{OclPrm, OclNum, OclScl};
+
 #[cfg(feature = "ocl-core-vector")]
 pub use self::vector::{
 // pub use self::types::vector::{
@@ -167,9 +169,6 @@ pub use self::vector::{
     Float, Float2, Float3, Float4, Float8, Float16,
     Double, Double2, Double3, Double4, Double8, Double16,
 };
-
-pub use traits::OclPrm;
-pub use traits::OclScl;
 
 #[cfg(feature = "ocl-core-vector")]
 pub use traits::OclVec;
@@ -210,6 +209,13 @@ mod traits {
     use num::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
     use rand::distributions::range::SampleRange;
 
+    // Implements an unsafe trait for a list of types.
+    macro_rules! impl_unsafe {
+        ($trt:ident: $( $ty:ident ),+) => {
+            $( unsafe impl $trt for $ty {} )+
+        }
+    }
+
     #[cfg(feature = "ocl-core-vector")]
     pub use self::ocl_vec::OclVec;
 
@@ -218,69 +224,45 @@ mod traits {
     /// Includes all of the signed, unsigned, and floating point 8 bit - 64 bit
     /// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
     /// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
-    pub unsafe trait OclPrm: Debug + Display + Clone + Copy + Default + PartialOrd +
-        Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
-        Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self> +
-        AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-        Sum<Self> + Product<Self> + 'static {}
-
-    // unsafe impl<S> OclPrm for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
-    //     Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
-    //     Mul<S, Output=S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
-    //     AddAssign<S> + SubAssign<S> + MulAssign<S> + DivAssign<S> + RemAssign<S> +
-    //     Sum<S> + Product<S> + 'static {}
-
-    unsafe impl OclPrm for u8 {}
-    unsafe impl OclPrm for i8 {}
-    unsafe impl OclPrm for u16 {}
-    unsafe impl OclPrm for i16 {}
-    unsafe impl OclPrm for u32 {}
-    unsafe impl OclPrm for i32 {}
-    unsafe impl OclPrm for u64 {}
-    unsafe impl OclPrm for i64 {}
-    unsafe impl OclPrm for usize {}
-    unsafe impl OclPrm for isize {}
-    unsafe impl OclPrm for f32 {}
-    unsafe impl OclPrm for f64 {}
-
-    // #[cfg(feature = "ocl-core-vector")]
-    // unsafe impl<V> OclPrm for V where V: OclVec {}
-
-    /// A scalar type usable within `OpenCL` kernels.
     ///
-    /// Meant as a grab bag of potentially useful traits for dealing with various
-    /// scalar primitives. Primarily (solely?) used by testing and formatting
-    /// functions.
+    /// Can also be implemented for a custom type as long as layout and
+    /// alignment is conserved between Rust and an OpenCL kernel (repr "C")
+    /// for that type.
+    pub unsafe trait OclPrm: Debug + Clone + Copy + Default + PartialEq {}
+
+    impl_unsafe!(OclPrm: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
+
+    /// A set of traits common to numeric built-in OpenCL scalar and vector
+    /// primitives.
     ///
     /// To describe the contents of buffers, etc., prefer using the more general
-    /// `OclPrm` trait unless scalar conversion operations are required.
-    pub unsafe trait OclScl: OclPrm + NumCast + FromPrimitive + ToPrimitive + SampleRange {}
+    /// `OclPrm` trait unless numeric operations are required.
+    pub unsafe trait OclNum: Debug + Display + Clone + Copy + Default + PartialOrd +
+        Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
+        Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self>
+        + AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
+        Sum<Self> + Product<Self> + 'static {}
 
-    // unsafe impl<S> OclScl for S where S: Debug + Display + Clone + Copy + Default + PartialOrd +
-    //     Zero<Output=S> + One<Output=S> + Add<S, Output=S> + Sub<S, Output=S> +
-    //     Mul<S, Output=S> + Div<S, Output=S> + Rem<S, Output=S> + PartialEq<S> +
-    //     AddAssign<S> + SubAssign<S> + MulAssign<S> + DivAssign<S> + RemAssign<S> +
-    //     NumCast + FromPrimitive + ToPrimitive + SampleRange + Sum<S> + Product<S> + 'static {}
+    impl_unsafe!(OclNum: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
 
-    unsafe impl OclScl for u8 {}
-    unsafe impl OclScl for i8 {}
-    unsafe impl OclScl for u16 {}
-    unsafe impl OclScl for i16 {}
-    unsafe impl OclScl for u32 {}
-    unsafe impl OclScl for i32 {}
-    unsafe impl OclScl for u64 {}
-    unsafe impl OclScl for i64 {}
-    unsafe impl OclScl for usize {}
-    unsafe impl OclScl for isize {}
-    unsafe impl OclScl for f32 {}
-    unsafe impl OclScl for f64 {}
+    /// A scalar type usable within OpenCL kernels.
+    ///
+    /// To describe the contents of buffers, etc., prefer using the more general
+    /// `OclPrm` trait unless numeric operations are required.
+    pub unsafe trait OclScl: OclPrm + OclNum + NumCast + FromPrimitive + ToPrimitive +
+        SampleRange {}
+
+    impl_unsafe!(OclScl: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
 
     #[cfg(feature = "ocl-core-vector")]
     mod ocl_vec {
-        use super::OclPrm;
+        use traits::{OclPrm, OclNum};
 
         /// A vector type usable within `OpenCL` kernels.
-        pub unsafe trait OclVec: OclPrm {}
+        ///
+        /// To describe the contents of buffers, etc., prefer using the more general
+        /// `OclPrm` trait unless numeric operations are required.
+        pub unsafe trait OclVec: OclPrm + OclNum {}
 
         use vector::{
             Char, Char2, Char3, Char4, Char8, Char16,
@@ -292,50 +274,47 @@ mod traits {
             Long, Long2, Long3, Long4, Long8, Long16,
             Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
             Float, Float2, Float3, Float4, Float8, Float16,
-            Double, Double2, Double3, Double4, Double8, Double16,
+            Double, Double2, Double3, Double4, Double8, Double16
         };
 
-        unsafe impl OclPrm for Char {} unsafe impl OclPrm for Char2 {} unsafe impl OclPrm for Char3 {}
-        unsafe impl OclPrm for Char4 {} unsafe impl OclPrm for Char8 {} unsafe impl OclPrm for Char16 {}
-        unsafe impl OclPrm for Uchar {} unsafe impl OclPrm for Uchar2 {} unsafe impl OclPrm for Uchar3 {}
-        unsafe impl OclPrm for Uchar4 {} unsafe impl OclPrm for Uchar8 {} unsafe impl OclPrm for Uchar16 {}
-        unsafe impl OclPrm for Short {} unsafe impl OclPrm for Short2 {} unsafe impl OclPrm for Short3 {}
-        unsafe impl OclPrm for Short4 {} unsafe impl OclPrm for Short8 {} unsafe impl OclPrm for Short16 {}
-        unsafe impl OclPrm for Ushort {} unsafe impl OclPrm for Ushort2 {} unsafe impl OclPrm for Ushort3 {}
-        unsafe impl OclPrm for Ushort4 {} unsafe impl OclPrm for Ushort8 {} unsafe impl OclPrm for Ushort16 {}
-        unsafe impl OclPrm for Int {} unsafe impl OclPrm for Int2 {} unsafe impl OclPrm for Int3 {}
-        unsafe impl OclPrm for Int4 {} unsafe impl OclPrm for Int8 {} unsafe impl OclPrm for Int16 {}
-        unsafe impl OclPrm for Uint {} unsafe impl OclPrm for Uint2 {} unsafe impl OclPrm for Uint3 {}
-        unsafe impl OclPrm for Uint4 {} unsafe impl OclPrm for Uint8 {} unsafe impl OclPrm for Uint16 {}
-        unsafe impl OclPrm for Long {} unsafe impl OclPrm for Long2 {} unsafe impl OclPrm for Long3 {}
-        unsafe impl OclPrm for Long4 {} unsafe impl OclPrm for Long8 {} unsafe impl OclPrm for Long16 {}
-        unsafe impl OclPrm for Ulong {} unsafe impl OclPrm for Ulong2 {} unsafe impl OclPrm for Ulong3 {}
-        unsafe impl OclPrm for Ulong4 {} unsafe impl OclPrm for Ulong8 {} unsafe impl OclPrm for Ulong16 {}
-        unsafe impl OclPrm for Float {} unsafe impl OclPrm for Float2 {} unsafe impl OclPrm for Float3 {}
-        unsafe impl OclPrm for Float4 {} unsafe impl OclPrm for Float8 {} unsafe impl OclPrm for Float16 {}
-        unsafe impl OclPrm for Double {} unsafe impl OclPrm for Double2 {} unsafe impl OclPrm for Double3 {}
-        unsafe impl OclPrm for Double4 {} unsafe impl OclPrm for Double8 {} unsafe impl OclPrm for Double16 {}
+        impl_unsafe!(OclNum:
+            Char, Char2, Char3, Char4, Char8, Char16,
+            Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+            Short, Short2, Short3, Short4, Short8, Short16,
+            Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+            Int, Int2, Int3, Int4, Int8, Int16,
+            Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+            Long, Long2, Long3, Long4, Long8, Long16,
+            Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+            Float, Float2, Float3, Float4, Float8, Float16,
+            Double, Double2, Double3, Double4, Double8, Double16
+        );
 
-        unsafe impl OclVec for Char {} unsafe impl OclVec for Char2 {} unsafe impl OclVec for Char3 {}
-        unsafe impl OclVec for Char4 {} unsafe impl OclVec for Char8 {} unsafe impl OclVec for Char16 {}
-        unsafe impl OclVec for Uchar {} unsafe impl OclVec for Uchar2 {} unsafe impl OclVec for Uchar3 {}
-        unsafe impl OclVec for Uchar4 {} unsafe impl OclVec for Uchar8 {} unsafe impl OclVec for Uchar16 {}
-        unsafe impl OclVec for Short {} unsafe impl OclVec for Short2 {} unsafe impl OclVec for Short3 {}
-        unsafe impl OclVec for Short4 {} unsafe impl OclVec for Short8 {} unsafe impl OclVec for Short16 {}
-        unsafe impl OclVec for Ushort {} unsafe impl OclVec for Ushort2 {} unsafe impl OclVec for Ushort3 {}
-        unsafe impl OclVec for Ushort4 {} unsafe impl OclVec for Ushort8 {} unsafe impl OclVec for Ushort16 {}
-        unsafe impl OclVec for Int {} unsafe impl OclVec for Int2 {} unsafe impl OclVec for Int3 {}
-        unsafe impl OclVec for Int4 {} unsafe impl OclVec for Int8 {} unsafe impl OclVec for Int16 {}
-        unsafe impl OclVec for Uint {} unsafe impl OclVec for Uint2 {} unsafe impl OclVec for Uint3 {}
-        unsafe impl OclVec for Uint4 {} unsafe impl OclVec for Uint8 {} unsafe impl OclVec for Uint16 {}
-        unsafe impl OclVec for Long {} unsafe impl OclVec for Long2 {} unsafe impl OclVec for Long3 {}
-        unsafe impl OclVec for Long4 {} unsafe impl OclVec for Long8 {} unsafe impl OclVec for Long16 {}
-        unsafe impl OclVec for Ulong {} unsafe impl OclVec for Ulong2 {} unsafe impl OclVec for Ulong3 {}
-        unsafe impl OclVec for Ulong4 {} unsafe impl OclVec for Ulong8 {} unsafe impl OclVec for Ulong16 {}
-        unsafe impl OclVec for Float {} unsafe impl OclVec for Float2 {} unsafe impl OclVec for Float3 {}
-        unsafe impl OclVec for Float4 {} unsafe impl OclVec for Float8 {} unsafe impl OclVec for Float16 {}
-        unsafe impl OclVec for Double {} unsafe impl OclVec for Double2 {} unsafe impl OclVec for Double3 {}
-        unsafe impl OclVec for Double4 {} unsafe impl OclVec for Double8 {} unsafe impl OclVec for Double16 {}
+        impl_unsafe!(OclPrm:
+            Char, Char2, Char3, Char4, Char8, Char16,
+            Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+            Short, Short2, Short3, Short4, Short8, Short16,
+            Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+            Int, Int2, Int3, Int4, Int8, Int16,
+            Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+            Long, Long2, Long3, Long4, Long8, Long16,
+            Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+            Float, Float2, Float3, Float4, Float8, Float16,
+            Double, Double2, Double3, Double4, Double8, Double16
+        );
+
+        impl_unsafe!(OclVec:
+            Char, Char2, Char3, Char4, Char8, Char16,
+            Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
+            Short, Short2, Short3, Short4, Short8, Short16,
+            Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16,
+            Int, Int2, Int3, Int4, Int8, Int16,
+            Uint, Uint2, Uint3, Uint4, Uint8, Uint16,
+            Long, Long2, Long3, Long4, Long8, Long16,
+            Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
+            Float, Float2, Float3, Float4, Float8, Float16,
+            Double, Double2, Double3, Double4, Double8, Double16
+        );
     }
 }
 
