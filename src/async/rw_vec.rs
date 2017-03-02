@@ -18,7 +18,14 @@ impl<T> RwVec<T> where T: OclPrm {
     pub fn new() -> RwVec<T> {
         RwVec {
             lock: Arc::new(RwLock::new(Vec::new())),
-            // lock: RwLock::new(vec![Default::default(); len])
+        }
+    }
+
+    /// Creates and returns a new `RwVec` initialized to the specified length
+    /// with the default value for `T`.
+    pub fn init(len: usize) -> RwVec<T> {
+        RwVec {
+            lock: Arc::new(RwLock::new(vec![Default::default(); len])),
         }
     }
 

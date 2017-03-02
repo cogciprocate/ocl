@@ -913,6 +913,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
     /// Enqueues this command asynchronously.
     ///
+    /// A data destination container appropriate for an asynchronous operation
+    /// must have been passed to `::read`.
+    ///
     #[allow(unused_unsafe)]
     #[cfg(feature = "experimental_async_rw")]
     pub fn enq_async(mut self) -> OclResult<ReadCompletion<T>> {
@@ -932,10 +935,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 let mut read_event = EventCore::null();
 
                 {
-                    let mut dst = rw_vec.try_write().ok_or(OclError::from("BufferReadCmd::enq_async: \
-                        Unable to lock the provided `RwVec` read destination."))?;
-
-                    // let data = unsafe { std::mem::replace(data, std::mem::uninitialized()) };
+                    // let mut dst = rw_vec.try_write().ok_or(OclError::from("BufferReadCmd::enq_async: \
+                    //     Unable to lock the provided `RwVec` read destination."))?;
+                    let mut dst = rw_vec.write();
 
                     match self.cmd.shape {
                         BufferCmdDataShape::Lin { offset } => {
@@ -957,12 +959,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     }
 
                     if let Some(ref mut self_enew) = self.cmd.enew.take() {
-                        // Should be equivalent to `.clone().into_raw()` [TODO]: test.
-                        // core::retain_event(&read_event)?;
-                        // *(self_enew.alloc_new()) = *(read_event.as_ptr_ref());
                         // read_event/self_enew refcount: 2
-
-                        unsafe { *(self_enew.alloc_new()) = read_event.clone().into_raw(); }
+                        // unsafe { *(self_enew.alloc_new()) = read_event.clone().into_raw(); }
+                        unsafe { self_enew.clone_from(&read_event) }
                     }
 
                     // Keep rw_vec write-locked:
@@ -1315,7 +1314,8 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                     // into it and increase refcount (to 2).
                     if let Some(ref mut self_enew) = self.cmd.enew.take() {
                         // map_event/self_enew refcount: 2
-                        *(self_enew.alloc_new()) = map_event.clone().into_raw();
+                        // *(self_enew.alloc_new()) = map_event.clone().into_raw();
+                        self_enew.clone_from(&map_event)
                     }
 
                     FutureMemMap::new(mm_core, len, map_event, self.cmd.obj_core.clone(),

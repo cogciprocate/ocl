@@ -242,7 +242,8 @@ pub fn read_verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_qu
         .ewait_opt(wait_event)
         .enq_async().unwrap();
 
-    let read = future_read_data.and_then(move |data| {
+    let read = future_read_data.and_then(move |rw_vec| {
+            let data = rw_vec.read();
             let mut val_count = 0usize;
 
             for (idx, val) in data.iter().enumerate() {
@@ -441,7 +442,7 @@ pub fn main() {
         .arg_buf(&dst_buf);
 
     // A lockable vector for non-map reads.
-    let rw_vec = RwVec::new(WORK_SIZE);
+    let rw_vec = RwVec::init(WORK_SIZE);
 
     // Thread pool for offloaded tasks.
     let thread_pool = CpuPool::new_num_cpus();

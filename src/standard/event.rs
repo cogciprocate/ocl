@@ -1,12 +1,13 @@
 //! An OpenCL event.
 
 use std;
+// use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use futures::{task, Future, Poll, Async};
 use ffi::cl_event;
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
-    ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventRef, Context,
+    ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef, Context,
     CommandQueue as CommandQueueCore};
 use standard::{_unpark_task, box_raw_void};
 
@@ -153,7 +154,7 @@ impl std::fmt::Display for Event {
     }
 }
 
-impl<'e> ClEventRef<'e> for Event {
+unsafe impl<'e> ClEventPtrRef<'e> for Event {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
         self.0.as_ptr_ref()
     }
@@ -161,6 +162,10 @@ impl<'e> ClEventRef<'e> for Event {
 
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
     #[inline] fn alloc_new(&mut self) -> *mut cl_event { (&mut self.0).alloc_new() }
+
+    #[inline] unsafe fn clone_from<E: AsRef<EventCore>>(&mut self, ev: E) {
+        self.0.clone_from(ev.as_ref())
+    }
 }
 
 unsafe impl ClWaitListPtr for Event {
@@ -323,6 +328,11 @@ impl DerefMut for EventList {
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
     #[inline] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
+
+    #[inline] unsafe fn clone_from<E: AsRef<EventCore>>(&mut self, ev: E) {
+        assert!(ev.as_ref().is_valid());
+        *self._alloc_new() = ev.as_ref().clone().into_raw()
+    }
 }
 
 unsafe impl ClWaitListPtr for EventList {

@@ -148,11 +148,10 @@ impl<T> MemMap<T>  where T: OclPrm {
                 // origin_event refcount: 1
                 // If enew_opt is `Some`, update its internal event ptr.
                 if let Some(ref mut enew) = enew_opt {
-                        // Should be equivalent to `.clone().into_raw()` [TODO]: test.
-                        // core::retain_event(&origin_event)?;
-                        // *(enew.alloc_new()) = *(origin_event.as_ptr_ref());
-                        unsafe { *(enew.alloc_new()) = origin_event.clone().into_raw(); }
+                        // unsafe { *(enew.alloc_new()) = origin_event.clone().into_raw(); }
+
                         // origin_event/enew refcount: 2
+                        unsafe { enew.clone_from(&origin_event) }
                 }
 
                 if !cfg!(not(feature = "event_callbacks")) {
