@@ -45,6 +45,8 @@ use std::ptr;
 use std::slice;
 use std::cell::Ref;
 use std::fmt::Debug;
+// use std::ops::Deref;
+// use std::borrow::Borrow;
 use libc::c_void;
 use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
@@ -118,11 +120,11 @@ pub trait ClVersions {
 
 /// Types with a reference to a raw event pointer.
 ///
-pub trait ClEventPtrRef<'e> {
+pub unsafe trait ClEventPtrRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
 }
 
-impl<'e, L> ClEventPtrRef<'e> for &'e L where L: ClEventPtrRef<'e> {
+unsafe impl<'e, L> ClEventPtrRef<'e> for &'e L where L: ClEventPtrRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
         (*self).as_ptr_ref()
     }
@@ -267,7 +269,7 @@ impl EventRefWrapper {
     }
 }
 
-impl<'e> ClEventPtrRef<'e> for EventRefWrapper {
+unsafe impl<'e> ClEventPtrRef<'e> for EventRefWrapper {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
         &self.0
     }
@@ -1105,8 +1107,14 @@ unsafe impl<'a> ClWaitListPtr for &'a Event {
     #[inline(always)] fn count(&self) -> u32 { self._count() }
 }
 
-impl<'e> ClEventPtrRef<'e> for Event {
+unsafe impl<'e> ClEventPtrRef<'e> for Event {
     #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
+}
+
+impl AsRef<Event> for Event {
+    fn as_ref(&self) -> &Event {
+        self
+    }
 }
 
 impl Clone for Event {
