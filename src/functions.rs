@@ -38,7 +38,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo,
     KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
-    KernelWorkGroupInfoResult, ClEventRef, ClWaitListPtr, EventInfo, EventInfoResult, ProfilingInfo,
+    KernelWorkGroupInfoResult, ClEventPtrRef, ClWaitListPtr, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
     ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
@@ -1914,7 +1914,7 @@ pub fn wait_for_events(num_events: u32, event_list: &ClWaitListPtr) -> OclResult
 }
 
 /// Get event info.
-pub fn get_event_info<'e, E: ClEventRef<'e>>(event: &'e E, request: EventInfo) -> EventInfoResult {
+pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo) -> EventInfoResult {
     let mut result_size: size_t = 0;
 
     let errcode = unsafe { ffi::clGetEventInfo(
@@ -1958,18 +1958,18 @@ pub fn create_user_event(context: &Context) -> OclResult<Event> {
 }
 
 /// Increments an event's reference counter.
-pub unsafe fn retain_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
+pub unsafe fn retain_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult<()> {
     eval_errcode(ffi::clRetainEvent(*event.as_ptr_ref()), (), "clRetainEvent", "")
 }
 
 /// Decrements an event's reference counter.
-pub unsafe fn release_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
+pub unsafe fn release_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult<()> {
     eval_errcode(ffi::clReleaseEvent(*event.as_ptr_ref()), (), "clReleaseEvent", "")
 }
 
 /// [UNTESTED]
 /// Updates a user events status.
-pub fn set_user_event_status<'e,E: ClEventRef<'e>>(event: &'e E,
+pub fn set_user_event_status<'e,E: ClEventPtrRef<'e>>(event: &'e E,
             execution_status: CommandExecutionStatus) -> OclResult<()>
 {
     unsafe {
@@ -1984,7 +1984,7 @@ pub fn set_user_event_status<'e,E: ClEventRef<'e>>(event: &'e E,
 
 /// Sets a callback function which is called as soon as the `callback_trigger`
 /// status is reached.
-pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
+pub unsafe fn set_event_callback<'e, E: ClEventPtrRef<'e>>(
             event: &'e E,
             callback_trigger: CommandExecutionStatus,
             callback_receiver: Option<EventCallbackFn>,
@@ -2004,7 +2004,7 @@ pub unsafe fn set_event_callback<'e, E: ClEventRef<'e>>(
 //============================================================================
 
 /// Get event profiling info (for debugging / benchmarking).
-pub fn get_event_profiling_info<'e, E: ClEventRef<'e>>(event: &'e E, request: ProfilingInfo,
+pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: ProfilingInfo,
         ) -> ProfilingInfoResult
 {
     let mut result_size: size_t = 0;
@@ -3274,7 +3274,7 @@ pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
 
 #[allow(dead_code)]
 /// Blocks until an event is complete.
-pub fn wait_for_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
+pub fn wait_for_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult<()> {
     let errcode = unsafe {
         // let event_ptr = *event.as_ptr_ref();
         // ffi::clWaitForEvents(1, &event_ptr)
@@ -3284,7 +3284,7 @@ pub fn wait_for_event<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<()> {
 }
 
 /// Returns the status of `event`.
-pub fn event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<CommandExecutionStatus> {
+pub fn event_status<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult<CommandExecutionStatus> {
     let mut status_int: cl_int = 0;
 
     let errcode = unsafe {
@@ -3303,7 +3303,7 @@ pub fn event_status<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<CommandExe
 }
 
 /// Returns true if an event is complete, false if not complete.
-pub fn event_is_complete<'e, E: ClEventRef<'e>>(event: &'e E) -> OclResult<bool> {
+pub fn event_is_complete<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult<bool> {
     let mut status_int: cl_int = 0;
 
     let errcode = unsafe {

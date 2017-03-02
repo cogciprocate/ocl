@@ -118,11 +118,11 @@ pub trait ClVersions {
 
 /// Types with a reference to a raw event pointer.
 ///
-pub trait ClEventRef<'e> {
+pub trait ClEventPtrRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
 }
 
-impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
+impl<'e, L> ClEventPtrRef<'e> for &'e L where L: ClEventPtrRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
         (*self).as_ptr_ref()
     }
@@ -134,11 +134,16 @@ impl<'e, L> ClEventRef<'e> for &'e L where L: ClEventRef<'e> {
 ///
 pub unsafe trait ClNullEventPtr: Debug {
     fn alloc_new(&mut self) -> *mut cl_event;
+    unsafe fn alloc_from<E: AsRef<Event>>(&mut self, ev: E);
 }
 
 unsafe impl ClNullEventPtr for () {
     fn alloc_new(&mut self) -> *mut cl_event {
-        ptr::null_mut() as *mut _ as *mut cl_event
+        panic!("Void events may not be used.");
+    }
+
+    unsafe fn alloc_from<E: AsRef<Event>>(&mut self, _: E) {
+        panic!("Void events may not be used.");
     }
 }
 
@@ -262,7 +267,7 @@ impl EventRefWrapper {
     }
 }
 
-impl<'e> ClEventRef<'e> for EventRefWrapper {
+impl<'e> ClEventPtrRef<'e> for EventRefWrapper {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
         &self.0
     }
@@ -1082,6 +1087,13 @@ impl Event {
 
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
     #[inline(always)] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
+
+    #[inline(always)] unsafe fn alloc_from<E: AsRef<Event>>(&mut self, ev: E) {
+        let ptr = ev.as_ref().clone().into_raw();
+        assert!(!ptr.is_null());
+        self.0 = ptr;
+        // functions::retain_event(*self).expect("core::Event::alloc_from");
+    }
 }
 
 unsafe impl ClWaitListPtr for Event {
@@ -1094,7 +1106,7 @@ unsafe impl<'a> ClWaitListPtr for &'a Event {
     #[inline(always)] fn count(&self) -> u32 { self._count() }
 }
 
-impl<'e> ClEventRef<'e> for Event {
+impl<'e> ClEventPtrRef<'e> for Event {
     #[inline(always)] unsafe fn as_ptr_ref(&'e self) -> &'e cl_event { &self.0 }
 }
 

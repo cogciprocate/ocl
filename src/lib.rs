@@ -115,7 +115,7 @@ pub mod util;
 
 pub use self::error::{Error, Result};
 
-pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventRef, ClPlatformIdPtr,
+pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventPtrRef, ClPlatformIdPtr,
     ClDeviceIdPtr, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem, Program,
     Kernel, Event, Sampler, ClVersions, AsMem, MemCmdRw, MemCmdAll, MemMap};
 
@@ -225,9 +225,8 @@ mod traits {
     /// scalar primitives (ex.: cl_char, cl_uint, cl_double) (exception: cl_half)
     /// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
     ///
-    /// Can also be implemented for a custom type as long as layout and
-    /// alignment is conserved between Rust and an OpenCL kernel (repr "C")
-    /// for that type.
+    /// Can also be implemented for custom types as long as layout and
+    /// alignment are conserved between Rust and OpenCL (repr "C").
     pub unsafe trait OclPrm: Debug + Clone + Copy + Default + PartialEq {}
 
     impl_unsafe!(OclPrm: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
