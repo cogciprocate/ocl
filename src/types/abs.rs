@@ -134,7 +134,7 @@ impl<'e, L> ClEventPtrRef<'e> for &'e L where L: ClEventPtrRef<'e> {
 ///
 pub unsafe trait ClNullEventPtr: Debug {
     fn alloc_new(&mut self) -> *mut cl_event;
-    unsafe fn alloc_from<E: AsRef<Event>>(&mut self, ev: E);
+    unsafe fn clone_from<E: AsRef<Event>>(&mut self, ev: E);
 }
 
 unsafe impl ClNullEventPtr for () {
@@ -142,7 +142,7 @@ unsafe impl ClNullEventPtr for () {
         panic!("Void events may not be used.");
     }
 
-    unsafe fn alloc_from<E: AsRef<Event>>(&mut self, _: E) {
+    unsafe fn clone_from<E: AsRef<Event>>(&mut self, _: E) {
         panic!("Void events may not be used.");
     }
 }
@@ -1088,11 +1088,10 @@ impl Event {
 unsafe impl<'a> ClNullEventPtr for &'a mut Event {
     #[inline(always)] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
 
-    #[inline(always)] unsafe fn alloc_from<E: AsRef<Event>>(&mut self, ev: E) {
+    #[inline(always)] unsafe fn clone_from<E: AsRef<Event>>(&mut self, ev: E) {
         let ptr = ev.as_ref().clone().into_raw();
         assert!(!ptr.is_null());
         self.0 = ptr;
-        // functions::retain_event(*self).expect("core::Event::alloc_from");
     }
 }
 
