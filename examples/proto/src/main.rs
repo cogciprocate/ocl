@@ -144,7 +144,6 @@ pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
 pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
         kernel_event: Option<&Event>,
         write_init_event: Option<&Event>,
-        // fill_wait_list: &mut EventList,
         fill_event: &mut Option<Event>,
         task_iter: i32)
 {
@@ -160,22 +159,10 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 
     // Clear the wait list and push the previous iteration's kernel event
     // and the previous iteration's write init (unmap) event if they are set.
-    // fill_wait_list.clear();
-    // fill_wait_list.push_some(kernel_event.cloned());
-    // fill_wait_list.push_some(write_init_event.cloned());
-
-    // // Create a marker just so we can print the status message:
-    // let fill_wait_marker = if !fill_wait_list.is_empty() {
-    //     let marker = fill_wait_list.enqueue_marker(&common_queue).unwrap();
-    //     unsafe { marker.set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
-    //     Some(marker)
-    // } else {
-    //     _print_starting(0 as cl_event, 0, task_iter as *mut c_void);
-    //     None
-    // };
+    let wait_list = [&kernel_event, &write_init_event].into_raw_list();
 
     // Create a marker so we can print the status message:
-    let fill_wait_marker = [&kernel_event, &write_init_event].into_marker(&common_queue).unwrap();
+    let fill_wait_marker = wait_list.to_marker(&common_queue).unwrap();
 
     if let Some(ref marker) = fill_wait_marker {
         unsafe { marker.set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
@@ -187,11 +174,9 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 
     src_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None)
         .queue(common_queue)
-        .ewait_opt(fill_wait_marker.as_ref())
+        .ewait(&wait_list)
         .enew_opt(fill_event.as_mut())
         .enq().unwrap();
-
-    // println!("FILL EVENT: {:?}", fill_event);
 
     unsafe { fill_event.as_ref().unwrap()
         .set_callback(_print_complete, task_iter as *mut c_void).unwrap(); }
@@ -210,7 +195,6 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         write_init_unmap_queue: Queue,
         fill_event: Option<&Event>,
         verify_init_event: Option<&Event>,
-        // write_init_wait_list: &mut EventList,
         write_init_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
         -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
@@ -221,18 +205,8 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
             task_iter as usize, timestamp());
     }
 
-    // // Clear the wait list and push the previous iteration's verify init event
-    // // and the current iteration's fill event if they are set.
-    // write_init_wait_list.clear();
-    // write_init_wait_list.push_some(verify_init_event.cloned());
-    // write_init_wait_list.push_some(fill_event.cloned());
-
-    // let [&verify_init_event, &fill_event].into_raw_list();
-
-    // println!("WAIT LIST: {:?}", write_init_wait_list);
-
-    // assert!(!write_init_wait_list.is_empty());
-
+    // Clear the wait list and push the previous iteration's verify init event
+    // and the current iteration's fill event if they are set.
     let wait_list = [&verify_init_event, &fill_event].into_raw_list();
 
     let mut future_write_data = src_buf.cmd().map()
@@ -281,11 +255,9 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
 pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: &Queue,
         verify_init_queue: &Queue,
         write_init_event: Option<&Event>,
-        // verify_init_wait_list: &mut EventList,
         verify_init_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
         -> AndThen<FutureReadCompletion<Int4>, AsyncResult<i32>,
-            // impl FnOnce(RwVec<Int4>) -> AsyncResult<i32>>
             impl FnOnce(ReadCompletion<Int4>) -> AsyncResult<i32>>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
@@ -293,20 +265,13 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
             task_iter as usize, timestamp());
     }
 
-    // // Clear the wait list and push the previous iteration's read verify
-    // // completion event (if it exists) and the current iteration's write unmap
-    // // event.
-    // verify_init_wait_list.clear();
-    // verify_init_wait_list.push_some(verify_init_event.clone());
-    // verify_init_wait_list.push_some(write_init_event.cloned());
-
-    // // Create a marker just so we can print the status message:
-    // assert!(!verify_init_wait_list.is_empty());
-    // let verify_init_wait_marker = verify_init_wait_list.enqueue_marker(&verify_init_queue).unwrap();
+    // Clear the wait list and push the previous iteration's read verify
+    // completion event (if it exists) and the current iteration's write unmap
+    // event.
+    let wait_list = [&verify_init_event.as_ref(), &write_init_event].into_raw_list();
 
     // Create a marker so we can print the status message:
-    let verify_init_wait_marker = [&verify_init_event.as_ref(), &write_init_event]
-        .into_marker(&verify_init_queue).unwrap();
+    let verify_init_wait_marker = wait_list.to_marker(&verify_init_queue).unwrap();
 
     // Attach a status message printing callback to what approximates the
     // verify_init wait (start-time) event:
@@ -315,8 +280,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
 
     let mut future_read_data = src_buf.cmd().read(dst_vec)
         .queue(common_queue)
-        // .queue(verify_init_queue)
-        .ewait_opt(verify_init_wait_marker)
+        .ewait(&wait_list)
         .enq_async().unwrap();
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
@@ -340,9 +304,6 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         printlnc!(lime_bold: "* Verify-init complete \t(iter: {}, t: {}s)",
             task_iter, timestamp());
 
-        // // [REMOVE ME]: This should happen automatically:
-        // rw_vec.triggerable_event().unwrap().set_complete().unwrap();
-
         Ok(val_count)
     });
 
@@ -360,7 +321,6 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
 pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
         verify_add_event: Option<&Event>,
         write_init_event: Option<&Event>,
-        // kernel_wait_list: &mut EventList,
         kernel_event: &mut Option<Event>,
         task_iter: i32)
 {
@@ -374,21 +334,12 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
             task_iter as usize, timestamp());
     }
 
-    // // println!("Clearing kernel wait list...");
+    // Clear the wait list and push the previous iteration's read unmap event
+    // and the current iteration's write unmap event if they are set.
+    let wait_list = [&verify_add_event, &write_init_event].into_raw_list();
 
-    // // Clear the wait list and push the previous iteration's read unmap event
-    // // and the current iteration's write unmap event if they are set.
-    // kernel_wait_list.clear();
-    // // println!("Kernel wait list cleared.");
-    // kernel_wait_list.push_some(verify_add_event.cloned());
-    // kernel_wait_list.push_some(write_init_event.cloned());
-    // // println!("Kernel wait list populated.");
-
-
-    // // Create a marker just so we can print the status message:
-    // let kernel_wait_marker = kernel_wait_list.enqueue_marker(&common_queue).unwrap();
-
-    let kernel_wait_marker = [&verify_add_event, &write_init_event].into_marker(&common_queue).unwrap();
+    // Create a marker so we can print the status message:
+    let kernel_wait_marker = wait_list.to_marker(&common_queue).unwrap();
 
     // Attach a status message printing callback to what approximates the
     // kernel wait (start-time) event:
@@ -403,7 +354,7 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
     // not the map commands of the preceding read and writes.
     kern.cmd()
         .queue(common_queue)
-        .ewait_opt(kernel_wait_marker)
+        .ewait(&wait_list)
         .enew_opt(kernel_event.as_mut())
         .enq().unwrap();
 
@@ -499,7 +450,6 @@ pub fn main() {
     // unordered common queue.
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
     let common_queue = Queue::new(&context, device, queue_flags).unwrap();
-    // let common_queue = Queue::new(&context, device, None).unwrap();
     let write_init_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
     let verify_init_queue = Queue::new(&context, device, queue_flags).unwrap();
     let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
@@ -553,13 +503,9 @@ pub fn main() {
     let completion_thread = completion_thread(rx);
 
     // Our events for synchronization.
-    // let mut fill_wait_list = EventList::with_capacity(2);
     let mut fill_event = None;
-    // let mut write_init_wait_list = EventList::with_capacity(2);
     let mut write_init_event = None;
-    // let mut verify_init_wait_list = EventList::with_capacity(2);
     let mut verify_init_event: Option<Event> = None;
-    // let mut kernel_wait_list = EventList::with_capacity(2);
     let mut kernel_event = None;
     let mut verify_add_event = None;
 
@@ -576,7 +522,6 @@ pub fn main() {
         fill_junk(&src_buf, &common_queue,
             write_init_event.as_ref(),
             kernel_event.as_ref(),
-            // &mut fill_wait_list,
             &mut fill_event,
             task_iter);
 
@@ -586,7 +531,6 @@ pub fn main() {
             write_init_unmap_queue.clone(),
             fill_event.as_ref(),
             verify_init_event.as_ref(),
-            // &mut write_init_wait_list,
             &mut write_init_event,
             ival, task_iter);
 
@@ -595,7 +539,6 @@ pub fn main() {
         let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
             &verify_init_queue,
             write_init_event.as_ref(),
-            // &mut verify_init_wait_list,
             &mut verify_init_event,
             ival, task_iter);
 
@@ -604,7 +547,6 @@ pub fn main() {
         kernel_add(&kern, &common_queue,
             verify_add_event.as_ref(),
             write_init_event.as_ref(),
-            // &mut kernel_wait_list,
             &mut kernel_event,
             task_iter);
 
@@ -628,8 +570,6 @@ pub fn main() {
         // the queue is full, preventing us from unnecessarily queuing up
         // cycles too far in advance.
         tx.send(Some(join_spawned)).unwrap();
-
-
 
 
         ////// [DEBUG]:
