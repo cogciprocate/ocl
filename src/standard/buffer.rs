@@ -936,6 +936,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
                 {
                     ////// [DEBUG]:
+                        println!("Wait List: {:?}", &self.cmd.ewait);
                         println!("Attempting to lock RwVec for writing...");
                     //////
 

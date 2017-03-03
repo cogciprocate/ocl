@@ -372,7 +372,7 @@ unsafe impl<'a> ClWaitListPtr for &'a EventList {
 /// Do not store this list beyond the enqueue call(s) with which this list is
 /// first used. Use `EventList` for a persistent list.
 ///
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RawList {
     list: [cl_event; 8],
     count: u32,
@@ -405,11 +405,16 @@ impl RawList {
 
     /// Enqueue a marker event representing the completion of each and every
     /// event in this list.
-    pub fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-        // if self.list.is_empty() { return Err("EventList::enqueue_marker: List empty.".into()); }
+    pub fn to_marker(&self, queue: &Queue) -> OclResult<Option<Event>> {
         if self.list.is_empty() { return Ok(None); }
         let mut marker = Event::empty();
         queue.enqueue_marker(Some(self), Some(&mut marker)).map(|_| Some(marker))
+    }
+
+    /// Enqueue a marker event representing the completion of each and every
+    /// event in this list.
+    pub fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+        self.to_marker(queue)
     }
 }
 
@@ -523,19 +528,19 @@ pub trait IntoMarker {
 
 impl<'s, 'e> IntoMarker for &'s [&'e Event] where 'e: 's {
     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-        RawList::from(self).into_marker (queue)
+        RawList::from(self).into_marker(queue)
     }
 }
 
 impl<'s, 'e> IntoMarker for &'s [Option<&'e Event>] where 'e: 's {
     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-        RawList::from(self).into_marker (queue)
+        RawList::from(self).into_marker(queue)
     }
 }
 
 impl<'s, 'o, 'e> IntoMarker for &'s [&'o Option<&'e Event>] where 'e: 's + 'o, 'o: 's {
     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-        RawList::from(self).into_marker (queue)
+        RawList::from(self).into_marker(queue)
     }
 }
 
@@ -549,19 +554,19 @@ macro_rules! impl_marker_arrays {
 
         impl<'s, 'e> IntoMarker for [&'e Event; $len] where 'e: 's {
             fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-                RawList::from(self).into_marker (queue)
+                RawList::from(self).into_marker(queue)
             }
         }
 
         impl<'s, 'e> IntoMarker for [Option<&'e Event>; $len] where 'e: 's {
             fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-                RawList::from(self).into_marker (queue)
+                RawList::from(self).into_marker(queue)
             }
         }
 
         impl<'s, 'o, 'e> IntoMarker for [&'o Option<&'e Event>; $len] where 'e: 's + 'o, 'o: 's {
             fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-                RawList::from(self).into_marker (queue)
+                RawList::from(self).into_marker(queue)
             }
         }
     )*);
