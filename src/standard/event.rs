@@ -1,7 +1,7 @@
 //! An OpenCL event.
 
 use std;
-// use std::borrow::Borrow;
+use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use futures::{task, Future, Poll, Async};
 use ffi::cl_event;
@@ -9,7 +9,7 @@ use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef, Context,
     CommandQueue as CommandQueueCore};
-use standard::{_unpark_task, box_raw_void};
+use standard::{_unpark_task, box_raw_void, Queue};
 
 /// An event representing a command or user created event.
 ///
@@ -251,6 +251,11 @@ impl EventList {
         self.events.push(event)
     }
 
+    /// Pushes an `Option<Event>` to the list if it is `Some(...)`.
+    pub fn push_some<E: Into<Event>>(&mut self, event: Option<E>) {
+        if let Some(e) = event { self.push(e.into()) }
+    }
+
     /// Removes the last event from the list and returns it.
     pub fn pop(&mut self) -> Option<Event> {
         self.events.pop()
@@ -290,6 +295,14 @@ impl EventList {
         }
 
         Ok(())
+    }
+
+    /// Enqueue a marker event representing the completion of each and every
+    /// event in this list.
+    pub fn enqueue_marker(&self, queue: &Queue) -> OclResult<Event> {
+        if self.events.is_empty() { return Err("EventList::enqueue_marker: List empty.".into()); }
+        let mut marker = Event::empty();
+        queue.enqueue_marker(Some(self), Some(&mut marker)).map(|_| marker)
     }
 
     #[inline]
@@ -344,3 +357,275 @@ unsafe impl<'a> ClWaitListPtr for &'a EventList {
     #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
     #[inline] fn count(&self) -> u32 { self._count() }
 }
+
+
+// pub trait EventOption {
+//     type Event;
+// }
+
+// impl BorrowEvent for Event {
+//     type Event = Event;
+// }
+
+/// A stack allocated array of `cl_event` pointers with a maximum length of 8.
+///
+/// Do not store this list beyond the enqueue call(s) with which this list is
+/// first used. Use `EventList` for a persistent list.
+///
+#[derive(Debug)]
+pub struct RawList {
+    list: [cl_event; 8],
+    count: u32,
+}
+
+impl RawList {
+    pub unsafe fn null() -> RawList {
+        RawList {
+            list: [0 as cl_event; 8],
+            count: 0,
+        }
+    }
+
+    #[inline]
+    pub fn push<E>(&mut self, e: E) where E: AsRef<EventCore> {
+        if (self.count as usize) < self.list.len() {
+            self.list[(self.count as usize)] = unsafe { *e.as_ref().as_ptr_ref() };
+        } else {
+            panic!("RawList::push: List is full.");
+        }
+    }
+
+    #[inline]
+    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
+        match self.list.first() {
+            Some(ev) => ev as *const _ as *const cl_event,
+            None => 0 as *const cl_event,
+        }
+    }
+
+    /// Enqueue a marker event representing the completion of each and every
+    /// event in this list.
+    pub fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+        // if self.list.is_empty() { return Err("EventList::enqueue_marker: List empty.".into()); }
+        if self.list.is_empty() { return Ok(None); }
+        let mut marker = Event::empty();
+        queue.enqueue_marker(Some(self), Some(&mut marker)).map(|_| Some(marker))
+    }
+}
+
+impl<'e, E> From<&'e [E]> for RawList where E: Borrow<Event> {
+    fn from(events: &[E]) -> RawList {
+        let mut list = unsafe { RawList::null() };
+
+        for e in events {
+            list.push(e.borrow());
+        }
+
+        list
+    }
+}
+
+impl<'e, E> From<&'e [Option<E>]> for RawList where E: Borrow<Event> {
+    fn from(events: &[Option<E>]) -> RawList {
+        let mut list = unsafe { RawList::null() };
+
+        for event in events {
+            if let Some(ref e) = *event {
+                list.push(e.borrow());
+            }
+        }
+
+        list
+    }
+}
+
+impl<'e, 'f, E> From<&'e [&'f Option<E>]> for RawList where 'e: 'f, E: Borrow<Event> {
+    fn from(events: &[&Option<E>]) -> RawList {
+        let mut list = unsafe { RawList::null() };
+
+        for &event in events {
+            if let Some(ref e) = *event {
+                list.push(e.borrow());
+            }
+        }
+
+        list
+    }
+}
+
+macro_rules! impl_raw_list_from_arrays {
+    ($( $len:expr ),*) => ($(
+        impl<'e, E> From<[E; $len]> for RawList where E: Borrow<Event> {
+            fn from(events: [E; $len]) -> RawList {
+                let mut list = unsafe { RawList::null() };
+
+                for e in &events {
+                    list.push(e.borrow());
+                }
+
+                list
+            }
+        }
+
+        impl<'e, E> From<[Option<E>; $len]> for RawList where E: Borrow<Event> {
+            fn from(events: [Option<E>; $len]) -> RawList {
+                let mut list = unsafe { RawList::null() };
+
+                for event in &events {
+                    if let Some(ref e) = *event {
+                        list.push(e.borrow());
+                    }
+                }
+
+                list
+            }
+        }
+
+        impl<'e, 'f, E> From<[&'f Option<E>; $len]> for RawList where 'e: 'f, E: Borrow<Event> {
+            fn from(events: [&'f Option<E>; $len]) -> RawList {
+                let mut list = unsafe { RawList::null() };
+
+                for &event in &events {
+                    if let Some(ref e) = *event {
+                        list.push(e.borrow());
+                    }
+                }
+
+                list
+            }
+        }
+    )*);
+}
+
+impl_raw_list_from_arrays!(2, 3, 4, 5, 6, 7, 8);
+
+unsafe impl ClWaitListPtr for RawList {
+    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline] fn count(&self) -> u32 { self.count }
+}
+
+unsafe impl<'a> ClWaitListPtr for &'a RawList {
+    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline] fn count(&self) -> u32 { self.count }
+}
+
+
+/// Conversion to a 'marker' event.
+pub trait IntoMarker {
+    fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>>;
+}
+
+// impl<'e> IntoMarker for &'e [Event] {
+//     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+//         RawList::from(self).into_marker (queue)
+//     }
+// }
+
+impl<'s, 'e> IntoMarker for &'s [&'e Event] where 'e: 's {
+    fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+        RawList::from(self).into_marker (queue)
+    }
+}
+
+impl<'s, 'e> IntoMarker for &'s [Option<&'e Event>] where 'e: 's {
+    fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+        RawList::from(self).into_marker (queue)
+    }
+}
+
+impl<'s, 'o, 'e> IntoMarker for &'s [&'o Option<&'e Event>] where 'e: 's + 'o, 'o: 's {
+    fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+        RawList::from(self).into_marker (queue)
+    }
+}
+
+macro_rules! impl_marker_arrays {
+    ($( $len:expr ),*) => ($(
+        // impl<'e> IntoMarker for [Event; $len] {
+        //     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+        //         RawList::from(self).into_marker (queue)
+        //     }
+        // }
+
+        impl<'s, 'e> IntoMarker for [&'e Event; $len] where 'e: 's {
+            fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+                RawList::from(self).into_marker (queue)
+            }
+        }
+
+        impl<'s, 'e> IntoMarker for [Option<&'e Event>; $len] where 'e: 's {
+            fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+                RawList::from(self).into_marker (queue)
+            }
+        }
+
+        impl<'s, 'o, 'e> IntoMarker for [&'o Option<&'e Event>; $len] where 'e: 's + 'o, 'o: 's {
+            fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
+                RawList::from(self).into_marker (queue)
+            }
+        }
+    )*);
+}
+
+impl_marker_arrays!(2, 3, 4, 5, 6, 7, 8);
+
+
+/// Conversion to a stack allocated array of `cl_event` pointers.
+pub trait IntoRawList {
+    fn into_raw_list(self) -> RawList;
+}
+
+// impl<'e> IntoRawList  for &'e [Event] {
+//     fn into_raw_list(self) -> RawList {
+//         RawList::from(self)
+//     }
+// }
+
+impl<'s, 'e> IntoRawList  for &'s [&'e Event] where 'e: 's {
+    fn into_raw_list(self) -> RawList {
+        RawList::from(self)
+    }
+}
+
+impl<'s, 'e> IntoRawList  for &'s [Option<&'e Event>] where 'e: 's {
+    fn into_raw_list(self) -> RawList {
+        RawList::from(self)
+    }
+}
+
+impl<'s, 'o, 'e> IntoRawList  for &'s [&'o Option<&'e Event>] where 'e: 's + 'o, 'o: 's {
+    fn into_raw_list(self) -> RawList {
+        RawList::from(self)
+    }
+}
+
+
+macro_rules! impl_raw_list_arrays {
+    ($( $len:expr ),*) => ($(
+        // impl<'e> IntoRawList  for [Event; $len] {
+        //     fn into_raw_list(self) -> RawList {
+        //         RawList::from(self)
+        //     }
+        // }
+
+        impl<'s, 'e> IntoRawList  for [&'e Event; $len] where 'e: 's {
+            fn into_raw_list(self) -> RawList {
+                RawList::from(self)
+            }
+        }
+
+        impl<'s, 'e> IntoRawList  for [Option<&'e Event>; $len] where 'e: 's {
+            fn into_raw_list(self) -> RawList {
+                RawList::from(self)
+            }
+        }
+
+        impl<'s, 'o, 'e> IntoRawList  for [&'o Option<&'e Event>; $len] where 'e: 's + 'o, 'o: 's {
+            fn into_raw_list(self) -> RawList {
+                RawList::from(self)
+            }
+        }
+    )*);
+}
+
+impl_raw_list_arrays!(2, 3, 4, 5, 6, 7, 8);

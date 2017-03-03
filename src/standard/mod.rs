@@ -28,7 +28,7 @@ pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, Sub
 pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};
 pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};
-pub use self::event::{Event, EventList};
+pub use self::event::{Event, EventList, IntoMarker, RawList, IntoRawList};
 pub use self::spatial_dims::SpatialDims;
 pub use self::cb::{_unpark_task, box_raw_void};
 pub use self::traits::{MemLen, WorkDims};
@@ -84,14 +84,22 @@ mod cb {
 mod types {
     use std::ptr;
     use std::cell::Ref;
-    use ::{Event, EventList};
+    use standard::{Event, EventList, RawList};
     use core::ffi::cl_event;
     use core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
 
-
+    /// An enum which can represent several different ways of representing a
+    /// event wait list.
+    ///
+    //
+    // [TODO]: Figure out a way to abstract over `&` and `&mut` versions of
+    // things in `From` impls without messing up the `Ref` versions.
     #[derive(Debug)]
     pub enum ClWaitListPtrEnum<'a> {
         Null,
+        RawList(&'a RawList),
+        EventCoreOwned(EventCore),
+        EventOwned(Event),
         EventCore(&'a EventCore),
         Event(&'a Event),
         EventList(&'a EventList),
@@ -106,7 +114,10 @@ mod types {
         unsafe fn as_ptr_ptr(&self) -> *const cl_event {
             match *self {
                 ClWaitListPtrEnum::Null => ptr::null() as *const _ as *const cl_event,
+                ClWaitListPtrEnum::RawList(ref e) => e.as_ptr_ptr(),
+                ClWaitListPtrEnum::EventCoreOwned(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventCore(ref e) => e.as_ptr_ptr(),
+                ClWaitListPtrEnum::EventOwned(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::Event(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventList(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventSlice(ref e) => e.as_ptr() as *const _ as *const cl_event,
@@ -121,7 +132,10 @@ mod types {
         fn count(&self) -> u32 {
             match *self {
                 ClWaitListPtrEnum::Null => 0,
+                ClWaitListPtrEnum::RawList(ref e) => e.count(),
+                ClWaitListPtrEnum::EventCoreOwned(ref e) => e.count(),
                 ClWaitListPtrEnum::EventCore(ref e) => e.count(),
+                ClWaitListPtrEnum::EventOwned(ref e) => e.count(),
                 ClWaitListPtrEnum::Event(ref e) => e.count(),
                 ClWaitListPtrEnum::EventList(ref e) => e.count(),
                 ClWaitListPtrEnum::EventSlice(ref e) => e.len() as u32,
@@ -130,6 +144,90 @@ mod types {
                 ClWaitListPtrEnum::RefTraitObj(ref e) => e.count(),
                 ClWaitListPtrEnum::BoxTraitObj(ref e) => e.count(),
             }
+        }
+    }
+
+    impl<'a> From<&'a RawList> for ClWaitListPtrEnum<'a> {
+        fn from(e: &'a RawList) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::RawList(e)
+        }
+    }
+
+    impl<'a> From<EventCore> for ClWaitListPtrEnum<'a> {
+        fn from(e: EventCore) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventCoreOwned(e)
+        }
+    }
+
+    impl<'a> From<&'a EventCore> for ClWaitListPtrEnum<'a> {
+        fn from(e: &'a EventCore) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventCore(e)
+        }
+    }
+
+    impl<'a> From<&'a mut EventCore> for ClWaitListPtrEnum<'a> {
+        fn from(e: &'a mut EventCore) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventCore(e)
+        }
+    }
+
+    impl<'a> From<Event> for ClWaitListPtrEnum<'a> {
+        fn from(e: Event) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventOwned(e)
+        }
+    }
+
+    impl<'a> From<&'a Event> for ClWaitListPtrEnum<'a> {
+        fn from(e: &'a Event) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::Event(e)
+        }
+    }
+
+    impl<'a> From<&'a mut Event> for ClWaitListPtrEnum<'a> {
+        fn from(e: &'a mut Event) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::Event(e)
+        }
+    }
+
+    impl<'a> From<&'a EventList> for ClWaitListPtrEnum<'a> {
+        fn from(el: &'a EventList) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventList(el)
+        }
+    }
+
+    impl<'a> From<&'a mut EventList> for ClWaitListPtrEnum<'a> {
+        fn from(el: &'a mut EventList) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventList(el)
+        }
+    }
+
+    impl<'a> From<&'a [Event]> for ClWaitListPtrEnum<'a> {
+        fn from(es: &'a [Event]) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventSlice(es)
+        }
+    }
+
+    impl<'a> From<&'a mut [Event]> for ClWaitListPtrEnum<'a> {
+        fn from(es: &'a mut [Event]) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventSlice(es)
+        }
+    }
+
+    impl<'a> From<&'a [cl_event]> for ClWaitListPtrEnum<'a> {
+        fn from(el: &'a [cl_event]) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventPtrSlice(el)
+        }
+    }
+
+    impl<'a> From<&'a mut [cl_event]> for ClWaitListPtrEnum<'a> {
+        fn from(el: &'a mut [cl_event]) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::EventPtrSlice(el)
+        }
+    }
+
+    impl<'a> From<()> for ClWaitListPtrEnum<'a> {
+        fn from(_: ()) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::Null
         }
     }
 
@@ -151,41 +249,6 @@ mod types {
         }
     }
 
-    impl<'a> From<&'a EventCore> for ClWaitListPtrEnum<'a> {
-        fn from(e: &'a EventCore) -> ClWaitListPtrEnum<'a> {
-            ClWaitListPtrEnum::EventCore(e)
-        }
-    }
-
-    impl<'a> From<&'a Event> for ClWaitListPtrEnum<'a> {
-        fn from(e: &'a Event) -> ClWaitListPtrEnum<'a> {
-            ClWaitListPtrEnum::Event(e)
-        }
-    }
-
-    impl<'a> From<&'a EventList> for ClWaitListPtrEnum<'a> {
-        fn from(el: &'a EventList) -> ClWaitListPtrEnum<'a> {
-            ClWaitListPtrEnum::EventList(el)
-        }
-    }
-
-    impl<'a> From<&'a [Event]> for ClWaitListPtrEnum<'a> {
-        fn from(es: &'a [Event]) -> ClWaitListPtrEnum<'a> {
-            ClWaitListPtrEnum::EventSlice(es)
-        }
-    }
-
-    impl<'a> From<&'a [cl_event]> for ClWaitListPtrEnum<'a> {
-        fn from(el: &'a [cl_event]) -> ClWaitListPtrEnum<'a> {
-            ClWaitListPtrEnum::EventPtrSlice(el)
-        }
-    }
-
-    impl<'a> From<()> for ClWaitListPtrEnum<'a> {
-        fn from(_: ()) -> ClWaitListPtrEnum<'a> {
-            ClWaitListPtrEnum::Null
-        }
-    }
 
 
     #[derive(Debug)]

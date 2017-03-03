@@ -16,7 +16,7 @@ pub use parking_lot::{RwLockWriteGuard, RwLockReadGuard};
 pub use self::rw_vec::{RwVec};
 
 #[cfg(feature = "experimental_async_rw")]
-pub use self::read_completion::ReadCompletion;
+pub use self::read_completion::{ReadCompletion, FutureReadCompletion};
 
 
 pub type FutureResult<T> = future::FutureResult<T, self::Error>;

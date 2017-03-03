@@ -103,6 +103,12 @@ impl std::fmt::Display for Queue {
     }
 }
 
+impl AsRef<Queue> for Queue {
+    fn as_ref(&self) -> &Queue {
+        self
+    }
+}
+
 impl AsRef<CommandQueueCore> for Queue {
     fn as_ref(&self) -> &CommandQueueCore {
         &self.obj_core

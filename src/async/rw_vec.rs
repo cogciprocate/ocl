@@ -1,3 +1,11 @@
+//! A read/write locking `Vec` which can be shared between threads and can
+//! interact with OpenCL events.
+//!
+//!
+//
+// Some documentation adapted from:
+// `https://amanieu.github.io/parking_lot/parking_lot/struct.RwLock.html`.
+
 #![allow(unused_imports, dead_code)]
 
 use ::{OclPrm};
@@ -10,7 +18,6 @@ pub use parking_lot::{RwLockReadGuard, RwLockWriteGuard};
 // #[derive(Clone)]
 pub struct RwVec<T> {
     lock: Arc<RwLock<Vec<T>>>,
-    // lock: RwLock<Vec<T>>,
 }
 
 impl<T> RwVec<T> where T: OclPrm {
@@ -29,12 +36,24 @@ impl<T> RwVec<T> where T: OclPrm {
         }
     }
 
+    /// Locks this `RwVec` with shared read access, blocking the current thread
+    /// until it can be acquired.
+    ///
+    /// The calling thread will be blocked until there are no more writers
+    /// which hold the lock. There may be other readers currently inside the
+    /// lock when this method returns.
+    ///
+    /// Note that attempts to recursively acquire a read lock on a RwLock when
+    /// the current thread already holds one may result in a deadlock.
+    ///
+    /// Returns an RAII guard which will release this thread's shared access
+    /// once it is dropped.
     #[inline]
     pub fn read(&self) -> RwLockReadGuard<Vec<T>> {
         self.lock.read()
     }
 
-    /// Attempts to acquire this rwlock with shared read access.
+    /// Attempts to acquire this `RwVec` with shared read access.
     ///
     /// If the access could not be granted at this time, then `None` is returned.
     /// Otherwise, an RAII guard is returned which will release the shared access
@@ -46,20 +65,20 @@ impl<T> RwVec<T> where T: OclPrm {
         self.lock.try_read()
     }
 
-    /// Locks this rwlock with exclusive write access, blocking the current
+    /// Locks this `RwVec` with exclusive write access, blocking the current
     /// thread until it can be acquired.
     ///
     /// This function will not return while other writers or other readers
     /// currently have access to the lock.
     ///
-    /// Returns an RAII guard which will drop the write access of this rwlock
+    /// Returns an RAII guard which will drop the write access of this `RwVec`
     /// when dropped.
     #[inline]
     pub fn write(&self) -> RwLockWriteGuard<Vec<T>> {
         self.lock.write()
     }
 
-    /// Attempts to lock this rwlock with exclusive write access.
+    /// Attempts to lock this `RwVec` with exclusive write access.
     ///
     /// If the lock could not be acquired at this time, then `None` is returned.
     /// Otherwise, an RAII guard is returned which will release the lock when
@@ -77,18 +96,16 @@ impl<T> RwVec<T> where T: OclPrm {
     /// take place---the mutable borrow statically guarantees no locks exist.
     #[inline]
     pub fn get_mut(&mut self) -> Option<&mut Vec<T>> {
-    // pub fn get_mut(&mut self) -> &mut Vec<T> {
         Arc::get_mut(&mut self.lock).map(|l| l.get_mut())
-        // self.lock.get_mut()
     }
 
-    /// Releases exclusive write access of the rwlock.
+    /// Releases exclusive write access of the `RwVec`.
     ///
     /// # Safety
     ///
-    /// This function must only be called if the rwlock was locked using
+    /// This function must only be called if the `RwVec` was locked using
     /// `raw_write` or `raw_try_write`, or if an `RwLockWriteGuard` from this
-    /// rwlock was leaked (e.g. with `mem::forget`). The rwlock must be locked
+    /// `RwVec` was leaked (e.g. with `mem::forget`). The `RwVec` must be locked
     /// with exclusive write access.
     #[inline]
     pub unsafe fn raw_unlock_write(&self) {
@@ -115,6 +132,7 @@ impl<T> RwVec<T> where T: OclPrm {
 
 
 impl<T> From<Vec<T>> for RwVec<T> where T: OclPrm {
+    #[inline]
     fn from(vec: Vec<T>) -> RwVec<T> {
         RwVec {
             lock: Arc::new(RwLock::new(vec))
@@ -122,7 +140,7 @@ impl<T> From<Vec<T>> for RwVec<T> where T: OclPrm {
     }
 }
 
-// impl<'d, T> Deref for ReadCompletion<'d, T> where T: OclPrm {
+// impl<'d, T> Deref for FutureReadCompletion<'d, T> where T: OclPrm {
 //     type Target = [T];
 
 //     fn deref(&self) -> &[T] {
@@ -130,7 +148,7 @@ impl<T> From<Vec<T>> for RwVec<T> where T: OclPrm {
 //     }
 // }
 
-// impl<'d, T> DerefMut for ReadCompletion<'d, T> where T: OclPrm {
+// impl<'d, T> DerefMut for FutureReadCompletion<'d, T> where T: OclPrm {
 //     fn deref_mut(&mut self) -> &mut [T] {
 //         self.data.as_mut_slice()
 //     }

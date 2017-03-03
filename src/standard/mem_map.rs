@@ -1,16 +1,17 @@
 
 use std::mem;
 use std::ops::{Deref, DerefMut};
-use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem,
-    CommandQueue as CommandQueueCore};
-use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event};
+use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem};
+use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, Queue};
 use async::{Result as AsyncResult};
 
 
 /// An unmap command builder.
+///
+/// [UNSTABLE]
 #[must_use = "commands do nothing unless enqueued"]
 pub struct MemUnmapCmd<'c, T> where T: 'c + OclPrm {
-    queue: Option<&'c CommandQueueCore>,
+    queue: Option<&'c Queue>,
     mem_map: &'c mut MemMap<T>,
     ewait: Option<ClWaitListPtrEnum<'c>>,
     enew: Option<ClNullEventPtrEnum<'c>>,
@@ -30,7 +31,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a queue to use for this call only.
     pub fn queue<'q, Q>(mut self, queue: &'q Q) -> MemUnmapCmd<'c, T>
-        where 'q: 'c, Q: 'q + AsRef<CommandQueueCore>
+        where 'q: 'c, Q: 'q + AsRef<Queue>
     {
         self.queue = Some(queue.as_ref());
         self
@@ -84,8 +85,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 /// A view of memory mapped by `clEnqueueMap{...}`.
 ///
 ///
-///
-/// ### [UNSTABLE]
+/// [UNSTABLE]
 ///
 /// Still in a state of flux: ~80% stable
 ///
@@ -97,7 +97,7 @@ pub struct MemMap<T> where T: OclPrm {
     core: MemMapCore<T>,
     len: usize,
     buffer: Mem,
-    queue: CommandQueueCore,
+    queue: Queue,
     unmap_target: Option<Event>,
     callback_is_set: bool,
     is_unmapped: bool,
@@ -105,7 +105,7 @@ pub struct MemMap<T> where T: OclPrm {
 
 impl<T> MemMap<T>  where T: OclPrm {
     pub unsafe fn new(core: MemMapCore<T>, len: usize, unmap_target: Option<Event>,
-        buffer: Mem, queue: CommandQueueCore) -> MemMap<T>
+        buffer: Mem, queue: Queue) -> MemMap<T>
     {
         MemMap {
             core: core,
@@ -127,8 +127,9 @@ impl<T> MemMap<T>  where T: OclPrm {
 
     /// Enqueues an unmap command for this memory object immediately.
     ///
-    /// Prefer to use `::unmap` for a more future-proof interface.
-    pub fn enqueue_unmap<Ewl, En>(&mut self, queue: Option<&CommandQueueCore>, ewait_opt: Option<Ewl>,
+    /// Prefer `::unmap` for a more stable interface as this function may
+    /// change at any time.
+    pub fn enqueue_unmap<Ewl, En>(&mut self, queue: Option<&Queue>, ewait_opt: Option<Ewl>,
             mut enew_opt: Option<En>) -> AsyncResult<()>
             where En: ClNullEventPtr, Ewl: ClWaitListPtr
     {
@@ -221,7 +222,7 @@ impl<T> MemMap<T>  where T: OclPrm {
     #[inline] pub fn as_mut_ptr(&mut self) -> *mut T { self.core.as_mut_ptr() }
 
     /// Returns a reference to the internal core command queue.
-    #[inline] pub fn queue(&self) -> &CommandQueueCore { &self.queue }
+    #[inline] pub fn queue(&self) -> &Queue { &self.queue }
 }
 
 impl<T> Deref for MemMap<T> where T: OclPrm {

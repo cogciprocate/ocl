@@ -108,7 +108,7 @@ pub mod prm {
 pub mod traits {
     //! Commonly used traits.
 
-    pub use standard::{WorkDims, MemLen};
+    pub use standard::{WorkDims, MemLen, IntoMarker, IntoRawList};
     pub use core::{OclPrm, OclScl, OclVec};
 }
 

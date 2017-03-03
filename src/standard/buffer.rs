@@ -12,7 +12,7 @@ use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 #[cfg(feature = "experimental_async_rw")]
-use async::ReadCompletion;
+use async::FutureReadCompletion;
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -918,7 +918,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     ///
     #[allow(unused_unsafe)]
     #[cfg(feature = "experimental_async_rw")]
-    pub fn enq_async(mut self) -> OclResult<ReadCompletion<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureReadCompletion<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -935,9 +935,17 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 let mut read_event = EventCore::null();
 
                 {
+                    ////// [DEBUG]:
+                        println!("Attempting to lock RwVec for writing...");
+                    //////
+
                     // let mut dst = rw_vec.try_write().ok_or(OclError::from("BufferReadCmd::enq_async: \
                     //     Unable to lock the provided `RwVec` read destination."))?;
                     let mut dst = rw_vec.write();
+
+                    ////// [DEBUG]:
+                        println!("RwVec is locked for writing.");
+                    //////
 
                     match self.cmd.shape {
                         BufferCmdDataShape::Lin { offset } => {
@@ -960,7 +968,6 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
                     if let Some(ref mut self_enew) = self.cmd.enew.take() {
                         // read_event/self_enew refcount: 2
-                        // unsafe { *(self_enew.alloc_new()) = read_event.clone().into_raw(); }
                         unsafe { self_enew.clone_from(&read_event) }
                     }
 
@@ -968,7 +975,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     ::std::mem::forget(dst);
                 }
 
-                Ok(ReadCompletion::new(Event::from(read_event), rw_vec))
+                Ok(FutureReadCompletion::new(rw_vec, Event::from(read_event)))
             },
             _ => unreachable!(),
         }
@@ -1269,7 +1276,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                     let unmap_event = None;
 
                     Ok(MemMap::new(mm_core, len, unmap_event, self.cmd.obj_core.clone(),
-                        queue.core().clone()))
+                        queue.clone()))
                 }
             } else {
                 OclError::err_string("ocl::BufferCmd::enq_map(): A rectangular map is \
@@ -1319,7 +1326,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                     }
 
                     FutureMemMap::new(mm_core, len, map_event, self.cmd.obj_core.clone(),
-                        queue.core().clone())
+                        queue.clone())
                 };
 
                 Ok(future)
