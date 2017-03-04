@@ -5,6 +5,8 @@
 //! Some of these macros have been adapted (shamelessly copied) from those in
 //! the standard library.
 //!
+//! See crate level documentation for more information.
+//!
 //! [TODO]: Add scalar-widening operations (allowing vec * scl for example).
 
 // #![allow(unused_imports)]
