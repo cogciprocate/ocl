@@ -44,8 +44,8 @@ default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2", "exper
 
 
 # # [FIXME]: RESTORE:
-# ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core" }
-ocl-core = { version = "0.3.2", path = "/home/nick/src/github.com/cogciprocate/ocl-core" }
+ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core" }
+# ocl-core = { version = "0.3.2", path = "/home/nick/src/github.com/cogciprocate/ocl-core" }
 
 
 num = "0.1"
