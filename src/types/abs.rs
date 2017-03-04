@@ -52,7 +52,8 @@ use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, c
     cl_kernel, cl_event, cl_sampler};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
-    ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm};
+    ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
+    EventInfo, EventInfoResult};
 use error::{Result as OclResult, Error as OclError};
 use functions;
 
@@ -1008,6 +1009,16 @@ impl Event {
         }
     }
 
+
+    /// Returns the `Context` associated with this event.
+    pub fn context(&self) -> OclResult<Context> {
+        match functions::get_event_info(self, EventInfo::Context) {
+            EventInfoResult::Context(c) => Ok(c),
+            EventInfoResult::Error(e) => Err(OclError::from(*e)),
+            _ => unreachable!(),
+        }
+    }
+
     /// Returns an immutable reference to a pointer, do not deref and store it unless
     /// you will manage its associated reference count carefully.
     ///
@@ -1129,6 +1140,8 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if !self.0.is_null() {
+            /////// [DEBUG]:
+            // println!("Releasing event: {:?}.", self);
             // Ignore errors here? Some platforms just suck.
             unsafe { functions::release_event(self).unwrap(); }
         }
