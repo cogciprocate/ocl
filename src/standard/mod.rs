@@ -1,6 +1,6 @@
 //! `ocl` standard types.
 //!
-//! [TODO]: This module needs a rename.
+//! * TODO: This module needs a rename.
 
 mod platform;
 mod device;
@@ -92,8 +92,8 @@ mod types {
     /// event wait list.
     ///
     //
-    // [TODO]: Figure out a way to abstract over `&` and `&mut` versions of
-    // things in `From` impls without messing up the `Ref` versions.
+    // * TODO: Figure out a way to abstract over `&` and `&mut` versions of
+    //   things in `From` impls without messing up the `Ref` versions.
     #[derive(Debug)]
     pub enum ClWaitListPtrEnum<'a> {
         Null,

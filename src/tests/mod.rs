@@ -3,7 +3,7 @@
 //!
 //! Lots more tests needed (what's new?).
 //!
-//! TODO: port some of bismit's tests over.
+//! * TODO: port some of bismit's tests over.
 //!
 //!
 

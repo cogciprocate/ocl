@@ -180,8 +180,8 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
 
 /// Non-blocking, proper implementation.
 ///
-/// [NOTE]: There is currently no check to ensure that only one callback is
-/// created (is this ok?).
+/// * [NOTE]: There is currently no check to ensure that only one callback is
+///   created (is this ok?).
 ///
 #[cfg(feature = "event_callbacks")]
 impl Future for Event {
@@ -224,7 +224,7 @@ impl Future for Event {
 /// For access to individual events use `get_clone` and `last_clone` then
 /// either store or discard the result.
 ///
-// [FIXME] TODO: impl Index.
+// * [FIXME] TODO: impl Index.
 #[derive(Debug, Clone)]
 pub struct EventList {
     events: Vec<Event>,
@@ -272,8 +272,8 @@ impl EventList {
 
     /// Clears events which have completed.
     //
-    // [TODO]: Reimplement optimized version using `util::vec_remove_rebuild`
-    // (from old `EventListCore`).
+    // * TODO: Reimplement optimized version using
+    //   `util::vec_remove_rebuild` (from old `EventListCore`).
     pub fn clear_completed(&mut self) -> OclResult<()> {
         let mut events = Vec::with_capacity(self.events.len());
 
@@ -372,6 +372,10 @@ unsafe impl<'a> ClWaitListPtr for &'a EventList {
 /// Do not store this list beyond the enqueue call(s) with which this list is
 /// first used. Use `EventList` for a persistent list.
 ///
+//
+// * [NOTE]: Consider implementing using
+//   `https://github.com/servo/rust-smallvec` instead.
+//
 #[derive(Debug, Clone)]
 pub struct RawList {
     list: [cl_event; 8],

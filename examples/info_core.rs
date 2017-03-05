@@ -3,7 +3,7 @@
 //! [UNDERGOING SOME REDESIGN]
 
 extern crate ocl;
-#[macro_use] extern crate colorify;
+// #[macro_use] extern crate colorify;
 
 // use ocl::Error as OclError;
 use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};

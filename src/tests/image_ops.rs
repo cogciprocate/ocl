@@ -1,6 +1,6 @@
 //! Tests various image operations.
 //!
-//! TODO: Test fill and copy to buffer.
+//! * TODO: Test fill and copy to buffer.
 //!
 //! Runs both the core function and the 'standard' method call for each.
 

@@ -2,6 +2,8 @@
 //!
 
 use std;
+// use futures::Canceled as FuturesCanceled;
+use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
 use core::error::Error as OclError;
 
@@ -12,7 +14,9 @@ pub type Result<T> = std::result::Result<T, self::Error>;
 /// Implements the usual error traits.
 pub enum Error {
     Ocl(OclError),
-    FuturesSendError(String),
+    MpscSendError(String),
+    OneshotCanceled(OneshotCanceled),
+    // FuturesCanceled(FuturesCanceled),
     Other(Box<std::error::Error>),
 }
 
@@ -39,7 +43,9 @@ impl std::error::Error for self::Error {
     fn description(&self) -> &str {
         match *self {
             Error::Ocl(ref err) => err.description(),
-            Error::FuturesSendError(ref err) => err,
+            Error::MpscSendError(ref err) => err,
+            Error::OneshotCanceled(ref err) => err.description(),
+            // Error::FuturesCanceled(ref err) => err.description(),
             Error::Other(ref err) => err.description(),
         }
     }
@@ -60,12 +66,23 @@ impl From<self::Error> for OclError {
     }
 }
 
-impl<T> From<SendError<T>> for self::Error where T: std::fmt::Debug {
+impl<T> From<SendError<T>> for self::Error {
     fn from(err: SendError<T>) -> self::Error {
         let debug = format!("{:?}", err);
         let display = format!("{}", err);
-        let msg = err.into_inner();
-        Error::FuturesSendError(format!("{:?}: '{}' (msg: '{:?}')", debug, display, msg))
+        Error::MpscSendError(format!("{}: '{}'", debug, display))
+    }
+}
+
+// impl From<FuturesCanceled> for self::Error {
+//     fn from(err: FuturesCanceled) -> self::Error {
+//         Error::FuturesCanceled(err)
+//     }
+// }
+
+impl From<OneshotCanceled> for self::Error {
+    fn from(err: OneshotCanceled) -> self::Error {
+        Error::OneshotCanceled(err)
     }
 }
 
@@ -104,13 +121,6 @@ impl From<std::io::Error> for self::Error {
         self::Error::Ocl(OclError::Io(err))
     }
 }
-
-// impl Into<String> for self::Error {
-//     fn into(self) -> String {
-//         use std::error::Error;
-//         self.description().to_string()
-//     }
-// }
 
 impl From<self::Error> for String {
     fn from(err: self::Error) -> String {

@@ -26,7 +26,7 @@ static kernel: &'static str = r#"
         uint const cel_count = mul24(cel_grp_count, cels_per_cel_grp);
         uint const cel_idz_cel_grp = mul24(cel_grp_id, cels_per_cel_grp);
 
-         // TODO: (EVALUATE) Make 'cels_per_cel_grp' and 'tfts_per_cel' a constant and unroll loops.
+         // * TODO: (EVALUATE) Make 'cels_per_cel_grp' and 'tfts_per_cel' a constant and unroll loops.
          //    - Will mean making a separate program for each layer of pyramidals.
          //    - Could do more harm than good due to program size bloat.
          //    - Possibly do this for tfts only.
@@ -64,7 +64,7 @@ static kernel: &'static str = r#"
                         }
                     }
 
-                    // TODO: Could be moved into above if block
+                    // * TODO: Could be moved into above if block
                     cel_flag_set |= CEL_PREV_CONCRETE_FLAG;
 
                 } else if (cel_prev_concrete) {

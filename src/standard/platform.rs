@@ -101,7 +101,7 @@ impl Platform {
     ///
     /// * The major_version.minor_version value returned will be '1.2'.
     ///
-    /// [TODO]: Convert this to new version system returning an `OpenclVersion`.
+    /// * TODO: Convert this to new version system returning an `OpenclVersion`.
     pub fn version(&self) -> String {
         // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version) {
         //     Ok(pi) => pi.into(),

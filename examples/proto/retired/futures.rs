@@ -1,4 +1,4 @@
-//! [TODO]: Update this with code from experimental project.
+//! * TODO: Update this with code from experimental project.
 
 
 #![allow(dead_code, unused_variables, unused_imports)]
@@ -198,7 +198,7 @@ fn coeff(add: bool) -> f32 {
 /// targeting LLVM instead and using tools found at:
 /// `https://github.com/KhronosGroup/SPIRV-LLVM` to convert as necessary. I
 /// believe all/most OpenCL vendors have offline LLVM -> Binary compilers for
-/// older hardware. [TODO]: Investigate this.
+/// older hardware. TODO: Investigate this.
 ///
 fn gen_kern_src(kernel_name: &str, simple: bool, add: bool) -> String {
     let op = if add { "+" } else { "-" };

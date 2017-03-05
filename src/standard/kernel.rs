@@ -3,6 +3,8 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::any::Any;
+use std::rc::{Rc};
+use std::cell::{RefCell};
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
@@ -120,7 +122,6 @@ impl<'k> KernelCmd<'k> {
 }
 
 
-
 /// A kernel which represents a 'procedure'.
 ///
 /// Corresponds to code which must have already been compiled into a program.
@@ -128,23 +129,49 @@ impl<'k> KernelCmd<'k> {
 /// Set arguments using any of the `::arg...` (builder-style) or
 /// `::set_arg...` functions or use `::set_arg` to set arguments by index.
 ///
-/// ### Clonability
+/// `Kernel` includes features that a raw OpenCL kernel does not, including:
 ///
-/// Cloning a kernel after creation should virtually never be necessary (and
-/// may indicate that your design needs improvement). If an Rc<Kernel> is
-/// insufficient and you really really need to clone and store a kernel, clone
-/// the kernel core with `::core.clone()` and use
-/// `ocl::core::enqueue_kernel(...)` to enqueue.
+/// 1. Type-checked arguments (not just size-checked)
+/// 2. Named arguments (with a `&'static str` name)
+/// 3. Prevention of a potential (difficult to debug) segfault if a buffer or
+///    image used by a kernel is dropped prematurely.
+/// 4. Stored defaults for the:
+///     - Queue
+///     - Global Work Offset
+///     - Global Work Size
+///     - Local Work Size
 ///
+/// ### `Clone`, `Send`, and segfaults
 ///
-/// TODO: Add more details, examples, etc.
-/// TODO: Add information about panics and errors.
-/// TODO: Finish arg info formatting.
+/// Every struct field of `Kernel` is safe to `Send` and `Clone` (after all
+/// arguments are specified) with the exception of `mem_args`. In order to
+/// keep references to buffers/images alive throughout the life of the kernel
+/// and prevent nasty, platform-dependent, and very hard to debug segfaults,
+/// storing `MemCore`s (buffers/images) are necessary because they may be
+/// changed at any time. However, storing them means that there are
+/// comprimises in other areas. The following are the options as I see them:
+///
+/// 1. [CURRENT] Store buffers/images in an Rc<RefCell>. This allows us to
+///    `Clone` but not to `Send` between threads.
+/// 2. Store buffers/images in an Arc<Mutex/RwLock> allowing both `Clone` and
+///    `Send` at the cost of performance (could add up if users constantly
+///    change arguments).
+/// 3. [PREVIOUS] Disallow cloning and sending.
+/// 4. Don't store buffer/image references and let them segfault if the user
+///    doesn't keep them alive properly.
+///
+/// Please provide feedback if you have thoughts, suggestions, or alternative
+/// ideas.
+//
+// * TODO: Add more details, examples, etc.
+// * TODO: Add information about panics and errors.
+// * TODO: Finish arg info formatting.
+//
 #[derive(Debug)]
 pub struct Kernel {
     obj_core: KernelCore,
-    named_args: HashMap<&'static str, u32>,
-    mem_args: Vec<Option<MemCore>>,
+    named_args: Option<HashMap<&'static str, u32>>,
+    mem_args: Rc<RefCell<Vec<Option<MemCore>>>>,
     new_arg_count: u32,
     queue: Option<Queue>,
     gwo: SpatialDims,
@@ -172,8 +199,7 @@ pub struct Kernel {
 
 impl Kernel {
     /// Returns a new kernel.
-    pub fn new<S: Into<String>, >(name: S, program: &Program) -> OclResult<Kernel>
-    {
+    pub fn new<S: Into<String>, >(name: S, program: &Program) -> OclResult<Kernel> {
         let name = name.into();
         let obj_core = try!(core::create_kernel(program, &name));
 
@@ -191,11 +217,13 @@ impl Kernel {
 
         let mem_args = vec![None; num_args as usize];
 
+        // let named_args = HashMap::with_capacity(num_args as usize);
+
         Ok(Kernel {
             obj_core: obj_core,
-            named_args: HashMap::with_capacity(5),
+            named_args: None,
             new_arg_count: 0,
-            mem_args: mem_args,
+            mem_args: Rc::new(RefCell::new(mem_args)),
             queue: None,
             gwo: SpatialDims::Unspecified,
             gws: SpatialDims::Unspecified,
@@ -310,7 +338,7 @@ impl Kernel {
             where T: OclPrm + 'static
     {
         let arg_idx = self.new_arg_scl(scalar_opt);
-        self.named_args.insert(name, arg_idx);
+        self.insert_named_arg(name, arg_idx);
         self
     }
 
@@ -322,7 +350,7 @@ impl Kernel {
             where T: OclPrm + 'static
     {
         let arg_idx = self.new_arg_vec(vector_opt);
-        self.named_args.insert(name, arg_idx);
+        self.insert_named_arg(name, arg_idx);
         self
     }
 
@@ -334,7 +362,7 @@ impl Kernel {
             where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
     {
         let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
-        self.named_args.insert(name, arg_idx);
+        self.insert_named_arg(name, arg_idx);
         self
     }
 
@@ -346,7 +374,7 @@ impl Kernel {
             where T: OclPrm, M: AsMem<T> + MemCmdAll
     {
         let arg_idx = self.new_arg_img::<T, _>(image_opt);
-        self.named_args.insert(name, arg_idx);
+        self.insert_named_arg(name, arg_idx);
         self
     }
 
@@ -356,7 +384,7 @@ impl Kernel {
     /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
     pub fn arg_smp_named(mut self, name: &'static str, sampler_opt: Option<&Sampler>) -> Kernel {
         let arg_idx = self.new_arg_smp(sampler_opt);
-        self.named_args.insert(name, arg_idx);
+        self.insert_named_arg(name, arg_idx);
         self
     }
 
@@ -389,13 +417,13 @@ impl Kernel {
     /// Modifies the kernel argument named: `name`.
     ///
     /// ## Panics [FIXME]
-    // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
+    // * [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_buf_named<'a, T, M>(&'a mut self, name: &'static str,
             buffer_opt: Option<M>)
             -> OclResult<&'a mut Kernel>
             where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
     {
-        //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
+        //  * TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         match buffer_opt {
             Some(buffer) => {
@@ -410,13 +438,13 @@ impl Kernel {
     /// Modifies the kernel argument named: `name`.
     ///
     /// ## Panics [FIXME]
-    // [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
+    // * [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_img_named<'a, T, M>(&'a mut self, name: &'static str,
             image_opt: Option<M>)
             -> OclResult<&'a mut Kernel>
             where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
     {
-        //  TODO: ADD A CHECK FOR A VALID NAME (KEY)
+        // * TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = try!(self.resolve_named_arg_idx(name));
         match image_opt {
             Some(img) => {
@@ -553,7 +581,8 @@ impl Kernel {
 
     /// Returns the argument index of a named argument if it exists.
     pub fn named_arg_idx(&self, name: &'static str) -> Option<u32> {
-        self.named_args.get(name).cloned()
+        // self.named_args.get(name).cloned()
+        self.resolve_named_arg_idx(name).ok()
     }
 
     /// Verifies that a type matches the kernel arg info:
@@ -588,7 +617,6 @@ impl Kernel {
 
     /// Sets an argument by index.
     fn _set_arg<T: OclPrm + 'static>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
-        // verify_arg_type::<T>(self, arg_idx)?;
         self.verify_arg_type::<T>(arg_idx)?;
 
         // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
@@ -600,12 +628,19 @@ impl Kernel {
         // platform.
         let arg = match arg {
             KernelArg::Mem(mem) => {
-                self.mem_args[arg_idx as usize] = Some(mem.clone());
-                let mem_arg_ref = self.mem_args.get(arg_idx as usize).unwrap().as_ref().unwrap();
-                KernelArg::Mem(mem_arg_ref)
+                self.mem_args.borrow_mut()[arg_idx as usize] = Some(mem.clone());
+                // let ref mut mem_arg_ref = self.mem_args.borrow_mut()[arg_idx as usize];
+                // *mem_arg_ref = Some(mem.clone());
+                // let mem_arg_ref = self.mem_args.borrow().get(arg_idx as usize).as_ref().unwrap().unwrap();
+                // let mem_arg_ref = match self.mem_args.borrow().get(arg_idx as usize) {
+                //     Some(something) =>
+                //     None =>
+                // };
+
+                KernelArg::Mem(&mem)
             },
             arg => {
-                self.mem_args[arg_idx as usize] = None;
+                self.mem_args.borrow_mut()[arg_idx as usize] = None;
                 arg
             },
         };
@@ -654,14 +689,31 @@ impl Kernel {
         Ok(())
     }
 
-    /// Resolves the index of a named argument.
+    /// Panics if this kernel has already had all arguments assigned.
+    fn assert_unlocked(&self) {
+        assert!(self.new_arg_count < self.num_args, "ocl::Kernel: This kernel is locked.");
+    }
+
+    /// Inserts a named argument into the name->idx map.
+    fn insert_named_arg(&mut self, name: &'static str, arg_idx: u32) {
+        if self.named_args.is_none() {
+            self.named_args = Some(HashMap::with_capacity(8));
+        }
+
+        self.named_args.as_mut().unwrap().insert(name, arg_idx);
+    }
+
+    /// Resolves the index of a named argument with a friendly error message.
     fn resolve_named_arg_idx(&self, name: &'static str) -> OclResult<u32> {
-        match self.named_args.get(name) {
-            Some(&ai) => Ok(ai),
-            None => {
-                OclError::err_string(format!("Kernel::set_arg_scl_named(): Invalid argument \
-                    name: '{}'.", name))
+        match self.named_args {
+            Some(ref map) => {
+                match map.get(name) {
+                    Some(&ai) => Ok(ai),
+                    None => OclError::err_string(format!("Kernel::set_arg_scl_named(): Invalid argument \
+                        name: '{}'.", name)),
+                }
             },
+            None => Err("Kernel::resolve_named_arg_idx: No named arguments declared.".into()),
         }
     }
 
@@ -743,10 +795,8 @@ impl Kernel {
     fn new_arg<T>(&mut self, arg: KernelArg<T>) -> u32
             where T: OclPrm + 'static
     {
+        self.assert_unlocked();
         let arg_idx = self.new_arg_count;
-
-        // Push an empty `mem_arg` to the list just to make room.
-        // self.mem_args.push(None);
 
         match self._set_arg(arg_idx, arg) {
             Ok(_) => (),
@@ -758,8 +808,28 @@ impl Kernel {
 
         self.new_arg_count += 1;
         assert!(self.new_arg_count <= self.num_args);
-        // debug_assert!(self.arg_count as usize == self.mem_args.len());
         arg_idx
+    }
+}
+
+impl Clone for Kernel {
+    fn clone(&self) -> Kernel {
+        assert!(self.new_arg_count == self.num_args, "Cannot clone kernel until all arguments \
+            are specified. Use named arguments with 'None' values to specify arguments you \
+            plan to assign a value to later.");
+
+        Kernel {
+            obj_core: self.obj_core.clone(),
+            named_args: self.named_args.clone(),
+            new_arg_count: self.new_arg_count.clone(),
+            mem_args: self.mem_args.clone(),
+            queue: self.queue.clone(),
+            gwo: self.gwo.clone(),
+            gws: self.gws.clone(),
+            lws: self.lws.clone(),
+            num_args: self.num_args.clone(),
+            arg_types: self.arg_types.clone(),
+        }
     }
 }
 
@@ -884,7 +954,7 @@ pub mod arg_type {
         /// Ascertains a `KernelArgType` from the contents of a
         /// `KernelArgInfoResult::TypeName`.
         ///
-        /// [TODO]: Optimize or outsource this if possible. Is `::contains`
+        /// * TODO: Optimize or outsource this if possible. Is `::contains`
         /// the fastest way to parse these in this situation? Should
         /// `::starts_with` be used for base type names instead?
         pub fn from_str(type_name: &str) -> OclResult<ArgType> {

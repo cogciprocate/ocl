@@ -735,7 +735,8 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
 
     /// Enqueues this command.
     ///
-    /// TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH UNSET.
+    /// * TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH
+    ///   UNSET.
     pub fn enq(self) -> OclResult<()> {
         let queue = match self.queue {
             Some(q) => q,
@@ -866,7 +867,7 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
 
     /// Enqueues this command.
     ///
-    /// TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH UNSET.
+    /// * TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH UNSET.
     #[allow(unused_variables, unreachable_code)]
     pub fn enq(self) -> OclResult<MemMap<T>> {
         let queue = match self.cmd.queue {
@@ -907,7 +908,7 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
 
                     // let unmap_event = None;
 
-                    // [TODO]: Create a special container for mapped images
+                    // * TODO: Create a special container for mapped images
                     // that can take into account row and slice pitch. It
                     // cannot deref into a &[T] as the size of rows (and
                     // slices) can vary with byte-sized precision.

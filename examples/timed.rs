@@ -10,8 +10,8 @@
 
 extern crate ocl;
 extern crate time;
-// [TODO]: Bring this back once `Instant` stabilizes:
-// use std::time::Instant;
+// * TODO: Bring this back once `Instant` stabilizes: use
+//   std::time::Instant;
 
 
 use ocl::{util, core, ProQue, Buffer, EventList};

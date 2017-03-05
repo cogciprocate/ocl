@@ -1,4 +1,5 @@
-//! [INCOMPLETE]: [TODO]: Test various types with an assortment of operations.
+//! * [INCOMPLETE]: TODO: Test various types with an assortment of
+//!   operations.
 //!
 
 use standard::ProQue;

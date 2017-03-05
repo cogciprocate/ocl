@@ -2,131 +2,117 @@
 //! interact with OpenCL events.
 //!
 //!
-//
-// Some documentation adapted from:
-// `https://amanieu.github.io/parking_lot/parking_lot/struct.RwLock.html`.
 
 #![allow(unused_imports, dead_code)]
 
-use ::{OclPrm};
+// use std::marker::PhantomData;
 use std::sync::Arc;
-use parking_lot::RwLock;
-pub use parking_lot::{RwLockReadGuard, RwLockWriteGuard};
+use ffi::{cl_event, c_void};
+// use futures::sync::mpsc::{self, Sender, Receiver};
+use futures::{Future, Poll, Canceled};
+use futures::sync::{mpsc, oneshot};
+use crossbeam::sync::SegQueue;
+use async::{Lock, Error as AsyncError, Result as AsyncResult};
+use ::{OclPrm, Event, Result as OclResult};
 
 
-/// A locking `Vec`.
-// #[derive(Clone)]
+
+
+type FutureReadGuard<T> = FutureWriteGuard<T>;
+
+pub struct FutureWriteGuard<T> {
+    rw_vec: RwVec<T>,
+    rx: oneshot::Receiver<()>,
+}
+
+impl<T> Future for FutureWriteGuard<T> where T: OclPrm {
+    type Item = ();
+    type Error = AsyncError;
+
+    #[inline]
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        self.rx.poll().map_err(|e| e.into())
+    }
+}
+
+
+pub struct Request {
+    tx: oneshot::Sender<()>,
+}
+
+
+struct Inner<T> {
+    lock: Lock<Vec<T>>,
+    queue: SegQueue<Request>,
+    // queue: mpsc::UnboundedReceiver<Request>,
+    // queue_tx: mpsc::UnboundedSender<Request>,
+    thing: bool,
+}
+
+impl<T> From<Vec<T>> for Inner<T> where T: OclPrm {
+    #[inline]
+    fn from(vec: Vec<T>) -> Inner<T> {
+        // let (queue_tx, queue) = mpsc::unbounded();
+
+        Inner {
+            lock: Lock::new(vec),
+            queue: SegQueue::new(),
+            // queue: queue,
+            // queue_tx: queue_tx,
+            thing: false,
+            // injection: Lock::new(Injection::new()),
+        }
+    }
+}
+
+
+#[derive(Clone)]
 pub struct RwVec<T> {
-    lock: Arc<RwLock<Vec<T>>>,
+    inner: Arc<Inner<T>>,
 }
 
 impl<T> RwVec<T> where T: OclPrm {
     /// Creates and returns a new `RwVec`.
+    #[inline]
     pub fn new() -> RwVec<T> {
         RwVec {
-            lock: Arc::new(RwLock::new(Vec::new())),
+            inner: Arc::new(Inner::from(Vec::new())),
         }
     }
 
     /// Creates and returns a new `RwVec` initialized to the specified length
-    /// with the default value for `T`.
+    /// with zeros.
+    ///
+    #[inline]
     pub fn init(len: usize) -> RwVec<T> {
         RwVec {
-            lock: Arc::new(RwLock::new(vec![Default::default(); len])),
+            inner: Arc::new(Inner::from(vec![Default::default(); len])),
         }
     }
 
-    /// Locks this `RwVec` with shared read access, blocking the current thread
-    /// until it can be acquired.
-    ///
-    /// The calling thread will be blocked until there are no more writers
-    /// which hold the lock. There may be other readers currently inside the
-    /// lock when this method returns.
-    ///
-    /// Note that attempts to recursively acquire a read lock on a RwLock when
-    /// the current thread already holds one may result in a deadlock.
-    ///
-    /// Returns an RAII guard which will release this thread's shared access
-    /// once it is dropped.
+    /// Returns a new `ReadGuard` which can be used like a future.
     #[inline]
-    pub fn read(&self) -> RwLockReadGuard<Vec<T>> {
-        self.lock.read()
+    pub fn read(&self) -> AsyncResult<FutureReadGuard<T>> {
+        self.write()
     }
 
-    /// Attempts to acquire this `RwVec` with shared read access.
-    ///
-    /// If the access could not be granted at this time, then `None` is returned.
-    /// Otherwise, an RAII guard is returned which will release the shared access
-    /// when it is dropped.
-    ///
-    /// This function does not block.
-    #[inline]
-    pub fn try_read(&self) -> Option<RwLockReadGuard<Vec<T>>> {
-        self.lock.try_read()
+    /// Returns a new `WriteGuard` which can be used like a future.
+    pub fn write(&self) -> AsyncResult<FutureWriteGuard<T>> {
+        let (tx, rx) = oneshot::channel();
+        self.inner.queue.push(Request { tx: tx });
+        // self.inner.queue_tx.send(Request { tx: tx })?;
+        Ok(FutureWriteGuard { rw_vec: self.clone(), rx: rx })
     }
 
-    /// Locks this `RwVec` with exclusive write access, blocking the current
-    /// thread until it can be acquired.
+    /// Returns a mutable reference to the inner `Vec` if there are currently
+    /// no other copies of this `RwVec`.
     ///
-    /// This function will not return while other writers or other readers
-    /// currently have access to the lock.
-    ///
-    /// Returns an RAII guard which will drop the write access of this `RwVec`
-    /// when dropped.
-    #[inline]
-    pub fn write(&self) -> RwLockWriteGuard<Vec<T>> {
-        self.lock.write()
-    }
-
-    /// Attempts to lock this `RwVec` with exclusive write access.
-    ///
-    /// If the lock could not be acquired at this time, then `None` is returned.
-    /// Otherwise, an RAII guard is returned which will release the lock when
-    /// it is dropped.
-    ///
-    /// This function does not block.
-    #[inline]
-    pub fn try_write(&self) -> Option<RwLockWriteGuard<Vec<T>>> {
-        self.lock.try_write()
-    }
-
-    /// Returns a mutable reference to the underlying data.
-    ///
-    /// Since this call borrows the `RwLock` mutably, no actual locking needs to
+    /// Since this call borrows the inner lock mutably, no actual locking needs to
     /// take place---the mutable borrow statically guarantees no locks exist.
+    ///
     #[inline]
     pub fn get_mut(&mut self) -> Option<&mut Vec<T>> {
-        Arc::get_mut(&mut self.lock).map(|l| l.get_mut())
-    }
-
-    /// Releases exclusive write access of the `RwVec`.
-    ///
-    /// # Safety
-    ///
-    /// This function must only be called if the `RwVec` was locked using
-    /// `raw_write` or `raw_try_write`, or if an `RwLockWriteGuard` from this
-    /// `RwVec` was leaked (e.g. with `mem::forget`). The `RwVec` must be locked
-    /// with exclusive write access.
-    #[inline]
-    pub unsafe fn raw_unlock_write(&self) {
-        self.lock.raw_unlock_write();
-    }
-
-    /// Returns a cloned RwVec which refers to the same underlying data.
-    ///
-    /// This function does not create a new `Vec` nor does it allocate
-    /// anything, it simply increases the internal reference count and returns
-    /// a copied reference. Locking the cloned `RwVec` will also lock it's
-    /// source.
-    ///
-    /// To clone underlying data, first lock (`::read` or `::write`) then
-    /// clone using the returned guard.
-    ///
-    #[inline]
-    pub fn clone(&self) -> RwVec<T> {
-        RwVec {
-            lock: self.lock.clone(),
-        }
+        Arc::get_mut(&mut self.inner).map(|inn| inn.lock.get_mut())
     }
 }
 
@@ -135,21 +121,7 @@ impl<T> From<Vec<T>> for RwVec<T> where T: OclPrm {
     #[inline]
     fn from(vec: Vec<T>) -> RwVec<T> {
         RwVec {
-            lock: Arc::new(RwLock::new(vec))
+            inner: Arc::new(Inner::from(vec))
         }
     }
 }
-
-// impl<'d, T> Deref for FutureReadCompletion<'d, T> where T: OclPrm {
-//     type Target = [T];
-
-//     fn deref(&self) -> &[T] {
-//         self.data.as_slice()
-//     }
-// }
-
-// impl<'d, T> DerefMut for FutureReadCompletion<'d, T> where T: OclPrm {
-//     fn deref_mut(&mut self) -> &mut [T] {
-//         self.data.as_mut_slice()
-//     }
-// }

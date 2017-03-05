@@ -162,8 +162,8 @@ fn buffer_ops_rect() {
     // Prepare a kernel which will write a single value to the entire buffer
     // and which can be updated on each run (to act as a 'reset').
     let mut kernel_eq = proque.create_kernel("eq").unwrap()
-    .arg_buf_named("buf", Some(&buf))
-    .arg_scl_named("val", Some(0.0f32));
+        .arg_buf_named("buf", Some(&buf))
+        .arg_scl_named("val", Some(0.0f32));
 
     // Vector origin doesn't matter for this:
     let vec_origin = [0, 0, 0];

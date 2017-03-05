@@ -213,7 +213,6 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         .queue(common_queue)
         // .queue(&write_init_unmap_queue)
         .flags(MapFlags::new().write_invalidate_region())
-        // .ewait(write_init_wait_list)
         .ewait(&wait_list)
         .enq_async().unwrap();
 
@@ -343,7 +342,8 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
 
     // Attach a status message printing callback to what approximates the
     // kernel wait (start-time) event:
-    unsafe { kernel_wait_marker.as_ref().unwrap().set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
+    unsafe { kernel_wait_marker.as_ref().unwrap()
+        .set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new kernel event, overwriting any old one.
     *kernel_event = Some(Event::empty());
@@ -459,6 +459,7 @@ pub fn main() {
     // operations for devices that do not already use host memory (GPUs,
     // etc.). Adding read and write only specifiers also allows for other
     // optimizations.
+    //
     // let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only().host_write_only();
     let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only();
     let dst_buf_flags = MemFlags::new().alloc_host_ptr().write_only().host_read_only();

@@ -3,7 +3,7 @@
 use std::ops::{Deref, DerefMut};
 use standard::{_unpark_task, box_raw_void};
 use futures::{task, Future, Poll, Async};
-use async::{Error as AsyncError, Result as AsyncResult, RwVec, RwLockWriteGuard, };
+use async::{Error as AsyncError, Result as AsyncResult, RwVec, };
 use ::{OclPrm, /*Error as OclError,*/ Event, Queue};
 
 /// [UNSTABLE]
@@ -117,7 +117,7 @@ impl<T> Future for FutureReadCompletion<T> where T: OclPrm {
                     .ok_or(AsyncError::from("FutureReadCompletion::poll: Data has already been taken."))
                     .map(|d| {
                         println!("Raw-unlocking write.");
-                        unsafe { d.raw_unlock_write(); }
+                        // unsafe { d.raw_unlock_write(); }
                         Async::Ready(ReadCompletion::new(d, self.triggerable_event.take()))
                     })
             },

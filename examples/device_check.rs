@@ -441,7 +441,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             // printlnc!(dark_grey: "    Map Event Status (PRE-wait) : {:?} => {:?}",
             //     map_event, core::event_status(&map_event)?);
 
-            /////// [TODO]: ADD THIS AS AN OPTION?:
+            /////// TODO: ADD THIS AS AN OPTION?:
             // // Wait for queue completion:
             // source_buf.default_queue().flush();
             // source_buf.default_queue().finish().unwrap();
@@ -465,7 +465,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                 )?;
 
                 MemMap::new(mm_core, source_buf.len(), None, source_buf.core().clone(),
-                    write_queue.core().clone())
+                    write_queue.clone())
             };
 
             if let Some(tar_ev) = wire_callback(cfg.event_callback, context, &mut map_event) {
@@ -484,7 +484,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             //     Some(&wait_events), Some(&mut map_event),
             //     Some(&source_buf.default_queue().device_version()))?;
 
-            /////// [TODO]: ADD THIS AS AN OPTION:
+            /////// TODO: ADD THIS AS AN OPTION:
             // // Wait for queue completion:
             // source_buf.default_queue().flush();
             // source_buf.default_queue().finish().unwrap();
@@ -583,7 +583,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             )?;
 
             target_map = Some(MemMap::new(mm_core, source_buf.len(), None,
-                source_buf.core().clone(), read_queue.core().clone()));
+                source_buf.core().clone(), read_queue.clone()));
         }
     } else {
         //##################### !(cfg.MAP_READ) ###########################

@@ -12,7 +12,7 @@ use standard::{Context, Device};
 ///
 ///
 //
-// TODO: Consider implementing a constructor which accepts a DeviceIdCore and
+// * TODO: Consider implementing a constructor which accepts a DeviceIdCore and
 // creates a context and queue from it.
 //
 //

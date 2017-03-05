@@ -11,7 +11,7 @@ use standard::{Platform, Device, DeviceSpecifier};
 
 /// A builder for `Context`.
 ///
-/// TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
+/// * TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
 #[must_use = "builders do nothing unless '::build' is called"]
 pub struct ContextBuilder {
     properties: ContextProperties,
@@ -29,9 +29,9 @@ impl ContextBuilder {
     /// * All devices associated with the first available platform
     /// * No notify callback function or user data.
     ///
-    /// [TODO]:
-    /// - That stuff above (find a valid context, devices, etc. first thing).
-    /// - Handle context creation callbacks.
+    /// * TODO:
+    ///   - That stuff above (find a valid context, devices, etc. first thing).
+    ///   - Handle context creation callbacks.
     ///
     pub fn new() -> ContextBuilder {
         let properties = ContextProperties::new()
@@ -118,10 +118,10 @@ impl ContextBuilder {
 /// Clone, store, and share between threads to your heart's content.
 ///
 //
-// [TODO]: Remove contained copies of the device id list and platform id. Can
-// be easily ascertained via the API. [UPDATE]: devices list removed. Need to
-// parse the `ContextProperties` out of the `ContextInfoResult::Properties`
-// before we can eliminate `platform`.
+// * TODO: Remove contained copies of the device id list and platform id.
+//   Can be easily ascertained via the API. [UPDATE]: devices list removed.
+//   Need to parse the `ContextProperties` out of the
+//   `ContextInfoResult::Properties` before we can eliminate `platform`.
 //
 #[derive(Debug, Clone)]
 pub struct Context(ContextCore);

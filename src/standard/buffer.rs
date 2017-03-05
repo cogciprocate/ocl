@@ -82,7 +82,7 @@ impl<'o> From<QueCtx<'o>> for Option<Queue> {
 
 /// A buffer builder.
 ///
-/// [TODO]: Add examples and details. For now see project examples folder.
+/// * TODO: Add examples and details. For now see project examples folder.
 ///
 #[must_use = "builders do nothing unless '::build' is called"]
 #[derive(Debug)]
@@ -223,7 +223,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// ### Examples
     ///
-    /// [TODO]: Provide examples once this stabilizes.
+    /// * TODO: Provide examples once this stabilizes.
     ///
     ///
     /// [UNSTABLE]: May be changed or removed.
@@ -573,7 +573,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     //
     // [FIXME]: Check/fix links.
     //
-    // [TODO]: Should this error when calling non-rw `::enq`?
+    // * TODO: Should this error when calling non-rw `::enq`?
     //
     pub unsafe fn block(mut self, block: bool) -> BufferCmd<'c, T> {
         self.block = block;
@@ -911,76 +911,76 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
         }
     }
 
-    /// Enqueues this command asynchronously.
-    ///
-    /// A data destination container appropriate for an asynchronous operation
-    /// must have been passed to `::read`.
-    ///
-    #[allow(unused_unsafe)]
-    #[cfg(feature = "experimental_async_rw")]
-    pub fn enq_async(mut self) -> OclResult<FutureReadCompletion<T>> {
-        let queue = match self.cmd.queue {
-            Some(q) => q,
-            None => return Err("BufferCmd::enq: No queue set.".into()),
-        };
+    // /// Enqueues this command asynchronously.
+    // ///
+    // /// A data destination container appropriate for an asynchronous operation
+    // /// must have been passed to `::read`.
+    // ///
+    // #[allow(unused_unsafe)]
+    // #[cfg(feature = "experimental_async_rw")]
+    // pub fn enq_async(mut self) -> OclResult<FutureReadCompletion<T>> {
+    //     let queue = match self.cmd.queue {
+    //         Some(q) => q,
+    //         None => return Err("BufferCmd::enq: No queue set.".into()),
+    //     };
 
-        let rw_vec = match self.dst {
-            ReadDst::RwVec(rw_vec) => rw_vec,
-            _ => return Err("BufferReadCmd::enq: Invalid data destination kind for an
-                asynchronous enqueue. The read destination must be an 'RwVec'.".into()),
-        };
+    //     let rw_vec = match self.dst {
+    //         ReadDst::RwVec(rw_vec) => rw_vec,
+    //         _ => return Err("BufferReadCmd::enq: Invalid data destination kind for an
+    //             asynchronous enqueue. The read destination must be an 'RwVec'.".into()),
+    //     };
 
-        match self.cmd.kind {
-            BufferCmdKind::Read => {
-                let mut read_event = EventCore::null();
+    //     match self.cmd.kind {
+    //         BufferCmdKind::Read => {
+    //             let mut read_event = EventCore::null();
 
-                {
-                    ////// [DEBUG]:
-                        println!("Wait List: {:?}", &self.cmd.ewait);
-                        println!("Attempting to lock RwVec for writing...");
-                    //////
+    //             {
+    //                 ////// [DEBUG]:
+    //                     println!("Wait List: {:?}", &self.cmd.ewait);
+    //                     println!("Attempting to lock RwVec for writing...");
+    //                 //////
 
-                    // let mut dst = rw_vec.try_write().ok_or(OclError::from("BufferReadCmd::enq_async: \
-                    //     Unable to lock the provided `RwVec` read destination."))?;
-                    let mut dst = rw_vec.write();
+    //                 // let mut dst = rw_vec.try_write().ok_or(OclError::from("BufferReadCmd::enq_async: \
+    //                 //     Unable to lock the provided `RwVec` read destination."))?;
+    //                 let mut dst = rw_vec.write();
 
-                    ////// [DEBUG]:
-                        println!("RwVec is locked for writing.");
-                    //////
+    //                 ////// [DEBUG]:
+    //                     println!("RwVec is locked for writing.");
+    //                 //////
 
-                    match self.cmd.shape {
-                        BufferCmdDataShape::Lin { offset } => {
-                            try!(check_len(self.cmd.mem_len, dst.len(), offset));
+    //                 match self.cmd.shape {
+    //                     BufferCmdDataShape::Lin { offset } => {
+    //                         try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
-                            unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
-                                offset, dst.as_mut_slice(), self.cmd.ewait.take(), Some(&mut read_event))?; }
-                        },
-                        BufferCmdDataShape::Rect { src_origin, dst_origin, region,
-                            src_row_pitch_bytes, src_slc_pitch_bytes,
-                                dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
-                        {
-                            unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
-                                false, src_origin, dst_origin, region, src_row_pitch_bytes,
-                                src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                                dst.as_mut_slice(),
-                                self.cmd.ewait.take(), Some(&mut read_event))?; }
-                        }
-                    }
+    //                         unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
+    //                             offset, dst.as_mut_slice(), self.cmd.ewait.take(), Some(&mut read_event))?; }
+    //                     },
+    //                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
+    //                         src_row_pitch_bytes, src_slc_pitch_bytes,
+    //                             dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
+    //                     {
+    //                         unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
+    //                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
+    //                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
+    //                             dst.as_mut_slice(),
+    //                             self.cmd.ewait.take(), Some(&mut read_event))?; }
+    //                     }
+    //                 }
 
-                    if let Some(ref mut self_enew) = self.cmd.enew.take() {
-                        // read_event/self_enew refcount: 2
-                        unsafe { self_enew.clone_from(&read_event) }
-                    }
+    //                 if let Some(ref mut self_enew) = self.cmd.enew.take() {
+    //                     // read_event/self_enew refcount: 2
+    //                     unsafe { self_enew.clone_from(&read_event) }
+    //                 }
 
-                    // Keep rw_vec write-locked:
-                    ::std::mem::forget(dst);
-                }
+    //                 // Keep rw_vec write-locked:
+    //                 ::std::mem::forget(dst);
+    //             }
 
-                Ok(FutureReadCompletion::new(rw_vec, Event::from(read_event)))
-            },
-            _ => unreachable!(),
-        }
-    }
+    //             Ok(FutureReadCompletion::new(rw_vec, Event::from(read_event)))
+    //         },
+    //         _ => unreachable!(),
+    //     }
+    // }
 }
 
 

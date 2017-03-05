@@ -8,8 +8,8 @@
 //!
 //! [WORK IN PROGRESS]
 //!
-//! TODO: Have threads swap stuff around for fun.
-//! TODO: Print the reference counts of each element at various points.
+//! * TODO: Have threads swap stuff around for fun.
+//! * TODO: Print the reference counts of each element at various points.
 
 #![allow(unused_imports, unused_variables, dead_code, unused_mut)]
 
@@ -22,7 +22,9 @@ use std::sync::mpsc;
 use std::time::Duration;
 use rand::Rng;
 use ocl::{Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
+use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo,
+    ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo,
+    ProfilingInfo};
 
 
 static SRC: &'static str = r#"

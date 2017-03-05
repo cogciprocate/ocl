@@ -23,9 +23,9 @@ use standard::{Context, Device, DeviceSpecifier};
 ///
 /// A few of the often used variants have constructors for convenience.
 ///
-/// [FIXME] TODO: Explain how each variant is used.
+/// * [FIXME] TODO: Explain how each variant is used.
 ///
-/// [FIXME] TODO: Examples.
+/// * [FIXME] TODO: Examples.
 #[derive(Clone, Debug)]
 pub enum BuildOpt {
     CmplrDefine { ident: String, val: String },
@@ -57,7 +57,7 @@ impl BuildOpt {
 
 /// A builder for `Program`.
 ///
-// [SOMEDAY TODO]: Keep track of line number range for each string and print
+// * [SOMEDAY TODO]: Keep track of line number range for each string and print
 // out during build failure.
 //
 #[must_use = "builders do nothing unless '::build' is called"]
@@ -85,11 +85,11 @@ impl ProgramBuilder {
     ///
     ///
     ///
-    /// [TODO]: If the context is associated with more than one device,
+    /// * TODO: If the context is associated with more than one device,
     /// check that at least one of those devices has been specified. An empty
     /// device list will cause an `OpenCL` error in that case.
     ///
-    /// [TODO]: Check for duplicate devices in the final device list.
+    /// * TODO: Check for duplicate devices in the final device list.
     #[cfg(not(feature = "opencl_version_2_1"))]
     pub fn build(self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
@@ -115,11 +115,11 @@ impl ProgramBuilder {
 
     /// Returns a newly built Program.
     ///
-    /// [TODO]: If the context is associated with more than one device,
+    /// * TODO: If the context is associated with more than one device,
     /// check that at least one of those devices has been specified. An empty
     /// device list will cause an `OpenCL` error in that case.
     ///
-    /// [TODO]: Check for duplicate devices in the final device list.
+    /// * TODO: Check for duplicate devices in the final device list.
     #[cfg(feature = "opencl_version_2_1")]
     pub fn build(mut self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
@@ -206,7 +206,7 @@ impl ProgramBuilder {
     ///
     /// Use the `include_bytes!` macro to include source code from a file statically.
     ///
-    /// [TODO]: Future addition: Allow IL to be loaded directly from a file
+    /// * TODO: Future addition: Allow IL to be loaded directly from a file
     /// in the same way that text source is.
     ///
     #[cfg(feature = "opencl_version_2_1")]
@@ -427,7 +427,7 @@ impl Program {
 
     /// Returns info about this program's build.
     ///
-    /// TODO: Check that device is valid.
+    /// * TODO: Check that device is valid.
     pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo) -> ProgramBuildInfoResult {
         core::get_program_build_info(&self.0, &device, info_kind)
     }
