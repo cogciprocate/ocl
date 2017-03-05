@@ -35,8 +35,8 @@ event_callbacks = []
 experimental_async_rw = []
 
 
-# default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
-default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2", "experimental_async_rw"]
+default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
+# default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2", "experimental_async_rw"]
 
 
 [dependencies]
