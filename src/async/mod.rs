@@ -1,6 +1,7 @@
 //! Types related to futures and asynchrony.
 
 mod error;
+mod lock_simple;
 mod lock;
 mod future_mem_map;
 mod read_completion;
@@ -13,7 +14,11 @@ use futures::future;
 
 // pub use futures::future::{result, ok, err};
 pub use self::error::{Error, Result};
-use self::lock::Lock;
+
+////// [RESTORE ME]:
+// use self::lock::{Lock};
+
+use self::lock_simple::{LockSimple, TryLockSimple};
 pub use self::future_mem_map::FutureMemMap;
 // pub use parking_lot::{RwLockWriteGuard, RwLockReadGuard};
 pub use self::rw_vec::{RwVec};

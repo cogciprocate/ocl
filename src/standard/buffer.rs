@@ -11,8 +11,8 @@ use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
-#[cfg(feature = "experimental_async_rw")]
-use async::FutureReadCompletion;
+// #[cfg(feature = "experimental_async_rw")]
+// use async::FutureReadCompletion;
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {

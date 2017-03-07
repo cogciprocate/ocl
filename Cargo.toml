@@ -35,8 +35,8 @@ event_callbacks = []
 experimental_async_rw = []
 
 
-default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
-# default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2", "experimental_async_rw"]
+# default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
+default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2", "experimental_async_rw"]
 
 
 [dependencies]
@@ -81,3 +81,4 @@ ocl-extras = { version = "0.1", path = "ocl-extras" }
 [workspace]
 members = ["ocl-extras", "examples/images", "examples/images_safe_clamp",
 	"examples/opencl_2_1", "examples/proto"]
+	
