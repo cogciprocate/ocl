@@ -3,19 +3,19 @@
 use std::ops::{Deref, DerefMut};
 use standard::{_unpark_task, box_raw_void};
 use futures::{task, Future, Poll, Async};
-use async::{Error as AsyncError, Result as AsyncResult, RwVec, };
+use async::{Error as AsyncError, Result as AsyncResult, Lock, };
 use ::{OclPrm, /*Error as OclError,*/ Event, Queue};
 
 /// [UNSTABLE]
 pub struct ReadCompletion<T> {
-    data: RwVec<T>,
+    data: Lock<Vec<T>>,
     triggerable_event: Option<Event>,
 
 }
 
 impl<T> ReadCompletion<T> where T: OclPrm {
     /// Returns a new `ReadCompletion`.
-    fn new(data: RwVec<T>, triggerable_event: Option<Event>)
+    fn new(data: Lock<Vec<T>>, triggerable_event: Option<Event>)
             -> ReadCompletion<T>
     {
         ReadCompletion {
@@ -37,15 +37,15 @@ impl<T> ReadCompletion<T> where T: OclPrm {
 }
 
 impl<T> Deref for ReadCompletion<T> where T: OclPrm {
-    type Target = RwVec<T>;
+    type Target = Lock<Vec<T>>;
 
-    fn deref(&self) -> &RwVec<T> {
+    fn deref(&self) -> &Lock<Vec<T>> {
         &self.data
     }
 }
 
 impl<T> DerefMut for ReadCompletion<T> where T: OclPrm {
-    fn deref_mut(&mut self) -> &mut RwVec<T> {
+    fn deref_mut(&mut self) -> &mut Lock<Vec<T>> {
         &mut self.data
     }
 }
@@ -68,12 +68,12 @@ impl<T> Drop for ReadCompletion<T> {
 pub struct FutureReadCompletion<T> {
     read_event: Event,
     triggerable_event: Option<Event>,
-    data: Option<RwVec<T>>
+    data: Option<Lock<Vec<T>>>
 }
 
 #[allow(dead_code)]
 impl<T> FutureReadCompletion<T> where T: OclPrm {
-    pub fn new(data: RwVec<T>, read_event: Event) -> FutureReadCompletion<T> {
+    pub fn new(data: Lock<Vec<T>>, read_event: Event) -> FutureReadCompletion<T> {
         FutureReadCompletion {
             data: Some(data),
             read_event: read_event,
@@ -106,7 +106,7 @@ impl<T> FutureReadCompletion<T> where T: OclPrm {
 /// Non-blocking, proper implementation.
 #[cfg(feature = "event_callbacks")]
 impl<T> Future for FutureReadCompletion<T> where T: OclPrm {
-    // type Item = RwVec<T>;
+    // type Item = Lock<Vec<T>>;
     type Item = ReadCompletion<T>;
     type Error = AsyncError;
 
@@ -134,7 +134,7 @@ impl<T> Future for FutureReadCompletion<T> where T: OclPrm {
 /// Blocking implementation (yuk).
 #[cfg(not(feature = "event_callbacks"))]
 impl<T> Future for FutureReadCompletion<T> {
-    type Item = RwLockWriteGuard<'d, Vec<T>>;
+    type Item = ReadCompletion<T>;
     type Error = AsyncError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {

@@ -5,7 +5,7 @@ The futures have arrived! [futures-rs] has begun to find its way into ocl.
 This makes doing things like embedding (slipstreaming?) host processing work
 into the chain of enqueued commands, something that was previously cumbersome
 to implement, very easy and intuitive now. See the `FutureMemMap` and `MemMap`
-types and ... [FIXME] Add links
+types and ... FIXME: Add links
 
 This library will be approaching forward-compatible stabilization over the
 next year for all top level types. Before that point can be reached, we'll
@@ -13,15 +13,15 @@ have to break a few eggs. This release brings consistency and simplification
 changes to a few important functions, notably `Buffer::new` and `Kernel::new`.
 See the breaking changes section below for details.
 
-[FIXME] Update all doc links at release
+FIXME: Update all doc links at release
 
 * Asynchrony and Futures...
-  * [FIXME] Buffer mapping (`MemMap` and `FutureMemMap`)...
-  * [FIXME] `BufferCmd`, `ImageCmd`, and `KernelCmd`
-  * [FIXME] have received some streamlining and optimizing to events.
-  * [FIXME] comment on changes to the types that `::enew` and `::ewait` accept.
-  * [FIXME] refer to the breaking changes below
-  * [FIXME] ::read, ::write, ::map
+  * FIXME: Buffer mapping (`MemMap` and `FutureMemMap`)...
+  * FIXME: `BufferCmd`, `ImageCmd`, and `KernelCmd`
+  * FIXME: have received some streamlining and optimizing to events.
+  * FIXME: comment on changes to the types that `::enew` and `::ewait` accept.
+  * FIXME: refer to the breaking changes below
+  * FIXME: ::read, ::write, ::map
     * how to use futures, etc.
 
 * `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
@@ -88,7 +88,7 @@ Breaking Changes
     ```
     Kernel::new("kernel_name", &program).unwrap().queue(queue)
     ```
-    [FIXME] Add/update links
+    FIXME Add/update links
 * `BufferCmd`, `ImageCmd`, and `KernelCmd` have undergone changes:
   * `::copy` signature change `offset` and `len` (size) are now optional.
     Offset will default to zero and length will default to the entire length
@@ -171,7 +171,7 @@ Other Changes
 * `EventList::clear` has been added.
 
 
-[FIXME] Update links
+FIXME: Update links
 
 [`Buffer::builder()`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html#method.builder
 [`BufferBuilder`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.BufferBuilder.html

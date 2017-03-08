@@ -1,5 +1,5 @@
-//! A read/write locking `Vec` which can be shared between threads and can
-//! interact with OpenCL events.
+//! A mutex-like lock which can be shared between threads and can interact
+//! with OpenCL events.
 //!
 //!
 
@@ -13,13 +13,15 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
 use std::cell::UnsafeCell;
 use ffi::{cl_event, c_void};
-use futures::{Future, Poll, Canceled, Async};
+use futures::{task, Future, Poll, Canceled, Async};
 use futures::sync::{mpsc, oneshot};
 use crossbeam::sync::SegQueue;
-use async::{Error as AsyncError, Result as AsyncResult};
 use ::{OclPrm, Event, Result as OclResult};
+use async::{Error as AsyncError, Result as AsyncResult};
+use standard::{self, ClWaitListPtrEnum};
 
 
+ // Allows access to the data contained within a lock just like a mutex guard.
 pub struct Guard<T> {
     lock: Lock<T>,
 }
@@ -40,9 +42,7 @@ impl<T> DerefMut for Guard<T> {
 
 impl<T> Drop for Guard<T> {
     fn drop(&mut self) {
-        // [TODO]: Consider using `Ordering::Acquire`.
-        self.lock.inner.state.store(0, SeqCst);
-        self.lock.process_queue();
+        self.lock.unlock();
     }
 }
 
@@ -50,6 +50,12 @@ impl<T> Drop for Guard<T> {
 pub struct FutureGuard<T> {
     lock: Option<Lock<T>>,
     rx: oneshot::Receiver<()>,
+}
+
+impl<T> FutureGuard<T> {
+    pub fn wait(self) -> AsyncResult<Guard<T>> {
+        <Self as Future>::wait(self)
+    }
 }
 
 impl<T> Future for FutureGuard<T> {
@@ -74,12 +80,89 @@ impl<T> Future for FutureGuard<T> {
 }
 
 
-pub struct Request {
+/// Like a `FutureGuard` but additionally waits on an OpenCL event.
+pub struct PendingGuard<T> {
+    lock: Option<Lock<T>>,
+    rx: oneshot::Receiver<()>,
+    wait_event: Event,
+    trigger_event: Event,
+    // rx_is_complete: bool,
+    // ev_is_complete: bool,
+}
+
+impl<T> PendingGuard<T> {
+    fn new(lock: Option<Lock<T>>, rx: oneshot::Receiver<()>, wait_event: Event) -> OclResult<PendingGuard<T>> {
+        let trigger_event = Event::user(&wait_event.context()?)?;
+
+        Ok(PendingGuard {
+            lock: lock,
+            rx: rx,
+            wait_event: wait_event,
+            trigger_event: trigger_event,
+            // rx_is_complete: false,
+            // ev_is_complete: false,
+        })
+    }
+
+    pub fn trigger_event(&self) -> &Event {
+        &self.trigger_event
+    }
+
+    pub fn wait(self) -> AsyncResult<Guard<T>> {
+        <Self as Future>::wait(self)
+    }
+
+    pub unsafe fn cell_mut(&self) -> Option<&mut T> {
+        self.lock.as_ref().map(|l| &mut *l.inner.cell.get())
+    }
+}
+
+impl<T> Future for PendingGuard<T> {
+    type Item = Guard<T>;
+    type Error = AsyncError;
+
+    #[inline]
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        if self.lock.is_some() {
+            self.lock.as_ref().unwrap().process_queue();
+
+            // if !self.ev_is_complete {
+            //     if self.wait_event.is_complete()? {
+            //         self.ev_is_complete = true;
+            //     } else {
+            //         let task_ptr = standard::box_raw_void(task::park());
+            //         unsafe { self.wait_event.set_callback(standard::_unpark_task, task_ptr)?; };
+            //         return Ok(Async::NotReady);
+            //     }
+            // }
+
+            if !self.wait_event.is_complete()? {
+                let task_ptr = standard::box_raw_void(task::park());
+                    unsafe { self.wait_event.set_callback(standard::_unpark_task, task_ptr)?; };
+                    return Ok(Async::NotReady);
+            }
+
+            match self.rx.poll() {
+                Ok(status) => Ok(status.map(|_| {
+                    Guard { lock: self.lock.take().unwrap() }
+                })),
+                Err(e) => return Err(e.into()),
+            }
+        } else {
+            Err("PendingGuard::poll: Task already completed.".into())
+        }
+    }
+}
+
+
+struct Request {
     tx: oneshot::Sender<()>,
+    // wait_event: Option<Event>,
 }
 
 
 struct Inner<T> {
+    // TODO: Convert to `AtomicBool` if no additional states are needed:
     state: AtomicUsize,
     cell: UnsafeCell<T>,
     queue: SegQueue<Request>,
@@ -96,6 +179,9 @@ impl<T> From<T> for Inner<T> {
     }
 }
 
+unsafe impl<T: Send> Send for Inner<T> {}
+unsafe impl<T: Send> Sync for Inner<T> {}
+
 
 pub struct Lock<T> {
     inner: Arc<Inner<T>>,
@@ -110,29 +196,75 @@ impl<T> Lock<T> {
         }
     }
 
+    /// Pops the next lock request in the queue if this lock is unlocked.
     fn process_queue(&self) {
-        // [TODO]: Consider using `Ordering::Acquire`.
-        match self.inner.state.load(SeqCst) {
+        // match self.inner.state.swap(8, SeqCst) {
+        //     // Unlocked:
+        //     0 => {
+        //         if let Some(req) = self.inner.queue.try_pop() {
+        //             req.tx.complete(());
+        //             self.inner.state.store(1, SeqCst);
+        //         } else {
+        //             self.inner.state.store(0, SeqCst);
+        //         }
+        //     },
+        //     // Locked:
+        //     1 => self.inner.state.store(1, SeqCst),
+        //     // Someone else is processing queue:
+        //     8 => (),
+        //     // Something else:
+        //     n => panic!("Lock::process_queue: inner.state: {}.", n),
+        // }
+        match self.inner.state.compare_and_swap(0, 1, SeqCst) {
             // Unlocked:
             0 => {
                 if let Some(req) = self.inner.queue.try_pop() {
                     req.tx.complete(());
-                    self.inner.state.store(1, SeqCst);
+                } else {
+                    self.inner.state.store(0, SeqCst);
                 }
             },
-            // Locked:
+            // Already locked, leave it alone:
             1 => (),
             // Something else:
             n => panic!("Lock::process_queue: inner.state: {}.", n),
         }
-
     }
 
-    /// Returns a new `Guard` which can be used like a future.
+    // fn lock_request(&self, wait_event: Option<Event>) -> FutureGuard<T> {
+    //     let (tx, rx) = oneshot::channel();
+    //     self.inner.queue.push(Request { tx: tx, wait_event: wait_event });
+    //     FutureGuard { lock: Some((*self).clone()), rx: rx }
+    // }
+
+    /// Returns a new `FutureGuard` which can be used as a future and will
+    /// resolve into a `Guard`.
     pub fn lock(&self) -> FutureGuard<T> {
         let (tx, rx) = oneshot::channel();
+        // self.inner.queue.push(Request { tx: tx, wait_event: None });
         self.inner.queue.push(Request { tx: tx });
         FutureGuard { lock: Some((*self).clone()), rx: rx }
+    }
+
+    pub fn lock_pending_event(&self, wait_event: Event) -> OclResult<PendingGuard<T>> {
+        let (tx, rx) = oneshot::channel();
+        // self.inner.queue.push(Request { tx: tx, wait_event: Some(wait_event.clone()) });
+        self.inner.queue.push(Request { tx: tx });
+        // PendingGuard { lock: Some((*self).clone()), rx: rx, wait_event: wait_event }
+        PendingGuard::new(Some((*self).clone()), rx, wait_event)
+    }
+
+    // /// Unlocks this lock unsafely but does not process the next item.
+    // pub unsafe fn raw_unlock(&self) {
+    //     // TODO: Consider using `Ordering::Acquire`.
+    //     self.inner.state.store(0, SeqCst);
+    // }
+
+    /// Unlocks this lock and wakes up the next task in the queue.
+    fn unlock(&self) {
+        // TODO: Consider using `Ordering::Release`.
+        self.inner.state.store(0, SeqCst);
+        self.process_queue();
     }
 
     /// Returns a mutable reference to the inner `Vec` if there are currently

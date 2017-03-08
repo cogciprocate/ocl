@@ -6,10 +6,10 @@
 //! Far from complete but will check for a few possible problems.
 //!
 //! - Buffer without `CL_ALLOC_HOST_PTR` [FIXME: list flags]
-//! - [FIXME]: Finish this
+//! - FIXME: Finish this
 //!
 //!
-//! [FIXME]: List future plans here
+//! FIXME: List future plans here
 //!
 //!
 //!

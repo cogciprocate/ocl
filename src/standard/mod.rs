@@ -84,9 +84,9 @@ mod cb {
 mod types {
     use std::ptr;
     use std::cell::Ref;
-    use standard::{Event, EventList, RawList};
+    use standard::{Event, EventList, RawList, Queue};
     use core::ffi::cl_event;
-    use core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
+    use core::{Result as OclResult, Event as EventCore, ClNullEventPtr, ClWaitListPtr};
 
     /// An enum which can represent several different ways of representing a
     /// event wait list.
@@ -108,6 +108,14 @@ mod types {
         RefEventList(Ref<'a, EventList>),
         RefTraitObj(Ref<'a, ClWaitListPtr>),
         BoxTraitObj(Box<ClWaitListPtr>),
+    }
+
+    impl<'a> ClWaitListPtrEnum<'a> {
+        pub fn into_marker(self, queue: &Queue) -> OclResult<Event> {
+            let mut event = Event::empty();
+            queue.enqueue_marker(Some(self), Some(&mut event))
+                .map(|_| event)
+        }
     }
 
     unsafe impl<'a> ClWaitListPtr for ClWaitListPtrEnum<'a> {

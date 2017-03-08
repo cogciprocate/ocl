@@ -1,27 +1,20 @@
 //! Types related to futures and asynchrony.
 
 mod error;
-mod lock_simple;
+// mod lock_simple;
 mod lock;
 mod future_mem_map;
 mod read_completion;
-mod rw_vec;
+// mod rw_vec;
 
 
 use std;
-// use futures::future::Result;
 use futures::future;
-
-// pub use futures::future::{result, ok, err};
+// use self::lock_simple::{LockSimple, TryLockSimple};
 pub use self::error::{Error, Result};
-
-////// [RESTORE ME]:
-// use self::lock::{Lock};
-
-use self::lock_simple::{LockSimple, TryLockSimple};
+pub use self::lock::{Lock, Guard, FutureGuard};
 pub use self::future_mem_map::FutureMemMap;
-// pub use parking_lot::{RwLockWriteGuard, RwLockReadGuard};
-pub use self::rw_vec::{RwVec};
+// pub use self::rw_vec::{RwVec};
 
 #[cfg(feature = "experimental_async_rw")]
 pub use self::read_completion::{ReadCompletion, FutureReadCompletion};
