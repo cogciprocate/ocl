@@ -6,19 +6,16 @@ mod error;
 // use self::lock1 as lock;
 mod future_mem_map;
 mod read_completion;
-// mod rw_vec;
-mod rw_vec_1;
-use self::rw_vec_1 as rw_vec;
+mod rw_vec;
+// mod rw_vec_1;
+// use self::rw_vec_1 as rw_vec;
 
 
 use std;
 use futures::future;
-// use self::lock_simple::{LockSimple, TryLockSimple};
 pub use self::error::{Error, Result};
-// pub use self::lock::{Lock, Guard, FutureGuard};
 pub use self::rw_vec::{RwVec, Guard, FutureGuard};
 pub use self::future_mem_map::FutureMemMap;
-// pub use self::rw_vec::{RwVec};
 
 #[cfg(feature = "experimental_async_rw")]
 pub use self::read_completion::{ReadCompletion, FutureReadCompletion};

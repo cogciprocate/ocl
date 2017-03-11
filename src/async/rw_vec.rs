@@ -1,34 +1,41 @@
 //! A mutex-like lock which can be shared between threads and can interact
 //! with OpenCL events.
 //!
-//!
-
-#![allow(unused_imports, dead_code)]
 
 extern crate qutex;
 
-// use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
-// use std::sync::atomic::AtomicBool;
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering::SeqCst;
-use std::cell::UnsafeCell;
-use ffi::{cl_event, c_void};
-use futures::{task, Future, Poll, Canceled, Async};
-use futures::sync::{mpsc, oneshot};
-use crossbeam::sync::SegQueue;
-use ::{OclPrm, Event, Result as OclResult};
+use futures::{task, Future, Poll, Async};
+use futures::sync::oneshot;
+use ::{Event, Result as OclResult};
 use async::{Error as AsyncError, Result as AsyncResult};
-use standard::{self, ClWaitListPtrEnum};
+use standard;
 
 pub use self::qutex::qutex::{Request, Guard, FutureGuard, Qutex};
 
-
-
-// TODO: RENAME?
+// Allows access to the data contained within a lock just like a mutex guard.
 pub struct RwGuard<T> {
     rw_vec: RwVec<T>,
+}
+
+impl<T> Deref for RwGuard<T> {
+    type Target = Vec<T>;
+
+    fn deref(&self) -> &Vec<T> {
+        unsafe { &*self.rw_vec.as_ptr() }
+    }
+}
+
+impl<T> DerefMut for RwGuard<T> {
+    fn deref_mut(&mut self) -> &mut Vec<T> {
+        unsafe { &mut *self.rw_vec.as_mut_ptr() }
+    }
+}
+
+impl<T> Drop for RwGuard<T> {
+    fn drop(&mut self) {
+        unsafe { self.rw_vec.unlock() };
+    }
 }
 
 
@@ -39,8 +46,6 @@ pub struct PendingRwGuard<T> {
     wait_event: Event,
     trigger_event: Event,
     len: usize,
-    // rx_is_complete: bool,
-    // ev_is_complete: bool,
 }
 
 impl<T> PendingRwGuard<T> {
@@ -54,8 +59,6 @@ impl<T> PendingRwGuard<T> {
             wait_event: wait_event,
             trigger_event: trigger_event,
             len: len,
-            // rx_is_complete: false,
-            // ev_is_complete: false,
         })
     }
 
@@ -66,11 +69,6 @@ impl<T> PendingRwGuard<T> {
     pub fn wait(self) -> AsyncResult<RwGuard<T>> {
         <Self as Future>::wait(self)
     }
-
-    // pub unsafe fn cell_mut(&mut self) -> Option<&mut Vec<T>> {
-    //     // self.rw_vec.as_ref().map(|l| &mut *l.inner.cell.get())
-    //     self.rw_vec.as_mut().and_then(|inner| inner.get_mut())
-    // }
 
     pub unsafe fn as_mut_ptr(&self) -> Option<*mut T> {
         self.rw_vec.as_ref().map(|rw_vec| (*rw_vec.as_mut_ptr()).as_mut_ptr())
@@ -124,9 +122,7 @@ impl<T> RwVec<T> {
 
     pub fn lock_pending_event(&self, wait_event: Event) -> OclResult<PendingRwGuard<T>> {
         let (tx, rx) = oneshot::channel();
-        // self.inner.queue.push(Request { tx: tx, wait_event: Some(wait_event.clone()) });
         unsafe { self.qutex.push_request(Request::new(tx)); }
-        // PendingRwGuard { rw_vec: Some((*self).clone()), rx: rx, wait_event: wait_event }
         PendingRwGuard::new((*self).clone().into(), rx, wait_event)
     }
 }
