@@ -4,8 +4,8 @@ use std;
 use std::ops::{Deref, DerefMut};
 use core::error::{Result as OclResult};
 use core::{self, CommandQueue as CommandQueueCore, CommandQueueInfo, CommandQueueInfoResult,
-    OpenclVersion, CommandQueueProperties, ClNullEventPtr, ClWaitListPtr};
-use standard::{Context, Device};
+    OpenclVersion, CommandQueueProperties, ClWaitListPtr};
+use standard::{Context, Device, Event};
 
 /// A command queue which manages all actions taken on kernels, buffers, and
 /// images.
@@ -47,10 +47,12 @@ impl Queue {
 
     /// Enqueues a marker command which waits for either a list of events to
     /// complete, or all previously enqueued commands to complete.
-    pub fn enqueue_marker<En, Ewl>(&self, ewait: Option<Ewl>, enew: Option<En>) -> OclResult<()>
-            where En: ClNullEventPtr, Ewl: ClWaitListPtr
+    pub fn enqueue_marker<Ewl>(&self, ewait: Option<Ewl>) -> OclResult<Event>
+            where Ewl: ClWaitListPtr
     {
-        core::enqueue_marker_with_wait_list(&self.obj_core, ewait, enew, Some(&self.device_version))
+        let mut marker_event = Event::empty();
+        core::enqueue_marker_with_wait_list(&self.obj_core, ewait, Some(&mut marker_event),
+            Some(&self.device_version)).map(|_| marker_event)
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in

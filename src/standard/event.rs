@@ -301,8 +301,8 @@ impl EventList {
     /// event in this list.
     pub fn enqueue_marker(&self, queue: &Queue) -> OclResult<Event> {
         if self.events.is_empty() { return Err("EventList::enqueue_marker: List empty.".into()); }
-        let mut marker = Event::empty();
-        queue.enqueue_marker(Some(self), Some(&mut marker)).map(|_| marker)
+        // let mut marker = Event::empty();
+        queue.enqueue_marker(Some(self))
     }
 
     #[inline]
@@ -411,8 +411,7 @@ impl RawList {
     /// event in this list.
     pub fn to_marker(&self, queue: &Queue) -> OclResult<Option<Event>> {
         if self.list.is_empty() { return Ok(None); }
-        let mut marker = Event::empty();
-        queue.enqueue_marker(Some(self), Some(&mut marker)).map(|_| Some(marker))
+        queue.enqueue_marker(Some(self)).map(|marker_event| Some(marker_event))
     }
 
     /// Enqueue a marker event representing the completion of each and every

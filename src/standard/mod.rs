@@ -112,9 +112,7 @@ mod types {
 
     impl<'a> ClWaitListPtrEnum<'a> {
         pub fn into_marker(self, queue: &Queue) -> OclResult<Event> {
-            let mut event = Event::empty();
-            queue.enqueue_marker(Some(self), Some(&mut event))
-                .map(|_| event)
+            queue.enqueue_marker(Some(self))
         }
     }
 

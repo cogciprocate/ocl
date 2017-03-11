@@ -944,9 +944,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     let wait_marker = match self.cmd.ewait {
                         Some(wl) => wl.into_marker(queue)?,
                         None => {
-                            let mut new_event = Event::empty();
-                            queue.enqueue_marker(None::<&Event>, Some(&mut new_event))?;
-                            new_event
+                            // [FIXME]: This should not be `None`.
+                            //   - This marker must represent the wait list.
+                            queue.enqueue_marker(None::<&Event>)?
                         },
                     };
 
