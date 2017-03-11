@@ -44,12 +44,13 @@ default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2", "exper
 
 
 
-# # [FIXME]: RESTORE:
+###### [FIXME (dev)]: Ensure top (`git`) line is used:
 ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core" }
 # ocl-core = { version = "0.3.2", path = "../ocl-core" }
 
 
 
+qutex = { version = "0.0.1", path = "../qutex" }
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"

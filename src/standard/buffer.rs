@@ -3,12 +3,11 @@
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-// use parking_lot::RwLockWriteGuard;
 use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, Event as EventCore, ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, Lock};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 #[cfg(feature = "experimental_async_rw")]
@@ -727,7 +726,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 /// The destination of a buffer read.
 pub enum ReadDst<'d, T> where T: 'd {
     Slice(&'d mut [T]),
-    Lock(Lock<Vec<T>>),
+    RwVec(RwVec<T>),
 }
 
 impl<'d, T> From<&'d mut [T]> for ReadDst<'d, T>  where T: OclPrm {
@@ -742,15 +741,15 @@ impl<'d, T> From<&'d mut Vec<T>> for ReadDst<'d, T>  where T: OclPrm {
     }
 }
 
-impl<'d, T> From<Lock<Vec<T>>> for ReadDst<'d, T> where T: OclPrm {
-    fn from(lock_vec: Lock<Vec<T>>) -> ReadDst<'d, T> {
-        ReadDst::Lock(lock_vec)
+impl<'d, T> From<RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
+    fn from(lock_vec: RwVec<T>) -> ReadDst<'d, T> {
+        ReadDst::RwVec(lock_vec)
     }
 }
 
-impl<'a, 'd, T> From<&'a Lock<Vec<T>>> for ReadDst<'d, T> where T: OclPrm {
-    fn from(lock_vec: &'a Lock<Vec<T>>) -> ReadDst<'d, T> {
-        ReadDst::Lock((*lock_vec).clone())
+impl<'a, 'd, T> From<&'a RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
+    fn from(lock_vec: &'a RwVec<T>) -> ReadDst<'d, T> {
+        ReadDst::RwVec(lock_vec.clone())
     }
 }
 
@@ -764,7 +763,7 @@ impl<'a, 'd, T> From<&'a Lock<Vec<T>>> for ReadDst<'d, T> where T: OclPrm {
 pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
     dst: ReadDst<'d, T>,
-    // data: Lock<T>,
+    // data: RwVec<T>,
 }
 
 impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
@@ -925,9 +924,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
         };
 
         let lock_vec = match self.dst {
-            ReadDst::Lock(lock_vec) => lock_vec,
+            ReadDst::RwVec(lock_vec) => lock_vec,
             _ => return Err("BufferReadCmd::enq: Invalid data destination kind for an
-                asynchronous enqueue. The read destination must be a 'Lock'.".into()),
+                asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
         };
 
         match self.cmd.kind {
@@ -952,15 +951,22 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     };
 
                     let guard = lock_vec.lock_pending_event(wait_marker)?;
-                    let wait_trigger = guard.trigger_event();
-                    let dst = unsafe { guard.cell_mut().expect("BufferReadCmd::enq_async: No cell.") };
+
+                    // let wait_trigger = guard.trigger_event();
+                    // let dst = unsafe { guard.cell_mut().expect("BufferReadCmd::enq_async: No cell.") };
+                    let dst = unsafe {
+                        let ptr = guard.as_mut_ptr().expect("BufferReadCmd::enq_async: \
+                            Invalid guard.");
+                        ::std::slice::from_raw_parts_mut(ptr, guard.len())
+                    };
 
                     match self.cmd.shape {
                         BufferCmdDataShape::Lin { offset } => {
                             try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
                             unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
-                                offset, dst.as_mut_slice(), Some(wait_trigger), Some(&mut read_event))?; }
+                                offset, dst,
+                                Some(guard.trigger_event()), Some(&mut read_event))?; }
                         },
                         BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                             src_row_pitch_bytes, src_slc_pitch_bytes,
@@ -969,8 +975,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                             unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
                                 false, src_origin, dst_origin, region, src_row_pitch_bytes,
                                 src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                                dst.as_mut_slice(),
-                                Some(wait_trigger), Some(&mut read_event))?; }
+                                dst,
+                                Some(guard.trigger_event()), Some(&mut read_event))?; }
                         }
                     }
 
@@ -983,8 +989,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         unsafe { self_enew.clone_from(&read_event) }
                     }
 
-                    // Keep lock_vec write-locked:
-                    ::std::mem::forget(dst);
+                    // // Keep lock_vec write-locked:
+                    // ::std::mem::forget(dst);
                 }
 
                 Ok(FutureReadCompletion::new(lock_vec, Event::from(read_event)))
