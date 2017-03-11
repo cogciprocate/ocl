@@ -137,6 +137,12 @@ impl<T> From<Qutex<Vec<T>>> for RwVec<T> {
     }
 }
 
+impl<T> From<Vec<T>> for RwVec<T> {
+    fn from(vec: Vec<T>) -> RwVec<T> {
+        RwVec { qutex: Qutex::new(vec) }
+    }
+}
+
 impl<T> Deref for RwVec<T> {
     type Target = Qutex<Vec<T>>;
 
