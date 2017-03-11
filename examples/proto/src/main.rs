@@ -46,7 +46,7 @@ use chrono::{Duration, DateTime, Local, Timelike};
 use futures::{Future, Join, AndThen};
 use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
-    FutureMemMap, MemMap, Lock};
+    FutureMemMap, MemMap, RwVec};
 use ocl::traits::{IntoMarker, IntoRawList};
 use ocl::async::{Error as AsyncError, Result as AsyncResult, FutureReadCompletion, ReadCompletion};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
@@ -251,7 +251,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
 /// successfully. This will use the common queue for the read and a dedicated
 /// queue for the verification completion event (used to signal the next
 /// command in the chain).
-pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &Lock<Vec<Int4>>, common_queue: &Queue,
+pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: &Queue,
         verify_init_queue: &Queue,
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
@@ -490,7 +490,7 @@ pub fn main() {
         .arg_buf(&dst_buf);
 
     // A lockable vector for non-map reads.
-    let rw_vec: Lock<Vec<Int4>> = Lock::from(vec![Default::default(); WORK_SIZE]);
+    let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); WORK_SIZE]);
 
     // Thread pool for offloaded tasks.
     let thread_pool = CpuPool::new_num_cpus();
