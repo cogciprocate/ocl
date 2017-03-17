@@ -31,7 +31,7 @@
 
 
 #![allow(unused_imports, unused_variables)]
-#![feature(conservative_impl_trait, unboxed_closures)]
+// #![feature(conservative_impl_trait, unboxed_closures)]
 
 extern crate chrono;
 extern crate futures;
@@ -43,12 +43,12 @@ use std::fmt::Debug;
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc::{self, Receiver};
 use chrono::{Duration, DateTime, Local, Timelike};
-use futures::{Future, Join, AndThen};
+use futures::{Future, Join, AndThen, BoxFuture};
 use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
     FutureMemMap, MemMap, RwVec};
 use ocl::traits::{IntoMarker, IntoRawList};
-use ocl::async::{Error as AsyncError, Result as AsyncResult, PendingRwGuard, RwGuard /*FutureReadCompletion, ReadCompletion*/};
+use ocl::async::{Error as AsyncError, Result as AsyncResult, PendingRwGuard, RwGuard};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Int4;
 use ocl::ffi::{cl_event, c_void};
@@ -197,11 +197,12 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
-            impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
+        // -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
+        //     impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
+        -> BoxFuture<i32, AsyncError>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(teal_bold: "* Write init complete \t(iter: {}, t: {}s)",
+        printlnc!(teal_bold: "* Write init complete \t\t(iter: {}, t: {}s)",
             task_iter as usize, timestamp());
     }
 
@@ -224,8 +225,8 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
         task_iter as *mut c_void).unwrap(); }
 
-    let write = future_write_data.and_then(move |mut data| {
-        printlnc!(teal_bold: "* Write init starting \t(iter: {}, t: {}s) ...",
+    future_write_data.and_then(move |mut data| {
+        printlnc!(teal_bold: "* Write init starting \t\t(iter: {}, t: {}s) ...",
             task_iter, timestamp());
 
         for val in data.iter_mut() {
@@ -239,9 +240,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         data.unmap().queue(&write_init_unmap_queue).enq()?;
 
         Ok(task_iter)
-    });
-
-    write
+    }).boxed()
 }
 
 
@@ -256,11 +255,12 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> AndThen<PendingRwGuard<Int4>, AsyncResult<i32>,
-            impl FnOnce(RwGuard<Int4>) -> AsyncResult<i32>>
+        // -> AndThen<PendingRwGuard<Int4>, AsyncResult<i32>,
+        //     impl FnOnce(RwGuard<Int4>) -> AsyncResult<i32>>
+        -> BoxFuture<i32, AsyncError>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(lime_bold: "* Verify-init starting \t(iter: {}, t: {}s) ...",
+        printlnc!(blue_bold: "* Verify init starting \t\t(iter: {}, t: {}s) ...",
             task_iter as usize, timestamp());
     }
 
@@ -269,18 +269,23 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
     // event.
     let wait_list = [&verify_init_event.as_ref(), &write_init_event].into_raw_list();
 
-    // Create a marker so we can print the status message:
-    let verify_init_wait_marker = wait_list.to_marker(&verify_init_queue).unwrap();
+    // // Create a marker so we can print the status message:
+    // let verify_init_wait_marker = wait_list.to_marker(&verify_init_queue).unwrap();
 
-    // Attach a status message printing callback to what approximates the
-    // verify_init wait (start-time) event:
-    unsafe { verify_init_wait_marker.as_ref().unwrap()
-        .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
+    // // Attach a status message printing callback to what approximates the
+    // // verify_init wait (start-time) event:
+    // unsafe { verify_init_wait_marker.as_ref().unwrap()
+    //     .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
     let mut future_read_data = src_buf.cmd().read(dst_vec)
         .queue(common_queue)
         .ewait(&wait_list)
         .enq_async().unwrap();
+
+    // Attach a status message printing callback to what approximates the
+    // verify_init start-time event:
+    unsafe { future_read_data.command_trigger_event()
+        .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
     *verify_init_event = Some(future_read_data.create_drop_event(verify_init_queue)
@@ -296,16 +301,16 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
             if *val != cval {
-                return Err(format!("Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
+                return Err(format!("Verify init: Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
             }
             val_count += 1;
         }
 
-        printlnc!(lime_bold: "* Verify-init complete \t(iter: {}, t: {}s)",
+        printlnc!(blue_bold: "* Verify init complete \t\t(iter: {}, t: {}s)",
             task_iter, timestamp());
 
         Ok(val_count)
-    })
+    }).boxed()
 }
 
 
@@ -377,11 +382,12 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
-            impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
+        // -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
+        //     impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
+        -> BoxFuture<i32, AsyncError>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(lime_bold: "* Verify add starting \t(iter: {}, t: {}s) ...",
+        printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}, t: {}s) ...",
             task_iter as usize, timestamp());
     }
 
@@ -397,18 +403,20 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     // Set the read unmap completion event:
     *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
 
-    let read = future_read_data.and_then(move |mut data| {
+    future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
-            let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
+            // let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
+            let cval = Int4::splat(correct_val);
             if *val != cval {
-                return Err(format!("Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
+                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]", 
+                    val, cval, idx).into());
             }
             val_count += 1;
         }
 
-        printlnc!(lime_bold: "* Verify add complete \t(iter: {}, t: {}s)",
+        printlnc!(lime_bold: "* Verify add complete \t\t(iter: {}, t: {}s)",
             task_iter, timestamp());
 
         // Explicitly enqueue the unmap with our dedicated queue,
@@ -417,9 +425,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         data.unmap().queue(&verify_add_unmap_queue).enq()?;
 
         Ok(val_count)
-    });
-
-    read
+    }).boxed()
 }
 
 
@@ -558,32 +564,34 @@ pub fn main() {
             &mut verify_add_event,
             tval, task_iter);
 
-        // let join = write_init.join(verify_add);
-        let join = write_init.join3(verify_init, verify_add);
-        let join_spawned = thread_pool.spawn(join);
-
         printlnc!(orange: "All commands for iteration {} enqueued    (t: {}s)",
             task_iter, timestamp());
 
-        // This places our already spawned and running task into the queue for
-        // later collection by our completion thread. This call will block if
-        // the queue is full, preventing us from unnecessarily queuing up
-        // cycles too far in advance.
-        tx.send(Some(join_spawned)).unwrap();
+        // let join = write_init.join3(verify_init, verify_add);
+        // let join_spawned = thread_pool.spawn(join);
+
+        // // This places our already spawned and running task into the queue for
+        // // later collection by our completion thread. This call will block if
+        // // the queue is full, preventing us from unnecessarily queuing up
+        // // cycles too far in advance.
+        // tx.send(Some(join_spawned)).unwrap();
 
 
         ////// [DEBUG]:
-        // fill_event.as_ref().unwrap().wait_for().unwrap();
-        // write_init.wait().unwrap();
-        // verify_init.wait().unwrap();
-        // kernel_event.as_ref().unwrap().wait_for().unwrap();
-        // verify_add.wait().unwrap();
+            fill_event.as_ref().unwrap().wait_for().unwrap();
+            write_init.wait().unwrap();
+            verify_init.wait().unwrap();
+            kernel_event.as_ref().unwrap().wait_for().unwrap();
+            verify_add.wait().unwrap();
 
-        // let join = write_init.join3(verify_init, verify_add);
-        // let join_spawned = thread_pool.spawn(join);
-        // tx.send(Some(join_spawned)).unwrap();
+            // let join = write_init.join3(verify_init, verify_add);
+            // let join_spawned = thread_pool.spawn(join);
+            // tx.send(Some(join_spawned)).unwrap();
 
-        // tx.send(None::<CpuFuture<(), AsyncResult<()>>>).unwrap();
+            continue;
+
+            tx.send(None::<CpuFuture<(), AsyncResult<()>>>).unwrap();
+        ///////
     }
 
     tx.send(None).unwrap();

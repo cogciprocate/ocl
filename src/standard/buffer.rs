@@ -951,7 +951,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
                         unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
-                            offset, dst, Some(guard.command_trigger()), Some(&mut read_event))?; }
+                            offset, dst, Some(guard.command_trigger_event()), Some(&mut read_event))?; }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes,
@@ -960,7 +960,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            dst, Some(guard.command_trigger()), Some(&mut read_event))?; }
+                            dst, Some(guard.command_trigger_event()), Some(&mut read_event))?; }
                     }
                 }
 
@@ -973,7 +973,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     unsafe { self_enew.clone_from(&read_event) }
                 }
 
-                guard.set_command_completion(read_event);
+                guard.set_command_completion_event(read_event);
                 Ok(guard)
             },
             _ => unreachable!(),

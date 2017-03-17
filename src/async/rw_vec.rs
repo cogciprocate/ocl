@@ -106,7 +106,7 @@ impl<T> PendingRwGuard<T> {
     }
 
     /// Sets the command completion event.
-    pub fn set_command_completion(&mut self, command_completion: Event) {
+    pub fn set_command_completion_event(&mut self, command_completion: Event) {
         self.command_completion = Some(command_completion);
     }
 
@@ -132,7 +132,7 @@ impl<T> PendingRwGuard<T> {
 
     /// Returns a reference to the event which will trigger when the wait
     /// marker is complete and the qutex is locked.
-    pub fn command_trigger(&self) -> &Event {
+    pub fn command_trigger_event(&self) -> &Event {
         &self.command_trigger
     }
 

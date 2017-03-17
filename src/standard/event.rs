@@ -409,6 +409,7 @@ impl RawList {
     pub fn push<E>(&mut self, e: E) where E: AsRef<EventCore> {
         if (self.count as usize) < self.list.len() {
             self.list[(self.count as usize)] = unsafe { *e.as_ref().as_ptr_ref() };
+            self.count += 1;
         } else {
             panic!("RawList::push: List is full.");
         }
