@@ -957,7 +957,7 @@ impl Event {
     /// set from the host side (that means you).
     ///
     #[inline]
-    pub fn user(context: &Context) -> OclResult<Event> {
+    pub fn user<C: ClContextPtr>(context: C) -> OclResult<Event> {
         functions::create_user_event(context)
     }
 
