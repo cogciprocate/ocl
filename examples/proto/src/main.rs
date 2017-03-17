@@ -48,7 +48,7 @@ use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
     FutureMemMap, MemMap, RwVec};
 use ocl::traits::{IntoMarker, IntoRawList};
-use ocl::async::{Error as AsyncError, Result as AsyncResult, FutureReadCompletion, ReadCompletion};
+use ocl::async::{Error as AsyncError, Result as AsyncResult, PendingRwGuard, RwGuard /*FutureReadCompletion, ReadCompletion*/};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Int4;
 use ocl::ffi::{cl_event, c_void};
@@ -256,8 +256,8 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> AndThen<FutureReadCompletion<Int4>, AsyncResult<i32>,
-            impl FnOnce(ReadCompletion<Int4>) -> AsyncResult<i32>>
+        -> AndThen<PendingRwGuard<Int4>, AsyncResult<i32>,
+            impl FnOnce(RwGuard<Int4>) -> AsyncResult<i32>>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Verify-init starting \t(iter: {}, t: {}s) ...",
@@ -283,14 +283,14 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         .enq_async().unwrap();
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_init_event = Some(future_read_data.create_triggerable_event(verify_init_queue)
+    *verify_init_event = Some(future_read_data.create_drop_event(verify_init_queue)
         .unwrap().clone());
 
     // The future which will actually verify the initial value:
-    future_read_data.and_then(move |rw_vec| {
-        println!("Attempting to lock RwVec for reading...");
-        let data = rw_vec.lock().wait().unwrap();
-        println!("RwVec read lock established.");
+    future_read_data.and_then(move |data| {
+        // println!("Attempting to lock RwVec for reading...");
+        // let data = rw_vec.lock().wait().unwrap();
+        // println!("RwVec read lock established.");
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {

@@ -7,11 +7,11 @@ use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, Event as EventCore, ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, PendingRwGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
-#[cfg(feature = "experimental_async_rw")]
-use async::FutureReadCompletion;
+// #[cfg(feature = "experimental_async_rw")]
+// use async::FutureReadCompletion;
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -723,7 +723,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 }
 
 
-/// The destination of a buffer read.
+/// The data destination for a buffer read command.
 pub enum ReadDst<'d, T> where T: 'd {
     Slice(&'d mut [T]),
     RwVec(RwVec<T>),
@@ -917,7 +917,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     ///
     #[allow(unused_unsafe)]
     #[cfg(feature = "experimental_async_rw")]
-    pub fn enq_async(mut self) -> OclResult<FutureReadCompletion<T>> {
+    pub fn enq_async(mut self) -> OclResult<PendingRwGuard<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -931,59 +931,50 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
         match self.cmd.kind {
             BufferCmdKind::Read => {
+                let wait_marker = match self.cmd.ewait {
+                    Some(wl) => Some(wl.into_marker(queue)?),
+                    None => None,
+                };
+
+                let mut guard = rw_vec.lock_pending_event(queue.context_ptr()?, wait_marker)?;               
+
+                let dst = unsafe {
+                    let ptr = guard.as_mut_ptr().expect("BufferReadCmd::enq_async: \
+                        Invalid guard.");
+                    ::std::slice::from_raw_parts_mut(ptr, guard.len())
+                };
+
                 let mut read_event = Event::empty();
 
-                {
-                    // ////// [DEBUG]:
-                    //     println!("Wait List: {:?}", &self.cmd.ewait);
-                    //     println!("Attempting to lock Vec for writing...");
-                    // //////
+                match self.cmd.shape {
+                    BufferCmdDataShape::Lin { offset } => {
+                        try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
-                    let wait_marker = match self.cmd.ewait {
-                        Some(wl) => Some(wl.into_marker(queue)?),
-                        None => None,
-                    };
-
-                    let guard = rw_vec.lock_pending_event(queue.context_ptr()?, wait_marker)?;
-
-                    let dst = unsafe {
-                        let ptr = guard.as_mut_ptr().expect("BufferReadCmd::enq_async: \
-                            Invalid guard.");
-                        ::std::slice::from_raw_parts_mut(ptr, guard.len())
-                    };
-
-                    match self.cmd.shape {
-                        BufferCmdDataShape::Lin { offset } => {
-                            try!(check_len(self.cmd.mem_len, dst.len(), offset));
-
-                            unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
-                                offset, dst, Some(guard.trigger_event()), Some(&mut read_event))?; }
-                        },
-                        BufferCmdDataShape::Rect { src_origin, dst_origin, region,
-                            src_row_pitch_bytes, src_slc_pitch_bytes,
-                                dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
-                        {
-                            unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
-                                false, src_origin, dst_origin, region, src_row_pitch_bytes,
-                                src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                                dst, Some(guard.trigger_event()), Some(&mut read_event))?; }
-                        }
+                        unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
+                            offset, dst, Some(guard.command_trigger()), Some(&mut read_event))?; }
+                    },
+                    BufferCmdDataShape::Rect { src_origin, dst_origin, region,
+                        src_row_pitch_bytes, src_slc_pitch_bytes,
+                            dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
+                    {
+                        unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
+                            false, src_origin, dst_origin, region, src_row_pitch_bytes,
+                            src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
+                            dst, Some(guard.command_trigger()), Some(&mut read_event))?; }
                     }
-
-                    ////// [DEBUG]:
-                        println!("Read command enqueued.");
-                    //////
-
-                    if let Some(ref mut self_enew) = self.cmd.enew.take() {
-                        // read_event/self_enew refcount: 2
-                        unsafe { self_enew.clone_from(&read_event) }
-                    }
-
-                    // // Keep rw_vec write-locked:
-                    // ::std::mem::forget(dst);
                 }
 
-                Ok(FutureReadCompletion::new(rw_vec, read_event))
+                ////// [DEBUG]:
+                    println!("Read command enqueued.");
+                //////
+
+                if let Some(ref mut self_enew) = self.cmd.enew.take() {
+                    // read_event/self_enew refcount: 2
+                    unsafe { self_enew.clone_from(&read_event) }
+                }
+
+                guard.set_command_completion(read_event);
+                Ok(guard)
             },
             _ => unreachable!(),
         }
