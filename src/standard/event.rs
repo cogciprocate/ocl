@@ -39,6 +39,21 @@ impl Event {
         self.0.is_null()
     }
 
+    /// Sets a callback function to trigger upon completion of this event
+    /// which will unpark the current task.
+    ///
+    /// To be used within the context of a futures task.
+    ///
+    /// ## Panics
+    ///
+    /// This function will panic if a task is not currently being executed.
+    /// That is, this method can be dangerous to call outside of an
+    /// implementation of poll.
+    pub fn set_unpark_callback(&self) -> OclResult<()> {
+        let task_ptr = box_raw_void(task::park());
+        unsafe { self.set_callback(_unpark_task, task_ptr) }
+    }
+
     /// Returns info about the event.
     pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
         core::get_event_info(&self.0, info_kind)

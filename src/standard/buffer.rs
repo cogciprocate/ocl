@@ -742,14 +742,14 @@ impl<'d, T> From<&'d mut Vec<T>> for ReadDst<'d, T>  where T: OclPrm {
 }
 
 impl<'d, T> From<RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
-    fn from(lock_vec: RwVec<T>) -> ReadDst<'d, T> {
-        ReadDst::RwVec(lock_vec)
+    fn from(rw_vec: RwVec<T>) -> ReadDst<'d, T> {
+        ReadDst::RwVec(rw_vec)
     }
 }
 
 impl<'a, 'd, T> From<&'a RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
-    fn from(lock_vec: &'a RwVec<T>) -> ReadDst<'d, T> {
-        ReadDst::RwVec(lock_vec.clone())
+    fn from(rw_vec: &'a RwVec<T>) -> ReadDst<'d, T> {
+        ReadDst::RwVec(rw_vec.clone())
     }
 }
 
@@ -923,15 +923,15 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             None => return Err("BufferCmd::enq: No queue set.".into()),
         };
 
-        let lock_vec = match self.dst {
-            ReadDst::RwVec(lock_vec) => lock_vec,
+        let rw_vec = match self.dst {
+            ReadDst::RwVec(rw_vec) => rw_vec,
             _ => return Err("BufferReadCmd::enq: Invalid data destination kind for an
                 asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
         };
 
         match self.cmd.kind {
             BufferCmdKind::Read => {
-                let mut read_event = EventCore::null();
+                let mut read_event = Event::empty();
 
                 {
                     // ////// [DEBUG]:
@@ -944,8 +944,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         None => None,
                     };
 
-                    // FIXME: PASS A CONTEXT ALWAYS (from queue)
-                    let guard = lock_vec.lock_pending_event(queue.context_ptr()?, wait_marker)?;
+                    let guard = rw_vec.lock_pending_event(queue.context_ptr()?, wait_marker)?;
 
                     let dst = unsafe {
                         let ptr = guard.as_mut_ptr().expect("BufferReadCmd::enq_async: \
@@ -980,11 +979,11 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         unsafe { self_enew.clone_from(&read_event) }
                     }
 
-                    // // Keep lock_vec write-locked:
+                    // // Keep rw_vec write-locked:
                     // ::std::mem::forget(dst);
                 }
 
-                Ok(FutureReadCompletion::new(lock_vec, Event::from(read_event)))
+                Ok(FutureReadCompletion::new(rw_vec, read_event))
             },
             _ => unreachable!(),
         }

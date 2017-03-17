@@ -122,8 +122,9 @@ impl<T> Future for FutureReadCompletion<T> where T: OclPrm {
                     })
             },
             Ok(false) => {
-                let task_ptr = box_raw_void(task::park());
-                unsafe { self.read_event.set_callback(_unpark_task, task_ptr)?; };
+                // let task_ptr = box_raw_void(task::park());
+                // unsafe { self.read_event.set_callback(_unpark_task, task_ptr)?; };
+                self.read_event.set_unpark_callback()?;
                 Ok(Async::NotReady)
             },
             Err(err) => Err(err.into()),

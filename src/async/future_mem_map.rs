@@ -1,9 +1,9 @@
 
-use futures::{task, Future, Poll, Async};
+use futures::{/*task,*/ Future, Poll, Async};
 
 use core::{/*self,*/ Event as EventCore, OclPrm, MemMap as MemMapCore, Mem,
     /*CommandQueueInfo, CommandQueueInfoResult*/};
-use standard::{box_raw_void, _unpark_task, MemMap, Event, Queue,};
+use standard::{/*box_raw_void, _unpark_task,*/ MemMap, Event, Queue,};
 use super::{Error as AsyncError, Result as AsyncResult};
 
 
@@ -85,11 +85,12 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
             }
             Ok(false) => {
                 if !self.callback_is_set {
-                    unsafe {
-                        // println!("Setting callback...");
-                        self.map_event.set_callback(_unpark_task,
-                            box_raw_void(task::park()))?;
-                    }
+                    // unsafe {
+                    //     // println!("Setting callback...");
+                    //     self.map_event.set_callback(_unpark_task,
+                    //         box_raw_void(task::park()))?;
+                    // }
+                    self.map_event.set_unpark_callback()?;
                     // println!("Task callback is set for event: {:?}.", self.map_event);
                     self.callback_is_set = true;
                 }
