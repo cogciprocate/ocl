@@ -30,13 +30,12 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 # drivers).
 event_callbacks = []
 
-# Allows use of unstable experimental types and functions for to reading from
-# and writing to buffers.
-experimental_async_rw = []
+# # Allows use of unstable experimental types and functions for to reading from
+# # and writing to buffers.
+# experimental_async_rw = []
 
 
-# default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
-default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2", "experimental_async_rw"]
+default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
 
 
 [dependencies]

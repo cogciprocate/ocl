@@ -10,9 +10,6 @@ use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, PendingRwGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
-// #[cfg(feature = "experimental_async_rw")]
-// use async::FutureReadCompletion;
-
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     if offset >= mem_len {
@@ -915,8 +912,6 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// A data destination container appropriate for an asynchronous operation
     /// must have been passed to `::read`.
     ///
-    #[allow(unused_unsafe)]
-    #[cfg(feature = "experimental_async_rw")]
     pub fn enq_async(mut self) -> OclResult<PendingRwGuard<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
@@ -963,10 +958,6 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                             dst, Some(guard.command_trigger_event()), Some(&mut read_event))?; }
                     }
                 }
-
-                ////// [DEBUG]:
-                    println!("Read command enqueued.");
-                //////
 
                 if let Some(ref mut self_enew) = self.cmd.enew.take() {
                     // read_event/self_enew refcount: 2
@@ -1129,8 +1120,6 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     }
 
     /// Enqueues this command.
-    #[allow(unused_unsafe)]
-    #[cfg(feature = "experimental_async_rw")]
     pub fn enq_async(self) -> OclResult<()> {
         let queue = match self.cmd.queue {
             Some(q) => q,

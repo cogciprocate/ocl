@@ -1,21 +1,12 @@
 //! Cyclical asynchronous pipelined processing.
 //!
 //! For many tasks, a single, cyclical pipeline is necessary (think graphics).
-//! This examples shows how to fully saturate the OpenCL device and as many
-//! CPU threads as necessary while ensuring that tasks that depend on a
-//! previous task completing do not begin before they should. Combine this
-//! approach with a temporal dependency graph such as the `CommandGraph` in
-//! the `ocl-extras` crate to create arbitrarily complex cyclical task 'webs'
-//! that fully saturate all available resources.
-//!
-//! The dependency chain in this example is simple and linear:
-//!
-//! Map-Write-Unmap -> Kernel -> Map-Read/Verify-Unmap
-//!
-//! The Map-Write must only wait upon the previous iteration's Kernel to run.
-//! The Kernel must wait on the **current** iteration's Map-Write as well as
-//! the **previous** iteration's Map-read. And the Map-read only depends on
-//! the current iteration's Kernel.
+//! This examples shows how to saturate the OpenCL device and as many CPU
+//! threads as necessary while ensuring that tasks that depend on a previous
+//! task completing do not begin before they should. Combine this approach
+//! with a temporal dependency graph such as the `CommandGraph` in the
+//! `ocl-extras` crate to create arbitrarily complex cyclical task 'webs' that
+//! fully saturate all available resources.
 //!
 //! OpenCL events are used to synchronize commands amongst themselves and with
 //! the processing chores being run on the CPU pool. A sync channel is used to
@@ -25,12 +16,10 @@
 //!
 //! Each command only needs to wait for the completion of the command(s)
 //! immediately before and immediately after it. This is a key part of the
-//! design of the aforementioned `CommandGraph` but we're managing the events
-//! manually here for demonstration.
+//! design of the aforementioned `CommandGraph` but here we're managing the
+//! events manually for demonstration.
 //!
 
-
-#![allow(unused_imports, unused_variables)]
 // #![feature(conservative_impl_trait, unboxed_closures)]
 
 extern crate chrono;
@@ -42,13 +31,12 @@ extern crate ocl;
 use std::fmt::Debug;
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc::{self, Receiver};
-use chrono::{Duration, DateTime, Local, Timelike};
-use futures::{Future, Join, AndThen, BoxFuture};
+use chrono::{Duration, DateTime, Local};
+use futures::{Future, BoxFuture};
 use futures_cpupool::{CpuPool, CpuFuture};
-use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, EventList, Buffer, OclPrm,
-    FutureMemMap, MemMap, RwVec};
-use ocl::traits::{IntoMarker, IntoRawList};
-use ocl::async::{Error as AsyncError, Result as AsyncResult, PendingRwGuard, RwGuard};
+use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
+use ocl::traits::{IntoRawList};
+use ocl::async::{Error as AsyncError};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Int4;
 use ocl::ffi::{cl_event, c_void};
@@ -67,13 +55,14 @@ const TASK_ITERS: i32 = 10;
 // has the effect of increasing the number of threads in use at any one time.
 // It does not necessarily mean that those threads will be able to do work
 // yet. Because the task in this example has only three CPU-side processing
-// stages, raising this number above that has no effect on the overall
-// performance but could induce extra latency if this example were processing
-// input. If more (CPU-bound) steps were added, a larger queue would mean more
-// in-flight tasks at a time and therefore more stages being processed
-// concurrently. Note that regardless of where this is set, an unlimited
-// number of things may be happening concurrently on the OpenCL device(s).
-const MAX_CONCURRENT_TASK_COUNT: usize = 3;
+// stages, only two of which can act concurrently, raising this number above
+// two has no effect on the overall performance but could induce extra latency
+// if this example were processing input. If more (CPU-bound) steps were
+// added, a larger queue would mean more in-flight tasks at a time and
+// therefore more stages being processed concurrently. Note that regardless of
+// where this is set, an unlimited number of things may be happening
+// concurrently on the OpenCL device(s).
+const MAX_CONCURRENT_TASK_COUNT: usize = 2;
 
 static mut START_TIME: Option<DateTime<Local>> = None;
 
@@ -269,14 +258,6 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
     // event.
     let wait_list = [&verify_init_event.as_ref(), &write_init_event].into_raw_list();
 
-    // // Create a marker so we can print the status message:
-    // let verify_init_wait_marker = wait_list.to_marker(&verify_init_queue).unwrap();
-
-    // // Attach a status message printing callback to what approximates the
-    // // verify_init wait (start-time) event:
-    // unsafe { verify_init_wait_marker.as_ref().unwrap()
-    //     .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
-
     let mut future_read_data = src_buf.cmd().read(dst_vec)
         .queue(common_queue)
         .ewait(&wait_list)
@@ -293,9 +274,6 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
 
     // The future which will actually verify the initial value:
     future_read_data.and_then(move |data| {
-        // println!("Attempting to lock RwVec for reading...");
-        // let data = rw_vec.lock().wait().unwrap();
-        // println!("RwVec read lock established.");
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -407,7 +385,6 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
-            // let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
             let cval = Int4::splat(correct_val);
             if *val != cval {
                 return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]", 
@@ -464,8 +441,6 @@ pub fn main() {
     // operations for devices that do not already use host memory (GPUs,
     // etc.). Adding read and write only specifiers also allows for other
     // optimizations.
-    //
-    // let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only().host_write_only();
     let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only();
     let dst_buf_flags = MemFlags::new().alloc_host_ptr().write_only().host_read_only();
 
@@ -567,31 +542,14 @@ pub fn main() {
         printlnc!(orange: "All commands for iteration {} enqueued    (t: {}s)",
             task_iter, timestamp());
 
-        // let join = write_init.join3(verify_init, verify_add);
-        // let join_spawned = thread_pool.spawn(join);
+        let join = write_init.join3(verify_init, verify_add);
+        let join_spawned = thread_pool.spawn(join);
 
-        // // This places our already spawned and running task into the queue for
-        // // later collection by our completion thread. This call will block if
-        // // the queue is full, preventing us from unnecessarily queuing up
-        // // cycles too far in advance.
-        // tx.send(Some(join_spawned)).unwrap();
-
-
-        ////// [DEBUG]:
-            fill_event.as_ref().unwrap().wait_for().unwrap();
-            write_init.wait().unwrap();
-            verify_init.wait().unwrap();
-            kernel_event.as_ref().unwrap().wait_for().unwrap();
-            verify_add.wait().unwrap();
-
-            // let join = write_init.join3(verify_init, verify_add);
-            // let join_spawned = thread_pool.spawn(join);
-            // tx.send(Some(join_spawned)).unwrap();
-
-            continue;
-
-            tx.send(None::<CpuFuture<(), AsyncResult<()>>>).unwrap();
-        ///////
+        // This places our already spawned and running task into the queue for
+        // later collection by our completion thread. This call will block if
+        // the queue is full, preventing us from unnecessarily queuing up
+        // cycles too far in advance.
+        tx.send(Some(join_spawned)).unwrap();
     }
 
     tx.send(None).unwrap();
