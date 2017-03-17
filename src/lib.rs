@@ -116,8 +116,8 @@ pub mod util;
 pub use self::error::{Error, Result};
 
 pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventPtrRef, ClPlatformIdPtr,
-    ClDeviceIdPtr, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem, Program,
-    Kernel, Event, Sampler, ClVersions, AsMem, MemCmdRw, MemCmdAll, MemMap};
+    ClDeviceIdPtr, ClContextPtr, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem,
+    Program, Kernel, Event, Sampler, ClVersions, AsMem, MemCmdRw, MemCmdAll, MemMap};
 
 pub use self::types::structs::{self, OpenclVersion, ContextProperties, ImageFormat,
     ImageDescriptor, BufferRegion, ContextPropertyValue};

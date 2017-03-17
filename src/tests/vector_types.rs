@@ -15,7 +15,7 @@ fn kernel<V>(context: &Context, src: &str, buffer: &Mem, addend: V) -> Kernel
 {
     // Create program:
     let src_cstring = CString::new(src).unwrap();
-    let program = ::create_program_with_source(&context, &[src_cstring]).unwrap();
+    let program = ::create_program_with_source(context, &[src_cstring]).unwrap();
     ::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
         None, None).unwrap();
 

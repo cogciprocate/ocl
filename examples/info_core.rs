@@ -49,12 +49,12 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
     let queue = core::create_command_queue(&context, &device,
         Some(core::QUEUE_PROFILING_ENABLE)).unwrap();
     let len = DIMS[0] * DIMS[1] * DIMS[2];
-    let buffer = unsafe { core::create_buffer::<f32>(&context, core::MEM_READ_WRITE, len, None).unwrap() };
+    let buffer = unsafe { core::create_buffer::<_, f32>(&context, core::MEM_READ_WRITE, len, None).unwrap() };
 
     let image_descriptor = ImageDescriptor::new(MemObjectType::Image1d,
         DIMS[0], DIMS[1], DIMS[2], 0, 0, 0, None);
 
-    let image = unsafe { core::create_image::<u8>(&context, core::MEM_READ_WRITE,
+    let image = unsafe { core::create_image::<_, u8>(&context, core::MEM_READ_WRITE,
         &ImageFormat::new_rgba(), &image_descriptor, None, None).unwrap() };
 
     let sampler = core::create_sampler(&context, false, AddressingMode::None, FilterMode::Nearest).unwrap();

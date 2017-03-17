@@ -25,7 +25,7 @@ fn fill() {
         .unwrap();
 
     // let buffer = pro_que.create_buffer::<f32>().unwrap();
-    let buffer = unsafe { ::create_buffer::<f32>(&context, ::MEM_READ_WRITE, DATASET_SIZE, None).unwrap() };
+    let buffer = unsafe { ::create_buffer::<_, f32>(&context, ::MEM_READ_WRITE, DATASET_SIZE, None).unwrap() };
 
     // buffer.cmd().fill(5.0f32, None).enq().unwrap();
     ::enqueue_fill_buffer::<f32, _, _, _>(&queue, &buffer, 5.0f32, 0, DATASET_SIZE,

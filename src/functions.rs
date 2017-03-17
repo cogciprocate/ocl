@@ -30,17 +30,16 @@ use ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devic
     cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
     cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 use error::{Error as OclError, Result as OclResult};
-use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
-    ContextInfoResult,  MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel,
-    ClNullEventPtr, Sampler, KernelArg, DeviceType, ImageFormat,
-    ImageDescriptor, CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo,
-    PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult,
-    MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult,
-    ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo,
-    KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
-    KernelWorkGroupInfoResult, ClEventPtrRef, ClWaitListPtr, EventInfo, EventInfoResult, ProfilingInfo,
-    ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr,
-    ClPlatformIdPtr, ClDeviceIdPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
+use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,
+    MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, ClNullEventPtr, Sampler,
+    KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode,
+    FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo,
+    CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo,
+    SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult,
+    KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
+    KernelWorkGroupInfoResult, ClEventPtrRef, ClWaitListPtr, EventInfo, EventInfoResult,
+    ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr,
+    ClDeviceIdPtr, ClContextPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
     CommandQueueProperties, MemMap, AsMem, MemCmdRw, MemCmdAll, Event};
 
@@ -636,18 +635,23 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
 
 
 /// Increments the reference count of a context.
-pub unsafe fn retain_context(context: &Context) -> OclResult<()> {
+pub unsafe fn retain_context<C>(context: C) -> OclResult<()> 
+        where C: ClContextPtr
+{
     eval_errcode(ffi::clRetainContext(context.as_ptr()), (), "clRetainContext", "")
 }
 
 /// Decrements reference count of a context.
-pub unsafe fn release_context(context: &Context) -> OclResult<()> {
+pub unsafe fn release_context<C>(context: C) -> OclResult<()> 
+        where C: ClContextPtr
+{
     eval_errcode(ffi::clReleaseContext(context.as_ptr()), (), "clReleaseContext", "")
 }
 
 
-fn get_context_info_unparsed(context: &Context, request: ContextInfo)
+fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
         -> OclResult<Vec<u8>>
+        where C: ClContextPtr
 {
    let mut result_size: size_t = 0;
 
@@ -714,7 +718,9 @@ fn get_context_info_unparsed(context: &Context, request: ContextInfo)
 /// Returns an error result for all the reasons listed in the SDK in addition
 /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
 /// in in the `verify_context()` documentation below.
-pub fn get_context_info(context: &Context, request: ContextInfo) -> ContextInfoResult {
+pub fn get_context_info<C>(context: C, request: ContextInfo) -> ContextInfoResult 
+        where C: ClContextPtr
+{
     ContextInfoResult::from_bytes(request, get_context_info_unparsed(context, request))
 }
 
@@ -723,7 +729,9 @@ pub fn get_context_info(context: &Context, request: ContextInfo) -> ContextInfoR
 /// Errors upon the usual OpenCL errors.
 ///
 /// Returns `None` if the context properties do not specify a platform.
-pub fn get_context_platform(context: &Context) -> OclResult<Option<PlatformId>> {
+pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>> 
+        where C: ClContextPtr
+{
     let props_raw_bytes = get_context_info_unparsed(context, ContextInfo::Properties)?;
 
     let prop = unsafe {
@@ -747,7 +755,7 @@ pub fn get_context_platform(context: &Context) -> OclResult<Option<PlatformId>> 
 // /// Returns an error result for all the reasons listed in the SDK in addition
 // /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
 // /// in in the `verify_context()` documentation below.
-// pub fn get_context_info(context: &Context, request: ContextInfo)
+// pub fn get_context_info(context: C, request: ContextInfo)
 //         -> ContextInfoResult
 // {
 //    let mut result_size: size_t = 0;
@@ -803,11 +811,12 @@ pub fn get_context_platform(context: &Context) -> OclResult<Option<PlatformId>> 
 //============================================================================
 
 /// Returns a new command queue pointer.
-pub fn create_command_queue<D: ClDeviceIdPtr>(
-            context: &Context,
+pub fn create_command_queue<C, D>(
+            context: C,
             device: D,
             properties: Option<CommandQueueProperties>,
         ) -> OclResult<CommandQueue>
+        where C: ClContextPtr, D: ClDeviceIdPtr
 {
     // Verify that the context is valid:
     try!(verify_context(context));
@@ -885,12 +894,13 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
 //============================================================================
 
 /// Returns a new buffer pointer with size (bytes): `len` * sizeof(T).
-pub unsafe fn create_buffer<T: OclPrm>(
-            context: &Context,
+pub unsafe fn create_buffer<C, T>(
+            context: C,
             flags: MemFlags,
             len: usize,
             data: Option<&[T]>,
         ) -> OclResult<Mem>
+        where C: ClContextPtr, T: OclPrm
 {
     // Verify that the context is valid:
     try!(verify_context(context));
@@ -922,11 +932,12 @@ pub unsafe fn create_buffer<T: OclPrm>(
 
 /// [UNTESTED]
 /// Return a buffer pointer from a `OpenGL` buffer object.
-pub unsafe fn create_from_gl_buffer(
-            context: &Context,
+pub unsafe fn create_from_gl_buffer<C>(
+            context: C,
             gl_object: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
+        where C: ClContextPtr
 {
     // Verify that the context is valid
     try!(verify_context(context));
@@ -945,11 +956,12 @@ pub unsafe fn create_from_gl_buffer(
 
 /// [UNTESTED]
 /// Return a renderbuffer pointer from a `OpenGL` renderbuffer object.
-pub unsafe fn create_from_gl_renderbuffer(
-            context: &Context,
+pub unsafe fn create_from_gl_renderbuffer<C>(
+            context: C,
             renderbuffer: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
+        where C: ClContextPtr
 {
     // Verify that the context is valid
     try!(verify_context(context));
@@ -972,20 +984,21 @@ pub unsafe fn create_from_gl_renderbuffer(
 /// [TODO]: If version is < 1.2, automatically use older versions.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub unsafe fn create_from_gl_texture(
-            context: &Context,
+pub unsafe fn create_from_gl_texture<C>(
+            context: C,
             texture_target: cl_GLenum,
             miplevel: cl_GLint,
             texture: cl_GLuint,
             flags: MemFlags,
             device_versions: Option<&[OpenclVersion]>,
         ) -> OclResult<Mem>
+        where C: ClContextPtr
 {
     // Verify that the context is valid
     try!(verify_context(context));
 
     // Verify device versions:
-    try!(verify_device_versions(device_versions, [1, 2], context));
+    try!(verify_device_versions(device_versions, [1, 2], &context.as_ptr()));
 
     // [TODO]: Forward old versions to these:
     // let obj_core = match image_desc.image_depth {
@@ -1020,13 +1033,14 @@ pub unsafe fn create_from_gl_texture(
 
 /// [UNTESTED] [DEPRICATED]
 /// Return a texture2D pointer from a `OpenGL` texture2D object.
-pub unsafe fn create_from_gl_texture_2d(
-            context: &Context,
+pub unsafe fn create_from_gl_texture_2d<C>(
+            context: C,
             texture_target: cl_GLenum,
             miplevel: cl_GLint,
             texture: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
+        where C: ClContextPtr
 {
     // Verify that the context is valid
     try!(verify_context(context));
@@ -1047,13 +1061,14 @@ pub unsafe fn create_from_gl_texture_2d(
 
 /// [UNTESTED] [DEPRICATED]
 /// Return a texture3D pointer from a `OpenGL` texture3D object.
-pub unsafe fn create_from_gl_texture_3d(
-            context: &Context,
+pub unsafe fn create_from_gl_texture_3d<C>(
+            context: C,
             texture_target: cl_GLenum,
             miplevel: cl_GLint,
             texture: cl_GLuint,
             flags: MemFlags
         ) -> OclResult<Mem>
+        where C: ClContextPtr
 {
     // Verify that the context is valid
     try!(verify_context(context));
@@ -1108,20 +1123,21 @@ pub fn create_sub_buffer<T: OclPrm>(
 /// [TODO]: If version is < 1.2, automatically use older versions.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub unsafe fn create_image<T: OclPrm>(
-            context: &Context,
+pub unsafe fn create_image<C, T>(
+            context: C,
             flags: MemFlags,
             format: &ImageFormat,
             desc: &ImageDescriptor,
             data: Option<&[T]>,
             device_versions: Option<&[OpenclVersion]>,
         ) -> OclResult<Mem>
+        where C: ClContextPtr, T: OclPrm
 {
     // Verify that the context is valid:
     try!(verify_context(context));
 
     // Verify device versions:
-    try!(verify_device_versions(device_versions, [1, 2], context));
+    try!(verify_device_versions(device_versions, [1, 2], &context.as_ptr()));
 
     let mut errcode: cl_int = 0;
 
@@ -1167,11 +1183,12 @@ pub unsafe fn release_mem_object(mem: &Mem) -> OclResult<()> {
 /// let img_fmts = core::get_supported_image_formats(context,
 ///    core::MEM_READ_WRITE, core::MemObjectType::Image2d)
 /// ```
-pub fn get_supported_image_formats(
-            context: &Context,
+pub fn get_supported_image_formats<C>(
+            context: C,
             flags: MemFlags,
             image_type: MemObjectType,
         ) -> OclResult<Vec<ImageFormat>>
+        where C: ClContextPtr
 {
     let mut num_image_formats = 0 as cl_uint;
 
@@ -1298,8 +1315,9 @@ pub fn set_mem_object_destructor_callback() -> OclResult<()> {
 /// Creates and returns a new sampler object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSampler.html)
-pub fn create_sampler(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
+pub fn create_sampler<C>(context: C, normalize_coords: bool, addressing_mode: AddressingMode,
             filter_mode: FilterMode) -> OclResult<Sampler>
+        where C: ClContextPtr
 {
     let mut errcode = 0;
 
@@ -1369,10 +1387,11 @@ pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
 //============================================================================
 
 /// Creates a new program.
-pub fn create_program_with_source(
-            context: &Context,
+pub fn create_program_with_source<C>(
+            context: C,
             src_strings: &[CString],
         ) -> OclResult<Program>
+        where C: ClContextPtr
 {
     // Verify that the context is valid:
     try!(verify_context(context));
@@ -1403,11 +1422,12 @@ pub fn create_program_with_source(
 ///
 /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateProgramWithBinary.html
 ///
-pub fn create_program_with_binary<D: ClDeviceIdPtr>(
-            context: &Context,
+pub fn create_program_with_binary<C, D>(
+            context: C,
             devices: &[D],
             binaries: &[&[u8]],
         ) -> OclResult<Program>
+        where C: ClContextPtr, D: ClDeviceIdPtr
 {
     // assert!(devices.len() > 0);
     // assert!(devices.len() == binaries.len());
@@ -1457,11 +1477,12 @@ pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersio
 ///
 /// [Version Controlled: OpenCL 2.1+] See module docs for more info.
 #[cfg(feature = "opencl_version_2_1")]
-pub fn create_program_with_il(
-        context: &Context,
+pub fn create_program_with_il<C>(
+        context: C,
         il: &[u8],
         device_versions: Option<&[OpenclVersion]>,
         ) -> OclResult<Program>
+        where C: ClContextPtr
 {
     verify_device_versions(device_versions, [2, 1], context)?;
 
@@ -1951,7 +1972,9 @@ pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo
 
 /// [UNTESTED]
 /// Creates an event not already associated with any command.
-pub fn create_user_event(context: &Context) -> OclResult<Event> {
+pub fn create_user_event<C>(context: C) -> OclResult<Event> 
+        where C: ClContextPtr
+{
     let mut errcode = 0;
     let event = unsafe { Event::from_raw_create_ptr(ffi::clCreateUserEvent(context.as_ptr(), &mut errcode)) };
     eval_errcode(errcode, event, "clCreateUserEvent", "")
@@ -3259,12 +3282,13 @@ pub fn get_kernel_name(kernel: &Kernel) -> String {
 ///
 /// TODO: Break out create and build parts into requisite functions then call
 /// from here.
-pub fn create_build_program<D: ClDeviceIdPtr + Debug>(
-            context: &Context,
+pub fn create_build_program<C, D>(
+            context: C,
             src_strings: &[CString],
             device_ids: Option<&[D]>,
             cmplr_opts: &CString,
         ) -> OclResult<Program>
+        where C: ClContextPtr, D: ClDeviceIdPtr + Debug
 {
     let program = try!(create_program_with_source(context, src_strings));
     try!(build_program(&program, device_ids, cmplr_opts, None, None));
@@ -3348,7 +3372,9 @@ pub fn event_is_complete<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult<bo
 /// it will stay intact for now.
 ///
 #[inline]
-pub fn verify_context(context: &Context) -> OclResult<()> {
+pub fn verify_context<C>(context: C) -> OclResult<()> 
+        where C: ClContextPtr
+{
     // context_info(context, ffi::CL_CONTEXT_REFERENCE_COUNT)
     if cfg!(release) {
         Ok(())
@@ -3388,7 +3414,7 @@ fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclResult<bool> 
 
 
 // /// Returns a list of versions for devices associated with a context.
-// pub fn get_context_device_versions(context: &Context) -> OclResult<Vec<OpenclVersion>> {
+// pub fn get_context_device_versions(context: C) -> OclResult<Vec<OpenclVersion>> {
 //     match get_context_info(context, ContextInfo::Devices) {
 //         ContextInfoResult::Devices(d) => get_device_versions(&d),
 //         _ => panic!("core::functions::get_context_device_versions(): Unexpected variant."),
@@ -3396,7 +3422,7 @@ fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclResult<bool> 
 // }
 
 // /// Returns a list of versions for devices associated with a kernel.
-// pub fn get_context_device_versions(context: &Context) -> OclResult<Vec<OpenclVersion>> {
+// pub fn get_context_device_versions(context: C) -> OclResult<Vec<OpenclVersion>> {
 //     match get_context_info(context, ContextInfo::Devices) {
 //         ContextInfoResult::Devices(d) => get_device_versions(&d),
 //         _ => panic!("core::functions::get_context_device_versions(): Unexpected variant."),
@@ -3423,7 +3449,7 @@ fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclResult<bool> 
 
 // /// Verifies context device versions.
 // fn verify_context_device_versions(device_versions: Option<&[OpenclVersion]>,
-//             reqd_version: [u16; 2], context: &Context) -> OclResult<()> {
+//             reqd_version: [u16; 2], context: C) -> OclResult<()> {
 //     let reqd_ver = OpenclVersion::from(reqd_version);
 //     match device_versions {
 //         Some(dv) => verify_versions(dv, &reqd_ver),

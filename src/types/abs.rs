@@ -118,6 +118,38 @@ pub trait ClVersions {
     }
 }
 
+impl ClVersions for cl_context {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        let devices = match functions::get_context_info(self, ContextInfo::Devices) {
+            ContextInfoResult::Devices(ds) => Ok(ds),
+            ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
+            _ => unreachable!(),
+        };
+
+        let devices = match devices {
+            Ok(d) => d,
+            Err(e) => return Err(e),
+        };
+
+        functions::device_versions(&devices)
+    }
+
+    fn platform_version(&self) -> OclResult<OpenclVersion> {
+        let devices = match functions::get_context_info(self, ContextInfo::Devices) {
+            ContextInfoResult::Devices(ds) => Ok(ds),
+            ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
+            _ => unreachable!(),
+        };
+
+        let devices = match devices {
+            Ok(d) => d,
+            Err(e) => return Err(e),
+        };
+
+        devices[0].platform_version()
+    }
+}
+
 
 /// Types with a reference to a raw event pointer.
 ///
@@ -252,6 +284,24 @@ unsafe impl<'a, P> ClDeviceIdPtr for &'a P where P: ClDeviceIdPtr {
 unsafe impl ClDeviceIdPtr for () {
     fn as_ptr(&self) -> cl_device_id {
         ptr::null_mut() as *mut _ as cl_device_id
+    }
+}
+
+/// Types with a copy of a context pointer.
+pub unsafe trait ClContextPtr: Debug + Copy {
+    fn as_ptr(&self) -> cl_context;
+}
+
+
+unsafe impl ClContextPtr for cl_context {
+    fn as_ptr(&self) -> cl_context {
+        *self
+    }
+}
+
+unsafe impl<'a> ClContextPtr for &'a cl_context {
+    fn as_ptr(&self) -> cl_context {
+        **self
     }
 }
 
@@ -486,7 +536,7 @@ impl Drop for Context {
     ///
     fn drop(&mut self) {
         unsafe {
-            if let Err(e) = functions::release_context(self) {
+            if let Err(e) = functions::release_context(self as &Context) {
                 if let OclError::Status { ref status, .. } = e {
                     if status == &Status::CL_INVALID_CONTEXT {
                         return;
@@ -503,6 +553,24 @@ impl PartialEq<Context> for Context {
         self.0 == other.0
     }
 }
+
+// unsafe impl ClContextPtr for Context {
+//     fn as_ptr(&self) -> cl_context {
+//         self.0
+//     }
+// }
+
+unsafe impl<'a> ClContextPtr for &'a Context {
+    fn as_ptr(&self) -> cl_context {
+        self.0
+    }
+}
+
+// unsafe impl<'a> ClContextPtr for &'a mut Context {
+//     fn as_ptr(&self) -> cl_context {
+//         self.0
+//     }
+// }
 
 impl ClVersions for Context {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
