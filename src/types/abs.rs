@@ -629,6 +629,11 @@ impl CommandQueue {
             _ => unreachable!(),
         }
     }
+
+    /// Returns the `cl_context` associated with this command queue.
+    pub fn context_ptr(&self) -> OclResult<cl_context> {
+        functions::get_command_queue_context_ptr(self)
+    }
 }
 
 impl Clone for CommandQueue {

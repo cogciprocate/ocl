@@ -3398,6 +3398,46 @@ fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclResult<bool> 
 }
 
 
+/// Returns the context for a command queue, bypassing extra processing.
+pub fn get_command_queue_context_ptr(queue: &CommandQueue) -> OclResult<cl_context> {
+    // let mut result_size: size_t = 0;
+
+    // let errcode = unsafe { ffi::clGetCommandQueueInfo(
+    //     queue.as_ptr() as cl_command_queue,
+    //     request as cl_command_queue_info,
+    //     0 as size_t,
+    //     0 as *mut c_void,
+    //     &mut result_size as *mut size_t,
+    // ) };
+
+    // // try!(eval_errcode(errcode, result, "clGetCommandQueueInfo", ""));
+    // if let Err(err) = eval_errcode(errcode, (), "clGetCommandQueueInfo", "") {
+    //     return CommandQueueInfoResult::Error(Box::new(err));
+    // }
+
+    // // If result size is zero, return an empty info result directly:
+    // if result_size == 0 {
+    //     return CommandQueueInfoResult::from_bytes(request, Ok(vec![]));
+    // }
+
+    // let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
+
+    let mut result = 0 as cl_context;
+    let result_size = mem::size_of::<cl_context>();
+
+    let errcode = unsafe { ffi::clGetCommandQueueInfo(
+        queue.as_ptr(),
+        CommandQueueInfo::Context as cl_command_queue_info,
+        result_size,
+        &mut result as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };
+
+    eval_errcode(errcode, result, "clGetCommandQueueInfo",
+        "functions::get_command_queue_context_ptr")
+}
+
+
 //============================================================================
 //============================================================================
 //====================== Wow, you made it this far? ==========================
