@@ -204,8 +204,6 @@ impl<T> PendingRwGuard<T> {
         match self.command_completion {
             Some(ref command_completion) => {
                 if !command_completion.is_complete()? {
-                    // let task_ptr = standard::box_raw_void(task::park());
-                    // unsafe { command_completion.set_callback(standard::_unpark_task, task_ptr)?; };
                     command_completion.set_unpark_callback()?;
                     return Ok(Async::NotReady);
                 } else {
