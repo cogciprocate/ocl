@@ -3,7 +3,7 @@ name = "ocl"
 version = "0.12.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."
-documentation = "http://doc.cogciprocate.com/ocl/ocl/index.html"
+documentation = "https://docs.rs/ocl"
 homepage = "https://github.com/cogciprocate/ocl"
 repository = "https://github.com/cogciprocate/ocl"
 readme = "README.md"
@@ -50,7 +50,7 @@ ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core"
 
 
 
-qutex = { version = "0.0.1", path = "../qutex" }
+qutex = { version = "0.0", path = "../qutex" }
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"

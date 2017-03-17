@@ -286,7 +286,8 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
     *verify_init_event = Some(future_read_data.create_triggerable_event(verify_init_queue)
         .unwrap().clone());
 
-    let read = future_read_data.and_then(move |rw_vec| {
+    // The future which will actually verify the initial value:
+    future_read_data.and_then(move |rw_vec| {
         println!("Attempting to lock RwVec for reading...");
         let data = rw_vec.lock().wait().unwrap();
         println!("RwVec read lock established.");
@@ -304,9 +305,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
             task_iter, timestamp());
 
         Ok(val_count)
-    });
-
-    read
+    })
 }
 
 

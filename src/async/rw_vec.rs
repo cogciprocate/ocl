@@ -7,10 +7,10 @@ extern crate qutex;
 use std::ops::{Deref, DerefMut};
 use futures::{task, Future, Poll, Async};
 use futures::sync::oneshot;
-use ::{Event, Result as OclResult};
+use core::ClContextPtr;
+use ::{Event, Result as OclResult, /*Context*/};
 use async::{Error as AsyncError, Result as AsyncResult};
 use standard;
-
 pub use self::qutex::qutex::{Request, Guard, FutureGuard, Qutex};
 
 // Allows access to the data contained within a lock just like a mutex guard.
@@ -34,7 +34,7 @@ impl<T> DerefMut for RwGuard<T> {
 
 impl<T> Drop for RwGuard<T> {
     fn drop(&mut self) {
-        unsafe { self.rw_vec.unlock() };
+        unsafe { self.rw_vec.unlock().expect("Error dropping RwGuard") };
     }
 }
 
@@ -43,14 +43,17 @@ impl<T> Drop for RwGuard<T> {
 pub struct PendingRwGuard<T> {
     rw_vec: Option<RwVec<T>>,
     rx: oneshot::Receiver<()>,
-    wait_event: Event,
+    wait_event: Option<Event>,
     trigger_event: Event,
     len: usize,
 }
 
 impl<T> PendingRwGuard<T> {
-    fn new(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>, wait_event: Event) -> OclResult<PendingRwGuard<T>> {
-        let trigger_event = Event::user(&wait_event.context()?)?;
+    fn new<C: ClContextPtr>(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>, context: C,
+            wait_event: Option<Event>) -> OclResult<PendingRwGuard<T>>
+    {
+        let trigger_event = Event::user(context)?;
+
         let len = unsafe { (*rw_vec.as_ptr()).len() };
 
         Ok(PendingRwGuard {
@@ -86,15 +89,24 @@ impl<T> Future for PendingRwGuard<T> {
     #[inline]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         if self.rw_vec.is_some() {
-            unsafe { self.rw_vec.as_ref().unwrap().process_queue(); }
+            unsafe { self.rw_vec.as_ref().unwrap().process_queue()
+                .expect("Error polling PendingRwGuard"); }
 
-            if !self.wait_event.is_complete()? {
-                let task_ptr = standard::box_raw_void(task::park());
-                    unsafe { self.wait_event.set_callback(standard::_unpark_task, task_ptr)?; };
-                    return Ok(Async::NotReady);
+            // Check completion of wait event, if it exists:
+            if let Some(ref wait_event) = self.wait_event {
+                if !wait_event.is_complete()? {
+                    let task_ptr = standard::box_raw_void(task::park());
+                        unsafe { wait_event.set_callback(standard::_unpark_task, task_ptr)?; };
+                        return Ok(Async::NotReady);
+                }
             }
 
+            // Wait event is complete, check for completion of the rx.
             match self.rx.poll() {
+                // If the poll returns `Async::Ready`, we have been popped
+                // from the front of the qutex queue and we now have exclusive
+                // access. Otherwise, return the `NotReady`. The rx (oneshot
+                // channel) will arrange for this task to be awakened.
                 Ok(status) => Ok(status.map(|_| {
                     RwGuard { rw_vec: self.rw_vec.take().unwrap() }
                 })),
@@ -120,10 +132,13 @@ impl<T> RwVec<T> {
         }
     }
 
-    pub fn lock_pending_event(&self, wait_event: Event) -> OclResult<PendingRwGuard<T>> {
+    pub fn lock_pending_event<C>(&self, context: C, wait_event: Option<Event>) 
+            -> OclResult<PendingRwGuard<T>>
+            where C: ClContextPtr
+    {
         let (tx, rx) = oneshot::channel();
         unsafe { self.qutex.push_request(Request::new(tx)); }
-        PendingRwGuard::new((*self).clone().into(), rx, wait_event)
+        PendingRwGuard::new((*self).clone().into(), rx, context, wait_event)
     }
 }
 

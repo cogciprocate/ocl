@@ -5,10 +5,10 @@ use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use futures::{task, Future, Poll, Async};
 use ffi::cl_event;
-use core::error::{Error as OclError, Result as OclResult};
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
-    ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef, Context,
-    CommandQueue as CommandQueueCore};
+    ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef, /*Context,*/
+    CommandQueue as CommandQueueCore, ClContextPtr};
+use core::error::{Error as OclError, Result as OclResult};
 use standard::{_unpark_task, box_raw_void, Queue};
 
 /// An event representing a command or user created event.
@@ -27,7 +27,7 @@ impl Event {
 
     /// Creates a new, empty event which must be filled by a newly initiated
     /// command, associating the event with it.
-    pub fn user(context: &Context) -> OclResult<Event> {
+    pub fn user<C: ClContextPtr>(context: C) -> OclResult<Event> {
         EventCore::user(context).map(Event)
     }
 

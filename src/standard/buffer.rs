@@ -939,21 +939,14 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     //     println!("Attempting to lock Vec for writing...");
                     // //////
 
-                    // let mut dst = lock_vec.try_write().ok_or(OclError::from("BufferReadCmd::enq_async: \
-                    //     Unable to lock the provided `Vec` read destination."))?;
                     let wait_marker = match self.cmd.ewait {
-                        Some(wl) => wl.into_marker(queue)?,
-                        None => {
-                            // [FIXME]: This should not be `None`.
-                            //   - This marker must represent the wait list.
-                            queue.enqueue_marker(None::<&Event>)?
-                        },
+                        Some(wl) => Some(wl.into_marker(queue)?),
+                        None => None,
                     };
 
-                    let guard = lock_vec.lock_pending_event(wait_marker)?;
+                    // FIXME: PASS A CONTEXT ALWAYS (from queue)
+                    let guard = lock_vec.lock_pending_event(queue.context_ptr()?, wait_marker)?;
 
-                    // let wait_trigger = guard.trigger_event();
-                    // let dst = unsafe { guard.cell_mut().expect("BufferReadCmd::enq_async: No cell.") };
                     let dst = unsafe {
                         let ptr = guard.as_mut_ptr().expect("BufferReadCmd::enq_async: \
                             Invalid guard.");
@@ -965,8 +958,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                             try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
                             unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
-                                offset, dst,
-                                Some(guard.trigger_event()), Some(&mut read_event))?; }
+                                offset, dst, Some(guard.trigger_event()), Some(&mut read_event))?; }
                         },
                         BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                             src_row_pitch_bytes, src_slc_pitch_bytes,
@@ -975,8 +967,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                             unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
                                 false, src_origin, dst_origin, region, src_row_pitch_bytes,
                                 src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                                dst,
-                                Some(guard.trigger_event()), Some(&mut read_event))?; }
+                                dst, Some(guard.trigger_event()), Some(&mut read_event))?; }
                         }
                     }
 
@@ -1409,7 +1400,7 @@ impl<T: OclPrm> Buffer<T> {
         let obj_core = match que_ctx {
             QueCtx::Queue(ref q) => unsafe { core::create_buffer(&q.context(),
                 flags, len, host_data)? },
-            QueCtx::Context(ref c) => unsafe { core::create_buffer(c,
+            QueCtx::Context(c) => unsafe { core::create_buffer(c,
                 flags, len, host_data)? },
         };
 
@@ -1465,7 +1456,7 @@ impl<T: OclPrm> Buffer<T> {
 
         let obj_core = match que_ctx {
             QueCtx::Queue(ref q) => unsafe { core::create_from_gl_buffer(&q.context(), gl_object, flags)? },
-            QueCtx::Context(ref c) => unsafe { core::create_from_gl_buffer(c, gl_object, flags)? },
+            QueCtx::Context(c) => unsafe { core::create_from_gl_buffer(c, gl_object, flags)? },
         };
 
         let buf = Buffer {
