@@ -623,11 +623,7 @@ impl CommandQueue {
 
     /// Returns the `Context` associated with this command queue.
     pub fn context(&self) -> OclResult<Context> {
-        match functions::get_command_queue_info(self, CommandQueueInfo::Context) {
-            CommandQueueInfoResult::Context(c) => Ok(c),
-            CommandQueueInfoResult::Error(e) => Err(OclError::from(*e)),
-            _ => unreachable!(),
-        }
+        self.context_ptr().map(|ptr| unsafe { Context::from_raw_copied_ptr(ptr) })
     }
 
     /// Returns the `cl_context` associated with this command queue.
