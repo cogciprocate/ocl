@@ -10,108 +10,6 @@ use core::error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier};
 
 
-/// A builder for `Context`.
-///
-/// * TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
-#[must_use = "builders do nothing unless '::build' is called"]
-pub struct ContextBuilder {
-    properties: ContextProperties,
-    device_spec: Option<DeviceSpecifier>,
-}
-
-impl ContextBuilder {
-    /// Creates a new `ContextBuilder`
-    ///
-    /// Use `Context::builder().build().unwrap()` for defaults.
-    ///
-    /// ## Defaults
-    ///
-    /// * The first avaliable platform
-    /// * All devices associated with the first available platform
-    /// * No notify callback function or user data.
-    ///
-    /// * TODO:
-    ///   - That stuff above (find a valid context, devices, etc. first thing).
-    ///   - Handle context creation callbacks.
-    ///
-    pub fn new() -> ContextBuilder {
-        let properties = ContextProperties::new()
-            .platform::<PlatformIdCore>(Platform::default().into());
-
-        ContextBuilder {
-            properties: properties,
-            device_spec: None,
-        }
-    }
-
-    /// Returns a new `Context` with the parameters hitherinforthto specified (say what?).
-    ///
-    /// Returns a newly created context with the specified platform and set of device types.
-    pub fn build(&self) -> OclResult<Context> {
-        Context::new(Some(self.properties.clone()), self.device_spec.clone(), None, None)
-    }
-
-    /// Specify context properties directly.
-    ///
-    /// Overwrites any previously specified properties.
-    ///
-    pub fn properties<'a>(&'a mut self, properties: ContextProperties) -> &'a mut ContextBuilder {
-        self.properties = properties;
-        self
-    }
-
-    /// Specify a context property.
-    ///
-    /// Overwrites any property with the same variant (i.e.: if
-    /// `ContextPropertyValue::Platform` was already set, it would be
-    /// overwritten if `prop_val` is also `ContextPropertyValue::Platform`).
-    ///
-    pub fn property<'a>(&'a mut self, prop_val: ContextPropertyValue) -> &'a mut ContextBuilder {
-        self.properties.set_property_value(prop_val);
-        self
-    }
-
-    /// Specifies a platform.
-    ///
-    /// Overwrites any previously specified platform.
-    ///
-    pub fn platform(&mut self, platform: Platform) -> &mut ContextBuilder {
-        self.properties.set_platform(platform);
-        self
-    }
-
-    /// Specifies an OpenGL context to associate with.
-    ///
-    /// Overwrites any previously specified OpenGL context.
-    ///
-    pub fn gl_context(&mut self, gl_handle: u32) -> &mut ContextBuilder {
-        self.properties.set_gl_context(gl_handle);
-        self
-    }
-
-    /// Specifies a list of devices with which to associate the context.
-    ///
-    /// Devices may be specified in any number of ways including simply
-    /// passing a device or slice of devices. See the [`impl From`] section of
-    /// [`DeviceSpecifier`][device_specifier] for more information.
-    ///
-    ///
-    /// ## Panics
-    ///
-    /// Devices must not have already been specified.
-    ///
-    /// [device_specifier_from]: enum.DeviceSpecifier.html#method.from
-    /// [device_specifier]: enum.DeviceSpecifier.html
-    ///
-    pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
-            -> &mut ContextBuilder
-    {
-        assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
-        self.device_spec = Some(device_spec.into());
-        self
-    }
-}
-
 
 /// A context for a particular platform and set of device types.
 ///
@@ -315,5 +213,109 @@ impl DerefMut for Context {
 unsafe impl<'a> ClContextPtr for &'a Context {
     fn as_ptr(&self) -> cl_context {
         self.0.as_ptr()
+    }
+}
+
+
+
+/// A builder for `Context`.
+///
+/// * TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
+#[must_use = "builders do nothing unless '::build' is called"]
+pub struct ContextBuilder {
+    properties: ContextProperties,
+    device_spec: Option<DeviceSpecifier>,
+}
+
+impl ContextBuilder {
+    /// Creates a new `ContextBuilder`
+    ///
+    /// Use `Context::builder().build().unwrap()` for defaults.
+    ///
+    /// ## Defaults
+    ///
+    /// * The first avaliable platform
+    /// * All devices associated with the first available platform
+    /// * No notify callback function or user data.
+    ///
+    /// * TODO:
+    ///   - That stuff above (find a valid context, devices, etc. first thing).
+    ///   - Handle context creation callbacks.
+    ///
+    pub fn new() -> ContextBuilder {
+        let properties = ContextProperties::new()
+            .platform::<PlatformIdCore>(Platform::default().into());
+
+        ContextBuilder {
+            properties: properties,
+            device_spec: None,
+        }
+    }
+
+    /// Returns a new `Context` with the parameters hitherinforthto specified (say what?).
+    ///
+    /// Returns a newly created context with the specified platform and set of device types.
+    pub fn build(&self) -> OclResult<Context> {
+        Context::new(Some(self.properties.clone()), self.device_spec.clone(), None, None)
+    }
+
+    /// Specify context properties directly.
+    ///
+    /// Overwrites any previously specified properties.
+    ///
+    pub fn properties<'a>(&'a mut self, properties: ContextProperties) -> &'a mut ContextBuilder {
+        self.properties = properties;
+        self
+    }
+
+    /// Specify a context property.
+    ///
+    /// Overwrites any property with the same variant (i.e.: if
+    /// `ContextPropertyValue::Platform` was already set, it would be
+    /// overwritten if `prop_val` is also `ContextPropertyValue::Platform`).
+    ///
+    pub fn property<'a>(&'a mut self, prop_val: ContextPropertyValue) -> &'a mut ContextBuilder {
+        self.properties.set_property_value(prop_val);
+        self
+    }
+
+    /// Specifies a platform.
+    ///
+    /// Overwrites any previously specified platform.
+    ///
+    pub fn platform(&mut self, platform: Platform) -> &mut ContextBuilder {
+        self.properties.set_platform(platform);
+        self
+    }
+
+    /// Specifies an OpenGL context to associate with.
+    ///
+    /// Overwrites any previously specified OpenGL context.
+    ///
+    pub fn gl_context(&mut self, gl_handle: u32) -> &mut ContextBuilder {
+        self.properties.set_gl_context(gl_handle);
+        self
+    }
+
+    /// Specifies a list of devices with which to associate the context.
+    ///
+    /// Devices may be specified in any number of ways including simply
+    /// passing a device or slice of devices. See the [`impl From`] section of
+    /// [`DeviceSpecifier`][device_specifier] for more information.
+    ///
+    ///
+    /// ## Panics
+    ///
+    /// Devices must not have already been specified.
+    ///
+    /// [device_specifier_from]: enum.DeviceSpecifier.html#method.from
+    /// [device_specifier]: enum.DeviceSpecifier.html
+    ///
+    pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
+            -> &mut ContextBuilder
+    {
+        assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
+        self.device_spec = Some(device_spec.into());
+        self
     }
 }

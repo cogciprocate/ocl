@@ -16,6 +16,124 @@ use core::ClVersions;
 use standard::{Context, Device, DeviceSpecifier};
 
 
+/// A program from which kernels can be created from.
+///
+/// To use with multiple devices, create manually with `::from_parts()`.
+///
+/// ## Destruction
+///
+/// Handled automatically. Feel free to store, clone, and share among threads
+/// as you please.
+///
+#[derive(Clone, Debug)]
+pub struct Program(ProgramCore);
+
+impl Program {
+    /// Returns a new `ProgramBuilder`.
+    pub fn builder() -> ProgramBuilder {
+        ProgramBuilder::new()
+    }
+
+    /// Returns a new program built from pre-created build components and device
+    /// list.
+    ///
+    /// Prefer `::builder` to create a new `Program`.
+    ///
+    pub fn new(context_obj_core: &ContextCore, src_strings: Vec<CString>,
+            device_ids: Option<&[Device]>, cmplr_opts: CString) -> OclResult<Program>
+    {
+        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, device_ids,
+            &cmplr_opts));
+
+        Ok(Program(obj_core))
+    }
+
+    /// Returns a new program built from pre-created build components and device
+    /// list for programs with intermediate language byte source.
+    #[cfg(feature = "opencl_version_2_1")]
+    pub fn with_il(il: Vec<u8>, device_ids: Option<&[Device]>, cmplr_opts: CString,
+            context_obj_core: &ContextCore) -> OclResult<Program>
+    {
+        let device_versions = context_obj_core.device_versions()?;
+
+        let obj_core = core::create_program_with_il(context_obj_core, &il, Some(&device_versions))?;
+
+        core::build_program(&obj_core, device_ids, &cmplr_opts, None, None)?;
+
+        // let devices = context_obj_core.devices()?.into_iter().map(|d| d.into()).collect();
+
+        Ok(Program(obj_core))
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
+    pub fn core_as_ref(&self) -> &ProgramCore {
+        &self.0
+    }
+
+    /// Returns a reference to the core pointer wrapper, usable by functions in
+    /// the `core` module.
+    #[inline]
+    pub fn core(&self) -> &ProgramCore {
+        &self.0
+    }
+
+    /// Returns the list of devices associated with this program.
+    #[deprecated(since="0.13.0", note="Use `::info` with `ProgramInfo::Devices` instead.")]
+    pub fn devices(&self) -> Vec<Device> {
+        unimplemented!();
+    }
+
+    /// Returns info about this program.
+    pub fn info(&self, info_kind: ProgramInfo) -> ProgramInfoResult {
+        core::get_program_info(&self.0, info_kind)
+    }
+
+    /// Returns info about this program's build.
+    ///
+    /// * TODO: Check that device is valid.
+    pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo) -> ProgramBuildInfoResult {
+        core::get_program_build_info(&self.0, &device, info_kind)
+    }
+
+    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Program")
+            .field("ReferenceCount", &self.info(ProgramInfo::ReferenceCount))
+            .field("Context", &self.info(ProgramInfo::Context))
+            .field("NumDevices", &self.info(ProgramInfo::NumDevices))
+            .field("Devices", &self.info(ProgramInfo::Devices))
+            .field("Source", &self.info(ProgramInfo::Source))
+            .field("BinarySizes", &self.info(ProgramInfo::BinarySizes))
+            .field("Binaries", &self.info(ProgramInfo::Binaries))
+            .field("NumKernels", &self.info(ProgramInfo::NumKernels))
+            .field("KernelNames", &self.info(ProgramInfo::KernelNames))
+            .finish()
+    }
+}
+
+
+impl std::fmt::Display for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.fmt_info(f)
+    }
+}
+
+impl Deref for Program {
+    type Target = ProgramCore;
+
+    fn deref(&self) -> &ProgramCore {
+        &self.0
+    }
+}
+
+impl DerefMut for Program {
+    fn deref_mut(&mut self) -> &mut ProgramCore {
+        &mut self.0
+    }
+}
+
+
 /// A build option used by ProgramBuilder.
 ///
 /// Strings intended for use either by the compiler as a command line switch
@@ -111,7 +229,6 @@ impl ProgramBuilder {
             },
         }
     }
-
 
     /// Returns a newly built Program.
     ///
@@ -348,122 +465,3 @@ impl ProgramBuilder {
     }
 }
 
-
-
-
-/// A program from which kernels can be created from.
-///
-/// To use with multiple devices, create manually with `::from_parts()`.
-///
-/// ## Destruction
-///
-/// Handled automatically. Feel free to store, clone, and share among threads
-/// as you please.
-///
-#[derive(Clone, Debug)]
-pub struct Program(ProgramCore);
-
-impl Program {
-    /// Returns a new `ProgramBuilder`.
-    pub fn builder() -> ProgramBuilder {
-        ProgramBuilder::new()
-    }
-
-    /// Returns a new program built from pre-created build components and device
-    /// list.
-    ///
-    /// Prefer `::builder` to create a new `Program`.
-    ///
-    pub fn new(context_obj_core: &ContextCore, src_strings: Vec<CString>,
-            device_ids: Option<&[Device]>, cmplr_opts: CString) -> OclResult<Program>
-    {
-        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, device_ids,
-            &cmplr_opts));
-
-        Ok(Program(obj_core))
-    }
-
-    /// Returns a new program built from pre-created build components and device
-    /// list for programs with intermediate language byte source.
-    #[cfg(feature = "opencl_version_2_1")]
-    pub fn with_il(il: Vec<u8>, device_ids: Option<&[Device]>, cmplr_opts: CString,
-            context_obj_core: &ContextCore) -> OclResult<Program>
-    {
-        let device_versions = context_obj_core.device_versions()?;
-
-        let obj_core = core::create_program_with_il(context_obj_core, &il, Some(&device_versions))?;
-
-        core::build_program(&obj_core, device_ids, &cmplr_opts, None, None)?;
-
-        // let devices = context_obj_core.devices()?.into_iter().map(|d| d.into()).collect();
-
-        Ok(Program(obj_core))
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
-    pub fn core_as_ref(&self) -> &ProgramCore {
-        &self.0
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
-    #[inline]
-    pub fn core(&self) -> &ProgramCore {
-        &self.0
-    }
-
-    /// Returns the list of devices associated with this program.
-    #[deprecated(since="0.13.0", note="Use `::info` with `ProgramInfo::Devices` instead.")]
-    pub fn devices(&self) -> Vec<Device> {
-        unimplemented!();
-    }
-
-    /// Returns info about this program.
-    pub fn info(&self, info_kind: ProgramInfo) -> ProgramInfoResult {
-        core::get_program_info(&self.0, info_kind)
-    }
-
-    /// Returns info about this program's build.
-    ///
-    /// * TODO: Check that device is valid.
-    pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo) -> ProgramBuildInfoResult {
-        core::get_program_build_info(&self.0, &device, info_kind)
-    }
-
-    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("Program")
-            .field("ReferenceCount", &self.info(ProgramInfo::ReferenceCount))
-            .field("Context", &self.info(ProgramInfo::Context))
-            .field("NumDevices", &self.info(ProgramInfo::NumDevices))
-            .field("Devices", &self.info(ProgramInfo::Devices))
-            .field("Source", &self.info(ProgramInfo::Source))
-            .field("BinarySizes", &self.info(ProgramInfo::BinarySizes))
-            .field("Binaries", &self.info(ProgramInfo::Binaries))
-            .field("NumKernels", &self.info(ProgramInfo::NumKernels))
-            .field("KernelNames", &self.info(ProgramInfo::KernelNames))
-            .finish()
-    }
-}
-
-
-impl std::fmt::Display for Program {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_info(f)
-    }
-}
-
-impl Deref for Program {
-    type Target = ProgramCore;
-
-    fn deref(&self) -> &ProgramCore {
-        &self.0
-    }
-}
-
-impl DerefMut for Program {
-    fn deref_mut(&mut self) -> &mut ProgramCore {
-        &mut self.0
-    }
-}

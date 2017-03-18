@@ -74,184 +74,6 @@ impl<'o> From<QueCtx<'o>> for Option<Queue> {
 }
 
 
-
-
-/// A buffer builder.
-///
-/// * TODO: Add examples and details. For now see project examples folder.
-///
-#[must_use = "builders do nothing unless '::build' is called"]
-#[derive(Debug)]
-pub struct BufferBuilder<'a, T> where T: 'a {
-    queue_option: Option<QueCtx<'a>>,
-    flags: Option<MemFlags>,
-    host_data: Option<&'a [T]>,
-    dims: Option<SpatialDims>,
-    fill_val: Option<(T, Option<ClNullEventPtrEnum<'a>>)>
-}
-
-impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
-    /// Returns a new buffer builder.
-    pub fn new() -> BufferBuilder<'a, T> {
-        BufferBuilder {
-            queue_option: None,
-            flags: None,
-            host_data: None,
-            dims: None,
-            fill_val: None,
-        }
-    }
-
-    /// Sets the context with which to associate the buffer.
-    ///
-    /// May not be used in combination with `::queue` (use one or the other).
-    pub fn context<'o>(mut self, context: &'o Context) -> BufferBuilder<'a, T>
-            where 'o: 'a
-    {
-        assert!(self.queue_option.is_none());
-        self.queue_option = Some(QueCtx::Context(context));
-        self
-    }
-
-    /// Sets the default queue.
-    ///
-    /// If this is set, the context associated with the `default_queue` will
-    /// be used when creating the buffer (use one or the other).
-    pub fn queue<'b>(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
-        assert!(self.queue_option.is_none());
-        self.queue_option = Some(QueCtx::Queue(default_queue));
-        self
-    }
-
-    /// Sets the flags used when creating the buffer.
-    ///
-    /// Defaults to `flags::MEM_READ_WRITE` aka. `MemFlags::new().read_write()`
-    /// if this is not set. See the [SDK Docs] for more information about
-    /// flags. Note that the `host_ptr` mentioned in the [SDK Docs] is
-    /// equivalent to the slice optionally passed as the `host_data` argument.
-    /// Also note that the names of all flags in this library have the `CL_`
-    /// prefix removed for brevity.
-    ///
-    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub fn flags<'b>(mut self, flags: MemFlags) -> BufferBuilder<'a, T> {
-        self.flags = Some(flags);
-        self
-    }
-
-    /// A slice use to designate a region of memory for use in combination of
-    /// one of the two following flags:
-    ///
-    /// * `flags::MEM_USE_HOST_PTR` aka. `MemFlags::new().use_host_ptr()`:
-    ///   * This flag is valid only if `host_data` is not `None`. If
-    ///     specified, it indicates that the application wants the OpenCL
-    ///     implementation to use memory referenced by `host_data` as the
-    ///     storage bits for the memory object (buffer/image).
-    ///   * OpenCL implementations are allowed to cache the buffer contents
-    ///     pointed to by `host_data` in device memory. This cached copy can
-    ///     be used when kernels are executed on a device.
-    ///   * The result of OpenCL commands that operate on multiple buffer
-    ///     objects created with the same `host_data` or overlapping host
-    ///     regions is considered to be undefined.
-    ///   * Refer to the [description of the alignment][align_rules] rules for
-    ///     `host_data` for memory objects (buffer and images) created using
-    ///     `MEM_USE_HOST_PTR`.
-    ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
-    ///
-    /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
-    ///   * This flag is valid only if `host_data` is not NULL. If specified, it
-    ///     indicates that the application wants the OpenCL implementation to
-    ///     allocate memory for the memory object and copy the data from
-    ///     memory referenced by `host_data`.
-    ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
-    ///     exclusive.
-    ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to
-    ///     initialize the contents of the cl_mem object allocated using
-    ///     host-accessible (e.g. PCIe) memory.
-    ///
-    /// Note: Descriptions adapted from:
-    /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
-    ///
-    ///
-    /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
-    /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub fn host_data<'d>(mut self, host_data: &'d [T]) -> BufferBuilder<'a, T>
-            where 'd: 'a
-    {
-        self.host_data = Some(host_data);
-        self
-    }
-
-    /// Sets the dimensions for this buffer.
-    ///
-    /// Typically a single integer value to set the total length is used
-    /// however up to three dimensions may be specified in order to more
-    /// easily coordinate with kernel work sizes.
-    ///
-    /// Note that although sizes in the standard OpenCL API are expressed in
-    /// bytes, sizes, lengths, and dimensions in this library are always
-    /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
-    /// otherwise noted.
-    pub fn dims<'b, D>(mut self, dims: D) -> BufferBuilder<'a, T>
-            where D: Into<SpatialDims>
-    {
-        self.dims = Some(dims.into());
-        self
-    }
-
-    /// Allows the caller to automatically fill the buffer with a value (such
-    /// as zero) immediately after creation.
-    ///
-    /// Platforms that have trouble with `clEnqueueFillBuffer` such as
-    /// [pocl](http://portablecl.org/) should not use this option and should
-    /// handle initializing buffers manually (using a kernel or copy host data
-    /// flag).
-    ///
-    /// The `enew` argument is provided to allow an empty event to be
-    /// associated with the `fill` command which will be enqueued after
-    /// creation and just before returning the new buffer. It is up to the
-    /// caller to ensure that the command has completed before performing any
-    /// other operations on the buffer. Failure to do so may cause the fill
-    /// command to run **after** subsequently queued commands if multiple or
-    /// out-of-order queues are being used. Passing `None` for `enew` (use
-    /// `None::<()>` to avoid the the type inference error) will cause the
-    /// fill command to block before returning the new buffer and is the safe
-    /// option if you don't want to worry about it.
-    ///
-    /// ### Examples
-    ///
-    /// * TODO: Provide examples once this stabilizes.
-    ///
-    ///
-    /// [UNSTABLE]: May be changed or removed.
-    pub fn fill_val<'b, 'e, En>(mut self, fill_val: T, enew: Option<En>)
-            -> BufferBuilder<'a, T>
-            where 'e: 'a, En: Into<ClNullEventPtrEnum<'e>>
-    {
-        self.fill_val = Some((fill_val, enew.map(|e| e.into())));
-        self
-    }
-
-    /// Creates a buffer and returns it.
-    ///
-    /// Dimensions and either a context or default queue must be specified
-    /// before calling `::build`.
-    pub fn build(self) -> OclResult<Buffer<T>> {
-        match self.queue_option {
-            Some(qo) => {
-                let dims = match self.dims {
-                    Some(d) => d,
-                    None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
-                };
-
-                Buffer::new(qo, self.flags, dims, self.host_data, self.fill_val)
-            },
-            None => panic!("ocl::BufferBuilder::build: A context or default queue must be set \
-                with '.context(...)' or '.queue(...)'."),
-        }
-    }
-}
-
-
 /// The type of operation to be performed by a command.
 pub enum BufferCmdKind<'c, T> where T: 'c {
     Unspecified,
@@ -1983,3 +1805,182 @@ unsafe impl<'a, T> MemCmdRw for &'a mut SubBuffer<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdAll for SubBuffer<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdAll for &'a SubBuffer<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdAll for &'a mut SubBuffer<T> where T: OclPrm {}
+
+
+
+
+
+/// A buffer builder.
+///
+/// * TODO: Add examples and details. For now see project examples folder.
+///
+#[must_use = "builders do nothing unless '::build' is called"]
+#[derive(Debug)]
+pub struct BufferBuilder<'a, T> where T: 'a {
+    queue_option: Option<QueCtx<'a>>,
+    flags: Option<MemFlags>,
+    host_data: Option<&'a [T]>,
+    dims: Option<SpatialDims>,
+    fill_val: Option<(T, Option<ClNullEventPtrEnum<'a>>)>
+}
+
+impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
+    /// Returns a new buffer builder.
+    pub fn new() -> BufferBuilder<'a, T> {
+        BufferBuilder {
+            queue_option: None,
+            flags: None,
+            host_data: None,
+            dims: None,
+            fill_val: None,
+        }
+    }
+
+    /// Sets the context with which to associate the buffer.
+    ///
+    /// May not be used in combination with `::queue` (use one or the other).
+    pub fn context<'o>(mut self, context: &'o Context) -> BufferBuilder<'a, T>
+            where 'o: 'a
+    {
+        assert!(self.queue_option.is_none());
+        self.queue_option = Some(QueCtx::Context(context));
+        self
+    }
+
+    /// Sets the default queue.
+    ///
+    /// If this is set, the context associated with the `default_queue` will
+    /// be used when creating the buffer (use one or the other).
+    pub fn queue<'b>(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
+        assert!(self.queue_option.is_none());
+        self.queue_option = Some(QueCtx::Queue(default_queue));
+        self
+    }
+
+    /// Sets the flags used when creating the buffer.
+    ///
+    /// Defaults to `flags::MEM_READ_WRITE` aka. `MemFlags::new().read_write()`
+    /// if this is not set. See the [SDK Docs] for more information about
+    /// flags. Note that the `host_ptr` mentioned in the [SDK Docs] is
+    /// equivalent to the slice optionally passed as the `host_data` argument.
+    /// Also note that the names of all flags in this library have the `CL_`
+    /// prefix removed for brevity.
+    ///
+    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    pub fn flags<'b>(mut self, flags: MemFlags) -> BufferBuilder<'a, T> {
+        self.flags = Some(flags);
+        self
+    }
+
+    /// A slice use to designate a region of memory for use in combination of
+    /// one of the two following flags:
+    ///
+    /// * `flags::MEM_USE_HOST_PTR` aka. `MemFlags::new().use_host_ptr()`:
+    ///   * This flag is valid only if `host_data` is not `None`. If
+    ///     specified, it indicates that the application wants the OpenCL
+    ///     implementation to use memory referenced by `host_data` as the
+    ///     storage bits for the memory object (buffer/image).
+    ///   * OpenCL implementations are allowed to cache the buffer contents
+    ///     pointed to by `host_data` in device memory. This cached copy can
+    ///     be used when kernels are executed on a device.
+    ///   * The result of OpenCL commands that operate on multiple buffer
+    ///     objects created with the same `host_data` or overlapping host
+    ///     regions is considered to be undefined.
+    ///   * Refer to the [description of the alignment][align_rules] rules for
+    ///     `host_data` for memory objects (buffer and images) created using
+    ///     `MEM_USE_HOST_PTR`.
+    ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
+    ///
+    /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
+    ///   * This flag is valid only if `host_data` is not NULL. If specified, it
+    ///     indicates that the application wants the OpenCL implementation to
+    ///     allocate memory for the memory object and copy the data from
+    ///     memory referenced by `host_data`.
+    ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
+    ///     exclusive.
+    ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to
+    ///     initialize the contents of the cl_mem object allocated using
+    ///     host-accessible (e.g. PCIe) memory.
+    ///
+    /// Note: Descriptions adapted from:
+    /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
+    ///
+    ///
+    /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
+    /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    pub fn host_data<'d>(mut self, host_data: &'d [T]) -> BufferBuilder<'a, T>
+            where 'd: 'a
+    {
+        self.host_data = Some(host_data);
+        self
+    }
+
+    /// Sets the dimensions for this buffer.
+    ///
+    /// Typically a single integer value to set the total length is used
+    /// however up to three dimensions may be specified in order to more
+    /// easily coordinate with kernel work sizes.
+    ///
+    /// Note that although sizes in the standard OpenCL API are expressed in
+    /// bytes, sizes, lengths, and dimensions in this library are always
+    /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
+    /// otherwise noted.
+    pub fn dims<'b, D>(mut self, dims: D) -> BufferBuilder<'a, T>
+            where D: Into<SpatialDims>
+    {
+        self.dims = Some(dims.into());
+        self
+    }
+
+    /// Allows the caller to automatically fill the buffer with a value (such
+    /// as zero) immediately after creation.
+    ///
+    /// Platforms that have trouble with `clEnqueueFillBuffer` such as
+    /// [pocl](http://portablecl.org/) should not use this option and should
+    /// handle initializing buffers manually (using a kernel or copy host data
+    /// flag).
+    ///
+    /// The `enew` argument is provided to allow an empty event to be
+    /// associated with the `fill` command which will be enqueued after
+    /// creation and just before returning the new buffer. It is up to the
+    /// caller to ensure that the command has completed before performing any
+    /// other operations on the buffer. Failure to do so may cause the fill
+    /// command to run **after** subsequently queued commands if multiple or
+    /// out-of-order queues are being used. Passing `None` for `enew` (use
+    /// `None::<()>` to avoid the the type inference error) will cause the
+    /// fill command to block before returning the new buffer and is the safe
+    /// option if you don't want to worry about it.
+    ///
+    /// ### Examples
+    ///
+    /// * TODO: Provide examples once this stabilizes.
+    ///
+    ///
+    /// [UNSTABLE]: May be changed or removed.
+    pub fn fill_val<'b, 'e, En>(mut self, fill_val: T, enew: Option<En>)
+            -> BufferBuilder<'a, T>
+            where 'e: 'a, En: Into<ClNullEventPtrEnum<'e>>
+    {
+        self.fill_val = Some((fill_val, enew.map(|e| e.into())));
+        self
+    }
+
+    /// Creates a buffer and returns it.
+    ///
+    /// Dimensions and either a context or default queue must be specified
+    /// before calling `::build`.
+    pub fn build(self) -> OclResult<Buffer<T>> {
+        match self.queue_option {
+            Some(qo) => {
+                let dims = match self.dims {
+                    Some(d) => d,
+                    None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
+                };
+
+                Buffer::new(qo, self.flags, dims, self.host_data, self.fill_val)
+            },
+            None => panic!("ocl::BufferBuilder::build: A context or default queue must be set \
+                with '.context(...)' or '.queue(...)'."),
+        }
+    }
+}

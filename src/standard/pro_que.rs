@@ -12,6 +12,187 @@ static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions sp
 
 const DEBUG_PRINT: bool = false;
 
+
+/// An all-in-one chimera of the `Program`, `Queue`, `Context` and
+/// (optionally) `SpatialDims` types.
+///
+/// Handy when you only need a single context, program, and queue for your
+/// project or when using a unique context and program on each device.
+///
+/// All `ProQue` functionality is also provided separately by the `Context`, `Queue`,
+/// `Program`, and `SpatialDims` types.
+///
+///
+/// # Creation
+///
+/// There are two ways to create a `ProQue`:
+///
+/// 1. [Recommended] Use `ProQue::builder` or `ProQueBuilder::new()`.
+/// 2. Call `::new` and pass pre-created components.
+///
+///
+/// # Destruction
+///
+/// Now handled automatically. Freely use, store, clone, discard, share among
+/// threads... put some on your toast... whatever.
+///
+#[derive(Clone, Debug)]
+pub struct ProQue {
+    context: Context,
+    queue: Queue,
+    program: Program,
+    dims: Option<SpatialDims>,
+}
+
+impl ProQue {
+    /// Returns a new `ProQueBuilder`.
+    ///
+    /// This is the recommended way to create a new `ProQue`.
+    ///
+    /// Calling `ProQueBuilder::build()` will return a new `ProQue`.
+    pub fn builder() -> ProQueBuilder {
+        ProQueBuilder::new()
+    }
+
+    /// Creates a new ProQue from individual parts.
+    ///
+    /// Use `::builder` instead unless you know what you're doing. Creating
+    /// from components associated with different devices or contexts will
+    /// cause errors later on.
+    ///
+    pub fn new<D: Into<SpatialDims>>(context: Context, queue: Queue, program: Program,
+                    dims: Option<D>) -> ProQue
+    {
+        ProQue {
+            context: context,
+            queue: queue,
+            program: program,
+            dims: dims.map(|d| d.into()),
+        }
+    }
+
+    /// Creates a kernel with pre-assigned dimensions.
+    pub fn create_kernel(&self, name: &str) -> OclResult<Kernel> {
+        let kernel = Kernel::new(name.to_string(), &self.program)?
+            .queue(self.queue.clone());
+
+        match self.dims {
+            Some(d) => Ok(kernel.gws(d)),
+            None => Ok(kernel),
+        }
+    }
+
+    /// Returns a new buffer.
+    ///
+    /// The default dimensions and queue from this `ProQue` will be used.
+    ///
+    /// The buffer will be filled with zeros upon creation, blocking the
+    /// current thread until completion.
+    ///
+    /// Use `Buffer::builder()` (or `BufferBuilder::new()`) for access to the
+    /// full range of buffer creation options.
+    ///
+    /// # Errors
+    ///
+    /// This `ProQue` must have been pre-configured with default dimensions.
+    /// If not, set them with `::set_dims`, or just create a buffer using
+    /// `Buffer::builder()` instead.
+    ///
+    pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
+        let dims = try!(self.dims_result());
+        // Buffer::<T>::new(self.queue.clone(), None, dims, None)
+        // Buffer::<T>::new(self.queue.clone(), None, dims, None, None)
+        Buffer::<T>::builder()
+            .queue(self.queue.clone())
+            .dims(dims)
+            .fill_val(Default::default(), None::<&mut ::Event>)
+            .build()
+    }
+
+    /// Sets the default dimensions used when creating buffers and kernels.
+    pub fn set_dims<S: Into<SpatialDims>>(&mut self, dims: S) {
+        self.dims = Some(dims.into());
+    }
+
+    /// Returns the maximum workgroup size supported by the device associated
+    /// with this `ProQue`.
+    ///
+    /// [UNSTABLE]: Evaluate usefulness.
+    pub fn max_wg_size(&self) -> OclResult<usize> {
+        self.queue.device().max_wg_size()
+    }
+
+    /// Returns a reference to the queue associated with this ProQue.
+    pub fn queue(&self) -> &Queue {
+        &self.queue
+    }
+
+    /// Returns the contained context.
+    pub fn context(&self) -> &Context {
+        &self.context
+    }
+
+    /// Returns the current program build.
+    pub fn program(&self) -> &Program {
+        &self.program
+    }
+
+    /// Returns the current `dims` or panics.
+    ///
+    /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards this
+    /// version at the moment.
+    pub fn dims(&self) -> &SpatialDims {
+        self.dims_result().expect(DIMS_ERR_MSG)
+    }
+
+    /// Returns the current `dims` or an error.
+    ///
+    /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards the
+    /// above, panicing version at the moment.
+    pub fn dims_result(&self) -> OclResult<&SpatialDims> {
+        match self.dims {
+            Some(ref dims) => Ok(dims),
+            None => OclError::err_string(DIMS_ERR_MSG),
+        }
+    }
+}
+
+impl MemLen for ProQue {
+    fn to_len(&self) -> usize {
+        self.dims().to_len()
+    }
+    fn to_len_padded(&self, incr: usize) -> usize {
+        self.dims().to_len_padded(incr)
+    }
+    fn to_lens(&self) -> [usize; 3] {
+        self.dims_result().expect("ocl::ProQue::to_lens()")
+            .to_lens().expect("ocl::ProQue::to_lens()")
+    }
+}
+
+impl WorkDims for ProQue {
+    fn dim_count(&self) -> u32 {
+        self.dims_result().expect("ProQue::dim_count").dim_count()
+    }
+
+    fn to_work_size(&self) -> Option<[usize; 3]> {
+        self.dims_result().expect("ProQue::to_work_size").to_work_size()
+    }
+
+    fn to_work_offset(&self) -> Option<[usize; 3]> {
+        self.dims_result().expect("ProQue::to_work_offset").to_work_offset()
+    }
+}
+
+impl Deref for ProQue {
+    type Target = Queue;
+
+    fn deref(&self) -> &Queue {
+        &self.queue
+    }
+}
+
+
 /// A builder for `ProQue`.
 #[must_use = "builders do nothing unless '::build' is called"]
 pub struct ProQueBuilder {
@@ -244,183 +425,3 @@ impl ProQueBuilder {
     }
 }
 
-
-
-/// An all-in-one chimera of the `Program`, `Queue`, `Context` and
-/// (optionally) `SpatialDims` types.
-///
-/// Handy when you only need a single context, program, and queue for your
-/// project or when using a unique context and program on each device.
-///
-/// All `ProQue` functionality is also provided separately by the `Context`, `Queue`,
-/// `Program`, and `SpatialDims` types.
-///
-///
-/// # Creation
-///
-/// There are two ways to create a `ProQue`:
-///
-/// 1. [Recommended] Use `ProQue::builder` or `ProQueBuilder::new()`.
-/// 2. Call `::new` and pass pre-created components.
-///
-///
-/// # Destruction
-///
-/// Now handled automatically. Freely use, store, clone, discard, share among
-/// threads... put some on your toast... whatever.
-///
-#[derive(Clone, Debug)]
-pub struct ProQue {
-    context: Context,
-    queue: Queue,
-    program: Program,
-    dims: Option<SpatialDims>,
-}
-
-impl ProQue {
-    /// Returns a new `ProQueBuilder`.
-    ///
-    /// This is the recommended way to create a new `ProQue`.
-    ///
-    /// Calling `ProQueBuilder::build()` will return a new `ProQue`.
-    pub fn builder() -> ProQueBuilder {
-        ProQueBuilder::new()
-    }
-
-    /// Creates a new ProQue from individual parts.
-    ///
-    /// Use `::builder` instead unless you know what you're doing. Creating
-    /// from components associated with different devices or contexts will
-    /// cause errors later on.
-    ///
-    pub fn new<D: Into<SpatialDims>>(context: Context, queue: Queue, program: Program,
-                    dims: Option<D>) -> ProQue
-    {
-        ProQue {
-            context: context,
-            queue: queue,
-            program: program,
-            dims: dims.map(|d| d.into()),
-        }
-    }
-
-    /// Creates a kernel with pre-assigned dimensions.
-    pub fn create_kernel(&self, name: &str) -> OclResult<Kernel> {
-        let kernel = Kernel::new(name.to_string(), &self.program)?
-            .queue(self.queue.clone());
-
-        match self.dims {
-            Some(d) => Ok(kernel.gws(d)),
-            None => Ok(kernel),
-        }
-    }
-
-    /// Returns a new buffer.
-    ///
-    /// The default dimensions and queue from this `ProQue` will be used.
-    ///
-    /// The buffer will be filled with zeros upon creation, blocking the
-    /// current thread until completion.
-    ///
-    /// Use `Buffer::builder()` (or `BufferBuilder::new()`) for access to the
-    /// full range of buffer creation options.
-    ///
-    /// # Errors
-    ///
-    /// This `ProQue` must have been pre-configured with default dimensions.
-    /// If not, set them with `::set_dims`, or just create a buffer using
-    /// `Buffer::builder()` instead.
-    ///
-    pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
-        let dims = try!(self.dims_result());
-        // Buffer::<T>::new(self.queue.clone(), None, dims, None)
-        // Buffer::<T>::new(self.queue.clone(), None, dims, None, None)
-        Buffer::<T>::builder()
-            .queue(self.queue.clone())
-            .dims(dims)
-            .fill_val(Default::default(), None::<&mut ::Event>)
-            .build()
-    }
-
-    /// Sets the default dimensions used when creating buffers and kernels.
-    pub fn set_dims<S: Into<SpatialDims>>(&mut self, dims: S) {
-        self.dims = Some(dims.into());
-    }
-
-    /// Returns the maximum workgroup size supported by the device associated
-    /// with this `ProQue`.
-    ///
-    /// [UNSTABLE]: Evaluate usefulness.
-    pub fn max_wg_size(&self) -> OclResult<usize> {
-        self.queue.device().max_wg_size()
-    }
-
-    /// Returns a reference to the queue associated with this ProQue.
-    pub fn queue(&self) -> &Queue {
-        &self.queue
-    }
-
-    /// Returns the contained context.
-    pub fn context(&self) -> &Context {
-        &self.context
-    }
-
-    /// Returns the current program build.
-    pub fn program(&self) -> &Program {
-        &self.program
-    }
-
-    /// Returns the current `dims` or panics.
-    ///
-    /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards this
-    /// version at the moment.
-    pub fn dims(&self) -> &SpatialDims {
-        self.dims_result().expect(DIMS_ERR_MSG)
-    }
-
-    /// Returns the current `dims` or an error.
-    ///
-    /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards the
-    /// above, panicing version at the moment.
-    pub fn dims_result(&self) -> OclResult<&SpatialDims> {
-        match self.dims {
-            Some(ref dims) => Ok(dims),
-            None => OclError::err_string(DIMS_ERR_MSG),
-        }
-    }
-}
-
-impl MemLen for ProQue {
-    fn to_len(&self) -> usize {
-        self.dims().to_len()
-    }
-    fn to_len_padded(&self, incr: usize) -> usize {
-        self.dims().to_len_padded(incr)
-    }
-    fn to_lens(&self) -> [usize; 3] {
-        self.dims_result().expect("ocl::ProQue::to_lens()")
-            .to_lens().expect("ocl::ProQue::to_lens()")
-    }
-}
-
-impl WorkDims for ProQue {
-    fn dim_count(&self) -> u32 {
-        self.dims_result().expect("ProQue::dim_count").dim_count()
-    }
-
-    fn to_work_size(&self) -> Option<[usize; 3]> {
-        self.dims_result().expect("ProQue::to_work_size").to_work_size()
-    }
-
-    fn to_work_offset(&self) -> Option<[usize; 3]> {
-        self.dims_result().expect("ProQue::to_work_offset").to_work_offset()
-    }
-}
-
-impl Deref for ProQue {
-    type Target = Queue;
-
-    fn deref(&self) -> &Queue {
-        &self.queue
-    }
-}
