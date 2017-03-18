@@ -724,6 +724,13 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 pub enum ReadDst<'d, T> where T: 'd {
     Slice(&'d mut [T]),
     RwVec(RwVec<T>),
+    None,
+}
+
+impl<'d, T> ReadDst<'d, T> {
+    fn take(&mut self) -> ReadDst<'d, T> {
+        ::std::mem::replace(self, ReadDst::None)
+    }
 }
 
 impl<'d, T> From<&'d mut [T]> for ReadDst<'d, T>  where T: OclPrm {
@@ -869,41 +876,50 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
     /// Enqueues this command.
     ///
-    pub fn enq(self) -> OclResult<()> {
-        let queue = match self.cmd.queue {
-            Some(q) => q,
-            None => return Err("BufferReadCmd::enq: No queue set.".into()),
-        };
+    pub fn enq(mut self) -> OclResult<()> {
+        let read_dst = self.dst.take();
 
-        let dst = match self.dst {
-            ReadDst::Slice(slice) => slice,
-            _ => return Err("BufferReadCmd::enq: Invalid data destination kind for a synchronous \
-                enqueue. The read destination must be a mutable slice.".into()),
-        };
+        let mut enqueue_with_data = |dst: &mut [T]| {
+            let queue = match self.cmd.queue {
+                Some(q) => q,
+                None => return Err("BufferReadCmd::enq: No queue set.".into()),
+            };
 
-        match self.cmd.kind {
-            BufferCmdKind::Read => {
-                match self.cmd.shape {
-                    BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.cmd.mem_len, dst.len(), offset));
+            match self.cmd.kind {
+                BufferCmdKind::Read => {
+                    match self.cmd.shape {
+                        BufferCmdDataShape::Lin { offset } => {
+                            try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
-                        unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, self.cmd.block,
-                            offset, dst, self.cmd.ewait, self.cmd.enew) }
-                    },
-                    BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch_bytes, src_slc_pitch_bytes,
-                            dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
-                    {
-                        // Verify dims given.
-                        // try!(Ok(()));
+                            unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, self.cmd.block,
+                                offset, dst, self.cmd.ewait.take(), self.cmd.enew.take()) }
+                        },
+                        BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch_bytes, src_slc_pitch_bytes,
+                                dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
+                        {
+                            // Verify dims given.
+                            // try!(Ok(()));
 
-                        unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
-                            self.cmd.block, src_origin, dst_origin, region, src_row_pitch_bytes,
-                            src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes, dst,
-                            self.cmd.ewait, self.cmd.enew) }
+                            unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
+                                self.cmd.block, src_origin, dst_origin, region, src_row_pitch_bytes,
+                                src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes, dst,
+                                self.cmd.ewait.take(), self.cmd.enew.take()) }
+                        }
                     }
-                }
+                },
+                _ => unreachable!(),
+            }
+        };
+
+        match read_dst {
+            ReadDst::Slice(slice) => {
+                enqueue_with_data(slice)
             },
-            _ => unreachable!(),
+            ReadDst::RwVec(rw_vec) => {
+                let mut guard = rw_vec.lock().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
+                enqueue_with_data(guard.as_mut_slice())
+            },
+            ReadDst::None => panic!("Invalid read destination."),
         }
     }
 
@@ -933,11 +949,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
                 let mut guard = rw_vec.lock_pending_event(queue.context_ptr()?, wait_marker)?;               
 
-                let dst = unsafe {
-                    let ptr = guard.as_mut_ptr().expect("BufferReadCmd::enq_async: \
-                        Invalid guard.");
-                    ::std::slice::from_raw_parts_mut(ptr, guard.len())
-                };
+                let dst = unsafe { guard.as_mut_slice().expect("BufferReadCmd::enq_async: \
+                    Invalid guard.") };
 
                 let mut read_event = Event::empty();
 

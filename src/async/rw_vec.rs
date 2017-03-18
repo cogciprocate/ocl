@@ -10,7 +10,7 @@ use futures::sync::oneshot;
 use core::ClContextPtr;
 use ::{Event, Result as OclResult, Queue};
 use async::{Error as AsyncError, Result as AsyncResult};
-pub use self::qutex::qutex::{Request, Guard, FutureGuard, Qutex};
+pub use self::qutex::{Request, Guard, FutureGuard, Qutex};
 
 // Allows access to the data contained within a lock just like a mutex guard.
 pub struct RwGuard<T> {
@@ -41,19 +41,19 @@ impl<T> Deref for RwGuard<T> {
     type Target = Vec<T>;
 
     fn deref(&self) -> &Vec<T> {
-        unsafe { &*self.rw_vec.as_ptr() }
+        unsafe { &*self.rw_vec.qutex.as_ptr() }
     }
 }
 
 impl<T> DerefMut for RwGuard<T> {
     fn deref_mut(&mut self) -> &mut Vec<T> {
-        unsafe { &mut *self.rw_vec.as_mut_ptr() }
+        unsafe { &mut *self.rw_vec.qutex.as_mut_ptr() }
     }
 }
 
 impl<T> Drop for RwGuard<T> {
     fn drop(&mut self) {
-        unsafe { self.rw_vec.unlock().expect("Error dropping RwGuard") };
+        unsafe { self.rw_vec.qutex.unlock().expect("Error dropping RwGuard") };
 
         if let Some(ref de) = self.drop_event {
             if !de.is_complete().expect("ReadCompletion::drop") {
@@ -82,7 +82,7 @@ pub struct PendingRwGuard<T> {
     command_completion: Option<Event>,
     drop_event: Option<Event>,
     stage: Stage,
-    len: usize,
+    // len: usize,
 }
 
 impl<T> PendingRwGuard<T> {
@@ -91,7 +91,7 @@ impl<T> PendingRwGuard<T> {
     {
         let command_trigger = Event::user(context)?;
 
-        let len = unsafe { (*rw_vec.as_ptr()).len() };
+        // let len = unsafe { (*rw_vec.qutex.as_ptr()).len() };
 
         Ok(PendingRwGuard {
             rw_vec: Some(rw_vec),
@@ -101,7 +101,7 @@ impl<T> PendingRwGuard<T> {
             command_completion: None,
             drop_event: None,
             stage: Stage::Marker,
-            len: len,
+            // len: len,
         })
     }
 
@@ -141,11 +141,18 @@ impl<T> PendingRwGuard<T> {
     }
 
     pub unsafe fn as_mut_ptr(&self) -> Option<*mut T> {
-        self.rw_vec.as_ref().map(|rw_vec| (*rw_vec.as_mut_ptr()).as_mut_ptr())
+        self.rw_vec.as_ref().map(|rw_vec| (*rw_vec.qutex.as_mut_ptr()).as_mut_ptr())
+    }
+
+    pub unsafe fn as_mut_slice<'a, 'b>(&'a self) -> Option<&'b mut [T]> {
+        self.as_mut_ptr().map(|ptr| {
+            ::std::slice::from_raw_parts_mut(ptr, self.len())
+        })
     }
 
     pub fn len(&self) -> usize {
-        self.len
+        unsafe { (*self.rw_vec.as_ref().expect("PendingRwGuard::len: No RwVec found.")
+            .qutex.as_ptr()).len() }
     }
 
     /// Polls the wait marker event until all requisite commands have
@@ -173,7 +180,7 @@ impl<T> PendingRwGuard<T> {
         debug_assert!(self.stage == Stage::Qutex);
 
         // Move the queue along:
-        unsafe { self.rw_vec.as_ref().unwrap().process_queue()
+        unsafe { self.rw_vec.as_ref().unwrap().qutex.process_queue()
             .expect("Error polling PendingRwGuard"); }
 
         // Check for completion of the rx:
@@ -247,6 +254,12 @@ impl<T> RwVec<T> {
         }
     }
 
+    /// Returns a new `FutureGuard` which can be used as a future and will
+    /// resolve into a `Guard`.
+    pub fn lock(self) -> FutureGuard<Vec<T>> {
+        self.qutex.lock()
+    }
+
     pub fn lock_pending_event<C>(self, context: C, wait_event: Option<Event>) 
             -> OclResult<PendingRwGuard<T>>
             where C: ClContextPtr
@@ -254,6 +267,12 @@ impl<T> RwVec<T> {
         let (tx, rx) = oneshot::channel();
         unsafe { self.qutex.push_request(Request::new(tx)); }
         PendingRwGuard::new(self.into(), rx, context, wait_event)
+    }
+
+    pub unsafe fn as_mut_slice(&self) -> &mut [T] {
+        let ptr = (*self.qutex.as_mut_ptr()).as_mut_ptr();
+        let len = (*self.qutex.as_ptr()).len();
+        ::std::slice::from_raw_parts_mut(ptr, len)
     }
 }
 
@@ -269,16 +288,16 @@ impl<T> From<Vec<T>> for RwVec<T> {
     }
 }
 
-impl<T> Deref for RwVec<T> {
-    type Target = Qutex<Vec<T>>;
+// impl<T> Deref for RwVec<T> {
+//     type Target = Qutex<Vec<T>>;
 
-    fn deref(&self) -> &Qutex<Vec<T>> {
-        &self.qutex
-    }
-}
+//     fn deref(&self) -> &Qutex<Vec<T>> {
+//         &self.qutex
+//     }
+// }
 
-impl<T> DerefMut for RwVec<T> {
-    fn deref_mut(&mut self) -> &mut Qutex<Vec<T>> {
-        &mut self.qutex
-    }
-}
+// impl<T> DerefMut for RwVec<T> {
+//     fn deref_mut(&mut self) -> &mut Qutex<Vec<T>> {
+//         &mut self.qutex
+//     }
+// }
