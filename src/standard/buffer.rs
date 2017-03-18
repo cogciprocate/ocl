@@ -875,7 +875,6 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     }
 
     /// Enqueues this command.
-    ///
     pub fn enq(mut self) -> OclResult<()> {
         let read_dst = self.dst.take();
 
