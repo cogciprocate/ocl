@@ -885,6 +885,12 @@ pub mod arg_type {
     use ::{OclPrm, Result as OclResult};
     use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
+    
+    use core::{Error as OclError, Status};
+    use core::Kernel as KernelCore;
+    use standard::Sampler;
+    use super::{arg_info, arg_type_name};
+
     pub use core::{
         Char, Char2, Char3, Char4, Char8, Char16,
         Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
@@ -896,10 +902,6 @@ pub mod arg_type {
         Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
         Float, Float2, Float3, Float4, Float8, Float16,
         Double, Double2, Double3, Double4, Double8, Double16};
-
-    use core::Kernel as KernelCore;
-    use standard::Sampler;
-    use super::{arg_info, arg_type_name};
 
 
 
@@ -1013,10 +1015,22 @@ pub mod arg_type {
 
         /// Returns a new argument type specifier.
         pub fn from_kern_and_idx(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
-            let type_name = arg_type_name(core, arg_index)?;
-            ArgType::from_str(type_name.as_str())
+            match arg_type_name(core, arg_index) {
+                Ok(type_name) => ArgType::from_str(type_name.as_str()),
+                Err(err) => {
+                    if let OclError::Status { ref status, .. } = err {
+                        if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
+                            return Ok(ArgType { base_type: BaseType::Unknown, 
+                                cardinality: Cardinality::One, is_ptr: false })
+                        }
+                    }
+
+                    Err(err)
+                },
+            }
         }
 
+        /// Returns true if the type of `T` matches the base type of this `ArgType`.
         pub fn is_match<T: OclPrm + Any + 'static>(&self) -> bool {
             match self.base_type {
                 BaseType::Char => {

@@ -1,20 +1,21 @@
 //! Asynchronous read, write, and map tests.
-
-#[allow(unused_imports)]
+//!
+//! Only tests the default platform (all devices).
 
 use std::thread;
 use futures::{Future, BoxFuture};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::{IntoRawList, IntoMarker};
 use ::async::{Error as AsyncError};
-use ::flags::{MemFlags, MapFlags, CommandQueueProperties};
+use ::flags::{MemFlags, CommandQueueProperties};
 use ::prm::Int4;
 use ::ffi::{cl_event, c_void};
 
 // Size of buffers and kernel work size:
 //
 // NOTE: Intel platform drivers may intermittently crash and error with
-// `DEVICE_NOT_AVAILABLE` if this number is too low. Use AMD drivers.
+// `DEVICE_NOT_AVAILABLE` on older hardware if this number is too low. Use AMD
+// drivers.
 const WORK_SIZE: usize = 1 << 14;
 
 // Initial value and addend for this example:
@@ -124,7 +125,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
         if PRINT { println!("* Write init starting  \t(iter: {}) ...", task_iter); }
 
         for val in data.iter_mut() {
-            *val = Int4::new(write_val, write_val, write_val, write_val);
+            *val = Int4::splat(write_val);
         }
 
         Ok(())
