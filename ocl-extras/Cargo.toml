@@ -13,8 +13,9 @@ for others to use within their own projects.
 
 [dependencies.ocl]
 path = ".."
-# version = "0.12"
-version = "*"
+# git = "https://github.com/cogciprocate/ocl"
+version = "0.12"
+# version = "*"
 # default-features = false
 # features = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
 
