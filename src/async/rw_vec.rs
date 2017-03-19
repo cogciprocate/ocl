@@ -8,7 +8,7 @@ use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
 use futures::sync::oneshot;
 use core::ClContextPtr;
-use ::{Event, Result as OclResult, Queue};
+use ::{Event, /*Result as OclResult,*/ /*Queue*/};
 use async::{Error as AsyncError, Result as AsyncResult};
 pub use self::qutex::{Request, Guard, FutureGuard, Qutex};
 
@@ -95,7 +95,7 @@ pub struct PendingRwGuard<T> {
     rw_vec: Option<RwVec<T>>,
     rx: oneshot::Receiver<()>,
     wait_event: Option<Event>,
-    command_trigger: Event,
+    lock_event: Option<Event>,
     command_completion: Option<Event>,
     unlock_event: Option<Event>,
     stage: Stage,
@@ -103,62 +103,100 @@ pub struct PendingRwGuard<T> {
 }
 
 impl<T> PendingRwGuard<T> {
-    pub fn new<C: ClContextPtr>(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>, context: C,
-            wait_event: Option<Event>) -> OclResult<PendingRwGuard<T>>
+    // pub fn new<C: ClContextPtr>(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>, context: C,
+    //         wait_event: Option<Event>) -> OclResult<PendingRwGuard<T>>
+    pub fn new(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>) 
+            -> PendingRwGuard<T>
     {
-        let command_trigger = Event::user(context)?;
+        // let lock_event = Event::user(context)?;
 
         // let len = unsafe { (*rw_vec.qutex.as_ptr()).len() };
 
-        Ok(PendingRwGuard {
+        PendingRwGuard {
             rw_vec: Some(rw_vec),
             rx: rx,
-            wait_event: wait_event,
-            command_trigger: command_trigger,
+            // wait_event: wait_event,
+            wait_event: None,
+            // lock_event: lock_event,
+            lock_event: None,
             command_completion: None,
             unlock_event: None,
             stage: Stage::Marker,
             // len: len,
-        })
+        }
     }
 
-    /// Sets the command completion event.
+    /// Sets a wait event.
     ///
-    /// A command completion event corresponding to the read or write command
-    /// being executed in association with this `PendingRwGuard` must be
-    /// specified before this `PendingRwGuard` can be polled.
+    /// Setting a wait event will cause this `PendingRwGuard` to wait until
+    /// that event has its status set to complete (by polling it like any
+    /// other future) before obtaining a lock on the guarded internal `Vec`.
+    ///
+    /// If multiple wait events need waiting on, add them to an `EventList`
+    /// and enqueue a marker or create an array and use the `IntoMarker`
+    /// trait to produce a marker which can be passed here.
+    pub fn set_wait_event(&mut self, wait_event: Event) {
+        self.wait_event = Some(wait_event)
+    }
+
+    /// Sets a command completion event.
+    ///
+    /// If a command completion event corresponding to the read or write
+    /// command being executed in association with this `PendingRwGuard` is
+    /// specified before this `PendingRwGuard` is polled it will cause this
+    /// `PendingRwGuard` to suffix itself with an additional future that will
+    /// wait until the command completion event completes before resolving
+    /// into an `RwGuard`.
+    ///
+    /// Not specifying a command completion event will cause this
+    /// `PendingRwGuard` to resolve into an `RwGuard` immediately after the
+    /// lock is obtained (indicated by the optionally created lock event).
     pub fn set_command_completion_event(&mut self, command_completion: Event) {
         self.command_completion = Some(command_completion);
     }
 
-    /// Creates an event which can be 'triggered' later by having its status
-    /// set to complete.
-    ///    
-    /// This event can be added to the wait list of subsequent OpenCL commands
-    /// with the expectation that when all chained futures are complete, the
-    /// event will automatically be 'triggered' (set to complete), causing
-    /// those commands to execute. This can be used to inject host side code
-    /// in amongst OpenCL commands without thread blocking or delays of any
-    /// kind.
+    /// Creates an event which will be triggered when a lock is obtained on
+    /// the guarded internal `Vec`.
     ///
-    /// This event will be triggered after this future resolves **and** the
-    /// resulting `RwGuard` is dropped.
-    pub fn create_unlock_event(&mut self, queue: &Queue) -> AsyncResult<&mut Event> {
-        let uev = Event::user(&queue.context())?;
-        self.unlock_event = Some(uev);
-        Ok(self.unlock_event.as_mut().unwrap())
+    /// The returned event can be added to the wait list of subsequent OpenCL
+    /// commands with the expectation that when all preceeding futures are
+    /// complete, the event will automatically be 'triggered' by having its
+    /// status set to complete, causing those commands to execute. This can be
+    /// used to inject host side code in amongst OpenCL commands without
+    /// thread blocking or extra delays of any kind.
+    pub fn create_lock_event<C: ClContextPtr>(&mut self, context: C) -> AsyncResult<&Event> {
+        let lock_event = Event::user(context)?;
+        self.lock_event = Some(lock_event);
+        Ok(self.lock_event.as_mut().unwrap())
     }
 
-    /// Returns a reference to the event previously set using
-    /// `create_unlock_event`.
+    /// Creates an event which will be triggered after this future resolves
+    /// **and** the ensuing `RwGuard` is dropped or manually unlocked.
+    ///    
+    /// The returned event can be added to the wait list of subsequent OpenCL
+    /// commands with the expectation that when all preceeding futures are
+    /// complete, the event will automatically be 'triggered' by having its
+    /// status set to complete, causing those commands to execute. This can be
+    /// used to inject host side code in amongst OpenCL commands without
+    /// thread blocking or extra delays of any kind.
+    pub fn create_unlock_event<C: ClContextPtr>(&mut self, context: C) -> AsyncResult<&Event> {
+        let uev = Event::user(context)?;
+        self.unlock_event = Some(uev);
+        Ok(self.unlock_event.as_ref().unwrap())
+    }
+
+    /// Returns a reference to the event previously created with
+    /// `::create_lock_event` which will trigger (be completed) when the wait
+    /// marker is complete and the qutex is locked.
+    pub fn lock_event(&self) -> Option<&Event> {
+        self.lock_event.as_ref()
+    }
+
+    /// Returns a reference to the event previously created with
+    /// `::create_unlock_event` which will trigger (be completed) when a lock
+    /// is obtained on the guarded internal `Vec`.
     pub fn unlock_event(&self) -> Option<&Event> {
         self.unlock_event.as_ref()
-    }
-
-    /// Returns a reference to the event which will trigger when the wait
-    /// marker is complete and the qutex is locked.
-    pub fn command_trigger_event(&self) -> &Event {
-        &self.command_trigger
     }
 
     /// Blocks the current thread until the OpenCL command is complete and a 
@@ -223,7 +261,10 @@ impl<T> PendingRwGuard<T> {
             Ok(status) => {
                 match status {
                     Async::Ready(_) => {
-                        self.command_trigger.set_complete()?;
+                        // self.lock_event.set_complete()?;
+                        if let Some(ref lock_event) = self.lock_event {
+                            lock_event.set_complete()?
+                        }
                         self.stage = Stage::Command;
                         self.poll_command()
                     },
@@ -239,18 +280,28 @@ impl<T> PendingRwGuard<T> {
     fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Command);
 
-        match self.command_completion {
-            Some(ref command_completion) => {
-                if !command_completion.is_complete()? {
-                    command_completion.set_unpark_callback()?;
-                    return Ok(Async::NotReady);
-                } else {
-                    Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
-                }                
-            },
-            None => Err("PendingRwGuard::poll_command: No command event set. A command completion \
-                event must be specified using '::set_command_command_completion_event'.".into()),
+        // match self.command_completion {
+        //     Some(ref command_completion) => {
+        //         if !command_completion.is_complete()? {
+        //             command_completion.set_unpark_callback()?;
+        //             return Ok(Async::NotReady);
+        //         }
+        //         } else {
+        //             Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
+        //         }                
+        //     },
+        //     None => Err("PendingRwGuard::poll_command: No command event set. A command completion \
+        //         event must be specified using '::set_command_command_completion_event'.".into()),
+        // }
+
+        if let Some(ref command_completion) = self.command_completion {
+            if !command_completion.is_complete()? {
+                command_completion.set_unpark_callback()?;
+                return Ok(Async::NotReady);
+            }
         }
+
+        Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
     }
 }
 
@@ -298,13 +349,14 @@ impl<T> RwVec<T> {
     }
 
     /// Returns a new `PendingRwGuard` which will resolve into a a `RwGuard`.
-    pub fn lock_pending_event<C>(self, context: C, wait_event: Option<Event>) 
-            -> OclResult<PendingRwGuard<T>>
-            where C: ClContextPtr
+    // pub fn lock_pending_event<C>(self, context: C, wait_event: Option<Event>) 
+    pub fn lock_pending_event(self) 
+            -> PendingRwGuard<T>
     {
         let (tx, rx) = oneshot::channel();
         unsafe { self.qutex.push_request(Request::new(tx)); }
-        PendingRwGuard::new(self.into(), rx, context, wait_event)
+        // PendingRwGuard::new(self.into(), rx, context, wait_event)
+        PendingRwGuard::new(self.into(), rx)
     }
 
     pub unsafe fn as_mut_slice(&self) -> &mut [T] {

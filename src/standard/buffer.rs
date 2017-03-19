@@ -775,7 +775,12 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     None => None,
                 };
 
-                let mut guard = rw_vec.lock_pending_event(queue.context_ptr()?, wait_marker)?;
+                let mut guard = rw_vec.lock_pending_event();
+                guard.create_lock_event(queue.context_ptr()?)?;
+
+                if let Some(wm) = wait_marker {
+                    guard.set_wait_event(wm);
+                }                
 
                 let dst = unsafe { guard.as_mut_slice().expect("BufferReadCmd::enq_async: \
                     Invalid guard.") };
@@ -787,7 +792,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
                         unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
-                            offset, dst, Some(guard.command_trigger_event()), Some(&mut read_event))?; }
+                            offset, dst, guard.lock_event(), Some(&mut read_event))?; }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes,
@@ -796,7 +801,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            dst, Some(guard.command_trigger_event()), Some(&mut read_event))?; }
+                            dst, guard.lock_event(), Some(&mut read_event))?; }
                     }
                 }
 
@@ -1033,7 +1038,12 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     None => None,
                 };
 
-                let mut guard = rw_vec.lock_pending_event(queue.context_ptr()?, wait_marker)?;
+                let mut guard = rw_vec.lock_pending_event();
+                guard.create_lock_event(queue.context_ptr()?)?;
+
+                if let Some(wm) = wait_marker {
+                    guard.set_wait_event(wm);
+                }     
 
                 let src = unsafe { guard.as_mut_slice().expect("BufferWriteCmd::enq_async: \
                     Invalid guard.") };
@@ -1045,7 +1055,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                         try!(check_len(self.cmd.mem_len, src.len(), offset));
 
                         core::enqueue_write_buffer(queue, self.cmd.obj_core, false,
-                            offset, src, Some(guard.command_trigger_event()), Some(&mut write_event))?;
+                            offset, src, guard.lock_event(), Some(&mut write_event))?;
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes,
@@ -1054,7 +1064,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                         core::enqueue_write_buffer_rect(queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            src, Some(guard.command_trigger_event()), Some(&mut write_event))?;
+                            src, guard.lock_event(), Some(&mut write_event))?;
                     }
                 }
 

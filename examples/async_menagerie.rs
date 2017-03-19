@@ -214,9 +214,9 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
 
     if simple {
         format!(r#"__kernel void {}(
-                __global {ts}* in,
-                {ts} values,
-                __global {ts}* out)
+                    __global {ts}* in,
+                    {ts} values,
+                    __global {ts}* out)
             {{
                 uint idx = get_global_id(0);
                 out[idx] = in[idx] {} values;
@@ -226,11 +226,11 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
         )
     } else {
         format!(r#"__kernel void {kn}(
-                __global {ts}* in_0,
-                __global {ts}* in_1,
-                __global {ts}* in_2,
-                {ts} values,
-                __global {ts}* out)
+                    __global {ts}* in_0,
+                    __global {ts}* in_1,
+                    __global {ts}* in_2,
+                    {ts} values,
+                    __global {ts}* out)
             {{
                 uint idx = get_global_id(0);
                 out[idx] = in_0[idx] {op} in_1[idx] {op} in_2[idx] {op} values;

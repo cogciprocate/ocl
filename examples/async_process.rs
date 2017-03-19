@@ -22,9 +22,9 @@ use ocl::prm::Float4;
 
 static KERN_SRC: &'static str = r#"
     __kernel void add(
-        __global float4* in,
-        float4 values,
-        __global float4* out)
+            __global float4* in,
+            float4 values,
+            __global float4* out)
     {
         uint idx = get_global_id(0);
         out[idx] = in[idx] + values;

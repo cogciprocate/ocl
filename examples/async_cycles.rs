@@ -69,9 +69,9 @@ static mut START_TIME: Option<DateTime<Local>> = None;
 // A kernel that makes a career out of adding values.
 pub static KERN_SRC: &'static str = r#"
     __kernel void add_slowly(
-        __global int4* in,
-        __private int addend,
-        __global int4* out)
+            __global int4* in,
+            __private int addend,
+            __global int4* out)
     {
         uint const idx = get_global_id(0);
 
@@ -266,7 +266,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
 
     // Attach a status message printing callback to what approximates the
     // verify_init start-time event:
-    unsafe { future_read_data.command_trigger_event()
+    unsafe { future_read_data.lock_event().unwrap()
         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.

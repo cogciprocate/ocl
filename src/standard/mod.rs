@@ -58,15 +58,26 @@ mod cb {
     }
 
     pub extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
-        let _ = event_ptr;
-        // println!("'_unpark_task' has been called.");
-        if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
+        #[inline]
+        fn unpark_task(user_data: *mut c_void) {
+            // println!("Unparking task via callback...");
             unsafe {
-                // println!("Unparking task via callback...");
                 let task_ptr = user_data as *mut _ as *mut Task;
                 let task = Box::from_raw(task_ptr);
                 (*task).unpark();
             }
+        }
+
+        let _ = event_ptr;
+        // println!("'_unpark_task' has been called.");
+        if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
+            // unsafe {
+            //     // println!("Unparking task via callback...");
+            //     let task_ptr = user_data as *mut _ as *mut Task;
+            //     let task = Box::from_raw(task_ptr);
+            //     (*task).unpark();
+            // }
+            unpark_task(user_data);
         } else {
             let status = if event_status < 0 {
                 format!("{:?}", Status::from_i32(event_status))
@@ -74,10 +85,10 @@ mod cb {
                 format!("{:?}", CommandExecutionStatus::from_i32(event_status))
             };
 
-            panic!("ocl::standard::_unpark_task: Wake up user data is null or event is not \
+            panic!("ocl::standard::_unpark_task: \n\nWake up user data is null or event is not \
                 complete: {{ status: {:?}, user_data: {:?} }}. If you are getting \
-                `DEVICE_NOT_AVAILABLE` and you are using Intel drivers, switch to AMD drivers \
-                instead (will work with Intel CPUs).", status, user_data);
+                `DEVICE_NOT_AVAILABLE` and you are using Intel drivers, switch to AMD OpenCL \
+                drivers instead (will work with Intel CPUs).\n\n", status, user_data);
         }
     }
 }

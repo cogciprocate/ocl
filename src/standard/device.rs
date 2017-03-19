@@ -2,6 +2,7 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
+use std::borrow::Borrow;
 // use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use standard::Platform;
@@ -110,12 +111,13 @@ impl DeviceSpecifier {
     /// `Platform`. If no `platform` has been specified, this behaviour is
     /// undefined and could end up using any platform at all.
     ///
-    pub fn to_device_list(&self, platform: Option<Platform>) -> OclResult<Vec<Device>> {
+    pub fn to_device_list<P: Borrow<Platform>>(&self, platform: Option<P>) -> OclResult<Vec<Device>> {
         // let platform = match platform {
         //     Some(p) => p.clone(),
         //     None => Platform::default(),
         // };
-        let platform = platform.unwrap_or(Platform::default());
+        // let platform = platform.unwrap_or(Platform::default());
+        let platform = platform.map(|p| p.borrow().clone()).unwrap_or(Platform::default());
 
         match *self {
             DeviceSpecifier::All => {
@@ -209,10 +211,21 @@ impl Device {
     ///
     /// Panics upon OpenCL error.
     ///
-    pub fn first(platform: Platform) -> Device {
-        let first_core = core::get_device_ids(&platform, None, None)
+    pub fn first<P: Borrow<Platform>>(platform: P) -> Device {
+        let device_ids = core::get_device_ids(platform.borrow(), None, None)
             .expect("ocl::Device::first: Error retrieving device list");
-        Device(first_core[0])
+        Device(device_ids[0])
+    }
+
+    /// Returns a single device specified by a wrapped index.
+    ///
+    /// Panics upon OpenCL error.
+    ///
+    pub fn by_idx_wrap<P: Borrow<Platform>>(platform: P, device_idx_wrap: usize) -> Device {
+        let device_ids = core::get_device_ids(platform.borrow(), None, None)
+            .expect("ocl::Device::by_idx_wrap: Error retrieving device list");
+        let wrapped_idx = device_idx_wrap % device_ids.len();
+        Device(device_ids[wrapped_idx])
     }
 
     /// Returns a `DeviceSpecifier` useful for precisely specifying a set
@@ -271,8 +284,8 @@ impl Device {
     /// [`.status()`]: enum.Error.html#method.status
     /// [`ocl::core::Status`]: enum.Status.html
     ///
-    pub fn list(platform: &Platform, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
-        let list_core = core::get_device_ids(platform.as_core(), device_types, None)
+    pub fn list<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
+        let list_core = core::get_device_ids(platform.borrow(), device_types, None)
             .unwrap_or(vec![]);
         Ok(list_core.into_iter().map(Device).collect())
     }
@@ -284,7 +297,7 @@ impl Device {
     /// See [`::list`](struct.Device.html#method.list) for other
     /// error information.
     ///
-    pub fn list_all(platform: &Platform) -> OclResult<Vec<Device>> {
+    pub fn list_all<P: Borrow<Platform>>(platform: P) -> OclResult<Vec<Device>> {
         Self::list(platform, None)
     }
 
@@ -299,7 +312,7 @@ impl Device {
     /// See [`::list`](struct.Device.html#method.list) for other
     /// error information.
     ///
-    pub fn list_select(platform: &Platform, device_types: Option<DeviceType>,
+    pub fn list_select<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
                 idxs: &[usize]) -> OclResult<Vec<Device>> {
         Self::resolve_idxs(idxs, &try!(Self::list(platform, device_types)))
     }
@@ -314,7 +327,7 @@ impl Device {
     ///
     /// See [`::list`](struct.Device.html#method.list)
     ///
-    pub fn list_select_wrap(platform: &Platform, device_types: Option<DeviceType>,
+    pub fn list_select_wrap<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
                 idxs: &[usize]) -> OclResult<Vec<Device>> {
         Ok(Self::resolve_idxs_wrap(idxs, &try!(Self::list(platform, device_types))))
     }

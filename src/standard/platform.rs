@@ -184,27 +184,21 @@ impl From<PlatformIdCore> for Platform {
     }
 }
 
-// impl Into<String> for Platform {
-//     fn into(self) -> String {
-//         format!("{}", self)
-//     }
-// }
-
 impl From<Platform> for String {
     fn from(p: Platform) -> String {
         format!("{}", p)
     }
 }
 
-// impl Into<PlatformIdCore> for Platform {
-//     fn into(self) -> PlatformIdCore {
-//         self.0
-//     }
-// }
-
 impl From<Platform> for PlatformIdCore {
     fn from(p: Platform) -> PlatformIdCore {
         p.0
+    }
+}
+
+impl<'a> From<&'a Platform> for PlatformIdCore {
+    fn from(p: &Platform) -> PlatformIdCore {
+        p.0.clone()
     }
 }
 
@@ -214,11 +208,6 @@ impl std::fmt::Display for Platform {
     }
 }
 
-// impl AsRef<Platform> for Platform {
-//     fn as_ref(&self) -> &Platform {
-//         self
-//     }
-// }
 
 impl Deref for Platform {
     type Target = PlatformIdCore;

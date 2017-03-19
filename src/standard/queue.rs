@@ -4,7 +4,7 @@ use std;
 use std::ops::{Deref, DerefMut};
 use core::error::{Result as OclResult};
 use core::{self, CommandQueue as CommandQueueCore, CommandQueueInfo, CommandQueueInfoResult,
-    OpenclVersion, CommandQueueProperties, ClWaitListPtr};
+    OpenclVersion, CommandQueueProperties, ClWaitListPtr, ClContextPtr};
 use standard::{Context, Device, Event};
 
 /// A command queue which manages all actions taken on kernels, buffers, and
@@ -128,5 +128,12 @@ impl Deref for Queue {
 impl DerefMut for Queue {
     fn deref_mut(&mut self) -> &mut CommandQueueCore {
         &mut self.obj_core
+    }
+}
+
+unsafe impl<'a> ClContextPtr for &'a Queue {
+    fn as_ptr(&self) -> ::ffi::cl_context {
+        self.context_ptr().expect("<&Queue as ClContextPtr>::as_ptr: \
+            Unable to obtain a context pointer.")
     }
 }
