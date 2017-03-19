@@ -157,6 +157,12 @@ pub unsafe trait ClEventPtrRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
 }
 
+unsafe impl<'e> ClEventPtrRef<'e> for &'e cl_event {
+    unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
+        self
+    }
+}
+
 unsafe impl<'e, L> ClEventPtrRef<'e> for &'e L where L: ClEventPtrRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event {
         (*self).as_ptr_ref()
@@ -651,6 +657,13 @@ impl AsRef<CommandQueue> for CommandQueue {
     }
 }
 
+unsafe impl<'a> ClContextPtr for &'a CommandQueue {
+    fn as_ptr(&self) -> cl_context {
+        self.context_ptr().expect("<&CommandQueue as ClContextPtr>::as_ptr: \
+            Unable to obtain a context pointer.")
+    }
+}
+
 unsafe impl Sync for CommandQueue {}
 unsafe impl Send for CommandQueue {}
 
@@ -1048,7 +1061,7 @@ impl Event {
     }
 
     /// Sets a callback function, `callback_receiver`, to trigger upon
-    /// completion of this event list with an optional pointer to user data.
+    /// completion of this event with an optional pointer to user data.
     ///
     /// The callback function must have a signature matching:
     /// `extern "C" fn (ffi::cl_event, i32, *mut libc::c_void)`
