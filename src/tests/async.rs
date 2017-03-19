@@ -94,61 +94,61 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 
 
 
-// /// 1. Map-Write-Init (OLD)
-// /// =================
-// ///
-// /// Map the buffer and write 50's to the entire buffer, then
-// /// unmap to actually move data to the device. The `map` will use
-// /// the common queue and the `unmap` will automatically use the
-// /// dedicated queue passed to the buffer during creation (unless we
-// /// specify otherwise).
-// pub fn write_init_old(src_buf: &Buffer<Int4>, common_queue: &Queue,
-//         write_init_unmap_queue: Queue,
-//         fill_event: Option<&Event>,
-//         verify_init_event: Option<&Event>,
-//         write_init_event: &mut Option<Event>,
-//         write_val: i32, task_iter: i32)
-//         -> BoxFuture<i32, AsyncError>
-// {
-//     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-//         if PRINT { println!("* Write init complete \t\t(iter: {})", task_iter as usize); }
-//     }
+/// 1. Map-Write-Init (OLD)
+/// =================
+///
+/// Map the buffer and write 50's to the entire buffer, then
+/// unmap to actually move data to the device. The `map` will use
+/// the common queue and the `unmap` will automatically use the
+/// dedicated queue passed to the buffer during creation (unless we
+/// specify otherwise).
+pub fn write_init_old(src_buf: &Buffer<Int4>, common_queue: &Queue,
+        write_init_unmap_queue: Queue,
+        fill_event: Option<&Event>,
+        verify_init_event: Option<&Event>,
+        write_init_event: &mut Option<Event>,
+        write_val: i32, task_iter: i32)
+        -> BoxFuture<i32, AsyncError>
+{
+    extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT { println!("* Write init complete \t\t(iter: {})", task_iter as usize); }
+    }
 
-//     // Clear the wait list and push the previous iteration's verify init event
-//     // and the current iteration's fill event if they are set.
-//     let wait_list = [&verify_init_event, &fill_event].into_raw_list();
+    // Clear the wait list and push the previous iteration's verify init event
+    // and the current iteration's fill event if they are set.
+    let wait_list = [&verify_init_event, &fill_event].into_raw_list();
 
-//     let mut future_write_data = src_buf.cmd().map()
-//         .queue(common_queue)
-//         // .queue(&write_init_unmap_queue)
-//         .flags(MapFlags::new().write_invalidate_region())
-//         .ewait(&wait_list)
-//         .enq_async().unwrap();
+    let mut future_write_data = src_buf.cmd().map()
+        .queue(common_queue)
+        // .queue(&write_init_unmap_queue)
+        .flags(MapFlags::new().write_invalidate_region())
+        .ewait(&wait_list)
+        .enq_async().unwrap();
 
-//     // Set the write unmap completion event which will be set to complete
-//     // (triggered) after the CPU-side processing is complete and the data is
-//     // transferred to the device:
-//     *write_init_event = Some(future_write_data.create_unmap_event().unwrap().clone());
+    // Set the write unmap completion event which will be set to complete
+    // (triggered) after the CPU-side processing is complete and the data is
+    // transferred to the device:
+    *write_init_event = Some(future_write_data.create_unmap_event().unwrap().clone());
 
-//     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
-//         task_iter as *mut c_void).unwrap(); }
+    unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
+        task_iter as *mut c_void).unwrap(); }
 
-//     future_write_data.and_then(move |mut data| {
-//         if PRINT { println!("* Write init starting \t\t(iter: {}) ...", task_iter); }
+    future_write_data.and_then(move |mut data| {
+        if PRINT { println!("* Write init starting \t\t(iter: {}) ...", task_iter); }
 
-//         for val in data.iter_mut() {
-//             *val = Int4::new(write_val, write_val, write_val, write_val);
-//         }
+        for val in data.iter_mut() {
+            *val = Int4::new(write_val, write_val, write_val, write_val);
+        }
 
-//         // Normally we could just let `data` (a `MemMap`) fall out of
-//         // scope and it would unmap itself. Since we need to specify a
-//         // special dedicated queue to avoid deadlocks in this case, we
-//         // call it explicitly.
-//         data.unmap().queue(&write_init_unmap_queue).enq()?;
+        // Normally we could just let `data` (a `MemMap`) fall out of
+        // scope and it would unmap itself. Since we need to specify a
+        // special dedicated queue to avoid deadlocks in this case, we
+        // call it explicitly.
+        data.unmap().queue(&write_init_unmap_queue).enq()?;
 
-//         Ok(task_iter)
-//     }).boxed()
-// }
+        Ok(task_iter)
+    }).boxed()
+}
 
 
 /// 1. Write-Init
@@ -478,23 +478,23 @@ pub fn rw_vec() {
             &mut fill_event,
             task_iter);
 
-        // // 1. Write-Init
-        // // ============
-        // let write_init = write_init_old(&src_buf, &common_queue,
-        //     write_init_unmap_queue.clone(),
-        //     fill_event.as_ref(),
-        //     verify_init_event.as_ref(),
-        //     &mut write_init_event,
-        //     ival, task_iter);
-
         // 1. Write-Init
         // ============
-        let write_init = write_init(&src_buf, &rw_vec, &common_queue,
-            &write_init_unmap_queue,
+        let write_init = write_init_old(&src_buf, &common_queue,
+            write_init_unmap_queue.clone(),
             fill_event.as_ref(),
             verify_init_event.as_ref(),
             &mut write_init_event,
             ival, task_iter);
+
+        // // 1. Write-Init
+        // // ============
+        // let write_init = write_init(&src_buf, &rw_vec, &common_queue,
+        //     &write_init_unmap_queue,
+        //     fill_event.as_ref(),
+        //     verify_init_event.as_ref(),
+        //     &mut write_init_event,
+        //     ival, task_iter);
 
         // 2. Verify-Init
         // ============
