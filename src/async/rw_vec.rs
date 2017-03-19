@@ -12,7 +12,8 @@ use ::{Event, Result as OclResult, Queue};
 use async::{Error as AsyncError, Result as AsyncResult};
 pub use self::qutex::{Request, Guard, FutureGuard, Qutex};
 
-// Allows access to the data contained within a lock just like a mutex guard.
+/// Allows access to the data contained within a lock just like a mutex guard.
+///
 pub struct RwGuard<T> {
     rw_vec: RwVec<T>,
     drop_event: Option<Event>,
@@ -72,7 +73,16 @@ enum Stage {
 }
 
 
-/// Like a `FutureGuard` but additionally waits on an OpenCL event.
+/// A future that resolves to an `RwGuard` after ensuring that the data being
+/// guarded is appropriately locked during the execution of an OpenCL command.
+///
+/// 1. Waits until both an exclusive data lock can be obtained **and** all
+///    prerequisite OpenCL commands have completed.
+/// 2. Triggers an OpenCL command, remaining locked until the command finishes
+///    execution.
+/// 3. Returns an `RwGuard` which provides exclusive access to the locked
+///    data.
+/// 
 #[must_use = "futures do nothing unless polled"]
 pub struct PendingRwGuard<T> {
     rw_vec: Option<RwVec<T>>,
@@ -106,18 +116,26 @@ impl<T> PendingRwGuard<T> {
     }
 
     /// Sets the command completion event.
+    ///
+    /// A command completion event corresponding to the read or write command
+    /// being executed in association with this `PendingRwGuard` must be
+    /// specified before this `PendingRwGuard` can be polled.
     pub fn set_command_completion_event(&mut self, command_completion: Event) {
         self.command_completion = Some(command_completion);
     }
 
     /// Creates an event which can be 'triggered' later by having its status
     /// set to complete.
+    ///    
+    /// This event can be added to the wait list of subsequent OpenCL commands
+    /// with the expectation that when all chained futures are complete, the
+    /// event will automatically be 'triggered' (set to complete), causing
+    /// those commands to execute. This can be used to inject host side code
+    /// in amongst OpenCL commands without thread blocking or delays of any
+    /// kind.
     ///
-    /// This event can be added immediately to the wait list of subsequent
-    /// commands with the expectation that when all chained futures are
-    /// complete, the event will automatically be 'triggered' (set to
-    /// complete), causing those commands to execute. This can be used to
-    /// inject host side code in amongst device side commands (kernels, etc.).
+    /// This event will be triggered after this future resolves **and** the
+    /// resulting `RwGuard` is dropped.
     pub fn create_drop_event(&mut self, queue: &Queue) -> AsyncResult<&mut Event> {
         let uev = Event::user(&queue.context())?;
         self.drop_event = Some(uev);
@@ -136,20 +154,26 @@ impl<T> PendingRwGuard<T> {
         &self.command_trigger
     }
 
+    /// Blocks the current thread until the OpenCL command is complete and a 
     pub fn wait(self) -> AsyncResult<RwGuard<T>> {
         <Self as Future>::wait(self)
     }
 
+    /// Returns a mutable pointer to the data contained within the internal
+    /// `Vec`, bypassing all locks and protections.
     pub unsafe fn as_mut_ptr(&self) -> Option<*mut T> {
         self.rw_vec.as_ref().map(|rw_vec| (*rw_vec.qutex.as_mut_ptr()).as_mut_ptr())
     }
 
+    /// Returns a mutable slice to the data contained within the internal
+    /// `Vec`, bypassing all locks and protections.
     pub unsafe fn as_mut_slice<'a, 'b>(&'a self) -> Option<&'b mut [T]> {
         self.as_mut_ptr().map(|ptr| {
             ::std::slice::from_raw_parts_mut(ptr, self.len())
         })
     }
 
+    /// Returns the length of the internal `Vec`.
     pub fn len(&self) -> usize {
         unsafe { (*self.rw_vec.as_ref().expect("PendingRwGuard::len: No RwVec found.")
             .qutex.as_ptr()).len() }
@@ -217,7 +241,8 @@ impl<T> PendingRwGuard<T> {
                     Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.drop_event.take())))
                 }                
             },
-            None => Err("PendingRwGuard::poll_command: No command event set.".into()),
+            None => Err("PendingRwGuard::poll_command: No command event set. A command completion \
+                event must be specified using '::set_command_command_completion_event'.".into()),
         }
     }
 }
@@ -240,6 +265,12 @@ impl<T> Future for PendingRwGuard<T> {
     }
 }
 
+/// A locking `Vec` which interoperates with OpenCL events and Rust futures to
+/// provide exclusive access to data.
+///
+/// Calling `::lock` or `::lock_pending_event` returns a future which will
+/// resolve into a `RwGuard`.
+///
 #[derive(Clone)]
 pub struct RwVec<T> {
     qutex: Qutex<Vec<T>>,
@@ -260,6 +291,7 @@ impl<T> RwVec<T> {
         self.qutex.lock()
     }
 
+    /// Returns a new `PendingRwGuard` which will resolve into a a `RwGuard`.
     pub fn lock_pending_event<C>(self, context: C, wait_event: Option<Event>) 
             -> OclResult<PendingRwGuard<T>>
             where C: ClContextPtr
