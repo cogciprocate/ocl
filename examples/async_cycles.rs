@@ -270,7 +270,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_init_event = Some(future_read_data.create_drop_event(verify_init_queue)
+    *verify_init_event = Some(future_read_data.create_unlock_event(verify_init_queue)
         .unwrap().clone());
 
     // The future which will actually verify the initial value:

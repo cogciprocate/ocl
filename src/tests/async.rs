@@ -116,22 +116,19 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
     // and the current iteration's fill event if they are set.
     let wait_list = [&verify_init_event, &fill_event].into_raw_list();
 
-    // let mut future_write_data = src_buf.cmd().map()
-    //     .queue(common_queue)
-    //     .flags(MapFlags::new().write_invalidate_region())
-    //     .ewait(&wait_list)
-    //     .enq_async().unwrap();
+
+    
+
 
     let mut future_write_data = src_buf.cmd().write(rw_vec)
         .queue(common_queue)
-        // .flags(MapFlags::new().write_invalidate_region())
         .ewait(&wait_list)
         .enq_async().unwrap();
 
     // Set the write unmap completion event which will be set to complete
     // (triggered) after the CPU-side processing is complete and the data is
     // transferred to the device:
-    *write_init_event = Some(future_write_data.create_drop_event(&write_init_unmap_queue)
+    *write_init_event = Some(future_write_data.create_unlock_event(&write_init_unmap_queue)
         .unwrap().clone());
 
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
@@ -143,12 +140,6 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
         for val in data.iter_mut() {
             *val = Int4::new(write_val, write_val, write_val, write_val);
         }
-
-        // // Normally we could just let `data` (a `MemMap`) fall out of
-        // // scope and it would unmap itself. Since we need to specify a
-        // // special dedicated queue to avoid deadlocks in this case, we
-        // // call it explicitly.
-        // data.unmap().queue(&write_init_unmap_queue).enq()?;
 
         Ok(task_iter)
     }).boxed()
@@ -189,7 +180,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &
         _verify_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_init_event = Some(future_read_data.create_drop_event(verify_init_queue)
+    *verify_init_event = Some(future_read_data.create_unlock_event(verify_init_queue)
         .unwrap().clone());
 
     // The future which will actually verify the initial value:
@@ -307,7 +298,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
     // *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_add_event = Some(future_read_data.create_drop_event(&verify_add_unmap_queue)
+    *verify_add_event = Some(future_read_data.create_unlock_event(&verify_add_unmap_queue)
         .unwrap().clone());
 
     future_read_data.and_then(move |data| {

@@ -16,25 +16,32 @@ pub use self::qutex::{Request, Guard, FutureGuard, Qutex};
 ///
 pub struct RwGuard<T> {
     rw_vec: RwVec<T>,
-    drop_event: Option<Event>,
+    unlock_event: Option<Event>,
 }
 
 impl<T> RwGuard<T> {
-    fn new(rw_vec: RwVec<T>, drop_event: Option<Event>) -> RwGuard<T> {
+    /// Returns a new `RwGuard`.
+    fn new(rw_vec: RwVec<T>, unlock_event: Option<Event>) -> RwGuard<T> {
         RwGuard {
             rw_vec: rw_vec,
-            drop_event: drop_event,
+            unlock_event: unlock_event,
         }
     }
 
+    /// Triggers the unlock event and releases the lock held by this `RwGuard`
+    /// before returning the original `RwVec`.
+    pub fn unlock(self) -> RwVec<T> {
+        self.rw_vec.clone()
+    }
+
     /// Returns a reference to the event previously set using
-    /// `create_drop_event` on the `PendingRwGuard` which preceeded this
+    /// `create_unlock_event` on the `PendingRwGuard` which preceeded this
     /// `RwGuard`. The event can be manually 'triggered' by calling
     /// `...set_complete()...` or used normally (as a wait event) by
     /// subsequent commands. If the event is not manually completed it will be
-    /// automatically set complete when this `ReadCompletion` is dropped.
-    pub fn drop_event(&self) -> Option<&Event> {
-        self.drop_event.as_ref()
+    /// automatically set complete when this `RwGuard` is dropped.
+    pub fn unlock_event(&self) -> Option<&Event> {
+        self.unlock_event.as_ref()
     }
 }
 
@@ -56,7 +63,7 @@ impl<T> Drop for RwGuard<T> {
     fn drop(&mut self) {
         unsafe { self.rw_vec.qutex.unlock().expect("Error dropping RwGuard") };
 
-        if let Some(ref de) = self.drop_event {
+        if let Some(ref de) = self.unlock_event {
             if !de.is_complete().expect("ReadCompletion::drop") {
                 de.set_complete().expect("ReadCompletion::drop");
             }
@@ -90,7 +97,7 @@ pub struct PendingRwGuard<T> {
     wait_event: Option<Event>,
     command_trigger: Event,
     command_completion: Option<Event>,
-    drop_event: Option<Event>,
+    unlock_event: Option<Event>,
     stage: Stage,
     // len: usize,
 }
@@ -109,7 +116,7 @@ impl<T> PendingRwGuard<T> {
             wait_event: wait_event,
             command_trigger: command_trigger,
             command_completion: None,
-            drop_event: None,
+            unlock_event: None,
             stage: Stage::Marker,
             // len: len,
         })
@@ -136,16 +143,16 @@ impl<T> PendingRwGuard<T> {
     ///
     /// This event will be triggered after this future resolves **and** the
     /// resulting `RwGuard` is dropped.
-    pub fn create_drop_event(&mut self, queue: &Queue) -> AsyncResult<&mut Event> {
+    pub fn create_unlock_event(&mut self, queue: &Queue) -> AsyncResult<&mut Event> {
         let uev = Event::user(&queue.context())?;
-        self.drop_event = Some(uev);
-        Ok(self.drop_event.as_mut().unwrap())
+        self.unlock_event = Some(uev);
+        Ok(self.unlock_event.as_mut().unwrap())
     }
 
     /// Returns a reference to the event previously set using
-    /// `create_drop_event`.
-    pub fn drop_event(&self) -> Option<&Event> {
-        self.drop_event.as_ref()
+    /// `create_unlock_event`.
+    pub fn unlock_event(&self) -> Option<&Event> {
+        self.unlock_event.as_ref()
     }
 
     /// Returns a reference to the event which will trigger when the wait
@@ -238,7 +245,7 @@ impl<T> PendingRwGuard<T> {
                     command_completion.set_unpark_callback()?;
                     return Ok(Async::NotReady);
                 } else {
-                    Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.drop_event.take())))
+                    Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
                 }                
             },
             None => Err("PendingRwGuard::poll_command: No command event set. A command completion \
@@ -271,7 +278,6 @@ impl<T> Future for PendingRwGuard<T> {
 /// Calling `::lock` or `::lock_pending_event` returns a future which will
 /// resolve into a `RwGuard`.
 ///
-#[derive(Clone)]
 pub struct RwVec<T> {
     qutex: Qutex<Vec<T>>,
 }
@@ -317,6 +323,15 @@ impl<T> From<Qutex<Vec<T>>> for RwVec<T> {
 impl<T> From<Vec<T>> for RwVec<T> {
     fn from(vec: Vec<T>) -> RwVec<T> {
         RwVec { qutex: Qutex::new(vec) }
+    }
+}
+
+impl<T> Clone for RwVec<T> {
+    #[inline]
+    fn clone(&self) -> RwVec<T> {
+        RwVec {
+            qutex: self.qutex.clone(),
+        }
     }
 }
 
