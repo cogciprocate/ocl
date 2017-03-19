@@ -7,7 +7,7 @@ use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, Event as EventCore, ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, PendingRwGuard};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureRwGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 
@@ -756,7 +756,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// A data destination container appropriate for an asynchronous operation
     /// (`RwVec`) must have been passed to `::read`.
     ///
-    pub fn enq_async(mut self) -> OclResult<PendingRwGuard<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -1019,7 +1019,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     }
 
     /// Enqueues this command.
-    pub fn enq_async(mut self) -> OclResult<PendingRwGuard<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),

@@ -7,7 +7,7 @@ mod rw_vec;
 use std;
 use futures::future;
 pub use self::error::{Error, Result};
-pub use self::rw_vec::{RwVec, Guard, FutureGuard, RwGuard, PendingRwGuard};
+pub use self::rw_vec::{RwVec, Guard, FutureGuard, RwGuard, FutureRwGuard};
 pub use self::future_mem_map::FutureMemMap;
 
 pub type FutureResult<T> = future::FutureResult<T, self::Error>;

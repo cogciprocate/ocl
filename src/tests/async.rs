@@ -24,7 +24,7 @@ const SCALAR_ADDEND: i32 = 100;
 // The number of tasks to run concurrently.
 const TASK_ITERS: i32 = 12;
 
-const PRINT: bool = true;
+const PRINT: bool = false;
 
 
 // A kernel that makes a career out of adding values.
@@ -46,7 +46,6 @@ pub static KERN_SRC: &'static str = r#"
         out[idx] = in[idx] + sum;
     }
 "#;
-
 
 
 /// 0. Fill-Junk
@@ -93,64 +92,6 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 }
 
 
-
-/// 1. Map-Write-Init (OLD)
-/// =================
-///
-/// Map the buffer and write 50's to the entire buffer, then
-/// unmap to actually move data to the device. The `map` will use
-/// the common queue and the `unmap` will automatically use the
-/// dedicated queue passed to the buffer during creation (unless we
-/// specify otherwise).
-pub fn write_init_old(src_buf: &Buffer<Int4>, common_queue: &Queue,
-        write_init_unmap_queue: Queue,
-        fill_event: Option<&Event>,
-        verify_init_event: Option<&Event>,
-        write_init_event: &mut Option<Event>,
-        write_val: i32, task_iter: i32)
-        -> BoxFuture<i32, AsyncError>
-{
-    extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-        if PRINT { println!("* Write init complete \t\t(iter: {})", task_iter as usize); }
-    }
-
-    // Clear the wait list and push the previous iteration's verify init event
-    // and the current iteration's fill event if they are set.
-    let wait_list = [&verify_init_event, &fill_event].into_raw_list();
-
-    let mut future_write_data = src_buf.cmd().map()
-        .queue(common_queue)
-        // .queue(&write_init_unmap_queue)
-        .flags(MapFlags::new().write_invalidate_region())
-        .ewait(&wait_list)
-        .enq_async().unwrap();
-
-    // Set the write unmap completion event which will be set to complete
-    // (triggered) after the CPU-side processing is complete and the data is
-    // transferred to the device:
-    *write_init_event = Some(future_write_data.create_unmap_event().unwrap().clone());
-
-    unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
-        task_iter as *mut c_void).unwrap(); }
-
-    future_write_data.and_then(move |mut data| {
-        if PRINT { println!("* Write init starting \t\t(iter: {}) ...", task_iter); }
-
-        for val in data.iter_mut() {
-            *val = Int4::new(write_val, write_val, write_val, write_val);
-        }
-
-        // Normally we could just let `data` (a `MemMap`) fall out of
-        // scope and it would unmap itself. Since we need to specify a
-        // special dedicated queue to avoid deadlocks in this case, we
-        // call it explicitly.
-        data.unmap().queue(&write_init_unmap_queue).enq()?;
-
-        Ok(task_iter)
-    }).boxed()
-}
-
-
 /// 1. Write-Init
 /// =================
 ///
@@ -160,7 +101,7 @@ pub fn write_init_old(src_buf: &Buffer<Int4>, common_queue: &Queue,
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
 pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
-        write_init_unmap_queue: &Queue,
+        write_init_unlock_queue: &Queue,
         fill_event: Option<&Event>,
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
@@ -171,43 +112,41 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
     }
 
-    // // Clear the wait list and push the previous iteration's verify init event
-    // // and the current iteration's fill event if they are set.
-    // let wait_list = [verify_init_event, fill_event].into_raw_list();
-
     // Clear the wait list and push the previous iteration's verify init event
     // and the current iteration's fill event if they are set.
     let wait_marker = [verify_init_event, fill_event].into_marker(common_queue).unwrap();
 
+    let mut future_guard = rw_vec.clone().lock_pending_event();
+    future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
+    let unlock_event = future_guard.create_unlock_event(write_init_unlock_queue).unwrap().clone();
 
-    // WRITE TO RWVEC HERE WITHIN A FUTURE THAT CAN BE SHIPPED OFF TO OR
-    // CHAINED WITH THE WRITE COMMAND SOMEHOW
-
-
-    let mut future_write_data = src_buf.cmd().write(rw_vec)
-        .queue(common_queue)
-        // .ewait(&wait_list)
-        .ewait_opt(wait_marker.as_ref())
-        .enq_async().unwrap();
-
-    // Set the write unmap completion event which will be set to complete
-    // (triggered) after the CPU-side processing is complete and the data is
-    // transferred to the device:
-    *write_init_event = Some(future_write_data.create_unlock_event(write_init_unmap_queue)
-        .unwrap().clone());
-
-    unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
-        task_iter as *mut c_void).unwrap(); }
-
-    future_write_data.and_then(move |mut data| {
+    let future_write_vec = future_guard.and_then(move |mut data| {
         if PRINT { println!("* Write init starting  \t(iter: {}) ...", task_iter); }
 
         for val in data.iter_mut() {
             *val = Int4::new(write_val, write_val, write_val, write_val);
         }
 
-        Ok(task_iter)
-    }).boxed()
+        Ok(())
+    });
+
+    let mut future_write_buffer = src_buf.cmd().write(rw_vec)
+        .queue(common_queue)
+        .ewait(&unlock_event)
+        .enq_async().unwrap();
+
+    // Set the write unmap completion event which will be set to complete
+    // (triggered) after the CPU-side processing is complete and the data is
+    // transferred to the device:
+    *write_init_event = Some(future_write_buffer.create_unlock_event(write_init_unlock_queue)
+        .unwrap().clone());
+
+    unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
+        task_iter as *mut c_void).unwrap(); }
+
+    let future_drop_guard = future_write_buffer.and_then(move |_| Ok(()));
+
+    future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter).boxed()
 }
 
 
@@ -340,15 +279,6 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
         if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }
     }
 
-    // unsafe { wait_event.as_ref().unwrap()
-    //     .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
-
-    // let mut future_read_data = dst_buf.cmd().map()
-    //     .queue(common_queue)
-    //     .flags(MapFlags::new().read())
-    //     .ewait_opt(wait_event)
-    //     .enq_async().unwrap();
-
     let mut future_read_data = dst_buf.cmd().read(rw_vec)
         .queue(common_queue)
         .ewait_opt(wait_event)
@@ -358,9 +288,6 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
     // verify_init start-time event:
     unsafe { future_read_data.lock_event().unwrap().set_callback(
         _verify_starting, task_iter as *mut c_void).unwrap(); }
-
-    // // Set the read unmap completion event:
-    // *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
     *verify_add_event = Some(future_read_data.create_unlock_event(verify_add_unmap_queue)
@@ -399,139 +326,133 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
 pub fn rw_vec() {
     let platform = Platform::default();
     println!("Platform: {}", platform.name());
-    let device = Device::by_idx_wrap(&platform, 2);
-    println!("Device: {} {}", device.vendor(), device.name());
-    assert!(device.is_available().unwrap());
+    // let device = Device::by_idx_wrap(&platform, 2);
+    // println!("Device: {} {}", device.vendor(), device.name());
 
-    let context = Context::builder()
-        .platform(platform)
-        .devices(device)
-        .build().unwrap();
+    for device in Device::list_all(platform).unwrap() {
+        println!("Device: {} {}", device.vendor(), device.name());
 
-    // For unmap commands, the buffers will each use a dedicated queue to
-    // avoid any chance of a deadlock. All other commands will use an
-    // unordered common queue.
-    let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-    let common_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let write_init_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let verify_init_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
+        let context = Context::builder()
+            .platform(platform)
+            .devices(device)
+            .build().unwrap();
 
-    // Allocating host memory allows the OpenCL runtime to use special pinned
-    // memory which considerably improves the transfer performance of map
-    // operations for devices that do not already use host memory (GPUs,
-    // etc.). Adding read and write only specifiers also allows for other
-    // optimizations.
-    let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only();
-    let dst_buf_flags = MemFlags::new().alloc_host_ptr().write_only().host_read_only();
+        // For unmap commands, the buffers will each use a dedicated queue to
+        // avoid any chance of a deadlock. All other commands will use an
+        // unordered common queue.
+        let queue_flags = Some(CommandQueueProperties::new().out_of_order());
+        let common_queue = Queue::new(&context, device, queue_flags).unwrap();
+        let write_init_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
+        let verify_init_queue = Queue::new(&context, device, queue_flags).unwrap();
+        let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
 
-    // Create write and read buffers:
-    let src_buf: Buffer<Int4> = Buffer::builder()
-        .context(&context)
-        .flags(src_buf_flags)
-        .dims(WORK_SIZE)
-        .build().unwrap();
+        // Allocating host memory allows the OpenCL runtime to use special pinned
+        // memory which considerably improves the transfer performance of map
+        // operations for devices that do not already use host memory (GPUs,
+        // etc.). Adding read and write only specifiers also allows for other
+        // optimizations.
+        let src_buf_flags = MemFlags::new().alloc_host_ptr().read_only();
+        let dst_buf_flags = MemFlags::new().alloc_host_ptr().write_only().host_read_only();
 
-    let dst_buf: Buffer<Int4> = Buffer::builder()
-        .context(&context)
-        .flags(dst_buf_flags)
-        .dims(WORK_SIZE)
-        .build().unwrap();
+        // Create write and read buffers:
+        let src_buf: Buffer<Int4> = Buffer::builder()
+            .context(&context)
+            .flags(src_buf_flags)
+            .dims(WORK_SIZE)
+            .build().unwrap();
 
-    // Create program and kernel:
-    let program = Program::builder()
-        .devices(device)
-        .src(KERN_SRC)
-        .build(&context).unwrap();
+        let dst_buf: Buffer<Int4> = Buffer::builder()
+            .context(&context)
+            .flags(dst_buf_flags)
+            .dims(WORK_SIZE)
+            .build().unwrap();
 
-    let kern = Kernel::new("add_slowly", &program).unwrap()
-        .gws(WORK_SIZE)
-        .arg_buf(&src_buf)
-        .arg_scl(SCALAR_ADDEND)
-        .arg_buf(&dst_buf);
+        // Create program and kernel:
+        let program = Program::builder()
+            .devices(device)
+            .src(KERN_SRC)
+            .build(&context).unwrap();
 
-    // A lockable vector for reads and writes:
-    let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); WORK_SIZE]);
+        let kern = Kernel::new("add_slowly", &program).unwrap()
+            .gws(WORK_SIZE)
+            .arg_buf(&src_buf)
+            .arg_scl(SCALAR_ADDEND)
+            .arg_buf(&dst_buf);
 
-    // A place to store our threads:
-    let mut threads = Vec::with_capacity(TASK_ITERS as usize);
+        // A lockable vector for reads and writes:
+        let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); WORK_SIZE]);
 
-    // Our events for synchronization.
-    let mut fill_event = None;
-    let mut write_init_event = None;
-    let mut verify_init_event: Option<Event> = None;
-    let mut kernel_event = None;
-    let mut verify_add_event = None;
+        // A place to store our threads:
+        let mut threads = Vec::with_capacity(TASK_ITERS as usize);
 
-    println!("Starting cycles ...");
+        // Our events for synchronization.
+        let mut fill_event = None;
+        let mut write_init_event = None;
+        let mut verify_init_event = None;
+        let mut kernel_event = None;
+        let mut verify_add_event = None;
 
-    // Our main loop. Could run indefinitely if we had a stream of input.
-    for task_iter in 0..TASK_ITERS {
-        let ival = INIT_VAL + task_iter;
-        let tval = ival + SCALAR_ADDEND;
+        println!("Starting cycles ...");
 
-        // 0. Fill-Junk
-        // ============
-        fill_junk(&src_buf, &common_queue,
-            write_init_event.as_ref(),
-            kernel_event.as_ref(),
-            &mut fill_event,
-            task_iter);
+        // Our main loop. Could run indefinitely if we had a stream of input.
+        for task_iter in 0..TASK_ITERS {
+            let ival = INIT_VAL + task_iter;
+            let tval = ival + SCALAR_ADDEND;
 
-        // 1. Write-Init
-        // ============
-        let write_init = write_init_old(&src_buf, &common_queue,
-            write_init_unmap_queue.clone(),
-            fill_event.as_ref(),
-            verify_init_event.as_ref(),
-            &mut write_init_event,
-            ival, task_iter);
+            // 0. Fill-Junk
+            // ============
+            fill_junk(&src_buf, &common_queue,
+                write_init_event.as_ref(),
+                kernel_event.as_ref(),
+                &mut fill_event,
+                task_iter);
 
-        // // 1. Write-Init
-        // // ============
-        // let write_init = write_init(&src_buf, &rw_vec, &common_queue,
-        //     &write_init_unmap_queue,
-        //     fill_event.as_ref(),
-        //     verify_init_event.as_ref(),
-        //     &mut write_init_event,
-        //     ival, task_iter);
+            // 1. Write-Init
+            // ============
+            let write_init = write_init(&src_buf, &rw_vec, &common_queue,
+                &write_init_unmap_queue,
+                fill_event.as_ref(),
+                verify_init_event.as_ref(),
+                &mut write_init_event,
+                ival, task_iter);
 
-        // 2. Verify-Init
-        // ============
-        let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
-            &verify_init_queue,
-            write_init_event.as_ref(),
-            &mut verify_init_event,
-            ival, task_iter);
+            // 2. Verify-Init
+            // ============
+            let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
+                &verify_init_queue,
+                write_init_event.as_ref(),
+                &mut verify_init_event,
+                ival, task_iter);
 
-        // 3. Kernel-Add
-        // =============
-        kernel_add(&kern, &common_queue,
-            verify_add_event.as_ref(),
-            write_init_event.as_ref(),
-            &mut kernel_event,
-            task_iter);
+            // 3. Kernel-Add
+            // =============
+            kernel_add(&kern, &common_queue,
+                verify_add_event.as_ref(),
+                write_init_event.as_ref(),
+                &mut kernel_event,
+                task_iter);
 
-        // 4. Verify-Add
-        // =================
-        let verify_add = verify_add(&dst_buf, &rw_vec, &common_queue,
-            &verify_add_unmap_queue,
-            kernel_event.as_ref(),
-            &mut verify_add_event,
-            tval, task_iter);
+            // 4. Verify-Add
+            // =================
+            let verify_add = verify_add(&dst_buf, &rw_vec, &common_queue,
+                &verify_add_unmap_queue,
+                kernel_event.as_ref(),
+                &mut verify_add_event,
+                tval, task_iter);
 
-        println!("All commands for iteration {} enqueued", task_iter);
+            println!("All commands for iteration {} enqueued", task_iter);
 
-        let task = write_init.join3(verify_init, verify_add);
+            let task = write_init.join3(verify_init, verify_add);
 
-        threads.push(thread::spawn(move || {
-            task.wait().unwrap();
-        }));
+            threads.push(thread::spawn(move || {
+                task.wait().unwrap();
+            }));
+        }
+
+        for thread in threads {
+            thread.join().unwrap();
+        }
+
+        println!("All result values are correct!");
     }
-
-    for thread in threads {
-        thread.join().unwrap();
-    }
-
-    println!("All result values are correct!");
 }

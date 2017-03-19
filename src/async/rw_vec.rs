@@ -35,7 +35,7 @@ impl<T> RwGuard<T> {
     }
 
     /// Returns a reference to the event previously set using
-    /// `create_unlock_event` on the `PendingRwGuard` which preceeded this
+    /// `create_unlock_event` on the `FutureRwGuard` which preceeded this
     /// `RwGuard`. The event can be manually 'triggered' by calling
     /// `...set_complete()...` or used normally (as a wait event) by
     /// subsequent commands. If the event is not manually completed it will be
@@ -91,7 +91,7 @@ enum Stage {
 ///    data.
 /// 
 #[must_use = "futures do nothing unless polled"]
-pub struct PendingRwGuard<T> {
+pub struct FutureRwGuard<T> {
     rw_vec: Option<RwVec<T>>,
     rx: oneshot::Receiver<()>,
     wait_event: Option<Event>,
@@ -102,17 +102,17 @@ pub struct PendingRwGuard<T> {
     // len: usize,
 }
 
-impl<T> PendingRwGuard<T> {
+impl<T> FutureRwGuard<T> {
     // pub fn new<C: ClContextPtr>(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>, context: C,
-    //         wait_event: Option<Event>) -> OclResult<PendingRwGuard<T>>
+    //         wait_event: Option<Event>) -> OclResult<FutureRwGuard<T>>
     pub fn new(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>) 
-            -> PendingRwGuard<T>
+            -> FutureRwGuard<T>
     {
         // let lock_event = Event::user(context)?;
 
         // let len = unsafe { (*rw_vec.qutex.as_ptr()).len() };
 
-        PendingRwGuard {
+        FutureRwGuard {
             rw_vec: Some(rw_vec),
             rx: rx,
             // wait_event: wait_event,
@@ -128,7 +128,7 @@ impl<T> PendingRwGuard<T> {
 
     /// Sets a wait event.
     ///
-    /// Setting a wait event will cause this `PendingRwGuard` to wait until
+    /// Setting a wait event will cause this `FutureRwGuard` to wait until
     /// that event has its status set to complete (by polling it like any
     /// other future) before obtaining a lock on the guarded internal `Vec`.
     ///
@@ -142,14 +142,14 @@ impl<T> PendingRwGuard<T> {
     /// Sets a command completion event.
     ///
     /// If a command completion event corresponding to the read or write
-    /// command being executed in association with this `PendingRwGuard` is
-    /// specified before this `PendingRwGuard` is polled it will cause this
-    /// `PendingRwGuard` to suffix itself with an additional future that will
+    /// command being executed in association with this `FutureRwGuard` is
+    /// specified before this `FutureRwGuard` is polled it will cause this
+    /// `FutureRwGuard` to suffix itself with an additional future that will
     /// wait until the command completion event completes before resolving
     /// into an `RwGuard`.
     ///
     /// Not specifying a command completion event will cause this
-    /// `PendingRwGuard` to resolve into an `RwGuard` immediately after the
+    /// `FutureRwGuard` to resolve into an `RwGuard` immediately after the
     /// lock is obtained (indicated by the optionally created lock event).
     pub fn set_command_completion_event(&mut self, command_completion: Event) {
         self.command_completion = Some(command_completion);
@@ -220,7 +220,7 @@ impl<T> PendingRwGuard<T> {
 
     /// Returns the length of the internal `Vec`.
     pub fn len(&self) -> usize {
-        unsafe { (*self.rw_vec.as_ref().expect("PendingRwGuard::len: No RwVec found.")
+        unsafe { (*self.rw_vec.as_ref().expect("FutureRwGuard::len: No RwVec found.")
             .qutex.as_ptr()).len() }
     }
 
@@ -250,7 +250,7 @@ impl<T> PendingRwGuard<T> {
 
         // Move the queue along:
         unsafe { self.rw_vec.as_ref().unwrap().qutex.process_queue()
-            .expect("Error polling PendingRwGuard"); }
+            .expect("Error polling FutureRwGuard"); }
 
         // Check for completion of the rx:
         match self.rx.poll() {
@@ -290,7 +290,7 @@ impl<T> PendingRwGuard<T> {
         //             Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
         //         }                
         //     },
-        //     None => Err("PendingRwGuard::poll_command: No command event set. A command completion \
+        //     None => Err("FutureRwGuard::poll_command: No command event set. A command completion \
         //         event must be specified using '::set_command_command_completion_event'.".into()),
         // }
 
@@ -305,7 +305,7 @@ impl<T> PendingRwGuard<T> {
     }
 }
 
-impl<T> Future for PendingRwGuard<T> {
+impl<T> Future for FutureRwGuard<T> {
     type Item = RwGuard<T>;
     type Error = AsyncError;
 
@@ -318,7 +318,7 @@ impl<T> Future for PendingRwGuard<T> {
                 Stage::Command => self.poll_command(),
             }            
         } else {
-            Err("PendingRwGuard::poll: Task already completed.".into())
+            Err("FutureRwGuard::poll: Task already completed.".into())
         }
     }
 }
@@ -348,15 +348,15 @@ impl<T> RwVec<T> {
         self.qutex.lock()
     }
 
-    /// Returns a new `PendingRwGuard` which will resolve into a a `RwGuard`.
+    /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
     // pub fn lock_pending_event<C>(self, context: C, wait_event: Option<Event>) 
     pub fn lock_pending_event(self) 
-            -> PendingRwGuard<T>
+            -> FutureRwGuard<T>
     {
         let (tx, rx) = oneshot::channel();
         unsafe { self.qutex.push_request(Request::new(tx)); }
-        // PendingRwGuard::new(self.into(), rx, context, wait_event)
-        PendingRwGuard::new(self.into(), rx)
+        // FutureRwGuard::new(self.into(), rx, context, wait_event)
+        FutureRwGuard::new(self.into(), rx)
     }
 
     pub unsafe fn as_mut_slice(&self) -> &mut [T] {
