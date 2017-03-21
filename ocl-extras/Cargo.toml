@@ -16,7 +16,7 @@ path = ".."
 # git = "https://github.com/cogciprocate/ocl"
 version = "0.12"
 # version = "*"
-# default-features = false
+default-features = false
 # features = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]

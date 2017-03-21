@@ -35,7 +35,7 @@ use chrono::{Duration, DateTime, Local};
 use futures::{Future, BoxFuture};
 use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
-use ocl::traits::{IntoRawList};
+use ocl::traits::{IntoRawEventArray};
 use ocl::async::{Error as AsyncError};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Int4;

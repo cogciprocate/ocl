@@ -1,25 +1,24 @@
 
-use futures::{/*task,*/ Future, Poll, Async};
-
-use core::{/*self,*/ Event as EventCore, OclPrm, MemMap as MemMapCore, Mem,
-    /*CommandQueueInfo, CommandQueueInfoResult*/};
-use standard::{/*box_raw_void, _unpark_task,*/ MemMap, Event, Queue,};
+use futures::{Future, Poll, Async};
+use core::{Event as EventCore, OclPrm, MemMap as MemMapCore, Mem};
+use standard::{MemMap, Event, Queue,};
 use super::{Error as AsyncError, Result as AsyncResult};
 
 
-/// [UNSTABLE]
+/// A future which resolves to a `MemMap` as soon as its creating command completes.
 #[must_use = "futures do nothing unless polled"]
 pub struct FutureMemMap<T: OclPrm> {
     core: Option<MemMapCore<T>>,
     len: usize,
     map_event: Event,
-    unmap_target: Option<Event>,
+    unmap_event: Option<Event>,
     buffer: Option<Mem>,
     queue: Option<Queue>,
     callback_is_set: bool,
 }
 
 impl<T: OclPrm> FutureMemMap<T> {
+    /// Returns a new `FutureMemMap`.
     pub unsafe fn new(core: MemMapCore<T>, len: usize, map_event: EventCore, buffer: Mem, queue: Queue)
             -> FutureMemMap<T>
     {
@@ -27,25 +26,34 @@ impl<T: OclPrm> FutureMemMap<T> {
             core: Some(core),
             len: len,
             map_event: map_event.into(),
-            unmap_target: None,
+            unmap_event: None,
             buffer: Some(buffer),
             queue: Some(queue),
             callback_is_set: false,
         }
     }
 
-    #[cfg(feature = "event_callbacks")]
+    /// Create an event which will be triggered (set complete) after this
+    /// future resolves into a `MemMap` **and** after that `MemMap` is dropped
+    /// or manually unmapped.
+    ///
+    /// The returned event can be added to the wait list of subsequent OpenCL
+    /// commands with the expectation that when all preceeding futures are
+    /// complete, the event will automatically be 'triggered' by having its
+    /// status set to complete, causing those commands to execute. This can be
+    /// used to inject host side code in amongst OpenCL commands without
+    /// thread blocking or extra delays of any kind.
     pub fn create_unmap_event(&mut self) -> AsyncResult<&mut Event> {
         if let Some(ref queue) = self.queue {
-            // let uev = EventCore::user(&queue.context())?;
             let uev = Event::user(&queue.context())?;
-            self.unmap_target = Some(uev);
-            Ok(self.unmap_target.as_mut().unwrap())
+            self.unmap_event = Some(uev);
+            Ok(self.unmap_event.as_mut().unwrap())
         } else {
-            Err("FutureMemMap::create_unmap_target: No queue found!".into())
+            Err("FutureMemMap::create_unmap_event: No queue found!".into())
         }
     }
 
+    /// Resolves this `FutureMemMap` into a `MemMap`.
     fn to_mapped_mem(&mut self) -> AsyncResult<MemMap<T>> {
         let joined = self.core.take().and_then(|core| {
             self.buffer.take().and_then(|buf| {
@@ -58,16 +66,16 @@ impl<T: OclPrm> FutureMemMap<T> {
         match joined {
             Some((core, buffer, queue)) => {
                 unsafe { Ok(MemMap::new(core, self.len,
-                    self.unmap_target.take(), buffer, queue )) }
+                    self.unmap_event.take(), buffer, queue )) }
             },
-            _ => Err("FutureMemMap::create_unmap_target: No queue and/or buffer found!".into()),
+            _ => Err("FutureMemMap::create_unmap_event: No queue and/or buffer found!".into()),
         }
     }
 
     /// Returns the unmap event if it has been created.
     #[inline]
-    pub fn get_unmap_target(&self) -> Option<&Event> {
-        self.unmap_target.as_ref()
+    pub fn unmap_event(&self) -> Option<&Event> {
+        self.unmap_event.as_ref()
     }
 }
 
@@ -78,20 +86,13 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // println!("Polling FutureMemMap...");
-
         match self.map_event.is_complete() {
             Ok(true) => {
                 self.to_mapped_mem().map(|mm| Async::Ready(mm))
             }
             Ok(false) => {
                 if !self.callback_is_set {
-                    // unsafe {
-                    //     // println!("Setting callback...");
-                    //     self.map_event.set_callback(_unpark_task,
-                    //         box_raw_void(task::park()))?;
-                    // }
                     self.map_event.set_unpark_callback()?;
-                    // println!("Task callback is set for event: {:?}.", self.map_event);
                     self.callback_is_set = true;
                 }
 
@@ -109,6 +110,8 @@ impl<T: OclPrm> Future for FutureMemMap<T> {
     type Error = AsyncError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        // println!("Polling FutureMemMap...");
+        let _ = self.callback_is_set;
         self.map_event.wait_for()?;
         self.to_mapped_mem().map(|mm| Async::Ready(mm))
     }

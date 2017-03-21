@@ -12,12 +12,16 @@ description = "Protype examples."
 exclude = ["target/*", "*.png", "bak/*"]
 # categories = ["asynchronous", "concurrency", "science"]
 
+[dependencies.ocl]
+version = "0.12"
+path = "../.."
+default-features = false
+features = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 # ocl-core = "0.3"
 # ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core" }
 # ocl-core = { version = "0.3.2", path = "/home/nick/src/github.com/cogciprocate/ocl-core" }
-ocl = { path ="../.." }
 # num = "0.1"
 # libc = "0.2"
 # enum_primitive = "0.1"

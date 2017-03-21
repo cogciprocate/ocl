@@ -8,7 +8,7 @@ use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
 use futures::sync::oneshot;
 use core::ClContextPtr;
-use ::{Event, /*Result as OclResult,*/ /*Queue*/};
+use ::{Event};
 use async::{Error as AsyncError, Result as AsyncResult};
 pub use self::qutex::{Request, Guard, FutureGuard, Qutex};
 
@@ -43,6 +43,15 @@ impl<T> RwGuard<T> {
     pub fn unlock_event(&self) -> Option<&Event> {
         self.unlock_event.as_ref()
     }
+
+    /// Triggers the unlock event by setting it complete.
+    fn complete_unlock_event(&self) {
+        if let Some(ref de) = self.unlock_event {
+            if !de.is_complete().expect("ReadCompletion::drop") {
+                de.set_complete().expect("ReadCompletion::drop");
+            }
+        }
+    }
 }
 
 impl<T> Deref for RwGuard<T> {
@@ -61,13 +70,9 @@ impl<T> DerefMut for RwGuard<T> {
 
 impl<T> Drop for RwGuard<T> {
     fn drop(&mut self) {
-        unsafe { self.rw_vec.qutex.unlock().expect("Error dropping RwGuard") };
-
-        if let Some(ref de) = self.unlock_event {
-            if !de.is_complete().expect("ReadCompletion::drop") {
-                de.set_complete().expect("ReadCompletion::drop");
-            }
-        }
+        // println!("Dropping and unlocking RwGuard.");
+        unsafe { self.rw_vec.qutex.direct_unlock().expect("Error dropping RwGuard") };
+        self.complete_unlock_event();
     }
 }
 
@@ -226,16 +231,37 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the wait marker event until all requisite commands have
     /// completed then polls the qutex queue.
+    #[cfg(feature = "event_callbacks")]
     fn poll_marker(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Marker);
+        // println!("###### FutureRwGuard::poll_marker...");
 
         // Check completion of wait event, if it exists:
         if let Some(ref wait_event) = self.wait_event {
             if !wait_event.is_complete()? {
-                // let task_ptr = standard::box_raw_void(task::park());
-                // unsafe { wait_event.set_callback(standard::_unpark_task, task_ptr)?; };
                 wait_event.set_unpark_callback()?;
+                // println!("######  ... callback set.");
                 return Ok(Async::NotReady);
+            }
+        }
+
+        self.stage = Stage::Qutex;
+        self.poll_qutex()
+    }
+
+    /// Polls the wait marker event until all requisite commands have
+    /// completed then polls the qutex queue.
+    #[cfg(not(feature = "event_callbacks"))]
+    fn poll_marker(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
+        debug_assert!(self.stage == Stage::Marker);
+        // println!("############ FutureRwGuard::poll_marker...");
+
+        // Check completion of wait event, if it exists:
+        if let Some(ref wait_event) = self.wait_event {
+            if !wait_event.is_complete()? {
+                // println!("############  ... waiting for event {:?}...", wait_event);
+                wait_event.wait_for()?;
+                // println!("############  ... event {:?} complete.", wait_event);
             }
         }
 
@@ -245,12 +271,14 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the qutex until we have obtained a lock then polls the command
     /// event.
-    fn poll_qutex(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
+    #[cfg(feature = "event_callbacks")]
+    fn poll_qutex(&mut self) -> AsyncResult<Async<RwGuard<T>>> {        
         debug_assert!(self.stage == Stage::Qutex);
+        // println!("###### FutureRwGuard::poll_qutex: called.");
 
         // Move the queue along:
         unsafe { self.rw_vec.as_ref().unwrap().qutex.process_queue()
-            .expect("Error polling FutureRwGuard"); }
+            .expect("###### Error polling FutureRwGuard"); }
 
         // Check for completion of the rx:
         match self.rx.poll() {
@@ -259,9 +287,9 @@ impl<T> FutureRwGuard<T> {
             // Otherwise, return the `NotReady`. The rx (oneshot channel) will
             // arrange for this task to be awakened when it's ready.
             Ok(status) => {
+                // println!("###### FutureRwGuard::poll_qutex: status: {:?}", status);
                 match status {
                     Async::Ready(_) => {
-                        // self.lock_event.set_complete()?;
                         if let Some(ref lock_event) = self.lock_event {
                             lock_event.set_complete()?
                         }
@@ -275,29 +303,78 @@ impl<T> FutureRwGuard<T> {
         }
     }
 
+
+    /// Polls the qutex until we have obtained a lock then polls the command
+    /// event.
+    #[cfg(not(feature = "event_callbacks"))]
+    fn poll_qutex(&mut self) -> AsyncResult<Async<RwGuard<T>>> {        
+        debug_assert!(self.stage == Stage::Qutex);
+        // println!("###### FutureRwGuard::poll_qutex: called.");
+
+        // Move the queue along:
+        unsafe { self.rw_vec.as_ref().unwrap().qutex.process_queue()
+            .expect("###### Error polling FutureRwGuard"); }
+
+        // Loop until completion of the rx:
+        loop {
+            match self.rx.poll() {
+                // If the poll returns `Async::Ready`, we have been popped from
+                // the front of the qutex queue and we now have exclusive access.
+                // Otherwise, return the `NotReady`. The rx (oneshot channel) will
+                // arrange for this task to be awakened when it's ready.
+                Ok(status) => {
+                    // println!("###### FutureRwGuard::poll_qutex: status: {:?}", status);
+
+                    match status {
+                        Async::Ready(_) => {
+                            if let Some(ref lock_event) = self.lock_event {
+                                lock_event.set_complete()?
+                            }
+                            self.stage = Stage::Command;
+                            // println!("###### FutureRwGuard::poll_qutex: Moving to command stage.");
+                            return self.poll_command();
+                        },
+                        Async::NotReady => {
+                            // println!("###### FutureRwGuard::poll_qutex: Parking thread.");
+                            ::std::thread::sleep(::std::time::Duration::from_millis(10));
+                        },
+                    }
+                },
+                Err(e) => return Err(e.into()),
+            }
+        }
+    }
+
     /// Polls the command event until it is complete then returns an `RwGuard`
     /// which can be safely accessed immediately.
+    #[cfg(feature = "event_callbacks")]
     fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Command);
-
-        // match self.command_completion {
-        //     Some(ref command_completion) => {
-        //         if !command_completion.is_complete()? {
-        //             command_completion.set_unpark_callback()?;
-        //             return Ok(Async::NotReady);
-        //         }
-        //         } else {
-        //             Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
-        //         }                
-        //     },
-        //     None => Err("FutureRwGuard::poll_command: No command event set. A command completion \
-        //         event must be specified using '::set_command_command_completion_event'.".into()),
-        // }
+        // println!("###### FutureRwGuard::poll_command...");
 
         if let Some(ref command_completion) = self.command_completion {
             if !command_completion.is_complete()? {
                 command_completion.set_unpark_callback()?;
+                // println!("######  ... callback set.");
                 return Ok(Async::NotReady);
+            }
+        }
+
+        Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
+    }
+
+    /// Polls the command event until it is complete then returns an `RwGuard`
+    /// which can be safely accessed immediately.
+    #[cfg(not(feature = "event_callbacks"))]
+    fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
+        debug_assert!(self.stage == Stage::Command);
+        // println!("###### FutureRwGuard::poll_command...");
+
+        if let Some(ref command_completion) = self.command_completion {
+            if !command_completion.is_complete()? {
+                // println!("######  ... waiting for event {:?}...", command_completion);
+                command_completion.wait_for()?;
+                // println!("######  ... event {:?} complete.", command_completion);
             }
         }
 
@@ -326,7 +403,7 @@ impl<T> Future for FutureRwGuard<T> {
 /// A locking `Vec` which interoperates with OpenCL events and Rust futures to
 /// provide exclusive access to data.
 ///
-/// Calling `::lock` or `::lock_pending_event` returns a future which will
+/// Calling `::lock` or `::request_lock` returns a future which will
 /// resolve into a `RwGuard`.
 ///
 pub struct RwVec<T> {
@@ -342,17 +419,18 @@ impl<T> RwVec<T> {
         }
     }
 
-    /// Returns a new `FutureGuard` which can be used as a future and will
-    /// resolve into a `Guard`.
-    pub fn lock(self) -> FutureGuard<Vec<T>> {
-        self.qutex.lock()
-    }
+    // /// Returns a new `FutureGuard` which can be used as a future and will
+    // /// resolve into a `Guard`.
+    // pub fn lock(self) -> FutureGuard<Vec<T>> {
+    //     self.qutex.request_lock()
+    // }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
-    // pub fn lock_pending_event<C>(self, context: C, wait_event: Option<Event>) 
-    pub fn lock_pending_event(self) 
+    // pub fn request_lock<C>(self, context: C, wait_event: Option<Event>) 
+    pub fn request_lock(self) 
             -> FutureRwGuard<T>
     {
+        // println!("RwVec::request_lock: Lock requested.");
         let (tx, rx) = oneshot::channel();
         unsafe { self.qutex.push_request(Request::new(tx)); }
         // FutureRwGuard::new(self.into(), rx, context, wait_event)

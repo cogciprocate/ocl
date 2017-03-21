@@ -742,7 +742,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 enqueue_with_data(slice)
             },
             ReadDst::RwVec(rw_vec) => {
-                let mut guard = rw_vec.lock().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
+                let mut guard = rw_vec.request_lock().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(guard.as_mut_slice())
             },
             ReadDst::None => panic!("Invalid read destination."),
@@ -775,7 +775,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     None => None,
                 };
 
-                let mut guard = rw_vec.lock_pending_event();
+                let mut guard = rw_vec.request_lock();
                 guard.create_lock_event(queue.context_ptr()?)?;
 
                 if let Some(wm) = wait_marker {
@@ -1011,7 +1011,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 enqueue_with_data(slice)
             },
             WriteDst::RwVec(rw_vec) => {
-                let mut guard = rw_vec.lock().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
+                let mut guard = rw_vec.request_lock().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(guard.as_mut_slice())
             },
             WriteDst::None => panic!("Invalid read destination."),
@@ -1038,7 +1038,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     None => None,
                 };
 
-                let mut guard = rw_vec.lock_pending_event();
+                let mut guard = rw_vec.request_lock();
                 guard.create_lock_event(queue.context_ptr()?)?;
 
                 if let Some(wm) = wait_marker {

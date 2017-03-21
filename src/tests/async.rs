@@ -5,7 +5,7 @@
 use std::thread;
 use futures::{Future, BoxFuture};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
-use ::traits::{IntoRawList, IntoMarker};
+use ::traits::{IntoRawEventArray, IntoMarker};
 use ::async::{Error as AsyncError};
 use ::flags::{MemFlags, CommandQueueProperties};
 use ::prm::Int4;
@@ -25,7 +25,7 @@ const SCALAR_ADDEND: i32 = 100;
 // The number of tasks to run concurrently.
 const TASK_ITERS: i32 = 12;
 
-const PRINT: bool = false;
+const PRINT: bool = true;
 
 
 // A kernel that makes a career out of adding values.
@@ -117,7 +117,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
     // and the current iteration's fill event if they are set.
     let wait_marker = [verify_init_event, fill_event].into_marker(common_queue).unwrap();
 
-    let mut future_guard = rw_vec.clone().lock_pending_event();
+    let mut future_guard = rw_vec.clone().request_lock();
     future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
     let unlock_event = future_guard.create_unlock_event(write_init_unlock_queue).unwrap().clone();
 

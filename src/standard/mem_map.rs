@@ -1,5 +1,5 @@
 
-use std::mem;
+
 use std::ops::{Deref, DerefMut};
 use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem};
 use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, Queue};
@@ -155,7 +155,7 @@ impl<T> MemMap<T>  where T: OclPrm {
                         unsafe { enew.clone_from(&origin_event) }
                 }
 
-                if !cfg!(not(feature = "event_callbacks")) {
+                if cfg!(feature = "event_callbacks") {
                     // Async version:
                     if self.unmap_target.is_some() {
                         #[cfg(feature = "event_callbacks")]
@@ -165,7 +165,7 @@ impl<T> MemMap<T>  where T: OclPrm {
                         // function using `UserEvent::from_raw` and `::drop`
                         // will be run there. Do not also run it here.
                         #[cfg(feature = "event_callbacks")]
-                        mem::forget(origin_event);
+                        ::std::mem::forget(origin_event);
                     }
                 } else {
                     // Blocking version:
@@ -242,17 +242,10 @@ impl<T> DerefMut for MemMap<T> where T: OclPrm {
 }
 
 impl<T: OclPrm> Drop for MemMap<T> {
-    #[cfg(feature = "event_callbacks")]
     fn drop(&mut self) {
         if !self.is_unmapped {
             self.enqueue_unmap::<&Event, &mut Event>(None, None, None).ok();
         }
-    }
-
-    #[cfg(not(feature = "event_callbacks"))]
-    fn drop(&mut self) {
-        assert!(self.is_unmapped, "ocl_core::MemMap: '::drop' called while still mapped. \
-            Call '::unmap' before allowing this 'MemMap' to fall out of scope.");
     }
 }
 

@@ -28,8 +28,9 @@ pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, Sub
 pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};
 pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};
-pub use self::event::{Event, EventList, IntoMarker, RawList, IntoRawList};
+pub use self::event::{Event, EventList, IntoMarker, RawEventArray, IntoRawEventArray};
 pub use self::spatial_dims::SpatialDims;
+#[cfg(feature = "event_callbacks")]
 pub use self::cb::{_unpark_task, box_raw_void};
 pub use self::traits::{MemLen, WorkDims};
 pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
@@ -58,26 +59,14 @@ mod cb {
     }
 
     pub extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
-        #[inline]
-        fn unpark_task(user_data: *mut c_void) {
-            // println!("Unparking task via callback...");
+        let _ = event_ptr;
+        // println!("'_unpark_task' has been called.");
+        if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
             unsafe {
                 let task_ptr = user_data as *mut _ as *mut Task;
                 let task = Box::from_raw(task_ptr);
                 (*task).unpark();
             }
-        }
-
-        let _ = event_ptr;
-        // println!("'_unpark_task' has been called.");
-        if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
-            // unsafe {
-            //     // println!("Unparking task via callback...");
-            //     let task_ptr = user_data as *mut _ as *mut Task;
-            //     let task = Box::from_raw(task_ptr);
-            //     (*task).unpark();
-            // }
-            unpark_task(user_data);
         } else {
             let status = if event_status < 0 {
                 format!("{:?}", Status::from_i32(event_status))
@@ -103,7 +92,7 @@ mod cb {
 mod types {
     use std::ptr;
     use std::cell::Ref;
-    use standard::{Event, EventList, RawList, Queue};
+    use standard::{Event, EventList, RawEventArray, Queue};
     use core::ffi::cl_event;
     use core::{Result as OclResult, Event as EventCore, ClNullEventPtr, ClWaitListPtr};
 
@@ -116,7 +105,7 @@ mod types {
     #[derive(Debug)]
     pub enum ClWaitListPtrEnum<'a> {
         Null,
-        RawList(&'a RawList),
+        RawEventArray(&'a RawEventArray),
         EventCoreOwned(EventCore),
         EventOwned(Event),
         EventCore(&'a EventCore),
@@ -139,7 +128,7 @@ mod types {
         unsafe fn as_ptr_ptr(&self) -> *const cl_event {
             match *self {
                 ClWaitListPtrEnum::Null => ptr::null() as *const _ as *const cl_event,
-                ClWaitListPtrEnum::RawList(ref e) => e.as_ptr_ptr(),
+                ClWaitListPtrEnum::RawEventArray(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventCoreOwned(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventCore(ref e) => e.as_ptr_ptr(),
                 ClWaitListPtrEnum::EventOwned(ref e) => e.as_ptr_ptr(),
@@ -157,7 +146,7 @@ mod types {
         fn count(&self) -> u32 {
             match *self {
                 ClWaitListPtrEnum::Null => 0,
-                ClWaitListPtrEnum::RawList(ref e) => e.count(),
+                ClWaitListPtrEnum::RawEventArray(ref e) => e.count(),
                 ClWaitListPtrEnum::EventCoreOwned(ref e) => e.count(),
                 ClWaitListPtrEnum::EventCore(ref e) => e.count(),
                 ClWaitListPtrEnum::EventOwned(ref e) => e.count(),
@@ -172,9 +161,9 @@ mod types {
         }
     }
 
-    impl<'a> From<&'a RawList> for ClWaitListPtrEnum<'a> {
-        fn from(e: &'a RawList) -> ClWaitListPtrEnum<'a> {
-            ClWaitListPtrEnum::RawList(e)
+    impl<'a> From<&'a RawEventArray> for ClWaitListPtrEnum<'a> {
+        fn from(e: &'a RawEventArray) -> ClWaitListPtrEnum<'a> {
+            ClWaitListPtrEnum::RawEventArray(e)
         }
     }
 
