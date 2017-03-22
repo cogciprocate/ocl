@@ -2,6 +2,8 @@
 //!
 //! Only tests the default platform (all devices).
 
+#![allow(dead_code, unused_variables, unused_mut)]
+
 use std::thread;
 use futures::{Future, BoxFuture};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
@@ -119,7 +121,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
 
     let mut future_guard = rw_vec.clone().request_lock();
     // future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
-    future_guard.set_wait_list(wait_marker.unwrap().into());
+    future_guard.set_wait_list(wait_marker.unwrap());
     let unlock_event = future_guard.create_unlock_event(write_init_unlock_queue).unwrap().clone();
 
     let future_write_vec = future_guard.and_then(move |mut data| {
@@ -418,13 +420,13 @@ pub fn rw_vec() {
                 &mut write_init_event,
                 ival, task_iter);
 
-            // 2. Verify-Init
-            // ============
-            let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
-                &verify_init_queue,
-                write_init_event.as_ref(),
-                &mut verify_init_event,
-                ival, task_iter);
+            // // 2. Verify-Init
+            // // ============
+            // let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
+            //     &verify_init_queue,
+            //     write_init_event.as_ref(),
+            //     &mut verify_init_event,
+            //     ival, task_iter);
 
             // 3. Kernel-Add
             // =============
@@ -444,7 +446,8 @@ pub fn rw_vec() {
 
             println!("All commands for iteration {} enqueued", task_iter);
 
-            let task = write_init.join3(verify_init, verify_add);
+            // let task = write_init.join3(verify_init, verify_add);
+            let task = write_init.join(verify_add);
 
             threads.push(thread::spawn(move || {
                 task.wait().unwrap();
