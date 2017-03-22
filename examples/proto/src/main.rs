@@ -19,14 +19,14 @@ use ocl::ffi::{cl_event, c_void};
 // NOTE: Intel platform drivers may intermittently crash and error with
 // `DEVICE_NOT_AVAILABLE` on older hardware if this number is too low. Use AMD
 // drivers.
-const WORK_SIZE: usize = 1 << 14;
+const WORK_SIZE: usize = 1 << 12;
 
 // Initial value and addend for this example:
 const INIT_VAL: i32 = 50;
 const SCALAR_ADDEND: i32 = 100;
 
 // The number of tasks to run concurrently.
-const TASK_ITERS: i32 = 4;
+const TASK_ITERS: i32 = 2;
 
 const PRINT: bool = true;
 
@@ -212,7 +212,8 @@ pub fn verify_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
             if *val != cval {
-                return Err(format!("Verify init: Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
+                return Err(format!("Verify init: Result value mismatch: {:?} != {:?} @ [{}] \
+                    for task iter: [{}].", val, cval, idx, task_iter).into());
             }
             val_count += 1;
         }
@@ -317,8 +318,8 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::splat(correct_val);
             if *val != cval {
-                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]", 
-                    val, cval, idx).into());
+                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}] \
+                    for task iter: [{}].", val, cval, idx, task_iter).into());
             }
             val_count += 1;
         }
@@ -471,15 +472,36 @@ pub fn main() {
             		.spawn(move || 
     		{
             	println!("Waiting on task iter [{}]...", task_iter);
-                task.wait().unwrap();
-                println!("Task iter [{}] complete.", task_iter);
+                match task.wait() {
+                    Ok(res) => {
+                        println!("Task iter [{}] complete with result: {:?}", task_iter, res);
+                        true
+                    },
+                    Err(err) => {
+                        println!("\n############## ERROR (task iter: [{}]) ############## \n{:?}\n", task_iter, err);
+                        false
+                    },
+                }
             }).unwrap());
         }
 
+        let mut all_correct = true;
+
         for thread in threads {
-            thread.join().unwrap();
+            // thread.join().unwrap();
+            match thread.join() {
+                Ok(res) => {
+                    println!("Thread result: {:?}", res);
+                    all_correct |= res;
+                },
+                Err(err) => panic!("{:?}", err),
+            }
         }
 
-        println!("All result values are correct!");
+        if all_correct {
+            println!("All result values are correct.");
+        } else {
+            println!("Errors found!");
+        }
     }
 }

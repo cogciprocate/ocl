@@ -234,7 +234,8 @@ impl<T> FutureRwGuard<T> {
     // #[cfg(feature = "event_callbacks")]
     fn poll_wait_events(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Marker);
-        println!("###### FutureRwGuard::poll_wait_events...");
+        println!("###### FutureRwGuard::poll_wait_events (thread: {})...",
+            ::std::thread::current().name().unwrap());
 
         // // Check completion of wait event, if it exists:
         // if let Some(ref wait_event) = self.wait_event {
@@ -247,6 +248,9 @@ impl<T> FutureRwGuard<T> {
 
         // Check completion of wait list, if it exists:
         if let Some(ref mut wait_list) = self.wait_list {
+            println!("###### FutureRwGuard::poll_wait_events: Polling wait_events (thread: {})...",
+                ::std::thread::current().name().unwrap());
+
             // if !wait_event.is_complete()? {
             //     wait_event.set_unpark_callback()?;
             //     // println!("######  ... callback set.");
@@ -268,8 +272,7 @@ impl<T> FutureRwGuard<T> {
                     return Ok(Async::NotReady);
                 }   
             }
-
-            println!("###### FutureRwGuard::poll_wait_events: Polling wait_events...");
+            
             // wait_list.poll()?;
         }
 
@@ -316,7 +319,8 @@ impl<T> FutureRwGuard<T> {
             // Otherwise, return the `NotReady`. The rx (oneshot channel) will
             // arrange for this task to be awakened when it's ready.
             Ok(status) => {
-                println!("###### FutureRwGuard::poll_qutex: status: {:?}", status);
+                println!("###### FutureRwGuard::poll_qutex: status: {:?}, (thread: {}).", status,
+                    ::std::thread::current().name().unwrap());
                 match status {
                     Async::Ready(_) => {
                         if let Some(ref lock_event) = self.lock_event {
@@ -352,7 +356,8 @@ impl<T> FutureRwGuard<T> {
                 // Otherwise, return the `NotReady`. The rx (oneshot channel) will
                 // arrange for this task to be awakened when it's ready.
                 Ok(status) => {
-                    println!("###### FutureRwGuard::poll_qutex: status: {:?}", status);
+                    println!("###### FutureRwGuard::poll_qutex: status: {:?}, (thread: {}).", status,
+                        ::std::thread::current().name().unwrap());
 
                     match status {
                         Async::Ready(_) => {
@@ -379,21 +384,29 @@ impl<T> FutureRwGuard<T> {
     // #[cfg(feature = "event_callbacks")]
     fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Command);
-        println!("###### FutureRwGuard::poll_command...");
+        println!("###### FutureRwGuard::poll_command (thread: {})...",
+            ::std::thread::current().name().unwrap());
 
         if let Some(ref mut command_completion) = self.command_completion {
-            println!("###### FutureRwGuard::poll_command: Polling command completion event.");
+            println!("###### FutureRwGuard::poll_command: Polling command completion event (thread: {}).",
+                ::std::thread::current().name().unwrap());
 
             if !command_completion.is_complete()? {
                 command_completion.set_unpark_callback()?;
                 println!("######  ... callback set.");
                 return Ok(Async::NotReady);
-            }
-            
+            }           
+
+            // if !command_completion.is_complete()? {
+            //     command_completion.poll()?;
+            //     println!("###### FutureRwGuard::poll_command: Callback set.");
+            // }
 
             // command_completion.poll()?;
         }
 
+        println!("###### FutureRwGuard::poll_command: All polling complete (thread: {}).", 
+            ::std::thread::current().name().unwrap());
         Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
     }
 

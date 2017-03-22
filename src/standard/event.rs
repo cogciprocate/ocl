@@ -258,6 +258,7 @@ pub struct EventList {
 
 impl EventList {
     /// Returns a new, empty, `EventList`.
+    #[inline]
     pub fn new() -> EventList {
         EventList {
             events: Vec::new(),
@@ -265,6 +266,7 @@ impl EventList {
     }
 
     /// Returns a new, empty, `EventList` with an initial capacity of `cap`.
+    #[inline]
     pub fn with_capacity(cap: usize) -> EventList {
         EventList {
             events: Vec::with_capacity(cap),
@@ -272,16 +274,19 @@ impl EventList {
     }
 
     /// Adds an event to the list.
+    #[inline]
     pub fn push(&mut self, event: Event) {
         self.events.push(event)
     }
 
     /// Pushes an `Option<Event>` to the list if it is `Some(...)`.
+    #[inline]
     pub fn push_some<E: Into<Event>>(&mut self, event: Option<E>) {
         if let Some(e) = event { self.push(e.into()) }
     }
 
     /// Removes the last event from the list and returns it.
+    #[inline]
     pub fn pop(&mut self) -> Option<Event> {
         self.events.pop()
     }
@@ -339,6 +344,7 @@ impl EventList {
     }
 
     /// Returns a slice of the contained events.
+    #[inline]
     pub fn as_slice(&self) -> &[Event] {
         self.events.as_slice()
     }
@@ -366,12 +372,14 @@ impl EventList {
 impl Deref for EventList {
     type Target = [Event];
 
+    #[inline]
     fn deref(&self) -> &[Event] {
         self.events.as_slice()
     }
 }
 
 impl DerefMut for EventList {
+    #[inline]
     fn deref_mut(&mut self) -> &mut [Event] {
         self.events.as_mut_slice()
     }
@@ -381,6 +389,7 @@ impl IntoIterator for EventList {
     type Item = Event;
     type IntoIter = ::std::vec::IntoIter<Event>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.events.into_iter()
     }
@@ -393,6 +402,7 @@ impl<'a> From<Event> for EventList {
 }
 
 impl<'a> From<Vec<Event>> for EventList {
+    #[inline]
     fn from(events: Vec<Event>) -> EventList {
         EventList { events: events }
     }
@@ -480,9 +490,22 @@ impl Future for EventList {
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // let events = self.events.drain(..).collect();
 
-        // future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()))
-        self.wait_for().map(|r| Async::Ready(r))
-    }
+        println!("##### EventList::poll: Polling Event list (thread: '{}').", ::std::thread::current().name().unwrap());
+
+        while let Some(event) = self.pop() {
+            if !event.is_complete()? {
+                event.set_unpark_callback()?;
+                println!("######  ... callback set.");
+                return Ok(Async::NotReady);
+            }   
+        }
+
+        // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );
+        // self.wait_for().map(|r| Async::Ready(r))
+        println!("##### EventList::poll: All events complete (thread: '{}').", ::std::thread::current().name().unwrap());
+        
+        Ok(Async::Ready(()))
+    }   
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
