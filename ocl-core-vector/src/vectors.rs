@@ -8,12 +8,15 @@
 //! See crate level documentation for more information.
 //!
 //! [TODO]: Add scalar-widening operations (allowing vec * scl for example).
+//! [TODO]: impl Hash.
 
 // #![allow(unused_imports)]
 
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::ops::*;
 use std::iter::{Sum, Product};
+use std::hash::{Hash, Hasher};
+use std::cmp::{Eq, Ord, Ordering};
 use num::{Zero, One};
 // use ::{OclPrm, OclVec};
 
@@ -222,6 +225,20 @@ macro_rules! impl_sum_product {
 macro_rules! impl_int_ops {
     // ($($t:ty)*) => ($(
     ($name:ident, $cardinality:expr, $ty:ty, $( $field:ident ),+: $( $tr:ty ),+: $( $idx:expr ),+) => {
+        impl Eq for $name {}
+
+        impl Hash for $name {
+            fn hash<H: Hasher>(&self, state: &mut H) {
+                self.0.hash(state)
+            }
+        }
+
+        impl Ord for $name {
+            fn cmp(&self, other: &$name) -> Ordering {
+                self.0.cmp(&other.0)
+            }
+        }        
+
         impl Add for $name {
             type Output = $name;
 
