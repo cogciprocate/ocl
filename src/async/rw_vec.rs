@@ -265,15 +265,18 @@ impl<T> FutureRwGuard<T> {
             //     }
             // }
 
-            while let Some(event) = wait_list.pop() {
-                if !event.is_complete()? {
-                    event.set_unpark_callback()?;
-                    println!("######  ... callback set.");
-                    return Ok(Async::NotReady);
-                }   
+            // while let Some(event) = wait_list.pop() {
+            //     if !event.is_complete()? {
+            //         event.set_unpark_callback()?;
+            //         println!("######  ... callback set.");
+            //         return Ok(Async::NotReady);
+            //     }   
+            // }
+
+            if let Async::NotReady = wait_list.poll()? {
+                return Ok(Async::NotReady);
             }
             
-            // wait_list.poll()?;
         }
 
         self.stage = Stage::Qutex;

@@ -488,23 +488,23 @@ impl Future for EventList {
 
     // NOTE: Clones events `Vec`.
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        // let events = self.events.drain(..).collect();
-
         println!("##### EventList::poll: Polling Event list (thread: '{}').", ::std::thread::current().name().unwrap());
 
-        while let Some(event) = self.pop() {
-            if !event.is_complete()? {
-                event.set_unpark_callback()?;
-                println!("######  ... callback set.");
-                return Ok(Async::NotReady);
-            }   
-        }
+        // while let Some(event) = self.pop() {
+        //     if !event.is_complete()? {
+        //         event.set_unpark_callback()?;
+        //         println!("######  ... callback set.");
+        //         return Ok(Async::NotReady);
+        //     }   
+        // }
 
         // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );
+        let res = future::join_all(self.events.drain(..)).poll().map(|res| res.map(|_| ()) );
         // self.wait_for().map(|r| Async::Ready(r))
         println!("##### EventList::poll: All events complete (thread: '{}').", ::std::thread::current().name().unwrap());
         
-        Ok(Async::Ready(()))
+        // Ok(Async::Ready(()))
+        res
     }   
 }
 
