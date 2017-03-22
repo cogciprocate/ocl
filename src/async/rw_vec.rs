@@ -391,18 +391,20 @@ impl<T> FutureRwGuard<T> {
             println!("###### FutureRwGuard::poll_command: Polling command completion event (thread: {}).",
                 ::std::thread::current().name().unwrap());
 
-            if !command_completion.is_complete()? {
-                command_completion.set_unpark_callback()?;
-                println!("######  ... callback set.");
-                return Ok(Async::NotReady);
-            }           
+            // if !command_completion.is_complete()? {
+            //     command_completion.set_unpark_callback()?;
+            //     println!("######  ... callback set.");
+            //     return Ok(Async::NotReady);
+            // }           
 
             // if !command_completion.is_complete()? {
             //     command_completion.poll()?;
             //     println!("###### FutureRwGuard::poll_command: Callback set.");
             // }
 
-            // command_completion.poll()?;
+            if let Async::NotReady = command_completion.poll()? {
+                return Ok(Async::NotReady);
+            }
         }
 
         println!("###### FutureRwGuard::poll_command: All polling complete (thread: {}).", 
