@@ -131,8 +131,8 @@ pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
 ///
 /// Fill buffer with -999's just to ensure the upcoming write misses nothing:
 pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
-        kernel_event: Option<&Event>,
-        write_init_event: Option<&Event>,
+        verify_init_event: Option<&Event>,
+        kernel_event: Option<&Event>,        
         fill_event: &mut Option<Event>,
         task_iter: i32)
 {
@@ -148,7 +148,7 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 
     // Clear the wait list and push the previous iteration's kernel event
     // and the previous iteration's write init (unmap) event if they are set.
-    let wait_list = [&kernel_event, &write_init_event].into_raw_list();
+    let wait_list = [&kernel_event, &verify_init_event].into_raw_list();
 
     // Create a marker so we can print the status message:
     let fill_wait_marker = wait_list.to_marker(&common_queue).unwrap();
@@ -503,8 +503,8 @@ pub fn main() {
         // 0. Fill-Junk
         // ============
         fill_junk(&src_buf, &common_queue,
-            write_init_event.as_ref(),
-            kernel_event.as_ref(),
+            verify_init_event.as_ref(),
+            kernel_event.as_ref(),                        
             &mut fill_event,
             task_iter);
 

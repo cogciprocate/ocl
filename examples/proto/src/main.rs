@@ -26,9 +26,9 @@ const INIT_VAL: i32 = 50;
 const SCALAR_ADDEND: i32 = 100;
 
 // The number of tasks to run concurrently.
-const TASK_ITERS: i32 = 2;
+const TASK_ITERS: i32 = 16;
 
-const PRINT: bool = true;
+const PRINT: bool = false;
 
 
 // A kernel that makes a career out of adding values.
@@ -58,7 +58,7 @@ pub static KERN_SRC: &'static str = r#"
 /// Fill buffer with -999's just to ensure the upcoming write misses nothing:
 pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
         kernel_event: Option<&Event>,
-        write_init_event: Option<&Event>,
+        verify_init_event: Option<&Event>,
         fill_event: &mut Option<Event>,
         task_iter: i32)
 {
@@ -72,7 +72,7 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 
     // Clear the wait list and push the previous iteration's kernel event
     // and the previous iteration's write init (unmap) event if they are set.
-    let wait_list = [kernel_event, write_init_event].into_raw_list();
+    let wait_list = [kernel_event, verify_init_event].into_raw_list();
 
     // Create a marker so we can print the status message:
     let fill_wait_marker = wait_list.to_marker(&common_queue).unwrap();
@@ -424,7 +424,7 @@ pub fn main() {
             // 0. Fill-Junk
             // ============
             fill_junk(&src_buf, &common_queue,
-                write_init_event.as_ref(),
+                verify_init_event.as_ref(),
                 kernel_event.as_ref(),
                 &mut fill_event,
                 task_iter);
@@ -439,13 +439,13 @@ pub fn main() {
                 &mut write_init_event,
                 ival, task_iter);
 
-            // 2. Verify-Init
-            // ============
-            let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
-                &verify_init_queue,
-                write_init_event.as_ref(),
-                &mut verify_init_event,
-                ival, task_iter);
+            // // 2. Verify-Init
+            // // ============
+            // let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
+            //     &verify_init_queue,
+            //     write_init_event.as_ref(),
+            //     &mut verify_init_event,
+            //     ival, task_iter);
 
             // 3. Kernel-Add
             // =============
@@ -463,18 +463,19 @@ pub fn main() {
                 &mut verify_add_event,
                 tval, task_iter);
 
-            println!("All commands for iteration {} enqueued", task_iter);
+            if PRINT { println!("All commands for iteration {} enqueued", task_iter); }
 
-            let task = write_init.join3(verify_init, verify_add);
+            // let task = write_init.join3(verify_init, verify_add);
+            let task = write_init.join(verify_add);
 
             threads.push(thread::Builder::new()
             		.name(format!("task_iter_[{}]", task_iter).into())
             		.spawn(move || 
     		{
-            	println!("Waiting on task iter [{}]...", task_iter);
+            	if PRINT { println!("Waiting on task iter [{}]...", task_iter); }
                 match task.wait() {
                     Ok(res) => {
-                        println!("Task iter [{}] complete with result: {:?}", task_iter, res);
+                        if PRINT { println!("Task iter [{}] complete with result: {:?}", task_iter, res); }
                         true
                     },
                     Err(err) => {
@@ -491,8 +492,8 @@ pub fn main() {
             // thread.join().unwrap();
             match thread.join() {
                 Ok(res) => {
-                    println!("Thread result: {:?}", res);
-                    all_correct |= res;
+                    if PRINT { println!("Thread result: {:?}", res); }
+                    if !res { all_correct = false; }
                 },
                 Err(err) => panic!("{:?}", err),
             }

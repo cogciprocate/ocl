@@ -16,6 +16,8 @@ use standard::{Queue, ClWaitListPtrEnum};
 #[cfg(feature = "event_callbacks")]
 use standard::{_unpark_task, box_raw_void};
 
+const PRINT_DEBUG: bool = false;
+
 /// An event representing a command or user created event.
 ///
 #[derive(Clone, Debug)]
@@ -488,7 +490,8 @@ impl Future for EventList {
 
     // NOTE: Clones events `Vec`.
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        println!("##### EventList::poll: Polling Event list (thread: '{}').", ::std::thread::current().name().unwrap());
+        if PRINT_DEBUG { println!("##### EventList::poll: Polling Event list (thread: '{}').", 
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         // while let Some(event) = self.pop() {
         //     if !event.is_complete()? {
@@ -501,7 +504,8 @@ impl Future for EventList {
         // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );
         let res = future::join_all(self.events.drain(..)).poll().map(|res| res.map(|_| ()) );
         // self.wait_for().map(|r| Async::Ready(r))
-        println!("##### EventList::poll: All events complete (thread: '{}').", ::std::thread::current().name().unwrap());
+        if PRINT_DEBUG { println!("##### EventList::poll: All events complete (thread: '{}').", 
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
         
         // Ok(Async::Ready(()))
         res
