@@ -8,7 +8,7 @@ use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
 use futures::sync::oneshot;
 use core::ClContextPtr;
-use ::{Event};
+use ::{Event, EventList};
 use async::{Error as AsyncError, Result as AsyncResult};
 pub use self::qutex::{Request, Guard, FutureGuard, Qutex};
 
@@ -99,50 +99,50 @@ enum Stage {
 pub struct FutureRwGuard<T> {
     rw_vec: Option<RwVec<T>>,
     rx: oneshot::Receiver<()>,
-    wait_event: Option<Event>,
+    // wait_event: Option<Event>,
+    wait_list: Option<EventList>,
     lock_event: Option<Event>,
     command_completion: Option<Event>,
     unlock_event: Option<Event>,
     stage: Stage,
-    // len: usize,
 }
 
 impl<T> FutureRwGuard<T> {
-    // pub fn new<C: ClContextPtr>(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>, context: C,
-    //         wait_event: Option<Event>) -> OclResult<FutureRwGuard<T>>
     pub fn new(rw_vec: RwVec<T>, rx: oneshot::Receiver<()>) 
             -> FutureRwGuard<T>
     {
-        // let lock_event = Event::user(context)?;
-
-        // let len = unsafe { (*rw_vec.qutex.as_ptr()).len() };
-
         FutureRwGuard {
             rw_vec: Some(rw_vec),
             rx: rx,
-            // wait_event: wait_event,
-            wait_event: None,
-            // lock_event: lock_event,
+            // wait_event: None,
+            wait_list: None,
             lock_event: None,
             command_completion: None,
             unlock_event: None,
             stage: Stage::Marker,
-            // len: len,
         }
     }
 
-    /// Sets a wait event.
-    ///
-    /// Setting a wait event will cause this `FutureRwGuard` to wait until
-    /// that event has its status set to complete (by polling it like any
-    /// other future) before obtaining a lock on the guarded internal `Vec`.
-    ///
-    /// If multiple wait events need waiting on, add them to an `EventList`
-    /// and enqueue a marker or create an array and use the `IntoMarker`
-    /// trait to produce a marker which can be passed here.
-    pub fn set_wait_event(&mut self, wait_event: Event) {
-        self.wait_event = Some(wait_event)
+    // /// Sets a wait event.
+    // ///
+    // /// Setting a wait event will cause this `FutureRwGuard` to wait until
+    // /// that event has its status set to complete (by polling it like any
+    // /// other future) before obtaining a lock on the guarded internal `Vec`.
+    // ///
+    // /// If multiple wait events need waiting on, add them to an `EventList`
+    // /// and enqueue a marker or create an array and use the `IntoMarker`
+    // /// trait to produce a marker which can be passed here.
+    // pub fn set_wait_event(&mut self, wait_event: Event) {
+    //     self.wait_event = Some(wait_event)
+    // }
+
+    pub fn set_wait_list<L: Into<EventList>>(&mut self, wait_list: L) {
+        self.wait_list = Some(wait_list.into());
     }
+
+    // pub fn set_wait_list_marker<L: Into<EventList>>(&mut self, wait_list: L) {
+    //     self.wait_list = Some(wait_list.into());
+    // }
 
     /// Sets a command completion event.
     ///
@@ -192,7 +192,7 @@ impl<T> FutureRwGuard<T> {
 
     /// Returns a reference to the event previously created with
     /// `::create_lock_event` which will trigger (be completed) when the wait
-    /// marker is complete and the qutex is locked.
+    /// events are complete and the qutex is locked.
     pub fn lock_event(&self) -> Option<&Event> {
         self.lock_event.as_ref()
     }
@@ -229,45 +229,74 @@ impl<T> FutureRwGuard<T> {
             .qutex.as_ptr()).len() }
     }
 
-    /// Polls the wait marker event until all requisite commands have
-    /// completed then polls the qutex queue.
-    #[cfg(feature = "event_callbacks")]
-    fn poll_marker(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
+    /// Polls the wait events until all requisite commands have completed then
+    /// polls the qutex queue.
+    // #[cfg(feature = "event_callbacks")]
+    fn poll_wait_events(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Marker);
-        // println!("###### FutureRwGuard::poll_marker...");
+        println!("###### FutureRwGuard::poll_wait_events...");
 
-        // Check completion of wait event, if it exists:
-        if let Some(ref wait_event) = self.wait_event {
-            if !wait_event.is_complete()? {
-                wait_event.set_unpark_callback()?;
-                // println!("######  ... callback set.");
-                return Ok(Async::NotReady);
+        // // Check completion of wait event, if it exists:
+        // if let Some(ref wait_event) = self.wait_event {
+        //     if !wait_event.is_complete()? {
+        //         wait_event.set_unpark_callback()?;
+        //         // println!("######  ... callback set.");
+        //         return Ok(Async::NotReady);
+        //     }
+        // }
+
+        // Check completion of wait list, if it exists:
+        if let Some(ref mut wait_list) = self.wait_list {
+            // if !wait_event.is_complete()? {
+            //     wait_event.set_unpark_callback()?;
+            //     // println!("######  ... callback set.");
+            //     return Ok(Async::NotReady);
+            // }
+
+            // for event in wait_list.as_slice() {
+            //     if !event.is_complete()? {
+            //         event.set_unpark_callback()?;
+            //         println!("######  ... callback set.");
+            //         return Ok(Async::NotReady);
+            //     }
+            // }
+
+            while let Some(event) = wait_list.pop() {
+                if !event.is_complete()? {
+                    event.set_unpark_callback()?;
+                    println!("######  ... callback set.");
+                    return Ok(Async::NotReady);
+                }   
             }
+
+            println!("###### FutureRwGuard::poll_wait_events: Polling wait_events...");
+            // wait_list.poll()?;
         }
 
         self.stage = Stage::Qutex;
         self.poll_qutex()
     }
 
-    /// Polls the wait marker event until all requisite commands have
-    /// completed then polls the qutex queue.
-    #[cfg(not(feature = "event_callbacks"))]
-    fn poll_marker(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
-        debug_assert!(self.stage == Stage::Marker);
-        // println!("############ FutureRwGuard::poll_marker...");
+    // /// Polls the wait events until all requisite commands have
+    // /// completed then polls the qutex queue.
+    // #[cfg(not(feature = "event_callbacks"))]
+    // fn poll_wait_events(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
+    //     debug_assert!(self.stage == Stage::Marker);
+    //     // println!("############ FutureRwGuard::poll_wait_events...");
 
-        // Check completion of wait event, if it exists:
-        if let Some(ref wait_event) = self.wait_event {
-            if !wait_event.is_complete()? {
-                // println!("############  ... waiting for event {:?}...", wait_event);
-                wait_event.wait_for()?;
-                // println!("############  ... event {:?} complete.", wait_event);
-            }
-        }
+    //     // Check completion of wait event, if it exists:
+    //     if let Some(ref wait_list) = self.wait_list {
+    //         // if !wait_events.is_complete()? {
+    //         //     // println!("############  ... waiting for event {:?}...", wait_event);
+    //         //     wait_events.wait_for()?;
+    //         //     // println!("############  ... event {:?} complete.", wait_event);
+    //         // }
+    //         wait_list.poll()?;
+    //     }
 
-        self.stage = Stage::Qutex;
-        self.poll_qutex()
-    }
+    //     self.stage = Stage::Qutex;
+    //     self.poll_qutex()
+    // }
 
     /// Polls the qutex until we have obtained a lock then polls the command
     /// event.
@@ -287,7 +316,7 @@ impl<T> FutureRwGuard<T> {
             // Otherwise, return the `NotReady`. The rx (oneshot channel) will
             // arrange for this task to be awakened when it's ready.
             Ok(status) => {
-                // println!("###### FutureRwGuard::poll_qutex: status: {:?}", status);
+                println!("###### FutureRwGuard::poll_qutex: status: {:?}", status);
                 match status {
                     Async::Ready(_) => {
                         if let Some(ref lock_event) = self.lock_event {
@@ -323,7 +352,7 @@ impl<T> FutureRwGuard<T> {
                 // Otherwise, return the `NotReady`. The rx (oneshot channel) will
                 // arrange for this task to be awakened when it's ready.
                 Ok(status) => {
-                    // println!("###### FutureRwGuard::poll_qutex: status: {:?}", status);
+                    println!("###### FutureRwGuard::poll_qutex: status: {:?}", status);
 
                     match status {
                         Async::Ready(_) => {
@@ -347,39 +376,44 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the command event until it is complete then returns an `RwGuard`
     /// which can be safely accessed immediately.
-    #[cfg(feature = "event_callbacks")]
+    // #[cfg(feature = "event_callbacks")]
     fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Command);
-        // println!("###### FutureRwGuard::poll_command...");
+        println!("###### FutureRwGuard::poll_command...");
 
-        if let Some(ref command_completion) = self.command_completion {
+        if let Some(ref mut command_completion) = self.command_completion {
+            println!("###### FutureRwGuard::poll_command: Polling command completion event.");
+
             if !command_completion.is_complete()? {
                 command_completion.set_unpark_callback()?;
-                // println!("######  ... callback set.");
+                println!("######  ... callback set.");
                 return Ok(Async::NotReady);
             }
+            
+
+            // command_completion.poll()?;
         }
 
         Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
     }
 
-    /// Polls the command event until it is complete then returns an `RwGuard`
-    /// which can be safely accessed immediately.
-    #[cfg(not(feature = "event_callbacks"))]
-    fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
-        debug_assert!(self.stage == Stage::Command);
-        // println!("###### FutureRwGuard::poll_command...");
+    // /// Polls the command event until it is complete then returns an `RwGuard`
+    // /// which can be safely accessed immediately.
+    // #[cfg(not(feature = "event_callbacks"))]
+    // fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
+    //     debug_assert!(self.stage == Stage::Command);
+    //     // println!("###### FutureRwGuard::poll_command...");
 
-        if let Some(ref command_completion) = self.command_completion {
-            if !command_completion.is_complete()? {
-                // println!("######  ... waiting for event {:?}...", command_completion);
-                command_completion.wait_for()?;
-                // println!("######  ... event {:?} complete.", command_completion);
-            }
-        }
+    //     if let Some(ref command_completion) = self.command_completion {
+    //         if !command_completion.is_complete()? {
+    //             // println!("######  ... waiting for event {:?}...", command_completion);
+    //             command_completion.wait_for()?;
+    //             // println!("######  ... event {:?} complete.", command_completion);
+    //         }
+    //     }
 
-        Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
-    }
+    //     Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
+    // }
 }
 
 impl<T> Future for FutureRwGuard<T> {
@@ -390,7 +424,7 @@ impl<T> Future for FutureRwGuard<T> {
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         if self.rw_vec.is_some() {
             match self.stage {
-                Stage::Marker => self.poll_marker(),
+                Stage::Marker => self.poll_wait_events(),
                 Stage::Qutex => self.poll_qutex(),
                 Stage::Command => self.poll_command(),
             }            

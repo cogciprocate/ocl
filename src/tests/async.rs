@@ -118,7 +118,8 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
     let wait_marker = [verify_init_event, fill_event].into_marker(common_queue).unwrap();
 
     let mut future_guard = rw_vec.clone().request_lock();
-    future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
+    // future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
+    future_guard.set_wait_list(wait_marker.unwrap().into());
     let unlock_event = future_guard.create_unlock_event(write_init_unlock_queue).unwrap().clone();
 
     let future_write_vec = future_guard.and_then(move |mut data| {

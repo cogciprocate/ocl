@@ -119,8 +119,28 @@ mod types {
     }
 
     impl<'a> ClWaitListPtrEnum<'a> {
+        /// Converts this `ClWaitListPtrEnum` into a single marker event.
         pub fn into_marker(self, queue: &Queue) -> OclResult<Event> {
             queue.enqueue_marker(Some(self))
+        }
+
+        /// Returns an `EventList` containing owned copies of each element in
+        /// this `ClWaitListPtrEnum`.
+        pub fn to_list(&self) -> EventList {
+            match *self {
+                ClWaitListPtrEnum::Null => EventList::with_capacity(0),
+                ClWaitListPtrEnum::RawEventArray(ref e) => e.as_slice().into(),
+                ClWaitListPtrEnum::EventCoreOwned(ref e) => EventList::from(vec![e.clone().into()]),
+                ClWaitListPtrEnum::EventOwned(ref e) => EventList::from(vec![e.clone().into()]),
+                ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),                
+                ClWaitListPtrEnum::Event(e) => EventList::from(vec![e.clone().into()]),
+                ClWaitListPtrEnum::EventList(e) => e.clone(),
+                ClWaitListPtrEnum::EventSlice(e) => EventList::from(e),
+                ClWaitListPtrEnum::EventPtrSlice(e) => EventList::from(e),
+                ClWaitListPtrEnum::RefEventList(ref e) => (*e).clone(),
+                ClWaitListPtrEnum::RefTraitObj(ref e) => Ref::clone(e).into(),
+                ClWaitListPtrEnum::BoxTraitObj(ref e) => e.into(),
+            }
         }
     }
 
@@ -262,7 +282,6 @@ mod types {
             ClWaitListPtrEnum::BoxTraitObj(e)
         }
     }
-
 
 
     #[derive(Debug)]

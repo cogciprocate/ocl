@@ -117,9 +117,9 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
     }
 
-    // Clear the wait list and push the previous iteration's verify init event
-    // and the current iteration's fill event if they are set.
-    let wait_marker = [verify_init_event, fill_event].into_marker(common_queue).unwrap();
+    // // Clear the wait list and push the previous iteration's verify init event
+    // // and the current iteration's fill event if they are set.
+    // let wait_marker = [verify_init_event, fill_event].into_marker(common_queue).unwrap();
 
     // println!("###### write_init() events (task_iter: [{}]): \n\
     // 	######     'verify_init_event': {:?}, \n\
@@ -127,8 +127,11 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
     // 	######       -> 'wait_marker': {:?}", 
     // 	task_iter, verify_init_event, fill_event, wait_marker);
 
+    let wait_list = [verify_init_event, fill_event].into_raw_list();
+
     let mut future_guard = rw_vec.clone().request_lock();
-    future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
+    // future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
+    future_guard.set_wait_list(wait_list);
     let unlock_event = future_guard.create_unlock_event(write_init_unlock_queue_0).unwrap().clone();
 
     // println!("######     'unlock_event' (generate): {:?}", unlock_event);

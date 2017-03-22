@@ -3,17 +3,18 @@
 use std;
 use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
+use std::cell::Ref;
+use futures::{future, Future, Poll, Async};
 #[cfg(feature = "event_callbacks")]
 use futures::task;
-use futures::{Future, Poll, Async};
 use ffi::cl_event;
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef,
     CommandQueue as CommandQueueCore, ClContextPtr};
 use core::error::{Error as OclError, Result as OclResult};
+use standard::{Queue, ClWaitListPtrEnum};
 #[cfg(feature = "event_callbacks")]
 use standard::{_unpark_task, box_raw_void};
-use standard::Queue;
 
 /// An event representing a command or user created event.
 ///
@@ -209,6 +210,8 @@ impl Future for Event {
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        debug_assert!(self.0.is_valid());
+
         match self.is_complete() {
             Ok(true) => {
                 Ok(Async::Ready(()))
@@ -219,6 +222,9 @@ impl Future for Event {
             },
             Err(err) => Err(err),
         }
+
+        // self.wait_for()?;
+        // Ok(Async::Ready(()))
     }
 }
 
@@ -229,6 +235,7 @@ impl Future for Event {
     type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        debug_assert!(self.0.is_valid());
         self.wait_for()?;
         Ok(Async::Ready(()))
     }
@@ -252,7 +259,6 @@ pub struct EventList {
 impl EventList {
     /// Returns a new, empty, `EventList`.
     pub fn new() -> EventList {
-
         EventList {
             events: Vec::new(),
         }
@@ -318,10 +324,23 @@ impl EventList {
 
     /// Enqueue a marker event representing the completion of each and every
     /// event in this list.
+    ///
+    /// ### Platform Compatibility
+    ///
+    /// Some device/platform combinations (particularly older Intel CPUs on
+    /// Intel platform drivers) may have intermittent issues waiting on
+    /// markers when multiple threads are in use. This is rare and can be
+    /// circumvented by using AMD platform drivers instead. Please file an
+    /// issue immediately if you run into problems on your platform so that we
+    /// may make note of it here in the documentation.
     pub fn enqueue_marker(&self, queue: &Queue) -> OclResult<Event> {
         if self.events.is_empty() { return Err("EventList::enqueue_marker: List empty.".into()); }
-        // let mut marker = Event::empty();
         queue.enqueue_marker(Some(self))
+    }
+
+    /// Returns a slice of the contained events.
+    pub fn as_slice(&self) -> &[Event] {
+        self.events.as_slice()
     }
 
     #[inline]
@@ -358,6 +377,114 @@ impl DerefMut for EventList {
     }
 }
 
+impl IntoIterator for EventList {
+    type Item = Event;
+    type IntoIter = ::std::vec::IntoIter<Event>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.events.into_iter()
+    }
+}
+
+impl<'a> From<Event> for EventList {
+    fn from(event: Event) -> EventList {
+        EventList { events: vec![event] }
+    }
+}
+
+impl<'a> From<Vec<Event>> for EventList {
+    fn from(events: Vec<Event>) -> EventList {
+        EventList { events: events }
+    }
+}
+
+impl<'a> From<&'a [Event]> for EventList {
+    fn from(events: &[Event]) -> EventList {
+        EventList { events: Vec::from(events) }
+    }
+}
+
+impl<'a> From<&'a [cl_event]> for EventList {
+    fn from(raw_events: &[cl_event]) -> EventList {
+        let events = raw_events.into_iter().map(|re| {
+            unsafe { EventCore::from_raw_copied_ptr(*re).expect("EventList::from: \
+                Error converting from raw 'cl_event'").into() }
+        }).collect();
+        EventList { events: events }
+    }
+}
+
+impl<'a> From<RawEventArray> for EventList {
+    fn from(raw_events: RawEventArray) -> EventList {
+        raw_events.as_slice().into()
+    }   
+}
+
+impl<'a> From<Box<ClWaitListPtr>> for EventList {
+    fn from(trait_obj: Box<ClWaitListPtr>) -> EventList {
+        let raw_slice = unsafe { 
+            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize) 
+        };
+
+        Self::from(raw_slice)
+    }
+}
+
+impl<'a> From<&'a Box<ClWaitListPtr>> for EventList {
+    fn from(trait_obj: &Box<ClWaitListPtr>) -> EventList {
+        let raw_slice = unsafe { 
+            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize) 
+        };
+
+        Self::from(raw_slice)
+    }
+}
+
+impl<'a> From<Ref<'a, ClWaitListPtr>> for EventList {
+    fn from(trait_obj: Ref<'a, ClWaitListPtr>) -> EventList {
+        let raw_slice = unsafe { 
+            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize) 
+        };
+
+        Self::from(raw_slice)
+    }
+}
+
+
+impl<'a> From<ClWaitListPtrEnum<'a>> for EventList {
+    /// Returns an `EventList` containing owned copies of each element in
+    /// this `ClWaitListPtrEnum`.
+    fn from(wlpe: ClWaitListPtrEnum<'a>) -> EventList {
+        match wlpe{
+            ClWaitListPtrEnum::Null => EventList::with_capacity(0),
+            ClWaitListPtrEnum::RawEventArray(e) => e.as_slice().into(),
+            ClWaitListPtrEnum::EventCoreOwned(e) => EventList::from(vec![e.into()]),
+            ClWaitListPtrEnum::EventOwned(e) => EventList::from(vec![e.into()]),
+            ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),                
+            ClWaitListPtrEnum::Event(e) => EventList::from(vec![e.clone().into()]),
+            ClWaitListPtrEnum::EventList(e) => e.clone(),
+            ClWaitListPtrEnum::EventSlice(e) => EventList::from(e),
+            ClWaitListPtrEnum::EventPtrSlice(e) => EventList::from(e),
+            ClWaitListPtrEnum::RefEventList(e) => (*e).clone(),
+            ClWaitListPtrEnum::RefTraitObj(e) => e.into(),
+            ClWaitListPtrEnum::BoxTraitObj(e) => e.into(),
+        }
+    }
+}
+
+impl Future for EventList {
+    type Item = ();
+    type Error = OclError;
+
+    // NOTE: Clones events `Vec`.
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        // let events = self.events.drain(..).collect();
+
+        // future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()))
+        self.wait_for().map(|r| Async::Ready(r))
+    }
+}
+
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {
     #[inline] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
 
@@ -378,6 +505,131 @@ unsafe impl<'a> ClWaitListPtr for &'a EventList {
 }
 
 
+
+/// A list of events for coordinating enqueued commands.
+///
+/// Events contain status information about the command that
+/// created them. Used to coordinate the activity of multiple commands with
+/// more fine-grained control than the queue alone.
+///
+/// For access to individual events use `get_clone` and `last_clone` then
+/// either store or discard the result.
+///
+// * [FIXME] TODO: impl Index.
+#[derive(Debug)]
+pub struct EventArray {
+    events: [Event; 8],
+    count: u32,
+}
+
+impl EventArray {
+    /// Returns a new, empty, `EventArray`.
+    pub fn new() -> EventArray {
+        EventArray {
+            events: [Event::empty(), Event::empty(), Event::empty(), Event::empty(),
+                Event::empty(), Event::empty(), Event::empty(), Event::empty()],
+            count: 0,
+        }
+    }
+
+    #[inline]
+    pub fn push<E: Into<Event>>(&mut self, event: E) {
+        if (self.count as usize) < self.events.len() {
+            self.events[(self.count as usize)] = event.into();
+            self.count += 1;
+        } else {
+            panic!("EventArray::push: List is full.");
+        }
+    }
+
+    /// Pushes an `Option<Event>` to the list if it is `Some(...)`.
+    pub fn push_some<E: Into<Event>>(&mut self, event: Option<E>) {
+        if let Some(e) = event { self.push(e.into()) }
+    }
+
+    /// Waits on the host thread for all events in list to complete.
+    pub fn wait_for(&self) -> OclResult<()> {
+        for event_idx in 0..(self.count as usize) {
+            self.events[event_idx].wait_for()?;
+        }
+
+        Ok(())
+    }
+
+    /// Enqueue a marker event representing the completion of each and every
+    /// event in this list.
+    pub fn enqueue_marker(&self, queue: &Queue) -> OclResult<Event> {
+        if self.events.is_empty() { return Err("EventArray::enqueue_marker: List empty.".into()); }
+        queue.enqueue_marker(Some(self))
+    }
+
+    #[inline]
+    fn _alloc_new(&mut self) -> *mut cl_event {
+        self.push(Event::empty());
+        self.events.last_mut().unwrap() as *mut _ as *mut cl_event
+    }
+
+    #[inline]
+    unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
+        match self.events.first() {
+            Some(ev) => ev as *const _ as *const cl_event,
+            None => 0 as *const cl_event,
+        }
+    }
+
+    #[inline]
+    fn _count(&self) -> u32 {
+        self.events.len() as u32
+    }
+}
+
+impl Deref for EventArray {
+    type Target = [Event];
+
+    fn deref(&self) -> &[Event] {
+        &self.events[..]
+    }
+}
+
+impl DerefMut for EventArray {
+    fn deref_mut(&mut self) -> &mut [Event] {
+        &mut self.events[..]
+    }
+}
+
+// impl Future for EventArray {
+//     type Item = ();
+//     type Error = OclError;
+
+//     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+//         // TODO: Use either options or some unsafe stuff to create an
+//         // IntoIterator out of this.
+
+//         future::join_all(self.events[0..(self.count as usize)].into_iter())
+//             .poll().map(|res| res.map(|_| ()))
+//     }
+// }
+
+unsafe impl<'a> ClNullEventPtr for &'a mut EventArray {
+    #[inline] fn alloc_new(&mut self) -> *mut cl_event { self._alloc_new() }
+
+    #[inline] unsafe fn clone_from<E: AsRef<EventCore>>(&mut self, ev: E) {
+        assert!(ev.as_ref().is_valid());
+        *self._alloc_new() = ev.as_ref().clone().into_raw()
+    }
+}
+
+unsafe impl ClWaitListPtr for EventArray {
+    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline] fn count(&self) -> u32 { self._count() }
+}
+
+unsafe impl<'a> ClWaitListPtr for &'a EventArray {
+    #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
+    #[inline] fn count(&self) -> u32 { self._count() }
+}
+
+
 // pub trait EventOption {
 //     type Event;
 // }
@@ -389,7 +641,7 @@ unsafe impl<'a> ClWaitListPtr for &'a EventList {
 /// A stack allocated array of `cl_event` pointers with a maximum length of 8.
 ///
 /// Do not store this list beyond the enqueue call(s) with which this list is
-/// first used. Use `EventList` for a persistent list.
+/// first used. Use `EventList` or `EventArray` for a persistent list.
 ///
 //
 // * [NOTE]: Consider implementing using
@@ -438,6 +690,10 @@ impl RawEventArray {
     /// event in this list.
     pub fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
         self.to_marker(queue)
+    }
+
+    pub fn as_slice(&self) -> &[cl_event] {
+        &self.list[..self.count as usize]
     }
 }
 
