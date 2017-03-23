@@ -80,8 +80,6 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 }
 
 
-
-
 /// A view of memory mapped by `clEnqueueMap{...}`.
 ///
 ///

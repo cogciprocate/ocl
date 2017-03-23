@@ -31,8 +31,7 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 # pre-sandy-bridge Intel processors [on Intel drivers], some other
 # pre-gen-5-core processors [on Intel drivers]).
 #
-# Leaving this disabled results in a significant performance increase when
-# performing asynchronous tasks (e.g. using `::enq_async` for commands).
+# Leaving this disabled is recommended except in very rare situations.
 async_block = []
 
 # default = ["async_block", "opencl_version_1_1", "opencl_version_1_2"]
@@ -44,13 +43,13 @@ default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 
 ###### [FIXME]: Ensure top (`git`) line is used:
-ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core" }
-# ocl-core = { version = "0.3.2", path = "../ocl-core" }
+# ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core" }
+ocl-core = { version = "0.3.2", path = "../ocl-core" }
 
 
 # qutex = "0.0.4"
-qutex = { version = "0.0", git = "https://github.com/cogciprocate/qutex" }
-# qutex = { version = "0.0", path = "../qutex" }
+# qutex = { version = "0.0", git = "https://github.com/cogciprocate/qutex" }
+qutex = { version = "0.0", path = "../qutex" }
 
 
 num = "0.1"

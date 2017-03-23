@@ -42,7 +42,7 @@ use ocl::prm::Int4;
 use ocl::ffi::{cl_event, c_void};
 
 // Size of buffers and kernel work size:
-const WORK_SIZE: usize = 1 << 24;
+const WORK_SIZE: usize = 1 << 22;
 
 // Initial value and addend for this example:
 const INIT_VAL: i32 = 50;
@@ -257,11 +257,14 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
     // Clear the wait list and push the previous iteration's read verify
     // completion event (if it exists) and the current iteration's write unmap
     // event.
-    let wait_list = [&verify_init_event.as_ref(), &write_init_event].into_raw_list();
+    let wait_list = [&write_init_event, &verify_init_event.as_ref()].into_raw_list();
+
+    // println!("###### WAIT_LIST: {:?}", wait_list);
 
     let mut future_read_data = src_buf.cmd().read(dst_vec)
         .queue(common_queue)
         .ewait(&wait_list)
+        // .ewait_opt(write_init_event)
         .enq_async().unwrap();
 
     // Attach a status message printing callback to what approximates the

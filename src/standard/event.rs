@@ -423,6 +423,7 @@ impl<'a> From<&'a [cl_event]> for EventList {
             unsafe { EventCore::from_raw_copied_ptr(*re).expect("EventList::from: \
                 Error converting from raw 'cl_event'").into() }
         }).collect();
+
         EventList { events: events }
     }
 }
@@ -489,27 +490,41 @@ impl Future for EventList {
     type Item = ();
     type Error = OclError;
 
-    // NOTE: Clones events `Vec`.
+    // * NOTE: Multiple calls to poll may hit this function. Do not attempt to
+    //   remove any events from this list which still require waiting. The
+    //   most robust strategy so far seems to simply wait on each event
+    //   individually. Since events do not need to be polled or otherwise
+    //   driven to completion this seems as efficient a strategy as any other.
+    //   
+    //   Using `future::join_all` requires that the event list be cloned on
+    //   each call to poll and then requires that each event be unnecessarily
+    //   queried for completion an additional time. The only way around this
+    //   would be to keep a separate variable for completion status but this
+    //   variable would become out of date if the list were changed.
+    // 
+    //   The most efficient strategy of all would probably be to use a marker
+    //   instead of an event wait list and just never poll an `EventList` in
+    //   the first place.
+    // 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         if PRINT_DEBUG { println!("##### EventList::poll: Polling Event list (thread: '{}').", 
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
-        // while let Some(event) = self.pop() {
-        //     if !event.is_complete()? {
-        //         event.set_unpark_callback()?;
-        //         println!("######  ... callback set.");
-        //         return Ok(Async::NotReady);
-        //     }   
-        // }
+        while let Some(event) = self.pop() {
+            if !event.is_complete()? {
+                event.set_unpark_callback()?;
+                // println!("######  ... callback set.");
+                return Ok(Async::NotReady);
+            }   
+        }
 
         // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );
-        let res = future::join_all(self.events.drain(..)).poll().map(|res| res.map(|_| ()) );
         // self.wait_for().map(|r| Async::Ready(r))
         if PRINT_DEBUG { println!("##### EventList::poll: All events complete (thread: '{}').", 
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
         
-        // Ok(Async::Ready(()))
-        res
+        Ok(Async::Ready(()))
+        // res
     }   
 }
 
@@ -692,7 +707,7 @@ impl RawEventArray {
     #[inline]
     pub fn push<E>(&mut self, e: E) where E: AsRef<EventCore> {
         if (self.count as usize) < self.list.len() {
-            self.list[(self.count as usize)] = unsafe { *e.as_ref().as_ptr_ref() };
+            self.list[(self.count as usize)] = unsafe { *(e.as_ref().as_ptr_ref()) };
             self.count += 1;
         } else {
             panic!("RawEventArray::push: List is full.");
@@ -701,9 +716,15 @@ impl RawEventArray {
 
     #[inline]
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        match self.list.first() {
-            Some(ev) => ev as *const _ as *const cl_event,
-            None => 0 as *const cl_event,
+        // match self.list.first() {
+        //     Some(ev) => ev as *const _ as *const cl_event,
+        //     None => 0 as *const cl_event,
+        // }
+
+        if self.count > 0 {
+            &self.list as *const _ as *const cl_event
+        } else {
+            0 as *const cl_event
         }
     }
 

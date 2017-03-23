@@ -27,7 +27,7 @@ const SCALAR_ADDEND: i32 = 100;
 // The number of tasks to run concurrently.
 const TASK_ITERS: i32 = 12;
 
-const PRINT: bool = true;
+const PRINT: bool = false;
 
 
 // A kernel that makes a career out of adding values.
@@ -420,13 +420,13 @@ pub fn rw_vec() {
                 &mut write_init_event,
                 ival, task_iter);
 
-            // // 2. Verify-Init
-            // // ============
-            // let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
-            //     &verify_init_queue,
-            //     write_init_event.as_ref(),
-            //     &mut verify_init_event,
-            //     ival, task_iter);
+            // 2. Verify-Init
+            // ============
+            let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
+                &verify_init_queue,
+                write_init_event.as_ref(),
+                &mut verify_init_event,
+                ival, task_iter);
 
             // 3. Kernel-Add
             // =============

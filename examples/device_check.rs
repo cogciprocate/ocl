@@ -1047,8 +1047,8 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 pub fn main() {
     let mut rng = rand::weak_rng();
 
-    for platform in Platform::list() {
-    // for &platform in &[Platform::default()] {
+    // for platform in Platform::list() {
+    for &platform in &[Platform::default()] {
 
         let devices = Device::list_all(&platform).unwrap();
 

@@ -48,9 +48,11 @@ impl<T> RwGuard<T> {
 
     /// Triggers the unlock event by setting it complete.
     fn complete_unlock_event(&self) {
-        if let Some(ref de) = self.unlock_event {
-            if !de.is_complete().expect("ReadCompletion::drop") {
-                de.set_complete().expect("ReadCompletion::drop");
+        if let Some(ref e) = self.unlock_event {
+            if !e.is_complete().expect("ReadCompletion::drop") {
+                // ::std::thread::sleep(::std::time::Duration::from_millis(1));
+                // ::std::thread::sleep(::std::time::Duration::new(0, 1));
+                e.set_complete().expect("ReadCompletion::drop");
             }
         }
     }
@@ -339,7 +341,8 @@ impl<T> FutureRwGuard<T> {
                             // Intel-specific or what. This mimics what a
                             // thread-mutex generally does in practice so I'm
                             // sure there's a good explanation for this.
-                            ::std::thread::sleep(::std::time::Duration::from_millis(1));
+                            // ::std::thread::sleep(::std::time::Duration::from_millis(1));
+                            // ::std::thread::sleep(::std::time::Duration::new(0, 1));
                             lock_event.set_complete()?
                         }
                         self.stage = Stage::Command;
@@ -378,6 +381,7 @@ impl<T> FutureRwGuard<T> {
                     match status {
                         Async::Ready(_) => {
                             if let Some(ref lock_event) = self.lock_event {
+                                // ::std::thread::sleep(::std::time::Duration::from_millis(1));
                                 lock_event.set_complete()?
                             }
                             self.stage = Stage::Command;
