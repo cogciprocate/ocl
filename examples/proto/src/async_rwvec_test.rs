@@ -1,6 +1,6 @@
-//! async_map.rs
+//! async_rwvec.rs
 //!
-//! Asynchronous map tests.
+//! Asynchronous read, write, and map tests.
 //!
 //! Only tests the default platform (all devices).
 

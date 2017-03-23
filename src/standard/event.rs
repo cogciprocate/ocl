@@ -5,7 +5,7 @@ use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use std::cell::Ref;
 use futures::{future, Future, Poll, Async};
-#[cfg(feature = "event_callbacks")]
+#[cfg(not(feature = "async_block"))]
 use futures::task;
 use ffi::cl_event;
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
@@ -13,7 +13,7 @@ use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     CommandQueue as CommandQueueCore, ClContextPtr};
 use core::error::{Error as OclError, Result as OclResult};
 use standard::{Queue, ClWaitListPtrEnum};
-#[cfg(feature = "event_callbacks")]
+#[cfg(not(feature = "async_block"))]
 use standard::{_unpark_task, box_raw_void};
 
 const PRINT_DEBUG: bool = false;
@@ -56,7 +56,7 @@ impl Event {
     /// This function will panic if a task is not currently being executed.
     /// That is, this method can be dangerous to call outside of an
     /// implementation of poll.
-    #[cfg(feature = "event_callbacks")]
+    #[cfg(not(feature = "async_block"))]
     pub fn set_unpark_callback(&self) -> OclResult<()> {
         let task_ptr = box_raw_void(task::park());
         unsafe { self.set_callback(_unpark_task, task_ptr) }
@@ -202,11 +202,12 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
 }
 
 /// Non-blocking, proper implementation.
-///
-/// * [NOTE]: There is currently no check to ensure that only one callback is
-///   created (is this ok?).
-///
-#[cfg(feature = "event_callbacks")]
+//
+// * NOTE: There is currently no check to ensure that only one callback is
+//   created (is this ok?).
+//   - TODO: Look into possible effects of unparking a task multiple times.
+// 
+#[cfg(not(feature = "async_block"))]
 impl Future for Event {
     type Item = ();
     type Error = OclError;
@@ -231,7 +232,7 @@ impl Future for Event {
 }
 
 /// Blocking implementation (yuk).
-#[cfg(not(feature = "event_callbacks"))]
+#[cfg(feature = "async_block")]
 impl Future for Event {
     type Item = ();
     type Error = OclError;

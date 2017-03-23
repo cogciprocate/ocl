@@ -155,16 +155,16 @@ impl<T> MemMap<T>  where T: OclPrm {
                         unsafe { enew.clone_from(&origin_event) }
                 }
 
-                if cfg!(feature = "event_callbacks") {
+                if cfg!(not(feature = "async_block")) {
                     // Async version:
                     if self.unmap_target.is_some() {
-                        #[cfg(feature = "event_callbacks")]
+                        #[cfg(not(feature = "async_block"))]
                         self.register_event_trigger(&origin_event)?;
 
                         // `origin_event` will be reconstructed by the callback
                         // function using `UserEvent::from_raw` and `::drop`
                         // will be run there. Do not also run it here.
-                        #[cfg(feature = "event_callbacks")]
+                        #[cfg(not(feature = "async_block"))]
                         ::std::mem::forget(origin_event);
                     }
                 } else {
@@ -182,7 +182,7 @@ impl<T> MemMap<T>  where T: OclPrm {
         }
     }
 
-    #[cfg(feature = "event_callbacks")]
+    #[cfg(not(feature = "async_block"))]
     fn register_event_trigger(&mut self, event: &Event) -> AsyncResult<()> {
         debug_assert!(self.is_unmapped && self.unmap_target.is_some());
 

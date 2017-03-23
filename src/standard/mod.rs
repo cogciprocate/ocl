@@ -30,7 +30,7 @@ pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};
 pub use self::event::{Event, EventList, IntoMarker, RawEventArray, IntoRawEventArray};
 pub use self::spatial_dims::SpatialDims;
-#[cfg(feature = "event_callbacks")]
+#[cfg(not(feature = "async_block"))]
 pub use self::cb::{_unpark_task, box_raw_void};
 pub use self::traits::{MemLen, WorkDims};
 pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
@@ -45,7 +45,7 @@ pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 //================================ FUNCTIONS ==================================
 //=============================================================================
 
-#[cfg(feature = "event_callbacks")]
+#[cfg(not(feature = "async_block"))]
 mod cb {
     use libc::c_void;
     use num::FromPrimitive;

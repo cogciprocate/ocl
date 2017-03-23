@@ -79,7 +79,7 @@ impl<T: OclPrm> FutureMemMap<T> {
     }
 }
 
-#[cfg(feature = "event_callbacks")]
+#[cfg(not(feature = "async_block"))]
 impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
     type Item = MemMap<T>;
     type Error = AsyncError;
@@ -104,7 +104,7 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
 }
 
 /// Blocking implementation.
-#[cfg(not(feature = "event_callbacks"))]
+#[cfg(feature = "async_block")]
 impl<T: OclPrm> Future for FutureMemMap<T> {
     type Item = MemMap<T>;
     type Error = AsyncError;

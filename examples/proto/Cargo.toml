@@ -15,8 +15,8 @@ exclude = ["target/*", "*.png", "bak/*"]
 [dependencies.ocl]
 version = "0.12"
 path = "../.."
-# default-features = false
-# features = ["opencl_version_1_1", "opencl_version_1_2"]
+default-features = true
+features = ["async_block"]
 
 [dependencies]
 # ocl-core = "0.3"

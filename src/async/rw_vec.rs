@@ -233,7 +233,7 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the wait events until all requisite commands have completed then
     /// polls the qutex queue.
-    // #[cfg(feature = "event_callbacks")]
+    // #[cfg(feature = "async_block")]
     fn poll_wait_events(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Marker);
         if PRINT_DEBUG { println!("###### FutureRwGuard::poll_wait_events (thread: {})...",
@@ -287,7 +287,7 @@ impl<T> FutureRwGuard<T> {
 
     // /// Polls the wait events until all requisite commands have
     // /// completed then polls the qutex queue.
-    // #[cfg(not(feature = "event_callbacks"))]
+    // #[cfg(not(feature = "async_block"))]
     // fn poll_wait_events(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
     //     debug_assert!(self.stage == Stage::Marker);
     //     // println!("############ FutureRwGuard::poll_wait_events...");
@@ -308,7 +308,7 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the qutex until we have obtained a lock then polls the command
     /// event.
-    #[cfg(feature = "event_callbacks")]
+    #[cfg(not(feature = "async_block"))]
     fn poll_qutex(&mut self) -> AsyncResult<Async<RwGuard<T>>> {        
         debug_assert!(self.stage == Stage::Qutex);
         // println!("###### FutureRwGuard::poll_qutex: called.");
@@ -344,7 +344,7 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the qutex until we have obtained a lock then polls the command
     /// event.
-    #[cfg(not(feature = "event_callbacks"))]
+    #[cfg(feature = "async_block")]
     fn poll_qutex(&mut self) -> AsyncResult<Async<RwGuard<T>>> {        
         debug_assert!(self.stage == Stage::Qutex);
         // println!("###### FutureRwGuard::poll_qutex: called.");
@@ -386,7 +386,7 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the command event until it is complete then returns an `RwGuard`
     /// which can be safely accessed immediately.
-    // #[cfg(feature = "event_callbacks")]
+    // #[cfg(feature = "async_block")]
     fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Command);
         if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command (thread: {})...",
@@ -419,7 +419,7 @@ impl<T> FutureRwGuard<T> {
 
     // /// Polls the command event until it is complete then returns an `RwGuard`
     // /// which can be safely accessed immediately.
-    // #[cfg(not(feature = "event_callbacks"))]
+    // #[cfg(not(feature = "async_block"))]
     // fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
     //     debug_assert!(self.stage == Stage::Command);
     //     // println!("###### FutureRwGuard::poll_command...");

@@ -21,18 +21,22 @@ opencl_version_1_2 = ["ocl-core/opencl_version_1_2"]
 opencl_version_2_0 = ["ocl-core/opencl_version_2_0"]
 opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 
-# Use OpenCL event callbacks for task unparking and other event forwarding
-# purposes.
+# Blocks the current thread when polling an OpenCL-event-backed future for
+# task unparking and other similar purposes.
 #
-# Disabling this will cause each task to block its thread instead of returning
+# Enabling this will cause each task to block its thread instead of returning
 # `Async::NotReady` to its executor and will be a less performant solution.
-# Disable only if your platform has issues with event callbacks (old/non-compliant
-# drivers).
-event_callbacks = []
+# Disable only if your platform has issues with event callbacks or thread
+# synchronization (old/non-compliant drivers - Known cases: certain
+# pre-sandy-bridge Intel processors [on Intel drivers], some other
+# pre-gen-5-core processors [on Intel drivers]).
+#
+# Leaving this disabled results in a significant performance increase when
+# performing asynchronous tasks (e.g. using `::enq_async` for commands).
+async_block = []
 
-
-default = ["event_callbacks", "opencl_version_1_1", "opencl_version_1_2"]
-# default = ["opencl_version_1_1", "opencl_version_1_2"]
+# default = ["async_block", "opencl_version_1_1", "opencl_version_1_2"]
+default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 
 [dependencies]
