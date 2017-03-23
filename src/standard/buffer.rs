@@ -775,18 +775,22 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 //     None => None,
                 // };
 
-                let wait_list = match self.cmd.ewait {
-                    Some(wl) => Some(wl),
-                    None => None,
-                };
-
                 let mut guard = rw_vec.request_lock();
                 guard.create_lock_event(queue.context_ptr()?)?;
 
-                if let Some(wl) = wait_list {
+                // let wait_list = match self.cmd.ewait {
+                //     Some(wl) => Some(wl),
+                //     None => None,
+                // };
+
+                // if let Some(wl) = wait_list {
+                //     guard.set_wait_list(wl);
+                //     // guard.set_wait_list_marker(wl.into_marker(queue)?);
+                // }                
+
+                if let Some(wl) = self.cmd.ewait {
                     guard.set_wait_list(wl);
-                    // guard.set_wait_list_marker(wl.into_marker(queue)?);
-                }                
+                }
 
                 let dst = unsafe { guard.as_mut_slice().expect("BufferReadCmd::enq_async: \
                     Invalid guard.") };

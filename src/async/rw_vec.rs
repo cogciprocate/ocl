@@ -125,26 +125,29 @@ impl<T> FutureRwGuard<T> {
         }
     }
 
-    // /// Sets a wait event.
-    // ///
-    // /// Setting a wait event will cause this `FutureRwGuard` to wait until
-    // /// that event has its status set to complete (by polling it like any
-    // /// other future) before obtaining a lock on the guarded internal `Vec`.
-    // ///
-    // /// If multiple wait events need waiting on, add them to an `EventList`
-    // /// and enqueue a marker or create an array and use the `IntoMarker`
-    // /// trait to produce a marker which can be passed here.
-    // pub fn set_wait_event(&mut self, wait_event: Event) {
-    //     self.wait_event = Some(wait_event)
-    // }
+    //////// DO NOT REMOVE (evaluate bringing back):
+        // /// Sets a wait event.
+        // ///
+        // /// Setting a wait event will cause this `FutureRwGuard` to wait until
+        // /// that event has its status set to complete (by polling it like any
+        // /// other future) before obtaining a lock on the guarded internal `Vec`.
+        // ///
+        // /// If multiple wait events need waiting on, add them to an `EventList`
+        // /// and enqueue a marker or create an array and use the `IntoMarker`
+        // /// trait to produce a marker which can be passed here.
+        // pub fn set_wait_event(&mut self, wait_event: Event) {
+        //     self.wait_event = Some(wait_event)
+        // }
+    /////////
 
+    /// Sets an event wait list.
+    ///
+    /// Setting a wait list will cause this `FutureRwGuard` to wait until
+    /// contained events have their status set to complete before obtaining a
+    /// lock on the guarded internal `Vec`.
     pub fn set_wait_list<L: Into<EventList>>(&mut self, wait_list: L) {
         self.wait_list = Some(wait_list.into());
     }
-
-    // pub fn set_wait_list_marker<L: Into<EventList>>(&mut self, wait_list: L) {
-    //     self.wait_list = Some(wait_list.into());
-    // }
 
     /// Sets a command completion event.
     ///
@@ -329,6 +332,14 @@ impl<T> FutureRwGuard<T> {
                 match status {
                     Async::Ready(_) => {
                         if let Some(ref lock_event) = self.lock_event {
+                            // Sleeping before locking synchronizes something
+                            // on certain hardware which can prevent weird
+                            // behavior (such as out-of-date data from a
+                            // load). Unknown if this is OpenCL-specific or
+                            // Intel-specific or what. This mimics what a
+                            // thread-mutex generally does in practice so I'm
+                            // sure there's a good explanation for this.
+                            ::std::thread::sleep(::std::time::Duration::from_millis(1));
                             lock_event.set_complete()?
                         }
                         self.stage = Stage::Command;
@@ -414,6 +425,9 @@ impl<T> FutureRwGuard<T> {
 
         if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command: All polling complete (thread: {}).", 
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
+
+        // ::std::thread::sleep(::std::time::Duration::from_millis(10));
+
         Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
     }
 

@@ -16,7 +16,7 @@ exclude = ["target/*", "*.png", "bak/*"]
 version = "0.12"
 path = "../.."
 default-features = true
-features = ["async_block"]
+# features = ["async_block"]
 
 [dependencies]
 # ocl-core = "0.3"

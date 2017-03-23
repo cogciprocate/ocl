@@ -24,16 +24,260 @@ extern crate ocl;
 #[macro_use] extern crate colorify;
 
 use std::fmt::{Debug};
-use futures::{Future};
+use futures::{Future, BoxFuture};
 use rand::{XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
-    Event, EventList, MemMap};
-use ocl::async::Result as AsyncResult;
+    Event, EventList, MemMap, RwVec};
+use ocl::async::{Error as AsyncError, Result as AsyncResult};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
-use ocl::prm::Float4;
+use ocl::traits::{IntoRawEventArray};
+use ocl::prm::{Float4, Int4};
 use ocl::core::Event as EventCore;
+use ocl::ffi::{cl_event, c_void};
 
+// The number of tasks to run concurrently.
+const TASK_ITERS: i32 = 16;
+
+const PRINT: bool = false;
+
+
+#[derive(Debug, Clone)]
+pub struct Kern {
+    pub name: &'static str,
+    pub op_add: bool,
+}
+
+
+#[derive(Debug, Clone)]
+pub struct Vals<T: OclPrm> {
+    pub type_str: &'static str,
+    pub zero: T,
+    pub addend: T,
+    pub range: (T, T),
+    pub use_source_vec: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct Misc {
+    pub work_size_range: (u32, u32),
+    pub alloc_host_ptr: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct Switches<T: OclPrm> {
+    pub config_name: &'static str,
+    pub kern: Kern,
+    pub val: Vals<T>,
+    pub misc: Misc,
+
+    pub map_write: bool,
+    pub map_read: bool,
+    pub async_write: bool,
+    pub async_read: bool,
+    pub alloc_source_vec: bool,
+    pub event_callback: bool,
+    pub queue_out_of_order: bool,
+    pub futures: bool,
+}
+
+lazy_static! {
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC: Switches<Float4> = Switches {
+        config_name: "Out of Order | Async-Future ",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        val: Vals {
+            type_str: "float4",
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 12, 1 << 21),
+            alloc_host_ptr: false,
+        },
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: true,
+        event_callback: false,
+        futures: true,
+    };
+
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC_AHP: Switches<Float4> = Switches {
+        config_name: "Out of Order | Async-Future | Alloc Host Ptr",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        val: Vals {
+            type_str: "float4",
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 12, 1 << 21),
+            alloc_host_ptr: true,
+        },
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: true,
+        event_callback: false,
+        futures: true,
+    };
+
+    pub static ref CONFIG_MAPPED_READ_OOO_ASYNC_CB: Switches<Float4> = Switches {
+        config_name: "In-Order | Async-Future ",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        val: Vals {
+            type_str: "float4",
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 12, 1 << 21),
+            alloc_host_ptr: false,
+        },
+        map_write: false,
+        map_read: true,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: true,
+        queue_out_of_order: true,
+        event_callback: false,
+        futures: true,
+    };
+
+    pub static ref CONFIG_MAPPED_WRITE_INO_ASYNC_CB: Switches<Float4> = Switches {
+        config_name: "In-Order | Async-Future ",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        val: Vals {
+            type_str: "float4",
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 12, 1 << 21),
+            alloc_host_ptr: false,
+        },
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: false,
+        event_callback: true,
+        futures: true,
+    };
+
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP: Switches<Float4> = Switches {
+        config_name: "Out of Order | NonBlocking",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        val: Vals {
+            type_str: "float4",
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 12, 1 << 21),
+            alloc_host_ptr: false,
+        },
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: true,
+        event_callback: false,
+        futures: true,
+    };
+
+    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP_CB: Switches<Float4> = Switches {
+        config_name: "Out of Order | NonBlocking | Callback",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        val: Vals {
+            type_str: "float4",
+            zero: Float4::new(0., 0., 0., 0.),
+            addend: Float4::new(50., 50., 50., 50.),
+            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 14, 1 << 21),
+            alloc_host_ptr: false,
+        },
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: true,
+        event_callback: true,
+        futures: true,
+    };
+
+    pub static ref CONFIG_THREADS: Switches<Int4> = Switches {
+        config_name: "Out of Order | NonBlocking | Callback",
+        kern: Kern {
+            name: "add_values",
+            op_add: true,
+        },
+        val: Vals {
+            type_str: "int4",
+            zero: Int4::new(0, 0, 0, 0),
+            addend: Int4::new(50, 50, 50, 50),
+            range: (Int4::new(-200, -200, -200, -200), Int4::new(-200, -200, -200, -200)),
+            use_source_vec: false,
+        },
+        misc: Misc {
+            // work_size_range: ((1 << 24) - 1, 1 << 24),
+            work_size_range: (1 << 10, 1 << 13),
+            alloc_host_ptr: false,
+        },
+        map_write: true,
+        map_read: false,
+        async_write: true,
+        async_read: true,
+        alloc_source_vec: false,
+        queue_out_of_order: true,
+        event_callback: true,
+        futures: true,
+    };
+}
 
 fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> String {
     let op = if add { "+" } else { "-" };
@@ -100,261 +344,39 @@ fn wire_callback(wire_callback: bool, context: &Context, map_event: &Event) -> O
     }
 }
 
+fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> AsyncResult<()> {
+    if tar != src {
+        let fail_reason = format!(colorify!(red_bold:
+            "VALUE MISMATCH AT INDEX [{}]: {:?} != {:?}"),
+            idx, tar, src);
 
-#[derive(Debug, Clone)]
-pub struct Kern {
-    pub name: &'static str,
-    pub op_add: bool,
+        Err(fail_reason.into())
+    } else {
+        Ok(())
+    }
 }
 
 
-#[derive(Debug, Clone)]
-pub struct Vals<T: OclPrm> {
-    pub type_str: &'static str,
-    pub zero: T,
-    pub addend: T,
-    pub range: (T, T),
-    pub use_source_vec: bool,
+fn print_result(operation: &str, result: AsyncResult<()>) {
+    match result {
+        Ok(_) => {
+            printc!(white: "    {}  ", operation);
+            printc!(white: "<");
+            printc!(green_bold: "success");
+            printc!(white: ">");
+        },
+        Err(reason) => {
+            println!("    {}", reason);
+            printc!(white: "    {}  ", operation);
+            printc!(white: "<");
+            printc!(red_bold: "failure");
+            printc!(white: ">");
+
+        }
+    }
+
+    print!("\n");
 }
-
-#[derive(Debug, Clone)]
-pub struct Misc {
-    pub work_size_range: (u32, u32),
-    pub alloc_host_ptr: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct Switches<T: OclPrm> {
-    pub config_name: &'static str,
-    pub kern: Kern,
-    pub vals: Vals<T>,
-    pub misc: Misc,
-
-    pub map_write: bool,
-    pub map_read: bool,
-    pub async_write: bool,
-    pub async_read: bool,
-    pub alloc_source_vec: bool,
-    pub event_callback: bool,
-    pub queue_out_of_order: bool,
-    pub futures: bool,
-}
-
-lazy_static! {
-    // pub static ref CONFIG_READ_WRITE_F32: Switches<f32> = Switches {
-    //     config_name: "| Write | Read | f32 |",
-    //     kernel_name: "add_values",
-    //     type_str: "float",
-    //     op_add: true,
-    //     zero_val: 0.0f32,
-    //     addend: 100.0f32,
-    //     val_range: (-2000.0, 2000.0f32),
-    //     queue_ordering: flags::QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-    //     work_size_range: (1 << 19, 1 << 22),
-    //     async_write: false,
-    //     async_read: false,
-    //     map_write: false,
-    //     map_read: false,
-    //     event_callback: false,
-    //     use_source_vec: true,
-    // };
-
-    // pub static ref CONFIG_MAPPED_WRITE_CLFLOAT4_CALLBACK: Switches<Float4> = Switches {
-    //     config_name: "Buffer | Mapped Write | Read | Float4 | Callback",
-    //     kernel_name: "add_values",
-    //     type_str: "float4",
-    //     op_add: true,
-    //     zero_val: Float4::new(0., 0., 0., 0.),
-    //     addend: Float4::new(50., 50., 50., 50.),
-    //     val_range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
-    //     queue_ordering: CommandQueueProperties::empty(),
-    //     work_size_range: (1 << 19, 1 << 22),
-    //     async_write: true,
-    //     async_read: true,
-    //     map_write: true,
-    //     map_read: false,
-    //     event_callback: true,
-    //     use_source_vec: true,
-    // };
-
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC: Switches<Float4> = Switches {
-        config_name: "Out of Order | Async-Future ",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: Float4::new(0., 0., 0., 0.),
-            addend: Float4::new(50., 50., 50., 50.),
-            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            // work_size_range: ((1 << 24) - 1, 1 << 24),
-            work_size_range: (1 << 21, 1 << 22),
-            alloc_host_ptr: false,
-        },
-
-        map_write: true,
-        map_read: false,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: false,
-        queue_out_of_order: true,
-        event_callback: false,
-        futures: true,
-    };
-
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ASYNC_AHP: Switches<Float4> = Switches {
-        config_name: "Out of Order | Async-Future | Alloc Host Ptr",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: Float4::new(0., 0., 0., 0.),
-            addend: Float4::new(50., 50., 50., 50.),
-            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            // work_size_range: ((1 << 24) - 1, 1 << 24),
-            work_size_range: (1 << 21, 1 << 22),
-            alloc_host_ptr: true,
-        },
-
-        map_write: true,
-        map_read: false,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: false,
-        queue_out_of_order: true,
-        event_callback: false,
-        futures: true,
-    };
-
-    pub static ref CONFIG_MAPPED_READ_OOO_ASYNC_CB: Switches<Float4> = Switches {
-        config_name: "In-Order | Async-Future ",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: Float4::new(0., 0., 0., 0.),
-            addend: Float4::new(50., 50., 50., 50.),
-            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            // work_size_range: ((1 << 24) - 1, 1 << 24),
-            work_size_range: (1 << 21, 1 << 22),
-            alloc_host_ptr: false,
-        },
-
-        map_write: false,
-        map_read: true,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: true,
-        queue_out_of_order: true,
-        event_callback: false,
-        futures: true,
-    };
-
-    pub static ref CONFIG_MAPPED_WRITE_INO_ASYNC_CB: Switches<Float4> = Switches {
-        config_name: "In-Order | Async-Future ",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: Float4::new(0., 0., 0., 0.),
-            addend: Float4::new(50., 50., 50., 50.),
-            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            // work_size_range: ((1 << 24) - 1, 1 << 24),
-            work_size_range: (1 << 21, 1 << 22),
-            alloc_host_ptr: false,
-        },
-
-        map_write: true,
-        map_read: false,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: false,
-        queue_out_of_order: false,
-        event_callback: true,
-        futures: true,
-    };
-
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP: Switches<Float4> = Switches {
-        config_name: "Out of Order | NonBlocking",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: Float4::new(0., 0., 0., 0.),
-            addend: Float4::new(50., 50., 50., 50.),
-            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            // work_size_range: ((1 << 24) - 1, 1 << 24),
-            work_size_range: (1 << 21, 1 << 22),
-            alloc_host_ptr: false,
-        },
-
-        map_write: true,
-        map_read: false,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: false,
-        queue_out_of_order: true,
-        event_callback: false,
-        futures: true,
-    };
-
-    pub static ref CONFIG_MAPPED_WRITE_OOO_ELOOP_CB: Switches<Float4> = Switches {
-        config_name: "Out of Order | NonBlocking | Callback",
-        kern: Kern {
-            name: "add_values",
-            op_add: true,
-        },
-        vals: Vals {
-            type_str: "float4",
-            zero: Float4::new(0., 0., 0., 0.),
-            addend: Float4::new(50., 50., 50., 50.),
-            range: (Float4::new(-200., -200., -200., -200.), Float4::new(-200., -200., -200., -200.)),
-            use_source_vec: false,
-        },
-        misc: Misc {
-            // work_size_range: ((1 << 24) - 1, 1 << 24),
-            work_size_range: (1 << 21, 1 << 22),
-            alloc_host_ptr: false,
-        },
-
-        map_write: true,
-        map_read: false,
-        async_write: true,
-        async_read: true,
-        alloc_source_vec: false,
-        queue_out_of_order: true,
-        event_callback: true,
-        futures: true,
-    };
-
-}
-
-
-
 
 pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Float4>)
         -> AsyncResult<()>
@@ -390,7 +412,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         .build()?;
 
     // Generate kernel source:
-    let kern_src = gen_kern_src(cfg.kern.name, cfg.vals.type_str, true, cfg.kern.op_add);
+    let kern_src = gen_kern_src(cfg.kern.name, cfg.val.type_str, true, cfg.kern.op_add);
     // println!("{}\n", kern_src);
 
     let program = Program::builder()
@@ -402,13 +424,13 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         .queue(kernel_queue)
         .gws(work_size)
         .arg_buf(&source_buf)
-        .arg_scl(cfg.vals.addend)
+        .arg_scl(cfg.val.addend)
         .arg_buf(&target_buf);
 
 
     let source_vec = if cfg.alloc_source_vec {
         // let source_vec = util::scrambled_vec(rand_val_range, work_size);
-        vec![cfg.vals.range.0; work_size as usize]
+        vec![cfg.val.range.0; work_size as usize]
     } else {
         Vec::with_capacity(0)
     };
@@ -500,7 +522,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         // printlnc!(dark_grey: "    Map Event Status (POST-wait): {:?} => {:?}",
         //     map_event, core::event_status(&map_event)?);
 
-        if cfg.alloc_source_vec && cfg.vals.use_source_vec {
+        if cfg.alloc_source_vec && cfg.val.use_source_vec {
             //############### cfg.USE_SOURCE_VEC ######################
             for (map_val, vec_val) in mapped_mem.iter_mut().zip(source_vec.iter()) {
                 *map_val = *vec_val;
@@ -508,12 +530,12 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         } else {
             //############## !(cfg.USE_SOURCE_VEC) ####################
             for val in mapped_mem.iter_mut() {
-                *val = cfg.vals.range.0;
+                *val = cfg.val.range.0;
             }
 
             // ////////// Early verify:
             // for (idx, val) in mapped_mem.iter().enumerate() {
-            //     if *val != cfg.vals.range.0 {
+            //     if *val != cfg.val.range.0 {
             //         return Err(format!("Early map write verification failed at index: {}.", idx)
             //             .into());
             //     }
@@ -587,7 +609,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         }
     } else {
         //##################### !(cfg.MAP_READ) ###########################
-        let mut tvec = vec![cfg.vals.zero; work_size as usize];
+        let mut tvec = vec![cfg.val.zero; work_size as usize];
 
         unsafe { target_buf.cmd().read(&mut tvec)
             .ewait(&kern_event)
@@ -611,24 +633,24 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     // Wait for completion:
     read_event.wait_for()?;
 
-    if cfg.alloc_source_vec && cfg.vals.use_source_vec {
+    if cfg.alloc_source_vec && cfg.val.use_source_vec {
         if cfg.map_read {
             for (idx, (&tar, &src)) in target_map.unwrap().iter().zip(source_vec.iter()).enumerate() {
-                check_failure(idx, tar, src + cfg.vals.addend)?;
+                check_failure(idx, tar, src + cfg.val.addend)?;
             }
         } else {
             for (idx, (&tar, &src)) in target_vec.unwrap().iter().zip(source_vec.iter()).enumerate() {
-                check_failure(idx, tar, src + cfg.vals.addend)?;
+                check_failure(idx, tar, src + cfg.val.addend)?;
             }
         }
     } else {
         if cfg.map_read {
             for (idx, &tar) in target_map.unwrap().iter().enumerate() {
-                check_failure(idx, tar, cfg.vals.range.0 + cfg.vals.addend)?;
+                check_failure(idx, tar, cfg.val.range.0 + cfg.val.addend)?;
             }
         } else {
             for (idx, &tar) in target_vec.unwrap().iter().enumerate() {
-                check_failure(idx, tar, cfg.vals.range.0 + cfg.vals.addend)?;
+                check_failure(idx, tar, cfg.val.range.0 + cfg.val.addend)?;
             }
         }
     }
@@ -636,40 +658,390 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     Ok(())
 }
 
-
-fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> AsyncResult<()> {
-    if tar != src {
-        let fail_reason = format!(colorify!(red_bold:
-            "VALUE MISMATCH AT INDEX [{}]: {:?} != {:?}"),
-            idx, tar, src);
-
-        Err(fail_reason.into())
-    } else {
-        Ok(())
+pub fn fill_junk(
+        src_buf: &Buffer<Int4>, 
+        common_queue: &Queue,
+        kernel_event: Option<&Event>,
+        // verify_init_event: Option<&Event>,
+        fill_event: &mut Option<Event>,
+        task_iter: i32)
+{
+    // These just print status messages...
+    extern "C" fn _print_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT { println!("* Fill starting        \t(iter: {}) ...", task_iter as usize); }
     }
+    extern "C" fn _print_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT { println!("* Fill complete        \t(iter: {})", task_iter as usize); }
+    }
+
+    // Clear the wait list and push the previous iteration's kernel event
+    // and the previous iteration's write init (unmap) event if they are set.
+    let wait_list = [kernel_event].into_raw_list();
+
+    // Create a marker so we can print the status message:
+    let fill_wait_marker = wait_list.to_marker(&common_queue).unwrap();
+
+    if let Some(ref marker) = fill_wait_marker {
+        unsafe { marker.set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
+    } else {
+        _print_starting(0 as cl_event, 0, task_iter as *mut c_void);
+    }
+
+    *fill_event = Some(Event::empty());
+
+    src_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None)
+        .queue(common_queue)
+        .ewait(&wait_list)
+        .enew_opt(fill_event.as_mut())
+        .enq().unwrap();
+
+    unsafe { fill_event.as_ref().unwrap()
+        .set_callback(_print_complete, task_iter as *mut c_void).unwrap(); }
 }
 
+pub fn vec_write_async(
+        src_buf: &Buffer<Int4>, 
+        rw_vec: &RwVec<Int4>, 
+        common_queue: &Queue,
+        write_unlock_queue: &Queue,
+        fill_event: Option<&Event>,
+        // verify_init_event: Option<&Event>,
+        write_event: &mut Option<Event>,
+        write_val: i32, task_iter: i32)
+        -> BoxFuture<i32, AsyncError>
+{
+    extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
+    }
 
-fn print_result(operation: &str, result: AsyncResult<()>) {
-    match result {
-        Ok(_) => {
-            printc!(white: "    {}  ", operation);
-            printc!(white: "<");
-            printc!(green_bold: "success");
-            printc!(white: ">");
-        },
-        Err(reason) => {
-            println!("    {}", reason);
-            printc!(white: "    {}  ", operation);
-            printc!(white: "<");
-            printc!(red_bold: "failure");
-            printc!(white: ">");
+    // // Clear the wait list and push the previous iteration's verify init event
+    // // and the current iteration's fill event if they are set.
+    // let wait_marker = [verify_init_event, fill_event].into_marker(common_queue).unwrap();
 
+    // println!("###### vec_write_async() events (task_iter: [{}]): \n\
+    //  ######     'verify_init_event': {:?}, \n\
+    //  ######     'fill_event': {:?} \n\
+    //  ######       -> 'wait_marker': {:?}", 
+    //  task_iter, verify_init_event, fill_event, wait_marker);
+
+    let wait_list = [fill_event].into_raw_list();
+
+    let mut future_guard = rw_vec.clone().request_lock();
+    // future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
+    future_guard.set_wait_list(wait_list);
+    let unlock_event = future_guard.create_unlock_event(write_unlock_queue).unwrap().clone();
+
+    // println!("######     'unlock_event' (generate): {:?}", unlock_event);
+
+    let future_write_vec = future_guard.and_then(move |mut data| {
+        if PRINT { println!("* Write init starting  \t(iter: {}) ...", task_iter); }
+
+        for val in data.iter_mut() {
+            *val = Int4::splat(write_val);
+        }
+
+        Ok(())
+    });
+
+    let mut future_write_buffer = src_buf.cmd().write(rw_vec)
+        .queue(common_queue)
+        .ewait(&unlock_event)
+        .enq_async().unwrap();
+
+    *write_event = Some(future_write_buffer.create_unlock_event(write_unlock_queue)
+        .unwrap().clone());
+
+
+    unsafe { write_event.as_ref().unwrap().set_callback(_write_complete,
+        task_iter as *mut c_void).unwrap(); }
+
+    let future_drop_guard = future_write_buffer.and_then(move |_| Ok(()));
+
+    future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter).boxed()
+}
+
+pub fn kernel_add(
+        kern: &Kernel, 
+        common_queue: &Queue,
+        verify_add_event: Option<&Event>,
+        write_init_event: Option<&Event>,
+        kernel_event: &mut Option<Event>,
+        task_iter: i32)
+{
+    extern "C" fn _print_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT { println!("* Kernel starting      \t(iter: {}) ...", task_iter as usize); }
+    }
+    extern "C" fn _print_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT { println!("* Kernel complete      \t(iter: {})", task_iter as usize); }
+    }
+
+    let wait_list = [&verify_add_event, &write_init_event].into_raw_list();
+    let kernel_wait_marker = wait_list.to_marker(&common_queue).unwrap();
+
+    unsafe { kernel_wait_marker.as_ref().unwrap()
+        .set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
+
+    *kernel_event = Some(Event::empty());
+
+    kern.cmd()
+        .queue(common_queue)
+        .ewait(&wait_list)
+        .enew_opt(kernel_event.as_mut())
+        .enq().unwrap();
+
+    unsafe { kernel_event.as_ref().unwrap().set_callback(_print_complete,
+        task_iter as *mut c_void).unwrap(); }
+}
+
+pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
+        verify_add_unmap_queue: Queue, wait_event: Option<&Event>,
+        verify_add_event: &mut Option<Event>, correct_val: i32, 
+        task_iter: i32) -> BoxFuture<i32, AsyncError>
+{
+    extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
+        printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}) ...",
+            task_iter as usize);
+    }
+
+    unsafe { wait_event.as_ref().unwrap()
+        .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
+
+    let mut future_read_data = dst_buf.cmd().map()
+        .queue(common_queue)
+        .flags(MapFlags::new().read())
+        .ewait_opt(wait_event)
+        .enq_async().unwrap();
+
+    *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
+
+    future_read_data.and_then(move |mut data| {
+        let mut val_count = 0;
+
+        for (idx, val) in data.iter().enumerate() {
+            let cval = Int4::splat(correct_val);
+            if *val != cval {
+                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]", 
+                    val, cval, idx).into());
+            }
+            val_count += 1;
+        }
+
+        printlnc!(lime_bold: "* Verify add complete \t\t(iter: {})",
+            task_iter);
+
+        data.unmap().queue(&verify_add_unmap_queue).enq()?;
+
+        Ok(val_count)
+    }).boxed()
+}
+
+pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
+        verify_add_unlock_queue: &Queue, kernel_event: Option<&Event>, 
+        verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32) 
+        -> BoxFuture<i32, AsyncError>
+{
+    extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }
+    }
+
+    let mut future_read_data = dst_buf.cmd().read(rw_vec)
+        .queue(common_queue)
+        .ewait_opt(kernel_event)
+        .enq_async().unwrap();
+
+    // Attach a status message printing callback to what approximates the
+    // verify_init start-time event:
+    unsafe { future_read_data.lock_event().unwrap().set_callback(
+        _verify_starting, task_iter as *mut c_void).unwrap(); }
+
+    // Create an empty event ready to hold the new verify_init event, overwriting any old one.
+    *verify_add_event = Some(future_read_data.create_unlock_event(verify_add_unlock_queue)
+        .unwrap().clone());
+
+    future_read_data.and_then(move |data| {
+        let mut val_count = 0;
+
+        for (idx, val) in data.iter().enumerate() {
+            let cval = Int4::splat(correct_val);
+            if *val != cval {
+                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ idx[{}] \
+                    for task iter: [{}].", val, cval, idx, task_iter).into());
+            }
+            val_count += 1;
+        }
+
+        if PRINT { println!("* Verify add complete  \t(iter: {})", task_iter); }
+
+        Ok(val_count)
+    }).boxed()
+}
+
+pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Int4>)
+        -> AsyncResult<()>
+{
+    use std::thread;
+
+    let work_size_range = RandRange::new(cfg.misc.work_size_range.0, cfg.misc.work_size_range.1);
+    let work_size = work_size_range.ind_sample(rng);
+
+    // Create queues:
+    // let (write_queue, kernel_queue, read_queue) = create_queues(device, &context, cfg.queue_out_of_order);
+    let queue_flags = Some(CommandQueueProperties::new().out_of_order());
+    let common_queue = Queue::new(&context, device, queue_flags).unwrap();
+    let write_queue = Queue::new(&context, device, queue_flags).unwrap();
+    // let verify_init_queue = Queue::new(&context, device, queue_flags).unwrap();
+    let read_queue = Queue::new(&context, device, queue_flags).unwrap();
+
+    let ahp_flag = if cfg.misc.alloc_host_ptr {
+        MemFlags::new().alloc_host_ptr()
+    } else {
+        MemFlags::empty()
+    };
+
+    // Create buffers:
+    // let write_buf_flags = Some(MemFlags::read_only() | MemFlags::host_write_only() | ahp_flag);
+    let write_buf_flags = ahp_flag.read_only().host_write_only();
+    // let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only() | ahp_flag);
+    let read_buf_flags = ahp_flag.write_only().host_read_only();
+
+    let src_buf = Buffer::<Int4>::builder()
+        .queue(write_queue.clone())
+        .flags(write_buf_flags)
+        .dims(work_size)
+        .build()?;
+
+    let tar_buf = Buffer::<Int4>::builder()
+        .queue(read_queue.clone())
+        .flags(read_buf_flags)
+        .dims(work_size)
+        .build()?;
+
+    // Generate kernel source:
+    let kern_src = gen_kern_src(cfg.kern.name, cfg.val.type_str, true, cfg.kern.op_add);
+    // println!("{}\n", kern_src);
+
+    let program = Program::builder()
+        .devices(device)
+        .src(kern_src)
+        .build(context)?;
+
+    let kern = Kernel::new(cfg.kern.name, &program)?
+        .queue(common_queue.clone())
+        .gws(work_size)
+        .arg_buf(&src_buf)
+        .arg_scl(cfg.val.addend)
+        .arg_buf(&tar_buf);
+
+
+    // A lockable vector for reads and writes:
+    let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); work_size as usize]);
+
+    // Our events for synchronization.
+    let mut fill_event = None;
+    let mut write_event = None;
+    // let mut verify_init_event = None;
+    let mut kernel_event = None;
+    let mut read_event = None;
+
+    if PRINT { println!("Starting cycles ..."); }
+
+    let mut threads = Vec::with_capacity(TASK_ITERS as usize);
+
+    // Our main loop. Could run indefinitely if we had a stream of input.
+    for task_iter in 0..TASK_ITERS {
+        let ival = cfg.val.zero[0] + task_iter;
+        let tval = ival + cfg.val.addend[0];
+
+        fill_junk(
+            &src_buf, 
+            &common_queue,
+            kernel_event.as_ref(),
+            &mut fill_event,
+            task_iter);
+
+        let write = vec_write_async(
+            &src_buf, 
+            &rw_vec,
+            &common_queue,
+            &write_queue,
+            fill_event.as_ref(),
+            &mut write_event,
+            ival, 
+            task_iter);
+
+        kernel_add(
+            &kern, 
+            &common_queue,
+            read_event.as_ref(),
+            write_event.as_ref(),
+            &mut kernel_event,
+            task_iter);
+
+        ////// KEEP:
+        // let read = map_read_async(
+        //     &tar_buf, 
+        //     &common_queue,
+        //     read_queue.clone(),
+        //     kernel_event.as_ref(),
+        //     &mut read_event,
+        //     tval, 
+        //     task_iter);
+
+        let read = vec_read_async(
+            &tar_buf, 
+            &rw_vec,
+            &common_queue,
+            &read_queue,
+            kernel_event.as_ref(),
+            &mut read_event,
+            tval, 
+            task_iter);
+
+        if PRINT { println!("All commands for iteration {} enqueued", task_iter); }
+
+        let task = write.join(read);
+
+        threads.push(thread::Builder::new()
+                .name(format!("task_iter_[{}]", task_iter).into())
+                .spawn(move || 
+        {
+            if PRINT { println!("Waiting on task iter [{}]...", task_iter); }
+            match task.wait() {
+                Ok(res) => {
+                    if PRINT { println!("Task iter [{}] complete with result: {:?}", task_iter, res); }
+                    Ok(res)
+                },
+                Err(err) => {
+                    Err(format!("[{}] ERROR: {:?}", task_iter, err))
+                },
+            }
+        }).unwrap());
+    }
+
+    let mut all_correct = true;
+
+    for thread in threads {
+        match thread.join() {
+            Ok(res) => {
+                match res {
+                    Ok(res) => if PRINT { println!("Thread result: {:?}", res) },
+                    Err(err) => {
+                        println!("{}", err);
+                        all_correct = false;
+                    },
+                }
+            },
+            Err(err) => panic!("{:?}", err),
         }
     }
 
-    print!("\n");
+    if all_correct {
+        Ok(())
+    } else {
+        Err("Errors found!".into())
+    }
 }
+
 
 
 pub fn main() {
@@ -691,39 +1063,33 @@ pub fn main() {
                     .devices(device)
                     .build().unwrap();
 
-                // // Check current device using in-order queues:
-                // let in_order_result = check(device, &context, &mut rng,
-                //     CONFIG_MAPPED_WRITE_CLFLOAT4.clone());
-                // print_result("In-order:             ", in_order_result);
-
-                // // Check current device using out-of-order queues:
-                // let out_of_order_result = check(device, &context, &mut rng,
-                //     CONFIG_MAPPED_WRITE_CLFLOAT4_OOO.clone());
-                // print_result("Out-of-order:         ", out_of_order_result);
-
-                let out_of_order_result = check(device, &context, &mut rng,
+                let result = check(device, &context, &mut rng,
                     CONFIG_MAPPED_WRITE_OOO_ASYNC.clone());
-                print_result("Out-of-order MW/Async-CB:     ", out_of_order_result);
+                print_result("Out-of-order MW/Async-CB:     ", result);
 
-                let out_of_order_result = check(device, &context, &mut rng,
+                let result = check(device, &context, &mut rng,
                     CONFIG_MAPPED_WRITE_OOO_ASYNC_AHP.clone());
-                print_result("Out-of-order MW/Async-CB+AHP: ", out_of_order_result);
+                print_result("Out-of-order MW/Async-CB+AHP: ", result);
 
-                let in_order_result = check(device, &context, &mut rng,
+                let result = check(device, &context, &mut rng,
                     CONFIG_MAPPED_READ_OOO_ASYNC_CB.clone());
-                print_result("Out-of-order MW/ASync+CB/MR:  ", in_order_result);
+                print_result("Out-of-order MW/ASync+CB/MR:  ", result);
 
-                let in_order_result = check(device, &context, &mut rng,
+                let result = check(device, &context, &mut rng,
                     CONFIG_MAPPED_WRITE_INO_ASYNC_CB.clone());
-                print_result("In-order MW/ASync+CB:         ", in_order_result);
+                print_result("In-order MW/ASync+CB:         ", result);
 
-                let in_order_result = check(device, &context, &mut rng,
+                let result = check(device, &context, &mut rng,
                     CONFIG_MAPPED_WRITE_OOO_ELOOP.clone());
-                print_result("Out-of-order MW/ELOOP:        ", in_order_result);
+                print_result("Out-of-order MW/ELOOP:        ", result);
 
-                let in_order_result = check(device, &context, &mut rng,
+                let result = check(device, &context, &mut rng,
                     CONFIG_MAPPED_WRITE_OOO_ELOOP_CB.clone());
-                print_result("Out-of-order MW/ELOOP+CB:     ", in_order_result);
+                print_result("Out-of-order MW/ELOOP+CB:     ", result);
+
+                let result = check_async(device, &context, &mut rng,
+                    CONFIG_THREADS.clone());
+                print_result("Out-of-order THREADS:         ", result);
 
             } else {
                 printlnc!(red: "    [UNAVAILABLE]");

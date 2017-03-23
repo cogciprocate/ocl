@@ -60,7 +60,9 @@ pub static KERN_SRC: &'static str = r#"
 /// ============
 ///
 /// Fill buffer with -999's just to ensure the upcoming write misses nothing:
-pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
+pub fn fill_junk(
+        src_buf: &Buffer<Int4>, 
+        common_queue: &Queue,
         kernel_event: Option<&Event>,
         verify_init_event: Option<&Event>,
         fill_event: &mut Option<Event>,
@@ -108,7 +110,10 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 /// the common queue and the `unmap` will automatically use the
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
-pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
+pub fn write_init(
+        src_buf: &Buffer<Int4>, 
+        rw_vec: &RwVec<Int4>, 
+        common_queue: &Queue,
 		write_init_unlock_queue_0: &Queue,
         // write_init_unlock_queue_1: &Queue,
         fill_event: Option<&Event>,
@@ -179,7 +184,10 @@ pub fn write_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
 /// successfully. This will use the common queue for the read and a dedicated
 /// queue for the verification completion event (used to signal the next
 /// command in the chain).
-pub fn verify_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
+pub fn verify_init(
+        src_buf: &Buffer<Int4>, 
+        rw_vec: &RwVec<Int4>, 
+        common_queue: &Queue,
         verify_init_queue: &Queue,
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
@@ -236,7 +244,9 @@ pub fn verify_init(src_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &
 ///
 /// The `Kernel complete ...` message is sometimes delayed slightly (a few
 /// microseconds) due to the time it takes the callback to trigger.
-pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
+pub fn kernel_add(
+        kern: &Kernel, 
+        common_queue: &Queue,
         verify_add_event: Option<&Event>,
         write_init_event: Option<&Event>,
         kernel_event: &mut Option<Event>,
@@ -291,7 +301,10 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
 /// This occasionally shows as having begun a few microseconds before the
 /// kernel has completed but that's just due to the slight callback delay on
 /// the kernel completion event.
-pub fn verify_add(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
+pub fn verify_add(
+        dst_buf: &Buffer<Int4>, 
+        rw_vec: &RwVec<Int4>, 
+        common_queue: &Queue,
         verify_add_unmap_queue: &Queue,
         wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>,
@@ -347,7 +360,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Q
 ///
 // #[test]
 pub fn main() {
-	if cfg!(not(feature = "async_block")) { panic!("'async_block' disabled!"); }
+	// if cfg!(not(feature = "async_block")) { panic!("'async_block' disabled!"); }
 
     let platform = Platform::default();
     println!("Platform: {}", platform.name());
@@ -443,13 +456,13 @@ pub fn main() {
                 &mut write_init_event,
                 ival, task_iter);
 
-            // // 2. Verify-Init
-            // // ============
-            // let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
-            //     &verify_init_queue,
-            //     write_init_event.as_ref(),
-            //     &mut verify_init_event,
-            //     ival, task_iter);
+            // 2. Verify-Init
+            // ============
+            let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
+                &verify_init_queue,
+                write_init_event.as_ref(),
+                &mut verify_init_event,
+                ival, task_iter);
 
             // 3. Kernel-Add
             // =============
@@ -469,8 +482,8 @@ pub fn main() {
 
             if PRINT { println!("All commands for iteration {} enqueued", task_iter); }
 
-            // let task = write_init.join3(verify_init, verify_add);
-            let task = write_init.join(verify_add);
+            let task = write_init.join3(verify_init, verify_add);
+            // let task = write_init.join(verify_add);
 
             threads.push(thread::Builder::new()
             		.name(format!("task_iter_[{}]", task_iter).into())
