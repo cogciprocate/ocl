@@ -1,6 +1,6 @@
 [package]
 name = "cl-sys"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL FFI bindings."
 documentation = "http://doc.cogciprocate.com/cl_sys/cl_sys"
@@ -22,6 +22,7 @@ opencl_version_2_0 = []
 opencl_version_2_1 = []
 opencl_version_2_2 = []
 
+# `opencl_version_1_1` is unused, disabling it has no effect.
 default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
