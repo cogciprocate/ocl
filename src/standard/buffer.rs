@@ -57,15 +57,6 @@ impl<'o> From<&'o Context> for QueCtx<'o> {
     }
 }
 
-// impl<'o> Into<Option<Queue>> for QueCtx<'o> {
-//     fn into(self) -> Option<Queue> {
-//         match self {
-//             QueCtx::Queue(q) => Some(q),
-//             QueCtx::Context(_) => None,
-//         }
-//     }
-// }
-
 impl<'o> From<QueCtx<'o>> for Option<Queue> {
     fn from(qc: QueCtx<'o>) -> Option<Queue> {
         match qc {

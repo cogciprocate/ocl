@@ -4,8 +4,8 @@ Version 0.13.0 (UNRELEASED)
 The futures have arrived! [futures-rs] has begun to find its way into ocl.
 This makes doing things like embedding (slipstreaming?) host processing work
 into the chain of enqueued commands, something that was previously cumbersome
-to implement, very easy and intuitive now. See the `FutureMemMap` and `MemMap`
-types and ... FIXME: Add links
+to implement, very easy and intuitive now. See the new `FutureMemMap`,
+`MemMap`, `FutureRwGuard`, `RwGuard`, and `RwVec` types (FIXME: ADD LINKS).
 
 This library will be approaching forward-compatible stabilization over the
 next year for all top level types. Before that point can be reached, we'll
@@ -17,6 +17,7 @@ FIXME: Update all doc links at release
 
 * Asynchrony and Futures...
   * FIXME: Buffer mapping (`MemMap` and `FutureMemMap`)...
+  * FIXME: `RwVec`
   * FIXME: `BufferCmd`, `ImageCmd`, and `KernelCmd`
   * FIXME: have received some streamlining and optimizing to events.
   * FIXME: comment on changes to the types that `::enew` and `::ewait` accept.

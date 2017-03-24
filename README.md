@@ -81,6 +81,7 @@ power and performance of the C API in a simple package.
 ## What's new?
 
 * Upcoming: v0.13.0: [The futures have arrived](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
+* New examples: [`async_cycles.rs`], [`async_menagerie.rs`], and [`async_process.rs`].
 
 
 #### Diving Deeper
@@ -173,6 +174,9 @@ additional terms or conditions.
 permission by Khronos.”* <br/>*“Vulkan and the Vulkan logo are trademarks of
 the Khronos Group Inc.”*
 
+[`async_cycles.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/async_cycles.rs
+[`async_menagerie.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/async_menagerie.rs
+[`async_process.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/async_process.rs
 [OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
 [AMD]: https://software.intel.com/en-us/intel-opencl/download
 [`ocl-core`]: https://github.com/cogciprocate/ocl-core
