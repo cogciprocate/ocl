@@ -992,30 +992,6 @@ impl Event {
         Ok(copy)
     }
 
-    /// Sets the status for this event. Setting status to completion will
-    /// cause commands waiting upon this event to execute.
-    ///
-    ///  Will return an error if this event is not a 'user' event (created
-    /// with `::user()`).
-    ///
-    /// Valid options are (for OpenCL versions 1.1 - 2.1):
-    ///
-    /// `CommandExecutionStatus::Complete`
-    /// `CommandExecutionStatus::Running`
-    /// `CommandExecutionStatus::Submitted`
-    /// `CommandExecutionStatus::Queued`
-    ///
-    /// To the best of the author's knowledge, the only variant that matters
-    /// is `::Complete`. Everything else is functionally equivalent and is
-    /// useful only for debugging or profiling purposes (this may change).
-    ///
-    /// `::set_complete` is probably what you want.
-    ///
-    #[inline]
-    pub fn set_status(&self, status: CommandExecutionStatus) -> OclResult<()> {
-        functions::set_user_event_status(self, status)
-    }
-
     /// Sets this user created event to `CommandExecutionStatus::Complete`.
     ///
     /// Will return an error if this event is not a 'user' event (created
@@ -1023,7 +999,7 @@ impl Event {
     ///
     #[inline]
     pub fn set_complete(&self) -> OclResult<()> {
-        self.set_status(CommandExecutionStatus::Complete)
+        functions::set_user_event_status(self, CommandExecutionStatus::Complete)
     }
 
     /// Queries the command status associated with this event and returns true

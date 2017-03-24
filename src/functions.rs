@@ -1087,7 +1087,6 @@ pub unsafe fn create_from_gl_texture_3d<C>(
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
-/// [UNTESTED]
 /// Creates a new buffer object (referred to as a sub-buffer object) from an
 /// existing buffer object.
 ///
@@ -1970,7 +1969,6 @@ pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo
     EventInfoResult::from_bytes(request, result)
 }
 
-/// [UNTESTED]
 /// Creates an event not already associated with any command.
 pub fn create_user_event<C>(context: C) -> OclResult<Event> 
         where C: ClContextPtr
@@ -1990,8 +1988,25 @@ pub unsafe fn release_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult
     eval_errcode(ffi::clReleaseEvent(*event.as_ptr_ref()), (), "clReleaseEvent", "")
 }
 
-/// [UNTESTED]
 /// Updates a user events status.
+///
+/// Setting status to completion will cause commands waiting upon this event
+/// to execute.
+///
+/// Will return an error if the event is not a 'user' event (created with
+/// `::create_user_event`).
+///
+/// Valid options are (for OpenCL versions 1.1 - 2.1):
+///
+/// `CommandExecutionStatus::Complete`
+/// `CommandExecutionStatus::Running`
+/// `CommandExecutionStatus::Submitted`
+/// `CommandExecutionStatus::Queued`
+///
+/// To the best of the author's knowledge, the only variant that matters is
+/// `::Complete`. Everything else is functionally equivalent and is useful
+/// only for debugging or profiling purposes (this may change in the future).
+///
 pub fn set_user_event_status<'e,E: ClEventPtrRef<'e>>(event: &'e E,
             execution_status: CommandExecutionStatus) -> OclResult<()>
 {
@@ -2069,7 +2084,6 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
 //========================= Flush and Finish APIs ============================
 //============================================================================
 
-/// [UNTESTED]
 /// Flushes a command queue.
 ///
 /// Issues all previously queued OpenCL commands in a command-queue to the
@@ -2908,7 +2922,7 @@ pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             command_queue: &CommandQueue,
-            num_mem_objects: u32,
+            // num_mem_objects: u32,
             mem_objects: &[Mem],
             flags: MemMigrationFlags,
             wait_list: Option<Ewl>,
@@ -2922,13 +2936,15 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
 
-    let mem_ptr_list: Vec<cl_mem> = mem_objects.iter()
-        .map(|ref mem_obj| mem_obj.as_ptr()).collect();
+    // let mem_ptr_list: Vec<cl_mem> = mem_objects.iter()
+    //     .map(|ref mem_obj| mem_obj.as_ptr()).collect();
 
     let errcode = unsafe { ffi::clEnqueueMigrateMemObjects(
         command_queue.as_ptr(),
-        num_mem_objects,
-        mem_ptr_list.as_ptr() as *const _ as *const cl_mem,
+        // num_mem_objects,
+        mem_objects.len() as u32,
+        // mem_ptr_list.as_ptr() as *const _ as *const cl_mem,
+        mem_objects.as_ptr() as *const _ as *const cl_mem,
         flags.bits(),
         wait_list_len,
         wait_list_ptr,
@@ -3076,7 +3092,6 @@ pub fn enqueue_native_kernel() -> OclResult<()> {
     unimplemented!();
 }
 
-/// [UNTESTED]
 /// Enqueues a marker command which waits for either a list of events to
 /// complete, or all previously enqueued commands to complete.
 ///
@@ -3106,7 +3121,6 @@ pub fn enqueue_marker_with_wait_list<En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueMarkerWithWaitList", "")
 }
 
-/// [UNTESTED]
 /// A synchronization point that enqueues a barrier operation.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueBarrierWithWaitList.html)
