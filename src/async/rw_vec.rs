@@ -1,6 +1,8 @@
 //! A mutex-like lock which can be shared between threads and can interact
 //! with OpenCL events.
 //!
+//! 
+//! 
 
 extern crate qutex;
 
@@ -15,7 +17,6 @@ pub use self::qutex::{Request, Guard, FutureGuard, Qutex};
 const PRINT_DEBUG: bool = false;
 
 /// Allows access to the data contained within a lock just like a mutex guard.
-///
 pub struct RwGuard<T> {
     rw_vec: RwVec<T>,
     unlock_event: Option<Event>,
@@ -50,7 +51,6 @@ impl<T> RwGuard<T> {
     fn complete_unlock_event(&self) {
         if let Some(ref e) = self.unlock_event {
             if !e.is_complete().expect("ReadCompletion::drop") {
-                // ::std::thread::sleep(::std::time::Duration::from_millis(1));
                 // ::std::thread::sleep(::std::time::Duration::new(0, 1));
                 e.set_complete().expect("ReadCompletion::drop");
             }
@@ -81,6 +81,7 @@ impl<T> Drop for RwGuard<T> {
 }
 
 
+/// The polling stage of a `FutureRwGuard`.
 #[derive(PartialEq)]
 enum Stage {
     Marker,
@@ -103,7 +104,8 @@ enum Stage {
 pub struct FutureRwGuard<T> {
     rw_vec: Option<RwVec<T>>,
     rx: oneshot::Receiver<()>,
-    // wait_event: Option<Event>,
+    // Bring this back if we decide to switch back to an event marker, which
+    // is probably more efficient than the list: `wait_event: Option<Event>`
     wait_list: Option<EventList>,
     lock_event: Option<Event>,
     command_completion: Option<Event>,
@@ -238,7 +240,6 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the wait events until all requisite commands have completed then
     /// polls the qutex queue.
-    // #[cfg(feature = "async_block")]
     fn poll_wait_events(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Marker);
         if PRINT_DEBUG { println!("###### FutureRwGuard::poll_wait_events (thread: {})...",
@@ -341,7 +342,6 @@ impl<T> FutureRwGuard<T> {
                             // Intel-specific or what. This mimics what a
                             // thread-mutex generally does in practice so I'm
                             // sure there's a good explanation for this.
-                            // ::std::thread::sleep(::std::time::Duration::from_millis(1));
                             // ::std::thread::sleep(::std::time::Duration::new(0, 1));
                             lock_event.set_complete()?
                         }
@@ -381,7 +381,6 @@ impl<T> FutureRwGuard<T> {
                     match status {
                         Async::Ready(_) => {
                             if let Some(ref lock_event) = self.lock_event {
-                                // ::std::thread::sleep(::std::time::Duration::from_millis(1));
                                 lock_event.set_complete()?
                             }
                             self.stage = Stage::Command;
@@ -401,7 +400,6 @@ impl<T> FutureRwGuard<T> {
 
     /// Polls the command event until it is complete then returns an `RwGuard`
     /// which can be safely accessed immediately.
-    // #[cfg(feature = "async_block")]
     fn poll_command(&mut self) -> AsyncResult<Async<RwGuard<T>>> {
         debug_assert!(self.stage == Stage::Command);
         if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command (thread: {})...",
@@ -429,8 +427,6 @@ impl<T> FutureRwGuard<T> {
 
         if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command: All polling complete (thread: {}).", 
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
-
-        // ::std::thread::sleep(::std::time::Duration::from_millis(10));
 
         Ok(Async::Ready(RwGuard::new(self.rw_vec.take().unwrap(), self.unlock_event.take())))
     }
@@ -478,6 +474,16 @@ impl<T> Future for FutureRwGuard<T> {
 /// Calling `::lock` or `::request_lock` returns a future which will
 /// resolve into a `RwGuard`.
 ///
+/// ## Platform Compatibility
+///
+/// Some CPU device/platform combinations have synchronization problems when
+/// accessing an `RwVec` from multiple threads. Known platforms with problems
+/// are 2nd and 4th gen Intel Core processors (Sandy Bridge and Haswell) with
+/// Intel OpenCL CPU drivers. Others may be likewise affected. Run the
+/// `device_check.rs` example to determine if your device/platform is
+/// affected. AMD platform drivers are known to work properly on the
+/// aforementioned CPUs so use those instead if possible.
+///
 pub struct RwVec<T> {
     qutex: Qutex<Vec<T>>,
 }
@@ -498,14 +504,10 @@ impl<T> RwVec<T> {
     // }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
-    // pub fn request_lock<C>(self, context: C, wait_event: Option<Event>) 
-    pub fn request_lock(self) 
-            -> FutureRwGuard<T>
-    {
-        // println!("RwVec::request_lock: Lock requested.");
+    pub fn request_lock(self) -> FutureRwGuard<T> {
+        if PRINT_DEBUG { println!("RwVec::request_lock: Lock requested."); }
         let (tx, rx) = oneshot::channel();
         unsafe { self.qutex.push_request(Request::new(tx)); }
-        // FutureRwGuard::new(self.into(), rx, context, wait_event)
         FutureRwGuard::new(self.into(), rx)
     }
 

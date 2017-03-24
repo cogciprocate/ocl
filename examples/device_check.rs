@@ -265,7 +265,7 @@ lazy_static! {
         },
         misc: Misc {
             // work_size_range: ((1 << 24) - 1, 1 << 24),
-            work_size_range: (1 << 10, 1 << 13),
+            work_size_range: (1 << 14, (1 << 14) + 1),
             alloc_host_ptr: false,
         },
         map_write: true,
@@ -662,7 +662,6 @@ pub fn fill_junk(
         src_buf: &Buffer<Int4>, 
         common_queue: &Queue,
         kernel_event: Option<&Event>,
-        // verify_init_event: Option<&Event>,
         fill_event: &mut Option<Event>,
         task_iter: i32)
 {
@@ -705,7 +704,6 @@ pub fn vec_write_async(
         common_queue: &Queue,
         write_unlock_queue: &Queue,
         fill_event: Option<&Event>,
-        // verify_init_event: Option<&Event>,
         write_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
         -> BoxFuture<i32, AsyncError>
@@ -714,24 +712,11 @@ pub fn vec_write_async(
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
     }
 
-    // // Clear the wait list and push the previous iteration's verify init event
-    // // and the current iteration's fill event if they are set.
-    // let wait_marker = [verify_init_event, fill_event].into_marker(common_queue).unwrap();
-
-    // println!("###### vec_write_async() events (task_iter: [{}]): \n\
-    //  ######     'verify_init_event': {:?}, \n\
-    //  ######     'fill_event': {:?} \n\
-    //  ######       -> 'wait_marker': {:?}", 
-    //  task_iter, verify_init_event, fill_event, wait_marker);
-
     let wait_list = [fill_event].into_raw_list();
 
     let mut future_guard = rw_vec.clone().request_lock();
-    // future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
     future_guard.set_wait_list(wait_list);
     let unlock_event = future_guard.create_unlock_event(write_unlock_queue).unwrap().clone();
-
-    // println!("######     'unlock_event' (generate): {:?}", unlock_event);
 
     let future_write_vec = future_guard.and_then(move |mut data| {
         if PRINT { println!("* Write init starting  \t(iter: {}) ...", task_iter); }
@@ -864,8 +849,8 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::splat(correct_val);
             if *val != cval {
-                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ idx[{}] \
-                    for task iter: [{}].", val, cval, idx, task_iter).into());
+                return Err(format!("Result value @ idx[{}]: {:?} \n    should be == {:?}\
+                    (task iter: [{}]).", idx, val, cval, task_iter).into());
             }
             val_count += 1;
         }
@@ -885,11 +870,9 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
     let work_size = work_size_range.ind_sample(rng);
 
     // Create queues:
-    // let (write_queue, kernel_queue, read_queue) = create_queues(device, &context, cfg.queue_out_of_order);
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
     let common_queue = Queue::new(&context, device, queue_flags).unwrap();
     let write_queue = Queue::new(&context, device, queue_flags).unwrap();
-    // let verify_init_queue = Queue::new(&context, device, queue_flags).unwrap();
     let read_queue = Queue::new(&context, device, queue_flags).unwrap();
 
     let ahp_flag = if cfg.misc.alloc_host_ptr {
@@ -918,7 +901,6 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 
     // Generate kernel source:
     let kern_src = gen_kern_src(cfg.kern.name, cfg.val.type_str, true, cfg.kern.op_add);
-    // println!("{}\n", kern_src);
 
     let program = Program::builder()
         .devices(device)
@@ -939,7 +921,6 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
     // Our events for synchronization.
     let mut fill_event = None;
     let mut write_event = None;
-    // let mut verify_init_event = None;
     let mut kernel_event = None;
     let mut read_event = None;
 
@@ -1038,7 +1019,10 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
     if all_correct {
         Ok(())
     } else {
-        Err("Errors found!".into())
+        Err("\nErrors found. Your device/platform does not properly support asynchronous\n\
+            multi-threaded operation. It is recommended that you enable the `async_block`\n\
+            feature when using this library with the device and platform combination \n\
+            listed just above.\n".into())
     }
 }
 
@@ -1047,8 +1031,8 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 pub fn main() {
     let mut rng = rand::weak_rng();
 
-    // for platform in Platform::list() {
-    for &platform in &[Platform::default()] {
+    for platform in Platform::list() {
+    // for &platform in &[Platform::default()] {
 
         let devices = Device::list_all(&platform).unwrap();
 
@@ -1089,7 +1073,7 @@ pub fn main() {
 
                 let result = check_async(device, &context, &mut rng,
                     CONFIG_THREADS.clone());
-                print_result("Out-of-order THREADS:         ", result);
+                print_result("In-order RwVec Multi-thread:  ", result);
 
             } else {
                 printlnc!(red: "    [UNAVAILABLE]");

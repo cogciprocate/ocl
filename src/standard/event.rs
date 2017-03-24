@@ -1,10 +1,22 @@
 //! An OpenCL event.
+//!
+//
+// ### Notes
+// 
+// * EventArray is incomplete
+// * It's not yet clear whether or not to keep EventArray and EventList
+//   separate or to combine them into a smart-list that might be either one
+//   depending on the circumstances.
+// * It would be nice to have a "master" list type but it doesn't look like
+//   that's particularly feasable (although ClWaitListPtrEnum basically serves
+//   that role).
+//
 
 use std;
 use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use std::cell::Ref;
-use futures::{future, Future, Poll, Async};
+use futures::{Future, Poll, Async};
 #[cfg(not(feature = "async_block"))]
 use futures::task;
 use ffi::cl_event;
@@ -469,7 +481,7 @@ impl<'a> From<ClWaitListPtrEnum<'a>> for EventList {
     /// Returns an `EventList` containing owned copies of each element in
     /// this `ClWaitListPtrEnum`.
     fn from(wlpe: ClWaitListPtrEnum<'a>) -> EventList {
-        match wlpe{
+        match wlpe {
             ClWaitListPtrEnum::Null => EventList::with_capacity(0),
             ClWaitListPtrEnum::RawEventArray(e) => e.as_slice().into(),
             ClWaitListPtrEnum::EventCoreOwned(e) => EventList::from(vec![e.into()]),
@@ -490,6 +502,8 @@ impl Future for EventList {
     type Item = ();
     type Error = OclError;
 
+    /// Removes (pops) each event from this list and waits for 
+    ///
     // * NOTE: Multiple calls to poll may hit this function. Do not attempt to
     //   remove any events from this list which still require waiting. The
     //   most robust strategy so far seems to simply wait on each event
@@ -672,14 +686,6 @@ unsafe impl<'a> ClWaitListPtr for &'a EventArray {
     #[inline] fn count(&self) -> u32 { self._count() }
 }
 
-
-// pub trait EventOption {
-//     type Event;
-// }
-
-// impl BorrowEvent for Event {
-//     type Event = Event;
-// }
 
 /// A stack allocated array of `cl_event` pointers with a maximum length of 8.
 ///

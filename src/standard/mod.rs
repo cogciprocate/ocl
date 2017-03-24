@@ -59,6 +59,8 @@ mod cb {
     }
 
     pub extern "C" fn _unpark_task(event_ptr: cl_event, event_status: i32, user_data: *mut c_void) {
+        // ::std::thread::sleep(::std::time::Duration::new(0, 1));
+
         let _ = event_ptr;
         // println!("'_unpark_task' has been called.");
         if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
@@ -102,6 +104,7 @@ mod types {
     //
     // * TODO: Figure out a way to abstract over `&` and `&mut` versions of
     //   things in `From` impls without messing up the `Ref` versions.
+    //   - Possibly rename this to something friendlier.
     #[derive(Debug)]
     pub enum ClWaitListPtrEnum<'a> {
         Null,

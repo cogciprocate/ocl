@@ -754,7 +754,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// within subsequent futures.
     ///
     /// A data destination container appropriate for an asynchronous operation
-    /// (`RwVec`) must have been passed to `::read`.
+    /// (such as `RwVec`) must have been passed to `::read`.
     ///
     pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T>> {
         let queue = match self.cmd.queue {
@@ -982,7 +982,11 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
         self
     }
 
-    /// Enqueues this command.
+    /// Enqueues this command, blocking the current thread until it is complete.
+    ///
+    /// If an `RwVec` is being used as the data destination, the current
+    /// thread will be blocked until an exclusive lock can be obtained before
+    /// running the command (which will also block).
     pub fn enq(mut self) -> OclResult<()> {
         let write_src = self.src.take();
 
@@ -1028,7 +1032,12 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
         }
     }
 
-    /// Enqueues this command.
+    /// Enqueues this command and returns a future representing its completion
+    /// which resolves to a guard providing exclusive data access usable
+    /// within subsequent futures.
+    ///
+    /// A data destination container appropriate for an asynchronous operation
+    /// (such as `RwVec`) must have been passed to `::write`.
     pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
