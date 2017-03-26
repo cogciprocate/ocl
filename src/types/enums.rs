@@ -2285,35 +2285,45 @@ impl ProfilingInfoResult {
         }
     }
 
-    pub fn queued(self) -> OclResult<u64> {
+    // pub fn queued(self) -> OclResult<u64> {
+    //     match self {
+    //         ProfilingInfoResult::Queued(time_ns) => Ok(time_ns),
+    //         ProfilingInfoResult::Error(err) => Err(*err),
+    //         _ => unreachable!(),
+    //     }
+    // }
+
+    // pub fn submit(self) -> OclResult<u64> {
+    //     match self {
+    //         ProfilingInfoResult::Submit(time_ns) => Ok(time_ns),
+    //         ProfilingInfoResult::Error(err) => Err(*err),
+    //         _ => unreachable!(),
+    //     }
+    // }
+
+    // pub fn start(self) -> OclResult<u64> {
+    //     match self {
+    //         ProfilingInfoResult::Start(time_ns) => Ok(time_ns),
+    //         ProfilingInfoResult::Error(err) => Err(*err),
+    //         _ => unreachable!(),
+    //     }
+    // }
+
+    // pub fn end(self) -> OclResult<u64> {
+    //     match self {
+    //         ProfilingInfoResult::End(time_ns) => Ok(time_ns),
+    //         ProfilingInfoResult::Error(err) => Err(*err),
+    //         _ => unreachable!(),
+    //     }
+    // }
+
+    pub fn time(self) -> OclResult<u64> {
         match self {
             ProfilingInfoResult::Queued(time_ns) => Ok(time_ns),
-            ProfilingInfoResult::Error(err) => Err(*err),
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn submit(self) -> OclResult<u64> {
-        match self {
             ProfilingInfoResult::Submit(time_ns) => Ok(time_ns),
-            ProfilingInfoResult::Error(err) => Err(*err),
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn start(self) -> OclResult<u64> {
-        match self {
             ProfilingInfoResult::Start(time_ns) => Ok(time_ns),
-            ProfilingInfoResult::Error(err) => Err(*err),
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn end(self) -> OclResult<u64> {
-        match self {
             ProfilingInfoResult::End(time_ns) => Ok(time_ns),
             ProfilingInfoResult::Error(err) => Err(*err),
-            _ => unreachable!(),
         }
     }
 }
