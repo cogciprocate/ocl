@@ -1594,8 +1594,9 @@ impl<T: OclPrm> Buffer<T> {
     /// [mem_flags]: struct.MemFlags.html
     /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
     ///
-    pub fn create_sub_buffer<D: Into<SpatialDims>>(&self, flags_opt: Option<MemFlags>, origin: D,
-        dims: D) -> OclResult<Buffer<T>>
+    pub fn create_sub_buffer<Do, Ds>(&self, flags_opt: Option<MemFlags>, origin: Do,
+        size: Ds) -> OclResult<Buffer<T>>
+        where Do: Into<SpatialDims>, Ds: Into<SpatialDims>
     {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
 
@@ -1608,7 +1609,7 @@ impl<T: OclPrm> Buffer<T> {
             the containing buffer.");
 
         let origin: SpatialDims = origin.into();
-        let dims: SpatialDims = dims.into();
+        let dims: SpatialDims = size.into();
 
         let buffer_len = self.dims().to_len();
         let origin_ofs = origin.to_len();
