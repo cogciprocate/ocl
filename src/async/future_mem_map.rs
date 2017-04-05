@@ -1,8 +1,9 @@
 
 use futures::{Future, Poll, Async};
 use core::{Event as EventCore, OclPrm, MemMap as MemMapCore, Mem};
-use standard::{MemMap, Event, Queue,};
-use super::{Error as AsyncError, Result as AsyncResult};
+use standard::{Event, Queue,};
+
+use super::{Error as AsyncError, Result as AsyncResult, MemMap};
 
 
 /// A future which resolves to a `MemMap` as soon as its creating command completes.

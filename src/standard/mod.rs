@@ -14,7 +14,6 @@ mod sampler;
 mod pro_que;
 mod event;
 mod spatial_dims;
-mod mem_map;
 
 pub use self::platform::Platform;
 pub use self::device::{Device, DeviceSpecifier};
@@ -22,7 +21,6 @@ pub use self::context::{Context, ContextBuilder};
 pub use self::program::{Program, ProgramBuilder, BuildOpt};
 pub use self::queue::Queue;
 pub use self::kernel::{Kernel, KernelCmd};
-pub use self::mem_map::{MemMap};
 pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, QueCtx,
     BufferBuilder};    
 pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};

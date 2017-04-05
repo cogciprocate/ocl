@@ -7,13 +7,14 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 // use std::convert::Into;
+use ffi::{cl_GLuint, cl_GLint};
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
     ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ImageChannelOrder, ImageChannelDataType,
     GlTextureTarget, AsMem, MemCmdRw, MemCmdAll, MapFlags};
 use standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum,
-    QueCtx, MemMap};
-use ffi::{cl_GLuint, cl_GLint};
+    QueCtx};
+use ::MemMap;
 
 
 /// The type of operation to be performed by a command.

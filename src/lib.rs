@@ -66,8 +66,8 @@ mod standard;
 pub mod async;
 
 pub use self::standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
-    EventList, Sampler, SpatialDims, ProQue, MemMap};    
-pub use self::async::{FutureMemMap, RwVec, ReadGuard, WriteGuard, FutureRwGuard};
+    EventList, Sampler, SpatialDims, ProQue};    
+pub use self::async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard, FutureRwGuard};
 pub use core::error::{Error, Result};
 #[doc(no_inline)] pub use core::ffi;
 #[doc(no_inline)] pub use core::util;
