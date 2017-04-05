@@ -702,7 +702,7 @@ pub fn vec_write_async(
         src_buf: &Buffer<Int4>, 
         rw_vec: &RwVec<Int4>, 
         common_queue: &Queue,
-        write_unlock_queue: &Queue,
+        write_release_queue: &Queue,
         fill_event: Option<&Event>,
         write_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
@@ -714,9 +714,9 @@ pub fn vec_write_async(
 
     let wait_list = [fill_event].into_raw_list();
 
-    let mut future_guard = rw_vec.clone().request_lock();
+    let mut future_guard = rw_vec.clone().request_write();
     future_guard.set_wait_list(wait_list);
-    let unlock_event = future_guard.create_unlock_event(write_unlock_queue).unwrap().clone();
+    let release_event = future_guard.create_release_event(write_release_queue).unwrap().clone();
 
     let future_write_vec = future_guard.and_then(move |mut data| {
         if PRINT { println!("* Write init starting  \t(iter: {}) ...", task_iter); }
@@ -730,10 +730,10 @@ pub fn vec_write_async(
 
     let mut future_write_buffer = src_buf.cmd().write(rw_vec)
         .queue(common_queue)
-        .ewait(&unlock_event)
+        .ewait(&release_event)
         .enq_async().unwrap();
 
-    *write_event = Some(future_write_buffer.create_unlock_event(write_unlock_queue)
+    *write_event = Some(future_write_buffer.create_release_event(write_release_queue)
         .unwrap().clone());
 
 
@@ -821,7 +821,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 }
 
 pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
-        verify_add_unlock_queue: &Queue, kernel_event: Option<&Event>, 
+        verify_add_release_queue: &Queue, kernel_event: Option<&Event>, 
         verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32) 
         -> BoxFuture<i32, AsyncError>
 {
@@ -840,7 +840,7 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
         _verify_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_add_event = Some(future_read_data.create_unlock_event(verify_add_unlock_queue)
+    *verify_add_event = Some(future_read_data.create_release_event(verify_add_release_queue)
         .unwrap().clone());
 
     future_read_data.and_then(move |data| {

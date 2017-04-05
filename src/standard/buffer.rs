@@ -7,7 +7,8 @@ use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, Event as EventCore, ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureRwGuard};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, /*ReadGuard, */WriteGuard,
+    FutureRwGuard};    
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 
@@ -733,7 +734,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 enqueue_with_data(slice)
             },
             ReadDst::RwVec(rw_vec) => {
-                let mut guard = rw_vec.request_lock().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
+                let mut guard = rw_vec.request_write().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(guard.as_mut_slice())
             },
             ReadDst::None => panic!("Invalid read destination."),
@@ -747,7 +748,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// A data destination container appropriate for an asynchronous operation
     /// (such as `RwVec`) must have been passed to `::read`.
     ///
-    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T, WriteGuard<T>>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -766,7 +767,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 //     None => None,
                 // };
 
-                let mut guard = rw_vec.request_lock();
+                let mut guard = rw_vec.request_write();
                 guard.create_lock_event(queue.context_ptr()?)?;
 
                 // let wait_list = match self.cmd.ewait {
@@ -1016,8 +1017,8 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 enqueue_with_data(slice)
             },
             WriteDst::RwVec(rw_vec) => {
-                let mut guard = rw_vec.request_lock().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
-                enqueue_with_data(guard.as_mut_slice())
+                let guard = rw_vec.request_read().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
+                enqueue_with_data(guard.as_slice())
             },
             WriteDst::None => panic!("Invalid read destination."),
         }
@@ -1029,7 +1030,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// A data destination container appropriate for an asynchronous operation
     /// (such as `RwVec`) must have been passed to `::write`.
-    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T, WriteGuard<T>>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -1048,22 +1049,26 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 //     None => None,
                 // };
 
-                let wait_list = match self.cmd.ewait {
-                    Some(wl) => Some(wl),
-                    None => None,
-                };
-
-                let mut guard = rw_vec.request_lock();
+                let mut guard = rw_vec.request_read().upgrade_after_command();
                 guard.create_lock_event(queue.context_ptr()?)?;
+
+                // let wait_list = match self.cmd.ewait {
+                //     Some(wl) => Some(wl),
+                //     None => None,
+                // };
 
                 // if let Some(wm) = wait_marker {
                 //     guard.set_wait_list(wm);
                 // }     
 
-                if let Some(wl) = wait_list {
+                // if let Some(wl) = wait_list {
+                //     guard.set_wait_list(wl);
+                //     // guard.set_wait_list_marker(wl.into_marker(queue)?);
+                // }                 
+
+                if let Some(wl) = self.cmd.ewait {
                     guard.set_wait_list(wl);
-                    // guard.set_wait_list_marker(wl.into_marker(queue)?);
-                }                 
+                }          
 
                 let src = unsafe { guard.as_mut_slice().expect("BufferWriteCmd::enq_async: \
                     Invalid guard.") };
@@ -1078,8 +1083,8 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                             offset, src, guard.lock_event(), Some(&mut write_event))?;
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
-                        src_row_pitch_bytes, src_slc_pitch_bytes,
-                            dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
+                            src_row_pitch_bytes, src_slc_pitch_bytes,
+                                dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
                     {
                         core::enqueue_write_buffer_rect(queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
@@ -1307,6 +1312,10 @@ impl<T: OclPrm> Buffer<T> {
     /// [`BufferBuilder`]: struct.BufferBuilder.html
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     ///
+    //
+    // * TODO: Consider removing `fill_val` and leaving filling completely to
+    //   the builder.
+    //
     pub fn new<'e, 'o, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
             host_data: Option<&[T]>, fill_val: Option<(T, Option<En>)>) -> OclResult<Buffer<T>>
             where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>, En: Into<ClNullEventPtrEnum<'e>>

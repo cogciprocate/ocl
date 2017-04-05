@@ -7,10 +7,10 @@ documentation = "https://docs.rs/ocl"
 homepage = "https://github.com/cogciprocate/ocl"
 repository = "https://github.com/cogciprocate/ocl"
 readme = "README.md"
-keywords = ["opencl", "gpu", "gpgpu"]
+keywords = ["opencl", "gpu", "gpgpu", "async"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "*.png", "bak/*"]
-# categories = ["asynchronous", "concurrency", "science"]
+categories = ["asynchronous", "concurrency", "science", "data-structures"]
 
 [features]
 event_debug_print = []
@@ -48,8 +48,8 @@ ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core"
 
 
 # qutex = "0.0.4"
-qutex = { version = "0.0", git = "https://github.com/cogciprocate/qutex" }
-# qutex = { version = "0.0", path = "../qutex" }
+# qutex = { version = "0.0", git = "https://github.com/cogciprocate/qutex" }
+qutex = { version = "0.0", path = "../qutex" }
 
 
 num = "0.1"

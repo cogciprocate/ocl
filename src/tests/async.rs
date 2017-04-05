@@ -111,8 +111,8 @@ pub fn write_init(
         src_buf: &Buffer<Int4>, 
         rw_vec: &RwVec<Int4>, 
         common_queue: &Queue,
-        write_init_unlock_queue_0: &Queue,
-        // write_init_unlock_queue_1: &Queue,
+        write_init_release_queue_0: &Queue,
+        // write_init_release_queue_1: &Queue,
         fill_event: Option<&Event>,
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
@@ -135,12 +135,12 @@ pub fn write_init(
 
     let wait_list = [verify_init_event, fill_event].into_raw_list();
 
-    let mut future_guard = rw_vec.clone().request_lock();
+    let mut future_guard = rw_vec.clone().request_write();
     // future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
     future_guard.set_wait_list(wait_list);
-    let unlock_event = future_guard.create_unlock_event(write_init_unlock_queue_0).unwrap().clone();
+    let release_event = future_guard.create_release_event(write_init_release_queue_0).unwrap().clone();
 
-    // println!("######     'unlock_event' (generate): {:?}", unlock_event);
+    // println!("######     'release_event' (generate): {:?}", release_event);
 
     let future_write_vec = future_guard.and_then(move |mut data| {
         if PRINT { println!("* Write init starting  \t(iter: {}) ...", task_iter); }
@@ -154,16 +154,16 @@ pub fn write_init(
 
     let mut future_write_buffer = src_buf.cmd().write(rw_vec)
         .queue(common_queue)
-        .ewait(&unlock_event)
+        .ewait(&release_event)
         .enq_async().unwrap();
 
     // Set the write unmap completion event which will be set to complete
     // (triggered) after the CPU-side processing is complete and the data is
     // transferred to the device:
-    *write_init_event = Some(future_write_buffer.create_unlock_event(write_init_unlock_queue_0)
+    *write_init_event = Some(future_write_buffer.create_release_event(write_init_release_queue_0)
         .unwrap().clone());
 
-    // println!("######     'unlock_event' ('write_init_event'): {:?}", write_init_event);
+    // println!("######     'release_event' ('write_init_event'): {:?}", write_init_event);
 
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
         task_iter as *mut c_void).unwrap(); }
@@ -211,7 +211,7 @@ pub fn verify_init(
         _verify_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_init_event = Some(future_read_data.create_unlock_event(verify_init_queue)
+    *verify_init_event = Some(future_read_data.create_release_event(verify_init_queue)
         .unwrap().clone());
 
     // The future which will actually verify the initial value:
@@ -323,10 +323,10 @@ pub fn verify_add(
         _verify_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_add_event = Some(future_read_data.create_unlock_event(verify_add_unmap_queue)
+    *verify_add_event = Some(future_read_data.create_release_event(verify_add_unmap_queue)
         .unwrap().clone());
 
-    future_read_data.and_then(move |data| {
+    future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -336,6 +336,11 @@ pub fn verify_add(
                     for task iter: [{}].", val, cval, idx, task_iter).into());
             }
             val_count += 1;
+        }
+
+        /// This is just for shits:
+        for val in data.iter_mut() {
+            *val = Int4::splat(0);
         }
 
         if PRINT { println!("* Verify add complete  \t(iter: {})", task_iter); }

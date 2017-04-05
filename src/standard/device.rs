@@ -3,12 +3,40 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
-// use std::convert::Into;
 use core::error::{Error as OclError, Result as OclResult};
 use standard::Platform;
 use ffi::cl_device_id;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
 use core::util;
+
+
+// Perhaps add something like this to the `DeviceSpecifier`.
+//
+// Copied from `https://github.com/TyOverby/ocl-repro/blob/master/src/main.rs`:
+//
+// pub fn first_gpu() -> (Platform, Device) {
+//     let mut out = vec![];
+//     for plat in Platform::list() {
+//         if let Ok(all_devices) = Device::list_all(&plat) {
+//             for dev in all_devices {
+//                 out.push((plat.clone(), dev));
+//             }
+//         }
+//     }
+//
+//     // Prefer GPU
+//     out.sort_by(|&(_, ref a), &(_, ref b)| {
+//         let a_type = a.info(DeviceInfo::Type);
+//         let b_type = b.info(DeviceInfo::Type);
+//         if let (DeviceInfoResult::Type(a_type), DeviceInfoResult::Type(b_type)) = (a_type, b_type) {
+//             b_type.cmp(&a_type)
+//         } else {
+//             (0).cmp(&0)
+//         }
+//     });
+//
+//     out.first().unwrap().clone()
+// }
 
 /// Specifies [what boils down to] a list of devices.
 ///
@@ -102,7 +130,6 @@ impl DeviceSpecifier {
 
     /// Returns the list of devices matching the parameters specified by this
     /// `DeviceSpecifier`
-    ///
     ///
     /// ### Panics
     ///
