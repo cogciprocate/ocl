@@ -1,7 +1,7 @@
 //! A sub-buffer allocator.
 
 use std::collections::{LinkedList, HashMap};
-use ocl::{Queue, Buffer, SubBuffer, OclPrm};
+use ocl::{Queue, Buffer, OclPrm};
 use ocl::flags::MemFlags;
 
 
@@ -19,7 +19,7 @@ pub struct PoolRegion {
 
 pub struct SubBufferPool {
     buffer: Buffer<T>,
-    sub_buffers: HashMap<usize, SubBuffer<T>>,
+    sub_buffers: HashMap<usize, Buffer<T>>,
     regions: BTreeMap<PoolRegion>,
     chunk_size: u32,
     chunk_count: u32,

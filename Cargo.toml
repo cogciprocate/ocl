@@ -48,8 +48,8 @@ ocl-core = { version = "0.3.2", git = "https://github.com/cogciprocate/ocl-core"
 
 
 # qutex = "0.0.4"
-# qutex = { version = "0.0", git = "https://github.com/cogciprocate/qutex" }
-qutex = { version = "0.0", path = "../qutex" }
+qutex = { version = "0.0", git = "https://github.com/cogciprocate/qutex" }
+# qutex = { version = "0.0", path = "../qutex" }
 
 
 num = "0.1"

@@ -23,8 +23,8 @@ pub use self::program::{Program, ProgramBuilder, BuildOpt};
 pub use self::queue::Queue;
 pub use self::kernel::{Kernel, KernelCmd};
 pub use self::mem_map::{MemMap};
-pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, SubBuffer,
-    QueCtx, BufferBuilder};
+pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, QueCtx,
+    BufferBuilder};    
 pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};
 pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};

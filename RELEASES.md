@@ -25,8 +25,7 @@ FIXME: Update all doc links at release
   * FIXME: ::read, ::write, ::map
     * how to use futures, etc.
 
-* `SubBuffer` has been added and represents a subregion of a `Buffer`. It can
-  be used just as you would `Buffer`. Use `SubBuffer::new` or
+* Sub-buffers can now easily be created from a `Bufer`. Use
   `Buffer::create_sub_buffer` to create one.
 * Default queues on kernels, buffers, and images are no longer mandatory. See
   the breaking changes section below for details on how this impacts existing
@@ -43,8 +42,7 @@ FIXME: Update all doc links at release
   index of a named argument. Argument indexes always correspond exactly to the
   order arguments are declared.
 * `Kernel` buffer and image related functions (such as `arg_buf`) can now
-  interchangeably accept either `Buffer<T>`, `SubBuffer<T>`, or `Image<T>`
-  types.
+  interchangeably accept either `Buffer<T>`, `Image<T>` types.
 * Command queue properties can now be specified when creating a `Queue` or
   `ProQue` allowing out of order execution and profiling to be enabled.
   Profiling had previously been enabled by default but now must be explicitly

@@ -1286,7 +1286,8 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
-    queue: Option<Queue>,
+    queue: Option<Queue>, 
+    origin: Option<SpatialDims>,
     dims: SpatialDims,
     len: usize,
     flags: MemFlags,
@@ -1316,7 +1317,7 @@ impl<T: OclPrm> Buffer<T> {
     // * TODO: Consider removing `fill_val` and leaving filling completely to
     //   the builder.
     //
-    pub fn new<'e, 'o, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
+    pub fn new<'e, 'o, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D, 
             host_data: Option<&[T]>, fill_val: Option<(T, Option<En>)>) -> OclResult<Buffer<T>>
             where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>, En: Into<ClNullEventPtrEnum<'e>>
     {
@@ -1338,6 +1339,7 @@ impl<T: OclPrm> Buffer<T> {
         let buf = Buffer {
             obj_core: obj_core,
             queue: que_ctx.into(),
+            origin: None,
             dims: dims,
             len: len,
             flags: flags,
@@ -1345,6 +1347,8 @@ impl<T: OclPrm> Buffer<T> {
         };
 
         // Fill with `fill_val` if specified, blocking if the associated event is `None`.
+        //
+        // TODO: Move this functionality to builder.
         if let Some((val, enew_opt)) = fill_val {
             match enew_opt {
                 Some(enew) => buf.cmd().fill(val, None).enew(enew.into()).enq()?,
@@ -1371,7 +1375,7 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](struct.BufferCmd.html)
     /// for more info.
     ///
-    pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
+    pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D, 
             gl_object: cl_GLuint) -> OclResult<Buffer<T>>
             where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>
     {
@@ -1393,6 +1397,7 @@ impl<T: OclPrm> Buffer<T> {
         let buf = Buffer {
             obj_core: obj_core,
             queue: que_ctx.into(),
+            origin: None,
             dims: dims,
             len: len,
             _data: PhantomData,
@@ -1470,16 +1475,29 @@ impl<T: OclPrm> Buffer<T> {
         self.cmd().copy(dst_buffer, dst_offset, len)
     }
 
-    /// Returns the length of the buffer.
+    /// Returns the origin of the sub-buffer within its buffer if this is a
+    /// sub-buffer.
     #[inline]
-    pub fn len(&self) -> usize {
-        self.len
+    pub fn origin(&self) -> Option<&SpatialDims> {
+        self.origin.as_ref()
     }
 
     /// Returns the dimensions of the buffer.
     #[inline]
     pub fn dims(&self) -> &SpatialDims {
         &self.dims
+    }
+
+    /// Returns the length of the buffer.
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    /// Returns true if this is a sub-buffer.
+    #[inline]
+    pub fn is_sub_buffer(&self) -> bool {
+        self.origin.is_some()
     }
 
     /// Returns info about the underlying memory object.
@@ -1538,16 +1556,87 @@ impl<T: OclPrm> Buffer<T> {
         self.flags
     }
 
-    /// Creates a new sub-buffer and returns it if successful.
+    /// Creates a new sub-buffer.
     ///
-    /// See [`SubBuffer::new`][subbuf_new] for more information about arguments.
+    /// ### Flags (adapted from [SDK])
     ///
-    /// [subbuf_new]: struct.SubBuffer.html#method.new
-    #[inline]
-    pub fn create_sub_buffer<D: Into<SpatialDims>>(&self, flags: Option<MemFlags>, origin: D,
-        size: D) -> OclResult<SubBuffer<T>>
+    /// [NOTE]: Flags described below can be found in the [`ocl::flags`] module
+    /// or within the [`MemFlags`][mem_flags] type (example:
+    /// [`MemFlags::new().read_write()`]).
+    ///
+    /// `flags`: A bit-field that is used to specify allocation and usage
+    /// information about the sub-buffer memory object being created and is
+    /// described in the table below. If the `MEM_READ_WRITE`, `MEM_READ_ONLY`
+    /// or `MEM_WRITE_ONLY` values are not specified in flags, they are
+    /// inherited from the corresponding memory access qualifers associated
+    /// with buffer. The `MEM_USE_HOST_PTR`, `MEM_ALLOC_HOST_PTR` and
+    /// `MEM_COPY_HOST_PTR` values cannot be specified in flags but are
+    /// inherited from the corresponding memory access qualifiers associated
+    /// with buffer. If `MEM_COPY_HOST_PTR` is specified in the memory access
+    /// qualifier values associated with buffer it does not imply any
+    /// additional copies when the sub-buffer is created from buffer. If the
+    /// `MEM_HOST_WRITE_ONLY`, `MEM_HOST_READ_ONLY` or `MEM_HOST_NO_ACCESS`
+    /// values are not specified in flags, they are inherited from the
+    /// corresponding memory access qualifiers associated with buffer.
+    ///
+    /// ### Offset and Dimensions
+    ///
+    /// `origin` and `size` set up the region of the sub-buffer within the
+    ///  original buffer and must not fall beyond the boundaries of it.
+    ///
+    /// `origin` must be a multiple of the `DeviceInfo::MemBaseAddrAlign`
+    /// otherwise you will get a `CL_MISALIGNED_SUB_BUFFER_OFFSET` error. To
+    /// determine, use `Device::mem_base_addr_align` for the device associated
+    /// with the queue which will be use with this sub-buffer.
+    ///
+    /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
+    /// [`ocl::flags`]: flags/index.html
+    /// [mem_flags]: struct.MemFlags.html
+    /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
+    ///
+    pub fn create_sub_buffer<D: Into<SpatialDims>>(&self, flags_opt: Option<MemFlags>, origin: D,
+        dims: D) -> OclResult<Buffer<T>>
     {
-        SubBuffer::new(self, flags, origin, size)
+        let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
+
+        // Check flags here to preempt a somewhat vague OpenCL runtime error message:
+        assert!(!flags.contains(::flags::MEM_USE_HOST_PTR) &&
+            !flags.contains(::flags::MEM_ALLOC_HOST_PTR) &&
+            !flags.contains(::flags::MEM_COPY_HOST_PTR),
+            "'MEM_USE_HOST_PTR', 'MEM_ALLOC_HOST_PTR', or 'MEM_COPY_HOST_PTR' flags may \
+            not be specified when creating a sub-buffer. They will be inherited from \
+            the containing buffer.");
+
+        let origin: SpatialDims = origin.into();
+        let dims: SpatialDims = dims.into();
+
+        let buffer_len = self.dims().to_len();
+        let origin_ofs = origin.to_len();
+        let len = dims.to_len();
+
+        if origin_ofs > buffer_len {
+            return OclError::err_string(format!("Buffer::create_sub_buffer: Origin ({:?}) is outside of the \
+                dimensions of the source buffer ({:?}).", origin, self.dims()));
+        }
+
+        if origin_ofs + len > buffer_len {
+            return OclError::err_string(format!("Buffer::create_sub_buffer: Sub-buffer region (origin: '{:?}', \
+                dims: '{:?}') exceeds the dimensions of the source buffer ({:?}).", origin, dims,
+                self.dims()));
+        }
+
+        let obj_core = core::create_sub_buffer::<T>(self, flags,
+            &BufferRegion::new(origin_ofs, len))?;
+
+        Ok(Buffer {
+            obj_core: obj_core,
+            queue: self.default_queue().cloned(),
+            origin: Some(origin),
+            dims: dims,
+            len: len,
+            flags: flags,
+            _data: PhantomData,
+        })
     }
 
     /// Formats memory info.
@@ -1617,315 +1706,6 @@ unsafe impl<'a, T> MemCmdRw for &'a mut Buffer<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdAll for Buffer<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdAll for &'a Buffer<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdAll for &'a mut Buffer<T> where T: OclPrm {}
-
-
-/// A subsection of buffer memory physically located on a device, such as a
-/// GPU.
-///
-#[derive(Debug, Clone)]
-pub struct SubBuffer<T: OclPrm> {
-    obj_core: MemCore,
-    queue: Option<Queue>,
-    origin: SpatialDims,
-    size: SpatialDims,
-    len: usize,
-    flags: MemFlags,
-    _data: PhantomData<T>,
-}
-
-impl<T: OclPrm> SubBuffer<T> {
-    /// Creates a new sub-buffer.
-    ///
-    /// ### Flags (adapted from [SDK])
-    ///
-    /// [NOTE]: Flags described below can be found in the [`ocl::flags`] module
-    /// or within the [`MemFlags`][mem_flags] type (example:
-    /// [`MemFlags::new().read_write()`]).
-    ///
-    /// `flags`: A bit-field that is used to specify allocation and usage
-    /// information about the sub-buffer memory object being created and is
-    /// described in the table below. If the `MEM_READ_WRITE`, `MEM_READ_ONLY`
-    /// or `MEM_WRITE_ONLY` values are not specified in flags, they are
-    /// inherited from the corresponding memory access qualifers associated
-    /// with buffer. The `MEM_USE_HOST_PTR`, `MEM_ALLOC_HOST_PTR` and
-    /// `MEM_COPY_HOST_PTR` values cannot be specified in flags but are
-    /// inherited from the corresponding memory access qualifiers associated
-    /// with buffer. If `MEM_COPY_HOST_PTR` is specified in the memory access
-    /// qualifier values associated with buffer it does not imply any
-    /// additional copies when the sub-buffer is created from buffer. If the
-    /// `MEM_HOST_WRITE_ONLY`, `MEM_HOST_READ_ONLY` or `MEM_HOST_NO_ACCESS`
-    /// values are not specified in flags, they are inherited from the
-    /// corresponding memory access qualifiers associated with buffer.
-    ///
-    /// ### Offset and Dimensions
-    ///
-    /// `origin` and `size` set up the region of the sub-buffer within the
-    ///  original buffer and must not fall beyond the boundaries of it.
-    ///
-    /// `origin` must be a multiple of the `DeviceInfo::MemBaseAddrAlign`
-    /// otherwise you will get a `CL_MISALIGNED_SUB_BUFFER_OFFSET` error. To
-    /// determine, use `Device::mem_base_addr_align` for the device associated
-    /// with the queue which will be use with this sub-buffer.
-    ///
-    /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
-    /// [`ocl::flags`]: flags/index.html
-    /// [mem_flags]: struct.MemFlags.html
-    /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
-    pub fn new<D: Into<SpatialDims>>(buffer: &Buffer<T>, flags_opt: Option<MemFlags>, origin: D,
-        size: D) -> OclResult<SubBuffer<T>>
-    {
-        let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
-
-        // Check flags here to preempt a somewhat vague OpenCL runtime error message:
-        assert!(!flags.contains(::flags::MEM_USE_HOST_PTR) &&
-            !flags.contains(::flags::MEM_ALLOC_HOST_PTR) &&
-            !flags.contains(::flags::MEM_COPY_HOST_PTR),
-            "'MEM_USE_HOST_PTR', 'MEM_ALLOC_HOST_PTR', or 'MEM_COPY_HOST_PTR' flags may \
-            not be specified when creating a sub-buffer. They will be inherited from \
-            the containing buffer.");
-
-        let origin: SpatialDims = origin.into();
-        let size: SpatialDims = size.into();
-
-        let buffer_len = buffer.dims().to_len();
-        let origin_len = origin.to_len();
-        let size_len = size.to_len();
-
-        if origin_len > buffer_len {
-            return OclError::err_string(format!("SubBuffer::new: Origin ({:?}) is outside of the \
-                dimensions of the source buffer ({:?}).", origin, buffer.dims()));
-        }
-
-        if origin_len + size_len > buffer_len {
-            return OclError::err_string(format!("SubBuffer::new: Sub-buffer region (origin: '{:?}', \
-                size: '{:?}') exceeds the dimensions of the source buffer ({:?}).", origin, size,
-                buffer.dims()));
-        }
-
-        let obj_core = core::create_sub_buffer::<T>(buffer, flags,
-            &BufferRegion::new(origin.to_len(), size.to_len()))?;
-
-        Ok(SubBuffer {
-            obj_core: obj_core,
-            queue: buffer.default_queue().cloned(),
-            origin: origin,
-            size: size,
-            len: size_len,
-            flags: flags,
-            _data: PhantomData,
-        })
-    }
-
-
-    /// Returns a command builder used to read, write, copy, etc.
-    ///
-    /// Call `.enq()` to enqueue the command.
-    ///
-    /// See the command builder documentation linked in the function signature
-    /// for more information.
-    ///
-    #[inline]
-    pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
-        BufferCmd::new(self.queue.as_ref(), &self.obj_core, self.len)
-    }
-
-    /// Returns a command builder used to read data.
-    ///
-    /// Call `.enq()` to enqueue the command.
-    ///
-    /// See the [command builder documentation](struct.BufferCmd#method.read)
-    /// for more details.
-    ///
-    #[inline]
-    pub fn read<'c, 'd, R>(&'c self, dst: R) -> BufferReadCmd<'c, 'd, T>
-            where 'd: 'c, R: Into<ReadDst<'d, T>>
-    {
-        self.cmd().read(dst)
-    }
-
-    /// Returns a command builder used to write data.
-    ///
-    /// Call `.enq()` to enqueue the command.
-    ///
-    /// See the [command builder documentation](struct.BufferCmd#method.write)
-    /// for more details.
-    ///
-    #[inline]
-    pub fn write<'c, 'd, W>(&'c self, src: W) -> BufferWriteCmd<'c, 'd, T>
-            where 'd: 'c, W: Into<WriteDst<'d, T>>
-    {
-        self.cmd().write(src)
-    }
-
-    /// Returns a command builder used to map data for reading or writing.
-    ///
-    /// Call `.enq()` to enqueue the command.
-    ///
-    /// See the [command builder documentation](struct.BufferCmd#method.map)
-    /// for more details.
-    ///
-    #[inline]
-    pub fn map<'c>(&'c self) -> BufferMapCmd<'c, T> {
-        self.cmd().map()
-    }
-
-    /// Specifies that this command will be a copy operation.
-    ///
-    /// Call `.enq()` to enqueue the command.
-    ///
-    /// See the [command builder documentation](struct.BufferCmd#method.copy)
-    /// for more details.
-    ///
-    #[inline]
-    pub fn copy<'b, 'c, M>(&'c self, dst_buffer: &'b M, dst_offset: Option<usize>, len: Option<usize>)
-            -> BufferCmd<'c, T>
-            where 'b: 'c, M: AsMem<T>
-    {
-        self.cmd().copy(dst_buffer, dst_offset, len)
-    }
-
-    /// Returns the origin of the sub-buffer within the buffer.
-    #[inline]
-    pub fn origin(&self) -> &SpatialDims {
-        &self.origin
-    }
-
-    /// Returns the dimensions of the sub-buffer.
-    #[inline]
-    pub fn dims(&self) -> &SpatialDims {
-        &self.size
-    }
-
-    /// Returns the length of the sub-buffer.
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    /// Returns info about the underlying memory object.
-    #[inline]
-    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
-        core::get_mem_object_info(&self.obj_core, info_kind)
-    }
-
-    /// Changes the default queue used by this sub-buffer for reads and writes, etc.
-    ///
-    /// Returns a mutable reference for optional chaining i.e.:
-    ///
-    /// ### Example
-    ///
-    /// `buffer.set_default_queue(queue).read(....);`
-    ///
-    #[inline]
-    pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut SubBuffer<T> {
-        // [FIXME]: Update this to check whether new queue.device is within
-        // context or matching existing queue.
-        // assert!(queue.device() == self.que_ctx.queue().device());
-        self.queue = Some(queue);
-        self
-    }
-
-    /// Returns a reference to the default queue.
-    ///
-    #[inline]
-    pub fn default_queue(&self) -> Option<&Queue> {
-        self.queue.as_ref()
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
-    #[inline]
-    pub fn core_as_ref(&self) -> &MemCore {
-        &self.obj_core
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
-    #[inline]
-    pub fn core(&self) -> &MemCore {
-        &self.obj_core
-    }
-
-    /// Returns the memory flags used during the creation of this sub-buffer.
-    ///
-    /// Saves the cost of having to look them up using `::mem_info`.
-    ///
-    #[inline]
-    pub fn flags(&self) -> MemFlags {
-        self.flags
-    }
-
-    /// Formats memory info.
-    #[inline]
-    fn fmt_mem_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("SubBuffer Mem")
-            .field("Type", &self.mem_info(MemInfo::Type))
-            .field("Flags", &self.mem_info(MemInfo::Flags))
-            .field("Size", &self.mem_info(MemInfo::Size))
-            .field("HostPtr", &self.mem_info(MemInfo::HostPtr))
-            .field("MapCount", &self.mem_info(MemInfo::MapCount))
-            .field("ReferenceCount", &self.mem_info(MemInfo::ReferenceCount))
-            .field("Context", &self.mem_info(MemInfo::Context))
-            .field("AssociatedMemobject", &self.mem_info(MemInfo::AssociatedMemobject))
-            .field("Offset", &self.mem_info(MemInfo::Offset))
-            .finish()
-    }
-}
-
-impl<T: OclPrm> Deref for SubBuffer<T> {
-    type Target = MemCore;
-
-    fn deref(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
-
-impl<T: OclPrm> DerefMut for SubBuffer<T> {
-    fn deref_mut(&mut self) -> &mut MemCore {
-        &mut self.obj_core
-    }
-}
-
-impl<T: OclPrm> AsRef<MemCore> for SubBuffer<T> {
-    fn as_ref(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
-
-impl<T: OclPrm> AsMut<MemCore> for SubBuffer<T> {
-    fn as_mut(&mut self) -> &mut MemCore {
-        &mut self.obj_core
-    }
-}
-
-impl<'a, T: OclPrm> AsMem<T> for SubBuffer<T> {
-    fn as_mem(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
-
-impl<'a, T: OclPrm> AsMem<T> for &'a mut SubBuffer<T> {
-    fn as_mem(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
-
-impl<T: OclPrm> std::fmt::Display for SubBuffer<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_mem_info(f)
-    }
-}
-
-unsafe impl<'a, T> MemCmdRw for SubBuffer<T> where T: OclPrm {}
-unsafe impl<'a, T> MemCmdRw for &'a SubBuffer<T> where T: OclPrm {}
-unsafe impl<'a, T> MemCmdRw for &'a mut SubBuffer<T> where T: OclPrm {}
-unsafe impl<'a, T> MemCmdAll for SubBuffer<T> where T: OclPrm {}
-unsafe impl<'a, T> MemCmdAll for &'a SubBuffer<T> where T: OclPrm {}
-unsafe impl<'a, T> MemCmdAll for &'a mut SubBuffer<T> where T: OclPrm {}
-
-
-
 
 
 /// A buffer builder.

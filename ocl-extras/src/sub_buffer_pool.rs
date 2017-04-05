@@ -1,7 +1,7 @@
 //! A sub-buffer allocator.
 
 use std::collections::{LinkedList, HashMap};
-use ocl::{Queue, Buffer, SubBuffer, OclPrm};
+use ocl::{Queue, Buffer, OclPrm};
 use ocl::flags::MemFlags;
 
 
@@ -16,7 +16,7 @@ pub struct PoolRegion {
 pub struct SubBufferPool<T: OclPrm> {
     buffer: Buffer<T>,
     regions: LinkedList<PoolRegion>,
-    sub_buffers: HashMap<usize, SubBuffer<T>>,
+    sub_buffers: HashMap<usize, Buffer<T>>,
     align: u32,
     _next_uid: usize,
 }
@@ -124,13 +124,13 @@ impl<T: OclPrm> SubBufferPool<T> {
     }
 
     /// Returns a reference to the sub-buffer identified by `buffer_id`.
-    pub fn get(&self, buffer_id: usize) -> Option<&SubBuffer<T>> {
+    pub fn get(&self, buffer_id: usize) -> Option<&Buffer<T>> {
         self.sub_buffers.get(&buffer_id)
     }
 
     /// Returns a mutable reference to the sub-buffer identified by `buffer_id`.
     #[allow(dead_code)]
-    pub fn get_mut(&mut self, buffer_id: usize) -> Option<&mut SubBuffer<T>> {
+    pub fn get_mut(&mut self, buffer_id: usize) -> Option<&mut Buffer<T>> {
         self.sub_buffers.get_mut(&buffer_id)
     }
 
