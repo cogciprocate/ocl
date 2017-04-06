@@ -31,7 +31,7 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 # pre-sandy-bridge Intel processors [on Intel drivers], some other
 # pre-gen-5-core processors [on Intel drivers]).
 #
-# Leaving this disabled is recommended except in very rare situations.
+# Leaving this disabled is recommended.
 async_block = []
 
 # default = ["async_block", "opencl_version_1_1", "opencl_version_1_2"]

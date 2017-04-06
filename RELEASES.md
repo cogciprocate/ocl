@@ -16,14 +16,21 @@ See the breaking changes section below for details.
 FIXME: Update all doc links at release
 
 * Asynchrony and Futures...
-  * FIXME: Buffer mapping (`MemMap` and `FutureMemMap`)...
-  * FIXME: `RwVec`
-  * FIXME: `BufferCmd`, `ImageCmd`, and `KernelCmd`
-  * FIXME: have received some streamlining and optimizing to events.
+  * FIXME: `RwVec`    
+  * FIXME: 
   * FIXME: comment on changes to the types that `::enew` and `::ewait` accept.
   * FIXME: refer to the breaking changes below
   * FIXME: ::read, ::write, ::map
     * how to use futures, etc.
+  * Buffers can now be mapped and unmapped safely both synchronously (thread
+    blocking) and asynchronously (using futures) using `Buffer::map`.
+  * Calling `::read`, `::write`, or `::map` on a `Buffer` or `Image` will now
+    return a `BufferReadCmd`, `BufferWriteCmd`, or `BufferMapCmd` command
+    builder. Each of the three command builders provide both `::enq` and
+    `::enq_async` methods. For those 'I/O' commands (read, write, and map):
+    `::enq` will block the current thread until completion and `::enq_async`
+    will instead return a future representing the completion of the command
+    and allow safe access to buffer data after the command has completed.
 
 * Sub-buffers can now easily be created from a `Bufer`. Use
   `Buffer::create_sub_buffer` to create one.
@@ -43,6 +50,8 @@ FIXME: Update all doc links at release
   order arguments are declared.
 * `Kernel` buffer and image related functions (such as `arg_buf`) can now
   interchangeably accept either `Buffer<T>`, `Image<T>` types.
+* `BufferCmd`, `ImageCmd`, and `KernelCmd` have received some streamlining and
+  optimizations to event forwarding.
 * Command queue properties can now be specified when creating a `Queue` or
   `ProQue` allowing out of order execution and profiling to be enabled.
   Profiling had previously been enabled by default but now must be explicitly
@@ -80,12 +89,12 @@ Breaking Changes
   * Before: 
 
     ```
-    Kernel::new("kernel_name", &program, queue).unwrap()
+    Kernel::new("kernel_name", &program, queue)?
     ```
   * Now: 
 
     ```
-    Kernel::new("kernel_name", &program).unwrap().queue(queue)
+    Kernel::new("kernel_name", &program)?.queue(queue)
     ```
     FIXME Add/update links
 * `BufferCmd`, `ImageCmd`, and `KernelCmd` have undergone changes:
