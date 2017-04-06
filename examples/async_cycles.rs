@@ -197,7 +197,8 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
 
     let mut future_write_data = src_buf.cmd().map()
         .queue(common_queue)
-        .flags(MapFlags::new().write_invalidate_region())
+        // .flags(MapFlags::new().write_invalidate_region())
+        .write_invalidate()
         .enq_async().unwrap();
 
     // Set up the wait list to use when unmapping. As this is an invalidating
@@ -378,7 +379,8 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 
     let mut future_read_data = dst_buf.cmd().map()
         .queue(common_queue)
-        .flags(MapFlags::new().read())
+        // .flags(MapFlags::new().read())
+        .read()
         .ewait_opt(wait_event)
         .enq_async().unwrap();
 

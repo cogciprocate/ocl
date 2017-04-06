@@ -153,7 +153,8 @@ impl Task {
             (Some(self.cmd_graph.get_req_events(cmd_idx).unwrap()), None)
         };
 
-        let mut future_data = buf.cmd().map().flags(flags)
+        let mut future_data = buf.cmd().map()
+            .flags(flags)
             .ewait_opt(map_wait_list)
             .enq_async().unwrap();
 

@@ -1086,13 +1086,64 @@ pub struct BufferMapCmd<'c, T> where T: 'c {
 }
 
 impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
-    /// Specifies the flags to be used with this map command.
+    /// Specifies the flags to be used for this map command.
+    ///
+    /// Flags can also be specified using the `::read`, `::write`, and
+    /// `::write_invalidate` methods instead.
     ///
     /// See [SDK] docs for more details.
     ///
     /// [SDK]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
+    //
+    // * TODO: Add links to methods listed above.
     pub fn flags(mut self, flags: MapFlags) -> BufferMapCmd<'c, T> {
-         self.flags = Some(flags);
+        self.flags = Some(flags);
+        self
+    }
+
+    /// Specifies that the memory object is being mapped for reading.
+    ///
+    /// Sets the flag to be used for this map command to `[CL_]MAP_READ`.
+    ///
+    /// This is the fastest way to move data from device to host for many use
+    /// cases when used with buffers created with the `MEM_ALLOC_HOST_PTR` or
+    /// `MEM_USE_HOST_PTR` flags.
+    pub fn read(mut self) -> BufferMapCmd<'c, T> {
+        self.flags = Some(::flags::MAP_READ);
+        self
+    }
+
+    /// Specifies that the memory object is being mapped for writing.
+    ///
+    /// Sets the flag to be used for this map command to `[CL_]MAP_WRITE`.
+    ///
+    /// This is not the most efficient method of transferring data from host
+    /// to device due to the memory being synchronized beforehand. Prefer
+    /// `::write_invalidate` unless you need the memory region to be updated
+    /// (e.g. if you are only writing to particular portions of the data, and
+    /// will not be overwriting the entire contents, etc.). Use this with
+    /// buffers created with the `MEM_ALLOC_HOST_PTR` or `MEM_USE_HOST_PTR`
+    /// flags for best performance.
+    pub fn write(mut self) -> BufferMapCmd<'c, T> {
+        self.flags = Some(::flags::MAP_WRITE);
+        self
+    }
+
+    /// Specifies that the memory object is being mapped for writing and that
+    /// the local (host) memory region may contain stale data that must be
+    /// completely overwritten before unmapping.
+    ///
+    /// Sets the flag to be used for this map command to
+    /// `[CL_]MAP_WRITE_INVALIDATE_REGION`.
+    ///
+    /// This option may provide a substantial performance improvement when
+    /// writing and is the fastest method for moving data in bulk from host to
+    /// device memory when used with buffers created with the
+    /// `MEM_ALLOC_HOST_PTR` or `MEM_USE_HOST_PTR` flags. Only use this when
+    /// you will be overwriting the entire contents of the mapped region
+    /// otherwise you will send stale or junk data to the device.
+    pub fn write_invalidate(mut self) -> BufferMapCmd<'c, T> {
+        self.flags = Some(::flags::MAP_WRITE_INVALIDATE_REGION);
         self
     }
 
