@@ -214,9 +214,8 @@ pub struct FutureRwGuard<T, G> {
 }
 
 impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
-    pub fn new(rw_vec: RwVec<T>, lock_rx: oneshot::Receiver<()>) 
-            -> FutureRwGuard<T, G>
-    {
+    /// Returns a new `FutureRwGuard`.
+    fn new(rw_vec: RwVec<T>, lock_rx: oneshot::Receiver<()>) -> FutureRwGuard<T, G> {
         FutureRwGuard {
             rw_vec: Some(rw_vec),
             lock_rx: Some(lock_rx),
@@ -430,36 +429,6 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         self.stage = Stage::Command;
         if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Moving to command stage."); }
         return self.poll_command();
-
-        // // Loop until completion of the lock rx:
-        // loop {
-        //     match self.lock_rx.poll() {
-        //         // If the poll returns `Async::Ready`, we have been popped from
-        //         // the front of the lock queue and we now have exclusive access.
-        //         // Otherwise, return the `NotReady`. The rx (oneshot channel) will
-        //         // arrange for this task to be awakened when it's ready.
-        //         Ok(status) => {
-        //             if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: status: {:?}, (thread: {}).", status,
-        //                 ::std::thread::current().name().unwrap_or("<unnamed>")); }
-
-        //             match status {
-        //                 Async::Ready(_) => {
-        //                     if let Some(ref lock_event) = self.lock_event {
-        //                         lock_event.set_complete()?
-        //                     }
-        //                     self.stage = Stage::Command;
-        //                     if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Moving to command stage."); }
-        //                     return self.poll_command();
-        //                 },
-        //                 Async::NotReady => {
-        //                     if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Sleeping thread."); }
-        //                     ::std::thread::sleep(::std::time::Duration::from_millis(10));
-        //                 },
-        //             }
-        //         },
-        //         Err(e) => return Err(e.into()),
-        //     }
-        // }
     }
 
     /// Polls the command event until it is complete then returns an `RwGuard`
@@ -660,6 +629,14 @@ impl<T> RwVec<T> {
         FutureRwGuard::new(self.into(), rx)
     }
 
+    /// Returns a mutable slice into the contained `Vec`.
+    ///
+    /// Used by buffer command builders when preparing future read and write
+    /// commands.
+    ///
+    /// Do not use unless you are 100% certain that there will be no other
+    /// reads or writes for the entire access duration (only possible if
+    /// manually manipulating the lock status).
     pub unsafe fn as_mut_slice(&self) -> &mut [T] {
         let ptr = (*self.lock.as_mut_ptr()).as_mut_ptr();
         let len = (*self.lock.as_ptr()).len();

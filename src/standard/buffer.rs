@@ -762,23 +762,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
         match self.cmd.kind {
             BufferCmdKind::Read => {
-                // let wait_marker = match self.cmd.ewait {
-                //     Some(wl) => Some(wl.into_marker(queue)?),
-                //     None => None,
-                // };
 
                 let mut guard = rw_vec.request_write();
-                guard.create_lock_event(queue.context_ptr()?)?;
-
-                // let wait_list = match self.cmd.ewait {
-                //     Some(wl) => Some(wl),
-                //     None => None,
-                // };
-
-                // if let Some(wl) = wait_list {
-                //     guard.set_wait_list(wl);
-                //     // guard.set_wait_list_marker(wl.into_marker(queue)?);
-                // }                
+                guard.create_lock_event(queue.context_ptr()?)?;             
 
                 if let Some(wl) = self.cmd.ewait {
                     guard.set_wait_list(wl);
@@ -1044,27 +1030,8 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
         match self.cmd.kind {
             BufferCmdKind::Write => {
-                // let wait_marker = match self.cmd.ewait {
-                //     Some(wl) => Some(wl.into_marker(queue)?),
-                //     None => None,
-                // };
-
                 let mut guard = rw_vec.request_read().upgrade_after_command();
-                guard.create_lock_event(queue.context_ptr()?)?;
-
-                // let wait_list = match self.cmd.ewait {
-                //     Some(wl) => Some(wl),
-                //     None => None,
-                // };
-
-                // if let Some(wm) = wait_marker {
-                //     guard.set_wait_list(wm);
-                // }     
-
-                // if let Some(wl) = wait_list {
-                //     guard.set_wait_list(wl);
-                //     // guard.set_wait_list_marker(wl.into_marker(queue)?);
-                // }                 
+                guard.create_lock_event(queue.context_ptr()?)?;            
 
                 if let Some(wl) = self.cmd.ewait {
                     guard.set_wait_list(wl);
@@ -1257,7 +1224,6 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                     // into it and increase refcount (to 2).
                     if let Some(ref mut self_enew) = self.cmd.enew.take() {
                         // map_event/self_enew refcount: 2
-                        // *(self_enew.alloc_new()) = map_event.clone().into_raw();
                         self_enew.clone_from(&map_event)
                     }
 

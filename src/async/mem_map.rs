@@ -1,5 +1,3 @@
-
-
 use std::ops::{Deref, DerefMut};
 use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem};
 use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, EventList, Queue};
@@ -85,7 +83,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 ///
 /// [UNSTABLE]
 ///
-/// Still in a state of flux: ~80% stable
+/// Still in a state of flux: ~90% stable
 ///
 //
 // [NOTE]: Do not derive/impl `Clone`. Will not be thread safe without a mutex.
@@ -153,8 +151,6 @@ impl<T> MemMap<T>  where T: OclPrm {
                 // origin_event refcount: 1
                 // If enew_opt is `Some`, update its internal event ptr.
                 if let Some(ref mut enew) = enew_opt {
-                        // unsafe { *(enew.alloc_new()) = origin_event.clone().into_raw(); }
-
                         // origin_event/enew refcount: 2
                         unsafe { enew.clone_from(&origin_event) }
                 }
@@ -195,9 +191,6 @@ impl<T> MemMap<T>  where T: OclPrm {
                 unsafe {
                     let unmap_target_event_ptr = ev.clone().into_raw();
                     event.set_callback(core::_complete_user_event, unmap_target_event_ptr)?;
-
-                    // // [DEBUG]:
-                    // println!("Callback set from trigger: {:?} to target: {:?}", event, unmap_target_event_ptr);
                 }
 
                 self.callback_is_set = true;

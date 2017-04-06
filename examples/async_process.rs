@@ -106,9 +106,12 @@ pub fn main() {
         // unmap to 'flush' data to the device:
         let mut future_write_data = write_buf.cmd().map()
             .flags(MapFlags::new().write_invalidate_region())
-            .ewait(&fill_event)
+            // .ewait(&fill_event)
             .enq_async().unwrap();
 
+        // Since this is an invalidating write we'll use the wait list for the
+        // unmap rather than the map command:
+        future_write_data.set_unmap_wait_list(&fill_event);
         let write_unmap_event = future_write_data.create_unmap_target_event().unwrap().clone();
 
         let write = future_write_data.and_then(move |mut data| {
@@ -119,7 +122,6 @@ pub fn main() {
             }
 
             println!("Mapped write complete (task: {}). ", task_id);
-
             Ok(task_id)
         });
 

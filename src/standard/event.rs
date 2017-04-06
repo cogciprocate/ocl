@@ -411,9 +411,15 @@ impl IntoIterator for EventList {
     }
 }
 
-impl<'a> From<Event> for EventList {
-    fn from(event: Event) -> EventList {
-        EventList { events: vec![event] }
+impl<'a, E> From<E> for EventList where E: Into<Event> {
+    fn from(event: E) -> EventList {
+        EventList { events: vec![event.into()] }
+    }
+}
+
+impl<'a, E> From<&'a E> for EventList where E: Into<Event> + Clone {
+    fn from(event: &E) -> EventList {
+        EventList { events: vec![event.clone().into()] }
     }
 }
 

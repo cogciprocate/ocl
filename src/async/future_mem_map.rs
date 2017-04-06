@@ -1,8 +1,6 @@
-
 use futures::{Future, Poll, Async};
 use core::{OclPrm, MemMap as MemMapCore, Mem};
 use standard::{Event, Queue, EventList};
-
 use super::{Error as AsyncError, Result as AsyncResult, MemMap};
 
 

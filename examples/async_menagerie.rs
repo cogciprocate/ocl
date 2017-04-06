@@ -135,23 +135,29 @@ impl Task {
     }
 
     /// Map some memory for reading or writing.
-    //
-    // * TODO: Only set wait events on the command for read events.
-    //   Invalidating write-maps shouldn't wait until unmapping.
     pub fn map<T: OclPrm>(&self, cmd_idx: usize, buf_pool: &SubBufferPool<T>) -> FutureMemMap<T>
     {
-        let (buffer_id, flags) = match *self.cmd_graph.commands()[cmd_idx].details(){
-            CommandDetails::Write { target } => (target, MapFlags::new().write_invalidate_region()),
-            CommandDetails::Read { source } => (source, MapFlags::new().read()),
+        let (buffer_id, flags, is_write) = match *self.cmd_graph.commands()[cmd_idx].details(){
+            CommandDetails::Write { target } => (target, MapFlags::new().write_invalidate_region(), true),
+            CommandDetails::Read { source } => (source, MapFlags::new().read(), false),
             _ => panic!("Task::map: Not a write or read command."),
         };
 
         let buf = buf_pool.get(buffer_id).unwrap();
 
+        // Set the wait list for the map command if this is a read and the
+        // unmap command if this is an invalidating write.
+        let (map_wait_list, unmap_wait_list) = if !is_write { 
+            (None, Some(self.cmd_graph.get_req_events(cmd_idx).unwrap().clone()))
+        } else {
+            (Some(self.cmd_graph.get_req_events(cmd_idx).unwrap()), None)
+        };
+
         let mut future_data = buf.cmd().map().flags(flags)
-            .ewait(self.cmd_graph.get_req_events(cmd_idx).unwrap())
+            .ewait_opt(map_wait_list)
             .enq_async().unwrap();
 
+        if is_write { future_data.set_unmap_wait_list(unmap_wait_list.unwrap()); }
         let unmap_event_target = future_data.create_unmap_target_event().unwrap().clone();
         self.cmd_graph.set_cmd_event(cmd_idx, unmap_event_target.into()).unwrap();
 

@@ -201,10 +201,10 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         .enq_async().unwrap();
 
     // Set up the wait list to use when unmapping. As this is an invalidating
-    // write, only the unmap command actually moves any data (the map does
-    // nothing except to return a reference to our mapped memory).
+    // write, only the unmap command actually moves any data (the map command
+    // does little more than return a reference to our mapped memory when
+    // using the `MAP_WRITE_INVALIDATE_REGION` flag).
     future_write_data.set_unmap_wait_list([&verify_init_event, &fill_event]);
-
 
     // Set the write unmap completion event which will be set to complete
     // (triggered) after the CPU-side processing is complete and the data is
