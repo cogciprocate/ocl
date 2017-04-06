@@ -76,7 +76,13 @@ pub trait AsMem<T>
 
 impl<'a, T, M> AsMem<T> for &'a M where T: OclPrm, M: AsMem<T> {
     fn as_mem(&self) -> &Mem {
-        (*self).as_mem()
+        (**self).as_mem()
+    }
+}
+
+impl<'a, T, M> AsMem<T> for &'a mut M where T: OclPrm, M: AsMem<T> {
+    fn as_mem(&self) -> &Mem {
+        (**self).as_mem()
     }
 }
 
