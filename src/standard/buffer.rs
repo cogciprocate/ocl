@@ -6,7 +6,7 @@ use std::ops::{Deref, DerefMut};
 use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
-    MemCmdAll, Event as EventCore, ClNullEventPtr};
+    MemCmdAll, ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, /*ReadGuard, */WriteGuard,
     FutureRwGuard};    
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
@@ -1214,7 +1214,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
                     let unmap_event = None;
 
-                    Ok(MemMap::new(mm_core, len, unmap_event, self.cmd.obj_core.clone(),
+                    Ok(MemMap::new(mm_core, len, None, unmap_event, self.cmd.obj_core.clone(),
                         queue.clone()))
                 }
             } else {
@@ -1247,7 +1247,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                 check_len(self.cmd.mem_len, len, offset)?;
 
                 let future = unsafe {
-                    let mut map_event = EventCore::null();
+                    let mut map_event = Event::empty();
 
                     let mm_core = core::enqueue_map_buffer::<T, _, _, _>(queue,
                         self.cmd.obj_core, false, flags, offset, len, self.cmd.ewait.take(),

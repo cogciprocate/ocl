@@ -3,13 +3,14 @@
 //
 // ### Notes
 // 
-// * EventArray is incomplete
+// * `EventArray` (a stack allocated event list with a maximum length of 8,
+//   akin to `RawEventArray`) is incomplete (TODO: Complete it).
 // * It's not yet clear whether or not to keep EventArray and EventList
 //   separate or to combine them into a smart-list that might be either one
 //   depending on the circumstances.
 // * It would be nice to have a "master" list type but it doesn't look like
 //   that's particularly feasable (although ClWaitListPtrEnum basically serves
-//   that role).
+//   that role as long as lifetimes aren't an issue).
 //
 
 use std;
@@ -423,11 +424,140 @@ impl<'a> From<Vec<Event>> for EventList {
     }
 }
 
-impl<'a> From<&'a [Event]> for EventList {
-    fn from(events: &[Event]) -> EventList {
-        EventList { events: Vec::from(events) }
+impl<'a, E> From<&'a [E]> for EventList where E: Into<Event> + Clone {
+    fn from(events: &[E]) -> EventList {
+        EventList { events: events.iter().map(|e| e.clone().into()).collect() }
     }
 }
+
+impl<'a, E> From<&'a [Option<E>]> for EventList where E: Into<Event> + Clone {
+    fn from(events: &[Option<E>]) -> EventList {
+        let mut el = EventList::with_capacity(events.len());
+
+        for event in events {
+            if let Some(ref e) = *event { el.push(e.clone().into()) }
+        }
+
+        el
+    }
+}
+
+impl<'a, 'b, E> From<&'a [Option<&'b E>]> for EventList where 'b: 'a, E: Into<Event> + Clone {
+    fn from(events: &[Option<&E>]) -> EventList {
+        let mut el = EventList::with_capacity(events.len());
+
+        for event in events {
+            if let Some(e) = *event { el.push(e.clone().into()) }
+        }
+
+        el
+    }
+}
+
+impl<'a, 'b, E> From<&'a [&'b Option<E>]> for EventList where 'b: 'a, E: Into<Event> + Clone {
+    fn from(events: &[&Option<E>]) -> EventList {
+        let mut el = EventList::with_capacity(events.len());
+
+        for event in events {
+            if let Some(ref e) = **event { el.push(e.clone().into()) }
+        }
+
+        el
+    }
+}
+
+impl<'a, 'b, 'c, E> From<&'a [&'b Option<&'c E>]> for EventList 
+        where 'c: 'b, 'b: 'a, E: Into<Event> + Clone
+{
+    fn from(events: &[&Option<&E>]) -> EventList {
+        let mut el = EventList::with_capacity(events.len());
+
+        for event in events {
+            if let Some(e) = **event { el.push(e.clone().into()) }
+        }
+
+        el
+    }
+}
+
+macro_rules! impl_event_list_from_arrays {
+    ($( $len:expr ),*) => ($(
+        impl<'e, E> From<[E; $len]> for EventList where E: Into<Event> {
+            fn from(events: [E; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+
+                for idx in 0..events.len() {
+                    let event = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    el.push(event.into());
+                }
+
+                // Ownership has been unsafely transfered to the new event
+                // list (without modifying the event reference count). Not
+                // forgetting the source array would cause a double drop.
+                ::std::mem::forget(events);
+                el
+            }
+        }
+
+        impl<'e, E> From<[Option<E>; $len]> for EventList where E: Into<Event> {
+            fn from(events: [Option<E>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    if let Some(event) = event_opt { el.push(event.into()); }
+                }
+
+                ::std::mem::forget(events);
+                el
+            }
+        }
+
+        impl<'e, E> From<[Option<&'e E>; $len]> for EventList where E: Into<Event> + Clone {
+            fn from(events: [Option<&E>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    if let Some(event) = event_opt { el.push(event.clone().into()); }
+                }
+
+                ::std::mem::forget(events);
+                el
+            }
+        }
+
+        impl<'e, 'f, E> From<[&'f Option<E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
+            fn from(events: [&'f Option<E>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    if let Some(ref event) = *event_opt { el.push(event.clone().into()); }
+                }
+
+                ::std::mem::forget(events);
+                el
+            }
+        }
+
+        impl<'e, 'f, E> From<[&'f Option<&'e E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
+            fn from(events: [&'f Option<&'e E>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    if let Some(event) = *event_opt { el.push(event.clone().into()); }
+                }
+
+                ::std::mem::forget(events);
+                el
+            }
+        }
+    )*);
+}
+
+impl_event_list_from_arrays!(1, 2, 3, 4, 5, 6, 7, 8);
 
 impl<'a> From<&'a [cl_event]> for EventList {
     fn from(raw_events: &[cl_event]) -> EventList {
@@ -525,11 +655,16 @@ impl Future for EventList {
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         while let Some(event) = self.pop() {
-            if !event.is_complete()? {
-                event.set_unpark_callback()?;
-                // println!("######  ... callback set.");
-                return Ok(Async::NotReady);
-            }   
+            if cfg!(feature = "async_block") {
+                event.wait_for()?;
+            } else {
+                if !event.is_complete()? {
+                    #[cfg(not(feature = "async_block"))]
+                    event.set_unpark_callback()?;
+                    // println!("######  ... callback set.");
+                    return Ok(Async::NotReady);
+                }   
+            }
         }
 
         // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );

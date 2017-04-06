@@ -1,7 +1,7 @@
 
 use futures::{Future, Poll, Async};
-use core::{Event as EventCore, OclPrm, MemMap as MemMapCore, Mem};
-use standard::{Event, Queue,};
+use core::{OclPrm, MemMap as MemMapCore, Mem};
+use standard::{Event, Queue, EventList};
 
 use super::{Error as AsyncError, Result as AsyncResult, MemMap};
 
@@ -12,7 +12,8 @@ pub struct FutureMemMap<T: OclPrm> {
     core: Option<MemMapCore<T>>,
     len: usize,
     map_event: Event,
-    unmap_event: Option<Event>,
+    unmap_wait_list: Option<EventList>,
+    unmap_target_event: Option<Event>,    
     buffer: Option<Mem>,
     queue: Option<Queue>,
     callback_is_set: bool,
@@ -20,18 +21,27 @@ pub struct FutureMemMap<T: OclPrm> {
 
 impl<T: OclPrm> FutureMemMap<T> {
     /// Returns a new `FutureMemMap`.
-    pub unsafe fn new(core: MemMapCore<T>, len: usize, map_event: EventCore, buffer: Mem, queue: Queue)
+    pub unsafe fn new(core: MemMapCore<T>, len: usize, map_event: Event, buffer: Mem, queue: Queue)
             -> FutureMemMap<T>
     {
         FutureMemMap {
             core: Some(core),
             len: len,
-            map_event: map_event.into(),
-            unmap_event: None,
+            map_event: map_event,
+            unmap_wait_list: None,
+            unmap_target_event: None,
             buffer: Some(buffer),
             queue: Some(queue),
             callback_is_set: false,
         }
+    }
+
+    /// Set an event wait list for the unmap command.
+    ///
+    /// Setting a wait list here will disallow any wait list from being set
+    /// later if/when calling unmap manually.
+    pub fn set_unmap_wait_list<El>(&mut self, wait_list: El) where El: Into<EventList> {
+        self.unmap_wait_list = Some(wait_list.into())
     }
 
     /// Create an event which will be triggered (set complete) after this
@@ -44,13 +54,13 @@ impl<T: OclPrm> FutureMemMap<T> {
     /// status set to complete, causing those commands to execute. This can be
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
-    pub fn create_unmap_event(&mut self) -> AsyncResult<&mut Event> {
+    pub fn create_unmap_target_event(&mut self) -> AsyncResult<&mut Event> {
         if let Some(ref queue) = self.queue {
             let uev = Event::user(&queue.context())?;
-            self.unmap_event = Some(uev);
-            Ok(self.unmap_event.as_mut().unwrap())
+            self.unmap_target_event = Some(uev);
+            Ok(self.unmap_target_event.as_mut().unwrap())
         } else {
-            Err("FutureMemMap::create_unmap_event: No queue found!".into())
+            Err("FutureMemMap::create_unmap_target_event: No queue found!".into())
         }
     }
 
@@ -66,17 +76,17 @@ impl<T: OclPrm> FutureMemMap<T> {
 
         match joined {
             Some((core, buffer, queue)) => {
-                unsafe { Ok(MemMap::new(core, self.len,
-                    self.unmap_event.take(), buffer, queue )) }
+                unsafe { Ok(MemMap::new(core, self.len, self.unmap_wait_list.take(),
+                    self.unmap_target_event.take(), buffer, queue )) }
             },
-            _ => Err("FutureMemMap::create_unmap_event: No queue and/or buffer found!".into()),
+            _ => Err("FutureMemMap::create_unmap_target_event: No queue and/or buffer found!".into()),
         }
     }
 
     /// Returns the unmap event if it has been created.
     #[inline]
-    pub fn unmap_event(&self) -> Option<&Event> {
-        self.unmap_event.as_ref()
+    pub fn unmap_target_event(&self) -> Option<&Event> {
+        self.unmap_target_event.as_ref()
     }
 }
 

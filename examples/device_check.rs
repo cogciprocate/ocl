@@ -486,7 +486,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                     Some(&mut map_event),
                 )?;
 
-                MemMap::new(mm_core, source_buf.len(), None, source_buf.core().clone(),
+                MemMap::new(mm_core, source_buf.len(), None, None, source_buf.core().clone(),
                     write_queue.clone())
             };
 
@@ -604,7 +604,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                 Some(&mut read_event),
             )?;
 
-            target_map = Some(MemMap::new(mm_core, source_buf.len(), None,
+            target_map = Some(MemMap::new(mm_core, source_buf.len(), None, None,
                 source_buf.core().clone(), read_queue.clone()));
         }
     } else {
@@ -797,7 +797,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         .ewait_opt(wait_event)
         .enq_async().unwrap();
 
-    *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
+    *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());
 
     future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
@@ -1021,8 +1021,8 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
     } else {
         Err("\nErrors found. Your device/platform does not properly support asynchronous\n\
             multi-threaded operation. It is recommended that you enable the `async_block`\n\
-            feature when using this library with the device and platform combination \n\
-            listed just above.\n".into())
+            feature when compiling this library for use with the device and platform combination \n\
+            listed just above (https://doc.rust-lang.org/book/conditional-compilation.html).\n".into())
     }
 }
 

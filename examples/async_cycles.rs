@@ -195,21 +195,21 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
             task_iter as usize, timestamp());
     }
 
-    // Clear the wait list and push the previous iteration's verify init event
-    // and the current iteration's fill event if they are set.
-    let wait_list = [&verify_init_event, &fill_event].into_raw_list();
-
     let mut future_write_data = src_buf.cmd().map()
         .queue(common_queue)
-        // .queue(&write_init_unmap_queue)
         .flags(MapFlags::new().write_invalidate_region())
-        .ewait(&wait_list)
         .enq_async().unwrap();
+
+    // Set up the wait list to use when unmapping. As this is an invalidating
+    // write, only the unmap command actually moves any data (the map does
+    // nothing except to return a reference to our mapped memory).
+    future_write_data.set_unmap_wait_list([&verify_init_event, &fill_event]);
+
 
     // Set the write unmap completion event which will be set to complete
     // (triggered) after the CPU-side processing is complete and the data is
     // transferred to the device:
-    *write_init_event = Some(future_write_data.create_unmap_event().unwrap().clone());
+    *write_init_event = Some(future_write_data.create_unmap_target_event().unwrap().clone());
 
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
         task_iter as *mut c_void).unwrap(); }
@@ -264,7 +264,6 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
     let mut future_read_data = src_buf.cmd().read(dst_vec)
         .queue(common_queue)
         .ewait(&wait_list)
-        // .ewait_opt(write_init_event)
         .enq_async().unwrap();
 
     // Attach a status message printing callback to what approximates the
@@ -384,7 +383,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         .enq_async().unwrap();
 
     // Set the read unmap completion event:
-    *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
+    *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());
 
     future_read_data.and_then(move |mut data| {
         let mut val_count = 0;

@@ -135,6 +135,9 @@ impl Task {
     }
 
     /// Map some memory for reading or writing.
+    //
+    // * TODO: Only set wait events on the command for read events.
+    //   Invalidating write-maps shouldn't wait until unmapping.
     pub fn map<T: OclPrm>(&self, cmd_idx: usize, buf_pool: &SubBufferPool<T>) -> FutureMemMap<T>
     {
         let (buffer_id, flags) = match *self.cmd_graph.commands()[cmd_idx].details(){
@@ -149,7 +152,7 @@ impl Task {
             .ewait(self.cmd_graph.get_req_events(cmd_idx).unwrap())
             .enq_async().unwrap();
 
-        let unmap_event_target = future_data.create_unmap_event().unwrap().clone();
+        let unmap_event_target = future_data.create_unmap_target_event().unwrap().clone();
         self.cmd_graph.set_cmd_event(cmd_idx, unmap_event_target.into()).unwrap();
 
         future_data

@@ -109,7 +109,7 @@ pub fn main() {
             .ewait(&fill_event)
             .enq_async().unwrap();
 
-        let write_unmap_event = future_write_data.create_unmap_event().unwrap().clone();
+        let write_unmap_event = future_write_data.create_unmap_target_event().unwrap().clone();
 
         let write = future_write_data.and_then(move |mut data| {
             for _ in 0..redundancy_count {

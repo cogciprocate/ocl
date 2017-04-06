@@ -198,7 +198,7 @@ enum Stage {
 #[must_use = "futures do nothing unless polled"]
 pub struct FutureRwGuard<T, G> {
     rw_vec: Option<RwVec<T>>,
-    lock_rx: oneshot::Receiver<()>,
+    lock_rx: Option<oneshot::Receiver<()>>,
     /// Bring this back if we decide to switch back to an event marker, which
     /// is probably more efficient than the list: 
     // wait_event: Option<Event>
@@ -219,7 +219,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     {
         FutureRwGuard {
             rw_vec: Some(rw_vec),
-            lock_rx: lock_rx,
+            lock_rx: Some(lock_rx),
             // wait_event: None,
             wait_list: None,
             lock_event: None,
@@ -381,37 +381,32 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue(); }
 
         // Check for completion of the lock rx:
-        match self.lock_rx.poll() {
-            // If the poll returns `Async::Ready`, we have been popped from
-            // the front of the lock queue and we now have exclusive access.
-            // Otherwise, return the `NotReady`. The rx (oneshot channel) will
-            // arrange for this task to be awakened when it's ready.
-            Ok(status) => {
-                if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: status: {:?}, (thread: {}).", 
-                    status, ::std::thread::current().name().unwrap_or("<unnamed>")); }
-                match status {
-                    Async::Ready(_) => {
-                        if let Some(ref lock_event) = self.lock_event {
-                            // // Sleeping before locking synchronizes something
-                            // // on certain hardware which can prevent weird
-                            // // behavior (such as out-of-date data from a
-                            // // load). Unknown if this is OpenCL-specific or
-                            // // Intel-specific or what. This mimics what a
-                            // // thread-mutex generally does in practice so I'm
-                            // // sure there's a good explanation for this.
-                            // // UPDATE: the synchronization is not thorough,
-                            // // this method should not be used.
-                            // ::std::thread::sleep(::std::time::Duration::new(0, 1));
-                            lock_event.set_complete()?
-                        }
-                        self.stage = Stage::Command;
-                        self.poll_command()
-                    },
-                    Async::NotReady => Ok(Async::NotReady),
-                }
-            },
-            Err(e) => return Err(e.into()),
+        if let Some(ref mut lock_rx) = self.lock_rx {
+            match lock_rx.poll() {
+                // If the poll returns `Async::Ready`, we have been popped from
+                // the front of the lock queue and we now have exclusive access.
+                // Otherwise, return the `NotReady`. The rx (oneshot channel) will
+                // arrange for this task to be awakened when it's ready.
+                Ok(status) => {
+                    if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: status: {:?}, (thread: {}).", 
+                        status, ::std::thread::current().name().unwrap_or("<unnamed>")); }
+                    match status {
+                        Async::Ready(_) => {
+                            if let Some(ref lock_event) = self.lock_event {
+                                lock_event.set_complete()?
+                            }
+                            self.stage = Stage::Command;
+                        },
+                        Async::NotReady => return Ok(Async::NotReady),
+                    }
+                },
+                Err(e) => return Err(e.into()),
+            }
+        } else {
+            unreachable!();
         }
+
+        self.poll_command()
     }
 
 
@@ -423,38 +418,48 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         // println!("###### FutureRwGuard::poll_lock: called.");
 
         // Move the queue along:
-        unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue()
-            .expect("###### Error polling FutureRwGuard"); }
+        unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue(); }
 
-        // Loop until completion of the lock rx:
-        loop {
-            match self.lock_rx.poll() {
-                // If the poll returns `Async::Ready`, we have been popped from
-                // the front of the lock queue and we now have exclusive access.
-                // Otherwise, return the `NotReady`. The rx (oneshot channel) will
-                // arrange for this task to be awakened when it's ready.
-                Ok(status) => {
-                    if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: status: {:?}, (thread: {}).", status,
-                        ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        // Wait until completion of the lock rx:
+        self.lock_rx.take().wait()?;
 
-                    match status {
-                        Async::Ready(_) => {
-                            if let Some(ref lock_event) = self.lock_event {
-                                lock_event.set_complete()?
-                            }
-                            self.stage = Stage::Command;
-                            if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Moving to command stage."); }
-                            return self.poll_command();
-                        },
-                        Async::NotReady => {
-                            if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Sleeping thread."); }
-                            ::std::thread::sleep(::std::time::Duration::from_millis(10));
-                        },
-                    }
-                },
-                Err(e) => return Err(e.into()),
-            }
+        if let Some(ref lock_event) = self.lock_event {
+            lock_event.set_complete()?
         }
+
+        self.stage = Stage::Command;
+        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Moving to command stage."); }
+        return self.poll_command();
+
+        // // Loop until completion of the lock rx:
+        // loop {
+        //     match self.lock_rx.poll() {
+        //         // If the poll returns `Async::Ready`, we have been popped from
+        //         // the front of the lock queue and we now have exclusive access.
+        //         // Otherwise, return the `NotReady`. The rx (oneshot channel) will
+        //         // arrange for this task to be awakened when it's ready.
+        //         Ok(status) => {
+        //             if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: status: {:?}, (thread: {}).", status,
+        //                 ::std::thread::current().name().unwrap_or("<unnamed>")); }
+
+        //             match status {
+        //                 Async::Ready(_) => {
+        //                     if let Some(ref lock_event) = self.lock_event {
+        //                         lock_event.set_complete()?
+        //                     }
+        //                     self.stage = Stage::Command;
+        //                     if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Moving to command stage."); }
+        //                     return self.poll_command();
+        //                 },
+        //                 Async::NotReady => {
+        //                     if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Sleeping thread."); }
+        //                     ::std::thread::sleep(::std::time::Duration::from_millis(10));
+        //                 },
+        //             }
+        //         },
+        //         Err(e) => return Err(e.into()),
+        //     }
+        // }
     }
 
     /// Polls the command event until it is complete then returns an `RwGuard`
@@ -524,6 +529,25 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
                 Err(e) => Err(e.into()),
             }      
         }
+    }
+
+    /// Polls the lock until it has been upgraded.
+    ///
+    /// Only used if `::upgrade_after_command` has been called.
+    ///
+    #[cfg(feature = "async_block")]
+    fn poll_upgrade(&mut self) -> AsyncResult<Async<G>> {
+        debug_assert!(self.stage == Stage::Upgrade);
+        debug_assert!(self.upgrade_after_command);
+
+        match unsafe { self.rw_vec.as_ref().unwrap().lock.upgrade_read_lock() } {
+            Ok(_) => Ok(Async::Ready(self.into_guard())),
+            Err(rx) => {
+                self.upgrade_rx = Some(rx);
+                self.upgrade_rx.take().unwrap().wait()?;
+                Ok(Async::Ready(self.into_guard()))                    
+            }
+        }   
     }
 
     /// Resolves this `FutureRwGuard` into the appropriate result guard.
