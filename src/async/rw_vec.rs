@@ -322,7 +322,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         self.release_event.as_ref()
     }
 
-    /// Blocks the current thread until the OpenCL command is complete and a 
+    /// Blocks the current thread until the OpenCL command is complete and an
+    /// appropriate lock can be obtained on the underlying data.
     pub fn wait(self) -> AsyncResult<G> {
         <Self as Future>::wait(self)
     }

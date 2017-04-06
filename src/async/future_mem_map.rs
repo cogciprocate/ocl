@@ -62,6 +62,18 @@ impl<T: OclPrm> FutureMemMap<T> {
         }
     }
 
+    /// Blocks the current thread until the OpenCL command is complete and an
+    /// appropriate lock can be obtained on the underlying data.
+    pub fn wait(self) -> AsyncResult<MemMap<T>> {
+        <Self as Future>::wait(self)
+    }
+
+    /// Returns the unmap event if it has been created.
+    #[inline]
+    pub fn unmap_target_event(&self) -> Option<&Event> {
+        self.unmap_target_event.as_ref()
+    }
+
     /// Resolves this `FutureMemMap` into a `MemMap`.
     fn to_mapped_mem(&mut self) -> AsyncResult<MemMap<T>> {
         let joined = self.core.take().and_then(|core| {
@@ -79,12 +91,6 @@ impl<T: OclPrm> FutureMemMap<T> {
             },
             _ => Err("FutureMemMap::create_unmap_target_event: No queue and/or buffer found!".into()),
         }
-    }
-
-    /// Returns the unmap event if it has been created.
-    #[inline]
-    pub fn unmap_target_event(&self) -> Option<&Event> {
-        self.unmap_target_event.as_ref()
     }
 }
 
