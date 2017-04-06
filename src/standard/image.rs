@@ -935,11 +935,11 @@ impl<T: OclPrm> AsMem<T> for Image<T> {
     }
 }
 
-impl<'a, T: OclPrm> AsMem<T> for &'a mut Image<T> {
-    fn as_mem(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
+// impl<'a, T: OclPrm> AsMem<T> for &'a mut Image<T> {
+//     fn as_mem(&self) -> &MemCore {
+//         &self.obj_core
+//     }
+// }
 
 unsafe impl<'a, T> MemCmdRw for Image<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdRw for &'a Image<T> where T: OclPrm {}

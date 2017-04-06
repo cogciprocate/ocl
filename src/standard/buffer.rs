@@ -1150,6 +1150,9 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// Specifies the length of the region to map.
     ///
     /// If unspecified the entire buffer will be mapped.
+    //
+    // * TODO: Consider taking an `Into<SpatialDims>` argument and possibly
+    //   renaming method.
     pub fn len(mut self, len: usize) -> BufferMapCmd<'c, T> {
         self.len = Some(len);
         self
@@ -1506,6 +1509,8 @@ impl<T: OclPrm> Buffer<T> {
     }
 
     /// Returns the length of the buffer.
+    ///
+    /// Equivalent to `::dims().to_len()`.
     #[inline]
     pub fn len(&self) -> usize {
         self.len
@@ -1598,7 +1603,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// ### Offset and Dimensions
     ///
-    /// `origin` and `size` set up the region of the sub-buffer within the
+    /// `origin` and `dims` set up the region of the sub-buffer within the
     ///  original buffer and must not fall beyond the boundaries of it.
     ///
     /// `origin` must be a multiple of the `DeviceInfo::MemBaseAddrAlign`
@@ -1612,7 +1617,7 @@ impl<T: OclPrm> Buffer<T> {
     /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
     ///
     pub fn create_sub_buffer<Do, Ds>(&self, flags_opt: Option<MemFlags>, origin: Do,
-        size: Ds) -> OclResult<Buffer<T>>
+        dims: Ds) -> OclResult<Buffer<T>>
         where Do: Into<SpatialDims>, Ds: Into<SpatialDims>
     {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
@@ -1625,8 +1630,8 @@ impl<T: OclPrm> Buffer<T> {
             not be specified when creating a sub-buffer. They will be inherited from \
             the containing buffer.");
 
-        let origin: SpatialDims = origin.into();
-        let dims: SpatialDims = size.into();
+        let origin = origin.into();
+        let dims = dims.into();
 
         let buffer_len = self.dims().to_len();
         let origin_ofs = origin.to_len();
@@ -1706,11 +1711,11 @@ impl<T: OclPrm> AsMem<T> for Buffer<T> {
     }
 }
 
-impl<'a, T: OclPrm> AsMem<T> for &'a mut Buffer<T> {
-    fn as_mem(&self) -> &MemCore {
-        &self.obj_core
-    }
-}
+// impl<'a, T: OclPrm> AsMem<T> for &'a mut Buffer<T> {
+//     fn as_mem(&self) -> &MemCore {
+//         &self.obj_core
+//     }
+// }
 
 impl<T: OclPrm> std::fmt::Display for Buffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

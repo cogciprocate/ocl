@@ -1,5 +1,5 @@
 use std::ops::{Deref, DerefMut};
-use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem};
+use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem as MemCore, AsMem};
 use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, EventList, Queue};
 use async::{Result as AsyncResult};
 
@@ -92,7 +92,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 pub struct MemMap<T> where T: OclPrm {
     core: MemMapCore<T>,
     len: usize,
-    buffer: Mem,
+    buffer: MemCore,
     queue: Queue,
     unmap_wait_list: Option<EventList>,
     unmap_target_event: Option<Event>,
@@ -102,7 +102,7 @@ pub struct MemMap<T> where T: OclPrm {
 
 impl<T> MemMap<T>  where T: OclPrm {
     pub unsafe fn new(core: MemMapCore<T>, len: usize, unmap_wait_list: Option<EventList>,
-        unmap_target_event: Option<Event>, buffer: Mem, queue: Queue) -> MemMap<T>
+        unmap_target_event: Option<Event>, buffer: MemCore, queue: Queue) -> MemMap<T>
     {
         MemMap {
             core: core,
@@ -252,5 +252,14 @@ impl<T: OclPrm> Drop for MemMap<T> {
     }
 }
 
+impl<T: OclPrm> AsMem<T> for MemMap<T> {
+    fn as_mem(&self) -> &MemCore {
+        self.core.as_mem()
+    }
+}
 
-
+// impl<'a, T: OclPrm> AsMem<T> for &'a mut MemMap<T> {
+//     fn as_mem(&self) -> &MemCore {
+//         self.core.as_mem()
+//     }
+// }

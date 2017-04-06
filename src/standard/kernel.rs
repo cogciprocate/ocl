@@ -143,13 +143,13 @@ impl<'k> KernelCmd<'k> {
 ///
 /// ### `Clone`, `Send`, and segfaults
 ///
-/// Every struct field of `Kernel` is safe to `Send` and `Clone` (after all
-/// arguments are specified) with the exception of `mem_args`. In order to
+/// Every struct field of `Kernel` is safe to `Send` and `Clone` (after all of
+/// the arguments are specified) with the exception of `mem_args`. In order to
 /// keep references to buffers/images alive throughout the life of the kernel
 /// and prevent nasty, platform-dependent, and very hard to debug segfaults,
-/// storing `MemCore`s (buffers/images) are necessary because they may be
-/// changed at any time. However, storing them means that there are
-/// comprimises in other areas. The following are the options as I see them:
+/// storing `MemCore`s (buffers/images) is necessary. However, storing them
+/// means that there are compromises in other areas. The following are the
+/// options as I see them:
 ///
 /// 1. [CURRENT] Store buffers/images in an Rc<RefCell>. This allows us to
 ///    `Clone` but not to `Send` between threads.
@@ -160,8 +160,10 @@ impl<'k> KernelCmd<'k> {
 /// 4. Don't store buffer/image references and let them segfault if the user
 ///    doesn't keep them alive properly.
 ///
-/// Please provide feedback if you have thoughts, suggestions, or alternative
-/// ideas.
+/// Please provide feedback by filing an [issue] if you have thoughts,
+/// suggestions, or alternative ideas.
+///
+/// [issue]: https://github.com/cogciprocate/ocl/issues
 //
 // * TODO: Add more details, examples, etc.
 // * TODO: Add information about panics and errors.
