@@ -259,6 +259,7 @@ impl Future for Event {
 }
 
 
+
 /// Returns an empty, initialized (zeroed) event array.
 fn empty_event_array() -> NoDrop<[Event; 8]> {
     let mut array: [Event; 8];
@@ -345,6 +346,7 @@ impl EventArray {
 
     /// Removes an event from the list and returns it, swapping the last element into its place.
     pub fn swap_remove(&mut self, idx: usize) -> Event {
+        assert!(idx < self.len);
         let old = take(&mut self.array[idx]);
         let src_ptr = &mut self.array[self.len - 1] as *mut Event;
         let dst_ptr = &mut self.array[idx] as *mut Event;
@@ -357,14 +359,8 @@ impl EventArray {
     ///
     /// [MAY DEPRICATE]: Prefer `::swap_remove`, this function is really unnecessary.
     pub fn remove(&mut self, idx: usize) -> Event {
+        assert!(idx < self.len);
         let old = take(&mut self.array[idx]);        
-
-        // // Shift everything after `idx` to the left:
-        // for src_idx in (idx + 1)..self.len {
-        //     let src_ptr = &mut self.array[src_idx] as *mut Event;
-        //     let dst_ptr = &mut self.array[src_idx - 1] as *mut Event;
-        //     unsafe { ptr::swap(src_ptr, dst_ptr); }
-        // }
 
         // Shift everything after `idx` to the left:
         unsafe {
@@ -410,9 +406,7 @@ impl EventArray {
 
     /// Blocks the host thread until all events in this list are complete.
     pub fn wait_for(&self) -> OclResult<()> {
-        // for event_idx in 0..(self.len) {
         for ev in &self.array[..self.len] {
-            // self.array[event_idx].wait_for()?;
             ev.wait_for()?;
         }
 
@@ -455,10 +449,6 @@ impl EventArray {
 
     #[inline]
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        // match self.array.first() {
-        //     Some(ev) => ev as *const _ as *const cl_event,
-        //     None => 0 as *const cl_event,
-        // }
         if self.len > 0 {
             &self.array[0] as *const _ as *const cl_event
         } else {
@@ -470,19 +460,6 @@ impl EventArray {
     fn _count(&self) -> u32 {
         self.len as u32
     }
-
-    // /// Unsafely copies an event from this array without incrementing its
-    // /// reference count.
-    // #[inline(always)]
-    // unsafe fn read(&self, idx: usize) -> Event {
-    //     ptr::read(&self.array[idx])
-    // }
-
-    // /// Unsafely wipes out (zeros) the specified element.
-    // #[inline(always)]
-    // unsafe fn zero(&mut self, idx: usize) {
-    //     ptr::write(&mut self.array[idx], Event::empty())
-    // }
 }
 
 impl<'a, E> From<E> for EventArray where E: Into<Event> {
@@ -559,19 +536,6 @@ impl fmt::Debug for EventArray {
     }
 }
 
-// impl Future for EventArray {
-//     type Item = ();
-//     type Error = OclError;
-
-//     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-//         // TODO: Use either options or some unsafe stuff to create an
-//         // IntoIterator out of this.
-
-//         future::join_all(self.events[0..(self.len)].into_iter())
-//             .poll().map(|res| res.map(|_| ()))
-//     }
-// }
-
 impl Future for EventArray {
     type Item = ();
     type Error = OclError;
@@ -625,6 +589,7 @@ unsafe impl<'a> ClWaitListPtr for &'a EventArray {
 }
 
 
+
 /// The guts of an EventList.
 #[derive(Debug, Clone)]
 enum Inner {
@@ -644,8 +609,7 @@ enum Inner {
 ///
 /// `EventList` is a dynamically allocated list. It will be (internally) stack
 /// allocated (as an `[Event; 8]`) until it reaches a length of 9 at which
-/// time it will become heap-allocated (a `Vec<Event>`). Initializing with
-/// `::with_capacity` will cause the list to heap allocate immediately.
+/// time it will become heap-allocated (a `Vec<Event>`).
 ///
 /// At the time of this writing, converting back from heap to stack allocation
 /// is not implemented but a bit of prodding (by filing an issue) would
@@ -661,17 +625,21 @@ impl EventList {
     /// Returns a new, empty, stack-allocated `EventList`.
     #[inline]
     pub fn new() -> EventList {
-        EventList {            
+        EventList {
             inner: Inner::Array(EventArray::new()),
             // inner: Inner::Vec(Vec::new()),
         }
     }
 
-    /// Returns a new, empty, heap-allocated `EventList` with an initial capacity of `cap`.
+    /// Returns a new, empty, EventList` with an initial capacity of `cap`.
+    ///
+    /// If `cap` is greater than 8, the event list will be heap-allocated.
     #[inline]
     pub fn with_capacity(cap: usize) -> EventList {
-        EventList {
-            inner: Inner::Vec(Vec::with_capacity(cap)),
+        if cap <= 8 {
+            EventList { inner: Inner::Array(EventArray::new()) }
+        } else {
+            EventList { inner: Inner::Vec(Vec::with_capacity(cap)) }
         }
     }
 
@@ -877,6 +845,30 @@ impl<'a> From<Vec<Event>> for EventList {
     }
 }
 
+impl<'a, E> From<&'a Option<E>> for EventList where E: Into<Event> + Clone {
+    fn from(event: &Option<E>) -> EventList {
+        let mut el = EventList::new();
+        if let Some(ref e) = *event { el.push(e.clone().into()) }
+        el
+    }
+}
+
+impl<'a, 'b, E> From<Option<&'b E>> for EventList where 'b: 'a, E: Into<Event> + Clone {
+    fn from(event: Option<&E>) -> EventList {
+        let mut el = EventList::new();
+        if let Some(e) = event { el.push(e.clone().into()) }
+        el
+    }
+}
+
+impl<'a, 'b, E> From<&'a Option<&'b E>> for EventList where 'b: 'a, E: Into<Event> + Clone {
+    fn from(event: &Option<&E>) -> EventList {
+        let mut el = EventList::new();
+        if let Some(e) = *event { el.push(e.clone().into()) }
+        el
+    }
+}
+
 impl<'a, E> From<&'a [E]> for EventList where E: Into<Event> + Clone {
     fn from(events: &[E]) -> EventList {
         if events.len() <= 8 {
@@ -983,27 +975,6 @@ impl<'a> From<Ref<'a, ClWaitListPtr>> for EventList {
     }
 }
 
-impl<'a> From<ClWaitListPtrEnum<'a>> for EventList {
-    /// Returns an `EventList` containing owned copies of each element in
-    /// this `ClWaitListPtrEnum`.
-    fn from(wlpe: ClWaitListPtrEnum<'a>) -> EventList {
-        match wlpe {
-            ClWaitListPtrEnum::Null => EventList::with_capacity(0),
-            ClWaitListPtrEnum::RawEventArray(e) => e.as_slice().into(),
-            ClWaitListPtrEnum::EventCoreOwned(e) => EventList::from(vec![e.into()]),
-            ClWaitListPtrEnum::EventOwned(e) => EventList::from(vec![e.into()]),
-            ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),                
-            ClWaitListPtrEnum::Event(e) => EventList::from(vec![e.clone().into()]),
-            ClWaitListPtrEnum::EventList(e) => e.clone(),
-            ClWaitListPtrEnum::EventSlice(e) => EventList::from(e),
-            ClWaitListPtrEnum::EventPtrSlice(e) => EventList::from(e),
-            ClWaitListPtrEnum::RefEventList(e) => (*e).clone(),
-            ClWaitListPtrEnum::RefTraitObj(e) => e.into(),
-            ClWaitListPtrEnum::BoxTraitObj(e) => e.into(),
-        }
-    }
-}
-
 macro_rules! impl_event_list_from_arrays {
     ($( $len:expr ),*) => ($(
         impl<'e, E> From<[E; $len]> for EventList where E: Into<Event> {
@@ -1079,6 +1050,27 @@ macro_rules! impl_event_list_from_arrays {
 }
 
 impl_event_list_from_arrays!(1, 2, 3, 4, 5, 6, 7, 8);
+
+impl<'a> From<ClWaitListPtrEnum<'a>> for EventList {
+    /// Returns an `EventList` containing owned copies of each element in
+    /// this `ClWaitListPtrEnum`.
+    fn from(wlpe: ClWaitListPtrEnum<'a>) -> EventList {
+        match wlpe {
+            ClWaitListPtrEnum::Null => EventList::with_capacity(0),
+            ClWaitListPtrEnum::RawEventArray(e) => e.as_slice().into(),
+            ClWaitListPtrEnum::EventCoreOwned(e) => EventList::from(vec![e.into()]),
+            ClWaitListPtrEnum::EventOwned(e) => EventList::from(vec![e.into()]),
+            ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),                
+            ClWaitListPtrEnum::Event(e) => EventList::from(vec![e.clone().into()]),
+            ClWaitListPtrEnum::EventList(e) => e.clone(),
+            ClWaitListPtrEnum::EventSlice(e) => EventList::from(e),
+            ClWaitListPtrEnum::EventPtrSlice(e) => EventList::from(e),
+            ClWaitListPtrEnum::RefEventList(e) => (*e).clone(),
+            ClWaitListPtrEnum::RefTraitObj(e) => e.into(),
+            ClWaitListPtrEnum::BoxTraitObj(e) => e.into(),
+        }
+    }
+}
 
 impl Deref for EventList {
     type Target = [Event];
@@ -1188,7 +1180,6 @@ unsafe impl<'a> ClWaitListPtr for &'a EventList {
     #[inline] unsafe fn as_ptr_ptr(&self) -> *const cl_event { self._as_ptr_ptr() }
     #[inline] fn count(&self) -> u32 { self._count() }
 }
-
 
 
 
@@ -1368,6 +1359,7 @@ unsafe impl<'a> ClWaitListPtr for &'a RawEventArray {
 }
 
 
+
 /// Conversion to a 'marker' event.
 pub trait IntoMarker {
     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>>;
@@ -1428,6 +1420,7 @@ macro_rules! impl_marker_arrays {
 impl_marker_arrays!(1, 2, 3, 4, 5, 6, 7, 8);
 
 
+
 /// Conversion to a stack allocated array of `cl_event` pointers.
 pub trait IntoRawEventArray {
     fn into_raw_list(self) -> RawEventArray;
@@ -1456,7 +1449,6 @@ impl<'s, 'o, 'e> IntoRawEventArray  for &'s [&'o Option<&'e Event>] where 'e: 's
         RawEventArray::from(self)
     }
 }
-
 
 macro_rules! impl_raw_list_arrays {
     ($( $len:expr ),*) => ($(
