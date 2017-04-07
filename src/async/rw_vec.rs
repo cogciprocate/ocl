@@ -20,6 +20,9 @@ pub use self::qutex::{ReadGuard as QrwReadGuard, WriteGuard as QrwWriteGuard,
 
 const PRINT_DEBUG: bool = false;
 
+pub type FutureReader<T> = FutureRwGuard<T, ReadGuard<T>>;
+pub type FutureWriter<T> = FutureRwGuard<T, WriteGuard<T>>;
+
 
 // /// Extracts an `RwVec` from a guard of either type.
 // //
@@ -257,6 +260,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// contained events have their status set to complete before obtaining a
     /// lock on the guarded internal `Vec`.
     pub fn set_wait_list<L: Into<EventList>>(&mut self, wait_list: L) {
+        assert!(self.wait_list.is_none(), "Wait list has already been set.");
         self.wait_list = Some(wait_list.into());
     }
 
@@ -273,6 +277,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// `FutureRwGuard` to resolve into an `RwGuard` immediately after the
     /// lock is obtained (indicated by the optionally created lock event).
     pub fn set_command_completion_event(&mut self, command_completion: Event) {
+        assert!(self.command_completion.is_none(), "Command completion event has already been set.");
         self.command_completion = Some(command_completion);
     }
 
@@ -286,8 +291,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
     pub fn create_lock_event<C: ClContextPtr>(&mut self, context: C) -> AsyncResult<&Event> {
-        let lock_event = Event::user(context)?;
-        self.lock_event = Some(lock_event);
+        assert!(self.lock_event.is_none(), "Lock event has already been created.");
+        self.lock_event = Some(Event::user(context)?);
         Ok(self.lock_event.as_mut().unwrap())
     }
 
@@ -301,8 +306,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
     pub fn create_release_event<C: ClContextPtr>(&mut self, context: C) -> AsyncResult<&Event> {
-        let uev = Event::user(context)?;
-        self.release_event = Some(uev);
+        assert!(self.release_event.is_none(), "Release event has already been created.");
+        self.release_event = Some(Event::user(context)?);
         Ok(self.release_event.as_ref().unwrap())
     }
 
@@ -563,8 +568,9 @@ impl<T, G> Drop for FutureRwGuard<T, G> {
     }
 }
 
+// a.k.a. FutureRead<T>
 impl<T> FutureRwGuard<T, ReadGuard<T>> {
-    pub fn upgrade_after_command(self) -> FutureRwGuard<T, WriteGuard<T>> {
+    pub fn upgrade_after_command(self) -> FutureWriter<T> {
         use std::ptr::read;
 
         let future_guard = unsafe { 
@@ -619,7 +625,7 @@ impl<T> RwVec<T> {
     }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
-    pub fn request_read(self) -> FutureRwGuard<T, ReadGuard<T>> {
+    pub fn request_read(self) -> FutureReader<T> {
         if PRINT_DEBUG { println!("RwVec::request_lock: Lock requested."); }
         let (tx, rx) = oneshot::channel();
         unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Read)); }
@@ -627,7 +633,7 @@ impl<T> RwVec<T> {
     }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
-    pub fn request_write(self) -> FutureRwGuard<T, WriteGuard<T>> {
+    pub fn request_write(self) -> FutureWriter<T> {
         if PRINT_DEBUG { println!("RwVec::request_lock: Lock requested."); }
         let (tx, rx) = oneshot::channel();
         unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Write)); }

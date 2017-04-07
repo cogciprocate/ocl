@@ -7,8 +7,8 @@ use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, /*ReadGuard, */WriteGuard,
-    FutureRwGuard};    
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, WriteGuard,
+    FutureRwGuard, FutureReader, FutureWriter};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 
@@ -223,7 +223,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     ///
     /// [write_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueWriteBuffer.html
     pub fn write<'d, W>(mut self, src_data: W) -> BufferWriteCmd<'c, 'd, T> 
-            where W: Into<WriteDst<'d, T>>
+            where W: Into<WriteSrc<'d, T>>
     {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
@@ -541,6 +541,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 pub enum ReadDst<'d, T> where T: 'd {
     Slice(&'d mut [T]),
     RwVec(RwVec<T>),
+    Writer(FutureWriter<T>),
     None,
 }
 
@@ -571,6 +572,12 @@ impl<'d, T> From<RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
 impl<'a, 'd, T> From<&'a RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
     fn from(rw_vec: &'a RwVec<T>) -> ReadDst<'d, T> {
         ReadDst::RwVec(rw_vec.clone())
+    }
+}
+
+impl<'d, T> From<FutureWriter<T>> for ReadDst<'d, T> where T: OclPrm {
+    fn from(writer: FutureWriter<T>) -> ReadDst<'d, T> {
+        ReadDst::Writer(writer)
     }
 }
 
@@ -737,6 +744,10 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 let mut guard = rw_vec.request_write().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(guard.as_mut_slice())
             },
+            ReadDst::Writer(writer) => {
+                let mut guard = writer.wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
+                enqueue_with_data(guard.as_mut_slice())
+            }
             ReadDst::None => panic!("Invalid read destination."),
         }
     }
@@ -754,24 +765,29 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             None => return Err("BufferCmd::enq: No queue set.".into()),
         };
 
-        let rw_vec = match self.dst {
-            ReadDst::RwVec(rw_vec) => rw_vec,
-            _ => return Err("BufferReadCmd::enq_async: Invalid data destination kind for an
-                asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
-        };
+        // let rw_vec = match self.dst {
+        //     ReadDst::RwVec(rw_vec) => rw_vec,
+        //     _ => return Err("BufferReadCmd::enq_async: Invalid data destination kind for an
+        //         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
+        // };
 
         match self.cmd.kind {
             BufferCmdKind::Read => {
+                let mut writer = match self.dst {
+                    ReadDst::RwVec(rw_vec) => rw_vec.request_write(),
+                    ReadDst::Writer(writer) => writer,
+                    _ => return Err("BufferReadCmd::enq_async: Invalid data destination kind for an
+                        asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
+                };
 
-                let mut guard = rw_vec.request_write();
-                guard.create_lock_event(queue.context_ptr()?)?;             
+                writer.create_lock_event(queue.context_ptr()?)?;             
 
                 if let Some(wl) = self.cmd.ewait {
-                    guard.set_wait_list(wl);
+                    writer.set_wait_list(wl);
                 }
 
-                let dst = unsafe { guard.as_mut_slice().expect("BufferReadCmd::enq_async: \
-                    Invalid guard.") };
+                let dst = unsafe { writer.as_mut_slice().expect("BufferReadCmd::enq_async: \
+                    Invalid writer.") };
 
                 let mut read_event = Event::empty();
 
@@ -780,7 +796,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         try!(check_len(self.cmd.mem_len, dst.len(), offset));
 
                         unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, false,
-                            offset, dst, guard.lock_event(), Some(&mut read_event))?; }
+                            offset, dst, writer.lock_event(), Some(&mut read_event))?; }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes,
@@ -789,7 +805,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            dst, guard.lock_event(), Some(&mut read_event))?; }
+                            dst, writer.lock_event(), Some(&mut read_event))?; }
                     }
                 }
 
@@ -797,8 +813,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     unsafe { enew.clone_from(&read_event) }
                 }
 
-                guard.set_command_completion_event(read_event);
-                Ok(guard)
+                writer.set_command_completion_event(read_event);
+                Ok(writer)
             },
             _ => unreachable!(),
         }
@@ -807,39 +823,46 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
 
 /// The data destination for a buffer read command.
-pub enum WriteDst<'d, T> where T: 'd {
+pub enum WriteSrc<'d, T> where T: 'd {
     Slice(&'d [T]),
     RwVec(RwVec<T>),
+    Reader(FutureReader<T>),
     None,
 }
 
-impl<'d, T> WriteDst<'d, T> {
-    fn take(&mut self) -> WriteDst<'d, T> {
-        ::std::mem::replace(self, WriteDst::None)
+impl<'d, T> WriteSrc<'d, T> {
+    fn take(&mut self) -> WriteSrc<'d, T> {
+        ::std::mem::replace(self, WriteSrc::None)
     }
 }
 
-impl<'d, T> From<&'d [T]> for WriteDst<'d, T>  where T: OclPrm {
-    fn from(slice: &'d [T]) -> WriteDst<'d, T> {
-        WriteDst::Slice(slice)
+impl<'d, T> From<&'d [T]> for WriteSrc<'d, T>  where T: OclPrm {
+    fn from(slice: &'d [T]) -> WriteSrc<'d, T> {
+        WriteSrc::Slice(slice)
     }
 }
 
-impl<'d, T> From<&'d Vec<T>> for WriteDst<'d, T>  where T: OclPrm {
-    fn from(slice: &'d Vec<T>) -> WriteDst<'d, T> {
-        WriteDst::Slice(slice.as_slice())
+impl<'d, T> From<&'d Vec<T>> for WriteSrc<'d, T>  where T: OclPrm {
+    fn from(slice: &'d Vec<T>) -> WriteSrc<'d, T> {
+        WriteSrc::Slice(slice.as_slice())
     }
 }
 
-impl<'d, T> From<RwVec<T>> for WriteDst<'d, T> where T: OclPrm {
-    fn from(rw_vec: RwVec<T>) -> WriteDst<'d, T> {
-        WriteDst::RwVec(rw_vec)
+impl<'d, T> From<RwVec<T>> for WriteSrc<'d, T> where T: OclPrm {
+    fn from(rw_vec: RwVec<T>) -> WriteSrc<'d, T> {
+        WriteSrc::RwVec(rw_vec)
     }
 }
 
-impl<'a, 'd, T> From<&'a RwVec<T>> for WriteDst<'d, T> where T: OclPrm {
-    fn from(rw_vec: &'a RwVec<T>) -> WriteDst<'d, T> {
-        WriteDst::RwVec(rw_vec.clone())
+impl<'a, 'd, T> From<&'a RwVec<T>> for WriteSrc<'d, T> where T: OclPrm {
+    fn from(rw_vec: &'a RwVec<T>) -> WriteSrc<'d, T> {
+        WriteSrc::RwVec(rw_vec.clone())
+    }
+}
+
+impl<'d, T> From<FutureReader<T>> for WriteSrc<'d, T> where T: OclPrm {
+    fn from(reader: FutureReader<T>) -> WriteSrc<'d, T> {
+        WriteSrc::Reader(reader)
     }
 }
 
@@ -853,7 +876,7 @@ impl<'a, 'd, T> From<&'a RwVec<T>> for WriteDst<'d, T> where T: OclPrm {
 pub struct BufferWriteCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
     // src: &'d [T],
-    src: WriteDst<'d, T>,
+    src: WriteSrc<'d, T>,
  }
 
 impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
@@ -999,14 +1022,18 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
         };
 
         match write_src {
-            WriteDst::Slice(slice) => {
+            WriteSrc::Slice(slice) => {
                 enqueue_with_data(slice)
             },
-            WriteDst::RwVec(rw_vec) => {
+            WriteSrc::RwVec(rw_vec) => {
                 let guard = rw_vec.request_read().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(guard.as_slice())
             },
-            WriteDst::None => panic!("Invalid read destination."),
+            WriteSrc::Reader(reader) => {
+                let guard = reader.wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
+                enqueue_with_data(guard.as_slice())
+            },
+            WriteSrc::None => panic!("Invalid read destination."),
         }
     }
 
@@ -1022,23 +1049,31 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             None => return Err("BufferCmd::enq: No queue set.".into()),
         };
 
-        let rw_vec = match self.src {
-            WriteDst::RwVec(rw_vec) => rw_vec,
-            _ => return Err("BufferWriteCmd::enq_async: Invalid data destination kind for an
-                asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
-        };
+        // let rw_vec = match self.src {
+        //     WriteSrc::RwVec(rw_vec) => rw_vec,
+        //     _ => return Err("BufferWriteCmd::enq_async: Invalid data destination kind for an
+        //         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
+        // };
 
         match self.cmd.kind {
             BufferCmdKind::Write => {
-                let mut guard = rw_vec.request_read().upgrade_after_command();
-                guard.create_lock_event(queue.context_ptr()?)?;            
+                // let mut reader = rw_vec.request_read().upgrade_after_command();
+
+                let mut reader = match self.src {
+                    WriteSrc::RwVec(rw_vec) => rw_vec.request_read().upgrade_after_command(),
+                    WriteSrc::Reader(reader) => reader.upgrade_after_command(),
+                    _ => return Err("BufferWriteCmd::enq_async: Invalid data destination kind for an
+                        asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
+                };
+                
+                reader.create_lock_event(queue.context_ptr()?)?;            
 
                 if let Some(wl) = self.cmd.ewait {
-                    guard.set_wait_list(wl);
+                    reader.set_wait_list(wl);
                 }          
 
-                let src = unsafe { guard.as_mut_slice().expect("BufferWriteCmd::enq_async: \
-                    Invalid guard.") };
+                let src = unsafe { reader.as_mut_slice().expect("BufferWriteCmd::enq_async: \
+                    Invalid reader.") };
 
                 let mut write_event = Event::empty();
 
@@ -1047,7 +1082,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                         try!(check_len(self.cmd.mem_len, src.len(), offset));
 
                         core::enqueue_write_buffer(queue, self.cmd.obj_core, false,
-                            offset, src, guard.lock_event(), Some(&mut write_event))?;
+                            offset, src, reader.lock_event(), Some(&mut write_event))?;
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                             src_row_pitch_bytes, src_slc_pitch_bytes,
@@ -1056,7 +1091,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                         core::enqueue_write_buffer_rect(queue, self.cmd.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            src, guard.lock_event(), Some(&mut write_event))?;
+                            src, reader.lock_event(), Some(&mut write_event))?;
                     }
                 }
 
@@ -1064,8 +1099,8 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     unsafe { enew.clone_from(&write_event) }
                 }
 
-                guard.set_command_completion_event(write_event);
-                Ok(guard)
+                reader.set_command_completion_event(write_event);
+                Ok(reader)
             },
             _ => unreachable!(),
         }
@@ -1463,7 +1498,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[inline]
     pub fn write<'c, 'd, W>(&'c self, src: W) -> BufferWriteCmd<'c, 'd, T>
-            where 'd: 'c, W: Into<WriteDst<'d, T>>
+            where 'd: 'c, W: Into<WriteSrc<'d, T>>
     {
         self.cmd().write(src)
     }
