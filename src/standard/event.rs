@@ -13,7 +13,9 @@
 //   that role as long as lifetimes aren't an issue).
 //
 
-use std;
+extern crate nodrop;
+
+use std::{mem, ptr, fmt};
 use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use std::cell::Ref;
@@ -28,6 +30,7 @@ use core::error::{Error as OclError, Result as OclResult};
 use standard::{Queue, ClWaitListPtrEnum};
 #[cfg(not(feature = "async_block"))]
 use standard::{_unpark_task, box_raw_void};
+use self::nodrop::NoDrop;
 
 const PRINT_DEBUG: bool = false;
 
@@ -125,7 +128,7 @@ impl Event {
         EventCore::from_raw(ptr).into()
     }
 
-    fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt_info(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Event")
             .field("CommandQueue", &self.info(EventInfo::CommandQueue))
             .field("CommandType", &self.info(EventInfo::CommandType))
@@ -138,26 +141,6 @@ impl Event {
     #[inline]
     fn _count(&self) -> u32 {
         if self.0.is_null() { 0 } else { 1 }
-    }
-}
-
-impl Deref for Event {
-    type Target = EventCore;
-
-    fn deref(&self) -> &EventCore {
-        &self.0
-    }
-}
-
-impl DerefMut for Event {
-    fn deref_mut(&mut self) -> &mut EventCore {
-        &mut self.0
-    }
-}
-
-impl AsRef<EventCore> for Event {
-    fn as_ref(&self) -> &EventCore {
-        &self.0
     }
 }
 
@@ -183,9 +166,35 @@ impl From<Event> for EventCore {
     }
 }
 
+impl Default for Event {
+    fn default() -> Event {
+        Event::empty()
+    }
+}
 
-impl std::fmt::Display for Event {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Deref for Event {
+    type Target = EventCore;
+
+    fn deref(&self) -> &EventCore {
+        &self.0
+    }
+}
+
+impl DerefMut for Event {
+    fn deref_mut(&mut self) -> &mut EventCore {
+        &mut self.0
+    }
+}
+
+impl AsRef<EventCore> for Event {
+    fn as_ref(&self) -> &EventCore {
+        &self.0
+    }
+}
+
+
+impl fmt::Display for Event {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.fmt_info(f)
     }
 }
@@ -214,17 +223,17 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
     #[inline] fn count(&self) -> u32 { self._count() }
 }
 
-/// Non-blocking, proper implementation.
-//
-// * NOTE: There is currently no check to ensure that only one callback is
-//   created (is this ok?).
-//   - TODO: Look into possible effects of unparking a task multiple times.
-// 
-#[cfg(not(feature = "async_block"))]
 impl Future for Event {
     type Item = ();
     type Error = OclError;
 
+    // Non-blocking, proper implementation.
+    //
+    // * NOTE: There is currently no check to ensure that only one callback is
+    //   created (is this ok?).
+    //   - TODO: Look into possible effects of unparking a task multiple times.
+    // 
+    #[cfg(not(feature = "async_block"))]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         debug_assert!(self.0.is_valid());
 
@@ -238,18 +247,10 @@ impl Future for Event {
             },
             Err(err) => Err(err),
         }
-
-        // self.wait_for()?;
-        // Ok(Async::Ready(()))
     }
-}
 
-/// Blocking implementation (yuk).
-#[cfg(feature = "async_block")]
-impl Future for Event {
-    type Item = ();
-    type Error = OclError;
-
+    // Blocking implementation (yuk).
+    #[cfg(feature = "async_block")]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         debug_assert!(self.0.is_valid());
         self.wait_for()?;
@@ -259,15 +260,23 @@ impl Future for Event {
 
 
 /// Returns an empty, initialized (zeroed) event array.
-fn empty_event_array() -> [Event; 8] {
+fn empty_event_array() -> NoDrop<[Event; 8]> {
     let mut array: [Event; 8];
     unsafe { 
-        array = ::std::mem::uninitialized();
+        array = mem::uninitialized();
         for elem in &mut array[..] {
-            ::std::ptr::write(elem, Event::empty());
+            ptr::write(elem, Event::empty());
         }
     }
-    array
+    NoDrop::new(array)
+}
+
+
+/// Swaps an event with a new empty (null) event and returns it.
+fn take(event: &mut Event) -> Event {
+    let mut eold = Event::empty();
+    mem::swap(event, &mut eold);
+    eold
 }
 
 
@@ -280,11 +289,13 @@ fn empty_event_array() -> [Event; 8] {
 /// For access to individual events use `get_clone` and `last_clone` then
 /// either store or discard the result.
 ///
+///
+/// [NOTE]: Unstable and minimally tested.
+//
 // * [FIXME] TODO: impl Index.
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct EventArray {
-    array: [Event; 8],
-    // count: u32,
+    array: NoDrop<[Event; 8]>,
     len: usize,
 }
 
@@ -307,7 +318,6 @@ impl EventArray {
             self.len += 1;
             Ok(())
         } else {
-            // panic!("EventArray::push: List is full.");
             Err(event.into())
         }
     }
@@ -327,13 +337,43 @@ impl EventArray {
     pub fn pop(&mut self) -> Option<Event> {
         if self.len > 0 {            
             self.len -= 1;
-            let idx = self.len;
-            let event = unsafe { self.read(idx) };            
-            unsafe { self.zero(idx); }
-            Some(event)
+            Some(take(&mut self.array[self.len]))
         } else {
             None
         }
+    }
+
+    /// Removes an event from the list and returns it, swapping the last element into its place.
+    pub fn swap_remove(&mut self, idx: usize) -> Event {
+        let old = take(&mut self.array[idx]);
+        let src_ptr = &mut self.array[self.len - 1] as *mut Event;
+        let dst_ptr = &mut self.array[idx] as *mut Event;
+        unsafe { ptr::swap(src_ptr, dst_ptr); }
+        self.len -= 1;
+        old
+    }
+
+    /// Removes an event from the list and returns it, shifting elements after it to the left.
+    ///
+    /// [MAY DEPRICATE]: Prefer `::swap_remove`, this function is really unnecessary.
+    pub fn remove(&mut self, idx: usize) -> Event {
+        let old = take(&mut self.array[idx]);        
+
+        // // Shift everything after `idx` to the left:
+        // for src_idx in (idx + 1)..self.len {
+        //     let src_ptr = &mut self.array[src_idx] as *mut Event;
+        //     let dst_ptr = &mut self.array[src_idx - 1] as *mut Event;
+        //     unsafe { ptr::swap(src_ptr, dst_ptr); }
+        // }
+
+        // Shift everything after `idx` to the left:
+        unsafe {
+            let ptr = self.array.as_mut_ptr().offset(idx as isize);
+            ptr::copy(ptr.offset(1), ptr, self.len - idx - 1);
+        }
+
+        self.len -= 1;
+        old
     }
 
     /// Clears all events from the list whether or not they have completed.
@@ -342,51 +382,38 @@ impl EventArray {
     ///
     #[inline]
     pub fn clear(&mut self) {
-        for i in 0..self.len { 
-            unsafe { 
-                drop(self.read(i));
-                self.zero(i);
-            }            
+        for ev in &mut self.array[..self.len] {
+            let _ = take(ev);
         }
 
         self.len = 0;
     }
 
-    /// Clears events which have completed.
-    //
-    // * TODO: Reimplement an optimized version where we just walk the list
-    //   and scrunch incomplete events towards the start of the list and drop
-    //   complete events.
+    /// Clears events which have already completed.
     pub fn clear_completed(&mut self) -> OclResult<()> {
-        let old_len = self.len;
-        let mut old_array = empty_event_array();
-        std::mem::swap(&mut old_array, &mut self.array);
+        let mut new_len = 0;
 
-        panic!("FIXME: This is still janky");
-
-        self.len = 0;        
-
-        for idx in 0..old_len {
-            if old_array[idx].is_complete()? {
-                unsafe {
-                    drop(::std::ptr::read(&old_array[idx]));
-                    ::std::ptr::write(&mut old_array[idx], Event::empty());
-                }
+        for idx in 0..self.len {
+            if self.array[idx].is_complete()? {
+                let _ = take(&mut self.array[idx]);
             } else {
-                let ev = unsafe { ::std::ptr::read(&old_array[idx]) };
-                self.push(ev).expect("EventArray::clear_completed: Error clearing list");                
+                let dst_ptr = &mut self.array[new_len] as *mut Event;
+                unsafe { ptr::swap(&mut self.array[idx], dst_ptr); }
+                new_len += 1;
             }
         }
 
-        ::std::mem::forget(old_array);
+        self.len = new_len;
 
         Ok(())
     }
 
     /// Blocks the host thread until all events in this list are complete.
     pub fn wait_for(&self) -> OclResult<()> {
-        for event_idx in 0..(self.len) {
-            self.array[event_idx].wait_for()?;
+        // for event_idx in 0..(self.len) {
+        for ev in &self.array[..self.len] {
+            // self.array[event_idx].wait_for()?;
+            ev.wait_for()?;
         }
 
         Ok(())
@@ -444,28 +471,18 @@ impl EventArray {
         self.len as u32
     }
 
-    /// Drops and zeros the specified element. Care must be taken to ensure the count is accurately managed
-    unsafe fn remove(&self, idx: usize) {
-        panic!("Fix up this system... add a proper remove function (like Vec's)");
+    // /// Unsafely copies an event from this array without incrementing its
+    // /// reference count.
+    // #[inline(always)]
+    // unsafe fn read(&self, idx: usize) -> Event {
+    //     ptr::read(&self.array[idx])
+    // }
 
-        unsafe { 
-            drop(self.read(idx));
-            self.zero(idx);
-        }     
-    }
-
-    /// Unsafely copies an event from this array without incrementing its
-    /// reference count.
-    #[inline(always)]
-    unsafe fn read(&self, idx: usize) -> Event {
-        ::std::ptr::read(&self.array[idx])
-    }
-
-    /// Unsafely wipes out (zeros) the specified element.
-    #[inline(always)]
-    unsafe fn zero(&mut self, idx: usize) {
-        ::std::ptr::write(&mut self.array[idx], Event::empty())
-    }
+    // /// Unsafely wipes out (zeros) the specified element.
+    // #[inline(always)]
+    // unsafe fn zero(&mut self, idx: usize) {
+    //     ptr::write(&mut self.array[idx], Event::empty())
+    // }
 }
 
 impl<'a, E> From<E> for EventArray where E: Into<Event> {
@@ -527,7 +544,18 @@ impl Clone for EventArray {
 
 impl Drop for EventArray {
     fn drop(&mut self) {
-        self.clear()
+        // ptr::drop_in_place(self.as_mut_slice());
+        self.clear();
+
+        for idx in 0..self.array.len() {
+            debug_assert!(self.array[idx].is_empty());
+        }
+    }
+}
+
+impl fmt::Debug for EventArray {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "EventArray {{ array: {:?}, len: {} }}", &self.array[..], self.len)
     }
 }
 
@@ -543,6 +571,36 @@ impl Drop for EventArray {
 //             .poll().map(|res| res.map(|_| ()))
 //     }
 // }
+
+impl Future for EventArray {
+    type Item = ();
+    type Error = OclError;
+    
+    /// Removes (pops) each event from this list and waits for it to complete,
+    /// dropping it in the process.
+    //
+    // * See `EventList::poll` for notes.
+    #[cfg(not(feature = "async_block"))]
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        while let Some(event) = self.pop() {
+            if !event.is_complete()? {                    
+                event.set_unpark_callback()?;
+                return Ok(Async::NotReady);
+            }   
+        }
+        Ok(Async::Ready(()))
+    }  
+
+    /// Removes (pops) each event from this list and waits for it to complete,
+    /// dropping it in the process.
+    #[cfg(feature = "async_block")]
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        while let Some(event) = self.pop() {
+            event.wait_for()?;
+        }
+        Ok(Async::Ready(()))
+    }
+}
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventArray {
     #[inline] fn alloc_new(&mut self) -> *mut cl_event { 
@@ -584,23 +642,29 @@ enum Inner {
 /// For access to individual events use `get_clone` and `last_clone` then
 /// either store or discard the result.
 ///
+/// `EventList` is a dynamically allocated list. It will be (internally) stack
+/// allocated (as an `[Event; 8]`) until it reaches a length of 9 at which
+/// time it will become heap-allocated (a `Vec<Event>`). Initializing with
+/// `::with_capacity` will cause the list to heap allocate immediately.
+///
+/// At the time of this writing, converting back from heap to stack allocation
+/// is not implemented but a bit of prodding (by filing an issue) would
+/// probably work to remedy that if anyone thinks it useful.
+///
 // * [FIXME] TODO: impl Index.
 #[derive(Debug, Clone)]
 pub struct EventList {
-    // events: Vec<Event>,
     inner: Inner,
 }
 
 impl EventList {
-    /// Returns a new, empty, `EventList`.
+    /// Returns a new, empty, stack-allocated `EventList`.
     #[inline]
     pub fn new() -> EventList {
-        EventList {
+        EventList {            
             inner: Inner::Array(EventArray::new()),
+            // inner: Inner::Vec(Vec::new()),
         }
-        // EventList {
-        //     inner: Inner::Vec(Vec::new()),
-        // }
     }
 
     /// Returns a new, empty, heap-allocated `EventList` with an initial capacity of `cap`.
@@ -616,13 +680,6 @@ impl EventList {
     ///
     /// FIXME: Implement conversion from Vec -> array.
     fn convert(&mut self) {
-        // This may be some sort of compiler bug (leaving mutable gives
-        // warning). Must be due to the fact that the `Inner::Vec` variant
-        // escapes (with unimplemented!()). Actually it might be intended
-        // behavior to allow the variable to be immutable if there is only one
-        // assignment (TODO: look that up).
-        //
-        // let mut new_inner: Inner;
         let new_inner: Inner;
 
         match self.inner {
@@ -635,37 +692,6 @@ impl EventList {
 
         self.inner = new_inner;
     }
-
-    // /// Adds an event to the list.
-    // //
-    // // TODO: Clean this up. There must be a simpler way to do this.
-    // #[inline]
-    // pub fn push<E: Into<Event>>(&mut self, event: E) {
-    //     let event = event.into();
-    //     let mut convert = false;
-
-    //     match self.inner {
-    //         Inner::Array(ref mut a) => {
-    //             let ev_cpy = unsafe { ::std::ptr::read(&event) };
-    //             match a.push(Event::from(ev_cpy)) {
-    //                 Ok(_) => unsafe { ::std::mem::forget(::std::ptr::read(&event)) },
-    //                 Err(_) => convert = true,
-    //             }
-    //         },  
-    //         Inner::Vec(ref mut v) => unsafe { v.push(::std::ptr::read(&event)) },
-    //     }
-    //     // match self.inner {
-    //     //     Inner::Array(ref mut a) => unimplemented!(),
-    //     //     Inner::Vec(ref mut v) => unsafe { v.push(event) },
-    //     // }
-
-    //     if convert {
-    //         self.convert();
-    //         self.push(event);
-    //     } else {
-    //         unsafe { ::std::mem::forget(::std::ptr::read(&event)) }
-    //     }
-    // }
 
     /// Adds an event to the list.
     //
@@ -728,7 +754,7 @@ impl EventList {
                 // * TODO: Reimplement optimized version using
                 //   `util::vec_remove_rebuild` (from old `EventListCore`).
                 let mut events = Vec::with_capacity(v.capacity());
-                std::mem::swap(&mut events, v);                
+                mem::swap(&mut events, v);                
                 for event in events {
                     if !event.is_complete()? {
                         v.push(event);
@@ -868,7 +894,6 @@ impl<'a, E> From<&'a [Option<E>]> for EventList where E: Into<Event> + Clone {
         for event in events {
             if let Some(ref e) = *event { el.push(e.clone().into()) }
         }
-
         el
     }
 }
@@ -880,7 +905,6 @@ impl<'a, 'b, E> From<&'a [Option<&'b E>]> for EventList where 'b: 'a, E: Into<Ev
         for event in events {
             if let Some(e) = *event { el.push(e.clone().into()) }
         }
-
         el
     }
 }
@@ -892,7 +916,6 @@ impl<'a, 'b, E> From<&'a [&'b Option<E>]> for EventList where 'b: 'a, E: Into<Ev
         for event in events {
             if let Some(ref e) = **event { el.push(e.clone().into()) }
         }
-
         el
     }
 }
@@ -906,7 +929,6 @@ impl<'a, 'b, 'c, E> From<&'a [&'b Option<&'c E>]> for EventList
         for event in events {
             if let Some(e) = **event { el.push(e.clone().into()) }
         }
-
         el
     }
 }
@@ -920,7 +942,6 @@ impl<'a> From<&'a [cl_event]> for EventList {
                 "EventList::from: Error converting from raw 'cl_event'") };
             event_list.push(event_core);
         }
-
         event_list
     }
 }
@@ -990,14 +1011,14 @@ macro_rules! impl_event_list_from_arrays {
                 let mut el = EventList::with_capacity(events.len());
 
                 for idx in 0..events.len() {
-                    let event = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    let event = unsafe { ptr::read(events.get_unchecked(idx)) };
                     el.push(event.into());
                 }
 
                 // Ownership has been unsafely transfered to the new event
                 // list (without modifying the event reference count). Not
                 // forgetting the source array would cause a double drop.
-                ::std::mem::forget(events);
+                mem::forget(events);
                 el
             }
         }
@@ -1007,11 +1028,11 @@ macro_rules! impl_event_list_from_arrays {
                 let mut el = EventList::with_capacity(events.len());
 
                 for idx in 0..events.len() {
-                    let event_opt = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
                     if let Some(event) = event_opt { el.push(event.into()); }
                 }
 
-                ::std::mem::forget(events);
+                mem::forget(events);
                 el
             }
         }
@@ -1021,11 +1042,10 @@ macro_rules! impl_event_list_from_arrays {
                 let mut el = EventList::with_capacity(events.len());
 
                 for idx in 0..events.len() {
-                    let event_opt = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
                     if let Some(event) = event_opt { el.push(event.clone().into()); }
                 }
-
-                ::std::mem::forget(events);
+                mem::forget(events);
                 el
             }
         }
@@ -1035,11 +1055,10 @@ macro_rules! impl_event_list_from_arrays {
                 let mut el = EventList::with_capacity(events.len());
 
                 for idx in 0..events.len() {
-                    let event_opt = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
                     if let Some(ref event) = *event_opt { el.push(event.clone().into()); }
                 }
-
-                ::std::mem::forget(events);
+                mem::forget(events);
                 el
             }
         }
@@ -1049,11 +1068,10 @@ macro_rules! impl_event_list_from_arrays {
                 let mut el = EventList::with_capacity(events.len());
 
                 for idx in 0..events.len() {
-                    let event_opt = unsafe { ::std::ptr::read(events.get_unchecked(idx)) };
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
                     if let Some(event) = *event_opt { el.push(event.clone().into()); }
                 }
-
-                ::std::mem::forget(events);
+                mem::forget(events);
                 el
             }
         }
@@ -1102,7 +1120,8 @@ impl Future for EventList {
     type Item = ();
     type Error = OclError;
 
-    /// Removes (pops) each event from this list and waits for 
+    /// Removes (pops) each event from this list and waits for it to complete,
+    /// dropping it in the process.
     ///
     // * NOTE: Multiple calls to poll may hit this function. Do not attempt to
     //   remove any events from this list which still require waiting. The
@@ -1119,6 +1138,10 @@ impl Future for EventList {
     //   The most efficient strategy of all would probably be to use a marker
     //   instead of an event wait list and just never poll an `EventList` in
     //   the first place.
+    //
+    // * ALSO NOTE: The event being waited on is actually dropped (at the exit
+    //   of the `while let` loop) and is kept alive by the runtime until its
+    //   command is complete.
     // 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         if PRINT_DEBUG { println!("##### EventList::poll: Polling Event list (thread: '{}').", 

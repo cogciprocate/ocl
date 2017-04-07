@@ -59,6 +59,7 @@ bitflags = "0.8"
 futures = "0.1"
 # parking_lot = "0.3"
 crossbeam = "0.2"
+nodrop = "0.1"
 
 [dev-dependencies]
 find_folder = "0.3"
