@@ -6,6 +6,7 @@ use super::{Error as AsyncError, Result as AsyncResult, MemMap};
 
 /// A future which resolves to a `MemMap` as soon as its creating command completes.
 #[must_use = "futures do nothing unless polled"]
+#[derive(Debug)]
 pub struct FutureMemMap<T: OclPrm> {
     core: Option<MemMapCore<T>>,
     len: usize,

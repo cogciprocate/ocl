@@ -8,6 +8,7 @@ use async::{Result as AsyncResult};
 ///
 /// [UNSTABLE]
 #[must_use = "commands do nothing unless enqueued"]
+#[derive(Debug)]
 pub struct MemUnmapCmd<'c, T> where T: 'c + OclPrm {
     queue: Option<&'c Queue>,
     mem_map: &'c mut MemMap<T>,

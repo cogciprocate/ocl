@@ -38,6 +38,7 @@ pub trait RwGuard<T> {
 }
 
 /// Allows access to the data contained within a lock just like a mutex guard.
+#[derive(Debug)]
 pub struct ReadGuard<T> {
     rw_vec: RwVec<T>,
     release_event: Option<Event>,
@@ -104,6 +105,7 @@ impl<T> RwGuard<T> for ReadGuard<T> {
 
 
 /// Allows access to the data contained within just like a mutex guard.
+#[derive(Debug)]
 pub struct WriteGuard<T> {
     rw_vec: RwVec<T>,
     release_event: Option<Event>,
@@ -176,7 +178,7 @@ impl<T> RwGuard<T> for WriteGuard<T> {
 
 
 /// The polling stage of a `Future...Guard`.
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum Stage {
     Marker,
     QrwLock,
@@ -196,6 +198,7 @@ enum Stage {
 ///    data.
 /// 
 #[must_use = "futures do nothing unless polled"]
+#[derive(Debug)]
 pub struct FutureRwGuard<T, G> {
     rw_vec: Option<RwVec<T>>,
     lock_rx: Option<oneshot::Receiver<()>>,
@@ -601,6 +604,7 @@ impl<T> FutureRwGuard<T, ReadGuard<T>> {
 /// `device_check.rs` example to determine if your device/platform is
 /// affected. AMD platform drivers are known to work properly on the
 /// aforementioned CPUs so use those instead if possible.
+#[derive(Debug)]
 pub struct RwVec<T> {
     lock: QrwLock<Vec<T>>,
 }
