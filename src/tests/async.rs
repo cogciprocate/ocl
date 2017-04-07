@@ -75,7 +75,7 @@ pub fn fill_junk(
 
     // Clear the wait list and push the previous iteration's kernel event
     // and the previous iteration's write init (unmap) event if they are set.
-    let wait_list = [kernel_event, verify_init_event].into_raw_list();
+    let wait_list = [kernel_event, verify_init_event].into_raw_array();
 
     // Create a marker so we can print the status message:
     let fill_wait_marker = wait_list.to_marker(&common_queue).unwrap();
@@ -199,7 +199,7 @@ pub fn verify_init(
     // Clear the wait list and push the previous iteration's read verify
     // completion event (if it exists) and the current iteration's write unmap
     // event.
-    let wait_list = [&verify_init_event.as_ref(), &write_init_event].into_raw_list();
+    let wait_list = [&verify_init_event.as_ref(), &write_init_event].into_raw_array();
 
     let mut future_read_data = src_buf.cmd().read(rw_vec)
         .queue(common_queue)
@@ -260,7 +260,7 @@ pub fn kernel_add(
 
     // Clear the wait list and push the previous iteration's read unmap event
     // and the current iteration's write unmap event if they are set.
-    let wait_list = [&verify_add_event, &write_init_event].into_raw_list();
+    let wait_list = [&verify_add_event, &write_init_event].into_raw_array();
 
     // Create a marker so we can print the status message:
     let kernel_wait_marker = wait_list.to_marker(&common_queue).unwrap();

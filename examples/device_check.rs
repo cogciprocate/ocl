@@ -675,7 +675,7 @@ pub fn fill_junk(
 
     // Clear the wait list and push the previous iteration's kernel event
     // and the previous iteration's write init (unmap) event if they are set.
-    let wait_list = [kernel_event].into_raw_list();
+    let wait_list = [kernel_event].into_raw_array();
 
     // Create a marker so we can print the status message:
     let fill_wait_marker = wait_list.to_marker(&common_queue).unwrap();
@@ -713,7 +713,7 @@ pub fn vec_write_async(
     }
 
     let mut future_guard = rw_vec.clone().request_write();
-    // let wait_list = [fill_event].into_raw_list();
+    // let wait_list = [fill_event].into_raw_array();
     future_guard.set_wait_list(fill_event);
     let release_event = future_guard.create_release_event(write_release_queue).unwrap().clone();
 
@@ -759,7 +759,7 @@ pub fn kernel_add(
         if PRINT { println!("* Kernel complete      \t(iter: {})", task_iter as usize); }
     }
 
-    let wait_list = [&verify_add_event, &write_init_event].into_raw_list();
+    let wait_list = [&verify_add_event, &write_init_event].into_raw_array();
     let kernel_wait_marker = wait_list.to_marker(&common_queue).unwrap();
 
     unsafe { kernel_wait_marker.as_ref().unwrap()

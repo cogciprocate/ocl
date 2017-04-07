@@ -310,7 +310,6 @@ impl EventArray {
     }
 
     /// Pushes a new event into the list.
-    #[inline]
     pub fn push<E: Into<Event>>(&mut self, event: E) -> Result<(), Event> {
         if (self.len) < self.array.len() {
             let event = event.into();
@@ -324,7 +323,6 @@ impl EventArray {
     }
 
     /// Pushes an `Option<Event>` to the list if it is `Some(...)`.
-    #[inline]
     pub fn push_some<E: Into<Event>>(&mut self, event: Option<E>) -> Result<(), Event> {
         if let Some(e) = event { 
             self.push(e.into()) 
@@ -334,7 +332,6 @@ impl EventArray {
     } 
 
     /// Removes the last event from the list and returns it.
-    #[inline]
     pub fn pop(&mut self) -> Option<Event> {
         if self.len > 0 {            
             self.len -= 1;
@@ -360,14 +357,13 @@ impl EventArray {
     /// [MAY DEPRICATE]: Prefer `::swap_remove`, this function is really unnecessary.
     pub fn remove(&mut self, idx: usize) -> Event {
         assert!(idx < self.len);
-        let old = take(&mut self.array[idx]);        
+        let old = take(&mut self.array[idx]);
 
         // Shift everything after `idx` to the left:
         unsafe {
             let ptr = self.array.as_mut_ptr().offset(idx as isize);
             ptr::copy(ptr.offset(1), ptr, self.len - idx - 1);
         }
-
         self.len -= 1;
         old
     }
@@ -381,7 +377,6 @@ impl EventArray {
         for ev in &mut self.array[..self.len] {
             let _ = take(ev);
         }
-
         self.len = 0;
     }
 
@@ -400,7 +395,6 @@ impl EventArray {
         }
 
         self.len = new_len;
-
         Ok(())
     }
 
@@ -409,7 +403,6 @@ impl EventArray {
         for ev in &self.array[..self.len] {
             ev.wait_for()?;
         }
-
         Ok(())
     }
 
@@ -475,6 +468,7 @@ impl<'a, E> From<E> for EventArray where E: Into<Event> {
 }
 
 impl<'a, E> From<&'a E> for EventArray where E: Into<Event> + Clone {
+    #[inline]
     fn from(event: &E) -> EventArray {
         Self::from(event.clone().into())
     }
@@ -498,12 +492,14 @@ impl<'a, E> From<&'a [E]> for EventArray where E: Into<Event> + Clone {
 impl Deref for EventArray {
     type Target = [Event];
 
+    #[inline]
     fn deref(&self) -> &[Event] {
         self.as_slice()
     }
 }
 
 impl DerefMut for EventArray {
+    #[inline]
     fn deref_mut(&mut self) -> &mut [Event] {
         self.as_mut_slice()
     }
@@ -776,7 +772,7 @@ impl EventList {
         }
     }
 
-    /// Returns a slice of the contained events.
+    /// Returns a mutable slice of the contained events.
     #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [Event] {
         match self.inner {
@@ -827,12 +823,14 @@ impl EventList {
 }
 
 impl<'a, E> From<E> for EventList where E: Into<Event> {
+    #[inline]
     fn from(event: E) -> EventList {
         EventList { inner: Inner::Array(EventArray::from(event)) }
     }
 }
 
 impl<'a, E> From<&'a E> for EventList where E: Into<Event> + Clone {
+    #[inline]
     fn from(event: &E) -> EventList {
         EventList { inner: Inner::Array(EventArray::from(event)) }
     }
@@ -925,10 +923,78 @@ impl<'a, 'b, 'c, E> From<&'a [&'b Option<&'c E>]> for EventList
     }
 }
 
+macro_rules! impl_event_list_from_arrays {
+    ($( $len:expr ),*) => ($(
+        impl<'e, E> From<[E; $len]> for EventList where E: Into<Event> {
+            fn from(events: [E; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for idx in 0..events.len() {
+                    let event = unsafe { ptr::read(events.get_unchecked(idx)) };
+                    el.push(event.into());
+                }
+                // Ownership has been unsafely transfered to the new event
+                // list without modifying the event reference count. Not
+                // forgetting the source array would cause a double drop.
+                mem::forget(events);
+                el
+            }
+        }
+
+        impl<'e, E> From<[Option<E>; $len]> for EventList where E: Into<Event> {
+            fn from(events: [Option<E>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
+                    if let Some(event) = event_opt { el.push(event.into()); }
+                }
+                mem::forget(events);
+                el
+            }
+        }
+
+        impl<'e, E> From<[Option<&'e E>; $len]> for EventList where E: Into<Event> + Clone {
+            fn from(events: [Option<&E>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
+                    if let Some(event) = event_opt { el.push(event.clone().into()); }
+                }
+                mem::forget(events);
+                el
+            }
+        }
+
+        impl<'e, 'f, E> From<[&'f Option<E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
+            fn from(events: [&'f Option<E>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
+                    if let Some(ref event) = *event_opt { el.push(event.clone().into()); }
+                }
+                mem::forget(events);
+                el
+            }
+        }
+
+        impl<'e, 'f, E> From<[&'f Option<&'e E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
+            fn from(events: [&'f Option<&'e E>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
+                    if let Some(event) = *event_opt { el.push(event.clone().into()); }
+                }
+                mem::forget(events);
+                el
+            }
+        }
+    )*);
+}
+
+impl_event_list_from_arrays!(1, 2, 3, 4, 5, 6, 7, 8);
+
 impl<'a> From<&'a [cl_event]> for EventList {
     fn from(raw_events: &[cl_event]) -> EventList {
         let mut event_list = EventList::new();
-
         for &ptr in raw_events {
             let event_core = unsafe { EventCore::from_raw_copied_ptr(ptr).expect(
                 "EventList::from: Error converting from raw 'cl_event'") };
@@ -938,9 +1004,16 @@ impl<'a> From<&'a [cl_event]> for EventList {
     }
 }
 
+impl<'a> From<EventArray> for EventList {
+    #[inline]
+    fn from(events: EventArray) -> EventList {
+        EventList { inner: Inner::Array(events) }
+    }   
+}
+
 impl<'a> From<RawEventArray> for EventList {
+    #[inline]
     fn from(raw_events: RawEventArray) -> EventList {
-        // println!("EventList: Converting from RawEventArray: {:?}", raw_events);
         EventList::from(raw_events.as_slice())
     }   
 }
@@ -974,82 +1047,6 @@ impl<'a> From<Ref<'a, ClWaitListPtr>> for EventList {
         Self::from(raw_slice)
     }
 }
-
-macro_rules! impl_event_list_from_arrays {
-    ($( $len:expr ),*) => ($(
-        impl<'e, E> From<[E; $len]> for EventList where E: Into<Event> {
-            fn from(events: [E; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
-
-                for idx in 0..events.len() {
-                    let event = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    el.push(event.into());
-                }
-
-                // Ownership has been unsafely transfered to the new event
-                // list (without modifying the event reference count). Not
-                // forgetting the source array would cause a double drop.
-                mem::forget(events);
-                el
-            }
-        }
-
-        impl<'e, E> From<[Option<E>; $len]> for EventList where E: Into<Event> {
-            fn from(events: [Option<E>; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
-
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(event) = event_opt { el.push(event.into()); }
-                }
-
-                mem::forget(events);
-                el
-            }
-        }
-
-        impl<'e, E> From<[Option<&'e E>; $len]> for EventList where E: Into<Event> + Clone {
-            fn from(events: [Option<&E>; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
-
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(event) = event_opt { el.push(event.clone().into()); }
-                }
-                mem::forget(events);
-                el
-            }
-        }
-
-        impl<'e, 'f, E> From<[&'f Option<E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
-            fn from(events: [&'f Option<E>; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
-
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(ref event) = *event_opt { el.push(event.clone().into()); }
-                }
-                mem::forget(events);
-                el
-            }
-        }
-
-        impl<'e, 'f, E> From<[&'f Option<&'e E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
-            fn from(events: [&'f Option<&'e E>; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
-
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(event) = *event_opt { el.push(event.clone().into()); }
-                }
-                mem::forget(events);
-                el
-            }
-        }
-    )*);
-}
-
-impl_event_list_from_arrays!(1, 2, 3, 4, 5, 6, 7, 8);
 
 impl<'a> From<ClWaitListPtrEnum<'a>> for EventList {
     /// Returns an `EventList` containing owned copies of each element in
@@ -1114,7 +1111,7 @@ impl Future for EventList {
 
     /// Removes (pops) each event from this list and waits for it to complete,
     /// dropping it in the process.
-    ///
+    //
     // * NOTE: Multiple calls to poll may hit this function. Do not attempt to
     //   remove any events from this list which still require waiting. The
     //   most robust strategy so far seems to simply wait on each event
@@ -1153,7 +1150,6 @@ impl Future for EventList {
         }
 
         // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );
-        // self.wait_for().map(|r| Async::Ready(r))
         if PRINT_DEBUG { println!("##### EventList::poll: All events complete (thread: '{}').", 
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
         
@@ -1195,7 +1191,6 @@ unsafe impl<'a> ClWaitListPtr for &'a EventList {
 #[derive(Debug, Clone)]
 pub struct RawEventArray {
     list: [cl_event; 8],
-    // count: u32,
     len: usize,
 }
 
@@ -1219,11 +1214,6 @@ impl RawEventArray {
 
     #[inline]
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        // match self.list.first() {
-        //     Some(ev) => ev as *const _ as *const cl_event,
-        //     None => 0 as *const cl_event,
-        // }
-
         if self.len > 0 {
             &self.list as *const _ as *const cl_event
         } else {
@@ -1265,11 +1255,9 @@ impl RawEventArray {
 impl<'e, E> From<&'e [E]> for RawEventArray where E: Borrow<Event> {
     fn from(events: &[E]) -> RawEventArray {
         let mut list = unsafe { RawEventArray::null() };
-
         for e in events {
             list.push(e.borrow());
         }
-
         list
     }
 }
@@ -1277,13 +1265,11 @@ impl<'e, E> From<&'e [E]> for RawEventArray where E: Borrow<Event> {
 impl<'e, E> From<&'e [Option<E>]> for RawEventArray where E: Borrow<Event> {
     fn from(events: &[Option<E>]) -> RawEventArray {
         let mut list = unsafe { RawEventArray::null() };
-
         for event in events {
             if let Some(ref e) = *event {
                 list.push(e.borrow());
             }
         }
-
         list
     }
 }
@@ -1291,13 +1277,11 @@ impl<'e, E> From<&'e [Option<E>]> for RawEventArray where E: Borrow<Event> {
 impl<'e, 'f, E> From<&'e [&'f Option<E>]> for RawEventArray where 'e: 'f, E: Borrow<Event> {
     fn from(events: &[&Option<E>]) -> RawEventArray {
         let mut list = unsafe { RawEventArray::null() };
-
         for &event in events {
             if let Some(ref e) = *event {
                 list.push(e.borrow());
             }
         }
-
         list
     }
 }
@@ -1307,11 +1291,9 @@ macro_rules! impl_raw_list_from_arrays {
         impl<'e, E> From<[E; $len]> for RawEventArray where E: Borrow<Event> {
             fn from(events: [E; $len]) -> RawEventArray {
                 let mut list = unsafe { RawEventArray::null() };
-
                 for e in &events {
                     list.push(e.borrow());
                 }
-
                 list
             }
         }
@@ -1319,13 +1301,11 @@ macro_rules! impl_raw_list_from_arrays {
         impl<'e, E> From<[Option<E>; $len]> for RawEventArray where E: Borrow<Event> {
             fn from(events: [Option<E>; $len]) -> RawEventArray {
                 let mut list = unsafe { RawEventArray::null() };
-
                 for event in &events {
                     if let Some(ref e) = *event {
                         list.push(e.borrow());
                     }
                 }
-
                 list
             }
         }
@@ -1333,13 +1313,11 @@ macro_rules! impl_raw_list_from_arrays {
         impl<'e, 'f, E> From<[&'f Option<E>; $len]> for RawEventArray where 'e: 'f, E: Borrow<Event> {
             fn from(events: [&'f Option<E>; $len]) -> RawEventArray {
                 let mut list = unsafe { RawEventArray::null() };
-
                 for &event in &events {
                     if let Some(ref e) = *event {
                         list.push(e.borrow());
                     }
                 }
-
                 list
             }
         }
@@ -1423,29 +1401,29 @@ impl_marker_arrays!(1, 2, 3, 4, 5, 6, 7, 8);
 
 /// Conversion to a stack allocated array of `cl_event` pointers.
 pub trait IntoRawEventArray {
-    fn into_raw_list(self) -> RawEventArray;
+    fn into_raw_array(self) -> RawEventArray;
 }
 
 // impl<'e> IntoRawEventArray  for &'e [Event] {
-//     fn into_raw_list(self) -> RawEventArray {
+//     fn into_raw_array(self) -> RawEventArray {
 //         RawEventArray::from(self)
 //     }
 // }
 
 impl<'s, 'e> IntoRawEventArray  for &'s [&'e Event] where 'e: 's {
-    fn into_raw_list(self) -> RawEventArray {
+    fn into_raw_array(self) -> RawEventArray {
         RawEventArray::from(self)
     }
 }
 
 impl<'s, 'e> IntoRawEventArray  for &'s [Option<&'e Event>] where 'e: 's {
-    fn into_raw_list(self) -> RawEventArray {
+    fn into_raw_array(self) -> RawEventArray {
         RawEventArray::from(self)
     }
 }
 
 impl<'s, 'o, 'e> IntoRawEventArray  for &'s [&'o Option<&'e Event>] where 'e: 's + 'o, 'o: 's {
-    fn into_raw_list(self) -> RawEventArray {
+    fn into_raw_array(self) -> RawEventArray {
         RawEventArray::from(self)
     }
 }
@@ -1453,25 +1431,25 @@ impl<'s, 'o, 'e> IntoRawEventArray  for &'s [&'o Option<&'e Event>] where 'e: 's
 macro_rules! impl_raw_list_arrays {
     ($( $len:expr ),*) => ($(
         // impl<'e> IntoRawEventArray  for [Event; $len] {
-        //     fn into_raw_list(self) -> RawEventArray {
+        //     fn into_raw_array(self) -> RawEventArray {
         //         RawEventArray::from(self)
         //     }
         // }
 
         impl<'s, 'e> IntoRawEventArray  for [&'e Event; $len] where 'e: 's {
-            fn into_raw_list(self) -> RawEventArray {
+            fn into_raw_array(self) -> RawEventArray {
                 RawEventArray::from(self)
             }
         }
 
         impl<'s, 'e> IntoRawEventArray  for [Option<&'e Event>; $len] where 'e: 's {
-            fn into_raw_list(self) -> RawEventArray {
+            fn into_raw_array(self) -> RawEventArray {
                 RawEventArray::from(self)
             }
         }
 
         impl<'s, 'o, 'e> IntoRawEventArray  for [&'o Option<&'e Event>; $len] where 'e: 's + 'o, 'o: 's {
-            fn into_raw_list(self) -> RawEventArray {
+            fn into_raw_array(self) -> RawEventArray {
                 RawEventArray::from(self)
             }
         }
