@@ -138,7 +138,8 @@ pub fn write_init(
     let mut future_guard = rw_vec.clone().request_write();
     // future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
     future_guard.set_wait_list(wait_list);
-    let release_event = future_guard.create_release_event(write_init_release_queue_0).unwrap().clone();
+    let release_event = future_guard.create_release_event(write_init_release_queue_0)
+        .unwrap().clone();
 
     // println!("######     'release_event' (generate): {:?}", release_event);
 

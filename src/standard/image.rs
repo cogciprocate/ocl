@@ -1,5 +1,9 @@
 //! An OpenCL Image.
 //!
+// 
+// * NOTE: `Image` does not have the latest command builders nor does it have
+//   support for mapping yet. (TODO: implement)
+//
 
 use std;
 use std::mem;
