@@ -9,7 +9,7 @@ extern crate qutex;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
-use futures::sync::oneshot;
+use futures::sync::oneshot::{self, Receiver};
 use core::ClContextPtr;
 use ::{Event, EventList};
 use async::{Error as AsyncError, Result as AsyncResult};
@@ -190,30 +190,26 @@ enum Stage {
 }
 
 
-/// A future that resolves to an `Guard` after ensuring that the data being
+/// A future that resolves to a `Guard` after ensuring that the data being
 /// guarded is appropriately locked during the execution of an OpenCL command.
 ///
 /// 1. Waits until both an exclusive data lock can be obtained **and** all
 ///    prerequisite OpenCL commands have completed.
 /// 2. Triggers an OpenCL command, remaining locked while the command
 ///    executes.
-/// 3. Returns an `Guard` which provides exclusive access to the locked
+/// 3. Returns a `Guard` which provides exclusive access to the locked
 ///    data.
 /// 
 #[must_use = "futures do nothing unless polled"]
 #[derive(Debug)]
 pub struct FutureRwGuard<T, G> {
     rw_vec: Option<RwVec<T>>,
-    lock_rx: Option<oneshot::Receiver<()>>,
-    /// Bring this back if we decide to switch back to an event marker, which
-    /// is probably more efficient than the list: 
-    // wait_event: Option<Event>
+    lock_rx: Option<Receiver<()>>,
     wait_list: Option<EventList>,
     lock_event: Option<Event>,
-    // command_access: Option<RequestKind>,
     command_completion: Option<Event>,
     upgrade_after_command: bool,
-    upgrade_rx: Option<oneshot::Receiver<()>>,
+    upgrade_rx: Option<Receiver<()>>,
     release_event: Option<Event>,
     stage: Stage,
     _guard: PhantomData<G>,
@@ -221,14 +217,12 @@ pub struct FutureRwGuard<T, G> {
 
 impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// Returns a new `FutureRwGuard`.
-    fn new(rw_vec: RwVec<T>, lock_rx: oneshot::Receiver<()>) -> FutureRwGuard<T, G> {
+    fn new(rw_vec: RwVec<T>, lock_rx: Receiver<()>) -> FutureRwGuard<T, G> {
         FutureRwGuard {
             rw_vec: Some(rw_vec),
             lock_rx: Some(lock_rx),
-            // wait_event: None,
             wait_list: None,
             lock_event: None,
-            // command_access: None,
             command_completion: None,
             upgrade_after_command: false,
             upgrade_rx: None,
@@ -238,21 +232,6 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
             _guard: PhantomData,
         }
     }
-
-    //////// DO NOT REMOVE (evaluate bringing back):
-        // /// Sets a wait event.
-        // ///
-        // /// Setting a wait event will cause this `FutureRwGuard` to wait until
-        // /// that event has its status set to complete (by polling it like any
-        // /// other future) before obtaining a lock on the guarded internal `Vec`.
-        // ///
-        // /// If multiple wait events need waiting on, add them to an `EventList`
-        // /// and enqueue a marker or create an array and use the `IntoMarker`
-        // /// trait to produce a marker which can be passed here.
-        // pub fn set_wait_event(&mut self, wait_event: Event) {
-        //     self.wait_event = Some(wait_event)
-        // }
-    /////////
 
     /// Sets an event wait list.
     ///
@@ -652,6 +631,11 @@ impl<T> RwVec<T> {
         let ptr = (*self.lock.as_mut_ptr()).as_mut_ptr();
         let len = (*self.lock.as_ptr()).len();
         ::std::slice::from_raw_parts_mut(ptr, len)
+    }
+
+    /// Returns the length of the internal `Vec`.
+    pub fn len(&self) -> usize {
+        unsafe { (*self.lock.as_ptr()).len() }
     }
 }
 

@@ -2,7 +2,7 @@
 
 use std;
 use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Range};
 use ffi::cl_GLuint;
 use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
@@ -183,7 +183,9 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::read(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Read;
-        BufferReadCmd { cmd: self, dst: dst_data.into() }
+        let dst = dst_data.into();
+        let len = dst.len();
+        BufferReadCmd { cmd: self, dst: dst, range: 0..len }
     }
 
     /// Specifies that this command will be a non-blocking, asynchronous read
@@ -208,7 +210,8 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             already set for this command.");
         self.kind = BufferCmdKind::Read;
         self.block = false;
-        BufferReadCmd { cmd: self, dst: dst_data.into() }
+        let len = dst_data.len();
+        BufferReadCmd { cmd: self, dst: dst_data.into(), range: 0..len }
     }
 
     /// Specifies that this command will be a write operation.
@@ -228,7 +231,9 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Write;
-        BufferWriteCmd { cmd: self, src: src_data.into() }
+        let src = src_data.into();
+        let len = src.len();
+        BufferWriteCmd { cmd: self, src: src, range: 0..len }
     }
 
     /// Specifies that this command will be a map operation.
@@ -549,6 +554,15 @@ impl<'d, T> ReadDst<'d, T> {
     fn take(&mut self) -> ReadDst<'d, T> {
         ::std::mem::replace(self, ReadDst::None)
     }
+
+    pub fn len(&self) -> usize {
+        match *self {
+            ReadDst::RwVec(ref rw_vec) => rw_vec.len(),
+            ReadDst::Writer(ref writer) => writer.len(),
+            ReadDst::Slice(ref slice) => slice.len(),
+            ReadDst::None => 0,
+        }
+    }
 }
 
 impl<'d, T> From<&'d mut [T]> for ReadDst<'d, T>  where T: OclPrm {
@@ -558,8 +572,8 @@ impl<'d, T> From<&'d mut [T]> for ReadDst<'d, T>  where T: OclPrm {
 }
 
 impl<'d, T> From<&'d mut Vec<T>> for ReadDst<'d, T>  where T: OclPrm {
-    fn from(slice: &'d mut Vec<T>) -> ReadDst<'d, T> {
-        ReadDst::Slice(slice.as_mut_slice())
+    fn from(vec: &'d mut Vec<T>) -> ReadDst<'d, T> {
+        ReadDst::Slice(vec.as_mut_slice())
     }
 }
 
@@ -591,7 +605,7 @@ impl<'d, T> From<FutureWriter<T>> for ReadDst<'d, T> where T: OclPrm {
 pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
     dst: ReadDst<'d, T>,
-    // data: RwVec<T>,
+    range: Range<usize>,
 }
 
 impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
@@ -633,8 +647,40 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// The 'shape' may not have already been set to rectangular by the
     /// `::rect` function.
-    pub fn offset(self, offset: usize)  -> BufferReadCmd<'c, 'd, T> {
+    pub fn offset(self, offset: usize) -> BufferReadCmd<'c, 'd, T> {
         BufferReadCmd { cmd: self.cmd.offset(offset), ..self }
+    }
+
+    /// Sets an offset into the destination data.
+    ///
+    /// Equivalent to setting the start position of a slice into the
+    /// destination data (e.g. `dst_data[dst_offset..]`). Use `::len` to set
+    /// the end position (resulting in `dst_data[dst_offset..len]`).
+    ///
+    /// Defaults to 0 if not set. Panics if `::rect` has been called.
+    pub fn dst_offset(mut self, dst_offset: usize) -> BufferReadCmd<'c, 'd, T> {
+        if let BufferCmdDataShape::Rect { .. } = self.cmd.shape {
+            panic!("Cannot set a destination offset for a rectangular read.");
+        }
+        self.range.end = dst_offset + self.range.len();
+        self.range.start = dst_offset;        
+        self
+    }
+
+    /// Sets the total length of data to read.
+    ///
+    /// Equivalent to setting the end position of a slice into the destination
+    /// data (e.g. `destination[..len]`). Use `::dst_offset` to set the start
+    /// position (resulting in `dst_data[dst_offset..len]`).
+    ///
+    /// Defaults to the total length of the read destination provided. Panics
+    /// if `::rect` has been called.
+    pub fn len(mut self, len: usize) -> BufferReadCmd<'c, 'd, T> {
+        if let BufferCmdDataShape::Rect { .. } = self.cmd.shape {
+            panic!("Cannot set a length for a rectangular read.");
+        }
+        self.range.end = self.range.start + len;
+        self
     }
 
     /// Specifies that this will be a rectangularly shaped operation
@@ -642,8 +688,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// Row and slice pitches must all be expressed in bytes.
     ///
-    /// Only valid for 'read', 'write', and 'copy' modes. Will error if used
-    /// with any other mode.
+    /// Panics if `:offset`, `dst_offset`, or `::len` have been called.
     pub fn rect(mut self, src_origin: [usize; 3], dst_origin: [usize; 3], region: [usize; 3],
                 src_row_pitch_bytes: usize, src_slc_pitch_bytes: usize, dst_row_pitch_bytes: usize,
                 dst_slc_pitch_bytes: usize) -> BufferReadCmd<'c, 'd, T>
@@ -651,6 +696,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
         if let BufferCmdDataShape::Lin { offset } = self.cmd.shape {
             assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
                 set to linear mode with '::offset`. You cannot call both '::offset' and '::rect'.");
+        }
+        if self.range.len() != self.dst.len() {
+            panic!("Buffer read: Cannot call '::rect' after calling '::src_offset' or '::len'.");
         }
 
         self.cmd.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
@@ -705,6 +753,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// running the command (which will also block for its duration).
     pub fn enq(mut self) -> OclResult<()> {
         let read_dst = self.dst.take();
+        let range = self.range.clone();
+        if range.end > read_dst.len() { return Err(OclError::from(
+            "Unable to enqueue buffer read command: Invalid src_offset and/or len.")) }
 
         let mut enqueue_with_data = |dst: &mut [T]| {
             let queue = match self.cmd.queue {
@@ -738,15 +789,17 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
         match read_dst {
             ReadDst::Slice(slice) => {
-                enqueue_with_data(slice)
+                enqueue_with_data(&mut slice[range])
             },
             ReadDst::RwVec(rw_vec) => {
-                let mut guard = rw_vec.request_write().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
-                enqueue_with_data(guard.as_mut_slice())
+                let mut guard = rw_vec.request_write().wait()
+                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
+                enqueue_with_data(&mut guard.as_mut_slice()[range])
             },
             ReadDst::Writer(writer) => {
-                let mut guard = writer.wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
-                enqueue_with_data(guard.as_mut_slice())
+                let mut guard = writer.wait()
+                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
+                enqueue_with_data(&mut guard.as_mut_slice()[range])
             }
             ReadDst::None => panic!("Invalid read destination."),
         }
@@ -779,6 +832,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     _ => return Err("BufferReadCmd::enq_async: Invalid data destination kind for an
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
                 };
+                if self.range.end > writer.len() { return Err(OclError::from(
+                    "Unable to enqueue buffer read command: Invalid src_offset and/or len.")) }
 
                 writer.create_lock_event(queue.context_ptr()?)?;             
 
@@ -786,8 +841,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     writer.set_wait_list(wl);
                 }
 
-                let dst = unsafe { writer.as_mut_slice().expect("BufferReadCmd::enq_async: \
-                    Invalid writer.") };
+                let dst = unsafe { &mut writer.as_mut_slice().expect("BufferReadCmd::enq_async: \
+                    Invalid writer.")[self.range] };
 
                 let mut read_event = Event::empty();
 
@@ -834,6 +889,15 @@ impl<'d, T> WriteSrc<'d, T> {
     fn take(&mut self) -> WriteSrc<'d, T> {
         ::std::mem::replace(self, WriteSrc::None)
     }
+
+    pub fn len(&self) -> usize {
+        match *self {
+            WriteSrc::RwVec(ref rw_vec) => rw_vec.len(),
+            WriteSrc::Reader(ref writer) => writer.len(),
+            WriteSrc::Slice(slice) => slice.len(),
+            WriteSrc::None => 0,
+        }
+    }
 }
 
 impl<'d, T> From<&'d [T]> for WriteSrc<'d, T>  where T: OclPrm {
@@ -843,8 +907,8 @@ impl<'d, T> From<&'d [T]> for WriteSrc<'d, T>  where T: OclPrm {
 }
 
 impl<'d, T> From<&'d Vec<T>> for WriteSrc<'d, T>  where T: OclPrm {
-    fn from(slice: &'d Vec<T>) -> WriteSrc<'d, T> {
-        WriteSrc::Slice(slice.as_slice())
+    fn from(vec: &'d Vec<T>) -> WriteSrc<'d, T> {
+        WriteSrc::Slice(vec.as_slice())
     }
 }
 
@@ -875,8 +939,8 @@ impl<'d, T> From<FutureReader<T>> for WriteSrc<'d, T> where T: OclPrm {
 #[must_use = "commands do nothing unless enqueued"]
 pub struct BufferWriteCmd<'c, 'd, T> where T: 'c + 'd {
     cmd: BufferCmd<'c, T>,
-    // src: &'d [T],
     src: WriteSrc<'d, T>,
+    range: Range<usize>,
  }
 
 impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
@@ -922,13 +986,44 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
         BufferWriteCmd { cmd: self.cmd.offset(offset), ..self }
     }
 
+    /// Sets an offset into the source data.
+    ///
+    /// Equivalent to setting the start position of a slice into the source
+    /// data (e.g. `src_data[src_offset..]`). Use `::len` to set the end
+    /// position (resulting in `src_data[dst_offset..len]`).
+    ///
+    /// Defaults to 0 if not set. Panics if `::rect` has been called.
+    pub fn src_offset(mut self, src_offset: usize) -> BufferWriteCmd<'c, 'd, T> {
+        if let BufferCmdDataShape::Rect { .. } = self.cmd.shape {
+            panic!("Cannot set a source offset for a rectangular write.");
+        }
+        self.range.end = src_offset + self.range.len();
+        self.range.start = src_offset;
+        self
+    }
+
+    /// Sets the total length of data to write.
+    ///
+    /// Equivalent to setting the end position of a slice into the source
+    /// data (e.g. `src_data[..len]`). Use `::src_offset` to set the
+    /// start position (resulting in `src_data[src_offset..len]`).
+    ///
+    /// Defaults to the length of the write source provided. Panics if
+    /// `::rect` has been called.
+    pub fn len(mut self, len: usize) -> BufferWriteCmd<'c, 'd, T> {
+        if let BufferCmdDataShape::Rect { .. } = self.cmd.shape {
+            panic!("Cannot set a length for a rectangular write.");
+        }
+        self.range.end = self.range.start + len;
+        self
+    }
+
     /// Specifies that this will be a rectangularly shaped operation
     /// (the default being linear).
     ///
     /// Row and slice pitches must all be expressed in bytes.
     ///
-    /// Only valid for 'read', 'write', and 'copy' modes. Will error if used
-    /// with any other mode.
+    /// Panics if `:offset`, `src_offset`, or `::len` have been called.
     pub fn rect(mut self, src_origin: [usize; 3], dst_origin: [usize; 3], region: [usize; 3],
                 src_row_pitch_bytes: usize, src_slc_pitch_bytes: usize, dst_row_pitch_bytes: usize,
                 dst_slc_pitch_bytes: usize) -> BufferWriteCmd<'c, 'd, T>
@@ -936,6 +1031,9 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
         if let BufferCmdDataShape::Lin { offset } = self.cmd.shape {
             assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
                 set to linear mode with '::offset`. You cannot call both '::offset' and '::rect'.");
+        }
+        if self.range.len() != self.src.len() {
+            panic!("Buffer write: Cannot call '::rect' after calling '::src_offset' or '::len'.");
         }
 
         self.cmd.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
@@ -990,6 +1088,9 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     /// running the command (which will also block).
     pub fn enq(mut self) -> OclResult<()> {
         let write_src = self.src.take();
+        let range = self.range.clone();
+        if range.end > write_src.len() { return Err(OclError::from(
+            "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
 
         let mut enqueue_with_data = |src: &[T]| {
             let queue = match self.cmd.queue {
@@ -1023,15 +1124,17 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
         match write_src {
             WriteSrc::Slice(slice) => {
-                enqueue_with_data(slice)
+                enqueue_with_data(&slice[range])
             },
             WriteSrc::RwVec(rw_vec) => {
-                let guard = rw_vec.request_read().wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
-                enqueue_with_data(guard.as_slice())
+                let guard = rw_vec.request_read().wait()
+                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
+                enqueue_with_data(&guard.as_slice()[range])
             },
             WriteSrc::Reader(reader) => {
-                let guard = reader.wait().map_err(|_| OclError::from("Unable to obtain lock."))?;
-                enqueue_with_data(guard.as_slice())
+                let guard = reader.wait()
+                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
+                enqueue_with_data(&guard.as_slice()[range])
             },
             WriteSrc::None => panic!("Invalid read destination."),
         }
@@ -1065,15 +1168,17 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     _ => return Err("BufferWriteCmd::enq_async: Invalid data destination kind for an
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
                 };
+                if self.range.end > reader.len() { return Err(OclError::from(
+                    "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
                 
-                reader.create_lock_event(queue.context_ptr()?)?;            
+                reader.create_lock_event(queue.context_ptr()?)?;
 
                 if let Some(wl) = self.cmd.ewait {
                     reader.set_wait_list(wl);
-                }          
+                }
 
-                let src = unsafe { reader.as_mut_slice().expect("BufferWriteCmd::enq_async: \
-                    Invalid reader.") };
+                let src = unsafe { &reader.as_mut_slice().expect("BufferWriteCmd::enq_async: \
+                    Invalid reader.")[self.range] };
 
                 let mut write_event = Event::empty();
 
