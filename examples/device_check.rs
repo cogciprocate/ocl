@@ -712,7 +712,7 @@ pub fn vec_write_async(
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
     }
 
-    let mut future_guard = rw_vec.clone().request_write();
+    let mut future_guard = rw_vec.clone().write();
     // let wait_list = [fill_event].into_raw_array();
     future_guard.set_wait_list(fill_event);
     let release_event = future_guard.create_release_event(write_release_queue).unwrap().clone();

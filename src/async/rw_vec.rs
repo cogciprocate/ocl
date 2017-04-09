@@ -604,7 +604,7 @@ impl<T> RwVec<T> {
     }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
-    pub fn request_read(self) -> FutureReader<T> {
+    pub fn read(self) -> FutureReader<T> {
         if PRINT_DEBUG { println!("RwVec::request_lock: Lock requested."); }
         let (tx, rx) = oneshot::channel();
         unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Read)); }
@@ -612,7 +612,7 @@ impl<T> RwVec<T> {
     }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
-    pub fn request_write(self) -> FutureWriter<T> {
+    pub fn write(self) -> FutureWriter<T> {
         if PRINT_DEBUG { println!("RwVec::request_lock: Lock requested."); }
         let (tx, rx) = oneshot::channel();
         unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Write)); }

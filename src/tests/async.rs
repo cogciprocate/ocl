@@ -135,7 +135,7 @@ pub fn write_init(
 
     let wait_list = [verify_init_event, fill_event];
 
-    let mut future_guard = rw_vec.clone().request_write();
+    let mut future_guard = rw_vec.clone().write();
     // future_guard.set_wait_event(wait_marker.as_ref().unwrap().clone());
     future_guard.set_wait_list(wait_list);
     let release_event = future_guard.create_release_event(write_init_release_queue_0)

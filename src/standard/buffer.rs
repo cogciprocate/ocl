@@ -792,7 +792,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 enqueue_with_data(&mut slice[range])
             },
             ReadDst::RwVec(rw_vec) => {
-                let mut guard = rw_vec.request_write().wait()
+                let mut guard = rw_vec.write().wait()
                     .map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&mut guard.as_mut_slice()[range])
             },
@@ -827,7 +827,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
         match self.cmd.kind {
             BufferCmdKind::Read => {
                 let mut writer = match self.dst {
-                    ReadDst::RwVec(rw_vec) => rw_vec.request_write(),
+                    ReadDst::RwVec(rw_vec) => rw_vec.write(),
                     ReadDst::Writer(writer) => writer,
                     _ => return Err("BufferReadCmd::enq_async: Invalid data destination kind for an
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
@@ -1127,7 +1127,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 enqueue_with_data(&slice[range])
             },
             WriteSrc::RwVec(rw_vec) => {
-                let guard = rw_vec.request_read().wait()
+                let guard = rw_vec.read().wait()
                     .map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&guard.as_slice()[range])
             },
@@ -1160,10 +1160,10 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
         match self.cmd.kind {
             BufferCmdKind::Write => {
-                // let mut reader = rw_vec.request_read().upgrade_after_command();
+                // let mut reader = rw_vec.read().upgrade_after_command();
 
                 let mut reader = match self.src {
-                    WriteSrc::RwVec(rw_vec) => rw_vec.request_read().upgrade_after_command(),
+                    WriteSrc::RwVec(rw_vec) => rw_vec.read().upgrade_after_command(),
                     WriteSrc::Reader(reader) => reader.upgrade_after_command(),
                     _ => return Err("BufferWriteCmd::enq_async: Invalid data destination kind for an
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
