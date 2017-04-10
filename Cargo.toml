@@ -28,7 +28,7 @@ opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 # `Async::NotReady` to its executor and will be a less performant solution.
 # Disable only if your platform has issues with event callbacks or thread
 # synchronization (old/non-compliant drivers - Known cases: certain
-# pre-sandy-bridge Intel processors [on Intel drivers], some other
+# pre-Sandy-Bridge Intel processors [on Intel drivers], some other
 # pre-gen-5-core processors [on Intel drivers]).
 #
 # Leaving this disabled is recommended.

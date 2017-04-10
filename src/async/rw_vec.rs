@@ -1,8 +1,8 @@
 //! A mutex-like lock which can be shared between threads and can interact
 //! with OpenCL events.
 //!
-//! 
-//! 
+//!
+//!
 
 extern crate qutex;
 
@@ -14,7 +14,7 @@ use core::ClContextPtr;
 use ::{Event, EventList};
 use async::{Error as AsyncError, Result as AsyncResult};
 // pub use self::qutex::{Request, Guard, FutureGuard, Qutex};
-pub use self::qutex::{ReadGuard as QrwReadGuard, WriteGuard as QrwWriteGuard, 
+pub use self::qutex::{ReadGuard as QrwReadGuard, WriteGuard as QrwWriteGuard,
     FutureReadGuard as QrwFutureReadGuard, FutureWriteGuard as QrwFutureWriteGuard, QrwLock,
     QrwRequest, RequestKind};
 
@@ -35,7 +35,7 @@ pub type FutureWriter<T> = FutureRwGuard<T, WriteGuard<T>>;
 //     rw_vec
 // }
 
-
+/// A read or write guard for an `RwVec`.
 pub trait RwGuard<T> {
     fn new(rw_vec: RwVec<T>, release_event: Option<Event>) -> Self;
 }
@@ -180,7 +180,7 @@ impl<T> RwGuard<T> for WriteGuard<T> {
 }
 
 
-/// The polling stage of a `Future...Guard`.
+/// The polling stage of a `FutureRwGuard`.
 #[derive(Debug, PartialEq)]
 enum Stage {
     Marker,
@@ -199,7 +199,7 @@ enum Stage {
 ///    executes.
 /// 3. Returns a `Guard` which provides exclusive access to the locked
 ///    data.
-/// 
+///
 #[must_use = "futures do nothing unless polled"]
 #[derive(Debug)]
 pub struct FutureRwGuard<T, G> {
@@ -227,7 +227,6 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
             upgrade_after_command: false,
             upgrade_rx: None,
             release_event: None,
-
             stage: Stage::Marker,
             _guard: PhantomData,
         }
@@ -238,6 +237,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// Setting a wait list will cause this `FutureRwGuard` to wait until
     /// contained events have their status set to complete before obtaining a
     /// lock on the guarded internal `Vec`.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
     pub fn set_wait_list<L: Into<EventList>>(&mut self, wait_list: L) {
         assert!(self.wait_list.is_none(), "Wait list has already been set.");
         self.wait_list = Some(wait_list.into());
@@ -255,6 +256,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// Not specifying a command completion event will cause this
     /// `FutureRwGuard` to resolve into an `RwGuard` immediately after the
     /// lock is obtained (indicated by the optionally created lock event).
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
     pub fn set_command_completion_event(&mut self, command_completion: Event) {
         assert!(self.command_completion.is_none(), "Command completion event has already been set.");
         self.command_completion = Some(command_completion);
@@ -277,13 +280,15 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
 
     /// Creates an event which will be triggered after this future resolves
     /// **and** the ensuing `RwGuard` is dropped or manually released.
-    ///    
+    ///
     /// The returned event can be added to the wait list of subsequent OpenCL
     /// commands with the expectation that when all preceding futures are
     /// complete, the event will automatically be 'triggered' by having its
     /// status set to complete, causing those commands to execute. This can be
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
     pub fn create_release_event<C: ClContextPtr>(&mut self, context: C) -> AsyncResult<&Event> {
         assert!(self.release_event.is_none(), "Release event has already been created.");
         self.release_event = Some(Event::user(context)?);
@@ -305,6 +310,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// Returns a reference to the event previously created with
     /// `::create_release_event` which will trigger (be completed) when a lock
     /// is obtained on the guarded internal `Vec`.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
     pub fn release_event(&self) -> Option<&Event> {
         self.release_event.as_ref()
     }
@@ -350,7 +357,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
             if let Async::NotReady = wait_list.poll()? {
                 return Ok(Async::NotReady);
             }
-            
+
         }
 
         self.stage = Stage::QrwLock;
@@ -360,7 +367,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// Polls the lock until we have obtained a lock then polls the command
     /// event.
     #[cfg(not(feature = "async_block"))]
-    fn poll_lock(&mut self) -> AsyncResult<Async<G>> {        
+    fn poll_lock(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::QrwLock);
         // println!("###### FutureRwGuard::poll_lock: called.");
 
@@ -375,7 +382,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
                 // Otherwise, return the `NotReady`. The rx (oneshot channel) will
                 // arrange for this task to be awakened when it's ready.
                 Ok(status) => {
-                    if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: status: {:?}, (thread: {}).", 
+                    if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: status: {:?}, (thread: {}).",
                         status, ::std::thread::current().name().unwrap_or("<unnamed>")); }
                     match status {
                         Async::Ready(_) => {
@@ -400,7 +407,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// Polls the lock until we have obtained a lock then polls the command
     /// event.
     #[cfg(feature = "async_block")]
-    fn poll_lock(&mut self) -> AsyncResult<Async<G>> {        
+    fn poll_lock(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::QrwLock);
         // println!("###### FutureRwGuard::poll_lock: called.");
 
@@ -440,7 +447,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         // when this `FutureRwGuard` drops.
         self.command_completion = None;
 
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command: All polling complete (thread: {}).", 
+        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command: All polling complete (thread: {}).",
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         if self.upgrade_after_command {
@@ -473,18 +480,18 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
                         Err(err) => Err(err.into()),
                     }
                 }
-            }            
+            }
         } else {
             // Check for completion of the upgrade rx:
             match self.upgrade_rx.as_mut().unwrap().poll() {
                 Ok(status) => {
-                    if PRINT_DEBUG { println!("###### FutureRwGuard::poll_upgrade: status: {:?}, (thread: {}).", 
+                    if PRINT_DEBUG { println!("###### FutureRwGuard::poll_upgrade: status: {:?}, (thread: {}).",
                         status, ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
                     Ok(status.map(|_| self.into_guard()))
                 },
                 Err(e) => Err(e.into()),
-            }      
+            }
         }
     }
 
@@ -502,9 +509,9 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
             Err(rx) => {
                 self.upgrade_rx = Some(rx);
                 self.upgrade_rx.take().unwrap().wait()?;
-                Ok(Async::Ready(self.into_guard()))                    
+                Ok(Async::Ready(self.into_guard()))
             }
-        }   
+        }
     }
 
     /// Resolves this `FutureRwGuard` into the appropriate result guard.
@@ -525,7 +532,7 @@ impl<T, G> Future for FutureRwGuard<T, G> where G: RwGuard<T> {
                 Stage::QrwLock => self.poll_lock(),
                 Stage::Command => self.poll_command(),
                 Stage::Upgrade => self.poll_upgrade(),
-            }            
+            }
         } else {
             Err("FutureRwGuard::poll: Task already completed.".into())
         }
@@ -552,7 +559,7 @@ impl<T> FutureRwGuard<T, ReadGuard<T>> {
     pub fn upgrade_after_command(self) -> FutureWriter<T> {
         use std::ptr::read;
 
-        let future_guard = unsafe { 
+        let future_guard = unsafe {
             FutureRwGuard {
                 rw_vec: read(&self.rw_vec),
                 lock_rx: read(&self.lock_rx),
@@ -564,7 +571,7 @@ impl<T> FutureRwGuard<T, ReadGuard<T>> {
                 release_event: read(&self.release_event),
                 stage: read(&self.stage),
                 _guard: PhantomData,
-            } 
+            }
         };
 
         ::std::mem::forget(self);

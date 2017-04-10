@@ -82,9 +82,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 /// A view of memory mapped by `clEnqueueMap{...}`.
 ///
 ///
-/// [UNSTABLE]
-///
-/// Still in a state of flux: ~90% stable
+/// [UNSTABLE]: Still in a state of flux: ~90% stable
 ///
 //
 // [NOTE]: Do not derive/impl `Clone`. Will not be thread safe without a mutex.

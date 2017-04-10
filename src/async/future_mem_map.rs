@@ -4,7 +4,10 @@ use standard::{Event, Queue, EventList};
 use super::{Error as AsyncError, Result as AsyncResult, MemMap};
 
 
-/// A future which resolves to a `MemMap` as soon as its creating command completes.
+/// A future which resolves to a `MemMap` as soon as its creating command
+/// completes.
+///
+/// [UNSTABLE]: This types methods may be renamed or otherwise changed at any time.
 #[must_use = "futures do nothing unless polled"]
 #[derive(Debug)]
 pub struct FutureMemMap<T: OclPrm> {
@@ -12,7 +15,7 @@ pub struct FutureMemMap<T: OclPrm> {
     len: usize,
     map_event: Event,
     unmap_wait_list: Option<EventList>,
-    unmap_target_event: Option<Event>,    
+    unmap_target_event: Option<Event>,
     buffer: Option<Mem>,
     queue: Option<Queue>,
     callback_is_set: bool,
@@ -39,6 +42,8 @@ impl<T: OclPrm> FutureMemMap<T> {
     ///
     /// Setting a wait list here will disallow any wait list from being set
     /// later if/when calling unmap manually.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed.
     pub fn set_unmap_wait_list<El>(&mut self, wait_list: El) where El: Into<EventList> {
         self.unmap_wait_list = Some(wait_list.into())
     }
@@ -53,6 +58,8 @@ impl<T: OclPrm> FutureMemMap<T> {
     /// status set to complete, causing those commands to execute. This can be
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed.
     pub fn create_unmap_target_event(&mut self) -> AsyncResult<&mut Event> {
         if let Some(ref queue) = self.queue {
             let uev = Event::user(&queue.context())?;
@@ -70,6 +77,8 @@ impl<T: OclPrm> FutureMemMap<T> {
     }
 
     /// Returns the unmap event if it has been created.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed.
     #[inline]
     pub fn unmap_target_event(&self) -> Option<&Event> {
         self.unmap_target_event.as_ref()
