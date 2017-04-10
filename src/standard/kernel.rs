@@ -3,8 +3,9 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::any::Any;
-use std::rc::{Rc};
-use std::cell::{RefCell};
+// use std::rc::{Rc};
+// use std::cell::{RefCell};
+use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
@@ -140,30 +141,30 @@ impl<'k> KernelCmd<'k> {
 ///     - Global Work Offset
 ///     - Global Work Size
 ///     - Local Work Size
-///
-/// ### `Clone`, `Send`, and segfaults
-///
-/// Every struct field of `Kernel` is safe to `Send` and `Clone` (after all of
-/// the arguments are specified) with the exception of `mem_args`. In order to
-/// keep references to buffers/images alive throughout the life of the kernel
-/// and prevent nasty, platform-dependent, and very hard to debug segfaults,
-/// storing `MemCore`s (buffers/images) is necessary. However, storing them
-/// means that there are compromises in other areas. The following are the
-/// options as I see them:
-///
-/// 1. [CURRENT] Store buffers/images in an Rc<RefCell>. This allows us to
-///    `Clone` but not to `Send` between threads.
-/// 2. Store buffers/images in an Arc<Mutex/RwLock> allowing both `Clone` and
-///    `Send` at the cost of performance (could add up if users constantly
-///    change arguments).
-/// 3. [PREVIOUS] Disallow cloning and sending.
-/// 4. Don't store buffer/image references and let them segfault if the user
-///    doesn't keep them alive properly.
-///
-/// Please provide feedback by filing an [issue] if you have thoughts,
-/// suggestions, or alternative ideas.
-///
-/// [issue]: https://github.com/cogciprocate/ocl/issues
+//
+// ### `Clone`, `Send`, and segfaults
+//
+// Every struct field of `Kernel` is safe to `Send` and `Clone` (after all of
+// the arguments are specified) with the exception of `mem_args`. In order to
+// keep references to buffers/images alive throughout the life of the kernel
+// and prevent nasty, platform-dependent, and very hard to debug segfaults,
+// storing `MemCore`s (buffers/images) is necessary. However, storing them
+// means that there are compromises in other areas. The following are the
+// options as I see them:
+//
+// 1. Store buffers/images in an Rc<RefCell>. This allows us to
+//    `Clone` but not to `Send` between threads.
+// 2. [CURRENT] Store buffers/images in an Arc<Mutex/RwLock> allowing both `Clone` and
+//    `Send` at the cost of performance (could add up if users constantly
+//    change arguments) [UPDATE]: Performance cost of this is below negligible.
+// 3. [PREVIOUS] Disallow cloning and sending.
+// 4. Don't store buffer/image references and let them segfault if the user
+//    doesn't keep them alive properly.
+//
+// Please provide feedback by filing an [issue] if you have thoughts,
+// suggestions, or alternative ideas.
+//
+// [issue]: https://github.com/cogciprocate/ocl/issues
 //
 // * TODO: Add more details, examples, etc.
 // * TODO: Add information about panics and errors.
@@ -173,7 +174,8 @@ impl<'k> KernelCmd<'k> {
 pub struct Kernel {
     obj_core: KernelCore,
     named_args: Option<HashMap<&'static str, u32>>,
-    mem_args: Rc<RefCell<Vec<Option<MemCore>>>>,
+    // mem_args: Rc<RefCell<Vec<Option<MemCore>>>>,
+    mem_args: Arc<Mutex<Vec<Option<MemCore>>>>,
     new_arg_count: u32,
     queue: Option<Queue>,
     gwo: SpatialDims,
@@ -183,21 +185,6 @@ pub struct Kernel {
     arg_types: Vec<ArgType>,
 }
 
-// ######### IMPLEMENT THIS #########
-// extern crate fnv;
-
-// use std::collections::HashMap;
-// use std::hash::BuildHasherDefault;
-// use fnv::FnvHasher;
-
-// type MyHasher = BuildHasherDefault<FnvHasher>;
-
-// fn main() {
-//     let mut map: HashMap<_, _, MyHasher> = HashMap::default();
-//     map.insert(1, "Hello");
-//     map.insert(2, ", world!");
-//     println!("{:?}", map);
-// }
 
 impl Kernel {
     /// Returns a new kernel.
@@ -219,13 +206,12 @@ impl Kernel {
 
         let mem_args = vec![None; num_args as usize];
 
-        // let named_args = HashMap::with_capacity(num_args as usize);
-
         Ok(Kernel {
             obj_core: obj_core,
             named_args: None,
             new_arg_count: 0,
-            mem_args: Rc::new(RefCell::new(mem_args)),
+            // mem_args: Rc::new(RefCell::new(mem_args)),
+            mem_args: Arc::new(Mutex::new(mem_args)),
             queue: None,
             gwo: SpatialDims::Unspecified,
             gws: SpatialDims::Unspecified,
@@ -630,21 +616,11 @@ impl Kernel {
         // platform.
         let arg = match arg {
             KernelArg::Mem(mem) => {
-                self.mem_args.borrow_mut()[arg_idx as usize] = Some(mem.clone());
-                // let ref mut mem_arg_ref = self.mem_args.borrow_mut()[arg_idx as usize];
-                // *mem_arg_ref = Some(mem.clone());
-                // let mem_arg_ref = self.mem_args.borrow().get(arg_idx as usize).as_ref().unwrap().unwrap();
-                // let mem_arg_ref = match self.mem_args.borrow().get(arg_idx as usize) {
-                //     Some(something) =>
-                //     None =>
-                // };
-
+                // self.mem_args.borrow_mut()[arg_idx as usize] = Some(mem.clone());
+                self.mem_args.lock().unwrap()[arg_idx as usize] = Some(mem.clone());
                 KernelArg::Mem(&mem)
             },
-            arg => {
-                self.mem_args.borrow_mut()[arg_idx as usize] = None;
-                arg
-            },
+            arg => arg,
         };
 
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
@@ -887,7 +863,7 @@ pub mod arg_type {
     use ::{OclPrm, Result as OclResult};
     use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
-    
+
     use core::{Error as OclError, Status};
     use core::Kernel as KernelCore;
     use standard::Sampler;
@@ -1022,7 +998,7 @@ pub mod arg_type {
                 Err(err) => {
                     if let OclError::Status { ref status, .. } = err {
                         if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
-                            return Ok(ArgType { base_type: BaseType::Unknown, 
+                            return Ok(ArgType { base_type: BaseType::Unknown,
                                 cardinality: Cardinality::One, is_ptr: false })
                         }
                     }
