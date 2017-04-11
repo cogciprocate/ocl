@@ -2895,12 +2895,24 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 
 /// Enqueues a command to execute a kernel on a device.
 ///
+/// # Safety
+///
+/// Running any kernel is an inherently unsafe process. As an API call this
+/// function is safe. The kernel code it may run must always be considered
+/// unsafe.
+///
 /// # Stability
 ///
-/// Work dimension/offset sizes *may* eventually be wrapped up in specialized types.
+/// * Work dimension/offset sizes *may* eventually be wrapped up in
+///   specialized types.
+/// * This function may (and probably should) be marked unsafe to reflect the
+///   inherent of kernel code.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueNDRangeKernel.html)
-pub fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+//
+// FIXME: Mark this unsafe
+//
+pub fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
             command_queue: &CommandQueue,
             kernel: &Kernel,
             work_dims: u32,
