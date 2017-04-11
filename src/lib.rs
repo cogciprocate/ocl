@@ -2,10 +2,10 @@
 
 //! Thin wrappers for the `OpenCL` FFI functions and types.
 //!
-//! Allows access to `OpenCL` FFI functions with a minimal layer of
-//! abstraction, providing both safety and convenience. The [`ocl`] crate
-//! contains higher level and easier to use interfaces to the functionality
-//! contained within.
+//! Allows access to `OpenCL` FFI functions with a minimal layer of zero-cost
+//! abstraction, providing, safety, performance, and convenience. The [`ocl`]
+//! crate contains higher level and easier to use interfaces to the
+//! functionality contained within.
 //!
 //!
 //! ## Even Lower Level: [`cl-sys`]
@@ -27,9 +27,11 @@
 //!
 //! ## Safety
 //!
-//! At the time of writing, some functions still *may* break Rust's usual
-//! safety promises and have not been 100% comprehensively evaluated and
-//! tested. Please file an [issue] if you discover something!
+//! Running any kernel at all is inherently unsafe. The guarantee we aim to
+//! make in this library is that if there is a segfault or invalid memory
+//! access, the fault lies within the kernel. No effort is or will be made to
+//! verify or sanitize kernels. Consider all kernels within user-supplied
+//! programs just as if you would an `unsafe fn`.
 //!
 //!
 //! ## Length vs Size
@@ -97,6 +99,8 @@
 //! [issue]: https://github.com/cogciprocate/ocl-core/issues
 //! ['OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/
 //! [`src/types/functions.rs`]: /ocl-core/src/ocl-core/src/types/functions.rs.html
+
+// #![doc(html_root_url="https://docs.rs/ocl-core/0.3/")]
 
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate enum_primitive;

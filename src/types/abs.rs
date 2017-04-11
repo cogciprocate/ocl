@@ -38,15 +38,11 @@
 //!
 //! [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html
 
-// #![doc(html_root_url="https://docs.rs/ocl-core/0.3/")]
-
 use std::mem;
 use std::ptr;
 use std::slice;
 use std::cell::Ref;
 use std::fmt::Debug;
-// use std::ops::Deref;
-// use std::borrow::Borrow;
 use libc::c_void;
 use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler};
@@ -158,7 +154,6 @@ impl ClVersions for cl_context {
 
 
 /// Types with a reference to a raw event pointer.
-///
 pub unsafe trait ClEventPtrRef<'e> {
     unsafe fn as_ptr_ref(&'e self) -> &'e cl_event;
 }
@@ -252,12 +247,6 @@ unsafe impl<'a> ClWaitListPtr for () {
 /// Types with a reference to a raw platform_id pointer.
 // pub unsafe trait ClPlatformIdPtr: Sized + Debug {
 pub unsafe trait ClPlatformIdPtr: Debug {
-    // unsafe fn as_ptr(&self) -> cl_platform_id {
-    //     debug_assert!(mem::size_of_val(self) == mem::size_of::<PlatformId>());
-    //     // mem::transmute_copy()
-    //     let core = self as *const Self as *const _ as *const PlatformId;
-    //     (*core).as_ptr()
-    // }
     fn as_ptr(&self) -> cl_platform_id;
 }
 
@@ -277,12 +266,6 @@ unsafe impl ClPlatformIdPtr for () {
 /// Types with a reference to a raw device_id pointer.
 // pub unsafe trait ClDeviceIdPtr: Sized + Debug {
 pub unsafe trait ClDeviceIdPtr: Debug {
-    // unsafe fn as_ptr(&self) -> cl_device_id {
-    //     debug_assert!(mem::size_of_val(self) == mem::size_of::<DeviceId>());
-    //     // mem::transmute_copy(self)
-    //     let core = self as *const Self as *const _ as *const DeviceId;
-    //     (*core).as_ptr()
-    // }
     fn as_ptr(&self) -> cl_device_id;
 }
 
@@ -378,13 +361,6 @@ unsafe impl ClPlatformIdPtr for PlatformId {
     }
 }
 
-// unsafe impl<'a> ClPlatformIdPtr for &'a PlatformId {
-//     fn as_ptr(&self) -> cl_platform_id {
-//         (*self).0
-//     }
-// }
-
-// unsafe impl<'a> ClPlatformIdPtr for &'a PlatformId {}
 unsafe impl Sync for PlatformId {}
 unsafe impl Send for PlatformId {}
 
@@ -400,7 +376,7 @@ impl ClVersions for PlatformId {
         functions::device_versions(&devices)
     }
 
-    // [FIXME]: TEMPORARY
+    // [FIXME]: TEMPORARY; [UPDATE]: Why is this marked temporary?
     fn platform_version(&self) -> OclResult<OpenclVersion> {
         self.version()
     }
@@ -441,20 +417,11 @@ impl DeviceId {
     }
 }
 
-// unsafe impl ClDeviceIdPtr for DeviceId {}
-// unsafe impl<'a> ClDeviceIdPtr for &'a DeviceId {}
-
 unsafe impl ClDeviceIdPtr for DeviceId {
     fn as_ptr(&self) -> cl_device_id {
         self.0
     }
 }
-
-// unsafe impl<'a> ClDeviceIdPtr for &'a DeviceId {
-//     fn as_ptr(&self) -> cl_device_id {
-//         (*self).0
-//     }
-// }
 
 unsafe impl Sync for DeviceId {}
 unsafe impl Send for DeviceId {}
@@ -480,7 +447,6 @@ impl ClVersions for DeviceId {
         functions::get_platform_info(&platform, PlatformInfo::Version).as_opencl_version()
     }
 }
-
 
 
 /// cl_context
@@ -566,23 +532,11 @@ impl PartialEq<Context> for Context {
     }
 }
 
-// unsafe impl ClContextPtr for Context {
-//     fn as_ptr(&self) -> cl_context {
-//         self.0
-//     }
-// }
-
 unsafe impl<'a> ClContextPtr for &'a Context {
     fn as_ptr(&self) -> cl_context {
         self.0
     }
 }
-
-// unsafe impl<'a> ClContextPtr for &'a mut Context {
-//     fn as_ptr(&self) -> cl_context {
-//         self.0
-//     }
-// }
 
 impl ClVersions for Context {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
@@ -1204,9 +1158,6 @@ impl Clone for Event {
 impl Drop for Event {
     fn drop(&mut self) {
         if !self.0.is_null() {
-            /////// [DEBUG]:
-            // println!("Releasing event: {:?}.", self);
-            // Ignore errors here? Some platforms just suck.
             unsafe { functions::release_event(self).unwrap(); }
         }
     }

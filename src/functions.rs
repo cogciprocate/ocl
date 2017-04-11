@@ -1,4 +1,4 @@
-//! Thin and safe function wrappers.
+//! Thin and safe OpenCL API function wrappers.
 //!
 //!
 //!
@@ -635,14 +635,14 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
 
 
 /// Increments the reference count of a context.
-pub unsafe fn retain_context<C>(context: C) -> OclResult<()> 
+pub unsafe fn retain_context<C>(context: C) -> OclResult<()>
         where C: ClContextPtr
 {
     eval_errcode(ffi::clRetainContext(context.as_ptr()), (), "clRetainContext", "")
 }
 
 /// Decrements reference count of a context.
-pub unsafe fn release_context<C>(context: C) -> OclResult<()> 
+pub unsafe fn release_context<C>(context: C) -> OclResult<()>
         where C: ClContextPtr
 {
     eval_errcode(ffi::clReleaseContext(context.as_ptr()), (), "clReleaseContext", "")
@@ -718,7 +718,7 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
 /// Returns an error result for all the reasons listed in the SDK in addition
 /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
 /// in in the `verify_context()` documentation below.
-pub fn get_context_info<C>(context: C, request: ContextInfo) -> ContextInfoResult 
+pub fn get_context_info<C>(context: C, request: ContextInfo) -> ContextInfoResult
         where C: ClContextPtr
 {
     ContextInfoResult::from_bytes(request, get_context_info_unparsed(context, request))
@@ -729,7 +729,7 @@ pub fn get_context_info<C>(context: C, request: ContextInfo) -> ContextInfoResul
 /// Errors upon the usual OpenCL errors.
 ///
 /// Returns `None` if the context properties do not specify a platform.
-pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>> 
+pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>>
         where C: ClContextPtr
 {
     let props_raw_bytes = get_context_info_unparsed(context, ContextInfo::Properties)?;
@@ -745,66 +745,6 @@ pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>>
         Ok(None)
     }
 }
-
-// /// Returns various kinds of context information.
-// ///
-// /// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
-// ///
-// /// # Errors
-// ///
-// /// Returns an error result for all the reasons listed in the SDK in addition
-// /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
-// /// in in the `verify_context()` documentation below.
-// pub fn get_context_info(context: C, request: ContextInfo)
-//         -> ContextInfoResult
-// {
-//    let mut result_size: size_t = 0;
-
-//     let errcode = unsafe { ffi::clGetContextInfo(
-//         context.as_ptr() as cl_context,
-//         request as cl_context_info,
-//         0 as size_t,
-//         0 as *mut c_void,
-//         &mut result_size as *mut usize,
-//     ) };
-
-//     if let Err(err) = eval_errcode(errcode, (), "clGetContextInfo", "") {
-//         return ContextInfoResult::Error(Box::new(err));
-//     }
-
-//     // Check for invalid context pointer (a potentially hard to track down bug)
-//     // using ridiculous and probably platform-specific logic [if the `Devices`
-//     // variant is passed and we're not in the release config]:
-//     if !cfg!(release) {
-//         let err_if_zero_result_size = request as cl_context_info == ffi::CL_CONTEXT_DEVICES;
-
-//         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-//             return ContextInfoResult::Error(Box::new(OclError::from("\n\nocl::core::context_info(): \
-//                 Possible invalid context detected. \n\
-//                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
-//                 invalid context object. If not, please file an issue at: \n\
-//                 https://github.com/cogciprocate/ocl/issues.\n\n")));
-//         }
-//     }
-
-//     // If result size is zero, return an empty info result directly:
-//     if result_size == 0 {
-//         return ContextInfoResult::from_bytes(request, Ok(vec![]));
-//     }
-
-//     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
-
-//     let errcode = unsafe { ffi::clGetContextInfo(
-//         context.as_ptr() as cl_context,
-//         request as cl_context_info,
-//         result_size as size_t,
-//         result.as_mut_ptr() as *mut c_void,
-//         0 as *mut usize,
-//     ) };
-
-//     let result = eval_errcode(errcode, result, "clGetContextInfo", "");
-//     ContextInfoResult::from_bytes(request, result)
-// }
 
 //============================================================================
 //========================== Command Queue APIs ==============================
@@ -1970,7 +1910,7 @@ pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo
 }
 
 /// Creates an event not already associated with any command.
-pub fn create_user_event<C>(context: C) -> OclResult<Event> 
+pub fn create_user_event<C>(context: C) -> OclResult<Event>
         where C: ClContextPtr
 {
     let mut errcode = 0;
@@ -3386,7 +3326,7 @@ pub fn event_is_complete<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult<bo
 /// it will stay intact for now.
 ///
 #[inline]
-pub fn verify_context<C>(context: C) -> OclResult<()> 
+pub fn verify_context<C>(context: C) -> OclResult<()>
         where C: ClContextPtr
 {
     // context_info(context, ffi::CL_CONTEXT_REFERENCE_COUNT)
@@ -3414,28 +3354,6 @@ fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclResult<bool> 
 
 /// Returns the context for a command queue, bypassing extra processing.
 pub fn get_command_queue_context_ptr(queue: &CommandQueue) -> OclResult<cl_context> {
-    // let mut result_size: size_t = 0;
-
-    // let errcode = unsafe { ffi::clGetCommandQueueInfo(
-    //     queue.as_ptr() as cl_command_queue,
-    //     request as cl_command_queue_info,
-    //     0 as size_t,
-    //     0 as *mut c_void,
-    //     &mut result_size as *mut size_t,
-    // ) };
-
-    // // try!(eval_errcode(errcode, result, "clGetCommandQueueInfo", ""));
-    // if let Err(err) = eval_errcode(errcode, (), "clGetCommandQueueInfo", "") {
-    //     return CommandQueueInfoResult::Error(Box::new(err));
-    // }
-
-    // // If result size is zero, return an empty info result directly:
-    // if result_size == 0 {
-    //     return CommandQueueInfoResult::from_bytes(request, Ok(vec![]));
-    // }
-
-    // let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
-
     let mut result = 0 as cl_context;
     let result_size = mem::size_of::<cl_context>();
 
@@ -3457,76 +3375,3 @@ pub fn get_command_queue_context_ptr(queue: &CommandQueue) -> OclResult<cl_conte
 //====================== Wow, you made it this far? ==========================
 //============================================================================
 //============================================================================
-
-
-// PROTOTYPES FOR VERSION CONTROL SYSTEM (DON'T DELETE YET):
-
-// /// Returns the OpenCL version for a device.
-// pub fn get_device_version(device_id: &DeviceId) -> OclResult<OpenclVersion> {
-//     get_device_info(device_id, DeviceInfo::Version).as_opencl_version()
-// }
-
-
-// /// Returns a list of versions for devices associated with a context.
-// pub fn get_context_device_versions(context: C) -> OclResult<Vec<OpenclVersion>> {
-//     match get_context_info(context, ContextInfo::Devices) {
-//         ContextInfoResult::Devices(d) => get_device_versions(&d),
-//         _ => panic!("core::functions::get_context_device_versions(): Unexpected variant."),
-//     }
-// }
-
-// /// Returns a list of versions for devices associated with a kernel.
-// pub fn get_context_device_versions(context: C) -> OclResult<Vec<OpenclVersion>> {
-//     match get_context_info(context, ContextInfo::Devices) {
-//         ContextInfoResult::Devices(d) => get_device_versions(&d),
-//         _ => panic!("core::functions::get_context_device_versions(): Unexpected variant."),
-//     }
-// }
-
-// fn verify_device_version(device_version: Option<&OpenclVersion>,
-//             reqd_version: [u16; 2], device: &DeviceId) -> OclResult<()> {
-//     let reqd_ver = OpenclVersion::from(reqd_version);
-//     match device_version {
-//         Some(dv) => verify_versions(&[dv.clone()], &reqd_ver),
-//         None => verify_versions(&try!(get_device_versions(&[device.clone()])), &reqd_ver),
-//     }
-// }
-
-// fn verify_device_versions(device_versions: Option<&[OpenclVersion]>,
-//             reqd_version: [u16; 2], devices: &[DeviceId]) -> OclResult<()> {
-//     let reqd_ver = OpenclVersion::from(reqd_version);
-//     match device_versions {
-//         Some(dv) => verify_versions(&dv, &reqd_ver),
-//         None => verify_versions(&try!(get_device_versions(devices)), &reqd_ver),
-//     }
-// }
-
-// /// Verifies context device versions.
-// fn verify_context_device_versions(device_versions: Option<&[OpenclVersion]>,
-//             reqd_version: [u16; 2], context: C) -> OclResult<()> {
-//     let reqd_ver = OpenclVersion::from(reqd_version);
-//     match device_versions {
-//         Some(dv) => verify_versions(dv, &reqd_ver),
-//         None => verify_versions(&try!(get_context_device_versions(context)), &reqd_ver),
-//     }
-// }
-
-// /// Verifies program device versions.
-// fn verify_program_device_versions(device_versions: Option<&[OpenclVersion]>,
-//             reqd_version: [u16; 2], program: &Program) -> OclResult<()> {
-//     let reqd_ver = OpenclVersion::from(reqd_version);
-//     match device_versions {
-//         Some(dv) => verify_versions(dv, &reqd_ver),
-//         None => verify_versions(&try!(get_program_device_versions(program)), &reqd_ver),
-//     }
-// }
-
-// /// Verifies kernel device versions.
-// fn verify_kernel_device_versions(device_versions: Option<&[OpenclVersion]>,
-//             reqd_version: [u16; 2], kernel: &Kernel) -> OclResult<()> {
-//     let reqd_ver = OpenclVersion::from(reqd_version);
-//     match device_versions {
-//         Some(dv) => verify_versions(dv, &reqd_ver),
-//         None => verify_versions(&try!(get_kernel_device_versions(kernel)), &reqd_ver),
-//     }
-// }
