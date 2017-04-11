@@ -2,6 +2,14 @@
 name = "ocl-core-vector"
 version = "0.1.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
+description = "OpenCL-compatible vector primitive types."
+# documentation = "http://doc.cogciprocate.com/ocl_core/ocl_core/index.html"
+homepage = "https://github.com/cogciprocate/ocl-core/tree/master/ocl-core-vector"
+repository = "https://github.com/cogciprocate/ocl-core/tree/master/ocl-core-vector"
+readme = "README.md"
+keywords = ["opencl", "vector"]
+license = "MIT/Apache-2.0"
+exclude = ["target/*", "bak/*"]
 
 [dependencies]
 num = "0.1"
