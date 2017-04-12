@@ -1423,7 +1423,7 @@ pub fn create_program_with_il<C>(
         ) -> OclResult<Program>
         where C: ClContextPtr
 {
-    verify_device_versions(device_versions, [2, 1], context)?;
+    verify_device_versions(device_versions, [2, 1], &context)?;
 
     let mut errcode: cl_int = 0;
 

@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "bak/*"]
-categories = ["asynchronous", "concurrency", "science"]
+categories = ["asynchronous", "concurrency", "science", "api-bindings"]
 
 [features]
 opencl_version_1_1 = ["cl-sys/opencl_version_1_1"]
