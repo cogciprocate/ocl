@@ -36,7 +36,7 @@ changes section below for details.
   [`ProQue`] allowing out of order execution and profiling to be enabled.
   Profiling had previously been enabled by default but now must be explicitly
   enabled by setting the [`QUEUE_PROFILING_ENABLE`] flag.
-* [`EventList`] have undergone tweaking and is now a 'smart' list, being stack
+* [`EventList`] has undergone tweaking and is now a 'smart' list, being stack
   allocated by default and heap allocated when its length exceeds 8 events.
 * [`EventArray`], a stack allocated array of events, has been added.
   [`EventArray`] is automatically used internally by [`EventList`] when
