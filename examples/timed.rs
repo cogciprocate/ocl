@@ -172,7 +172,7 @@ fn main() {
     // ##################################################
 
     print!("\n");
-    println!("Enqueuing {} oh-fuck-it kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
+    println!("Enqueuing another {} kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
 
     let kern_buf_start = time::get_time();
 

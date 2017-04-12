@@ -2,7 +2,9 @@
 //! with OpenCL events.
 //!
 //!
-//!
+//! TODO: Add doc links.
+//
+//
 
 extern crate qutex;
 
@@ -190,15 +192,16 @@ enum Stage {
 }
 
 
-/// A future that resolves to a `Guard` after ensuring that the data being
-/// guarded is appropriately locked during the execution of an OpenCL command.
+/// A future that resolves to a read or write guard after ensuring that the
+/// data being guarded is appropriately locked during the execution of an
+/// OpenCL command.
 ///
 /// 1. Waits until both an exclusive data lock can be obtained **and** all
 ///    prerequisite OpenCL commands have completed.
 /// 2. Triggers an OpenCL command, remaining locked while the command
 ///    executes.
-/// 3. Returns a `Guard` which provides exclusive access to the locked
-///    data.
+/// 3. Returns a guard which provides exclusive (write) or shared (read)
+///    access to the locked data.
 ///
 #[must_use = "futures do nothing unless polled"]
 #[derive(Debug)]
@@ -257,6 +260,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// `FutureRwGuard` to resolve into an `RwGuard` immediately after the
     /// lock is obtained (indicated by the optionally created lock event).
     ///
+    /// TODO: Reword this.
     /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
     pub fn set_command_completion_event(&mut self, command_completion: Event) {
         assert!(self.command_completion.is_none(), "Command completion event has already been set.");

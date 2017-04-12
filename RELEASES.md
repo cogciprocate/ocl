@@ -1,78 +1,76 @@
-Version 0.13.0 (UNRELEASED)
+Version 0.13.0 (2017-04-11)
 ===========================
 
-The futures have arrived! [futures-rs] has begun to find its way into ocl.
-This makes doing things like embedding (slipstreaming?) host processing work
-into the chain of enqueued commands, something that was previously cumbersome
-to implement, very easy and intuitive now. See the new `FutureMemMap`,
-`MemMap`, `FutureRwGuard`, `RwGuard`, and `RwVec` types (FIXME: ADD LINKS).
+The futures have arrived! The [`futures`] crate has begun to find its way into
+ocl. This makes doing things like embedding/inserting host processing work
+into the sequence of enqueued commands easy and intuitive. See the new
+[`MemMap`], [`RwVec`], [`FutureMemMap`], and [`FutureRwGuard`] types.
 
-This library will be approaching forward-compatible stabilization over the
-next year for all top level types. Before that point can be reached, we'll
-have to break a few eggs. This release brings consistency and simplification
-changes to a few important functions, notably `Buffer::new` and `Kernel::new`.
-See the breaking changes section below for details.
+We will be approaching stabilization over the next year for all top level
+types. Before that point can be reached, we'll have to break a few eggs. This
+release brings consistency and simplification changes to a few important
+functions, notably [`Buffer::new`] and [`Kernel::new`]. See the breaking
+changes section below for details.
 
-FIXME: Update all doc links at release
-
-* Asynchrony and Futures...
-  * FIXME: `RwVec`    
-  * FIXME: 
-  * FIXME: comment on changes to the types that `::enew` and `::ewait` accept.
-  * FIXME: refer to the breaking changes below
-  * FIXME: ::read, ::write, ::map
-    * how to use futures, etc.
-  * Buffers can now be mapped and unmapped safely both synchronously (thread
-    blocking) and asynchronously (using futures) using `Buffer::map`.
-  * Calling `::read`, `::write`, or `::map` on a `Buffer` or `Image` will now
-    return a `BufferReadCmd`, `BufferWriteCmd`, or `BufferMapCmd` command
-    builder. Each of the three command builders provide both `::enq` and
-    `::enq_async` methods. For those 'I/O' commands (read, write, and map):
-    `::enq` will block the current thread until completion and `::enq_async`
-    will instead return a future representing the completion of the command
-    and allow safe access to buffer data after the command has completed.
-
-* Sub-buffers can now easily be created from a `Bufer`. Use
-  `Buffer::create_sub_buffer` to create one.
+* Asynchrony and Futures:
+  * Buffers can now be mapped (and unmapped) safely both synchronously
+    (thread-blocking) and asynchronously (using futures) using
+    [`Buffer::map`].
+  * Calling `::read`, `::write`, or `::map` on a [`Buffer`], [`Image`],
+    [`BufferCmd`] or [`ImageCmd`] will now return a specialized
+    [`BufferReadCmd`], [`BufferWriteCmd`], or [`BufferMapCmd`] command
+    builder. These three new special command builders provide an `::enq_async`
+    method in addition to the usual `::enq` method. For these I/O commands
+    only, `::enq` will now always block the current thread until completion.
+    `::enq_async` will instead return a future representing the completion of
+    the command and will also allow safe access to buffer data after the
+    command has completed. This means that host-side processing can be easily
+    inserted into the stream of OpenCL commands seamlessly using
+    [futures][futures-doc] interfaces.
+* Sub-buffers can now be safely created from a [`Buffer`] using
+  [`Buffer::create_sub_buffer`].
 * Default queues on kernels, buffers, and images are no longer mandatory. See
   the breaking changes section below for details on how this impacts existing
   code.
-* When setting a kernel argument, the type associated with the argument is
-  checked against the type specified in the kernel's source code. The argument
-  type list is created when `Kernel::new` is called and the performance impact
-  when setting arguments is negligible. If this causes any errors (for
-  unidentifiable types) please report the issue immediately. You can opt out
-  of this check by using the new `Kernel::set_arg_unchecked` function
+* Command queue properties can now be specified when creating a [`Queue`] or
+  [`ProQue`] allowing out of order execution and profiling to be enabled.
+  Profiling had previously been enabled by default but now must be explicitly
+  enabled by setting the [`QUEUE_PROFILING_ENABLE`] flag.
+* [`EventList`] have undergone tweaking and is now a 'smart' list, being stack
+  allocated by default and heap allocated when its length exceeds 8 events.
+* [`EventArray`], a stack allocated array of events, has been added.
+  [`EventArray`] is automatically used internally by [`EventList`] when
+  necessary but can also be used on its own.
+* When setting a kernel argument, the type associated with the argument is now
+  checked against the type specified in the kernel's source code. This check
+  can be opted out of by using the new [`Kernel::set_arg_unchecked`] function
   described below.
-* `Kernel::set_arg_unchecked` and `Kernel::named_arg_idx` have been added
+* [`Kernel::set_arg_unchecked`] and [`Kernel::named_arg_idx`] have been added
   allowing the ability to set a kernel argument by index and retrieve the
   index of a named argument. Argument indexes always correspond exactly to the
-  order arguments are declared.
-* `Kernel` buffer and image related functions (such as `arg_buf`) can now
-  interchangeably accept either `Buffer<T>`, `Image<T>` types.
-* `BufferCmd`, `ImageCmd`, and `KernelCmd` have received some streamlining and
-  optimizations to event forwarding.
-* Command queue properties can now be specified when creating a `Queue` or
-  `ProQue` allowing out of order execution and profiling to be enabled.
-  Profiling had previously been enabled by default but now must be explicitly
-  enabled by setting the `QUEUE_PROFILING_ENABLE` flag.
+  order arguments are declared within the program source code for a kernel.
+* [`Kernel`] buffer and image related functions (such as `arg_buf`) can now
+  interchangeably accept either [`Buffer`] or [`Image`].
+* [`BufferCmd`], [`ImageCmd`], [`KernelCmd`], et al. have received
+  streamlining and optimizations with regards to events.
 * Complete rename, redesign, and macro-based reimplementation of all vector
   types. Vector types now implement all of the same operations as scalar types
   and use wrapping arithmetic (see breaking changes for more). There is also
   now a scalar version for each type using all of the same (wrapping)
-  operations and naming conventions (ex.: Double, Int, Uchar).
+  operations and naming conventions (ex.: Double, Int, Uchar). Future
+  optimization and/or interaction with the [`ndarray`] crate may be added if
+  requested (file an issue and let us hear your thoughts).
 
 Breaking Changes
 ----------------
-* `Buffer::new` continues to be unstable and is not recommended for use
+* [`Buffer::new`] continues to be unstable and is not recommended for use
   directly. Instead use the new [`BufferBuilder`] by calling
-  [`Buffer::builder()`].
-  * Before: 
+  [`Buffer::builder`] or [`BufferBuilder::new`].
+  * Before:
 
-    ```
-    Buffer::new(queue, Some(flags), dims, Some(&data))
-    ```
-  * Now: 
+    ```Buffer::new(queue, Some(flags), dims, Some(&data)) ```
+
+  * Now:
 
     ```
     Buffer::builder()
@@ -82,22 +80,20 @@ Breaking Changes
       .host_data(&data)
       .build()
     ```
+
 * [`Kernel::new`] no longer accepts a queue as a third argument (and can now
   be considered stabilized). Instead use the [`::queue`][kernel_queue]
   (builder-style) or [`::set_default_queue`][kernel_set_default_queue]
   methods. For example:
-  * Before: 
+  * Before:
 
-    ```
-    Kernel::new("kernel_name", &program, queue)?
-    ```
-  * Now: 
+    ```Kernel::new("kernel_name", &program, queue)?```
 
-    ```
-    Kernel::new("kernel_name", &program)?.queue(queue)
-    ```
-    FIXME Add/update links
-* `BufferCmd`, `ImageCmd`, and `KernelCmd` have undergone changes:
+  * Now:
+
+    ```Kernel::new("kernel_name", &program)?.queue(queue)```
+
+* [`BufferCmd`], [`ImageCmd`], and [`KernelCmd`] have undergone changes:
   * `::copy` signature change `offset` and `len` (size) are now optional.
     Offset will default to zero and length will default to the entire length
     of the buffer.
@@ -109,49 +105,57 @@ Breaking Changes
   `ImageBuilder::build`, `ImageBuilder::build_with_data`, `Image::new`,
   `Image::from_gl_texture`, `Image::from_gl_renderbuffer`,
   `Image::set_default_queue`, `Kernel::set_default_queue` now take an owned
-  `Queue` instead of a `&Queue` (clone it yourself).
+  [`Queue`] instead of a `&Queue` (clone it yourself).
 * All row pitch and slice pitch arguments (for image and rectangular buffer
   enqueue operations) must now be expressed in bytes.
-* `Kernel::set_default_queue` no longer result-wraps its `&'mut Kernel` return
+* [`Kernel::set_default_queue`] no longer result-wraps its `&'mut Kernel` return
   value.
-* `Kernel` named argument declaration functions such as `::arg_buf_named` or
+* [`Kernel`] named argument declaration functions such as `::arg_buf_named` or
   `::set_arg_img_named` called with a `None` variant must now specify the full
   type of the image, buffer, or sub-buffer which will be used for that
-  argument. Where before you might have used: 
+  argument. Where before you might have used:
+
     ```.arg_buf_named::<f32>("buf", None)```
-  you must now use: 
-    ```.arg_buf_named("buf", None::<Buffer<f32>>)``` 
-  or 
-    ```.arg_buf_named::<f32, Buffer<f32>>("buf", None)```.
-* `Queue::new` now takes a third argument: `properties` (details below in
+
+  you must now use:
+
+    ```.arg_buf_named("buf", None::<Buffer<f32>>)```
+
+  or:
+
+    ```.arg_buf_named::<f32, Buffer<f32>>("buf", None)```
+
+* [`Queue::new`] now takes a third argument, `properties` (details below in
   ocl-core section).
-* `Queue::finish` now returns a result instead of unwrapping.
-* `Program::new` has had its arguments rearranged for consistency.
-* `Event::wait` and `EventList::wait` have both been renamed to `::wait_for`.
+* [`Queue::finish`] now returns a result instead of unwrapping.
+* [`Program::new`] has had its arguments rearranged for consistency.
+* `Event::wait` and `EventList::wait` have both been renamed to
+  `::wait_for` to avoid conflicts with the [`Future`] trait. The new futures
+  versions of `::wait` do exactly the same thing however.
 * `::core_as_ref` and `::core_as_mut` for several types have been renamed to
   `::core` and `::core_mut`.
-* Vector types have been redesigned:
+* [Vector types] have been redesigned and moved into their own sub-crate:
   * The `Cl` prefix for each type has been removed.
-  * Tuple struct notation for creation has been removed. Use `::new`.
+  * Tuple struct notation for creation has been removed. Use `::new` or
+    `::from`.
   * All arithmetic operations are fully implemented and are wrapping.
   * Bitwise and shift operators have been added for integer types.
-  * Now located within `ocl::prm`.
+  * Now located within the [`ocl::prm`] module.
 
-### Breaking changes specific to `ocl-core`
+### Breaking changes specific to [`ocl-core`]
 * Passing event wait list and new event references has been completely
   overhauled. Previously, references of this type had to be converted into the
-  trait objects `ClWaitList` and `ClEventPtrNew`. This was convenient (outside
-  of the occasional awkward conversion) and obviated the need to type annotate
-  every time you passed `None` to an `enqueue...` function. Now that futures
-  have come to the library though, every ounce of performance must be wrung
-  out how events are processed and handled. This means that events and event
+  trait objects `ClWaitList` and `ClEventPtrNew`. This was convenient
+  (outside of the occasional awkward conversion) and obviated the need to type
+  annotate every time you passed `None` to an `enqueue_...` function. Now that
+  futures have come to the library though, every last ounce of performance
+  must be wrung out of event processing. This means that events and event
   lists are now treated as normal generics, not trait objects, and are
-  therefore slightly more efficient, at the cost of it being less convenient
-  to call functions when you are *not* using them. This leads to the following
-  breaking changes:
-  * The `ClWaitList` trait has been renamed to `ClWaitListPtr`
-  * The `ClEventPtrNew` trait has been renamed to `ClNullEventPtr`
-  * All `core::enqueue...` functions (and a few others) may now require
+  therefore optimally efficient, at the cost of it being less convenient to
+  call functions when you are *not* using them.
+  * The `ClWaitList` trait has been renamed to [`ClWaitListPtr`]
+  * The `ClEventPtrNew` trait has been renamed to [`ClNullEventPtr`]
+  * All `core::enqueue_...` functions (and a few others) may now require
     additional type annotations when `None` is passed as either the event wait
     list or new event reference. Passing a `None::<Event>` will suffice
     for either parameter (because it can serve either role) and is the easiest
@@ -162,33 +166,69 @@ Breaking Changes
     from the `None`s.
 * All row pitch and slice pitch arguments (for image and rectangular buffer
   operations) must now be expressed in bytes.
-* `EventList::pop` now returns an `Option<Event>` instead of an
+* [`EventList::pop`] now returns an `Option<Event>` instead of an
   `Option<Result<Event>>`.
-* `::create_command_queue` now takes a third argument: `properties`, an
+* [`::create_command_queue`] now takes a third argument: `properties`, an
   optional bitfield described in the [clCreateCommandQueue SDK
   Documentation]. Valid options include
-  `QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE` and `QUEUE_PROFILING_ENABLE`.
-* `::build_program` the `devices` argument is now optional. Not specifying any
+  [`QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE`] and [`QUEUE_PROFILING_ENABLE`].
+* [`::build_program`] the `devices` argument is now optional. Not specifying any
   devices will cause the program to be built for all available devices within
   the provided context.
-* `enqueue_map_buffer`, `enqueue_map_image`, and `enqueue_unmap_mem_object`
-  have had signature changes.
+* [`::enqueue_map_buffer`], [`::enqueue_map_image`], and
+  [`::enqueue_unmap_mem_object`] have had signature changes.
 
-Other Changes
--------------
-* `EventList::clear` has been added.
+FIXME: Change doc link root to `https://docs.rs/ocl/0.13/` at release.
 
-
-FIXME: Update links
-
-[`Buffer::builder()`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html#method.builder
+[`MemMap`]: http://docs.cogciprocate.com/ocl/ocl/struct.MemMap.html
+[`RwVec`]: http://docs.cogciprocate.com/ocl/ocl/struct.RwVec.html
+[`FutureMemMap`]: http://docs.cogciprocate.com/ocl/ocl/struct.FutureMemMap.html
+[`FutureRwGuard`]: http://docs.cogciprocate.com/ocl/ocl/struct.FutureRwGuard.html
+[`Buffer`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html
+[`Buffer::new`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html#method.new
+[`Buffer::map`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html#method.map
+[`Buffer::create_sub_buffer`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html#method.create_sub_buffer
+[`Buffer::builder`]: http://docs.cogciprocate.com/ocl/ocl/struct.Buffer.html#method.builder
+[`BufferCmd`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.BufferCmd.html
+[`BufferReadCmd`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.BufferReadCmd.html
+[`BufferWriteCmd`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.BufferWriteCmd.html
+[`BufferMapCmd`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.BufferMapCmd.html
 [`BufferBuilder`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.BufferBuilder.html
+[`BufferBuilder::new`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.BufferBuilder.html#method.new
+[`Kernel`]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html
 [`Kernel::new`]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.new
+[`Kernel::set_arg_unchecked`]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.set_arg_unchecked
+[`Kernel::named_arg_idx`]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.named_arg_idx
+[`Kernel::set_default_queue`]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.set_default_queue
 [kernel_queue]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.queue
 [kernel_set_default_queue]: http://docs.cogciprocate.com/ocl/ocl/struct.Kernel.html#method.set_default_queue
-[futures-rs]: https://github.com/alexcrichton/futures-rs
+[`KernelCmd`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.KernelCmd.html
+[`Image`]: http://docs.cogciprocate.com/ocl/ocl/struct.Image.html
+[`ImageCmd`]: http://docs.cogciprocate.com/ocl/ocl/builders/struct.ImageCmd.html
+[`Queue`]: http://docs.cogciprocate.com/ocl/ocl/struct.Queue.html
+[`Queue::new`]: http://docs.cogciprocate.com/ocl/ocl/struct.Queue.html#method.new
+[`Queue::finish`]: http://docs.cogciprocate.com/ocl/ocl/struct.Queue.html#method.finish
+[`ProQue`]: http://docs.cogciprocate.com/ocl/ocl/struct.ProQue.html
+[`QUEUE_PROFILING_ENABLE`]: http://docs.cogciprocate.com/ocl/ocl/flags/constant.QUEUE_PROFILING_ENABLE.html
+[`QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE`]: http://docs.cogciprocate.com/ocl/ocl/flags/constant.QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE.html
+[`EventList`]: http://docs.cogciprocate.com/ocl/ocl/struct.EventList.html
+[`EventList::pop`]: http://docs.cogciprocate.com/ocl/ocl/struct.EventList.html#method.pop
+[`EventArray`]: http://docs.cogciprocate.com/ocl/ocl/struct.EventArray.html
+[`Program::new`]: http://docs.cogciprocate.com/ocl/ocl/struct.Program.html#method.new
+[`ocl-core`]: https://github.com/cogciprocate/ocl-core
+[`ClWaitListPtr`]: http://docs.cogciprocate.com/ocl/ocl_core/types/abs/trait.ClWaitListPtr.html
+[`ClNullEventPtr`]: docs.cogciprocate.com/ocl/ocl_core/types/abs/trait.ClNullEventPtr.html
+[`::create_command_queue`]: http://docs.cogciprocate.com/ocl/ocl_core/fn.create_command_queue.html
+[`::build_program`]: http://docs.cogciprocate.com/ocl/ocl_core/fn.build_program.html
+[`::enqueue_map_buffer`]: http://docs.cogciprocate.com/ocl/ocl_core/fn.enqueue_map_buffer.html
+[`::enqueue_map_image`]: http://docs.cogciprocate.com/ocl/ocl_core/fn.enqueue_map_image.html
+[`::enqueue_unmap_mem_object`]: http://docs.cogciprocate.com/ocl/ocl_core/fn.enqueue_unmap_mem_object.html
+[`futures`]: https://github.com/alexcrichton/futures-rs
+[futures-doc]: https://docs.rs/futures
+[`Futures`]: https://docs.rs/futures/0.1
+[future_trait]: https://docs.rs/futures/0.1.13/futures/future/trait.Future.html
+[`ndarray`]: https://github.com/bluss/rust-ndarray
 [clCreateCommandQueue SDK Documentation]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateCommandQueue.html
-
 
 Version 0.12.0 (2017-01-14)
 ===========================
@@ -208,7 +248,7 @@ Breaking Changes
 * `Device::max_wg_size` now returns an `ocl::Result` instead of panicing.
 * `ProQue::max_wg_size` now returns an `ocl::Result` instead of panicing.
 * `EventList::push` and `EventList::pop` have been added.
-* ocl-core: 
+* ocl-core:
   * `::create_context` and `::create_context_from_type` have had their
     signatures changed. The `properties` argument is now an
     `Option<&ContextProperties>`.
@@ -355,7 +395,6 @@ Breaking Changes
 * `SimpleDims` has been renamed `SpatialDims` and many of its methods now
   return `Result` types.
 * `OclNum` has been renamed `OclPrm`
-
 
 New Features
 ------------

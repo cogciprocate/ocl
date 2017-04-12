@@ -467,10 +467,16 @@ impl Kernel {
     ///
     /// Shorthand for `.cmd().enq()`
     ///
+    /// # Safety
+    ///
+    /// All kernel code must be considered unsafe. Therefore the act of
+    /// calling this function contains implied unsafety even though the API
+    /// itself is safe. How best to express that without the ambiguity of
+    /// being marked `unsafe` while maintaining zero extra runtime overhead is
+    /// still under consideration. Please provide feedback by filing an issue
+    /// if you have any thoughts on the matter.
+    ///
     pub fn enq(&self) -> OclResult<()> {
-        // core::enqueue_kernel::<EventList>(&self.queue, &self.obj_core,
-        //     self.gws.dim_count(), self.gwo.to_work_offset(), &self.gws.to_lens().unwrap(), self.lws.to_work_size(),
-        //     None, None)
         self.cmd().enq()
     }
 
@@ -491,7 +497,6 @@ impl Kernel {
     /// kernel's program.
     ///
     pub fn set_default_queue(&mut self, queue: Queue) -> &mut Kernel {
-        // self.command_queue_obj_core = queue.core().clone();
         self.queue = Some(queue);
         self
     }
@@ -569,7 +574,6 @@ impl Kernel {
 
     /// Returns the argument index of a named argument if it exists.
     pub fn named_arg_idx(&self, name: &'static str) -> Option<u32> {
-        // self.named_args.get(name).cloned()
         self.resolve_named_arg_idx(name).ok()
     }
 
@@ -880,9 +884,6 @@ pub mod arg_type {
         Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16,
         Float, Float2, Float3, Float4, Float8, Float16,
         Double, Double2, Double3, Double4, Double8, Double16};
-
-
-
 
     // /// Returns a new argument type specifier.
     // pub fn arg_type(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {

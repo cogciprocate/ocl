@@ -1,21 +1,17 @@
 //! # [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) | [GitHub](https://github.com/cogciprocate/ocl)
 //!
-//! Rust implementation of `OpenCL`&trade;.
+//! Rust implementation of the [OpenCL&trade; API].
 //!
-//! This documentation is occasionally built from development branches and may
-//! differ slightly from what is on crates.io and the master branch.
+//! Some versions of this documentation are built from development branches
+//! and may differ slightly between what is on crates.io and the master
+//! branch. See the [repo page](https://github.com/cogciprocate/ocl) for links
+//! to both versions.
 //!
-//! The pages within are very much a work in progress, as is the library
-//! itself. Please help by filing an
-//! [issue](https://github.com/cogciprocate/ocl/issues) about unclear and/or
-//! incomplete documentation and it will be addressed.
-//!
-//! An explanation/tutorial of how dimensions and sizes of buffers and work
-//! queues are used will be coming as soon. Until then please see the
-//! [examples].
+//! Please report unclear documentation or places where examples would be
+//! appreciated by filing an [issue].
 //!
 //!
-//! ## Low Level Interfaces
+//! ## Foundations
 //!
 //! For lower level interfaces and to use `OpenCL` features that have not yet
 //! been implemented on the `standard` (high-level) interface types, see the
@@ -24,56 +20,56 @@
 //!
 //! ## Help Wanted
 //!
-//! Please help complete any functionality you may need by filing an
-//! [issue] or creating a [pull request](https://github.com/cogciprocate/ocl/pulls).
+//! Please request or help complete any functionality you may need by filing
+//! an [issue] or creating a [pull
+//! request](https://github.com/cogciprocate/ocl/pulls).
+//!
+//! Keep an eye out for places where examples would be useful and let us know!
 //!
 //!
 //! ## Feedback appreciated
 //!
-//! Suggestions and nitpicks are most welcome. This isn't ever going to be a
-//! busy repo so don't hesitate to file an [issue] to offer constructive criticism.
+//! Suggestions and nitpicks are most welcome. Don't hesitate to file an
+//! [issue] just to offer constructive criticism.
 //!
 //!
 //! <br/>
 //! *“`OpenCL` and the `OpenCL` logo are trademarks of Apple Inc. used by permission by Khronos.”*
-
 //!
+//!
+//! [OpenCL&trade; API]: https://www.khronos.org/registry/OpenCL/
 //! [issue]: https://github.com/cogciprocate/ocl/issues
 //! [`ocl-core`]: https://github.com/cogciprocate/ocl-core
 //! [`cl-sys`]: https://github.com/cogciprocate/cl-sys
 //! [`Result`]: /ocl/ocl/type.Result.html
 //! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
-#![doc(html_root_url = "https://docs.rs/ocl/0.12.0/ocl")]
+#![doc(html_root_url = "https://docs.rs/ocl/0.13")]
 
 // #![warn(missing_docs)]
-// #![feature(zero_one)]
-// #![feature(question_mark)]
-// #![feature(stmt_expr_attributes)]
 
-// #[macro_use] extern crate enum_primitive;
-// #[macro_use] extern crate bitflags;
 extern crate libc;
 extern crate num;
-#[cfg(test)] extern crate rand;
+#[cfg(test)]
+extern crate rand;
 extern crate futures;
 extern crate crossbeam;
-// extern crate parking_lot;
 pub extern crate ocl_core as core;
 
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 mod standard;
 pub mod async;
 
 pub use self::standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
-    EventList, EventArray, Sampler, SpatialDims, ProQue};    
-pub use self::async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard, FutureRwGuard, 
+    EventList, EventArray, Sampler, SpatialDims, ProQue};
+pub use self::async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard, FutureRwGuard,
     FutureReader, FutureWriter};
 pub use core::error::{Error, Result};
-#[doc(no_inline)] pub use core::ffi;
-#[doc(no_inline)] pub use core::util;
-// #[doc(no_inline)] pub use ocl_core as core;
-// pub use self::async::{Error as AsyncError, Result as AsyncResult};
+#[doc(no_inline)]
+pub use core::ffi;
+#[doc(no_inline)]
+pub use core::util;
 #[doc(no_inline)]
 pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
 
@@ -81,17 +77,18 @@ pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFl
 pub mod prm {
     //! OpenCL scalar and vector primitive types.
     //!
-    //! Primitives may have subtly different behaviour within Rust as they do
-    //! within kernels. Wrapping is one example of this. Scalar integers
-    //! within Rust may do overflow checks where in the kernel they do not.
-    //! Therefore two slightly different implementations of the scalar types
-    //! are provided in addition to a corresponding vector type for each.
+    //! Rust primitives may have subtly different behaviour than OpenCL
+    //! primitives within kernels. Wrapping is one example of this. Scalar
+    //! integers within Rust may do overflow checks where in the kernel they
+    //! do not. Therefore OpenCL-compatible implementations of each of the
+    //! types are provided so that host and device side operations can be
+    //! perfectly consistent.
     //!
     //! The `cl_...` (`cl_uchar`, `cl_int`, `cl_float`, etc.) types are simple
-    //! aliases of the Rust built-in primitive types and therefore always
-    //! behave exactly the same way. The uppercase-named types (`Uchar`,
-    //! `Int`, `Float`, etc.) are designed to behave identically to their
-    //! corresponding types within kernels.
+    //! aliases of the Rust built-in primitive types and do **not** behave the
+    //! same way that the kernel-side equivalents do. The uppercase-named
+    //! types, on the other hand, (`Uchar`, `Int`, `Float`, etc.) are designed
+    //! to behave identically to their corresponding types within kernels.
     //!
     //! Please file an issue if any of the uppercase-named kernel-mimicking
     //! types deviate from what they should (as they are reasonably new this
@@ -99,8 +96,9 @@ pub mod prm {
     //!
     //! Vector type fields can be accessed using index operations i.e. [0],
     //! [1], [2] ... etc. Plans for other ways of accessing fields (such as
-    //! `.x()`, `.y()`, `.s0()`, `.s15()`, etc.) may be considered. Create an
-    //! issue if you have an opinion on the matter.
+    //! `.x()`, `.y()`, `.s0()`, `.s15()`, etc.) will be considered in the
+    //! future (pending a number of additions/stabilizations to the Rust
+    //! language). Create an issue if you have an opinion on the matter.
     //!
     //! [NOTE]: This module may be renamed.
 
@@ -135,7 +133,7 @@ pub mod builders {
 
     pub use standard::{ContextBuilder, BuildOpt, ProgramBuilder, ImageBuilder, ProQueBuilder,
         DeviceSpecifier, BufferCmdKind, BufferCmdDataShape, BufferCmd, BufferReadCmd,
-        BufferWriteCmd, BufferMapCmd, ImageCmdKind, ImageCmd, KernelCmd, BufferBuilder};        
+        BufferWriteCmd, BufferMapCmd, ImageCmdKind, ImageCmd, KernelCmd, BufferBuilder};
     pub use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
     pub use core::{ImageFormat, ImageDescriptor, ContextProperties};
     // #[cfg(not(release))] pub use standard::BufferTest;
