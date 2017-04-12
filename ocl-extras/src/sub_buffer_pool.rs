@@ -1,7 +1,8 @@
 //! A sub-buffer allocator.
 
 use std::collections::{LinkedList, HashMap};
-use ocl::{Queue, Buffer, OclPrm};
+use ocl::{Queue, Buffer};
+use ocl::traits::OclPrm;
 use ocl::flags::MemFlags;
 
 
