@@ -60,10 +60,8 @@ chrono = "0.2"
 futures = "0.1"
 futures-cpupool = "0.1"
 lazy_static = "0.2"
-# ocl-extras = { version = "0.1", path = "ocl-extras" }
+ocl-extras = { version = "0.1", path = "ocl-extras" }
 
-# [workspace]
-# members = ["ocl-extras", "examples/images", "examples/images_safe_clamp",
-# 	"examples/opencl_2_1", "examples/proto"]
-# members = ["examples/images", "examples/images_safe_clamp",
-# 	"examples/opencl_2_1", "examples/proto"]
+[workspace]
+members = ["ocl-extras", "examples/images", "examples/images_safe_clamp",
+	"examples/opencl_2_1", "examples/proto"]

@@ -12,9 +12,9 @@ for others to use within their own projects.
 """
 
 [dependencies.ocl]
-# path = ".."
-git = "https://github.com/cogciprocate/ocl"
-# version = "0.12"
+path = ".."
+# git = "https://github.com/cogciprocate/ocl"
+version = "0.13"
 # default-features = false
 # features = ["opencl_version_1_1", "opencl_version_1_2"]
 
