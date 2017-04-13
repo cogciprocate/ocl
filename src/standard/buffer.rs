@@ -225,7 +225,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// See [SDK][write_buffer] docs for more details.
     ///
     /// [write_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueWriteBuffer.html
-    pub fn write<'d, W>(mut self, src_data: W) -> BufferWriteCmd<'c, 'd, T> 
+    pub fn write<'d, W>(mut self, src_data: W) -> BufferWriteCmd<'c, 'd, T>
             where W: Into<WriteSrc<'d, T>>
     {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
@@ -663,7 +663,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             panic!("Cannot set a destination offset for a rectangular read.");
         }
         self.range.end = dst_offset + self.range.len();
-        self.range.start = dst_offset;        
+        self.range.start = dst_offset;
         self
     }
 
@@ -835,7 +835,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 if self.range.end > writer.len() { return Err(OclError::from(
                     "Unable to enqueue buffer read command: Invalid src_offset and/or len.")) }
 
-                writer.create_lock_event(queue.context_ptr()?)?;             
+                writer.create_lock_event(queue.context_ptr()?)?;
 
                 if let Some(wl) = self.cmd.ewait {
                     writer.set_wait_list(wl);
@@ -1170,7 +1170,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 };
                 if self.range.end > reader.len() { return Err(OclError::from(
                     "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
-                
+
                 reader.create_lock_event(queue.context_ptr()?)?;
 
                 if let Some(wl) = self.cmd.ewait {
@@ -1446,7 +1446,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 #[derive(Debug, Clone)]
 pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
-    queue: Option<Queue>, 
+    queue: Option<Queue>,
     origin: Option<SpatialDims>,
     dims: SpatialDims,
     len: usize,
@@ -1477,7 +1477,7 @@ impl<T: OclPrm> Buffer<T> {
     // * TODO: Consider removing `fill_val` and leaving filling completely to
     //   the builder.
     //
-    pub fn new<'e, 'o, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D, 
+    pub fn new<'e, 'o, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
             host_data: Option<&[T]>, fill_val: Option<(T, Option<En>)>) -> OclResult<Buffer<T>>
             where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>, En: Into<ClNullEventPtrEnum<'e>>
     {
@@ -1489,12 +1489,16 @@ impl<T: OclPrm> Buffer<T> {
         let len = dims.to_len();
         let que_ctx = que_ctx.into();
 
-        let obj_core = match que_ctx {
-            QueCtx::Queue(ref q) => unsafe { core::create_buffer(&q.context(),
-                flags, len, host_data)? },
-            QueCtx::Context(c) => unsafe { core::create_buffer(c,
-                flags, len, host_data)? },
+        let ctx_owned;
+        let ctx_ref = match que_ctx {
+            QueCtx::Queue(ref q) => {
+                ctx_owned = q.context();
+                &ctx_owned
+            },
+            QueCtx::Context(c) => c,
         };
+
+        let obj_core = unsafe { core::create_buffer(ctx_ref, flags, len, host_data)? };
 
         let buf = Buffer {
             obj_core: obj_core,
@@ -1535,7 +1539,7 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](struct.BufferCmd.html)
     /// for more info.
     ///
-    pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D, 
+    pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
             gl_object: cl_GLuint) -> OclResult<Buffer<T>>
             where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>
     {
