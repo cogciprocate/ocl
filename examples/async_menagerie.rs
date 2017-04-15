@@ -147,7 +147,7 @@ impl Task {
 
         // Set the wait list for the map command if this is a read and the
         // unmap command if this is an invalidating write.
-        let (map_wait_list, unmap_wait_list) = if !is_write { 
+        let (map_wait_list, unmap_wait_list) = if is_write {
             (None, Some(self.cmd_graph.get_req_events(cmd_idx).unwrap().clone()))
         } else {
             (Some(self.cmd_graph.get_req_events(cmd_idx).unwrap()), None)

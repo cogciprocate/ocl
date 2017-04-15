@@ -47,8 +47,8 @@ nodrop = "0.1"
 ocl-core = "0.4"
 # ocl-core = { version = "0.4", git = "https://github.com/cogciprocate/ocl-core" }
 # ocl-core = { version = "0.4", path = "../ocl-core" }
-qutex = "0.1"
-# qutex = { version = "0.0", git = "https://github.com/cogciprocate/qutex" }
+# qutex = "0.1"
+qutex = { version = "0.1", git = "https://github.com/cogciprocate/qutex" }
 # qutex = { version = "0.0", path = "../qutex" }
 
 [dev-dependencies]

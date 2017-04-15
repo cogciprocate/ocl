@@ -751,6 +751,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// If an `RwVec` is being used as the data destination, the current
     /// thread will be blocked until an exclusive lock can be obtained before
     /// running the command (which will also block for its duration).
+    //
+    // NOTE: Could use deferred initialization for the guard slice instead of closure.
     pub fn enq(mut self) -> OclResult<()> {
         let read_dst = self.dst.take();
         let range = self.range.clone();
@@ -772,8 +774,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                             unsafe { core::enqueue_read_buffer(queue, self.cmd.obj_core, self.cmd.block,
                                 offset, dst, self.cmd.ewait.take(), self.cmd.enew.take()) }
                         },
-                        BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch_bytes, src_slc_pitch_bytes,
-                                dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
+                        BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch_bytes,
+                                src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
                         {
                             // TODO: Verify dims given (like `::check_len`).
                             unsafe { core::enqueue_read_buffer_rect(queue, self.cmd.obj_core,
@@ -818,12 +820,6 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             None => return Err("BufferCmd::enq: No queue set.".into()),
         };
 
-        // let rw_vec = match self.dst {
-        //     ReadDst::RwVec(rw_vec) => rw_vec,
-        //     _ => return Err("BufferReadCmd::enq_async: Invalid data destination kind for an
-        //         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
-        // };
-
         match self.cmd.kind {
             BufferCmdKind::Read => {
                 let mut writer = match self.dst {
@@ -832,8 +828,10 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     _ => return Err("BufferReadCmd::enq_async: Invalid data destination kind for an
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
                 };
-                if self.range.end > writer.len() { return Err(OclError::from(
-                    "Unable to enqueue buffer read command: Invalid src_offset and/or len.")) }
+                if self.range.end > writer.len() {
+                    return Err(OclError::from("Unable to enqueue buffer read command: \
+                        Invalid src_offset and/or len."))
+                }
 
                 writer.create_lock_event(queue.context_ptr()?)?;
 
@@ -1086,6 +1084,8 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     /// If an `RwVec` is being used as the data destination, the current
     /// thread will be blocked until an exclusive lock can be obtained before
     /// running the command (which will also block).
+    //
+    // NOTE: Could use deferred initialization for the guard slice instead of closure.
     pub fn enq(mut self) -> OclResult<()> {
         let write_src = self.src.take();
         let range = self.range.clone();
@@ -1151,12 +1151,6 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
         };
-
-        // let rw_vec = match self.src {
-        //     WriteSrc::RwVec(rw_vec) => rw_vec,
-        //     _ => return Err("BufferWriteCmd::enq_async: Invalid data destination kind for an
-        //         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
-        // };
 
         match self.cmd.kind {
             BufferCmdKind::Write => {
