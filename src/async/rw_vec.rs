@@ -451,9 +451,6 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         // when this `FutureRwGuard` drops.
         self.command_completion = None;
 
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command: All polling complete (thread: {}).",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
-
         if self.upgrade_after_command {
             self.stage = Stage::Upgrade;
             if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command: Moving to upgrade stage."); }
@@ -520,6 +517,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
 
     /// Resolves this `FutureRwGuard` into the appropriate result guard.
     fn into_guard(&mut self) -> G {
+        if PRINT_DEBUG { println!("###### FutureRwGuard::into_guard: All polling complete (thread: {}).",
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
         G::new(self.rw_vec.take().unwrap(), self.release_event.take())
     }
 }
@@ -616,7 +615,8 @@ impl<T> RwVec<T> {
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
     pub fn read(self) -> FutureReader<T> {
-        if PRINT_DEBUG { println!("RwVec::request_lock: Lock requested."); }
+        if PRINT_DEBUG { println!("RwVec::read: Read lock requested (thread: {}).",
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
         let (tx, rx) = oneshot::channel();
         unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Read)); }
         FutureRwGuard::new(self.into(), rx)
@@ -624,7 +624,8 @@ impl<T> RwVec<T> {
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
     pub fn write(self) -> FutureWriter<T> {
-        if PRINT_DEBUG { println!("RwVec::request_lock: Lock requested."); }
+        if PRINT_DEBUG { println!("RwVec::write: Write lock requested (thread: {}).",
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
         let (tx, rx) = oneshot::channel();
         unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Write)); }
         FutureRwGuard::new(self.into(), rx)
