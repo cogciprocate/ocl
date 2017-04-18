@@ -356,7 +356,8 @@ impl ProQueBuilder {
                 Some(ref context) => {
                     let plat = context.platform()?;
 
-                    println!("####### plat: {:?}, default: {:?}", plat, Platform::default());
+                    if DEBUG_PRINT { println!("ProQue::build(): plat: {:?}, default: {:?}",
+                        plat, Platform::default()); }
 
                     match plat {
                         Some(platform) => platform.clone(),
