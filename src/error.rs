@@ -4,6 +4,7 @@
 use std;
 use num::FromPrimitive;
 use ::Status;
+use ::EmptyInfoResult;
 
 /// `ocl::Error` result type.
 pub type Result<T> = std::result::Result<T, self::Error>;
@@ -67,7 +68,6 @@ fn gen_status_error<S: Into<String>>(errcode: i32, fn_name: &'static str, fn_inf
 ///
 /// For now, don't assume the existence of or check for any of the above.
 ///
-// #[derive(Debug)]
 pub enum Error {
     Void,
     Conversion(String),
@@ -80,6 +80,7 @@ pub enum Error {
     FromUtf8Error(std::string::FromUtf8Error),
     UnspecifiedDimensions,
     IntoStringError(std::ffi::IntoStringError),
+    EmptyInfoResult(EmptyInfoResult),
 }
 
 impl self::Error {
@@ -91,13 +92,13 @@ impl self::Error {
     /// Use `::from` instead.
     //
     #[deprecated(since="0.4.0", note="Use `::from` instead.")]
-    pub fn new<S: Into<String>>(desc: S) -> self::Error {
+    pub fn new<S: Into<String>>(desc: S) -> Self {
         self::Error::String(desc.into())
     }
 
     /// Returns a new `Error::String` with the given description.
     #[deprecated(since="0.4.0", note="Use `::from` instead.")]
-    pub fn string<S: Into<String>>(desc: S) -> self::Error {
+    pub fn string<S: Into<String>>(desc: S) -> Self {
         self::Error::String(desc.into())
     }
 
@@ -168,6 +169,20 @@ impl self::Error {
     }
 }
 
+impl std::fmt::Debug for self::Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use std::error::Error;
+        f.write_str(self.description())
+    }
+}
+
+impl std::fmt::Display for self::Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use std::error::Error;
+        f.write_str(self.description())
+    }
+}
+
 impl std::error::Error for self::Error {
     fn description(&self) -> &str {
         match *self {
@@ -181,19 +196,26 @@ impl std::error::Error for self::Error {
             Error::String(ref desc) => desc.as_str(),
             Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
                 Please specify some dimensions.",
+            Error::EmptyInfoResult(ref err) => err.description(),
             // _ => panic!("OclError::description()"),
         }
     }
 }
 
 impl From<()> for self::Error {
-    fn from(_: ()) -> self::Error {
+    fn from(_: ()) -> Self {
         self::Error::Void
     }
 }
 
+impl From<EmptyInfoResult> for self::Error {
+    fn from(err: EmptyInfoResult) -> Self {
+        self::Error::EmptyInfoResult(err)
+    }
+}
+
 impl From<String> for self::Error {
-    fn from(desc: String) -> self::Error {
+    fn from(desc: String) -> Self {
         self::Error::String(desc)
     }
 }
@@ -207,53 +229,32 @@ impl From<self::Error> for String {
 }
 
 impl<'a> From<&'a str> for self::Error {
-    fn from(desc: &'a str) -> self::Error {
+    fn from(desc: &'a str) -> Self {
         self::Error::from(String::from(desc))
     }
 }
 
 impl From<std::ffi::NulError> for self::Error {
-    fn from(err: std::ffi::NulError) -> self::Error {
+    fn from(err: std::ffi::NulError) -> Self {
         self::Error::Nul(err)
     }
 }
 
 impl From<std::io::Error> for self::Error {
-    fn from(err: std::io::Error) -> self::Error {
+    fn from(err: std::io::Error) -> Self {
         self::Error::Io(err)
     }
 }
 
 impl From<std::string::FromUtf8Error> for self::Error {
-    fn from(err: std::string::FromUtf8Error) -> self::Error {
+    fn from(err: std::string::FromUtf8Error) -> Self {
         self::Error::FromUtf8Error(err)
     }
 }
 
 impl From<std::ffi::IntoStringError> for self::Error {
-    fn from(err: std::ffi::IntoStringError) -> self::Error {
+    fn from(err: std::ffi::IntoStringError) -> Self {
         self::Error::IntoStringError(err)
-    }
-}
-
-// impl Into<String> for self::Error {
-//     fn into(self) -> String {
-//         use std::error::Error;
-//         self.description().to_string()
-//     }
-// }
-
-impl std::fmt::Display for self::Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
-    }
-}
-
-impl std::fmt::Debug for self::Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
     }
 }
 

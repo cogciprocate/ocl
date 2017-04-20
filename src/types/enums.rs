@@ -18,16 +18,14 @@ use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
 use ffi::{cl_image_format, cl_context_properties};
-use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo,
-    ContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
-    Mem, MemInfo, MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode,
-    ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo,
-    KernelArgInfo, KernelWorkGroupInfo,
-    KernelArgAddressQualifier, KernelArgAccessQualifier, KernelArgTypeQualifier, ImageInfo,
-    ImageFormat, EventInfo, ProfilingInfo,
-    DeviceType, DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities,
-    DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties,
-    /*ContextProperty, ContextPropertyValue*/};
+use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo,
+    Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus, Mem, MemInfo,
+    MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode, ProgramInfo,
+    ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo, KernelArgInfo,
+    KernelWorkGroupInfo, KernelArgAddressQualifier, KernelArgAccessQualifier,
+    KernelArgTypeQualifier, ImageInfo, ImageFormat, EventInfo, ProfilingInfo, DeviceType,
+    DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities,
+    DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties, Status};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -40,6 +38,58 @@ macro_rules! try_ir {
             Err(err) => return err.into(),
         }
     };
+}
+
+pub enum EmptyInfoResult {
+    Platform,
+    Device,
+    Context,
+    CommandQueue,
+    Mem,
+    Image,
+    Sampler,
+    Program,
+    ProgramBuild,
+    Kernel,
+    KernelArg,
+    KernelWorkGroup,
+    Event,
+    Profiling,
+}
+
+impl std::fmt::Debug for EmptyInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use std::error::Error;
+        f.write_str(self.description())
+    }
+}
+
+impl std::fmt::Display for EmptyInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use std::error::Error;
+        f.write_str(self.description())
+    }
+}
+
+impl std::error::Error for EmptyInfoResult {
+    fn description(&self) -> &str {
+        match *self {
+            EmptyInfoResult::Platform => "no platform info available",
+            EmptyInfoResult::Device => "no device info available",
+            EmptyInfoResult::Context => "no context info available",
+            EmptyInfoResult::CommandQueue => "no command queue info available",
+            EmptyInfoResult::Mem => "no mem info available",
+            EmptyInfoResult::Image => "no image info available",
+            EmptyInfoResult::Sampler => "no sampler info available",
+            EmptyInfoResult::Program => "no program info available",
+            EmptyInfoResult::ProgramBuild => "no program build info available",
+            EmptyInfoResult::Kernel => "no kernel info available",
+            EmptyInfoResult::KernelArg => "no kernel argument info available",
+            EmptyInfoResult::KernelWorkGroup => "no kernel work-group info available",
+            EmptyInfoResult::Event => "no event info available",
+            EmptyInfoResult::Profiling => "no event profiling info available",
+        }
+    }
 }
 
 
@@ -108,7 +158,7 @@ impl PlatformInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return PlatformInfoResult::Error(Box::new(OclError::from(
-                        "<no platform info available>")));
+                        EmptyInfoResult::Platform)));
                 }
 
                 let string = match util::bytes_into_string(result) {
@@ -302,7 +352,7 @@ impl DeviceInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return DeviceInfoResult::Error(Box::new(OclError::from(
-                        "<no device info available>")));
+                        EmptyInfoResult::Device)));
                 }
             match request {
                 DeviceInfo::MaxWorkItemSizes => {
@@ -350,7 +400,7 @@ impl DeviceInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return DeviceInfoResult::Error(Box::new(OclError::from(
-                        "<no device info available>")));
+                        EmptyInfoResult::Device)));
                 }
                 match request {
                     DeviceInfo::Type => {
@@ -867,7 +917,7 @@ impl ContextInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ContextInfoResult::Error(Box::new(OclError::from(
-                        "<no context info available>")));
+                        EmptyInfoResult::Context)));
                 }
                 match request {
                     ContextInfo::ReferenceCount => {
@@ -980,7 +1030,7 @@ impl CommandQueueInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return CommandQueueInfoResult::Error(Box::new(OclError::from(
-                        "<no command queue info available>")));
+                        EmptyInfoResult::CommandQueue)));
                 }
 
                 match request {
@@ -1109,7 +1159,7 @@ impl MemInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return MemInfoResult::Error(Box::new(OclError::from(
-                        "<no mem info available>")));
+                        EmptyInfoResult::Mem)));
                 }
                 match request {
                     MemInfo::Type => {
@@ -1276,7 +1326,7 @@ impl ImageInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ImageInfoResult::Error(Box::new(OclError::from(
-                        "<no info info available>")));
+                        EmptyInfoResult::Image)));
                 }
                 match request {
                     ImageInfo::Format => {
@@ -1422,7 +1472,7 @@ impl SamplerInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return SamplerInfoResult::Error(Box::new(OclError::from(
-                        "<no sampler info available>")));
+                        EmptyInfoResult::Sampler)));
                 }
                 match request {
                     SamplerInfo::ReferenceCount => {
@@ -1547,7 +1597,7 @@ impl ProgramInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ProgramInfoResult::Error(Box::new(OclError::from(
-                        "<no program info available>")));
+                        EmptyInfoResult::Program)));
                 }
 
                 match request {
@@ -1680,7 +1730,7 @@ impl ProgramBuildInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ProgramBuildInfoResult::Error(Box::new(OclError::from(
-                        "<no program build info available>")));
+                        EmptyInfoResult::ProgramBuild)));
                 }
                 match request {
                     ProgramBuildInfo::BuildStatus => {
@@ -1790,7 +1840,7 @@ impl KernelInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelInfoResult::Error(Box::new(OclError::from(
-                        "<no kernel info available>")));
+                        EmptyInfoResult::Kernel)));
                 }
                 match request {
                     KernelInfo::FunctionName => {
@@ -1904,7 +1954,7 @@ impl KernelArgInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelArgInfoResult::Error(Box::new(OclError::from(
-                        "<no kernel argument info available>")));
+                        EmptyInfoResult::KernelArg)));
                 }
                 match request {
                     KernelArgInfo::AddressQualifier => {
@@ -1967,12 +2017,6 @@ impl std::fmt::Display for KernelArgInfoResult {
     }
 }
 
-// impl Into<String> for KernelArgInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
 impl From<OclError> for KernelArgInfoResult {
     fn from(err: OclError) -> KernelArgInfoResult {
         KernelArgInfoResult::Error(Box::new(err))
@@ -2023,7 +2067,7 @@ impl KernelWorkGroupInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelWorkGroupInfoResult::Error(Box::new(OclError::from(
-                        "<no kernel work-group info available>")));
+                        EmptyInfoResult::KernelWorkGroup)));
                 }
                 match request {
                     KernelWorkGroupInfo::WorkGroupSize => {
@@ -2076,7 +2120,15 @@ impl KernelWorkGroupInfoResult {
                     },
                 }
             },
-            Err(err) => KernelWorkGroupInfoResult::Error(Box::new(err)),
+            Err(err) => {
+                if let OclError::Status { ref status, .. } = err {
+                    if status == &Status::CL_INVALID_VALUE {
+                        return KernelWorkGroupInfoResult::Error(Box::new(OclError::from(
+                            "only available for custom devices or built-in kernels")));
+                    }
+                }
+                KernelWorkGroupInfoResult::Error(Box::new(err))
+            },
         }
     }
 }
@@ -2100,12 +2152,6 @@ impl std::fmt::Display for KernelWorkGroupInfoResult {
         }
     }
 }
-
-// impl Into<String> for KernelWorkGroupInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
 
 impl From<OclError> for KernelWorkGroupInfoResult {
     fn from(err: OclError) -> KernelWorkGroupInfoResult {
@@ -2157,7 +2203,7 @@ impl EventInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return EventInfoResult::Error(Box::new(OclError::from(
-                        "<no event info available>")));
+                        EmptyInfoResult::Event)));
                 }
                 match request {
                     EventInfo::CommandQueue => {
@@ -2214,12 +2260,6 @@ impl std::fmt::Display for EventInfoResult {
     }
 }
 
-// impl Into<String> for EventInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
 impl From<OclError> for EventInfoResult {
     fn from(err: OclError) -> EventInfoResult {
         EventInfoResult::Error(Box::new(err))
@@ -2251,7 +2291,6 @@ impl std::error::Error for EventInfoResult {
 }
 
 
-
 /// A profiling info result.
 pub enum ProfilingInfoResult {
     Queued(u64),
@@ -2269,7 +2308,7 @@ impl ProfilingInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ProfilingInfoResult::Error(Box::new(OclError::from(
-                        "<no event profiling info available>")));
+                        EmptyInfoResult::Profiling)));
                 }
                 match request {
                     ProfilingInfo::Queued => ProfilingInfoResult::Queued(
@@ -2285,38 +2324,6 @@ impl ProfilingInfoResult {
             Err(err) => ProfilingInfoResult::Error(Box::new(err)),
         }
     }
-
-    // pub fn queued(self) -> OclResult<u64> {
-    //     match self {
-    //         ProfilingInfoResult::Queued(time_ns) => Ok(time_ns),
-    //         ProfilingInfoResult::Error(err) => Err(*err),
-    //         _ => unreachable!(),
-    //     }
-    // }
-
-    // pub fn submit(self) -> OclResult<u64> {
-    //     match self {
-    //         ProfilingInfoResult::Submit(time_ns) => Ok(time_ns),
-    //         ProfilingInfoResult::Error(err) => Err(*err),
-    //         _ => unreachable!(),
-    //     }
-    // }
-
-    // pub fn start(self) -> OclResult<u64> {
-    //     match self {
-    //         ProfilingInfoResult::Start(time_ns) => Ok(time_ns),
-    //         ProfilingInfoResult::Error(err) => Err(*err),
-    //         _ => unreachable!(),
-    //     }
-    // }
-
-    // pub fn end(self) -> OclResult<u64> {
-    //     match self {
-    //         ProfilingInfoResult::End(time_ns) => Ok(time_ns),
-    //         ProfilingInfoResult::Error(err) => Err(*err),
-    //         _ => unreachable!(),
-    //     }
-    // }
 
     pub fn time(self) -> OclResult<u64> {
         match self {
@@ -2347,12 +2354,6 @@ impl std::fmt::Display for ProfilingInfoResult {
     }
 }
 
-// impl Into<String> for ProfilingInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
 impl From<OclError> for ProfilingInfoResult {
     fn from(err: OclError) -> ProfilingInfoResult {
         ProfilingInfoResult::Error(Box::new(err))
@@ -2382,18 +2383,3 @@ impl std::error::Error for ProfilingInfoResult {
         }
     }
 }
-
-
-
-// /// TEMPORARY
-// fn to_string_retarded(v: &Vec<u8>) -> String {
-//     if v.len() == 4 {
-//         util::bytes_to_u32(&v[..]).to_string()
-//     } else if v.len() == 8 && mem::size_of::<usize>() == 8 {
-//         unsafe { util::bytes_to::<usize>(&v[..]).to_string() }
-//     } else if v.len() == 3 * 8 {
-//         unsafe { format!("{:?}", util::bytes_to_vec::<usize>(&v[..])) }
-//     } else {
-//         String::from_utf8(v.clone()).unwrap_or(format!("{:?}", v))
-//     }
-// }

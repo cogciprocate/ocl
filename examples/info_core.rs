@@ -971,9 +971,7 @@ fn print_platform_device(platform: PlatformId, device: DeviceId) {
         core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::LocalMemSize),
         core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple),
         core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::PrivateMemSize),
-        // core::get_kernel_work_group_info(&kernel, &device,
-        //  KernelWorkGroupInfo::GlobalWorkSize).unwrap(),
-        "[KernelWorkGroupInfo::GlobalWorkSize not avaliable in this configuration]",
+        core::get_kernel_work_group_info(&kernel, &device, KernelWorkGroupInfo::GlobalWorkSize),
         t = util::colors::TAB,
     );
 

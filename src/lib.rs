@@ -126,10 +126,10 @@ pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventPtrRef, ClPlatf
 pub use self::types::structs::{self, OpenclVersion, ContextProperties, ImageFormat,
     ImageDescriptor, BufferRegion, ContextPropertyValue};
 
-pub use self::types::enums::{KernelArg, PlatformInfoResult, DeviceInfoResult, ContextInfoResult,
-    CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult, ProgramInfoResult,
-    ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult, KernelWorkGroupInfoResult,
-    EventInfoResult, ProfilingInfoResult};
+pub use self::types::enums::{EmptyInfoResult, KernelArg, PlatformInfoResult, DeviceInfoResult,
+    ContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult,
+    ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult,
+    KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
 
 pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, get_device_info,
     create_sub_devices, retain_device, release_device, create_context, create_context_from_type,
