@@ -108,7 +108,7 @@ impl PlatformInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return PlatformInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no platform info available>")));
                 }
 
                 let string = match util::bytes_into_string(result) {
@@ -302,7 +302,7 @@ impl DeviceInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return DeviceInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no device info available>")));
                 }
             match request {
                 DeviceInfo::MaxWorkItemSizes => {
@@ -350,7 +350,7 @@ impl DeviceInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return DeviceInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no device info available>")));
                 }
                 match request {
                     DeviceInfo::Type => {
@@ -867,7 +867,7 @@ impl ContextInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ContextInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no context info available>")));
                 }
                 match request {
                     ContextInfo::ReferenceCount => {
@@ -980,7 +980,7 @@ impl CommandQueueInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return CommandQueueInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no command queue info available>")));
                 }
 
                 match request {
@@ -1109,7 +1109,7 @@ impl MemInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return MemInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no mem info available>")));
                 }
                 match request {
                     MemInfo::Type => {
@@ -1276,7 +1276,7 @@ impl ImageInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ImageInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no info info available>")));
                 }
                 match request {
                     ImageInfo::Format => {
@@ -1422,7 +1422,7 @@ impl SamplerInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return SamplerInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no sampler info available>")));
                 }
                 match request {
                     SamplerInfo::ReferenceCount => {
@@ -1546,7 +1546,8 @@ impl ProgramInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ProgramInfoResult::Error(Box::new(OclError::from("[NONE]")));
+                    return ProgramInfoResult::Error(Box::new(OclError::from(
+                        "<no program info available>")));
                 }
 
                 match request {
@@ -1679,7 +1680,7 @@ impl ProgramBuildInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ProgramBuildInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no program build info available>")));
                 }
                 match request {
                     ProgramBuildInfo::BuildStatus => {
@@ -1789,7 +1790,7 @@ impl KernelInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no kernel info available>")));
                 }
                 match request {
                     KernelInfo::FunctionName => {
@@ -1903,7 +1904,7 @@ impl KernelArgInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelArgInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no kernel argument info available>")));
                 }
                 match request {
                     KernelArgInfo::AddressQualifier => {
@@ -2022,7 +2023,7 @@ impl KernelWorkGroupInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelWorkGroupInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no kernel work-group info available>")));
                 }
                 match request {
                     KernelWorkGroupInfo::WorkGroupSize => {
@@ -2156,7 +2157,7 @@ impl EventInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return EventInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no event info available>")));
                 }
                 match request {
                     EventInfo::CommandQueue => {
@@ -2268,7 +2269,7 @@ impl ProfilingInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ProfilingInfoResult::Error(Box::new(OclError::from(
-                        "[NONE]")));
+                        "<no event profiling info available>")));
                 }
                 match request {
                     ProfilingInfo::Queued => ProfilingInfoResult::Queued(

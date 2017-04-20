@@ -1734,9 +1734,7 @@ pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg
 }
 
 /// Get kernel info.
-pub fn get_kernel_info(obj: &Kernel, request: KernelInfo,
-        ) -> KernelInfoResult
-{
+pub fn get_kernel_info(obj: &Kernel, request: KernelInfo) -> KernelInfoResult {
     let mut result_size: size_t = 0;
 
     let errcode = unsafe { ffi::clGetKernelInfo(
