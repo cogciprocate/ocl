@@ -25,7 +25,7 @@ use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, Devic
     KernelWorkGroupInfo, KernelArgAddressQualifier, KernelArgAccessQualifier,
     KernelArgTypeQualifier, ImageInfo, ImageFormat, EventInfo, ProfilingInfo, DeviceType,
     DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities,
-    DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties, Status};
+    DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -2120,15 +2120,7 @@ impl KernelWorkGroupInfoResult {
                     },
                 }
             },
-            Err(err) => {
-                if let OclError::Status { ref status, .. } = err {
-                    if status == &Status::CL_INVALID_VALUE {
-                        return KernelWorkGroupInfoResult::Error(Box::new(OclError::from(
-                            "only available for custom devices or built-in kernels")));
-                    }
-                }
-                KernelWorkGroupInfoResult::Error(Box::new(err))
-            },
+            Err(err) => KernelWorkGroupInfoResult::from(err),
         }
     }
 }

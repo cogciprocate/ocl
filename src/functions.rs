@@ -1833,6 +1833,14 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
 
     // try!(eval_errcode(errcode, result, "clGetKernelWorkGroupInfo", ""));
     if let Err(err) = eval_errcode(errcode, (), "clGetKernelWorkGroupInfo", "") {
+        if let OclError::Status { ref status, .. } = err {
+            if request == KernelWorkGroupInfo::GlobalWorkSize &&
+                    status == &Status::CL_INVALID_VALUE
+            {
+                return KernelWorkGroupInfoResult::from(OclError::from(
+                    "only available for custom devices or built-in kernels"));
+            }
+        }
         return KernelWorkGroupInfoResult::from(err);
     }
 
