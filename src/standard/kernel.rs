@@ -188,7 +188,7 @@ pub struct Kernel {
 
 impl Kernel {
     /// Returns a new kernel.
-    pub fn new<S: Into<String>, >(name: S, program: &Program) -> OclResult<Kernel> {
+    pub fn new<S: Into<String>>(name: S, program: &Program) -> OclResult<Kernel> {
         let name = name.into();
         let obj_core = try!(core::create_kernel(program, &name));
 
@@ -932,6 +932,16 @@ pub mod arg_type {
     }
 
     impl ArgType {
+        /// Returns an `ArgType` that will always return `true` when calling
+        /// `::is_match`.
+        pub fn unknown() -> OclResult<ArgType> {
+            Ok(ArgType {
+                base_type: BaseType::Unknown,
+                cardinality: Cardinality::One,
+                is_ptr: false,
+            })
+        }
+
         /// Ascertains a `KernelArgType` from the contents of a
         /// `KernelArgInfoResult::TypeName`.
         ///
@@ -993,15 +1003,42 @@ pub mod arg_type {
         }
 
         /// Returns a new argument type specifier.
+        ///
+        /// This function calls `core::get_kernel_arg_info`. Some platforms
+        /// (Apple, NVIDIA) either do not implement
+        /// `core::get_kernel_arg_info` or error in irregular ways. Known
+        /// irregular errors are checked for here. The result of a call to
+        /// `ArgType::unknown()` (which matches any argument type) is returned
+        /// if any are found.
         pub fn from_kern_and_idx(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
+            use core::EmptyInfoResult;
+
             match arg_type_name(core, arg_index) {
                 Ok(type_name) => ArgType::from_str(type_name.as_str()),
                 Err(err) => {
-                    if let OclError::Status { ref status, .. } = err {
-                        if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
-                            return Ok(ArgType { base_type: BaseType::Unknown,
-                                cardinality: Cardinality::One, is_ptr: false })
-                        }
+                    // if let OclError::Status { ref status, .. } = err {
+                    //     if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
+                    //         return Ok(ArgType { base_type: BaseType::Unknown,
+                    //             cardinality: Cardinality::One, is_ptr: false })
+                    //     }
+                    // } else
+
+                    // if let OclError::EmptyInfoResult(EmptyInfoResult::KernelArg) = err {
+
+                    // }
+
+                    // Escape hatches for known, platform-specific errors.
+                    match err {
+                        OclError::Status { ref status, .. } => {
+                            if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
+                                return Ok(ArgType { base_type: BaseType::Unknown,
+                                    cardinality: Cardinality::One, is_ptr: false })
+                            }
+                        },
+                        OclError::EmptyInfoResult(EmptyInfoResult::KernelArg) => {
+                            return ArgType::unknown();
+                        },
+                        _ => (),
                     }
 
                     Err(err)

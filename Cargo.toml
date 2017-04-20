@@ -47,8 +47,8 @@ nodrop = "0.1"
 ocl-core = "0.4"
 # ocl-core = { version = "0.4", git = "https://github.com/cogciprocate/ocl-core" }
 # ocl-core = { version = "0.4", path = "../ocl-core" }
-# qutex = "0.1"
-qutex = { version = "0.1", git = "https://github.com/cogciprocate/qutex" }
+qutex = "0.1"
+# qutex = { version = "0.1", git = "https://github.com/cogciprocate/qutex" }
 # qutex = { version = "0.0", path = "../qutex" }
 
 [dev-dependencies]
@@ -61,6 +61,10 @@ futures = "0.1"
 futures-cpupool = "0.1"
 lazy_static = "0.2"
 ocl-extras = { version = "0.1", path = "ocl-extras" }
+
+[replace]
+"qutex:0.1.0" = { git = "https://github.com/cogciprocate/qutex" }
+"ocl-core:0.4.0" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 [workspace]
 members = ["ocl-extras", "examples/images", "examples/images_safe_clamp",
