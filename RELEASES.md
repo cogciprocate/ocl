@@ -1,3 +1,12 @@
+Version 0.13.1 (2017-04-20)
+===========================
+
+Bug Fixes
+---------
+* Fix certain platform-specific issues.
+* Remove a `println` when build a `ProQue` (oops).
+
+
 Version 0.13.0 (2017-04-11)
 ===========================
 
