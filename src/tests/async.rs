@@ -58,7 +58,7 @@ pub static KERN_SRC: &'static str = r#"
 ///
 /// Fill buffer with -999's just to ensure the upcoming write misses nothing:
 pub fn fill_junk(
-        src_buf: &Buffer<Int4>, 
+        src_buf: &Buffer<Int4>,
         common_queue: &Queue,
         kernel_event: Option<&Event>,
         verify_init_event: Option<&Event>,
@@ -108,8 +108,8 @@ pub fn fill_junk(
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
 pub fn write_init(
-        src_buf: &Buffer<Int4>, 
-        rw_vec: &RwVec<Int4>, 
+        src_buf: &Buffer<Int4>,
+        rw_vec: &RwVec<Int4>,
         common_queue: &Queue,
         write_init_release_queue_0: &Queue,
         // write_init_release_queue_1: &Queue,
@@ -130,7 +130,7 @@ pub fn write_init(
     // println!("###### write_init() events (task_iter: [{}]): \n\
     //  ######     'verify_init_event': {:?}, \n\
     //  ######     'fill_event': {:?} \n\
-    //  ######       -> 'wait_marker': {:?}", 
+    //  ######       -> 'wait_marker': {:?}",
     //  task_iter, verify_init_event, fill_event, wait_marker);
 
     let wait_list = [verify_init_event, fill_event];
@@ -183,8 +183,8 @@ pub fn write_init(
 /// queue for the verification completion event (used to signal the next
 /// command in the chain).
 pub fn verify_init(
-        src_buf: &Buffer<Int4>, 
-        rw_vec: &RwVec<Int4>, 
+        src_buf: &Buffer<Int4>,
+        rw_vec: &RwVec<Int4>,
         common_queue: &Queue,
         verify_init_queue: &Queue,
         write_init_event: Option<&Event>,
@@ -243,7 +243,7 @@ pub fn verify_init(
 /// The `Kernel complete ...` message is sometimes delayed slightly (a few
 /// microseconds) due to the time it takes the callback to trigger.
 pub fn kernel_add(
-        kern: &Kernel, 
+        kern: &Kernel,
         common_queue: &Queue,
         verify_add_event: Option<&Event>,
         write_init_event: Option<&Event>,
@@ -300,8 +300,8 @@ pub fn kernel_add(
 /// kernel has completed but that's just due to the slight callback delay on
 /// the kernel completion event.
 pub fn verify_add(
-        dst_buf: &Buffer<Int4>, 
-        rw_vec: &RwVec<Int4>, 
+        dst_buf: &Buffer<Int4>,
+        rw_vec: &RwVec<Int4>,
         common_queue: &Queue,
         verify_add_unmap_queue: &Queue,
         wait_event: Option<&Event>,
@@ -385,7 +385,8 @@ pub fn rw_vec() {
             // For unmap commands, the buffers will each use a dedicated queue to
             // avoid any chance of a deadlock. All other commands will use an
             // unordered common queue.
-            let queue_flags = Some(CommandQueueProperties::new().out_of_order());
+            // let queue_flags = Some(CommandQueueProperties::new().out_of_order());
+            let queue_flags = None;
             let common_queue = Queue::new(&context, device, queue_flags).unwrap();
             let write_init_unmap_queue_0 = Queue::new(&context, device, queue_flags).unwrap();
             // let write_init_unmap_queue_1 = Queue::new(&context, device, queue_flags).unwrap();
@@ -494,7 +495,7 @@ pub fn rw_vec() {
 
                 threads.push(thread::Builder::new()
                         .name(format!("task_iter_[{}]", task_iter).into())
-                        .spawn(move || 
+                        .spawn(move ||
                 {
                     if PRINT { println!("Waiting on task iter [{}]...", task_iter); }
                     match task.wait() {

@@ -54,9 +54,12 @@ pub fn main() {
         .build().unwrap();
 
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-    let write_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let read_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let kern_queue = Queue::new(&context, device, queue_flags).unwrap();
+    let write_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let read_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let kern_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
 
     let thread_pool = CpuPool::new_num_cpus();
     let task_count = 12;

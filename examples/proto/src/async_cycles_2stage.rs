@@ -98,9 +98,12 @@ pub fn main() {
     // queue to avoid any chance of a deadlock. All other commands will use a
     // common queue.
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-    let write_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let read_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let common_queue = Queue::new(&context, device, queue_flags).unwrap();
+    let write_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let read_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
 
     // Allocating host memory allows the OpenCL runtime to use special pinned
     // memory which considerably improves the transfer performance of map

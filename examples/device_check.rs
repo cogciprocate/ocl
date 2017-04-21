@@ -33,7 +33,7 @@ use ocl::async::{Error as AsyncError, Result as AsyncResult};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::traits::{IntoRawEventArray};
 use ocl::prm::{Float4, Int4};
-use ocl::core::Event as EventCore;
+use ocl::core::{Error as OclError, Event as EventCore, Status};
 use ocl::ffi::{cl_event, c_void};
 
 // The number of tasks to run concurrently.
@@ -312,8 +312,22 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
 }
 
 
+fn create_queue(device: Device, context: &Context, flags: Option<CommandQueueProperties>)
+        -> AsyncResult<Queue>
+{
+    Queue::new(&context, device, flags.clone()).or_else(|err| {
+        match err {
+            OclError::Status { status: Status::CL_INVALID_VALUE, .. } => {
+                Err("Device does not support out of order queues.".into())
+            },
+            _ => Err(err.into()),
+        }
+    })
+}
+
+
 pub fn create_queues(device: Device, context: &Context, out_of_order: bool)
-        -> (Queue, Queue, Queue)
+        -> AsyncResult<(Queue, Queue, Queue)>
 {
     let ooo_flag = if out_of_order {
         CommandQueueProperties::new().out_of_order()
@@ -323,11 +337,17 @@ pub fn create_queues(device: Device, context: &Context, out_of_order: bool)
 
     let flags = Some( ooo_flag | CommandQueueProperties::new().profiling());
 
-    let write_queue = Queue::new(&context, device, flags.clone()).unwrap();
-    let kernel_queue = Queue::new(&context, device, flags.clone()).unwrap();
-    let read_queue = Queue::new(&context, device, flags).unwrap();
+    // let write_queue = Queue::new(&context, device, flags.clone()).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    // let kernel_queue = Queue::new(&context, device, flags.clone()).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    // let read_queue = Queue::new(&context, device, flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    let write_queue = create_queue(device, context, flags.clone())?;
+    let kernel_queue = create_queue(device, context, flags.clone())?;
+    let read_queue = create_queue(device, context, flags.clone())?;
 
-    (write_queue, kernel_queue, read_queue)
+    Ok((write_queue, kernel_queue, read_queue))
 }
 
 
@@ -385,7 +405,8 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     let work_size = work_size_range.ind_sample(rng);
 
     // Create queues:
-    let (write_queue, kernel_queue, read_queue) = create_queues(device, &context, cfg.queue_out_of_order);
+    let (write_queue, kernel_queue, read_queue) =
+        create_queues(device, &context, cfg.queue_out_of_order)?;
 
     let ahp_flag = if cfg.misc.alloc_host_ptr {
         MemFlags::new().alloc_host_ptr()
@@ -659,7 +680,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
 }
 
 pub fn fill_junk(
-        src_buf: &Buffer<Int4>, 
+        src_buf: &Buffer<Int4>,
         common_queue: &Queue,
         kernel_event: Option<&Event>,
         fill_event: &mut Option<Event>,
@@ -699,8 +720,8 @@ pub fn fill_junk(
 }
 
 pub fn vec_write_async(
-        src_buf: &Buffer<Int4>, 
-        rw_vec: &RwVec<Int4>, 
+        src_buf: &Buffer<Int4>,
+        rw_vec: &RwVec<Int4>,
         common_queue: &Queue,
         write_release_queue: &Queue,
         fill_event: Option<&Event>,
@@ -745,7 +766,7 @@ pub fn vec_write_async(
 }
 
 pub fn kernel_add(
-        kern: &Kernel, 
+        kern: &Kernel,
         common_queue: &Queue,
         verify_add_event: Option<&Event>,
         write_init_event: Option<&Event>,
@@ -779,7 +800,7 @@ pub fn kernel_add(
 
 pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         verify_add_unmap_queue: Queue, wait_event: Option<&Event>,
-        verify_add_event: &mut Option<Event>, correct_val: i32, 
+        verify_add_event: &mut Option<Event>, correct_val: i32,
         task_iter: i32) -> BoxFuture<i32, AsyncError>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
@@ -804,7 +825,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::splat(correct_val);
             if *val != cval {
-                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]", 
+                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]",
                     val, cval, idx).into());
             }
             val_count += 1;
@@ -820,8 +841,8 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 }
 
 pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
-        verify_add_release_queue: &Queue, kernel_event: Option<&Event>, 
-        verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32) 
+        verify_add_release_queue: &Queue, kernel_event: Option<&Event>,
+        verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32)
         -> BoxFuture<i32, AsyncError>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
@@ -870,9 +891,12 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 
     // Create queues:
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-    let common_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let write_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let read_queue = Queue::new(&context, device, queue_flags).unwrap();
+    let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let write_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let read_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
 
     let ahp_flag = if cfg.misc.alloc_host_ptr {
         MemFlags::new().alloc_host_ptr()
@@ -933,24 +957,24 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
         let tval = ival + cfg.val.addend[0];
 
         fill_junk(
-            &src_buf, 
+            &src_buf,
             &common_queue,
             kernel_event.as_ref(),
             &mut fill_event,
             task_iter);
 
         let write = vec_write_async(
-            &src_buf, 
+            &src_buf,
             &rw_vec,
             &common_queue,
             &write_queue,
             fill_event.as_ref(),
             &mut write_event,
-            ival, 
+            ival,
             task_iter);
 
         kernel_add(
-            &kern, 
+            &kern,
             &common_queue,
             read_event.as_ref(),
             write_event.as_ref(),
@@ -959,22 +983,22 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 
         ////// KEEP:
         // let read = map_read_async(
-        //     &tar_buf, 
+        //     &tar_buf,
         //     &common_queue,
         //     read_queue.clone(),
         //     kernel_event.as_ref(),
         //     &mut read_event,
-        //     tval, 
+        //     tval,
         //     task_iter);
 
         let read = vec_read_async(
-            &tar_buf, 
+            &tar_buf,
             &rw_vec,
             &common_queue,
             &read_queue,
             kernel_event.as_ref(),
             &mut read_event,
-            tval, 
+            tval,
             task_iter);
 
         if PRINT { println!("All commands for iteration {} enqueued", task_iter); }
@@ -983,7 +1007,7 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 
         threads.push(thread::Builder::new()
                 .name(format!("task_iter_[{}]", task_iter).into())
-                .spawn(move || 
+                .spawn(move ||
         {
             if PRINT { println!("Waiting on task iter [{}]...", task_iter); }
             match task.wait() {

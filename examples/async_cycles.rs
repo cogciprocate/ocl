@@ -132,7 +132,7 @@ pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
 /// Fill buffer with -999's just to ensure the upcoming write misses nothing:
 pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
         verify_init_event: Option<&Event>,
-        kernel_event: Option<&Event>,        
+        kernel_event: Option<&Event>,
         fill_event: &mut Option<Event>,
         task_iter: i32)
 {
@@ -393,7 +393,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::splat(correct_val);
             if *val != cval {
-                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]", 
+                return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]",
                     val, cval, idx).into());
             }
             val_count += 1;
@@ -437,10 +437,14 @@ pub fn main() {
     // avoid any chance of a deadlock. All other commands will use an
     // unordered common queue.
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-    let common_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let write_init_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let verify_init_queue = Queue::new(&context, device, queue_flags).unwrap();
-    let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
+    let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let write_init_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let verify_init_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
+    let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+        Queue::new(&context, device, None)).unwrap();
 
     // Allocating host memory allows the OpenCL runtime to use special pinned
     // memory which considerably improves the transfer performance of map
@@ -508,7 +512,7 @@ pub fn main() {
         // ============
         fill_junk(&src_buf, &common_queue,
             verify_init_event.as_ref(),
-            kernel_event.as_ref(),                        
+            kernel_event.as_ref(),
             &mut fill_event,
             task_iter);
 
