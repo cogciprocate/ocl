@@ -405,17 +405,20 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
         &mut result_size as *mut size_t,
     ) };
 
-    // Don't generate a full error report for `CL_INVALID_VALUE` it's always
-    // just an extension unsupported by the device (i.e.
-    // `CL_DEVICE_HALF_FP_CONFIG` on Intel):
-    if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-        // return DeviceInfoResult::Error(Box::new(OclError::from("[UNAVAILABLE (CL_INVALID_VALUE)]")));
-        return OclError::from("[UNAVAILABLE (CL_INVALID_VALUE)]").into();
+    // Don't generate a full error report for `CL_INVALID_VALUE` or
+    // `CL_INVALID_OPERATION` it's always just an extension unsupported by the
+    // device (i.e. `CL_DEVICE_HALF_FP_CONFIG` on Intel or Apple). Note:
+    // `CL_INVALID_OPERATION` is actually an invalid error value for this
+    // function and is a bug. Don't hold your breath for a fix.
+    if errcode < 0 {
+        if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
+            return OclError::from("<unavailable (CL_INVALID_VALUE)>").into();
+        } else if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_OPERATION {
+            return OclError::from("<unavailable (CL_INVALID_OPERATION)>").into();
+        }
     }
 
-    // try!(eval_errcode(errcode, (), "clGetDeviceInfo", ""));
     if let Err(err) = eval_errcode(errcode, (), "clGetDeviceInfo", "") {
-        // return DeviceInfoResult::Error(Box::new(err));
         return err.into();
     }
 
@@ -2001,6 +2004,14 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
         0 as *mut c_void,
         &mut result_size as *mut size_t,
     ) };
+
+    // Don't generate a full error report for `CL_INVALID_VALUE` it just means
+    // that event profiling info is not available on this platform.
+    if errcode < 0 {
+        if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
+            return OclError::from("<unavailable (CL_INVALID_VALUE)>").into();
+        }
+    }
 
     // try!(eval_errcode(errcode, result, "clGetEventProfilingInfo", ""));
     if let Err(err) = eval_errcode(errcode, (), "clGetEventProfilingInfo", "") {
