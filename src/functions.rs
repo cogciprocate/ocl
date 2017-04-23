@@ -1994,16 +1994,21 @@ pub unsafe fn set_event_callback<'e, E: ClEventPtrRef<'e>>(
 pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: ProfilingInfo,
         ) -> ProfilingInfoResult
 {
+    // Apple compatibile value:
+    let max_result_size_bytes = 8;
     let mut result_size: size_t = 0;
     let event: cl_event = unsafe { *event.as_ptr_ref() };
 
     let errcode = unsafe { ffi::clGetEventProfilingInfo(
         event,
-        request as cl_profiling_info,
-        0 as size_t,
+        request as cl_profiling_info,        
+        max_result_size_bytes,
         0 as *mut c_void,
         &mut result_size as *mut size_t,
     ) };
+
+    // Make sure our assumption about the maximum value was correct:
+    assert!(result_size <= max_result_size_bytes);
 
     // Don't generate a full error report for `CL_INVALID_VALUE` it just means
     // that event profiling info is not available on this platform.
