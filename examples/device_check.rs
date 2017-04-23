@@ -337,12 +337,6 @@ pub fn create_queues(device: Device, context: &Context, out_of_order: bool)
 
     let flags = Some( ooo_flag | CommandQueueProperties::new().profiling());
 
-    // let write_queue = Queue::new(&context, device, flags.clone()).or_else(|_|
-    //     Queue::new(&context, device, None)).unwrap();
-    // let kernel_queue = Queue::new(&context, device, flags.clone()).or_else(|_|
-    //     Queue::new(&context, device, None)).unwrap();
-    // let read_queue = Queue::new(&context, device, flags).or_else(|_|
-    //     Queue::new(&context, device, None)).unwrap();
     let write_queue = create_queue(device, context, flags.clone())?;
     let kernel_queue = create_queue(device, context, flags.clone())?;
     let read_queue = create_queue(device, context, flags.clone())?;
@@ -889,14 +883,20 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
     let work_size_range = RandRange::new(cfg.misc.work_size_range.0, cfg.misc.work_size_range.1);
     let work_size = work_size_range.ind_sample(rng);
 
+    // // Create queues:
+    // let queue_flags = Some(CommandQueueProperties::new().out_of_order());
+    // let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    // let write_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    // let read_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+
     // Create queues:
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-    let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
-    let write_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
-    let read_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+    let common_queue = create_queue(device, context, queue_flags)?;
+    let write_queue = create_queue(device, context, queue_flags)?;
+    let read_queue = create_queue(device, context, queue_flags)?;
 
     let ahp_flag = if cfg.misc.alloc_host_ptr {
         MemFlags::new().alloc_host_ptr()
