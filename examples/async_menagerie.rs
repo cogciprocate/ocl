@@ -624,7 +624,9 @@ pub fn main() {
 
     // A pool of available device side memory (one big buffer with an attached allocator).
     let mut buf_pool: SubBufferPool<Float4> = SubBufferPool::new(INITIAL_BUFFER_LEN,
-        Queue::new(&context, device, queue_flags).unwrap());
+        // Queue::new(&context, device, queue_flags).unwrap()
+        Queue::new(&context, device, queue_flags)
+            .or_else(|_| Queue::new(&context, device, None)).unwrap());
     let mut tasks = Vec::with_capacity(256);
 
     // Our thread pool for offloading reading, writing, and other host-side processing.
