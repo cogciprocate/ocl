@@ -8,9 +8,10 @@
 
 use std::thread;
 use futures::{Future, BoxFuture};
+use core::{Error as OclError, Status};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::{IntoRawEventArray, IntoMarker};
-use ::async::{Error as AsyncError};
+use ::async::{Error as AsyncError, Result as AsyncResult};
 use ::flags::{MemFlags, CommandQueueProperties};
 use ::prm::Int4;
 use ::ffi::{cl_event, c_void};
@@ -350,6 +351,19 @@ pub fn verify_add(
     }).boxed()
 }
 
+/// Creates an out-of-order queue or a shorter error message if unsupported.
+fn create_queue(context: &Context, device: Device, flags: Option<CommandQueueProperties>)
+        -> AsyncResult<Queue>
+{
+    Queue::new(context, device, flags.clone()).or_else(|err| {
+        match err {
+            OclError::Status { status: Status::CL_INVALID_VALUE, .. } => {
+                Err("Device does not support out of order queues.".into())
+            },
+            _ => Err(err.into()),
+        }
+    })
+}
 
 /// Main
 /// ====
@@ -387,11 +401,11 @@ pub fn rw_vec() {
             // unordered common queue.
             // let queue_flags = Some(CommandQueueProperties::new().out_of_order());
             let queue_flags = None;
-            let common_queue = Queue::new(&context, device, queue_flags).unwrap();
-            let write_init_unmap_queue_0 = Queue::new(&context, device, queue_flags).unwrap();
-            // let write_init_unmap_queue_1 = Queue::new(&context, device, queue_flags).unwrap();
-            let verify_init_queue = Queue::new(&context, device, queue_flags).unwrap();
-            let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).unwrap();
+            let common_queue = create_queue(&context, device, queue_flags).unwrap();
+            let write_init_unmap_queue_0 = create_queue(&context, device, queue_flags).unwrap();
+            // let write_init_unmap_queue_1 = create_queue(&context, device, queue_flags).unwrap();
+            let verify_init_queue = create_queue(&context, device, queue_flags).unwrap();
+            let verify_add_unmap_queue = create_queue(&context, device, queue_flags).unwrap();
 
             // Allocating host memory allows the OpenCL runtime to use special pinned
             // memory which considerably improves the transfer performance of map
