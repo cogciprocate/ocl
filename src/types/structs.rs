@@ -516,6 +516,44 @@ impl<T: OclPrm> BufferRegion<T> {
 }
 
 
+pub enum ImageFormatParseError {
+    UnknownImageChannelOrder(ffi::cl_channel_order),
+    UnknownImageChannelDataType(ffi::cl_channel_type),
+}
+
+impl ::std::fmt::Debug for ImageFormatParseError {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            ImageFormatParseError::UnknownImageChannelOrder(ord) => {
+                write!(f, "unknown image channel ordering: '{}'", ord)
+            },
+            ImageFormatParseError::UnknownImageChannelDataType(dt) => {
+                write!(f, "unknown image channel data type: '{}'", dt)
+            },
+        }
+    }
+}
+
+impl ::std::fmt::Display for ImageFormatParseError {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl ::std::error::Error for ImageFormatParseError {
+    fn description(&self) -> &str {
+        match *self {
+            ImageFormatParseError::UnknownImageChannelOrder(_) => "unknown image channel ordering",
+            ImageFormatParseError::UnknownImageChannelDataType(_) => "unknown image channel data type",
+        }
+    }
+}
+
+pub type ImageFormatParseResult = Result<ImageFormat, ImageFormatParseError>;
+
+
+
+
 /// Image format properties used by `Image`.
 ///
 /// A structure that describes format properties of the image to be allocated. (from SDK)
@@ -550,23 +588,41 @@ impl ImageFormat {
         }
     }
 
-    pub fn from_raw(raw: ffi::cl_image_format) -> OclResult<ImageFormat> {
-        Ok(ImageFormat {
-            channel_order: try!(ImageChannelOrder::from_u32(raw.image_channel_order)
-                .ok_or(OclError::from("Error converting to 'ImageChannelOrder'."))),
-            channel_data_type: try!(ImageChannelDataType::from_u32(raw.image_channel_data_type)
-                .ok_or(OclError::from("Error converting to 'ImageChannelDataType'."))),
-        })
+    pub fn from_raw(fmt_raw: ffi::cl_image_format) -> ImageFormatParseResult {
+        // Ok(ImageFormat {
+        //     channel_order: try!(ImageChannelOrder::from_u32(raw.image_channel_order)
+        //         .ok_or(OclError::from("Error converting to 'ImageChannelOrder'."))),
+        //     channel_data_type: try!(ImageChannelDataType::from_u32(raw.image_channel_data_type)
+        //         .ok_or(OclError::from("Error converting to 'ImageChannelDataType'."))),
+        // })
+
+        let channel_order = match ImageChannelOrder::from_u32(fmt_raw.image_channel_order) {
+            Some(ord) => ord,
+            None => return Err(ImageFormatParseError::UnknownImageChannelOrder(
+                fmt_raw.image_channel_order)),
+        };
+
+        let channel_data_type = match ImageChannelDataType::from_u32(fmt_raw.image_channel_data_type) {
+            Some(dt) => dt,
+            None => return Err(ImageFormatParseError::UnknownImageChannelDataType(
+                fmt_raw.image_channel_data_type)),
+        };
+
+        Ok(ImageFormat { channel_order, channel_data_type })
     }
 
-    pub fn list_from_raw(list_raw: Vec<ffi::cl_image_format>) -> OclResult<Vec<ImageFormat>> {
-        let mut result_list = Vec::with_capacity(list_raw.len());
+    pub fn list_from_raw(list_raw: Vec<ffi::cl_image_format>)
+            -> Vec<ImageFormatParseResult>
+    {
+        // let mut result_list = Vec::with_capacity(list_raw.len());
 
-        for clif in list_raw.into_iter() {
-            result_list.push(try!(ImageFormat::from_raw(clif)));
-        }
+        // for fmt_raw in list_raw.into_iter() {
+        //     result_list.push(ImageFormat::from_raw(fmt_raw));
+        // }
 
-        Ok(result_list)
+        // result_list
+
+        list_raw.into_iter().map(|fmt_raw| ImageFormat::from_raw(fmt_raw)).collect()
     }
 
     pub fn to_raw(&self) -> ffi::cl_image_format {

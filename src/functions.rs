@@ -41,7 +41,7 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, Co
     ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr,
     ClDeviceIdPtr, ClContextPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
     MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MemMap, AsMem, MemCmdRw, MemCmdAll, Event};
+    CommandQueueProperties, MemMap, AsMem, MemCmdRw, MemCmdAll, Event, ImageFormatParseResult};
 
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
@@ -1129,7 +1129,7 @@ pub fn get_supported_image_formats<C>(
             context: C,
             flags: MemFlags,
             image_type: MemObjectType,
-        ) -> OclResult<Vec<ImageFormat>>
+        ) -> OclResult<Vec<ImageFormatParseResult>>
         where C: ClContextPtr
 {
     let mut num_image_formats = 0 as cl_uint;
@@ -1165,8 +1165,7 @@ pub fn get_supported_image_formats<C>(
     ) };
 
     try!(eval_errcode(errcode, (), "clGetSupportedImageFormats", ""));
-
-    ImageFormat::list_from_raw(image_formats)
+    Ok(ImageFormat::list_from_raw(image_formats))
 }
 
 
@@ -2001,7 +2000,7 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
 
     let errcode = unsafe { ffi::clGetEventProfilingInfo(
         event,
-        request as cl_profiling_info,        
+        request as cl_profiling_info,
         max_result_size_bytes,
         0 as *mut c_void,
         &mut result_size as *mut size_t,

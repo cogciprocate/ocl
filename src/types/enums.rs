@@ -25,7 +25,8 @@ use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, Devic
     KernelWorkGroupInfo, KernelArgAddressQualifier, KernelArgAccessQualifier,
     KernelArgTypeQualifier, ImageInfo, ImageFormat, EventInfo, ProfilingInfo, DeviceType,
     DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities,
-    DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties};
+    DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties,
+    ImageFormatParseResult};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -1305,7 +1306,7 @@ impl std::error::Error for MemInfoResult {
 /// An image info result.
 pub enum ImageInfoResult {
     // TemporaryPlaceholderVariant(Vec<u8>),
-    Format(ImageFormat),
+    Format(ImageFormatParseResult),
     ElementSize(usize),
     RowPitch(usize),
     SlicePitch(usize),
@@ -1331,10 +1332,11 @@ impl ImageInfoResult {
                 match request {
                     ImageInfo::Format => {
                         let r = unsafe { try_ir!(util::bytes_into::<cl_image_format>(result)) };
-                        match ImageFormat::from_raw(r) {
-                            Ok(f) => ImageInfoResult::Format(f),
-                            Err(err) => ImageInfoResult::Error(Box::new(err)),
-                        }
+                        // match ImageFormat::from_raw(r) {
+                        //     Ok(f) => ImageInfoResult::Format(f),
+                        //     Err(err) => ImageInfoResult::Error(Box::new(err)),
+                        // }
+                        ImageInfoResult::Format(ImageFormat::from_raw(r))
                     },
                     ImageInfo::ElementSize => {
                         let r = unsafe { try_ir!(util::bytes_into::<usize>(result)) };
