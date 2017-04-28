@@ -399,8 +399,7 @@ pub fn rw_vec() {
             // For unmap commands, the buffers will each use a dedicated queue to
             // avoid any chance of a deadlock. All other commands will use an
             // unordered common queue.
-            // let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-            let queue_flags = None;
+            let queue_flags = Some(CommandQueueProperties::new().out_of_order());
             let common_queue = create_queue(&context, device, queue_flags).unwrap();
             let write_init_unmap_queue_0 = create_queue(&context, device, queue_flags).unwrap();
             // let write_init_unmap_queue_1 = create_queue(&context, device, queue_flags).unwrap();
