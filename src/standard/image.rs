@@ -1,6 +1,6 @@
 //! An OpenCL Image.
 //!
-// 
+//
 // * NOTE: `Image` does not have the latest command builders nor does it have
 //   support for mapping yet. (TODO: implement)
 //
@@ -13,9 +13,10 @@ use std::marker::PhantomData;
 // use std::convert::Into;
 use ffi::{cl_GLuint, cl_GLint};
 use core::error::{Error as OclError, Result as OclResult};
-use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormat, ImageDescriptor,
-    ImageInfo, ImageInfoResult, MemInfo, MemInfoResult, ImageChannelOrder, ImageChannelDataType,
-    GlTextureTarget, AsMem, MemCmdRw, MemCmdAll, MapFlags};
+use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
+    ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
+    ImageChannelOrder, ImageChannelDataType, GlTextureTarget, AsMem, MemCmdRw, MemCmdAll,
+    MapFlags};
 use standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum,
     QueCtx};
 use ::MemMap;
@@ -605,7 +606,7 @@ pub struct Image<T: OclPrm> {
 impl<T: OclPrm> Image<T> {
     /// Returns a list of supported image formats.
     pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType,
-                ) -> OclResult<Vec<ImageFormat>> {
+                ) -> OclResult<Vec<ImageFormatParseResult>> {
         core::get_supported_image_formats(context, flags, mem_obj_type)
     }
 

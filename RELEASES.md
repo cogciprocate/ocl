@@ -1,3 +1,14 @@
+Version 0.14.0 (UNRELEASED)
+===========================
+
+Breaking Changes
+----------------
+* Supported image format returned from various functions such as
+  `core::get_supported_image_formats` or `Image::supported_formats` are now
+  individually result-wrapped allowing the use of these functions on platforms
+  that return unsupported/unknown formats (Apple).
+
+
 Version 0.13.1 (2017-04-20)
 ===========================
 

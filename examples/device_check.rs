@@ -1054,14 +1054,13 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 pub fn main() {
     let mut rng = rand::weak_rng();
 
-    for platform in Platform::list() {
+    for (p_idx, platform) in Platform::list().into_iter().enumerate() {
     // for &platform in &[Platform::default()] {
-
         let devices = Device::list_all(&platform).unwrap();
 
-        for device in devices {
-            printlnc!(blue: "Platform: {}", platform.name());
-            printlnc!(teal: "Device: {} {}", device.vendor(), device.name());
+        for (d_idx, device) in devices.into_iter().enumerate() {
+            printlnc!(blue: "Platform [{}]: {}", p_idx, platform.name());
+            printlnc!(teal: "Device [{}]: {} {}", d_idx, device.vendor(), device.name());
 
             if device.is_available().unwrap() {
 

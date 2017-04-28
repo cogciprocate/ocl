@@ -1,9 +1,9 @@
 //! Generates an image (currently a diagonal reddish stripe) then runs it
 //! through the kernel, increasing the blue channel for the entire image.
 //!
-//!
 //! Enable saving to disk by setting `SAVE_IMAGES_TO_DISK` to `true` and
 //! change the file paths/names if desired.
+//!
 
 extern crate image;
 extern crate ocl;
