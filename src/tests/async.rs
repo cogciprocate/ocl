@@ -396,10 +396,17 @@ pub fn rw_vec() {
                 .devices(device)
                 .build().unwrap();
 
-            // For unmap commands, the buffers will each use a dedicated queue to
-            // avoid any chance of a deadlock. All other commands will use an
-            // unordered common queue.
-            let queue_flags = Some(CommandQueueProperties::new().out_of_order());
+            // For unmap commands, the buffers will each use a dedicated queue
+            // to avoid any chance of a deadlock. All other commands will use
+            // an unordered common queue. If the `async_block` feature is
+            // enabled, use in-order queues (since by blocking, everything
+            // will be synchronous anyway).
+            let queue_flags = if cfg!(feature = "async_block") {
+                None,
+            } else {
+                Some(CommandQueueProperties::new().out_of_order());
+            };
+
             let common_queue = create_queue(&context, device, queue_flags).unwrap();
             let write_init_unmap_queue_0 = create_queue(&context, device, queue_flags).unwrap();
             // let write_init_unmap_queue_1 = create_queue(&context, device, queue_flags).unwrap();
