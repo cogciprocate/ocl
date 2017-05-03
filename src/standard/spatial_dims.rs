@@ -23,7 +23,7 @@ use core::util;
 /// [UNSTABLE]: This type and its methods may be renamed or otherwise changed
 /// at any time. This is still a work in progress.
 ///
-#[derive(Clone, Debug, Copy)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
 pub enum SpatialDims {
     Unspecified,
     One     (usize),
