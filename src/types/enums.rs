@@ -26,7 +26,7 @@ use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, Devic
     KernelArgTypeQualifier, ImageInfo, ImageFormat, EventInfo, ProfilingInfo, DeviceType,
     DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities,
     DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties,
-    ImageFormatParseResult};
+    ImageFormatParseResult, Status};
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -75,20 +75,20 @@ impl std::fmt::Display for EmptyInfoResult {
 impl std::error::Error for EmptyInfoResult {
     fn description(&self) -> &str {
         match *self {
-            EmptyInfoResult::Platform => "no platform info available",
-            EmptyInfoResult::Device => "no device info available",
-            EmptyInfoResult::Context => "no context info available",
-            EmptyInfoResult::CommandQueue => "no command queue info available",
-            EmptyInfoResult::Mem => "no mem info available",
-            EmptyInfoResult::Image => "no image info available",
-            EmptyInfoResult::Sampler => "no sampler info available",
-            EmptyInfoResult::Program => "no program info available",
-            EmptyInfoResult::ProgramBuild => "no program build info available",
-            EmptyInfoResult::Kernel => "no kernel info available",
-            EmptyInfoResult::KernelArg => "no kernel argument info available",
-            EmptyInfoResult::KernelWorkGroup => "no kernel work-group info available",
-            EmptyInfoResult::Event => "no event info available",
-            EmptyInfoResult::Profiling => "no event profiling info available",
+            EmptyInfoResult::Platform => "platform info unavailable",
+            EmptyInfoResult::Device => "device info unavailable",
+            EmptyInfoResult::Context => "context info unavailable",
+            EmptyInfoResult::CommandQueue => "command queue info unavailable",
+            EmptyInfoResult::Mem => "mem info unavailable",
+            EmptyInfoResult::Image => "image info unavailable",
+            EmptyInfoResult::Sampler => "sampler info unavailable",
+            EmptyInfoResult::Program => "program info unavailable",
+            EmptyInfoResult::ProgramBuild => "program build info unavailable",
+            EmptyInfoResult::Kernel => "kernel info unavailable",
+            EmptyInfoResult::KernelArg => "kernel argument info unavailable",
+            EmptyInfoResult::KernelWorkGroup => "kernel work-group info unavailable",
+            EmptyInfoResult::Event => "event info unavailable",
+            EmptyInfoResult::Profiling => "event profiling info unavailable",
         }
     }
 }
@@ -2058,6 +2058,9 @@ pub enum KernelWorkGroupInfoResult {
     PreferredWorkGroupSizeMultiple(usize),
     PrivateMemSize(u64),
     GlobalWorkSize([usize; 3]),
+    Empty(EmptyInfoResult),
+    Unavailable(Status),
+    CustomBuiltinOnly,
     Error(Box<OclError>),
 }
 
@@ -2142,6 +2145,10 @@ impl std::fmt::Display for KernelWorkGroupInfoResult {
             KernelWorkGroupInfoResult::PreferredWorkGroupSizeMultiple(s) => write!(f, "{}", s),
             KernelWorkGroupInfoResult::PrivateMemSize(s) => write!(f, "{}", s),
             KernelWorkGroupInfoResult::GlobalWorkSize(s) => write!(f, "{:?}", s),
+            KernelWorkGroupInfoResult::Empty(ref r) => write!(f, "{}", r),
+            KernelWorkGroupInfoResult::Unavailable(ref s) => write!(f, "unavailable ({})", s),
+            KernelWorkGroupInfoResult::CustomBuiltinOnly => write!(f,
+                "only available for custom devices or built-in kernels"),
             KernelWorkGroupInfoResult::Error(ref err) => write!(f, "{}", err),
         }
     }

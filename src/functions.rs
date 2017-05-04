@@ -1833,14 +1833,21 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(eval_errcode(errcode, result, "clGetKernelWorkGroupInfo", ""));
+    // Make printing certain platform-specific errors less scary looking:
     if let Err(err) = eval_errcode(errcode, (), "clGetKernelWorkGroupInfo", "") {
         if let OclError::Status { ref status, .. } = err {
+            // NVIDIA / APPLE (i think):
             if request == KernelWorkGroupInfo::GlobalWorkSize &&
                     status == &Status::CL_INVALID_VALUE
             {
-                return KernelWorkGroupInfoResult::from(OclError::from(
-                    "only available for custom devices or built-in kernels"));
+                // return KernelWorkGroupInfoResult::from(OclError::from(
+                //     "only available for custom devices or built-in kernels"));
+                return KernelWorkGroupInfoResult::CustomBuiltinOnly;
+            }
+
+            // APPLE (bleh):
+            if status == &Status::CL_INVALID_VALUE {
+                return KernelWorkGroupInfoResult::Unavailable(status.clone());
             }
         }
         return KernelWorkGroupInfoResult::from(err);
