@@ -402,9 +402,9 @@ pub fn rw_vec() {
             // enabled, use in-order queues (since by blocking, everything
             // will be synchronous anyway).
             let queue_flags = if cfg!(feature = "async_block") {
-                None,
+                None
             } else {
-                Some(CommandQueueProperties::new().out_of_order());
+                Some(CommandQueueProperties::new().out_of_order())
             };
 
             let common_queue = create_queue(&context, device, queue_flags).unwrap();
