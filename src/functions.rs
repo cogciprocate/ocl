@@ -1846,7 +1846,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
             }
 
             // APPLE (bleh):
-            if status == &Status::CL_INVALID_VALUE {
+            if status == &Status::CL_INVALID_DEVICE {
                 return KernelWorkGroupInfoResult::Unavailable(status.clone());
             }
         }
