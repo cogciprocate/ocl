@@ -506,7 +506,13 @@ impl Device {
 
 unsafe impl ClDeviceIdPtr for Device {
     fn as_ptr(&self) -> cl_device_id {
-        self.0.as_ptr()
+        self.0.as_raw()
+    }
+}
+
+unsafe impl<'a> ClDeviceIdPtr for &'a Device {
+    fn as_ptr(&self) -> cl_device_id {
+        self.0.as_raw()
     }
 }
 
