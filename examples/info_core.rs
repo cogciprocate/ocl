@@ -23,18 +23,18 @@ static SRC: &'static str = r#"
 
 fn main() {
     let platforms = Platform::list();
-    for platform in platforms.iter() {
-        print_platform(platform.clone());
+    for (plat_idx, &platform) in platforms.iter().enumerate() {
+        print_platform(plat_idx, platform);
     }
 }
 
-fn print_platform(platform: Platform) {
-    for device in Device::list_all(&platform).unwrap() {
-        print_platform_device(platform.clone(), device);
+fn print_platform(plat_idx: usize, platform: Platform) {
+    for (device_idx, &device) in Device::list_all(&platform).unwrap().iter().enumerate() {
+        print_platform_device(plat_idx, platform, device_idx, device);
     }
 }
 
-fn print_platform_device(platform: Platform, device: Device) {
+fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize, device: Device) {
     let device_version = device.version().unwrap();
 
     let context = Context::builder().platform(platform).devices(device).build().unwrap();
@@ -79,13 +79,14 @@ fn print_platform_device(platform: Platform, device: Device) {
     // #################### PLATFORM ####################
     // ##################################################
 
-    println!("Platform:\n\
+    println!("Platform [{}]:\n\
             {t}Profile: {}\n\
             {t}Version: {}\n\
             {t}Name: {}\n\
             {t}Vendor: {}\n\
             {t}Extensions: {}\n\
         ",
+        plat_idx,
         core::get_platform_info(context.platform().unwrap().unwrap_or(Platform::default()), PlatformInfo::Profile),
         core::get_platform_info(context.platform().unwrap().unwrap_or(Platform::default()), PlatformInfo::Version),
         core::get_platform_info(context.platform().unwrap().unwrap_or(Platform::default()), PlatformInfo::Name),
@@ -132,10 +133,12 @@ fn print_platform_device(platform: Platform, device: Device) {
     // Printing algorithm is highly janky (due to laziness).
 
     // for device in context.devices().iter() {
-    for device_idx in 0..context.devices().len() {
-        let device = context.devices()[device_idx].clone();
+    debug_assert!(context.devices().len() == 1);
 
-        println!("Device[{}]: \n\
+    // for device_idx in 0..context.devices().len() {
+        // let device = context.devices()[device_idx].clone();
+
+        println!("Device [{}]: \n\
                 {t}Type: {}\n\
                 {t}VendorId: {}\n\
                 {t}MaxComputeUnits: {}\n\
@@ -292,7 +295,7 @@ fn print_platform_device(platform: Platform, device: Device) {
             core::get_device_info(&device, DeviceInfo::ImageBaseAddressAlignment),
             t = util::colors::TAB,
         );
-    }
+    // }
 
 
     //
