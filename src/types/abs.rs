@@ -246,7 +246,7 @@ unsafe impl<'a> ClWaitListPtr for () {
 
 /// Types with a reference to a raw platform_id pointer.
 // pub unsafe trait ClPlatformIdPtr: Sized + Debug {
-pub unsafe trait ClPlatformIdPtr: Debug {
+pub unsafe trait ClPlatformIdPtr: Debug + Copy {
     fn as_ptr(&self) -> cl_platform_id;
 }
 
@@ -265,22 +265,22 @@ unsafe impl ClPlatformIdPtr for () {
 
 /// Types with a reference to a raw device_id pointer.
 // pub unsafe trait ClDeviceIdPtr: Sized + Debug {
-pub unsafe trait ClDeviceIdPtr: Debug {
+pub unsafe trait ClDeviceIdPtr: Debug + Copy {
     fn as_ptr(&self) -> cl_device_id;
 }
 
-
-unsafe impl<'a, P> ClDeviceIdPtr for &'a P where P: ClDeviceIdPtr {
-    fn as_ptr(&self) -> cl_device_id {
-        (*self).as_ptr()
-    }
-}
+// unsafe impl<'a, P> ClDeviceIdPtr for &'a P where P: ClDeviceIdPtr {
+//     fn as_ptr(&self) -> cl_device_id {
+//         (*self).as_ptr()
+//     }
+// }
 
 unsafe impl ClDeviceIdPtr for () {
     fn as_ptr(&self) -> cl_device_id {
         ptr::null_mut() as *mut _ as cl_device_id
     }
 }
+
 
 /// Types with a copy of a context pointer.
 pub unsafe trait ClContextPtr: Debug + Copy {
@@ -403,7 +403,7 @@ impl DeviceId {
     }
 
     /// Returns a pointer.
-    pub fn as_ptr(&self) -> cl_device_id {
+    pub fn as_raw(&self) -> cl_device_id {
         self.0
     }
 
@@ -418,6 +418,12 @@ impl DeviceId {
 }
 
 unsafe impl ClDeviceIdPtr for DeviceId {
+    fn as_ptr(&self) -> cl_device_id {
+        self.0
+    }
+}
+
+unsafe impl<'a> ClDeviceIdPtr for &'a DeviceId {
     fn as_ptr(&self) -> cl_device_id {
         self.0
     }

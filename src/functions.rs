@@ -157,7 +157,7 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) 
             Device list is empty. Aborting.");
     }
 
-    for device_id in device_ids.iter() {
+    for device_id in device_ids.iter().cloned() {
         match get_program_build_info(program, device_id, ProgramBuildInfo::BuildLog) {
             ProgramBuildInfoResult::BuildLog(log) => {
                 if log.len() > 1 {
@@ -515,7 +515,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
     // http://sa10.idav.ucdavis.edu/docs/sa10-dg-opencl-gl-interop.pdf
     if let Some(properties) = properties {
         if let Some(_) = properties.get_cgl_sharegroup() {
-            for device in device_ids {
+            for &device in device_ids {
                 match device_support_cl_gl_sharing(device) {
                     Ok(true) => {},
                     Ok(false) => return OclError::err_string("A device doesn't support \
