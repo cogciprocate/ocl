@@ -92,6 +92,20 @@ Rust's safety and convenience.
 OpenCL versions 1.1 and above are supported. OpenCL version 1.0 is **not**
 supported due to its inherent thread unsafety.
 
+##### Vulkan&trade; and the Future
+
+The OpenCL API already posesses all of the new attributes of the Vulkan API
+such as low-overhead, high performance, and unfettered hardware access. For all
+practical purposes, Vulkan is simply a graphics-focused superset of OpenCL's
+features (sorta kinda). OpenCL 2.1+ and Vulkan kernels/shaders now both
+compile into SPIR-V making the device side of things the same. I wouldn't be
+suprised if most driver vendors implement the two host APIs identically.
+
+In the future it's possible the two may completely merge (or that Vulkan will
+absorb OpenCL). Whatever happens, nothing will change as far as the front end
+of this library is concerned. This library will maintain its focus on the
+compute side of things. For the graphics side, see the excellent OpenGL
+library, [glium], and its younger sibling, [vulkano].
 
 ##### License
 
