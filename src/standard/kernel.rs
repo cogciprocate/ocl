@@ -673,7 +673,8 @@ impl Kernel {
 
     /// Panics if this kernel has already had all arguments assigned.
     fn assert_unlocked(&self) {
-        assert!(self.new_arg_count < self.num_args, "ocl::Kernel: This kernel is locked.");
+        assert!(self.new_arg_count < self.num_args, "This kernel has already had \
+            all arguments specified. Check the argument list.");
     }
 
     /// Inserts a named argument into the name->idx map.
