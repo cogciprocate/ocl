@@ -64,7 +64,7 @@ mod cb {
             unsafe {
                 let task_ptr = user_data as *mut _ as *mut Task;
                 let task = Box::from_raw(task_ptr);
-                (*task).unpark();
+                (*task).notify();
             }
         } else {
             let status = if event_status < 0 {
@@ -99,7 +99,7 @@ mod types {
     /// event wait list.
     ///
     //
-    // * TODO: 
+    // * TODO:
     //   - Figure out a way to abstract over `&` and `&mut` versions of
     //   things in `From` impls without messing up the `Ref` versions.
     //   - Possibly rename this to something friendlier.
@@ -133,7 +133,7 @@ mod types {
                 ClWaitListPtrEnum::RawEventArray(ref e) => e.as_slice().into(),
                 ClWaitListPtrEnum::EventCoreOwned(ref e) => EventList::from(vec![e.clone().into()]),
                 ClWaitListPtrEnum::EventOwned(ref e) => EventList::from(vec![e.clone().into()]),
-                ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),                
+                ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),
                 ClWaitListPtrEnum::Event(e) => EventList::from(vec![e.clone().into()]),
                 ClWaitListPtrEnum::EventList(e) => e.clone(),
                 ClWaitListPtrEnum::EventSlice(e) => EventList::from(e),

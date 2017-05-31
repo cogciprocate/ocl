@@ -2,7 +2,7 @@
 //!
 //
 // ### Notes
-// 
+//
 // * `EventArray` (a stack allocated event list with a maximum length of 8,
 //   akin to `RawEventArray`) is incomplete (TODO: Complete it).
 // * It's not yet clear whether or not to keep EventArray and EventList
@@ -74,7 +74,7 @@ impl Event {
     /// implementation of poll.
     #[cfg(not(feature = "async_block"))]
     pub fn set_unpark_callback(&self) -> OclResult<()> {
-        let task_ptr = box_raw_void(task::park());
+        let task_ptr = box_raw_void(task::current());
         unsafe { self.set_callback(_unpark_task, task_ptr) }
     }
 
@@ -232,7 +232,7 @@ impl Future for Event {
     // * NOTE: There is currently no check to ensure that only one callback is
     //   created (is this ok?).
     //   - TODO: Look into possible effects of unparking a task multiple times.
-    // 
+    //
     #[cfg(not(feature = "async_block"))]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         debug_assert!(self.0.is_valid());
@@ -263,7 +263,7 @@ impl Future for Event {
 /// Returns an empty, initialized (zeroed) event array.
 fn empty_event_array() -> NoDrop<[Event; 8]> {
     let mut array: [Event; 8];
-    unsafe { 
+    unsafe {
         array = mem::uninitialized();
         for elem in &mut array[..] {
             ptr::write(elem, Event::empty());
@@ -302,7 +302,7 @@ pub struct EventArray {
 
 impl EventArray {
     /// Returns a new, empty, `EventArray`.
-    pub fn new() -> EventArray {        
+    pub fn new() -> EventArray {
         EventArray {
             array: empty_event_array(),
             len: 0,
@@ -324,16 +324,16 @@ impl EventArray {
 
     /// Pushes an `Option<Event>` to the list if it is `Some(...)`.
     pub fn push_some<E: Into<Event>>(&mut self, event: Option<E>) -> Result<(), Event> {
-        if let Some(e) = event { 
-            self.push(e.into()) 
+        if let Some(e) = event {
+            self.push(e.into())
         } else {
             Ok(())
         }
-    } 
+    }
 
     /// Removes the last event from the list and returns it.
     pub fn pop(&mut self) -> Option<Event> {
-        if self.len > 0 {            
+        if self.len > 0 {
             self.len -= 1;
             Some(take(&mut self.array[self.len]))
         } else {
@@ -445,7 +445,7 @@ impl EventArray {
         if self.len > 0 {
             &self.array[0] as *const _ as *const cl_event
         } else {
-            0 as *const cl_event   
+            0 as *const cl_event
         }
     }
 
@@ -508,8 +508,8 @@ impl DerefMut for EventArray {
 impl Clone for EventArray {
     fn clone(&self) -> EventArray {
         let mut new_a = empty_event_array();
-        for i in 0..self.len { 
-            new_a[i] = self.array[i].clone(); 
+        for i in 0..self.len {
+            new_a[i] = self.array[i].clone();
         }
         EventArray { array: new_a, len: self.len }
     }
@@ -535,7 +535,7 @@ impl fmt::Debug for EventArray {
 impl Future for EventArray {
     type Item = ();
     type Error = OclError;
-    
+
     /// Removes (pops) each event from this list and waits for it to complete,
     /// dropping it in the process.
     //
@@ -543,13 +543,13 @@ impl Future for EventArray {
     #[cfg(not(feature = "async_block"))]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         while let Some(event) = self.pop() {
-            if !event.is_complete()? {                    
+            if !event.is_complete()? {
                 event.set_unpark_callback()?;
                 return Ok(Async::NotReady);
-            }   
+            }
         }
         Ok(Async::Ready(()))
-    }  
+    }
 
     /// Removes (pops) each event from this list and waits for it to complete,
     /// dropping it in the process.
@@ -563,13 +563,13 @@ impl Future for EventArray {
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventArray {
-    #[inline] fn alloc_new(&mut self) -> *mut cl_event { 
+    #[inline] fn alloc_new(&mut self) -> *mut cl_event {
         self._alloc_new().expect("<EventArray as ClNullEventPtr>::alloc_new")
     }
 
     #[inline] unsafe fn clone_from<E: AsRef<EventCore>>(&mut self, ev: E) {
         assert!(ev.as_ref().is_valid());
-        *self._alloc_new().expect("<EventArray as ClNullEventPtr>::clone_from") = 
+        *self._alloc_new().expect("<EventArray as ClNullEventPtr>::clone_from") =
             ev.as_ref().clone().into_raw()
     }
 }
@@ -670,7 +670,7 @@ impl EventList {
                     Ok(_) => return,
                     Err(ev) => event = Some(ev),
                 }
-            },  
+            },
             Inner::Vec(ref mut v) => {
                 if let Some(ev) = event { v.push(ev); }
                 return;
@@ -718,7 +718,7 @@ impl EventList {
                 // * TODO: Reimplement optimized version using
                 //   `util::vec_remove_rebuild` (from old `EventListCore`).
                 let mut events = Vec::with_capacity(v.capacity());
-                mem::swap(&mut events, v);                
+                mem::swap(&mut events, v);
                 for event in events {
                     if !event.is_complete()? {
                         v.push(event);
@@ -910,7 +910,7 @@ impl<'a, 'b, E> From<&'a [&'b Option<E>]> for EventList where 'b: 'a, E: Into<Ev
     }
 }
 
-impl<'a, 'b, 'c, E> From<&'a [&'b Option<&'c E>]> for EventList 
+impl<'a, 'b, 'c, E> From<&'a [&'b Option<&'c E>]> for EventList
         where 'c: 'b, 'b: 'a, E: Into<Event> + Clone
 {
     fn from(events: &[&Option<&E>]) -> EventList {
@@ -1008,20 +1008,20 @@ impl<'a> From<EventArray> for EventList {
     #[inline]
     fn from(events: EventArray) -> EventList {
         EventList { inner: Inner::Array(events) }
-    }   
+    }
 }
 
 impl<'a> From<RawEventArray> for EventList {
     #[inline]
     fn from(raw_events: RawEventArray) -> EventList {
         EventList::from(raw_events.as_slice())
-    }   
+    }
 }
 
 impl<'a> From<Box<ClWaitListPtr>> for EventList {
     fn from(trait_obj: Box<ClWaitListPtr>) -> EventList {
-        let raw_slice = unsafe { 
-            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize) 
+        let raw_slice = unsafe {
+            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize)
         };
 
         Self::from(raw_slice)
@@ -1030,8 +1030,8 @@ impl<'a> From<Box<ClWaitListPtr>> for EventList {
 
 impl<'a> From<&'a Box<ClWaitListPtr>> for EventList {
     fn from(trait_obj: &Box<ClWaitListPtr>) -> EventList {
-        let raw_slice = unsafe { 
-            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize) 
+        let raw_slice = unsafe {
+            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize)
         };
 
         Self::from(raw_slice)
@@ -1040,8 +1040,8 @@ impl<'a> From<&'a Box<ClWaitListPtr>> for EventList {
 
 impl<'a> From<Ref<'a, ClWaitListPtr>> for EventList {
     fn from(trait_obj: Ref<'a, ClWaitListPtr>) -> EventList {
-        let raw_slice = unsafe { 
-            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize) 
+        let raw_slice = unsafe {
+            ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize)
         };
 
         Self::from(raw_slice)
@@ -1057,7 +1057,7 @@ impl<'a> From<ClWaitListPtrEnum<'a>> for EventList {
             ClWaitListPtrEnum::RawEventArray(e) => e.as_slice().into(),
             ClWaitListPtrEnum::EventCoreOwned(e) => EventList::from(vec![e.into()]),
             ClWaitListPtrEnum::EventOwned(e) => EventList::from(vec![e.into()]),
-            ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),                
+            ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),
             ClWaitListPtrEnum::Event(e) => EventList::from(vec![e.clone().into()]),
             ClWaitListPtrEnum::EventList(e) => e.clone(),
             ClWaitListPtrEnum::EventSlice(e) => EventList::from(e),
@@ -1117,13 +1117,13 @@ impl Future for EventList {
     //   most robust strategy so far seems to simply wait on each event
     //   individually. Since events do not need to be polled or otherwise
     //   driven to completion this seems as efficient a strategy as any other.
-    //   
+    //
     //   Using `future::join_all` requires that the event list be cloned on
     //   each call to poll and then requires that each event be unnecessarily
     //   queried for completion an additional time. The only way around this
     //   would be to keep a separate variable for completion status but this
     //   variable would become out of date if the list were changed.
-    // 
+    //
     //   The most efficient strategy of all would probably be to use a marker
     //   instead of an event wait list and just never poll an `EventList` in
     //   the first place.
@@ -1131,9 +1131,9 @@ impl Future for EventList {
     // * ALSO NOTE: The event being waited on is actually dropped (at the exit
     //   of the `while let` loop) and is kept alive by the runtime until its
     //   command is complete.
-    // 
+    //
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        if PRINT_DEBUG { println!("##### EventList::poll: Polling Event list (thread: '{}').", 
+        if PRINT_DEBUG { println!("##### EventList::poll: Polling Event list (thread: '{}').",
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         while let Some(event) = self.pop() {
@@ -1145,17 +1145,17 @@ impl Future for EventList {
                     event.set_unpark_callback()?;
                     if PRINT_DEBUG { println!("######  ... callback set for event: {:?}.", event); }
                     return Ok(Async::NotReady);
-                }   
+                }
             }
         }
 
         // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );
-        if PRINT_DEBUG { println!("##### EventList::poll: All events complete (thread: '{}').", 
+        if PRINT_DEBUG { println!("##### EventList::poll: All events complete (thread: '{}').",
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
-        
+
         Ok(Async::Ready(()))
         // res
-    }   
+    }
 }
 
 unsafe impl<'a> ClNullEventPtr for &'a mut EventList {

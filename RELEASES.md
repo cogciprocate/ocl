@@ -1,4 +1,4 @@
-Version 0.14.0 (UNRELEASED)
+Version 0.14.0 (2017-05-31)
 ===========================
 
 Breaking Changes
