@@ -1,6 +1,6 @@
 [package]
 name = "ocl"
-version = "0.14.0"
+version = "0.14.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."
 documentation = "https://docs.rs/ocl"
@@ -44,12 +44,12 @@ futures = "0.1"
 crossbeam = "0.2"
 nodrop = "0.1"
 
-ocl-core = "0.4"
-# ocl-core = { version = "0.4", git = "https://github.com/cogciprocate/ocl-core" }
-# ocl-core = { version = "0.4", path = "../ocl-core" }
+ocl-core = "0.5"
+# ocl-core = { version = "*", git = "https://github.com/cogciprocate/ocl-core" }
+# ocl-core = { version = "*", path = "../ocl-core" }
 qutex = "0.1"
-# qutex = { version = "0.1", git = "https://github.com/cogciprocate/qutex" }
-# qutex = { version = "0.0", path = "../qutex" }
+# qutex = { version = "*", git = "https://github.com/cogciprocate/qutex" }
+# qutex = { version = "*", path = "../qutex" }
 
 [dev-dependencies]
 find_folder = "0.3"
@@ -62,9 +62,9 @@ futures-cpupool = "0.1"
 lazy_static = "0.2"
 ocl-extras = { version = "0.1", path = "ocl-extras" }
 
-[replace]
+# [replace]
 # "qutex:0.1.0" = { git = "https://github.com/cogciprocate/qutex" }
-"ocl-core:0.4.1" = { git = "https://github.com/cogciprocate/ocl-core" }
+# "ocl-core:0.4.1" = { git = "https://github.com/cogciprocate/ocl-core" }
 
 [workspace]
 members = ["ocl-extras", "examples/images", "examples/images_safe_clamp",
