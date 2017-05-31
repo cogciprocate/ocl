@@ -1,6 +1,8 @@
 Version 0.14.0 (2017-05-31)
 ===========================
 
+* `SpatialDims` now derives `PartialEq` and `Eq`.
+
 Breaking Changes
 ----------------
 * Supported image format returned from various functions such as
