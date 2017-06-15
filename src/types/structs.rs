@@ -202,6 +202,11 @@ impl ContextProperties {
         self
     }
 
+    pub fn glx_display(mut self, glx_disp: *mut c_void) -> ContextProperties {
+        self.set_glx_display(glx_disp);
+        self
+    }
+
     /// Specifies an OpenGL context CGL share group to
     /// associate the OpenCL context with (builder-style).
     pub fn cgl_sharegroup(mut self, gl_sharegroup: *mut c_void) -> ContextProperties {
@@ -230,6 +235,10 @@ impl ContextProperties {
     /// Specifies an OpenGL context handle.
     pub fn set_gl_context(&mut self, gl_ctx: ffi::cl_GLuint) {
         self.0.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
+    }
+
+    pub fn set_glx_display(&mut self, glx_disp: *mut c_void) {
+        self.0.insert(ContextProperty::GlxDisplayKhr, ContextPropertyValue::GlxDisplayKhr(glx_disp));
     }
 
     /// Specifies an OpenGL context CGL share group to
@@ -313,6 +322,14 @@ impl ContextProperties {
                     props_raw.push(sync as isize);
                 },
                 ContextPropertyValue::CglSharegroupKhr(sync) => {
+                    props_raw.push(key.clone() as isize);
+                    props_raw.push(sync as isize);
+                },
+                ContextPropertyValue::GlContextKhr(sync) => {
+                    props_raw.push(key.clone() as isize);
+                    props_raw.push(sync as isize);
+                },
+                ContextPropertyValue::GlxDisplayKhr(sync) => {
                     props_raw.push(key.clone() as isize);
                     props_raw.push(sync as isize);
                 },
