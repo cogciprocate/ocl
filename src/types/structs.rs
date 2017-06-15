@@ -202,6 +202,7 @@ impl ContextProperties {
         self
     }
 
+    /// Specifies a Display pointer for the GLX context (builder-style).
     pub fn glx_display(mut self, glx_disp: *mut c_void) -> ContextProperties {
         self.set_glx_display(glx_disp);
         self
@@ -237,6 +238,7 @@ impl ContextProperties {
         self.0.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
     }
 
+    /// Specifies a Display pointer for the GLX context.
     pub fn set_glx_display(&mut self, glx_disp: *mut c_void) {
         self.0.insert(ContextProperty::GlxDisplayKhr, ContextPropertyValue::GlxDisplayKhr(glx_disp));
     }
