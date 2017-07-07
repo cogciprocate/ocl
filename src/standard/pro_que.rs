@@ -148,7 +148,7 @@ impl ProQue {
     /// Returns the current `dims` or an error.
     ///
     /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards the
-    /// above, panicing version at the moment.
+    /// above, panicking version at the moment.
     pub fn dims_result(&self) -> OclResult<&SpatialDims> {
         match self.dims {
             Some(ref dims) => Ok(dims),
