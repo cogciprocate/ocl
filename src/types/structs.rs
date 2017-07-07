@@ -202,8 +202,8 @@ impl ContextProperties {
         self
     }
 
-    /// Specifies an OpenGL context CGL share group to
-    /// associate the OpenCL context with (builder-style).
+    /// Specifies an OpenGL context CGL share group to associate the OpenCL
+    /// context with (builder-style).
     pub fn cgl_sharegroup(mut self, gl_sharegroup: *mut c_void) -> ContextProperties {
         self.set_cgl_sharegroup(gl_sharegroup);
         self
@@ -232,8 +232,8 @@ impl ContextProperties {
         self.0.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
     }
 
-    /// Specifies an OpenGL context CGL share group to
-    /// associate the OpenCL context with.
+    /// Specifies an OpenGL context CGL share group to associate the OpenCL
+    /// context with.
     pub fn set_cgl_sharegroup(&mut self, gl_sharegroup: *mut c_void) {
         self.0.insert(ContextProperty::CglSharegroupKhr, ContextPropertyValue::CglSharegroupKhr(gl_sharegroup));
     }
