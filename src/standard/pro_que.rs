@@ -61,7 +61,7 @@ impl ProQue {
     /// cause errors later on.
     ///
     pub fn new<D: Into<SpatialDims>>(context: Context, queue: Queue, program: Program,
-                    dims: Option<D>) -> ProQue
+            dims: Option<D>) -> ProQue
     {
         ProQue {
             context: context,
@@ -357,14 +357,14 @@ impl ProQueBuilder {
                     let plat = context.platform()?;
 
                     if DEBUG_PRINT { println!("ProQue::build(): plat: {:?}, default: {:?}",
-                        plat, Platform::default()); }
+                        plat, Platform::first(false)?); }
 
                     match plat {
                         Some(platform) => platform.clone(),
-                        None => Platform::default(),
+                        None => Platform::first(false)?,
                     }
                 },
-                None => Platform::default(),
+                None => Platform::first(false)?,
             },
         };
 

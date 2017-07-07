@@ -139,12 +139,7 @@ impl DeviceSpecifier {
     /// undefined and could end up using any platform at all.
     ///
     pub fn to_device_list<P: Borrow<Platform>>(&self, platform: Option<P>) -> OclResult<Vec<Device>> {
-        // let platform = match platform {
-        //     Some(p) => p.clone(),
-        //     None => Platform::default(),
-        // };
-        // let platform = platform.unwrap_or(Platform::default());
-        let platform = platform.map(|p| p.borrow().clone()).unwrap_or(Platform::default());
+        let platform = platform.map(|p| p.borrow().clone()).unwrap_or(Platform::first(false)?);
 
         match *self {
             DeviceSpecifier::All => {

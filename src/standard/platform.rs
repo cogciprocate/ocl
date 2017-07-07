@@ -10,6 +10,7 @@ use std::ops::{Deref, DerefMut};
 // use std::convert::Into;
 use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
+use core::error::{Result as OclResult};
 
 /// A platform identifier.
 ///
@@ -26,18 +27,24 @@ impl Platform {
         list_core.into_iter().map(Platform::new).collect()
     }
 
-    // DEPRICATED:
-    // /// Returns the first available platform on the host machine.
-    // pub fn first() -> Platform {
-    //     let list_core = core::get_platform_ids()
-    //         .expect("Platform::default: Error retrieving platform");
-
-    //     // let first_idx = list_core.len() - 1;
-    //     let first_idx = 0;
-
-    //     Platform::new(list_core[first_idx].clone());
-    //     panic!("Platform::default(): This method has been depricated. Please use 'Platform::default()'");
-    // }
+    /// Returns the first available platform.
+    ///
+    /// If `ignore_env_var` is set to `true`, the `OCL_DEFAULT_PLATFORM_IDX`
+    /// environment variable will be ignored and the platform with index 0
+    /// returned from `core::get_platform_ids()` will be returned.
+    ///
+    /// This method differs from `Platform::default()` in two ways. First, it
+    /// optionally ignores the `OCL_DEFAULT_PLATFORM_IDX` environment variable
+    /// (`Platform::default` always respects it). Second, this function will
+    /// not panic if no platforms are available and will return an error
+    /// instead.
+    pub fn first(ignore_env_var: bool) -> OclResult<Platform> {
+        if ignore_env_var {
+            Ok(Platform::new(core::get_platform_ids()?[0]))
+        } else {
+            Ok(Platform::new(core::default_platform()?))
+        }
+    }
 
     /// Creates a new `Platform` from a `PlatformIdCore`.
     ///
@@ -166,13 +173,9 @@ unsafe impl ClPlatformIdPtr for Platform {
 // unsafe impl<'a> ClPlatformIdPtr for &'a Platform {}
 
 impl Default for Platform {
+    /// Returns the first (0th) platform available, or the platform specified
+    /// by the `OCL_DEFAULT_PLATFORM_IDX` environment variable if it is set.
     fn default() -> Platform {
-        // let list_core = core::get_platform_ids()
-        //     .expect("Platform::default: Error retrieving platform");
-
-        // // let first_idx = list_core.len() - 1;
-        // let first_idx = 0;
-
         let dflt_plat_core = core::default_platform().expect("Platform::default()");
         Platform::new(dflt_plat_core)
     }

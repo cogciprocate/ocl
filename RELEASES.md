@@ -1,3 +1,14 @@
+Version 0.14.1 (2017-07-06)
+===========================
+
+* The [`Platform::first`] method has been added which, unlike
+  `Platform::default`, returns an error instead of panicing when no platform
+  is available.
+* `ContextBuilder::new`, `ProQueBuilder::build`, and some other methods which
+  attempt to use the first available platform no longer panic when none is
+  available.
+
+
 Version 0.14.0 (2017-05-31)
 ===========================
 

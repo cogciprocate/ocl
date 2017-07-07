@@ -4,8 +4,8 @@ use std;
 use std::ops::{Deref, DerefMut};
 use ffi::cl_context;
 use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
-    ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformId as PlatformIdCore, PlatformInfo,
-    PlatformInfoResult, CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr};
+    ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult,
+    CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr};
 use core::error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier};
 
@@ -121,19 +121,6 @@ impl Context {
                     OclError::from("Context::device_info: Invalid device index")));
             },
         }
-
-        // match self.devices() {
-        //     Ok(ds) => {
-        //         match ds.get(index) {
-        //             Some(d) => core::get_device_info(d, info_kind),
-        //             None => {
-        //                 return DeviceInfoResult::Error(Box::new(
-        //                     OclError::from("Context::device_info: Invalid device index")));
-        //             },
-        //         }
-        //     },
-        //     Err(err) => DeviceInfoResult::Error(Box::new(err)),
-        // }
     }
 
     /// Returns info about the context.
@@ -220,7 +207,9 @@ unsafe impl<'a> ClContextPtr for &'a Context {
 
 /// A builder for `Context`.
 ///
-/// * TODO: Implement index-searching-round-robin-ing methods (and thier '_exact' counterparts).
+// * TODO:
+//   - Handle context creation callbacks.
+//
 #[must_use = "builders do nothing unless '::build' is called"]
 pub struct ContextBuilder {
     properties: ContextProperties,
@@ -238,13 +227,9 @@ impl ContextBuilder {
     /// * All devices associated with the first available platform
     /// * No notify callback function or user data.
     ///
-    /// * TODO:
-    ///   - That stuff above (find a valid context, devices, etc. first thing).
-    ///   - Handle context creation callbacks.
-    ///
     pub fn new() -> ContextBuilder {
-        let properties = ContextProperties::new()
-            .platform::<PlatformIdCore>(Platform::default().into());
+        // Default platform will be set within `::build` if unspecified by that time.
+        let properties = ContextProperties::new();
 
         ContextBuilder {
             properties: properties,
@@ -252,23 +237,16 @@ impl ContextBuilder {
         }
     }
 
-    /// Returns a new `Context` with the parameters hitherinforthto specified (say what?).
+    /// Specifies all context properties directly.
     ///
-    /// Returns a newly created context with the specified platform and set of device types.
-    pub fn build(&self) -> OclResult<Context> {
-        Context::new(Some(self.properties.clone()), self.device_spec.clone(), None, None)
-    }
-
-    /// Specify context properties directly.
-    ///
-    /// Overwrites any previously specified properties.
+    /// Overwrites all previously specified properties.
     ///
     pub fn properties<'a>(&'a mut self, properties: ContextProperties) -> &'a mut ContextBuilder {
         self.properties = properties;
         self
     }
 
-    /// Specify a context property.
+    /// Specifies a context property.
     ///
     /// Overwrites any property with the same variant (i.e.: if
     /// `ContextPropertyValue::Platform` was already set, it would be
@@ -317,5 +295,22 @@ impl ContextBuilder {
         assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
         self.device_spec = Some(device_spec.into());
         self
+    }
+
+    /// Returns a new `Context` with the parameters hitherinforthto specified (say what?).
+    ///
+    /// Returns a newly created context with the specified platform and set of device types.
+    ///
+    // * TODO:
+    //   - Handle context creation callbacks.
+    //
+    pub fn build(&self) -> OclResult<Context> {
+        let mut props = self.properties.clone();
+
+        if props.get_platform().is_none() {
+            props.set_platform(Platform::first(false)?);
+        }
+
+        Context::new(Some(props), self.device_spec.clone(), None, None)
     }
 }
