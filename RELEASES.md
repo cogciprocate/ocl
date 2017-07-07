@@ -1,4 +1,4 @@
-Version 0.14.1 (2017-07-06)
+Version 0.15.0 (UNRELEASED)
 ===========================
 
 * The [`Platform::first`] method has been added which, unlike
@@ -7,6 +7,12 @@ Version 0.14.1 (2017-07-06)
 * `ContextBuilder::new`, `ProQueBuilder::build`, and some other methods which
   attempt to use the first available platform no longer panic when none is
   available.
+
+Breaking Changes
+----------------
+* `BufferBuilder::fill_val` now only accepts a single argument, the value.
+  Setting an associated event may now optionally be done using the new
+  `::fill_event`.
 
 
 Version 0.14.0 (2017-05-31)
