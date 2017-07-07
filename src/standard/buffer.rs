@@ -1994,33 +1994,50 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// Allows the caller to automatically fill the buffer with a value (such
     /// as zero) immediately after creation.
     ///
+    /// Use [`::fill_event`] to set an event associated with the completion of
+    /// the fill command if you want it to execute asynchronously (it will
+    /// otherwise block the calling thread).
+    ///
     /// Platforms that have trouble with `clEnqueueFillBuffer` such as
     /// [pocl](http://portablecl.org/) should not use this option and should
     /// handle initializing buffers manually (using a kernel or copy host data
     /// flag).
     ///
-    /// The `enew` argument is provided to allow an empty event to be
-    /// associated with the `fill` command which will be enqueued after
-    /// creation and just before returning the new buffer. It is up to the
-    /// caller to ensure that the command has completed before performing any
-    /// other operations on the buffer. Failure to do so may cause the fill
-    /// command to run **after** subsequently queued commands if multiple or
-    /// out-of-order queues are being used. Passing `None` for `enew` (use
-    /// `None::<()>` to avoid the the type inference error) will cause the
-    /// fill command to block before returning the new buffer and is the safe
-    /// option if you don't want to worry about it.
-    ///
     /// ### Examples
     ///
     /// * TODO: Provide examples once this stabilizes.
     ///
-    ///
     /// [UNSTABLE]: May be changed or removed.
-    pub fn fill_val<'b, 'e, En>(mut self, fill_val: T, enew: Option<En>)
-            -> BufferBuilder<'a, T>
+    ///
+    /// [`::fill_event`]: struct.BufferBuilder.html#method.fill_event
+    pub fn fill_val(mut self, fill_val: T) -> BufferBuilder<'a, T> {
+        self.fill_val = Some((fill_val, None));
+        self
+    }
+
+    /// Specifies the (empty) event to use for association with the completion
+    /// of the fill command.
+    ///
+    /// `enew` specifies an empty event (generally a `&mut Event`) to be
+    /// associated with the fill command which will be enqueued after creation
+    /// and just before returning the new buffer. It is up to the caller to
+    /// ensure that the command has completed before performing any other
+    /// operations on the buffer. Failure to do so may cause the fill command
+    /// to run **after** subsequently queued commands if multiple or
+    /// out-of-order queues are being used.
+    ///
+    /// Not calling this method at all will cause the fill command to block
+    /// before returning the new buffer and is the safe option if you don't
+    /// want to worry about it.
+    ///
+    pub fn fill_event<'b, 'e, En>(mut self, enew: En) -> BufferBuilder<'a, T>
             where 'e: 'a, En: Into<ClNullEventPtrEnum<'e>>
     {
-        self.fill_val = Some((fill_val, enew.map(|e| e.into())));
+        match self.fill_val {
+            Some(ref fv) => assert!(fv.1.is_some(), "Buffer::fill_event: Fill event already set."),
+            None => panic!("Buffer::fill_event: Fill value must be set first"),
+        }
+        self.fill_val = self.fill_val.take().map(|fv| (fv.0, Some(enew.into())));
         self
     }
 

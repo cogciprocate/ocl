@@ -105,7 +105,8 @@ impl ProQue {
         Buffer::<T>::builder()
             .queue(self.queue.clone())
             .dims(dims)
-            .fill_val(Default::default(), None::<&mut ::Event>)
+            // .fill_val(Default::default(), None::<&mut ::Event>)
+            .fill_val(Default::default())
             .build()
     }
 
