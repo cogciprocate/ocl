@@ -51,6 +51,8 @@ const CL_GL_SHARING_EXT: &'static str = "cl_APPLE_gl_sharing";
 const CL_GL_SHARING_EXT: &'static str = "cl_khr_gl_sharing";
 
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
+const PLATFORM_IDS_ATTEMPT_TIMEOUT_MS: u64 = 2000;
+const PLATFORM_IDS_ATTEMPT_COUNT: u64 = 5;
 
 
 /// Don't be a dummy. Buckle your `_dummy_callback`.
@@ -255,14 +257,14 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
     // same time by adding a delay/retry loop:
     if errcode == Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
         // println!("CL_PLATFORM_NOT_FOUND_KHR... looping until platform list is available...");
-        let sleep_ms = 2000;
-        let mut iters_rmng = 5;
+        let sleep_ms = PLATFORM_IDS_ATTEMPT_TIMEOUT_MS;
+        let mut iters_rmng = PLATFORM_IDS_ATTEMPT_COUNT;
 
         while errcode == Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
             if iters_rmng == 0 {
                 return OclError::err_string(format!("core::get_platform_ids(): \
                     CL_PLATFORM_NOT_FOUND_KHR... Unable to get platform id list after {} \
-                    seconds of waiting.", (iters_rmng * sleep_ms) / 1000));
+                    seconds of waiting.", (PLATFORM_IDS_ATTEMPT_COUNT * sleep_ms) / 1000));
             }
 
             // Sleep to allow the ICD to refresh or whatever it does:
