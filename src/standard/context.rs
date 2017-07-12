@@ -275,6 +275,15 @@ impl ContextBuilder {
         self
     }
 
+    /// Specifies a Display pointer for the GLX context.
+    ///
+    /// Overwrites any previously specified GLX context.
+    ///
+    pub fn glx_display(&mut self, glx_display: *mut ::ffi::c_void) -> &mut ContextBuilder {
+        self.properties.set_glx_display(glx_display);
+        self
+    }
+
     /// Specifies a list of devices with which to associate the context.
     ///
     /// Devices may be specified in any number of ways including simply
