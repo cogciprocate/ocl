@@ -581,6 +581,7 @@ enum_from_primitive! {
         CL_INVALID_DEVICE_PARTITION_COUNT               = -68,
         CL_INVALID_PIPE_SIZE                            = -69,
         CL_INVALID_DEVICE_QUEUE                         = -70,
+        CL_INVALID_GL_SHAREGROUP_REFERENCE_KHR          = -1000,
         CL_PLATFORM_NOT_FOUND_KHR                       = -1001,
         CL_NV_INVALID_MEM_ACCESS                        = -9999,
     }
