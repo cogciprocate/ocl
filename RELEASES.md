@@ -13,6 +13,8 @@ Breaking Changes
 * `BufferBuilder::fill_val` now only accepts a single argument, the value.
   Setting an associated event may now optionally be done using the new
   `::fill_event`.
+* `ContextBuilder::gl_context` now accepts a `*mut c_void` instead of an
+  integer for its argument.
 * [ocl-core] The `ContextPropertyValue::GlContextKhr` variant is now holds the
   `*mut c_void` type.
 
