@@ -13,6 +13,8 @@ Breaking Changes
 * `BufferBuilder::fill_val` now only accepts a single argument, the value.
   Setting an associated event may now optionally be done using the new
   `::fill_event`.
+* [ocl-core] The `ContextPropertyValue::GlContextKhr` variant is now holds the
+  `*mut c_void` type.
 
 
 Version 0.14.0 (2017-05-31)
