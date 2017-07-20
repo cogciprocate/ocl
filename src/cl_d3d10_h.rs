@@ -9,6 +9,11 @@ pub const CL_CONTEXT_D3D10_DEVICE_KHR: cl_uint = 0x4014;
 pub type cl_d3d10_device_source_khr = cl_uint;
 // typedef cl_uint cl_d3d10_device_set_khr;
 pub type cl_d3d10_device_set_khr = cl_uint;
+// #define CL_INVALID_D3D10_DEVICE_KHR                  -1002
+// #define CL_INVALID_D3D10_RESOURCE_KHR                -1003
+// #define CL_D3D10_RESOURCE_ALREADY_ACQUIRED_KHR       -1004
+// #define CL_D3D10_RESOURCE_NOT_ACQUIRED_KHR           -1005
+
 
 // /**********************************************************************************
 //  * Copyright (c) 2008-2015 The Khronos Group Inc.
