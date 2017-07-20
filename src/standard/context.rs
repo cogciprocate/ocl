@@ -270,7 +270,7 @@ impl ContextBuilder {
     ///
     /// Overwrites any previously specified OpenGL context.
     ///
-    pub fn gl_context(&mut self, gl_handle: u32) -> &mut ContextBuilder {
+    pub fn gl_context(&mut self, gl_handle: *mut ::ffi::c_void) -> &mut ContextBuilder {
         self.properties.set_gl_context(gl_handle);
         self
     }
