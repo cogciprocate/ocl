@@ -154,7 +154,7 @@ pub enum ContextPropertyValue {
     InteropUserSync(bool),
     // Not sure about this type:
     D3d10DeviceKhr(*mut ffi::cl_d3d10_device_source_khr),
-    GlContextKhr(ffi::cl_GLuint),
+    GlContextKhr(*mut c_void),
     EglDisplayKhr(ffi::CLeglDisplayKHR),
     // Not sure about this type:
     GlxDisplayKhr(*mut c_void),
@@ -197,7 +197,7 @@ impl ContextProperties {
     }
 
     /// Specifies an OpenGL context handle (builder-style).
-    pub fn gl_context(mut self, gl_ctx: ffi::cl_GLuint) -> ContextProperties {
+    pub fn gl_context(mut self, gl_ctx: *mut c_void) -> ContextProperties {
         self.set_gl_context(gl_ctx);
         self
     }
@@ -234,7 +234,7 @@ impl ContextProperties {
     }
 
     /// Specifies an OpenGL context handle.
-    pub fn set_gl_context(&mut self, gl_ctx: ffi::cl_GLuint) {
+    pub fn set_gl_context(&mut self, gl_ctx: *mut c_void) {
         self.0.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
     }
 
@@ -418,7 +418,7 @@ impl ContextProperties {
                     },
                     ContextProperty::GlContextKhr => {
                         context_props.0.insert(ContextProperty::GlContextKhr,
-                            ContextPropertyValue::GlContextKhr(val_raw as ffi::cl_GLuint),
+                            ContextPropertyValue::GlContextKhr(val_raw as *mut c_void),
                         );
                     },
                     ContextProperty::EglDisplayKhr => {

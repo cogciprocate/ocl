@@ -123,7 +123,7 @@ macro_rules! impl_sh_unsigned {
     )
 }
 
-
+#[allow(unused_macros)]
 macro_rules! impl_sh_signed {
     ($name:ident, $f:ident: $( $idx:expr ),+) => (
         impl Shl<$f> for $name {
@@ -173,6 +173,7 @@ macro_rules! impl_sh_signed {
 }
 
 // FIXME (#23545): uncomment the remaining impls
+#[allow(unused_macros)]
 macro_rules! impl_sh_all {
     ($name:ident: $( $idx:expr ),+) => (
         //impl_sh_unsigned! { $name, u8: $( $idx ),+ }
@@ -237,7 +238,7 @@ macro_rules! impl_int_ops {
             fn cmp(&self, other: &$name) -> Ordering {
                 self.0.cmp(&other.0)
             }
-        }        
+        }
 
         impl Add for $name {
             type Output = $name;
