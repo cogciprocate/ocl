@@ -1,0 +1,17 @@
+[package]
+name = "ocl-gl"
+version = "0.1.0"
+authors = ["Nopey Nope<golgothasTerror101@gmail.com>"]
+build="build.rs"
+repository = "https://github.com/Nopey/rust-ocl-gl"
+
+[dependencies]
+ocl={git = "https://github.com/cogciprocate/ocl.git" }
+[replace]
+"ocl-core:0.5.1" = { git = "https://github.com/cogciprocate/ocl-core" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+cgl = "^0.2"
+
+[build-dependencies]
+gl_generator = "^0.5"
