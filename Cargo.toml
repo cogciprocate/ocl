@@ -11,6 +11,7 @@ keywords = ["opencl", "gpu", "gpgpu", "async"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "*.png", "bak/*"]
 categories = ["asynchronous", "concurrency", "science", "api-bindings"]
+build = "build.rs"
 
 [features]
 event_debug_print = []
