@@ -13,7 +13,7 @@ ocl-interop = "*"
 Then, when you need the context
 ```rust
 // .. other code, including picking a platform ..
-let mut context = ocl-gl::get_properties_list().platform(platform).build().unwrap();
+let mut context = ocl::Context::builder().properties(ocl-gl::get_properties_list().platform(platform)).build().unwrap();
 // .. go on and use it ..
 ```
 
