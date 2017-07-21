@@ -208,6 +208,12 @@ impl ContextProperties {
         self
     }
 
+    /// Specifies a Display pointer for the WGL HDC (builder-style).
+    pub fn wgl_hdc(mut self, wgl_hdc: *mut c_void) -> ContextProperties {
+        self.set_wgl_hdc(wgl_hdc);
+        self
+    }
+
     /// Specifies an OpenGL context CGL share group to associate the OpenCL
     /// context with (builder-style).
     pub fn cgl_sharegroup(mut self, gl_sharegroup: *mut c_void) -> ContextProperties {
@@ -243,6 +249,11 @@ impl ContextProperties {
         self.0.insert(ContextProperty::GlxDisplayKhr, ContextPropertyValue::GlxDisplayKhr(glx_disp));
     }
 
+    /// Specifies a Display pointer for the WGL HDC.
+    pub fn set_wgl_hdc(&mut self, wgl_hdc: *mut c_void) {
+        self.0.insert(ContextProperty::WglHdcKhr, ContextPropertyValue::WglHdcKhr(wgl_hdc));
+    }
+
     /// Specifies an OpenGL context CGL share group to associate the OpenCL
     /// context with.
     pub fn set_cgl_sharegroup(&mut self, gl_sharegroup: *mut c_void) {
@@ -262,6 +273,14 @@ impl ContextProperties {
             ContextPropertyValue::GlContextKhr(val) => {
                 self.0.insert(ContextProperty::GlContextKhr,
                     ContextPropertyValue::GlContextKhr(val));
+            },
+            ContextPropertyValue::GlxDisplayKhr(val) => {
+                self.0.insert(ContextProperty::GlxDisplayKhr,
+                    ContextPropertyValue::GlxDisplayKhr(val));
+            },
+            ContextPropertyValue::WglHdcKhr(val) => {
+                self.0.insert(ContextProperty::WglHdcKhr,
+                    ContextPropertyValue::WglHdcKhr(val));
             },
             ContextPropertyValue::CglSharegroupKhr(val) => {
                 self.0.insert(ContextProperty::CglSharegroupKhr,
@@ -323,15 +342,19 @@ impl ContextProperties {
                     props_raw.push(key.clone() as isize);
                     props_raw.push(sync as isize);
                 },
-                ContextPropertyValue::CglSharegroupKhr(sync) => {
-                    props_raw.push(key.clone() as isize);
-                    props_raw.push(sync as isize);
-                },
                 ContextPropertyValue::GlContextKhr(sync) => {
                     props_raw.push(key.clone() as isize);
                     props_raw.push(sync as isize);
                 },
                 ContextPropertyValue::GlxDisplayKhr(sync) => {
+                    props_raw.push(key.clone() as isize);
+                    props_raw.push(sync as isize);
+                },
+                ContextPropertyValue::WglHdcKhr(sync) => {
+                    props_raw.push(key.clone() as isize);
+                    props_raw.push(sync as isize);
+                },
+                ContextPropertyValue::CglSharegroupKhr(sync) => {
                     props_raw.push(key.clone() as isize);
                     props_raw.push(sync as isize);
                 },
