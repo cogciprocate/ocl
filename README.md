@@ -8,7 +8,7 @@ OpenGL ES isn't supported, but will be added soon.
 Add the following to your Cargo.toml, assuming you are using cargo.
 ```toml
 [dependencies]
-ocl-gl = "*"
+ocl-interop = "*"
 ```
 Then, when you need the context
 ```rust
