@@ -1,5 +1,5 @@
 [package]
-name = "ocl-gl"
+name = "ocl-interop"
 version = "0.1.0"
 authors = ["Nopey Nope<golgothasTerror101@gmail.com>"]
 build="build.rs"
