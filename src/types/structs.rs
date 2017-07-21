@@ -221,6 +221,12 @@ impl ContextProperties {
         self
     }
 
+    /// Specifies a pointer for the EGL display (builder-style).
+    pub fn egl_display(mut self, egl_disp: *mut c_void) -> ContextProperties {
+        self.set_egl_display(egl_disp);
+        self
+    }
+
     /// Pushes a `ContextPropertyValue` onto this list of properties
     /// (builder-style).
     pub fn property_value(mut self, prop: ContextPropertyValue) -> ContextProperties {
@@ -260,6 +266,11 @@ impl ContextProperties {
         self.0.insert(ContextProperty::CglSharegroupKhr, ContextPropertyValue::CglSharegroupKhr(gl_sharegroup));
     }
 
+    /// Specifies a pointer for the EGL display.
+    pub fn set_egl_display(&mut self, egl_disp: *mut c_void) {
+        self.0.insert(ContextProperty::EglDisplayKhr, ContextPropertyValue::EglDisplayKhr(egl_disp));
+    }
+
     /// Pushes a `ContextPropertyValue` onto this list of properties.
     pub fn set_property_value(&mut self, prop: ContextPropertyValue) {
         match prop {
@@ -285,6 +296,10 @@ impl ContextProperties {
             ContextPropertyValue::CglSharegroupKhr(val) => {
                 self.0.insert(ContextProperty::CglSharegroupKhr,
                     ContextPropertyValue::CglSharegroupKhr(val));
+            },
+            ContextPropertyValue::EglDisplayKhr(val) => {
+                self.0.insert(ContextProperty::EglDisplayKhr,
+                    ContextPropertyValue::EglDisplayKhr(val));
             },
             _ => panic!("'{:?}' is not yet a supported variant.", prop),
         }
@@ -355,6 +370,10 @@ impl ContextProperties {
                     props_raw.push(sync as isize);
                 },
                 ContextPropertyValue::CglSharegroupKhr(sync) => {
+                    props_raw.push(key.clone() as isize);
+                    props_raw.push(sync as isize);
+                },
+                ContextPropertyValue::EglDisplayKhr(sync) => {
                     props_raw.push(key.clone() as isize);
                     props_raw.push(sync as isize);
                 },
