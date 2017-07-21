@@ -12,7 +12,6 @@ ocl-gl = "*"
 ```
 Then, when you need the context
 ```rust
-extern crate ocl-gl;
 // .. other code, including picking a platform ..
 let mut context = ocl-gl::get_properties_list().platform(platform).build().unwrap();
 // .. go on and use it ..
