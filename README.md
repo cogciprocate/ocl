@@ -79,13 +79,20 @@ power and performance of the C API in a simple package.
 * Version 0.13: [The futures have arrived](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
 * New examples: [`async_cycles.rs`], [`async_menagerie.rs`], and [`async_process.rs`].
 
+##### Introduction to OpenCL
 
-#### Diving Deeper
+For a quick but thorough primer on the basics of OpenCL, please see [Matthew
+Scarpino's excellent article, 'A Gentle Introduction to OpenCL' at
+drdobbs.com](http://www.drdobbs.com/parallel/a-gentle-introduction-to-opencl/231002854)
+(his
+[book](https://www.amazon.com/OpenCL-Action-Accelerate-Graphics-Computations/dp/1617290173/ref=sr_1_2?ie=UTF8&qid=1500745843&sr=8-2&keywords=opencl)
+is great too).
+
+##### Diving Deeper
 
 Already familiar with the standard OpenCL core API? See the [`ocl-core`] crate
 for access to the complete feature set in the conventional API style with
 Rust's safety and convenience.
-
 
 ##### Version Support
 
