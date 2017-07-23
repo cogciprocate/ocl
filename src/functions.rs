@@ -141,6 +141,15 @@ fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<
     (wait_list_len, wait_list_ptr, new_event_ptr)
 }
 
+/// Converts a slice of Mem to a vec of cl_mem
+fn resolve_mem_ptrs(buffers: &[Mem]) -> Vec<cl_mem>{
+    let mut bufferPointers:Vec<cl_mem>=vec!();
+    for buff in buffers{
+        bufferPointers.push(buff.as_ptr());
+    }
+    return bufferPointers;
+}
+
 /// Converts an array option reference into a pointer to the contained array.
 fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
     match work_dims {
@@ -2410,7 +2419,7 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
 }
 
 /// [UNTESTED]
-/// Enqueue acquire OpenCL memory objects that have been created from `OpenGL` objects.
+/// Enqueue acquire OpenCL memory object that has been created from an `OpenGL` object.
 pub fn enqueue_acquire_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2434,7 +2443,37 @@ pub fn enqueue_acquire_gl_buffer<En, Ewl>(
 }
 
 /// [UNTESTED]
-/// Enqueue release OpenCL memory objects that have been created from `OpenGL` objects.
+/// Enqueue acquire OpenCL memory objects that have been created from `OpenGL` objects.
+pub fn enqueue_acquire_gl_buffers<En, Ewl>(
+            command_queue: &CommandQueue,
+            buffers: &[Mem],
+            wait_list: Option<Ewl>,
+            new_event: Option<En>,
+        ) -> OclResult<()>
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        resolve_event_ptrs(wait_list, new_event);
+
+    //Not really that worried, just putting it here in case somebody writes something crazy..
+    //Assumes usize is 32 bits or more.
+    assert!(buffers.len()<(u32::max_value() as usize),"Too many buffers, must be less than 2^32 buffers");
+    //Gotta convert the Mem to cl_mem
+    let bufferPointers = resolve_mem_ptrs(buffers);
+    let errcode = unsafe { clEnqueueAcquireGLObjects(
+        command_queue.as_ptr(),
+        bufferPointers.len() as u32,
+        bufferPointers.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr
+    ) };
+    eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", "")
+}
+
+
+/// [UNTESTED]
+/// Enqueue release a single OpenCL memory object that has been created from an `OpenGL` object.
 pub fn enqueue_release_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2450,6 +2489,36 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
         command_queue.as_ptr(),
         1,
         &buffer.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr
+    ) };
+    eval_errcode(errcode, (), "clEnqueueReleaseGLObjects", "")
+}
+
+/// [UNTESTED]
+/// Enqueue release OpenCL memory objects that have been created from `OpenGL` objects.
+pub fn enqueue_release_gl_buffers<En, Ewl>(
+            command_queue: &CommandQueue,
+            buffers: &[Mem],
+            wait_list: Option<Ewl>,
+            new_event: Option<En>,
+        ) -> OclResult<()>
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        resolve_event_ptrs(wait_list, new_event);
+
+    //Not really that worried, just putting it here in case somebody writes something crazy..
+    //Assumes usize is 32 bits or more.
+    assert!(buffers.len()<(u32::max_value() as usize),"Too many buffers, must be less than 2^32 buffers");
+    //Gotta convert the Mem to cl_mem
+    let bufferPointers = resolve_mem_ptrs(buffers);
+
+    let errcode = unsafe { clEnqueueReleaseGLObjects(
+        command_queue.as_ptr(),
+        bufferPointers.len() as u32,
+        bufferPointers.as_ptr(),
         wait_list_len,
         wait_list_ptr,
         new_event_ptr
