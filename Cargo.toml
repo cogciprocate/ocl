@@ -11,7 +11,19 @@ categories=["concurrency","hardware-support","api-bindings","external-ffi-bindin
 license="WTFPL"
 
 [dependencies]
-ocl="^0.14.2"
+#ocl="^0.14.2"
+ocl={git = "https://github.com/cogciprocate/ocl.git" }
+
+[replace]
+"ocl-core:0.5.1" = { git = "https://github.com/cogciprocate/ocl-core" }
+
+#for tests
+[dev-dependencies]
+gl="*"
+sdl2="*"
+glfw="*"
+#TODO: Test Glutin
+glutin="*"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cgl = "^0.2"

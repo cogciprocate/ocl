@@ -42,8 +42,8 @@ pub fn get_properties_list() -> ocl::builders::ContextProperties {
     #[cfg(target_os="android")]
     unsafe {
         #![warn("Untested on Android")]
-            properties.set_gl_display(egl::GetCurrentContext() as (*mut _));
-            properties.set_egl_display(egl::GetCurrentDisplay() as (*mut _));
+        properties.set_gl_display(egl::GetCurrentContext() as (*mut _));
+        properties.set_egl_display(egl::GetCurrentDisplay() as (*mut _));
     }
     return properties;
 }
