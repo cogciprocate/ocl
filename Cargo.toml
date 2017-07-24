@@ -1,21 +1,20 @@
 [package]
 name = "ocl-interop"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Nopey Nope<golgothasTerror101@gmail.com>"]
 build="build.rs"
 repository = "https://github.com/Nopey/rust-ocl-gl"
+description = "Aids in the creation of an OpenCL Context with OpenGL Interop enabled"
+readme = "README.md"
+keywords=["OpenCL","OpenGL","context","CL","GL"]
+categories=["concurrency","hardware-support","api-bindings","external-ffi-bindings"]
+license="WTFPL"
 
 [dependencies]
-ocl={git = "https://github.com/cogciprocate/ocl.git" }
-[replace]
-"ocl-core:0.5.1" = { git = "https://github.com/cogciprocate/ocl-core" }
+ocl="^0.14.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cgl = "^0.2"
-
-[target.'cfg(target_os = "android")'.dependencies]
-egl = "*"
-
 
 [target.'cfg(not(target_os="macos"))'.build-dependencies]
 gl_generator = "^0.5"
