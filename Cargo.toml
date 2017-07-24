@@ -13,5 +13,9 @@ ocl={git = "https://github.com/cogciprocate/ocl.git" }
 [target.'cfg(target_os = "macos")'.dependencies]
 cgl = "^0.2"
 
-[build-dependencies]
+[target.'cfg(target_os = "android")'.dependencies]
+egl = "*"
+
+
+[target.'cfg(not(target_os="macos"))'.build-dependencies]
 gl_generator = "^0.5"
