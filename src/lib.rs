@@ -30,7 +30,7 @@ pub fn get_properties_list() -> ocl::builders::ContextProperties {
     #[cfg(target_os="windows")]
     unsafe {
         properties.set_gl_display(wgl::GetCurrentContext() as (*mut _));
-        properties.set_glx_display(wgl::GetCurrentDC() as (*mut _));
+        properties.set_wgl_display(wgl::GetCurrentDC() as (*mut _));
     }
     #[cfg(target_os="macos")]
     unsafe {
