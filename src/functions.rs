@@ -141,15 +141,6 @@ fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<
     (wait_list_len, wait_list_ptr, new_event_ptr)
 }
 
-/// Converts a slice of Mem to a vec of cl_mem
-fn resolve_mem_ptrs(buffers: &[Mem]) -> Vec<cl_mem>{
-    let mut bufferPointers:Vec<cl_mem>=vec!();
-    for buff in buffers{
-        bufferPointers.push(buff.as_ptr());
-    }
-    return bufferPointers;
-}
-
 /// Converts an array option reference into a pointer to the contained array.
 fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
     match work_dims {
@@ -2454,16 +2445,10 @@ pub fn enqueue_acquire_gl_buffers<En, Ewl>(
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
-
-    //Not really that worried, just putting it here in case somebody writes something crazy..
-    //Assumes usize is 32 bits or more.
-    assert!(buffers.len()<(u32::max_value() as usize),"Too many buffers, must be less than 2^32 buffers");
-    //Gotta convert the Mem to cl_mem
-    let bufferPointers = resolve_mem_ptrs(buffers);
     let errcode = unsafe { clEnqueueAcquireGLObjects(
         command_queue.as_ptr(),
-        bufferPointers.len() as u32,
-        bufferPointers.as_ptr(),
+        buffers.len() as u32,
+        buffers.as_ptr() as *const cl_mem,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr
@@ -2509,16 +2494,10 @@ pub fn enqueue_release_gl_buffers<En, Ewl>(
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
 
-    //Not really that worried, just putting it here in case somebody writes something crazy..
-    //Assumes usize is 32 bits or more.
-    assert!(buffers.len()<(u32::max_value() as usize),"Too many buffers, must be less than 2^32 buffers");
-    //Gotta convert the Mem to cl_mem
-    let bufferPointers = resolve_mem_ptrs(buffers);
-
     let errcode = unsafe { clEnqueueReleaseGLObjects(
         command_queue.as_ptr(),
-        bufferPointers.len() as u32,
-        bufferPointers.as_ptr(),
+        buffers.len() as u32,
+        buffers.as_ptr() as *const cl_mem,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr
