@@ -2411,6 +2411,7 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
 
 /// [UNTESTED]
 /// Enqueue acquire OpenCL memory object that has been created from an `OpenGL` object.
+#[deprecated(since="0.6.0", note="Use `::enqueue_acquire_gl_objects` instead.")]
 pub fn enqueue_acquire_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2460,6 +2461,7 @@ pub fn enqueue_acquire_gl_objects<En, Ewl>(
 
 /// [UNTESTED]
 /// Enqueue release a single OpenCL memory object that has been created from an `OpenGL` object.
+#[deprecated(since="0.6.0", note="Use `::enqueue_release_gl_objects` instead.")]
 pub fn enqueue_release_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,

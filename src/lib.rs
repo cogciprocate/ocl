@@ -146,17 +146,19 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, g
     set_event_callback, get_event_profiling_info, flush, finish, enqueue_read_buffer,
     enqueue_read_buffer_rect, enqueue_write_buffer, enqueue_write_buffer_rect, enqueue_copy_buffer,
     create_from_gl_buffer, create_from_gl_renderbuffer, create_from_gl_texture,
-    create_from_gl_texture_2d, create_from_gl_texture_3d, enqueue_acquire_gl_buffer,
-    enqueue_release_gl_buffer, enqueue_fill_buffer, enqueue_copy_buffer_rect,
-    enqueue_acquire_gl_objects, enqueue_release_gl_objects, enqueue_read_image,
-    enqueue_write_image, enqueue_fill_image, enqueue_copy_image, enqueue_copy_image_to_buffer,
-    enqueue_copy_buffer_to_image, enqueue_map_buffer, enqueue_map_image, enqueue_unmap_mem_object,
-    enqueue_migrate_mem_objects, enqueue_kernel, enqueue_task, enqueue_native_kernel,
-    enqueue_marker_with_wait_list, enqueue_barrier_with_wait_list,
-    get_extension_function_address_for_platform, wait_for_event, event_status,
-    default_platform_idx, program_build_err, verify_context, default_platform, default_device_type,
-    device_versions, event_is_complete, _dummy_event_callback, _complete_user_event,
-    get_context_platform};
+    create_from_gl_texture_2d, create_from_gl_texture_3d, enqueue_fill_buffer,
+    enqueue_copy_buffer_rect, enqueue_acquire_gl_objects, enqueue_release_gl_objects,
+    enqueue_read_image, enqueue_write_image, enqueue_fill_image, enqueue_copy_image,
+    enqueue_copy_image_to_buffer, enqueue_copy_buffer_to_image, enqueue_map_buffer,
+    enqueue_map_image, enqueue_unmap_mem_object, enqueue_migrate_mem_objects, enqueue_kernel,
+    enqueue_task, enqueue_native_kernel, enqueue_marker_with_wait_list,
+    enqueue_barrier_with_wait_list, get_extension_function_address_for_platform, wait_for_event,
+    event_status, default_platform_idx, program_build_err, verify_context, default_platform,
+    default_device_type, device_versions, event_is_complete, _dummy_event_callback,
+    _complete_user_event, get_context_platform};
+
+#[allow(deprecated)]
+pub use self::functions::{enqueue_acquire_gl_buffer, enqueue_release_gl_buffer};
 
 pub use traits::{OclPrm, OclNum, OclScl};
 
