@@ -2410,7 +2410,7 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
 }
 
 /// [UNTESTED]
-/// Enqueue acquire OpenCL memory objects that have been created from `OpenGL` objects.
+/// Enqueue acquire OpenCL memory object that has been created from an `OpenGL` object.
 pub fn enqueue_acquire_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2434,7 +2434,31 @@ pub fn enqueue_acquire_gl_buffer<En, Ewl>(
 }
 
 /// [UNTESTED]
-/// Enqueue release OpenCL memory objects that have been created from `OpenGL` objects.
+/// Enqueue acquire OpenCL memory objects that have been created from `OpenGL` objects.
+pub fn enqueue_acquire_gl_buffers<En, Ewl>(
+            command_queue: &CommandQueue,
+            buffers: &[Mem],
+            wait_list: Option<Ewl>,
+            new_event: Option<En>,
+        ) -> OclResult<()>
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        resolve_event_ptrs(wait_list, new_event);
+    let errcode = unsafe { clEnqueueAcquireGLObjects(
+        command_queue.as_ptr(),
+        buffers.len() as u32,
+        buffers.as_ptr() as *const cl_mem,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr
+    ) };
+    eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", "")
+}
+
+
+/// [UNTESTED]
+/// Enqueue release a single OpenCL memory object that has been created from an `OpenGL` object.
 pub fn enqueue_release_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2450,6 +2474,30 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
         command_queue.as_ptr(),
         1,
         &buffer.as_ptr(),
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr
+    ) };
+    eval_errcode(errcode, (), "clEnqueueReleaseGLObjects", "")
+}
+
+/// [UNTESTED]
+/// Enqueue release OpenCL memory objects that have been created from `OpenGL` objects.
+pub fn enqueue_release_gl_buffers<En, Ewl>(
+            command_queue: &CommandQueue,
+            buffers: &[Mem],
+            wait_list: Option<Ewl>,
+            new_event: Option<En>,
+        ) -> OclResult<()>
+        where En: ClNullEventPtr, Ewl: ClWaitListPtr
+{
+    let (wait_list_len, wait_list_ptr, new_event_ptr) =
+        resolve_event_ptrs(wait_list, new_event);
+
+    let errcode = unsafe { clEnqueueReleaseGLObjects(
+        command_queue.as_ptr(),
+        buffers.len() as u32,
+        buffers.as_ptr() as *const cl_mem,
         wait_list_len,
         wait_list_ptr,
         new_event_ptr
