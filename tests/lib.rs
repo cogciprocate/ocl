@@ -393,9 +393,6 @@ fn glutin_works() {
     let context = glutin::ContextBuilder::new().with_vsync(true);
     let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
 
-    //Load GL Functions
-    gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
-
     let mut gl_buff: GLuint;
     let gl_program: GLuint;
     let vertex_shader: GLuint;
@@ -403,6 +400,9 @@ fn glutin_works() {
     unsafe {
         //Activate the window's context
         gl_window.make_current().unwrap();
+
+        //Load GL Functions
+        gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
         //Set Window Background to green
         gl::ClearColor(0.0, 1.0, 0.33, 1.0);
         gl::Viewport(0, 0, 640, 480);
