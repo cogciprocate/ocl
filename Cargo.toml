@@ -22,7 +22,6 @@ ocl={git = "https://github.com/cogciprocate/ocl.git" }
 gl="*"
 sdl2="*"
 glfw="*"
-#TODO: Test Glutin
 glutin="*"
 
 [target.'cfg(target_os = "macos")'.dependencies]
