@@ -2433,9 +2433,9 @@ pub fn enqueue_acquire_gl_buffer<En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", "")
 }
 
-/// [UNTESTED]
-/// Enqueue acquire OpenCL memory objects that have been created from `OpenGL` objects.
-pub fn enqueue_acquire_gl_buffers<En, Ewl>(
+/// [UNTESTED] Acquire OpenCL memory objects (buffers and images) that have
+/// been created from OpenGL objects.
+pub fn enqueue_acquire_gl_objects<En, Ewl>(
             command_queue: &CommandQueue,
             buffers: &[Mem],
             wait_list: Option<Ewl>,
@@ -2445,6 +2445,7 @@ pub fn enqueue_acquire_gl_buffers<En, Ewl>(
 {
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
+
     let errcode = unsafe { clEnqueueAcquireGLObjects(
         command_queue.as_ptr(),
         buffers.len() as u32,
@@ -2481,9 +2482,9 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueReleaseGLObjects", "")
 }
 
-/// [UNTESTED]
-/// Enqueue release OpenCL memory objects that have been created from `OpenGL` objects.
-pub fn enqueue_release_gl_buffers<En, Ewl>(
+/// [UNTESTED] Release OpenCL memory objects (buffers and images) that have
+/// been created from OpenGL objects.
+pub fn enqueue_release_gl_objects<En, Ewl>(
             command_queue: &CommandQueue,
             buffers: &[Mem],
             wait_list: Option<Ewl>,
