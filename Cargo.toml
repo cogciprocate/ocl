@@ -20,6 +20,7 @@ ocl={git = "https://github.com/cogciprocate/ocl.git" }
 #for tests
 [dev-dependencies]
 gl="*"
+glium="*"
 sdl2="*"
 glfw="*"
 glutin="*"
