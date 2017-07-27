@@ -127,17 +127,18 @@ pub use self::types::structs::{self, OpenclVersion, ContextProperties, ImageForm
     ImageFormatParseResult, ImageFormat, ImageDescriptor, BufferRegion, ContextPropertyValue};
 
 pub use self::types::enums::{EmptyInfoResult, KernelArg, PlatformInfoResult, DeviceInfoResult,
-    ContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult, SamplerInfoResult,
-    ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult, KernelArgInfoResult,
-    KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
+    ContextInfoResult, GlContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult,
+    SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult,
+    KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
 
 pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, get_device_info,
     create_sub_devices, retain_device, release_device, create_context, create_context_from_type,
-    retain_context, release_context, get_context_info, create_command_queue, retain_command_queue,
-    release_command_queue, get_command_queue_info, create_buffer, create_sub_buffer, create_image,
-    retain_mem_object, release_mem_object, get_supported_image_formats, get_mem_object_info,
-    get_image_info, set_mem_object_destructor_callback, create_sampler, retain_sampler,
-    release_sampler, get_sampler_info, create_program_with_source, create_program_with_binary,
+    retain_context, release_context, get_context_info, get_gl_context_info_khr,
+    create_command_queue, retain_command_queue, release_command_queue, get_command_queue_info,
+    create_buffer, create_sub_buffer, create_image, retain_mem_object, release_mem_object,
+    get_supported_image_formats, get_mem_object_info, get_image_info,
+    set_mem_object_destructor_callback, create_sampler, retain_sampler, release_sampler,
+    get_sampler_info, create_program_with_source, create_program_with_binary,
     create_program_with_built_in_kernels, retain_program, release_program, build_program,
     compile_program, link_program, create_build_program, get_program_info, get_program_build_info,
     create_kernel, create_kernels_in_program, retain_kernel, release_kernel, set_kernel_arg,
@@ -860,6 +861,20 @@ enum_from_primitive! {
         NumDevices = ffi::CL_CONTEXT_NUM_DEVICES as isize,
     }
 }
+
+
+enum_from_primitive! {
+    /// cl_gl_context_info
+    #[repr(C)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    pub enum GlContextInfo {
+        /// Return the CL device currently associated with the specified OpenGL context.
+        CurrentDevice = ffi::CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR as isize,
+        /// List of all CL devices which may be associated with the specified OpenGL context.
+        Devices = ffi::CL_DEVICES_FOR_GL_CONTEXT_KHR as isize,
+    }
+}
+
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os = "macos")]

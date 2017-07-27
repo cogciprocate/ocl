@@ -18,15 +18,17 @@ use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
 use ffi::{cl_image_format, cl_context_properties};
+
 use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo,
-    Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus, Mem, MemInfo,
-    MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode, ProgramInfo,
-    ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo, KernelArgInfo,
-    KernelWorkGroupInfo, KernelArgAddressQualifier, KernelArgAccessQualifier,
+    GlContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
+    Mem, MemInfo, MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode,
+    ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo,
+    KernelArgInfo, KernelWorkGroupInfo, KernelArgAddressQualifier, KernelArgAccessQualifier,
     KernelArgTypeQualifier, ImageInfo, ImageFormat, EventInfo, ProfilingInfo, DeviceType,
     DeviceFpConfig, DeviceMemCacheType, DeviceLocalMemType, DeviceExecCapabilities,
     DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties,
     ImageFormatParseResult, Status};
+
 use error::{Result as OclResult, Error as OclError};
 // use cl_h;
 
@@ -45,6 +47,7 @@ pub enum EmptyInfoResult {
     Platform,
     Device,
     Context,
+    GlContext,
     CommandQueue,
     Mem,
     Image,
@@ -78,6 +81,7 @@ impl std::error::Error for EmptyInfoResult {
             EmptyInfoResult::Platform => "platform info unavailable",
             EmptyInfoResult::Device => "device info unavailable",
             EmptyInfoResult::Context => "context info unavailable",
+            EmptyInfoResult::GlContext => "OpenGL context info unavailable",
             EmptyInfoResult::CommandQueue => "command queue info unavailable",
             EmptyInfoResult::Mem => "mem info unavailable",
             EmptyInfoResult::Image => "image info unavailable",
@@ -1006,6 +1010,83 @@ impl std::error::Error for ContextInfoResult {
     fn description(&self) -> &str {
         match *self {
             ContextInfoResult::Error(ref err) => err.description(),
+            _ => "",
+        }
+    }
+}
+
+
+/// An OpenGL context info result.
+pub enum GlContextInfoResult {
+    CurrentDevice(DeviceId),
+    Devices(Vec<DeviceId>),
+    Error(Box<OclError>),
+
+}
+
+impl GlContextInfoResult {
+    pub fn from_bytes(request: GlContextInfo, result: OclResult<Vec<u8>>) -> GlContextInfoResult {
+        match result {
+            Ok(result) => {
+                if result.is_empty() {
+                    return GlContextInfoResult::Error(Box::new(OclError::from(
+                        EmptyInfoResult::GlContext)));
+                }
+                match request {
+                    GlContextInfo::CurrentDevice => { unsafe {
+                        GlContextInfoResult::CurrentDevice(try_ir!(util::bytes_into::<DeviceId>(result)))
+                    } },
+                    GlContextInfo::Devices => { unsafe {
+                        GlContextInfoResult::Devices(try_ir!(util::bytes_into_vec::<DeviceId>(result)))
+                    } },
+                }
+            },
+            Err(err) => GlContextInfoResult::Error(Box::new(err)),
+        }
+    }
+}
+
+impl std::fmt::Debug for GlContextInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", &self.to_string())
+    }
+}
+
+impl std::fmt::Display for GlContextInfoResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            GlContextInfoResult::CurrentDevice(ref d) => write!(f, "{:?}", d),
+            GlContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
+            GlContextInfoResult::Error(ref err) => write!(f, "{}", err),
+        }
+    }
+}
+
+impl From<GlContextInfoResult> for String {
+    fn from(ir: GlContextInfoResult) -> String {
+        ir.to_string()
+    }
+}
+
+impl From<OclError> for GlContextInfoResult {
+    fn from(err: OclError) -> GlContextInfoResult {
+        GlContextInfoResult::Error(Box::new(err))
+    }
+}
+
+impl From<GlContextInfoResult> for OclError {
+    fn from(err: GlContextInfoResult) -> OclError {
+        match err {
+            GlContextInfoResult::Error(err) => *err,
+            _ => panic!("OclError::from::<GlContextInfoResult>: Not an error."),
+        }
+    }
+}
+
+impl std::error::Error for GlContextInfoResult {
+    fn description(&self) -> &str {
+        match *self {
+            GlContextInfoResult::Error(ref err) => err.description(),
             _ => "",
         }
     }

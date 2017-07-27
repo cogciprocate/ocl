@@ -175,12 +175,18 @@ pub enum ContextPropertyValue {
 ///
 /// TODO: Check for duplicate property assignments.
 #[derive(Clone, Debug)]
-pub struct ContextProperties(HashMap<ContextProperty, ContextPropertyValue>);
+pub struct ContextProperties {
+    props: HashMap<ContextProperty, ContextPropertyValue>,
+    contains_gl_context_or_sharegroup: bool,
+}
 
 impl ContextProperties {
     /// Returns an empty new list of context properties
     pub fn new() -> ContextProperties {
-        ContextProperties(HashMap::with_capacity(16))
+        ContextProperties {
+            props: HashMap::with_capacity(16),
+            contains_gl_context_or_sharegroup: false,
+        }
     }
 
     /// Specifies a platform (builder-style).
@@ -236,70 +242,80 @@ impl ContextProperties {
 
     /// Specifies a platform.
     pub fn set_platform<P: Into<PlatformId>>(&mut self, platform: P) {
-        self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(platform.into()));
+        self.props.insert(ContextProperty::Platform, ContextPropertyValue::Platform(platform.into()));
     }
 
     /// Specifies whether the user is responsible for synchronization between
     /// OpenCL and other APIs.
     pub fn set_interop_user_sync(&mut self, sync: bool) {
-        self.0.insert(ContextProperty::InteropUserSync, ContextPropertyValue::InteropUserSync(sync));
+        self.props.insert(ContextProperty::InteropUserSync, ContextPropertyValue::InteropUserSync(sync));
     }
 
     /// Specifies an OpenGL context handle.
     pub fn set_gl_context(&mut self, gl_ctx: *mut c_void) {
-        self.0.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
+        self.props.insert(ContextProperty::GlContextKhr, ContextPropertyValue::GlContextKhr(gl_ctx));
+        self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Specifies a Display pointer for the GLX context.
     pub fn set_glx_display(&mut self, glx_disp: *mut c_void) {
-        self.0.insert(ContextProperty::GlxDisplayKhr, ContextPropertyValue::GlxDisplayKhr(glx_disp));
+        self.props.insert(ContextProperty::GlxDisplayKhr, ContextPropertyValue::GlxDisplayKhr(glx_disp));
+        self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Specifies a Display pointer for the WGL HDC.
     pub fn set_wgl_hdc(&mut self, wgl_hdc: *mut c_void) {
-        self.0.insert(ContextProperty::WglHdcKhr, ContextPropertyValue::WglHdcKhr(wgl_hdc));
+        self.props.insert(ContextProperty::WglHdcKhr, ContextPropertyValue::WglHdcKhr(wgl_hdc));
+        self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Specifies an OpenGL context CGL share group to associate the OpenCL
     /// context with.
     pub fn set_cgl_sharegroup(&mut self, gl_sharegroup: *mut c_void) {
-        self.0.insert(ContextProperty::CglSharegroupKhr, ContextPropertyValue::CglSharegroupKhr(gl_sharegroup));
+        self.props.insert(ContextProperty::CglSharegroupKhr, ContextPropertyValue::CglSharegroupKhr(gl_sharegroup));
+        self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Specifies a pointer for the EGL display.
     pub fn set_egl_display(&mut self, egl_disp: *mut c_void) {
-        self.0.insert(ContextProperty::EglDisplayKhr, ContextPropertyValue::EglDisplayKhr(egl_disp));
+        self.props.insert(ContextProperty::EglDisplayKhr, ContextPropertyValue::EglDisplayKhr(egl_disp));
+        self.contains_gl_context_or_sharegroup = true;
     }
 
     /// Pushes a `ContextPropertyValue` onto this list of properties.
     pub fn set_property_value(&mut self, prop: ContextPropertyValue) {
         match prop {
             ContextPropertyValue::Platform(val) => {
-                self.0.insert(ContextProperty::Platform, ContextPropertyValue::Platform(val));
+                self.props.insert(ContextProperty::Platform, ContextPropertyValue::Platform(val));
             },
             ContextPropertyValue::InteropUserSync(val) => {
-                self.0.insert(ContextProperty::InteropUserSync,
+                self.props.insert(ContextProperty::InteropUserSync,
                     ContextPropertyValue::InteropUserSync(val));
             },
             ContextPropertyValue::GlContextKhr(val) => {
-                self.0.insert(ContextProperty::GlContextKhr,
+                self.props.insert(ContextProperty::GlContextKhr,
                     ContextPropertyValue::GlContextKhr(val));
+                self.contains_gl_context_or_sharegroup = true;
             },
             ContextPropertyValue::GlxDisplayKhr(val) => {
-                self.0.insert(ContextProperty::GlxDisplayKhr,
+                self.props.insert(ContextProperty::GlxDisplayKhr,
                     ContextPropertyValue::GlxDisplayKhr(val));
+                self.contains_gl_context_or_sharegroup = true;
             },
             ContextPropertyValue::WglHdcKhr(val) => {
-                self.0.insert(ContextProperty::WglHdcKhr,
+                self.props.insert(ContextProperty::WglHdcKhr,
                     ContextPropertyValue::WglHdcKhr(val));
+                self.contains_gl_context_or_sharegroup = true;
             },
             ContextPropertyValue::CglSharegroupKhr(val) => {
-                self.0.insert(ContextProperty::CglSharegroupKhr,
+                self.props.insert(ContextProperty::CglSharegroupKhr,
                     ContextPropertyValue::CglSharegroupKhr(val));
+                self.contains_gl_context_or_sharegroup = true;
             },
             ContextPropertyValue::EglDisplayKhr(val) => {
-                self.0.insert(ContextProperty::EglDisplayKhr,
+                self.props.insert(ContextProperty::EglDisplayKhr,
                     ContextPropertyValue::EglDisplayKhr(val));
+                self.contains_gl_context_or_sharegroup = true;
             },
             _ => panic!("'{:?}' is not yet a supported variant.", prop),
         }
@@ -307,7 +323,7 @@ impl ContextProperties {
 
     /// Returns a platform id or none.
     pub fn get_platform(&self) -> Option<PlatformId> {
-        match self.0.get(&ContextProperty::Platform) {
+        match self.props.get(&ContextProperty::Platform) {
             Some(prop_val) => {
                 if let ContextPropertyValue::Platform(ref plat) = *prop_val {
                     Some(plat.clone())
@@ -320,8 +336,9 @@ impl ContextProperties {
     }
 
     /// Returns a cgl_sharegroup id or none.
+    #[deprecated(since="0.6.0", note="Use ::contains_gl_context_or_sharegroup.")]
     pub fn get_cgl_sharegroup(&self) -> Option<*mut c_void> {
-        match self.0.get(&ContextProperty::CglSharegroupKhr) {
+        match self.props.get(&ContextProperty::CglSharegroupKhr) {
             Some(prop_val) => {
                 if let ContextPropertyValue::CglSharegroupKhr(ref cgl_sharegroup) = *prop_val {
                     Some(cgl_sharegroup.clone())
@@ -331,6 +348,12 @@ impl ContextProperties {
             },
             None => None
         }
+    }
+
+    /// Returns true if this set of context properties specifies any OpenGL
+    /// context or sharegroup to associate with.
+    pub fn contains_gl_context_or_sharegroup(&self) -> bool {
+        self.contains_gl_context_or_sharegroup
     }
 
     /// Converts this list into a packed-word representation as specified
@@ -345,7 +368,7 @@ impl ContextProperties {
         let mut props_raw = Vec::with_capacity(32);
 
         // For each property ...
-        for (key, val) in self.0.iter() {
+        for (key, val) in self.props.iter() {
             // convert both the kind of property (a u32 originally) and
             // the value (variable type/size) to an isize:
             match *val {
@@ -431,7 +454,10 @@ impl ContextProperties {
         assert!(*raw_context_properties.last().unwrap() == 0);
 
         let pair_count = raw_context_properties.len() / 2;
-        let mut context_props = ContextProperties(HashMap::with_capacity(pair_count));
+        let mut context_props = ContextProperties {
+            props: HashMap::with_capacity(pair_count),
+            contains_gl_context_or_sharegroup: false,
+        };
 
         for pair_idx in 0..pair_count {
             let idz = pair_idx * 2;
@@ -444,62 +470,67 @@ impl ContextProperties {
 
             match key {
                     ContextProperty::Platform => {
-                        context_props.0.insert(ContextProperty::Platform,
+                        context_props.props.insert(ContextProperty::Platform,
                             ContextPropertyValue::Platform(PlatformId::from_raw(val_raw as cl_platform_id))
                         );
                     },
                     ContextProperty::InteropUserSync => {
-                        context_props.0.insert(ContextProperty::InteropUserSync,
+                        context_props.props.insert(ContextProperty::InteropUserSync,
                             ContextPropertyValue::InteropUserSync(val_raw > 0),
                         );
                     },
                     ContextProperty::D3d10DeviceKhr => {
-                        context_props.0.insert(ContextProperty::D3d10DeviceKhr,
+                        context_props.props.insert(ContextProperty::D3d10DeviceKhr,
                             ContextPropertyValue::D3d10DeviceKhr(val_raw as *mut ffi::cl_d3d10_device_source_khr),
                         );
                     },
                     ContextProperty::GlContextKhr => {
-                        context_props.0.insert(ContextProperty::GlContextKhr,
+                        context_props.props.insert(ContextProperty::GlContextKhr,
                             ContextPropertyValue::GlContextKhr(val_raw as *mut c_void),
                         );
+                        context_props.contains_gl_context_or_sharegroup = true;
                     },
                     ContextProperty::EglDisplayKhr => {
-                        context_props.0.insert(ContextProperty::EglDisplayKhr,
+                        context_props.props.insert(ContextProperty::EglDisplayKhr,
                             ContextPropertyValue::EglDisplayKhr(val_raw as ffi::CLeglDisplayKHR),
                         );
+                        context_props.contains_gl_context_or_sharegroup = true;
                     },
                     ContextProperty::GlxDisplayKhr => {
-                        context_props.0.insert(ContextProperty::GlxDisplayKhr,
+                        context_props.props.insert(ContextProperty::GlxDisplayKhr,
                             ContextPropertyValue::GlxDisplayKhr(val_raw as *mut c_void),
                         );
+                        context_props.contains_gl_context_or_sharegroup = true;
                     },
                     ContextProperty::CglSharegroupKhr => {
-                        context_props.0.insert(ContextProperty::CglSharegroupKhr,
+                        context_props.props.insert(ContextProperty::CglSharegroupKhr,
                             ContextPropertyValue::CglSharegroupKhr(val_raw as *mut c_void),
                         );
+                        context_props.contains_gl_context_or_sharegroup = true;
                     },
                     ContextProperty::WglHdcKhr => {
-                        context_props.0.insert(ContextProperty::WglHdcKhr,
+                        context_props.props.insert(ContextProperty::WglHdcKhr,
                             ContextPropertyValue::WglHdcKhr(val_raw as *mut c_void),
                         );
+                        context_props.contains_gl_context_or_sharegroup = true;
                     },
                     ContextProperty::AdapterD3d9Khr => {
-                        context_props.0.insert(ContextProperty::AdapterD3d9Khr,
+                        context_props.props.insert(ContextProperty::AdapterD3d9Khr,
                             ContextPropertyValue::AdapterD3d9Khr(val_raw),
                         );
                     },
                     ContextProperty::AdapterD3d9exKhr => {
-                        context_props.0.insert(ContextProperty::AdapterD3d9exKhr,
+                        context_props.props.insert(ContextProperty::AdapterD3d9exKhr,
                             ContextPropertyValue::AdapterD3d9exKhr(val_raw),
                         );
                     },
                     ContextProperty::AdapterDxvaKhr => {
-                        context_props.0.insert(ContextProperty::AdapterDxvaKhr,
+                        context_props.props.insert(ContextProperty::AdapterDxvaKhr,
                             ContextPropertyValue::AdapterDxvaKhr(val_raw),
                         );
                     },
                     ContextProperty::D3d11DeviceKhr => {
-                        context_props.0.insert(ContextProperty::D3d11DeviceKhr,
+                        context_props.props.insert(ContextProperty::D3d11DeviceKhr,
                             ContextPropertyValue::D3d11DeviceKhr(val_raw),
                         );
                     },

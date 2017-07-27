@@ -17,7 +17,7 @@ use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
-use ffi::{cl_GLuint, cl_GLint, cl_GLenum};
+use ffi::{cl_GLuint, cl_GLint, cl_GLenum, cl_gl_context_info,};
 use ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
     clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
     clEnqueueReleaseGLObjects};
@@ -29,19 +29,22 @@ use ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devic
     cl_addressing_mode, cl_filter_mode, cl_command_queue_info, cl_command_queue, cl_image_info,
     cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
     cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
+
 use error::{Error as OclError, Result as OclResult};
-use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, ContextInfoResult,
-    MemFlags, CommandQueue, Mem, MemObjectType, Program, Kernel, ClNullEventPtr, Sampler,
-    KernelArg, DeviceType, ImageFormat, ImageDescriptor, CommandExecutionStatus, AddressingMode,
-    FilterMode, PlatformInfo, PlatformInfoResult, DeviceInfo, DeviceInfoResult, CommandQueueInfo,
-    CommandQueueInfoResult, MemInfo, MemInfoResult, ImageInfo, ImageInfoResult, SamplerInfo,
-    SamplerInfoResult, ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult,
-    KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult, KernelWorkGroupInfo,
-    KernelWorkGroupInfoResult, ClEventPtrRef, ClWaitListPtr, EventInfo, EventInfoResult,
-    ProfilingInfo, ProfilingInfoResult, CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr,
-    ClDeviceIdPtr, ClContextPtr, EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags,
-    MapFlags, BufferRegion, BufferCreateType, OpenclVersion, ClVersions, Status,
-    CommandQueueProperties, MemMap, AsMem, MemCmdRw, MemCmdAll, Event, ImageFormatParseResult};
+
+use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, GlContextInfo,
+    ContextInfoResult, GlContextInfoResult, MemFlags, CommandQueue, Mem, MemObjectType, Program,
+    Kernel, ClNullEventPtr, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor,
+    CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult,
+    DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult,
+    ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult,
+    ProgramBuildInfo, ProgramBuildInfoResult, KernelInfo, KernelInfoResult, KernelArgInfo,
+    KernelArgInfoResult, KernelWorkGroupInfo, KernelWorkGroupInfoResult, ClEventPtrRef,
+    ClWaitListPtr, EventInfo, EventInfoResult, ProfilingInfo, ProfilingInfoResult,
+    CreateContextCallbackFn, UserDataPtr, ClPlatformIdPtr, ClDeviceIdPtr, ClContextPtr,
+    EventCallbackFn, BuildProgramCallbackFn, MemMigrationFlags, MapFlags, BufferRegion,
+    BufferCreateType, OpenclVersion, ClVersions, Status, CommandQueueProperties, MemMap, AsMem,
+    MemCmdRw, MemCmdAll, Event, ImageFormatParseResult};
 
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
@@ -510,18 +513,37 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         return OclError::err_string("ocl::core::create_context(): No devices specified.");
     }
 
-    // [DEBUG]:
+    // // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    // https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html
-    // http://sa10.idav.ucdavis.edu/docs/sa10-dg-opencl-gl-interop.pdf
+    // // https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html
+    // // http://sa10.idav.ucdavis.edu/docs/sa10-dg-opencl-gl-interop.pdf
+    // if let Some(properties) = properties {
+    //     if let Some(_) = properties.get_cgl_sharegroup() {
+    //         for &device in device_ids {
+    //             match device_supports_cl_gl_sharing(device) {
+    //                 Ok(true) => {},
+    //                 Ok(false) => return OclError::err_string("A device doesn't support \
+    //                     cl_gl_sharing extension."),
+    //                 Err(err) => return Err(err),
+    //             }
+    //         }
+    //     }
+    // }
+
+    // If properties specify an OpenGL context/sharegroup, ensure all devices
+    // in the provided list support the `cl_gl_sharing` extension:
     if let Some(properties) = properties {
-        if let Some(_) = properties.get_cgl_sharegroup() {
+        if properties.contains_gl_context_or_sharegroup() {
             for &device in device_ids {
-                match device_support_cl_gl_sharing(device) {
+                match device_supports_cl_gl_sharing(device) {
                     Ok(true) => {},
-                    Ok(false) => return OclError::err_string("A device doesn't support \
-                        cl_gl_sharing extension."),
+                    // TODO: Create a type for this error:
+                    Ok(false) => return OclError::err_string("One or more of the devices \
+                        contained in the list provided to '::create_context` doesn't support \
+                        the cl_gl_sharing extension and cannot be used to create a context \
+                        associated with OpenGL. Use [FIXME: insert function name] to determine \
+                        the list of supporting devices."),
                     Err(err) => return Err(err),
                 }
             }
@@ -533,7 +555,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         None => Vec::<isize>::with_capacity(0),
     };
 
-    // [DEBUG]:
+    // // [DEBUG]:
     // print!("CREATE_CONTEXT: BYTES: ");
     // util::print_bytes_as_hex(&properties_bytes);
     // print!("\n");
@@ -563,12 +585,11 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         user_data_ptr,
         &mut errcode,
     ) };
-    // [DEBUG]:
+    // // [DEBUG]:
     // println!("CREATE_CONTEXT: CONTEXT PTR: {:?}", context);
     eval_errcode(errcode, context_ptr, "clCreateContext", "")
         .map(|ctx_ptr| unsafe { Context::from_raw_create_ptr(ctx_ptr) })
 }
-
 
 /// Creates a new context pointer for all devices of a specific type.
 ///
@@ -591,7 +612,7 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
     // if let &Some(properties) = properties {
     //     if let Some(_) = properties.get_cgl_sharegroup() {
     //         for device in device_ids {
-    //             match device_support_cl_gl_sharing(device) {
+    //             match device_supports_cl_gl_sharing(device) {
     //                 Ok(true) => {},
     //                 Ok(false) => return OclError::err_string("A device doesn't support cl_gl_sharing extension."),
     //                 Err(err) => return Err(err),
@@ -638,7 +659,6 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
         .map(|ctx_ptr| unsafe { Context::from_raw_create_ptr(ctx_ptr) })
 }
 
-
 /// Increments the reference count of a context.
 pub unsafe fn retain_context<C>(context: C) -> OclResult<()>
         where C: ClContextPtr
@@ -652,7 +672,6 @@ pub unsafe fn release_context<C>(context: C) -> OclResult<()>
 {
     eval_errcode(ffi::clReleaseContext(context.as_ptr()), (), "clReleaseContext", "")
 }
-
 
 fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
         -> OclResult<Vec<u8>>
@@ -713,7 +732,6 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
     eval_errcode(errcode, result, "clGetContextInfo", "")
 }
 
-
 /// Returns various kinds of context information.
 ///
 /// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
@@ -750,6 +768,53 @@ pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>>
         Ok(None)
     }
 }
+
+
+/// Returns OpenGL context information.
+///
+/// Used to query current or available devices associated with an existing
+/// OpenGL context/sharegroup.
+///
+/// `properties` must identify a single valid GL context or GL share group
+/// object.
+///
+pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContextInfo)
+        -> GlContextInfoResult
+{
+    let props_bytes = properties.to_raw();
+    let mut result_size: size_t = 0;
+
+    let errcode = unsafe { ffi::clGetGLContextInfoKHR(
+        props_bytes.as_ptr(),
+        request as cl_gl_context_info,
+        0 as size_t,
+        0 as *mut c_void,
+        &mut result_size as *mut usize,
+    ) };
+
+    if let Err(err) = eval_errcode(errcode, (), "clGetGlContextInfoKhr", "") {
+        return GlContextInfoResult::Error(Box::new(err));
+    }
+
+    if result_size == 0 {
+        return GlContextInfoResult::from_bytes(request, Ok(vec![]));
+    }
+
+    let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
+
+    let errcode = unsafe { ffi::clGetGLContextInfoKHR(
+        props_bytes.as_ptr(),
+        request as cl_gl_context_info,
+        result_size as size_t,
+        result.as_mut_ptr() as *mut c_void,
+        0 as *mut usize,
+    ) };
+
+
+    let result = eval_errcode(errcode, result, "clGetGlContextInfoKhr", "");
+    GlContextInfoResult::from_bytes(request, result)
+}
+
 
 //============================================================================
 //========================== Command Queue APIs ==============================
@@ -3435,8 +3500,7 @@ pub fn verify_context<C>(context: C) -> OclResult<()>
 
 
 /// Checks to see if a device supports the `CL_GL_SHARING_EXT` extension.
-//
-fn device_support_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclResult<bool> {
+fn device_supports_cl_gl_sharing<D: ClDeviceIdPtr>(device: D) -> OclResult<bool> {
     match get_device_info(device, DeviceInfo::Extensions) {
         DeviceInfoResult::Extensions(extensions) => Ok(extensions.contains(CL_GL_SHARING_EXT)),
         DeviceInfoResult::Error(err) => Err(*err),
