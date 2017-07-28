@@ -1044,6 +1044,18 @@ impl GlContextInfoResult {
             Err(err) => GlContextInfoResult::Error(Box::new(err)),
         }
     }
+
+    /// Returns the device contained within.
+    ///
+    /// Panics if this result is not a `CurrentDevice` variant.
+    ///
+    pub fn device(&self) -> DeviceId {
+        match *self {
+            GlContextInfoResult::CurrentDevice(d) => d,
+            GlContextInfoResult::Error(ref err) => panic!("{}", err),
+            _ => panic!("GlContextInfoResult::device: Not a 'GlContextInfoResult::Device(...)'."),
+        }
+    }
 }
 
 impl std::fmt::Debug for GlContextInfoResult {
