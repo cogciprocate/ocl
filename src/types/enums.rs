@@ -1046,14 +1046,11 @@ impl GlContextInfoResult {
     }
 
     /// Returns the device contained within.
-    ///
-    /// Panics if this result is not a `CurrentDevice` variant.
-    ///
-    pub fn device(&self) -> DeviceId {
-        match *self {
-            GlContextInfoResult::CurrentDevice(d) => d,
-            GlContextInfoResult::Error(ref err) => panic!("{}", err),
-            _ => panic!("GlContextInfoResult::device: Not a 'GlContextInfoResult::Device(...)'."),
+    pub fn device(self) -> OclResult<DeviceId> {
+        match self {
+            GlContextInfoResult::CurrentDevice(d) => Ok(d),
+            GlContextInfoResult::Error(err) => Err(*err),
+            _ => Err("GlContextInfoResult::device: Not a 'GlContextInfoResult::Device(...)'.".into()),
         }
     }
 }
