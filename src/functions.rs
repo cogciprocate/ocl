@@ -778,13 +778,46 @@ pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>>
 /// `properties` must identify a single valid GL context or GL share group
 /// object.
 ///
+/// If `properties` does not specify a platform, the default will be used (the
+/// return value of [`::default_platform`]) when determining the function
+/// (pointer) address for `clGetGLContextInfoKHR`.
+///
 pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContextInfo)
         -> GlContextInfoResult
 {
+    let cl_get_gl_context_info_khr_fn: ffi::clGetGLContextInfoKHR_fn = unsafe {
+        let fn_name = match ::std::ffi::CString::new("clGetGLContextInfoKHR") {
+            Ok(s) => s,
+            Err(err) => return GlContextInfoResult::Error(Box::new(err.into())),
+        };
+
+        let plat = match properties.get_platform() {
+            Some(p) => p,
+            None => {
+                match default_platform() {
+                    Ok(p) => p,
+                    Err(err) => return GlContextInfoResult::Error(Box::new(err.into())),
+                }
+            },
+        };
+
+        let fn_ptr = ffi::clGetExtensionFunctionAddressForPlatform(plat.as_ptr(),
+            fn_name.as_ptr() as *mut _);
+
+        if fn_ptr.is_null() {
+            return GlContextInfoResult::Error(Box::new("Unable to get extension function \
+                address for clGetGLContextInfoKHR. The function is not supported by this \
+                platform".into()));
+        }
+
+        fn_ptr as ffi::clGetGLContextInfoKHR_fn
+    };
+
     let props_bytes = properties.to_raw();
     let mut result_size: size_t = 0;
 
-    let errcode = unsafe { ffi::clGetGLContextInfoKHR(
+    // let errcode = unsafe { ffi::clGetGLContextInfoKHR(
+    let errcode = unsafe { (*cl_get_gl_context_info_khr_fn)(
         props_bytes.as_ptr(),
         request as cl_gl_context_info,
         0 as size_t,
@@ -802,7 +835,8 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
 
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
 
-    let errcode = unsafe { ffi::clGetGLContextInfoKHR(
+    // let errcode = unsafe { ffi::clGetGLContextInfoKHR(
+    let errcode = unsafe { (*cl_get_gl_context_info_khr_fn)(
         props_bytes.as_ptr(),
         request as cl_gl_context_info,
         result_size as size_t,

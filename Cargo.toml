@@ -39,3 +39,7 @@ colorify = "0.2"
 [build-dependencies]
 rustc_version = "0.1"
 
+[replace]
+"cl-sys:0.3.0" = { git = "https://github.com/cogciprocate/cl-sys" }
+# "cl-sys:0.3.0" = { path = "/home/nick/src/github.com/cogciprocate/cl-sys" }
+
