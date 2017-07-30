@@ -11,6 +11,7 @@ use cl_h::{cl_context, cl_context_properties, cl_mem_flags, cl_command_queue,
 pub type cl_gl_object_type      = cl_uint;
 pub type cl_gl_texture_info     = cl_uint;
 pub type cl_gl_platform_info    = cl_uint;
+// typedef struct __GLsync *cl_GLsync;
 pub type cl_gl_context_info     = cl_uint;
 
 // cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken
@@ -29,6 +30,7 @@ pub const CL_GL_MIPMAP_LEVEL:   cl_gl_texture_info = 0x2005;
 pub const CL_GL_NUM_SAMPLES:    cl_gl_texture_info = 0x2012;
 
 // cl_khr_gl_sharing extension
+// * NOTE: Originally lower case: `cl_kgr_gl_sharing`
 pub const CL_KHR_GL_SHARING: cl_int = 1;
 
 // Additional Error Codes
@@ -44,6 +46,18 @@ pub const CL_EGL_DISPLAY_KHR:       cl_context_properties = 0x2009;
 pub const CL_GLX_DISPLAY_KHR:       cl_context_properties = 0x200A;
 pub const CL_WGL_HDC_KHR:           cl_context_properties = 0x200B;
 pub const CL_CGL_SHAREGROUP_KHR:    cl_context_properties = 0x200C;
+
+// typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetGLContextInfoKHR_fn)(
+//     const cl_context_properties * properties,
+//     cl_gl_context_info            param_name,
+//     size_t                        param_value_size,
+//     void *                        param_value,
+//     size_t *                      param_value_size_ret);
+pub type clGetGLContextInfoKHR_fn = *mut unsafe extern "system" fn(properties: *const cl_context_properties,
+                                         param_name: cl_gl_context_info,
+                                         param_value_size: size_t,
+                                         param_value: *mut c_void,
+                                         param_value_size_ret: *mut size_t) -> cl_int;
 
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
 #[cfg_attr(target_os = "macos", link(name = "OpenCL", kind = "framework"))]
@@ -97,13 +111,6 @@ extern "system" {
                                  param_value_size: size_t,
                                  param_value: *mut c_void,
                                  param_value_size_ret: *mut size_t) -> cl_int;
-
-    // typedef CL_API_ENTRY cl_int (CL_API_CALL *clGetGLContextInfoKHR_fn)(
-    //     const cl_context_properties * properties,
-    //     cl_gl_context_info            param_name,
-    //     size_t                        param_value_size,
-    //     void *                        param_value,
-    //     size_t *                      param_value_size_ret);
 
     // Deprecated OpenCL 1.1 APIs
     pub fn clCreateFromGLTexture2D(context: cl_context,
