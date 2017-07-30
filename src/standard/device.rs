@@ -215,6 +215,18 @@ impl<'a> From<&'a Device> for DeviceSpecifier {
     }
 }
 
+impl From<DeviceIdCore> for DeviceSpecifier {
+    fn from(device: DeviceIdCore) -> DeviceSpecifier {
+        DeviceSpecifier::Single(device.into())
+    }
+}
+
+impl<'a> From<&'a DeviceIdCore> for DeviceSpecifier {
+    fn from(device: &'a DeviceIdCore) -> DeviceSpecifier {
+        DeviceSpecifier::Single(device.clone().into())
+    }
+}
+
 impl From<DeviceType> for DeviceSpecifier {
     fn from(flags: DeviceType) -> DeviceSpecifier {
         DeviceSpecifier::TypeFlags(flags)

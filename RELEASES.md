@@ -7,6 +7,10 @@ Version 0.15.0 (UNRELEASED)
 * `ContextBuilder::new`, `ProQueBuilder::build`, and some other methods which
   attempt to use the first available platform no longer panic when none is
   available.
+* (ocl-core) [`get_gl_context_info_khr`] function along with the [`GlContextInfo`]
+  and [`GlContextInfoResult`] types have been added. These can be used to
+  determine which OpenCL-accessible device is being used by an existing OpenGL
+  context (or to list all associable devices).
 
 Breaking Changes
 ----------------
@@ -15,8 +19,16 @@ Breaking Changes
   `::fill_event`.
 * `ContextBuilder::gl_context` now accepts a `*mut c_void` instead of an
   integer for its argument.
-* [ocl-core] The `ContextPropertyValue::GlContextKhr` variant is now holds the
+* (ocl-core) The `ContextPropertyValue::GlContextKhr` variant is now holds the
   `*mut c_void` type.
+* (ocl-core) `enqueue_acquire_gl_buffer` and `enqueue_release_gl_buffer` have
+  been deprecated in favor of the new `enqueue_acquire_gl_objects` and
+  `enqueue_release_gl_objects` functions.
+
+
+[`get_gl_context_info_khr`]: http://docs.cogciprocate.com/ocl_core/ocl_core/fn.get_gl_context_info_khr.html
+[`GlContextInfo`]: http://docs.cogciprocate.com/ocl_core/ocl_core/enum.GlContextInfo.html
+[`GlContextInfoResult`]: http://docs.cogciprocate.com/ocl_core/ocl_core/types/enums/enum.GlContextInfoResult.html
 
 
 Version 0.14.0 (2017-05-31)

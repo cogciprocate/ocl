@@ -527,10 +527,14 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                 }
             },
             BufferCmdKind::GLAcquire => {
-                core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
+                // core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
+                let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
+                core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
             BufferCmdKind::GLRelease => {
-                core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
+                // core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
+                let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
+                core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
             BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq(): \
                 No operation specified. Use '.read(...)', 'write(...)', etc. before calling \
