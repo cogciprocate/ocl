@@ -770,22 +770,28 @@ pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>>
 }
 
 
+/// [NOT WORKING]
 /// Returns OpenGL context information.
 ///
 /// Used to query current or available devices associated with an existing
 /// OpenGL context/sharegroup.
 ///
 /// `properties` must identify a single valid GL context or GL share group
-/// object.
+/// object and a valid platform.
 ///
-/// If `properties` does not specify a platform, the default will be used (the
-/// return value of [`::default_platform`]) when determining the function
-/// (pointer) address for `clGetGLContextInfoKHR`.
+/// ### Debugging (notes)
+///
+/// For some reason, calling the function pointer returned by the call to
+/// `ffi::clGetExtensionFunctionAddressForPlatform` causes a segfault
+/// (`ffi::clGetExtensionFunctionAddressForPlatform` appears to be working
+/// just fine). The function pointer returned is not null. Further
+/// investigation required.
+///
 ///
 pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContextInfo)
         -> GlContextInfoResult
 {
-    let cl_get_gl_context_info_khr_fn: ffi::clGetGLContextInfoKHR_fn = unsafe {
+    let cl_get_gl_context_info_khr_fn = unsafe {
         let fn_name = match ::std::ffi::CString::new("clGetGLContextInfoKHR") {
             Ok(s) => s,
             Err(err) => return GlContextInfoResult::Error(Box::new(err.into())),
@@ -794,10 +800,8 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
         let plat = match properties.get_platform() {
             Some(p) => p,
             None => {
-                match default_platform() {
-                    Ok(p) => p,
-                    Err(err) => return GlContextInfoResult::Error(Box::new(err.into())),
-                }
+                return GlContextInfoResult::Error(Box::new("ocl::core::get_gl_context_info_khr: \
+                    Context properties must specify a platform.".into()));
             },
         };
 
@@ -807,7 +811,7 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
         if fn_ptr.is_null() {
             return GlContextInfoResult::Error(Box::new("Unable to get extension function \
                 address for clGetGLContextInfoKHR. The function is not supported by this \
-                platform".into()));
+                platform.".into()));
         }
 
         fn_ptr as ffi::clGetGLContextInfoKHR_fn
@@ -816,7 +820,6 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
     let props_bytes = properties.to_raw();
     let mut result_size: size_t = 0;
 
-    // let errcode = unsafe { ffi::clGetGLContextInfoKHR(
     let errcode = unsafe { (*cl_get_gl_context_info_khr_fn)(
         props_bytes.as_ptr(),
         request as cl_gl_context_info,
@@ -833,9 +836,14 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
         return GlContextInfoResult::from_bytes(request, Ok(vec![]));
     }
 
+    // // DEBUG:
+    // let result_size = match request {
+    //     GlContextInfo::CurrentDevice => ::std::mem::size_of::<ffi::cl_device_id>(),
+    //     GlContextInfo::Devices => ::std::mem::size_of::<*mut ffi::cl_device_id>(),
+    // };
+
     let mut result: Vec<u8> = iter::repeat(0).take(result_size).collect();
 
-    // let errcode = unsafe { ffi::clGetGLContextInfoKHR(
     let errcode = unsafe { (*cl_get_gl_context_info_khr_fn)(
         props_bytes.as_ptr(),
         request as cl_gl_context_info,
@@ -843,7 +851,6 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
         result.as_mut_ptr() as *mut c_void,
         0 as *mut usize,
     ) };
-
 
     let result = eval_errcode(errcode, result, "clGetGlContextInfoKhr", "");
     GlContextInfoResult::from_bytes(request, result)
