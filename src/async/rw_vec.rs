@@ -80,6 +80,8 @@ impl<T> ReadGuard<T> {
     fn complete_release_event(guard: &ReadGuard<T>) {
         if let Some(ref e) = guard.release_event {
             if !e.is_complete().expect("ReadCompletion::drop") {
+                if PRINT_DEBUG { println!("###### ReadGuard::complete_release_event: Setting release \
+                    event complete. (thread: {})", ::std::thread::current().name().unwrap_or("<unnamed>")); }
                 e.set_complete().expect("ReadCompletion::drop");
             }
         }
@@ -96,7 +98,8 @@ impl<T> Deref for ReadGuard<T> {
 
 impl<T> Drop for ReadGuard<T> {
     fn drop(&mut self) {
-        // println!("Dropping and releasing ReadGuard.");
+        if PRINT_DEBUG { println!("###### WriteGuard::drop: Dropping and releasing ReadGuard. \
+            (thread: {})", ::std::thread::current().name().unwrap_or("<unnamed>")); }
         unsafe { self.rw_vec.lock.release_read_lock() };
         Self::complete_release_event(self);
     }
@@ -147,6 +150,8 @@ impl<T> WriteGuard<T> {
     fn complete_release_event(guard: &WriteGuard<T>) {
         if let Some(ref e) = guard.release_event {
             if !e.is_complete().expect("ReadCompletion::drop") {
+                if PRINT_DEBUG { println!("###### WriteGuard::complete_release_event: Setting release \
+                    event complete. (thread: {})", ::std::thread::current().name().unwrap_or("<unnamed>")); }
                 e.set_complete().expect("ReadCompletion::drop");
             }
         }
@@ -169,7 +174,8 @@ impl<T> DerefMut for WriteGuard<T> {
 
 impl<T> Drop for WriteGuard<T> {
     fn drop(&mut self) {
-        // println!("Dropping and releasing WriteGuard.");
+        if PRINT_DEBUG { println!("###### WriteGuard::drop: Dropping and releasing WriteGuard. \
+                (thread: {})", ::std::thread::current().name().unwrap_or("<unnamed>")); }
         unsafe { self.rw_vec.lock.release_write_lock() };
         Self::complete_release_event(self);
     }
