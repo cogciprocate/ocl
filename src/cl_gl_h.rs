@@ -53,18 +53,19 @@ pub const CL_CGL_SHAREGROUP_KHR:    cl_context_properties = 0x200C;
 //     size_t                        param_value_size,
 //     void *                        param_value,
 //     size_t *                      param_value_size_ret);
-pub type clGetGLContextInfoKHR_fn = *mut unsafe extern "system" fn(properties: *const cl_context_properties,
-                                         param_name: cl_gl_context_info,
-                                         param_value_size: size_t,
-                                         param_value: *mut c_void,
-                                         param_value_size_ret: *mut size_t) -> cl_int;
+pub type clGetGLContextInfoKHR_fn = *mut extern "system" fn(
+    properties: *const cl_context_properties,
+    param_name: cl_gl_context_info,
+    param_value_size: size_t,
+    param_value: *mut c_void,
+    param_value_size_ret: *mut size_t)
+    -> cl_int;
 
 //#[link_args = "-L$OPENCL_LIB -lOpenCL"]
 #[cfg_attr(target_os = "macos", link(name = "OpenCL", kind = "framework"))]
 #[cfg_attr(target_os = "windows", link(name = "OpenCL"))]
 #[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
 extern "system" {
-
     pub fn clCreateFromGLBuffer(context: cl_context,
                                 flags: cl_mem_flags,
                                 bufobj: cl_GLuint,

@@ -242,10 +242,7 @@ pub use self::cl_h::{clCreateSubDevices, clRetainDevice, clReleaseDevice, clCrea
 #[cfg(feature = "opencl_version_2_0")]
 pub use self::cl_h::{clCreateCommandQueueWithProperties, clCreatePipe, clGetPipeInfo, clSVMAlloc,
     clSVMFree, clCreateSamplerWithProperties, clSetKernelArgSVMPointer, clSetKernelExecInfo,
-    clEnqueueSVMFree, clEnqueueSVMMemcpy, clEnqueueSVMMemFill, clEnqueueSVMMap, clEnqueueSVMUnmap,
-    clCreateCommandQueueWithProperties, clCreatePipe, clGetPipeInfo, clSVMAlloc, clSVMFree,
-    clCreateSamplerWithProperties, clSetKernelArgSVMPointer, clSetKernelExecInfo, clEnqueueSVMFree,
-    clEnqueueSVMMemcpy, clEnqueueSVMMemFill, clEnqueueSVMMap, clEnqueueSVMUnmap};
+    clEnqueueSVMFree, clEnqueueSVMMemcpy, clEnqueueSVMMemFill, clEnqueueSVMMap, clEnqueueSVMUnmap};
 
 #[cfg(feature = "opencl_version_2_1")]
 pub use self::cl_h::{clSetDefaultDeviceCommandQueue, clGetDeviceAndHostTimer, clGetHostTimer,
