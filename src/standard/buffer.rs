@@ -1905,7 +1905,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     pub fn context<'o>(mut self, context: &'o Context) -> BufferBuilder<'a, T>
             where 'o: 'a
     {
-        assert!(self.queue_option.is_none());
+        assert!(self.queue_option.is_none(), "A context or queue has already been set.");
         self.queue_option = Some(QueCtx::Context(context));
         self
     }
@@ -1915,7 +1915,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// If this is set, the context associated with the `default_queue` will
     /// be used when creating the buffer (use one or the other).
     pub fn queue<'b>(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
-        assert!(self.queue_option.is_none());
+        assert!(self.queue_option.is_none(), "A context or queue has already been set.");
         self.queue_option = Some(QueCtx::Queue(default_queue));
         self
     }
