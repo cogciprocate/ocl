@@ -35,6 +35,10 @@ pub struct KernelCmd<'k> {
 /// [UNSTABLE]: Methods still being tuned.
 impl<'k> KernelCmd<'k> {
     /// Specifies a queue to use for this call only.
+    ///
+    /// Overrides the kernel's default queue if one is set. If no default
+    /// queue is set, this method **must** be called before enqueuing the
+    /// kernel.
     pub fn queue<'q, Q>(mut self, queue: &'q Q) -> KernelCmd<'k>
             where 'q: 'k, Q: 'k + AsRef<CommandQueueCore>
     {

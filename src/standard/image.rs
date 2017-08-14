@@ -285,6 +285,9 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     }
 
     /// Specifies a queue to use for this call only.
+    ///
+    /// Overrides the image's default queue if one is set. If no default queue
+    /// is set, this method **must** be called before enqueuing the command.
     pub fn queue(mut self, queue: &'c Queue) -> ImageCmd<'c, T> {
         self.queue = Some(queue);
         self

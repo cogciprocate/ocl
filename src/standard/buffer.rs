@@ -365,6 +365,10 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     }
 
     /// Specifies a queue to use for this call only.
+    ///
+    /// Overrides the buffer's default queue if one is set. If no default
+    /// queue is set, this method **must** be called before enqueuing the
+    /// command.
     pub fn queue(mut self, queue: &'c Queue) -> BufferCmd<'c, T> {
         self.queue = Some(queue);
         self
@@ -614,6 +618,10 @@ pub struct BufferReadCmd<'c, 'd, T> where T: 'c + 'd {
 
 impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// Specifies a queue to use for this call only.
+    ///
+    /// Overrides the buffer's default queue if one is set. If no default
+    /// queue is set, this method **must** be called before enqueuing the
+    /// command.
     pub fn queue(mut self, queue: &'c Queue) -> BufferReadCmd<'c, 'd, T> {
         self.cmd.queue = Some(queue);
         self
@@ -947,6 +955,10 @@ pub struct BufferWriteCmd<'c, 'd, T> where T: 'c + 'd {
 
 impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     /// Specifies a queue to use for this call only.
+    ///
+    /// Overrides the buffer's default queue if one is set. If no default
+    /// queue is set, this method **must** be called before enqueuing the
+    /// command.
     pub fn queue(mut self, queue: &'c Queue) -> BufferWriteCmd<'c, 'd, T> {
         self.cmd.queue = Some(queue);
         self
@@ -1297,6 +1309,10 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     }
 
     /// Specifies a queue to use for this call only.
+    ///
+    /// Overrides the buffer's default queue if one is set. If no default
+    /// queue is set, this method **must** be called before enqueuing the
+    /// command.
     pub fn queue(mut self, queue: &'c Queue) -> BufferMapCmd<'c, T> {
         self.cmd.queue = Some(queue);
         self
