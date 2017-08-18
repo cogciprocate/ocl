@@ -1491,13 +1491,10 @@ impl<T: OclPrm> Buffer<T> {
     // * TODO: Consider removing `fill_val` and leaving filling completely to
     //   the builder.
     //
-    pub fn new<'e, 'o, D, Q, En>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
-            host_data: Option<&[T]>, fill_val: Option<(T, Option<En>)>) -> OclResult<Buffer<T>>
-            where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>, En: Into<ClNullEventPtrEnum<'e>>
+    pub fn new<'e, 'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
+            host_data: Option<&[T]>) -> OclResult<Buffer<T>>
+            where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>
     {
-        if host_data.is_some() && fill_val.is_some() { panic!("ocl::Buffer::new: Cannot initialize a \
-            buffer ('fill_val') when the 'data' argument is 'Some(...)'.") };
-
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
         let dims: SpatialDims = dims.into();
         let len = dims.to_len();
@@ -1523,20 +1520,6 @@ impl<T: OclPrm> Buffer<T> {
             flags: flags,
             _data: PhantomData,
         };
-
-        // Fill with `fill_val` if specified, blocking if the associated event is `None`.
-        //
-        // TODO: Move this functionality to builder.
-        if let Some((val, enew_opt)) = fill_val {
-            match enew_opt {
-                Some(enew) => buf.cmd().fill(val, None).enew(enew.into()).enq()?,
-                None => {
-                    let mut new_event = Event::empty();
-                    buf.cmd().fill(val, None).enew(&mut new_event).enq()?;
-                    new_event.wait_for()?;
-                }
-            }
-        }
 
         Ok(buf)
     }
@@ -2066,14 +2049,57 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// Dimensions and either a context or default queue must be specified
     /// before calling `::build`.
     pub fn build(self) -> OclResult<Buffer<T>> {
+        if self.host_data.is_some() && self.fill_val.is_some() {
+            panic!("ocl::BufferBuilder::build: Cannot create a buffer with both
+                'host_data' and 'fill_val' specified. Use one or the other.");
+        };
+
         match self.queue_option {
-            Some(qo) => {
+            Some(qc) => {
                 let dims = match self.dims {
                     Some(d) => d,
                     None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
                 };
 
-                Buffer::new(qo, self.flags, dims, self.host_data, self.fill_val)
+                let device_ver = match qc {
+                    QueCtx::Queue(ref queue) => Some(queue.device_version()),
+                    QueCtx::Context(_) => None,
+                };
+
+                let buf = Buffer::new(qc, self.flags, dims, self.host_data)?;
+
+                // Fill with `fill_val` if specified, blocking if the
+                // associated event is `None` and a queue is specified.
+                if let Some((val, enew_opt)) = self.fill_val {
+                    match device_ver {
+                        Some(dv) => {
+                            if dv >= [1, 2].into() {
+                                match enew_opt {
+                                    Some(enew) => buf.cmd().fill(val, None).enew(enew).enq()?,
+                                    None => {
+                                        let mut new_event = Event::empty();
+                                        buf.cmd().fill(val, None).enew(&mut new_event).enq()?;
+                                        new_event.wait_for()?;
+                                    }
+                                }
+                            } else {
+                                let fill_vec = vec![Default::default(); buf.len()];
+                                match enew_opt {
+                                    Some(enew) => buf.cmd().write(&fill_vec).enew(enew).enq()?,
+                                    None => {
+                                        let mut new_event = Event::empty();
+                                        buf.cmd().write(&fill_vec).enew(&mut new_event).enq()?;
+                                        new_event.wait_for()?;
+                                    }
+                                }
+                            }
+                        },
+                        None => panic!("ocl::BufferBuilder::build: A queue must be specified \
+                            for this builder with `::queue` when using `::fill_val`."),
+                    }
+                }
+
+                Ok(buf)
             },
             None => panic!("ocl::BufferBuilder::build: A context or default queue must be set \
                 with '.context(...)' or '.queue(...)'."),

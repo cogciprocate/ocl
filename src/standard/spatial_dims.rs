@@ -77,7 +77,7 @@ impl SpatialDims {
     /// Returns a 3D size or an error if unspecified.
     pub fn to_lens(&self) -> OclResult<[usize; 3]> {
         match *self {
-            SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
+            SpatialDims::Unspecified => Err(OclError::unspecified_dimensions()),
             SpatialDims::One(x) => Ok([x, 1, 1]),
             SpatialDims::Two(x, y) => Ok([x, y, 1]),
             SpatialDims::Three(x, y, z) => Ok([x, y, z]),
@@ -87,7 +87,7 @@ impl SpatialDims {
     /// Returns a 3D offset or an error if unspecified.
     pub fn to_offset(&self) -> OclResult<[usize; 3]> {
         match *self {
-            SpatialDims::Unspecified => Err(OclError::UnspecifiedDimensions),
+            SpatialDims::Unspecified => Err(OclError::unspecified_dimensions()),
             SpatialDims::One(x) => Ok([x, 0, 0]),
             SpatialDims::Two(x, y) => Ok([x, y, 0]),
             SpatialDims::Three(x, y, z) => Ok([x, y, z]),

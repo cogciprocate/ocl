@@ -1017,6 +1017,7 @@ pub mod arg_type {
         /// if any are found.
         pub fn from_kern_and_idx(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
             use core::EmptyInfoResult;
+            use core::ErrorKind as OclErrorKind;
 
             match arg_type_name(core, arg_index) {
                 Ok(type_name) => ArgType::from_str(type_name.as_str()),
@@ -1033,14 +1034,14 @@ pub mod arg_type {
                     // }
 
                     // Escape hatches for known, platform-specific errors.
-                    match err {
-                        OclError::Status { ref status, .. } => {
+                    match err.kind() {
+                        &OclErrorKind::Status { ref status, .. } => {
                             if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
                                 return Ok(ArgType { base_type: BaseType::Unknown,
                                     cardinality: Cardinality::One, is_ptr: false })
                             }
                         },
-                        OclError::EmptyInfoResult(EmptyInfoResult::KernelArg) => {
+                        &OclErrorKind::EmptyInfoResult(EmptyInfoResult::KernelArg) => {
                             return ArgType::unknown();
                         },
                         _ => (),

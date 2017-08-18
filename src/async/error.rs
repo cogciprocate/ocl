@@ -5,7 +5,7 @@ use std;
 // use futures::Canceled as FuturesCanceled;
 use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
-use core::error::Error as OclError;
+use core::error::{Error as OclError, ErrorKind as OclErrorKind};
 
 pub type Result<T> = std::result::Result<T, self::Error>;
 
@@ -23,13 +23,13 @@ pub enum Error {
 impl self::Error {
     /// Returns a new `Error::String` with the given description.
     pub fn string<S: Into<String>>(desc: S) -> self::Error {
-        self::Error::Ocl(OclError::String(desc.into()))
+        self::Error::Ocl(OclError::from(desc.into()))
     }
 
     /// If this is a `String` variant, concatenate `txt` to the front of the
     /// contained string. Otherwise, do nothing at all.
     pub fn prepend<'s, S: AsRef<&'s str>>(&'s mut self, txt: S) {
-        if let &mut Error::Ocl(OclError::String(ref mut string)) = self {
+        if let &mut Error::Ocl(OclError { kind: OclErrorKind::String(ref mut string), ..}) = self {
             string.reserve_exact(txt.as_ref().len());
             let old_string_copy = string.clone();
             string.clear();
@@ -94,7 +94,7 @@ impl From<Box<std::error::Error>> for self::Error {
 
 impl From<()> for self::Error {
     fn from(_: ()) -> self::Error {
-        self::Error::Ocl(OclError::Void)
+        self::Error::Ocl(().into())
     }
 }
 
@@ -112,13 +112,13 @@ impl<'a> From<&'a str> for self::Error {
 
 impl From<std::ffi::NulError> for self::Error {
     fn from(err: std::ffi::NulError) -> self::Error {
-        self::Error::Ocl(OclError::Nul(err))
+        self::Error::Ocl(err.into())
     }
 }
 
 impl From<std::io::Error> for self::Error {
     fn from(err: std::io::Error) -> self::Error {
-        self::Error::Ocl(OclError::Io(err))
+        self::Error::Ocl(err.into())
     }
 }
 
