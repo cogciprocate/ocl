@@ -30,7 +30,7 @@ use ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devic
     cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
     cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
-use error::{Error as OclError, Result as OclResult};
+use error::{Error as OclError, ErrorKind as OclErrorKind, Result as OclResult, ChainErr};
 
 use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, GlContextInfo,
     ContextInfoResult, GlContextInfoResult, MemFlags, CommandQueue, Mem, MemObjectType, Program,
@@ -477,7 +477,8 @@ pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclResult<(
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
-    try!(verify_device_version(device_version, [1, 2], device));
+    verify_device_version(device_version, [1, 2], device)
+        .chain_err(|| "::retain_device")?;
     eval_errcode(ffi::clRetainDevice(device.as_ptr()), (), "clRetainDevice", "")
 }
 
@@ -486,7 +487,8 @@ pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVer
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn release_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
-    try!(verify_device_version(device_version, [1, 2], device));
+    verify_device_version(device_version, [1, 2], device)
+        .chain_err(|| "::release_device")?;
     eval_errcode(ffi::clReleaseDevice(device.as_ptr()), (), "clReleaseDevice", "")
 }
 
@@ -1049,7 +1051,8 @@ pub unsafe fn create_from_gl_texture<C>(
     try!(verify_context(context));
 
     // Verify device versions:
-    try!(verify_device_versions(device_versions, [1, 2], &context.as_ptr()));
+    verify_device_versions(device_versions, [1, 2], &context.as_ptr())
+        .chain_err(|| "::create_from_gl_texture")?;;
 
     // [TODO]: Forward old versions to these:
     // let obj_core = match image_desc.image_depth {
@@ -1187,7 +1190,8 @@ pub unsafe fn create_image<C, T>(
     try!(verify_context(context));
 
     // Verify device versions:
-    try!(verify_device_versions(device_versions, [1, 2], &context.as_ptr()));
+    verify_device_versions(device_versions, [1, 2], &context.as_ptr())
+        .chain_err(|| "::create_image")?;
 
     let mut errcode: cl_int = 0;
 
@@ -1533,7 +1537,8 @@ pub fn create_program_with_il<C>(
         ) -> OclResult<Program>
         where C: ClContextPtr
 {
-    verify_device_versions(device_versions, [2, 1], &context)?;
+    verify_device_versions(device_versions, [2, 1], &context)
+        .chain_err(|| "::create_program_with_il")?;
 
     let mut errcode: cl_int = 0;
 
@@ -1886,7 +1891,9 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         device_versions: Option<&[OpenclVersion]>) -> KernelArgInfoResult
 {
     // Verify device version:
-    if let Err(err) = verify_device_versions(device_versions, [1, 2], obj) {
+    if let Err(err) = verify_device_versions(device_versions, [1, 2], obj)
+            .chain_err(|| "::get_kernel_arg_info")
+    {
         return KernelArgInfoResult::from(err)
     }
 
@@ -1943,7 +1950,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
 
     // Make printing certain platform-specific errors less scary looking:
     if let Err(err) = eval_errcode(errcode, (), "clGetKernelWorkGroupInfo", "") {
-        if let OclError::Status { ref status, .. } = err {
+        if let &OclErrorKind::Status { ref status, .. } = err.kind() {
             // NVIDIA / APPLE (i think):
             if request == KernelWorkGroupInfo::GlobalWorkSize &&
                     status == &Status::CL_INVALID_VALUE
@@ -2406,7 +2413,8 @@ pub fn enqueue_fill_buffer<T, M, En, Ewl>(
         ) -> OclResult<()>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
-    try!(verify_device_version(device_version, [1, 2], command_queue));
+    verify_device_version(device_version, [1, 2], command_queue)
+        .chain_err(|| "::enqueue_fill_buffer")?;
 
     let pattern_size = mem::size_of::<T>();
     let offset_bytes = offset * mem::size_of::<T>();
@@ -2731,7 +2739,8 @@ pub fn enqueue_fill_image<T, M, En, Ewl>(
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     // Verify device version:
-    try!(verify_device_version(device_version, [1, 2], command_queue));
+    verify_device_version(device_version, [1, 2], command_queue)
+        .chain_err(|| "::enqueue_fill_image")?;
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
@@ -3058,7 +3067,8 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
         ) -> OclResult<()>
 {
     // Verify device version:
-    try!(verify_device_version(device_version, [1, 2], command_queue));
+    verify_device_version(device_version, [1, 2], command_queue)
+        .chain_err(|| "::enqueue_migrate_mem_objects")?;
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
@@ -3246,7 +3256,8 @@ pub fn enqueue_marker_with_wait_list<En, Ewl>(
         where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     // Verify device version:
-    try!(verify_device_version(device_version, [1, 2], command_queue));
+    verify_device_version(device_version, [1, 2], command_queue)
+        .chain_err(|| "::enqueue_marker_with_wait_list")?;
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
@@ -3274,7 +3285,8 @@ pub fn enqueue_barrier_with_wait_list<En, Ewl>(
         where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     // Verify device version:
-    try!(verify_device_version(device_version, [1, 2], command_queue));
+    verify_device_version(device_version, [1, 2], command_queue)
+        .chain_err(|| "::enqueue_barrier_with_wait_list")?;
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
@@ -3344,7 +3356,8 @@ pub unsafe fn get_extension_function_address_for_platform(
         ) -> OclResult<*mut c_void>
 {
     // Verify platform version:
-    try!(verify_platform_version(platform_version, [1, 2], platform));
+    verify_platform_version(platform_version, [1, 2], platform)
+        .chain_err(|| "::get_extension_function_address_for_platform")?;
 
     let func_name_c = try!(CString::new(func_name));
 

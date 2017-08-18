@@ -1,13 +1,10 @@
 //! Standard error type for ocl.
 //!
 
-use std;
+use std::error::Error as StdError;
 use num::FromPrimitive;
 use ::Status;
 use ::EmptyInfoResult;
-
-/// `ocl::Error` result type.
-pub type Result<T> = std::result::Result<T, self::Error>;
 
 static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
 static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
@@ -41,13 +38,15 @@ fn gen_status_error<S: Into<String>>(errcode: i32, fn_name: &'static str, fn_inf
     let desc = fmt_status_desc(status.clone(), fn_name, &fn_info);
     let status_string = format!("{:?}", status);
 
-    Error::Status {
+    let kind = ErrorKind::Status {
             status: status,
             status_string: status_string,
             fn_name: fn_name,
             fn_info: fn_info,
             desc: desc
-    }
+    };
+
+    Error { kind, cause: None }
 }
 
 
@@ -68,57 +67,70 @@ fn gen_status_error<S: Into<String>>(errcode: i32, fn_name: &'static str, fn_inf
 ///
 /// For now, don't assume the existence of or check for any of the above.
 ///
-pub enum Error {
+pub enum ErrorKind {
     Void,
     Conversion(String),
     Status {
         status: Status, status_string: String, fn_name: &'static str, fn_info: String, desc: String
     },
     String(String),
-    Nul(std::ffi::NulError),
-    Io(std::io::Error),
-    FromUtf8Error(std::string::FromUtf8Error),
+    Nul(::std::ffi::NulError),
+    Io(::std::io::Error),
+    FromUtf8Error(::std::string::FromUtf8Error),
     UnspecifiedDimensions,
-    IntoStringError(std::ffi::IntoStringError),
+    IntoStringError(::std::ffi::IntoStringError),
     EmptyInfoResult(EmptyInfoResult),
+    // Prepended { desc: String, err: Box<self::Error> },
+}
+
+
+/// An Error.
+pub struct Error {
+    pub kind: ErrorKind,
+    pub cause: Option<Box<self::Error>>,
 }
 
 impl self::Error {
     /// Returns a new `Error` with the description string:
     /// `desc`.
     ///
-    /// ### Depricated
+    /// ### Deprecated
     ///
     /// Use `::from` instead.
     //
     #[deprecated(since="0.4.0", note="Use `::from` instead.")]
     pub fn new<S: Into<String>>(desc: S) -> Self {
-        self::Error::String(desc.into())
+        Error { kind: self::ErrorKind::String(desc.into()), cause: None }
     }
 
-    /// Returns a new `Error::String` with the given description.
+    /// Returns a new `ErrorKind::String` with the given description.
     #[deprecated(since="0.4.0", note="Use `::from` instead.")]
     pub fn string<S: Into<String>>(desc: S) -> Self {
-        self::Error::String(desc.into())
+        Error { kind: self::ErrorKind::String(desc.into()), cause: None }
+    }
+
+    /// Returns an `Error` with the `UnspecifiedDimensions` kind variant.
+    pub fn unspecified_dimensions() -> Error {
+        Error { kind: ErrorKind::UnspecifiedDimensions, cause: None }
     }
 
     /// Returns a new `ocl_core::Result::Err` containing an
-    /// `ocl_core::Error::String` variant with the given description.
+    /// `ocl_core::ErrorKind::String` variant with the given description.
     ///
-    /// ### Depricated
+    /// ### Deprecated
     ///
     /// Use `::err_string` or `Err("...".into())` instead.
     //
     #[deprecated(since="0.4.0", note="Use `Err(\"...\".into())` instead.")]
     pub fn err<T, S: Into<String>>(desc: S) -> self::Result<T> {
-        Err(Error::String(desc.into()))
+        Err(Error { kind: ErrorKind::String(desc.into()), cause: None })
     }
 
-    /// Returns a new `Err(ocl_core::Error::String(...))` variant with the
+    /// Returns a new `Err(ocl_core::ErrorKind::String(...))` variant with the
     /// given description.
     // #[deprecated(since="0.4.0", note="Use `Err(\"...\".into())` instead.")]
     pub fn err_string<T, S: Into<String>>(desc: S) -> self::Result<T> {
-        Err(Error::String(desc.into()))
+        Err(Error { kind: ErrorKind::String(desc.into()), cause: None })
     }
 
     /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the
@@ -135,94 +147,114 @@ impl self::Error {
     }
 
     /// Returns a new `ocl::Result::Err` containing an
-    /// `ocl::Error::Conversion` variant with the given description.
+    /// `ocl::ErrorKind::Conversion` variant with the given description.
     pub fn err_conversion<T, S: Into<String>>(desc: S) -> self::Result<T> {
-        Err(Error::Conversion(desc.into()))
+        Err(Error { kind: ErrorKind::Conversion(desc.into()), cause: None })
     }
 
     /// If this is a `String` variant, concatenate `txt` to the front of the
     /// contained string. Otherwise, do nothing at all.
+    #[deprecated(since="0.6.0", note="Use `Err(\"...\".into())` instead.")]
     pub fn prepend<'s, S: AsRef<&'s str>>(&'s mut self, txt: S) {
-        if let &mut Error::String(ref mut string) = self {
+        if let ErrorKind::String(ref mut string) = self.kind {
             string.reserve_exact(txt.as_ref().len());
             let old_string_copy = string.clone();
             string.clear();
             string.push_str(txt.as_ref());
             string.push_str(&old_string_copy);
+        } else {
+            panic!("Cannot prepend to a non-`String` error variant.");
         }
+    }
+
+    /// Creates a new error with this error as its cause.
+    pub fn chain<E: Into<Error>>(self, err: E) -> Self {
+        // let desc = format!("{}: {}", pre, self.description());
+        let err = err.into();
+        assert!(err.cause.is_none(), "Cannot chain an error that already has a cause.");
+        Error { kind: err.kind, cause: Some(Box::new(self)) }
     }
 
     // /// Returns the error status const code name or nothing.
     // pub fn status_code(&self) -> String {
     //     match *self {
-    //         Error::Status { ref status, .. } => format!("{:?}", status),
+    //         ErrorKind::Status { ref status, .. } => format!("{:?}", status),
     //         _ => format!("{:?}", self),
     //     }
     // }
 
     /// Returns the error status code for `Status` variants.
     pub fn status(&self) -> Option<Status> {
-        match *self {
-            Error::Status { ref status, .. } => Some(status.clone()),
+        match self.kind {
+            ErrorKind::Status { ref status, .. } => Some(status.clone()),
             _ => None,
+        }
+    }
+
+    /// Returns the error variant and contents.
+    pub fn kind(&self) -> &ErrorKind {
+        &self.kind
+    }
+}
+
+impl ::std::fmt::Debug for self::Error {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self.cause {
+            Some(ref cause) => {
+                write!(f, "{}: {}", self.description(), cause)
+            },
+            None => f.write_str(self.description())
         }
     }
 }
 
-impl std::fmt::Debug for self::Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
+impl ::std::fmt::Display for self::Error {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
-impl std::fmt::Display for self::Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
-    }
-}
-
-impl std::error::Error for self::Error {
+impl StdError for self::Error {
     fn description(&self) -> &str {
-        match *self {
-            Error::Void => "OpenCL Error",
-            Error::Conversion(ref desc) => desc.as_str(),
-            Error::Nul(ref err) => err.description(),
-            Error::Io(ref err) => err.description(),
-            Error::FromUtf8Error(ref err) => err.description(),
-            Error::IntoStringError(ref err) => err.description(),
-            Error::Status { ref desc, .. } => desc.as_str(),
-            Error::String(ref desc) => desc.as_str(),
-            Error::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
+        match self.kind {
+            ErrorKind::Void => "OpenCL Error",
+            ErrorKind::Conversion(ref desc) => desc.as_str(),
+            ErrorKind::Nul(ref err) => err.description(),
+            ErrorKind::Io(ref err) => err.description(),
+            ErrorKind::FromUtf8Error(ref err) => err.description(),
+            ErrorKind::IntoStringError(ref err) => err.description(),
+            ErrorKind::Status { ref desc, .. } => desc.as_str(),
+            ErrorKind::String(ref desc) => desc.as_str(),
+            ErrorKind::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
                 Please specify some dimensions.",
-            Error::EmptyInfoResult(ref err) => err.description(),
-            // _ => panic!("OclError::description()"),
+            ErrorKind::EmptyInfoResult(ref err) => err.description(),
+            // ErrorKind::Prepended { ref desc, .. } => desc.as_str(),
+            // _ => panic!("OclErrorKind::description()"),
         }
     }
 }
 
 impl From<()> for self::Error {
     fn from(_: ()) -> Self {
-        self::Error::Void
+        Error { kind: self::ErrorKind::Void, cause: None }
     }
 }
 
 impl From<EmptyInfoResult> for self::Error {
     fn from(err: EmptyInfoResult) -> Self {
-        self::Error::EmptyInfoResult(err)
+        Error { kind: self::ErrorKind::EmptyInfoResult(err), cause: None }
     }
 }
 
 impl From<String> for self::Error {
     fn from(desc: String) -> Self {
-        self::Error::String(desc)
+        Error { kind: self::ErrorKind::String(desc), cause: None }
     }
 }
 
 impl From<self::Error> for String {
     fn from(err: self::Error) -> String {
-        // use std::error::Error;
+        // use StdError;
         // err.description().to_string()
         format!("{}", err)
     }
@@ -230,32 +262,72 @@ impl From<self::Error> for String {
 
 impl<'a> From<&'a str> for self::Error {
     fn from(desc: &'a str) -> Self {
-        self::Error::from(String::from(desc))
+        Error { kind: self::ErrorKind::String(String::from(desc)), cause: None }
     }
 }
 
-impl From<std::ffi::NulError> for self::Error {
-    fn from(err: std::ffi::NulError) -> Self {
-        self::Error::Nul(err)
+impl From<::std::ffi::NulError> for self::Error {
+    fn from(err: ::std::ffi::NulError) -> Self {
+        Error { kind: self::ErrorKind::Nul(err), cause: None }
     }
 }
 
-impl From<std::io::Error> for self::Error {
-    fn from(err: std::io::Error) -> Self {
-        self::Error::Io(err)
+impl From<::std::io::Error> for self::Error {
+    fn from(err: ::std::io::Error) -> Self {
+        Error { kind: self::ErrorKind::Io(err), cause: None }
     }
 }
 
-impl From<std::string::FromUtf8Error> for self::Error {
-    fn from(err: std::string::FromUtf8Error) -> Self {
-        self::Error::FromUtf8Error(err)
+impl From<::std::string::FromUtf8Error> for self::Error {
+    fn from(err: ::std::string::FromUtf8Error) -> Self {
+        Error { kind: self::ErrorKind::FromUtf8Error(err), cause: None }
     }
 }
 
-impl From<std::ffi::IntoStringError> for self::Error {
-    fn from(err: std::ffi::IntoStringError) -> Self {
-        self::Error::IntoStringError(err)
+impl From<::std::ffi::IntoStringError> for self::Error {
+    fn from(err: ::std::ffi::IntoStringError) -> Self {
+        Error { kind: self::ErrorKind::IntoStringError(err), cause: None }
     }
 }
 
-unsafe impl std::marker::Send for self::Error {}
+unsafe impl ::std::marker::Send for self::Error {}
+
+
+/// Ocl error result type.
+pub type Result<T> = ::std::result::Result<T, self::Error>;
+
+pub trait ChainErr<T, E> {
+    /// If the `Result` is an `Err` then `chain_err` evaluates the closure,
+    /// which returns *some type that can be converted to `ErrorKind`*, boxes
+    /// the original error to store as the cause, then returns a new error
+    /// containing the original error.
+    //
+    // Blatantly ripped off from the `error-chain` crate.
+    fn chain_err<F, IE>(self, callback: F) -> ::std::result::Result<T, Error>
+        where F: FnOnce() -> IE, IE: Into<Error>;
+}
+
+// impl<T, E> ErrChain<T, E> for ::std::result::Result<T, E> where E: StdError + Send + 'static {
+//     fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, Error>
+//             where F: FnOnce() -> EK, EK: Into<Error>
+//       {
+//         self.map_err(move |e| {
+//             let err = callback().into();
+//             assert!(err.cause.is_none());
+//             Error { kind: err.kind, cause: Some(Box::new(e)) }
+
+//         })
+//     }
+// }
+
+impl<T> ChainErr<T, Error> for self::Result<T> {
+    fn chain_err<F, E>(self, callback: F) -> self::Result<T>
+            where F: FnOnce() -> E, E: Into<self::Error>
+      {
+        self.map_err(move |e| {
+            let err = callback().into();
+            assert!(err.cause.is_none());
+            self::Error { kind: err.kind, cause: Some(Box::new(e)) }
+        })
+    }
+}

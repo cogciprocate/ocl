@@ -50,7 +50,7 @@ use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceIn
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
     EventInfo, EventInfoResult};
-use error::{Result as OclResult, Error as OclError};
+use error::{Result as OclResult, Error as OclError, ErrorKind as OclErrorKind};
 use functions;
 
 //=============================================================================
@@ -521,7 +521,7 @@ impl Drop for Context {
     fn drop(&mut self) {
         unsafe {
             if let Err(e) = functions::release_context(self as &Context) {
-                if let OclError::Status { ref status, .. } = e {
+                if let &OclErrorKind::Status { ref status, .. } = e.kind() {
                     if status == &Status::CL_INVALID_CONTEXT {
                         return;
                     }
