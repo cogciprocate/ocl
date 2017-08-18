@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
-use core::error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclError, ErrorKind as OclErrorKind};
 use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum};
 pub use self::arg_type::{BaseType, Cardinality, ArgType};
@@ -187,6 +187,8 @@ pub struct Kernel {
     lws: SpatialDims,
     num_args: u32,
     arg_types: Vec<ArgType>,
+    /// Bypasses argument type check if true:
+    bypass_arg_check: bool,
 }
 
 
@@ -203,9 +205,27 @@ impl Kernel {
         };
 
         let mut arg_types = Vec::with_capacity(num_args as usize);
+        let mut bypass_arg_check = false;
 
+        // Cache argument types for later use, bypassing if the OpenCL version
+        // is too low (v1.1).
         for arg_idx in 0..num_args {
-            arg_types.push(ArgType::from_kern_and_idx(&obj_core, arg_idx)?);
+            let arg_type = match ArgType::from_kern_and_idx(&obj_core, arg_idx) {
+                Ok(at) => at,
+                Err(e) => {
+                    match e.cause() {
+                        Some(ref ek) => {
+                            if let OclErrorKind::VersionLow { .. } = *ek.kind() {
+                                bypass_arg_check = true;
+                                break;
+                            }
+                        },
+                        None => return Err("Kernel::new: error cause mismatch.".into()),
+                    }
+                    return Err(e);
+                },
+            };
+            arg_types.push(arg_type);
         }
 
         let mem_args = vec![None; num_args as usize];
@@ -222,6 +242,7 @@ impl Kernel {
             lws: SpatialDims::Unspecified,
             num_args: num_args,
             arg_types: arg_types,
+            bypass_arg_check,
         })
     }
 
@@ -582,7 +603,13 @@ impl Kernel {
     }
 
     /// Verifies that a type matches the kernel arg info:
+    ///
+    /// This function does nothing and always returns `Ok` if the OpenCL
+    /// version of any of the devices associated with this kernel is below
+    /// 1.2.
     pub fn verify_arg_type<T: OclPrm + Any>(&self, arg_index: u32) -> OclResult<()> {
+        if self.bypass_arg_check { return Ok(()); }
+
         let arg_type = self.arg_types.get(arg_index as usize)
             .ok_or(format!("Kernel arg index out of range. (kernel: {}, index: {})",
                 self.name(), arg_index))?;
@@ -816,6 +843,7 @@ impl Clone for Kernel {
             lws: self.lws.clone(),
             num_args: self.num_args.clone(),
             arg_types: self.arg_types.clone(),
+            bypass_arg_check: self.bypass_arg_check.clone(),
         }
     }
 }
