@@ -2083,7 +2083,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
                                     }
                                 }
                             } else {
-                                let fill_vec = vec![Default::default(); buf.len()];
+                                let fill_vec = vec![val; buf.len()];
                                 match enew_opt {
                                     Some(enew) => buf.cmd().write(&fill_vec).enew(enew).enq()?,
                                     None => {
