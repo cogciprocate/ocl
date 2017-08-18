@@ -2068,13 +2068,13 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
 
                 let buf = Buffer::new(qc, self.flags, dims, self.host_data)?;
 
-                // Fill with `fill_val` if specified, blocking if the
-                // associated event is `None` and a queue is specified.
-                if let Some((val, enew_opt)) = self.fill_val {
+                // Fill buffer if `fill_val` and a queue have been specified,
+                // blocking if the `fill_event` is `None`.
+                if let Some((val, fill_event)) = self.fill_val {
                     match device_ver {
                         Some(dv) => {
                             if dv >= [1, 2].into() {
-                                match enew_opt {
+                                match fill_event {
                                     Some(enew) => buf.cmd().fill(val, None).enew(enew).enq()?,
                                     None => {
                                         let mut new_event = Event::empty();
@@ -2084,7 +2084,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
                                 }
                             } else {
                                 let fill_vec = vec![val; buf.len()];
-                                match enew_opt {
+                                match fill_event {
                                     Some(enew) => buf.cmd().write(&fill_vec).enew(enew).enq()?,
                                     None => {
                                         let mut new_event = Event::empty();
