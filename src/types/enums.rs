@@ -316,7 +316,8 @@ pub enum DeviceInfoResult {
     Vendor(String),                   // String
     DriverVersion(String),            // String
     Profile(String),                  // String
-    Version(String),                  // String
+    // Version(String),                  // String
+    Version(OpenclVersion),
     Extensions(String),               // String
     Platform(PlatformId),             // cl_platform_id
     DoubleFpConfig(DeviceFpConfig),           // cl_device_fp_config    FLAGS u64
@@ -616,7 +617,7 @@ impl DeviceInfoResult {
                     },
                     DeviceInfo::Version => {
                         match util::bytes_into_string(result) {
-                            Ok(s) => DeviceInfoResult::Version(s),
+                            Ok(s) => DeviceInfoResult::Version(try_ir!(OpenclVersion::from_info_str(&s))),
                             Err(err) => DeviceInfoResult::Error(Box::new(err)),
                         }
                     },
@@ -767,8 +768,8 @@ impl DeviceInfoResult {
 
     /// Parse the `Version` string and get a numeric result as `OpenclVersion`.
     pub fn as_opencl_version(&self) -> OclResult<OpenclVersion> {
-        if let DeviceInfoResult::Version(ref ver) = *self {
-            OpenclVersion::from_info_str(ver)
+        if let DeviceInfoResult::Version(ver) = *self {
+            Ok(ver)
         } else {
             OclError::err_string(format!("DeviceInfoResult::as_opencl_version(): Invalid device info \
                 result variant: ({:?}). This function can only be called on a \

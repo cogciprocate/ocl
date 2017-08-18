@@ -3,8 +3,7 @@
 
 use std::error::Error as StdError;
 use num::FromPrimitive;
-use ::Status;
-use ::EmptyInfoResult;
+use ::{Status, EmptyInfoResult, OpenclVersion};
 
 static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
 static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
@@ -80,7 +79,7 @@ pub enum ErrorKind {
     UnspecifiedDimensions,
     IntoStringError(::std::ffi::IntoStringError),
     EmptyInfoResult(EmptyInfoResult),
-    // Prepended { desc: String, err: Box<self::Error> },
+    VersionLow { detected: OpenclVersion, required: OpenclVersion },
 }
 
 
@@ -91,8 +90,7 @@ pub struct Error {
 }
 
 impl self::Error {
-    /// Returns a new `Error` with the description string:
-    /// `desc`.
+    /// Returns a new `Error` with the description string: `desc`.
     ///
     /// ### Deprecated
     ///
@@ -112,6 +110,10 @@ impl self::Error {
     /// Returns an `Error` with the `UnspecifiedDimensions` kind variant.
     pub fn unspecified_dimensions() -> Error {
         Error { kind: ErrorKind::UnspecifiedDimensions, cause: None }
+    }
+
+    pub fn version_low(detected: OpenclVersion, required: OpenclVersion) -> Error {
+        Error { kind: ErrorKind::VersionLow { detected, required }, cause: None }
     }
 
     /// Returns a new `ocl_core::Result::Err` containing an
@@ -175,14 +177,6 @@ impl self::Error {
         Error { kind: err.kind, cause: Some(Box::new(self)) }
     }
 
-    // /// Returns the error status const code name or nothing.
-    // pub fn status_code(&self) -> String {
-    //     match *self {
-    //         ErrorKind::Status { ref status, .. } => format!("{:?}", status),
-    //         _ => format!("{:?}", self),
-    //     }
-    // }
-
     /// Returns the error status code for `Status` variants.
     pub fn status(&self) -> Option<Status> {
         match self.kind {
@@ -195,22 +189,55 @@ impl self::Error {
     pub fn kind(&self) -> &ErrorKind {
         &self.kind
     }
+
+    /// Returns the immediate cause of this error (e.g. the next error in the
+    /// chain).
+    pub fn cause(&self) -> Option<&Box<self::Error>> {
+        self.cause.as_ref()
+    }
+
+    /// Writes the error message for this error to a formatter.
+    fn write_msg(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+            match self.kind {
+                ErrorKind::VersionLow { detected, required } => write!(f, "OpenCL version too \
+                    low to use this feature (detected: {}, required: {}).", detected, required),
+                ErrorKind::Void => write!(f, "OpenCL Error"),
+                ErrorKind::Conversion(ref desc) => write!(f, "{}", desc.as_str()),
+                ErrorKind::Nul(ref err) => write!(f, "{}", err.description()),
+                ErrorKind::Io(ref err) => write!(f, "{}", err.description()),
+                ErrorKind::FromUtf8Error(ref err) => write!(f, "{}", err.description()),
+                ErrorKind::IntoStringError(ref err) => write!(f, "{}", err.description()),
+                ErrorKind::Status { ref desc, .. } => write!(f, "{}", desc),
+                ErrorKind::String(ref desc) => write!(f, "{}", desc),
+                ErrorKind::UnspecifiedDimensions => write!(f, "Cannot convert to a valid set of \
+                    dimensions. Please specify some dimensions."),
+                ErrorKind::EmptyInfoResult(ref err) => write!(f, "{}", err.description()),
+                // _ => f.write_str(self.description()),
+            }
+        }
+
+    /// Writes the error message for this error and its cause to a formatter.
+    fn _fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self.cause {
+            Some(ref cause) => {
+                self.write_msg(f)?;
+                write!(f, ": ")?;
+                cause._fmt(f)
+            },
+            None => self.write_msg(f)
+        }
+    }
 }
 
 impl ::std::fmt::Debug for self::Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        match self.cause {
-            Some(ref cause) => {
-                write!(f, "{}: {}", self.description(), cause)
-            },
-            None => f.write_str(self.description())
-        }
+        self._fmt(f)
     }
 }
 
 impl ::std::fmt::Display for self::Error {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{:?}", self)
+        self._fmt(f)
     }
 }
 
@@ -228,7 +255,7 @@ impl StdError for self::Error {
             ErrorKind::UnspecifiedDimensions => "Cannot convert to a valid set of dimensions. \
                 Please specify some dimensions.",
             ErrorKind::EmptyInfoResult(ref err) => err.description(),
-            // ErrorKind::Prepended { ref desc, .. } => desc.as_str(),
+            ErrorKind::VersionLow { .. } => "OpenCL version too low to use this feature.",
             // _ => panic!("OclErrorKind::description()"),
         }
     }
@@ -254,8 +281,6 @@ impl From<String> for self::Error {
 
 impl From<self::Error> for String {
     fn from(err: self::Error) -> String {
-        // use StdError;
-        // err.description().to_string()
         format!("{}", err)
     }
 }
@@ -296,6 +321,7 @@ unsafe impl ::std::marker::Send for self::Error {}
 /// Ocl error result type.
 pub type Result<T> = ::std::result::Result<T, self::Error>;
 
+/// An chainable error.
 pub trait ChainErr<T, E> {
     /// If the `Result` is an `Err` then `chain_err` evaluates the closure,
     /// which returns *some type that can be converted to `ErrorKind`*, boxes
@@ -306,19 +332,6 @@ pub trait ChainErr<T, E> {
     fn chain_err<F, IE>(self, callback: F) -> ::std::result::Result<T, Error>
         where F: FnOnce() -> IE, IE: Into<Error>;
 }
-
-// impl<T, E> ErrChain<T, E> for ::std::result::Result<T, E> where E: StdError + Send + 'static {
-//     fn chain_err<F, EK>(self, callback: F) -> ::std::result::Result<T, Error>
-//             where F: FnOnce() -> EK, EK: Into<Error>
-//       {
-//         self.map_err(move |e| {
-//             let err = callback().into();
-//             assert!(err.cause.is_none());
-//             Error { kind: err.kind, cause: Some(Box::new(e)) }
-
-//         })
-//     }
-// }
 
 impl<T> ChainErr<T, Error> for self::Result<T> {
     fn chain_err<F, E>(self, callback: F) -> self::Result<T>

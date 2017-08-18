@@ -192,10 +192,11 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) 
 pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -> OclResult<()> {
     let reqd_ver = OpenclVersion::from(required_version);
 
-    for dev_v in versions {
-        if dev_v < &reqd_ver {
-            return OclError::err_string(format!("OpenCL version too low to use this feature \
-                (detected: {}, required: {}).", dev_v, reqd_ver));
+    for &dev_v in versions {
+        if dev_v < reqd_ver {
+            // return OclError::err_string(format!("OpenCL version too low to use this feature \
+            //     (detected: {}, required: {}).", dev_v, reqd_ver));
+            return Err(OclError::version_low(dev_v, reqd_ver));
         }
     }
 
