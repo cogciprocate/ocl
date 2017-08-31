@@ -2549,8 +2549,8 @@ pub fn enqueue_acquire_gl_buffer<En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", "")
 }
 
-/// [UNTESTED] Acquire OpenCL memory objects (buffers and images) that have
-/// been created from OpenGL objects.
+/// Acquire OpenCL memory objects (buffers and images) that have been created
+/// from OpenGL objects.
 ///
 /// To create a slice from a single `Mem` reference without any cost, use
 /// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
@@ -2603,8 +2603,8 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueReleaseGLObjects", "")
 }
 
-/// [UNTESTED] Release OpenCL memory objects (buffers and images) that have
-/// been created from OpenGL objects.
+/// Release OpenCL memory objects (buffers and images) that have been created
+/// from OpenGL objects.
 ///
 /// To create a slice from a single `Mem` reference without any cost, use
 /// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
