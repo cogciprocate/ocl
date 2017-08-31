@@ -2551,6 +2551,10 @@ pub fn enqueue_acquire_gl_buffer<En, Ewl>(
 
 /// [UNTESTED] Acquire OpenCL memory objects (buffers and images) that have
 /// been created from OpenGL objects.
+///
+/// To create a slice from a single `Mem` reference without any cost, use
+/// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
+///
 pub fn enqueue_acquire_gl_objects<En, Ewl>(
             command_queue: &CommandQueue,
             buffers: &[Mem],
@@ -2601,6 +2605,10 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
 
 /// [UNTESTED] Release OpenCL memory objects (buffers and images) that have
 /// been created from OpenGL objects.
+///
+/// To create a slice from a single `Mem` reference without any cost, use
+/// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
+///
 pub fn enqueue_release_gl_objects<En, Ewl>(
             command_queue: &CommandQueue,
             buffers: &[Mem],
@@ -2674,7 +2682,10 @@ pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
 
 /// Enqueues a command to write to an image or image array object from host memory.
 ///
-/// TODO: Size check (rather than leaving it to API).
+// TODO:
+// * Size check (rather than leaving it to API).
+// * Consider safetyness: local host data could change during write.
+//
 pub fn enqueue_write_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             image: M,
