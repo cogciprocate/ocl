@@ -24,7 +24,7 @@ extern crate ocl;
 #[macro_use] extern crate colorify;
 
 use std::fmt::{Debug};
-use futures::{Future, BoxFuture};
+use futures::{Future};
 use rand::{XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
@@ -721,7 +721,7 @@ pub fn vec_write_async(
         fill_event: Option<&Event>,
         write_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        -> BoxFuture<i32, AsyncError>
+        -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
@@ -756,7 +756,7 @@ pub fn vec_write_async(
 
     let future_drop_guard = future_write_buffer.and_then(move |_| Ok(()));
 
-    future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter).boxed()
+    Box::new(future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter))
 }
 
 pub fn kernel_add(
@@ -795,7 +795,7 @@ pub fn kernel_add(
 pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         verify_add_unmap_queue: Queue, wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>, correct_val: i32,
-        task_iter: i32) -> BoxFuture<i32, AsyncError>
+        task_iter: i32) -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}) ...",
@@ -813,7 +813,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 
     *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());
 
-    future_read_data.and_then(move |mut data| {
+    Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -831,13 +831,13 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         data.unmap().queue(&verify_add_unmap_queue).enq()?;
 
         Ok(val_count)
-    }).boxed()
+    }))
 }
 
 pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
         verify_add_release_queue: &Queue, kernel_event: Option<&Event>,
         verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32)
-        -> BoxFuture<i32, AsyncError>
+        -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }
@@ -857,7 +857,7 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
     *verify_add_event = Some(future_read_data.create_release_event(verify_add_release_queue)
         .unwrap().clone());
 
-    future_read_data.and_then(move |data| {
+    Box::new(future_read_data.and_then(move |data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -872,7 +872,7 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
         if PRINT { println!("* Verify add complete  \t(iter: {})", task_iter); }
 
         Ok(val_count)
-    }).boxed()
+    }))
 }
 
 pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Int4>)

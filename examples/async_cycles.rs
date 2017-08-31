@@ -32,7 +32,7 @@ use std::fmt::Debug;
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc::{self, Receiver};
 use chrono::{Duration, DateTime, Local};
-use futures::{Future, BoxFuture};
+use futures::{Future};
 use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ocl::traits::{IntoRawEventArray};
@@ -188,7 +188,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         write_val: i32, task_iter: i32)
         // -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
         //     impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
-        -> BoxFuture<i32, AsyncError>
+        -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(teal_bold: "* Write init complete \t\t(iter: {}, t: {}s)",
@@ -215,7 +215,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
         task_iter as *mut c_void).unwrap(); }
 
-    future_write_data.and_then(move |mut data| {
+    Box::new(future_write_data.and_then(move |mut data| {
         printlnc!(teal_bold: "* Write init starting \t\t(iter: {}, t: {}s) ...",
             task_iter, timestamp());
 
@@ -230,7 +230,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         data.unmap().queue(&write_init_unmap_queue).enq()?;
 
         Ok(task_iter)
-    }).boxed()
+    }))
 }
 
 
@@ -248,7 +248,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         correct_val: i32, task_iter: i32)
         // -> AndThen<PendingRwGuard<Int4>, AsyncResult<i32>,
         //     impl FnOnce(RwGuard<Int4>) -> AsyncResult<i32>>
-        -> BoxFuture<i32, AsyncError>
+        -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(blue_bold: "* Verify init starting \t\t(iter: {}, t: {}s) ...",
@@ -277,7 +277,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         .unwrap().clone());
 
     // The future which will actually verify the initial value:
-    future_read_data.and_then(move |data| {
+    Box::new(future_read_data.and_then(move |data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -292,7 +292,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
             task_iter, timestamp());
 
         Ok(val_count)
-    }).boxed()
+    }))
 }
 
 
@@ -367,7 +367,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         correct_val: i32, task_iter: i32)
         // -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
         //     impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
-        -> BoxFuture<i32, AsyncError>
+        -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}, t: {}s) ...",
@@ -387,7 +387,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     // Set the read unmap completion event:
     *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());
 
-    future_read_data.and_then(move |mut data| {
+    Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -408,7 +408,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         data.unmap().queue(&verify_add_unmap_queue).enq()?;
 
         Ok(val_count)
-    }).boxed()
+    }))
 }
 
 

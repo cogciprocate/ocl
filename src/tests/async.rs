@@ -7,7 +7,7 @@
 #![allow(unused_imports, unused_variables, unused_mut)]
 
 use std::thread;
-use futures::{Future, BoxFuture};
+use futures::{Future};
 use core::{ErrorKind as OclErrorKind, Status};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::{IntoRawEventArray, IntoMarker};
@@ -118,7 +118,7 @@ pub fn write_init(
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        -> BoxFuture<i32, AsyncError>
+        -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
@@ -172,7 +172,7 @@ pub fn write_init(
 
     let future_drop_guard = future_write_buffer.and_then(move |_| Ok(()));
 
-    future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter).boxed()
+    Box::new(future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter))
 }
 
 
@@ -191,7 +191,7 @@ pub fn verify_init(
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> BoxFuture<i32, AsyncError>
+        -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify init starting \t(iter: {}) ...", task_iter as usize); }
@@ -217,7 +217,7 @@ pub fn verify_init(
         .unwrap().clone());
 
     // The future which will actually verify the initial value:
-    future_read_data.and_then(move |data| {
+    Box::new(future_read_data.and_then(move |data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -232,7 +232,7 @@ pub fn verify_init(
         if PRINT { println!("* Verify init complete \t(iter: {})", task_iter); }
 
         Ok(val_count)
-    }).boxed()
+    }))
 }
 
 
@@ -308,7 +308,7 @@ pub fn verify_add(
         wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> BoxFuture<i32, AsyncError>
+        -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }
@@ -328,7 +328,7 @@ pub fn verify_add(
     *verify_add_event = Some(future_read_data.create_release_event(verify_add_unmap_queue)
         .unwrap().clone());
 
-    future_read_data.and_then(move |mut data| {
+    Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -348,7 +348,7 @@ pub fn verify_add(
         if PRINT { println!("* Verify add complete  \t(iter: {})", task_iter); }
 
         Ok(val_count)
-    }).boxed()
+    }))
 }
 
 /// Creates an out-of-order queue or a shorter error message if unsupported.
