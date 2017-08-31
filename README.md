@@ -27,7 +27,7 @@ or some other diagnostic command will run. Add the following to your project's
 
 ```rust
 [dependencies]
-ocl = "0.13"
+ocl = "0.15"
 ```
 
 And add the following to your crate root (lib.rs or main.rs):

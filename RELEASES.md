@@ -1,34 +1,58 @@
-Version 0.15.0 (UNRELEASED)
+Version 0.15.0 (2017-08-31)
 ===========================
 
+* Small changes to `BufferBuilder` and `Kernel` have been made to maintain
+  OpenCL 1.1 compatability.
 * The [`Platform::first`] method has been added which, unlike
   `Platform::default`, returns an error instead of panicking when no platform
   is available.
 * `ContextBuilder::new`, `ProQueBuilder::build`, and some other methods which
   attempt to use the first available platform no longer panic when none is
   available.
-* (ocl-core) [`get_gl_context_info_khr`] function along with the [`GlContextInfo`]
-  and [`GlContextInfoResult`] types have been added. These can be used to
-  determine which OpenCL-accessible device is being used by an existing OpenGL
-  context (or to list all associable devices).
+* (ocl-core) `enqueue_acquire_gl_buffer` and `enqueue_release_gl_buffer` have
+  been deprecated in favor of the new [`enqueue_acquire_gl_objects`] and
+  [`enqueue_release_gl_objects`] functions and will be removed in a future
+  version.
+* (ocl-core)(WIP) The [`get_gl_context_info_khr`] function along with the
+  [`GlContextInfo`] and [`GlContextInfoResult`] types have been added but are
+  still a work in progress. These can be used to determine which
+  OpenCL-accessible device is being used by an existing OpenGL context (or to
+  list all associable devices). Please see [documentation notes and
+  code][`::get_gl_context_info_khr`] if you can offer any help to get this
+  working.
 
 Breaking Changes
 ----------------
-* `BufferBuilder::fill_val` now only accepts a single argument, the value.
+* `Buffer::new` has had the `fill_val` argument removed and continues to be
+  unstable. Automatically filling a buffer after creation can be done using
+  the appropriate `BufferBuilder` methods
+  ([`fill_val`][`BufferBuilder::fill_val`] and
+  [`fill_event`][`BufferBuilder::fill_event`], see change below).
+* [`BufferBuilder::fill_val`] now only accepts a single argument, the value.
   Setting an associated event may now optionally be done using the new
-  `::fill_event`.
+  [`fill_event`][`BufferBuilder::fill_event`]. Not setting an event continues
+  to simply block the current thread until the fill is complete (just after
+  buffer creation).
 * `ContextBuilder::gl_context` now accepts a `*mut c_void` instead of an
   integer for its argument.
+* (ocl-core) Error handling has been changed and allows error chaining.
+  Matching against error variants now must be done using the [`ErrorKind`]
+  type returned by the [`Error::kind`] method.
 * (ocl-core) The `ContextPropertyValue::GlContextKhr` variant is now holds the
   `*mut c_void` type.
-* (ocl-core) `enqueue_acquire_gl_buffer` and `enqueue_release_gl_buffer` have
-  been deprecated in favor of the new `enqueue_acquire_gl_objects` and
-  `enqueue_release_gl_objects` functions.
 
 
 [`get_gl_context_info_khr`]: http://docs.cogciprocate.com/ocl_core/ocl_core/fn.get_gl_context_info_khr.html
 [`GlContextInfo`]: http://docs.cogciprocate.com/ocl_core/ocl_core/enum.GlContextInfo.html
 [`GlContextInfoResult`]: http://docs.cogciprocate.com/ocl_core/ocl_core/types/enums/enum.GlContextInfoResult.html
+[`::get_gl_context_info_khr`]: https://github.com/cogciprocate/ocl-core/blob/master/src/functions.rs#L776
+[`enqueue_acquire_gl_objects`]: http://doc.cogciprocate.com/ocl_core/ocl_core/fn.enqueue_acquire_gl_objects.html
+[`enqueue_release_gl_objects`]: http://doc.cogciprocate.com/ocl_core/ocl_core/fn.enqueue_release_gl_objects.html
+
+[`BufferBuilder::fill_val`]: [http://doc.cogciprocate.com/ocl/ocl/builders/struct.BufferBuilder.html#method.fill_val
+[`BufferBuilder::fill_event`]: http://doc.cogciprocate.com/ocl/ocl/builders/struct.BufferBuilder.html#method.fill_event
+[`ErrorKind`]: http://doc.cogciprocate.com/ocl_core/ocl_core/error/enum.ErrorKind.html
+[`Error::kind`]: http://doc.cogciprocate.com/ocl_core/ocl_core/error/struct.Error.html#method.kind
 
 
 Version 0.14.0 (2017-05-31)
