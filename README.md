@@ -74,11 +74,6 @@ See the the remainder of [`examples/trivial.rs`] for more information about
 how this library leverages Rust's zero-cost abstractions to provide the full
 power and performance of the C API in a simple package.
 
-## What's new?
-
-* Version 0.13: [The futures have arrived](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
-* New examples: [`async_cycles.rs`], [`async_menagerie.rs`], and [`async_process.rs`].
-
 ##### Introduction to OpenCL
 
 For a quick but thorough primer on the basics of OpenCL, please see [Matthew
