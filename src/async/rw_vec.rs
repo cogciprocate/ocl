@@ -37,6 +37,7 @@ pub type FutureWriter<T> = FutureRwGuard<T, WriteGuard<T>>;
 //     rw_vec
 // }
 
+
 /// A read or write guard for an `RwVec`.
 pub trait RwGuard<T> {
     fn new(rw_vec: RwVec<T>, release_event: Option<Event>) -> Self;
@@ -297,18 +298,11 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// status set to complete, causing those commands to execute. This can be
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
-    ///
-    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
     pub fn create_release_event<C: ClContextPtr>(&mut self, context: C) -> AsyncResult<&Event> {
         assert!(self.release_event.is_none(), "Release event has already been created.");
         self.release_event = Some(Event::user(context)?);
         Ok(self.release_event.as_ref().unwrap())
     }
-
-    // /// Sets the access level (read or write) necessary for the duration of the command.
-    // pub fn set_command_access(&mut self, command_access: RequestKind) {
-    //     self.command_access = Some(command_access);
-    // }
 
     /// Returns a reference to the event previously created with
     /// `::create_lock_event` which will trigger (be completed) when the wait
@@ -320,8 +314,6 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// Returns a reference to the event previously created with
     /// `::create_release_event` which will trigger (be completed) when a lock
     /// is obtained on the guarded internal `Vec`.
-    ///
-    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
     pub fn release_event(&self) -> Option<&Event> {
         self.release_event.as_ref()
     }
@@ -356,7 +348,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// polls the lock queue.
     fn poll_wait_events(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::Marker);
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_wait_events (thread: {})...",
+        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_wait_events called (thread: {})...",
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         // Check completion of wait list, if it exists:
@@ -379,7 +371,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     #[cfg(not(feature = "async_block"))]
     fn poll_lock(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::QrwLock);
-        // println!("###### FutureRwGuard::poll_lock: called.");
+        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock called (thread: {})...",
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         // Move the queue along:
         unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue(); }
@@ -419,7 +412,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     #[cfg(feature = "async_block")]
     fn poll_lock(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::QrwLock);
-        // println!("###### FutureRwGuard::poll_lock: called.");
+        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock called (thread: {})...",
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         // Move the queue along:
         unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue(); }
@@ -440,7 +434,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// which can be safely accessed immediately.
     fn poll_command(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::Command);
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command (thread: {})...",
+        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command called (thread: {})...",
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         if let Some(ref mut command_completion) = self.command_completion {
@@ -474,6 +468,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     fn poll_upgrade(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::Upgrade);
         debug_assert!(self.upgrade_after_command);
+        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_upgrade called (thread: {})...",
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         // unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue() }
 
@@ -510,6 +506,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     fn poll_upgrade(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::Upgrade);
         debug_assert!(self.upgrade_after_command);
+        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_upgrade called (thread: {})...",
+            ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
         match unsafe { self.rw_vec.as_ref().unwrap().lock.upgrade_read_lock() } {
             Ok(_) => Ok(Async::Ready(self.into_guard())),
@@ -593,8 +591,8 @@ impl<T> FutureRwGuard<T, ReadGuard<T>> {
 /// A locking `Vec` which interoperates with OpenCL events and Rust futures to
 /// provide exclusive access to data.
 ///
-/// Calling `::lock` or `::request_lock` returns a future which will
-/// resolve into a `RwGuard`.
+/// Calling `::read` or `::write` returns a future which will resolve into a
+/// `RwGuard`.
 ///
 /// ## Platform Compatibility
 ///
