@@ -787,9 +787,12 @@ pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>>
 /// For some reason, calling the function pointer returned by the call to
 /// `ffi::clGetExtensionFunctionAddressForPlatform` causes a segfault
 /// (`ffi::clGetExtensionFunctionAddressForPlatform` appears to be working
-/// just fine). The function pointer returned is not null. Further
-/// investigation required.
+/// just fine). The function pointer returned is not null.
 ///
+/// Further investigation into the what address the returned function pointer
+/// points to is needed. There may be some Rust-specific quirk having to do
+/// with how libraries are loaded into memory. There may alternatively just be
+/// a simple mistake somewhere.
 ///
 pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContextInfo)
         -> GlContextInfoResult
