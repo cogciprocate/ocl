@@ -192,8 +192,12 @@ impl self::Error {
 
     /// Returns the immediate cause of this error (e.g. the next error in the
     /// chain).
-    pub fn cause(&self) -> Option<&Box<self::Error>> {
-        self.cause.as_ref()
+    pub fn cause(&self) -> Option<&self::Error> {
+        // match self.cause {
+        //     Some(ref bc) => Some(&*bc),
+        //     None => None,
+        // }
+        self.cause.as_ref().map(|c| &**c)
     }
 
     /// Writes the error message for this error to a formatter.
@@ -257,6 +261,13 @@ impl StdError for self::Error {
             ErrorKind::EmptyInfoResult(ref err) => err.description(),
             ErrorKind::VersionLow { .. } => "OpenCL version too low to use this feature.",
             // _ => panic!("OclErrorKind::description()"),
+        }
+    }
+
+    fn cause(&self) -> Option<&StdError> {
+        match self.cause {
+            Some(ref bc) => Some(&*bc),
+            None => None,
         }
     }
 }
