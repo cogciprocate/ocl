@@ -554,10 +554,15 @@ impl<T, G> Drop for FutureRwGuard<T, G> {
     /// completes. This ensures that the underlying `Vec` is not dropped
     /// before the command completes (which would cause obvious problems).
     fn drop(&mut self) {
-        if let Some(ref cce) = self.command_completion {
-            cce.wait_for().expect("Error waiting on command completion event \
+        if let Some(ref ccev) = self.command_completion {
+            ccev.wait_for().expect("Error waiting on command completion event \
                 while dropping 'FutureRwGuard'");
         }
+        if let Some(ref rev) = self.release_event {
+            rev.set_complete().expect("Error setting release event complete \
+                while dropping 'FutureRwGuard'");
+        }
+
     }
 }
 
