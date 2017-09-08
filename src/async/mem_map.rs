@@ -72,9 +72,8 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
     /// Enqueues this command.
     ///
-    pub fn enq(mut self) -> AsyncResult<()> {
+    pub fn enq(self) -> AsyncResult<()> {
         self.mem_map.enqueue_unmap(self.queue, self.ewait, self.enew)
-
     }
 }
 
@@ -131,7 +130,7 @@ impl<T> MemMap<T>  where T: OclPrm {
             where En: ClNullEventPtr, Ewl: ClWaitListPtr
     {
         if !self.is_unmapped {
-            assert!(!(ewait_opt.is_some() && self.unmap_wait_list.is_some()), 
+            assert!(!(ewait_opt.is_some() && self.unmap_wait_list.is_some()),
                 "MemMap::enqueue_unmap: Cannot set an event wait list for the unmap command \
                 when the 'unmap_wait_list' has already been set.");
 
@@ -143,7 +142,7 @@ impl<T> MemMap<T>  where T: OclPrm {
 
             core::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
             &self.core, ewait_opt.and(self.unmap_wait_list.as_ref()), origin_event_opt.as_mut())?;
-            
+
             self.is_unmapped = true;
 
             if let Some(origin_event) = origin_event_opt {

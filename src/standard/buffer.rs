@@ -8,7 +8,7 @@ use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, WriteGuard,
-    FutureRwGuard, FutureReader, FutureWriter};
+    FutureRwGuard, FutureReadGuard, FutureWriteGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 
@@ -22,6 +22,7 @@ fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
         Ok(())
     }
 }
+
 
 /// A queue or context reference.
 #[derive(Debug, Clone)]
@@ -554,7 +555,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 pub enum ReadDst<'d, T> where T: 'd {
     Slice(&'d mut [T]),
     RwVec(RwVec<T>),
-    Writer(FutureWriter<T>),
+    Writer(FutureWriteGuard<T>),
     None,
 }
 
@@ -597,8 +598,8 @@ impl<'a, 'd, T> From<&'a RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
     }
 }
 
-impl<'d, T> From<FutureWriter<T>> for ReadDst<'d, T> where T: OclPrm {
-    fn from(writer: FutureWriter<T>) -> ReadDst<'d, T> {
+impl<'d, T> From<FutureWriteGuard<T>> for ReadDst<'d, T> where T: OclPrm {
+    fn from(writer: FutureWriteGuard<T>) -> ReadDst<'d, T> {
         ReadDst::Writer(writer)
     }
 }
@@ -891,7 +892,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 pub enum WriteSrc<'d, T> where T: 'd {
     Slice(&'d [T]),
     RwVec(RwVec<T>),
-    Reader(FutureReader<T>),
+    Reader(FutureReadGuard<T>),
     None,
 }
 
@@ -934,8 +935,8 @@ impl<'a, 'd, T> From<&'a RwVec<T>> for WriteSrc<'d, T> where T: OclPrm {
     }
 }
 
-impl<'d, T> From<FutureReader<T>> for WriteSrc<'d, T> where T: OclPrm {
-    fn from(reader: FutureReader<T>) -> WriteSrc<'d, T> {
+impl<'d, T> From<FutureReadGuard<T>> for WriteSrc<'d, T> where T: OclPrm {
+    fn from(reader: FutureReadGuard<T>) -> WriteSrc<'d, T> {
         WriteSrc::Reader(reader)
     }
 }

@@ -53,7 +53,7 @@ extern crate num;
 #[cfg(test)]
 extern crate rand;
 extern crate futures;
-extern crate crossbeam;
+// extern crate crossbeam;
 pub extern crate ocl_core as core;
 
 #[cfg(test)]
@@ -64,7 +64,7 @@ pub mod async;
 pub use self::standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, EventArray, Sampler, SpatialDims, ProQue};
 pub use self::async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard, FutureRwGuard,
-    FutureReader, FutureWriter};
+    FutureReadGuard, FutureWriteGuard};
 pub use core::error::{Error, Result};
 #[doc(no_inline)]
 pub use core::ffi;

@@ -41,7 +41,7 @@ default = ["opencl_version_1_1", "opencl_version_1_2"]
 libc = "0.2"
 num = "0.1"
 futures = "0.1"
-crossbeam = "0.3"
+# crossbeam = "0.3"
 nodrop = "0.1"
 ocl-core = "~0.6.0"
 # ocl-core = { version = "*", git = "https://github.com/cogciprocate/ocl-core" }

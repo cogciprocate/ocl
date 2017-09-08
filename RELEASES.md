@@ -1,3 +1,13 @@
+Version        (UNRELEASED)
+===========================
+
+
+Breaking Changes
+----------------
+* Rename `FutureReader` and `FutureWriter` to `FutureReadGuard` and
+  `FutureWriteGuard` for clarity.
+
+
 Version 0.15.0 (2017-08-31)
 ===========================
 

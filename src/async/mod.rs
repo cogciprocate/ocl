@@ -9,7 +9,7 @@ use std;
 use futures::future;
 pub use self::error::{Error, Result};
 // pub use self::rw_vec::{RwVec, Guard, FutureGuard, RwGuard, FutureRwGuard};
-pub use self::rw_vec::{RwVec, ReadGuard, WriteGuard, FutureRwGuard, FutureReader, FutureWriter};
+pub use self::rw_vec::{RwVec, ReadGuard, WriteGuard, FutureRwGuard, FutureReadGuard, FutureWriteGuard};
 pub use self::mem_map::MemMap;
 pub use self::future_mem_map::FutureMemMap;
 

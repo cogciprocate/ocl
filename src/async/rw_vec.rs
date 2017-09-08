@@ -22,8 +22,8 @@ pub use self::qutex::{ReadGuard as QrwReadGuard, WriteGuard as QrwWriteGuard,
 
 const PRINT_DEBUG: bool = false;
 
-pub type FutureReader<T> = FutureRwGuard<T, ReadGuard<T>>;
-pub type FutureWriter<T> = FutureRwGuard<T, WriteGuard<T>>;
+pub type FutureReadGuard<T> = FutureRwGuard<T, ReadGuard<T>>;
+pub type FutureWriteGuard<T> = FutureRwGuard<T, WriteGuard<T>>;
 
 
 // /// Extracts an `RwVec` from a guard of either type.
@@ -568,7 +568,7 @@ impl<T, G> Drop for FutureRwGuard<T, G> {
 
 // a.k.a. FutureRead<T>
 impl<T> FutureRwGuard<T, ReadGuard<T>> {
-    pub fn upgrade_after_command(self) -> FutureWriter<T> {
+    pub fn upgrade_after_command(self) -> FutureWriteGuard<T> {
         use std::ptr::read;
 
         let future_guard = unsafe {
@@ -623,7 +623,7 @@ impl<T> RwVec<T> {
     }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
-    pub fn read(self) -> FutureReader<T> {
+    pub fn read(self) -> FutureReadGuard<T> {
         if PRINT_DEBUG { println!("RwVec::read: Read lock requested (thread: {}).",
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
         let (tx, rx) = oneshot::channel();
@@ -632,7 +632,7 @@ impl<T> RwVec<T> {
     }
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
-    pub fn write(self) -> FutureWriter<T> {
+    pub fn write(self) -> FutureWriteGuard<T> {
         if PRINT_DEBUG { println!("RwVec::write: Write lock requested (thread: {}).",
             ::std::thread::current().name().unwrap_or("<unnamed>")); }
         let (tx, rx) = oneshot::channel();
