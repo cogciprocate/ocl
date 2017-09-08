@@ -1462,10 +1462,10 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
     queue: Option<Queue>,
-    origin: Option<SpatialDims>,
+    // origin: Option<SpatialDims>,
     dims: SpatialDims,
-    len: usize,
-    flags: MemFlags,
+    // len: usize,
+    // flags: MemFlags,
     _data: PhantomData<T>,
 }
 
@@ -1515,10 +1515,10 @@ impl<T: OclPrm> Buffer<T> {
         let buf = Buffer {
             obj_core: obj_core,
             queue: que_ctx.into(),
-            origin: None,
+            // origin: None,
             dims: dims,
-            len: len,
-            flags: flags,
+            // len: len,
+            // flags: flags,
             _data: PhantomData,
         };
 
@@ -1537,13 +1537,13 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](struct.BufferCmd.html)
     /// for more info.
     ///
-    pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
+    pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, /*dims: D,*/
             gl_object: cl_GLuint) -> OclResult<Buffer<T>>
             where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>
     {
         let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
-        let dims: SpatialDims = dims.into();
-        let len = dims.to_len();
+        // let dims: SpatialDims = dims.into();
+        // let len = dims.to_len();
         let que_ctx = que_ctx.into();
 
         // let obj_core = match que_ctx.context_core() {
@@ -1556,14 +1556,19 @@ impl<T: OclPrm> Buffer<T> {
             QueCtx::Context(c) => unsafe { core::create_from_gl_buffer(c, gl_object, flags)? },
         };
 
+        let dims = match core::get_mem_object_info(&obj_core, MemInfo::Size) {
+            MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<D>(),
+            _ => unreachable!(),
+        }.into();
+
         let buf = Buffer {
             obj_core: obj_core,
             queue: que_ctx.into(),
-            origin: None,
+            // origin: None,
             dims: dims,
-            len: len,
+            // len: len,
             _data: PhantomData,
-            flags: flags,
+            // flags: flags,
         };
 
         Ok(buf)
@@ -1579,7 +1584,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[inline]
     pub fn cmd<'c>(&'c self) -> BufferCmd<'c, T> {
-        BufferCmd::new(self.queue.as_ref(), &self.obj_core, self.len)
+        BufferCmd::new(self.queue.as_ref(), &self.obj_core, self.len())
     }
 
     /// Returns a command builder used to read data.
@@ -1637,11 +1642,25 @@ impl<T: OclPrm> Buffer<T> {
         self.cmd().copy(dst_buffer, dst_offset, len)
     }
 
-    /// Returns the origin of the sub-buffer within its buffer if this is a
+    // /// Returns the origin of the sub-buffer within its buffer if this is a
+    // /// sub-buffer.
+    // #[inline]
+    // pub fn origin(&self) -> Option<&SpatialDims> {
+    //     self.origin.as_ref()
+    // }
+
+    /// Returns the offset of the sub-buffer within its buffer if this is a
     /// sub-buffer.
     #[inline]
-    pub fn origin(&self) -> Option<&SpatialDims> {
-        self.origin.as_ref()
+    pub fn offset(&self) -> Option<usize> {
+        if self.is_sub_buffer() {
+            match self.mem_info(MemInfo::Offset) {
+                MemInfoResult::Offset(off) => Some(off),
+                _ => unreachable!(),
+            }
+        } else {
+            None
+        }
     }
 
     /// Returns the dimensions of the buffer.
@@ -1655,13 +1674,18 @@ impl<T: OclPrm> Buffer<T> {
     /// Equivalent to `::dims().to_len()`.
     #[inline]
     pub fn len(&self) -> usize {
-        self.len
+        // self.len
+        self.dims.to_len()
     }
 
     /// Returns true if this is a sub-buffer.
     #[inline]
     pub fn is_sub_buffer(&self) -> bool {
-        self.origin.is_some()
+        match self.mem_info(MemInfo::AssociatedMemobject) {
+            MemInfoResult::AssociatedMemobject(Some(_)) => true,
+            MemInfoResult::AssociatedMemobject(None) => false,
+            _ => unreachable!(),
+        }
     }
 
     /// Returns info about the underlying memory object.
@@ -1713,11 +1737,12 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Returns the memory flags used during the creation of this buffer.
     ///
-    /// Saves the cost of having to look them up using `::mem_info`.
-    ///
     #[inline]
     pub fn flags(&self) -> MemFlags {
-        self.flags
+        match self.mem_info(MemInfo::Flags) {
+            MemInfoResult::Flags(flags) => flags,
+            _ => unreachable!(),
+        }
     }
 
     /// Creates a new sub-buffer.
@@ -1796,10 +1821,10 @@ impl<T: OclPrm> Buffer<T> {
         Ok(Buffer {
             obj_core: obj_core,
             queue: self.default_queue().cloned(),
-            origin: Some(origin),
+            // origin: Some(origin),
             dims: dims,
-            len: len,
-            flags: flags,
+            // len: len,
+            // flags: flags,
             _data: PhantomData,
         })
     }

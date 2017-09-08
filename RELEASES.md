@@ -4,8 +4,10 @@ Version        (UNRELEASED)
 
 Breaking Changes
 ----------------
-* Rename `FutureReader` and `FutureWriter` to `FutureReadGuard` and
+* `FutureReader` and `FutureWriter` have been renamed to `FutureReadGuard` and
   `FutureWriteGuard` for clarity.
+* `Buffer::from_gl_buffer` has had its `dims` argument removed and is now
+  determined from the size of the OpenGL memory object.
 
 
 Version 0.15.0 (2017-08-31)
