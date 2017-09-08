@@ -1512,6 +1512,14 @@ impl<T: OclPrm> Buffer<T> {
 
         let obj_core = unsafe { core::create_buffer(ctx_ref, flags, len, host_data)? };
 
+        debug_assert!({
+            let len = match core::get_mem_object_info(&obj_core, MemInfo::Size) {
+                MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<T>(),
+                _ => unreachable!(),
+            };
+            len == dims.to_len()
+        });
+
         let buf = Buffer {
             obj_core: obj_core,
             queue: que_ctx.into(),
@@ -1557,7 +1565,7 @@ impl<T: OclPrm> Buffer<T> {
         };
 
         let dims = match core::get_mem_object_info(&obj_core, MemInfo::Size) {
-            MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<D>(),
+            MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<T>(),
             _ => unreachable!(),
         }.into();
 
@@ -1674,7 +1682,6 @@ impl<T: OclPrm> Buffer<T> {
     /// Equivalent to `::dims().to_len()`.
     #[inline]
     pub fn len(&self) -> usize {
-        // self.len
         self.dims.to_len()
     }
 
