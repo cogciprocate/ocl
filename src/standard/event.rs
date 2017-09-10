@@ -36,7 +36,7 @@ const PRINT_DEBUG: bool = false;
 
 /// An event representing a command or user created event.
 ///
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 #[repr(C)]
 #[must_use = "futures do nothing unless polled"]
 pub struct Event(EventCore);
