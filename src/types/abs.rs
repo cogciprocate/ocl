@@ -920,7 +920,7 @@ unsafe impl Send for Kernel {}
 
 /// cl_event
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct Event(cl_event);
 
 impl Event {
