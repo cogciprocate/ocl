@@ -388,7 +388,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_lock: Called");
 
         // Move the queue along:
-        unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue(); }
+        unsafe { self.rw_vec.as_ref().unwrap().lock.process_queues(); }
 
         // Check for completion of the lock rx:
         if let Some(ref mut lock_rx) = self.lock_rx {
@@ -430,7 +430,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_lock: Called");
 
         // Move the queue along:
-        unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue(); }
+        unsafe { self.rw_vec.as_ref().unwrap().lock.process_queues(); }
 
         // Wait until completion of the lock rx:
         self.lock_rx.take().wait()?;
@@ -483,7 +483,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         debug_assert!(self.upgrade_after_command);
         print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_upgrade: Called");
 
-        // unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue() }
+        // unsafe { self.rw_vec.as_ref().unwrap().lock.process_queues() }
 
         if self.upgrade_rx.is_none() {
             match unsafe { self.rw_vec.as_ref().unwrap().lock.upgrade_read_lock() } {
@@ -639,7 +639,7 @@ impl<T> RwVec<T> {
     pub fn read(self) -> FutureReadGuard<T> {
         print_debug(self.id(), "RwVec::read: Read lock requested");
         let (tx, rx) = oneshot::channel();
-        unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Read)); }
+        unsafe { self.lock.enqueue_lock_request(QrwRequest::new(tx, RequestKind::Read)); }
         FutureRwGuard::new(self.into(), rx)
     }
 
@@ -647,7 +647,7 @@ impl<T> RwVec<T> {
     pub fn write(self) -> FutureWriteGuard<T> {
         print_debug(self.id(), "RwVec::write: Write lock requested");
         let (tx, rx) = oneshot::channel();
-        unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Write)); }
+        unsafe { self.lock.enqueue_lock_request(QrwRequest::new(tx, RequestKind::Write)); }
         FutureRwGuard::new(self.into(), rx)
     }
 
