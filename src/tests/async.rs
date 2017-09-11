@@ -340,7 +340,7 @@ pub fn verify_add(
             val_count += 1;
         }
 
-        /// This is just for shits:
+        // This is just for shits:
         for val in data.iter_mut() {
             *val = Int4::splat(0);
         }

@@ -20,11 +20,18 @@ pub use self::qutex::{ReadGuard as QrwReadGuard, WriteGuard as QrwWriteGuard,
     FutureReadGuard as QrwFutureReadGuard, FutureWriteGuard as QrwFutureWriteGuard, QrwLock,
     QrwRequest, RequestKind};
 
-const PRINT_DEBUG: bool = false;
+const PRINT_DEBUG: bool = true;
 
 pub type FutureReadGuard<T> = FutureRwGuard<T, ReadGuard<T>>;
 pub type FutureWriteGuard<T> = FutureRwGuard<T, WriteGuard<T>>;
 
+
+fn print_debug(id: usize, msg: &str) {
+    if PRINT_DEBUG {
+        println!("###### [{}] {} (thread: {})", id, msg,
+            ::std::thread::current().name().unwrap_or("<unnamed>"));
+    }
+}
 
 // /// Extracts an `RwVec` from a guard of either type.
 // //
@@ -53,6 +60,7 @@ pub struct ReadGuard<T> {
 impl<T> ReadGuard<T> {
     /// Returns a new `ReadGuard`.
     fn new(rw_vec: RwVec<T>, release_event: Option<Event>) -> ReadGuard<T> {
+        print_debug(rw_vec.id(), "ReadGuard::new: read lock acquired");
         ReadGuard {
             rw_vec: rw_vec,
             release_event: release_event,
@@ -64,6 +72,7 @@ impl<T> ReadGuard<T> {
     //
     // * NOTE: This could be done without refcount incr/decr (see `qrw_lock::extract_lock`).
     pub fn release(guard: ReadGuard<T>) -> RwVec<T> {
+        print_debug(guard.rw_vec.id(), "releasing read lock");
         guard.rw_vec.clone()
     }
 
@@ -81,8 +90,8 @@ impl<T> ReadGuard<T> {
     fn complete_release_event(guard: &ReadGuard<T>) {
         if let Some(ref e) = guard.release_event {
             if !e.is_complete().expect("ReadCompletion::drop") {
-                if PRINT_DEBUG { println!("###### ReadGuard::complete_release_event: Setting release \
-                    event complete. (thread: {})", ::std::thread::current().name().unwrap_or("<unnamed>")); }
+                print_debug(guard.rw_vec.id(), "ReadGuard::complete_release_event: \
+                    setting release event complete");
                 e.set_complete().expect("ReadCompletion::drop");
             }
         }
@@ -99,8 +108,7 @@ impl<T> Deref for ReadGuard<T> {
 
 impl<T> Drop for ReadGuard<T> {
     fn drop(&mut self) {
-        if PRINT_DEBUG { println!("###### WriteGuard::drop: Dropping and releasing ReadGuard. \
-            (thread: {})", ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.id(), "dropping and releasing ReadGuard");
         unsafe { self.rw_vec.lock.release_read_lock() };
         Self::complete_release_event(self);
     }
@@ -123,6 +131,7 @@ pub struct WriteGuard<T> {
 impl<T> WriteGuard<T> {
     /// Returns a new `WriteGuard`.
     fn new(rw_vec: RwVec<T>, release_event: Option<Event>) -> WriteGuard<T> {
+        print_debug(rw_vec.id(), "WriteGuard::new: Write lock acquired");
         WriteGuard {
             rw_vec: rw_vec,
             release_event: release_event,
@@ -134,6 +143,7 @@ impl<T> WriteGuard<T> {
     //
     // * NOTE: This could be done without refcount incr/decr (see `qrw_lock::extract_lock`).
     pub fn release(guard: WriteGuard<T>) -> RwVec<T> {
+        print_debug(guard.rw_vec.id(), "WriteGuard::release: Releasing write lock");
         guard.rw_vec.clone()
     }
 
@@ -150,10 +160,10 @@ impl<T> WriteGuard<T> {
     /// Triggers the release event by setting it complete.
     fn complete_release_event(guard: &WriteGuard<T>) {
         if let Some(ref e) = guard.release_event {
-            if !e.is_complete().expect("ReadCompletion::drop") {
-                if PRINT_DEBUG { println!("###### WriteGuard::complete_release_event: Setting release \
-                    event complete. (thread: {})", ::std::thread::current().name().unwrap_or("<unnamed>")); }
-                e.set_complete().expect("ReadCompletion::drop");
+            if !e.is_complete().expect("WriteGuard::complete_release_event") {
+                print_debug(guard.rw_vec.id(), "WriteGuard::complete_release_event: \
+                    Setting release event complete");
+                e.set_complete().expect("WriteGuard::complete_release_event");
             }
         }
     }
@@ -175,8 +185,7 @@ impl<T> DerefMut for WriteGuard<T> {
 
 impl<T> Drop for WriteGuard<T> {
     fn drop(&mut self) {
-        if PRINT_DEBUG { println!("###### WriteGuard::drop: Dropping and releasing WriteGuard. \
-                (thread: {})", ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.id(), "WriteGuard::drop: Dropping and releasing WriteGuard");
         unsafe { self.rw_vec.lock.release_write_lock() };
         Self::complete_release_event(self);
     }
@@ -344,17 +353,22 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
             .lock.as_ptr()).len() }
     }
 
+    /// The 'id' of the associated `RwVec`.
+    pub fn id(&self) -> usize {
+        self.rw_vec.as_ref().expect("FutureRwGuard::id: No RwVec found.").id()
+    }
+
     /// Polls the wait events until all requisite commands have completed then
     /// polls the lock queue.
     fn poll_wait_events(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::Marker);
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_wait_events called (thread: {})...",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_wait_events: Called");
 
         // Check completion of wait list, if it exists:
         if let Some(ref mut wait_list) = self.wait_list {
-            if PRINT_DEBUG { println!("###### FutureRwGuard::poll_wait_events: Polling wait_events (thread: {})...",
-                ::std::thread::current().name().unwrap_or("<unnamed>")); }
+            // if PRINT_DEBUG { println!("###### [{}] FutureRwGuard::poll_wait_events: \
+            //     Polling wait_events (thread: {})...", self.rw_vec.as_ref().unwrap().id(),
+            //     ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
             if let Async::NotReady = wait_list.poll()? {
                 return Ok(Async::NotReady);
@@ -371,8 +385,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     #[cfg(not(feature = "async_block"))]
     fn poll_lock(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::QrwLock);
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock called (thread: {})...",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_lock: Called");
 
         // Move the queue along:
         unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue(); }
@@ -385,8 +398,9 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
                 // Otherwise, return the `NotReady`. The rx (oneshot channel) will
                 // arrange for this task to be awakened when it's ready.
                 Ok(status) => {
-                    if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: status: {:?}, (thread: {}).",
-                        status, ::std::thread::current().name().unwrap_or("<unnamed>")); }
+                    // if PRINT_DEBUG { println!("###### [{}] FutureRwGuard::poll_lock: status: {:?}, \
+                    //     (thread: {}).", self.rw_vec.as_ref().unwrap().id(), status,
+                    //     ::std::thread::current().name().unwrap_or("<unnamed>")); }
                     match status {
                         Async::Ready(_) => {
                             if let Some(ref lock_event) = self.lock_event {
@@ -397,7 +411,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
                         Async::NotReady => return Ok(Async::NotReady),
                     }
                 },
-                Err(e) => return Err(e.into()),
+                // Err(e) => return Err(e.into()),
+                Err(e) => panic!("FutureRwGuard::poll_lock: {:?}", e),
             }
         } else {
             unreachable!();
@@ -412,8 +427,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     #[cfg(feature = "async_block")]
     fn poll_lock(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::QrwLock);
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock called (thread: {})...",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_lock: Called");
 
         // Move the queue along:
         unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue(); }
@@ -426,7 +440,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
         }
 
         self.stage = Stage::Command;
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_lock: Moving to command stage."); }
+        // if PRINT_DEBUG { println!("###### [{}] FutureRwGuard::poll_lock: Moving to command stage.",
+        //     self.rw_vec.as_ref().unwrap().id()); }
         return self.poll_command();
     }
 
@@ -434,13 +449,12 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     /// which can be safely accessed immediately.
     fn poll_command(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::Command);
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command called (thread: {})...",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_command: Called");
 
         if let Some(ref mut command_completion) = self.command_completion {
-            if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command: Polling command \
-                completion event (thread: {}).", ::std::thread::current().name()
-                .unwrap_or("<unnamed>")); }
+            // if PRINT_DEBUG { println!("###### [{}] FutureRwGuard::poll_command: Polling command \
+            //     completion event (thread: {}).", self.rw_vec.as_ref().unwrap().id(), ::std::thread::current().name()
+            //     .unwrap_or("<unnamed>")); }
 
             if let Async::NotReady = command_completion.poll()? {
                 return Ok(Async::NotReady);
@@ -453,7 +467,6 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
 
         if self.upgrade_after_command {
             self.stage = Stage::Upgrade;
-            if PRINT_DEBUG { println!("###### FutureRwGuard::poll_command: Moving to upgrade stage."); }
             self.poll_upgrade()
         } else {
             Ok(Async::Ready(self.into_guard()))
@@ -468,8 +481,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     fn poll_upgrade(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::Upgrade);
         debug_assert!(self.upgrade_after_command);
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_upgrade called (thread: {})...",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_upgrade: Called");
 
         // unsafe { self.rw_vec.as_ref().unwrap().lock.process_queue() }
 
@@ -480,7 +492,8 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
                     self.upgrade_rx = Some(rx);
                     match self.upgrade_rx.as_mut().unwrap().poll() {
                         Ok(res) => Ok(res.map(|_| self.into_guard())),
-                        Err(err) => Err(err.into()),
+                        // Err(e) => Err(e.into()),
+                        Err(e) => panic!("FutureRwGuard::poll_upgrade: {:?}", e),
                     }
                 }
             }
@@ -488,12 +501,13 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
             // Check for completion of the upgrade rx:
             match self.upgrade_rx.as_mut().unwrap().poll() {
                 Ok(status) => {
-                    if PRINT_DEBUG { println!("###### FutureRwGuard::poll_upgrade: status: {:?}, (thread: {}).",
-                        status, ::std::thread::current().name().unwrap_or("<unnamed>")); }
+                    print_debug(self.rw_vec.as_ref().unwrap().id(),
+                        &format!("FutureRwGuard::poll_upgrade: Status: {:?}", status));
 
                     Ok(status.map(|_| self.into_guard()))
                 },
-                Err(e) => Err(e.into()),
+                // Err(e) => Err(e.into()),
+                Err(e) => panic!("FutureRwGuard::poll_upgrade: {:?}", e),
             }
         }
     }
@@ -506,8 +520,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
     fn poll_upgrade(&mut self) -> AsyncResult<Async<G>> {
         debug_assert!(self.stage == Stage::Upgrade);
         debug_assert!(self.upgrade_after_command);
-        if PRINT_DEBUG { println!("###### FutureRwGuard::poll_upgrade called (thread: {})...",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::poll_upgrade: Called");
 
         match unsafe { self.rw_vec.as_ref().unwrap().lock.upgrade_read_lock() } {
             Ok(_) => Ok(Async::Ready(self.into_guard())),
@@ -521,8 +534,7 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
 
     /// Resolves this `FutureRwGuard` into the appropriate result guard.
     fn into_guard(&mut self) -> G {
-        if PRINT_DEBUG { println!("###### FutureRwGuard::into_guard: All polling complete (thread: {}).",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.rw_vec.as_ref().unwrap().id(), "FutureRwGuard::into_guard: All polling complete");
         G::new(self.rw_vec.take().unwrap(), self.release_event.take())
     }
 }
@@ -555,6 +567,8 @@ impl<T, G> Drop for FutureRwGuard<T, G> {
     /// before the command completes (which would cause obvious problems).
     fn drop(&mut self) {
         if let Some(ref ccev) = self.command_completion {
+            println!("###### FutureRwGuard::drop: Event ({:?}) incomplete...", ccev);
+            // panic!("###### FutureRwGuard::drop: Event ({:?}) incomplete...", ccev);
             ccev.wait_for().expect("Error waiting on command completion event \
                 while dropping 'FutureRwGuard'");
         }
@@ -562,7 +576,6 @@ impl<T, G> Drop for FutureRwGuard<T, G> {
             rev.set_complete().expect("Error setting release event complete \
                 while dropping 'FutureRwGuard'");
         }
-
     }
 }
 
@@ -624,8 +637,7 @@ impl<T> RwVec<T> {
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
     pub fn read(self) -> FutureReadGuard<T> {
-        if PRINT_DEBUG { println!("RwVec::read: Read lock requested (thread: {}).",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.id(), "RwVec::read: Read lock requested");
         let (tx, rx) = oneshot::channel();
         unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Read)); }
         FutureRwGuard::new(self.into(), rx)
@@ -633,8 +645,7 @@ impl<T> RwVec<T> {
 
     /// Returns a new `FutureRwGuard` which will resolve into a a `RwGuard`.
     pub fn write(self) -> FutureWriteGuard<T> {
-        if PRINT_DEBUG { println!("RwVec::write: Write lock requested (thread: {}).",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
+        print_debug(self.id(), "RwVec::write: Write lock requested");
         let (tx, rx) = oneshot::channel();
         unsafe { self.lock.push_request(QrwRequest::new(tx, RequestKind::Write)); }
         FutureRwGuard::new(self.into(), rx)
@@ -657,6 +668,16 @@ impl<T> RwVec<T> {
     /// Returns the length of the internal `Vec`.
     pub fn len(&self) -> usize {
         unsafe { (*self.lock.as_ptr()).len() }
+    }
+
+    /// Returns a pointer address to the internal array, usable as a unique
+    /// identifier.
+    ///
+    /// Note that resizing the `Vec` will likely change the address. Also, the
+    /// same 'id' could be reused by another `RwVec` created after this one is
+    /// dropped.
+    pub fn id(&self) -> usize {
+        unsafe { (*self.lock.as_ptr()).as_ptr() as usize }
     }
 }
 

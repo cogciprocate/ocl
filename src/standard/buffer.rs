@@ -1182,11 +1182,11 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 if self.range.end > reader.len() { return Err(OclError::from(
                     "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
 
-                reader.create_lock_event(queue.context_ptr()?)?;
-
                 if let Some(wl) = self.cmd.ewait {
                     reader.set_wait_list(wl);
                 }
+
+                reader.create_lock_event(queue.context_ptr()?)?;
 
                 let src = unsafe { &reader.as_mut_slice().expect("BufferWriteCmd::enq_async: \
                     Invalid reader.")[self.range] };

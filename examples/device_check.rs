@@ -15,10 +15,8 @@
 //!
 //!
 
-extern crate libc;
 extern crate futures;
 extern crate rand;
-extern crate chrono;
 extern crate ocl;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate colorify;

@@ -7,7 +7,6 @@
 //!
 //!
 
-extern crate libc;
 extern crate futures;
 extern crate futures_cpupool;
 extern crate rand;
