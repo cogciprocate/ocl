@@ -20,7 +20,7 @@ pub use self::qutex::{ReadGuard as QrwReadGuard, WriteGuard as QrwWriteGuard,
     FutureReadGuard as QrwFutureReadGuard, FutureWriteGuard as QrwFutureWriteGuard, QrwLock,
     QrwRequest, RequestKind};
 
-const PRINT_DEBUG: bool = true;
+const PRINT_DEBUG: bool = false;
 
 pub type FutureReadGuard<T> = FutureRwGuard<T, ReadGuard<T>>;
 pub type FutureWriteGuard<T> = FutureRwGuard<T, WriteGuard<T>>;
@@ -487,15 +487,35 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
 
         if self.upgrade_rx.is_none() {
             match unsafe { self.rw_vec.as_ref().unwrap().lock.upgrade_read_lock() } {
-                Ok(_) => Ok(Async::Ready(self.into_guard())),
+                Ok(_) => {
+                    print_debug(self.rw_vec.as_ref().unwrap().id(),
+                        "FutureRwGuard::poll_upgrade: Write lock acquired. Upgrading immediately.");
+                    Ok(Async::Ready(self.into_guard()))
+                },
                 Err(rx) => {
                     self.upgrade_rx = Some(rx);
                     match self.upgrade_rx.as_mut().unwrap().poll() {
-                        Ok(res) => Ok(res.map(|_| self.into_guard())),
+                        Ok(res) => {
+                            // print_debug(self.rw_vec.as_ref().unwrap().id(),
+                            //     "FutureRwGuard::poll_upgrade: Channel completed. Upgrading.");
+                            // Ok(res.map(|_| self.into_guard()))
+                            match res {
+                                Async::Ready(_) => {
+                                    print_debug(self.rw_vec.as_ref().unwrap().id(),
+                                        "FutureRwGuard::poll_upgrade: Channel completed. Upgrading.");
+                                    Ok(Async::Ready(self.into_guard()))
+                                },
+                                Async::NotReady => {
+                                    print_debug(self.rw_vec.as_ref().unwrap().id(),
+                                        "FutureRwGuard::poll_upgrade: Upgrade rx not ready.");
+                                    Ok(Async::NotReady)
+                                },
+                            }
+                        },
                         // Err(e) => Err(e.into()),
                         Err(e) => panic!("FutureRwGuard::poll_upgrade: {:?}", e),
-                    }
-                }
+                   }
+                },
             }
         } else {
             // Check for completion of the upgrade rx:
@@ -503,7 +523,6 @@ impl<T, G> FutureRwGuard<T, G> where G: RwGuard<T> {
                 Ok(status) => {
                     print_debug(self.rw_vec.as_ref().unwrap().id(),
                         &format!("FutureRwGuard::poll_upgrade: Status: {:?}", status));
-
                     Ok(status.map(|_| self.into_guard()))
                 },
                 // Err(e) => Err(e.into()),
