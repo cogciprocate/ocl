@@ -44,11 +44,11 @@ futures = "0.1"
 # crossbeam = "0.3"
 nodrop = "0.1"
 # ocl-core = "~0.6.0"
-# ocl-core = { version = "*", git = "https://github.com/cogciprocate/ocl-core" }
-ocl-core = { version = "*", path = "../ocl-core" }
+ocl-core = { version = "*", git = "https://github.com/cogciprocate/ocl-core" }
+# ocl-core = { version = "*", path = "../ocl-core" }
 # qutex = "0.1"
-# qutex = { version = "*", git = "https://github.com/cogciprocate/qutex" }
-qutex = { version = "*", path = "../qutex" }
+qutex = { version = "*", git = "https://github.com/cogciprocate/qutex" }
+# qutex = { version = "*", path = "../qutex" }
 
 [dev-dependencies]
 find_folder = "0.3"
