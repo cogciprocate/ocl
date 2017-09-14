@@ -686,19 +686,18 @@ impl Kernel {
     {
         for device in devices {
             let device = device.into();
-
-            f.debug_struct("WorkGroup")
-                .field("WorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize))
-                .field("CompileWorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize))
-                .field("LocalMemSize", &self.wg_info(device, KernelWorkGroupInfo::LocalMemSize))
-                .field("PreferredWorkGroupSizeMultiple",
-                    &self.wg_info(device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple))
-                .field("PrivateMemSize", &self.wg_info(device, KernelWorkGroupInfo::PrivateMemSize))
-                // .field("GlobalWorkSize", &self.wg_info(device, KernelWorkGroupInfo::GlobalWorkSize))
-                .finish()?;
-
+            if !device.vendor().contains("NVIDIA") {
+                f.debug_struct("WorkGroup")
+                    .field("WorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize))
+                    .field("CompileWorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize))
+                    .field("LocalMemSize", &self.wg_info(device, KernelWorkGroupInfo::LocalMemSize))
+                    .field("PreferredWorkGroupSizeMultiple",
+                        &self.wg_info(device, KernelWorkGroupInfo::PreferredWorkGroupSizeMultiple))
+                    .field("PrivateMemSize", &self.wg_info(device, KernelWorkGroupInfo::PrivateMemSize))
+                    // .field("GlobalWorkSize", &self.wg_info(device, KernelWorkGroupInfo::GlobalWorkSize))
+                    .finish()?;
+            }
         }
-
         Ok(())
     }
 
