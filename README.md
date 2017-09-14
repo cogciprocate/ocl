@@ -33,6 +33,8 @@ appropriate SDK from one of the following links:
 [NVIDIA](https://developer.nvidia.com/opencl),
 [Intel](https://software.intel.com/en-us/intel-opencl)
 
+After installation
+
 
 #### License
 
