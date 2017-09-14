@@ -586,7 +586,7 @@ impl<T, G> Drop for FutureRwGuard<T, G> {
     /// before the command completes (which would cause obvious problems).
     fn drop(&mut self) {
         if let Some(ref ccev) = self.command_completion {
-            println!("###### FutureRwGuard::drop: Event ({:?}) incomplete...", ccev);
+            // println!("###### FutureRwGuard::drop: Event ({:?}) incomplete...", ccev);
             // panic!("###### FutureRwGuard::drop: Event ({:?}) incomplete...", ccev);
             ccev.wait_for().expect("Error waiting on command completion event \
                 while dropping 'FutureRwGuard'");
