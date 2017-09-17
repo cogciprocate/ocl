@@ -868,9 +868,9 @@ enum_from_primitive! {
     #[repr(C)]
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum GlContextInfo {
-        /// Return the CL device currently associated with the specified OpenGL context.
+        // Return the CL device currently associated with the specified OpenGL context.
         CurrentDevice = ffi::CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR as isize,
-        /// List of all CL devices which may be associated with the specified OpenGL context.
+        // List of all CL devices which may be associated with the specified OpenGL context.
         Devices = ffi::CL_DEVICES_FOR_GL_CONTEXT_KHR as isize,
     }
 }
