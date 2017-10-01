@@ -25,7 +25,7 @@ Ensure that an OpenCL library is installed for your platform and that `clinfo`
 or some other diagnostic command will run. Add the following to your project's
 `Cargo.toml`:
 
-```rust
+```toml
 [dependencies]
 ocl = "0.15"
 ```
