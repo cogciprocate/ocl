@@ -118,17 +118,17 @@ pub enum BufferCmdDataShape {
 ///
 /// ```text
 /// // Copies one buffer to another:
-/// src_buffer.cmd().copy(&dst_buffer, 0, dst_buffer.len()).enq().unwrap();
+/// src_buffer.copy(&dst_buffer, 0, dst_buffer.len()).enq().unwrap();
 ///
 /// // Writes from a vector to an buffer, waiting on an event:
 /// buffer.write(&src_vec).ewait(&event).enq().unwrap();
 ///
 /// // Reads from a buffer into a vector, waiting on an event list and
 /// // filling a new empty event:
-/// buffer.read(&dst_vec).ewait(&event_list).enew(&empty_event).enq().unwrap();
+/// buffer.read(&dst_vec).ewait(&event_list).enew(&mut empty_event).enq().unwrap();
 ///
 /// // Reads without blocking:
-/// buffer.cmd().read_async(&dst_vec).enew(&empty_event).enq().unwrap();
+/// buffer.read(&dst_vec).block(false).enew(&mut empty_event).enq().unwrap();
 ///
 /// ```
 ///
@@ -164,10 +164,10 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         }
     }
 
-    /// Specifies that this command will be a blocking read operation.
+    /// Specifies that this command will be a read operation.
     ///
     /// After calling this method, the blocking state of this command will
-    /// be locked to true and a call to `::block` will cause a panic.
+    /// be unchanged.
     ///
     /// ### Panics
     ///
