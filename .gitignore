@@ -20,7 +20,7 @@
 Cargo.lock
 **/Cargo.lock
 /target/
-/examples/**/target/
+**/target/
 
 # My junk
 /data

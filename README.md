@@ -25,13 +25,13 @@ Ensure that an OpenCL library is installed for your platform and that `clinfo`
 or some other diagnostic command will run. Add the following to your project's
 `Cargo.toml`:
 
-```rust
+```toml
 [dependencies]
 ocl = "0.15"
 ```
 
 And add the following to your crate root (lib.rs or main.rs):
-```rust
+```toml
 extern crate ocl;
 ```
 
@@ -106,8 +106,7 @@ suprised if most driver vendors implement the two host APIs identically.
 In the future it's possible the two may completely merge (or that Vulkan will
 absorb OpenCL). Whatever happens, nothing will change as far as the front end
 of this library is concerned. This library will maintain its focus on the
-compute side of things. For the graphics side, see the excellent OpenGL
-library, [glium], and its younger sibling, [vulkano].
+compute side of things. For the graphics side, see the [voodoo] library.
 
 ##### License
 
@@ -138,8 +137,7 @@ the Khronos Group Inc.”*
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [`examples`]: https://github.com/cogciprocate/ocl/tree/master/examples
 [`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/trivial.rs
-[glium]: https://github.com/tomaka/glium
-[vulkano]: https://github.com/tomaka/vulkano/tree/master/vulkano
+[voodoo]: https://github.com/cogciprocate/voodoo
 [intel-win64]: https://software.intel.com/en-us/articles/opencl-drivers#win64
 [intel-linux64-redhat-suse]: https://software.intel.com/en-us/articles/opencl-drivers#lin64
 [intel-linux64-ubuntu]: https://software.intel.com/en-us/articles/opencl-drivers#ubuntu64

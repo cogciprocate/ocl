@@ -1,7 +1,6 @@
 Version        (UNRELEASED)
 ===========================
 
-
 Breaking Changes
 ----------------
 * `FutureReader` and `FutureWriter` have been renamed to `FutureReadGuard` and
