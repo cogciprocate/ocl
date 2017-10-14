@@ -242,6 +242,11 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// If `.block(..)` has been set it will be ignored. Non-blocking map
     /// commands are enqueued using `::enq_async`.
     ///
+    /// ## Safety
+    ///
+    /// The caller must ensure that only one mapping of a particular memory
+    /// region exists at a time.
+    ///
     /// ## Panics
     ///
     /// The command operation kind must not have already been specified
@@ -251,7 +256,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// See [SDK][map_buffer] docs for more details.
     ///
     /// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
-    pub fn map(mut self) -> BufferMapCmd<'c, T> {
+    pub unsafe fn map(mut self) -> BufferMapCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = BufferCmdKind::Map;
@@ -1630,8 +1635,13 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [command builder documentation](struct.BufferCmd#method.map)
     /// for more details.
     ///
+    /// ## Safety
+    ///
+    /// The caller must ensure that only one mapping of a particular memory
+    /// region exists at a time.
+    ///
     #[inline]
-    pub fn map<'c>(&'c self) -> BufferMapCmd<'c, T> {
+    pub unsafe fn map<'c>(&'c self) -> BufferMapCmd<'c, T> {
         self.cmd().map()
     }
 

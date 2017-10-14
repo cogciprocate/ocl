@@ -180,6 +180,11 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// If `.block(..)` has been set it will be ignored. Non-blocking map
     /// commands are enqueued using `::enq_async`.
     ///
+    /// ## Safety
+    ///
+    /// The caller must ensure that only one mapping of a particular memory
+    /// region exists at a time.
+    ///
     /// ## Panics
     ///
     /// The command operation kind must not have already been specified
@@ -189,7 +194,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// See [SDK][map_image] docs for more details.
     ///
     /// [map_image]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapImage.html
-    pub fn map(mut self) -> ImageMapCmd<'c, T> {
+    pub unsafe fn map(mut self) -> ImageMapCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Map;
@@ -786,11 +791,16 @@ impl<T: OclPrm> Image<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
+    /// ## Safety
+    ///
+    /// The caller must ensure that only one mapping of a particular memory
+    /// region exists at a time.
+    ///
     /// See the [command builder documentation](struct.ImageCmd#method.map)
     /// for more details.
     ///
     #[inline]
-    pub fn map<'c>(&'c self) -> ImageMapCmd<'c, T> {
+    pub unsafe fn map<'c>(&'c self) -> ImageMapCmd<'c, T> {
         unimplemented!();
         // self.cmd().map()
     }
