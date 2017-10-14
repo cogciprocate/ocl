@@ -152,10 +152,12 @@ impl Task {
             (Some(self.cmd_graph.get_req_events(cmd_idx).unwrap()), None)
         };
 
-        let mut future_data = buf.cmd().map()
-            .flags(flags)
-            .ewait_opt(map_wait_list)
-            .enq_async().unwrap();
+        let mut future_data = unsafe {
+            buf.cmd().map()
+                .flags(flags)
+                .ewait_opt(map_wait_list)
+                .enq_async().unwrap()
+        };
 
         if is_write { future_data.set_unmap_wait_list(unmap_wait_list.unwrap()); }
         let unmap_event_target = future_data.create_unmap_target_event().unwrap().clone();

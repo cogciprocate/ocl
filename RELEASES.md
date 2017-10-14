@@ -7,6 +7,7 @@ Breaking Changes
   `FutureWriteGuard` for clarity.
 * `Buffer::from_gl_buffer` has had its `dims` argument removed and is now
   determined from the size of the OpenGL memory object.
+* `Buffer::map` and `BufferCmd::map` are now unsafe.
 
 
 Version 0.15.0 (2017-08-31)

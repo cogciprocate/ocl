@@ -461,12 +461,14 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         //###################### cfg.MAP_WRITE ############################
 
         let mut mapped_mem = if cfg.futures {
-            let future_mem = source_buf.cmd().map()
-                .flags(MapFlags::new().write_invalidate_region())
-                // .flags(MapFlags::write())
-                .ewait(&wait_events)
-                // .enew(&mut map_event)
-                .enq_async()?;
+            let future_mem = unsafe {
+                source_buf.cmd().map()
+                    .flags(MapFlags::new().write_invalidate_region())
+                    // .flags(MapFlags::write())
+                    .ewait(&wait_events)
+                    // .enew(&mut map_event)
+                    .enq_async()?
+            };
 
             // if let Some(tar_ev) = wire_callback(cfg.event_callback, context, &mut map_event) {
             //     map_event = tar_ev;
@@ -803,11 +805,13 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     unsafe { wait_event.as_ref().unwrap()
         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
-    let mut future_read_data = dst_buf.cmd().map()
-        .queue(common_queue)
-        .flags(MapFlags::new().read())
-        .ewait_opt(wait_event)
-        .enq_async().unwrap();
+    let mut future_read_data = unsafe {
+        dst_buf.cmd().map()
+            .queue(common_queue)
+            .flags(MapFlags::new().read())
+            .ewait_opt(wait_event)
+            .enq_async().unwrap()
+    };
 
     *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());
 

@@ -195,11 +195,13 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
             task_iter as usize, timestamp());
     }
 
-    let mut future_write_data = src_buf.cmd().map()
-        .queue(common_queue)
-        // .flags(MapFlags::new().write_invalidate_region())
-        .write_invalidate()
-        .enq_async().unwrap();
+    let mut future_write_data = unsafe {
+        src_buf.cmd().map()
+            .queue(common_queue)
+            // .flags(MapFlags::new().write_invalidate_region())
+            .write_invalidate()
+            .enq_async().unwrap()
+    };
 
     // Set up the wait list to use when unmapping. As this is an invalidating
     // write, only the unmap command actually moves any data (the map command
@@ -377,12 +379,14 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     unsafe { wait_event.as_ref().unwrap()
         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
-    let mut future_read_data = dst_buf.cmd().map()
-        .queue(common_queue)
-        // .flags(MapFlags::new().read())
-        .read()
-        .ewait_opt(wait_event)
-        .enq_async().unwrap();
+    let mut future_read_data = unsafe {
+        dst_buf.cmd().map()
+            .queue(common_queue)
+            // .flags(MapFlags::new().read())
+            .read()
+            .ewait_opt(wait_event)
+            .enq_async().unwrap()
+    };
 
     // Set the read unmap completion event:
     *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());

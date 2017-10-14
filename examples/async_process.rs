@@ -107,10 +107,12 @@ pub fn main() {
 
         // (1) WRITE: Map the buffer and write 50's to the entire buffer, then
         // unmap to 'flush' data to the device:
-        let mut future_write_data = write_buf.cmd().map()
-            .flags(MapFlags::new().write_invalidate_region())
-            // .ewait(&fill_event)
-            .enq_async().unwrap();
+        let mut future_write_data = unsafe {
+            write_buf.cmd().map()
+                .flags(MapFlags::new().write_invalidate_region())
+                // .ewait(&fill_event)
+                .enq_async().unwrap()
+        };
 
         // Since this is an invalidating write we'll use the wait list for the
         // unmap rather than the map command:
@@ -140,10 +142,12 @@ pub fn main() {
 
         // (3) READ: Read results and verify that the write and kernel have
         // both completed successfully:
-        let future_read_data = read_buf.cmd().map()
-            .flags(MapFlags::new().read())
-            .ewait(&kern_event)
-            .enq_async().unwrap();
+        let future_read_data = unsafe {
+            read_buf.cmd().map()
+                .flags(MapFlags::new().read())
+                .ewait(&kern_event)
+                .enq_async().unwrap()
+        };
 
         let read = future_read_data.and_then(move |data| {
                 let mut val_count = 0usize;
