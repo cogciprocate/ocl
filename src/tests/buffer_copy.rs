@@ -43,8 +43,10 @@ fn buffer_copy_core() {
     ::set_kernel_arg(&kernel, 1, ::KernelArg::Scalar(ADDEND)).unwrap();
 
     // Run the kernel:
-    ::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-        None, None::<::Event>, None::<&mut ::Event>).unwrap();
+    unsafe {
+        ::enqueue_kernel(&queue, &kernel, 1, None, &dims,
+            None, None::<::Event>, None::<&mut ::Event>).unwrap();
+    }
 
     // Copy src_buffer to dst_buffer:
     let copy_range = (153, 150000);

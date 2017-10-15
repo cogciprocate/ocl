@@ -40,13 +40,15 @@ fn main() {
     core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&buffer)).unwrap();
     core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(10.0f32)).unwrap();
 
-    // (4) Run the kernel:
-    core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-        None, None::<Event>, None::<&mut Event>).unwrap();
+    unsafe {
+        // (4) Run the kernel:
+        core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
+            None, None::<Event>, None::<&mut Event>).unwrap();
 
-    // (5) Read results from the device into a vector:
-    unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,
-        None::<Event>, None::<&mut Event>).unwrap() };
+        // (5) Read results from the device into a vector:
+        core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,
+            None::<Event>, None::<&mut Event>).unwrap();
+    }
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);

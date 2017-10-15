@@ -40,8 +40,10 @@ fn create_enqueue_verify<V>(context: &Context, queue: &CommandQueue,
     let kernel = kernel(context, src, &buf, addend);
 
     // Enqueue kernel:
-    ::enqueue_kernel(&queue, &kernel, 1, None, &DIMS,
-        None, None::<::Event>, None::<&mut ::Event>).unwrap();
+    unsafe {
+        ::enqueue_kernel(&queue, &kernel, 1, None, &DIMS,
+            None, None::<::Event>, None::<&mut ::Event>).unwrap();
+    }
 
     // Read from buffer:
     unsafe { ::enqueue_read_buffer(&queue, &buf, true, 0, &mut vec,

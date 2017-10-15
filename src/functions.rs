@@ -2274,10 +2274,6 @@ pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
     let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(),
         host_origin[1], host_origin[2]];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
-    // let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
-    // let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
-    // let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
-    // let host_slc_pitch_bytes = host_slc_pitch * mem::size_of::<T>();
 
     // DEBUG:
     if false {
@@ -2336,7 +2332,7 @@ pub unsafe fn enqueue_write_buffer<T, M, En, Ewl>(
 
     let offset_bytes = offset * mem::size_of::<T>();
 
-    let errcode = unsafe { ffi::clEnqueueWriteBuffer(
+    let errcode = ffi::clEnqueueWriteBuffer(
         command_queue.as_ptr(),
         buffer.as_mem().as_ptr(),
         block as cl_uint,
@@ -2346,7 +2342,7 @@ pub unsafe fn enqueue_write_buffer<T, M, En, Ewl>(
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
-    ) };
+    );
     eval_errcode(errcode, (), "clEnqueueWriteBuffer", "")
 }
 
@@ -2389,12 +2385,8 @@ pub unsafe fn enqueue_write_buffer_rect<T, M, En, Ewl>(
     let host_origin_bytes = [host_origin[0] * mem::size_of::<T>(),
         host_origin[1], host_origin[2]];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
-    // let buffer_row_pitch_bytes = buffer_row_pitch * mem::size_of::<T>();
-    // let buffer_slc_pitch_bytes = buffer_slc_pitch * mem::size_of::<T>();
-    // let host_row_pitch_bytes = host_row_pitch * mem::size_of::<T>();
-    // let host_slc_pitch_bytes = host_slc_pitch * mem::size_of::<T>();
 
-    let errcode = unsafe { ffi::clEnqueueWriteBufferRect(
+    let errcode = ffi::clEnqueueWriteBufferRect(
         command_queue.as_ptr(),
         buffer.as_mem().as_ptr(),
         block as cl_uint,
@@ -2409,7 +2401,7 @@ pub unsafe fn enqueue_write_buffer_rect<T, M, En, Ewl>(
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
-    ) };
+    );
     eval_errcode(errcode, (), "clEnqueueWriteBufferRect", "")
 }
 
@@ -2517,10 +2509,6 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
     let dst_origin_bytes = [dst_origin[0] * mem::size_of::<T>(),
         dst_origin[1], dst_origin[2]];
     let region_bytes = [region[0] * mem::size_of::<T>(), region[1], region[2]];
-    // let src_row_pitch_bytes = src_row_pitch * mem::size_of::<T>();
-    // let src_slc_pitch_bytes = src_slc_pitch * mem::size_of::<T>();
-    // let dst_row_pitch_bytes = dst_row_pitch * mem::size_of::<T>();
-    // let dst_slc_pitch_bytes = dst_slc_pitch * mem::size_of::<T>();
 
     let errcode = unsafe { ffi::clEnqueueCopyBufferRect(
         command_queue.as_ptr(),
@@ -2728,7 +2716,7 @@ pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueWriteImage(
+    let errcode = ffi::clEnqueueWriteImage(
         command_queue.as_ptr(),
         image.as_mem().as_ptr(),
         block as cl_uint,
@@ -2740,7 +2728,7 @@ pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
-    ) };
+    );
     eval_errcode(errcode, (), "clEnqueueWriteImage", "")
 }
 
@@ -2968,11 +2956,6 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
     let mapped_ptr_res = _enqueue_map_buffer(command_queue, buffer.as_mem(), block, map_flags, offset, len,
         wait_list_len, wait_list_ptr, new_event_ptr);
 
-    // mapped_ptr_res.map(|ptr| MemMap::new(ptr as *mut T, len, None, buffer.as_mem().clone(),
-    //     command_queue.clone()))
-
-    // eval_errcode(errcode, mapped_ptr, "clEnqueueMapImage", "")
-    //     .map(|ptr| MemMap::from_raw(ptr as *mut _ as *mut T))
     mapped_ptr_res.map(|ptr| MemMap::from_raw(ptr))
 }
 
@@ -3062,12 +3045,6 @@ pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
         ) -> OclResult<()>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
-
-    // if mapped_mem.is_unmapped() {
-    //     return Err("ocl_core::enqueue_unmap_mem_object: The 'MemMap' object passed is already \
-    //         unmapped.".into());
-    // }
-
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
 
@@ -3107,14 +3084,9 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
 
-    // let mem_ptr_list: Vec<cl_mem> = mem_objects.iter()
-    //     .map(|ref mem_obj| mem_obj.as_ptr()).collect();
-
     let errcode = unsafe { ffi::clEnqueueMigrateMemObjects(
         command_queue.as_ptr(),
-        // num_mem_objects,
         mem_objects.len() as u32,
-        // mem_ptr_list.as_ptr() as *const _ as *const cl_mem,
         mem_objects.as_ptr() as *const _ as *const cl_mem,
         flags.bits(),
         wait_list_len,
@@ -3204,17 +3176,17 @@ pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
         new_event_ptr,
     );
 
-    let errcode = unsafe { ffi::clEnqueueNDRangeKernel(
-            command_queue.as_ptr(),
-            kernel.as_ptr() as cl_kernel,
-            work_dims,
-            gwo,
-            gws,
-            lws,
-            wait_list_len,
-            wait_list_ptr,
-            new_event_ptr,
-    ) };
+    let errcode = ffi::clEnqueueNDRangeKernel(
+        command_queue.as_ptr(),
+        kernel.as_ptr() as cl_kernel,
+        work_dims,
+        gwo,
+        gws,
+        lws,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    );
 
     if cfg!(feature="kernel_debug_print") { println!("-> Status: {}.", errcode); }
     if cfg!(feature="kernel_debug_sleep") {
@@ -3250,13 +3222,13 @@ pub unsafe fn enqueue_task<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
 
-    let errcode = unsafe { ffi::clEnqueueTask(
-            command_queue.as_ptr(),
-            kernel.as_ptr() as cl_kernel,
-            wait_list_len,
-            wait_list_ptr,
-            new_event_ptr,
-    ) };
+    let errcode = ffi::clEnqueueTask(
+        command_queue.as_ptr(),
+        kernel.as_ptr() as cl_kernel,
+        wait_list_len,
+        wait_list_ptr,
+        new_event_ptr,
+    );
     eval_errcode(errcode, (), "clEnqueueTask", kernel_name.unwrap_or(""))
 }
 
