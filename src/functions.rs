@@ -2661,9 +2661,6 @@ pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
         ) -> OclResult<()>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
-    // let row_pitch_bytes = row_pitch * mem::size_of::<T>();
-    // let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
-
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
 
@@ -2710,9 +2707,6 @@ pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
         ) -> OclResult<()>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
-    // let input_row_pitch_bytes = input_row_pitch * mem::size_of::<T>();
-    // let input_slc_pitch_bytes = input_slc_pitch * mem::size_of::<T>();
-
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
 
@@ -2933,10 +2927,7 @@ unsafe fn _enqueue_map_buffer<T, M>(
 /// called.
 ///
 ///
-/// TODO: Return a new wrapped type representing the newly mapped memory.
-///
 /// [`EventList::get_clone`]: struct.EventList.html#method.last_clone
-///
 ///
 pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
@@ -3069,7 +3060,6 @@ pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             command_queue: &CommandQueue,
-            // num_mem_objects: u32,
             mem_objects: &[Mem],
             flags: MemMigrationFlags,
             wait_list: Option<Ewl>,
@@ -3100,21 +3090,15 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 ///
 /// # Safety
 ///
-/// Running any kernel is an inherently unsafe process. As an API call this
-/// function is safe. The kernel code it may run must always be considered
-/// unsafe.
+/// Running any kernel is an inherently unsafe process. The API call itself is
+/// safe but the kernel execution is not.
 ///
 /// # Stability
 ///
 /// * Work dimension/offset sizes *may* eventually be wrapped up in
 ///   specialized types.
-/// * This function may (and probably should) be marked unsafe to reflect the
-///   inherent of kernel code.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueNDRangeKernel.html)
-//
-// FIXME: Mark this unsafe
-//
 pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
             command_queue: &CommandQueue,
             kernel: &Kernel,
@@ -3124,13 +3108,12 @@ pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
             local_work_dims: Option<[usize; 3]>,
             wait_list: Option<Ewl>,
             new_event: Option<En>,
-            // kernel_name: Option<&str>
         ) -> OclResult<()>
 {
-    // if !cfg!(release) {
-    //     #[allow(unused_imports)] use std::thread;
-    //     #[allow(unused_imports)] use std::time::Duration;
-    // }
+    #[cfg(feature="kernel_debug_sleep")]
+    #[allow(unused_imports)] use std::thread;
+    #[cfg(feature="kernel_debug_sleep")]
+    #[allow(unused_imports)] use std::time::Duration;
 
     #[cfg(feature="kernel_debug_print")]
     println!("Resolving events: wait_list: {:?}, new_event: {:?}", wait_list, new_event);
