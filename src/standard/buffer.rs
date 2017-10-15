@@ -8,7 +8,7 @@ use core::{self, Error as OclError, Result as OclResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw,
     MemCmdAll, ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, WriteGuard,
-    FutureRwGuard, FutureReadGuard, FutureWriteGuard};
+    ReadGuard, FutureRwGuard, FutureReadGuard, FutureWriteGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 
@@ -1163,24 +1163,19 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     }
 
     /// Enqueues this command and returns a future representing its completion
-    /// which resolves to a guard providing exclusive data access usable
-    /// within subsequent futures.
+    /// which resolves to a read guard usable within subsequent futures.
     ///
     /// A data destination container appropriate for an asynchronous operation
     /// (such as `RwVec`) must have been passed to `::write`.
-    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T, WriteGuard<T>>> {
-        let queue = match self.cmd.queue {
-            Some(q) => q,
-            None => return Err("BufferCmd::enq: No queue set.".into()),
-        };
-
+    ///
+    /// The returned future must be resolved.
+    ///
+    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T, ReadGuard<T>>> {
         match self.cmd.kind {
             BufferCmdKind::Write => {
-                // let mut reader = rw_vec.read().upgrade_after_command();
-
                 let mut reader = match self.src {
-                    WriteSrc::RwVec(rw_vec) => rw_vec.read().upgrade_after_command(),
-                    WriteSrc::Reader(reader) => reader.upgrade_after_command(),
+                    WriteSrc::RwVec(rw_vec) => rw_vec.read(),
+                    WriteSrc::Reader(reader) => reader,
                     _ => return Err("BufferWriteCmd::enq_async: Invalid data destination kind for an
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
                 };
@@ -1190,6 +1185,11 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 if let Some(wl) = self.cmd.ewait {
                     reader.set_wait_list(wl);
                 }
+
+                let queue = match self.cmd.queue {
+                    Some(q) => q,
+                    None => return Err("BufferCmd::enq: No queue set.".into()),
+                };
 
                 reader.create_lock_event(queue.context_ptr()?)?;
 
@@ -1225,6 +1225,28 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             },
             _ => unreachable!(),
         }
+    }
+
+    /// Enqueues this command and returns a future representing its
+    /// completion.
+    ///
+    /// The returned future resolves to a write guard providing exclusive data
+    /// access available within subsequent futures. This is important when a
+    /// write must occur at the correct time in the global read/write order.
+    ///
+    /// A data destination container appropriate for an asynchronous operation
+    /// (such as `RwVec`) must have been passed to `::write`.
+    ///
+    /// The returned future must be resolved.
+    ///
+    pub fn enq_async_then_write(self) -> OclResult<FutureRwGuard<T, WriteGuard<T>>> {
+        // NOTE: The precise point in time at which `::upgrade_after_command`
+        // is called does not matter since a read request will have already
+        // been enqueued in the RwVec's queue. The upgrade can be requested at
+        // any time before the read guard is destroyed and have the exact same
+        // effect. That read request will lock out any possibility of a write
+        // request interfering with the global r/w order.
+        self.enq_async().map(|read_guard| read_guard.upgrade_after_command())
     }
 }
 
