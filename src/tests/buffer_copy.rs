@@ -46,8 +46,10 @@ fn buffer_copy_core() {
     core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(ADDEND)).unwrap();
 
     // Run the kernel:
-    core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-        None, None::<core::Event>, None::<&mut core::Event>).unwrap();
+    unsafe {
+        core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
+            None, None::<core::Event>, None::<&mut core::Event>).unwrap();
+    }
 
     // Copy src_buffer to dst_buffer:
     let copy_range = (153, 150000);
@@ -100,7 +102,7 @@ fn buffer_copy_standard() {
         .arg_buf(&src_buffer)
         .arg_scl(ADDEND);
 
-    kernel.enq().unwrap();
+    unsafe { kernel.enq().unwrap(); }
 
     // Copy src to dst:
     let copy_range = (IDX, pro_que.dims()[0] - 100);

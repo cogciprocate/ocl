@@ -24,7 +24,7 @@ fn clear_completed() {
     let mut vec = vec![0.0f32; buffer.len()];
 
     for _ in 0..2048 {
-        kernel.cmd().enew(&mut event_list).enq().unwrap();
+        unsafe { kernel.cmd().enew(&mut event_list).enq().unwrap(); }
 
         buffer.read(&mut vec).enq().unwrap();
 

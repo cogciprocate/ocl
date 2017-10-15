@@ -72,7 +72,7 @@ fn buffer_ops_rect() {
     assert_eq!(vec.len(), len);
 
     // KERNEL RUN #1 -- make sure everything's working normally:
-    kernel_add.enq().expect("[FIXME]: HANDLE ME!");
+    unsafe { kernel_add.enq().expect("[FIXME]: HANDLE ME!"); }
     let mut ttl_runs = 1i32;
 
     // READ AND VERIFY #1 (LINEAR):
@@ -116,7 +116,7 @@ fn buffer_ops_rect() {
             &mut vec, None::<core::Event>, None::<&mut core::Event>).unwrap(); }
 
         // Run kernel:
-        kernel_add.enq().expect("[FIXME]: HANDLE ME!");
+        unsafe { kernel_add.enq().expect("[FIXME]: HANDLE ME!"); }
         ttl_runs += 1;
         let cur_val = ADDEND * ttl_runs as f32;
         let old_val = ADDEND * (ttl_runs - 1) as f32;
@@ -140,7 +140,7 @@ fn buffer_ops_rect() {
             row_pitch_bytes, slc_pitch_bytes).queue(proque.queue()).enq().unwrap();
 
         // Run kernel:
-        kernel_add.enq().expect("[FIXME]: HANDLE ME!");
+        unsafe { kernel_add.enq().expect("[FIXME]: HANDLE ME!"); }
         ttl_runs += 1;
         let cur_val = ADDEND * ttl_runs as f32;
         let old_val = ADDEND * (ttl_runs - 1) as f32;
@@ -186,15 +186,19 @@ fn buffer_ops_rect() {
         ttl_runs += 1;
         let cur_val = ADDEND * ttl_runs as f32;
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
-        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        unsafe {
+            kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        }
 
         // Write `next_val` to all of `vec`. This will be our 'in-region' value:
         for ele in vec.iter_mut() { *ele = nxt_val }
 
         // Write to the random region:
-        core::enqueue_write_buffer_rect(proque.queue(), &buf, false,
-            buf_origin, vec_origin, read_region.clone(), row_pitch_bytes, slc_pitch_bytes,
-            row_pitch_bytes, slc_pitch_bytes, &vec, None::<core::Event>, None::<&mut core::Event>).unwrap();
+        unsafe {
+            core::enqueue_write_buffer_rect(proque.queue(), &buf, false,
+                buf_origin, vec_origin, read_region.clone(), row_pitch_bytes, slc_pitch_bytes,
+                row_pitch_bytes, slc_pitch_bytes, &vec, None::<core::Event>, None::<&mut core::Event>).unwrap();
+        }
         // Read the entire buffer back into the vector:
         unsafe { core::enqueue_read_buffer_rect(proque.queue(), &buf, true,
             [0, 0, 0], [0, 0, 0], dims, row_pitch_bytes, slc_pitch_bytes, row_pitch_bytes, slc_pitch_bytes,
@@ -210,7 +214,9 @@ fn buffer_ops_rect() {
         ttl_runs += 1;
         let cur_val = ADDEND * ttl_runs as f32;
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
-        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        unsafe {
+            kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        }
 
         // Write `next_val` to all of `vec`. This will be our 'in-region' value:
         for ele in vec.iter_mut() { *ele = nxt_val }
@@ -286,16 +292,20 @@ fn buffer_ops_rect() {
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
 
         // Reset destination buffer to current val:
-        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        unsafe {
+            kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        }
 
         // Set all of `vec_src` to equal the 'next' value. This will be our
         // 'in-region' value and will be written to the device before copying.
         for ele in vec_src.iter_mut() { *ele = nxt_val }
 
         // Write the source vec to the source buf:
-        core::enqueue_write_buffer_rect(proque.queue(), &buf_src, true, [0, 0, 0], [0, 0, 0],
-            dims, row_pitch_bytes, slc_pitch_bytes, row_pitch_bytes, slc_pitch_bytes, &vec_src,
-            None::<core::Event>, None::<&mut core::Event>).unwrap();
+        unsafe {
+            core::enqueue_write_buffer_rect(proque.queue(), &buf_src, true, [0, 0, 0], [0, 0, 0],
+                dims, row_pitch_bytes, slc_pitch_bytes, row_pitch_bytes, slc_pitch_bytes, &vec_src,
+                None::<core::Event>, None::<&mut core::Event>).unwrap();
+        }
 
         // Copy from the source buffer to the random region on the destination buffer:
         core::enqueue_copy_buffer_rect::<f32, _, _, _>(proque.queue(), &buf_src, &buf_dst,
@@ -318,7 +328,9 @@ fn buffer_ops_rect() {
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
 
         // Reset destination buffer to current val:
-        kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        unsafe {
+            kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        }
 
         // Set all of `vec_src` to equal the 'next' value. This will be our
         // 'in-region' value and will be written to the device before copying.

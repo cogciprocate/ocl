@@ -31,7 +31,7 @@ fn fill() {
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    kernel.enq().expect("[FIXME]: HANDLE ME!");
+    unsafe { kernel.enq().expect("[FIXME]: HANDLE ME!"); }
 
     let mut vec = vec![0.0f32; buffer.len()];
     buffer.read(&mut vec).enq().unwrap();
@@ -77,7 +77,7 @@ fn fill_with_float4() {
         .arg_buf(&buffer)
         .arg_scl(addend);
 
-    kernel.enq().unwrap();
+    unsafe { kernel.enq().unwrap(); }
 
     buffer.read(&mut vec).enq().unwrap();
 

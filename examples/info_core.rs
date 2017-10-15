@@ -59,7 +59,7 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         .arg_buf(&buffer);
 
     let mut event_list = EventList::new();
-    kernel.cmd().enew(&mut event_list).enq().unwrap();
+    unsafe { kernel.cmd().enew(&mut event_list).enq().unwrap(); }
     event_list.wait_for().unwrap();
 
     let mut event = Event::empty();

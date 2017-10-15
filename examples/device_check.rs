@@ -502,7 +502,8 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                 )?;
 
                 MemMap::new(mm_core, source_buf.len(), None, None, source_buf.core().clone(),
-                    write_queue.clone())
+                    write_queue.clone(), /*source_buf.is_mapped()
+                        .expect("Buffer unable to be mapped").clone()*/)
             };
 
             if let Some(tar_ev) = wire_callback(cfg.event_callback, context, &mut map_event) {
@@ -583,10 +584,12 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     // Create kernel event then enqueue kernel:
     let mut kern_event = Event::empty();
 
-    kern.cmd()
-        .ewait(&write_event)
-        .enew(&mut kern_event)
-        .enq()?;
+    unsafe {
+        kern.cmd()
+            .ewait(&write_event)
+            .enew(&mut kern_event)
+            .enq()?;
+    }
 
     //#########################################################################
     //################### INSERT KERNEL EVENT CALLBACK ########################
@@ -620,7 +623,8 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             )?;
 
             target_map = Some(MemMap::new(mm_core, source_buf.len(), None, None,
-                source_buf.core().clone(), read_queue.clone()));
+                source_buf.core().clone(), read_queue.clone(), /*target_buf.is_mapped()
+                    .expect("Buffer unable to be mapped").clone()*/));
         }
     } else {
         //##################### !(cfg.MAP_READ) ###########################
@@ -782,11 +786,13 @@ pub fn kernel_add(
 
     *kernel_event = Some(Event::empty());
 
-    kern.cmd()
-        .queue(common_queue)
-        .ewait(&wait_list)
-        .enew_opt(kernel_event.as_mut())
-        .enq().unwrap();
+    unsafe {
+        kern.cmd()
+            .queue(common_queue)
+            .ewait(&wait_list)
+            .enew_opt(kernel_event.as_mut())
+            .enq().unwrap();
+    }
 
     unsafe { kernel_event.as_ref().unwrap().set_callback(_print_complete,
         task_iter as *mut c_void).unwrap(); }

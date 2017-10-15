@@ -194,9 +194,11 @@ impl Task {
 
         let mut ev = Event::empty();
 
-        self.kernels[kernel_id].cmd().enew(&mut ev)
-            .ewait(self.cmd_graph.get_req_events(cmd_idx).unwrap())
-            .enq().unwrap();
+        unsafe {
+            self.kernels[kernel_id].cmd().enew(&mut ev)
+                .ewait(self.cmd_graph.get_req_events(cmd_idx).unwrap())
+                .enq().unwrap();
+        }
 
         self.cmd_graph.set_cmd_event(cmd_idx, ev).unwrap();
     }

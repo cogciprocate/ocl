@@ -102,7 +102,13 @@ impl<'k> KernelCmd<'k> {
     }
 
     /// Enqueues this kernel command.
-    pub fn enq(self) -> OclResult<()> {
+    ///
+    /// # Safety
+    ///
+    /// All kernel code must be considered untrusted. Therefore the act of
+    /// calling this function contains implied unsafety even though the API
+    /// itself is safe.
+    pub unsafe fn enq(self) -> OclResult<()> {
         let queue = match self.queue {
             Some(q) => q,
             None => return Err("KernelCmd::enq: No queue specified.".into()),
@@ -494,14 +500,11 @@ impl Kernel {
     ///
     /// # Safety
     ///
-    /// All kernel code must be considered unsafe. Therefore the act of
+    /// All kernel code must be considered untrusted. Therefore the act of
     /// calling this function contains implied unsafety even though the API
-    /// itself is safe. How best to express that without the ambiguity of
-    /// being marked `unsafe` while maintaining zero extra runtime overhead is
-    /// still under consideration. Please provide feedback by filing an issue
-    /// if you have any thoughts on the matter.
+    /// itself is safe.
     ///
-    pub fn enq(&self) -> OclResult<()> {
+    pub unsafe fn enq(&self) -> OclResult<()> {
         self.cmd().enq()
     }
 

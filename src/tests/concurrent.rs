@@ -131,9 +131,11 @@ fn main_from_example() {
                     let mut event_list = EventList::new();
 
                     // Change queues around just for fun:
-                    kernel.cmd().enew(&mut event_list).enq().unwrap();
-                    kernel.set_default_queue(queueball_th[1].clone()).enq().unwrap();
-                    kernel.cmd().queue(&queueball_th[2]).enq().unwrap();
+                    unsafe {
+                        kernel.cmd().enew(&mut event_list).enq().unwrap();
+                        kernel.set_default_queue(queueball_th[1].clone()).enq().unwrap();
+                        kernel.cmd().queue(&queueball_th[2]).enq().unwrap();
+                    }
 
                     // Sleep just so the results don't print too quickly.
                     thread::sleep(Duration::from_millis(100));

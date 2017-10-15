@@ -55,7 +55,7 @@ fn main() {
     println!("Kernel global work size: {:?}", kern.get_gws());
 
     // Enqueue kernel:
-    kern.enq().unwrap();
+    unsafe { kern.enq().unwrap(); }
 
     // Read results from the device into result_buffer's local vector:
     result_buffer.read(&mut vec_result).enq().unwrap();

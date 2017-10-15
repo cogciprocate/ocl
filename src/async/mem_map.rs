@@ -1,3 +1,5 @@
+// use std::sync::Arc;
+// use std::sync::atomic::AtomicBool;
 use std::ops::{Deref, DerefMut};
 use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem as MemCore, AsMem};
 use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, EventList, Queue};
@@ -96,12 +98,13 @@ pub struct MemMap<T> where T: OclPrm {
     unmap_target_event: Option<Event>,
     callback_is_set: bool,
     is_unmapped: bool,
+    // buffer_is_mapped: Arc<AtomicBool>
 }
 
 impl<T> MemMap<T>  where T: OclPrm {
     pub unsafe fn new(core: MemMapCore<T>, len: usize, unmap_wait_list: Option<EventList>,
-        unmap_target_event: Option<Event>, buffer: MemCore, queue: Queue) -> MemMap<T>
-    {
+            unmap_target_event: Option<Event>, buffer: MemCore, queue: Queue,
+            /*buffer_is_mapped: Arc<AtomicBool>*/) -> MemMap<T> {
         MemMap {
             core: core,
             len: len,
@@ -111,6 +114,7 @@ impl<T> MemMap<T>  where T: OclPrm {
             unmap_target_event: unmap_target_event,
             callback_is_set: false,
             is_unmapped: false,
+            // buffer_is_mapped,
         }
     }
 

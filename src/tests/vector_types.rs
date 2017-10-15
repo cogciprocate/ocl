@@ -44,7 +44,7 @@ fn test_vector_types() {
         .arg_vec(addend)
         .arg_buf(&out_buffer);
 
-    kernel.enq().unwrap();
+    unsafe { kernel.enq().unwrap(); }
 
     out_buffer.read(&mut vec).enq().unwrap();
 

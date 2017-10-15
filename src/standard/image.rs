@@ -425,9 +425,11 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
                     self.enew) }
             },
             ImageCmdKind::Write { data } => {
-                core::enqueue_write_image(queue, self.obj_core, self.block,
-                    self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
-                    self.enew)
+                unsafe {
+                    core::enqueue_write_image(queue, self.obj_core, self.block,
+                        self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
+                        self.enew)
+                }
             },
             ImageCmdKind::Copy { dst_image, dst_origin } => {
                 core::enqueue_copy_image(queue, self.obj_core, dst_image, self.origin,

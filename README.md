@@ -61,7 +61,7 @@ fn main() {
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    kernel.enq().unwrap();
+    unsafe { kernel.enq().unwrap(); }
 
     let mut vec = vec![0.0f32; buffer.len()];
     buffer.read(&mut vec).enq().unwrap();

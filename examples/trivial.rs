@@ -19,7 +19,7 @@ fn main() {
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    kernel.enq().unwrap();
+    unsafe { kernel.enq().unwrap(); }
 
     let mut vec = vec![0.0f32; buffer.len()];
     buffer.read(&mut vec).enq().unwrap();
@@ -63,7 +63,7 @@ fn main_explained() {
         .arg_scl(10.0f32);
 
     // (4) Run the kernel:
-    kernel.enq().unwrap();
+    unsafe { kernel.enq().unwrap(); }
 
     // (5) Read results from the device into a vector:
     let mut vec = vec![0.0f32; buffer.len()];
@@ -137,14 +137,16 @@ fn main_exploded() {
         .arg_scl(10.0f32);
 
     // (4) Run the kernel (default parameters shown for demonstration purposes):
-    kernel.cmd()
-        .queue(&queue)
-        .gwo(kernel.get_gwo())
-        .gws(dims)
-        .lws(kernel.get_lws())
-        .ewait_opt(None::<&EventList>)
-        .enew_opt(None::<&mut Event>)
-        .enq().unwrap();
+    unsafe {
+        kernel.cmd()
+            .queue(&queue)
+            .gwo(kernel.get_gwo())
+            .gws(dims)
+            .lws(kernel.get_lws())
+            .ewait_opt(None::<&EventList>)
+            .enew_opt(None::<&mut Event>)
+            .enq().unwrap();
+    }
 
     // (5) Read results from the device into a vector (`::block` not shown):
     buffer.cmd()
@@ -208,8 +210,10 @@ fn main_cored() {
     core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(10.0f32)).unwrap();
 
     // (4) Run the kernel:
-    core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-        None, None::<core::Event>, None::<&mut core::Event>).unwrap();
+    unsafe {
+        core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
+            None, None::<core::Event>, None::<&mut core::Event>).unwrap();
+    }
 
     // (5) Read results from the device into a vector:
     unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,

@@ -32,7 +32,7 @@ fn kernel_arg_ptr_out_of_scope() {
     thread::sleep(Duration::from_millis(100));
 
     for _ in 0..5 {
-        kernel.enq().unwrap();
+        unsafe { kernel.enq().unwrap(); }
     }
 
     assert!(throwaway_vec[1 << 15] == 99);

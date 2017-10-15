@@ -135,10 +135,12 @@ pub fn main() {
         // (2) KERNEL: Run kernel: Add 100 to everything (total should now be 150):
         let mut kern_event = Event::empty();
 
-        kern.cmd()
-            .enew(&mut kern_event)
-            .ewait(&write_unmap_event)
-            .enq().unwrap();
+        unsafe {
+            kern.cmd()
+                .enew(&mut kern_event)
+                .ewait(&write_unmap_event)
+                .enq().unwrap();
+        }
 
         // (3) READ: Read results and verify that the write and kernel have
         // both completed successfully:

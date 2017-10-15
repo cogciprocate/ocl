@@ -1,3 +1,5 @@
+// use std::sync::Arc;
+// use std::sync::atomic::AtomicBool;
 use futures::{Future, Poll, Async};
 use core::{OclPrm, MemMap as MemMapCore, Mem};
 use standard::{Event, Queue, EventList};
@@ -7,7 +9,7 @@ use super::{Error as AsyncError, Result as AsyncResult, MemMap};
 /// A future which resolves to a `MemMap` as soon as its creating command
 /// completes.
 ///
-/// [UNSTABLE]: This types methods may be renamed or otherwise changed at any time.
+/// [UNSTABLE]: This type's methods may be renamed or otherwise changed at any time.
 #[must_use = "futures do nothing unless polled"]
 #[derive(Debug)]
 pub struct FutureMemMap<T: OclPrm> {
@@ -19,13 +21,13 @@ pub struct FutureMemMap<T: OclPrm> {
     buffer: Option<Mem>,
     queue: Option<Queue>,
     callback_is_set: bool,
+    // buffer_is_mapped: Option<Arc<AtomicBool>>,
 }
 
 impl<T: OclPrm> FutureMemMap<T> {
     /// Returns a new `FutureMemMap`.
-    pub unsafe fn new(core: MemMapCore<T>, len: usize, map_event: Event, buffer: Mem, queue: Queue)
-            -> FutureMemMap<T>
-    {
+    pub unsafe fn new(core: MemMapCore<T>, len: usize, map_event: Event, buffer: Mem, queue: Queue,
+            /*buffer_is_mapped: Arc<AtomicBool>*/) -> FutureMemMap<T> {
         FutureMemMap {
             core: Some(core),
             len: len,
@@ -35,6 +37,7 @@ impl<T: OclPrm> FutureMemMap<T> {
             buffer: Some(buffer),
             queue: Some(queue),
             callback_is_set: false,
+            // buffer_is_mapped: Some(buffer_is_mapped),
         }
     }
 
@@ -96,8 +99,10 @@ impl<T: OclPrm> FutureMemMap<T> {
 
         match joined {
             Some((core, buffer, queue)) => {
+                // TODO: Add `buffer_is_mapped` to list of joined stuff.
                 unsafe { Ok(MemMap::new(core, self.len, self.unmap_wait_list.take(),
-                    self.unmap_target_event.take(), buffer, queue )) }
+                    self.unmap_target_event.take(), buffer, queue,
+                    /*self.buffer_is_mapped.take().unwrap()*/)) }
             },
             _ => Err("FutureMemMap::create_unmap_target_event: No queue and/or buffer found!".into()),
         }

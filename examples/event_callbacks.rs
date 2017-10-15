@@ -158,7 +158,9 @@ fn main() {
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
-        kernel.cmd().enew(&mut kernel_event).enq().unwrap();
+        unsafe {
+            kernel.cmd().enew(&mut kernel_event).enq().unwrap();
+        }
 
         let mut read_event = EventList::new();
 

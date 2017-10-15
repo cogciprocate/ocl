@@ -78,7 +78,7 @@ fn main() {
                 .arg_scl(10.0f32);
 
             let mut event_list = EventList::new();
-            kernel.cmd().enew(&mut event_list).enq().unwrap();
+            unsafe { kernel.cmd().enew(&mut event_list).enq().unwrap(); }
             event_list.wait_for().unwrap();
 
             let mut event = Event::empty();

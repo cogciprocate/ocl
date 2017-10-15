@@ -6,6 +6,7 @@ use std;
 use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
 use core::error::{Error as OclError, ErrorKind as OclErrorKind};
+use ::BufferCmdError;
 
 pub type Result<T> = std::result::Result<T, self::Error>;
 
@@ -17,6 +18,7 @@ pub enum Error {
     MpscSendError(String),
     OneshotCanceled(OneshotCanceled),
     // FuturesCanceled(FuturesCanceled),
+    BufferCmdError(BufferCmdError),
     Other(Box<std::error::Error>),
 }
 
@@ -46,6 +48,7 @@ impl std::error::Error for self::Error {
             Error::MpscSendError(ref err) => err,
             Error::OneshotCanceled(ref err) => err.description(),
             // Error::FuturesCanceled(ref err) => err.description(),
+            Error::BufferCmdError(ref err) => err.description(),
             Error::Other(ref err) => err.description(),
         }
     }
@@ -119,6 +122,12 @@ impl From<std::ffi::NulError> for self::Error {
 impl From<std::io::Error> for self::Error {
     fn from(err: std::io::Error) -> self::Error {
         self::Error::Ocl(err.into())
+    }
+}
+
+impl From<BufferCmdError> for self::Error {
+    fn from(err: BufferCmdError) -> self::Error {
+        self::Error::BufferCmdError(err)
     }
 }
 

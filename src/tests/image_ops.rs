@@ -103,7 +103,7 @@ fn image_ops() {
     assert_eq!(vec.len(), len * pixel_element_len);
 
     // KERNEL RUN #1 -- make sure everything's working normally:
-    kernel_add.enq().unwrap();
+    unsafe { kernel_add.enq().unwrap(); }
     let mut ttl_runs = 1i32;
 
     // READ AND VERIFY #1 (LINEAR):
@@ -134,12 +134,14 @@ fn image_ops() {
         //====================================================================
 
         // Write to src:
-        core::enqueue_write_image(proque.queue(), &img_src, true,
-            origin, region, 0, 0,
-            &vec, None::<core::Event>, None::<&mut core::Event>).unwrap();
+        unsafe {
+            core::enqueue_write_image(proque.queue(), &img_src, true,
+                origin, region, 0, 0,
+                &vec, None::<core::Event>, None::<&mut core::Event>).unwrap();
+        }
 
         // Add from src to dst:
-        kernel_add.enq().expect("[FIXME]: HANDLE ME!");
+        unsafe { kernel_add.enq().expect("[FIXME]: HANDLE ME!"); }
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
 
@@ -160,7 +162,9 @@ fn image_ops() {
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
         let cur_pixel = Int4::new(cur_val, cur_val, cur_val, cur_val);
-        kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        unsafe {
+            kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        }
 
         core::enqueue_copy_image::<_, _>(proque.queue(), &img_src, &img_dst,
             origin, origin, region, None::<core::Event>, None::<&mut core::Event>).unwrap();
@@ -184,7 +188,9 @@ fn image_ops() {
         img_src.cmd().write(&vec).enq().unwrap();
 
         // Add from src to dst:
-        kernel_add.enq().expect("[FIXME]: HANDLE ME!");
+        unsafe {
+            kernel_add.enq().expect("[FIXME]: HANDLE ME!");
+        }
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
 
@@ -200,7 +206,9 @@ fn image_ops() {
         ttl_runs += 1;
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
         let cur_pixel = Int4::new(cur_val, cur_val, cur_val, cur_val);
-        kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        unsafe {
+            kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+        }
 
         img_src.cmd().copy(&img_dst, origin).enq().unwrap();
 

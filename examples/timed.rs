@@ -80,14 +80,16 @@ fn main() {
     let kern_start = time::get_time();
 
     // Enqueue kernel the first time:
-    kern.enq().unwrap();
+    unsafe {
+        kern.enq().unwrap();
+    }
 
     // Set kernel source buffer to the same as result:
     kern.set_arg_buf_named("source", Some(&buffer_result)).unwrap();
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {
-        kern.enq().unwrap();
+        unsafe { kern.enq().unwrap(); }
     }
 
     // Wait for all kernels to run:
@@ -127,7 +129,7 @@ fn main() {
     let kern_buf_start = time::get_time();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        kern.enq().unwrap();
+        unsafe { kern.enq().unwrap(); }
         buffer_result.cmd().read(&mut vec_result).enq().unwrap();
     }
 
@@ -150,7 +152,9 @@ fn main() {
     let mut buf_events = EventList::new();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
-        kern.cmd().ewait(&buf_events).enew(&mut kern_events).enq().unwrap();
+        unsafe {
+            kern.cmd().ewait(&buf_events).enew(&mut kern_events).enq().unwrap();
+        }
         buffer_result.cmd().read(&mut vec_result).ewait(&kern_events)
             .enew(&mut buf_events).enq().unwrap();
     }
@@ -177,7 +181,7 @@ fn main() {
     let kern_buf_start = time::get_time();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
-        kern.cmd().enew(&mut kern_events).enq().unwrap();
+        unsafe { kern.cmd().enew(&mut kern_events).enq().unwrap(); }
 
         unsafe { buffer_result.cmd().read(&mut vec_result).enew(&mut buf_events)
             .block(true).enq().unwrap(); }

@@ -278,11 +278,13 @@ pub fn kernel_add(
     // creation (for no particular reason) we must specify it here. Also note
     // that the events that this kernel depends on are linked to the *unmap*,
     // not the map commands of the preceding read and writes.
-    kern.cmd()
-        .queue(common_queue)
-        .ewait(&wait_list)
-        .enew_opt(kernel_event.as_mut())
-        .enq().unwrap();
+    unsafe {
+        kern.cmd()
+            .queue(common_queue)
+            .ewait(&wait_list)
+            .enew_opt(kernel_event.as_mut())
+            .enq().unwrap();
+    }
 
     // Attach a status message printing callback to the kernel completion event:
     unsafe { kernel_event.as_ref().unwrap().set_callback(_print_complete,
