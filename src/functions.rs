@@ -2313,7 +2313,14 @@ pub unsafe fn enqueue_read_buffer_rect<T, M, En, Ewl>(
 
 /// Enqueues a write from host memory, `data`, to device memory referred to by
 /// `buffer`.
-pub fn enqueue_write_buffer<T, M, En, Ewl>(
+///
+/// ## Safety
+///
+/// Caller must ensure that `data` lives until the read is complete. Use
+/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// an event list as `new_event`).
+///
+pub unsafe fn enqueue_write_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             buffer: M,
             block: bool,
@@ -2345,13 +2352,19 @@ pub fn enqueue_write_buffer<T, M, En, Ewl>(
 
 /// Enqueues a command to write from a rectangular region from host memory to a buffer object.
 ///
+/// ## Safety
+///
+/// Caller must ensure that `data` lives until the read is complete. Use
+/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// an event list as `new_event`).
+///
 /// ## Official Documentation
 ///
 /// [SDK - clEnqueueWriteBufferRect]
 ///
 /// [SDK - clEnqueueWriteBufferRect]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueWriteBufferRect.html
 ///
-pub fn enqueue_write_buffer_rect<T, M, En, Ewl>(
+pub unsafe fn enqueue_write_buffer_rect<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             buffer: M,
             block: bool,
@@ -2685,11 +2698,17 @@ pub unsafe fn enqueue_read_image<T, M, En, Ewl>(
 
 /// Enqueues a command to write to an image or image array object from host memory.
 ///
+/// ## Safety
+///
+/// Caller must ensure that `data` lives until the read is complete. Use
+/// `new_event` to monitor it (use [`core::EventList::last_clone`] if passing
+/// an event list as `new_event`).
+///
 // TODO:
 // * Size check (rather than leaving it to API).
 // * Consider safetyness: local host data could change during write.
 //
-pub fn enqueue_write_image<T, M, En, Ewl>(
+pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             image: M,
             block: bool,
@@ -3124,7 +3143,7 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 //
 // FIXME: Mark this unsafe
 //
-pub fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
+pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
             command_queue: &CommandQueue,
             kernel: &Kernel,
             work_dims: u32,
@@ -3220,7 +3239,7 @@ pub fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
 ///
 /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueTask.html
 ///
-pub fn enqueue_task<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
+pub unsafe fn enqueue_task<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             command_queue: &CommandQueue,
             kernel: &Kernel,
             wait_list: Option<Ewl>,
