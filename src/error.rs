@@ -80,6 +80,7 @@ pub enum ErrorKind {
     IntoStringError(::std::ffi::IntoStringError),
     EmptyInfoResult(EmptyInfoResult),
     VersionLow { detected: OpenclVersion, required: OpenclVersion },
+    Other(Box<StdError>),
 }
 
 
@@ -216,6 +217,7 @@ impl self::Error {
                 ErrorKind::UnspecifiedDimensions => write!(f, "Cannot convert to a valid set of \
                     dimensions. Please specify some dimensions."),
                 ErrorKind::EmptyInfoResult(ref err) => write!(f, "{}", err.description()),
+                ErrorKind::Other(ref err) => write!(f, "{}", err.description()),
                 // _ => f.write_str(self.description()),
             }
         }
@@ -260,6 +262,7 @@ impl StdError for self::Error {
                 Please specify some dimensions.",
             ErrorKind::EmptyInfoResult(ref err) => err.description(),
             ErrorKind::VersionLow { .. } => "OpenCL version too low to use this feature.",
+            ErrorKind::Other(ref err) => err.description(),
             // _ => panic!("OclErrorKind::description()"),
         }
     }
