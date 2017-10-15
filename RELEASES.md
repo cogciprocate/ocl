@@ -8,6 +8,9 @@ Breaking Changes
 * `Buffer::from_gl_buffer` has had its `dims` argument removed and is now
   determined from the size of the OpenGL memory object.
 * `Buffer::map` and `BufferCmd::map` are now unsafe.
+* `BufferWriteCmd::enq_async` now returns a `FutureReadGuard` instead of a
+  `FutureWriteGuard`. A `FutureWriteGuard` can now be obtained by calling
+  `::enq_async_then_write`.
 
 
 Version 0.15.0 (2017-08-31)
