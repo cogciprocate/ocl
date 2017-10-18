@@ -31,7 +31,7 @@ ocl = "0.15"
 ```
 
 And add the following to your crate root (lib.rs or main.rs):
-```toml
+```rust
 extern crate ocl;
 ```
 
