@@ -4,6 +4,7 @@ mod error;
 mod future_mem_map;
 mod rw_vec;
 mod mem_map;
+mod buffer_sink;
 
 use std;
 use futures::future;
@@ -12,6 +13,7 @@ pub use self::error::{Error, Result};
 pub use self::rw_vec::{RwVec, ReadGuard, WriteGuard, FutureRwGuard, FutureReadGuard, FutureWriteGuard};
 pub use self::mem_map::MemMap;
 pub use self::future_mem_map::FutureMemMap;
+pub use self::buffer_sink::{BufferSink};
 
 pub type FutureResult<T> = future::FutureResult<T, self::Error>;
 
