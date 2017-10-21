@@ -1846,9 +1846,10 @@ impl<T: OclPrm> Buffer<T> {
     /// Returns the memory flags used during the creation of this buffer.
     ///
     #[inline]
-    pub fn flags(&self) -> MemFlags {
+    pub fn flags(&self) -> OclResult<MemFlags> {
         match self.mem_info(MemInfo::Flags) {
-            MemInfoResult::Flags(flags) => flags,
+            MemInfoResult::Flags(flags) => Ok(flags),
+            MemInfoResult::Error(err) => Err(*err),
             _ => unreachable!(),
         }
     }
