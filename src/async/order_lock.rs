@@ -19,6 +19,7 @@ use async::qutex::{QrwLock, QrwRequest, RequestKind};
 const PRINT_DEBUG: bool = false;
 
 
+/// Prints a debugging message.
 fn print_debug(id: usize, msg: &str) {
     if PRINT_DEBUG {
         println!("###### [{}] {} (thread: {})", id, msg,
@@ -26,21 +27,26 @@ fn print_debug(id: usize, msg: &str) {
     }
 }
 
-// /// Extracts an `OrderLock` from a guard of either type.
-// //
-// // This saves us two unnecessary atomic stores (the reference count of lock
-// // going up then down when releasing or up/downgrading) which would occur if
-// // we were to clone then drop.
-// unsafe fn extract_order_lock<T, G: Guard<V>>(guard: G) -> QrwLock<V> {
-//     let order_lock = ::std::ptr::read(guard.lock());
-//     ::std::mem::forget(guard);
-//     order_lock
-// }
+/// Extracts an `OrderLock` from a guard of either type.
+//
+// This saves us two unnecessary atomic stores (the reference count of lock
+// going up then down when releasing or up/downgrading) which would occur if
+// we were to clone then drop.
+unsafe fn extract_order_lock<V, G: OrderGuard<V>>(guard: G) -> OrderLock<V> {
+    let order_lock = ::std::ptr::read(guard.order_lock());
+    guard.forget();
+    order_lock
+}
 
 
 /// A read or write guard for an `OrderLock`.
-pub trait OrderGuard<V> {
+pub trait OrderGuard<V> where Self: ::std::marker::Sized {
     fn new(order_lock: OrderLock<V>, release_event: Option<Event>) -> Self;
+    fn order_lock(&self) -> &OrderLock<V>;
+
+    unsafe fn forget(self) {
+        ::std::mem::forget(self);
+    }
 }
 
 /// Allows access to the data contained within a lock just like a mutex guard.
@@ -60,17 +66,8 @@ impl<V> ReadGuard<V> {
         }
     }
 
-    /// Triggers the release event and releases the lock held by this `ReadGuard`
-    /// before returning the original `OrderLock`.
-    //
-    // * NOTE: This could be done without refcount incr/decr (see `qrw_lock::extract_lock`).
-    pub fn release(guard: ReadGuard<V>) -> OrderLock<V> {
-        print_debug(guard.order_lock.id(), "releasing read lock");
-        guard.order_lock.clone()
-    }
-
     /// Returns a reference to the event previously set using
-    /// `create_release_event` on the `FutureReadGuard` which preceded this
+    /// `create_release_event` on the `FutureGuard` which preceded this
     /// `ReadGuard`. The event can be manually 'triggered' by calling
     /// `...set_complete()...` or used normally (as a wait event) by
     /// subsequent commands. If the event is not manually completed it will be
@@ -79,15 +76,31 @@ impl<V> ReadGuard<V> {
         guard.release_event.as_ref()
     }
 
+    /// Triggers the release event and releases the lock held by this `ReadGuard`
+    /// before returning the original `OrderLock`.
+    pub fn release(mut guard: ReadGuard<V>) -> OrderLock<V> {
+        print_debug(guard.order_lock.id(), "WriteGuard::release: releasing read lock");
+        unsafe {
+            Self::release_components(&mut guard);
+            extract_order_lock(guard)
+        }
+    }
+
     /// Triggers the release event by setting it complete.
-    fn complete_release_event(guard: &ReadGuard<V>) {
-        if let Some(ref e) = guard.release_event {
-            if !e.is_complete().expect("ReadCompletion::drop") {
+    fn complete_release_event(guard: &mut ReadGuard<V>) {
+        if let Some(ref e) = guard.release_event.take() {
+            if !e.is_complete().expect("ReadGuard::complete_release_event") {
                 print_debug(guard.order_lock.id(), "ReadGuard::complete_release_event: \
                     setting release event complete");
-                e.set_complete().expect("ReadCompletion::drop");
+                e.set_complete().expect("ReadGuard::complete_release_event");
             }
         }
+    }
+
+    /// Releases the lock and completes the release event.
+    unsafe fn release_components(guard: &mut ReadGuard<V>) {
+        guard.order_lock.lock.release_read_lock();
+        Self::complete_release_event(guard);
     }
 }
 
@@ -102,14 +115,17 @@ impl<V> Deref for ReadGuard<V> {
 impl<V> Drop for ReadGuard<V> {
     fn drop(&mut self) {
         print_debug(self.order_lock.id(), "dropping and releasing ReadGuard");
-        unsafe { self.order_lock.lock.release_read_lock() };
-        Self::complete_release_event(self);
+        unsafe { Self::release_components(self) }
     }
 }
 
 impl<V> OrderGuard<V> for ReadGuard<V> {
     fn new(order_lock: OrderLock<V>, release_event: Option<Event>) -> ReadGuard<V> {
         ReadGuard::new(order_lock, release_event)
+    }
+
+    fn order_lock(&self) -> &OrderLock<V> {
+        &self.order_lock
     }
 }
 
@@ -131,17 +147,8 @@ impl<V> WriteGuard<V> {
         }
     }
 
-    /// Triggers the release event and releases the lock held by this `WriteGuard`
-    /// before returning the original `OrderLock`.
-    //
-    // * NOTE: This could be done without refcount incr/decr (see `qrw_lock::extract_lock`).
-    pub fn release(guard: WriteGuard<V>) -> OrderLock<V> {
-        print_debug(guard.order_lock.id(), "WriteGuard::release: Releasing write lock");
-        guard.order_lock.clone()
-    }
-
     /// Returns a reference to the event previously set using
-    /// `create_release_event` on the `FutureWriteGuard` which preceded this
+    /// `create_release_event` on the `FutureGuard` which preceded this
     /// `WriteGuard`. The event can be manually 'triggered' by calling
     /// `...set_complete()...` or used normally (as a wait event) by
     /// subsequent commands. If the event is not manually completed it will be
@@ -150,15 +157,31 @@ impl<V> WriteGuard<V> {
         guard.release_event.as_ref()
     }
 
+    /// Triggers the release event and releases the lock held by this `WriteGuard`
+    /// before returning the original `OrderLock`.
+    pub fn release(mut guard: WriteGuard<V>) -> OrderLock<V> {
+        print_debug(guard.order_lock.id(), "WriteGuard::release: Releasing write lock");
+        unsafe {
+            Self::release_components(&mut guard);
+            extract_order_lock(guard)
+        }
+    }
+
     /// Triggers the release event by setting it complete.
-    fn complete_release_event(guard: &WriteGuard<V>) {
-        if let Some(ref e) = guard.release_event {
+    fn complete_release_event(guard: &mut WriteGuard<V>) {
+        if let Some(ref e) = guard.release_event.take() {
             if !e.is_complete().expect("WriteGuard::complete_release_event") {
                 print_debug(guard.order_lock.id(), "WriteGuard::complete_release_event: \
                     Setting release event complete");
                 e.set_complete().expect("WriteGuard::complete_release_event");
             }
         }
+    }
+
+    /// Releases the lock and completes the release event.
+    unsafe fn release_components(guard: &mut WriteGuard<V>) {
+        guard.order_lock.lock.release_write_lock();
+        Self::complete_release_event(guard);
     }
 }
 
@@ -179,14 +202,17 @@ impl<V> DerefMut for WriteGuard<V> {
 impl<V> Drop for WriteGuard<V> {
     fn drop(&mut self) {
         print_debug(self.order_lock.id(), "WriteGuard::drop: Dropping and releasing WriteGuard");
-        unsafe { self.order_lock.lock.release_write_lock() };
-        Self::complete_release_event(self);
+        unsafe { Self::release_components(self) }
     }
 }
 
 impl<V> OrderGuard<V> for WriteGuard<V> {
     fn new(order_lock: OrderLock<V>, release_event: Option<Event>) -> WriteGuard<V> {
         WriteGuard::new(order_lock, release_event)
+    }
+
+    fn order_lock(&self) -> &OrderLock<V> {
+        &self.order_lock
     }
 }
 
