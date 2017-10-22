@@ -1,67 +1,25 @@
-#![allow(unused_imports, dead_code)]
 
 use std::ops::{Deref, DerefMut};
-use futures::{Future, Poll, Async};
+use futures::{Future, Poll};
 use core::{self, Result as OclResult, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
-use standard::{Event, EventList, Queue, Buffer, /*ClWaitListPtrEnum, ClNullEventPtrEnum*/};
-use async::{Error as AsyncError, Result as AsyncResult, OrderLock, FutureGuard, ReadGuard,
+use standard::{Event, EventList, Queue, Buffer};
+use async::{Error as AsyncError, OrderLock, FutureGuard, ReadGuard,
     WriteGuard};
-
-
-#[derive(Debug, PartialEq)]
-enum Stage {
-    Lock,
-    Command,
-}
 
 
 #[must_use = "futures do nothing unless polled"]
 #[derive(Debug)]
-pub struct FutureFlush<V> {
-    future_guard: FutureGuard<V, ReadGuard<V>>,
-    command_completion: Event,
-    // Must be kept alive until command completes:
-    read_guard: Option<ReadGuard<V>>,
-    stage: Stage,
+pub struct FutureFlush<T: OclPrm> {
+    future_guard: FutureGuard<Inner<T>, ReadGuard<Inner<T>>>,
 }
 
-impl<V> FutureFlush<V> {
-    fn new(future_guard: FutureGuard<V, ReadGuard<V>>, command_completion: Event)
-            -> FutureFlush<V> {
+impl<T: OclPrm> FutureFlush<T> {
+    fn new(future_guard: FutureGuard<Inner<T>, ReadGuard<Inner<T>>>)
+            -> FutureFlush<T> {
         FutureFlush {
             future_guard: future_guard,
-            command_completion: command_completion,
-            read_guard: None,
-            stage: Stage::Lock,
         }
-    }
-
-    /// Polls the future for the read lock.
-    fn poll_lock(&mut self) -> AsyncResult<Async<()>> {
-        debug_assert!(self.stage == Stage::Lock);
-
-        match self.future_guard.poll() {
-            Ok(status) => {
-                match status {
-                    Async::Ready(read_guard) => {
-                        self.read_guard = Some(read_guard);
-                        self.stage = Stage::Command;
-                    },
-                    Async::NotReady => return Ok(Async::NotReady),
-                }
-            },
-            Err(e) => return Err(e.into()),
-        }
-
-        self.poll_command()
-    }
-
-    /// Polls the command event until it is complete then returns an `OrderGuard`
-    /// which can be safely accessed immediately.
-    fn poll_command(&mut self) -> AsyncResult<Async<()>> {
-        debug_assert!(self.stage == Stage::Command);
-        self.command_completion.poll().map_err(|err| err.into())
     }
 }
 
@@ -71,32 +29,9 @@ impl<T: OclPrm> Future for FutureFlush<T> {
 
     #[inline]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        match self.stage {
-            Stage::Lock => self.poll_lock(),
-            Stage::Command => self.poll_command(),
-        }
+        self.future_guard.poll().map(|res| res.map(|_read_guard| ()))
     }
 }
-
-impl<V> Drop for FutureFlush<V> {
-    /// Drops this FutureFlush.
-    ///
-    /// Blocks the current thread until the command associated with this
-    /// `FutureFlush` (represented by the command completion event) completes.
-    /// This ensures that the underlying value is not dropped before the
-    /// command completes.
-    fn drop(&mut self) {
-        // if let Some(ref ccev) = self.command_completion {
-        //     // println!("###### FutureFlush::drop: Event ({:?}) incomplete...", ccev);
-        //     // panic!("###### FutureFlush::drop: Event ({:?}) incomplete...", ccev);
-        //     ccev.wait_for().expect("Error waiting on command completion event \
-        //         while dropping 'FutureFlush'");
-        // }
-        self.command_completion.wait_for().expect("Error waiting on command completion event \
-                while dropping 'FutureFlush'");
-    }
-}
-
 
 
 #[derive(Debug)]
@@ -249,9 +184,9 @@ impl<T: OclPrm> BufferSink<T> {
         // Ensure that the (re)map finishes before the future read, and
         // therefore the future flush, can resolve. It doesn't strictly need
         // to happen that quickly but it should be instantaneous anyway.
-        future_read.set_command_completion_event(map_event);
+        future_read.set_command_completion_event(map_event.clone());
 
-        unimplemented!();
+        Ok(FutureFlush::new(future_read))
     }
 
     /// Returns a mutable slice into the contained memory region.
