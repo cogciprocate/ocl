@@ -16,7 +16,7 @@ use async::{Error as AsyncError, Result as AsyncResult};
 use async::qutex::{QrwLock, QrwRequest, RequestKind};
 
 
-const PRINT_DEBUG: bool = true;
+const PRINT_DEBUG: bool = false;
 
 
 /// Prints a debugging message.

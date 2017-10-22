@@ -77,10 +77,10 @@ impl<T: OclPrm> Drop for Inner<T> {
     /// Drops the `Inner` enqueuing an unmap and blocking until it
     /// completes.
     fn drop(&mut self) {
-        // let mut new_event = Event::empty();
-        // core::enqueue_unmap_mem_object::<T, _, _, _>(self.buffer.default_queue().unwrap(),
-        //     &self.buffer, &self.memory, None::<&EventList>, Some(&mut new_event)).unwrap();
-        // new_event.wait_for().unwrap();
+        let mut new_event = Event::empty();
+        core::enqueue_unmap_mem_object::<T, _, _, _>(self.buffer.default_queue().unwrap(),
+            &self.buffer, &self.memory, None::<&EventList>, Some(&mut new_event)).unwrap();
+        new_event.wait_for().unwrap();
     }
 }
 
@@ -123,11 +123,6 @@ impl<T: OclPrm> BufferSink<T> {
         let memory = core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
             buffer.core(), true, map_flags, offset, len, None::<&EventList>, None::<&mut Event>)?;
 
-        let mut new_event = Event::empty();
-        core::enqueue_unmap_mem_object::<T, _, _, _>(buffer.default_queue().unwrap(),
-            buffer.core(), &memory, None::<&EventList>, Some(&mut new_event)).unwrap();
-        new_event.wait_for().unwrap();
-
         let inner = Inner {
             buffer,
             memory,
@@ -160,8 +155,8 @@ impl<T: OclPrm> BufferSink<T> {
             future_read.set_wait_list(wl);
         }
 
-        let mut map_event = Event::empty();
         let mut unmap_event = Event::empty();
+        let mut map_event = Event::empty();
 
         unsafe {
             let inner = &*self.lock.as_ptr();
@@ -171,21 +166,21 @@ impl<T: OclPrm> BufferSink<T> {
             // Ensure that we have a read lock before the command can run.
             future_read.create_lock_event(queue.context_ptr()?)?;
 
+            core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &inner.memory,
+                future_read.lock_event(), Some(&mut unmap_event))?;
+
             let map_flags = MapFlags::new().write_invalidate_region();
             core::enqueue_map_buffer::<T, _, _, _>(queue, buffer, false, map_flags,
-                inner.offset, inner.len, future_read.lock_event(), Some(&mut map_event))?;
-
-            core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &inner.memory,
-                Some(&map_event), Some(&mut unmap_event))?;
+                inner.offset, inner.len, Some(&unmap_event), Some(&mut map_event))?;
         }
 
         // Use `map_event` as the tail/conclusion event.
         if let Some(ref mut enew) = flush_event {
-            unsafe { enew.clone_from(&unmap_event) }
+            unsafe { enew.clone_from(&map_event) }
         }
 
         // Ensure that the unmap and (re)map finish.
-        future_read.set_command_completion_event(unmap_event.clone());
+        future_read.set_command_completion_event(map_event.clone());
 
         Ok(FutureFlush::new(future_read))
     }

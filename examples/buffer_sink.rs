@@ -54,10 +54,15 @@ fn main() {
 
     {
         let mut write_guard = buffer_sink.clone().write().wait().unwrap();
+        write_guard.copy_from_slice(&[0.0f32; DATA_SET_SIZE]);
+    }
+    buffer_sink.flush(None::<EventList>, None::<&mut Event>).unwrap().wait().unwrap();
+
+    {
+        let mut write_guard = buffer_sink.clone().write().wait().unwrap();
         write_guard.copy_from_slice(&source_data);
     }
-
-    buffer_sink.flush(None::<EventList>, None::<&mut Event>).unwrap().wait().unwrap();
+    // buffer_sink.flush(None::<EventList>, None::<&mut Event>).unwrap().wait().unwrap();
 
     println!("Kernel global work size: {:?}", kern.get_gws());
 
