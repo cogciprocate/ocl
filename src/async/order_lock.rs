@@ -49,6 +49,31 @@ pub trait OrderGuard<V> where Self: ::std::marker::Sized {
     }
 }
 
+
+// /// A guard that releases its lock and completes its release event
+// /// immediately.
+// pub struct VoidGuard();
+
+// impl<V> OrderGuard<V> for VoidGuard {
+//     fn new(_order_lock: OrderLock<V>, release_event: Option<Event>) -> VoidGuard {
+//         // order_lock.lock.release_read_lock();
+
+//         if let Some(ref e) = release_event {
+//             if !e.is_complete().expect("VoidGuard::new") {
+//                 print_debug(0, "VoidGuard::new: setting release event complete");
+//                 e.set_complete().expect("VoidGuard::new");
+//             }
+//         }
+
+//         VoidGuard()
+//     }
+
+//     fn order_lock(&self) -> &OrderLock<V> {
+//         panic!("`::order_lock` not implemented for `VoidGuard`.");
+//     }
+// }
+
+
 /// Allows access to the data contained within a lock just like a mutex guard.
 #[derive(Debug)]
 pub struct ReadGuard<V> {
@@ -610,6 +635,14 @@ impl<V, G> Drop for FutureGuard<V, G> {
     /// `FutureGuard` (represented by the command completion event)
     /// completes. This ensures that the underlying value is not dropped
     /// before the command completes (which would cause obvious problems).
+    //
+    //
+    //
+    //  [FIXME]: Investigate what happens if we drop after `::poll_lock` has
+    //  succeeded (is that possible?).
+    //
+    //
+    //
     fn drop(&mut self) {
         if let Some(ref ccev) = self.command_completion {
             // println!("###### FutureGuard::drop: Event ({:?}) incomplete...", ccev);

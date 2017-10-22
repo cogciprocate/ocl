@@ -32,7 +32,7 @@ pub type FutureWriteGuard<T> = FutureRwGuard<T, WriteGuard<Vec<T>>>;
 /// `device_check.rs` example to determine if your device/platform is
 /// affected. AMD platform drivers are known to work properly on the
 /// aforementioned CPUs so use those instead if possible.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct RwVec<T> {
     lock: OrderLock<Vec<T>>,
 }
@@ -96,15 +96,6 @@ impl<T> From<QrwLock<Vec<T>>> for RwVec<T> {
 impl<T> From<Vec<T>> for RwVec<T> {
     fn from(vec: Vec<T>) -> RwVec<T> {
         RwVec { lock: OrderLock::from(vec) }
-    }
-}
-
-impl<T> Clone for RwVec<T> {
-    #[inline]
-    fn clone(&self) -> RwVec<T> {
-        RwVec {
-            lock: self.lock.clone(),
-        }
     }
 }
 
