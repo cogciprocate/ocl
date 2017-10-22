@@ -19,28 +19,30 @@ After:
 unsafe { kernel.enq().unwrap(); }
 ```
 
-The kernel safety change comes along with another big change to the way buffer
+<!-- The kernel safety change comes along with another big change to the way buffer
 mapping works. Using `Buffer::map` (or `BufferMapCmd::map`) now ensures that
 only one mapping exists at any time. Previously, multiple copies of the same
 buffer could access the same data concurrently with no checks (which was very
 unsafe). Now, in order to create multiple simultaneous mappings, for the
 purposes of sub-region access or aliasing, it's necessary to use
-`ocl::core::enqueue_map_buffer` and `ocl::core::enqueue_unmap_mem_object`.
+`ocl::core::enqueue_map_buffer` and `ocl::core::enqueue_unmap_mem_object`. -->
 
 
 Breaking Changes
 ----------------
 * `Kernel::enq` and `KernelCmd::enq` are now marked `unsafe`.
-* `Buffer::map` and `BufferMapCmd::map` will now return an error if a mapping
-  already exists for the buffer.
-* `FutureReader` and `FutureWriter` have been renamed to `FutureReadGuard` and
-  `FutureWriteGuard` for clarity.
+<!-- * `Buffer::map` and `BufferMapCmd::map` will now return an error if a mapping
+  already exists for the buffer. -->
+<!-- * `Buffer::map` and `BufferCmd::map` are now unsafe. -->
+* `BufferMapCmd::enq` and `BufferMapCmd::enq_async` are now marked `unsafe`.
 * `Buffer::from_gl_buffer` has had its `dims` argument removed and is now
   determined from the size of the OpenGL memory object.
-* `Buffer::map` and `BufferCmd::map` are now unsafe.
 * `BufferWriteCmd::enq_async` now returns a `FutureReadGuard` instead of a
   `FutureWriteGuard`. A `FutureWriteGuard` can now be obtained by calling
-  `::enq_async_then_write`.
+  `BufferWriteCmd::enq_async_then_write`.
+* `Buffer::flags` now returns a result.
+* `FutureReader` and `FutureWriter` have been renamed to `FutureReadGuard` and
+  `FutureWriteGuard` for clarity.
 * (ocl-core) `::enqueue_write_buffer`, `::enqueue_write_buffer_rect`,
   `::enqueue_write_image`, `enqueue_kernel`, and `enqueue_task` are now
   correctly marked `unsafe`.

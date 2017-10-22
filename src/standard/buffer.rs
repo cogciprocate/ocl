@@ -11,8 +11,8 @@ use ffi::cl_GLuint;
 use core::{self, Error as OclError, ErrorKind as OclErrorKind, Result as OclResult, OclPrm, Mem as
     MemCore, MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
     ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, WriteGuard,
-    ReadGuard, FutureRwGuard, FutureReadGuard, FutureWriteGuard};
+use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard,
+    FutureWriteGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 
@@ -616,7 +616,7 @@ impl<'d, T> ReadDst<'d, T> {
     pub fn len(&self) -> usize {
         match *self {
             ReadDst::RwVec(ref rw_vec) => rw_vec.len(),
-            ReadDst::Writer(ref writer) => writer.len(),
+            ReadDst::Writer(ref writer) => unsafe { (*writer.as_ptr()).len() },
             ReadDst::Slice(ref slice) => slice.len(),
             ReadDst::None => 0,
         }
@@ -881,7 +881,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// A data destination container appropriate for an asynchronous operation
     /// (such as `RwVec`) must have been passed to `::read`.
     ///
-    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T, WriteGuard<T>>> {
+    pub fn enq_async(mut self) -> OclResult<FutureWriteGuard<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -895,7 +895,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     _ => return Err("BufferReadCmd::enq_async: Invalid data destination kind for an
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
                 };
-                if self.range.end > writer.len() {
+                let writer_len = unsafe { (*writer.as_ptr()).len() };
+                if self.range.end > writer_len {
                     return Err(OclError::from("Unable to enqueue buffer read command: \
                         Invalid src_offset and/or len."))
                 }
@@ -906,8 +907,12 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     writer.set_wait_list(wl);
                 }
 
-                let dst = unsafe { &mut writer.as_mut_slice().expect("BufferReadCmd::enq_async: \
-                    Invalid writer.")[self.range] };
+                // let dst = unsafe { &mut writer.as_mut_slice().expect("BufferReadCmd::enq_async: \
+                //     Invalid writer.")[self.range] };
+                let dst = unsafe {
+                    &mut ::std::slice::from_raw_parts_mut(
+                        (*writer.as_mut_ptr()).as_mut_ptr(), writer_len)[self.range]
+                };
 
                 let mut read_event = Event::empty();
 
@@ -958,7 +963,7 @@ impl<'d, T> WriteSrc<'d, T> {
     pub fn len(&self) -> usize {
         match *self {
             WriteSrc::RwVec(ref rw_vec) => rw_vec.len(),
-            WriteSrc::Reader(ref writer) => writer.len(),
+            WriteSrc::Reader(ref writer) => unsafe { (*writer.as_ptr()).len() },
             WriteSrc::Slice(slice) => slice.len(),
             WriteSrc::None => 0,
         }
@@ -1223,7 +1228,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// The returned future must be resolved.
     ///
-    pub fn enq_async(mut self) -> OclResult<FutureRwGuard<T, ReadGuard<T>>> {
+    pub fn enq_async(mut self) -> OclResult<FutureReadGuard<T>> {
         match self.cmd.kind {
             BufferCmdKind::Write => {
                 let mut reader = match self.src {
@@ -1232,7 +1237,8 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     _ => return Err("BufferWriteCmd::enq_async: Invalid data destination kind for an
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
                 };
-                if self.range.end > reader.len() { return Err(OclError::from(
+                let reader_len = unsafe { (*reader.as_ptr()).len() };
+                if self.range.end > reader_len { return Err(OclError::from(
                     "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
 
                 if let Some(wl) = self.cmd.ewait {
@@ -1246,8 +1252,11 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
                 reader.create_lock_event(queue.context_ptr()?)?;
 
-                let src = unsafe { &reader.as_mut_slice().expect("BufferWriteCmd::enq_async: \
-                    Invalid reader.")[self.range] };
+                // let src = unsafe { &reader.as_mut_slice().expect("BufferWriteCmd::enq_async: \
+                //     Invalid reader.")[self.range] };
+                let src = unsafe {
+                    &::std::slice::from_raw_parts((*reader.as_ptr()).as_ptr(), reader_len)[self.range]
+                };
 
                 let mut write_event = Event::empty();
 
@@ -1295,7 +1304,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// The returned future must be resolved.
     ///
-    pub fn enq_async_then_write(self) -> OclResult<FutureRwGuard<T, WriteGuard<T>>> {
+    pub fn enq_async_then_write(self) -> OclResult<FutureWriteGuard<T>> {
         // NOTE: The precise point in time at which `::upgrade_after_command`
         // is called does not matter since a read request will have already
         // been enqueued in the RwVec's queue. The upgrade can be requested at
@@ -1810,6 +1819,9 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// `buffer.set_default_queue(queue).read(....);`
     ///
+    //
+    // TODO: Allow `Option<Queue>` (to unset queue)?
+    //
     #[inline]
     pub fn set_default_queue<'a>(&'a mut self, queue: Queue) -> &'a mut Buffer<T> {
         // [FIXME]: Update this to check whether new queue.device is within
