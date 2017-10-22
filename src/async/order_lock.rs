@@ -16,7 +16,7 @@ use async::{Error as AsyncError, Result as AsyncResult};
 use async::qutex::{QrwLock, QrwRequest, RequestKind};
 
 
-const PRINT_DEBUG: bool = false;
+const PRINT_DEBUG: bool = true;
 
 
 /// Prints a debugging message.
@@ -451,9 +451,9 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
                 // Otherwise, return the `NotReady`. The rx (oneshot channel) will
                 // arrange for this task to be awakened when it's ready.
                 Ok(status) => {
-                    // if PRINT_DEBUG { println!("###### [{}] FutureGuard::poll_lock: status: {:?}, \
-                    //     (thread: {}).", self.order_lock.as_ref().unwrap().id(), status,
-                    //     ::std::thread::current().name().unwrap_or("<unnamed>")); }
+                    if PRINT_DEBUG { println!("###### [{}] FutureGuard::poll_lock: status: {:?}, \
+                        (thread: {}).", self.order_lock.as_ref().unwrap().id(), status,
+                        ::std::thread::current().name().unwrap_or("<unnamed>")); }
                     match status {
                         Async::Ready(_) => {
                             if let Some(ref lock_event) = self.lock_event {

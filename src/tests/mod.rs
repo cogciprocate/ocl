@@ -18,6 +18,7 @@ pub mod kernel_arg_ptr;
 pub mod vector_types;
 pub mod context_props;
 pub mod async;
+pub mod buffer_sink;
 
 use rand::{self, Rng};
 use core::error::{Error as OclError, Result as OclResult};
