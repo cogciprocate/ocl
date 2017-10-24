@@ -25,21 +25,21 @@
 extern crate chrono;
 extern crate futures;
 extern crate futures_cpupool;
-extern crate ocl;
-#[macro_use] extern crate colorify;
+// extern crate ocl;
+// #[macro_use] extern crate colorify;
 
 use std::fmt::Debug;
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc::{self, Receiver};
-use chrono::{Duration, DateTime, Local};
-use futures::{Future};
-use futures_cpupool::{CpuPool, CpuFuture};
-use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
-use ocl::traits::{IntoRawEventArray};
-use ocl::async::{Error as AsyncError};
-use ocl::flags::{MemFlags, CommandQueueProperties};
-use ocl::prm::Int4;
-use ocl::ffi::{cl_event, c_void};
+use self::chrono::{Duration, DateTime, Local};
+use self::futures::{Future};
+use self::futures_cpupool::{Builder as CpuPoolBuilder, CpuFuture};
+use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
+use ::traits::{IntoRawEventArray};
+use ::async::{Error as AsyncError, BufferSink};
+use ::flags::{MemFlags, CommandQueueProperties};
+use ::prm::Int4;
+use ::ffi::{cl_event, c_void};
 
 // Size of buffers and kernel work size:
 const WORK_SIZE: usize = 1 << 22;
@@ -50,6 +50,8 @@ const SCALAR_ADDEND: i32 = 100;
 
 // Number of times to run the loop:
 const TASK_ITERS: i32 = 10;
+
+const PRINT: bool = false;
 
 // The size of the pipeline channel/buffer/queue/whatever (minimum 2). This
 // has the effect of increasing the number of threads in use at any one time.
@@ -112,8 +114,7 @@ pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
             match rx.recv().unwrap() {
                 Some(task) => {
                     task.wait().unwrap();
-                    println!("Task {} complete (t: {}s)", task_i, timestamp());
-
+                    if PRINT { println!("Task {} complete (t: {}s)", task_i, timestamp()); }
                     task_i += 1;
                     continue;
                 },
@@ -121,7 +122,7 @@ pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
             }
         }
 
-        printlnc!(white_bold: "All {} futures complete.", task_i);
+        if PRINT { println!("All {} futures complete.", task_i); }
     })
 }
 
@@ -138,12 +139,16 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 {
     // These just print status messages...
     extern "C" fn _print_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(peach_bold: "* Fill starting \t\t(iter: {}, t: {}s) ...",
-            task_iter as usize, timestamp());
+        if PRINT {
+            println!("* Fill starting \t\t(iter: {}, t: {}s) ...",
+                task_iter as usize, timestamp());
+        }
     }
     extern "C" fn _print_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(peach_bold: "* Fill complete \t\t(iter: {}, t: {}s)",
-            task_iter as usize, timestamp());
+        if PRINT {
+            println!("* Fill complete \t\t(iter: {}, t: {}s)",
+                task_iter as usize, timestamp());
+        }
     }
 
     // Clear the wait list and push the previous iteration's kernel event
@@ -180,8 +185,8 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 /// the common queue and the `unmap` will automatically use the
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
-pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
-        write_init_unmap_queue: Queue,
+pub fn write_init(src_buf_sink: &BufferSink<Int4>,
+        kernel_event: Option<&Event>,
         fill_event: Option<&Event>,
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
@@ -190,49 +195,55 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         //     impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
         -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
-    extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(teal_bold: "* Write init complete \t\t(iter: {}, t: {}s)",
-            task_iter as usize, timestamp());
+    extern "C" fn _write_write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT {
+            println!("* Write init write complete \t(iter: {}, t: {}s)",
+                task_iter as usize, timestamp());
+        }
     }
 
-    let mut future_write_data = unsafe {
-        src_buf.cmd().map()
-            .queue(common_queue)
-            // .flags(MapFlags::new().write_invalidate_region())
-            .write_invalidate()
-            .enq_async().unwrap()
-    };
-
-    // Set up the wait list to use when unmapping. As this is an invalidating
-    // write, only the unmap command actually guarantee any data has been
-    // moved (the map command does little more than return a reference to our
-    // mapped memory when using the `MAP_WRITE_INVALIDATE_REGION` flag).
-    future_write_data.set_unmap_wait_list([&verify_init_event, &fill_event]);
-
-    // Set the write unmap completion event which will be set to complete
-    // (triggered) after the CPU-side processing is complete and the data is
-    // transferred to the device:
-    *write_init_event = Some(future_write_data.create_unmap_target_event().unwrap().clone());
-
-    unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
-        task_iter as *mut c_void).unwrap(); }
-
-    Box::new(future_write_data.and_then(move |mut data| {
-        printlnc!(teal_bold: "* Write init starting \t\t(iter: {}, t: {}s) ...",
-            task_iter, timestamp());
-
-        for val in data.iter_mut() {
-            *val = Int4::new(write_val, write_val, write_val, write_val);
+    extern "C" fn _write_flush_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
+        if PRINT {
+            println!("* Write init flush complete \t(iter: {}, t: {}s)",
+                task_iter as usize, timestamp());
         }
+    }
 
-        // Normally we could just let `data` (a `MemMap`) fall out of
-        // scope and it would unmap itself. Since we need to specify a
-        // special dedicated queue to avoid deadlocks in this case, we
-        // call it explicitly.
-        data.unmap().queue(&write_init_unmap_queue).enq()?;
+    let mut future_write_data = src_buf_sink.clone().write()
+        .with_wait_list([&fill_event, &verify_init_event, &kernel_event]);
 
-        Ok(task_iter)
-    }))
+    unsafe {
+        future_write_data.create_release_event(src_buf_sink.buffer().default_queue().unwrap())
+            .as_ref().unwrap().set_callback(_write_write_complete,
+                task_iter as *mut c_void).unwrap();
+    }
+
+    let future_write = future_write_data
+        .and_then(move |mut data| {
+            if PRINT {
+                println!("* Write init starting \t\t(iter: {}, t: {}s) ...",
+                    task_iter, timestamp());
+            }
+
+            for val in data.iter_mut() {
+                *val = Int4::new(write_val, write_val, write_val, write_val);
+            }
+
+            Ok(task_iter)
+        });
+
+    // The final completion event:
+    *write_init_event = Some(Event::empty());
+
+    let future_flush = src_buf_sink.flush(None::<Event>, write_init_event.as_mut()).unwrap();
+
+    // Set printing callback:
+    unsafe {
+        write_init_event.as_ref().unwrap().set_callback(_write_flush_complete,
+            task_iter as *mut c_void).unwrap();
+    }
+
+    Box::new(future_write.join(future_flush).map(|(task_iter, _)| task_iter))
 }
 
 
@@ -253,8 +264,10 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(blue_bold: "* Verify init starting \t\t(iter: {}, t: {}s) ...",
-            task_iter as usize, timestamp());
+        if PRINT {
+            println!("* Verify init starting \t\t(iter: {}, t: {}s) ...",
+                task_iter as usize, timestamp());
+        }
     }
 
     // Clear the wait list and push the previous iteration's read verify
@@ -285,13 +298,16 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         for (idx, val) in data.iter().enumerate() {
             let cval = Int4::new(correct_val, correct_val, correct_val, correct_val);
             if *val != cval {
-                return Err(format!("Verify init: Result value mismatch: {:?} != {:?} @ [{}]", val, cval, idx).into());
+                return Err(format!("Verify init: Result value mismatch: {:?} != {:?} @ [{}]",
+                    val, cval, idx).into());
             }
             val_count += 1;
         }
 
-        printlnc!(blue_bold: "* Verify init complete \t\t(iter: {}, t: {}s)",
-            task_iter, timestamp());
+        if PRINT {
+            println!("* Verify init complete \t\t(iter: {}, t: {}s)",
+                task_iter, timestamp());
+        }
 
         Ok(val_count)
     }))
@@ -313,12 +329,16 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
 {
     // These just print status messages...
     extern "C" fn _print_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(magenta_bold: "* Kernel starting \t\t(iter: {}, t: {}s) ...",
-            task_iter as usize, timestamp());
+        if PRINT {
+            println!("* Kernel starting \t\t(iter: {}, t: {}s) ...",
+                task_iter as usize, timestamp());
+        }
     }
     extern "C" fn _print_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(magenta_bold: "* Kernel complete \t\t(iter: {}, t: {}s)",
-            task_iter as usize, timestamp());
+        if PRINT {
+            println!("* Kernel complete \t\t(iter: {}, t: {}s)",
+                task_iter as usize, timestamp());
+        }
     }
 
     // Clear the wait list and push the previous iteration's read unmap event
@@ -374,8 +394,10 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         -> Box<Future<Item=i32, Error=AsyncError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
-        printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}, t: {}s) ...",
-            task_iter as usize, timestamp());
+        if PRINT {
+            println!("* Verify add starting \t\t(iter: {}, t: {}s) ...",
+                task_iter as usize, timestamp());
+        }
     }
 
     unsafe { wait_event.as_ref().unwrap()
@@ -384,7 +406,6 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     let mut future_read_data = unsafe {
         dst_buf.cmd().map()
             .queue(common_queue)
-            // .flags(MapFlags::new().read())
             .read()
             .ewait_opt(wait_event)
             .enq_async().unwrap()
@@ -405,8 +426,10 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
             val_count += 1;
         }
 
-        printlnc!(lime_bold: "* Verify add complete \t\t(iter: {}, t: {}s)",
-            task_iter, timestamp());
+        if PRINT {
+            println!("* Verify add complete \t\t(iter: {}, t: {}s)",
+                task_iter, timestamp());
+        }
 
         // Explicitly enqueue the unmap with our dedicated queue,
         // otherwise the common queue would be used and could cause
@@ -428,11 +451,12 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 ///   3. adds a value,
 ///   4. and verifies the sum.
 ///
-pub fn main() {
+#[test]
+pub fn buffer_sink_cycles() {
     let platform = Platform::default();
-    printlnc!(dark_grey_bold: "Platform: {}", platform.name());
+    println!("Platform: {}", platform.name());
     let device = Device::first(platform);
-    printlnc!(dark_grey_bold: "Device: {} {}", device.vendor(), device.name());
+    println!("Device: {} {}", device.vendor(), device.name());
 
     let context = Context::builder()
         .platform(platform)
@@ -467,6 +491,9 @@ pub fn main() {
         .dims(WORK_SIZE)
         .build().unwrap();
 
+    let src_buf_sink = unsafe { BufferSink::new(src_buf.clone(),
+        write_init_unmap_queue.clone(), 0, src_buf.len()).unwrap() };
+
     let dst_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(dst_buf_flags)
@@ -489,7 +516,8 @@ pub fn main() {
     let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); WORK_SIZE]);
 
     // Thread pool for offloaded tasks.
-    let thread_pool = CpuPool::new_num_cpus();
+    // let thread_pool = CpuPool::new_num_cpus();
+    let thread_pool = CpuPoolBuilder::new().name_prefix("pool_th_").create();
 
     // A channel with room to keep a pre-specified number of tasks in-flight.
     let (tx, rx) = mpsc::sync_channel::<Option<CpuFuture<_, _>>>(MAX_CONCURRENT_TASK_COUNT - 2);
@@ -507,7 +535,7 @@ pub fn main() {
     let mut verify_add_event = None;
 
     unsafe { START_TIME = Some(Local::now()); }
-    printlnc!(white_bold: "Starting cycles (t: {}s) ...", timestamp());
+    if PRINT { println!("Starting cycles (t: {}s) ...", timestamp()); }
 
     // Our main loop. Could run indefinitely if we had a stream of input.
     for task_iter in 0..TASK_ITERS {
@@ -524,8 +552,9 @@ pub fn main() {
 
         // 1. Map-Write-Init
         // ============
-        let write_init = write_init(&src_buf, &common_queue,
-            write_init_unmap_queue.clone(),
+        let write_init = write_init(
+            &src_buf_sink,
+            kernel_event.as_ref(),
             fill_event.as_ref(),
             verify_init_event.as_ref(),
             &mut write_init_event,
@@ -555,8 +584,10 @@ pub fn main() {
             &mut verify_add_event,
             tval, task_iter);
 
-        printlnc!(orange: "All commands for iteration {} enqueued    (t: {}s)",
-            task_iter, timestamp());
+        if PRINT {
+            println!("All commands for iteration {} enqueued    (t: {}s)",
+                task_iter, timestamp());
+        }
 
         let join = write_init.join3(verify_init, verify_add);
         let join_spawned = thread_pool.spawn(join);
@@ -571,6 +602,6 @@ pub fn main() {
     tx.send(None).unwrap();
     completion_thread.join().unwrap();
 
-    printlnc!(yellow_bold: "All result values are correct! \n\
+    println!("All result values are correct! \n\
         Duration => | Total: {} seconds |", timestamp());
 }

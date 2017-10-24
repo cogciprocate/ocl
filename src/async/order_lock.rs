@@ -297,6 +297,16 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
     /// Sets an event wait list.
     ///
+    /// See `::set_wait_list`.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
+    pub fn with_wait_list<L: Into<EventList>>(mut self, wait_list: L) -> FutureGuard<V,G> {
+        self.set_wait_list(wait_list);
+        self
+    }
+
+    /// Sets an event wait list.
+    ///
     /// Setting a wait list will cause this `FutureGuard` to wait until
     /// contained events have their status set to complete before obtaining a
     /// lock on the guarded internal value.
@@ -305,6 +315,16 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     pub fn set_wait_list<L: Into<EventList>>(&mut self, wait_list: L) {
         assert!(self.wait_list.is_none(), "Wait list has already been set.");
         self.wait_list = Some(wait_list.into());
+    }
+
+    /// Sets a command completion event.
+    ///
+    /// See `::set_command_completion_event`.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
+    pub fn with_command_completion_event(mut self, command_completion: Event) -> FutureGuard<V,G> {
+        self.set_command_completion_event(command_completion);
+        self
     }
 
     /// Sets a command completion event.

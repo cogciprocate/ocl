@@ -1,7 +1,7 @@
 
 extern crate futures;
 
-use futures::Future;
+// use futures::Future;
 use ::{util, ProQue, Buffer, MemFlags, Event, EventList};
 use async::BufferSink;
 

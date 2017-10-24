@@ -12,8 +12,7 @@ extern crate ocl;
 
 use std::cell::Cell;
 use std::collections::VecDeque;
-use futures::{stream, Stream};
-use futures::future::{Future};
+use futures::{stream, Stream, Future};
 use futures_cpupool::CpuPool;
 use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, Event};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};

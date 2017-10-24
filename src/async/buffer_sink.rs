@@ -1,35 +1,37 @@
+//! High performance buffer writes.
 
 use std::ops::{Deref, DerefMut};
-use futures::{Future, Poll};
 use core::{self, Result as OclResult, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
 use standard::{Event, EventList, Queue, Buffer};
-use async::{Error as AsyncError, OrderLock, FutureGuard, ReadGuard,
-    WriteGuard};
+use async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
 
 
-/// The future of plumbing! Errr, wait a sec.
-#[must_use = "futures do nothing unless polled"]
-#[derive(Debug)]
-pub struct FutureFlush<T: OclPrm> {
-    future_guard: FutureGuard<Inner<T>, ReadGuard<Inner<T>>>,
-}
+/////// KEEPME (consider keeping in some form [but probably not]) /////////
+// /// The future of plumbing! Errr, wait a sec.
+// #[must_use = "futures do nothing unless polled"]
+// #[derive(Debug)]
+// pub struct FutureFlush<T: OclPrm> {
+//     future_guard: FutureGuard<Inner<T>, ReadGuard<Inner<T>>>,
+// }
 
-impl<T: OclPrm> FutureFlush<T> {
-    fn new(future_guard: FutureGuard<Inner<T>, ReadGuard<Inner<T>>>) -> FutureFlush<T> {
-        FutureFlush { future_guard: future_guard }
-    }
-}
+// impl<T: OclPrm> FutureFlush<T> {
+//     fn new(future_guard: FutureGuard<Inner<T>, ReadGuard<Inner<T>>>) -> FutureFlush<T> {
+//         FutureFlush { future_guard: future_guard }
+//     }
+// }
 
-impl<T: OclPrm> Future for FutureFlush<T> {
-    type Item = ();
-    type Error = AsyncError;
+// impl<T: OclPrm> Future for FutureFlush<T> {
+//     type Item = ();
+//     type Error = AsyncError;
 
-    #[inline]
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        self.future_guard.poll().map(|res| res.map(|_read_guard| ()))
-    }
-}
+//     #[inline]
+//     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+//         self.future_guard.poll().map(|res| res.map(|_read_guard| ()))
+//     }
+// }
+////////// KEEPME /////////
+
 
 
 #[derive(Debug)]
@@ -147,10 +149,11 @@ impl<T: OclPrm> BufferSink<T> {
     }
 
     /// Flushes the mapped memory region to the device.
-    pub fn flush<Ewl, En>(&self, wait_events: Option<Ewl>, mut flush_event: Option<En>)
-            -> OclResult<FutureFlush<T>>
-            where Ewl: Into<EventList>, En: ClNullEventPtr {
-        let mut future_read = self.clone().read();
+    pub fn flush<Ew, En>(&self, wait_events: Option<Ew>, mut flush_event: Option<En>)
+            // -> OclResult<FutureFlush<T>>
+            -> OclResult<FutureGuard<Inner<T>, ReadGuard<Inner<T>>>>
+            where Ew: Into<EventList>, En: ClNullEventPtr {
+        let mut future_read = self.clone().lock.read();
         if let Some(wl) = wait_events {
             future_read.set_wait_list(wl);
         }
@@ -182,7 +185,23 @@ impl<T: OclPrm> BufferSink<T> {
         // Ensure that the unmap and (re)map finish.
         future_read.set_command_completion_event(map_event.clone());
 
-        Ok(FutureFlush::new(future_read))
+        // Ok(FutureFlush::new(future_read))
+        Ok(future_read)
+    }
+
+    /// Returns a reference to the internal buffer.
+    pub fn buffer(&self) -> &Buffer<T> {
+        unsafe { &(*self.lock.as_mut_ptr()).buffer }
+    }
+
+    /// Returns a reference to the internal memory mapping.
+    pub fn memory(&self) -> &MemMapCore<T> {
+        unsafe { &(*self.lock.as_mut_ptr()).memory }
+    }
+
+    /// Returns a reference to the internal offset.
+    pub fn offset(&self) -> usize {
+        unsafe { (*self.lock.as_mut_ptr()).offset }
     }
 
     /// Returns a mutable slice into the contained memory region.
@@ -208,5 +227,11 @@ impl<T: OclPrm> BufferSink<T> {
     /// unique identifier.
     pub fn id(&self) -> usize {
         unsafe { (*self.lock.as_ptr()).memory.as_ptr() as usize }
+    }
+}
+
+impl<T: OclPrm> From<OrderLock<Inner<T>>> for BufferSink<T> {
+    fn from(order_lock: OrderLock<Inner<T>>) -> BufferSink<T> {
+        BufferSink { lock: order_lock }
     }
 }
