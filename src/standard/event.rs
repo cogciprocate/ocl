@@ -281,6 +281,39 @@ fn take(event: &mut Event) -> Event {
 }
 
 
+/// Polls events for `EventArray` and `EventList`
+fn poll_events(events: &[Event]) -> Poll<(), OclError> {
+    if PRINT_DEBUG { println!("####### EventList/Array::poll: Polling Event list (thread: '{}')",
+        ::std::thread::current().name().unwrap_or("<unnamed>")); }
+
+    for event in events.iter() {
+        if cfg!(feature = "async_block") {
+            if PRINT_DEBUG { println!("####### EventList/Array::poll: waiting for for event: {:?} \
+                (thread: '{}')", event, ::std::thread::current().name().unwrap_or("<unnamed>")); }
+            event.wait_for()?;
+        } else {
+            if !event.is_complete()? {
+                #[cfg(not(feature = "async_block"))]
+                event.set_unpark_callback()?;
+                if PRINT_DEBUG { println!("####### EventList/Array::poll: callback set for event: {:?} \
+                    (thread: '{}')", event, ::std::thread::current().name().unwrap_or("<unnamed>")); }
+                return Ok(Async::NotReady);
+            } else {
+                if PRINT_DEBUG { println!("####### EventList/Array::poll: event complete: {:?} \
+                    (thread: '{}')", event, ::std::thread::current().name().unwrap_or("<unnamed>")); }
+            }
+        }
+    }
+
+    // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );
+    if PRINT_DEBUG { println!("####### EventList/Array::poll: All events complete (thread: '{}')",
+        ::std::thread::current().name().unwrap_or("<unnamed>")); }
+
+    Ok(Async::Ready(()))
+    // res
+}
+
+
 /// A list of events for coordinating enqueued commands.
 ///
 /// Events contain status information about the command that
@@ -536,29 +569,9 @@ impl Future for EventArray {
     type Item = ();
     type Error = OclError;
 
-    /// Removes (pops) each event from this list and waits for it to complete,
-    /// dropping it in the process.
-    //
-    // * See `EventList::poll` for notes.
-    #[cfg(not(feature = "async_block"))]
+    /// Polls each event from this list.
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        while let Some(event) = self.pop() {
-            if !event.is_complete()? {
-                event.set_unpark_callback()?;
-                return Ok(Async::NotReady);
-            }
-        }
-        Ok(Async::Ready(()))
-    }
-
-    /// Removes (pops) each event from this list and waits for it to complete,
-    /// dropping it in the process.
-    #[cfg(feature = "async_block")]
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        while let Some(event) = self.pop() {
-            event.wait_for()?;
-        }
-        Ok(Async::Ready(()))
+        poll_events(self.as_slice())
     }
 }
 
@@ -1109,52 +1122,9 @@ impl Future for EventList {
     type Item = ();
     type Error = OclError;
 
-    /// Removes (pops) each event from this list and waits for it to complete,
-    /// dropping it in the process.
-    //
-    // * NOTE: Multiple calls to poll may hit this function. Do not attempt to
-    //   remove any events from this list which still require waiting. The
-    //   most robust strategy so far seems to simply wait on each event
-    //   individually. Since events do not need to be polled or otherwise
-    //   driven to completion this seems as efficient a strategy as any other.
-    //
-    //   Using `future::join_all` requires that the event list be cloned on
-    //   each call to poll and then requires that each event be unnecessarily
-    //   queried for completion an additional time. The only way around this
-    //   would be to keep a separate variable for completion status but this
-    //   variable would become out of date if the list were changed.
-    //
-    //   The most efficient strategy of all would probably be to use a marker
-    //   instead of an event wait list and just never poll an `EventList` in
-    //   the first place.
-    //
-    // * ALSO NOTE: The event being waited on is actually dropped (at the exit
-    //   of the `while let` loop) and is kept alive by the runtime until its
-    //   command is complete.
-    //
+    /// Polls each event from this list.
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        if PRINT_DEBUG { println!("##### EventList::poll: Polling Event list (thread: '{}').",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
-
-        while let Some(event) = self.pop() {
-            if cfg!(feature = "async_block") {
-                event.wait_for()?;
-            } else {
-                if !event.is_complete()? {
-                    #[cfg(not(feature = "async_block"))]
-                    event.set_unpark_callback()?;
-                    if PRINT_DEBUG { println!("######  ... callback set for event: {:?}.", event); }
-                    return Ok(Async::NotReady);
-                }
-            }
-        }
-
-        // let res = future::join_all(self.events.clone()).poll().map(|res| res.map(|_| ()) );
-        if PRINT_DEBUG { println!("##### EventList::poll: All events complete (thread: '{}').",
-            ::std::thread::current().name().unwrap_or("<unnamed>")); }
-
-        Ok(Async::Ready(()))
-        // res
+        poll_events(self.as_slice())
     }
 }
 
