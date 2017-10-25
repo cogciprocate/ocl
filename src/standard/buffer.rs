@@ -1495,8 +1495,6 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
                 Ok((offset, len, queue, flags, self.cmd.ewait.take(), self.cmd.enew.take(), /*is_mapped*/))
             } else {
-                // OclError::err_string("ocl::BufferMapCmd::enq_async(): A rectangular map is \
-                //     not a valid operation. Please use the default shape, linear.")
                 Err(BufferCmdError::RectUnavailable)
             }
         } else {
