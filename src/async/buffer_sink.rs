@@ -103,13 +103,27 @@ pub struct BufferSink<T: OclPrm> {
 impl<T: OclPrm> BufferSink<T> {
     /// Returns a new `BufferSink`.
     ///
+    /// The current thread will be blocked while the buffer is initialized
+    /// upon calling this function.
+    pub fn new(queue: Queue, len: usize) -> OclResult<BufferSink<T>> {
+        let buffer = Buffer::<T>::builder()
+            .queue(queue.clone())
+            .flags(MemFlags::new().alloc_host_ptr().host_write_only())
+            .dims(len)
+            .fill_val(T::default())
+            .build()?;
+
+        unsafe { BufferSink::from_buffer(buffer, queue, 0, len) }
+    }
+
+    /// Returns a new `BufferSink`.
+    ///
     /// ## Safety
     ///
     /// `buffer` must not have the same region mapped more than once.
     ///
-    pub unsafe fn new(mut buffer: Buffer<T>, queue: Queue, offset: usize, len: usize)
+    pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Queue, offset: usize, len: usize)
             -> OclResult<BufferSink<T>> {
-        // TODO: Ensure that these checks are complete enough.
         let buf_flags = buffer.flags()?;
         assert!(buf_flags.contains(MemFlags::new().alloc_host_ptr()) ||
             buf_flags.contains(MemFlags::new().use_host_ptr()),
@@ -119,6 +133,7 @@ impl<T: OclPrm> BufferSink<T> {
             !buf_flags.contains(MemFlags::new().host_read_only()),
             "A buffer sink may not be created with a buffer that has either the \
             `MEM_HOST_NO_ACCESS` or `MEM_HOST_READ_ONLY` flags.");
+        assert!(offset + len <= buffer.len());
 
         buffer.set_default_queue(queue);
         let map_flags = MapFlags::new().write_invalidate_region();
@@ -155,7 +170,7 @@ impl<T: OclPrm> BufferSink<T> {
             where Ew: Into<EventList>, En: ClNullEventPtr {
         let mut future_read = self.clone().lock.read();
         if let Some(wl) = wait_events {
-            future_read.set_wait_list(wl);
+            future_read.set_lock_wait_events(wl);
         }
 
         let mut unmap_event = Event::empty();
@@ -182,7 +197,7 @@ impl<T: OclPrm> BufferSink<T> {
         }
 
         // Ensure that the unmap and (re)map finish.
-        future_read.set_command_completion_event(map_event.clone());
+        future_read.set_command_wait_event(map_event.clone());
 
         Ok(FutureFlush::new(future_read))
     }

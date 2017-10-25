@@ -195,24 +195,26 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
             task_iter as usize, timestamp());
     }
 
-    let mut future_write_data = unsafe {
+    *write_init_event = Some(Event::empty());
+
+    let future_write_data = unsafe {
         src_buf.cmd().map()
             .queue(common_queue)
-            // .flags(MapFlags::new().write_invalidate_region())
             .write_invalidate()
             .enq_async().unwrap()
+
+            // Set up the wait list to use when unmapping. As this is an
+            // invalidating write, only the unmap command actually guarantee
+            // any data has been moved (the map command does little more than
+            // return a reference to our mapped memory when using the
+            // `MAP_WRITE_INVALIDATE_REGION` flag).
+            .ewait_unmap([&verify_init_event, &fill_event])
+
+            // Set the write unmap completion event which will be set to
+            // complete (triggered) after the CPU-side processing is complete
+            // and the data is transferred to the device:
+            .enew_unmap(write_init_event.as_mut().unwrap())
     };
-
-    // Set up the wait list to use when unmapping. As this is an invalidating
-    // write, only the unmap command actually guarantee any data has been
-    // moved (the map command does little more than return a reference to our
-    // mapped memory when using the `MAP_WRITE_INVALIDATE_REGION` flag).
-    future_write_data.set_unmap_wait_list([&verify_init_event, &fill_event]);
-
-    // Set the write unmap completion event which will be set to complete
-    // (triggered) after the CPU-side processing is complete and the data is
-    // transferred to the device:
-    *write_init_event = Some(future_write_data.create_unmap_completion_event().unwrap().clone());
 
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
         task_iter as *mut c_void).unwrap(); }
@@ -262,8 +264,6 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
     // event.
     let wait_list = [&write_init_event, &verify_init_event.as_ref()].into_raw_array();
 
-    // println!("###### WAIT_LIST: {:?}", wait_list);
-
     let mut future_read_data = src_buf.cmd().read(dst_vec)
         .queue(common_queue)
         .ewait(&wait_list)
@@ -274,7 +274,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
     unsafe { future_read_data.lock_event().unwrap()
         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
-    // Create an empty event ready to hold the new verify_init event, overwriting any old one.
+    // Create a release event which is triggered when the read guard is dropped.
     *verify_init_event = Some(future_read_data.create_release_event(verify_init_queue)
         .unwrap().clone());
 
@@ -381,17 +381,18 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     unsafe { wait_event.as_ref().unwrap()
         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
-    let mut future_read_data = unsafe {
+    *verify_add_event = Some(Event::empty());
+
+    let future_read_data = unsafe {
         dst_buf.cmd().map()
             .queue(common_queue)
-            // .flags(MapFlags::new().read())
             .read()
             .ewait_opt(wait_event)
             .enq_async().unwrap()
-    };
 
-    // Set the read unmap completion event:
-    *verify_add_event = Some(future_read_data.create_unmap_completion_event().unwrap().clone());
+            // Set the read unmap completion event:
+            .enew_unmap(verify_add_event.as_mut().unwrap())
+    };
 
     Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;

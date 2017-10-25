@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
 use futures::sync::oneshot::{self, Receiver};
-use core::ClContextPtr;
+use core::{Result as OclResult, ClContextPtr, ClNullEventPtr};
 use ::{Event, EventList};
 use async::{Error as AsyncError, Result as AsyncResult};
 use async::qutex::{QrwLock, QrwRequest, RequestKind};
@@ -272,9 +272,9 @@ enum Stage {
 pub struct FutureGuard<V, G> {
     order_lock: Option<OrderLock<V>>,
     lock_rx: Option<Receiver<()>>,
-    wait_list: Option<EventList>,
+    wait_events: Option<EventList>,
     lock_event: Option<Event>,
-    command_completion: Option<Event>,
+    command_event: Option<Event>,
     upgrade_after_command: bool,
     upgrade_rx: Option<Receiver<()>>,
     release_event: Option<Event>,
@@ -288,9 +288,9 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
         FutureGuard {
             order_lock: Some(order_lock),
             lock_rx: Some(lock_rx),
-            wait_list: None,
+            wait_events: None,
             lock_event: None,
-            command_completion: None,
+            command_event: None,
             upgrade_after_command: false,
             upgrade_rx: None,
             release_event: None,
@@ -301,54 +301,54 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
     /// Sets an event wait list.
     ///
-    /// See `::set_wait_list`.
-    ///
-    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
-    pub fn with_wait_list<L: Into<EventList>>(mut self, wait_list: L) -> FutureGuard<V, G> {
-        self.set_wait_list(wait_list);
-        self
-    }
-
-    /// Sets an event wait list.
-    ///
     /// Setting a wait list will cause this `FutureGuard` to wait until
     /// contained events have their status set to complete before obtaining a
     /// lock on the guarded internal value.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
-    pub fn set_wait_list<L: Into<EventList>>(&mut self, wait_list: L) {
-        assert!(self.wait_list.is_none(), "Wait list has already been set.");
-        self.wait_list = Some(wait_list.into());
+    pub fn set_lock_wait_events<L: Into<EventList>>(&mut self, wait_events: L) {
+        assert!(self.wait_events.is_none(), "Wait list has already been set.");
+        self.wait_events = Some(wait_events.into());
     }
 
-    /// Sets a command completion event.
+    /// Sets an event wait list.
     ///
-    /// See `::set_command_completion_event`.
+    /// See `::set_lock_wait_events`.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
-    pub fn with_command_completion_event(mut self, command_completion: Event) -> FutureGuard<V, G> {
-        self.set_command_completion_event(command_completion);
+    pub fn ewait_lock<L: Into<EventList>>(mut self, wait_events: L) -> FutureGuard<V, G> {
+        self.set_lock_wait_events(wait_events);
         self
     }
 
-    /// Sets a command completion event.
+    /// Sets a command completion wait event.
     ///
-    /// If a command completion event corresponding to the read or write
-    /// command being executed in association with this `FutureGuard` is
-    /// specified before this `FutureGuard` is polled it will cause this
-    /// `FutureGuard` to suffix itself with an additional future that will
-    /// wait until the command completion event completes before resolving
-    /// into an `OrderGuard`.
+    /// `command_event` must be an event created by enqueuing an OpenCL
+    /// command which interacts (reads/writes) with the data associated with
+    /// this `FutureGuard`.
+    ///
+    /// If the command completion event is specified, this `FutureGuard` will
+    /// "suffix" itself with an additional future that will wait until the
+    /// command completes before resolving.
     ///
     /// Not specifying a command completion event will cause this
     /// `FutureGuard` to resolve into an `OrderGuard` immediately after the
     /// lock is obtained (indicated by the optionally created lock event).
     ///
-    /// TODO: Reword this.
     /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
-    pub fn set_command_completion_event(&mut self, command_completion: Event) {
-        assert!(self.command_completion.is_none(), "Command completion event has already been set.");
-        self.command_completion = Some(command_completion);
+    pub fn set_command_wait_event(&mut self, command_event: Event) {
+        assert!(self.command_event.is_none(), "Command completion event has already been set.");
+        self.command_event = Some(command_event);
+    }
+
+    /// Sets a command completion wait event.
+    ///
+    /// See `::set_command_wait_event`.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
+    pub fn ewait_command(mut self, command_event: Event) -> FutureGuard<V, G> {
+        self.set_command_wait_event(command_event);
+        self
     }
 
     /// Creates an event which will be triggered when a lock is obtained on
@@ -360,10 +360,25 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// status set to complete, causing those commands to execute. This can be
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
-    pub fn create_lock_event<C: ClContextPtr>(&mut self, context: C) -> AsyncResult<&Event> {
+    pub fn create_lock_event<C: ClContextPtr>(&mut self, context: C) -> OclResult<&Event> {
         assert!(self.lock_event.is_none(), "Lock event has already been created.");
         self.lock_event = Some(Event::user(context)?);
         Ok(self.lock_event.as_mut().unwrap())
+    }
+
+    /// Specifies an event which will be triggered when a lock is obtained on
+    /// the guarded internal value.
+    ///
+    /// See `::create_lock_event`
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
+    pub fn enew_lock<C, En>(mut self, context: C, mut enew: En) -> FutureGuard<V, G>
+            where C: ClContextPtr, En: ClNullEventPtr {
+        {
+            let lock_event = self.create_lock_event(context).expect("FutureGuard::enew_lock");
+            unsafe { enew.clone_from(lock_event); }
+        }
+        self
     }
 
     /// Creates an event which will be triggered after this future resolves
@@ -375,22 +390,37 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// status set to complete, causing those commands to execute. This can be
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
-    pub fn create_release_event<C: ClContextPtr>(&mut self, context: C) -> AsyncResult<&Event> {
+    pub fn create_release_event<C: ClContextPtr>(&mut self, context: C) -> OclResult<&Event> {
         assert!(self.release_event.is_none(), "Release event has already been created.");
         self.release_event = Some(Event::user(context)?);
         Ok(self.release_event.as_ref().unwrap())
     }
 
+    /// Specifies an event which will be triggered after this future resolves
+    /// **and** the ensuing `OrderGuard` is dropped or manually released.
+    ///
+    /// See `::create_release_event`.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
+    pub fn enew_release<C, En>(mut self, context: C, mut enew: En) -> FutureGuard<V, G>
+            where C: ClContextPtr, En: ClNullEventPtr {
+        {
+            let release_event = self.create_release_event(context).expect("FutureGuard::enew_release");
+            unsafe { enew.clone_from(release_event); }
+        }
+        self
+    }
+
     /// Returns a reference to the event previously created with
-    /// `::create_lock_event` which will trigger (be completed) when the wait
-    /// events are complete and the lock is locked.
+    /// `::create_lock_event` or `::enew_lock` which will trigger (be
+    /// completed) when the wait events are complete and the lock is locked.
     pub fn lock_event(&self) -> Option<&Event> {
         self.lock_event.as_ref()
     }
 
     /// Returns a reference to the event previously created with
-    /// `::create_release_event` which will trigger (be completed) when a lock
-    /// is obtained on the guarded internal value.
+    /// `::create_release_event` or `::enew_release` which will trigger (be
+    /// completed) when a lock is obtained on the guarded internal value.
     pub fn release_event(&self) -> Option<&Event> {
         self.release_event.as_ref()
     }
@@ -442,12 +472,12 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_wait_events: Called");
 
         // Check completion of wait list, if it exists:
-        if let Some(ref mut wait_list) = self.wait_list {
+        if let Some(ref mut wait_events) = self.wait_events {
             // if PRINT_DEBUG { println!("###### [{}] FutureGuard::poll_wait_events: \
             //     Polling wait_events (thread: {})...", self.order_lock.as_ref().unwrap().id(),
             //     ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
-            if let Async::NotReady = wait_list.poll()? {
+            if let Async::NotReady = wait_events.poll()? {
                 return Ok(Async::NotReady);
             }
 
@@ -528,19 +558,19 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
         debug_assert!(self.stage == Stage::Command);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Called");
 
-        if let Some(ref mut command_completion) = self.command_completion {
+        if let Some(ref mut command_event) = self.command_event {
             // if PRINT_DEBUG { println!("###### [{}] FutureGuard::poll_command: Polling command \
             //     completion event (thread: {}).", self.order_lock.as_ref().unwrap().id(), ::std::thread::current().name()
             //     .unwrap_or("<unnamed>")); }
 
-            if let Async::NotReady = command_completion.poll()? {
+            if let Async::NotReady = command_event.poll()? {
                 return Ok(Async::NotReady);
             }
         }
 
         // Set cmd event to `None` so it doesn't get waited on unnecessarily
         // when this `FutureGuard` drops.
-        self.command_completion = None;
+        self.command_event = None;
 
         if self.upgrade_after_command {
             self.stage = Stage::Upgrade;
@@ -668,7 +698,7 @@ impl<V, G> Drop for FutureGuard<V, G> {
     //
     //
     fn drop(&mut self) {
-        if let Some(ref ccev) = self.command_completion {
+        if let Some(ref ccev) = self.command_event {
             // println!("###### FutureGuard::drop: Event ({:?}) incomplete...", ccev);
             // panic!("###### FutureGuard::drop: Event ({:?}) incomplete...", ccev);
             ccev.wait_for().expect("Error waiting on command completion event \
@@ -690,11 +720,11 @@ impl<V> FutureGuard<V, ReadGuard<V>> {
             FutureGuard {
                 order_lock: read(&self.order_lock),
                 lock_rx: read(&self.lock_rx),
-                wait_list: read(&self.wait_list),
+                wait_events: read(&self.wait_events),
                 lock_event: read(&self.lock_event),
                 upgrade_after_command: true,
                 upgrade_rx: None,
-                command_completion: read(&self.command_completion),
+                command_event: read(&self.command_event),
                 release_event: read(&self.release_event),
                 stage: read(&self.stage),
                 _guard: PhantomData,

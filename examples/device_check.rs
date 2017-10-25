@@ -733,7 +733,7 @@ pub fn vec_write_async(
 
     let mut future_guard = rw_vec.clone().write();
     // let wait_list = [fill_event].into_raw_array();
-    future_guard.set_wait_list(fill_event);
+    future_guard.set_lock_wait_events(fill_event);
     let release_event = future_guard.create_release_event(write_release_queue).unwrap().clone();
 
     let future_write_vec = future_guard.and_then(move |mut data| {
@@ -819,7 +819,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
             .enq_async().unwrap()
     };
 
-    *verify_add_event = Some(future_read_data.create_unmap_completion_event().unwrap().clone());
+    *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
 
     Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;

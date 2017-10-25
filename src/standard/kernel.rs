@@ -26,7 +26,7 @@ pub struct KernelCmd<'k> {
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
-    wait_list: Option<ClWaitListPtrEnum<'k>>,
+    wait_events: Option<ClWaitListPtrEnum<'k>>,
     new_event: Option<ClNullEventPtrEnum<'k>>,
 }
 
@@ -69,7 +69,7 @@ impl<'k> KernelCmd<'k> {
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> KernelCmd<'k>
             where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
-        self.wait_list = Some(ewait.into());
+        self.wait_events = Some(ewait.into());
         self
     }
 
@@ -78,7 +78,7 @@ impl<'k> KernelCmd<'k> {
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> KernelCmd<'k>
             where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
-        self.wait_list = ewait.map(|el| el.into());
+        self.wait_events = ewait.map(|el| el.into());
         self
     }
 
@@ -128,7 +128,7 @@ impl<'k> KernelCmd<'k> {
         }
 
         core::enqueue_kernel(queue, self.kernel, dim_count, self.gwo.to_work_offset(),
-            &gws, self.lws.to_work_size(), self.wait_list, self.new_event)
+            &gws, self.lws.to_work_size(), self.wait_events, self.new_event)
     }
 }
 
@@ -491,7 +491,7 @@ impl Kernel {
     pub fn cmd(&self) -> KernelCmd {
         KernelCmd { queue: self.queue.as_ref().map(|q| q.as_ref()), kernel: &self.obj_core,
             gwo: self.gwo, gws: self.gws, lws: self.lws,
-            wait_list: None, new_event: None }
+            wait_events: None, new_event: None }
     }
 
     /// Enqueues this kernel on the default queue and returns the result.

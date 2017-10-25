@@ -51,7 +51,7 @@ const SCALAR_ADDEND: i32 = 100;
 // Number of times to run the loop:
 const TASK_ITERS: i32 = 10;
 
-const PRINT: bool = false;
+const PRINT: bool = true;
 
 // The size of the pipeline channel/buffer/queue/whatever (minimum 2). This
 // has the effect of increasing the number of threads in use at any one time.
@@ -185,7 +185,7 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 /// the common queue and the `unmap` will automatically use the
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
-pub fn write_init(src_buf_sink: &BufferSink<Int4>,
+pub fn write_init(src_buf_sink: &BufferSink<Int4>, common_queue: &Queue,
         // kernel_event: Option<&Event>,
         fill_event: Option<&Event>,
         verify_init_event: Option<&Event>,
@@ -209,13 +209,17 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>,
         }
     }
 
-    let mut future_write_data = src_buf_sink.clone().write()
-        .with_wait_list([&fill_event, &verify_init_event]);
+    let mut write_complete_event = Event::empty();
+
+    let future_write_data = src_buf_sink.clone().write()
+        .ewait_lock([&fill_event, &verify_init_event])
+        .enew_release(common_queue, &mut write_complete_event);
 
     unsafe {
-        future_write_data.create_release_event(src_buf_sink.buffer().default_queue().unwrap())
-            .as_ref().unwrap().set_callback(_write_write_complete,
-                task_iter as *mut c_void).unwrap();
+        // future_write_data.create_release_event(src_buf_sink.buffer().default_queue().unwrap())
+        //     .as_ref().unwrap().set_callback(_write_write_complete,
+        //         task_iter as *mut c_void).unwrap();
+        write_complete_event.set_callback(_write_write_complete, task_iter as *mut c_void).unwrap();
     }
 
     let future_write = future_write_data
@@ -412,7 +416,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     };
 
     // Set the read unmap completion event:
-    *verify_add_event = Some(future_read_data.create_unmap_completion_event().unwrap().clone());
+    *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
 
     Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
@@ -491,7 +495,7 @@ pub fn buffer_sink_cycles() {
         .dims(WORK_SIZE)
         .build().unwrap();
 
-    let src_buf_sink = unsafe { BufferSink::new(src_buf.clone(),
+    let src_buf_sink = unsafe { BufferSink::from_buffer(src_buf.clone(),
         write_init_unmap_queue.clone(), 0, src_buf.len()).unwrap() };
 
     let dst_buf: Buffer<Int4> = Buffer::builder()
@@ -552,8 +556,7 @@ pub fn buffer_sink_cycles() {
 
         // 1. Map-Write-Init
         // ============
-        let write_init = write_init(
-            &src_buf_sink,
+        let write_init = write_init(&src_buf_sink, &common_queue,
             fill_event.as_ref(),
             verify_init_event.as_ref(),
             &mut write_init_event,

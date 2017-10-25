@@ -320,11 +320,8 @@ fn poll_events(events: &[Event]) -> Poll<(), OclError> {
 /// created them. Used to coordinate the activity of multiple commands with
 /// more fine-grained control than the queue alone.
 ///
-/// For access to individual events use `get_clone` and `last_clone` then
-/// either store or discard the result.
+/// For access to individual events use `get_clone` or `last_clone`.
 ///
-///
-/// [NOTE]: Unstable and minimally tested.
 //
 // * [FIXME] TODO: impl Index.
 // #[derive(Debug)]
@@ -613,16 +610,14 @@ enum Inner {
 /// created them. Used to coordinate the activity of multiple commands with
 /// more fine-grained control than the queue alone.
 ///
-/// For access to individual events use `get_clone` and `last_clone` then
-/// either store or discard the result.
+/// For access to individual events use `get_clone` or `last_clone`.
 ///
 /// `EventList` is a dynamically allocated list. It will be (internally) stack
 /// allocated (as an `[Event; 8]`) until it reaches a length of 9 at which
 /// time it will become heap-allocated (a `Vec<Event>`).
 ///
-/// At the time of this writing, converting back from heap to stack allocation
-/// is not implemented but a bit of prodding (by filing an issue) would
-/// probably work to remedy that if anyone thinks it useful.
+/// Converting back from heap to stack allocation is currently not
+/// implemented.
 ///
 // * [FIXME] TODO: impl Index.
 #[derive(Debug, Clone)]
@@ -766,6 +761,7 @@ impl EventList {
     /// circumvented by using AMD platform drivers instead. Please file an
     /// issue immediately if you run into problems on your platform so that we
     /// may make note of it here in the documentation.
+    ///
     pub fn enqueue_marker(&self, queue: &Queue) -> OclResult<Event> {
         match self.inner {
             Inner::Array(ref a) => a.enqueue_marker(queue),

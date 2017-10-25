@@ -904,7 +904,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 writer.create_lock_event(queue.context_ptr()?)?;
 
                 if let Some(wl) = self.cmd.ewait {
-                    writer.set_wait_list(wl);
+                    writer.set_lock_wait_events(wl);
                 }
 
                 // let dst = unsafe { &mut writer.as_mut_slice().expect("BufferReadCmd::enq_async: \
@@ -938,7 +938,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     unsafe { enew.clone_from(&read_event) }
                 }
 
-                writer.set_command_completion_event(read_event);
+                writer.set_command_wait_event(read_event);
                 Ok(writer)
             },
             _ => unreachable!(),
@@ -1242,7 +1242,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
 
                 if let Some(wl) = self.cmd.ewait {
-                    reader.set_wait_list(wl);
+                    reader.set_lock_wait_events(wl);
                 }
 
                 let queue = match self.cmd.queue {
@@ -1285,7 +1285,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     unsafe { enew.clone_from(&write_event) }
                 }
 
-                reader.set_command_completion_event(write_event);
+                reader.set_command_wait_event(write_event);
                 Ok(reader)
             },
             _ => unreachable!(),
@@ -2103,10 +2103,10 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
     ///
     /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
-    ///   * This flag is valid only if `host_data` is not NULL. If specified, it
-    ///     indicates that the application wants the OpenCL implementation to
-    ///     allocate memory for the memory object and copy the data from
-    ///     memory referenced by `host_data`.
+    ///   * This flag is valid only if `host_data` is not `None`. If
+    ///     specified, it indicates that the application wants the OpenCL
+    ///     implementation to allocate memory for the memory object and copy
+    ///     the data from memory referenced by `host_data`.
     ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
     ///     exclusive.
     ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to

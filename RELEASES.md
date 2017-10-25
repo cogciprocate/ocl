@@ -45,6 +45,16 @@ Breaking Changes
   * `FutureReader<T>` and `FutureWriter<T>` are equivalent and should be
     translated to `FutureReadGuard<Vec<T>>` and `FutureWriteGuard<Vec<T>>`.
 * The `FutureRwGuard` type alias has been removed.
+* `FutureReadGuard`, `FutureWriteGuard`, and `FutureMemMap` have have their
+  `::set_wait_list` methods renamed to `::set_lock_wait_events`.
+* `FutureReadGuard`/`FutureWriteGuard`: `::set_wait_list` has been renamed to
+  `::set_lock_wait_events` and `::set_command_completion_event` has been
+  renamed to `::set_command_wait_event`. Other similar methods have been renamed
+  accordingly.
+* `FutureMemMap::set_unmap_wait_list` has been renamed to
+  `::set_unmap_wait_events` and `::create_unmap_completion_event` has been
+  renamed to `::create_unmap_event`. Other similar methods have been renamed
+  accordingly.
 * (ocl-core) `::enqueue_write_buffer`, `::enqueue_write_buffer_rect`,
   `::enqueue_write_image`, `enqueue_kernel`, and `enqueue_task` are now
   correctly marked `unsafe`.

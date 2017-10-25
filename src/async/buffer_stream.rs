@@ -1,6 +1,6 @@
-#![allow(unused_imports)]
+//! High performance buffer reads.
 
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use futures::{Future, Poll};
 use core::{self, Result as OclResult, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
@@ -74,14 +74,30 @@ impl<T: OclPrm> Deref for Inner<T> {
 /// from a device-visible `Buffer` into its associated host-accessible mapped
 /// memory region in a repeated fashion.
 ///
-/// This represents the absolute fastest method for reading data from an
+/// This represents the fastest possible method for reading data from an
 /// OpenCL device.
+///
 #[derive(Clone, Debug)]
 pub struct BufferStream<T: OclPrm> {
     lock: OrderLock<Inner<T>>,
 }
 
 impl<T: OclPrm> BufferStream<T> {
+    /// Returns a new `BufferStream`.
+    ///
+    /// The current thread will be blocked while the buffer is initialized
+    /// upon calling this function.
+    pub fn new(queue: Queue, len: usize) -> OclResult<BufferStream<T>> {
+        let buffer = Buffer::<T>::builder()
+            .queue(queue.clone())
+            .flags(MemFlags::new().alloc_host_ptr().host_read_only())
+            .dims(len)
+            .fill_val(T::default())
+            .build()?;
+
+        unsafe { BufferStream::from_buffer(buffer, queue, 0, len) }
+    }
+
     /// Returns a new `BufferStream`.
     ///
     /// ## Safety
@@ -94,7 +110,7 @@ impl<T: OclPrm> BufferStream<T> {
     /// current thread until those operations complete upon calling this
     /// function.
     ///
-    pub unsafe fn new(mut buffer: Buffer<T>, queue: Queue, offset: usize, len: usize)
+    pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Queue, offset: usize, len: usize)
             -> OclResult<BufferStream<T>> {
         let buf_flags = buffer.flags()?;
         assert!(buf_flags.contains(MemFlags::new().alloc_host_ptr()) ||
@@ -105,6 +121,7 @@ impl<T: OclPrm> BufferStream<T> {
             !buf_flags.contains(MemFlags::new().host_write_only()),
             "A buffer sink may not be created with a buffer that has either the \
             `MEM_HOST_NO_ACCESS` or `MEM_HOST_WRITE_ONLY` flags.");
+        assert!(offset + len <= buffer.len());
 
         buffer.set_default_queue(queue);
         let map_flags = MapFlags::new().read();
@@ -139,12 +156,12 @@ impl<T: OclPrm> BufferStream<T> {
     }
 
     /// Floods the mapped memory region with fresh data from the device.
-    pub fn flood<Ew, En>(&self, wait_events: Option<Ew>, mut flush_event: Option<En>)
+    pub fn flood<Ew, En>(&self, wait_events: Option<Ew>, mut flood_event: Option<En>)
             -> OclResult<FutureFlood<T>>
             where Ew: Into<EventList>, En: ClNullEventPtr {
         let mut future_write = self.clone().lock.write();
         if let Some(wl) = wait_events {
-            future_write.set_wait_list(wl);
+            future_write.set_lock_wait_events(wl);
         }
 
         let mut map_event = Event::empty();
@@ -167,12 +184,12 @@ impl<T: OclPrm> BufferStream<T> {
         }
 
         // Copy the tail/conclusion event.
-        if let Some(ref mut enew) = flush_event {
+        if let Some(ref mut enew) = flood_event {
             unsafe { enew.clone_from(&unmap_event) }
         }
 
         // Ensure that the map and unmap finish.
-        future_write.set_command_completion_event(unmap_event.clone());
+        future_write.set_command_wait_event(unmap_event.clone());
 
         Ok(FutureFlood::new(future_write))
     }
