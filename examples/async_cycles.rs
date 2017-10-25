@@ -212,7 +212,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
     // Set the write unmap completion event which will be set to complete
     // (triggered) after the CPU-side processing is complete and the data is
     // transferred to the device:
-    *write_init_event = Some(future_write_data.create_unmap_target_event().unwrap().clone());
+    *write_init_event = Some(future_write_data.create_unmap_completion_event().unwrap().clone());
 
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
         task_iter as *mut c_void).unwrap(); }
@@ -391,7 +391,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     };
 
     // Set the read unmap completion event:
-    *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());
+    *verify_add_event = Some(future_read_data.create_unmap_completion_event().unwrap().clone());
 
     Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;

@@ -41,8 +41,10 @@ Breaking Changes
   `FutureWriteGuard`. A `FutureWriteGuard` can now be obtained by calling
   `BufferWriteCmd::enq_async_then_write`.
 * `Buffer::flags` now returns a result.
-* `FutureReader` and `FutureWriter` have been renamed to `FutureReadGuard` and
-  `FutureWriteGuard` for clarity.
+* The `FutureReadGuard` and `FutureWriteGuard` type aliases have been added.
+  * `FutureReader<T>` and `FutureWriter<T>` are equivalent and should be
+    translated to `FutureReadGuard<Vec<T>>` and `FutureWriteGuard<Vec<T>>`.
+* The `FutureRwGuard` type alias has been removed.
 * (ocl-core) `::enqueue_write_buffer`, `::enqueue_write_buffer_rect`,
   `::enqueue_write_image`, `enqueue_kernel`, and `enqueue_task` are now
   correctly marked `unsafe`.

@@ -186,7 +186,7 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
 pub fn write_init(src_buf_sink: &BufferSink<Int4>,
-        kernel_event: Option<&Event>,
+        // kernel_event: Option<&Event>,
         fill_event: Option<&Event>,
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
@@ -210,7 +210,7 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>,
     }
 
     let mut future_write_data = src_buf_sink.clone().write()
-        .with_wait_list([&fill_event, &verify_init_event, &kernel_event]);
+        .with_wait_list([&fill_event, &verify_init_event]);
 
     unsafe {
         future_write_data.create_release_event(src_buf_sink.buffer().default_queue().unwrap())
@@ -412,7 +412,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
     };
 
     // Set the read unmap completion event:
-    *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());
+    *verify_add_event = Some(future_read_data.create_unmap_completion_event().unwrap().clone());
 
     Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
@@ -554,7 +554,6 @@ pub fn buffer_sink_cycles() {
         // ============
         let write_init = write_init(
             &src_buf_sink,
-            kernel_event.as_ref(),
             fill_event.as_ref(),
             verify_init_event.as_ref(),
             &mut write_init_event,

@@ -604,7 +604,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 pub enum ReadDst<'d, T> where T: 'd {
     Slice(&'d mut [T]),
     RwVec(RwVec<T>),
-    Writer(FutureWriteGuard<T>),
+    Writer(FutureWriteGuard<Vec<T>>),
     None,
 }
 
@@ -647,8 +647,8 @@ impl<'a, 'd, T> From<&'a RwVec<T>> for ReadDst<'d, T> where T: OclPrm {
     }
 }
 
-impl<'d, T> From<FutureWriteGuard<T>> for ReadDst<'d, T> where T: OclPrm {
-    fn from(writer: FutureWriteGuard<T>) -> ReadDst<'d, T> {
+impl<'d, T> From<FutureWriteGuard<Vec<T>>> for ReadDst<'d, T> where T: OclPrm {
+    fn from(writer: FutureWriteGuard<Vec<T>>) -> ReadDst<'d, T> {
         ReadDst::Writer(writer)
     }
 }
@@ -881,7 +881,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// A data destination container appropriate for an asynchronous operation
     /// (such as `RwVec`) must have been passed to `::read`.
     ///
-    pub fn enq_async(mut self) -> OclResult<FutureWriteGuard<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureWriteGuard<Vec<T>>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -951,7 +951,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 pub enum WriteSrc<'d, T> where T: 'd {
     Slice(&'d [T]),
     RwVec(RwVec<T>),
-    Reader(FutureReadGuard<T>),
+    Reader(FutureReadGuard<Vec<T>>),
     None,
 }
 
@@ -994,8 +994,8 @@ impl<'a, 'd, T> From<&'a RwVec<T>> for WriteSrc<'d, T> where T: OclPrm {
     }
 }
 
-impl<'d, T> From<FutureReadGuard<T>> for WriteSrc<'d, T> where T: OclPrm {
-    fn from(reader: FutureReadGuard<T>) -> WriteSrc<'d, T> {
+impl<'d, T> From<FutureReadGuard<Vec<T>>> for WriteSrc<'d, T> where T: OclPrm {
+    fn from(reader: FutureReadGuard<Vec<T>>) -> WriteSrc<'d, T> {
         WriteSrc::Reader(reader)
     }
 }
@@ -1228,7 +1228,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// The returned future must be resolved.
     ///
-    pub fn enq_async(mut self) -> OclResult<FutureReadGuard<T>> {
+    pub fn enq_async(mut self) -> OclResult<FutureReadGuard<Vec<T>>> {
         match self.cmd.kind {
             BufferCmdKind::Write => {
                 let mut reader = match self.src {
@@ -1304,7 +1304,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// The returned future must be resolved.
     ///
-    pub fn enq_async_then_write(self) -> OclResult<FutureWriteGuard<T>> {
+    pub fn enq_async_then_write(self) -> OclResult<FutureWriteGuard<Vec<T>>> {
         // NOTE: The precise point in time at which `::upgrade_after_command`
         // is called does not matter since a read request will have already
         // been enqueued in the RwVec's queue. The upgrade can be requested at

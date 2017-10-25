@@ -8,15 +8,18 @@ mod order_lock;
 mod rw_vec;
 mod mem_map;
 mod buffer_sink;
+mod buffer_stream;
 
 use std;
 use futures::future;
 pub use self::error::{Error, Result};
-pub use self::order_lock::{OrderLock, ReadGuard, WriteGuard, FutureGuard, OrderGuard};
-pub use self::rw_vec::{RwVec, FutureRwGuard, FutureReadGuard, FutureWriteGuard};
+pub use self::order_lock::{OrderLock, ReadGuard, WriteGuard, FutureGuard, FutureReadGuard,
+    FutureWriteGuard, OrderGuard};
+pub use self::rw_vec::RwVec;
 pub use self::mem_map::MemMap;
 pub use self::future_mem_map::FutureMemMap;
-pub use self::buffer_sink::{BufferSink};
+pub use self::buffer_sink::{BufferSink, FutureFlush, Inner as BufferSinkInner};
+pub use self::buffer_stream::{BufferStream, FutureFlood, Inner as BufferStreamInner};
 
 
 pub type FutureResult<T> = future::FutureResult<T, self::Error>;

@@ -819,7 +819,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
             .enq_async().unwrap()
     };
 
-    *verify_add_event = Some(future_read_data.create_unmap_target_event().unwrap().clone());
+    *verify_add_event = Some(future_read_data.create_unmap_completion_event().unwrap().clone());
 
     Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;

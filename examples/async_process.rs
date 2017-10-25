@@ -116,7 +116,7 @@ pub fn main() {
         // Since this is an invalidating write we'll use the wait list for the
         // unmap rather than the map command:
         future_write_data.set_unmap_wait_list(&fill_event);
-        let write_unmap_event = future_write_data.create_unmap_target_event().unwrap().clone();
+        let write_unmap_event = future_write_data.create_unmap_completion_event().unwrap().clone();
 
         let write = future_write_data.and_then(move |mut data| {
             for _ in 0..redundancy_count {

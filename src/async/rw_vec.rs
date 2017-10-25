@@ -12,9 +12,9 @@ use async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
 use async::qutex::QrwLock;
 
 
-pub type FutureRwGuard<T, G> = FutureGuard<Vec<T>, G>;
-pub type FutureReadGuard<T> = FutureRwGuard<T, ReadGuard<Vec<T>>>;
-pub type FutureWriteGuard<T> = FutureRwGuard<T, WriteGuard<Vec<T>>>;
+// pub type FutureRwVecGuard<T, G> = FutureGuard<Vec<T>, G>;
+// pub type FutureReadGuard<Vec<T>> = FutureRwGuard<T, ReadGuard<Vec<T>>>;
+// pub type FutureWriteGuard<Vec<T>> = FutureRwGuard<T, WriteGuard<Vec<T>>>;
 
 
 /// A locking `Vec` which interoperates with OpenCL events and Rust futures to

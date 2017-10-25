@@ -160,7 +160,7 @@ impl Task {
         };
 
         if is_write { future_data.set_unmap_wait_list(unmap_wait_list.unwrap()); }
-        let unmap_event_target = future_data.create_unmap_target_event().unwrap().clone();
+        let unmap_event_target = future_data.create_unmap_completion_event().unwrap().clone();
         self.cmd_graph.set_cmd_event(cmd_idx, unmap_event_target.into()).unwrap();
 
         future_data

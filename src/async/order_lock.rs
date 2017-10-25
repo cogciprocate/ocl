@@ -19,6 +19,10 @@ use async::qutex::{QrwLock, QrwRequest, RequestKind};
 const PRINT_DEBUG: bool = false;
 
 
+pub type FutureReadGuard<V> = FutureGuard<V, ReadGuard<V>>;
+pub type FutureWriteGuard<V> = FutureGuard<V, WriteGuard<V>>;
+
+
 /// Prints a debugging message.
 fn print_debug(id: usize, msg: &str) {
     if PRINT_DEBUG {
@@ -300,7 +304,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// See `::set_wait_list`.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
-    pub fn with_wait_list<L: Into<EventList>>(mut self, wait_list: L) -> FutureGuard<V,G> {
+    pub fn with_wait_list<L: Into<EventList>>(mut self, wait_list: L) -> FutureGuard<V, G> {
         self.set_wait_list(wait_list);
         self
     }
@@ -322,7 +326,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// See `::set_command_completion_event`.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
-    pub fn with_command_completion_event(mut self, command_completion: Event) -> FutureGuard<V,G> {
+    pub fn with_command_completion_event(mut self, command_completion: Event) -> FutureGuard<V, G> {
         self.set_command_completion_event(command_completion);
         self
     }

@@ -95,7 +95,7 @@ pub struct MemMap<T> where T: OclPrm {
     buffer: MemCore,
     queue: Queue,
     unmap_wait_list: Option<EventList>,
-    unmap_target_event: Option<Event>,
+    unmap_completion_event: Option<Event>,
     callback_is_set: bool,
     is_unmapped: bool,
     // buffer_is_mapped: Arc<AtomicBool>
@@ -103,7 +103,7 @@ pub struct MemMap<T> where T: OclPrm {
 
 impl<T> MemMap<T>  where T: OclPrm {
     pub unsafe fn new(core: MemMapCore<T>, len: usize, unmap_wait_list: Option<EventList>,
-            unmap_target_event: Option<Event>, buffer: MemCore, queue: Queue,
+            unmap_completion_event: Option<Event>, buffer: MemCore, queue: Queue,
             /*buffer_is_mapped: Arc<AtomicBool>*/) -> MemMap<T> {
         MemMap {
             core: core,
@@ -111,7 +111,7 @@ impl<T> MemMap<T>  where T: OclPrm {
             buffer: buffer,
             queue: queue,
             unmap_wait_list: unmap_wait_list,
-            unmap_target_event: unmap_target_event,
+            unmap_completion_event: unmap_completion_event,
             callback_is_set: false,
             is_unmapped: false,
             // buffer_is_mapped,
@@ -138,7 +138,7 @@ impl<T> MemMap<T>  where T: OclPrm {
                 "MemMap::enqueue_unmap: Cannot set an event wait list for the unmap command \
                 when the 'unmap_wait_list' has already been set.");
 
-            let mut origin_event_opt = if self.unmap_target_event.is_some() || enew_opt.is_some() {
+            let mut origin_event_opt = if self.unmap_completion_event.is_some() || enew_opt.is_some() {
                 Some(Event::empty())
             } else {
                 None
@@ -159,7 +159,7 @@ impl<T> MemMap<T>  where T: OclPrm {
 
                 if cfg!(not(feature = "async_block")) {
                     // Async version:
-                    if self.unmap_target_event.is_some() {
+                    if self.unmap_completion_event.is_some() {
                         #[cfg(not(feature = "async_block"))]
                         self.register_event_trigger(&origin_event)?;
 
@@ -171,7 +171,7 @@ impl<T> MemMap<T>  where T: OclPrm {
                     }
                 } else {
                     // Blocking version:
-                    if let Some(ref mut um_tar) = self.unmap_target_event {
+                    if let Some(ref mut um_tar) = self.unmap_completion_event {
                         origin_event.wait_for()?;
                         um_tar.set_complete()?;
                     }
@@ -186,13 +186,13 @@ impl<T> MemMap<T>  where T: OclPrm {
 
     #[cfg(not(feature = "async_block"))]
     fn register_event_trigger(&mut self, event: &Event) -> AsyncResult<()> {
-        debug_assert!(self.is_unmapped && self.unmap_target_event.is_some());
+        debug_assert!(self.is_unmapped && self.unmap_completion_event.is_some());
 
         if !self.callback_is_set {
-            if let Some(ref ev) = self.unmap_target_event {
+            if let Some(ref ev) = self.unmap_completion_event {
                 unsafe {
-                    let unmap_target_event_ptr = ev.clone().into_raw();
-                    event.set_callback(core::_complete_user_event, unmap_target_event_ptr)?;
+                    let unmap_completion_event_ptr = ev.clone().into_raw();
+                    event.set_callback(core::_complete_user_event, unmap_completion_event_ptr)?;
                 }
 
                 self.callback_is_set = true;
@@ -207,8 +207,8 @@ impl<T> MemMap<T>  where T: OclPrm {
     }
 
     /// Returns a reference to the unmap target event if it has been set.
-    pub fn unmap_target_event(&self) -> Option<&Event> {
-        self.unmap_target_event.as_ref()
+    pub fn unmap_completion_event(&self) -> Option<&Event> {
+        self.unmap_completion_event.as_ref()
     }
 
     /// Returns a reference to the unmap wait list if it has been set.

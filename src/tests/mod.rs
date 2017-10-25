@@ -18,7 +18,7 @@ pub mod kernel_arg_ptr;
 pub mod vector_types;
 pub mod context_props;
 pub mod async;
-pub mod buffer_sink;
+// pub mod buffer_sink;
 pub mod buffer_sink_cycles;
 
 use rand::{self, Rng};

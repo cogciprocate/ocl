@@ -17,7 +17,7 @@ pub struct FutureMemMap<T: OclPrm> {
     len: usize,
     map_event: Event,
     unmap_wait_list: Option<EventList>,
-    unmap_target_event: Option<Event>,
+    unmap_completion_event: Option<Event>,
     buffer: Option<Mem>,
     queue: Option<Queue>,
     callback_is_set: bool,
@@ -33,7 +33,7 @@ impl<T: OclPrm> FutureMemMap<T> {
             len: len,
             map_event: map_event,
             unmap_wait_list: None,
-            unmap_target_event: None,
+            unmap_completion_event: None,
             buffer: Some(buffer),
             queue: Some(queue),
             callback_is_set: false,
@@ -63,13 +63,13 @@ impl<T: OclPrm> FutureMemMap<T> {
     /// thread blocking or extra delays of any kind.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed.
-    pub fn create_unmap_target_event(&mut self) -> AsyncResult<&mut Event> {
+    pub fn create_unmap_completion_event(&mut self) -> AsyncResult<&mut Event> {
         if let Some(ref queue) = self.queue {
             let uev = Event::user(&queue.context())?;
-            self.unmap_target_event = Some(uev);
-            Ok(self.unmap_target_event.as_mut().unwrap())
+            self.unmap_completion_event = Some(uev);
+            Ok(self.unmap_completion_event.as_mut().unwrap())
         } else {
-            Err("FutureMemMap::create_unmap_target_event: No queue found!".into())
+            Err("FutureMemMap::create_unmap_completion_event: No queue found!".into())
         }
     }
 
@@ -83,8 +83,8 @@ impl<T: OclPrm> FutureMemMap<T> {
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed.
     #[inline]
-    pub fn unmap_target_event(&self) -> Option<&Event> {
-        self.unmap_target_event.as_ref()
+    pub fn unmap_completion_event(&self) -> Option<&Event> {
+        self.unmap_completion_event.as_ref()
     }
 
     /// Resolves this `FutureMemMap` into a `MemMap`.
@@ -101,10 +101,10 @@ impl<T: OclPrm> FutureMemMap<T> {
             Some((core, buffer, queue)) => {
                 // TODO: Add `buffer_is_mapped` to list of joined stuff.
                 unsafe { Ok(MemMap::new(core, self.len, self.unmap_wait_list.take(),
-                    self.unmap_target_event.take(), buffer, queue,
+                    self.unmap_completion_event.take(), buffer, queue,
                     /*self.buffer_is_mapped.take().unwrap()*/)) }
             },
-            _ => Err("FutureMemMap::create_unmap_target_event: No queue and/or buffer found!".into()),
+            _ => Err("FutureMemMap::create_unmap_completion_event: No queue and/or buffer found!".into()),
         }
     }
 }
