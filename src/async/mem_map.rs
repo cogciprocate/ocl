@@ -40,8 +40,8 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
 
     /// Specifies a list of events to wait on before the command will run.
-    pub fn ewait<EWL>(mut self, ewait: EWL) -> MemUnmapCmd<'c, T>
-            where EWL: Into<ClWaitListPtrEnum<'c>>
+    pub fn ewait<Ewl>(mut self, ewait: Ewl) -> MemUnmapCmd<'c, T>
+            where Ewl: Into<ClWaitListPtrEnum<'c>>
     {
         self.ewait = Some(ewait.into());
         self
@@ -49,15 +49,15 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
-    pub fn ewait_opt<EWL>(mut self, ewait: Option<EWL>) -> MemUnmapCmd<'c, T> where EWL: Into<ClWaitListPtrEnum<'c>> {
+    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> MemUnmapCmd<'c, T> where Ewl: Into<ClWaitListPtrEnum<'c>> {
         self.ewait = ewait.map(|el| el.into());
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
-    pub fn enew<NE>(mut self, enew: NE) -> MemUnmapCmd<'c, T>
-            where NE: Into<ClNullEventPtrEnum<'c>>
+    pub fn enew<En>(mut self, enew: En) -> MemUnmapCmd<'c, T>
+            where En: Into<ClNullEventPtrEnum<'c>>
     {
         self.enew = Some(enew.into());
         self
@@ -65,8 +65,8 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
-    pub fn enew_opt<NE>(mut self, enew: Option<NE>) -> MemUnmapCmd<'c, T>
-            where NE: Into<ClNullEventPtrEnum<'c>>
+    pub fn enew_opt<En>(mut self, enew: Option<En>) -> MemUnmapCmd<'c, T>
+            where En: Into<ClNullEventPtrEnum<'c>>
     {
         self.enew = enew.map(|e| e.into());
         self

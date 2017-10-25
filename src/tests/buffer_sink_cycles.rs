@@ -51,7 +51,7 @@ const SCALAR_ADDEND: i32 = 100;
 // Number of times to run the loop:
 const TASK_ITERS: i32 = 10;
 
-const PRINT: bool = true;
+const PRINT: bool = false;
 
 // The size of the pipeline channel/buffer/queue/whatever (minimum 2). This
 // has the effect of increasing the number of threads in use at any one time.
@@ -186,7 +186,6 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
 pub fn write_init(src_buf_sink: &BufferSink<Int4>, common_queue: &Queue,
-        // kernel_event: Option<&Event>,
         fill_event: Option<&Event>,
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
@@ -216,9 +215,6 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>, common_queue: &Queue,
         .enew_release(common_queue, &mut write_complete_event);
 
     unsafe {
-        // future_write_data.create_release_event(src_buf_sink.buffer().default_queue().unwrap())
-        //     .as_ref().unwrap().set_callback(_write_write_complete,
-        //         task_iter as *mut c_void).unwrap();
         write_complete_event.set_callback(_write_write_complete, task_iter as *mut c_void).unwrap();
     }
 
@@ -239,7 +235,7 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>, common_queue: &Queue,
     // The final completion event:
     *write_init_event = Some(Event::empty());
 
-    let future_flush = src_buf_sink.flush(None::<Event>, write_init_event.as_mut()).unwrap();
+    let future_flush = src_buf_sink.flush().enew_opt(write_init_event.as_mut()).enq().unwrap();
 
     // Set printing callback:
     unsafe {

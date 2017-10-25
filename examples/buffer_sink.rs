@@ -66,7 +66,8 @@ fn main() {
             let mut write_guard = writer_0.wait().unwrap();
             write_guard.copy_from_slice(&[0i32; DATA_SET_SIZE]);
             let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
-            buffer_sink.flush(None::<EventList>, None::<&mut Event>).unwrap().wait().unwrap();
+            // buffer_sink.flush(None::<EventList>, None::<&mut Event>).unwrap().wait().unwrap();
+            buffer_sink.flush().enq().unwrap().wait().unwrap();
         }).unwrap());
 
         let source_data = source_datas[i].clone();
@@ -79,7 +80,8 @@ fn main() {
             let mut write_guard = writer_1.wait().unwrap();
             write_guard.copy_from_slice(&source_data);
             let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
-            buffer_sink.flush(None::<EventList>, None::<&mut Event>).unwrap().wait().unwrap();
+            // buffer_sink.flush(None::<EventList>, None::<&mut Event>).unwrap().wait().unwrap();
+            buffer_sink.flush().enq().unwrap().wait().unwrap();
         }).unwrap());
 
         unsafe { kern.enq().unwrap(); }

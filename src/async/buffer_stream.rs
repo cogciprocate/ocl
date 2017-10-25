@@ -39,8 +39,8 @@ impl<T: OclPrm> Future for FutureFlood<T> {
 pub struct Inner<T: OclPrm> {
     buffer: Buffer<T>,
     memory: MemMapCore<T>,
-    offset: usize,
-    len: usize,
+    default_offset: usize,
+    default_len: usize,
 }
 
 impl<T: OclPrm> Inner<T> {
@@ -54,9 +54,9 @@ impl<T: OclPrm> Inner<T> {
         &self.memory
     }
 
-    /// Returns the internal offset.
-    pub fn offset(self: &Inner<T>) -> usize {
-        self.offset
+    /// Returns the default offset.
+    pub fn default_offset(self: &Inner<T>) -> usize {
+        self.default_offset
     }
 }
 
@@ -65,7 +65,7 @@ impl<T: OclPrm> Deref for Inner<T> {
 
     #[inline]
     fn deref(&self) -> &[T] {
-        unsafe { self.memory.as_slice(self.len) }
+        unsafe { self.memory.as_slice(self.default_len) }
     }
 }
 
@@ -110,7 +110,7 @@ impl<T: OclPrm> BufferStream<T> {
     /// current thread until those operations complete upon calling this
     /// function.
     ///
-    pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Queue, offset: usize, len: usize)
+    pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Queue, default_offset: usize, default_len: usize)
             -> OclResult<BufferStream<T>> {
         let buf_flags = buffer.flags()?;
         assert!(buf_flags.contains(MemFlags::new().alloc_host_ptr()) ||
@@ -121,7 +121,7 @@ impl<T: OclPrm> BufferStream<T> {
             !buf_flags.contains(MemFlags::new().host_write_only()),
             "A buffer sink may not be created with a buffer that has either the \
             `MEM_HOST_NO_ACCESS` or `MEM_HOST_WRITE_ONLY` flags.");
-        assert!(offset + len <= buffer.len());
+        assert!(default_offset + default_len <= buffer.len());
 
         buffer.set_default_queue(queue);
         let map_flags = MapFlags::new().read();
@@ -130,7 +130,7 @@ impl<T: OclPrm> BufferStream<T> {
         let mut unmap_event = Event::empty();
 
         let memory = core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
-            buffer.core(), false, map_flags, offset, len, None::<&EventList>, Some(&mut map_event))?;
+            buffer.core(), false, map_flags, default_offset, default_len, None::<&EventList>, Some(&mut map_event))?;
 
         core::enqueue_unmap_mem_object::<T, _, _, _>(buffer.default_queue().unwrap(),
             &buffer, &memory, Some(&map_event), Some(&mut unmap_event)).unwrap();
@@ -140,8 +140,8 @@ impl<T: OclPrm> BufferStream<T> {
         let inner = Inner {
             buffer,
             memory,
-            offset,
-            len
+            default_offset,
+            default_len
         };
 
         Ok(BufferStream {
@@ -177,7 +177,7 @@ impl<T: OclPrm> BufferStream<T> {
 
             let map_flags = MapFlags::new().read();
             core::enqueue_map_buffer::<T, _, _, _>(queue, buffer, false, map_flags,
-                inner.offset, inner.len, future_write.lock_event(), Some(&mut map_event))?;
+                inner.default_offset, inner.default_len, future_write.lock_event(), Some(&mut map_event))?;
 
             core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &inner.memory,
                 Some(&map_event), Some(&mut unmap_event))?;
@@ -204,9 +204,9 @@ impl<T: OclPrm> BufferStream<T> {
         unsafe { &(*self.lock.as_mut_ptr()).memory }
     }
 
-    /// Returns a reference to the internal offset.
-    pub fn offset(&self) -> usize {
-        unsafe { (*self.lock.as_mut_ptr()).offset }
+    /// Returns a reference to the default offset.
+    pub fn default_offset(&self) -> usize {
+        unsafe { (*self.lock.as_mut_ptr()).default_offset }
     }
 
     /// Returns a mutable slice into the contained memory region.
@@ -219,13 +219,13 @@ impl<T: OclPrm> BufferStream<T> {
     /// manually manipulating the lock status).
     pub unsafe fn as_mut_slice(&self) -> &mut [T] {
         let ptr = (*self.lock.as_mut_ptr()).memory.as_mut_ptr();
-        let len = (*self.lock.as_ptr()).len;
+        let len = (*self.lock.as_ptr()).default_len;
         ::std::slice::from_raw_parts_mut(ptr, len)
     }
 
     /// Returns the length of the memory region.
-    pub fn len(&self) -> usize {
-        unsafe { (*self.lock.as_ptr()).len }
+    pub fn default_len(&self) -> usize {
+        unsafe { (*self.lock.as_ptr()).default_len }
     }
 
     /// Returns a pointer address to the internal memory region, usable as a
