@@ -74,28 +74,11 @@ impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
         self
     }
 
-    /// Specifies a list of events to wait on before the command will run or
-    /// resets it to `None`.
-    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> FlushCmd<'c, T>
-            where Ewl: Into<ClWaitListPtrEnum<'c>> {
-        self.ewait = ewait.map(|el| el.into());
-        self
-    }
-
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
     pub fn enew<En>(mut self, enew: En) -> FlushCmd<'c, T>
             where En: Into<ClNullEventPtrEnum<'c>> {
         self.enew = Some(enew.into());
-        self
-    }
-
-    /// Specifies a destination for a new, optionally created event
-    /// associated with this command or resets it to `None`.
-    pub fn enew_opt<En>(mut self, enew: Option<En>) -> FlushCmd<'c, T>
-            where En: Into<ClNullEventPtrEnum<'c>>
-    {
-        self.enew = enew.map(|e| e.into());
         self
     }
 
@@ -110,24 +93,25 @@ impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
         let mut unmap_event = Event::empty();
         let mut map_event = Event::empty();
 
+        let inner = unsafe { &*self.sink.lock.as_ptr() };
+
+        let default_queue = inner.buffer.default_queue().unwrap();
+        let buffer = inner.buffer.core();
+
+        let unmap_queue = match self.queue {
+            Some(q) => q,
+            None => default_queue,
+        };
+
+        future_read.create_lock_event(unmap_queue.context_ptr()?)?;
+
         unsafe {
-            let inner = &*self.sink.lock.as_ptr();
-            let default_queue = inner.buffer.default_queue().unwrap();
-            let buffer = inner.buffer.core();
-
-            let unmap_queue = match self.queue {
-                Some(q) => q,
-                None => default_queue,
-            };
-
-            future_read.create_lock_event(unmap_queue.context_ptr()?)?;
-
             core::enqueue_unmap_mem_object::<T, _, _, _>(unmap_queue, buffer, &inner.memory,
                 future_read.lock_event(), Some(&mut unmap_event))?;
 
-            let map_flags = MapFlags::new().write_invalidate_region();
-            core::enqueue_map_buffer::<T, _, _, _>(default_queue, buffer, false, map_flags,
-                inner.default_offset, inner.default_len, Some(&unmap_event), Some(&mut map_event))?;
+            core::enqueue_map_buffer::<T, _, _, _>(default_queue, buffer, false,
+                MapFlags::new().write_invalidate_region(), inner.default_offset, inner.default_len,
+                Some(&unmap_event), Some(&mut map_event))?;
         }
 
         // Copy the tail/conclusion event.

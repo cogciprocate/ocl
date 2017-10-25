@@ -75,6 +75,7 @@ impl<'k> KernelCmd<'k> {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> KernelCmd<'k>
             where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
@@ -94,6 +95,7 @@ impl<'k> KernelCmd<'k> {
 
     /// Specifies a destination list for a new, optionally created event
     /// associated with this command.
+    #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
     pub fn enew_opt<'e, En>(mut self, new_event_list: Option<En>) -> KernelCmd<'k>
             where 'e: 'k, En: Into<ClNullEventPtrEnum<'e>>
     {

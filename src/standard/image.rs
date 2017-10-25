@@ -382,6 +382,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> ImageCmd<'c, T>
             where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
@@ -398,14 +399,14 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
         self
     }
 
-    /// Specifies a destination for a new, optionally created event
-    /// associated with this command or resets it to `None`.
-    pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> ImageCmd<'c, T>
-            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
-    {
-        self.enew = enew.map(|e| e.into());
-        self
-    }
+    // /// Specifies a destination for a new, optionally created event
+    // /// associated with this command or resets it to `None`.
+    // pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> ImageCmd<'c, T>
+    //         where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
+    // {
+    //     self.enew = enew.map(|e| e.into());
+    //     self
+    // }
 
     /// Enqueues this command.
     ///
@@ -520,6 +521,7 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> ImageMapCmd<'c, T>
             where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
@@ -538,6 +540,7 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
     pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> ImageMapCmd<'c, T>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {

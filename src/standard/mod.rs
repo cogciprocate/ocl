@@ -284,6 +284,16 @@ mod types {
         }
     }
 
+    impl<'a, Ewl> From<Option<Ewl>> for ClWaitListPtrEnum<'a>
+            where Ewl: Into<ClWaitListPtrEnum<'a>> {
+        fn from(e: Option<Ewl>) -> ClWaitListPtrEnum<'a> {
+            match e {
+                Some(e) => e.into(),
+                None => ClWaitListPtrEnum::Null,
+            }
+        }
+    }
+
 
     #[derive(Debug)]
     pub enum ClNullEventPtrEnum<'a> {
@@ -328,7 +338,15 @@ mod types {
         }
     }
 
-
+    impl<'a, E> From<Option<E>> for ClNullEventPtrEnum<'a>
+            where E: Into<ClNullEventPtrEnum<'a>> {
+        fn from(e: Option<E>) -> ClNullEventPtrEnum<'a> {
+            match e {
+                Some(e) => e.into(),
+                None => ClNullEventPtrEnum::Null,
+            }
+        }
+    }
 }
 
 //=============================================================================

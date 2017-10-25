@@ -169,7 +169,7 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
     src_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None)
         .queue(common_queue)
         .ewait(&wait_list)
-        .enew_opt(fill_event.as_mut())
+        .enew(fill_event.as_mut())
         .enq().unwrap();
 
     unsafe { fill_event.as_ref().unwrap()
@@ -235,7 +235,7 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>, common_queue: &Queue,
     // The final completion event:
     *write_init_event = Some(Event::empty());
 
-    let future_flush = src_buf_sink.flush().enew_opt(write_init_event.as_mut()).enq().unwrap();
+    let future_flush = src_buf_sink.flush().enew(write_init_event.as_mut()).enq().unwrap();
 
     // Set printing callback:
     unsafe {
@@ -364,7 +364,7 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
         kern.cmd()
             .queue(common_queue)
             .ewait(&wait_list)
-            .enew_opt(kernel_event.as_mut())
+            .enew(kernel_event.as_mut())
             .enq().unwrap();
     }
 
@@ -407,7 +407,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         dst_buf.cmd().map()
             .queue(common_queue)
             .read()
-            .ewait_opt(wait_event)
+            .ewait(wait_event)
             .enq_async().unwrap()
     };
 

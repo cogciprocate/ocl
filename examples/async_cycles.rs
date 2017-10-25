@@ -164,7 +164,7 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
     src_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None)
         .queue(common_queue)
         .ewait(&wait_list)
-        .enew_opt(fill_event.as_mut())
+        .enew(fill_event.as_mut())
         .enq().unwrap();
 
     unsafe { fill_event.as_ref().unwrap()
@@ -344,7 +344,7 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
         kern.cmd()
             .queue(common_queue)
             .ewait(&wait_list)
-            .enew_opt(kernel_event.as_mut())
+            .enew(kernel_event.as_mut())
             .enq().unwrap();
     }
 
@@ -387,7 +387,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         dst_buf.cmd().map()
             .queue(common_queue)
             .read()
-            .ewait_opt(wait_event)
+            .ewait(wait_event)
             .enq_async().unwrap()
 
             // Set the read unmap completion event:

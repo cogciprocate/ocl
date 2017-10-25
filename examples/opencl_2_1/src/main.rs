@@ -75,8 +75,8 @@ fn main() {
     //     .gwo(kernel.get_gwo())
     //     .gws(&dims)
     //     .lws(kernel.get_lws())
-    //     .ewait_opt(None)
-    //     .enew_opt(None)
+    //     .ewait(None)
+    //     .enew(None)
     //     .enq().unwrap();
 
     // buffer.cmd()
@@ -84,8 +84,8 @@ fn main() {
     //     .block(true)
     //     .offset(0)
     //     .read(&mut vec)
-    //     .ewait_opt(None)
-    //     .enew_opt(None)
+    //     .ewait(None)
+    //     .enew(None)
     //     .enq().unwrap();
 
     // println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);

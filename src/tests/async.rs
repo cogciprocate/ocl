@@ -92,7 +92,7 @@ pub fn fill_junk(
     src_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None)
         .queue(common_queue)
         .ewait(&wait_list)
-        .enew_opt(fill_event.as_mut())
+        .enew(fill_event.as_mut())
         .enq().unwrap();
 
     unsafe { fill_event.as_ref().unwrap()
@@ -282,7 +282,7 @@ pub fn kernel_add(
         kern.cmd()
             .queue(common_queue)
             .ewait(&wait_list)
-            .enew_opt(kernel_event.as_mut())
+            .enew(kernel_event.as_mut())
             .enq().unwrap();
     }
 
@@ -318,7 +318,7 @@ pub fn verify_add(
 
     let mut future_read_data = dst_buf.cmd().read(rw_vec)
         .queue(common_queue)
-        .ewait_opt(wait_event)
+        .ewait(wait_event)
         .enq_async().unwrap();
 
     // Attach a status message printing callback to what approximates the

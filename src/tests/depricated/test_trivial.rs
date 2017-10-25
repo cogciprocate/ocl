@@ -120,8 +120,8 @@ fn main_exploded() {
         .gwo(kernel.get_gwo())
         .gws(&dims)
         .lws(kernel.get_lws())
-        .ewait_opt(None)
-        .enew_opt(None)
+        .ewait(None)
+        .enew(None)
         .enq().unwrap();
 
     // (5) Read results from the device into our buffer's [no longer] built-in vector:
@@ -130,8 +130,8 @@ fn main_exploded() {
         .block(true)
         .offset(0)
         .read(&mut buffer_vec)
-        .ewait_opt(None)
-        .enew_opt(None)
+        .ewait(None)
+        .enew(None)
         .enq().unwrap();
 
     // Print an element:

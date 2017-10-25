@@ -501,6 +501,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferCmd<'c, T>
             where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
     {
@@ -519,6 +520,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
     pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> BufferCmd<'c, T>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {
@@ -781,6 +783,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferReadCmd<'c, 'd, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
@@ -800,6 +803,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
     pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> BufferReadCmd<'c, 'd, T>
             // where E: Into<ClNullEventPtrEnum<'e>>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
@@ -1128,6 +1132,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferWriteCmd<'c, 'd, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
@@ -1147,6 +1152,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
     pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> BufferWriteCmd<'c, 'd, T>
             // where E: Into<ClNullEventPtrEnum<'e>>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
@@ -1431,6 +1437,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
     pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> BufferMapCmd<'c, T>
             where 'e: 'c,  Ewl: Into<ClWaitListPtrEnum<'e>>
     {
@@ -1450,6 +1457,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a destination for a new, optionally created event
     /// associated with this command or resets it to `None`.
+    #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
     pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> BufferMapCmd<'c, T>
             where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
     {

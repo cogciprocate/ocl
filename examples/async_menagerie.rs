@@ -155,7 +155,7 @@ impl Task {
         let mut future_data = unsafe {
             buf.cmd().map()
                 .flags(flags)
-                .ewait_opt(map_wait_list)
+                .ewait(map_wait_list)
                 .enq_async().unwrap()
         };
 

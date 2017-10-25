@@ -176,7 +176,7 @@ pub fn main() {
     // // (0) INIT: Fill buffer with -999's just to ensure the upcoming
     // // write misses nothing:
     // write_buf.cmd().fill(Int4::new(-999, -999, -999, -999), None)
-    //     .enew_opt(kernel_event.as_mut()).enq().unwrap();
+    //     .enew(kernel_event.as_mut()).enq().unwrap();
 
     // kernel_event.as_ref().unwrap().wait_for().unwrap();
 
@@ -191,7 +191,7 @@ pub fn main() {
         let mut future_write_data = write_buf.cmd().map()
             .queue(&common_queue)
             .flags(MapFlags::new().write_invalidate_region())
-            .ewait_opt(kernel_event.as_ref())
+            .ewait(kernel_event.as_ref())
             .enq_async().unwrap();
 
         // Set the write unmap completion event which will be set to complete
@@ -234,7 +234,7 @@ pub fn main() {
         // creation (for no particular reason) we must specify it here.
         kern.cmd()
             .queue(&common_queue)
-            .enew_opt(kernel_event.as_mut())
+            .enew(kernel_event.as_mut())
             .ewait(&kernel_wait_list[..])
             .enq().unwrap();
 
@@ -247,7 +247,7 @@ pub fn main() {
         let mut future_read_data = read_buf.cmd().map()
             .queue(&common_queue)
             .flags(MapFlags::new().read())
-            .ewait_opt(kernel_event.as_ref())
+            .ewait(kernel_event.as_ref())
             .enq_async().unwrap();
 
         // Set the read unmap completion event:
