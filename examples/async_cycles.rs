@@ -62,7 +62,7 @@ const TASK_ITERS: i32 = 10;
 // therefore more stages being processed concurrently. Note that regardless of
 // where this is set, an unlimited number of things may be happening
 // concurrently on the OpenCL device(s).
-const MAX_CONCURRENT_TASK_COUNT: usize = 2;
+const MAX_CONCURRENT_TASK_COUNT: usize = 4;
 
 static mut START_TIME: Option<DateTime<Local>> = None;
 
@@ -396,9 +396,9 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 
     Box::new(future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
+        let cval = Int4::splat(correct_val);
 
         for (idx, val) in data.iter().enumerate() {
-            let cval = Int4::splat(correct_val);
             if *val != cval {
                 return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]",
                     val, cval, idx).into());

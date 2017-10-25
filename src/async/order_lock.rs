@@ -559,13 +559,13 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Called");
 
         if let Some(ref mut command_event) = self.command_event {
-            // if PRINT_DEBUG { println!("###### [{}] FutureGuard::poll_command: Polling command \
-            //     completion event (thread: {}).", self.order_lock.as_ref().unwrap().id(), ::std::thread::current().name()
-            //     .unwrap_or("<unnamed>")); }
+            print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Event exists");
 
             if let Async::NotReady = command_event.poll()? {
+                print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Event not ready");
                 return Ok(Async::NotReady);
             }
+            print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Event is ready");
         }
 
         // Set cmd event to `None` so it doesn't get waited on unnecessarily

@@ -32,8 +32,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a queue to use for this call only.
     pub fn queue<'q, Q>(mut self, queue: &'q Q) -> MemUnmapCmd<'c, T>
-        where 'q: 'c, Q: 'q + AsRef<Queue>
-    {
+            where 'q: 'c, Q: 'q + AsRef<Queue> {
         self.queue = Some(queue.as_ref());
         self
     }
@@ -41,8 +40,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a list of events to wait on before the command will run.
     pub fn ewait<Ewl>(mut self, ewait: Ewl) -> MemUnmapCmd<'c, T>
-            where Ewl: Into<ClWaitListPtrEnum<'c>>
-    {
+            where Ewl: Into<ClWaitListPtrEnum<'c>> {
         self.ewait = Some(ewait.into());
         self
     }
@@ -50,7 +48,8 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
     /// Specifies a list of events to wait on before the command will run or
     /// resets it to `None`.
     #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
-    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> MemUnmapCmd<'c, T> where Ewl: Into<ClWaitListPtrEnum<'c>> {
+    pub fn ewait_opt<Ewl>(mut self, ewait: Option<Ewl>) -> MemUnmapCmd<'c, T>
+            where Ewl: Into<ClWaitListPtrEnum<'c>> {
         self.ewait = ewait.map(|el| el.into());
         self
     }
@@ -58,8 +57,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
     pub fn enew<En>(mut self, enew: En) -> MemUnmapCmd<'c, T>
-            where En: Into<ClNullEventPtrEnum<'c>>
-    {
+            where En: Into<ClNullEventPtrEnum<'c>> {
         self.enew = Some(enew.into());
         self
     }
@@ -68,8 +66,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
     /// associated with this command or resets it to `None`.
     #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
     pub fn enew_opt<En>(mut self, enew: Option<En>) -> MemUnmapCmd<'c, T>
-            where En: Into<ClNullEventPtrEnum<'c>>
-    {
+            where En: Into<ClNullEventPtrEnum<'c>> {
         self.enew = enew.map(|e| e.into());
         self
     }

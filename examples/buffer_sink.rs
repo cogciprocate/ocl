@@ -49,7 +49,8 @@ fn main() {
     assert_eq!(kern.get_gws().to_len(), DATA_SET_SIZE);
 
     let buffer_sink = unsafe {
-        BufferSink::from_buffer(source_buffer.clone(), ocl_pq.queue().clone(), 0, DATA_SET_SIZE).unwrap()
+        BufferSink::from_buffer(source_buffer.clone(), Some(ocl_pq.queue().clone()), 0,
+            DATA_SET_SIZE).unwrap()
     };
     // let source_data = util::scrambled_vec((0, 20), ocl_pq.dims().to_len());
     let source_datas: Vec<_> = (0..THREAD_COUNT).map(|_| {

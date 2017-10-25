@@ -36,13 +36,13 @@ use self::futures::{Future};
 use self::futures_cpupool::{Builder as CpuPoolBuilder, CpuFuture};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::{IntoRawEventArray};
-use ::async::{Error as AsyncError, BufferSink};
+use ::async::{Error as AsyncError, BufferSink, BufferStream};
 use ::flags::{MemFlags, CommandQueueProperties};
 use ::prm::Int4;
 use ::ffi::{cl_event, c_void};
 
 // Size of buffers and kernel work size:
-const WORK_SIZE: usize = 1 << 22;
+const WORK_SIZE: usize = 1 << 18;
 
 // Initial value and addend for this example:
 const INIT_VAL: i32 = 50;
@@ -64,7 +64,7 @@ const PRINT: bool = false;
 // therefore more stages being processed concurrently. Note that regardless of
 // where this is set, an unlimited number of things may be happening
 // concurrently on the OpenCL device(s).
-const MAX_CONCURRENT_TASK_COUNT: usize = 2;
+const MAX_CONCURRENT_TASK_COUNT: usize = 4;
 
 static mut START_TIME: Option<DateTime<Local>> = None;
 
@@ -379,14 +379,14 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
 ///
 /// Read results and verify that the write and kernel have both
 /// completed successfully. The `map` will use the common queue and the
-/// `unmap` will use a dedicated queue to avoid deadlocks.
+/// `unmap` will use a dedicated queue to avoid deadlocks [not anymore].
 ///
 /// This occasionally shows as having begun a few microseconds before the
 /// kernel has completed but that's just due to the slight callback delay on
 /// the kernel completion event.
-pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
-        verify_add_unmap_queue: Queue,
-        wait_event: Option<&Event>,
+pub fn verify_add(dst_buf_stream: &BufferStream<Int4>, common_queue: &Queue,
+        // verify_add_unmap_queue: Queue,
+        kernel_event: Option<&Event>,
         verify_add_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
         // -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
@@ -400,25 +400,25 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         }
     }
 
-    unsafe { wait_event.as_ref().unwrap()
-        .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
+    unsafe {
+        kernel_event.as_ref().unwrap() .set_callback(_verify_starting,
+            task_iter as *mut c_void).unwrap();
+    }
 
-    let mut future_read_data = unsafe {
-        dst_buf.cmd().map()
-            .queue(common_queue)
-            .read()
-            .ewait(wait_event)
-            .enq_async().unwrap()
-    };
+    let future_flood = dst_buf_stream.flood()
+        .ewait(kernel_event)
+        .enq().unwrap();
 
-    // Set the read unmap completion event:
-    *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
+    *verify_add_event = Some(Event::empty());
 
-    Box::new(future_read_data.and_then(move |mut data| {
+    let future_read_data = dst_buf_stream.clone().read()
+        .enew_release(common_queue, verify_add_event.as_mut().unwrap());
+
+    let future_read = future_read_data.and_then(move |data| {
         let mut val_count = 0;
+        let cval = Int4::splat(correct_val);
 
         for (idx, val) in data.iter().enumerate() {
-            let cval = Int4::splat(correct_val);
             if *val != cval {
                 return Err(format!("Verify add: Result value mismatch: {:?} != {:?} @ [{}]",
                     val, cval, idx).into());
@@ -431,13 +431,10 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
                 task_iter, timestamp());
         }
 
-        // Explicitly enqueue the unmap with our dedicated queue,
-        // otherwise the common queue would be used and could cause
-        // a deadlock:
-        data.unmap().queue(&verify_add_unmap_queue).enq()?;
-
         Ok(val_count)
-    }))
+    });
+
+    Box::new(future_flood.join(future_read).map(|(_, task_iter)| task_iter))
 }
 
 
@@ -452,7 +449,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 ///   4. and verifies the sum.
 ///
 #[test]
-pub fn buffer_sink_cycles() {
+pub fn buffer_sink_stream_cycles() {
     let platform = Platform::default();
     println!("Platform: {}", platform.name());
     let device = Device::first(platform);
@@ -492,13 +489,16 @@ pub fn buffer_sink_cycles() {
         .build().unwrap();
 
     let src_buf_sink = unsafe { BufferSink::from_buffer(src_buf.clone(),
-        write_init_unmap_queue.clone(), 0, src_buf.len()).unwrap() };
+        Some(write_init_unmap_queue.clone()), 0, src_buf.len()).unwrap() };
 
     let dst_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(dst_buf_flags)
         .dims(WORK_SIZE)
         .build().unwrap();
+
+    let dst_buf_stream = unsafe { BufferStream::from_buffer(dst_buf.clone(),
+        Some(verify_add_unmap_queue.clone()), 0, dst_buf.len()).unwrap() };
 
     // Create program and kernel:
     let program = Program::builder()
@@ -576,8 +576,8 @@ pub fn buffer_sink_cycles() {
 
         // 4. Map-Verify-Add
         // =================
-        let verify_add = verify_add(&dst_buf, &common_queue,
-            verify_add_unmap_queue.clone(),
+        let verify_add = verify_add(&dst_buf_stream, &common_queue,
+            // verify_add_unmap_queue.clone(),
             kernel_event.as_ref(),
             &mut verify_add_event,
             tval, task_iter);

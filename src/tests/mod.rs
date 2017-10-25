@@ -19,7 +19,7 @@ pub mod vector_types;
 pub mod context_props;
 pub mod async;
 // pub mod buffer_sink;
-pub mod buffer_sink_cycles;
+pub mod buffer_sink_stream_cycles;
 
 use rand::{self, Rng};
 use core::error::{Error as OclError, Result as OclResult};

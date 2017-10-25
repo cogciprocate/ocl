@@ -19,6 +19,7 @@ impl<T: OclPrm> FutureFlush<T> {
         FutureFlush { future_guard: future_guard }
     }
 
+    /// Returns a mutable reference to the contained `FutureGuard`.
     pub fn future_guard(&mut self) -> &mut FutureGuard<Inner<T>, ReadGuard<Inner<T>>> {
         &mut self.future_guard
     }
@@ -47,7 +48,7 @@ pub struct FlushCmd<'c, T> where T: 'c + OclPrm {
 }
 
 impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
-    /// Returns a new unmap command builder.
+    /// Returns a new flush command builder.
     fn new(sink: &'c BufferSink<T>) -> FlushCmd<'c, T> {
         FlushCmd {
             queue: None,
@@ -68,8 +69,7 @@ impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
 
     /// Specifies a list of events to wait on before the command will run.
     pub fn ewait<Ewl>(mut self, ewait: Ewl) -> FlushCmd<'c, T>
-            where Ewl: Into<ClWaitListPtrEnum<'c>>
-    {
+            where Ewl: Into<ClWaitListPtrEnum<'c>> {
         self.ewait = Some(ewait.into());
         self
     }
@@ -83,44 +83,43 @@ impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
     }
 
     /// Enqueues this command.
-    ///
     pub fn enq(mut self) -> OclResult<FutureFlush<T>> {
+        let inner = unsafe { &*self.sink.lock.as_ptr() };
+
+        let buffer = inner.buffer.core();
+
+        let queue = match self.queue {
+            Some(q) => q,
+            None => inner.buffer.default_queue().unwrap(),
+        };
+
         let mut future_read = self.sink.clone().lock.read();
         if let Some(wl) = self.ewait {
             future_read.set_lock_wait_events(wl);
         }
 
+        future_read.create_lock_event(queue.context_ptr()?)?;
+
         let mut unmap_event = Event::empty();
         let mut map_event = Event::empty();
 
-        let inner = unsafe { &*self.sink.lock.as_ptr() };
-
-        let default_queue = inner.buffer.default_queue().unwrap();
-        let buffer = inner.buffer.core();
-
-        let unmap_queue = match self.queue {
-            Some(q) => q,
-            None => default_queue,
-        };
-
-        future_read.create_lock_event(unmap_queue.context_ptr()?)?;
-
         unsafe {
-            core::enqueue_unmap_mem_object::<T, _, _, _>(unmap_queue, buffer, &inner.memory,
+            core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &inner.memory,
                 future_read.lock_event(), Some(&mut unmap_event))?;
 
-            core::enqueue_map_buffer::<T, _, _, _>(default_queue, buffer, false,
+            let memory = core::enqueue_map_buffer::<T, _, _, _>(queue, buffer, false,
                 MapFlags::new().write_invalidate_region(), inner.default_offset, inner.default_len,
                 Some(&unmap_event), Some(&mut map_event))?;
+            debug_assert!(memory.as_ptr() == inner.memory.as_ptr());
+
+            // Copy the tail/conclusion event.
+            if let Some(ref mut enew) = self.enew {
+                enew.clone_from(&map_event);
+            }
         }
 
-        // Copy the tail/conclusion event.
-        if let Some(ref mut enew) = self.enew {
-            unsafe { enew.clone_from(&map_event) }
-        }
-
-        // Ensure that the unmap and (re)map finish.
-        future_read.set_command_wait_event(map_event.clone());
+        // Ensure that the unmap and (re)map finish before the future resolves.
+        future_read.set_command_wait_event(map_event);
 
         Ok(FutureFlush::new(future_read))
     }
@@ -205,7 +204,7 @@ impl<T: OclPrm> BufferSink<T> {
             .fill_val(T::default())
             .build()?;
 
-        unsafe { BufferSink::from_buffer(buffer, queue, 0, len) }
+        unsafe { BufferSink::from_buffer(buffer, None, 0, len) }
     }
 
     /// Returns a new `BufferSink`.
@@ -214,7 +213,7 @@ impl<T: OclPrm> BufferSink<T> {
     ///
     /// `buffer` must not have the same region mapped more than once.
     ///
-    pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Queue, default_offset: usize,
+    pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Option<Queue>, default_offset: usize,
             default_len: usize) -> OclResult<BufferSink<T>> {
         let buf_flags = buffer.flags()?;
         assert!(buf_flags.contains(MemFlags::new().alloc_host_ptr()) ||
@@ -227,7 +226,12 @@ impl<T: OclPrm> BufferSink<T> {
             `MEM_HOST_NO_ACCESS` or `MEM_HOST_READ_ONLY` flags.");
         assert!(default_offset + default_len <= buffer.len());
 
-        buffer.set_default_queue(queue);
+        match queue {
+            Some(q) => { buffer.set_default_queue(q); },
+            None => assert!(buffer.default_queue().is_some(),
+                "A buffer sink must be created with a queue."),
+        }
+
         let map_flags = MapFlags::new().write_invalidate_region();
 
         let memory = core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
@@ -256,25 +260,34 @@ impl<T: OclPrm> BufferSink<T> {
         self.lock.write()
     }
 
-    /// Returns a command builder which once enqueued will flush data from the
-    /// mapped memory region to the device.
+    /// Returns a command builder which, once enqueued, will flush data from
+    /// the mapped memory region to the device.
     pub fn flush(&self) -> FlushCmd<T> {
         FlushCmd::new(self)
     }
 
     /// Returns a reference to the internal buffer.
+    #[inline]
     pub fn buffer(&self) -> &Buffer<T> {
         unsafe { &(*self.lock.as_mut_ptr()).buffer }
     }
 
     /// Returns a reference to the internal memory mapping.
+    #[inline]
     pub fn memory(&self) -> &MemMapCore<T> {
         unsafe { &(*self.lock.as_mut_ptr()).memory }
     }
 
     /// Returns a reference to the internal offset.
+    #[inline]
     pub fn default_offset(&self) -> usize {
         unsafe { (*self.lock.as_mut_ptr()).default_offset }
+    }
+
+    /// Returns the length of the memory region.
+    #[inline]
+    pub fn default_len(&self) -> usize {
+        unsafe { (*self.lock.as_ptr()).default_len }
     }
 
     /// Returns a mutable slice into the contained memory region.
@@ -289,11 +302,6 @@ impl<T: OclPrm> BufferSink<T> {
         let ptr = (*self.lock.as_mut_ptr()).memory.as_mut_ptr();
         let default_len = (*self.lock.as_ptr()).default_len;
         ::std::slice::from_raw_parts_mut(ptr, default_len)
-    }
-
-    /// Returns the length of the memory region.
-    pub fn default_len(&self) -> usize {
-        unsafe { (*self.lock.as_ptr()).default_len }
     }
 
     /// Returns a pointer address to the internal memory region, usable as a
