@@ -89,7 +89,7 @@ impl Event {
     /// `CommandExecutionStatus::Submitted` (the default upon creation).
     ///
     #[cfg(not(feature = "async_block"))]
-    pub unsafe fn register_event_trigger(&self, user_event: Event) -> OclResult<()> {
+    pub unsafe fn register_event_relay(&self, user_event: Event) -> OclResult<()> {
         let unmap_event_ptr = user_event.into_raw();
         self.set_callback(core::_complete_user_event, unmap_event_ptr)
     }

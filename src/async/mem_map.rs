@@ -142,21 +142,18 @@ impl<T> MemMap<T>  where T: OclPrm {
             };
 
             core::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
-            &self.core, ewait_opt.and(self.unmap_wait_events.as_ref()), origin_event_opt.as_mut())?;
+                &self.core, ewait_opt.and(self.unmap_wait_events.as_ref()), origin_event_opt.as_mut())?;
 
             self.is_unmapped = true;
 
             if let Some(origin_event) = origin_event_opt {
-                // origin_event refcount: 1
-                // If enew_opt is `Some`, update its internal event ptr.
                 if let Some(ref mut enew) = enew_opt {
-                        // origin_event/enew refcount: 2
-                        unsafe { enew.clone_from(&origin_event) }
+                    unsafe { enew.clone_from(&origin_event) }
                 }
 
                 if let Some(unmap_user_event) = self.unmap_event.take() {
                     #[cfg(not(feature = "async_block"))]
-                    unsafe { origin_event.register_event_trigger(unmap_user_event)?; }
+                    unsafe { origin_event.register_event_relay(unmap_user_event)?; }
 
                     #[cfg(feature = "async_block")]
                     origin_event.wait_for()?;
