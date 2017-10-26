@@ -185,7 +185,7 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
 /// the common queue and the `unmap` will automatically use the
 /// dedicated queue passed to the buffer during creation (unless we
 /// specify otherwise).
-pub fn write_init(src_buf_sink: &BufferSink<Int4>, common_queue: &Queue,
+pub fn write_init(src_buf_sink: &BufferSink<Int4>,
         fill_event: Option<&Event>,
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
@@ -209,10 +209,11 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>, common_queue: &Queue,
     }
 
     let mut write_complete_event = Event::empty();
+    let queue = src_buf_sink.buffer().default_queue().unwrap();
 
     let future_write_data = src_buf_sink.clone().write()
         .ewait_lock([&fill_event, &verify_init_event])
-        .enew_release(common_queue, &mut write_complete_event);
+        .enew_release(queue, &mut write_complete_event);
 
     unsafe {
         write_complete_event.set_callback(_write_write_complete, task_iter as *mut c_void).unwrap();
@@ -235,7 +236,9 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>, common_queue: &Queue,
     // The final completion event:
     *write_init_event = Some(Event::empty());
 
-    let future_flush = src_buf_sink.flush().enew(write_init_event.as_mut()).enq().unwrap();
+    let future_flush = src_buf_sink.clone().flush()
+        .enew(write_init_event.as_mut())
+        .enq().unwrap();
 
     // Set printing callback:
     unsafe {
@@ -384,8 +387,7 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
 /// This occasionally shows as having begun a few microseconds before the
 /// kernel has completed but that's just due to the slight callback delay on
 /// the kernel completion event.
-pub fn verify_add(dst_buf_stream: &BufferStream<Int4>, common_queue: &Queue,
-        // verify_add_unmap_queue: Queue,
+pub fn verify_add(dst_buf_stream: &BufferStream<Int4>,
         kernel_event: Option<&Event>,
         verify_add_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
@@ -405,14 +407,16 @@ pub fn verify_add(dst_buf_stream: &BufferStream<Int4>, common_queue: &Queue,
             task_iter as *mut c_void).unwrap();
     }
 
-    let future_flood = dst_buf_stream.flood()
+    let future_flood = dst_buf_stream.clone().flood()
         .ewait(kernel_event)
         .enq().unwrap();
 
     *verify_add_event = Some(Event::empty());
 
+    let queue = dst_buf_stream.buffer().default_queue().unwrap();
+
     let future_read_data = dst_buf_stream.clone().read()
-        .enew_release(common_queue, verify_add_event.as_mut().unwrap());
+        .enew_release(queue, verify_add_event.as_mut().unwrap());
 
     let future_read = future_read_data.and_then(move |data| {
         let mut val_count = 0;
@@ -552,7 +556,7 @@ pub fn buffer_sink_stream_cycles() {
 
         // 1. Map-Write-Init
         // ============
-        let write_init = write_init(&src_buf_sink, &common_queue,
+        let write_init = write_init(&src_buf_sink,
             fill_event.as_ref(),
             verify_init_event.as_ref(),
             &mut write_init_event,
@@ -576,7 +580,7 @@ pub fn buffer_sink_stream_cycles() {
 
         // 4. Map-Verify-Add
         // =================
-        let verify_add = verify_add(&dst_buf_stream, &common_queue,
+        let verify_add = verify_add(&dst_buf_stream,
             // verify_add_unmap_queue.clone(),
             kernel_event.as_ref(),
             &mut verify_add_event,

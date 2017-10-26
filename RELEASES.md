@@ -19,8 +19,7 @@ Now:
 unsafe { kernel.enq().unwrap(); }
 ```
 
-
-Breaking Changes
+Other Breaking Changes
 ----------------
 * `Kernel::enq` and `KernelCmd::enq` are now marked `unsafe`.
 * `BufferMapCmd::enq` and `BufferMapCmd::enq_async` are now marked `unsafe`.

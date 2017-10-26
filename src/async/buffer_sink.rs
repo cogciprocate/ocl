@@ -42,14 +42,14 @@ impl<T: OclPrm> Future for FutureFlush<T> {
 #[derive(Debug)]
 pub struct FlushCmd<'c, T> where T: 'c + OclPrm {
     queue: Option<&'c Queue>,
-    sink: &'c BufferSink<T>,
+    sink: BufferSink<T>,
     ewait: Option<ClWaitListPtrEnum<'c>>,
     enew: Option<ClNullEventPtrEnum<'c>>,
 }
 
 impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
     /// Returns a new flush command builder.
-    fn new(sink: &'c BufferSink<T>) -> FlushCmd<'c, T> {
+    fn new(sink: BufferSink<T>) -> FlushCmd<'c, T> {
         FlushCmd {
             queue: None,
             sink: sink,
@@ -93,7 +93,7 @@ impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
             None => inner.buffer.default_queue().unwrap(),
         };
 
-        let mut future_read = self.sink.clone().lock.read();
+        let mut future_read = self.sink.lock.read();
         if let Some(wl) = self.ewait {
             future_read.set_lock_wait_events(wl);
         }
@@ -262,7 +262,7 @@ impl<T: OclPrm> BufferSink<T> {
 
     /// Returns a command builder which, once enqueued, will flush data from
     /// the mapped memory region to the device.
-    pub fn flush(&self) -> FlushCmd<T> {
+    pub fn flush<'c>(self) -> FlushCmd<'c, T> {
         FlushCmd::new(self)
     }
 

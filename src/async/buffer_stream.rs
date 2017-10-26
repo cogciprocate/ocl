@@ -42,7 +42,8 @@ impl<T: OclPrm> Future for FutureFlood<T> {
 #[derive(Debug)]
 pub struct FloodCmd<'c, T> where T: 'c + OclPrm {
     queue: Option<&'c Queue>,
-    stream: &'c BufferStream<T>,
+    // stream: &'c BufferStream<T>,
+    stream: BufferStream<T>,
     offset: usize,
     len: usize,
     ewait: Option<ClWaitListPtrEnum<'c>>,
@@ -51,7 +52,9 @@ pub struct FloodCmd<'c, T> where T: 'c + OclPrm {
 
 impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
     /// Returns a new flood command builder.
-    fn new(stream: &'c BufferStream<T>, offset: usize, len: usize) -> FloodCmd<'c, T> {
+    fn new(stream: BufferStream<T>) -> FloodCmd<'c, T> {
+        let offset = stream.default_offset();
+        let len = stream.default_len();
         FloodCmd {
             queue: None,
             stream: stream,
@@ -109,7 +112,7 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
             None => inner.buffer.default_queue().unwrap(),
         };
 
-        let mut future_write = self.stream.clone().lock.write();
+        let mut future_write = self.stream.lock.write();
         if let Some(wl) = self.ewait {
             future_write.set_lock_wait_events(wl);
         }
@@ -271,8 +274,8 @@ impl<T: OclPrm> BufferStream<T> {
 
     /// Returns a command builder which, when enqueued, floods the mapped
     /// memory region with fresh data from the device.
-    pub fn flood(&self) -> FloodCmd<T> {
-        FloodCmd::new(self, self.default_offset(), self.default_len())
+    pub fn flood<'c>(self) -> FloodCmd<'c, T> {
+        FloodCmd::new(self)
     }
 
     /// Returns a reference to the internal buffer.
