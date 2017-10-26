@@ -51,7 +51,7 @@ const SCALAR_ADDEND: i32 = 100;
 // Number of times to run the loop:
 const TASK_ITERS: i32 = 10;
 
-const PRINT: bool = false;
+const PRINT: bool = true;
 
 // The size of the pipeline channel/buffer/queue/whatever (minimum 2). This
 // has the effect of increasing the number of threads in use at any one time.
@@ -87,6 +87,7 @@ pub static KERN_SRC: &'static str = r#"
         out[idx] = in[idx] + sum;
     }
 "#;
+
 
 /// Returns a duration formatted into a sec.millisec string.
 pub fn fmt_duration(duration: Duration) -> String {
@@ -196,27 +197,41 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>,
 {
     extern "C" fn _write_write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT {
-            println!("* Write init write complete \t(iter: {}, t: {}s)",
+            println!("* Write init (write) complete \t(iter: {}, t: {}s)",
                 task_iter as usize, timestamp());
         }
     }
 
-    extern "C" fn _write_flush_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
+    extern "C" fn _write_flush_complete(_: cl_event, _: i32, task_iter: *mut c_void) {
         if PRINT {
-            println!("* Write init flush complete \t(iter: {}, t: {}s)",
+            println!("* Write init (flush) complete \t(iter: {}, t: {}s)",
                 task_iter as usize, timestamp());
         }
     }
 
+    // For write complete callback:
     let mut write_complete_event = Event::empty();
-    let queue = src_buf_sink.buffer().default_queue().unwrap();
 
     let future_write_data = src_buf_sink.clone().write()
         .ewait_lock([&fill_event, &verify_init_event])
-        .enew_release(queue, &mut write_complete_event);
+        .enew_release(src_buf_sink.buffer().default_queue().unwrap(), &mut write_complete_event);
 
+    // Set write complete callback:
     unsafe {
         write_complete_event.set_callback(_write_write_complete, task_iter as *mut c_void).unwrap();
+    }
+
+    // The final completion event:
+    *write_init_event = Some(Event::empty());
+
+    let future_flush = src_buf_sink.clone().flush()
+        .enew(write_init_event.as_mut())
+        .enq().unwrap();
+
+    // Set flush complete callback:
+    unsafe {
+        write_init_event.as_ref().unwrap().set_callback(_write_flush_complete,
+            task_iter as *mut c_void).unwrap();
     }
 
     let future_write = future_write_data
@@ -233,19 +248,6 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>,
             Ok(task_iter)
         });
 
-    // The final completion event:
-    *write_init_event = Some(Event::empty());
-
-    let future_flush = src_buf_sink.clone().flush()
-        .enew(write_init_event.as_mut())
-        .enq().unwrap();
-
-    // Set printing callback:
-    unsafe {
-        write_init_event.as_ref().unwrap().set_callback(_write_flush_complete,
-            task_iter as *mut c_void).unwrap();
-    }
-
     Box::new(future_write.join(future_flush).map(|(task_iter, _)| task_iter))
 }
 
@@ -258,7 +260,7 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>,
 /// queue for the verification completion event (used to signal the next
 /// command in the chain).
 pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: &Queue,
-        verify_init_queue: &Queue,
+        // verify_init_queue: &Queue,
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
@@ -291,7 +293,11 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
 
     // Create an empty event ready to hold the new verify_init event, overwriting any old one.
-    *verify_init_event = Some(future_read_data.create_release_event(verify_init_queue)
+    // *verify_init_event = Some(future_read_data.create_release_event(verify_init_queue)
+    //    .unwrap().clone());
+
+    // Create an empty event ready to hold the new verify_init event, overwriting any old one.
+    *verify_init_event = Some(future_read_data.create_release_event(common_queue)
         .unwrap().clone());
 
     // The future which will actually verify the initial value:
@@ -466,16 +472,16 @@ pub fn buffer_sink_stream_cycles() {
 
     // For unmap commands, the buffers will each use a dedicated queue to
     // avoid any chance of a deadlock. All other commands will use an
-    // unordered common queue.
+    // unordered common queue [UPDATE: The use of buffer sink/stream obviates this].
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
     let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
         Queue::new(&context, device, None)).unwrap();
-    let write_init_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
-    let verify_init_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
-    let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+    // let write_init_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    // let verify_init_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    // let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
 
     // Allocating host memory allows the OpenCL runtime to use special pinned
     // memory which considerably improves the transfer performance of map
@@ -493,7 +499,8 @@ pub fn buffer_sink_stream_cycles() {
         .build().unwrap();
 
     let src_buf_sink = unsafe { BufferSink::from_buffer(src_buf.clone(),
-        Some(write_init_unmap_queue.clone()), 0, src_buf.len()).unwrap() };
+        // Some(write_init_unmap_queue.clone()), 0, src_buf.len()).unwrap() };
+        Some(common_queue.clone()), 0, src_buf.len()).unwrap() };
 
     let dst_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
@@ -502,7 +509,8 @@ pub fn buffer_sink_stream_cycles() {
         .build().unwrap();
 
     let dst_buf_stream = unsafe { BufferStream::from_buffer(dst_buf.clone(),
-        Some(verify_add_unmap_queue.clone()), 0, dst_buf.len()).unwrap() };
+        // Some(verify_add_unmap_queue.clone()), 0, dst_buf.len()).unwrap() };
+        Some(common_queue.clone()), 0, dst_buf.len()).unwrap() };
 
     // Create program and kernel:
     let program = Program::builder()
@@ -565,7 +573,7 @@ pub fn buffer_sink_stream_cycles() {
         // 2. Read-Verify-Init
         // ============
         let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
-            &verify_init_queue,
+            // &verify_init_queue,
             write_init_event.as_ref(),
             &mut verify_init_event,
             ival, task_iter);
