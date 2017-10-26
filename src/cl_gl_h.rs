@@ -93,6 +93,7 @@ extern "system" {
                                       renderbuffer: cl_GLuint,
                                       errcode_ret: *mut cl_int) -> cl_mem;
 
+    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn clEnqueueAcquireGLObjects(command_queue: cl_command_queue,
                                      num_objects: cl_uint,
                                      mem_objects: *const cl_mem,
@@ -100,6 +101,7 @@ extern "system" {
                                      event_wait_list: *const cl_event,
                                      event: *mut cl_event) -> cl_int;
 
+    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn clEnqueueReleaseGLObjects(command_queue: cl_command_queue,
                                      num_objects: cl_uint,
                                      mem_objects: *const cl_mem,

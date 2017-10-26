@@ -41,8 +41,13 @@ pub use self::cl_gl_h::{CL_GL_OBJECT_BUFFER, CL_GL_OBJECT_TEXTURE2D, CL_GL_OBJEC
 
 pub use self::cl_gl_h::{clGetGLContextInfoKHR_fn, clCreateFromGLBuffer, clCreateFromGLTexture,
     clGetGLObjectInfo, clGetGLTextureInfo, clCreateFromGLRenderbuffer,
-    clEnqueueAcquireGLObjects, clEnqueueReleaseGLObjects, clCreateFromGLTexture2D,
+    clCreateFromGLTexture2D,
     clCreateFromGLTexture3D, clGetGLContextInfoKHR};
+
+#[cfg(not(feature="opencl_vendor_mesa"))] 
+pub use self::cl_gl_h::{
+    clEnqueueAcquireGLObjects,
+    clEnqueueReleaseGLObjects };
 
 pub use self::cl_egl_h::{CLeglImageKHR, CLeglDisplayKHR, CLeglSyncKHR, cl_egl_image_properties_khr};
 
