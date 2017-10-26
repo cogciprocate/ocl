@@ -78,6 +78,22 @@ impl Event {
         unsafe { self.set_callback(_unpark_task, task_ptr) }
     }
 
+    /// Registers a user event to have its status set to complete
+    /// (`CommandExecutionStatus::Complete`) immediately upon completion of
+    /// this event.
+    ///
+    /// ## Safety
+    ///
+    /// The caller must ensure that `user_event` was created with
+    /// `Event::user()` and that it's status is
+    /// `CommandExecutionStatus::Submitted` (the default upon creation).
+    ///
+    #[cfg(not(feature = "async_block"))]
+    pub unsafe fn register_event_trigger(&self, user_event: Event) -> OclResult<()> {
+        let unmap_event_ptr = user_event.into_raw();
+        self.set_callback(core::_complete_user_event, unmap_event_ptr)
+    }
+
     /// Returns info about the event.
     pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
         core::get_event_info(&self.0, info_kind)
