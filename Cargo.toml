@@ -20,6 +20,7 @@ opencl_version_1_1 = ["ocl-core/opencl_version_1_1"]
 opencl_version_1_2 = ["ocl-core/opencl_version_1_2"]
 opencl_version_2_0 = ["ocl-core/opencl_version_2_0"]
 opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
+opencl_vendor_mesa = ["ocl-core/opencl_vendor_mesa"]
 
 # Enabling this feature causes all `Future::poll` functions to behave in a
 # thread-blocking manner, causing the calling thread to block then return

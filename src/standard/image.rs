@@ -436,16 +436,21 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
                 core::enqueue_copy_image(queue, self.obj_core, dst_image, self.origin,
                     dst_origin, self.region, self.ewait, self.enew)
             },
+
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             ImageCmdKind::GLAcquire => {
                 // core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
                 core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
+
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             ImageCmdKind::GLRelease => {
                 // core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
                 core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
+
             ImageCmdKind::Unspecified => OclError::err_string("ocl::ImageCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),
