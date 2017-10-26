@@ -321,6 +321,42 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
         self
     }
 
+    /// Creates an event which will be triggered when a lock is obtained on
+    /// the guarded internal value.
+    ///
+    /// The returned event can be added to the wait list of subsequent OpenCL
+    /// commands with the expectation that when all preceding futures are
+    /// complete, the event will automatically be 'triggered' by having its
+    /// status set to complete, causing those commands to execute. This can be
+    /// used to inject host side code in amongst OpenCL commands without
+    /// thread blocking or extra delays of any kind.
+    pub fn create_lock_event<C: ClContextPtr>(&mut self, context: C) -> OclResult<&Event> {
+        assert!(self.lock_event.is_none(), "Lock event has already been created.");
+        self.lock_event = Some(Event::user(context)?);
+        Ok(self.lock_event.as_mut().unwrap())
+    }
+
+    /// Creates an event which will be triggered when a lock is obtained on
+    /// the guarded internal value.
+    ///
+    /// `enew` must be an empty (null) event or event list.
+    ///
+    /// See `::create_lock_event`
+    ///
+    /// ## Panics
+    ///
+    /// Panics if there is an error creating the lock event.
+    ///
+    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
+    pub fn enew_lock<C, En>(mut self, context: C, mut enew: En) -> FutureGuard<V, G>
+            where C: ClContextPtr, En: ClNullEventPtr {
+        {
+            let lock_event = self.create_lock_event(context).expect("FutureGuard::enew_lock");
+            unsafe { enew.clone_from(lock_event); }
+        }
+        self
+    }
+
     /// Sets a command completion wait event.
     ///
     /// `command_event` must be an event created by enqueuing an OpenCL
@@ -351,36 +387,6 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
         self
     }
 
-    /// Creates an event which will be triggered when a lock is obtained on
-    /// the guarded internal value.
-    ///
-    /// The returned event can be added to the wait list of subsequent OpenCL
-    /// commands with the expectation that when all preceding futures are
-    /// complete, the event will automatically be 'triggered' by having its
-    /// status set to complete, causing those commands to execute. This can be
-    /// used to inject host side code in amongst OpenCL commands without
-    /// thread blocking or extra delays of any kind.
-    pub fn create_lock_event<C: ClContextPtr>(&mut self, context: C) -> OclResult<&Event> {
-        assert!(self.lock_event.is_none(), "Lock event has already been created.");
-        self.lock_event = Some(Event::user(context)?);
-        Ok(self.lock_event.as_mut().unwrap())
-    }
-
-    /// Specifies an event which will be triggered when a lock is obtained on
-    /// the guarded internal value.
-    ///
-    /// See `::create_lock_event`
-    ///
-    /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
-    pub fn enew_lock<C, En>(mut self, context: C, mut enew: En) -> FutureGuard<V, G>
-            where C: ClContextPtr, En: ClNullEventPtr {
-        {
-            let lock_event = self.create_lock_event(context).expect("FutureGuard::enew_lock");
-            unsafe { enew.clone_from(lock_event); }
-        }
-        self
-    }
-
     /// Creates an event which will be triggered after this future resolves
     /// **and** the ensuing `OrderGuard` is dropped or manually released.
     ///
@@ -396,10 +402,16 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
         Ok(self.release_event.as_ref().unwrap())
     }
 
-    /// Specifies an event which will be triggered after this future resolves
+    /// Creates an event which will be triggered after this future resolves
     /// **and** the ensuing `OrderGuard` is dropped or manually released.
     ///
+    /// `enew` must be an empty (null) event or event list.
+    ///
     /// See `::create_release_event`.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if there is an error creating the release event.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed at any time.
     pub fn enew_release<C, En>(mut self, context: C, mut enew: En) -> FutureGuard<V, G>
