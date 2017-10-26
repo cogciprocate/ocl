@@ -214,6 +214,10 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
             // complete (triggered) after the CPU-side processing is complete
             // and the data is transferred to the device:
             .enew_unmap(write_init_event.as_mut().unwrap())
+
+            // Specify a dedicated queue for the unmap, otherwise the common
+            // queue would be used and could cause a deadlock:
+            .with_unmap_queue(write_init_unmap_queue)
     };
 
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
@@ -226,12 +230,6 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         for val in data.iter_mut() {
             *val = Int4::new(write_val, write_val, write_val, write_val);
         }
-
-        // Normally we could just let `data` (a `MemMap`) fall out of
-        // scope and it would unmap itself. Since we need to specify a
-        // special dedicated queue to avoid deadlocks in this case, we
-        // call it explicitly.
-        data.unmap().queue(&write_init_unmap_queue).enq()?;
 
         Ok(task_iter)
     }))
@@ -392,9 +390,13 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 
             // Set the read unmap completion event:
             .enew_unmap(verify_add_event.as_mut().unwrap())
+
+            // Specify a dedicated queue for the unmap, otherwise the common
+            // queue would be used and could cause a deadlock:
+            .with_unmap_queue(verify_add_unmap_queue)
     };
 
-    Box::new(future_read_data.and_then(move |mut data| {
+    Box::new(future_read_data.and_then(move |data| {
         let mut val_count = 0;
         let cval = Int4::splat(correct_val);
 
@@ -408,11 +410,6 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 
         printlnc!(lime_bold: "* Verify add complete \t\t(iter: {}, t: {}s)",
             task_iter, timestamp());
-
-        // Explicitly enqueue the unmap with our dedicated queue,
-        // otherwise the common queue would be used and could cause
-        // a deadlock:
-        data.unmap().queue(&verify_add_unmap_queue).enq()?;
 
         Ok(val_count)
     }))

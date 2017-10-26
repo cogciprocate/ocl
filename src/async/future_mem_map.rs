@@ -101,6 +101,12 @@ impl<T: OclPrm> FutureMemMap<T> {
         self.queue = Some(queue)
     }
 
+    /// Specifies the queue to be used for the unmap command.
+    pub fn with_unmap_queue(mut self, queue: Queue) -> FutureMemMap<T> {
+        self.set_unmap_queue(queue);
+        self
+    }
+
     /// Returns the unmap event if it has been created.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed.
