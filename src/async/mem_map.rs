@@ -95,7 +95,6 @@ pub struct MemMap<T> where T: OclPrm {
     queue: Queue,
     unmap_wait_events: Option<EventList>,
     unmap_event: Option<Event>,
-    callback_is_set: bool,
     is_unmapped: bool,
     // buffer_is_mapped: Arc<AtomicBool>
 }
@@ -111,7 +110,6 @@ impl<T> MemMap<T>  where T: OclPrm {
             queue: queue,
             unmap_wait_events: unmap_wait_events,
             unmap_event: unmap_event,
-            callback_is_set: false,
             is_unmapped: false,
             // buffer_is_mapped,
         }
@@ -156,52 +154,20 @@ impl<T> MemMap<T>  where T: OclPrm {
                         unsafe { enew.clone_from(&origin_event) }
                 }
 
-                if cfg!(not(feature = "async_block")) {
-                    // Async version:
-                    if self.unmap_event.is_some() {
-                        #[cfg(not(feature = "async_block"))]
-                        self.register_event_trigger(&origin_event)?;
+                if let Some(unmap_user_event) = self.unmap_event.take() {
+                    #[cfg(not(feature = "async_block"))]
+                    unsafe { origin_event.register_event_trigger(unmap_user_event)?; }
 
-                        // `origin_event` will be reconstructed by the callback
-                        // function using `UserEvent::from_raw` and `::drop`
-                        // will be run there. Do not also run it here.
-                        #[cfg(not(feature = "async_block"))]
-                        ::std::mem::forget(origin_event);
-                    }
-                } else {
-                    // Blocking version:
-                    if let Some(ref mut um_tar) = self.unmap_event {
-                        origin_event.wait_for()?;
-                        um_tar.set_complete()?;
-                    }
+                    #[cfg(feature = "async_block")]
+                    origin_event.wait_for()?;
+                    #[cfg(feature = "async_block")]
+                    unmap_user_event.set_complete()?;
                 }
             }
 
             Ok(())
         } else {
             Err("ocl_core::- ::unmap: Already unmapped.".into())
-        }
-    }
-
-    #[cfg(not(feature = "async_block"))]
-    fn register_event_trigger(&mut self, event: &Event) -> AsyncResult<()> {
-        debug_assert!(self.is_unmapped && self.unmap_event.is_some());
-
-        if !self.callback_is_set {
-            if let Some(ref ev) = self.unmap_event {
-                unsafe {
-                    let unmap_event_ptr = ev.clone().into_raw();
-                    event.set_callback(core::_complete_user_event, unmap_event_ptr)?;
-                }
-
-                self.callback_is_set = true;
-                Ok(())
-            } else {
-                panic!("- ::register_event_trigger: No unmap event target \
-                    has been configured with this MemMap.");
-            }
-        } else {
-            Err("Callback already set.".into())
         }
     }
 
