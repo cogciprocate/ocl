@@ -17,6 +17,7 @@ opencl_version_1_1 = ["cl-sys/opencl_version_1_1"]
 opencl_version_1_2 = ["cl-sys/opencl_version_1_2"]
 opencl_version_2_0 = ["cl-sys/opencl_version_2_0"]
 opencl_version_2_1 = ["cl-sys/opencl_version_2_1"]
+opencl_vendor_mesa = ["cl-sys/opencl_vendor_mesa"]
 
 default = ["ocl-core-vector", "rand", "opencl_version_1_1", "opencl_version_1_2"]
 

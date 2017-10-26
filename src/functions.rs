@@ -19,7 +19,11 @@ use num::FromPrimitive;
 
 use ffi::{cl_GLuint, cl_GLint, cl_GLenum, cl_gl_context_info,};
 use ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
-    clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
+    clCreateFromGLTexture2D, clCreateFromGLTexture3D};
+
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use ffi::{
+    clEnqueueAcquireGLObjects,
     clEnqueueReleaseGLObjects};
 
 use ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_device_type,
@@ -2531,6 +2535,7 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
 /// [UNTESTED]
 /// Enqueue acquire OpenCL memory object that has been created from an `OpenGL` object.
 #[deprecated(since="0.6.0", note="Use `::enqueue_acquire_gl_objects` instead.")]
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_acquire_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2559,6 +2564,7 @@ pub fn enqueue_acquire_gl_buffer<En, Ewl>(
 /// To create a slice from a single `Mem` reference without any cost, use
 /// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
 ///
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_acquire_gl_objects<En, Ewl>(
             command_queue: &CommandQueue,
             buffers: &[Mem],
@@ -2585,6 +2591,7 @@ pub fn enqueue_acquire_gl_objects<En, Ewl>(
 /// [UNTESTED]
 /// Enqueue release a single OpenCL memory object that has been created from an `OpenGL` object.
 #[deprecated(since="0.6.0", note="Use `::enqueue_release_gl_objects` instead.")]
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_release_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2613,6 +2620,7 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
 /// To create a slice from a single `Mem` reference without any cost, use
 /// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
 ///
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_release_gl_objects<En, Ewl>(
             command_queue: &CommandQueue,
             buffers: &[Mem],
