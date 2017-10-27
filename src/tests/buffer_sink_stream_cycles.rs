@@ -51,7 +51,7 @@ const SCALAR_ADDEND: i32 = 100;
 // Number of times to run the loop:
 const TASK_ITERS: i32 = 10;
 
-const PRINT: bool = true;
+const PRINT: bool = false;
 
 // The size of the pipeline channel/buffer/queue/whatever (minimum 2). This
 // has the effect of increasing the number of threads in use at any one time.

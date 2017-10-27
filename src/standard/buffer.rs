@@ -70,7 +70,7 @@ impl From<BufferCmdError> for OclError {
     }
 }
 
-type BufferCmdResult<T> = Result<T, BufferCmdError>;
+// type BufferCmdResult<T> = Result<T, BufferCmdError>;
 
 
 /// A queue or context reference.
@@ -1467,7 +1467,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
     /// Returns operation details.
     #[inline]
-    fn enq_details(&mut self) -> BufferCmdResult<(usize, usize, &Queue, MapFlags,
+    fn enq_details(&mut self) -> OclResult<(usize, usize, &Queue, MapFlags,
             Option<ClWaitListPtrEnum<'c>>, Option<ClNullEventPtrEnum<'c>>/*, Arc<AtomicBool>*/)> {
         // if let Some(ref is_mapped) = self.cmd.buffer.is_mapped {
         //     if is_mapped.fetch_or(true, Ordering::SeqCst) {
@@ -1485,7 +1485,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
                 let queue = match self.cmd.queue {
                     Some(q) => q,
-                    None => return Err(BufferCmdError::NoQueue),
+                    None => return Err(BufferCmdError::NoQueue.into()),
                 };
 
                 let flags = self.flags.unwrap_or(MapFlags::empty());
@@ -1495,7 +1495,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
                 Ok((offset, len, queue, flags, self.cmd.ewait.take(), self.cmd.enew.take(), /*is_mapped*/))
             } else {
-                Err(BufferCmdError::RectUnavailable)
+                Err(BufferCmdError::RectUnavailable.into())
             }
         } else {
             unreachable!();
@@ -1512,7 +1512,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// sub-region access or whole-buffer aliasing, no two mappings will allow
     /// writes to the same memory region at the same time. Use atomics or some
     /// other synchronization mechanism to ensure this.
-    pub unsafe fn enq(mut self) -> BufferCmdResult<MemMap<T>> {
+    pub unsafe fn enq(mut self) -> OclResult<MemMap<T>> {
         let (offset, len, queue, flags, ewait, enew, /*is_mapped*/) = self.enq_details()?;
 
         // unsafe {
@@ -1538,7 +1538,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// sub-region access or whole-buffer aliasing, no two mappings will allow
     /// writes to the same memory region at the same time. Use atomics or some
     /// other synchronization mechanism to ensure this.
-    pub unsafe fn enq_async(mut self) -> BufferCmdResult<FutureMemMap<T>> {
+    pub unsafe fn enq_async(mut self) -> OclResult<FutureMemMap<T>> {
         let (offset, len, queue, flags, ewait, enew, /*is_mapped*/) = self.enq_details()?;
 
         // let future = unsafe {
