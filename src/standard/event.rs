@@ -82,6 +82,16 @@ impl Event {
     /// (`CommandExecutionStatus::Complete`) immediately upon completion of
     /// this event.
     ///
+    /// ## Deadlocks
+    ///
+    /// Due to the nature of OpenCL queue implementations, care must be taken
+    /// when using this function. OpenCL queue deadlocks may occur.
+    ///
+    /// OpenCL queues generally use one thread per queue for the purposes of
+    /// callbacks, etc. As a rule of thumb, ensure that any OpenCL commands
+    /// preceding the causation/source event (`self`) are in a separate queue
+    /// from any commands with the dependent/target event (`user_event`).
+    ///
     /// ## Safety
     ///
     /// The caller must ensure that `user_event` was created with
