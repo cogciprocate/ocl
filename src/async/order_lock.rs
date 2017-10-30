@@ -697,10 +697,14 @@ impl<V, G> Future for FutureGuard<V, G> where G: OrderGuard<V> {
 impl<V, G> Drop for FutureGuard<V, G> {
     /// Drops this FutureGuard.
     ///
-    /// Blocks the current thread until the command associated with this
-    /// `FutureGuard` (represented by the command completion event)
-    /// completes. This ensures that the underlying value is not dropped
-    /// before the command completes (which would cause obvious problems).
+    /// ## Panics
+    ///
+    /// Panics if this `FutureGuard` is not polled.
+    ///
+    // / Blocks the current thread until the command associated with this
+    // / `FutureGuard` (represented by the command completion event)
+    // / completes. This ensures that the underlying value is not dropped
+    // / before the command completes (which would cause obvious problems).
     //
     //
     //
@@ -710,15 +714,18 @@ impl<V, G> Drop for FutureGuard<V, G> {
     //
     //
     fn drop(&mut self) {
-        if let Some(ref ccev) = self.command_event {
-            // println!("###### FutureGuard::drop: Event ({:?}) incomplete...", ccev);
-            // panic!("###### FutureGuard::drop: Event ({:?}) incomplete...", ccev);
-            ccev.wait_for().expect("Error waiting on command completion event \
-                while dropping 'FutureGuard'");
-        }
-        if let Some(ref rev) = self.release_event {
-            rev.set_complete().expect("Error setting release event complete \
-                while dropping 'FutureGuard'");
+        // if let Some(ref ccev) = self.command_event {
+        //     // println!("###### FutureGuard::drop: Event ({:?}) incomplete...", ccev);
+        //     // panic!("FutureGuard::drop: FutureGuard dropped before being polled.");
+        //     ccev.wait_for().expect("Error waiting on command completion event \
+        //         while dropping 'FutureGuard'");
+        // }
+        // if let Some(ref rev) = self.release_event {
+        //     rev.set_complete().expect("Error setting release event complete \
+        //         while dropping 'FutureGuard'");
+        // }
+        if let Some(ref _order_lock) = self.order_lock {
+            panic!("FutureGuard::drop: FutureGuard dropped before being polled.");
         }
     }
 }
