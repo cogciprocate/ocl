@@ -21,7 +21,12 @@ opencl_version_1_2 = ["ocl-core/opencl_version_1_2"]
 opencl_version_2_0 = ["ocl-core/opencl_version_2_0"]
 opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
 
-# Enabling this feature causes all `Future::poll` functions to behave in a
+# Enabling `future_guard_drop_panic` will cause `FutureGuard::drop` to panic
+# if the guard is dropped before polled. This is helpful when troubleshooting
+# deadlocks with `RwVec` and other `OrderLock` based types.
+future_guard_drop_panic = []
+
+# Enabling `async_block` causes all `Future::poll` functions to behave in a
 # thread-blocking manner, causing the calling thread to block then return
 # `Async::Ready(..)` instead of behaving as a normal future would (returning
 # either `Async::Ready(..)` or `Async::NotReady` depending on the situation).

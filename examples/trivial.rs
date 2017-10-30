@@ -93,7 +93,7 @@ fn main_explained() {
 #[allow(dead_code)]
 fn main_exploded() {
     use ocl::{flags, Platform, Device, Context, Queue, Program,
-        Buffer, Kernel, Event, EventList};
+        Buffer, Kernel, /*Event, EventList*/};
 
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {
