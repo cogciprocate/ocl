@@ -134,7 +134,7 @@ fn main() {
     printlnc!(dark_grey: "Pixel before: [0..16]: {:?}", &img[(0, 0)]);
 
     printlnc!(royal_blue: "Attempting to blue-ify the image...");
-    kernel.enq().unwrap();
+    unsafe { kernel.enq().unwrap(); }
 
     dst_image.read(&mut img).enq().unwrap();
 

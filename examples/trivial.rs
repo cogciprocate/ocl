@@ -143,8 +143,8 @@ fn main_exploded() {
             .gwo(kernel.get_gwo())
             .gws(dims)
             .lws(kernel.get_lws())
-            .ewait(None::<&EventList>)
-            .enew(None::<&mut Event>)
+            // .ewait(None::<&EventList>)
+            // .enew(None::<&mut Event>)
             .enq().unwrap();
     }
 
@@ -153,8 +153,8 @@ fn main_exploded() {
         .queue(&queue)
         .offset(0)
         .read(&mut vec)
-        .ewait(None::<&EventList>)
-        .enew(None::<&mut Event>)
+        // .ewait(None::<&EventList>)
+        // .enew(None::<&mut Event>)
         .enq().unwrap();
 
     // Print an element:

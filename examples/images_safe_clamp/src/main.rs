@@ -116,7 +116,7 @@ fn main() {
     printlnc!(white_bold: "image dims: {:?}", &dims);
     let start_time = time::get_time();
 
-    kernel.enq().unwrap();
+    unsafe { kernel.enq().unwrap(); }
     print_elapsed("kernel enqueued", start_time);
 
     queue.finish().unwrap();
@@ -198,10 +198,12 @@ fn main() {
 
     let start_time = time::get_time();
 
-    kernel_bulk.enq().unwrap();
-    kernel_rght_edge.enq().unwrap();
-    kernel_bot_edge.enq().unwrap();
-    kernel_corner.enq().unwrap();
+    unsafe {
+        kernel_bulk.enq().unwrap();
+        kernel_rght_edge.enq().unwrap();
+        kernel_bot_edge.enq().unwrap();
+        kernel_corner.enq().unwrap();
+    }
     print_elapsed("kernels enqueued", start_time);
 
     queue.finish().unwrap();
