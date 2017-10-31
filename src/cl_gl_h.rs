@@ -3,10 +3,12 @@
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
 use libc::{c_void, size_t};
-use platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
+use cl_h::{cl_context_properties, cl_int, cl_uint};
 
-use cl_h::{cl_context, cl_context_properties, cl_mem_flags, cl_command_queue,
-    cl_int, cl_uint, cl_mem, cl_event};
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use cl_h::{cl_context, cl_mem_flags, cl_mem, cl_command_queue, cl_event};
 
 pub type cl_gl_object_type      = cl_uint;
 pub type cl_gl_texture_info     = cl_uint;
@@ -65,6 +67,7 @@ pub type clGetGLContextInfoKHR_fn = *mut extern "system" fn(
 #[cfg_attr(target_os = "macos", link(name = "OpenCL", kind = "framework"))]
 #[cfg_attr(target_os = "windows", link(name = "OpenCL"))]
 #[cfg_attr(not(target_os = "macos"), link(name = "OpenCL"))]
+#[cfg(not(feature="opencl_vendor_mesa"))]  // Mesa does not support context sharing with OpenGL.
 extern "system" {
     pub fn clCreateFromGLBuffer(context: cl_context,
                                 flags: cl_mem_flags,
@@ -93,7 +96,6 @@ extern "system" {
                                       renderbuffer: cl_GLuint,
                                       errcode_ret: *mut cl_int) -> cl_mem;
 
-    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn clEnqueueAcquireGLObjects(command_queue: cl_command_queue,
                                      num_objects: cl_uint,
                                      mem_objects: *const cl_mem,
@@ -101,7 +103,6 @@ extern "system" {
                                      event_wait_list: *const cl_event,
                                      event: *mut cl_event) -> cl_int;
 
-    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn clEnqueueReleaseGLObjects(command_queue: cl_command_queue,
                                      num_objects: cl_uint,
                                      mem_objects: *const cl_mem,
