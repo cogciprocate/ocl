@@ -7,13 +7,15 @@ use std::error::Error as StdError;
 // use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Range};
-use ffi::cl_GLuint;
 use core::{self, Error as OclError, ErrorKind as OclErrorKind, Result as OclResult, OclPrm, Mem as
     MemCore, MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
     ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard,
     FutureWriteGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
+
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use ffi::cl_GLuint;
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -564,6 +566,8 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                     },
                 }
             },
+
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             BufferCmdKind::Fill { pattern, len } => {
                 match self.shape {
                     BufferCmdDataShape::Lin { offset } => {
@@ -582,7 +586,6 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                         Please use the default shape, linear.")
                 }
             },
-
             #[cfg(not(feature="opencl_vendor_mesa"))]
             BufferCmdKind::GLAcquire => {
                 // core::enqueue_acquire_gl_buffer(queue, &self.buffer.obj_core, self.ewait, self.enew)
@@ -1668,6 +1671,7 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferCmd` docs](struct.BufferCmd.html)
     /// for more info.
     ///
+    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, /*dims: D,*/
             gl_object: cl_GLuint) -> OclResult<Buffer<T>>
             where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>

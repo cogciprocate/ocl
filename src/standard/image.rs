@@ -11,15 +11,19 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 // use std::convert::Into;
-use ffi::{cl_GLuint, cl_GLint};
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
     ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
-    ImageChannelOrder, ImageChannelDataType, GlTextureTarget, AsMem, MemCmdRw, MemCmdAll,
+    ImageChannelOrder, ImageChannelDataType, AsMem, MemCmdRw, MemCmdAll,
     MapFlags};
 use standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum,
     QueCtx};
 use ::MemMap;
+
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use ffi::{cl_GLuint, cl_GLint};
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use core::{GlTextureTarget};
 
 
 /// The type of operation to be performed by a command.
@@ -682,6 +686,7 @@ impl<T: OclPrm> Image<T> {
 
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
+    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_texture<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             texture_target: GlTextureTarget, miplevel: cl_GLint, texture: cl_GLuint)
             -> OclResult<Image<T>>
@@ -728,6 +733,7 @@ impl<T: OclPrm> Image<T> {
 
     /// Returns a new `Image` from an existant renderbuffer.
     // [WORK IN PROGRESS]
+    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_renderbuffer<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             renderbuffer: cl_GLuint) -> OclResult<Image<T>>
             where Q: Into<QueCtx<'o>>

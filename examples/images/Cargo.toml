@@ -3,6 +3,9 @@ name = "images"
 version = "0.1.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 
+[features]
+opencl_vendor_mesa = ["ocl/opencl_vendor_mesa"]
+
 [dependencies]
 colorify = "*"
 image = "*"

@@ -3,6 +3,9 @@ name = "ocl-example-rgb2gray"
 version = "0.0.2"
 authors = ["Bernhard Schuster <bernhard@ahoi.io>", "Nick Sanders <cogciprocate@gmail.com>"]
 
+[features]
+opencl_vendor_mesa = ["ocl/opencl_vendor_mesa"]
+
 [dependencies]
 ocl = { path = "../../" }
 image = "*"
