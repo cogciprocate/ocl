@@ -17,7 +17,9 @@ use std::fmt::Debug;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 
+#[cfg(not(feature="opencl_vendor_mesa"))]
 use ffi::{cl_GLuint, cl_GLint, cl_GLenum, cl_gl_context_info,};
+#[cfg(not(feature="opencl_vendor_mesa"))]
 use ffi::{clCreateFromGLBuffer, clCreateFromGLRenderbuffer, clCreateFromGLTexture,
     clCreateFromGLTexture2D, clCreateFromGLTexture3D, clEnqueueAcquireGLObjects,
     clEnqueueReleaseGLObjects};
@@ -32,8 +34,8 @@ use ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devic
 
 use error::{Error as OclError, ErrorKind as OclErrorKind, Result as OclResult, ChainErr};
 
-use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, GlContextInfo,
-    ContextInfoResult, GlContextInfoResult, MemFlags, CommandQueue, Mem, MemObjectType, Program,
+use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
+    ContextInfoResult, MemFlags, CommandQueue, Mem, MemObjectType, Program,
     Kernel, ClNullEventPtr, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor,
     CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult,
     DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult,
@@ -46,6 +48,8 @@ use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo, Gl
     BufferCreateType, OpenclVersion, ClVersions, Status, CommandQueueProperties, MemMap, AsMem,
     MemCmdRw, MemCmdAll, Event, ImageFormatParseResult};
 
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use ::{GlContextInfo, GlContextInfoResult};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
@@ -794,6 +798,7 @@ pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>>
 /// with how libraries are loaded into memory. There may alternatively just be
 /// a simple mistake somewhere.
 ///
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContextInfo)
         -> GlContextInfoResult
 {
@@ -989,6 +994,7 @@ pub unsafe fn create_buffer<C, T>(
 
 /// [UNTESTED]
 /// Return a buffer pointer from a `OpenGL` buffer object.
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_buffer<C>(
             context: C,
             gl_object: cl_GLuint,
@@ -1013,6 +1019,7 @@ pub unsafe fn create_from_gl_buffer<C>(
 
 /// [UNTESTED]
 /// Return a renderbuffer pointer from a `OpenGL` renderbuffer object.
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_renderbuffer<C>(
             context: C,
             renderbuffer: cl_GLuint,
@@ -1041,6 +1048,7 @@ pub unsafe fn create_from_gl_renderbuffer<C>(
 /// [TODO]: If version is < 1.2, automatically use older versions.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture<C>(
             context: C,
             texture_target: cl_GLenum,
@@ -1091,6 +1099,7 @@ pub unsafe fn create_from_gl_texture<C>(
 
 /// [UNTESTED] [DEPRICATED]
 /// Return a texture2D pointer from a `OpenGL` texture2D object.
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture_2d<C>(
             context: C,
             texture_target: cl_GLenum,
@@ -1119,6 +1128,7 @@ pub unsafe fn create_from_gl_texture_2d<C>(
 
 /// [UNTESTED] [DEPRICATED]
 /// Return a texture3D pointer from a `OpenGL` texture3D object.
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture_3d<C>(
             context: C,
             texture_target: cl_GLenum,
@@ -2410,6 +2420,7 @@ pub unsafe fn enqueue_write_buffer_rect<T, M, En, Ewl>(
 /// ## Pattern (from [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillBuffer.html))
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_fill_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             buffer: M,
@@ -2531,6 +2542,7 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
 /// [UNTESTED]
 /// Enqueue acquire OpenCL memory object that has been created from an `OpenGL` object.
 #[deprecated(since="0.6.0", note="Use `::enqueue_acquire_gl_objects` instead.")]
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_acquire_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2559,6 +2571,7 @@ pub fn enqueue_acquire_gl_buffer<En, Ewl>(
 /// To create a slice from a single `Mem` reference without any cost, use
 /// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
 ///
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_acquire_gl_objects<En, Ewl>(
             command_queue: &CommandQueue,
             buffers: &[Mem],
@@ -2585,6 +2598,7 @@ pub fn enqueue_acquire_gl_objects<En, Ewl>(
 /// [UNTESTED]
 /// Enqueue release a single OpenCL memory object that has been created from an `OpenGL` object.
 #[deprecated(since="0.6.0", note="Use `::enqueue_release_gl_objects` instead.")]
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_release_gl_buffer<En, Ewl>(
             command_queue: &CommandQueue,
             buffer: &Mem,
@@ -2613,6 +2627,7 @@ pub fn enqueue_release_gl_buffer<En, Ewl>(
 /// To create a slice from a single `Mem` reference without any cost, use
 /// something like: `unsafe { ::std::slice::from_raw_parts(&core_mem, 1) };`.
 ///
+#[cfg(not(feature="opencl_vendor_mesa"))]
 pub fn enqueue_release_gl_objects<En, Ewl>(
             command_queue: &CommandQueue,
             buffers: &[Mem],
