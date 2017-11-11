@@ -11,15 +11,19 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 // use std::convert::Into;
-use ffi::{cl_GLuint, cl_GLint};
 use core::error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
     ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
-    ImageChannelOrder, ImageChannelDataType, GlTextureTarget, AsMem, MemCmdRw, MemCmdAll,
+    ImageChannelOrder, ImageChannelDataType, AsMem, MemCmdRw, MemCmdAll,
     MapFlags};
 use standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum,
     QueCtx};
 use ::MemMap;
+
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use ffi::{cl_GLuint, cl_GLint};
+#[cfg(not(feature="opencl_vendor_mesa"))]
+use core::{GlTextureTarget};
 
 
 /// The type of operation to be performed by a command.
@@ -436,16 +440,21 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
                 core::enqueue_copy_image(queue, self.obj_core, dst_image, self.origin,
                     dst_origin, self.region, self.ewait, self.enew)
             },
+
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             ImageCmdKind::GLAcquire => {
                 // core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
                 core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
+
+            #[cfg(not(feature="opencl_vendor_mesa"))]
             ImageCmdKind::GLRelease => {
                 // core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
                 core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
+
             ImageCmdKind::Unspecified => OclError::err_string("ocl::ImageCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),
@@ -677,6 +686,7 @@ impl<T: OclPrm> Image<T> {
 
     /// Returns a new `Image` from an existant GL texture2D/3D.
     // [WORK IN PROGRESS]
+    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_texture<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             texture_target: GlTextureTarget, miplevel: cl_GLint, texture: cl_GLuint)
             -> OclResult<Image<T>>
@@ -723,6 +733,7 @@ impl<T: OclPrm> Image<T> {
 
     /// Returns a new `Image` from an existant renderbuffer.
     // [WORK IN PROGRESS]
+    #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_renderbuffer<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             renderbuffer: cl_GLuint) -> OclResult<Image<T>>
             where Q: Into<QueCtx<'o>>

@@ -20,6 +20,7 @@ opencl_version_1_1 = ["ocl-core/opencl_version_1_1"]
 opencl_version_1_2 = ["ocl-core/opencl_version_1_2"]
 opencl_version_2_0 = ["ocl-core/opencl_version_2_0"]
 opencl_version_2_1 = ["ocl-core/opencl_version_2_1"]
+opencl_vendor_mesa = ["ocl-core/opencl_vendor_mesa"]
 
 # Enabling `future_guard_drop_panic` will cause `FutureGuard::drop` to panic
 # if the guard is dropped before polled. This is helpful when troubleshooting
