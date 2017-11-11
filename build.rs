@@ -33,9 +33,6 @@ fn main() {
             ("AMDAPPSDKROOT", "x86_64", "x86"),
         ];
 
-        let lib_file_name = "OpenCL.lib";
-        let mut lib_file_copied = false;
-
         for info in known_sdk.iter() {
             if let Ok(sdk) = std::env::var(info.0) {
                 let mut path = std::path::PathBuf::from(sdk);
