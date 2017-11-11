@@ -344,173 +344,238 @@ bitflags! {
     ///   processor using a peripheral interconnect such as PCIe.
     /// * `CL_DEVICE_TYPE_ALL`: A union of all flags.
     ///
-    pub flags DeviceType: u64 {
-        const DEVICE_TYPE_DEFAULT = 1 << 0,
-        const DEVICE_TYPE_CPU = 1 << 1,
-        const DEVICE_TYPE_GPU = 1 << 2,
-        const DEVICE_TYPE_ACCELERATOR = 1 << 3,
-        const DEVICE_TYPE_CUSTOM = 1 << 4,
-        const DEVICE_TYPE_ALL = 0xFFFFFFFF,
+    pub struct DeviceType: u64 {
+        const DEFAULT = 1 << 0;
+        const CPU = 1 << 1;
+        const GPU = 1 << 2;
+        const ACCELERATOR = 1 << 3;
+        const CUSTOM = 1 << 4;
+        const ALL = 0xFFFFFFFF;
     }
 }
 
 impl DeviceType {
     #[inline] pub fn new() -> DeviceType { DeviceType::empty() }
-    #[inline] pub fn system_default(self) -> DeviceType { self | DEVICE_TYPE_DEFAULT }
-    #[inline] pub fn cpu(self) -> DeviceType { self | DEVICE_TYPE_CPU }
-    #[inline] pub fn gpu(self) -> DeviceType { self | DEVICE_TYPE_GPU }
-    #[inline] pub fn accelerator(self) -> DeviceType { self | DEVICE_TYPE_ACCELERATOR }
-    #[inline] pub fn custom(self) -> DeviceType { self | DEVICE_TYPE_CUSTOM }
-    // #[inline] pub fn all() -> DeviceType { DEVICE_TYPE_ALL }
+    #[inline] pub fn system_default(self) -> DeviceType { self | DeviceType::DEFAULT }
+    #[inline] pub fn cpu(self) -> DeviceType { self | DeviceType::CPU }
+    #[inline] pub fn gpu(self) -> DeviceType { self | DeviceType::GPU }
+    #[inline] pub fn accelerator(self) -> DeviceType { self | DeviceType::ACCELERATOR }
+    #[inline] pub fn custom(self) -> DeviceType { self | DeviceType::CUSTOM }
+    // #[inline] pub fn all() -> DeviceType { DeviceType::ALL }
 }
 
 impl Default for DeviceType {
-    #[inline] fn default() -> DeviceType { DEVICE_TYPE_ALL }
+    #[inline] fn default() -> DeviceType { DeviceType::ALL }
 }
+
+pub const DEVICE_TYPE_DEFAULT: DeviceType = DeviceType::DEFAULT;
+pub const DEVICE_TYPE_CPU: DeviceType = DeviceType::CPU;
+pub const DEVICE_TYPE_GPU: DeviceType = DeviceType::GPU;
+pub const DEVICE_TYPE_ACCELERATOR: DeviceType = DeviceType::ACCELERATOR;
+pub const DEVICE_TYPE_CUSTOM: DeviceType = DeviceType::CUSTOM;
+pub const DEVICE_TYPE_ALL: DeviceType = DeviceType::ALL;
 
 
 bitflags! {
     /// cl_device_fp_config - bitfield
-    pub flags DeviceFpConfig: u64 {
-        const FP_DENORM = 1 << 0,
-        const FP_INF_NAN = 1 << 1,
-        const FP_ROUND_TO_NEAREST = 1 << 2,
-        const FP_ROUND_TO_ZERO = 1 << 3,
-        const FP_ROUND_TO_INF = 1 << 4,
-        const FP_FMA = 1 << 5,
-        const FP_SOFT_FLOAT = 1 << 6,
-        const FP_CORRECTLY_ROUNDED_DIVIDE_SQRT = 1 << 7,
+    pub struct DeviceFpConfig: u64 {
+        const DENORM = 1 << 0;
+        const INF_NAN = 1 << 1;
+        const ROUND_TO_NEAREST = 1 << 2;
+        const ROUND_TO_ZERO = 1 << 3;
+        const ROUND_TO_INF = 1 << 4;
+        const FMA = 1 << 5;
+        const SOFT_FLOAT = 1 << 6;
+        const CORRECTLY_ROUNDED_DIVIDE_SQRT = 1 << 7;
     }
 }
+
+pub const FP_DENORM: DeviceFpConfig = DeviceFpConfig::DENORM;
+pub const FP_INF_NAN: DeviceFpConfig = DeviceFpConfig::INF_NAN;
+pub const FP_ROUND_TO_NEAREST: DeviceFpConfig = DeviceFpConfig::ROUND_TO_NEAREST;
+pub const FP_ROUND_TO_ZERO: DeviceFpConfig = DeviceFpConfig::ROUND_TO_ZERO;
+pub const FP_ROUND_TO_INF: DeviceFpConfig = DeviceFpConfig::ROUND_TO_INF;
+pub const FP_FMA: DeviceFpConfig = DeviceFpConfig::FMA;
+pub const FP_SOFT_FLOAT: DeviceFpConfig = DeviceFpConfig::SOFT_FLOAT;
+pub const FP_CORRECTLY_ROUNDED_DIVIDE_SQRT: DeviceFpConfig = DeviceFpConfig::CORRECTLY_ROUNDED_DIVIDE_SQRT;
 
 
 bitflags! {
     /// cl_device_exec_capabilities - bitfield
-    pub flags DeviceExecCapabilities: u64 {
-        const EXEC_KERNEL = 1 << 0,
-        const EXEC_NATIVE_KERNEL = 1 << 1,
+    pub struct DeviceExecCapabilities: u64 {
+        const KERNEL = 1 << 0;
+        const NATIVE_KERNEL = 1 << 1;
     }
 }
+
+pub const EXEC_KERNEL: DeviceExecCapabilities = DeviceExecCapabilities::KERNEL;
+pub const EXEC_NATIVE_KERNEL: DeviceExecCapabilities = DeviceExecCapabilities::NATIVE_KERNEL;
 
 
 bitflags! {
     /// cl_command_queue_properties - bitfield
-    pub flags CommandQueueProperties: u64 {
-        const QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE = 1 << 0,
-        const QUEUE_PROFILING_ENABLE = 1 << 1,
-        const QUEUE_ON_DEVICE = 1 << 2,
-        const QUEUE_ON_DEVICE_DEFAULT = 1 << 3,
+    pub struct CommandQueueProperties: u64 {
+        const OUT_OF_ORDER_EXEC_MODE_ENABLE = 1 << 0;
+        const PROFILING_ENABLE = 1 << 1;
+        const ON_DEVICE = 1 << 2;
+        const ON_DEVICE_DEFAULT = 1 << 3;
     }
 }
 
 impl CommandQueueProperties {
     #[inline] pub fn new() -> CommandQueueProperties { CommandQueueProperties::empty() }
-    #[inline] pub fn out_of_order(self) -> CommandQueueProperties { self | QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE }
-    #[inline] pub fn profiling(self) -> CommandQueueProperties { self | QUEUE_PROFILING_ENABLE }
+    #[inline] pub fn out_of_order(self) -> CommandQueueProperties { self |
+        CommandQueueProperties::OUT_OF_ORDER_EXEC_MODE_ENABLE }
+    #[inline] pub fn profiling(self) -> CommandQueueProperties { self |
+        CommandQueueProperties::PROFILING_ENABLE }
 }
 
 impl Default for CommandQueueProperties {
     #[inline] fn default() -> CommandQueueProperties { CommandQueueProperties::empty() }
 }
 
+pub const QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE: CommandQueueProperties =
+    CommandQueueProperties::OUT_OF_ORDER_EXEC_MODE_ENABLE;
+pub const QUEUE_PROFILING_ENABLE: CommandQueueProperties =
+    CommandQueueProperties::PROFILING_ENABLE;
+pub const QUEUE_ON_DEVICE: CommandQueueProperties =
+    CommandQueueProperties::ON_DEVICE;
+pub const QUEUE_ON_DEVICE_DEFAULT: CommandQueueProperties =
+    CommandQueueProperties::ON_DEVICE_DEFAULT;
 
 bitflags! {
     /// cl_device_affinity_domain
-    pub flags DeviceAffinityDomain: u64 {
-        const DEVICE_AFFINITY_DOMAIN_NUMA = 1 << 0,
-        const DEVICE_AFFINITY_DOMAIN_L4_CACHE = 1 << 1,
-        const DEVICE_AFFINITY_DOMAIN_L3_CACHE = 1 << 2,
-        const DEVICE_AFFINITY_DOMAIN_L2_CACHE = 1 << 3,
-        const DEVICE_AFFINITY_DOMAIN_L1_CACHE = 1 << 4,
-        const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE = 1 << 5,
+    pub struct DeviceAffinityDomain: u64 {
+        const NUMA = 1 << 0;
+        const L4_CACHE = 1 << 1;
+        const L3_CACHE = 1 << 2;
+        const L2_CACHE = 1 << 3;
+        const L1_CACHE = 1 << 4;
+        const NEXT_PARTITIONABLE = 1 << 5;
     }
 }
+
+pub const DEVICE_AFFINITY_DOMAIN_NUMA: DeviceAffinityDomain = DeviceAffinityDomain::NUMA;
+pub const DEVICE_AFFINITY_DOMAIN_L4_CACHE: DeviceAffinityDomain = DeviceAffinityDomain::L4_CACHE;
+pub const DEVICE_AFFINITY_DOMAIN_L3_CACHE: DeviceAffinityDomain = DeviceAffinityDomain::L3_CACHE;
+pub const DEVICE_AFFINITY_DOMAIN_L2_CACHE: DeviceAffinityDomain = DeviceAffinityDomain::L2_CACHE;
+pub const DEVICE_AFFINITY_DOMAIN_L1_CACHE: DeviceAffinityDomain = DeviceAffinityDomain::L1_CACHE;
+pub const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE: DeviceAffinityDomain = DeviceAffinityDomain::NEXT_PARTITIONABLE;
 
 
 bitflags! {
     /// cl_mem_flags - bitfield
-    pub flags MemFlags: u64 {
-        const MEM_READ_WRITE = 1 << 0,
-        const MEM_WRITE_ONLY = 1 << 1,
-        const MEM_READ_ONLY = 1 << 2,
-        const MEM_USE_HOST_PTR = 1 << 3,
-        const MEM_ALLOC_HOST_PTR = 1 << 4,
-        const MEM_COPY_HOST_PTR = 1 << 5,
-        // RESERVED            1<< 6,
-        const MEM_HOST_WRITE_ONLY = 1 << 7,
-        const MEM_HOST_READ_ONLY = 1 << 8,
-        const MEM_HOST_NO_ACCESS = 1 << 9,
+    pub struct MemFlags: u64 {
+        const READ_WRITE = 1 << 0;
+        const WRITE_ONLY = 1 << 1;
+        const READ_ONLY = 1 << 2;
+        const USE_HOST_PTR = 1 << 3;
+        const ALLOC_HOST_PTR = 1 << 4;
+        const COPY_HOST_PTR = 1 << 5;
+        // RESERVED            1<< 6;
+        const HOST_WRITE_ONLY = 1 << 7;
+        const HOST_READ_ONLY = 1 << 8;
+        const HOST_NO_ACCESS = 1 << 9;
     }
 }
 
 impl MemFlags {
     #[inline] pub fn new() -> MemFlags { MemFlags::empty() }
-    #[inline] pub fn read_write(self) -> MemFlags { self | MEM_READ_WRITE }
-    #[inline] pub fn write_only(self) -> MemFlags { self | MEM_WRITE_ONLY }
-    #[inline] pub fn read_only(self) -> MemFlags { self | MEM_READ_ONLY }
-    #[inline] pub fn use_host_ptr(self) -> MemFlags { self | MEM_USE_HOST_PTR }
-    #[inline] pub fn alloc_host_ptr(self) -> MemFlags { self | MEM_ALLOC_HOST_PTR }
-    #[inline] pub fn copy_host_ptr(self) -> MemFlags { self | MEM_COPY_HOST_PTR }
-    #[inline] pub fn host_write_only(self) -> MemFlags { self | MEM_HOST_WRITE_ONLY }
-    #[inline] pub fn host_read_only(self) -> MemFlags { self | MEM_HOST_READ_ONLY }
-    #[inline] pub fn host_no_access(self) -> MemFlags { self | MEM_HOST_NO_ACCESS }
+    #[inline] pub fn read_write(self) -> MemFlags { self | MemFlags::READ_WRITE }
+    #[inline] pub fn write_only(self) -> MemFlags { self | MemFlags::WRITE_ONLY }
+    #[inline] pub fn read_only(self) -> MemFlags { self | MemFlags::READ_ONLY }
+    #[inline] pub fn use_host_ptr(self) -> MemFlags { self | MemFlags::USE_HOST_PTR }
+    #[inline] pub fn alloc_host_ptr(self) -> MemFlags { self | MemFlags::ALLOC_HOST_PTR }
+    #[inline] pub fn copy_host_ptr(self) -> MemFlags { self | MemFlags::COPY_HOST_PTR }
+    #[inline] pub fn host_write_only(self) -> MemFlags { self | MemFlags::HOST_WRITE_ONLY }
+    #[inline] pub fn host_read_only(self) -> MemFlags { self | MemFlags::HOST_READ_ONLY }
+    #[inline] pub fn host_no_access(self) -> MemFlags { self | MemFlags::HOST_NO_ACCESS }
 }
 
 impl Default for MemFlags {
-    #[inline] fn default() -> MemFlags { MEM_READ_WRITE }
+    #[inline] fn default() -> MemFlags { MemFlags::READ_WRITE }
 }
+
+pub const MEM_READ_WRITE: MemFlags = MemFlags::READ_WRITE;
+pub const MEM_WRITE_ONLY: MemFlags = MemFlags::WRITE_ONLY;
+pub const MEM_READ_ONLY: MemFlags = MemFlags::READ_ONLY;
+pub const MEM_USE_HOST_PTR: MemFlags = MemFlags::USE_HOST_PTR;
+pub const MEM_ALLOC_HOST_PTR: MemFlags = MemFlags::ALLOC_HOST_PTR;
+pub const MEM_COPY_HOST_PTR: MemFlags = MemFlags::COPY_HOST_PTR;
+// RESERVED            1<< 6;
+pub const MEM_HOST_WRITE_ONLY: MemFlags = MemFlags::HOST_WRITE_ONLY;
+pub const MEM_HOST_READ_ONLY: MemFlags = MemFlags::HOST_READ_ONLY;
+pub const MEM_HOST_NO_ACCESS: MemFlags = MemFlags::HOST_NO_ACCESS;
 
 
 bitflags! {
     /// cl_mem_migration_flags - bitfield
-    pub flags MemMigrationFlags: u64 {
-        const MIGRATE_MEM_OBJECT_HOST = 1 << 0,
-        const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED = 1 << 1,
+    pub struct MemMigrationFlags: u64 {
+        const OBJECT_HOST = 1 << 0;
+        const OBJECT_CONTENT_UNDEFINED = 1 << 1;
     }
 }
+
+pub const MIGRATE_MEM_OBJECT_HOST: MemMigrationFlags = MemMigrationFlags::OBJECT_HOST;
+pub const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED: MemMigrationFlags = MemMigrationFlags::OBJECT_CONTENT_UNDEFINED;
 
 
 bitflags! {
     /// cl_map_flags - bitfield
-    pub flags MapFlags: u64 {
-        const MAP_READ = 1 << 0,
-        const MAP_WRITE = 1 << 1,
-        const MAP_WRITE_INVALIDATE_REGION = 1 << 2,
+    pub struct MapFlags: u64 {
+        const READ = 1 << 0;
+        const WRITE = 1 << 1;
+        const WRITE_INVALIDATE_REGION = 1 << 2;
     }
 }
 
 impl MapFlags {
     #[inline] pub fn new() -> MapFlags { MapFlags::empty() }
-    #[inline] pub fn read(self) -> MapFlags { self | MAP_READ }
-    #[inline] pub fn write(self) -> MapFlags { self | MAP_WRITE }
-    #[inline] pub fn write_invalidate_region(self) -> MapFlags { self | MAP_WRITE_INVALIDATE_REGION }
+    #[inline] pub fn read(self) -> MapFlags { self | MapFlags::READ }
+    #[inline] pub fn write(self) -> MapFlags { self | MapFlags::WRITE }
+    #[inline] pub fn write_invalidate_region(self) -> MapFlags { self |
+        MapFlags::WRITE_INVALIDATE_REGION }
 }
 
 impl Default for MapFlags {
     #[inline] fn default() -> MapFlags { MapFlags::empty() }
 }
 
+pub const MAP_READ: MapFlags = MapFlags::READ;
+pub const MAP_WRITE: MapFlags = MapFlags::WRITE;
+pub const MAP_WRITE_INVALIDATE_REGION: MapFlags = MapFlags::WRITE_INVALIDATE_REGION;
+
 
 bitflags! {
     /// cl_program_binary_type
-    pub flags ProgramBinaryType: u32 {
-        const PROGRAM_BINARY_TYPE_NONE = 0x0,
-        const PROGRAM_BINARY_TYPE_COMPILED_OBJECT = 0x1,
-        const PROGRAM_BINARY_TYPE_LIBRARY = 0x2,
-        const PROGRAM_BINARY_TYPE_EXECUTABLE = 0x4,
+    pub struct ProgramBinaryType: u32 {
+        const NONE = 0x0;
+        const COMPILED_OBJECT = 0x1;
+        const LIBRARY = 0x2;
+        const EXECUTABLE = 0x4;
     }
 }
+
+pub const PROGRAM_BINARY_TYPE_NONE: ProgramBinaryType = ProgramBinaryType::NONE;
+pub const PROGRAM_BINARY_TYPE_COMPILED_OBJECT: ProgramBinaryType = ProgramBinaryType::COMPILED_OBJECT;
+pub const PROGRAM_BINARY_TYPE_LIBRARY: ProgramBinaryType = ProgramBinaryType::LIBRARY;
+pub const PROGRAM_BINARY_TYPE_EXECUTABLE: ProgramBinaryType = ProgramBinaryType::EXECUTABLE;
 
 
 bitflags! {
     /// cl_kernel_arg_type_qualifer
-    pub flags KernelArgTypeQualifier: u64 {
-        const KERNEL_ARG_TYPE_NONE = 0,
-        const KERNEL_ARG_TYPE_CONST = 1 << 0,
-        const KERNEL_ARG_TYPE_RESTRICT = 1 << 1,
-        const KERNEL_ARG_TYPE_VOLATILE = 1 << 2,
+    pub struct KernelArgTypeQualifier: u64 {
+        const NONE = 0;
+        const CONST = 1 << 0;
+        const RESTRICT = 1 << 1;
+        const VOLATILE = 1 << 2;
     }
 }
+
+pub const KERNEL_ARG_TYPE_NONE: KernelArgTypeQualifier = KernelArgTypeQualifier::NONE;
+pub const KERNEL_ARG_TYPE_CONST: KernelArgTypeQualifier = KernelArgTypeQualifier::CONST;
+pub const KERNEL_ARG_TYPE_RESTRICT: KernelArgTypeQualifier = KernelArgTypeQualifier::RESTRICT;
+pub const KERNEL_ARG_TYPE_VOLATILE: KernelArgTypeQualifier = KernelArgTypeQualifier::VOLATILE;
 
 //=============================================================================
 //=============================== ENUMERATORS =================================
@@ -878,9 +943,9 @@ enum_from_primitive! {
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os = "macos")]
-const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
+pub const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
 #[cfg(not(target_os = "macos"))]
-const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CGL_SHAREGROUP_KHR;
+pub const CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC: isize = ffi::CL_CGL_SHAREGROUP_KHR;
 
 enum_from_primitive! {
     /// cl_context_info + cl_context_properties

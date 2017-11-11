@@ -49,7 +49,7 @@ use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, c
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
-    EventInfo, EventInfoResult};
+    EventInfo, EventInfoResult, DeviceType};
 use error::{Result as OclResult, Error as OclError, ErrorKind as OclErrorKind};
 use functions;
 
@@ -372,7 +372,7 @@ impl PartialEq<PlatformId> for PlatformId {
 
 impl ClVersions for PlatformId {
     fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
-        let devices = try!(functions::get_device_ids(self, Some(::DEVICE_TYPE_ALL), None));
+        let devices = try!(functions::get_device_ids(self, Some(DeviceType::ALL), None));
         functions::device_versions(&devices)
     }
 

@@ -3413,17 +3413,17 @@ pub fn default_platform() -> OclResult<PlatformId> {
 pub fn default_device_type() -> OclResult<DeviceType> {
     match env::var("OCL_DEFAULT_DEVICE_TYPE") {
         Ok(ref s) => match s.trim() {
-            "DEFAULT" => Ok(::DEVICE_TYPE_DEFAULT),
-            "CPU" => Ok(::DEVICE_TYPE_CPU),
-            "GPU" => Ok(::DEVICE_TYPE_GPU),
-            "ACCELERATOR" => Ok(::DEVICE_TYPE_ACCELERATOR),
-            "CUSTOM" => Ok(::DEVICE_TYPE_CUSTOM),
-            "ALL" => Ok(::DEVICE_TYPE_ALL),
+            "DEFAULT" => Ok(DeviceType::DEFAULT),
+            "CPU" => Ok(DeviceType::CPU),
+            "GPU" => Ok(DeviceType::GPU),
+            "ACCELERATOR" => Ok(DeviceType::ACCELERATOR),
+            "CUSTOM" => Ok(DeviceType::CUSTOM),
+            "ALL" => Ok(DeviceType::ALL),
             _ => OclError::err_string(format!("The default device type set by the environment variable \
                 'OCL_DEFAULT_DEVICE_TYPE': ('{}') is invalid. Valid types are: 'DEFAULT', 'CPU', \
                 'GPU', 'ACCELERATOR', 'CUSTOM', and 'ALL'.", s)),
         },
-        Err(_) => Ok(::DEVICE_TYPE_ALL),
+        Err(_) => Ok(DeviceType::ALL),
     }
 }
 
