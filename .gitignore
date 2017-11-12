@@ -25,6 +25,7 @@ Cargo.lock
 # My junk
 /data
 **/tmp
+
 /src/junk
 /bak
 
