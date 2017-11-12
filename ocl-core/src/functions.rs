@@ -1549,7 +1549,7 @@ pub fn create_program_with_il<C>(
         il: &[u8],
         device_versions: Option<&[OpenclVersion]>,
         ) -> OclResult<Program>
-        where C: ClContextPtr
+        where C: ClContextPtr + ClVersions
 {
     verify_device_versions(device_versions, [2, 1], &context)
         .chain_err(|| "::create_program_with_il")?;

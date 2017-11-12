@@ -556,6 +556,16 @@ impl ClVersions for Context {
     }
 }
 
+impl<'a> ClVersions for &'a Context {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        (*self).device_versions()
+    }
+
+    fn platform_version(&self) -> OclResult<OpenclVersion> {
+        (*self).platform_version()
+    }
+}
+
 
 /// cl_command_queue
 #[repr(C)]

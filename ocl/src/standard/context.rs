@@ -5,7 +5,7 @@ use std::ops::{Deref, DerefMut};
 use ffi::cl_context;
 use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
     ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult,
-    CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr};
+    CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr, ClVersions};
 use core::error::{Result as OclResult, Error as OclError};
 use standard::{Platform, Device, DeviceSpecifier};
 
@@ -201,6 +201,16 @@ unsafe impl<'a> ClContextPtr for &'a Context {
     fn as_ptr(&self) -> cl_context {
         self.0.as_ptr()
     }
+}
+
+impl ClVersions for Context {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> { self.0.device_versions() }
+    fn platform_version(&self) -> OclResult<OpenclVersion> { self.0.platform_version() }
+}
+
+impl<'a> ClVersions for &'a Context {
+    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> { self.0.device_versions() }
+    fn platform_version(&self) -> OclResult<OpenclVersion> { self.0.platform_version() }
 }
 
 
