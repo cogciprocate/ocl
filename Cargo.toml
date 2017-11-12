@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "cl-sys",
+    "ocl-core",
+    "ocl-core/ocl-core-vector",
+    "ocl",
+    "ocl/ocl-extras",
+    "ocl/examples/images",
+    "ocl/examples/images_safe_clamp",
+	"ocl/examples/opencl_2_1",
+	"ocl/examples/proto"
+]

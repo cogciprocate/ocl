@@ -22,7 +22,7 @@ opencl_vendor_mesa = ["cl-sys/opencl_vendor_mesa"]
 default = ["ocl-core-vector", "rand", "opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
-cl-sys = "~0.4.0"
+cl-sys = { version = "~0.4.0", path = "../cl-sys" }
 num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
