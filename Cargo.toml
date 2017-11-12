@@ -1,0 +1,30 @@
+[package]
+name = "cl-sys"
+version = "0.4.0"
+authors = ["Nick Sanders <cogciprocate@gmail.com>"]
+description = "OpenCL FFI bindings."
+documentation = "http://doc.cogciprocate.com/cl_sys/cl_sys"
+homepage = "https://github.com/cogciprocate/cl-sys"
+repository = "https://github.com/cogciprocate/cl-sys"
+readme = "README.md"
+keywords = ["opencl", "gpu", "gpgpu"]
+license = "MIT/Apache-2.0"
+exclude = ["target/*", "bak/*"]
+build = "build.rs"
+categories = ["api-bindings", "external-ffi-bindings", "asynchronous", "science"]
+
+[features]
+# Specifies the OpenCL version supported by the library being used. Generally,
+# OpenCL v2.0+ support is still sparse.
+opencl_version_1_1 = []
+opencl_version_1_2 = []
+opencl_version_2_0 = []
+opencl_version_2_1 = []
+opencl_version_2_2 = []
+opencl_vendor_mesa = []
+
+# `opencl_version_1_1` is unused, disabling it has no effect.
+default = ["opencl_version_1_1", "opencl_version_1_2"]
+
+[dependencies]
+libc = "0.2"
