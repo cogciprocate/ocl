@@ -269,7 +269,7 @@ enum Stage {
 ///
 #[must_use = "futures do nothing unless polled"]
 #[derive(Debug)]
-pub struct FutureGuard<V, G> {
+pub struct FutureGuard<V, G> where G: OrderGuard<V> {
     order_lock: Option<OrderLock<V>>,
     lock_rx: Option<Receiver<()>>,
     wait_events: Option<EventList>,
@@ -694,7 +694,7 @@ impl<V, G> Future for FutureGuard<V, G> where G: OrderGuard<V> {
     }
 }
 
-impl<V, G> Drop for FutureGuard<V, G> {
+impl<V, G> Drop for FutureGuard<V, G> where G: OrderGuard<V> {
     /// Drops this FutureGuard.
     ///
     /// Blocks the current thread until the command associated with this
@@ -712,6 +712,26 @@ impl<V, G> Drop for FutureGuard<V, G> {
             if let Some(ref _order_lock) = self.order_lock {
                 panic!("FutureGuard dropped before being polled. Not polling a FutureGuard \
                     can cause deadlocks. Call '.wait()' before dropping if necessary.");
+            }
+        }
+        if let Some(ref mut lock_rx) = self.lock_rx {
+            lock_rx.close();
+
+            match lock_rx.poll() {
+                Ok(status) => {
+                    match status {
+                        Async::Ready(_) => {
+                            if let Some(ref lock_event) = self.lock_event {
+                                lock_event.set_complete().ok();
+                            }
+                            // Drop and release lock.
+                            let _guard = G::new(self.order_lock.take().unwrap(),
+                                self.release_event.take());
+                        },
+                        Async::NotReady => (),
+                    }
+                },
+                Err(_) => (),
             }
         }
         if let Some(ref ccev) = self.command_event {
