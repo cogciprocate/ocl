@@ -1,13 +1,20 @@
 Version 0.16.0 (UNRELEASED)
 ===========================
 
+* The `ocl-core` and `cl-sys` repositories have been merged into the main
+  `ocl` repository.
+* Various 'future guards' (such as `FutureReadGuard`) now behave more
+  gracefully when dropped before being polled.
+
+
 Breaking Safety Fixes
 ---------------------
 `Kernel::enq` and `KernelCmd::enq` are now unsafe functions. Even though the
 API call itself is safe, all kernel code is inherently untrusted and
-potentially dangerous. This change is long overdue. Unfortunately this will
-break virtually all existing code. The fix, however, is trivial: simply wrap
-all calls to `.enq()` in an unsafe block.
+potentially dangerous. This change is long overdue.
+
+Unfortunately this will break virtually all existing code. The fix, however,
+is trivial: simply wrap all calls to `.enq()` in an unsafe block.
 
 Before:
 ```
@@ -19,12 +26,12 @@ Now:
 unsafe { kernel.enq().unwrap(); }
 ```
 
-Other Breaking Changes
+Breaking Changes
 ----------------
 * `Kernel::enq` and `KernelCmd::enq` are now marked `unsafe`.
 * `BufferMapCmd::enq` and `BufferMapCmd::enq_async` are now marked `unsafe`.
-* `Buffer::from_gl_buffer` has had its `dims` argument removed and is now
-  determined from the size of the OpenGL memory object.
+* `Buffer::from_gl_buffer` has had its `dims` argument removed. Its size is
+  now determined from the size of the OpenGL memory object.
 * `BufferWriteCmd::enq_async` now returns a `FutureReadGuard` instead of a
   `FutureWriteGuard`. A `FutureWriteGuard` can now be obtained by calling
   `BufferWriteCmd::enq_async_then_write`.
