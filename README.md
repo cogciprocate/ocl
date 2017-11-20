@@ -127,16 +127,13 @@ additional terms or conditions.
 permission by Khronos.”* <br/>*“Vulkan and the Vulkan logo are trademarks of
 the Khronos Group Inc.”*
 
-[`async_cycles.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/async_cycles.rs
-[`async_menagerie.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/async_menagerie.rs
-[`async_process.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/async_process.rs
 [OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
 [AMD]: https://software.intel.com/en-us/intel-opencl/download
 [`ocl-core`]: https://github.com/cogciprocate/ocl-core
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
-[`examples`]: https://github.com/cogciprocate/ocl/tree/master/examples
-[`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/examples/trivial.rs
+[`examples`]: https://github.com/cogciprocate/ocl/tree/master/ocl/examples
+[`examples/trivial.rs`]: https://github.com/cogciprocate/ocl/blob/master/ocl/examples/trivial.rs
 [voodoo]: https://github.com/cogciprocate/voodoo
 [intel-win64]: https://software.intel.com/en-us/articles/opencl-drivers#win64
 [intel-linux64-redhat-suse]: https://software.intel.com/en-us/articles/opencl-drivers#lin64
