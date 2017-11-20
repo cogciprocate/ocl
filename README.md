@@ -129,7 +129,7 @@ the Khronos Group Inc.”*
 
 [OpenCL libraries for your CPU]: https://software.intel.com/en-us/intel-opencl/download
 [AMD]: https://software.intel.com/en-us/intel-opencl/download
-[`ocl-core`]: https://github.com/cogciprocate/ocl-core
+[`ocl-core`]: https://github.com/cogciprocate/ocl/tree/master/ocl-core
 [issue]: https://github.com/cogciprocate/ocl_rust/issues
 [provide feedback]: https://github.com/cogciprocate/ocl_rust/issues
 [`examples`]: https://github.com/cogciprocate/ocl/tree/master/ocl/examples
