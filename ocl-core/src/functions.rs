@@ -463,7 +463,7 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
     }
 }
 
-/// [UNIMPLEMENTED]
+/// [UNIMPLEMENTED: Please implement me]
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclResult<()> {
@@ -743,7 +743,7 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
 ///
 /// [SDK Reference](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clGetContextInfo.html)
 ///
-/// # Errors
+/// ## Errors
 ///
 /// Returns an error result for all the reasons listed in the SDK in addition
 /// to an additional error when called with `CL_CONTEXT_DEVICES` as described
@@ -776,9 +776,7 @@ pub fn get_context_platform<C>(context: C) -> OclResult<Option<PlatformId>>
     }
 }
 
-
-/// [NOT WORKING]
-/// Returns OpenGL context information.
+/// [INOPERATIVE: Needs troubleshooting] Returns OpenGL context information.
 ///
 /// Used to query current or available devices associated with an existing
 /// OpenGL context/sharegroup.
@@ -956,6 +954,12 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
 //============================================================================
 
 /// Returns a new buffer pointer with size (bytes): `len` * sizeof(T).
+///
+/// ## Safety
+///
+/// The caller must ensure that correct and appropriate `flags` are being
+/// used.
+///
 pub unsafe fn create_buffer<C, T>(
             context: C,
             flags: MemFlags,
@@ -992,8 +996,15 @@ pub unsafe fn create_buffer<C, T>(
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
-/// [UNTESTED]
 /// Return a buffer pointer from a `OpenGL` buffer object.
+///
+/// ## Safety
+///
+/// The caller must ensure that correct and appropriate `flags` are being
+/// used.
+///
+/// [UNTESTED]
+///
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_buffer<C>(
             context: C,
@@ -1017,8 +1028,15 @@ pub unsafe fn create_from_gl_buffer<C>(
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
-/// [UNTESTED]
 /// Return a renderbuffer pointer from a `OpenGL` renderbuffer object.
+///
+/// ## Safety
+///
+/// The caller must ensure that correct and appropriate `flags` are being
+/// used.
+///
+/// [UNTESTED]
+///
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_renderbuffer<C>(
             context: C,
@@ -1042,12 +1060,19 @@ pub unsafe fn create_from_gl_renderbuffer<C>(
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
-/// [UNTESTED]
 /// Return a texture2D pointer from a `OpenGL` texture2D object.
 ///
-/// [TODO]: If version is < 1.2, automatically use older versions.
-///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+///
+/// ## Safety
+///
+/// The caller must ensure that correct and appropriate `flags` are being
+/// used.
+///
+/// [UNTESTED]
+///
+// [TODO]: If version is < 1.2, automatically use older versions.
+//
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture<C>(
             context: C,
@@ -1097,8 +1122,9 @@ pub unsafe fn create_from_gl_texture<C>(
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
-/// [UNTESTED] [DEPRICATED]
 /// Return a texture2D pointer from a `OpenGL` texture2D object.
+///
+/// [UNTESTED] [DEPRICATED]
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture_2d<C>(
             context: C,
@@ -1126,8 +1152,9 @@ pub unsafe fn create_from_gl_texture_2d<C>(
         .map(|ptr| Mem::from_raw_create_ptr(ptr))
 }
 
-/// [UNTESTED] [DEPRICATED]
 /// Return a texture3D pointer from a `OpenGL` texture3D object.
+///
+/// [UNTESTED] [DEPRICATED]
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture_3d<C>(
             context: C,
@@ -1189,6 +1216,11 @@ pub fn create_sub_buffer<T: OclPrm>(
 ///
 /// [TODO]: If version is < 1.2, automatically use older versions.
 ///
+///
+/// ## Safety
+///
+///
+///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn create_image<C, T>(
             context: C,
@@ -1243,7 +1275,7 @@ pub unsafe fn release_mem_object(mem: &Mem) -> OclResult<()> {
 
 /// Returns a list of supported image formats.
 ///
-/// # Example
+/// ## Example
 ///
 /// ```text
 /// let context = Context::builder().build().unwrap();
@@ -1367,7 +1399,7 @@ pub fn get_image_info(obj: &Mem, request: ImageInfo) -> ImageInfoResult {
     ImageInfoResult::from_bytes(request, result)
 }
 
-/// [UNIMPLEMENTED]
+/// [UNIMPLEMENTED: Please implement me]
 pub fn set_mem_object_destructor_callback() -> OclResult<()> {
     // ffi::clSetMemObjectDestructorCallback(memobj: cl_mem,
     //                                     pfn_notify: extern fn (cl_mem, *mut c_void),
@@ -1483,11 +1515,13 @@ pub fn create_program_with_source<C>(
         .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
 }
 
-/// [UNTESTED]
+
 /// Creates a program object for a context, and loads the binary bits
 /// specified by binary into the program object.
 ///
 /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateProgramWithBinary.html
+///
+/// [UNTESTED]
 ///
 pub fn create_program_with_binary<C, D>(
             context: C,
@@ -1526,7 +1560,7 @@ pub fn create_program_with_binary<C, D>(
     unsafe { Ok(Program::from_raw_create_ptr(program)) }
 }
 
-/// [UNIMPLEMENTED]
+/// [UNIMPLEMENTED: Please implement me]
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn create_program_with_built_in_kernels(device_version: Option<&OpenclVersion>)
@@ -1635,7 +1669,7 @@ pub fn build_program<D: ClDeviceIdPtr>(
     }
 }
 
-/// [UNIMPLEMENTED]
+/// [UNIMPLEMENTED: Please implement me]
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn compile_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
@@ -1652,7 +1686,7 @@ pub fn compile_program(device_version: Option<&OpenclVersion>) -> OclResult<()> 
     unimplemented!();
 }
 
-/// [UNIMPLEMENTED]
+/// [UNIMPLEMENTED: Please implement me]
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub fn link_program(device_version: Option<&OpenclVersion>) -> OclResult<()> {
@@ -1779,7 +1813,7 @@ pub fn create_kernel(program: &Program, name: &str) -> OclResult<Kernel> {
     }
 }
 
-/// [UNIMPLEMENTED]
+/// [UNIMPLEMENTED: Please implement me]
 pub fn create_kernels_in_program() -> OclResult<()> {
     // ffi::clCreateKernelsInProgram(program: cl_program,
     //                             num_kernels: cl_uint,
@@ -2106,6 +2140,11 @@ pub fn set_user_event_status<'e,E: ClEventPtrRef<'e>>(event: &'e E,
 
 /// Sets a callback function which is called as soon as the `callback_trigger`
 /// status is reached.
+///
+/// ## Safety
+///
+///
+///
 pub unsafe fn set_event_callback<'e, E: ClEventPtrRef<'e>>(
             event: &'e E,
             callback_trigger: CommandExecutionStatus,
@@ -2539,7 +2578,6 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueCopyBufferRect", "")
 }
 
-/// [UNTESTED]
 /// Enqueue acquire OpenCL memory object that has been created from an `OpenGL` object.
 #[deprecated(since="0.6.0", note="Use `::enqueue_acquire_gl_objects` instead.")]
 #[cfg(not(feature="opencl_vendor_mesa"))]
@@ -2594,8 +2632,6 @@ pub fn enqueue_acquire_gl_objects<En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", "")
 }
 
-
-/// [UNTESTED]
 /// Enqueue release a single OpenCL memory object that has been created from an `OpenGL` object.
 #[deprecated(since="0.6.0", note="Use `::enqueue_release_gl_objects` instead.")]
 #[cfg(not(feature="opencl_vendor_mesa"))]
@@ -2741,7 +2777,6 @@ pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueWriteImage", "")
 }
 
-/// [UNTESTED]
 /// Enqueues a command to fill an image object with a specified color.
 ///
 /// ## Fill Color (from [SDK docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueFillImage.html)
@@ -2757,6 +2792,9 @@ pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
 /// TODO: Trait constraints for `T`. Presumably it should be 32bits? Testing needed.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+///
+/// [UNTESTED]
+///
 pub fn enqueue_fill_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             image: M,
@@ -2822,10 +2860,12 @@ pub fn enqueue_copy_image<En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueCopyImage", "")
 }
 
-/// [UNTESTED]
 /// Enqueues a command to copy an image object to a buffer object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImageToBuffer.html)
+///
+/// [UNTESTED]
+///
 pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             src_image: M,
@@ -2857,10 +2897,12 @@ pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueCopyImageToBuffer", "")
 }
 
-/// [UNTESTED]
 /// Enqueues a command to copy a buffer object to an image object.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferToImage.html)
+///
+/// [UNTESTED]
+///
 pub fn enqueue_copy_buffer_to_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             src_buffer: M,
@@ -2936,10 +2978,9 @@ unsafe fn _enqueue_map_buffer<T, M>(
 /// ## Safety
 ///
 /// Caller must ensure that the returned pointer is not used until the map is
-/// complete. Use `new_event` to monitor it. [TEMPORARY] It also must be
-/// ensured that memory referred to by the returned pointer is not dropped,
-/// reused, or otherwise interfered with until `enqueue_unmap_mem_object` is
-/// called.
+/// complete. Use `new_event` to monitor it. It also must be ensured that
+/// memory referred to by the returned pointer is not dropped, reused, or
+/// otherwise interfered with until `enqueue_unmap_mem_object` is called.
 ///
 ///
 /// [`EventList::get_clone`]: struct.EventList.html#method.last_clone
@@ -2965,7 +3006,6 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
     mapped_ptr_res.map(|ptr| MemMap::from_raw(ptr))
 }
 
-/// [UNTESTED]
 /// Enqueues a command to map a region of the image object given by `image` into
 /// the host address space and returns a pointer to this mapped region.
 ///
@@ -2974,16 +3014,16 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
 /// ## Safety
 ///
 /// Caller must ensure that the returned pointer is not used until the map is
-/// complete. Use `new_event` to monitor it. [TEMPORARY] It also must be
-/// ensured that memory referred to by the returned pointer is not dropped,
-/// reused, or otherwise interfered with until `enqueue_unmap_mem_object` is
-/// called.
+/// complete. Use `new_event` to monitor it. It also must be ensured that
+/// memory referred to by the returned pointer is not dropped, reused, or
+/// otherwise interfered with until `enqueue_unmap_mem_object` is called.
 ///
-///
-/// TODO: Return a new wrapped type representing the newly mapped memory.
 ///
 /// [`EventList::get_clone`]: struct.EventList.html#method.last_clone
 ///
+///
+///
+/// [UNTESTED]
 ///
 pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
@@ -3066,13 +3106,15 @@ pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueUnmapMemObject", "")
 }
 
-/// [UNTESTED]
 /// Enqueues a command to indicate which device a set of memory objects should
 /// be associated with.
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueMigrateMemObjects.html)
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+///
+/// [UNTESTED]
+///
 pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             command_queue: &CommandQueue,
             mem_objects: &[Mem],
@@ -3103,12 +3145,12 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
 
 /// Enqueues a command to execute a kernel on a device.
 ///
-/// # Safety
+/// ## Safety
 ///
 /// Running any kernel is an inherently unsafe process. The API call itself is
 /// safe but the kernel execution is not.
 ///
-/// # Stability
+/// ## Stability
 ///
 /// * Work dimension/offset sizes *may* eventually be wrapped up in
 ///   specialized types.
@@ -3199,7 +3241,7 @@ pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
     }
 }
 
-/// [UNTESTED] Enqueues a command to execute a kernel on a device.
+/// Enqueues a command to execute a kernel on a device.
 ///
 /// The kernel is executed using a single work-item.
 ///
@@ -3207,7 +3249,15 @@ pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
 /// with work_dim = 1, global_work_offset = NULL, global_work_size[0] set to 1,
 /// and local_work_size[0] set to 1.
 ///
+/// ## Safety
+///
+/// Running any kernel is an inherently unsafe process. The API call itself is
+/// safe but the kernel execution is not.
+///
+///
 /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueTask.html
+///
+/// [UNTESTED]
 ///
 pub unsafe fn enqueue_task<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             command_queue: &CommandQueue,
@@ -3230,7 +3280,7 @@ pub unsafe fn enqueue_task<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
     eval_errcode(errcode, (), "clEnqueueTask", kernel_name.unwrap_or(""))
 }
 
-/// [UNIMPLEMENTED]
+/// [UNIMPLEMENTED: Please implement me]
 pub fn enqueue_native_kernel() -> OclResult<()> {
     // ffi::clEnqueueNativeKernel(command_queue: cl_command_queue,
     //                          user_func: extern fn (*mut c_void),
@@ -3306,7 +3356,6 @@ pub fn enqueue_barrier_with_wait_list<En, Ewl>(
 
 
 
-// [UNTESTED]
 // Extension function access
 //
 // Returns the extension function address for the given function name,
@@ -3326,7 +3375,6 @@ pub fn enqueue_barrier_with_wait_list<En, Ewl>(
 // above in addition to calling this.
 //
 // ////////////////////////////////////////////////////////////////////////////
-/// [UNTESTED]
 /// Returns the address of the extension function named by
 /// `func_name` for a given platform.
 ///
@@ -3344,7 +3392,7 @@ pub fn enqueue_barrier_with_wait_list<En, Ewl>(
 ///
 /// [FIXME]: Update enum names above to the wrapped types.
 ///
-/// # Errors
+/// ## Errors
 ///
 /// Returns an error if:
 ///
@@ -3353,6 +3401,9 @@ pub fn enqueue_barrier_with_wait_list<En, Ewl>(
 /// - 'platform' is not a valid platform.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
+///
+/// [UNTESTED]
+///
 pub unsafe fn get_extension_function_address_for_platform(
             platform: &PlatformId,
             func_name: &str,
@@ -3525,7 +3576,7 @@ pub fn event_is_complete<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclResult<bo
 
 /// Verifies that the `context` is in fact a context object pointer.
 ///
-/// # Assumptions
+/// ## Assumptions
 ///
 /// Some (most?/all?) OpenCL implementations do not correctly error if non-
 /// context pointers are passed. This function relies on the fact that passing

@@ -1,18 +1,15 @@
 ocl
 ===
 
-#### Documentation: [Release](https://docs.rs/ocl)/[Master](http://docs.cogciprocate.com/ocl/ocl/) | [Change Log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md)
-
 [![](http://meritbadge.herokuapp.com/ocl)](https://crates.io/crates/ocl) [![](https://docs.rs/ocl/badge.svg)](https://docs.rs/ocl)
 [![Supported platforms](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux%20%7C%20bsd-orange.svg)](https://en.wikipedia.org/wiki/Cross-platform)
-
 
 Pure OpenCL&trade; bindings and interfaces for
 [Rust](https://www.rust-lang.org/).
 
 ## Usage & Example
 
-See the [crate root README][ocl].
+See the **[ocl repository root][`ocl`]**.
 
 
 ##### License

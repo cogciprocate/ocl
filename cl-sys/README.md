@@ -1,23 +1,16 @@
 OpenCL C FFI Bindings.
 
-### [Documentation](http://doc.cogciprocate.com/cl_sys/cl_sys/)
+### [Documentation](https://docs.rs/cl-sys)
 
-[![](http://meritbadge.herokuapp.com/cl_sys)](https://crates.io/crates/cl_sys) [![](https://docs.rs/cl-sys/badge.svg)](https://docs.rs/cl-sys)
-
-Please file **[issues](https://github.com/cogciprocate/ocl/issues)** on the
-[ocl](https://github.com/cogciprocate/ocl) repo page.
+[![](http://meritbadge.herokuapp.com/cl_sys)](https://crates.io/crates/cl_sys)
+[![](https://docs.rs/cl-sys/badge.svg)](https://docs.rs/cl-sys)
 
 Example usage exists within the
-[ocl-core](https://github.com/cogciprocate/ocl-core) repo (see:
-https://github.com/cogciprocate/ocl-core/blob/master/src/functions.rs).
+[ocl-core](https://github.com/cogciprocate/ocl/tree/master/ocl-core) repo (see:
+https://github.com/cogciprocate/ocl/blob/master/ocl-core/src/functions.rs).
 
-The ancient history of this repo can be found within both the
-[bismit](https://github.com/cogciprocate/bismit) and
-[ocl](https://github.com/cogciprocate/ocl) repos.
-
-If you have need of any of the unimplemented functionality [bug me by filing
-an issue](https://github.com/cogciprocate/ocl/issues) and I'll wire it up for
-you.
+If you have need of any unimplemented functionality [please file an
+issue](https://github.com/cogciprocate/ocl/issues) and request it.
 
 
 #### Troubleshooting
@@ -32,8 +25,6 @@ appropriate SDK from one of the following links:
 [AMD](http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/),
 [NVIDIA](https://developer.nvidia.com/opencl),
 [Intel](https://software.intel.com/en-us/intel-opencl)
-
-After installation
 
 
 #### License

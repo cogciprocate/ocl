@@ -1,22 +1,17 @@
 OpenCL interfaces and types.
 
-#### [Documentation](http://doc.cogciprocate.com/ocl_core/ocl_core/)
+#### [Documentation](https://docs.rs/ocl-core)
 
-[![](http://meritbadge.herokuapp.com/ocl_core)](https://crates.io/crates/ocl_core)  [![](https://docs.rs/ocl-core/badge.svg)](https://docs.rs/ocl-core)
+[![](http://meritbadge.herokuapp.com/ocl_core)](https://crates.io/crates/ocl_core)
+[![](https://docs.rs/ocl-core/badge.svg)](https://docs.rs/ocl-core)
 
-Examples and tests exist within the [ocl](https://github.com/cogciprocate/ocl)
-repo. Please also file
-**[issues](https://github.com/cogciprocate/ocl/issues)** on the
-[ocl](https://github.com/cogciprocate/ocl) repo page.
+For a higher level OpenCL interface that compiles to virtually the same thing,
+see the [ocl](https://github.com/cogciprocate/ocl) crate. The [`trivial.rs`
+example](https://github.com/cogciprocate/ocl/blob/master/ocl/examples/trivial.rs)
+gives a rough idea of of the equivalence between the two.
 
-The ancient history of this repo can be found within both the
-[bismit](https://github.com/cogciprocate/bismit) and
-[ocl](https://github.com/cogciprocate/ocl) repos.
-
-If you have need of any of the unimplemented functionality [bug me by filing
-an issue](https://github.com/cogciprocate/ocl/issues) and I'll wire it up for
-you.
-
+If you have need of any unimplemented functionality [please file an
+issue](https://github.com/cogciprocate/ocl/issues) and request it.
 
 #### License
 
