@@ -7,7 +7,7 @@ cargo run --example event_callbacks %*
 cargo run --example img_formats %*
 cargo run --example info_core %*
 cargo run --example info %*
-# cargo run --example map_buffers %*
+@REM cargo run --example map_buffers %*
 cargo run --example threads %*
 cargo run --example timed %*
 cargo run --example trivial %*

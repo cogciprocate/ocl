@@ -5,6 +5,10 @@ OpenCL C FFI Bindings.
 [![](http://meritbadge.herokuapp.com/cl_sys)](https://crates.io/crates/cl_sys)
 [![](https://docs.rs/cl-sys/badge.svg)](https://docs.rs/cl-sys)
 
+For a high level, easier to use, and far less verbose OpenCL interface (that
+compiles to virtually the same thing) see the
+[ocl](https://github.com/cogciprocate/ocl) crate.
+
 Example usage exists within the
 [ocl-core](https://github.com/cogciprocate/ocl/tree/master/ocl-core) repo (see:
 https://github.com/cogciprocate/ocl/blob/master/ocl-core/src/functions.rs).

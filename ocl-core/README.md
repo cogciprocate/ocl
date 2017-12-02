@@ -5,8 +5,9 @@ OpenCL interfaces and types.
 [![](http://meritbadge.herokuapp.com/ocl_core)](https://crates.io/crates/ocl_core)
 [![](https://docs.rs/ocl-core/badge.svg)](https://docs.rs/ocl-core)
 
-For a higher level OpenCL interface that compiles to virtually the same thing,
-see the [ocl](https://github.com/cogciprocate/ocl) crate. The [`trivial.rs`
+For a higher level, easier to use, and far less verbose OpenCL interface (that
+compiles to virtually the same thing) see the
+[ocl](https://github.com/cogciprocate/ocl) crate. The [`trivial.rs`
 example](https://github.com/cogciprocate/ocl/blob/master/ocl/examples/trivial.rs)
 gives a rough idea of of the equivalence between the two.
 
