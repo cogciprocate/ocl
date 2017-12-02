@@ -1,4 +1,4 @@
-Version 0.16.0 (UNRELEASED)
+Version 0.16.0 (2017-12-02)
 ===========================
 
 * The `ocl-core` and `cl-sys` repositories have been merged into the main
@@ -13,8 +13,8 @@ Breaking Safety Fixes
 API call itself is safe, all kernel code is inherently untrusted and
 potentially dangerous. This change is long overdue.
 
-Unfortunately this will break virtually all existing code. The fix, however,
-is trivial: simply wrap all calls to `.enq()` in an unsafe block.
+This change will break virtually all existing code, though the fix is trivial:
+simply wrap all calls to `.enq()` in an unsafe block.
 
 Before:
 ```
