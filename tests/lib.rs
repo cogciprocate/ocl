@@ -51,10 +51,27 @@ impl TestContent for CLMultiplyByScalar{
                            gl::STATIC_DRAW);
         }
         //Create an OpenCL context with the GL interop enabled
-        let context = Context::builder()
-            .properties(get_properties_list())
-            .build()
-            .unwrap();
+        let context;
+        let properties=get_properties_list();
+        match ocl::core::get_gl_context_info_khr(properties, ocl::core::GlContextInfo::CurrentDevice){
+            ocl::core::GlContextInfoResult::CurrentDevice(dev)=>{
+                match ocl::core::get_device_info_khr(plat, ocl::core::DeviceInfo::Platform){
+                    ocl::core::DeviceInfoResult::Platform(plat)=>{
+                                context=Context::builder()
+                                    .properties(properties)
+                                    .devices(ocl::Device::from(dev))
+                                    .platform(ocl::Platform::from(plat))
+                                    .build()
+                                    .unwrap();
+                    }
+                    ocl::core::DeviceInfoResult::Error(err)=>{panic!("Unable to get CL platform to match GL device {}",err)}
+                    _=>{panic!("Unexpected error")}
+                }
+            }
+            ocl::core::GlContextInfoResult::Error(err)=>{panic!("Unable to get CL device to match GL context {}",err)}
+            _=>{panic!("Unexpected error")}
+        }
+
         // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
         let ocl_pq = ProQue::builder()
             .context(context)

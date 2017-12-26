@@ -11,11 +11,7 @@ categories=["concurrency","hardware-support","api-bindings","external-ffi-bindin
 license="WTFPL"
 
 [dependencies]
-#ocl="^0.14.2"
-ocl={git = "https://github.com/cogciprocate/ocl.git" }
-
-[replace]
-"ocl-core:0.5.1" = { git = "https://github.com/cogciprocate/ocl-core" }
+ocl="*"
 
 #for tests
 [dev-dependencies]
