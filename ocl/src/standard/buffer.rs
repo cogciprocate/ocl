@@ -1672,9 +1672,9 @@ impl<T: OclPrm> Buffer<T> {
     /// for more info.
     ///
     #[cfg(not(feature="opencl_vendor_mesa"))]
-    pub fn from_gl_buffer<'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, /*dims: D,*/
+    pub fn from_gl_buffer<'o, Q>(que_ctx: Q, flags_opt: Option<MemFlags>,
             gl_object: cl_GLuint) -> OclResult<Buffer<T>>
-            where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>
+            where Q: Into<QueCtx<'o>>
     {
         let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
         // let dims: SpatialDims = dims.into();
