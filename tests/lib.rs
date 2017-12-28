@@ -51,11 +51,46 @@ impl TestContent for CLMultiplyByScalar{
                            gl::STATIC_DRAW);
         }
         //Create an OpenCL context with the GL interop enabled
-        let context;
-        let properties=get_properties_list();
-        match ocl::core::get_gl_context_info_khr(properties, ocl::core::GlContextInfo::CurrentDevice){
+        let context=ocl::Platform::list().iter().map(|plat|{
+          ocl::Device::list(plat, Some(ocl::flags::DeviceType::new().gpu())).iter().map(|dev|{
+            Context::builder()
+                .properties(get_properties_list().platform(plat))
+                .platform(*plat)
+                .devices(dev)
+                .build()
+          }).find(|t|t.is_ok())
+        }).find(|t|t.is_some()).expect("Cannot find GL's device in CL").unwrap().unwrap();
+        //let context = Context::builder()
+        //    .properties(get_properties_list())
+        //    .build();
+	/*println!("WOOO HEEE WE GONNA CRASH BOII");
+        let context=ocl::Platform::list().iter().map(|plat|{
+            let properties=get_properties_list().platform(plat);
+            println!("Platform: {:?}",plat);
+            // CRASH! get_gl_context_info_khr
+            match ocl::core::get_gl_context_info_khr(&properties, ocl::core::GlContextInfo::CurrentDevice){
+                ocl::core::GlContextInfoResult::CurrentDevice(dev)=>{
+                    println!(" Device: {:?}",dev);
+                    Some(Context::builder()
+                        .properties(properties)
+                        .devices(ocl::Device::from(dev))
+                        .platform(*plat)
+                        .build()
+                        .unwrap())
+                },
+                ocl::core::GlContextInfoResult::Error(err)=>{
+                    println!("Unable to get CL device to match GL context {}",err);
+                    None
+                },
+                res=>{
+                    panic!("Unexpected result {}",res);
+                }
+            }}).find(|t|t.is_some()).expect("Cannot find GL's device in CL").unwrap();
+*/
+        /*let properties=get_properties_list();
+        match ocl::core::get_gl_context_info_khr(&properties, ocl::core::GlContextInfo::CurrentDevice){
             ocl::core::GlContextInfoResult::CurrentDevice(dev)=>{
-                match ocl::core::get_device_info_khr(plat, ocl::core::DeviceInfo::Platform){
+                match ocl::core::get_device_info(dev, ocl::core::DeviceInfo::Platform){
                     ocl::core::DeviceInfoResult::Platform(plat)=>{
                                 context=Context::builder()
                                     .properties(properties)
@@ -70,7 +105,7 @@ impl TestContent for CLMultiplyByScalar{
             }
             ocl::core::GlContextInfoResult::Error(err)=>{panic!("Unable to get CL device to match GL context {}",err)}
             _=>{panic!("Unexpected error")}
-        }
+        }*/
 
         // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
         let ocl_pq = ProQue::builder()
@@ -79,7 +114,7 @@ impl TestContent for CLMultiplyByScalar{
             .dims(BUFFER_LENGTH)
             .build()
             .expect("Build ProQue");
-        let cl_buff = ocl::Buffer::<f32>::from_gl_buffer(ocl_pq.queue(), None, BUFFER_LENGTH, self.gl_buff)
+        let cl_buff : ocl::Buffer<f32> = ocl::Buffer::from_gl_buffer(ocl_pq.queue(), None, self.gl_buff)
             .unwrap();
 
         // Create a temporary init vector and the source buffer. Initialize them
@@ -107,7 +142,7 @@ impl TestContent for CLMultiplyByScalar{
 
         //get GL Objects
         let mut acquire_globj_event: ocl::Event = ocl::Event::empty();
-        ocl::builders::BufferCmd::<f32>::new(Some(ocl_pq.queue()), cl_buff.core(), BUFFER_LENGTH)
+        ocl::builders::BufferCmd::<f32>::new(&cl_buff, Some(ocl_pq.queue()), BUFFER_LENGTH)
             .gl_acquire()
             .enew(&mut acquire_globj_event)
             .enq()
@@ -116,12 +151,13 @@ impl TestContent for CLMultiplyByScalar{
 
         // Enqueue kernel:
         let mut kernel_run_event: ocl::Event = ocl::Event::empty();
+        unsafe{
         kern.cmd()
             .enew(&mut kernel_run_event)
             .ewait(&acquire_globj_event)
             .enq()
             .unwrap();
-
+}
 
 
         // Create an empty vec and buffer (the quick way) for results. Note that
@@ -142,7 +178,7 @@ impl TestContent for CLMultiplyByScalar{
             .enq()
             .unwrap();
 
-        ocl::builders::BufferCmd::<f32>::new(Some(ocl_pq.queue()), cl_buff.core(), BUFFER_LENGTH)
+        ocl::builders::BufferCmd::<f32>::new(&cl_buff, Some(ocl_pq.queue()), BUFFER_LENGTH)
             .gl_release()
             .ewait(&read_buffer_event)
             .enq()
@@ -261,7 +297,7 @@ impl TestContent for CLGenVBO{
             .src(KERNEL_SRC)
             .build()
             .expect("Build ProQue");
-        let cl_buff = ocl::Buffer::<f32>::from_gl_buffer(ocl_pq.queue(), None, BUFFER_LENGTH, self.gl_buff)
+        let cl_buff = ocl::Buffer::<f32>::from_gl_buffer(ocl_pq.queue(), None, self.gl_buff)
             .unwrap();
 
         // Create a kernel with arguments corresponding to those in the kernel:
@@ -273,7 +309,7 @@ impl TestContent for CLGenVBO{
 
         //get GL Objects
         let mut acquire_globj_event: ocl::Event = ocl::Event::empty();
-        ocl::builders::BufferCmd::<f32>::new(Some(ocl_pq.queue()), cl_buff.core(), BUFFER_LENGTH)
+        ocl::builders::BufferCmd::<f32>::new(&cl_buff, Some(ocl_pq.queue()), BUFFER_LENGTH)
             .gl_acquire()
             .enew(&mut acquire_globj_event)
             .enq()
@@ -282,12 +318,13 @@ impl TestContent for CLGenVBO{
 
         // Enqueue kernel:
         let mut kernel_run_event: ocl::Event = ocl::Event::empty();
+        unsafe{
         kern.cmd()
             .enew(&mut kernel_run_event)
             .ewait(&acquire_globj_event)
             .enq()
             .unwrap();
-
+        }
 
         // Create an empty vec and buffer (the quick way) for results. Note that
         // there is no need to initialize the buffer as we did above because we
@@ -310,7 +347,7 @@ impl TestContent for CLGenVBO{
                 .unwrap();
         }
         //Release GL OBJs
-        ocl::builders::BufferCmd::<f32>::new(Some(ocl_pq.queue()), cl_buff.core(), BUFFER_LENGTH)
+        ocl::builders::BufferCmd::<f32>::new(&cl_buff, Some(ocl_pq.queue()), BUFFER_LENGTH)
             .gl_release()
             //.ewait(&kernel_run_event)
             .ewait(&read_buffer_event)
@@ -339,8 +376,8 @@ impl TestContent for CLGenVBO{
 //Runs tests sequentially
 #[test]
 fn all_works(){
-    glutin_works();
     glfw_works();
+    glutin_works();
     sdl2_works();
 }
 fn sdl2_works() {
@@ -373,7 +410,9 @@ fn sdl2_works() {
         .expect("Couldn't make Canvas!");
 
     let gl_context = canvas.window().gl_create_context().unwrap();
-    let thing:&mut TestContent=&mut CLMultiplyByScalar::new();
+
+    let thing:&mut TestContent=&mut CLGenVBO::new();
+    //let thing:&mut TestContent=&mut CLMultiplyByScalar::new();
 
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
     canvas.window().gl_make_current(&gl_context).unwrap();
@@ -381,9 +420,10 @@ fn sdl2_works() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     thing.init();
+    //canvas.set_draw_color(sdl2::pixels::Color::RGB(255, 41, 0));
     let mut frame_count = 0;
     'running: while frame_count < MAX_FRAME_COUNT {
-        println!("{}",frame_count);
+        //println!("{}",frame_count);
         for event in event_pump.poll_iter() {
             match event {
                 sdl2::event::Event::Quit { .. } |
@@ -395,6 +435,8 @@ fn sdl2_works() {
         }
 
         unsafe {
+            //canvas.clear();
+            canvas.window().gl_make_current(&gl_context).unwrap();
             //SDL resets clear color
             gl::ClearColor(1.0, 0.16, 0.0, 1.0);
             thing.render();
@@ -459,6 +501,7 @@ fn glutin_works() {
         .with_dimensions(WINDOW_WIDTH, WINDOW_HEIGHT);
     let context = glutin::ContextBuilder::new().with_vsync(true);
     let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
+    //let thing:&mut TestContent=&mut CLGenVBO::new();
     let thing:&mut TestContent=&mut CLGenVBO::new();
 
     unsafe {

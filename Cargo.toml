@@ -11,7 +11,7 @@ categories=["concurrency","hardware-support","api-bindings","external-ffi-bindin
 license="WTFPL"
 
 [dependencies]
-ocl="*"
+ocl={ path ="../ocl/ocl"}
 
 #for tests
 [dev-dependencies]
