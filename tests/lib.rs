@@ -289,7 +289,7 @@ impl TestContent for CLGenVBO{
         //Create an OpenCL context with the GL interop enabled
         let context=ocl::Platform::list().iter().map(|plat|{
           println!("Plat: {}",plat);
-          ocl::Device::list(plat, Some(ocl::flags::DeviceType::new().gpu())).iter().map(|dev|{
+          ocl::Device::list(plat, Some(ocl::flags::DeviceType::new().gpu())).unwrap().iter().map(|dev|{
             let ctx = Context::builder()
                 .properties(get_properties_list().platform(plat))
                 .platform(*plat)
