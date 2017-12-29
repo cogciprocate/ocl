@@ -19,7 +19,6 @@ gl="*"
 glium="*"
 sdl2="*"
 glfw="*"
-glutin="*"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cgl = "^0.2"

@@ -6,7 +6,6 @@ extern crate glium;
 
 extern crate sdl2;
 extern crate glfw;
-extern crate glutin;
 
 use ocl_interop::get_properties_list;
 use ocl::{util, ProQue, Buffer, MemFlags, Context};
@@ -507,7 +506,8 @@ fn glfw_works() {
 }
 
 fn glutin_works() {
-    use glutin::GlContext;
+    use glium::glutin;
+    use glium::glutin::GlContext;
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("Glutin Window")
@@ -554,6 +554,7 @@ fn glutin_works() {
 }
 
 fn glium_works(){
+    use glium::glutin;
 
     use glium::Surface;
 
