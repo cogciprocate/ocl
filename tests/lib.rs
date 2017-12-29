@@ -288,15 +288,18 @@ impl TestContent for CLGenVBO{
         }
         //Create an OpenCL context with the GL interop enabled
         let context=ocl::Platform::list().iter().map(|plat|{
+          println!("Plat: {}",plat);
           ocl::Device::list(plat, Some(ocl::flags::DeviceType::new().gpu())).iter().map(|dev|{
-            Context::builder()
+            let ctx = Context::builder()
                 .properties(get_properties_list().platform(plat))
                 .platform(*plat)
                 .devices(dev)
-                .build()
+                .build();
+            println!("- Dev: {:?} Ctx: {:?}",dev,ctx);
+            ctx
           }).find(|t|t.is_ok())
         }).find(|t|t.is_some()).expect("Cannot find GL's device in CL").unwrap().unwrap();
-        
+
         //let context = Context::builder()
         //    .properties(get_properties_list())
         //    .build()
