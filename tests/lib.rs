@@ -287,10 +287,20 @@ impl TestContent for CLGenVBO{
             gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
         }
         //Create an OpenCL context with the GL interop enabled
-        let context = Context::builder()
-            .properties(get_properties_list())
-            .build()
-            .unwrap();
+        let context=ocl::Platform::list().iter().map(|plat|{
+          ocl::Device::list(plat, Some(ocl::flags::DeviceType::new().gpu())).iter().map(|dev|{
+            Context::builder()
+                .properties(get_properties_list().platform(plat))
+                .platform(*plat)
+                .devices(dev)
+                .build()
+          }).find(|t|t.is_ok())
+        }).find(|t|t.is_some()).expect("Cannot find GL's device in CL").unwrap().unwrap();
+        
+        //let context = Context::builder()
+        //    .properties(get_properties_list())
+        //    .build()
+        //    .unwrap();
         // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
         let ocl_pq = ProQue::builder()
             .context(context)
