@@ -206,13 +206,14 @@ impl TestContent for CLMultiplyByScalar{
 
 struct CLGenVBO{
     gl_buff: GLuint,
+    vao: GLuint,
     gl_program: GLuint,
     vertex_shader: GLuint,
     fragment_shader: GLuint,
 }
 impl CLGenVBO{
     fn new() -> CLGenVBO{
-        return CLGenVBO{gl_buff:0,gl_program:0,vertex_shader:0,fragment_shader:0};
+        return CLGenVBO{gl_buff:0, vao:0, gl_program:0, vertex_shader:0, fragment_shader:0};
     }
 }
 impl TestContent for CLGenVBO{
@@ -261,26 +262,24 @@ impl TestContent for CLGenVBO{
 
             //Create Buffer, bind buffer
             gl::GenBuffers(1, &mut self.gl_buff);
+            gl::GenVertexArrays(1, &mut self.vao);
+            gl::BindVertexArray(self.vao);
+
             assert!(self.gl_buff != 0, "GL Buffers are never 0");
             gl::BindBuffer(gl::ARRAY_BUFFER, self.gl_buff);
             gl::BufferData(gl::ARRAY_BUFFER,
                            (BUFFER_LENGTH * std::mem::size_of::<f32>()) as isize,
                            std::ptr::null(),
                            gl::STATIC_DRAW);
-            println!("this line is fine {}", gl::GetError());
             const SHADER_ATTRIBUTE: GLuint = 0;
             gl::BindBuffer(gl::ARRAY_BUFFER, self.gl_buff);
-            println!("this line should be okay {}", gl::GetError());
             gl::VertexAttribPointer(SHADER_ATTRIBUTE,
                                     2,
                                     gl::FLOAT,
                                     gl::FALSE,
                                     0,
                                     std::ptr::null());
-            println!("this line used to get an INVALID_OPERATION error [1282]. (#{})",
-                     gl::GetError());
             gl::EnableVertexAttribArray(SHADER_ATTRIBUTE);
-            println!("this line might be okay {}", gl::GetError());
 
 
             gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
@@ -544,6 +543,10 @@ fn glutin_works() {
                                 });
 
 
+        //Activate the window's context
+        unsafe {
+          gl_window.make_current().unwrap();
+        }
         thing.render();
 
         gl_window.swap_buffers().unwrap();
