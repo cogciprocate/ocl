@@ -9,4 +9,5 @@ members = [
 	"ocl-core",
 	"ocl-core/ocl-core-vector",
 	"cl-sys",
+  "ocl-interop",
 ]
