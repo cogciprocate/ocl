@@ -1,25 +1,20 @@
 extern crate ocl_interop;
 extern crate ocl;
 extern crate gl;
-#[macro_use]
-extern crate glium;
+extern crate glutin;
 
 extern crate sdl2;
 extern crate glfw;
 
 use ocl_interop::get_properties_list;
-use ocl::{util, ProQue, Buffer, MemFlags, Context};
+use ocl::{ProQue, Context};
 use gl::types::*;
-
-// Number of results to print out:
-const RESULTS_TO_PRINT: usize = 20;
 
 //3 triangles, 3 Vertices per triangle, 2 floats per vertex
 const BUFFER_LENGTH: usize = 18;
-const COEFF: f32 = 5432.1;
 const WINDOW_WIDTH: u32 = 800;
 const WINDOW_HEIGHT: u32 = 640;
-const MAX_FRAME_COUNT: u32 = 600; //5 seconds
+const MAX_FRAME_COUNT: u32 = 300; //5 seconds
 
 const KERNEL_SRC: &'static str = include_str!("kernels.cl");
 const VERTEX_SRC: &'static str = include_str!("vertex.glsl");
@@ -31,228 +26,57 @@ trait TestContent{
     fn clean_up(&mut self);
 }
 
-struct CLMultiplyByScalar{
-    gl_buff: GLuint,
-}
-impl CLMultiplyByScalar{
-    fn new() -> CLMultiplyByScalar{
-        return CLMultiplyByScalar{gl_buff:0};
-    }
-}
-impl TestContent for CLMultiplyByScalar{
-    fn init(&mut self){
-        unsafe {
-            gl::GenBuffers(1, &mut self.gl_buff);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.gl_buff);
-            gl::BufferData(gl::ARRAY_BUFFER,
-                           (BUFFER_LENGTH * std::mem::size_of::<f32>()) as isize,
-                           std::ptr::null(),
-                           gl::STATIC_DRAW);
-        }
-        //Create an OpenCL context with the GL interop enabled
-        let context=ocl::Platform::list().iter().map(|plat|{
-          ocl::Device::list(plat, Some(ocl::flags::DeviceType::new().gpu())).iter().map(|dev|{
-            Context::builder()
-                .properties(get_properties_list().platform(plat))
-                .platform(*plat)
-                .devices(dev)
-                .build()
-          }).find(|t|t.is_ok())
-        }).find(|t|t.is_some()).expect("Cannot find GL's device in CL").unwrap().unwrap();
-        //let context = Context::builder()
-        //    .properties(get_properties_list())
-        //    .build();
-	/*println!("WOOO HEEE WE GONNA CRASH BOII");
-        let context=ocl::Platform::list().iter().map(|plat|{
-            let properties=get_properties_list().platform(plat);
-            println!("Platform: {:?}",plat);
-            // CRASH! get_gl_context_info_khr
-            match ocl::core::get_gl_context_info_khr(&properties, ocl::core::GlContextInfo::CurrentDevice){
-                ocl::core::GlContextInfoResult::CurrentDevice(dev)=>{
-                    println!(" Device: {:?}",dev);
-                    Some(Context::builder()
-                        .properties(properties)
-                        .devices(ocl::Device::from(dev))
-                        .platform(*plat)
-                        .build()
-                        .unwrap())
-                },
-                ocl::core::GlContextInfoResult::Error(err)=>{
-                    println!("Unable to get CL device to match GL context {}",err);
-                    None
-                },
-                res=>{
-                    panic!("Unexpected result {}",res);
-                }
-            }}).find(|t|t.is_some()).expect("Cannot find GL's device in CL").unwrap();
-*/
-        /*let properties=get_properties_list();
-        match ocl::core::get_gl_context_info_khr(&properties, ocl::core::GlContextInfo::CurrentDevice){
-            ocl::core::GlContextInfoResult::CurrentDevice(dev)=>{
-                match ocl::core::get_device_info(dev, ocl::core::DeviceInfo::Platform){
-                    ocl::core::DeviceInfoResult::Platform(plat)=>{
-                                context=Context::builder()
-                                    .properties(properties)
-                                    .devices(ocl::Device::from(dev))
-                                    .platform(ocl::Platform::from(plat))
-                                    .build()
-                                    .unwrap();
-                    }
-                    ocl::core::DeviceInfoResult::Error(err)=>{panic!("Unable to get CL platform to match GL device {}",err)}
-                    _=>{panic!("Unexpected error")}
-                }
-            }
-            ocl::core::GlContextInfoResult::Error(err)=>{panic!("Unable to get CL device to match GL context {}",err)}
-            _=>{panic!("Unexpected error")}
-        }*/
-
-        // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
-        let ocl_pq = ProQue::builder()
-            .context(context)
-            .src(KERNEL_SRC)
-            .dims(BUFFER_LENGTH)
-            .build()
-            .expect("Build ProQue");
-        let cl_buff : ocl::Buffer<f32> = ocl::Buffer::from_gl_buffer(ocl_pq.queue(), None, self.gl_buff)
-            .unwrap();
-
-        // Create a temporary init vector and the source buffer. Initialize them
-        // with random floats between 0.0 and 20.0:
-        let vec_source = util::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
-        let source_buffer = Buffer::builder()
-            .queue(ocl_pq.queue().clone())
-            .flags(MemFlags::new().read_write().copy_host_ptr())
-            .dims(ocl_pq.dims().clone())
-            .host_data(&vec_source)
-            .build()
-            .unwrap();
-
-
-
-        // Create a kernel with arguments corresponding to those in the kernel:
-        let kern = ocl_pq
-            .create_kernel("multiply_by_scalar")
-            .unwrap()
-            .arg_scl(COEFF)
-            .arg_buf(&source_buffer)
-            .arg_buf(&cl_buff);
-
-        println!("Kernel global work size: {:?}", kern.get_gws());
-
-        //get GL Objects
-        let mut acquire_globj_event: ocl::Event = ocl::Event::empty();
-        ocl::builders::BufferCmd::<f32>::new(&cl_buff, Some(ocl_pq.queue()), BUFFER_LENGTH)
-            .gl_acquire()
-            .enew(&mut acquire_globj_event)
-            .enq()
-            .unwrap();
-
-
-        // Enqueue kernel:
-        let mut kernel_run_event: ocl::Event = ocl::Event::empty();
-        unsafe{
-        kern.cmd()
-            .enew(&mut kernel_run_event)
-            .ewait(&acquire_globj_event)
-            .enq()
-            .unwrap();
-}
-
-
-        // Create an empty vec and buffer (the quick way) for results. Note that
-        // there is no need to initialize the buffer as we did above because we
-        // will be writing to the entire buffer first thing, overwriting any junk
-        // data that may be there.
-        let mut vec_result = vec![0.0f32; BUFFER_LENGTH];
-        assert!((BUFFER_LENGTH * std::mem::size_of::<f32>()) ==
-                std::mem::size_of::<[f32; BUFFER_LENGTH]>());
-        // Read results from the device into result_buffer's local vector:
-        //result_buffer.read(&mut vec_result).enq().unwrap();
-        let mut read_buffer_event: ocl::Event = ocl::Event::empty();
-        cl_buff
-            .read(&mut vec_result)
-            .queue(ocl_pq.queue())
-            .enew(&mut read_buffer_event)
-            .ewait(&kernel_run_event)
-            .enq()
-            .unwrap();
-
-        ocl::builders::BufferCmd::<f32>::new(&cl_buff, Some(ocl_pq.queue()), BUFFER_LENGTH)
-            .gl_release()
-            .ewait(&read_buffer_event)
-            .enq()
-            .unwrap();
-
-        // Check results and print the first 20:
-        for idx in 0..BUFFER_LENGTH {
-            if idx < RESULTS_TO_PRINT {
-                println!("source[{idx}]: {:.03}, \t coeff: {}, \tresult[{idx}]: {}",
-                         vec_source[idx],
-                         COEFF,
-                         vec_result[idx],
-                         idx = idx);
-            }
-            assert_eq!(vec_source[idx] * COEFF, vec_result[idx]);
-        }
-    }
-    fn render(&mut self){
-        unsafe{
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-        }
-    }
-    fn clean_up(&mut self){
-    }
-}
-
 struct CLGenVBO{
     gl_buff: GLuint,
     vao: GLuint,
     gl_program: GLuint,
-    vertex_shader: GLuint,
-    fragment_shader: GLuint,
 }
 impl CLGenVBO{
     fn new() -> CLGenVBO{
-        return CLGenVBO{gl_buff:0, vao:0, gl_program:0, vertex_shader:0, fragment_shader:0};
+        return CLGenVBO{gl_buff:0, vao:0, gl_program: 0};
     }
 }
 impl TestContent for CLGenVBO{
     fn init(&mut self){
-        //laziness
         unsafe {
             gl::Viewport(0, 0, 640, 480);
             //Create Program, create shaders, set source code, and compile.
             self.gl_program = gl::CreateProgram();
-            self.vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
-            self.fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
+            let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
+            let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
             println!("PROGRAM: {} VERTEX: {} FRAG: {}",
                      self.gl_program,
-                     self.vertex_shader,
-                     self.fragment_shader);
-            gl::ShaderSource(self.vertex_shader,
+                     vertex_shader,
+                     fragment_shader);
+            gl::ShaderSource(vertex_shader,
                              1,
                              &(VERTEX_SRC.as_ptr() as *const GLchar),
                              &(VERTEX_SRC.len() as GLint));
-            gl::ShaderSource(self.fragment_shader,
+            gl::ShaderSource(fragment_shader,
                              1,
                              &(FRAGMENT_SRC.as_ptr() as *const GLchar),
                              &(FRAGMENT_SRC.len() as GLint));
-            gl::CompileShader(self.vertex_shader);
-            gl::CompileShader(self.fragment_shader);
+            gl::CompileShader(vertex_shader);
+            gl::CompileShader(fragment_shader);
             let mut gl_return: GLint = gl::FALSE as GLint;
-            gl::GetShaderiv(self.vertex_shader, gl::COMPILE_STATUS, &mut gl_return);
+            gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut gl_return);
             //TODO: Print shader logs
             if gl_return != gl::TRUE as GLint {
                 panic!("Unable to compile vertex shader!");
             }
             gl_return = gl::FALSE as GLint;
-            gl::GetShaderiv(self.fragment_shader, gl::COMPILE_STATUS, &mut gl_return);
+            gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut gl_return);
             if gl_return != gl::TRUE as GLint {
                 panic!("Unable to compile fragment shader!");
             }
-            gl::AttachShader(self.gl_program, self.vertex_shader);
-            gl::AttachShader(self.gl_program, self.fragment_shader);
+            gl::AttachShader(self.gl_program, vertex_shader);
+            gl::AttachShader(self.gl_program, fragment_shader);
             gl::LinkProgram(self.gl_program);
+            gl::DetachShader(self.gl_program, vertex_shader);
+          	gl::DetachShader(self.gl_program, fragment_shader);
+
+          	gl::DeleteShader(vertex_shader);
+          	gl::DeleteShader(fragment_shader);
 
             let gl_enum_err = gl::GetError();
             if gl_enum_err != gl::NO_ERROR {
@@ -298,10 +122,6 @@ impl TestContent for CLGenVBO{
           }).find(|t|t.is_ok())
         }).find(|t|t.is_some()).expect("Cannot find GL's device in CL").unwrap().unwrap();
 
-        //let context = Context::builder()
-        //    .properties(get_properties_list())
-        //    .build()
-        //    .unwrap();
         // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
         let ocl_pq = ProQue::builder()
             .context(context)
@@ -380,6 +200,7 @@ impl TestContent for CLGenVBO{
         //TODO: Clean up more memory
         unsafe {
             gl::DeleteProgram(self.gl_program);
+            gl::DeleteVertexArrays(1,&self.vao);
         }
     }
 }
@@ -387,9 +208,12 @@ impl TestContent for CLGenVBO{
 //Runs tests sequentially
 #[test]
 fn all_works(){
-    glfw_works();
-    glutin_works();
+    //Red
     sdl2_works();
+    //Green
+    glutin_works();
+    //Blue
+    glfw_works();
 }
 fn sdl2_works() {
     use sdl2::keyboard::Keycode;
@@ -460,53 +284,9 @@ fn sdl2_works() {
     }
     thing.clean_up();
 }
-fn glfw_works() {
-    use glfw::{Action, Key};
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-
-    // Create a windowed mode window and its OpenGL context
-    let (mut window, events) = glfw.create_window(WINDOW_WIDTH,
-                                                  WINDOW_HEIGHT,
-                                                  "GLFW Window",
-                                                  glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window.");
-
-    gl::load_with(|name| window.get_proc_address(name) as *const _);
-    glfw::Context::make_current(&mut window);
-    window.set_key_polling(true);
-
-    let thing:&mut TestContent=&mut CLGenVBO::new();
-    unsafe {
-        gl::ClearColor(0.0, 0.5, 1.0, 1.0);
-        gl::Viewport(0, 0, 640, 480);
-    }
-    thing.init();
-
-    let mut frame_count = 0;
-    while !window.should_close() && frame_count < MAX_FRAME_COUNT {
-        glfw.poll_events();
-        for (_, event) in glfw::flush_messages(&events) {
-            println!("{:?}", event);
-            match event {
-                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                    window.set_should_close(true)
-                }
-                _ => {}
-            }
-        }
-
-        thing.render();
-
-        glfw::Context::swap_buffers(&mut window);
-        frame_count += 1;
-    }
-    thing.clean_up();
-    //GLFW Window is closed when it goes out of scope.
-}
 
 fn glutin_works() {
-    use glium::glutin;
-    use glium::glutin::GlContext;
+    use glutin::GlContext;
     let mut events_loop = glutin::EventsLoop::new();
     let window = glutin::WindowBuilder::new()
         .with_title("Glutin Window")
@@ -556,72 +336,47 @@ fn glutin_works() {
     thing.clean_up();
 }
 
-fn glium_works(){
-    use glium::glutin;
 
-    use glium::Surface;
+fn glfw_works() {
+    use glfw::{Action, Key};
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
-    let mut events_loop = glutin::EventsLoop::new();
-    let window = glutin::WindowBuilder::new()
-        .with_title("Glutin Window with glium");
-    let context = glutin::ContextBuilder::new();
-    let display = glium::Display::new(window, context, &events_loop).unwrap();
+    // Create a windowed mode window and its OpenGL context
+    let (mut window, events) = glfw.create_window(WINDOW_WIDTH,
+                                                  WINDOW_HEIGHT,
+                                                  "GLFW Window",
+                                                  glfw::WindowMode::Windowed)
+        .expect("Failed to create GLFW window.");
 
-    #[derive(Copy, Clone)]
-    struct Vertex {
-        position: [f32; 2],
+    gl::load_with(|name| window.get_proc_address(name) as *const _);
+    glfw::Context::make_current(&mut window);
+    window.set_key_polling(true);
+
+    let thing:&mut TestContent=&mut CLGenVBO::new();
+    unsafe {
+        gl::ClearColor(0.0, 0.5, 1.0, 1.0);
+        gl::Viewport(0, 0, 640, 480);
     }
+    thing.init();
 
-    implement_vertex!(Vertex, position);
-
-    let vertex1 = Vertex { position: [-0.5, -0.5] };
-    let vertex2 = Vertex { position: [ 0.0,  0.5] };
-    let vertex3 = Vertex { position: [ 0.5, -0.25] };
-    let shape = vec![vertex1, vertex2, vertex3];
-
-    let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
-    let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
-
-    let vertex_shader_src = r#"
-        #version 140
-
-        in vec2 position;
-
-        void main() {
-            gl_Position = vec4(position, 0.0, 1.0);
-        }
-    "#;
-
-    let fragment_shader_src = r#"
-        #version 140
-
-        out vec4 color;
-
-        void main() {
-            color = vec4(0.0, 0.0, 0.0, 1.0);
-        }
-    "#;
-
-    let program = glium::Program::from_source(&display, vertex_shader_src, fragment_shader_src, None).unwrap();
-
-    let mut running = true;
-    let mut frame_count=0;
-    while running && frame_count < MAX_FRAME_COUNT {
-        let mut target = display.draw();
-        target.clear_color(0.33333, 0.0, 1.0, 1.0);
-        target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms,
-                    &Default::default()).unwrap();
-        target.finish().unwrap();
-
-        events_loop.poll_events(|event| {
+    let mut frame_count = 0;
+    while !window.should_close() && frame_count < MAX_FRAME_COUNT {
+        glfw.poll_events();
+        for (_, event) in glfw::flush_messages(&events) {
+            println!("{:?}", event);
             match event {
-                glutin::Event::WindowEvent { event, .. } => match event {
-                    glutin::WindowEvent::Closed => running = false,
-                    _ => ()
-                },
-                _ => (),
+                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
+                    window.set_should_close(true)
+                }
+                _ => {}
             }
-        });
-        frame_count+=1;
+        }
+
+        thing.render();
+
+        glfw::Context::swap_buffers(&mut window);
+        frame_count += 1;
     }
+    thing.clean_up();
+    //GLFW Window is closed when it goes out of scope.
 }

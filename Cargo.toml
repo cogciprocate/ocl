@@ -16,8 +16,11 @@ ocl={ path ="../ocl/ocl"}
 #for tests
 [dev-dependencies]
 gl="*"
-glium="*"
+#red test
 sdl2="*"
+#green test
+glutin="*"
+#blue test
 glfw="*"
 
 [target.'cfg(target_os = "macos")'.dependencies]
