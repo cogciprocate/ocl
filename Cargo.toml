@@ -1,30 +1,12 @@
-[package]
-name = "ocl-interop"
-version = "0.1.3"
-authors = ["Nopey Nope<golgothasTerror101@gmail.com>", "Nick Sanders <cogciprocate@gmail.com>"]
-build="build.rs"
-repository = "https://github.com/Nopey/rust-ocl-gl"
-description = "Creates an OpenCL Context with OpenGL Interop enabled"
-readme = "README.md"
-keywords=["OpenCL","OpenGL","gpgpu","gpu","GL"]
-categories=["concurrency","hardware-support","api-bindings","external-ffi-bindings"]
-license="MIT/Apache-2.0"
-
-[dependencies]
-ocl={ path ="../ocl/ocl"}
-
-#for tests
-[dev-dependencies]
-gl="*"
-#red test
-sdl2="*"
-#green test
-glutin="*"
-#blue test
-glfw="*"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-cgl = "^0.2"
-
-[target.'cfg(not(target_os="macos"))'.build-dependencies]
-gl_generator = "^0.5"
+[workspace]
+members = [
+    "ocl",
+    "ocl/ocl-extras",
+    "ocl/examples/images",
+    "ocl/examples/images_safe_clamp",
+	"ocl/examples/opencl_2_1",
+	"ocl/examples/proto",
+	"ocl-core",
+	"ocl-core/ocl-core-vector",
+	"cl-sys",
+]
