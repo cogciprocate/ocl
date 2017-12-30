@@ -1,6 +1,6 @@
 [package]
 name = "ocl-interop"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Nopey Nope<golgothasTerror101@gmail.com>"]
 build="build.rs"
 repository = "https://github.com/Nopey/rust-ocl-gl"

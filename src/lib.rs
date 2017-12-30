@@ -20,7 +20,6 @@ mod egl {
 pub fn get_properties_list() -> ocl::builders::ContextProperties {
     let mut properties = ocl::builders::ContextProperties::new();
 
-
     #[cfg(target_os="linux")]
     unsafe {
         properties.set_gl_context(glx::GetCurrentContext() as (*mut _));
@@ -47,8 +46,20 @@ pub fn get_properties_list() -> ocl::builders::ContextProperties {
     }
     return properties;
 }
-
-
+pub fn get_context() -> std::option::Option<ocl::Context>{
+  ocl::Platform::list().iter().map(|plat|{
+    //println!("Plat: {}",plat);
+    ocl::Device::list(plat, Some(ocl::flags::DeviceType::new().gpu())).unwrap().iter().map(|dev|{
+      let ctx = ocl::Context::builder()
+          .properties(get_properties_list().platform(plat))
+          .platform(*plat)
+          .devices(dev)
+          .build();
+      //println!("- Dev: {:?} Ctx: {:?}",dev,ctx);
+      ctx
+    }).find(|t|t.is_ok())
+  }).find(|t|t.is_some()).map(|ctx| ctx.unwrap().unwrap())
+}
 #[cfg(test)]
 mod tests {
     use get_properties_list;

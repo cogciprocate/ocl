@@ -6,8 +6,8 @@ extern crate glutin;
 extern crate sdl2;
 extern crate glfw;
 
-use ocl_interop::get_properties_list;
-use ocl::{ProQue, Context};
+use ocl_interop::get_context;
+use ocl::ProQue;
 use gl::types::*;
 
 //3 triangles, 3 Vertices per triangle, 2 floats per vertex
@@ -109,18 +109,7 @@ impl TestContent for CLGenVBO{
             gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
         }
         //Create an OpenCL context with the GL interop enabled
-        let context=ocl::Platform::list().iter().map(|plat|{
-          println!("Plat: {}",plat);
-          ocl::Device::list(plat, Some(ocl::flags::DeviceType::new().gpu())).unwrap().iter().map(|dev|{
-            let ctx = Context::builder()
-                .properties(get_properties_list().platform(plat))
-                .platform(*plat)
-                .devices(dev)
-                .build();
-            println!("- Dev: {:?} Ctx: {:?}",dev,ctx);
-            ctx
-          }).find(|t|t.is_ok())
-        }).find(|t|t.is_some()).expect("Cannot find GL's device in CL").unwrap().unwrap();
+        let context=get_context().expect("Cannot find GL's device in CL");
 
         // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
         let ocl_pq = ProQue::builder()
