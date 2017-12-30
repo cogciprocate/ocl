@@ -1,16 +1,19 @@
 #[cfg(target_os = "macos")]
 extern crate cgl;
 extern crate ocl;
+
 #[cfg(target_os = "linux")]
 #[allow(improper_ctypes)]
 mod glx {
     include!(concat!(env!("OUT_DIR"), "/glx_bindings.rs"));
 }
+
 #[cfg(target_os = "windows")]
 #[allow(improper_ctypes)]
 mod wgl {
     include!(concat!(env!("OUT_DIR"), "/wgl_bindings.rs"));
 }
+
 #[cfg(target_os = "android")]
 #[allow(improper_ctypes)]
 mod egl {
@@ -31,19 +34,23 @@ pub fn get_properties_list() -> ocl::builders::ContextProperties {
         properties.set_gl_context(wgl::GetCurrentContext() as (*mut _));
         properties.set_wgl_hdc(wgl::GetCurrentDC() as (*mut _));
     }
+
     #[cfg(target_os = "macos")]
     unsafe {
         let gl_context = cgl::CGLGetCurrentContext();
         let share_group = cgl::CGLGetShareGroup(gl_context);
         properties.cgl_sharegroup(share_group);
     }
+
     #[cfg(target_os = "android")]
     unsafe {
         properties.set_gl_display(egl::GetCurrentContext() as (*mut _));
         properties.set_egl_display(egl::GetCurrentDisplay() as (*mut _));
     }
+
     return properties;
 }
+
 pub fn get_context() -> std::option::Option<ocl::Context> {
     ocl::Platform::list()
         .iter()
@@ -66,6 +73,7 @@ pub fn get_context() -> std::option::Option<ocl::Context> {
         .find(|t| t.is_some())
         .map(|ctx| ctx.unwrap().unwrap())
 }
+
 #[cfg(test)]
 mod tests {
     use get_properties_list;
