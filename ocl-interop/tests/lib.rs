@@ -1,10 +1,10 @@
-extern crate ocl_interop;
-extern crate ocl;
 extern crate gl;
 extern crate glutin;
+extern crate ocl;
+extern crate ocl_interop;
 
-extern crate sdl2;
 extern crate glfw;
+extern crate sdl2;
 
 use ocl_interop::get_context;
 use ocl::ProQue;
@@ -20,42 +20,50 @@ const KERNEL_SRC: &'static str = include_str!("kernels.cl");
 const VERTEX_SRC: &'static str = include_str!("vertex.glsl");
 const FRAGMENT_SRC: &'static str = include_str!("fragment.glsl");
 //TODO:BetterName
-trait TestContent{
+trait TestContent {
     fn init(&mut self);
     fn render(&mut self);
     fn clean_up(&mut self);
 }
 
-struct CLGenVBO{
+struct CLGenVBO {
     gl_buff: GLuint,
     vao: GLuint,
     gl_program: GLuint,
 }
-impl CLGenVBO{
-    fn new() -> CLGenVBO{
-        return CLGenVBO{gl_buff:0, vao:0, gl_program: 0};
+impl CLGenVBO {
+    fn new() -> CLGenVBO {
+        return CLGenVBO {
+            gl_buff: 0,
+            vao: 0,
+            gl_program: 0,
+        };
     }
 }
-impl TestContent for CLGenVBO{
-    fn init(&mut self){
+impl TestContent for CLGenVBO {
+    fn init(&mut self) {
         unsafe {
             gl::Viewport(0, 0, 640, 480);
             //Create Program, create shaders, set source code, and compile.
             self.gl_program = gl::CreateProgram();
             let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
             let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
-            println!("PROGRAM: {} VERTEX: {} FRAG: {}",
-                     self.gl_program,
-                     vertex_shader,
-                     fragment_shader);
-            gl::ShaderSource(vertex_shader,
-                             1,
-                             &(VERTEX_SRC.as_ptr() as *const GLchar),
-                             &(VERTEX_SRC.len() as GLint));
-            gl::ShaderSource(fragment_shader,
-                             1,
-                             &(FRAGMENT_SRC.as_ptr() as *const GLchar),
-                             &(FRAGMENT_SRC.len() as GLint));
+            println!(
+                "PROGRAM: {} VERTEX: {} FRAG: {}",
+                self.gl_program, vertex_shader, fragment_shader
+            );
+            gl::ShaderSource(
+                vertex_shader,
+                1,
+                &(VERTEX_SRC.as_ptr() as *const GLchar),
+                &(VERTEX_SRC.len() as GLint),
+            );
+            gl::ShaderSource(
+                fragment_shader,
+                1,
+                &(FRAGMENT_SRC.as_ptr() as *const GLchar),
+                &(FRAGMENT_SRC.len() as GLint),
+            );
             gl::CompileShader(vertex_shader);
             gl::CompileShader(fragment_shader);
             let mut gl_return: GLint = gl::FALSE as GLint;
@@ -73,10 +81,10 @@ impl TestContent for CLGenVBO{
             gl::AttachShader(self.gl_program, fragment_shader);
             gl::LinkProgram(self.gl_program);
             gl::DetachShader(self.gl_program, vertex_shader);
-          	gl::DetachShader(self.gl_program, fragment_shader);
+            gl::DetachShader(self.gl_program, fragment_shader);
 
-          	gl::DeleteShader(vertex_shader);
-          	gl::DeleteShader(fragment_shader);
+            gl::DeleteShader(vertex_shader);
+            gl::DeleteShader(fragment_shader);
 
             let gl_enum_err = gl::GetError();
             if gl_enum_err != gl::NO_ERROR {
@@ -91,25 +99,28 @@ impl TestContent for CLGenVBO{
 
             assert!(self.gl_buff != 0, "GL Buffers are never 0");
             gl::BindBuffer(gl::ARRAY_BUFFER, self.gl_buff);
-            gl::BufferData(gl::ARRAY_BUFFER,
-                           (BUFFER_LENGTH * std::mem::size_of::<f32>()) as isize,
-                           std::ptr::null(),
-                           gl::STATIC_DRAW);
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (BUFFER_LENGTH * std::mem::size_of::<f32>()) as isize,
+                std::ptr::null(),
+                gl::STATIC_DRAW,
+            );
             const SHADER_ATTRIBUTE: GLuint = 0;
             gl::BindBuffer(gl::ARRAY_BUFFER, self.gl_buff);
-            gl::VertexAttribPointer(SHADER_ATTRIBUTE,
-                                    2,
-                                    gl::FLOAT,
-                                    gl::FALSE,
-                                    0,
-                                    std::ptr::null());
+            gl::VertexAttribPointer(
+                SHADER_ATTRIBUTE,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                0,
+                std::ptr::null(),
+            );
             gl::EnableVertexAttribArray(SHADER_ATTRIBUTE);
-
 
             gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
         }
         //Create an OpenCL context with the GL interop enabled
-        let context=get_context().expect("Cannot find GL's device in CL");
+        let context = get_context().expect("Cannot find GL's device in CL");
 
         // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
         let ocl_pq = ProQue::builder()
@@ -117,8 +128,8 @@ impl TestContent for CLGenVBO{
             .src(KERNEL_SRC)
             .build()
             .expect("Build ProQue");
-        let cl_buff = ocl::Buffer::<f32>::from_gl_buffer(ocl_pq.queue(), None, self.gl_buff)
-            .unwrap();
+        let cl_buff =
+            ocl::Buffer::<f32>::from_gl_buffer(ocl_pq.queue(), None, self.gl_buff).unwrap();
 
         // Create a kernel with arguments corresponding to those in the kernel:
         let kern = ocl_pq
@@ -135,15 +146,14 @@ impl TestContent for CLGenVBO{
             .enq()
             .unwrap();
 
-
         // Enqueue kernel:
         let mut kernel_run_event: ocl::Event = ocl::Event::empty();
-        unsafe{
-        kern.cmd()
-            .enew(&mut kernel_run_event)
-            .ewait(&acquire_globj_event)
-            .enq()
-            .unwrap();
+        unsafe {
+            kern.cmd()
+                .enew(&mut kernel_run_event)
+                .ewait(&acquire_globj_event)
+                .enq()
+                .unwrap();
         }
 
         // Create an empty vec and buffer (the quick way) for results. Note that
@@ -151,8 +161,10 @@ impl TestContent for CLGenVBO{
         // will be writing to the entire buffer first thing, overwriting any junk
         // data that may be there.
         let mut vec_result = vec![0.0f32; BUFFER_LENGTH];
-        assert!((BUFFER_LENGTH * std::mem::size_of::<f32>()) ==
-                std::mem::size_of::<[f32; BUFFER_LENGTH]>());
+        assert!(
+            (BUFFER_LENGTH * std::mem::size_of::<f32>())
+                == std::mem::size_of::<[f32; BUFFER_LENGTH]>()
+        );
         // Read results from the device into result_buffer's local vector:
         //result_buffer.read(&mut vec_result).enq().unwrap();
         let mut read_buffer_event: ocl::Event = ocl::Event::empty();
@@ -176,7 +188,7 @@ impl TestContent for CLGenVBO{
         //Finish OpenCL Queue before starting to use the gl buffer in the main loop
         ocl_pq.queue().finish().unwrap();
     }
-    fn render(&mut self){
+    fn render(&mut self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             gl::EnableVertexAttribArray(0);
@@ -185,18 +197,18 @@ impl TestContent for CLGenVBO{
             gl::DisableVertexAttribArray(0);
         }
     }
-    fn clean_up(&mut self){
+    fn clean_up(&mut self) {
         //TODO: Clean up more memory
         unsafe {
             gl::DeleteProgram(self.gl_program);
-            gl::DeleteVertexArrays(1,&self.vao);
+            gl::DeleteVertexArrays(1, &self.vao);
         }
     }
 }
 
 //Runs tests sequentially
 #[test]
-fn all_works(){
+fn all_works() {
     //Red
     sdl2_works();
     //Green
@@ -219,7 +231,6 @@ fn sdl2_works() {
 
     let video_subsystem = sdl_context.video().unwrap();
 
-
     let window = video_subsystem
         .window("SDL2 Window", 800, 600)
         .position_centered()
@@ -235,7 +246,7 @@ fn sdl2_works() {
 
     let gl_context = canvas.window().gl_create_context().unwrap();
 
-    let thing:&mut TestContent=&mut CLGenVBO::new();
+    let thing: &mut TestContent = &mut CLGenVBO::new();
     //let thing:&mut TestContent=&mut CLMultiplyByScalar::new();
 
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
@@ -250,10 +261,11 @@ fn sdl2_works() {
         //println!("{}",frame_count);
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit { .. } |
-                sdl2::event::Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running
-                }
+                sdl2::event::Event::Quit { .. }
+                | sdl2::event::Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
                 _ => {}
             }
         }
@@ -269,7 +281,7 @@ fn sdl2_works() {
         canvas.present();
 
         frame_count += 1;
-        std::thread::sleep(std::time::Duration::from_millis(1000/60));
+        std::thread::sleep(std::time::Duration::from_millis(1000 / 60));
     }
     thing.clean_up();
 }
@@ -283,7 +295,7 @@ fn glutin_works() {
     let context = glutin::ContextBuilder::new().with_vsync(true);
     let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
     //let thing:&mut TestContent=&mut CLGenVBO::new();
-    let thing:&mut TestContent=&mut CLGenVBO::new();
+    let thing: &mut TestContent = &mut CLGenVBO::new();
 
     unsafe {
         //Activate the window's context
@@ -299,22 +311,17 @@ fn glutin_works() {
     let mut running = true;
     while running && frame_count < MAX_FRAME_COUNT {
         events_loop.poll_events(|event| match event {
-                                    glutin::Event::WindowEvent { event, .. } => {
-                                        match event {
-                                            glutin::WindowEvent::Closed => running = false,
-                                            glutin::WindowEvent::Resized(w, h) => {
-                                                gl_window.resize(w, h)
-                                            }
-                                            _ => (),
-                                        }
-                                    }
-                                    _ => (),
-                                });
-
+            glutin::Event::WindowEvent { event, .. } => match event {
+                glutin::WindowEvent::Closed => running = false,
+                glutin::WindowEvent::Resized(w, h) => gl_window.resize(w, h),
+                _ => (),
+            },
+            _ => (),
+        });
 
         //Activate the window's context
         unsafe {
-          gl_window.make_current().unwrap();
+            gl_window.make_current().unwrap();
         }
         thing.render();
 
@@ -325,23 +332,23 @@ fn glutin_works() {
     thing.clean_up();
 }
 
-
 fn glfw_works() {
     use glfw::{Action, Key};
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     // Create a windowed mode window and its OpenGL context
-    let (mut window, events) = glfw.create_window(WINDOW_WIDTH,
-                                                  WINDOW_HEIGHT,
-                                                  "GLFW Window",
-                                                  glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window.");
+    let (mut window, events) = glfw.create_window(
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        "GLFW Window",
+        glfw::WindowMode::Windowed,
+    ).expect("Failed to create GLFW window.");
 
     gl::load_with(|name| window.get_proc_address(name) as *const _);
     glfw::Context::make_current(&mut window);
     window.set_key_polling(true);
 
-    let thing:&mut TestContent=&mut CLGenVBO::new();
+    let thing: &mut TestContent = &mut CLGenVBO::new();
     unsafe {
         gl::ClearColor(0.0, 0.5, 1.0, 1.0);
         gl::Viewport(0, 0, 640, 480);
