@@ -1,14 +1,14 @@
 [package]
 name = "ocl-interop"
 version = "0.1.3"
-authors = ["Nopey Nope<golgothasTerror101@gmail.com>"]
+authors = ["Nopey Nope<golgothasTerror101@gmail.com>", "Nick Sanders <cogciprocate@gmail.com>"]
 build="build.rs"
 repository = "https://github.com/Nopey/rust-ocl-gl"
-description = "Aids in the creation of an OpenCL Context with OpenGL Interop enabled"
+description = "Creates an OpenCL Context with OpenGL Interop enabled"
 readme = "README.md"
-keywords=["OpenCL","OpenGL","context","CL","GL"]
+keywords=["OpenCL","OpenGL","gpgpu","gpu","GL"]
 categories=["concurrency","hardware-support","api-bindings","external-ffi-bindings"]
-license="WTFPL"
+license="MIT/Apache-2.0"
 
 [dependencies]
 ocl={ path ="../ocl/ocl"}
