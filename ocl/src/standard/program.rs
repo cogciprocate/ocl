@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use std::collections::HashSet;
 use std::convert::Into;
 
-use core::error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclCoreError};
 use core::{self, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
 #[cfg(feature = "opencl_version_2_1")]
@@ -384,7 +384,7 @@ impl ProgramBuilder {
             }
         }
 
-        CString::new(opts.join(" ").into_bytes()).map_err(OclError::from)
+        CString::new(opts.join(" ").into_bytes()).map_err(OclCoreError::from)
     }
 
     /// Returns the final program source code as a list of strings.

@@ -11,7 +11,7 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 // use std::convert::Into;
-use core::error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclCoreError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
     ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
     ImageChannelOrder, ImageChannelDataType, AsMem, MemCmdRw, MemCmdAll,
@@ -455,7 +455,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
                 core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
 
-            ImageCmdKind::Unspecified => OclError::err_string("ocl::ImageCmd::enq(): No operation \
+            ImageCmdKind::Unspecified => OclCoreError::err_string("ocl::ImageCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
             _ => unimplemented!(),
         }
@@ -667,7 +667,7 @@ impl<T: OclPrm> Image<T> {
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
-            _ => return OclError::err_string("ocl::Image::element_len(): \
+            _ => return OclCoreError::err_string("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant."),
         };
 
@@ -697,7 +697,7 @@ impl<T: OclPrm> Image<T> {
         let device_versions = context.device_versions()?;
 
         if texture_target == GlTextureTarget::GlTextureBuffer && miplevel != 0 {
-            return OclError::err_string("If texture_target is GL_TEXTURE_BUFFER, miplevel must be 0.\
+            return OclCoreError::err_string("If texture_target is GL_TEXTURE_BUFFER, miplevel must be 0.\
                 Implementations may return CL_INVALID_OPERATION for miplevel values > 0");
         }
 
@@ -714,7 +714,7 @@ impl<T: OclPrm> Image<T> {
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
-            _ => return OclError::err_string("ocl::Image::element_len(): \
+            _ => return OclCoreError::err_string("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant."),
         };
 
@@ -751,7 +751,7 @@ impl<T: OclPrm> Image<T> {
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
-            _ => return OclError::err_string("ocl::Image::element_len(): \
+            _ => return OclCoreError::err_string("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant."),
         };
 

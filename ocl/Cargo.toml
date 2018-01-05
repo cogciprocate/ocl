@@ -51,6 +51,7 @@ futures = "0.1"
 nodrop = "0.1"
 ocl-core = { version = "~0.7.0", path = "../ocl-core" }
 qutex = "0.2"
+failure = "0.1"
 # qutex = { version = "*", git = "https://github.com/cogciprocate/qutex" }
 # qutex = { version = "*", path = "../qutex" }
 

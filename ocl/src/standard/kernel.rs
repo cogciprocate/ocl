@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
-use core::error::{Result as OclResult, Error as OclError, ErrorKind as OclErrorKind};
+use core::error::{Result as OclResult, Error as OclCoreError, ErrorKind as OclCoreErrorKind};
 use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum};
 pub use self::arg_type::{BaseType, Cardinality, ArgType};
@@ -120,7 +120,7 @@ impl<'k> KernelCmd<'k> {
 
         let gws = match self.gws.to_work_size() {
             Some(gws) => gws,
-            None => return OclError::err_string("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
+            None => return OclCoreError::err_string("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
                 cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
         };
 
@@ -223,7 +223,7 @@ impl Kernel {
                 Err(e) => {
                     match e.cause() {
                         Some(ref ek) => {
-                            if let OclErrorKind::VersionLow { .. } = *ek.kind() {
+                            if let OclCoreErrorKind::VersionLow { .. } = *ek.kind() {
                                 bypass_arg_check = true;
                                 break;
                             }
@@ -727,7 +727,7 @@ impl Kernel {
             Some(ref map) => {
                 match map.get(name) {
                     Some(&ai) => Ok(ai),
-                    None => OclError::err_string(format!("Kernel::set_arg_scl_named(): Invalid argument \
+                    None => OclCoreError::err_string(format!("Kernel::set_arg_scl_named(): Invalid argument \
                         name: '{}'.", name)),
                 }
             },
@@ -905,7 +905,7 @@ pub mod arg_type {
     use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
 
-    use core::{Error as OclError, Status};
+    use core::{Error as OclCoreError, Status};
     use core::Kernel as KernelCore;
     use standard::Sampler;
     use super::{arg_info, arg_type_name};
@@ -1049,31 +1049,31 @@ pub mod arg_type {
         /// if any are found.
         pub fn from_kern_and_idx(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
             use core::EmptyInfoResult;
-            use core::ErrorKind as OclErrorKind;
+            use core::ErrorKind as OclCoreErrorKind;
 
             match arg_type_name(core, arg_index) {
                 Ok(type_name) => ArgType::from_str(type_name.as_str()),
                 Err(err) => {
-                    // if let OclError::Status { ref status, .. } = err {
+                    // if let OclCoreError::Status { ref status, .. } = err {
                     //     if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
                     //         return Ok(ArgType { base_type: BaseType::Unknown,
                     //             cardinality: Cardinality::One, is_ptr: false })
                     //     }
                     // } else
 
-                    // if let OclError::EmptyInfoResult(EmptyInfoResult::KernelArg) = err {
+                    // if let OclCoreError::EmptyInfoResult(EmptyInfoResult::KernelArg) = err {
 
                     // }
 
                     // Escape hatches for known, platform-specific errors.
                     match err.kind() {
-                        &OclErrorKind::Status { ref status, .. } => {
+                        &OclCoreErrorKind::Status { ref status, .. } => {
                             if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
                                 return Ok(ArgType { base_type: BaseType::Unknown,
                                     cardinality: Cardinality::One, is_ptr: false })
                             }
                         },
-                        &OclErrorKind::EmptyInfoResult(EmptyInfoResult::KernelArg) => {
+                        &OclCoreErrorKind::EmptyInfoResult(EmptyInfoResult::KernelArg) => {
                             return ArgType::unknown();
                         },
                         _ => (),

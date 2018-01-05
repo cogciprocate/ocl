@@ -7,10 +7,11 @@ use std::ops::Range;
 use std::mem;
 use std::ptr;
 use std::iter;
+use std::string::FromUtf8Error;
 use num::{Integer, FromPrimitive};
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
-use error::{Result as OclResult, Error as OclError};
+// use error::{Result as OclResult, Error as OclError};
 
 use ::{OclPrm, OclScl};
 
@@ -65,10 +66,28 @@ pub mod colors {
     pub static BGC_DGR: &'static str = "\x1b[100m";
 }
 
-
 //=============================================================================
 //=========================== UTILITY FUNCTIONS ===============================
 //=============================================================================
+
+/// An error caused by a utility function.
+#[derive(Fail, Debug)]
+pub enum UtilError {
+    #[fail(display = "The size of the source byte slice ({} bytes) does not match \
+        the size of the destination type ({} bytes).", src, dst)]
+    BytesTo { src: usize, dst: usize, },
+    #[fail(display = "The size of the source byte vector ({} bytes) does not match \
+        the size of the destination type ({} bytes).", src, dst)]
+    BytesInto { src: usize, dst: usize, },
+    #[fail(display = "The size of the source byte vector ({} bytes) is not evenly \
+        divisible by the size of the destination type ({} bytes).", src, dst)]
+    BytesIntoVec { src: usize, dst: usize, },
+    #[fail(display = "The size of the source byte slice ({} bytes) is not evenly \
+        divisible by the size of the destination type ({} bytes).", src, dst)]
+    BytesToVec { src: usize, dst: usize, },
+    #[fail(display = "Unable to convert bytes into string: {}", _0)]
+    BytesIntoString(#[cause] FromUtf8Error),
+}
 
 /// Copies a byte slice to a new `u32`.
 ///
@@ -91,15 +110,13 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
 ///
 /// You may want to wear a helmet.
 ///
-pub unsafe fn bytes_to<T>(bytes: &[u8]) -> OclResult<T> {
+pub unsafe fn bytes_to<T>(bytes: &[u8]) -> Result<T, UtilError> {
     if mem::size_of::<T>() == bytes.len() {
         let mut new_val: T = mem::uninitialized();
         ptr::copy(bytes.as_ptr(), &mut new_val as *mut _ as *mut u8, bytes.len());
         Ok(new_val)
     } else {
-        OclError::err_string(format!("The size of the source byte slice ({} bytes) \
-        does not match the size of the destination type ({} bytes).", bytes.len(),
-        mem::size_of::<T>()))
+        Err(UtilError::BytesTo { src: bytes.len(), dst: mem::size_of::<T>() })
     }
 }
 
@@ -114,15 +131,13 @@ pub unsafe fn bytes_to<T>(bytes: &[u8]) -> OclResult<T> {
 // transmute the vector into the result type. [TODO]: Fiddle with this
 // at some point.
 //
-pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> OclResult<T> {
+pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> Result<T, UtilError> {
     if mem::size_of::<T>() == vec.len() {
         let mut new_val: T = mem::uninitialized();
         ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec.len());
         Ok(new_val)
     } else {
-        OclError::err_string(format!("The size of the source byte vector ({} bytes) \
-        does not match the size of the destination type ({} bytes).", vec.len(),
-        mem::size_of::<T>()))
+        Err(UtilError::BytesInto { src: vec.len(), dst: mem::size_of::<T>() })
     }
 }
 
@@ -134,7 +149,7 @@ pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> OclResult<T> {
 ///
 /// TODO: Consider using `alloc::heap::reallocate_inplace` equivalent.
 ///
-pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> OclResult<Vec<T>> {
+pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> Result<Vec<T>, UtilError> {
     // debug_assert!(vec.len() % mem::size_of::<T>() == 0);
     if vec.len() % mem::size_of::<T>() == 0 {
         let new_len = vec.len() / mem::size_of::<T>();
@@ -145,9 +160,7 @@ pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> OclResult<Vec<T>> {
         new_vec.shrink_to_fit();
         Ok(new_vec)
     } else {
-        OclError::err_conversion(format!("The size of the source byte vector ({} bytes) is not \
-            evenly divisible by the size of the destination type ({} bytes).", vec.len(),
-            mem::size_of::<T>()))
+        Err(UtilError::BytesIntoVec { src: vec.len(), dst: mem::size_of::<T>() })
     }
 }
 
@@ -157,7 +170,7 @@ pub unsafe fn bytes_into_vec<T>(mut vec: Vec<u8>) -> OclResult<Vec<T>> {
 ///
 /// Negative.
 ///
-pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> OclResult<Vec<T>> {
+pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> Result<Vec<T>, UtilError> {
     // debug_assert!(bytes.len() % mem::size_of::<T>() == 0);
     if bytes.len() % mem::size_of::<T>() == 0 {
         let new_len = bytes.len() / mem::size_of::<T>();
@@ -166,35 +179,21 @@ pub unsafe fn bytes_to_vec<T>(bytes: &[u8]) -> OclResult<Vec<T>> {
         new_vec.set_len(new_len);
         Ok(new_vec)
     } else {
-        OclError::err_conversion(format!("The size of the source byte slice ({} bytes) is not \
-            evenly divisible by the size of the destination type ({} bytes).", bytes.len(),
-            mem::size_of::<T>()))
+        Err(UtilError::BytesToVec { src: bytes.len(), dst: mem::size_of::<T>() })
     }
 }
-
 
 /// Converts a byte Vec into a string, removing the trailing null byte if it
 /// exists.
-pub fn bytes_into_string(mut bytes: Vec<u8>) -> OclResult<String> {
+pub fn bytes_into_string(mut bytes: Vec<u8>) -> Result<String, UtilError> {
     if bytes.last() == Some(&0u8) {
         bytes.pop();
     }
 
-    String::from_utf8(bytes).map_err(OclError::from)
+    String::from_utf8(bytes)
+        .map(|str| String::from(str.trim()))
+        .map_err(UtilError::BytesIntoString)
 }
-
-
-/// Converts a byte Vec into a string, removing the trailing null byte if it
-/// exists, then removes leading and trailing whitespace.
-pub fn bytes_into_trimmed_string(mut bytes: Vec<u8>) -> OclResult<String> {
-    if bytes.last() == Some(&0u8) {
-        bytes.pop();
-    }
-
-    let string = String::from_utf8(bytes).map_err(OclError::from)?;
-    Ok(String::from(string.trim()))
-}
-
 
 
 /// [UNTESTED] Copies an arbitrary primitive or struct into core bytes.
@@ -243,6 +242,17 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
     }
 }
 
+
+/// An error caused by `util::vec_remove_rebuild`.
+#[derive(Fail, Debug)]
+pub enum VecRemoveRebuildError {
+    #[fail(display = "Remove list is longer than source vector.")]
+    TooLong,
+    #[fail(display = "'remove_list' contains at least one out of range index: [{}] \
+        ('orig_vec' length: {}).", idx, orig_len)]
+    OutOfRange { idx: usize, orig_len: usize },
+}
+
 /// Batch removes elements from a vector using a list of indices to remove.
 ///
 /// Will create a new vector and do a streamlined rebuild if
@@ -250,15 +260,10 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 /// set very low (less than probably 5 or 10) as it's expensive to remove one
 /// by one.
 ///
-/// ### Safety
-///
-/// Should be perfectly safe, just need to test it a bit.
-///
 pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &[usize],
-                rebuild_threshold: usize) -> OclResult<()> {
+                rebuild_threshold: usize) -> Result<(), VecRemoveRebuildError> {
     if remove_list.len() > orig_vec.len() {
-        return OclError::err_string("ocl::util::vec_remove_rebuild: Remove list is longer than source
-            vector.");
+        return Err(VecRemoveRebuildError::TooLong)
     }
     let orig_len = orig_vec.len();
 
@@ -268,9 +273,7 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
             if idx < orig_len {
                  orig_vec.remove(idx);
             } else {
-                return OclError::err_string(format!("ocl::util::remove_rebuild_vec: 'remove_list' \
-                    contains at least one out of range index: [{}] ('orig_vec.len()': {}).",
-                    idx, orig_len));
+                return Err(VecRemoveRebuildError::OutOfRange { idx, orig_len })
             }
         }
     } else {
@@ -282,9 +285,7 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
                 if idx < orig_len {
                     *remove_markers.get_unchecked_mut(idx) = false;
                 } else {
-                    return OclError::err_string(format!("ocl::util::remove_rebuild_vec: 'remove_list' \
-                        contains at least one out of range index: [{}] ('orig_vec.len()': {}).",
-                        idx, orig_len));
+                    return Err(VecRemoveRebuildError::OutOfRange { idx, orig_len })
                 }
             }
 

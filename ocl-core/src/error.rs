@@ -3,7 +3,9 @@
 
 use std::error::Error as StdError;
 use num::FromPrimitive;
+use util::UtilError;
 use ::{Status, EmptyInfoResult, OpenclVersion};
+
 
 static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/";
 static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
@@ -80,6 +82,7 @@ pub enum ErrorKind {
     IntoStringError(::std::ffi::IntoStringError),
     EmptyInfoResult(EmptyInfoResult),
     VersionLow { detected: OpenclVersion, required: OpenclVersion },
+    UtilError(UtilError),
     Other(Box<StdError>),
 }
 
@@ -218,6 +221,7 @@ impl self::Error {
                     dimensions. Please specify some dimensions."),
                 ErrorKind::EmptyInfoResult(ref err) => write!(f, "{}", err.description()),
                 ErrorKind::Other(ref err) => write!(f, "{}", err.description()),
+                ErrorKind::UtilError(ref err) => write!(f, "{}", err),
                 // _ => f.write_str(self.description()),
             }
         }
@@ -263,6 +267,7 @@ impl StdError for self::Error {
             ErrorKind::EmptyInfoResult(ref err) => err.description(),
             ErrorKind::VersionLow { .. } => "OpenCL version too low to use this feature.",
             ErrorKind::Other(ref err) => err.description(),
+            ErrorKind::UtilError(_) => "utility function error"
             // _ => panic!("OclErrorKind::description()"),
         }
     }
@@ -326,6 +331,12 @@ impl From<::std::string::FromUtf8Error> for self::Error {
 impl From<::std::ffi::IntoStringError> for self::Error {
     fn from(err: ::std::ffi::IntoStringError) -> Self {
         Error { kind: self::ErrorKind::IntoStringError(err), cause: None }
+    }
+}
+
+impl From<UtilError> for self::Error {
+    fn from(err: UtilError) -> Self {
+        Error { kind: self::ErrorKind::UtilError(err), cause: None }
     }
 }
 

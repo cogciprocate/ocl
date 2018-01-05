@@ -102,19 +102,24 @@
 
 // #![doc(html_root_url="https://docs.rs/ocl-core/0.3/")]
 
-#[macro_use] extern crate bitflags;
-#[macro_use] extern crate enum_primitive;
+#[macro_use]
+extern crate bitflags;
+#[macro_use]
+extern crate enum_primitive;
 extern crate libc;
 extern crate rand;
 extern crate num;
 #[cfg(feature = "ocl-core-vector")]
 extern crate ocl_core_vector as vector;
+#[macro_use]
+extern crate failure;
 pub extern crate cl_sys as ffi;
 
 #[cfg(test)] mod tests;
 mod functions;
 pub mod types;
 pub mod error;
+pub mod fail;
 pub mod util;
 
 pub use self::error::{Error, Result, ErrorKind};

@@ -7,18 +7,28 @@ use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
 use core::error::{Error as OclCoreError, ErrorKind as OclCoreErrorKind};
 use ::BufferCmdError;
+// #[macro_use]
+// use ocl_core::failure;
 
 pub type Result<T> = std::result::Result<T, self::Error>;
+
+
 
 /// An enum containing either a `String` or one of several other error types.
 ///
 /// Implements the usual error traits.
+#[derive(Fail)]
 pub enum Error {
+    #[fail(display = "ocl-core error: {}", _0)]
     Ocl(OclCoreError),
+    #[fail(display = "mpsc send error: {}", _0)]
     MpscSendError(String),
+    #[fail(display = "{}", _0)]
     OneshotCanceled(OneshotCanceled),
     // FuturesCanceled(FuturesCanceled),
+    #[fail(display = "BufferCmd error: {}", _0)]
     BufferCmdError(BufferCmdError),
+    #[fail(display = "other error: {}", _0)]
     Other(Box<std::error::Error>),
 }
 
@@ -41,18 +51,18 @@ impl self::Error {
     }
 }
 
-impl std::error::Error for self::Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Ocl(ref err) => err.description(),
-            Error::MpscSendError(ref err) => err,
-            Error::OneshotCanceled(ref err) => err.description(),
-            // Error::FuturesCanceled(ref err) => err.description(),
-            Error::BufferCmdError(ref err) => err.description(),
-            Error::Other(ref err) => err.description(),
-        }
-    }
-}
+// impl std::error::Error for self::Error {
+//     fn description(&self) -> &str {
+//         match *self {
+//             Error::Ocl(ref err) => err.description(),
+//             Error::MpscSendError(ref err) => err,
+//             Error::OneshotCanceled(ref err) => err.description(),
+//             // Error::FuturesCanceled(ref err) => err.description(),
+//             Error::BufferCmdError(ref err) => err.description(),
+//             Error::Other(ref err) => err.description(),
+//         }
+//     }
+// }
 
 impl From<OclCoreError> for self::Error {
     fn from(err: OclCoreError) -> self::Error {
@@ -137,17 +147,18 @@ impl From<self::Error> for String {
     }
 }
 
-impl std::fmt::Display for self::Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
-    }
-}
+// impl std::fmt::Display for self::Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         use std::error::Error;
+//         f.write_str(self.description())
+//     }
+// }
 
 impl std::fmt::Debug for self::Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
+        // use std::error::Error;
+        // f.write_str(self)
+        write!(f, "{}", self)
     }
 }
 

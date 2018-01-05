@@ -7,7 +7,7 @@ use std::error::Error as StdError;
 // use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Range};
-use core::{self, Error as OclError, ErrorKind as OclErrorKind, Result as OclResult, OclPrm, Mem as
+use core::{self, Error as OclCoreError, ErrorKind as OclCoreErrorKind, Result as OclResult, OclPrm, Mem as
     MemCore, MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
     ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard,
@@ -20,10 +20,10 @@ use ffi::cl_GLuint;
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     if offset >= mem_len {
-        OclError::err_string(format!("ocl::Buffer::enq(): Offset out of range. \
+        OclCoreError::err_string(format!("ocl::Buffer::enq(): Offset out of range. \
             (mem_len: {}, data_len: {}, offset: {}", mem_len, data_len, offset))
     } else if data_len > (mem_len - offset) {
-        OclError::err_string("ocl::Buffer::enq(): Data length exceeds buffer length.")
+        OclCoreError::err_string("ocl::Buffer::enq(): Data length exceeds buffer length.")
     } else {
         Ok(())
     }
@@ -37,7 +37,7 @@ pub enum BufferCmdError {
     NoQueue,
     AlreadyMapped,
     MapUnavailable,
-    Ocl(OclError)
+    Ocl(OclCoreError)
 }
 
 impl fmt::Display for BufferCmdError {
@@ -60,15 +60,15 @@ impl StdError for BufferCmdError {
     }
 }
 
-impl From<OclError> for BufferCmdError {
-    fn from(err: OclError) -> BufferCmdError {
+impl From<OclCoreError> for BufferCmdError {
+    fn from(err: OclCoreError) -> BufferCmdError {
         BufferCmdError::Ocl(err)
     }
 }
 
-impl From<BufferCmdError> for OclError {
-    fn from(err: BufferCmdError) -> OclError {
-        OclError { kind: OclErrorKind::Other(Box::new(err)), cause: None }
+impl From<BufferCmdError> for OclCoreError {
+    fn from(err: BufferCmdError) -> OclCoreError {
+        OclCoreError { kind: OclCoreErrorKind::Other(Box::new(err)), cause: None }
     }
 }
 
@@ -553,7 +553,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                         src_row_pitch_bytes, src_slc_pitch_bytes, dst_row_pitch_bytes,
                         dst_slc_pitch_bytes } =>
                     {
-                        if dst_offset.is_some() || len.is_some() { return OclError::err_string(
+                        if dst_offset.is_some() || len.is_some() { return OclCoreError::err_string(
                             "ocl::BufferCmd::enq(): For 'rect' shaped copies, destination \
                             offset and length must be 'None'. Ex.: \
                             'cmd().copy(&{{buf_name}}, None, None)..'.");
@@ -581,7 +581,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                         core::enqueue_fill_buffer(queue, &self.buffer.obj_core, pattern,
                             offset, len, self.ewait, self.enew, Some(&queue.device_version()))
                     },
-                    BufferCmdDataShape::Rect { .. } => OclError::err_string(
+                    BufferCmdDataShape::Rect { .. } => OclCoreError::err_string(
                         "ocl::BufferCmd::enq(): Rectangular fill is not a valid operation. \
                         Please use the default shape, linear.")
                 }
@@ -600,7 +600,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                 core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
 
-            BufferCmdKind::Unspecified => OclError::err_string("ocl::BufferCmd::enq(): \
+            BufferCmdKind::Unspecified => OclCoreError::err_string("ocl::BufferCmd::enq(): \
                 No operation specified. Use '.read(...)', 'write(...)', etc. before calling \
                 '.enq()'."),
             BufferCmdKind::Map { .. } => unreachable!(),
@@ -830,7 +830,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     pub fn enq(mut self) -> OclResult<()> {
         let read_dst = self.dst.take();
         let range = self.range.clone();
-        if range.end > read_dst.len() { return Err(OclError::from(
+        if range.end > read_dst.len() { return Err(OclCoreError::from(
             "Unable to enqueue buffer read command: Invalid src_offset and/or len.")) }
 
         let mut enqueue_with_data = |dst: &mut [T]| {
@@ -874,12 +874,12 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             },
             ReadDst::RwVec(rw_vec) => {
                 let mut guard = rw_vec.write().wait()
-                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
+                    .map_err(|_| OclCoreError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&mut guard.as_mut_slice()[range])
             },
             ReadDst::Writer(writer) => {
                 let mut guard = writer.wait()
-                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
+                    .map_err(|_| OclCoreError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&mut guard.as_mut_slice()[range])
             }
             ReadDst::None => panic!("Invalid read destination."),
@@ -909,7 +909,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 };
                 let writer_len = unsafe { (*writer.as_ptr()).len() };
                 if self.range.end > writer_len {
-                    return Err(OclError::from("Unable to enqueue buffer read command: \
+                    return Err(OclCoreError::from("Unable to enqueue buffer read command: \
                         Invalid src_offset and/or len."))
                 }
 
@@ -1179,7 +1179,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     pub fn enq(mut self) -> OclResult<()> {
         let write_src = self.src.take();
         let range = self.range.clone();
-        if range.end > write_src.len() { return Err(OclError::from(
+        if range.end > write_src.len() { return Err(OclCoreError::from(
             "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
 
         let mut enqueue_with_data = |src: &[T]| {
@@ -1222,12 +1222,12 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             },
             WriteSrc::RwVec(rw_vec) => {
                 let guard = rw_vec.read().wait()
-                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
+                    .map_err(|_| OclCoreError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&guard.as_slice()[range])
             },
             WriteSrc::Reader(reader) => {
                 let guard = reader.wait()
-                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
+                    .map_err(|_| OclCoreError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&guard.as_slice()[range])
             },
             WriteSrc::None => panic!("Invalid read destination."),
@@ -1252,7 +1252,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
                 };
                 let reader_len = unsafe { (*reader.as_ptr()).len() };
-                if self.range.end > reader_len { return Err(OclError::from(
+                if self.range.end > reader_len { return Err(OclCoreError::from(
                     "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
 
                 if let Some(wl) = self.cmd.ewait {
@@ -1949,12 +1949,12 @@ impl<T: OclPrm> Buffer<T> {
         let len = dims.to_len();
 
         if origin_ofs > buffer_len {
-            return OclError::err_string(format!("Buffer::create_sub_buffer: Origin ({:?}) is outside of the \
+            return OclCoreError::err_string(format!("Buffer::create_sub_buffer: Origin ({:?}) is outside of the \
                 dimensions of the source buffer ({:?}).", origin, self.dims()));
         }
 
         if origin_ofs + len > buffer_len {
-            return OclError::err_string(format!("Buffer::create_sub_buffer: Sub-buffer region (origin: '{:?}', \
+            return OclCoreError::err_string(format!("Buffer::create_sub_buffer: Sub-buffer region (origin: '{:?}', \
                 dims: '{:?}') exceeds the dimensions of the source buffer ({:?}).", origin, dims,
                 self.dims()));
         }

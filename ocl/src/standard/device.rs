@@ -3,7 +3,7 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
-use core::error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclCoreError, Result as OclResult};
 use standard::Platform;
 use ffi::cl_device_id;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
@@ -283,7 +283,7 @@ impl Device {
         for &idx in idxs.iter() {
             match devices.get(idx) {
                 Some(&device) => result.push(device),
-                None => return OclError::err_string(format!("Error resolving device index: '{}'. Index out of \
+                None => return OclCoreError::err_string(format!("Error resolving device index: '{}'. Index out of \
                     range. Devices avaliable: '{}'.", idx, devices.len())),
             }
         }

@@ -5,7 +5,7 @@
 extern crate ocl;
 // #[macro_use] extern crate colorify;
 
-// use ocl::Error as OclError;
+// use ocl::Error as OclCoreError;
 use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo,
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
@@ -546,7 +546,7 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         // // Device(DeviceId),
         // // ReferenceCount(u32),
         // // Properties(CommandQueueProperties),
-        // // Error(Box<OclError>),
+        // // Error(Box<OclCoreError>),
 
         // write!(f, "[Queue]: {b}\
         //         Context: {}{d}\

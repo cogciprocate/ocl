@@ -27,6 +27,7 @@ num = "0.1"
 libc = "0.2"
 enum_primitive = "0.1"
 bitflags = "1"
+failure = "0.1"
 
 # Used for generating buffers full of random data:
 rand = { version = "0.3", optional = true }

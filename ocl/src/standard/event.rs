@@ -26,7 +26,7 @@ use ffi::cl_event;
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef,
     CommandQueue as CommandQueueCore, ClContextPtr};
-use core::error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclCoreError, Result as OclResult};
 use standard::{Queue, ClWaitListPtrEnum};
 #[cfg(not(feature = "async_block"))]
 use standard::{_unpark_task, box_raw_void};
@@ -251,7 +251,7 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
 
 impl Future for Event {
     type Item = ();
-    type Error = OclError;
+    type Error = OclCoreError;
 
     // Non-blocking, proper implementation.
     //
@@ -308,7 +308,7 @@ fn take(event: &mut Event) -> Event {
 
 
 /// Polls events for `EventArray` and `EventList`
-fn poll_events(events: &[Event]) -> Poll<(), OclError> {
+fn poll_events(events: &[Event]) -> Poll<(), OclCoreError> {
     if PRINT_DEBUG { println!("####### EventList/Array::poll: Polling Event list (thread: '{}')",
         ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
@@ -590,7 +590,7 @@ impl fmt::Debug for EventArray {
 
 impl Future for EventArray {
     type Item = ();
-    type Error = OclError;
+    type Error = OclCoreError;
 
     /// Polls each event from this list.
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
@@ -1142,7 +1142,7 @@ impl IntoIterator for EventList {
 
 impl Future for EventList {
     type Item = ();
-    type Error = OclError;
+    type Error = OclCoreError;
 
     /// Polls each event from this list.
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {

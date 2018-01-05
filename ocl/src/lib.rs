@@ -54,11 +54,15 @@ extern crate num;
 extern crate rand;
 extern crate futures;
 // extern crate crossbeam;
+#[macro_use]
+extern crate failure;
 pub extern crate ocl_core as core;
+
 
 #[cfg(test)]
 mod tests;
 mod standard;
+pub mod error;
 pub mod async;
 
 pub use self::standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
@@ -66,12 +70,15 @@ pub use self::standard::{Platform, Device, Context, Program, Queue, Kernel, Buff
 pub use self::async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard,
     FutureReadGuard, FutureWriteGuard};
 pub use core::error::{Error, Result};
+// pub use error::{Error, Result};
 #[doc(no_inline)]
 pub use core::ffi;
 #[doc(no_inline)]
 pub use core::util;
 #[doc(no_inline)]
 pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
+
+// pub use core::failure;
 
 
 pub mod prm {

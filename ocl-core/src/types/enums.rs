@@ -38,7 +38,7 @@ macro_rules! try_ir {
     ( $ expr : expr ) => {
         match $expr {
             Ok(val) => val,
-            Err(err) => return err.into(),
+            Err(err) => return OclError::from(err).into(),
         }
     };
 }
@@ -168,7 +168,7 @@ impl PlatformInfoResult {
 
                 let string = match util::bytes_into_string(result) {
                     Ok(s) => s,
-                    Err(err) => return PlatformInfoResult::Error(Box::new(err)),
+                    Err(err) => return PlatformInfoResult::Error(Box::new(err.into())),
                 };
 
                 match request {
@@ -592,39 +592,39 @@ impl DeviceInfoResult {
                         DeviceInfoResult::QueueProperties(r)
                     },
                     DeviceInfo::Name => {
-                        match util::bytes_into_trimmed_string(result) {
+                        match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Name(s),
-                            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+                            Err(err) => DeviceInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     DeviceInfo::Vendor => {
                         match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Vendor(s),
-                            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+                            Err(err) => DeviceInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     DeviceInfo::DriverVersion => {
                         match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::DriverVersion(s),
-                            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+                            Err(err) => DeviceInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     DeviceInfo::Profile => {
                         match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Profile(s),
-                            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+                            Err(err) => DeviceInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     DeviceInfo::Version => {
                         match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Version(try_ir!(OpenclVersion::from_info_str(&s))),
-                            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+                            Err(err) => DeviceInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     DeviceInfo::Extensions => {
                         match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::Extensions(s),
-                            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+                            Err(err) => DeviceInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     DeviceInfo::Platform => {
@@ -678,7 +678,7 @@ impl DeviceInfoResult {
                     DeviceInfo::OpenclCVersion => {
                         match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::OpenclCVersion(s),
-                            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+                            Err(err) => DeviceInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     DeviceInfo::LinkerAvailable => {
@@ -688,7 +688,7 @@ impl DeviceInfoResult {
                     DeviceInfo::BuiltInKernels => {
                         match util::bytes_into_string(result) {
                             Ok(s) => DeviceInfoResult::BuiltInKernels(s),
-                            Err(err) => DeviceInfoResult::Error(Box::new(err)),
+                            Err(err) => DeviceInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     DeviceInfo::ImageMaxBufferSize => {
@@ -1714,7 +1714,7 @@ impl ProgramInfoResult {
                     ProgramInfo::Source => {
                         match util::bytes_into_string(result) {
                             Ok(s) => ProgramInfoResult::Source(s),
-                            Err(err) => ProgramInfoResult::Error(Box::new(err)),
+                            Err(err) => ProgramInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     ProgramInfo::BinarySizes => { ProgramInfoResult::BinarySizes(
@@ -1731,7 +1731,7 @@ impl ProgramInfoResult {
                     ProgramInfo::KernelNames => {
                         match util::bytes_into_string(result) {
                             Ok(s) => ProgramInfoResult::KernelNames(s),
-                            Err(err) => ProgramInfoResult::Error(Box::new(err)),
+                            Err(err) => ProgramInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     // _ => ProgramInfoResult::TemporaryPlaceholderVariant(result),
@@ -1838,13 +1838,13 @@ impl ProgramBuildInfoResult {
                     ProgramBuildInfo::BuildOptions => {
                         match util::bytes_into_string(result) {
                             Ok(s) => ProgramBuildInfoResult::BuildOptions(s),
-                            Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
+                            Err(err) => ProgramBuildInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     ProgramBuildInfo::BuildLog => {
                         match util::bytes_into_string(result) {
                             Ok(s) => ProgramBuildInfoResult::BuildLog(s),
-                            Err(err) => ProgramBuildInfoResult::Error(Box::new(err)),
+                            Err(err) => ProgramBuildInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     ProgramBuildInfo::BinaryType => {
@@ -1939,7 +1939,7 @@ impl KernelInfoResult {
                     KernelInfo::FunctionName => {
                         match util::bytes_into_string(result) {
                             Ok(s) => KernelInfoResult::FunctionName(s),
-                            Err(err) => KernelInfoResult::Error(Box::new(err)),
+                            Err(err) => KernelInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     KernelInfo::NumArgs => {
@@ -1961,7 +1961,7 @@ impl KernelInfoResult {
                     KernelInfo::Attributes => {
                         match util::bytes_into_string(result) {
                             Ok(s) => KernelInfoResult::Attributes(s),
-                            Err(err) => KernelInfoResult::Error(Box::new(err)),
+                            Err(err) => KernelInfoResult::Error(Box::new(err.into())),
                         }
                     },
                 }
@@ -2071,7 +2071,7 @@ impl KernelArgInfoResult {
                     KernelArgInfo::TypeName => {
                         match util::bytes_into_string(result) {
                             Ok(s) => KernelArgInfoResult::TypeName(s),
-                            Err(err) => KernelArgInfoResult::Error(Box::new(err)),
+                            Err(err) => KernelArgInfoResult::Error(Box::new(err.into())),
                         }
                     },
                     KernelArgInfo::TypeQualifier => {
@@ -2081,7 +2081,7 @@ impl KernelArgInfoResult {
                     KernelArgInfo::Name => {
                         match util::bytes_into_string(result) {
                             Ok(s) => KernelArgInfoResult::Name(s),
-                            Err(err) => KernelArgInfoResult::Error(Box::new(err)),
+                            Err(err) => KernelArgInfoResult::Error(Box::new(err.into())),
                         }
                     },
                 }

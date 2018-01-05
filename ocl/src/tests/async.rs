@@ -8,7 +8,7 @@
 
 use std::thread;
 use futures::{Future};
-use core::{ErrorKind as OclErrorKind, Status};
+use core::{ErrorKind as OclCoreErrorKind, Status};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::{IntoRawEventArray, IntoMarker};
 use ::async::{Error as AsyncError, Result as AsyncResult};
@@ -359,7 +359,7 @@ fn create_queue(context: &Context, device: Device, flags: Option<CommandQueuePro
 {
     Queue::new(context, device, flags.clone()).or_else(|err| {
         match *err.kind() {
-            OclErrorKind::Status { status: Status::CL_INVALID_VALUE, .. } => {
+            OclCoreErrorKind::Status { status: Status::CL_INVALID_VALUE, .. } => {
                 Err("Device does not support out of order queues.".into())
             },
             _ => Err(err.into()),

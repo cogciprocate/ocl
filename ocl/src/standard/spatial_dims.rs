@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use std::ops::Index;
 // use std::mem;
 use num::{Num, ToPrimitive};
-use core::error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclCoreError};
 use standard::{MemLen, WorkDims};
 use core::util;
 
@@ -49,13 +49,13 @@ impl SpatialDims {
             if d1.is_some() && d0.is_some() {
                 Ok(SpatialDims::Three(d0.unwrap(), d1.unwrap(), d2.unwrap()))
             } else {
-                OclError::err_string(std_err_msg)
+                OclCoreError::err_string(std_err_msg)
             }
         } else if d1.is_some() {
             if d0.is_some() {
                 Ok(SpatialDims::Two(d1.unwrap(), d0.unwrap()))
             } else {
-                OclError::err_string(std_err_msg)
+                OclCoreError::err_string(std_err_msg)
             }
         } else if d0.is_some() {
             Ok(SpatialDims::One(d0.unwrap()))
@@ -77,7 +77,7 @@ impl SpatialDims {
     /// Returns a 3D size or an error if unspecified.
     pub fn to_lens(&self) -> OclResult<[usize; 3]> {
         match *self {
-            SpatialDims::Unspecified => Err(OclError::unspecified_dimensions()),
+            SpatialDims::Unspecified => Err(OclCoreError::unspecified_dimensions()),
             SpatialDims::One(x) => Ok([x, 1, 1]),
             SpatialDims::Two(x, y) => Ok([x, y, 1]),
             SpatialDims::Three(x, y, z) => Ok([x, y, z]),
@@ -87,7 +87,7 @@ impl SpatialDims {
     /// Returns a 3D offset or an error if unspecified.
     pub fn to_offset(&self) -> OclResult<[usize; 3]> {
         match *self {
-            SpatialDims::Unspecified => Err(OclError::unspecified_dimensions()),
+            SpatialDims::Unspecified => Err(OclCoreError::unspecified_dimensions()),
             SpatialDims::One(x) => Ok([x, 0, 0]),
             SpatialDims::Two(x, y) => Ok([x, y, 0]),
             SpatialDims::Three(x, y, z) => Ok([x, y, z]),

@@ -6,7 +6,7 @@ use ffi::cl_context;
 use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
     ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult,
     CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr, ClVersions};
-use core::error::{Result as OclResult, Error as OclError};
+use core::error::{Result as OclResult, Error as OclCoreError};
 use standard::{Platform, Device, DeviceSpecifier};
 
 
@@ -104,7 +104,7 @@ impl Context {
         match self.platform() {
             Ok(plat_opt) => match plat_opt {
                 Some(ref p) => core::get_platform_info(p, info_kind),
-                None => PlatformInfoResult::from(OclError::from("Context::platform_info: \
+                None => PlatformInfoResult::from(OclCoreError::from("Context::platform_info: \
                 This context has no associated platform.")),
             },
             Err(e) => PlatformInfoResult::from(e),
@@ -118,7 +118,7 @@ impl Context {
             Some(d) => core::get_device_info(d, info_kind),
             None => {
                 return DeviceInfoResult::Error(Box::new(
-                    OclError::from("Context::device_info: Invalid device index")));
+                    OclCoreError::from("Context::device_info: Invalid device index")));
             },
         }
     }

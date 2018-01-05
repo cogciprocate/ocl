@@ -22,7 +22,7 @@ pub mod async;
 pub mod buffer_sink_stream_cycles;
 
 use rand::{self, Rng};
-use core::error::{Error as OclError, Result as OclResult};
+use core::error::{Error as OclCoreError, Result as OclResult};
 use core::OclScl;
 
 const PRINT_ITERS_MAX: i32 = 3;
@@ -103,12 +103,12 @@ fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_
                     if result.is_ok() {
                         if within_region([x, y, z], origin, region) {
                             if vec[idx] != in_region_val {
-                                result = OclError::err_string(format!("vec[{}] should be '{}' but is '{}'",
+                                result = OclCoreError::err_string(format!("vec[{}] should be '{}' but is '{}'",
                                     idx, in_region_val, vec[idx]));
                             }
                         } else {
                             if vec[idx] != out_region_val {
-                                result = OclError::err_string(format!("vec[{}] should be '{}' but is '{}'",
+                                result = OclCoreError::err_string(format!("vec[{}] should be '{}' but is '{}'",
                                     idx, out_region_val, vec[idx]));
                             }
                         }
