@@ -240,8 +240,7 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D])
                 }
             },
             ProgramBuildInfoResult::Error(err) => return Err(ProgramBuildError::InfoResult(err)),
-            _ => panic!("ocl::core::program_build_err(): \
-                Unexpected 'ProgramBuildInfoResult' variant."),
+            _ => panic!("Unexpected 'ProgramBuildInfoResult' variant."),
         }
     }
 
@@ -249,6 +248,7 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D])
 }
 
 
+/// An API function identifier.
 #[derive(Debug)]
 pub(crate) enum ApiFunction {
     None,
@@ -265,12 +265,16 @@ pub(crate) enum ApiFunction {
     GetExtensionFunctionAddressForPlatform,
 }
 
+
+/// A version kind identifier.
 #[derive(Debug)]
 pub(crate) enum VersionKind {
     Device,
     Platform,
 }
 
+
+/// A version too low error.
 #[derive(Debug, Fail)]
 #[fail(display = "OpenCL ({:?}) version too low to use {:?} (detected: {}, required: {}).",
     kind, function, detected, required)]
@@ -279,6 +283,18 @@ pub struct VersionLowError {
     required: OpenclVersion,
     function: ApiFunction,
     kind: VersionKind,
+}
+
+
+/// An error representing miscellaneous errors from throughout this module.
+#[derive(Debug, Fail)]
+pub enum ApiWrapperError {
+    #[fail(display = "Unable to get platform id list after {} seconds of waiting.", _0)]
+    GetPlatformIdsPlatformListUnavailable(u64),
+    #[fail(display = "`devices_max` can not be zero.")]
+    GetDeviceIdsDevicesMaxZero,
+    #[fail(display = "No devices specified")]
+    CreateContextNoDevicesSpecified,
 }
 
 
@@ -329,9 +345,6 @@ pub(crate) fn verify_versions(versions: &[OpenclVersion], required_version: [u16
 
     for &d_ver in versions {
         if d_ver < reqd_ver {
-            // return OclError::err_string(format!("OpenCL version too low to use this feature \
-            //     (detected: {}, required: {}).", d_ver, reqd_ver));
-            // return Err(OclError::version_low(d_ver, reqd_ver));
             return Err(VersionLowError {
                 detected: d_ver,
                 required: reqd_ver,
@@ -410,9 +423,11 @@ pub fn get_platform_ids() -> OclResult<Vec<PlatformId>> {
 
         while errcode == Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
             if iters_rmng == 0 {
-                return OclError::err_string(format!("core::get_platform_ids(): \
-                    CL_PLATFORM_NOT_FOUND_KHR... Unable to get platform id list after {} \
-                    seconds of waiting.", (PLATFORM_IDS_ATTEMPT_COUNT * sleep_ms) / 1000));
+                // return OclError::err_string(format!("core::get_platform_ids(): \
+                //     CL_PLATFORM_NOT_FOUND_KHR... Unable to get platform id list after {} \
+                //     seconds of waiting.", (PLATFORM_IDS_ATTEMPT_COUNT * sleep_ms) / 1000));
+                return Err(ApiWrapperError::GetPlatformIdsPlatformListUnavailable(
+                    (PLATFORM_IDS_ATTEMPT_COUNT * sleep_ms) / 1000).into())
             }
 
             // Sleep to allow the ICD to refresh or whatever it does:
@@ -513,8 +528,9 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
     let devices_max = match devices_max {
         Some(d) => {
             if d == 0 {
-                return OclError::err_string("ocl::core::get_device_ids(): \
-                    `devices_max` can not be zero.");
+                // return OclError::err_string("ocl::core::get_device_ids(): \
+                //     `devices_max` can not be zero.");
+                return Err(ApiWrapperError::GetDeviceIdsDevicesMaxZero.into());
             } else {
                 d
             }
@@ -655,7 +671,8 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         ) -> OclResult<Context>
 {
     if device_ids.len() == 0 {
-        return OclError::err_string("ocl::core::create_context(): No devices specified.");
+        // return OclError::err_string("ocl::core::create_context(): No devices specified.");
+        return Err(ApiWrapperError::CreateContextNoDevicesSpecified.into())
     }
 
     // // [DEBUG]:

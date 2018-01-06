@@ -1052,38 +1052,21 @@ pub mod arg_type {
         /// `ArgType::unknown()` (which matches any argument type) is returned
         /// if any are found.
         pub fn from_kern_and_idx(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
-            use core::EmptyInfoResult;
+            use core::EmptyInfoResultError;
             use core::ErrorKind as OclCoreErrorKind;
 
             match arg_type_name(core, arg_index) {
                 Ok(type_name) => ArgType::from_str(type_name.as_str()),
                 Err(err) => {
-                    // if let OclCoreError::Status { ref status, .. } = err {
-                    //     if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
-                    //         return Ok(ArgType { base_type: BaseType::Unknown,
-                    //             cardinality: Cardinality::One, is_ptr: false })
-                    //     }
-                    // } else
-
-                    // if let OclCoreError::EmptyInfoResult(EmptyInfoResult::KernelArg) = err {
-
-                    // }
-
                     // Escape hatches for known, platform-specific errors.
                     match *err.kind() {
-                        // OclCoreErrorKind::Status { ref status, .. } => {
-                        //     if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
-                        //         return Ok(ArgType { base_type: BaseType::Unknown,
-                        //             cardinality: Cardinality::One, is_ptr: false })
-                        //     }
-                        // },
-                        OclCoreErrorKind::ApiError(ref api_err) => {
+                        OclCoreErrorKind::Api(ref api_err) => {
                             if api_err.status() == Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
                                 return Ok(ArgType { base_type: BaseType::Unknown,
                                     cardinality: Cardinality::One, is_ptr: false })
                             }
                         }
-                        OclCoreErrorKind::EmptyInfoResult(EmptyInfoResult::KernelArg) => {
+                        OclCoreErrorKind::EmptyInfoResult(EmptyInfoResultError::KernelArg) => {
                             return ArgType::unknown();
                         },
                         _ => (),

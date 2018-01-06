@@ -4,7 +4,7 @@
 use std::fmt;
 use failure::{Context, Fail, Backtrace};
 use util::UtilError;
-use functions::{ApiError, VersionLowError, ProgramBuildError};
+use functions::{ApiError, VersionLowError, ProgramBuildError, ApiWrapperError};
 use ::{Status, EmptyInfoResultError};
 
 
@@ -16,6 +16,7 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
     // Void: An error with no description:
+    // TODO: Remove eventually.
     #[fail(display = "OpenCL Error (void)",)]
     Void,
     // String: An arbitrary error:
@@ -28,19 +29,19 @@ pub enum ErrorKind {
     // Io: std::io error:
     #[fail(display = "{}", _0)]
     Io(::std::io::Error),
-    // FromUtf8Error: String conversion error:
+    // FromUtf8: String conversion error:
     #[fail(display = "{}", _0)]
     FromUtf8(::std::string::FromUtf8Error),
-    // IntoStringError: Ffi string conversion error:
+    // IntoString: Ffi string conversion error:
     #[fail(display = "{}", _0)]
     IntoString(::std::ffi::IntoStringError),
-    // EmptyInfoResultError:
+    // EmptyInfoResult:
     #[fail(display = "{}", _0)]
     EmptyInfoResult(EmptyInfoResultError),
-    // UtilError:
+    // Util:
     #[fail(display = "{}", _0)]
     Util(UtilError),
-    // ApiError:
+    // Api:
     #[fail(display = "{}", _0)]
     Api(ApiError),
     // VersionLow:
@@ -49,6 +50,9 @@ pub enum ErrorKind {
     // ProgramBuild:
     #[fail(display = "{}", _0)]
     ProgramBuild(ProgramBuildError),
+    // ApiWrapper:
+    #[fail(display = "{}", _0)]
+    ApiWrapper(ApiWrapperError),
 }
 
 
@@ -199,5 +203,11 @@ impl From<VersionLowError> for Error {
 impl From<ProgramBuildError> for Error {
     fn from(err: ProgramBuildError) -> Self {
         Error { inner: Context::new(ErrorKind::ProgramBuild(err)) }
+    }
+}
+
+impl From<ApiWrapperError> for Error {
+    fn from(err: ApiWrapperError) -> Self {
+        Error { inner: Context::new(ErrorKind::ApiWrapper(err)) }
     }
 }
