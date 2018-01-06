@@ -7,7 +7,7 @@ use std::error::Error as StdError;
 // use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Range};
-use core::{self, Error as OclCoreError, ErrorKind as OclCoreErrorKind, Result as OclResult, OclPrm, Mem as
+use core::{self, Error as OclCoreError, Result as OclResult, OclPrm, Mem as
     MemCore, MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
     ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard,
@@ -55,7 +55,8 @@ impl StdError for BufferCmdError {
             BufferCmdError::NoQueue => "no queue specified",
             BufferCmdError::RectUnavailable => "a rectangular map is not a valid operation - \
                 please use the default shape, linear",
-            BufferCmdError::Ocl(ref err) => err.description(),
+            // BufferCmdError::Ocl(ref err) => err.description(),
+            BufferCmdError::Ocl(ref _err) => "FIXME: TEMPORARY",
         }
     }
 }
@@ -67,8 +68,9 @@ impl From<OclCoreError> for BufferCmdError {
 }
 
 impl From<BufferCmdError> for OclCoreError {
-    fn from(err: BufferCmdError) -> OclCoreError {
-        OclCoreError { kind: OclCoreErrorKind::Other(Box::new(err)), cause: None }
+    fn from(_err: BufferCmdError) -> OclCoreError {
+        // OclCoreError { kind: OclCoreErrorKind::Other(Box::new(err)), cause: None }
+        OclCoreError::string_temporary("FIXME: impl From<BufferCmdError> for OclCoreError")
     }
 }
 

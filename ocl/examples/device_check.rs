@@ -31,7 +31,7 @@ use ocl::async::{Error as AsyncError, Result as AsyncResult};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::traits::{IntoRawEventArray};
 use ocl::prm::{Float4, Int4};
-use ocl::core::{ErrorKind as OclCoreErrorKind, Event as EventCore, Status};
+use ocl::core::{Event as EventCore, Status};
 use ocl::ffi::{cl_event, c_void};
 
 // The number of tasks to run concurrently.
@@ -314,10 +314,14 @@ fn create_queue(device: Device, context: &Context, flags: Option<CommandQueuePro
         -> AsyncResult<Queue>
 {
     Queue::new(&context, device, flags.clone()).or_else(|err| {
-        match *err.kind() {
-            OclCoreErrorKind::Status { status: Status::CL_INVALID_VALUE, .. } => {
-                Err("Device does not support out of order queues.".into())
-            },
+        // match *err.kind() {
+        //     OclCoreErrorKind::Status { status: Status::CL_INVALID_VALUE, .. } => {
+        //         Err("Device does not support out of order queues.".into())
+        //     },
+        //     _ => Err(err.into()),
+        // }
+        match err.api_status() {
+            Some(Status::CL_INVALID_VALUE) => Err("Device does not support out of order queues.".into()),
             _ => Err(err.into()),
         }
     })

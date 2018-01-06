@@ -178,6 +178,11 @@ impl Error {
         Err(Error { inner: Context::new(ErrorKind::String(desc.into())) })
     }
 
+    // TODO: REMOVE ME
+    pub fn string_temporary<S: Into<String>>(desc: S) -> Self {
+        Error { inner: Context::new(ErrorKind::String(desc.into())) }
+    }
+
     // /// Returns a new `ocl::Result::Err` containing an `ocl::Error` with the
     // /// given error code and description.
     // #[inline(always)]

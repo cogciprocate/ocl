@@ -5,7 +5,7 @@ use std;
 // use futures::Canceled as FuturesCanceled;
 use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
-use core::error::{Error as OclCoreError, ErrorKind as OclCoreErrorKind};
+use core::error::{Error as OclCoreError};
 use ::BufferCmdError;
 // #[macro_use]
 // use ocl_core::failure;
@@ -36,18 +36,6 @@ impl self::Error {
     /// Returns a new `Error::String` with the given description.
     pub fn string<S: Into<String>>(desc: S) -> self::Error {
         self::Error::Ocl(OclCoreError::from(desc.into()))
-    }
-
-    /// If this is a `String` variant, concatenate `txt` to the front of the
-    /// contained string. Otherwise, do nothing at all.
-    pub fn prepend<'s, S: AsRef<&'s str>>(&'s mut self, txt: S) {
-        if let &mut Error::Ocl(OclCoreError { kind: OclCoreErrorKind::String(ref mut string), ..}) = self {
-            string.reserve_exact(txt.as_ref().len());
-            let old_string_copy = string.clone();
-            string.clear();
-            string.push_str(txt.as_ref());
-            string.push_str(&old_string_copy);
-        }
     }
 }
 

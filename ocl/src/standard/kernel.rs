@@ -221,14 +221,18 @@ impl Kernel {
             let arg_type = match ArgType::from_kern_and_idx(&obj_core, arg_idx) {
                 Ok(at) => at,
                 Err(e) => {
-                    match e.cause() {
-                        Some(ref ek) => {
-                            if let OclCoreErrorKind::VersionLow { .. } = *ek.kind() {
-                                bypass_arg_check = true;
-                                break;
-                            }
-                        },
-                        None => return Err("Kernel::new: error cause mismatch.".into()),
+                    // match e.cause() {
+                    //     Some(ref ek) => {
+                    //         if let OclCoreErrorKind::VersionLow { .. } = *ek.kind() {
+                    //             bypass_arg_check = true;
+                    //             break;
+                    //         }
+                    //     },
+                    //     None => return Err("Kernel::new: error cause mismatch.".into()),
+                    // }
+                    if let OclCoreErrorKind::VersionLow { .. } = *e.kind() {
+                        bypass_arg_check = true;
+                        break;
                     }
                     return Err(e);
                 },
@@ -1066,14 +1070,20 @@ pub mod arg_type {
                     // }
 
                     // Escape hatches for known, platform-specific errors.
-                    match err.kind() {
-                        &OclCoreErrorKind::Status { ref status, .. } => {
-                            if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
+                    match *err.kind() {
+                        // OclCoreErrorKind::Status { ref status, .. } => {
+                        //     if status == &Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
+                        //         return Ok(ArgType { base_type: BaseType::Unknown,
+                        //             cardinality: Cardinality::One, is_ptr: false })
+                        //     }
+                        // },
+                        OclCoreErrorKind::ApiError(ref api_err) => {
+                            if api_err.status() == Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
                                 return Ok(ArgType { base_type: BaseType::Unknown,
                                     cardinality: Cardinality::One, is_ptr: false })
                             }
-                        },
-                        &OclCoreErrorKind::EmptyInfoResult(EmptyInfoResult::KernelArg) => {
+                        }
+                        OclCoreErrorKind::EmptyInfoResult(EmptyInfoResult::KernelArg) => {
                             return ArgType::unknown();
                         },
                         _ => (),
