@@ -10,10 +10,12 @@
 #![allow(dead_code)]
 
 use std;
+use std::fmt;
 // use std::mem;
 // use std::error::Error;
 // use std::ffi::CString;
 // use std::convert::Into;
+use failure::Fail;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
 use util;
@@ -43,59 +45,78 @@ macro_rules! try_ir {
     };
 }
 
+
+#[derive(Fail)]
 pub enum EmptyInfoResult {
+    #[fail(display = "Platform info unavailable")]
     Platform,
+    #[fail(display = "Device info unavailable")]
     Device,
+    #[fail(display = "Context info unavailable")]
     Context,
+    #[fail(display = "OpenGL info unavailable")]
     GlContext,
+    #[fail(display = "Command queue info unavailable")]
     CommandQueue,
+    #[fail(display = "Mem object info unavailable")]
     Mem,
+    #[fail(display = "Image info unavailable")]
     Image,
+    #[fail(display = "Sampler info unavailable")]
     Sampler,
+    #[fail(display = "Program info unavailable")]
     Program,
+    #[fail(display = "Program build info unavailable")]
     ProgramBuild,
+    #[fail(display = "Kernel info unavailable")]
     Kernel,
+    #[fail(display = "Kernel argument info unavailable")]
     KernelArg,
+    #[fail(display = "Kernel work-group info unavailable")]
     KernelWorkGroup,
+    #[fail(display = "Event info unavailable")]
     Event,
+    #[fail(display = "Event profiling info unavailable")]
     Profiling,
 }
 
-impl std::fmt::Debug for EmptyInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
+impl fmt::Debug for EmptyInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // use std::error::Error;
+        // f.write_str(self.description())
+        write!(f, "{}", self)
     }
 }
 
-impl std::fmt::Display for EmptyInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use std::error::Error;
-        f.write_str(self.description())
-    }
-}
+// impl fmt::Display for EmptyInfoResult {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         use std::error::Error;
+//         f.write_str(self.description())
+//     }
+// }
 
-impl std::error::Error for EmptyInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            EmptyInfoResult::Platform => "platform info unavailable",
-            EmptyInfoResult::Device => "device info unavailable",
-            EmptyInfoResult::Context => "context info unavailable",
-            EmptyInfoResult::GlContext => "OpenGL context info unavailable",
-            EmptyInfoResult::CommandQueue => "command queue info unavailable",
-            EmptyInfoResult::Mem => "mem info unavailable",
-            EmptyInfoResult::Image => "image info unavailable",
-            EmptyInfoResult::Sampler => "sampler info unavailable",
-            EmptyInfoResult::Program => "program info unavailable",
-            EmptyInfoResult::ProgramBuild => "program build info unavailable",
-            EmptyInfoResult::Kernel => "kernel info unavailable",
-            EmptyInfoResult::KernelArg => "kernel argument info unavailable",
-            EmptyInfoResult::KernelWorkGroup => "kernel work-group info unavailable",
-            EmptyInfoResult::Event => "event info unavailable",
-            EmptyInfoResult::Profiling => "event profiling info unavailable",
-        }
-    }
-}
+// impl std::error::Error for EmptyInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             EmptyInfoResult::Platform => "platform info unavailable",
+//             EmptyInfoResult::Device => "device info unavailable",
+//             EmptyInfoResult::Context => "context info unavailable",
+//             EmptyInfoResult::GlContext => "OpenGL context info unavailable",
+//             EmptyInfoResult::CommandQueue => "command queue info unavailable",
+//             EmptyInfoResult::Mem => "mem info unavailable",
+//             EmptyInfoResult::Image => "image info unavailable",
+//             EmptyInfoResult::Sampler => "sampler info unavailable",
+//             EmptyInfoResult::Program => "program info unavailable",
+//             EmptyInfoResult::ProgramBuild => "program build info unavailable",
+//             EmptyInfoResult::Kernel => "kernel info unavailable",
+//             EmptyInfoResult::KernelArg => "kernel argument info unavailable",
+//             EmptyInfoResult::KernelWorkGroup => "kernel work-group info unavailable",
+//             EmptyInfoResult::Event => "event info unavailable",
+//             EmptyInfoResult::Profiling => "event profiling info unavailable",
+//         }
+//     }
+// }
+
 
 
 /// [UNSAFE] Kernel argument option type.
@@ -195,14 +216,14 @@ impl PlatformInfoResult {
     }
 }
 
-impl std::fmt::Debug for PlatformInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for PlatformInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self)
     }
 }
 
-impl std::fmt::Display for PlatformInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for PlatformInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             PlatformInfoResult::Profile(ref s) => write!(f, "{}", s),
             PlatformInfoResult::Version(ref s) => write!(f, "{}", s),
@@ -254,14 +275,16 @@ impl From<std::ffi::NulError> for PlatformInfoResult {
     }
 }
 
-impl std::error::Error for PlatformInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            PlatformInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for PlatformInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             PlatformInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for PlatformInfoResult {}
 
 
 /// A device info result.
@@ -778,14 +801,14 @@ impl DeviceInfoResult {
     }
 }
 
-impl std::fmt::Debug for DeviceInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for DeviceInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self)
     }
 }
 
-impl std::fmt::Display for DeviceInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for DeviceInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             // DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //     // TEMPORARY (and retarded):
@@ -894,14 +917,16 @@ impl From<DeviceInfoResult> for String {
     }
 }
 
-impl std::error::Error for DeviceInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            DeviceInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for DeviceInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             DeviceInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for DeviceInfoResult {}
 
 
 
@@ -968,14 +993,14 @@ impl ContextInfoResult {
     }
 }
 
-impl std::fmt::Debug for ContextInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for ContextInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for ContextInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for ContextInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ContextInfoResult::ReferenceCount(ref count) => write!(f, "{}", count),
             ContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
@@ -1007,14 +1032,16 @@ impl From<ContextInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for ContextInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            ContextInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for ContextInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             ContextInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for ContextInfoResult {}
 
 
 /// An OpenGL context info result.
@@ -1056,14 +1083,14 @@ impl GlContextInfoResult {
     }
 }
 
-impl std::fmt::Debug for GlContextInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for GlContextInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for GlContextInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for GlContextInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             GlContextInfoResult::CurrentDevice(ref d) => write!(f, "{:?}", d),
             GlContextInfoResult::Devices(ref vec) => write!(f, "{:?}", vec),
@@ -1093,14 +1120,16 @@ impl From<GlContextInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for GlContextInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            GlContextInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for GlContextInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             GlContextInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for GlContextInfoResult {}
 
 
 
@@ -1150,14 +1179,14 @@ impl CommandQueueInfoResult {
     }
 }
 
-impl std::fmt::Debug for CommandQueueInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for CommandQueueInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for CommandQueueInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for CommandQueueInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             // CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
@@ -1199,14 +1228,16 @@ impl From<CommandQueueInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for CommandQueueInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            CommandQueueInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for CommandQueueInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             CommandQueueInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for CommandQueueInfoResult {}
 
 
 
@@ -1329,14 +1360,14 @@ impl MemInfoResult {
     }
 }
 
-impl std::fmt::Debug for MemInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for MemInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for MemInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for MemInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             // MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
@@ -1383,14 +1414,21 @@ impl From<MemInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for MemInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            MemInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for MemInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             MemInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+// Added because of the `HostPtr(Option<(*mut c_void, Option<usize>)>)`
+// variant.
+unsafe impl Send for MemInfoResult {}
+unsafe impl Sync for MemInfoResult {}
+
+impl Fail for MemInfoResult {}
 
 
 
@@ -1481,14 +1519,14 @@ impl ImageInfoResult {
     }
 }
 
-impl std::fmt::Debug for ImageInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for ImageInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for ImageInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for ImageInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             // ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
@@ -1537,14 +1575,18 @@ impl From<ImageInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for ImageInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            ImageInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for ImageInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             ImageInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for ImageInfoResult {}
+
+
 
 /// A sampler info result.
 pub enum SamplerInfoResult {
@@ -1606,14 +1648,14 @@ impl SamplerInfoResult {
     }
 }
 
-impl std::fmt::Debug for SamplerInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for SamplerInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for SamplerInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for SamplerInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             // SamplerInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
@@ -1656,14 +1698,16 @@ impl From<SamplerInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for SamplerInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            SamplerInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for SamplerInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             SamplerInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for SamplerInfoResult {}
 
 
 
@@ -1742,14 +1786,14 @@ impl ProgramInfoResult {
     }
 }
 
-impl std::fmt::Debug for ProgramInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for ProgramInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for ProgramInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for ProgramInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             // ProgramInfoResult::TemporaryPlaceholderVariant(ref v) => {
             //    write!(f, "{}", to_string_retarded(v))
@@ -1796,14 +1840,17 @@ impl From<ProgramInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for ProgramInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            ProgramInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for ProgramInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             ProgramInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for ProgramInfoResult {}
+
 
 
 /// A program build info result.
@@ -1858,14 +1905,14 @@ impl ProgramBuildInfoResult {
     }
 }
 
-impl std::fmt::Debug for ProgramBuildInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for ProgramBuildInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for ProgramBuildInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for ProgramBuildInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ProgramBuildInfoResult::BuildStatus(ref s) => write!(f, "{:?}", s),
             ProgramBuildInfoResult::BuildOptions(ref s) => write!(f, "{}", s),
@@ -1903,14 +1950,16 @@ impl From<ProgramBuildInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for ProgramBuildInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            ProgramBuildInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for ProgramBuildInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             ProgramBuildInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for ProgramBuildInfoResult {}
 
 
 
@@ -1971,14 +2020,14 @@ impl KernelInfoResult {
     }
 }
 
-impl std::fmt::Debug for KernelInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for KernelInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for KernelInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for KernelInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             KernelInfoResult::FunctionName(ref s) => write!(f, "{}", s),
             KernelInfoResult::NumArgs(s) => write!(f, "{}", s),
@@ -2018,14 +2067,16 @@ impl From<KernelInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for KernelInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            KernelInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for KernelInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             KernelInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for KernelInfoResult {}
 
 
 
@@ -2091,14 +2142,14 @@ impl KernelArgInfoResult {
     }
 }
 
-impl std::fmt::Debug for KernelArgInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for KernelArgInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for KernelArgInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for KernelArgInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             KernelArgInfoResult::AddressQualifier(s) => write!(f, "{:?}", s),
             KernelArgInfoResult::AccessQualifier(s) => write!(f, "{:?}", s),
@@ -2131,14 +2182,16 @@ impl From<KernelArgInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for KernelArgInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            KernelArgInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for KernelArgInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             KernelArgInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for KernelArgInfoResult {}
 
 
 /// A kernel work group info result.
@@ -2221,14 +2274,14 @@ impl KernelWorkGroupInfoResult {
     }
 }
 
-impl std::fmt::Debug for KernelWorkGroupInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for KernelWorkGroupInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for KernelWorkGroupInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for KernelWorkGroupInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             KernelWorkGroupInfoResult::WorkGroupSize(s) => write!(f, "{}", s),
             KernelWorkGroupInfoResult::CompileWorkGroupSize(s) => write!(f, "{:?}", s),
@@ -2266,14 +2319,16 @@ impl From<KernelWorkGroupInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for KernelWorkGroupInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            KernelWorkGroupInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for KernelWorkGroupInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             KernelWorkGroupInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for KernelWorkGroupInfoResult {}
 
 
 
@@ -2333,14 +2388,14 @@ impl EventInfoResult {
     }
 }
 
-impl std::fmt::Debug for EventInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for EventInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", &self.to_string())
     }
 }
 
-impl std::fmt::Display for EventInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for EventInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             EventInfoResult::CommandQueue(ref s) => write!(f, "{:?}", s),
             EventInfoResult::CommandType(ref s) => write!(f, "{:?}", s),
@@ -2373,14 +2428,17 @@ impl From<EventInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for EventInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            EventInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for EventInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             EventInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for EventInfoResult {}
+
 
 
 /// A profiling info result.
@@ -2428,14 +2486,14 @@ impl ProfilingInfoResult {
     }
 }
 
-impl std::fmt::Debug for ProfilingInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Debug for ProfilingInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self)
     }
 }
 
-impl std::fmt::Display for ProfilingInfoResult {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for ProfilingInfoResult {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             ProfilingInfoResult::Queued(ref s) => write!(f, "{}", s),
             ProfilingInfoResult::Submit(ref s) => write!(f, "{}", s),
@@ -2467,11 +2525,13 @@ impl From<ProfilingInfoResult> for OclError {
     }
 }
 
-impl std::error::Error for ProfilingInfoResult {
-    fn description(&self) -> &str {
-        match *self {
-            ProfilingInfoResult::Error(ref err) => err.description(),
-            _ => "",
-        }
-    }
-}
+// impl std::error::Error for ProfilingInfoResult {
+//     fn description(&self) -> &str {
+//         match *self {
+//             ProfilingInfoResult::Error(ref err) => err.description(),
+//             _ => "",
+//         }
+//     }
+// }
+
+impl Fail for ProfilingInfoResult {}

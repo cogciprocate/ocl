@@ -119,7 +119,6 @@ pub extern crate cl_sys as ffi;
 mod functions;
 pub mod types;
 pub mod error;
-pub mod fail;
 pub mod util;
 
 pub use self::error::{Error, Result, ErrorKind};
@@ -598,7 +597,7 @@ enum_from_primitive! {
     /// The status of an OpenCL API call. Used for returning success/error codes.
     #[allow(non_camel_case_types)]
     #[repr(C)]
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum Status {
         CL_SUCCESS                                      = 0,
         CL_DEVICE_NOT_FOUND                             = -1,
@@ -677,7 +676,7 @@ impl std::fmt::Display for Status {
 enum_from_primitive! {
     /// specify the texture target type
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum GlTextureTarget {
         GlTexture1d = ffi::GL_TEXTURE_1D as isize,
         GlTexture1dArray = ffi::GL_TEXTURE_1D_ARRAY as isize,
@@ -698,7 +697,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     // cl_gl_object_type = 0x2000 - 0x200F enum values are currently taken
     #[repr(C)]
-    #[derive(Debug, PartialEq, Clone)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ClGlObjectType {
         ClGlObjectBuffer = ffi::CL_GL_OBJECT_BUFFER as isize,
         ClGlObjectTexture2D = ffi::CL_GL_OBJECT_TEXTURE2D as isize,
@@ -714,7 +713,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below. (from SDK)
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ImageChannelOrder {
         R = ffi::CL_R as isize,
         A = ffi::CL_A as isize,
@@ -743,7 +742,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// Describes the size of the channel data type. The number of bits per element determined by the image_channel_data_type and image_channel_order must be a power of two. The list of supported values is described in the table below. (from SDK)
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ImageChannelDataType {
         // Each channel component is a normalized signed 8-bit integer value:
         SnormInt8 = ffi::CL_SNORM_INT8 as isize,
@@ -784,7 +783,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_bool
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum Cbool {
         False = ffi::CL_FALSE as isize,
         True = ffi::CL_TRUE as isize,
@@ -795,7 +794,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_bool: Polling
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum Polling {
         Blocking = ffi::CL_BLOCKING as isize,
         NonBlocking = ffi::CL_NON_BLOCKING as isize,
@@ -806,7 +805,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_platform_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum PlatformInfo {
         Profile = ffi::CL_PLATFORM_PROFILE as isize,
         Version = ffi::CL_PLATFORM_VERSION as isize,
@@ -820,7 +819,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_device_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum DeviceInfo {
         Type = ffi::CL_DEVICE_TYPE as isize,
         VendorId = ffi::CL_DEVICE_VENDOR_ID as isize,
@@ -905,7 +904,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_mem_cache_type
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum DeviceMemCacheType {
         None = ffi::CL_NONE as isize,
         ReadOnlyCache = ffi::CL_READ_ONLY_CACHE as isize,
@@ -917,7 +916,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_device_local_mem_type
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum DeviceLocalMemType {
         None = ffi::CL_NONE as isize,
         Local = ffi::CL_LOCAL as isize,
@@ -929,7 +928,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_context_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ContextInfo {
         ReferenceCount = ffi::CL_CONTEXT_REFERENCE_COUNT as isize,
         Devices = ffi::CL_CONTEXT_DEVICES as isize,
@@ -942,7 +941,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_gl_context_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum GlContextInfo {
         // Return the CL device currently associated with the specified OpenGL context.
         CurrentDevice = ffi::CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR as isize,
@@ -982,7 +981,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_context_info + cl_context_properties
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ContextInfoOrPropertiesPointerType {
         Platform = ffi::CL_CONTEXT_PLATFORM as isize,
         InteropUserSync = ffi::CL_CONTEXT_INTEROP_USER_SYNC as isize,
@@ -998,7 +997,7 @@ enum_from_primitive! {
     /// (https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubDevices.html)
     ///
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum DevicePartitionProperty {
         Equally = ffi::CL_DEVICE_PARTITION_EQUALLY as isize,
         ByCounts = ffi::CL_DEVICE_PARTITION_BY_COUNTS as isize,
@@ -1011,7 +1010,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_command_queue_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum CommandQueueInfo {
         Context = ffi::CL_QUEUE_CONTEXT as isize,
         Device = ffi::CL_QUEUE_DEVICE as isize,
@@ -1024,7 +1023,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_channel_type
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ChannelType {
         SnormInt8 = ffi::CL_SNORM_INT8 as isize,
         SnormInt16 = ffi::CL_SNORM_INT16 as isize,
@@ -1049,7 +1048,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_mem_object_type
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum MemObjectType {
         Buffer = ffi::CL_MEM_OBJECT_BUFFER as isize,
         Image2d = ffi::CL_MEM_OBJECT_IMAGE2D as isize,
@@ -1065,7 +1064,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_mem_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum MemInfo {
         Type = ffi::CL_MEM_TYPE as isize,
         Flags = ffi::CL_MEM_FLAGS as isize,
@@ -1083,7 +1082,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_image_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ImageInfo {
         Format = ffi::CL_IMAGE_FORMAT as isize,
         ElementSize = ffi::CL_IMAGE_ELEMENT_SIZE as isize,
@@ -1103,7 +1102,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_addressing_mode
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum AddressingMode {
         None = ffi::CL_ADDRESS_NONE as isize,
         ClampToEdge = ffi::CL_ADDRESS_CLAMP_TO_EDGE as isize,
@@ -1117,7 +1116,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_filter_mode
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum FilterMode {
         Nearest = ffi::CL_FILTER_NEAREST as isize,
         Linear = ffi::CL_FILTER_LINEAR as isize,
@@ -1128,7 +1127,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_sampler_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum SamplerInfo {
         ReferenceCount = ffi::CL_SAMPLER_REFERENCE_COUNT as isize,
         Context = ffi::CL_SAMPLER_CONTEXT as isize,
@@ -1142,7 +1141,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_program_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ProgramInfo {
         ReferenceCount = ffi::CL_PROGRAM_REFERENCE_COUNT as isize,
         Context = ffi::CL_PROGRAM_CONTEXT as isize,
@@ -1160,7 +1159,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_program_build_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ProgramBuildInfo {
         BuildStatus = ffi::CL_PROGRAM_BUILD_STATUS as isize,
         BuildOptions = ffi::CL_PROGRAM_BUILD_OPTIONS as isize,
@@ -1174,7 +1173,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_build_status
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ProgramBuildStatus {
         Success = ffi::CL_BUILD_SUCCESS as isize,
         None = ffi::CL_BUILD_NONE as isize,
@@ -1187,7 +1186,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_kernel_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum KernelInfo {
         FunctionName = ffi::CL_KERNEL_FUNCTION_NAME as isize,
         NumArgs = ffi::CL_KERNEL_NUM_ARGS as isize,
@@ -1202,7 +1201,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_kernel_arg_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum KernelArgInfo {
         AddressQualifier = ffi::CL_KERNEL_ARG_ADDRESS_QUALIFIER as isize,
         AccessQualifier = ffi::CL_KERNEL_ARG_ACCESS_QUALIFIER as isize,
@@ -1216,7 +1215,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_kernel_arg_address_qualifier
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum KernelArgAddressQualifier {
         Global = ffi::CL_KERNEL_ARG_ADDRESS_GLOBAL as isize,
         Local = ffi::CL_KERNEL_ARG_ADDRESS_LOCAL as isize,
@@ -1229,7 +1228,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_kernel_arg_access_qualifier
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum KernelArgAccessQualifier {
         ReadOnly = ffi::CL_KERNEL_ARG_ACCESS_READ_ONLY as isize,
         WriteOnly = ffi::CL_KERNEL_ARG_ACCESS_WRITE_ONLY as isize,
@@ -1245,7 +1244,7 @@ enum_from_primitive! {
     /// [NOTE] PrivateMemSize: If device is not a custom device or kernel is not a built-in
     /// kernel, clGetKernelArgInfo returns the error CL_INVALID_VALUE:
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum KernelWorkGroupInfo {
         WorkGroupSize = ffi::CL_KERNEL_WORK_GROUP_SIZE as isize,
         CompileWorkGroupSize = ffi::CL_KERNEL_COMPILE_WORK_GROUP_SIZE as isize,
@@ -1260,7 +1259,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_event_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum EventInfo {
         CommandQueue = ffi::CL_EVENT_COMMAND_QUEUE as isize,
         CommandType = ffi::CL_EVENT_COMMAND_TYPE as isize,
@@ -1274,7 +1273,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_command_type
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum CommandType {
         NdrangeKernel = ffi::CL_COMMAND_NDRANGE_KERNEL as isize,
         Task = ffi::CL_COMMAND_TASK as isize,
@@ -1308,7 +1307,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// command execution status
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum CommandExecutionStatus {
         Complete = ffi::CL_COMPLETE as isize,
         Running = ffi::CL_RUNNING as isize,
@@ -1321,7 +1320,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_buffer_create_type
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum BufferCreateType {
         Region = ffi::CL_BUFFER_CREATE_TYPE_REGION as isize,
         __DUMMY,
@@ -1332,7 +1331,7 @@ enum_from_primitive! {
 enum_from_primitive! {
     /// cl_profiling_info
     #[repr(C)]
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub enum ProfilingInfo {
         Queued = ffi::CL_PROFILING_COMMAND_QUEUED as isize,
         Submit = ffi::CL_PROFILING_COMMAND_SUBMIT as isize,

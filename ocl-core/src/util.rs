@@ -71,7 +71,7 @@ pub mod colors {
 //=============================================================================
 
 /// An error caused by a utility function.
-#[derive(Fail, Debug)]
+#[derive(Debug, Fail)]
 pub enum UtilError {
     #[fail(display = "The size of the source byte slice ({} bytes) does not match \
         the size of the destination type ({} bytes).", src, dst)]

@@ -168,6 +168,9 @@ pub enum ContextPropertyValue {
     D3d11DeviceKhr(isize),
 }
 
+unsafe impl Send for ContextPropertyValue {}
+unsafe impl Sync for ContextPropertyValue {}
+
 
 /// Context properties list.
 ///

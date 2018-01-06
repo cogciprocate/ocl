@@ -50,8 +50,8 @@ use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceIn
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
     EventInfo, EventInfoResult, DeviceType};
-use error::{Result as OclResult, Error as OclError, ErrorKind as OclErrorKind};
-use functions;
+use error::{Result as OclResult, Error as OclError};
+use functions::{self, ApiFunction, VersionKind};
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -111,12 +111,14 @@ pub trait ClVersions {
     fn platform_version(&self) -> OclResult<OpenclVersion>;
 
     fn verify_device_versions(&self, required_version: [u16; 2]) -> OclResult<()> {
-        functions::verify_versions(&try!(self.device_versions()), required_version)
+        functions::verify_versions(&try!(self.device_versions()), required_version,
+            ApiFunction::None, VersionKind::Device)
     }
 
     fn verify_platform_version(&self, required_version: [u16; 2]) -> OclResult<()> {
         let ver = [try!(self.platform_version())];
-        functions::verify_versions(&ver, required_version)
+        functions::verify_versions(&ver, required_version, ApiFunction::None,
+            VersionKind::Platform)
     }
 }
 
@@ -521,10 +523,8 @@ impl Drop for Context {
     fn drop(&mut self) {
         unsafe {
             if let Err(e) = functions::release_context(self as &Context) {
-                if let &OclErrorKind::Status { ref status, .. } = e.kind() {
-                    if status == &Status::CL_INVALID_CONTEXT {
-                        return;
-                    }
+                if let Some(Status::CL_INVALID_CONTEXT) = e.api_status() {
+                    return;
                 }
                 panic!("{:?}", e);
             }
