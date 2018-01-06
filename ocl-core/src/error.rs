@@ -4,8 +4,8 @@
 use std::fmt;
 use failure::{Context, Fail, Backtrace};
 use util::UtilError;
-use functions::{ApiError, VersionLowError};
-use ::{Status, EmptyInfoResult, OpenclVersion};
+use functions::{ApiError, VersionLowError, ProgramBuildError};
+use ::{Status, EmptyInfoResultError};
 
 
 /// Ocl error result type.
@@ -30,25 +30,25 @@ pub enum ErrorKind {
     Io(::std::io::Error),
     // FromUtf8Error: String conversion error:
     #[fail(display = "{}", _0)]
-    FromUtf8Error(::std::string::FromUtf8Error),
+    FromUtf8(::std::string::FromUtf8Error),
     // IntoStringError: Ffi string conversion error:
     #[fail(display = "{}", _0)]
-    IntoStringError(::std::ffi::IntoStringError),
-    // EmptyInfoResult:
+    IntoString(::std::ffi::IntoStringError),
+    // EmptyInfoResultError:
     #[fail(display = "{}", _0)]
-    EmptyInfoResult(EmptyInfoResult),
+    EmptyInfoResult(EmptyInfoResultError),
+    // UtilError:
+    #[fail(display = "{}", _0)]
+    Util(UtilError),
+    // ApiError:
+    #[fail(display = "{}", _0)]
+    Api(ApiError),
     // VersionLow:
-    // TODO: Move into its own error type.
-    #[fail(display = "OpenCL version too low to use this feature \
-        (detected: {}, required: {}).", detected, required)]
-    VersionLow { detected: OpenclVersion, required: OpenclVersion },
     #[fail(display = "{}", _0)]
-    UtilError(UtilError),
+    VersionLow(VersionLowError),
+    // ProgramBuild:
     #[fail(display = "{}", _0)]
-    ApiError(ApiError),
-    #[fail(display = "{}", _0)]
-    VersionLowError(VersionLowError),
-    // Other(Box<StdError>),
+    ProgramBuild(ProgramBuildError),
 }
 
 
@@ -73,7 +73,7 @@ impl Error {
     /// Returns the error status code for `Status` variants.
     pub fn api_status(&self) -> Option<Status> {
         match *self.kind() {
-            ErrorKind::ApiError(ref err) => Some(err.status()),
+            ErrorKind::Api(ref err) => Some(err.status()),
             _ => None,
         }
     }
@@ -130,8 +130,8 @@ impl From<()> for Error {
     }
 }
 
-impl From<EmptyInfoResult> for Error {
-    fn from(err: EmptyInfoResult) -> Self {
+impl From<EmptyInfoResultError> for Error {
+    fn from(err: EmptyInfoResultError) -> Self {
         Error { inner: Context::new(ErrorKind::EmptyInfoResult(err)) }
     }
 }
@@ -168,30 +168,36 @@ impl From<::std::io::Error> for Error {
 
 impl From<::std::string::FromUtf8Error> for Error {
     fn from(err: ::std::string::FromUtf8Error) -> Self {
-        Error { inner: Context::new(ErrorKind::FromUtf8Error(err)) }
+        Error { inner: Context::new(ErrorKind::FromUtf8(err)) }
     }
 }
 
 impl From<::std::ffi::IntoStringError> for Error {
     fn from(err: ::std::ffi::IntoStringError) -> Self {
-        Error { inner: Context::new(ErrorKind::IntoStringError(err)) }
+        Error { inner: Context::new(ErrorKind::IntoString(err)) }
     }
 }
 
 impl From<UtilError> for Error {
     fn from(err: UtilError) -> Self {
-        Error { inner: Context::new(ErrorKind::UtilError(err)) }
+        Error { inner: Context::new(ErrorKind::Util(err)) }
     }
 }
 
 impl From<ApiError> for Error {
     fn from(err: ApiError) -> Self {
-        Error { inner: Context::new(ErrorKind::ApiError(err)) }
+        Error { inner: Context::new(ErrorKind::Api(err)) }
     }
 }
 
 impl From<VersionLowError> for Error {
     fn from(err: VersionLowError) -> Self {
-        Error { inner: Context::new(ErrorKind::VersionLowError(err)) }
+        Error { inner: Context::new(ErrorKind::VersionLow(err)) }
+    }
+}
+
+impl From<ProgramBuildError> for Error {
+    fn from(err: ProgramBuildError) -> Self {
+        Error { inner: Context::new(ErrorKind::ProgramBuild(err)) }
     }
 }

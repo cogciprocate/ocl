@@ -1,13 +1,18 @@
 //! A simple way to specify the sizes or offsets of up to three dimensions.
-// use std::convert::Into;
 use std::convert::From;
 use std::fmt::Debug;
 use std::ops::Index;
-// use std::mem;
 use num::{Num, ToPrimitive};
 use core::error::{Result as OclResult, Error as OclCoreError};
 use standard::{MemLen, WorkDims};
 use core::util;
+
+
+#[derive(Debug, Fail)]
+#[fail(display = "Cannot convert to a valid set of dimensions. \
+    Please specify some dimensions.")]
+pub struct UnspecifiedDimensionsError;
+
 
 /// Specifies a size or offset in up to three dimensions.
 ///
@@ -75,9 +80,9 @@ impl SpatialDims {
     }
 
     /// Returns a 3D size or an error if unspecified.
-    pub fn to_lens(&self) -> OclResult<[usize; 3]> {
+    pub fn to_lens(&self) -> Result<[usize; 3], UnspecifiedDimensionsError> {
         match *self {
-            SpatialDims::Unspecified => Err(OclCoreError::unspecified_dimensions()),
+            SpatialDims::Unspecified => Err(UnspecifiedDimensionsError),
             SpatialDims::One(x) => Ok([x, 1, 1]),
             SpatialDims::Two(x, y) => Ok([x, y, 1]),
             SpatialDims::Three(x, y, z) => Ok([x, y, z]),
@@ -85,9 +90,9 @@ impl SpatialDims {
     }
 
     /// Returns a 3D offset or an error if unspecified.
-    pub fn to_offset(&self) -> OclResult<[usize; 3]> {
+    pub fn to_offset(&self) -> Result<[usize; 3], UnspecifiedDimensionsError> {
         match *self {
-            SpatialDims::Unspecified => Err(OclCoreError::unspecified_dimensions()),
+            SpatialDims::Unspecified => Err(UnspecifiedDimensionsError),
             SpatialDims::One(x) => Ok([x, 0, 0]),
             SpatialDims::Two(x, y) => Ok([x, y, 0]),
             SpatialDims::Three(x, y, z) => Ok([x, y, z]),

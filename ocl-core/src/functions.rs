@@ -127,6 +127,7 @@ static SDK_DOCS_URL_PRE: &'static str = "https://www.khronos.org/registry/cl/sdk
 static SDK_DOCS_URL_SUF: &'static str = ".html#errors";
 
 
+/// An OpenCL API error.
 pub struct ApiError {
     status: Status,
     fn_name: &'static str,
@@ -185,7 +186,6 @@ impl fmt::Debug for ApiError {
     }
 }
 
-
 /// Evaluates `errcode` and returns an `Err` with a failure message if it is
 /// not 0 (Status::CL_SUCCESS).
 ///
@@ -200,34 +200,46 @@ fn eval_errcode<T, S>(errcode: cl_int, result: T, fn_name: &'static str, fn_info
     }
 }
 
+
+/// An OpenCL program build error.
+#[derive(Debug, Fail)]
+pub enum ProgramBuildError {
+    #[fail(display = "Device list is empty. Aborting build.")]
+    DeviceListEmpty,
+    #[fail(display =
+        "\n\n\
+        ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT \
+        ######################\
+        \n\n{}\n\
+        ########################################################\
+        #######################\
+        \n\n",
+        _0
+    )]
+    BuildLog(String),
+    #[fail(display = "{}", _0)]
+    InfoResult(Box<OclError>),
+}
+
+
 /// If the program pointed to by `cl_program` for any of the devices listed in
 /// `device_ids` has a build log of any length, it will be returned as an
 /// errcode result.
 ///
-pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) -> OclResult<()> {
+pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D])
+        -> Result<(), ProgramBuildError> {
     if device_ids.len() == 0 {
-        return OclError::err_string("ocl::core::program_build_err(): \
-            Device list is empty. Aborting.");
+        return Err(ProgramBuildError::DeviceListEmpty);
     }
 
     for device_id in device_ids.iter().cloned() {
         match get_program_build_info(program, device_id, ProgramBuildInfo::BuildLog) {
             ProgramBuildInfoResult::BuildLog(log) => {
                 if log.len() > 1 {
-                    let log_readable = format!(
-                        "\n\n\
-                        ###################### OPENCL PROGRAM BUILD DEBUG OUTPUT \
-                        ######################\
-                        \n\n{}\n\
-                        ########################################################\
-                        #######################\
-                        \n\n",
-                        log);
-
-                    return OclError::err_string(log_readable);
+                    return Err(ProgramBuildError::BuildLog(log));
                 }
             },
-            ProgramBuildInfoResult::Error(err) => return Err(*err),
+            ProgramBuildInfoResult::Error(err) => return Err(ProgramBuildError::InfoResult(err)),
             _ => panic!("ocl::core::program_build_err(): \
                 Unexpected 'ProgramBuildInfoResult' variant."),
         }
@@ -1784,10 +1796,10 @@ pub fn build_program<D: ClDeviceIdPtr>(
 
     if errcode == Status::CL_BUILD_PROGRAM_FAILURE as i32 {
         if let Some(ds) = devices {
-            program_build_err(program, ds)
+            program_build_err(program, ds).map_err(|err| err.into())
         } else {
             let ds = program.devices()?;
-            program_build_err(program, &ds)
+            program_build_err(program, &ds).map_err(|err| err.into())
         }
     } else {
         eval_errcode(errcode, (), "clBuildProgram", None::<String>)

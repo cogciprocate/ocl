@@ -130,7 +130,7 @@ pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventPtrRef, ClPlatf
 pub use self::types::structs::{self, OpenclVersion, ContextProperties, ImageFormatParseError,
     ImageFormatParseResult, ImageFormat, ImageDescriptor, BufferRegion, ContextPropertyValue};
 
-pub use self::types::enums::{EmptyInfoResult, KernelArg, PlatformInfoResult, DeviceInfoResult,
+pub use self::types::enums::{EmptyInfoResultError, KernelArg, PlatformInfoResult, DeviceInfoResult,
     ContextInfoResult, GlContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult,
     SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult,
     KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};

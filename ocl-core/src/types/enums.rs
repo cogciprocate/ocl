@@ -47,7 +47,7 @@ macro_rules! try_ir {
 
 
 #[derive(Fail)]
-pub enum EmptyInfoResult {
+pub enum EmptyInfoResultError {
     #[fail(display = "Platform info unavailable")]
     Platform,
     #[fail(display = "Device info unavailable")]
@@ -80,7 +80,7 @@ pub enum EmptyInfoResult {
     Profiling,
 }
 
-impl fmt::Debug for EmptyInfoResult {
+impl fmt::Debug for EmptyInfoResultError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         // use std::error::Error;
         // f.write_str(self.description())
@@ -88,31 +88,31 @@ impl fmt::Debug for EmptyInfoResult {
     }
 }
 
-// impl fmt::Display for EmptyInfoResult {
+// impl fmt::Display for EmptyInfoResultError {
 //     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 //         use std::error::Error;
 //         f.write_str(self.description())
 //     }
 // }
 
-// impl std::error::Error for EmptyInfoResult {
+// impl std::error::Error for EmptyInfoResultError {
 //     fn description(&self) -> &str {
 //         match *self {
-//             EmptyInfoResult::Platform => "platform info unavailable",
-//             EmptyInfoResult::Device => "device info unavailable",
-//             EmptyInfoResult::Context => "context info unavailable",
-//             EmptyInfoResult::GlContext => "OpenGL context info unavailable",
-//             EmptyInfoResult::CommandQueue => "command queue info unavailable",
-//             EmptyInfoResult::Mem => "mem info unavailable",
-//             EmptyInfoResult::Image => "image info unavailable",
-//             EmptyInfoResult::Sampler => "sampler info unavailable",
-//             EmptyInfoResult::Program => "program info unavailable",
-//             EmptyInfoResult::ProgramBuild => "program build info unavailable",
-//             EmptyInfoResult::Kernel => "kernel info unavailable",
-//             EmptyInfoResult::KernelArg => "kernel argument info unavailable",
-//             EmptyInfoResult::KernelWorkGroup => "kernel work-group info unavailable",
-//             EmptyInfoResult::Event => "event info unavailable",
-//             EmptyInfoResult::Profiling => "event profiling info unavailable",
+//             EmptyInfoResultError::Platform => "platform info unavailable",
+//             EmptyInfoResultError::Device => "device info unavailable",
+//             EmptyInfoResultError::Context => "context info unavailable",
+//             EmptyInfoResultError::GlContext => "OpenGL context info unavailable",
+//             EmptyInfoResultError::CommandQueue => "command queue info unavailable",
+//             EmptyInfoResultError::Mem => "mem info unavailable",
+//             EmptyInfoResultError::Image => "image info unavailable",
+//             EmptyInfoResultError::Sampler => "sampler info unavailable",
+//             EmptyInfoResultError::Program => "program info unavailable",
+//             EmptyInfoResultError::ProgramBuild => "program build info unavailable",
+//             EmptyInfoResultError::Kernel => "kernel info unavailable",
+//             EmptyInfoResultError::KernelArg => "kernel argument info unavailable",
+//             EmptyInfoResultError::KernelWorkGroup => "kernel work-group info unavailable",
+//             EmptyInfoResultError::Event => "event info unavailable",
+//             EmptyInfoResultError::Profiling => "event profiling info unavailable",
 //         }
 //     }
 // }
@@ -184,7 +184,7 @@ impl PlatformInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return PlatformInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Platform)));
+                        EmptyInfoResultError::Platform)));
                 }
 
                 let string = match util::bytes_into_string(result) {
@@ -381,7 +381,7 @@ impl DeviceInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return DeviceInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Device)));
+                        EmptyInfoResultError::Device)));
                 }
             match request {
                 DeviceInfo::MaxWorkItemSizes => {
@@ -429,7 +429,7 @@ impl DeviceInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return DeviceInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Device)));
+                        EmptyInfoResultError::Device)));
                 }
                 match request {
                     DeviceInfo::Type => {
@@ -948,7 +948,7 @@ impl ContextInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ContextInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Context)));
+                        EmptyInfoResultError::Context)));
                 }
                 match request {
                     ContextInfo::ReferenceCount => {
@@ -1058,7 +1058,7 @@ impl GlContextInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return GlContextInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::GlContext)));
+                        EmptyInfoResultError::GlContext)));
                 }
                 match request {
                     GlContextInfo::CurrentDevice => { unsafe {
@@ -1151,7 +1151,7 @@ impl CommandQueueInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return CommandQueueInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::CommandQueue)));
+                        EmptyInfoResultError::CommandQueue)));
                 }
 
                 match request {
@@ -1282,7 +1282,7 @@ impl MemInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return MemInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Mem)));
+                        EmptyInfoResultError::Mem)));
                 }
                 match request {
                     MemInfo::Type => {
@@ -1456,7 +1456,7 @@ impl ImageInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ImageInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Image)));
+                        EmptyInfoResultError::Image)));
                 }
                 match request {
                     ImageInfo::Format => {
@@ -1607,7 +1607,7 @@ impl SamplerInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return SamplerInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Sampler)));
+                        EmptyInfoResultError::Sampler)));
                 }
                 match request {
                     SamplerInfo::ReferenceCount => {
@@ -1734,7 +1734,7 @@ impl ProgramInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ProgramInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Program)));
+                        EmptyInfoResultError::Program)));
                 }
 
                 match request {
@@ -1870,7 +1870,7 @@ impl ProgramBuildInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ProgramBuildInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::ProgramBuild)));
+                        EmptyInfoResultError::ProgramBuild)));
                 }
                 match request {
                     ProgramBuildInfo::BuildStatus => {
@@ -1982,7 +1982,7 @@ impl KernelInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Kernel)));
+                        EmptyInfoResultError::Kernel)));
                 }
                 match request {
                     KernelInfo::FunctionName => {
@@ -2098,7 +2098,7 @@ impl KernelArgInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelArgInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::KernelArg)));
+                        EmptyInfoResultError::KernelArg)));
                 }
                 match request {
                     KernelArgInfo::AddressQualifier => {
@@ -2202,7 +2202,7 @@ pub enum KernelWorkGroupInfoResult {
     PreferredWorkGroupSizeMultiple(usize),
     PrivateMemSize(u64),
     GlobalWorkSize([usize; 3]),
-    Empty(EmptyInfoResult),
+    Empty(EmptyInfoResultError),
     Unavailable(Status),
     CustomBuiltinOnly,
     Error(Box<OclError>),
@@ -2216,7 +2216,7 @@ impl KernelWorkGroupInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return KernelWorkGroupInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::KernelWorkGroup)));
+                        EmptyInfoResultError::KernelWorkGroup)));
                 }
                 match request {
                     KernelWorkGroupInfo::WorkGroupSize => {
@@ -2350,7 +2350,7 @@ impl EventInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return EventInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Event)));
+                        EmptyInfoResultError::Event)));
                 }
                 match request {
                     EventInfo::CommandQueue => {
@@ -2458,7 +2458,7 @@ impl ProfilingInfoResult {
             Ok(result) => {
                 if result.is_empty() {
                     return ProfilingInfoResult::Error(Box::new(OclError::from(
-                        EmptyInfoResult::Profiling)));
+                        EmptyInfoResultError::Profiling)));
                 }
                 match request {
                     ProfilingInfo::Queued => ProfilingInfoResult::Queued(
