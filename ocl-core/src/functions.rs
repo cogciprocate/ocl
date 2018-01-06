@@ -34,7 +34,7 @@ use ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devic
     cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
     cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
-use error::{Error as OclError, Result as OclResult, ChainErr};
+use error::{Error as OclError, Result as OclResult};
 
 use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ContextInfoResult, MemFlags, CommandQueue, Mem, MemObjectType, Program,
@@ -236,6 +236,40 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D]) 
     Ok(())
 }
 
+
+#[derive(Debug)]
+pub(crate) enum ApiFunction {
+    None,
+    RetainDevice,
+    ReleaseDevice,
+    CreateImage,
+    CreateFromGLTexture,
+    GetKernelArgInfo,
+    EnqueueFillBuffer,
+    EnqueueFillImage,
+    EnqueueMigrateMemObjects,
+    EnqueueMarkerWithWaitList,
+    EnqueueBarrierWithWaitList,
+    GetExtensionFunctionAddressForPlatform,
+}
+
+#[derive(Debug)]
+pub(crate) enum VersionKind {
+    Device,
+    Platform,
+}
+
+#[derive(Debug, Fail)]
+#[fail(display = "OpenCL ({:?}) version too low to use {:?} (detected: {}, required: {}).",
+    kind, function, detected, required)]
+pub struct VersionLowError {
+    detected: OpenclVersion,
+    required: OpenclVersion,
+    function: ApiFunction,
+    kind: VersionKind,
+}
+
+
 //============================================================================
 //============================================================================
 //=========================== SUPPORT FUNCTIONS ==============================
@@ -277,14 +311,21 @@ fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
 }
 
 /// Verifies that OpenCL versions are above a specified threshold.
-pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -> OclResult<()> {
+pub(crate) fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2],
+        function: ApiFunction, kind: VersionKind) -> OclResult<()> {
     let reqd_ver = OpenclVersion::from(required_version);
 
-    for &dev_v in versions {
-        if dev_v < reqd_ver {
+    for &d_ver in versions {
+        if d_ver < reqd_ver {
             // return OclError::err_string(format!("OpenCL version too low to use this feature \
-            //     (detected: {}, required: {}).", dev_v, reqd_ver));
-            return Err(OclError::version_low(dev_v, reqd_ver));
+            //     (detected: {}, required: {}).", d_ver, reqd_ver));
+            // return Err(OclError::version_low(d_ver, reqd_ver));
+            return Err(VersionLowError {
+                detected: d_ver,
+                required: reqd_ver,
+                function,
+                kind,
+            }.into())
         }
     }
 
@@ -294,11 +335,12 @@ pub fn verify_versions(versions: &[OpenclVersion], required_version: [u16; 2]) -
 // Verifies that a platform version (`provided_version`) is above a threshold
 // (`required_version`).
 fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
-            required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
+        required_version: [u16; 2], fallback_version_source: &V, function: ApiFunction)
+        -> OclResult<()> {
     match provided_version {
         Some(pv) => {
             let vers = [pv.clone()];
-            verify_versions(&vers, required_version)
+            verify_versions(&vers, required_version, function, VersionKind::Platform)
         },
         None => fallback_version_source.verify_platform_version(required_version),
     }
@@ -307,11 +349,12 @@ fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersio
 // Verifies that a device version (`provided_version`) is above a threshold
 // (`required_version`).
 fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>,
-            required_version: [u16; 2], fallback_version_source: &V) -> OclResult<()> {
+        required_version: [u16; 2], fallback_version_source: &V, function: ApiFunction)
+        -> OclResult<()> {
     match provided_version {
         Some(pv) => {
             let ver = [pv.clone()];
-            verify_versions(&ver, required_version)
+            verify_versions(&ver, required_version, function, VersionKind::Device)
         },
         None => fallback_version_source.verify_device_versions(required_version),
     }
@@ -319,9 +362,10 @@ fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>
 
 // Verifies multiple device versions.
 fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersion]>,
-            required_version: [u16; 2], fallback_versions_source: &V) -> OclResult<()> {
+        required_version: [u16; 2], fallback_versions_source: &V, function: ApiFunction)
+        -> OclResult<()> {
     match provided_versions {
-        Some(pv) => verify_versions(pv, required_version),
+        Some(pv) => verify_versions(pv, required_version, function, VersionKind::Device),
         None => fallback_versions_source.verify_device_versions(required_version),
     }
 }
@@ -566,8 +610,7 @@ pub fn create_sub_devices(device_version: Option<&OpenclVersion>) -> OclResult<(
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
-    verify_device_version(device_version, [1, 2], device)
-        .chain_err(|| "::retain_device")?;
+    verify_device_version(device_version, [1, 2], device, ApiFunction::RetainDevice)?;
     eval_errcode(ffi::clRetainDevice(device.as_ptr()), (), "clRetainDevice", None::<String>)
 }
 
@@ -576,8 +619,7 @@ pub unsafe fn retain_device(device: &DeviceId, device_version: Option<&OpenclVer
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 pub unsafe fn release_device(device: &DeviceId, device_version: Option<&OpenclVersion>)
             -> OclResult<()> {
-    verify_device_version(device_version, [1, 2], device)
-        .chain_err(|| "::release_device")?;
+    verify_device_version(device_version, [1, 2], device, ApiFunction::ReleaseDevice)?;
     eval_errcode(ffi::clReleaseDevice(device.as_ptr()), (), "clReleaseDevice", None::<String>)
 }
 
@@ -1172,8 +1214,8 @@ pub unsafe fn create_from_gl_texture<C>(
     try!(verify_context(context));
 
     // Verify device versions:
-    verify_device_versions(device_versions, [1, 2], &context.as_ptr())
-        .chain_err(|| "::create_from_gl_texture")?;;
+    verify_device_versions(device_versions, [1, 2], &context.as_ptr(),
+        ApiFunction::CreateFromGLTexture)?;
 
     // [TODO]: Forward old versions to these:
     // let obj_core = match image_desc.image_depth {
@@ -1320,8 +1362,7 @@ pub unsafe fn create_image<C, T>(
     try!(verify_context(context));
 
     // Verify device versions:
-    verify_device_versions(device_versions, [1, 2], &context.as_ptr())
-        .chain_err(|| "::create_image")?;
+    verify_device_versions(device_versions, [1, 2], &context.as_ptr(), ApiFunction::CreateImage)?;
 
     let mut errcode: cl_int = 0;
 
@@ -2023,9 +2064,8 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         device_versions: Option<&[OpenclVersion]>) -> KernelArgInfoResult
 {
     // Verify device version:
-    if let Err(err) = verify_device_versions(device_versions, [1, 2], obj)
-            .chain_err(|| "::get_kernel_arg_info")
-    {
+    if let Err(err) = verify_device_versions(device_versions, [1, 2], obj,
+            ApiFunction::GetKernelArgInfo) {
         return KernelArgInfoResult::from(err)
     }
 
@@ -2553,8 +2593,8 @@ pub fn enqueue_fill_buffer<T, M, En, Ewl>(
         ) -> OclResult<()>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdRw
 {
-    verify_device_version(device_version, [1, 2], command_queue)
-        .chain_err(|| "::enqueue_fill_buffer")?;
+    verify_device_version(device_version, [1, 2], command_queue,
+            ApiFunction::EnqueueFillBuffer)?;
 
     let pattern_size = mem::size_of::<T>();
     let offset_bytes = offset * mem::size_of::<T>();
@@ -2889,8 +2929,8 @@ pub fn enqueue_fill_image<T, M, En, Ewl>(
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
     // Verify device version:
-    verify_device_version(device_version, [1, 2], command_queue)
-        .chain_err(|| "::enqueue_fill_image")?;
+    verify_device_version(device_version, [1, 2], command_queue,
+        ApiFunction::EnqueueFillImage)?;
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
@@ -3206,8 +3246,8 @@ pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
         ) -> OclResult<()>
 {
     // Verify device version:
-    verify_device_version(device_version, [1, 2], command_queue)
-        .chain_err(|| "::enqueue_migrate_mem_objects")?;
+    verify_device_version(device_version, [1, 2], command_queue,
+        ApiFunction::EnqueueMigrateMemObjects)?;
 
     let (wait_list_len, wait_list_ptr, new_event_ptr)
         = resolve_event_ptrs(wait_list, new_event);
@@ -3391,8 +3431,8 @@ pub fn enqueue_marker_with_wait_list<En, Ewl>(
         where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     // Verify device version:
-    verify_device_version(device_version, [1, 2], command_queue)
-        .chain_err(|| "::enqueue_marker_with_wait_list")?;
+    verify_device_version(device_version, [1, 2], command_queue,
+        ApiFunction::EnqueueMarkerWithWaitList)?;
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
@@ -3420,8 +3460,8 @@ pub fn enqueue_barrier_with_wait_list<En, Ewl>(
         where En: ClNullEventPtr, Ewl: ClWaitListPtr
 {
     // Verify device version:
-    verify_device_version(device_version, [1, 2], command_queue)
-        .chain_err(|| "::enqueue_barrier_with_wait_list")?;
+    verify_device_version(device_version, [1, 2], command_queue,
+        ApiFunction::EnqueueBarrierWithWaitList)?;
 
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
@@ -3492,8 +3532,8 @@ pub unsafe fn get_extension_function_address_for_platform(
         ) -> OclResult<*mut c_void>
 {
     // Verify platform version:
-    verify_platform_version(platform_version, [1, 2], platform)
-        .chain_err(|| "::get_extension_function_address_for_platform")?;
+    verify_platform_version(platform_version, [1, 2], platform,
+        ApiFunction::GetExtensionFunctionAddressForPlatform)?;
 
     let func_name_c = try!(CString::new(func_name));
 
