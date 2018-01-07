@@ -2,14 +2,11 @@
 
 use libc::c_void;
 use std;
-// use std::ptr;
-// use std::slice;
 use std::mem;
-// use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 use std::collections::HashMap;
 use num::FromPrimitive;
-use error::{Error as OclError, Result as OclCoreResult};
+use error::{Error as OclCoreError, Result as OclCoreResult};
 use ffi::{self, cl_mem, cl_buffer_region, cl_context_properties, cl_platform_id};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
     PlatformId, OclPrm};
@@ -467,7 +464,7 @@ impl ContextProperties {
             let key_raw = *raw_context_properties.get_unchecked(idz);
             let val_raw = *raw_context_properties.get_unchecked(idz + 1);
 
-            let key = ContextProperty::from_isize(key_raw).ok_or(OclError::from(
+            let key = ContextProperty::from_isize(key_raw).ok_or(OclCoreError::from(
                 format!("ContextProperties::from_raw: Unable to convert '{}' using \
                     'ContextProperty::from_isize'.", key_raw)))?;
 
@@ -659,8 +656,21 @@ pub type ImageFormatParseResult = Result<ImageFormat, ImageFormatParseError>;
 ///    image_channel_order = CL_RGBA
 ///    image_channel_data_type = CL_UNORM_INT8
 ///
-/// image_channel_data_type values of CL_UNORM_SHORT_565, CL_UNORM_SHORT_555 and CL_UNORM_INT_101010 are special cases of packed image formats where the channels of each element are packed into a single unsigned short or unsigned int. For these special packed image formats, the channels are normally packed with the first channel in the most significant bits of the bitfield, and successive channels occupying progressively less significant locations. For CL_UNORM_SHORT_565, R is in bits 15:11, G is in bits 10:5 and B is in bits 4:0. For CL_UNORM_SHORT_555, bit 15 is undefined, R is in bits 14:10, G in bits 9:5 and B in bits 4:0. For CL_UNORM_INT_101010, bits 31:30 are undefined, R is in bits 29:20, G in bits 19:10 and B in bits 9:0.
-/// OpenCL implementations must maintain the minimum precision specified by the number of bits in image_channel_data_type. If the image format specified by image_channel_order, and image_channel_data_type cannot be supported by the OpenCL implementation, then the call to clCreateImage will return a NULL memory object.
+/// image_channel_data_type values of CL_UNORM_SHORT_565, CL_UNORM_SHORT_555
+/// and CL_UNORM_INT_101010 are special cases of packed image formats where
+/// the channels of each element are packed into a single unsigned short or
+/// unsigned int. For these special packed image formats, the channels are
+/// normally packed with the first channel in the most significant bits of the
+/// bitfield, and successive channels occupying progressively less significant
+/// locations. For CL_UNORM_SHORT_565, R is in bits 15:11, G is in bits 10:5
+/// and B is in bits 4:0. For CL_UNORM_SHORT_555, bit 15 is undefined, R is in
+/// bits 14:10, G in bits 9:5 and B in bits 4:0. For CL_UNORM_INT_101010, bits
+/// 31:30 are undefined, R is in bits 29:20, G in bits 19:10 and B in bits
+/// 9:0. OpenCL implementations must maintain the minimum precision specified
+/// by the number of bits in image_channel_data_type. If the image format
+/// specified by image_channel_order, and image_channel_data_type cannot be
+/// supported by the OpenCL implementation, then the call to clCreateImage
+/// will return a NULL memory object.
 ///
 #[derive(Debug, Clone)]
 pub struct ImageFormat {
@@ -684,13 +694,6 @@ impl ImageFormat {
     }
 
     pub fn from_raw(fmt_raw: ffi::cl_image_format) -> ImageFormatParseResult {
-        // Ok(ImageFormat {
-        //     channel_order: try!(ImageChannelOrder::from_u32(raw.image_channel_order)
-        //         .ok_or(OclError::from("Error converting to 'ImageChannelOrder'."))),
-        //     channel_data_type: try!(ImageChannelDataType::from_u32(raw.image_channel_data_type)
-        //         .ok_or(OclError::from("Error converting to 'ImageChannelDataType'."))),
-        // })
-
         let channel_order = match ImageChannelOrder::from_u32(fmt_raw.image_channel_order) {
             Some(ord) => ord,
             None => return Err(ImageFormatParseError::UnknownImageChannelOrder(
@@ -709,14 +712,6 @@ impl ImageFormat {
     pub fn list_from_raw(list_raw: Vec<ffi::cl_image_format>)
             -> Vec<ImageFormatParseResult>
     {
-        // let mut result_list = Vec::with_capacity(list_raw.len());
-
-        // for fmt_raw in list_raw.into_iter() {
-        //     result_list.push(ImageFormat::from_raw(fmt_raw));
-        // }
-
-        // result_list
-
         list_raw.into_iter().map(|fmt_raw| ImageFormat::from_raw(fmt_raw)).collect()
     }
 

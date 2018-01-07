@@ -11,10 +11,6 @@
 
 use std;
 use std::fmt;
-// use std::mem;
-// use std::error::Error;
-// use std::ffi::CString;
-// use std::convert::Into;
 use failure::Fail;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
@@ -31,7 +27,7 @@ use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, Devic
     DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties,
     ImageFormatParseResult, Status};
 
-use error::{Result as OclCoreResult, Error as OclError};
+use error::{Result as OclCoreResult, Error as OclCoreError};
 // use cl_h;
 
 
@@ -40,7 +36,7 @@ macro_rules! try_ir {
     ( $ expr : expr ) => {
         match $expr {
             Ok(val) => val,
-            Err(err) => return OclError::from(err).into(),
+            Err(err) => return OclCoreError::from(err).into(),
         }
     };
 }
@@ -82,40 +78,9 @@ pub enum EmptyInfoResultError {
 
 impl fmt::Debug for EmptyInfoResultError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // use std::error::Error;
-        // f.write_str(self.description())
         write!(f, "{}", self)
     }
 }
-
-// impl fmt::Display for EmptyInfoResultError {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         use std::error::Error;
-//         f.write_str(self.description())
-//     }
-// }
-
-// impl std::error::Error for EmptyInfoResultError {
-//     fn description(&self) -> &str {
-//         match *self {
-//             EmptyInfoResultError::Platform => "platform info unavailable",
-//             EmptyInfoResultError::Device => "device info unavailable",
-//             EmptyInfoResultError::Context => "context info unavailable",
-//             EmptyInfoResultError::GlContext => "OpenGL context info unavailable",
-//             EmptyInfoResultError::CommandQueue => "command queue info unavailable",
-//             EmptyInfoResultError::Mem => "mem info unavailable",
-//             EmptyInfoResultError::Image => "image info unavailable",
-//             EmptyInfoResultError::Sampler => "sampler info unavailable",
-//             EmptyInfoResultError::Program => "program info unavailable",
-//             EmptyInfoResultError::ProgramBuild => "program build info unavailable",
-//             EmptyInfoResultError::Kernel => "kernel info unavailable",
-//             EmptyInfoResultError::KernelArg => "kernel argument info unavailable",
-//             EmptyInfoResultError::KernelWorkGroup => "kernel work-group info unavailable",
-//             EmptyInfoResultError::Event => "event info unavailable",
-//             EmptyInfoResultError::Profiling => "event profiling info unavailable",
-//         }
-//     }
-// }
 
 
 
@@ -173,7 +138,7 @@ pub enum PlatformInfoResult {
     Name(String),
     Vendor(String),
     Extensions(String),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl PlatformInfoResult {
@@ -183,7 +148,7 @@ impl PlatformInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return PlatformInfoResult::Error(Box::new(OclError::from(
+                    return PlatformInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Platform)));
                 }
 
@@ -248,17 +213,17 @@ impl From<PlatformInfoResult> for String {
     }
 }
 
-impl From<OclError> for PlatformInfoResult {
-    fn from(err: OclError) -> PlatformInfoResult {
+impl From<OclCoreError> for PlatformInfoResult {
+    fn from(err: OclCoreError) -> PlatformInfoResult {
         PlatformInfoResult::Error(Box::new(err))
     }
 }
 
-impl From<PlatformInfoResult> for OclError {
-    fn from(err: PlatformInfoResult) -> OclError {
+impl From<PlatformInfoResult> for OclCoreError {
+    fn from(err: PlatformInfoResult) -> OclCoreError {
         match err {
             PlatformInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<PlatformInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<PlatformInfoResult>: Not an error."),
         }
     }
 }
@@ -275,15 +240,6 @@ impl From<std::ffi::NulError> for PlatformInfoResult {
     }
 }
 
-// impl std::error::Error for PlatformInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             PlatformInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
-
 impl Fail for PlatformInfoResult {}
 
 
@@ -291,7 +247,6 @@ impl Fail for PlatformInfoResult {}
 ///
 // #[derive(Debug)]
 pub enum DeviceInfoResult {
-    // TemporaryPlaceholderVariant(Vec<u8>),
     Type(DeviceType),                    // cl_device_type      FLAGS u64
     VendorId(u32),                 // cl_uint
     MaxComputeUnits(u32),          // cl_uint
@@ -339,7 +294,6 @@ pub enum DeviceInfoResult {
     Vendor(String),                   // String
     DriverVersion(String),            // String
     Profile(String),                  // String
-    // Version(String),                  // String
     Version(OpenclVersion),
     Extensions(String),               // String
     Platform(PlatformId),             // cl_platform_id
@@ -369,7 +323,7 @@ pub enum DeviceInfoResult {
     PrintfBufferSize(usize),         // usize
     ImagePitchAlignment(u32),      // cl_uint
     ImageBaseAddressAlignment(u32),// cl_uint
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl DeviceInfoResult {
@@ -380,19 +334,14 @@ impl DeviceInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return DeviceInfoResult::Error(Box::new(OclError::from(
+                    return DeviceInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Device)));
                 }
             match request {
                 DeviceInfo::MaxWorkItemSizes => {
                     match max_wi_dims {
                         3 => {
-                            // let r = match unsafe { try_ir!(util::bytes_into::<[usize; 3]>(result)) } {
-                            //     Ok(r) => r,
-                            //     Err(err) => return err.into(),
-                            // };
-
-                            let r = unsafe { try_ir!(util::bytes_into::<[usize; 3]>(result)) };
+                               let r = unsafe { try_ir!(util::bytes_into::<[usize; 3]>(result)) };
 
                             let mut v = Vec::with_capacity(3);
                             v.extend_from_slice(&r);
@@ -410,7 +359,7 @@ impl DeviceInfoResult {
                             v.extend_from_slice(&r);
                             DeviceInfoResult::MaxWorkItemSizes(v)
                         },
-                        _ => DeviceInfoResult::Error(Box::new(OclError::from("Error \
+                        _ => DeviceInfoResult::Error(Box::new(OclCoreError::from("Error \
                             determining number of dimensions for MaxWorkItemSizes."))),
                     }
                 },
@@ -428,7 +377,7 @@ impl DeviceInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return DeviceInfoResult::Error(Box::new(OclError::from(
+                    return DeviceInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Device)));
                 }
                 match request {
@@ -549,7 +498,7 @@ impl DeviceInfoResult {
                         match DeviceMemCacheType::from_u32(r) {
                             Some(e) => DeviceInfoResult::GlobalMemCacheType(e),
                             None => DeviceInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{:X}' to \
+                                OclCoreError::from(format!("Error converting '{:X}' to \
                                     DeviceMemCacheType.", r)))),
                         }
                     },
@@ -578,7 +527,7 @@ impl DeviceInfoResult {
                         match DeviceLocalMemType::from_u32(r) {
                             Some(e) => DeviceInfoResult::LocalMemType(e),
                             None => DeviceInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{:X}' to \
+                                OclCoreError::from(format!("Error converting '{:X}' to \
                                     DeviceLocalMemType.", r)))),
                         }
                     },
@@ -741,7 +690,7 @@ impl DeviceInfoResult {
                         // match DevicePartitionProperty::from_u32(r) {
                         //     Some(e) => DeviceInfoResult::PartitionProperties(e),
                         //     None => DeviceInfoResult::Error(Box::new(
-                        //         OclError::from(format!("Error converting '{:X}' to \
+                        //         OclCoreError::from(format!("Error converting '{:X}' to \
                         //             DevicePartitionProperty.", r)))),
                         // }
                         DeviceInfoResult::PartitionProperties(Vec::with_capacity(0))
@@ -757,7 +706,7 @@ impl DeviceInfoResult {
                         // match DevicePartitionProperty::from_u32(r) {
                         //     Some(e) => DeviceInfoResult::PartitionType(e),
                         //     None => DeviceInfoResult::Error(Box::new(
-                        //         OclError::from(format!("Error converting '{:X}' to \
+                        //         OclCoreError::from(format!("Error converting '{:X}' to \
                         //             DevicePartitionProperty.", r)))),
                         // }
                         DeviceInfoResult::PartitionType(Vec::with_capacity(0))
@@ -810,10 +759,6 @@ impl fmt::Debug for DeviceInfoResult {
 impl fmt::Display for DeviceInfoResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            // DeviceInfoResult::TemporaryPlaceholderVariant(ref v) => {
-            //     // TEMPORARY (and retarded):
-            //     write!(f, "{}", to_string_retarded(v))
-            // },
             DeviceInfoResult::Type(ref s) => write!(f, "{:?}", s),
             DeviceInfoResult::VendorId(ref s) => write!(f, "{}", s),
             DeviceInfoResult::MaxComputeUnits(ref s) => write!(f, "{}", s),
@@ -896,17 +841,17 @@ impl fmt::Display for DeviceInfoResult {
     }
 }
 
-impl From<DeviceInfoResult> for OclError {
-    fn from(err: DeviceInfoResult) -> OclError {
+impl From<DeviceInfoResult> for OclCoreError {
+    fn from(err: DeviceInfoResult) -> OclCoreError {
         match err {
             DeviceInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<DeviceInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<DeviceInfoResult>: Not an error."),
         }
     }
 }
 
-impl From<OclError> for DeviceInfoResult {
-    fn from(err: OclError) -> DeviceInfoResult {
+impl From<OclCoreError> for DeviceInfoResult {
+    fn from(err: OclCoreError) -> DeviceInfoResult {
         DeviceInfoResult::Error(Box::new(err))
     }
 }
@@ -916,15 +861,6 @@ impl From<DeviceInfoResult> for String {
         ir.to_string()
     }
 }
-
-// impl std::error::Error for DeviceInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             DeviceInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for DeviceInfoResult {}
 
@@ -936,10 +872,9 @@ impl Fail for DeviceInfoResult {}
 pub enum ContextInfoResult {
     ReferenceCount(u32),
     Devices(Vec<DeviceId>),
-    // Properties(Vec<isize>),
     Properties(ContextProperties),
     NumDevices(u32),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl ContextInfoResult {
@@ -947,7 +882,7 @@ impl ContextInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ContextInfoResult::Error(Box::new(OclError::from(
+                    return ContextInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Context)));
                 }
                 match request {
@@ -974,17 +909,6 @@ impl ContextInfoResult {
     pub fn platform(&self) -> Option<PlatformId> {
         match *self {
             ContextInfoResult::Properties(ref props) => {
-                // match ContextProperties::extract_property_from_raw(ContextProperty::Platform, props) {
-                //     Some(prop) => {
-                //         match prop {
-                //             ContextPropertyValue::Platform(plat) => Some(plat),
-                //             _=> unreachable!(),
-                //         }
-                //     },
-                //     // None => panic!("ContextInfoResult::platform: 'ContextProperty::Platform' \
-                //     //     property not found within raw context properties."),
-                //     None => None,
-                // }
                 props.get_platform()
             }
             ContextInfoResult::Error(ref err) => panic!("{}", err),
@@ -1017,29 +941,20 @@ impl From<ContextInfoResult> for String {
     }
 }
 
-impl From<OclError> for ContextInfoResult {
-    fn from(err: OclError) -> ContextInfoResult {
+impl From<OclCoreError> for ContextInfoResult {
+    fn from(err: OclCoreError) -> ContextInfoResult {
         ContextInfoResult::Error(Box::new(err))
     }
 }
 
-impl From<ContextInfoResult> for OclError {
-    fn from(err: ContextInfoResult) -> OclError {
+impl From<ContextInfoResult> for OclCoreError {
+    fn from(err: ContextInfoResult) -> OclCoreError {
         match err {
             ContextInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<ContextInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<ContextInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for ContextInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             ContextInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for ContextInfoResult {}
 
@@ -1048,7 +963,7 @@ impl Fail for ContextInfoResult {}
 pub enum GlContextInfoResult {
     CurrentDevice(DeviceId),
     Devices(Vec<DeviceId>),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 
 }
 
@@ -1057,7 +972,7 @@ impl GlContextInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return GlContextInfoResult::Error(Box::new(OclError::from(
+                    return GlContextInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::GlContext)));
                 }
                 match request {
@@ -1105,29 +1020,20 @@ impl From<GlContextInfoResult> for String {
     }
 }
 
-impl From<OclError> for GlContextInfoResult {
-    fn from(err: OclError) -> GlContextInfoResult {
+impl From<OclCoreError> for GlContextInfoResult {
+    fn from(err: OclCoreError) -> GlContextInfoResult {
         GlContextInfoResult::Error(Box::new(err))
     }
 }
 
-impl From<GlContextInfoResult> for OclError {
-    fn from(err: GlContextInfoResult) -> OclError {
+impl From<GlContextInfoResult> for OclCoreError {
+    fn from(err: GlContextInfoResult) -> OclCoreError {
         match err {
             GlContextInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<GlContextInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<GlContextInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for GlContextInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             GlContextInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for GlContextInfoResult {}
 
@@ -1135,12 +1041,11 @@ impl Fail for GlContextInfoResult {}
 
 /// A command queue info result.
 pub enum CommandQueueInfoResult {
-    // TemporaryPlaceholderVariant(Vec<u8>),
     Context(Context),
     Device(DeviceId),
     ReferenceCount(u32),
     Properties(CommandQueueProperties),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl CommandQueueInfoResult {
@@ -1150,7 +1055,7 @@ impl CommandQueueInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return CommandQueueInfoResult::Error(Box::new(OclError::from(
+                    return CommandQueueInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::CommandQueue)));
                 }
 
@@ -1171,7 +1076,6 @@ impl CommandQueueInfoResult {
                         let r = unsafe { try_ir!(util::bytes_into::<CommandQueueProperties>(result)) };
                         CommandQueueInfoResult::Properties(r)
                     }
-                    // _ => CommandQueueInfoResult::TemporaryPlaceholderVariant(result),
                 }
             },
             Err(err) => CommandQueueInfoResult::Error(Box::new(err)),
@@ -1188,9 +1092,6 @@ impl fmt::Debug for CommandQueueInfoResult {
 impl fmt::Display for CommandQueueInfoResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            // CommandQueueInfoResult::TemporaryPlaceholderVariant(ref v) => {
-            //    write!(f, "{}", to_string_retarded(v))
-            // },
             CommandQueueInfoResult::Context(ref s) => write!(f, "{:?}", s),
             CommandQueueInfoResult::Device(ref s) => write!(f, "{:?}", s),
             CommandQueueInfoResult::ReferenceCount(ref s) => write!(f, "{}", s),
@@ -1201,14 +1102,8 @@ impl fmt::Display for CommandQueueInfoResult {
     }
 }
 
-// impl Into<String> for CommandQueueInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
-impl From<OclError> for CommandQueueInfoResult {
-    fn from(err: OclError) -> CommandQueueInfoResult {
+impl From<OclCoreError> for CommandQueueInfoResult {
+    fn from(err: OclCoreError) -> CommandQueueInfoResult {
         CommandQueueInfoResult::Error(Box::new(err))
     }
 }
@@ -1219,23 +1114,14 @@ impl From<CommandQueueInfoResult> for String {
     }
 }
 
-impl From<CommandQueueInfoResult> for OclError {
-    fn from(err: CommandQueueInfoResult) -> OclError {
+impl From<CommandQueueInfoResult> for OclCoreError {
+    fn from(err: CommandQueueInfoResult) -> OclCoreError {
         match err {
             CommandQueueInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<CommandQueueInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<CommandQueueInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for CommandQueueInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             CommandQueueInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for CommandQueueInfoResult {}
 
@@ -1270,7 +1156,7 @@ pub enum MemInfoResult {
     Context(Context),
     AssociatedMemobject(Option<Mem>),
     Offset(usize),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 
@@ -1281,7 +1167,7 @@ impl MemInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return MemInfoResult::Error(Box::new(OclError::from(
+                    return MemInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Mem)));
                 }
                 match request {
@@ -1290,7 +1176,7 @@ impl MemInfoResult {
                         match MemObjectType::from_u32(r) {
                             Some(am) => MemInfoResult::Type(am),
                             None => MemInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{}' to \
+                                OclCoreError::from(format!("Error converting '{}' to \
                                     MemObjectType.", r)))),
                         }
                     },
@@ -1352,7 +1238,6 @@ impl MemInfoResult {
                         MemInfoResult::Offset(r)
                     },
 
-                    // _ => MemInfoResult::TemporaryPlaceholderVariant(result),
                 }
             },
             Err(err) => MemInfoResult::Error(Box::new(err)),
@@ -1369,9 +1254,6 @@ impl fmt::Debug for MemInfoResult {
 impl fmt::Display for MemInfoResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            // MemInfoResult::TemporaryPlaceholderVariant(ref v) => {
-            //    write!(f, "{}", to_string_retarded(v))
-            // },
             MemInfoResult::Type(ref s) => write!(f, "{:?}", s),
             MemInfoResult::Flags(ref s) => write!(f, "{:?}", s),
             MemInfoResult::Size(ref s) => write!(f, "{}", s),
@@ -1387,14 +1269,8 @@ impl fmt::Display for MemInfoResult {
     }
 }
 
-// impl Into<String> for MemInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
-impl From<OclError> for MemInfoResult {
-    fn from(err: OclError) -> MemInfoResult {
+impl From<OclCoreError> for MemInfoResult {
+    fn from(err: OclCoreError) -> MemInfoResult {
         MemInfoResult::Error(Box::new(err))
     }
 }
@@ -1405,23 +1281,14 @@ impl From<MemInfoResult> for String {
     }
 }
 
-impl From<MemInfoResult> for OclError {
-    fn from(err: MemInfoResult) -> OclError {
+impl From<MemInfoResult> for OclCoreError {
+    fn from(err: MemInfoResult) -> OclCoreError {
         match err {
             MemInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<MemInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<MemInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for MemInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             MemInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 // Added because of the `HostPtr(Option<(*mut c_void, Option<usize>)>)`
 // variant.
@@ -1434,7 +1301,6 @@ impl Fail for MemInfoResult {}
 
 /// An image info result.
 pub enum ImageInfoResult {
-    // TemporaryPlaceholderVariant(Vec<u8>),
     Format(ImageFormatParseResult),
     ElementSize(usize),
     RowPitch(usize),
@@ -1446,7 +1312,7 @@ pub enum ImageInfoResult {
     Buffer(Option<Mem>),
     NumMipLevels(u32),
     NumSamples(u32),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl ImageInfoResult {
@@ -1455,7 +1321,7 @@ impl ImageInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ImageInfoResult::Error(Box::new(OclError::from(
+                    return ImageInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Image)));
                 }
                 match request {
@@ -1511,7 +1377,6 @@ impl ImageInfoResult {
                         let r = unsafe { try_ir!(util::bytes_into::<u32>(result)) };
                         ImageInfoResult::NumSamples(r)
                     },
-                    // _ => ImageInfoResult::TemporaryPlaceholderVariant(result),
                 }
             }
             Err(err) => ImageInfoResult::Error(Box::new(err)),
@@ -1528,9 +1393,6 @@ impl fmt::Debug for ImageInfoResult {
 impl fmt::Display for ImageInfoResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            // ImageInfoResult::TemporaryPlaceholderVariant(ref v) => {
-            //    write!(f, "{}", to_string_retarded(v))
-            // },
             ImageInfoResult::Format(ref s) => write!(f, "{:?}", s),
             ImageInfoResult::ElementSize(s) => write!(f, "{}", s),
             ImageInfoResult::RowPitch(s) => write!(f, "{}", s),
@@ -1548,14 +1410,8 @@ impl fmt::Display for ImageInfoResult {
     }
 }
 
-// impl Into<String> for ImageInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
-impl From<OclError> for ImageInfoResult {
-    fn from(err: OclError) -> ImageInfoResult {
+impl From<OclCoreError> for ImageInfoResult {
+    fn from(err: OclCoreError) -> ImageInfoResult {
         ImageInfoResult::Error(Box::new(err))
     }
 }
@@ -1566,23 +1422,14 @@ impl From<ImageInfoResult> for String {
     }
 }
 
-impl From<ImageInfoResult> for OclError {
-    fn from(err: ImageInfoResult) -> OclError {
+impl From<ImageInfoResult> for OclCoreError {
+    fn from(err: ImageInfoResult) -> OclCoreError {
         match err {
             ImageInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<ImageInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<ImageInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for ImageInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             ImageInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for ImageInfoResult {}
 
@@ -1596,7 +1443,7 @@ pub enum SamplerInfoResult {
     NormalizedCoords(bool),
     AddressingMode(AddressingMode),
     FilterMode(FilterMode),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl SamplerInfoResult {
@@ -1606,7 +1453,7 @@ impl SamplerInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return SamplerInfoResult::Error(Box::new(OclError::from(
+                    return SamplerInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Sampler)));
                 }
                 match request {
@@ -1627,7 +1474,7 @@ impl SamplerInfoResult {
                         match AddressingMode::from_u32(r) {
                             Some(am) => SamplerInfoResult::AddressingMode(am),
                             None => SamplerInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{}' to \
+                                OclCoreError::from(format!("Error converting '{}' to \
                                     AddressingMode.", r)))),
                         }
                     },
@@ -1636,7 +1483,7 @@ impl SamplerInfoResult {
                         match FilterMode::from_u32(r) {
                             Some(fm) => SamplerInfoResult::FilterMode(fm),
                             None => SamplerInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{}' to \
+                                OclCoreError::from(format!("Error converting '{}' to \
                                     FilterMode.", r)))),
                         }
                     },
@@ -1671,14 +1518,8 @@ impl fmt::Display for SamplerInfoResult {
     }
 }
 
-// impl Into<String> for SamplerInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
-impl From<OclError> for SamplerInfoResult {
-    fn from(err: OclError) -> SamplerInfoResult {
+impl From<OclCoreError> for SamplerInfoResult {
+    fn from(err: OclCoreError) -> SamplerInfoResult {
         SamplerInfoResult::Error(Box::new(err))
     }
 }
@@ -1689,23 +1530,14 @@ impl From<SamplerInfoResult> for String {
     }
 }
 
-impl From<SamplerInfoResult> for OclError {
-    fn from(err: SamplerInfoResult) -> OclError {
+impl From<SamplerInfoResult> for OclCoreError {
+    fn from(err: SamplerInfoResult) -> OclCoreError {
         match err {
             SamplerInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<SamplerInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<SamplerInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for SamplerInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             SamplerInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for SamplerInfoResult {}
 
@@ -1723,7 +1555,7 @@ pub enum ProgramInfoResult {
     Binaries(Vec<Vec<u8>>),
     NumKernels(usize),
     KernelNames(String),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl ProgramInfoResult {
@@ -1733,7 +1565,7 @@ impl ProgramInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ProgramInfoResult::Error(Box::new(OclError::from(
+                    return ProgramInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Program)));
                 }
 
@@ -1813,14 +1645,8 @@ impl fmt::Display for ProgramInfoResult {
     }
 }
 
-// impl Into<String> for ProgramInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
-impl From<OclError> for ProgramInfoResult {
-    fn from(err: OclError) -> ProgramInfoResult {
+impl From<OclCoreError> for ProgramInfoResult {
+    fn from(err: OclCoreError) -> ProgramInfoResult {
         ProgramInfoResult::Error(Box::new(err))
     }
 }
@@ -1831,23 +1657,14 @@ impl From<ProgramInfoResult> for String {
     }
 }
 
-impl From<ProgramInfoResult> for OclError {
-    fn from(err: ProgramInfoResult) -> OclError {
+impl From<ProgramInfoResult> for OclCoreError {
+    fn from(err: ProgramInfoResult) -> OclCoreError {
         match err {
             ProgramInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<ProgramInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<ProgramInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for ProgramInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             ProgramInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for ProgramInfoResult {}
 
@@ -1859,7 +1676,7 @@ pub enum ProgramBuildInfoResult {
     BuildOptions(String),
     BuildLog(String),
     BinaryType(ProgramBinaryType),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl ProgramBuildInfoResult {
@@ -1869,7 +1686,7 @@ impl ProgramBuildInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ProgramBuildInfoResult::Error(Box::new(OclError::from(
+                    return ProgramBuildInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::ProgramBuild)));
                 }
                 match request {
@@ -1878,7 +1695,7 @@ impl ProgramBuildInfoResult {
                         match ProgramBuildStatus::from_i32(r) {
                             Some(b) => ProgramBuildInfoResult::BuildStatus(b),
                             None => ProgramBuildInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{}' to \
+                                OclCoreError::from(format!("Error converting '{}' to \
                                     ProgramBuildStatus.", r)))),
                         }
                     },
@@ -1923,14 +1740,8 @@ impl fmt::Display for ProgramBuildInfoResult {
     }
 }
 
-// impl Into<String> for ProgramBuildInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
-impl From<OclError> for ProgramBuildInfoResult {
-    fn from(err: OclError) -> ProgramBuildInfoResult {
+impl From<OclCoreError> for ProgramBuildInfoResult {
+    fn from(err: OclCoreError) -> ProgramBuildInfoResult {
         ProgramBuildInfoResult::Error(Box::new(err))
     }
 }
@@ -1941,23 +1752,14 @@ impl From<ProgramBuildInfoResult> for String {
     }
 }
 
-impl From<ProgramBuildInfoResult> for OclError {
-    fn from(err: ProgramBuildInfoResult) -> OclError {
+impl From<ProgramBuildInfoResult> for OclCoreError {
+    fn from(err: ProgramBuildInfoResult) -> OclCoreError {
         match err {
             ProgramBuildInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<ProgramBuildInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<ProgramBuildInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for ProgramBuildInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             ProgramBuildInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for ProgramBuildInfoResult {}
 
@@ -1971,7 +1773,7 @@ pub enum KernelInfoResult {
     Context(Context),
     Program(Program),
     Attributes(String),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl KernelInfoResult {
@@ -1981,7 +1783,7 @@ impl KernelInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return KernelInfoResult::Error(Box::new(OclError::from(
+                    return KernelInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Kernel)));
                 }
                 match request {
@@ -2040,14 +1842,8 @@ impl fmt::Display for KernelInfoResult {
     }
 }
 
-// impl Into<String> for KernelInfoResult {
-//     fn into(self) -> String {
-//         self.to_string()
-//     }
-// }
-
-impl From<OclError> for KernelInfoResult {
-    fn from(err: OclError) -> KernelInfoResult {
+impl From<OclCoreError> for KernelInfoResult {
+    fn from(err: OclCoreError) -> KernelInfoResult {
         KernelInfoResult::Error(Box::new(err))
     }
 }
@@ -2058,23 +1854,14 @@ impl From<KernelInfoResult> for String {
     }
 }
 
-impl From<KernelInfoResult> for OclError {
-    fn from(err: KernelInfoResult) -> OclError {
+impl From<KernelInfoResult> for OclCoreError {
+    fn from(err: KernelInfoResult) -> OclCoreError {
         match err {
             KernelInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<KernelInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<KernelInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for KernelInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             KernelInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for KernelInfoResult {}
 
@@ -2087,7 +1874,7 @@ pub enum KernelArgInfoResult {
     TypeName(String),
     TypeQualifier(KernelArgTypeQualifier),
     Name(String),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl KernelArgInfoResult {
@@ -2097,7 +1884,7 @@ impl KernelArgInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return KernelArgInfoResult::Error(Box::new(OclError::from(
+                    return KernelArgInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::KernelArg)));
                 }
                 match request {
@@ -2106,7 +1893,7 @@ impl KernelArgInfoResult {
                         match KernelArgAddressQualifier::from_u32(r) {
                             Some(kaaq) => KernelArgInfoResult::AddressQualifier(kaaq),
                             None => KernelArgInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{}' to \
+                                OclCoreError::from(format!("Error converting '{}' to \
                                     KernelArgAddressQualifier.", r)))),
                         }
                     },
@@ -2115,7 +1902,7 @@ impl KernelArgInfoResult {
                         match KernelArgAccessQualifier::from_u32(r) {
                             Some(kaaq) => KernelArgInfoResult::AccessQualifier(kaaq),
                             None => KernelArgInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{}' to \
+                                OclCoreError::from(format!("Error converting '{}' to \
                                     KernelArgAccessQualifier.", r)))),
                         }
                     },
@@ -2161,8 +1948,8 @@ impl fmt::Display for KernelArgInfoResult {
     }
 }
 
-impl From<OclError> for KernelArgInfoResult {
-    fn from(err: OclError) -> KernelArgInfoResult {
+impl From<OclCoreError> for KernelArgInfoResult {
+    fn from(err: OclCoreError) -> KernelArgInfoResult {
         KernelArgInfoResult::Error(Box::new(err))
     }
 }
@@ -2173,23 +1960,14 @@ impl From<KernelArgInfoResult> for String {
     }
 }
 
-impl From<KernelArgInfoResult> for OclError {
-    fn from(err: KernelArgInfoResult) -> OclError {
+impl From<KernelArgInfoResult> for OclCoreError {
+    fn from(err: KernelArgInfoResult) -> OclCoreError {
         match err {
             KernelArgInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<KernelArgInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<KernelArgInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for KernelArgInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             KernelArgInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for KernelArgInfoResult {}
 
@@ -2205,7 +1983,7 @@ pub enum KernelWorkGroupInfoResult {
     Empty(EmptyInfoResultError),
     Unavailable(Status),
     CustomBuiltinOnly,
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl KernelWorkGroupInfoResult {
@@ -2215,7 +1993,7 @@ impl KernelWorkGroupInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return KernelWorkGroupInfoResult::Error(Box::new(OclError::from(
+                    return KernelWorkGroupInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::KernelWorkGroup)));
                 }
                 match request {
@@ -2298,8 +2076,8 @@ impl fmt::Display for KernelWorkGroupInfoResult {
     }
 }
 
-impl From<OclError> for KernelWorkGroupInfoResult {
-    fn from(err: OclError) -> KernelWorkGroupInfoResult {
+impl From<OclCoreError> for KernelWorkGroupInfoResult {
+    fn from(err: OclCoreError) -> KernelWorkGroupInfoResult {
         KernelWorkGroupInfoResult::Error(Box::new(err))
     }
 }
@@ -2310,23 +2088,14 @@ impl From<KernelWorkGroupInfoResult> for String {
     }
 }
 
-impl From<KernelWorkGroupInfoResult> for OclError {
-    fn from(err: KernelWorkGroupInfoResult) -> OclError {
+impl From<KernelWorkGroupInfoResult> for OclCoreError {
+    fn from(err: KernelWorkGroupInfoResult) -> OclCoreError {
         match err {
             KernelWorkGroupInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<KernelWorkGroupInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<KernelWorkGroupInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for KernelWorkGroupInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             KernelWorkGroupInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for KernelWorkGroupInfoResult {}
 
@@ -2339,7 +2108,7 @@ pub enum EventInfoResult {
     ReferenceCount(u32),
     CommandExecutionStatus(CommandExecutionStatus),
     Context(Context),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl EventInfoResult {
@@ -2349,7 +2118,7 @@ impl EventInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return EventInfoResult::Error(Box::new(OclError::from(
+                    return EventInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Event)));
                 }
                 match request {
@@ -2362,7 +2131,7 @@ impl EventInfoResult {
                         match CommandType::from_u32(code) {
                             Some(ces) => EventInfoResult::CommandType(ces),
                             None => EventInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{}' to CommandType.", code)))),
+                                OclCoreError::from(format!("Error converting '{}' to CommandType.", code)))),
                         }
                     },
                     EventInfo::ReferenceCount => { EventInfoResult::ReferenceCount(
@@ -2373,7 +2142,7 @@ impl EventInfoResult {
                         match CommandExecutionStatus::from_i32(code) {
                             Some(ces) => EventInfoResult::CommandExecutionStatus(ces),
                             None => EventInfoResult::Error(Box::new(
-                                OclError::from(format!("Error converting '{}' to \
+                                OclCoreError::from(format!("Error converting '{}' to \
                                     CommandExecutionStatus.", code)))),
                         }
                     },
@@ -2407,8 +2176,8 @@ impl fmt::Display for EventInfoResult {
     }
 }
 
-impl From<OclError> for EventInfoResult {
-    fn from(err: OclError) -> EventInfoResult {
+impl From<OclCoreError> for EventInfoResult {
+    fn from(err: OclCoreError) -> EventInfoResult {
         EventInfoResult::Error(Box::new(err))
     }
 }
@@ -2419,23 +2188,14 @@ impl From<EventInfoResult> for String {
     }
 }
 
-impl From<EventInfoResult> for OclError {
-    fn from(err: EventInfoResult) -> OclError {
+impl From<EventInfoResult> for OclCoreError {
+    fn from(err: EventInfoResult) -> OclCoreError {
         match err {
             EventInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<EventInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<EventInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for EventInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             EventInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for EventInfoResult {}
 
@@ -2447,7 +2207,7 @@ pub enum ProfilingInfoResult {
     Submit(u64),
     Start(u64),
     End(u64),
-    Error(Box<OclError>),
+    Error(Box<OclCoreError>),
 }
 
 impl ProfilingInfoResult {
@@ -2457,7 +2217,7 @@ impl ProfilingInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
-                    return ProfilingInfoResult::Error(Box::new(OclError::from(
+                    return ProfilingInfoResult::Error(Box::new(OclCoreError::from(
                         EmptyInfoResultError::Profiling)));
                 }
                 match request {
@@ -2504,8 +2264,8 @@ impl fmt::Display for ProfilingInfoResult {
     }
 }
 
-impl From<OclError> for ProfilingInfoResult {
-    fn from(err: OclError) -> ProfilingInfoResult {
+impl From<OclCoreError> for ProfilingInfoResult {
+    fn from(err: OclCoreError) -> ProfilingInfoResult {
         ProfilingInfoResult::Error(Box::new(err))
     }
 }
@@ -2516,22 +2276,13 @@ impl From<ProfilingInfoResult> for String {
     }
 }
 
-impl From<ProfilingInfoResult> for OclError {
-    fn from(err: ProfilingInfoResult) -> OclError {
+impl From<ProfilingInfoResult> for OclCoreError {
+    fn from(err: ProfilingInfoResult) -> OclCoreError {
         match err {
             ProfilingInfoResult::Error(err) => *err,
-            _ => panic!("OclError::from::<ProfilingInfoResult>: Not an error."),
+            _ => panic!("OclCoreError::from::<ProfilingInfoResult>: Not an error."),
         }
     }
 }
-
-// impl std::error::Error for ProfilingInfoResult {
-//     fn description(&self) -> &str {
-//         match *self {
-//             ProfilingInfoResult::Error(ref err) => err.description(),
-//             _ => "",
-//         }
-//     }
-// }
 
 impl Fail for ProfilingInfoResult {}

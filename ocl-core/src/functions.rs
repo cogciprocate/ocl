@@ -3,18 +3,23 @@
 //!
 //!
 //!
+// ### Error Handling Notes
+//
+// In an ideal world, each function would have its own error enum with a
+// variant for each of the possible errors that API can throw with nice long
+// descriptions (presumably ported from the official docs). For now, all
+// functions use the same error type `ApiError` and error messages include a
+// link to the relevant Khronos API reference web page.
+//
 
 use std::ptr;
 use std::mem;
 use std::ffi::CString;
 use std::iter;
-// #[cfg(any(feature="kernel_debug_sleep", target_os="windows"))] use std::thread;
-// #[cfg(any(feature="kernel_debug_sleep", target_os="windows"))] use std::time::Duration;
 use std::thread;
 use std::time::Duration;
 use std::env;
 use std::fmt;
-// use std::fmt::Debug;
 use failure::Fail;
 use libc::{size_t, c_void};
 use num::FromPrimitive;
@@ -34,7 +39,7 @@ use ffi::{self, cl_bool, cl_int, cl_uint, cl_platform_id, cl_device_id, cl_devic
     cl_sampler, cl_sampler_info, cl_program_info, cl_kernel_info, cl_kernel_arg_info,
     cl_kernel_work_group_info, cl_event_info, cl_profiling_info};
 
-use error::{Error as OclError, Result as OclCoreResult};
+use error::{Error as OclCoreError, Result as OclCoreResult};
 
 use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ContextInfoResult, MemFlags, CommandQueue, Mem, MemObjectType, Program,
@@ -181,7 +186,6 @@ impl fmt::Display for ApiError {
 
 impl fmt::Debug for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // write!(f, "{}", self)
         fmt::Display::fmt(&self, f)
     }
 }
@@ -218,7 +222,7 @@ pub enum ProgramBuildError {
     )]
     BuildLog(String),
     #[fail(display = "{}", _0)]
-    InfoResult(Box<OclError>),
+    InfoResult(Box<OclCoreError>),
 }
 
 
@@ -448,9 +452,6 @@ pub fn get_platform_ids() -> OclCoreResult<Vec<PlatformId>> {
 
         while errcode == Status::CL_PLATFORM_NOT_FOUND_KHR as i32 {
             if iters_rmng == 0 {
-                // return OclError::err__string(format!("core::get_platform_ids(): \
-                //     CL_PLATFORM_NOT_FOUND_KHR... Unable to get platform id list after {} \
-                //     seconds of waiting.", (PLATFORM_IDS_ATTEMPT_COUNT * sleep_ms) / 1000));
                 return Err(ApiWrapperError::GetPlatformIdsPlatformListUnavailable(
                     (PLATFORM_IDS_ATTEMPT_COUNT * sleep_ms) / 1000).into())
             }
@@ -553,8 +554,6 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
     let devices_max = match devices_max {
         Some(d) => {
             if d == 0 {
-                // return OclError::err__string("ocl::core::get_device_ids(): \
-                //     `devices_max` can not be zero.");
                 return Err(ApiWrapperError::GetDeviceIdsDevicesMaxZero.into());
             } else {
                 d
@@ -603,9 +602,9 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
     // function and is a bug. Don't hold your breath for a fix.
     if errcode < 0 {
         if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-            return OclError::from("<unavailable (CL_INVALID_VALUE)>").into();
+            return OclCoreError::from("<unavailable (CL_INVALID_VALUE)>").into();
         } else if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_OPERATION {
-            return OclError::from("<unavailable (CL_INVALID_OPERATION)>").into();
+            return OclCoreError::from("<unavailable (CL_INVALID_OPERATION)>").into();
         }
     }
 
@@ -696,27 +695,11 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         ) -> OclCoreResult<Context>
 {
     if device_ids.len() == 0 {
-        // return OclError::err__string("ocl::core::create_context(): No devices specified.");
         return Err(ApiWrapperError::CreateContextNoDevicesSpecified.into())
     }
 
     // // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
-
-    // // https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateContext.html
-    // // http://sa10.idav.ucdavis.edu/docs/sa10-dg-opencl-gl-interop.pdf
-    // if let Some(properties) = properties {
-    //     if let Some(_) = properties.get_cgl_sharegroup() {
-    //         for &device in device_ids {
-    //             match device_supports_cl_gl_sharing(device) {
-    //                 Ok(true) => {},
-    //                 Ok(false) => return OclError::err__string("A device doesn't support \
-    //                     cl_gl_sharing extension."),
-    //                 Err(err) => return Err(err),
-    //             }
-    //         }
-    //     }
-    // }
 
     // If properties specify an OpenGL context/sharegroup, ensure all devices
     // in the provided list support the `cl_gl_sharing` extension:
@@ -725,14 +708,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
             for &device in device_ids {
                 match device_supports_cl_gl_sharing(device) {
                     Ok(true) => {},
-                    // TODO: Create a type for this error:
                     Ok(false) => {
-                        // return OclError::err__string("One or more of the devices
-                        // contained in the list provided to '::create_context`
-                        // doesn't support the cl_gl_sharing extension and cannot
-                        // be used to create a context associated with OpenGL.
-                        // [FIXME: determine recommended resolution - gl_device
-                        // list fn doesn't work yet]."),
                         return Err(ApiWrapperError::CreateContextClGlSharingUnsupported.into())
                     },
                     Err(err) => return Err(err),
@@ -756,12 +732,10 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         ptr::null() as *const cl_context_properties
     } else {
         properties_bytes.as_ptr()
-        // ptr::null() as *const cl_context_properties
     };
 
     // [FIXME]: Disabled:
     let user_data_ptr = match user_data {
-        // Some(ud_ptr) => ud_ptr,
         Some(_) => ptr::null_mut(),
         None => ptr::null_mut(),
     };
@@ -800,18 +774,6 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
     // [DEBUG]:
     // println!("CREATE_CONTEXT: ORIGINAL: properties: {:?}", properties);
 
-    // if let &Some(properties) = properties {
-    //     if let Some(_) = properties.get_cgl_sharegroup() {
-    //         for device in device_ids {
-    //             match device_supports_cl_gl_sharing(device) {
-    //                 Ok(true) => {},
-    //                 Ok(false) => return OclError::err__string("A device doesn't support cl_gl_sharing extension."),
-    //                 Err(err) => return Err(err),
-    //             }
-    //         }
-    //     }
-    // }
-
     let properties_bytes: Vec<isize> = match properties {
         Some(props) => props.to_raw(),
         None => Vec::<isize>::with_capacity(0),
@@ -827,12 +789,10 @@ pub fn create_context_from_type<D: ClDeviceIdPtr>(properties: Option<&ContextPro
         ptr::null() as *const cl_context_properties
     } else {
         properties_bytes.as_ptr()
-        // ptr::null() as *const cl_context_properties
     };
 
     // [FIXME]: Disabled:
     let user_data_ptr = match user_data {
-        // Some(ud_ptr) => ud_ptr,
         Some(_) => ptr::null_mut(),
         None => ptr::null_mut(),
     };
@@ -880,10 +840,6 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
 
     eval_errcode(errcode, (), "clGetContextInfo", None::<String>)?;
 
-    // if let Err(err) = eval_errcode(errcode, (), "clGetContextInfo", None::<String>) {
-    //     return ContextInfoResult::Error(Box::new(err));
-    // }
-
     // Check for invalid context pointer (a potentially hard to track down bug)
     // using ridiculous and probably platform-specific logic [if the `Devices`
     // variant is passed and we're not in the release config]:
@@ -891,12 +847,7 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
         let err_if_zero_result_size = request as cl_context_info == ffi::CL_CONTEXT_DEVICES;
 
         if result_size > 10000 || (result_size == 0 && err_if_zero_result_size) {
-            // return ContextInfoResult::Error(Box::new(OclError::from("\n\nocl::core::context_info(): \
-            //     Possible invalid context detected. \n\
-            //     Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
-            //     invalid context object. If not, please file an issue at: \n\
-            //     https://github.com/cogciprocate/ocl/issues.\n\n")));
-            return Err(OclError::from("\n\nocl::core::context_info(): \
+            return Err(OclCoreError::from("\n\nocl::core::context_info(): \
                 Possible invalid context detected. \n\
                 Context info result size is either '> 10k bytes' or '== 0'. Almost certainly an \n\
                 invalid context object. If not, please file an issue at: \n\
@@ -906,7 +857,6 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
 
     // If result size is zero, return an empty info result directly:
     if result_size == 0 {
-        // return ContextInfoResult::from_bytes(request, Ok(vec![]));
         return Ok(vec![]);
     }
 
@@ -1109,7 +1059,6 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(eval_errcode(errcode, result, "clGetCommandQueueInfo", None::<String>));
     if let Err(err) = eval_errcode(errcode, (), "clGetCommandQueueInfo", None::<String>) {
         return CommandQueueInfoResult::Error(Box::new(err));
     }
@@ -1160,10 +1109,6 @@ pub unsafe fn create_buffer<C, T>(
     let host_ptr = match data {
         Some(d) => {
             if d.len() != len {
-                // return OclError::err__string("ocl::create_buffer(): Data length mismatch.");
-
-
-
                 return Err(ApiWrapperError::CreateBufferDataLengthMismatch.into())
             }
             d.as_ptr() as cl_mem
@@ -1279,7 +1224,7 @@ pub unsafe fn create_from_gl_texture<C>(
     verify_device_versions(device_versions, [1, 2], &context.as_ptr(),
         ApiFunction::CreateFromGLTexture)?;
 
-    // [TODO]: Forward old versions to these:
+    // [TODO]: Forward old OpenCL versions to these instead:
     // let obj_core = match image_desc.image_depth {
     //     2 => unsafe { try!(core::create_from_gl_texture_2d(
     //                         queue.context_core(),
@@ -1717,14 +1662,10 @@ pub fn create_program_with_binary<C, D>(
         ) -> OclCoreResult<Program>
         where C: ClContextPtr, D: ClDeviceIdPtr
 {
-    // if devices.len() == 0 { return OclError::err__string("ocl::create_program_with_binary: \
-    //     Length of 'devices' must be greater than zero."); }
     if devices.len() == 0 {
         return Err(ApiWrapperError::CreateProgramWithBinaryDevicesLenZero.into())
     }
 
-    // if devices.len() != binaries.len() { return OclError::err__string("ocl::create_program_with_binary: \
-    //     Length of 'devices' must equal the length of 'binaries' (e.g. one binary per device)."); }
     if devices.len() != binaries.len() {
         return Err(ApiWrapperError::CreateProgramWithBinaryDevicesLenMismatch.into())
     }
@@ -1995,7 +1936,6 @@ pub fn create_kernel(program: &Program, name: &str) -> OclCoreResult<Kernel> {
     unsafe {
         let kernel_ptr = ffi::clCreateKernel(
             program.as_ptr(),
-            // 0 as cl_program,
             try!(CString::new(name.as_bytes())).as_ptr(),
             &mut err,
         );
@@ -2376,7 +2316,7 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
     // that event profiling info is not available on this platform.
     if errcode < 0 {
         if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-            return OclError::from("<unavailable (CL_INVALID_VALUE)>").into();
+            return OclCoreError::from("<unavailable (CL_INVALID_VALUE)>").into();
         }
     }
 
@@ -3227,14 +3167,10 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
         ) -> OclCoreResult<MemMap<T>>
         where T: OclPrm, En: ClNullEventPtr, Ewl: ClWaitListPtr, M: AsMem<T> + MemCmdAll
 {
-    // let row_pitch_bytes = row_pitch * mem::size_of::<T>();
-    // let slc_pitch_bytes = slc_pitch * mem::size_of::<T>();
-
     let (wait_list_len, wait_list_ptr, new_event_ptr) =
         resolve_event_ptrs(wait_list, new_event);
 
     let mut errcode = 0i32;
-    // let mut map_event = 0 as cl_event;
 
     let mapped_ptr = ffi::clEnqueueMapImage(
         command_queue.as_ptr(),
@@ -3248,7 +3184,6 @@ pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
         wait_list_len,
         wait_list_ptr,
         new_event_ptr,
-        // &mut map_event,
         &mut errcode,
     );
 
@@ -3610,8 +3545,6 @@ pub unsafe fn get_extension_function_address_for_platform(
     );
 
     if ext_fn == 0 as *mut c_void {
-        // OclError::err__string("The specified function does not exist for the implementation or 'platform' \
-        //     is not a valid platform.")
         Err(ApiWrapperError::GetExtensionFunctionAddressForPlatformInvalidFunction.into())
     } else {
         Ok(ext_fn)
@@ -3650,14 +3583,10 @@ pub fn default_platform() -> OclCoreResult<PlatformId> {
     let platform_list = try!(get_platform_ids());
 
     if platform_list.is_empty() {
-        // OclError::err__string("No platforms found!")
         Err(ApiWrapperError::DefaultPlatformNoPlatforms.into())
     } else {
         let default_platform_idx = default_platform_idx();
         if default_platform_idx > platform_list.len() - 1 {
-            // OclError::err__string(format!("The default platform set by the environment variable \
-            //     'OCL_DEFAULT_PLATFORM_IDX' has an index which is out of range \
-            //     (index: [{}], max: [{}]).", default_platform_idx, platform_list.len() - 1))
             Err(ApiWrapperError::DefaultPlatformEnvVarBadIdx {
                     default_platform_idx, max_idx: platform_list.len() - 1}.into())
         } else {
@@ -3677,9 +3606,6 @@ pub fn default_device_type() -> OclCoreResult<DeviceType> {
             "ACCELERATOR" => Ok(DeviceType::ACCELERATOR),
             "CUSTOM" => Ok(DeviceType::CUSTOM),
             "ALL" => Ok(DeviceType::ALL),
-            // OclError::err__string(format!("The default device type set by the environment variable \
-            //     'OCL_DEFAULT_DEVICE_TYPE': ('{}') is invalid. Valid types are: 'DEFAULT', 'CPU', \
-            //     'GPU', 'ACCELERATOR', 'CUSTOM', and 'ALL'.", s)),
             _ => Err(ApiWrapperError::DefaultDeviceTypeInvalidType(s.to_owned()).into()),
         },
         Err(_) => Ok(DeviceType::ALL),
@@ -3714,8 +3640,6 @@ pub fn create_build_program<C, D>(
 /// Blocks until an event is complete.
 pub fn wait_for_event<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResult<()> {
     let errcode = unsafe {
-        // let event_ptr = *event.as_ptr_ref();
-        // ffi::clWaitForEvents(1, &event_ptr)
         ffi::clWaitForEvents(1, event.as_ptr_ref())
     };
     eval_errcode(errcode, (), "clWaitForEvents", None::<String>)
@@ -3736,7 +3660,7 @@ pub fn event_status<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResult<Com
     };
     try!(eval_errcode(errcode, (), "clGetEventInfo", None::<String>));
 
-    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclError::from("Error converting \
+    CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclCoreError::from("Error converting \
         'clGetEventInfo' status output."))
 }
 

@@ -201,10 +201,7 @@ pub use self::functions::{create_program_with_il};
 //================================ CONSTANTS ==================================
 //=============================================================================
 
-// pub const DEFAULT_DEVICE_TYPE: ffi::cl_device_type = ffi::CL_DEVICE_TYPE_DEFAULT;
 pub const DEVICES_MAX: u32 = 64;
-// pub const DEFAULT_PLATFORM_IDX: usize = 0;
-// pub const DEFAULT_DEVICE_IDX: usize = 0;
 
 //=============================================================================
 //================================= TYPEDEFS ==================================

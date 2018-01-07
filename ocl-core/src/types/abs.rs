@@ -50,7 +50,7 @@ use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceIn
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
     EventInfo, EventInfoResult, DeviceType};
-use error::{Result as OclCoreResult, Error as OclError};
+use error::{Result as OclCoreResult, Error as OclCoreError};
 use functions::{self, ApiFunction, VersionKind};
 
 //=============================================================================
@@ -126,7 +126,7 @@ impl ClVersions for cl_context {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = match functions::get_context_info(self, ContextInfo::Devices) {
             ContextInfoResult::Devices(ds) => Ok(ds),
-            ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
+            ContextInfoResult::Error(e) => return Err(OclCoreError::from(*e)),
             _ => unreachable!(),
         };
 
@@ -141,7 +141,7 @@ impl ClVersions for cl_context {
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let devices = match functions::get_context_info(self, ContextInfo::Devices) {
             ContextInfoResult::Devices(ds) => Ok(ds),
-            ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
+            ContextInfoResult::Error(e) => return Err(OclCoreError::from(*e)),
             _ => unreachable!(),
         };
 
@@ -270,12 +270,6 @@ unsafe impl ClPlatformIdPtr for () {
 pub unsafe trait ClDeviceIdPtr: Debug + Copy {
     fn as_ptr(&self) -> cl_device_id;
 }
-
-// unsafe impl<'a, P> ClDeviceIdPtr for &'a P where P: ClDeviceIdPtr {
-//     fn as_ptr(&self) -> cl_device_id {
-//         (*self).as_ptr()
-//     }
-// }
 
 unsafe impl ClDeviceIdPtr for () {
     fn as_ptr(&self) -> cl_device_id {
@@ -448,7 +442,7 @@ impl ClVersions for DeviceId {
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let platform = match functions::get_device_info(self, DeviceInfo::Platform) {
             DeviceInfoResult::Platform(p) => p,
-            DeviceInfoResult::Error(e) => return Err(OclError::from(*e)),
+            DeviceInfoResult::Error(e) => return Err(OclCoreError::from(*e)),
             _ => unreachable!(),
         };
 
@@ -488,7 +482,7 @@ impl Context {
     pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         match functions::get_context_info(self, ContextInfo::Devices) {
             ContextInfoResult::Devices(ds) => Ok(ds),
-            ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
+            ContextInfoResult::Error(e) => return Err(OclCoreError::from(*e)),
             _ => unreachable!(),
         }
     }
@@ -598,7 +592,7 @@ impl CommandQueue {
     pub fn device(&self) -> OclCoreResult<DeviceId> {
         match functions::get_command_queue_info(self, CommandQueueInfo::Device) {
             CommandQueueInfoResult::Device(d) => Ok(d),
-            CommandQueueInfoResult::Error(e) => Err(OclError::from(*e)),
+            CommandQueueInfoResult::Error(e) => Err(OclCoreError::from(*e)),
             _ => unreachable!(),
         }
     }
@@ -806,7 +800,7 @@ impl Program {
     pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         match functions::get_program_info(self, ProgramInfo::Devices) {
             ProgramInfoResult::Devices(d) => Ok(d),
-            ProgramInfoResult::Error(e) => Err(OclError::from(*e)),
+            ProgramInfoResult::Error(e) => Err(OclCoreError::from(*e)),
             _ => unreachable!(),
         }
     }
@@ -890,7 +884,7 @@ impl Kernel {
     pub fn program(&self) -> OclCoreResult<Program> {
         match functions::get_kernel_info(self, KernelInfo::Program) {
             KernelInfoResult::Program(d) => Ok(d),
-            KernelInfoResult::Error(e) => Err(OclError::from(*e)),
+            KernelInfoResult::Error(e) => Err(OclCoreError::from(*e)),
             _ => unreachable!(),
         }
     }
@@ -1048,7 +1042,7 @@ impl Event {
     pub fn context(&self) -> OclCoreResult<Context> {
         match functions::get_event_info(self, EventInfo::Context) {
             EventInfoResult::Context(c) => Ok(c),
-            EventInfoResult::Error(e) => Err(OclError::from(*e)),
+            EventInfoResult::Error(e) => Err(OclCoreError::from(*e)),
             _ => unreachable!(),
         }
     }

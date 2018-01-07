@@ -28,13 +28,13 @@ pub enum ErrorKind {
     FfiNul(#[cause] ::std::ffi::NulError),
     // Io: std::io error:
     #[fail(display = "{}", _0)]
-    Io(::std::io::Error),
+    Io(#[cause] ::std::io::Error),
     // FromUtf8: String conversion error:
     #[fail(display = "{}", _0)]
-    FromUtf8(::std::string::FromUtf8Error),
+    FromUtf8(#[cause] ::std::string::FromUtf8Error),
     // IntoString: Ffi string conversion error:
     #[fail(display = "{}", _0)]
-    IntoString(::std::ffi::IntoStringError),
+    IntoString(#[cause] ::std::ffi::IntoStringError),
     // EmptyInfoResult:
     #[fail(display = "{}", _0)]
     EmptyInfoResult(EmptyInfoResultError),

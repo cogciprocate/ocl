@@ -11,7 +11,7 @@ use std::string::FromUtf8Error;
 use num::{Integer, FromPrimitive};
 use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};
-// use error::{Result as OclCoreResult, Error as OclError};
+// use error::{Result as OclCoreResult, Error as OclCoreError};
 
 use ::{OclPrm, OclScl};
 

@@ -24,7 +24,7 @@ pub mod vector_types;
 // pub mod context_props;
 
 use rand::{self, Rng};
-use error::{Error as OclError, Result as OclCoreResult};
+use error::{Result as OclCoreResult};
 use ::{OclScl, PlatformId, DeviceId, Context};
 
 const PRINT_ITERS_MAX: i32 = 3;
@@ -130,13 +130,13 @@ fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_
                     if result.is_ok() {
                         if within_region([x, y, z], origin, region) {
                             if vec[idx] != in_region_val {
-                                result = OclError::err_string(format!("vec[{}] should be '{}' but is '{}'",
-                                    idx, in_region_val, vec[idx]));
+                                result = Err(format!("vec[{}] should be '{}' but is '{}'",
+                                    idx, in_region_val, vec[idx]).into());
                             }
                         } else {
                             if vec[idx] != out_region_val {
-                                result = OclError::err_string(format!("vec[{}] should be '{}' but is '{}'",
-                                    idx, out_region_val, vec[idx]));
+                                result = Err(format!("vec[{}] should be '{}' but is '{}'",
+                                    idx, out_region_val, vec[idx]).into());
                             }
                         }
                     }
