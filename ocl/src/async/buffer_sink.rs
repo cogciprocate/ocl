@@ -5,7 +5,8 @@ use futures::{Future, Poll};
 use core::{self, Result as OclCoreResult, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
 use standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
-use async::{Error as AsyncError, OrderLock, FutureGuard, ReadGuard, WriteGuard};
+use async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
+use error::{Error as OclError};
 
 
 #[must_use = "futures do nothing unless polled"]
@@ -27,7 +28,7 @@ impl<T: OclPrm> FutureFlush<T> {
 
 impl<T: OclPrm> Future for FutureFlush<T> {
     type Item = ();
-    type Error = AsyncError;
+    type Error = OclError;
 
     #[inline]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {

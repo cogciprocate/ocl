@@ -11,8 +11,8 @@ use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
 use futures::sync::oneshot::{self, Receiver};
 use core::{Result as OclCoreResult, ClContextPtr, ClNullEventPtr};
+use error::{Error as OclError, Result as OclResult};
 use ::{Event, EventList};
-use async::{Error as AsyncError, Result as AsyncResult};
 use async::qutex::{QrwLock, QrwRequest, RequestKind};
 
 
@@ -439,7 +439,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
     /// Blocks the current thread until the OpenCL command is complete and an
     /// appropriate lock can be obtained on the underlying data.
-    pub fn wait(self) -> AsyncResult<G> {
+    pub fn wait(self) -> OclResult<G> {
         <Self as Future>::wait(self)
     }
 
@@ -479,7 +479,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
     /// Polls the wait events until all requisite commands have completed then
     /// polls the lock queue.
-    fn poll_wait_events(&mut self) -> AsyncResult<Async<G>> {
+    fn poll_wait_events(&mut self) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::WaitEvents);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_wait_events: Called");
 
@@ -502,7 +502,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// Polls the lock until we have obtained a lock then polls the command
     /// event.
     #[cfg(not(feature = "async_block"))]
-    fn poll_lock(&mut self) -> AsyncResult<Async<G>> {
+    fn poll_lock(&mut self) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::LockQueue);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_lock: Called");
 
@@ -544,7 +544,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// Polls the lock until we have obtained a lock then polls the command
     /// event.
     #[cfg(feature = "async_block")]
-    fn poll_lock(&mut self) -> AsyncResult<Async<G>> {
+    fn poll_lock(&mut self) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::LockQueue);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_lock: Called");
 
@@ -566,7 +566,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
     /// Polls the command event until it is complete then returns an `OrderGuard`
     /// which can be safely accessed immediately.
-    fn poll_command(&mut self) -> AsyncResult<Async<G>> {
+    fn poll_command(&mut self) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::Command);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Called");
 
@@ -597,7 +597,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// Only used if `::upgrade_after_command` has been called.
     ///
     #[cfg(not(feature = "async_block"))]
-    fn poll_upgrade(&mut self) -> AsyncResult<Async<G>> {
+    fn poll_upgrade(&mut self) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::Upgrade);
         debug_assert!(self.upgrade_after_command);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_upgrade: Called");
@@ -653,7 +653,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// Only used if `::upgrade_after_command` has been called.
     ///
     #[cfg(feature = "async_block")]
-    fn poll_upgrade(&mut self) -> AsyncResult<Async<G>> {
+    fn poll_upgrade(&mut self) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::Upgrade);
         debug_assert!(self.upgrade_after_command);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_upgrade: Called");
@@ -677,7 +677,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
 impl<V, G> Future for FutureGuard<V, G> where G: OrderGuard<V> {
     type Item = G;
-    type Error = AsyncError;
+    type Error = OclError;
 
     #[inline]
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {

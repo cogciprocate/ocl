@@ -36,7 +36,8 @@ use self::futures::{Future};
 use self::futures_cpupool::{Builder as CpuPoolBuilder, CpuFuture};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::{IntoRawEventArray};
-use ::async::{Error as AsyncError, BufferSink, BufferStream};
+use ::async::{BufferSink, BufferStream};
+use ::error::{Error as OclError};
 use ::flags::{MemFlags, CommandQueueProperties};
 use ::prm::Int4;
 use ::ffi::{cl_event, c_void};
@@ -191,9 +192,9 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>,
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        // -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
-        //     impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
-        -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        // -> AndThen<FutureMemMap<Int4>, OclResult<i32>,
+        //     impl FnOnce(MemMap<Int4>) -> OclResult<i32>>
+        -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _write_write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT {
@@ -264,9 +265,9 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        // -> AndThen<PendingRwGuard<Int4>, AsyncResult<i32>,
-        //     impl FnOnce(RwGuard<Int4>) -> AsyncResult<i32>>
-        -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        // -> AndThen<PendingRwGuard<Int4>, OclResult<i32>,
+        //     impl FnOnce(RwGuard<Int4>) -> OclResult<i32>>
+        -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT {
@@ -397,9 +398,9 @@ pub fn verify_add(dst_buf_stream: &BufferStream<Int4>,
         kernel_event: Option<&Event>,
         verify_add_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        // -> AndThen<FutureMemMap<Int4>, AsyncResult<i32>,
-        //     impl FnOnce(MemMap<Int4>) -> AsyncResult<i32>>
-        -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        // -> AndThen<FutureMemMap<Int4>, OclResult<i32>,
+        //     impl FnOnce(MemMap<Int4>) -> OclResult<i32>>
+        -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT {

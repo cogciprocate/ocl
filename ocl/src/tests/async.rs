@@ -11,7 +11,7 @@ use futures::{Future};
 use core::{ErrorKind as OclCoreErrorKind, Status};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::{IntoRawEventArray, IntoMarker};
-use ::async::{Error as AsyncError, Result as AsyncResult};
+use ::error::{Error as OclError, Result as OclResult};
 use ::flags::{MemFlags, CommandQueueProperties};
 use ::prm::Int4;
 use ::ffi::{cl_event, c_void};
@@ -118,7 +118,7 @@ pub fn write_init(
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
@@ -191,7 +191,7 @@ pub fn verify_init(
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify init starting \t(iter: {}) ...", task_iter as usize); }
@@ -310,7 +310,7 @@ pub fn verify_add(
         wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }
@@ -355,7 +355,7 @@ pub fn verify_add(
 
 /// Creates an out-of-order queue or a shorter error message if unsupported.
 fn create_queue(context: &Context, device: Device, flags: Option<CommandQueueProperties>)
-        -> AsyncResult<Queue>
+        -> OclResult<Queue>
 {
     Queue::new(context, device, flags.clone()).or_else(|err| {
         // match *err.kind() {

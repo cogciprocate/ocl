@@ -2,8 +2,9 @@
 // use std::sync::atomic::AtomicBool;
 use futures::{Future, Poll, Async};
 use core::{OclPrm, MemMap as MemMapCore, Mem, ClNullEventPtr};
-use standard::{Event, Queue, EventList};
-use super::{Error as AsyncError, Result as AsyncResult, MemMap};
+use async::MemMap;
+use error::{Error as OclError, Result as OclResult};
+use ::{Event, Queue, EventList};
 
 
 /// A future which resolves to a `MemMap` as soon as its creating command
@@ -71,7 +72,7 @@ impl<T: OclPrm> FutureMemMap<T> {
     /// thread blocking or extra delays of any kind.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed.
-    pub fn create_unmap_event(&mut self) -> AsyncResult<&mut Event> {
+    pub fn create_unmap_event(&mut self) -> OclResult<&mut Event> {
         if let Some(ref queue) = self.queue {
             let uev = Event::user(&queue.context())?;
             self.unmap_event = Some(uev);
@@ -117,12 +118,12 @@ impl<T: OclPrm> FutureMemMap<T> {
 
     /// Blocks the current thread until the OpenCL command is complete and an
     /// appropriate lock can be obtained on the underlying data.
-    pub fn wait(self) -> AsyncResult<MemMap<T>> {
+    pub fn wait(self) -> OclResult<MemMap<T>> {
         <Self as Future>::wait(self)
     }
 
     /// Resolves this `FutureMemMap` into a `MemMap`.
-    fn to_mapped_mem(&mut self) -> AsyncResult<MemMap<T>> {
+    fn to_mapped_mem(&mut self) -> OclResult<MemMap<T>> {
         match (self.core.take(), self.buffer.take(), self.queue.take()) {
             (Some(core), Some(buffer), Some(queue)) => {
                 // TODO: Add `buffer_is_mapped` to list of joined stuff.
@@ -138,7 +139,7 @@ impl<T: OclPrm> FutureMemMap<T> {
 #[cfg(not(feature = "async_block"))]
 impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
     type Item = MemMap<T>;
-    type Error = AsyncError;
+    type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // println!("Polling FutureMemMap...");
@@ -163,7 +164,7 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
 #[cfg(feature = "async_block")]
 impl<T: OclPrm> Future for FutureMemMap<T> {
     type Item = MemMap<T>;
-    type Error = AsyncError;
+    type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // println!("Polling FutureMemMap...");

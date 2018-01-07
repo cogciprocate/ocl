@@ -2,13 +2,10 @@
 //!
 
 use std;
-// use futures::Canceled as FuturesCanceled;
 use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
 use core::error::{Error as OclCoreError};
 use ::BufferCmdError;
-// #[macro_use]
-// use ocl_core::failure;
 
 pub type Result<T> = std::result::Result<T, self::Error>;
 
@@ -25,7 +22,6 @@ pub enum Error {
     MpscSendError(String),
     #[fail(display = "{}", _0)]
     OneshotCanceled(OneshotCanceled),
-    // FuturesCanceled(FuturesCanceled),
     #[fail(display = "BufferCmd error: {}", _0)]
     BufferCmdError(BufferCmdError),
     #[fail(display = "other error: {}", _0)]
@@ -38,19 +34,6 @@ impl self::Error {
         self::Error::Ocl(OclCoreError::from(desc.into()))
     }
 }
-
-// impl std::error::Error for self::Error {
-//     fn description(&self) -> &str {
-//         match *self {
-//             Error::Ocl(ref err) => err.description(),
-//             Error::MpscSendError(ref err) => err,
-//             Error::OneshotCanceled(ref err) => err.description(),
-//             // Error::FuturesCanceled(ref err) => err.description(),
-//             Error::BufferCmdError(ref err) => err.description(),
-//             Error::Other(ref err) => err.description(),
-//         }
-//     }
-// }
 
 impl From<OclCoreError> for self::Error {
     fn from(err: OclCoreError) -> self::Error {
@@ -74,12 +57,6 @@ impl<T> From<SendError<T>> for self::Error {
         Error::MpscSendError(format!("{}: '{}'", debug, display))
     }
 }
-
-// impl From<FuturesCanceled> for self::Error {
-//     fn from(err: FuturesCanceled) -> self::Error {
-//         Error::FuturesCanceled(err)
-//     }
-// }
 
 impl From<OneshotCanceled> for self::Error {
     fn from(err: OneshotCanceled) -> self::Error {

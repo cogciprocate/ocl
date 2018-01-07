@@ -24,7 +24,7 @@ use ocl::{Platform, Device, Context, Queue, Program, Kernel, OclPrm,
     Event, EventList, FutureMemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Float4;
-use ocl::async::{Error as AsyncError};
+use ocl::error::{Error as OclError};
 use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 
 const INITIAL_BUFFER_LEN: u32 = 1 << 24; // 512MiB of Float4
@@ -326,7 +326,7 @@ fn create_simple_task(task_id: usize, device: Device, context: &Context,
 
 /// Enqueues a unique simple task as defined above.
 fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_pool: &CpuPool,
-        tx: Sender<usize>) -> Join<CpuFuture<usize, AsyncError>, CpuFuture<Sender<usize>, AsyncError>>
+        tx: Sender<usize>) -> Join<CpuFuture<usize, OclError>, CpuFuture<Sender<usize>, OclError>>
 {
     // Do some extra work:
     let task_id = task.task_id;
@@ -366,7 +366,7 @@ fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_poo
 
             Ok(tx.send(val_count))
         })
-        .and_then(|send| send.map_err(|e| AsyncError::from(e)));
+        .and_then(|send| send.map_err(|e| OclError::from(e)));
 
     let verify_spawned = thread_pool.spawn(verify);
 
@@ -521,7 +521,7 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
 
 /// Enqueues a unique complex task as defined above.
 fn enqueue_complex_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_pool: &CpuPool,
-        tx: Sender<usize>) -> Join<CpuFuture<usize, AsyncError>, CpuFuture<Sender<usize>, AsyncError>>
+        tx: Sender<usize>) -> Join<CpuFuture<usize, OclError>, CpuFuture<Sender<usize>, OclError>>
 {
     let task_id = task.task_id;
 
@@ -574,7 +574,7 @@ fn enqueue_complex_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_po
 
             Ok(tx.send(val_count))
         })
-        .and_then(|send| send.map_err(|e| AsyncError::from(e)));
+        .and_then(|send| send.map_err(|e| OclError::from(e)));
 
     let write_spawned = thread_pool.spawn(write);
     let verify_spawned = thread_pool.spawn(verify);

@@ -7,7 +7,7 @@ use futures::{Future, Poll, Async};
 use core::{self, Result as OclCoreResult, OclPrm, Mem as MemCore, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr, ClWaitListPtr, AsMem};
 use standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
-use async::{Error as AsyncError, Result as AsyncResult};
+use async::{Error as OclError, Result as OclResult};
 
 
 
@@ -189,12 +189,12 @@ impl<T: OclPrm> FutureSinkMapGuard<T> {
 
     /// Blocks the current thread until the OpenCL command is complete and an
     /// appropriate lock can be obtained on the underlying data.
-    pub fn wait(self) -> AsyncResult<SinkMapGuard<T>> {
+    pub fn wait(self) -> OclResult<SinkMapGuard<T>> {
         <Self as Future>::wait(self)
     }
 
     /// Resolves this `FutureSinkMapGuard` into a `SinkMapGuard`.
-    fn resolve(&mut self) -> AsyncResult<SinkMapGuard<T>> {
+    fn resolve(&mut self) -> OclResult<SinkMapGuard<T>> {
         match (self.mem_map.take(), self.buffer.take(), self.queue.take()) {
             (Some(mem_map), Some(buffer), Some(queue)) => {
                 unsafe { Ok(SinkMapGuard::new(mem_map, self.len, self.unmap_event.take(),
@@ -207,7 +207,7 @@ impl<T: OclPrm> FutureSinkMapGuard<T> {
 
 // impl<T: OclPrm> Future for FutureSinkMapGuard<T> {
 //     type Item = ();
-//     type Error = AsyncError;
+//     type Error = OclError;
 
 //     #[inline]
 //     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
@@ -218,7 +218,7 @@ impl<T: OclPrm> FutureSinkMapGuard<T> {
 #[cfg(not(feature = "async_block"))]
 impl<T> Future for FutureSinkMapGuard<T> where T: OclPrm + 'static {
     type Item = SinkMapGuard<T>;
-    type Error = AsyncError;
+    type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // println!("Polling FutureSinkMapGuard...");
@@ -242,7 +242,7 @@ impl<T> Future for FutureSinkMapGuard<T> where T: OclPrm + 'static {
 #[cfg(feature = "async_block")]
 impl<T: OclPrm> Future for FutureSinkMapGuard<T> {
     type Item = SinkMapGuard<T>;
-    type Error = AsyncError;
+    type Error = OclError;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         // println!("Polling FutureSinkMapGuard...");

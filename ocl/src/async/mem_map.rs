@@ -3,7 +3,7 @@
 use std::ops::{Deref, DerefMut};
 use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem as MemCore, AsMem};
 use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, EventList, Queue};
-use async::{Result as AsyncResult};
+use error::{Result as OclResult};
 
 
 /// An unmap command builder.
@@ -73,7 +73,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
 
     /// Enqueues this command.
     ///
-    pub fn enq(self) -> AsyncResult<()> {
+    pub fn enq(self) -> OclResult<()> {
         self.mem_map.enqueue_unmap(self.queue, self.ewait, self.enew)
     }
 }
@@ -127,7 +127,7 @@ impl<T> MemMap<T>  where T: OclPrm {
     /// Prefer `::unmap` for a more stable interface as this function may
     /// change at any time.
     pub fn enqueue_unmap<Ewl, En>(&mut self, queue: Option<&Queue>, ewait_opt: Option<Ewl>,
-            mut enew_opt: Option<En>) -> AsyncResult<()>
+            mut enew_opt: Option<En>) -> OclResult<()>
             where En: ClNullEventPtr, Ewl: ClWaitListPtr
     {
         if !self.is_unmapped {

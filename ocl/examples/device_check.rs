@@ -27,7 +27,7 @@ use rand::{XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
     Event, EventList, MemMap, RwVec};
-use ocl::async::{Error as AsyncError, Result as AsyncResult};
+use ocl::error::{Error as OclError, Result as OclResult};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::traits::{IntoRawEventArray};
 use ocl::prm::{Float4, Int4};
@@ -311,7 +311,7 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
 
 
 fn create_queue(device: Device, context: &Context, flags: Option<CommandQueueProperties>)
-        -> AsyncResult<Queue>
+        -> OclResult<Queue>
 {
     Queue::new(&context, device, flags.clone()).or_else(|err| {
         // match *err.kind() {
@@ -329,7 +329,7 @@ fn create_queue(device: Device, context: &Context, flags: Option<CommandQueuePro
 
 
 pub fn create_queues(device: Device, context: &Context, out_of_order: bool)
-        -> AsyncResult<(Queue, Queue, Queue)>
+        -> OclResult<(Queue, Queue, Queue)>
 {
     let ooo_flag = if out_of_order {
         CommandQueueProperties::new().out_of_order()
@@ -360,7 +360,7 @@ fn wire_callback(wire_callback: bool, context: &Context, map_event: &Event) -> O
     }
 }
 
-fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> AsyncResult<()> {
+fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> OclResult<()> {
     if tar != src {
         let fail_reason = format!(colorify!(red_bold:
             "VALUE MISMATCH AT INDEX [{}]: {:?} != {:?}"),
@@ -373,7 +373,7 @@ fn check_failure<T: OclPrm + Debug>(idx: usize, tar: T, src: T) -> AsyncResult<(
 }
 
 
-fn print_result(operation: &str, result: AsyncResult<()>) {
+fn print_result(operation: &str, result: OclResult<()>) {
     match result {
         Ok(_) => {
             printc!(white: "    {}  ", operation);
@@ -395,7 +395,7 @@ fn print_result(operation: &str, result: AsyncResult<()>) {
 }
 
 pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Float4>)
-        -> AsyncResult<()>
+        -> OclResult<()>
 {
     let work_size_range = RandRange::new(cfg.misc.work_size_range.0, cfg.misc.work_size_range.1);
     let work_size = work_size_range.ind_sample(rng);
@@ -729,7 +729,7 @@ pub fn vec_write_async(
         fill_event: Option<&Event>,
         write_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
@@ -805,7 +805,7 @@ pub fn kernel_add(
 pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         verify_add_unmap_queue: Queue, wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>, correct_val: i32,
-        task_iter: i32) -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        task_iter: i32) -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}) ...",
@@ -849,7 +849,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
         verify_add_release_queue: &Queue, kernel_event: Option<&Event>,
         verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=AsyncError> + Send>
+        -> Box<Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }
@@ -888,7 +888,7 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
 }
 
 pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Int4>)
-        -> AsyncResult<()>
+        -> OclResult<()>
 {
     use std::thread;
 
