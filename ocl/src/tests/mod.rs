@@ -22,7 +22,7 @@ pub mod async;
 pub mod buffer_sink_stream_cycles;
 
 use rand::{self, Rng};
-use core::error::{Error as OclCoreError, Result as OclResult};
+use core::error::{Result as OclCoreResult};
 use core::OclScl;
 
 const PRINT_ITERS_MAX: i32 = 3;
@@ -57,7 +57,7 @@ fn within_region(coords: [usize; 3], region_ofs: [usize; 3], region_size: [usize
 
 fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_val: T,
             out_region_val: T, vec_dims: [usize; 3], ele_per_coord: usize, vec: &[T],
-            ttl_runs: i32, print: bool) -> OclResult<()>
+            ttl_runs: i32, print: bool) -> OclCoreResult<()>
 {
     let mut print = PRINT && print && ttl_runs <= PRINT_ITERS_MAX;
     let slices_to_print = PRINT_SLICES_MAX;
@@ -103,13 +103,13 @@ fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_
                     if result.is_ok() {
                         if within_region([x, y, z], origin, region) {
                             if vec[idx] != in_region_val {
-                                result = OclCoreError::err_string(format!("vec[{}] should be '{}' but is '{}'",
-                                    idx, in_region_val, vec[idx]));
+                                result = Err(format!("vec[{}] should be '{}' but is '{}'",
+                                    idx, in_region_val, vec[idx]).into());
                             }
                         } else {
                             if vec[idx] != out_region_val {
-                                result = OclCoreError::err_string(format!("vec[{}] should be '{}' but is '{}'",
-                                    idx, out_region_val, vec[idx]));
+                                result = Err(format!("vec[{}] should be '{}' but is '{}'",
+                                    idx, out_region_val, vec[idx]).into());
                             }
                         }
                     }

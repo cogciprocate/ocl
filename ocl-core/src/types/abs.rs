@@ -50,7 +50,7 @@ use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceIn
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
     EventInfo, EventInfoResult, DeviceType};
-use error::{Result as OclResult, Error as OclError};
+use error::{Result as OclCoreResult, Error as OclError};
 use functions::{self, ApiFunction, VersionKind};
 
 //=============================================================================
@@ -107,15 +107,15 @@ pub unsafe trait MemCmdAll {}
 
 /// Types with a fixed set of associated devices and an associated platform.
 pub trait ClVersions {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>>;
-    fn platform_version(&self) -> OclResult<OpenclVersion>;
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>>;
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion>;
 
-    fn verify_device_versions(&self, required_version: [u16; 2]) -> OclResult<()> {
+    fn verify_device_versions(&self, required_version: [u16; 2]) -> OclCoreResult<()> {
         functions::verify_versions(&try!(self.device_versions()), required_version,
             ApiFunction::None, VersionKind::Device)
     }
 
-    fn verify_platform_version(&self, required_version: [u16; 2]) -> OclResult<()> {
+    fn verify_platform_version(&self, required_version: [u16; 2]) -> OclCoreResult<()> {
         let ver = [try!(self.platform_version())];
         functions::verify_versions(&ver, required_version, ApiFunction::None,
             VersionKind::Platform)
@@ -123,7 +123,7 @@ pub trait ClVersions {
 }
 
 impl ClVersions for cl_context {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = match functions::get_context_info(self, ContextInfo::Devices) {
             ContextInfoResult::Devices(ds) => Ok(ds),
             ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
@@ -138,7 +138,7 @@ impl ClVersions for cl_context {
         functions::device_versions(&devices)
     }
 
-    fn platform_version(&self) -> OclResult<OpenclVersion> {
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let devices = match functions::get_context_info(self, ContextInfo::Devices) {
             ContextInfoResult::Devices(ds) => Ok(ds),
             ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
@@ -348,11 +348,11 @@ impl PlatformId {
     }
 
     /// Returns the queried and parsed OpenCL version for this platform.
-    pub fn version(&self) -> OclResult<OpenclVersion> {
+    pub fn version(&self) -> OclCoreResult<OpenclVersion> {
         if !self.0.is_null() {
             functions::get_platform_info(self, PlatformInfo::Version).as_opencl_version()
         } else {
-            OclError::err_string("PlatformId::version(): This platform_id is invalid.")
+            Err("PlatformId::version(): This platform_id is invalid.".into())
         }
     }
 }
@@ -373,13 +373,13 @@ impl PartialEq<PlatformId> for PlatformId {
 }
 
 impl ClVersions for PlatformId {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = try!(functions::get_device_ids(self, Some(DeviceType::ALL), None));
         functions::device_versions(&devices)
     }
 
     // [FIXME]: TEMPORARY; [UPDATE]: Why is this marked temporary?
-    fn platform_version(&self) -> OclResult<OpenclVersion> {
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         self.version()
     }
 }
@@ -410,11 +410,11 @@ impl DeviceId {
     }
 
     /// Returns the queried and parsed OpenCL version for this device.
-    pub fn version(&self) -> OclResult<OpenclVersion> {
+    pub fn version(&self) -> OclCoreResult<OpenclVersion> {
         if !self.0.is_null() {
             functions::get_device_info(self, DeviceInfo::Version).as_opencl_version()
         } else {
-            OclError::err_string("DeviceId::device_versions(): This device_id is invalid.")
+            Err("DeviceId::device_versions(): This device_id is invalid.".into())
         }
     }
 }
@@ -441,11 +441,11 @@ impl PartialEq<DeviceId> for DeviceId {
 }
 
 impl ClVersions for DeviceId {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         self.version().map(|dv| vec![dv])
     }
 
-    fn platform_version(&self) -> OclResult<OpenclVersion> {
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let platform = match functions::get_device_info(self, DeviceInfo::Platform) {
             DeviceInfoResult::Platform(p) => p,
             DeviceInfoResult::Error(e) => return Err(OclError::from(*e)),
@@ -485,7 +485,7 @@ impl Context {
     }
 
     /// Returns the devices associated with this context.
-    pub fn devices(&self) -> OclResult<Vec<DeviceId>> {
+    pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         match functions::get_context_info(self, ContextInfo::Devices) {
             ContextInfoResult::Devices(ds) => Ok(ds),
             ContextInfoResult::Error(e) => return Err(OclError::from(*e)),
@@ -498,7 +498,7 @@ impl Context {
     /// Errors upon the usual OpenCL errors.
     ///
     /// Returns `None` if the context properties do not specify a platform.
-    pub fn platform(&self) -> OclResult<Option<PlatformId>> {
+    pub fn platform(&self) -> OclCoreResult<Option<PlatformId>> {
         functions::get_context_platform(self)
     }
 }
@@ -545,23 +545,23 @@ unsafe impl<'a> ClContextPtr for &'a Context {
 }
 
 impl ClVersions for Context {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = try!(self.devices());
         functions::device_versions(&devices)
     }
 
-    fn platform_version(&self) -> OclResult<OpenclVersion> {
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let devices = try!(self.devices());
         devices[0].platform_version()
     }
 }
 
 impl<'a> ClVersions for &'a Context {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         (*self).device_versions()
     }
 
-    fn platform_version(&self) -> OclResult<OpenclVersion> {
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         (*self).platform_version()
     }
 }
@@ -595,7 +595,7 @@ impl CommandQueue {
     }
 
     /// Returns the `DeviceId` associated with this command queue.
-    pub fn device(&self) -> OclResult<DeviceId> {
+    pub fn device(&self) -> OclCoreResult<DeviceId> {
         match functions::get_command_queue_info(self, CommandQueueInfo::Device) {
             CommandQueueInfoResult::Device(d) => Ok(d),
             CommandQueueInfoResult::Error(e) => Err(OclError::from(*e)),
@@ -604,12 +604,12 @@ impl CommandQueue {
     }
 
     /// Returns the `Context` associated with this command queue.
-    pub fn context(&self) -> OclResult<Context> {
+    pub fn context(&self) -> OclCoreResult<Context> {
         self.context_ptr().map(|ptr| unsafe { Context::from_raw_copied_ptr(ptr) })
     }
 
     /// Returns the `cl_context` associated with this command queue.
-    pub fn context_ptr(&self) -> OclResult<cl_context> {
+    pub fn context_ptr(&self) -> OclCoreResult<cl_context> {
         functions::get_command_queue_context_ptr(self)
     }
 }
@@ -644,12 +644,12 @@ unsafe impl Sync for CommandQueue {}
 unsafe impl Send for CommandQueue {}
 
 impl ClVersions for CommandQueue{
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let device = try!(self.device());
         device.version().map(|dv| vec![dv])
     }
 
-    fn platform_version(&self) -> OclResult<OpenclVersion> {
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         try!(self.device()).platform_version()
     }
 }
@@ -803,7 +803,7 @@ impl Program {
 	}
 
     /// Returns the devices associated with this program.
-    pub fn devices(&self) -> OclResult<Vec<DeviceId>> {
+    pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         match functions::get_program_info(self, ProgramInfo::Devices) {
             ProgramInfoResult::Devices(d) => Ok(d),
             ProgramInfoResult::Error(e) => Err(OclError::from(*e)),
@@ -829,12 +829,12 @@ unsafe impl Sync for Program {}
 unsafe impl Send for Program {}
 
 impl ClVersions for Program {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = try!(self.devices());
         functions::device_versions(&devices)
     }
 
-    fn platform_version(&self) -> OclResult<OpenclVersion> {
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let devices = try!(self.devices());
         devices[0].platform_version()
     }
@@ -887,7 +887,7 @@ impl Kernel {
     }
 
     /// Returns the program associated with this kernel.
-    pub fn program(&self) -> OclResult<Program> {
+    pub fn program(&self) -> OclCoreResult<Program> {
         match functions::get_kernel_info(self, KernelInfo::Program) {
             KernelInfoResult::Program(d) => Ok(d),
             KernelInfoResult::Error(e) => Err(OclError::from(*e)),
@@ -895,7 +895,7 @@ impl Kernel {
         }
     }
 
-    pub fn devices(&self) -> OclResult<Vec<DeviceId>> {
+    pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         self.program().and_then(|p| p.devices())
     }
 }
@@ -914,12 +914,12 @@ impl Drop for Kernel {
 }
 
 impl ClVersions for Kernel {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = try!(try!(self.program()).devices());
         functions::device_versions(&devices)
     }
 
-    fn platform_version(&self) -> OclResult<OpenclVersion> {
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let devices = try!(try!(self.program()).devices());
         devices[0].platform_version()
     }
@@ -946,7 +946,7 @@ impl Event {
     /// set from the host side (that means you).
     ///
     #[inline]
-    pub fn user<C: ClContextPtr>(context: C) -> OclResult<Event> {
+    pub fn user<C: ClContextPtr>(context: C) -> OclCoreResult<Event> {
         functions::create_user_event(context)
     }
 
@@ -961,7 +961,7 @@ impl Event {
     /// Only use when cloning or copying from a pre-existing and valid
     /// `cl_event`.
     #[inline]
-    pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclResult<Event> {
+    pub unsafe fn from_raw_copied_ptr(ptr: cl_event) -> OclCoreResult<Event> {
         assert!(!ptr.is_null(), "ocl_core::Event::from_raw_copied_ptr: Null pointer passed.");
         let copy = Event(ptr);
         functions::retain_event(&copy)?;
@@ -974,7 +974,7 @@ impl Event {
     /// with `::user()`).
     ///
     #[inline]
-    pub fn set_complete(&self) -> OclResult<()> {
+    pub fn set_complete(&self) -> OclCoreResult<()> {
         functions::set_user_event_status(self, CommandExecutionStatus::Complete)
     }
 
@@ -984,13 +984,13 @@ impl Event {
     /// This is the fastest possible way to determine event status.
     ///
     #[inline]
-    pub fn is_complete(&self) -> OclResult<bool> {
+    pub fn is_complete(&self) -> OclCoreResult<bool> {
         functions::event_is_complete(self)
     }
 
     /// Causes the command queue to wait until this event is complete before returning.
     #[inline]
-    pub fn wait_for(&self) -> OclResult <()> {
+    pub fn wait_for(&self) -> OclCoreResult <()> {
         ::wait_for_event(self)
     }
 
@@ -1032,7 +1032,7 @@ impl Event {
     pub unsafe fn set_callback(&self,
             callback_receiver: EventCallbackFn,
             user_data_ptr: *mut c_void,
-            ) -> OclResult<()>
+            ) -> OclCoreResult<()>
     {
         if self.is_valid() {
             ::set_event_callback(self, CommandExecutionStatus::Complete,
@@ -1045,7 +1045,7 @@ impl Event {
 
 
     /// Returns the `Context` associated with this event.
-    pub fn context(&self) -> OclResult<Context> {
+    pub fn context(&self) -> OclCoreResult<Context> {
         match functions::get_event_info(self, EventInfo::Context) {
             EventInfoResult::Context(c) => Ok(c),
             EventInfoResult::Error(e) => Err(OclError::from(*e)),

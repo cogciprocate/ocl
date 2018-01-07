@@ -2,7 +2,7 @@
 
 // use std::convert::Into;
 use std::ops::Deref;
-use core::error::{Result as OclResult, Error as OclCoreError};
+use core::error::{Result as OclCoreResult};
 use core::{OclPrm, CommandQueueProperties};
 use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
     MemLen, SpatialDims, WorkDims, DeviceSpecifier};
@@ -72,7 +72,7 @@ impl ProQue {
     }
 
     /// Creates a kernel with pre-assigned dimensions.
-    pub fn create_kernel(&self, name: &str) -> OclResult<Kernel> {
+    pub fn create_kernel(&self, name: &str) -> OclCoreResult<Kernel> {
         let kernel = Kernel::new(name.to_string(), &self.program)?
             .queue(self.queue.clone());
 
@@ -98,7 +98,7 @@ impl ProQue {
     /// If not, set them with `::set_dims`, or just create a buffer using
     /// `Buffer::builder()` instead.
     ///
-    pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
+    pub fn create_buffer<T: OclPrm>(&self) -> OclCoreResult<Buffer<T>> {
         let dims = try!(self.dims_result());
         // Buffer::<T>::new(self.queue.clone(), None, dims, None)
         // Buffer::<T>::new(self.queue.clone(), None, dims, None, None)
@@ -119,7 +119,7 @@ impl ProQue {
     /// with this `ProQue`.
     ///
     /// [UNSTABLE]: Evaluate usefulness.
-    pub fn max_wg_size(&self) -> OclResult<usize> {
+    pub fn max_wg_size(&self) -> OclCoreResult<usize> {
         self.queue.device().max_wg_size()
     }
 
@@ -150,10 +150,10 @@ impl ProQue {
     ///
     /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards the
     /// above, panicking version at the moment.
-    pub fn dims_result(&self) -> OclResult<&SpatialDims> {
+    pub fn dims_result(&self) -> OclCoreResult<&SpatialDims> {
         match self.dims {
             Some(ref dims) => Ok(dims),
-            None => OclCoreError::err_string(DIMS_ERR_MSG),
+            None => Err(DIMS_ERR_MSG.into()),
         }
     }
 }
@@ -336,14 +336,14 @@ impl ProQueBuilder {
     /// A `ProgramBuilder` or some source code must have been specified with
     /// `::prog_bldr` or `::src` before building.
     ///
-    pub fn build(&self) -> OclResult<ProQue> {
+    pub fn build(&self) -> OclCoreResult<ProQue> {
         let program_builder = match self.program_builder {
             // Some(program_builder) => ProQueBuilder::_build(self.context, self.device_idx, program_builder),
             Some(ref program_builder) => program_builder,
-            None => return OclCoreError::err_string("ProQueBuilder::build(): No program builder or kernel source defined. \
+            None => return Err("ProQueBuilder::build(): No program builder or kernel source defined. \
                 OpenCL programs must have some source code to be compiled. Use '::src' to directly \
                 add source code or '::program_builder' for more complex builds. Please see the \
-                'ProQueBuilder' and 'ProgramBuilder' documentation for more information."),
+                'ProQueBuilder' and 'ProgramBuilder' documentation for more information.".into()),
         };
 
         // If no platform is set or no context platform is set, use the first available:
@@ -378,9 +378,10 @@ impl ProQueBuilder {
                 if device_list.len() == 1 {
                     device_list[0]
                 } else {
-                    return OclCoreError::err_string(format!("Invalid number of devices specified ({}). Each 'ProQue' \
+                    return Err(format!("Invalid number of devices specified ({}). Each 'ProQue' \
                         can only be associated with a single device. Use 'Context', 'Program', and \
-                        'Queue' separately for multi-device configurations.", device_list.len()));
+                        'Queue' separately for multi-device configurations.",
+                        device_list.len()).into());
                 }
             },
             None => Device::first(platform),

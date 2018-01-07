@@ -10,7 +10,7 @@ use std::ops::{Deref, DerefMut};
 // use std::convert::Into;
 use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
-use core::error::{Result as OclResult};
+use core::error::{Result as OclCoreResult};
 
 /// A platform identifier.
 ///
@@ -38,7 +38,7 @@ impl Platform {
     /// (`Platform::default` always respects it). Second, this function will
     /// not panic if no platforms are available and will return an error
     /// instead.
-    pub fn first(ignore_env_var: bool) -> OclResult<Platform> {
+    pub fn first(ignore_env_var: bool) -> OclCoreResult<Platform> {
         if ignore_env_var {
             Ok(Platform::new(core::get_platform_ids()?[0]))
         } else {

@@ -9,7 +9,7 @@ use std::mem;
 use std::marker::PhantomData;
 use std::collections::HashMap;
 use num::FromPrimitive;
-use error::{Error as OclError, Result as OclResult};
+use error::{Error as OclError, Result as OclCoreResult};
 use ffi::{self, cl_mem, cl_buffer_region, cl_context_properties, cl_platform_id};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
     PlatformId, OclPrm};
@@ -43,7 +43,7 @@ impl OpenclVersion {
     /// Looks for the sequence of chars, "OpenCL" (non-case-sensitive), then
     /// splits the word just after that (at '.') and parses the two results
     /// into integers (major and minor version numbers).
-    pub fn from_info_str(ver: &str) -> OclResult<OpenclVersion> {
+    pub fn from_info_str(ver: &str) -> OclCoreResult<OpenclVersion> {
         let mut version_word_idx: Option<usize> = None;
         let mut version: Option<OpenclVersion> = None;
 
@@ -80,8 +80,8 @@ impl OpenclVersion {
 
         match version {
             Some(cl_ver) => Ok(cl_ver),
-            None => OclError::err_string(format!("DeviceInfoResult::as_opencl_version(): \
-                Error parsing version from the string: '{}'.", ver)),
+            None => Err(format!("DeviceInfoResult::as_opencl_version(): \
+                Error parsing version from the string: '{}'.", ver).into()),
         }
     }
 }
@@ -450,7 +450,7 @@ impl ContextProperties {
     ///
     ///
     #[allow(unused_variables, unused_mut)]
-    pub unsafe fn from_raw(raw_context_properties: &[isize]) -> OclResult<ContextProperties> {
+    pub unsafe fn from_raw(raw_context_properties: &[isize]) -> OclCoreResult<ContextProperties> {
         // The raw properties **should** be `(isize, isize)` pairs + isize (null) terminator.
         assert!(mem::size_of::<cl_context_properties>() == mem::size_of::<isize>());
         assert!(raw_context_properties.len() % 2 == 1);

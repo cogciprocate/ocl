@@ -3,7 +3,7 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
-use core::error::{Error as OclCoreError, Result as OclResult};
+use core::error::{Result as OclCoreResult};
 use standard::Platform;
 use ffi::cl_device_id;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
@@ -138,7 +138,7 @@ impl DeviceSpecifier {
     /// `Platform`. If no `platform` has been specified, this behaviour is
     /// undefined and could end up using any platform at all.
     ///
-    pub fn to_device_list<P: Borrow<Platform>>(&self, platform: Option<P>) -> OclResult<Vec<Device>> {
+    pub fn to_device_list<P: Borrow<Platform>>(&self, platform: Option<P>) -> OclCoreResult<Vec<Device>> {
         let platform = platform.map(|p| p.borrow().clone()).unwrap_or(Platform::first(false)?);
 
         match *self {
@@ -278,13 +278,13 @@ impl Device {
     /// All indices in `idxs` must be valid. Use `resolve_idxs_wrap` for index
     /// lists which may contain out of bounds indices.
     ///
-    pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclResult<Vec<Device>> {
+    pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclCoreResult<Vec<Device>> {
         let mut result = Vec::with_capacity(idxs.len());
         for &idx in idxs.iter() {
             match devices.get(idx) {
                 Some(&device) => result.push(device),
-                None => return OclCoreError::err_string(format!("Error resolving device index: '{}'. Index out of \
-                    range. Devices avaliable: '{}'.", idx, devices.len())),
+                None => return Err(format!("Error resolving device index: '{}'. Index out of \
+                    range. Devices avaliable: '{}'.", idx, devices.len()).into()),
             }
         }
         Ok(result)
@@ -318,7 +318,7 @@ impl Device {
     /// [`.status()`]: enum.Error.html#method.status
     /// [`ocl::core::Status`]: enum.Status.html
     ///
-    pub fn list<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
+    pub fn list<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>) -> OclCoreResult<Vec<Device>> {
         let list_core = core::get_device_ids(platform.borrow(), device_types, None)
             .unwrap_or(vec![]);
         Ok(list_core.into_iter().map(Device).collect())
@@ -331,7 +331,7 @@ impl Device {
     /// See [`::list`](struct.Device.html#method.list) for other
     /// error information.
     ///
-    pub fn list_all<P: Borrow<Platform>>(platform: P) -> OclResult<Vec<Device>> {
+    pub fn list_all<P: Borrow<Platform>>(platform: P) -> OclCoreResult<Vec<Device>> {
         Self::list(platform, None)
     }
 
@@ -347,7 +347,7 @@ impl Device {
     /// error information.
     ///
     pub fn list_select<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
-                idxs: &[usize]) -> OclResult<Vec<Device>> {
+                idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
         Self::resolve_idxs(idxs, &try!(Self::list(platform, device_types)))
     }
 
@@ -362,7 +362,7 @@ impl Device {
     /// See [`::list`](struct.Device.html#method.list)
     ///
     pub fn list_select_wrap<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
-                idxs: &[usize]) -> OclResult<Vec<Device>> {
+                idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
         Ok(Self::resolve_idxs_wrap(idxs, &try!(Self::list(platform, device_types))))
     }
 
@@ -388,7 +388,7 @@ impl Device {
     }
 
     /// Returns the maximum workgroup size or an error.
-    pub fn max_wg_size(&self) -> OclResult<usize> {
+    pub fn max_wg_size(&self) -> OclCoreResult<usize> {
         match self.info(DeviceInfo::MaxWorkGroupSize) {
             DeviceInfoResult::MaxWorkGroupSize(r) => Ok(r),
             DeviceInfoResult::Error(err) => Err(*err),
@@ -397,7 +397,7 @@ impl Device {
     }
 
     /// Returns the memory base address alignment offset or an error.
-    pub fn mem_base_addr_align(&self) -> OclResult<u32> {
+    pub fn mem_base_addr_align(&self) -> OclCoreResult<u32> {
         match self.info(DeviceInfo::MemBaseAddrAlign) {
             DeviceInfoResult::MemBaseAddrAlign(r) => Ok(r),
             DeviceInfoResult::Error(err) => Err(*err),
@@ -406,7 +406,7 @@ impl Device {
     }
 
     /// Returns whether or not the device is available for use.
-    pub fn is_available(&self) -> OclResult<bool> {
+    pub fn is_available(&self) -> OclCoreResult<bool> {
         match self.info(DeviceInfo::Available) {
             DeviceInfoResult::Available(r) => Ok(r),
             DeviceInfoResult::Error(err) => Err(*err),

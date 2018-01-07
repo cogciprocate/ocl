@@ -15,12 +15,12 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 /// An enum one of several error types.
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    // Void: An error with no description:
-    // TODO: Remove eventually.
-    #[fail(display = "OpenCL Error (void)",)]
-    Void,
     // String: An arbitrary error:
-    // TODO: Remove eventually.
+    //
+    // TODO: Remove this eventually. We need to replace every usage
+    // (conversion from String/str) with a dedicated error type/variant for
+    // each. In the meanwhile, refrain from creating new instances of this by
+    // converting strings to `Error`!
     #[fail(display = "{}", _0)]
     String(String),
     // FfiNul: Ffi string conversion error:
@@ -64,14 +64,9 @@ pub struct Error {
 impl Error {
     /// Returns a new `Err(ocl_core::ErrorKind::String(...))` variant with the
     /// given description.
-    // #[deprecated(since="0.4.0", note="Use `Err(\"...\".into())` instead.")]
+    #[deprecated(since="0.8.0", note = "Create a dedicated error type instead.")]
     pub fn err_string<T, S: Into<String>>(desc: S) -> self::Result<T> {
         Err(Error { inner: Context::new(ErrorKind::String(desc.into())) })
-    }
-
-    // TODO: REMOVE ME
-    pub fn string_temporary<S: Into<String>>(desc: S) -> Self {
-        Error { inner: Context::new(ErrorKind::String(desc.into())) }
     }
 
     /// Returns the error status code for `Status` variants.
@@ -96,7 +91,7 @@ impl Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self, f)
+        fmt::Display::fmt(&self.inner, f)
     }
 }
 
@@ -128,33 +123,23 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<()> for Error {
-    fn from(_: ()) -> Self {
-        Error { inner: Context::new(ErrorKind::Void) }
-    }
-}
-
 impl From<EmptyInfoResultError> for Error {
     fn from(err: EmptyInfoResultError) -> Self {
         Error { inner: Context::new(ErrorKind::EmptyInfoResult(err)) }
     }
 }
 
-impl From<String> for Error {
-    fn from(desc: String) -> Self {
-        Error { inner: Context::new(ErrorKind::String(desc)) }
-    }
-}
-
-impl From<Error> for String {
-    fn from(err: Error) -> String {
-        format!("{}", err)
-    }
-}
-
+// TODO: REMOVE EVENTUALLY
 impl<'a> From<&'a str> for Error {
     fn from(desc: &'a str) -> Self {
         Error { inner: Context::new(ErrorKind::String(String::from(desc))) }
+    }
+}
+
+// TODO: REMOVE EVENTUALLY
+impl From<String> for Error {
+    fn from(desc: String) -> Self {
+        Error { inner: Context::new(ErrorKind::String(desc)) }
     }
 }
 

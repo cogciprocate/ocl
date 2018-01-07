@@ -6,7 +6,7 @@ use ffi::cl_context;
 use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
     ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult,
     CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr, ClVersions};
-use core::error::{Result as OclResult, Error as OclCoreError};
+use core::error::{Result as OclCoreResult, Error as OclCoreError};
 use standard::{Platform, Device, DeviceSpecifier};
 
 
@@ -58,7 +58,7 @@ impl Context {
     ///
     pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>,
                 pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>)
-            -> OclResult<Context>
+            -> OclCoreResult<Context>
     {
         assert!(pfn_notify.is_none() && user_data.is_none(),
             "Context creation callbacks not yet implemented - file issue if you need this.");
@@ -86,7 +86,7 @@ impl Context {
     /// valid device index.
     ///
     pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
-    // pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> OclResult<Vec<Device>> {
+    // pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
         Device::resolve_idxs_wrap(idxs, &self.devices())
         // self.devices().map(|ds| Device::resolve_idxs_wrap(idxs, &ds))
     }
@@ -146,18 +146,18 @@ impl Context {
     ///
     /// Panics upon any OpenCL error.
     pub fn devices(&self) -> Vec<Device> {
-    // pub fn devices(&self) -> OclResult<Vec<Device>> {
+    // pub fn devices(&self) -> OclCoreResult<Vec<Device>> {
         Device::list_from_core(self.0.devices().unwrap())
         // self.0.devices().map(|dl| Device::list_from_core(dl))
     }
 
     /// Returns the list of device versions associated with this context.
-    pub fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+    pub fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         Device::list_from_core(self.0.devices()?).into_iter().map(|d| d.version()).collect()
     }
 
     /// Returns the platform this context is associated with.
-    pub fn platform(&self) -> OclResult<Option<Platform>> {
+    pub fn platform(&self) -> OclCoreResult<Option<Platform>> {
         self.0.platform().map(|opt| opt.map(Platform::from))
     }
 
@@ -204,13 +204,13 @@ unsafe impl<'a> ClContextPtr for &'a Context {
 }
 
 impl ClVersions for Context {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> { self.0.device_versions() }
-    fn platform_version(&self) -> OclResult<OpenclVersion> { self.0.platform_version() }
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> { self.0.device_versions() }
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> { self.0.platform_version() }
 }
 
 impl<'a> ClVersions for &'a Context {
-    fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> { self.0.device_versions() }
-    fn platform_version(&self) -> OclResult<OpenclVersion> { self.0.platform_version() }
+    fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> { self.0.device_versions() }
+    fn platform_version(&self) -> OclCoreResult<OpenclVersion> { self.0.platform_version() }
 }
 
 
@@ -323,7 +323,7 @@ impl ContextBuilder {
     // * TODO:
     //   - Handle context creation callbacks.
     //
-    pub fn build(&self) -> OclResult<Context> {
+    pub fn build(&self) -> OclCoreResult<Context> {
         let mut props = self.properties.clone();
 
         if props.get_platform().is_none() {

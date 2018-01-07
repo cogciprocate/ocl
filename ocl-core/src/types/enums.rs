@@ -31,7 +31,7 @@ use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, Devic
     DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties,
     ImageFormatParseResult, Status};
 
-use error::{Result as OclResult, Error as OclError};
+use error::{Result as OclCoreResult, Error as OclError};
 // use cl_h;
 
 
@@ -177,7 +177,7 @@ pub enum PlatformInfoResult {
 }
 
 impl PlatformInfoResult {
-    pub fn from_bytes(request: PlatformInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: PlatformInfo, result: OclCoreResult<Vec<u8>>)
             -> PlatformInfoResult
     {
         match result {
@@ -205,13 +205,13 @@ impl PlatformInfoResult {
     }
 
     /// Parse the `Version` string and get a numeric result as `OpenclVersion`.
-    pub fn as_opencl_version(&self) -> OclResult<OpenclVersion> {
+    pub fn as_opencl_version(&self) -> OclCoreResult<OpenclVersion> {
         if let PlatformInfoResult::Version(ref ver) = *self {
             OpenclVersion::from_info_str(ver)
         } else {
-            OclError::err_string(format!("PlatformInfoResult::as_opencl_version(): Invalid platform info \
+            Err(format!("PlatformInfoResult::as_opencl_version(): Invalid platform info \
                 result variant: ({:?}). This function can only be called on a \
-                'PlatformInfoResult::Version' variant.", self))
+                'PlatformInfoResult::Version' variant.", self).into())
         }
     }
 }
@@ -374,7 +374,7 @@ pub enum DeviceInfoResult {
 
 impl DeviceInfoResult {
     /// Returns a new `DeviceInfoResult::MaxWorkItemSizes` variant.
-    pub fn from_bytes_max_work_item_sizes(request: DeviceInfo, result: OclResult<Vec<u8>>,
+    pub fn from_bytes_max_work_item_sizes(request: DeviceInfo, result: OclCoreResult<Vec<u8>>,
                 max_wi_dims: u32) -> DeviceInfoResult
     {
         match result {
@@ -422,7 +422,7 @@ impl DeviceInfoResult {
     }
 
     /// Returns a new `DeviceInfoResult` for all variants except `MaxWorkItemSizes`.
-    pub fn from_bytes(request: DeviceInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: DeviceInfo, result: OclCoreResult<Vec<u8>>)
             -> DeviceInfoResult
     {
         match result {
@@ -790,13 +790,13 @@ impl DeviceInfoResult {
     }
 
     /// Parse the `Version` string and get a numeric result as `OpenclVersion`.
-    pub fn as_opencl_version(&self) -> OclResult<OpenclVersion> {
+    pub fn as_opencl_version(&self) -> OclCoreResult<OpenclVersion> {
         if let DeviceInfoResult::Version(ver) = *self {
             Ok(ver)
         } else {
-            OclError::err_string(format!("DeviceInfoResult::as_opencl_version(): Invalid device info \
+            Err(format!("DeviceInfoResult::as_opencl_version(): Invalid device info \
                 result variant: ({:?}). This function can only be called on a \
-                'DeviceInfoResult::Version' variant.", self))
+                'DeviceInfoResult::Version' variant.", self).into())
         }
     }
 }
@@ -943,7 +943,7 @@ pub enum ContextInfoResult {
 }
 
 impl ContextInfoResult {
-    pub fn from_bytes(request: ContextInfo, result: OclResult<Vec<u8>>) -> ContextInfoResult {
+    pub fn from_bytes(request: ContextInfo, result: OclCoreResult<Vec<u8>>) -> ContextInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
@@ -1053,7 +1053,7 @@ pub enum GlContextInfoResult {
 }
 
 impl GlContextInfoResult {
-    pub fn from_bytes(request: GlContextInfo, result: OclResult<Vec<u8>>) -> GlContextInfoResult {
+    pub fn from_bytes(request: GlContextInfo, result: OclCoreResult<Vec<u8>>) -> GlContextInfoResult {
         match result {
             Ok(result) => {
                 if result.is_empty() {
@@ -1074,7 +1074,7 @@ impl GlContextInfoResult {
     }
 
     /// Returns the device contained within.
-    pub fn device(self) -> OclResult<DeviceId> {
+    pub fn device(self) -> OclCoreResult<DeviceId> {
         match self {
             GlContextInfoResult::CurrentDevice(d) => Ok(d),
             GlContextInfoResult::Error(err) => Err(*err),
@@ -1144,7 +1144,7 @@ pub enum CommandQueueInfoResult {
 }
 
 impl CommandQueueInfoResult {
-    pub fn from_bytes(request: CommandQueueInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: CommandQueueInfo, result: OclCoreResult<Vec<u8>>)
             -> CommandQueueInfoResult
     {
         match result {
@@ -1275,7 +1275,7 @@ pub enum MemInfoResult {
 
 
 impl MemInfoResult {
-    pub fn from_bytes(request: MemInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: MemInfo, result: OclCoreResult<Vec<u8>>)
             -> MemInfoResult
     {
         match result {
@@ -1450,7 +1450,7 @@ pub enum ImageInfoResult {
 }
 
 impl ImageInfoResult {
-    pub fn from_bytes(request: ImageInfo, result: OclResult<Vec<u8>>) -> ImageInfoResult
+    pub fn from_bytes(request: ImageInfo, result: OclCoreResult<Vec<u8>>) -> ImageInfoResult
     {
         match result {
             Ok(result) => {
@@ -1600,7 +1600,7 @@ pub enum SamplerInfoResult {
 }
 
 impl SamplerInfoResult {
-    pub fn from_bytes(request: SamplerInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: SamplerInfo, result: OclCoreResult<Vec<u8>>)
             -> SamplerInfoResult
     {
         match result {
@@ -1727,7 +1727,7 @@ pub enum ProgramInfoResult {
 }
 
 impl ProgramInfoResult {
-    pub fn from_bytes(request: ProgramInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: ProgramInfo, result: OclCoreResult<Vec<u8>>)
             -> ProgramInfoResult
     {
         match result {
@@ -1863,7 +1863,7 @@ pub enum ProgramBuildInfoResult {
 }
 
 impl ProgramBuildInfoResult {
-    pub fn from_bytes(request: ProgramBuildInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: ProgramBuildInfo, result: OclCoreResult<Vec<u8>>)
             -> ProgramBuildInfoResult
     {
         match result {
@@ -1975,7 +1975,7 @@ pub enum KernelInfoResult {
 }
 
 impl KernelInfoResult {
-    pub fn from_bytes(request: KernelInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: KernelInfo, result: OclCoreResult<Vec<u8>>)
             -> KernelInfoResult
     {
         match result {
@@ -2091,7 +2091,7 @@ pub enum KernelArgInfoResult {
 }
 
 impl KernelArgInfoResult {
-    pub fn from_bytes(request: KernelArgInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: KernelArgInfo, result: OclCoreResult<Vec<u8>>)
             -> KernelArgInfoResult
     {
         match result {
@@ -2209,7 +2209,7 @@ pub enum KernelWorkGroupInfoResult {
 }
 
 impl KernelWorkGroupInfoResult {
-    pub fn from_bytes(request: KernelWorkGroupInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: KernelWorkGroupInfo, result: OclCoreResult<Vec<u8>>)
             -> KernelWorkGroupInfoResult
     {
         match result {
@@ -2343,7 +2343,7 @@ pub enum EventInfoResult {
 }
 
 impl EventInfoResult {
-    pub fn from_bytes(request: EventInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: EventInfo, result: OclCoreResult<Vec<u8>>)
             -> EventInfoResult
     {
         match result {
@@ -2451,7 +2451,7 @@ pub enum ProfilingInfoResult {
 }
 
 impl ProfilingInfoResult {
-    pub fn from_bytes(request: ProfilingInfo, result: OclResult<Vec<u8>>)
+    pub fn from_bytes(request: ProfilingInfo, result: OclCoreResult<Vec<u8>>)
             -> ProfilingInfoResult
     {
         match result {
@@ -2475,7 +2475,7 @@ impl ProfilingInfoResult {
         }
     }
 
-    pub fn time(self) -> OclResult<u64> {
+    pub fn time(self) -> OclCoreResult<u64> {
         match self {
             ProfilingInfoResult::Queued(time_ns) => Ok(time_ns),
             ProfilingInfoResult::Submit(time_ns) => Ok(time_ns),

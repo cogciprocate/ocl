@@ -93,12 +93,6 @@ impl From<Box<std::error::Error>> for self::Error {
     }
 }
 
-impl From<()> for self::Error {
-    fn from(_: ()) -> self::Error {
-        self::Error::Ocl(().into())
-    }
-}
-
 impl From<String> for self::Error {
     fn from(desc: String) -> self::Error {
         self::Error::string(desc)

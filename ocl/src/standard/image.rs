@@ -11,7 +11,7 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 // use std::convert::Into;
-use core::error::{Error as OclCoreError, Result as OclResult};
+use core::error::{Result as OclCoreResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
     ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
     ImageChannelOrder, ImageChannelDataType, AsMem, MemCmdRw, MemCmdAll,
@@ -416,7 +416,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     ///
     /// * TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH
     ///   UNSET.
-    pub fn enq(self) -> OclResult<()> {
+    pub fn enq(self) -> OclCoreResult<()> {
         let queue = match self.queue {
             Some(q) => q,
             None => return Err("ImageCmd::enq: No queue set.".into()),
@@ -455,8 +455,8 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
                 core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
 
-            ImageCmdKind::Unspecified => OclCoreError::err_string("ocl::ImageCmd::enq(): No operation \
-                specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'."),
+            ImageCmdKind::Unspecified => Err("ocl::ImageCmd::enq(): No operation \
+                specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'.".into()),
             _ => unimplemented!(),
         }
     }
@@ -561,7 +561,7 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
     ///
     /// * TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH UNSET.
     #[allow(unused_variables, unreachable_code)]
-    pub fn enq(self) -> OclResult<MemMap<T>> {
+    pub fn enq(self) -> OclCoreResult<MemMap<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("ImageCmd::enq: No queue set.".into()),
@@ -632,7 +632,7 @@ pub struct Image<T: OclPrm> {
 impl<T: OclPrm> Image<T> {
     /// Returns a list of supported image formats.
     pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType,
-                ) -> OclResult<Vec<ImageFormatParseResult>> {
+                ) -> OclCoreResult<Vec<ImageFormatParseResult>> {
         core::get_supported_image_formats(context, flags, mem_obj_type)
     }
 
@@ -646,9 +646,9 @@ impl<T: OclPrm> Image<T> {
     ///
     /// Prefer `::builder` to create a new image.
     // pub fn new(queue: Queue, flags: MemFlags, image_format: ImageFormat,
-    //         image_desc: ImageDescriptor, host_data: Option<&[E]>) -> OclResult<Image<E>>
+    //         image_desc: ImageDescriptor, host_data: Option<&[E]>) -> OclCoreResult<Image<E>>
     pub fn new<'o, Q>(que_ctx: Q, flags: MemFlags, image_format: ImageFormat,
-            image_desc: ImageDescriptor, host_data: Option<&[T]>) -> OclResult<Image<T>>
+            image_desc: ImageDescriptor, host_data: Option<&[T]>) -> OclCoreResult<Image<T>>
             where Q: Into<QueCtx<'o>>
     {
         let que_ctx = que_ctx.into();
@@ -667,8 +667,8 @@ impl<T: OclPrm> Image<T> {
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
-            _ => return OclCoreError::err_string("ocl::Image::element_len(): \
-                Unexpected 'ImageInfoResult' variant."),
+            _ => return Err("ocl::Image::element_len(): \
+                Unexpected 'ImageInfoResult' variant.".into()),
         };
 
         let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth].into();
@@ -689,7 +689,7 @@ impl<T: OclPrm> Image<T> {
     #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_texture<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             texture_target: GlTextureTarget, miplevel: cl_GLint, texture: cl_GLuint)
-            -> OclResult<Image<T>>
+            -> OclCoreResult<Image<T>>
             where Q: Into<QueCtx<'o>>
     {
         let que_ctx = que_ctx.into();
@@ -697,8 +697,8 @@ impl<T: OclPrm> Image<T> {
         let device_versions = context.device_versions()?;
 
         if texture_target == GlTextureTarget::GlTextureBuffer && miplevel != 0 {
-            return OclCoreError::err_string("If texture_target is GL_TEXTURE_BUFFER, miplevel must be 0.\
-                Implementations may return CL_INVALID_OPERATION for miplevel values > 0");
+            return Err("If texture_target is GL_TEXTURE_BUFFER, miplevel must be 0.\
+                Implementations may return CL_INVALID_OPERATION for miplevel values > 0".into());
         }
 
         let obj_core = unsafe { try!(core::create_from_gl_texture(
@@ -714,8 +714,8 @@ impl<T: OclPrm> Image<T> {
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
-            _ => return OclCoreError::err_string("ocl::Image::element_len(): \
-                Unexpected 'ImageInfoResult' variant."),
+            _ => return Err("ocl::Image::element_len(): Unexpected \
+                'ImageInfoResult' variant.".into()),
         };
 
         let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth].into();
@@ -735,7 +735,7 @@ impl<T: OclPrm> Image<T> {
     // [WORK IN PROGRESS]
     #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_renderbuffer<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
-            renderbuffer: cl_GLuint) -> OclResult<Image<T>>
+            renderbuffer: cl_GLuint) -> OclCoreResult<Image<T>>
             where Q: Into<QueCtx<'o>>
     {
         let que_ctx = que_ctx.into();
@@ -751,8 +751,8 @@ impl<T: OclPrm> Image<T> {
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
-            _ => return OclCoreError::err_string("ocl::Image::element_len(): \
-                Unexpected 'ImageInfoResult' variant."),
+            _ => return Err("ocl::Image::element_len(): \
+                Unexpected 'ImageInfoResult' variant.".into()),
         };
 
         let dims = [image_desc.image_width, image_desc.image_height].into();
@@ -1309,14 +1309,14 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     /// Builds with the host side image data specified by `host_data`
     /// and returns a new `Image`.
     #[deprecated(since="0.13.0", note="Use '::host_data' and '::build' instead.")]
-    pub fn build_with_data(self, queue: Queue, host_data: &[T]) -> OclResult<Image<T>> {
+    pub fn build_with_data(self, queue: Queue, host_data: &[T]) -> OclCoreResult<Image<T>> {
         Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
             Some(host_data))
     }
 
     /// Builds with no host side image data memory specified and returns a
     /// new `Image`.
-    pub fn build(self) -> OclResult<Image<T>> {
+    pub fn build(self) -> OclCoreResult<Image<T>> {
         match self.queue_option {
             Some(qo) => {
                 Image::new(qo, self.flags, self.image_format.clone(),

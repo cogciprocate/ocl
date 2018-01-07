@@ -2,7 +2,7 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use core::error::{Result as OclResult};
+use core::error::{Result as OclCoreResult};
 use core::{self, Sampler as SamplerCore, AddressingMode, FilterMode, SamplerInfo, SamplerInfoResult};
 use standard::Context;
 
@@ -32,7 +32,7 @@ impl Sampler {
     /// for more information.
     ///
     pub fn new(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
-            filter_mode: FilterMode) -> OclResult<Sampler>
+            filter_mode: FilterMode) -> OclCoreResult<Sampler>
     {
         let sampler_core = try!(core::create_sampler(context, normalize_coords,
             addressing_mode, filter_mode));
@@ -48,7 +48,7 @@ impl Sampler {
     /// - `addressing_mode`: `AddressingMode::None`
     /// - `filter_mode`: `FilterMode::Nearest`
     ///
-    pub fn with_defaults(context: &Context) -> OclResult<Sampler>
+    pub fn with_defaults(context: &Context) -> OclCoreResult<Sampler>
     {
         let sampler_core = try!(core::create_sampler(context, false,
             AddressingMode::None, FilterMode::Nearest));

@@ -24,7 +24,7 @@ pub mod vector_types;
 // pub mod context_props;
 
 use rand::{self, Rng};
-use error::{Error as OclError, Result as OclResult};
+use error::{Error as OclError, Result as OclCoreResult};
 use ::{OclScl, PlatformId, DeviceId, Context};
 
 const PRINT_ITERS_MAX: i32 = 3;
@@ -84,7 +84,7 @@ fn within_region(coords: [usize; 3], region_ofs: [usize; 3], region_size: [usize
 
 fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_val: T,
             out_region_val: T, vec_dims: [usize; 3], ele_per_coord: usize, vec: &[T],
-            ttl_runs: i32, print: bool) -> OclResult<()>
+            ttl_runs: i32, print: bool) -> OclCoreResult<()>
 {
     let mut print = PRINT && print && ttl_runs <= PRINT_ITERS_MAX;
     let slices_to_print = PRINT_SLICES_MAX;

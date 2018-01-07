@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
-use core::error::{Result as OclResult, Error as OclCoreError, ErrorKind as OclCoreErrorKind};
+use core::error::{Result as OclCoreResult, ErrorKind as OclCoreErrorKind};
 use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum};
 pub use self::arg_type::{BaseType, Cardinality, ArgType};
@@ -110,7 +110,7 @@ impl<'k> KernelCmd<'k> {
     /// All kernel code must be considered untrusted. Therefore the act of
     /// calling this function contains implied unsafety even though the API
     /// itself is safe.
-    pub unsafe fn enq(self) -> OclResult<()> {
+    pub unsafe fn enq(self) -> OclCoreResult<()> {
         let queue = match self.queue {
             Some(q) => q,
             None => return Err("KernelCmd::enq: No queue specified.".into()),
@@ -120,8 +120,9 @@ impl<'k> KernelCmd<'k> {
 
         let gws = match self.gws.to_work_size() {
             Some(gws) => gws,
-            None => return OclCoreError::err_string("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
-                cannot be left unspecified. Set a default for the kernel or pass a valid parameter."),
+            None => return Err("ocl::KernelCmd::enqueue: Global Work Size ('gws') \
+                cannot be left unspecified. Set a default for the kernel or pass a \
+                valid parameter.".into()),
         };
 
         if PRINT_DEBUG {
@@ -202,7 +203,7 @@ pub struct Kernel {
 
 impl Kernel {
     /// Returns a new kernel.
-    pub fn new<S: Into<String>>(name: S, program: &Program) -> OclResult<Kernel> {
+    pub fn new<S: Into<String>>(name: S, program: &Program) -> OclCoreResult<Kernel> {
         let name = name.into();
         let obj_core = try!(core::create_kernel(program, &name));
 
@@ -418,7 +419,7 @@ impl Kernel {
     /// ## Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_scl_named<'a, T>(&'a mut self, name: &'static str, scalar: T)
-            -> OclResult<&'a mut Kernel>
+            -> OclCoreResult<&'a mut Kernel>
             where T: OclPrm + 'static
     {
         let arg_idx = try!(self.resolve_named_arg_idx(name));
@@ -431,7 +432,7 @@ impl Kernel {
     /// ## Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_vec_named<'a, T>(&'a mut self, name: &'static str, vector: T)
-            -> OclResult<&'a mut Kernel>
+            -> OclCoreResult<&'a mut Kernel>
             where T: OclPrm + 'static
     {
         let arg_idx = try!(self.resolve_named_arg_idx(name));
@@ -445,7 +446,7 @@ impl Kernel {
     // * [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_buf_named<'a, T, M>(&'a mut self, name: &'static str,
             buffer_opt: Option<M>)
-            -> OclResult<&'a mut Kernel>
+            -> OclCoreResult<&'a mut Kernel>
             where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
     {
         //  * TODO: ADD A CHECK FOR A VALID NAME (KEY)
@@ -466,7 +467,7 @@ impl Kernel {
     // * [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_img_named<'a, T, M>(&'a mut self, name: &'static str,
             image_opt: Option<M>)
-            -> OclResult<&'a mut Kernel>
+            -> OclCoreResult<&'a mut Kernel>
             where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
     {
         // * TODO: ADD A CHECK FOR A VALID NAME (KEY)
@@ -487,7 +488,7 @@ impl Kernel {
     // [PLACEHOLDER] Set a named sampler argument
     #[allow(unused_variables)]
     pub fn set_arg_smp_named<'a, T: OclPrm>(&'a mut self, name: &'static str,
-                sampler_opt: Option<&Sampler>) -> OclResult<&'a mut Kernel>
+                sampler_opt: Option<&Sampler>) -> OclCoreResult<&'a mut Kernel>
     {
         unimplemented!();
     }
@@ -510,7 +511,7 @@ impl Kernel {
     /// calling this function contains implied unsafety even though the API
     /// itself is safe.
     ///
-    pub unsafe fn enq(&self) -> OclResult<()> {
+    pub unsafe fn enq(&self) -> OclCoreResult<()> {
         self.cmd().enq()
     }
 
@@ -616,7 +617,7 @@ impl Kernel {
     /// This function does nothing and always returns `Ok` if the OpenCL
     /// version of any of the devices associated with this kernel is below
     /// 1.2.
-    pub fn verify_arg_type<T: OclPrm + Any>(&self, arg_index: u32) -> OclResult<()> {
+    pub fn verify_arg_type<T: OclPrm + Any>(&self, arg_index: u32) -> OclCoreResult<()> {
         if self.bypass_arg_check { return Ok(()); }
 
         let arg_type = self.arg_types.get(arg_index as usize)
@@ -642,13 +643,13 @@ impl Kernel {
     /// passing matches the type defined in your kernel.
     ///
     pub unsafe fn set_arg_unchecked<T: OclPrm>(&mut self, arg_idx: u32,
-            arg: KernelArg<T>) -> OclResult<()>
+            arg: KernelArg<T>) -> OclCoreResult<()>
     {
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
     }
 
     /// Sets an argument by index.
-    fn _set_arg<T: OclPrm + 'static>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
+    fn _set_arg<T: OclPrm + 'static>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclCoreResult<()> {
         self.verify_arg_type::<T>(arg_idx)?;
 
         // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
@@ -726,13 +727,13 @@ impl Kernel {
     }
 
     /// Resolves the index of a named argument with a friendly error message.
-    fn resolve_named_arg_idx(&self, name: &'static str) -> OclResult<u32> {
+    fn resolve_named_arg_idx(&self, name: &'static str) -> OclCoreResult<u32> {
         match self.named_args {
             Some(ref map) => {
                 match map.get(name) {
                     Some(&ai) => Ok(ai),
-                    None => OclCoreError::err_string(format!("Kernel::set_arg_scl_named(): Invalid argument \
-                        name: '{}'.", name)),
+                    None => Err(format!("Kernel::set_arg_scl_named(): Invalid argument \
+                        name: '{}'.", name).into()),
                 }
             },
             None => Err("Kernel::resolve_named_arg_idx: No named arguments declared.".into()),
@@ -893,7 +894,7 @@ pub fn arg_info(core: &KernelCore, arg_index: u32, info_kind: KernelArgInfo)
 }
 
 /// Returns the type name for a kernel argument at the specified index.
-pub fn arg_type_name(core: &KernelCore, arg_index: u32) -> OclResult<String> {
+pub fn arg_type_name(core: &KernelCore, arg_index: u32) -> OclCoreResult<String> {
     match arg_info(core, arg_index, KernelArgInfo::TypeName) {
         KernelArgInfoResult::TypeName(type_name) => Ok(type_name),
         KernelArgInfoResult::Error(e) => Err(*e),
@@ -905,7 +906,7 @@ pub fn arg_type_name(core: &KernelCore, arg_index: u32) -> OclResult<String> {
 pub mod arg_type {
     #![allow(unused_imports)]
     use std::any::{Any, TypeId};
-    use ::{OclPrm, Result as OclResult};
+    use ::{OclPrm, Result as OclCoreResult};
     use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
 
@@ -927,7 +928,7 @@ pub mod arg_type {
         Double, Double2, Double3, Double4, Double8, Double16};
 
     // /// Returns a new argument type specifier.
-    // pub fn arg_type(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
+    // pub fn arg_type(core: &KernelCore, arg_index: u32) -> OclCoreResult<ArgType> {
     //     let type_name = arg_type_name(core, arg_index)?;
     //     ArgType::from_str(type_name.as_str())
     // }
@@ -975,7 +976,7 @@ pub mod arg_type {
     impl ArgType {
         /// Returns an `ArgType` that will always return `true` when calling
         /// `::is_match`.
-        pub fn unknown() -> OclResult<ArgType> {
+        pub fn unknown() -> OclCoreResult<ArgType> {
             Ok(ArgType {
                 base_type: BaseType::Unknown,
                 cardinality: Cardinality::One,
@@ -989,7 +990,7 @@ pub mod arg_type {
         /// * TODO: Optimize or outsource this if possible. Is `::contains`
         /// the fastest way to parse these in this situation? Should
         /// `::starts_with` be used for base type names instead?
-        pub fn from_str(type_name: &str) -> OclResult<ArgType> {
+        pub fn from_str(type_name: &str) -> OclCoreResult<ArgType> {
             let is_ptr = type_name.contains("*");
 
             let card = if type_name.contains("16") {
@@ -1051,7 +1052,7 @@ pub mod arg_type {
         /// irregular errors are checked for here. The result of a call to
         /// `ArgType::unknown()` (which matches any argument type) is returned
         /// if any are found.
-        pub fn from_kern_and_idx(core: &KernelCore, arg_index: u32) -> OclResult<ArgType> {
+        pub fn from_kern_and_idx(core: &KernelCore, arg_index: u32) -> OclCoreResult<ArgType> {
             use core::EmptyInfoResultError;
             use core::ErrorKind as OclCoreErrorKind;
 
