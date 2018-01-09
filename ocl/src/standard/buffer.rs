@@ -5,8 +5,9 @@ use std;
 // use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Range};
-use core::{self, Error as OclCoreError, OclPrm, Mem as MemCore, MemFlags, MemInfo,
-    MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll, ClNullEventPtr};
+use core::{self, Error as OclCoreError, Result as OclCoreResult, OclPrm, Mem as MemCore,
+    MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
+    ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard,
     FutureWriteGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
@@ -1592,8 +1593,9 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 pub struct Buffer<T: OclPrm> {
     obj_core: MemCore,
     queue: Option<Queue>,
-    // origin: Option<SpatialDims>,
-    dims: SpatialDims,
+    // dims: SpatialDims,
+    len: usize,
+    offset: Option<usize>,
     // len: usize,
     // flags: MemFlags,
     // is_mapped: Option<Arc<AtomicBool>>,
@@ -1623,13 +1625,13 @@ impl<T: OclPrm> Buffer<T> {
     // * TODO: Consider removing `fill_val` and leaving filling completely to
     //   the builder.
     //
-    pub fn new<'e, 'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
+    pub fn new<'e, 'o, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, len: usize,
             host_data: Option<&[T]>) -> OclResult<Buffer<T>>
-            where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>
+            where Q: Into<QueCtx<'o>>
     {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
-        let dims: SpatialDims = dims.into();
-        let len = dims.to_len();
+        // let dims: SpatialDims = dims.into();
+        // let len = dims.to_len();
         let que_ctx = que_ctx.into();
 
         let ctx_owned;
@@ -1644,11 +1646,11 @@ impl<T: OclPrm> Buffer<T> {
         let obj_core = unsafe { core::create_buffer(ctx_ref, flags, len, host_data)? };
 
         debug_assert!({
-            let len = match core::get_mem_object_info(&obj_core, MemInfo::Size) {
+            let l_r = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
                 MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<T>(),
                 _ => unreachable!(),
             };
-            len == dims.to_len()
+            l_r == len
         });
 
         // let is_mapped = if flags.contains(::flags::MEM_USE_HOST_PTR) ||
@@ -1659,9 +1661,11 @@ impl<T: OclPrm> Buffer<T> {
         // };
 
         let buf = Buffer {
-            obj_core: obj_core,
+            obj_core,
             queue: que_ctx.into(),
-            dims: dims,
+            // dims: dims,
+            len,
+            offset: None,
             // is_mapped,
             _data: PhantomData,
         };
@@ -1682,10 +1686,9 @@ impl<T: OclPrm> Buffer<T> {
     /// for more info.
     ///
     #[cfg(not(feature="opencl_vendor_mesa"))]
-    pub fn from_gl_buffer<'o, Q>(que_ctx: Q, flags_opt: Option<MemFlags>,
-            gl_object: cl_GLuint) -> OclResult<Buffer<T>>
-            where Q: Into<QueCtx<'o>>
-    {
+    pub fn from_gl_buffer<'o, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, gl_object: cl_GLuint)
+            -> OclResult<Buffer<T>>
+            where Q: Into<QueCtx<'o>> {
         let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
         // let dims: SpatialDims = dims.into();
         // let len = dims.to_len();
@@ -1701,16 +1704,16 @@ impl<T: OclPrm> Buffer<T> {
             QueCtx::Context(c) => unsafe { core::create_from_gl_buffer(c, gl_object, flags)? },
         };
 
-        let dims = match core::get_mem_object_info(&obj_core, MemInfo::Size) {
+        let len = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
             MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<T>(),
             _ => unreachable!(),
-        }.into();
+        };
 
         let buf = Buffer {
-            obj_core: obj_core,
+            obj_core,
             queue: que_ctx.into(),
-            dims: dims,
-            // is_mapped: None,
+            len,
+            offset: None,
             _data: PhantomData,
         };
 
@@ -1795,44 +1798,53 @@ impl<T: OclPrm> Buffer<T> {
     /// Returns the offset of the sub-buffer within its buffer if this is a
     /// sub-buffer.
     #[inline]
-    pub fn offset(&self) -> Option<usize> {
+    pub fn offset(&self) -> OclCoreResult<Option<usize>> {
         if self.is_sub_buffer() {
-            match self.mem_info(MemInfo::Offset) {
-                MemInfoResult::Offset(off) => Some(off),
+            match self.mem_info(MemInfo::Offset)? {
+                MemInfoResult::Offset(off) => Ok(Some(off)),
                 _ => unreachable!(),
             }
         } else {
-            None
+            Ok(None)
         }
     }
 
-    /// Returns the dimensions of the buffer.
-    #[inline]
-    pub fn dims(&self) -> &SpatialDims {
-        &self.dims
-    }
-
     /// Returns the length of the buffer.
-    ///
-    /// Equivalent to `::dims().to_len()`.
     #[inline]
     pub fn len(&self) -> usize {
-        self.dims.to_len()
+        self.len
     }
+
+    // /// Returns the length of the buffer.
+    // ///
+    // /// Equivalent to `::dims().to_len()`.
+    // #[inline]
+    // pub fn len(&self) -> usize {
+    //     self.dims.to_len()
+    // }
 
     /// Returns true if this is a sub-buffer.
     #[inline]
     pub fn is_sub_buffer(&self) -> bool {
-        match self.mem_info(MemInfo::AssociatedMemobject) {
-            MemInfoResult::AssociatedMemobject(Some(_)) => true,
-            MemInfoResult::AssociatedMemobject(None) => false,
-            _ => unreachable!(),
-        }
+        // match self.mem_info(MemInfo::AssociatedMemobject) {
+        //     MemInfoResult::AssociatedMemobject(Some(_)) => true,
+        //     MemInfoResult::AssociatedMemobject(None) => false,
+        //     _ => unreachable!(),
+        // }
+        debug_assert!({
+            let is_sub_buffer = match self.mem_info(MemInfo::AssociatedMemobject).unwrap() {
+                MemInfoResult::AssociatedMemobject(Some(_)) => true,
+                MemInfoResult::AssociatedMemobject(None) => panic!("Buffer::is_sub_buffer"),
+                _ => unreachable!(),
+            };
+            self.offset.is_some() == is_sub_buffer
+        });
+        self.offset.is_some()
     }
 
     /// Returns info about the underlying memory object.
     #[inline]
-    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
+    pub fn mem_info(&self, info_kind: MemInfo) -> OclCoreResult<MemInfoResult> {
         core::get_mem_object_info(&self.obj_core, info_kind)
     }
 
@@ -1884,7 +1896,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[inline]
     pub fn flags(&self) -> OclResult<MemFlags> {
-        match self.mem_info(MemInfo::Flags) {
+        match self.mem_info(MemInfo::Flags)? {
             MemInfoResult::Flags(flags) => Ok(flags),
             MemInfoResult::Error(err) => Err(OclError::from(*err)),
             _ => unreachable!(),
@@ -1924,10 +1936,10 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// ### Offset and Dimensions
     ///
-    /// `origin` and `dims` set up the region of the sub-buffer within the
+    /// `offset` and `len` set up the region of the sub-buffer within the
     ///  original buffer and must not fall beyond the boundaries of it.
     ///
-    /// `origin` must be a multiple of the `DeviceInfo::MemBaseAddrAlign`
+    /// `offset` must be a multiple of the `DeviceInfo::MemBaseAddrAlign`
     /// otherwise you will get a `CL_MISALIGNED_SUB_BUFFER_OFFSET` error. To
     /// determine, use `Device::mem_base_addr_align` for the device associated
     /// with the queue which will be use with this sub-buffer.
@@ -1937,10 +1949,9 @@ impl<T: OclPrm> Buffer<T> {
     /// [mem_flags]: struct.MemFlags.html
     /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
     ///
-    pub fn create_sub_buffer<Do, Ds>(&self, flags_opt: Option<MemFlags>, origin: Do,
-        dims: Ds) -> OclResult<Buffer<T>>
-        where Do: Into<SpatialDims>, Ds: Into<SpatialDims>
-    {
+    pub fn create_sub_buffer<Do, Ds>(&self, flags_opt: Option<MemFlags>, offset: usize,
+            len: usize) -> OclResult<Buffer<T>>
+            where Do: Into<SpatialDims>, Ds: Into<SpatialDims> {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
 
         // Check flags here to preempt a somewhat vague OpenCL runtime error message:
@@ -1951,33 +1962,34 @@ impl<T: OclPrm> Buffer<T> {
             not be specified when creating a sub-buffer. They will be inherited from \
             the containing buffer.");
 
-        let origin = origin.into();
-        let dims = dims.into();
+        // let offset = offset.into();
+        // let dims = dims.into();
 
-        let buffer_len = self.dims().to_len();
-        let origin_ofs = origin.to_len();
-        let len = dims.to_len();
+        let buffer_len = self.len();
+        // let offsets = origin.to_len();
+        // let len = dims.to_len();
 
-        if origin_ofs > buffer_len {
+        if offset > buffer_len {
             return Err(format!("Buffer::create_sub_buffer: Origin ({:?}) is outside of the \
-                dimensions of the source buffer ({:?}).", origin, self.dims()).into());
+                dimensions of the source buffer ({:?}).", offset, buffer_len).into());
         }
 
-        if origin_ofs + len > buffer_len {
+        if offset + len > buffer_len {
             return Err(format!("Buffer::create_sub_buffer: Sub-buffer region (origin: '{:?}', \
-                dims: '{:?}') exceeds the dimensions of the source buffer ({:?}).",
-                origin, dims, self.dims()).into());
+                len: '{:?}') exceeds the dimensions of the source buffer ({:?}).",
+                offset, len, buffer_len).into());
         }
 
         let obj_core = core::create_sub_buffer::<T>(self, flags,
-            &BufferRegion::new(origin_ofs, len))?;
+            &BufferRegion::new(offset, len))?;
 
         Ok(Buffer {
             obj_core: obj_core,
             queue: self.default_queue().cloned(),
-            dims: dims,
+            len,
             // Share mapped status with super-buffer:
             // is_mapped: self.is_mapped.clone(),
+            offset: Some(offset),
             _data: PhantomData,
         })
     }
@@ -2056,7 +2068,8 @@ pub struct BufferBuilder<'a, T> where T: 'a {
     queue_option: Option<QueCtx<'a>>,
     flags: Option<MemFlags>,
     host_data: Option<&'a [T]>,
-    dims: Option<SpatialDims>,
+    // dims: Option<SpatialDims>,
+    len: usize,
     fill_val: Option<(T, Option<ClNullEventPtrEnum<'a>>)>
 }
 
@@ -2067,7 +2080,8 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
             queue_option: None,
             flags: None,
             host_data: None,
-            dims: None,
+            // dims: None,
+            len: 0,
             fill_val: None,
         }
     }
@@ -2151,20 +2165,31 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
         self
     }
 
-    /// Sets the dimensions for this buffer.
-    ///
-    /// Typically a single integer value to set the total length is used
-    /// however up to three dimensions may be specified in order to more
-    /// easily coordinate with kernel work sizes.
+    // /// Sets the dimensions for this buffer.
+    // ///
+    // /// Typically a single integer value to set the total length is used
+    // /// however up to three dimensions may be specified in order to more
+    // /// easily coordinate with kernel work sizes.
+    // ///
+    // /// Note that although sizes in the standard OpenCL API are expressed in
+    // /// bytes, sizes, lengths, and dimensions in this library are always
+    // /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
+    // /// otherwise noted.
+    // pub fn dims<'b, D>(mut self, dims: D) -> BufferBuilder<'a, T>
+    //         where D: Into<SpatialDims>
+    // {
+    //     self.dims = Some(dims.into());
+    //     self
+    // }
+
+    /// Sets the length for this buffer.
     ///
     /// Note that although sizes in the standard OpenCL API are expressed in
     /// bytes, sizes, lengths, and dimensions in this library are always
     /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
     /// otherwise noted.
-    pub fn dims<'b, D>(mut self, dims: D) -> BufferBuilder<'a, T>
-            where D: Into<SpatialDims>
-    {
-        self.dims = Some(dims.into());
+    pub fn len<'b>(mut self, len: usize) -> BufferBuilder<'a, T> {
+        self.len = len;
         self
     }
 
@@ -2230,9 +2255,9 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
 
         match self.queue_option {
             Some(qc) => {
-                let dims = match self.dims {
-                    Some(d) => d,
-                    None => panic!("ocl::BufferBuilder::build: The dimensions must be set with '.dims(...)'."),
+                let len = match self.len {
+                    0 => panic!("ocl::BufferBuilder::build: The length must be set with '.len(...)'."),
+                    l @ _ => l,
                 };
 
                 let device_ver = match qc {
@@ -2240,7 +2265,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
                     QueCtx::Context(_) => None,
                 };
 
-                let buf = Buffer::new(qc, self.flags, dims, self.host_data)?;
+                let buf = Buffer::new(qc, self.flags, len, self.host_data)?;
 
                 // Fill buffer if `fill_val` and a queue have been specified,
                 // blocking if the `fill_event` is `None`.
