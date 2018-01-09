@@ -424,7 +424,6 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
 
         match self.kind {
             ImageCmdKind::Read { data } => {
-                // try!(check_len(self.to_len, data.len(), offset));
                 unsafe { core::enqueue_read_image(queue, self.obj_core, self.block,
                     self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
                     self.enew) }
@@ -655,14 +654,14 @@ impl<T: OclPrm> Image<T> {
         let context = que_ctx.context_cloned();
         let device_versions = context.device_versions()?;
 
-        let obj_core = unsafe { try!(core::create_image(
+        let obj_core = unsafe { core::create_image(
             &context,
             flags,
             &image_format,
             &image_desc,
             host_data,
             Some(&device_versions),
-        )) };
+        )? };
 
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
@@ -701,14 +700,14 @@ impl<T: OclPrm> Image<T> {
                 Implementations may return CL_INVALID_OPERATION for miplevel values > 0".into());
         }
 
-        let obj_core = unsafe { try!(core::create_from_gl_texture(
+        let obj_core = unsafe { core::create_from_gl_texture(
             &context,
             texture_target as u32,
             miplevel,
             texture,
             flags,
             Some(&device_versions),
-        )) };
+        )? };
 
         // FIXME can I do this from a GLTexture ?
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
@@ -741,11 +740,11 @@ impl<T: OclPrm> Image<T> {
         let que_ctx = que_ctx.into();
         let context = que_ctx.context_cloned();
 
-        let obj_core = unsafe { try!(core::create_from_gl_renderbuffer(
+        let obj_core = unsafe { core::create_from_gl_renderbuffer(
             &context,
             renderbuffer,
             flags,
-        )) };
+        )? };
 
         // FIXME can I do this from a renderbuffer ?
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
@@ -947,8 +946,8 @@ impl<T: OclPrm> Image<T> {
 
 impl<T: OclPrm> std::fmt::Display for Image<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        try!(self.fmt_info(f));
-        try!(write!(f, " "));
+        self.fmt_info(f)?;
+        write!(f, " ")?;
         self.fmt_mem_info(f)
     }
 }

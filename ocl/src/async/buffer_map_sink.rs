@@ -4,7 +4,7 @@
 
 use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
-use core::{self, Result as OclCoreResult, OclPrm, Mem as MemCore, MemMap as MemMapCore,
+use core::{self, OclPrm, Mem as MemCore, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr, ClWaitListPtr, AsMem};
 use standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
 use async::{Error as OclError, Result as OclResult};
@@ -53,7 +53,7 @@ impl<T> SinkMapGuard<T>  where T: OclPrm {
     #[inline] pub fn queue(&self) -> &Queue { &self.queue }
 
     /// Enqueues an unmap command for the memory mapping immediately.
-    fn unmap(&mut self) -> OclCoreResult<()> {
+    fn unmap(&mut self) -> OclResult<()> {
         let mut origin_event_opt = if self.unmap_event.is_some() {
             Some(Event::empty())
         } else {
@@ -147,7 +147,7 @@ impl<T: OclPrm> FutureSinkMapGuard<T> {
     /// thread blocking or extra delays of any kind.
     ///
     /// [UNSTABLE]: This method may be renamed or otherwise changed.
-    pub fn create_unmap_event(&mut self) -> OclCoreResult<&mut Event> {
+    pub fn create_unmap_event(&mut self) -> OclResult<&mut Event> {
         if let Some(ref queue) = self.queue {
             let uev = Event::user(&queue.context())?;
             self.unmap_event = Some(uev);
@@ -326,7 +326,7 @@ impl<'c, T> SinkMapCmd<'c, T> where T: OclPrm {
     }
 
     /// Enqueues this command.
-    pub fn enq(mut self) -> OclCoreResult<FutureSinkMapGuard<T>> {
+    pub fn enq(mut self) -> OclResult<FutureSinkMapGuard<T>> {
         let buffer_core = self.sink.buffer.core().clone();
 
         let map_queue = match self.map_queue {
@@ -383,7 +383,7 @@ impl<T: OclPrm> BufferMapSink<T> {
     ///
     /// The current thread will be blocked while the buffer is initialized
     /// upon calling this function.
-    pub fn new(queue: Queue, len: usize) -> OclCoreResult<BufferMapSink<T>> {
+    pub fn new(queue: Queue, len: usize) -> OclResult<BufferMapSink<T>> {
         let buffer = Buffer::<T>::builder()
             .queue(queue.clone())
             .flags(MemFlags::new().alloc_host_ptr().host_write_only())
@@ -401,7 +401,7 @@ impl<T: OclPrm> BufferMapSink<T> {
     /// `buffer` must not have the same region mapped more than once.
     ///
     pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Option<Queue>,
-            default_offset: usize, default_len: usize) -> OclCoreResult<BufferMapSink<T>> {
+            default_offset: usize, default_len: usize) -> OclResult<BufferMapSink<T>> {
         let buf_flags = buffer.flags()?;
         assert!(buf_flags.contains(MemFlags::new().alloc_host_ptr()) ||
             buf_flags.contains(MemFlags::new().use_host_ptr()),

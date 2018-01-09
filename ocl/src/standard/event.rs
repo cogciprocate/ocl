@@ -27,7 +27,8 @@ use ffi::cl_event;
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef,
     CommandQueue as CommandQueueCore, ClContextPtr};
-use core::error::{Error as OclCoreError, Result as OclCoreResult};
+use core::error::{Result as OclCoreResult};
+use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, ClWaitListPtrEnum};
 #[cfg(not(feature = "async_block"))]
 use standard::{_unpark_task, box_raw_void};
@@ -252,7 +253,7 @@ unsafe impl<'a> ClWaitListPtr for  &'a Event {
 
 impl Future for Event {
     type Item = ();
-    type Error = OclCoreError;
+    type Error = OclError;
 
     // Non-blocking, proper implementation.
     //
@@ -272,7 +273,7 @@ impl Future for Event {
                 self.set_unpark_callback()?;
                 Ok(Async::NotReady)
             },
-            Err(err) => Err(err),
+            Err(err) => Err(OclError::from(err)),
         }
     }
 
@@ -309,7 +310,7 @@ fn take(event: &mut Event) -> Event {
 
 
 /// Polls events for `EventArray` and `EventList`
-fn poll_events(events: &[Event]) -> Poll<(), OclCoreError> {
+fn poll_events(events: &[Event]) -> Poll<(), OclError> {
     if PRINT_DEBUG { println!("####### EventList/Array::poll: Polling Event list (thread: '{}')",
         ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
@@ -438,7 +439,7 @@ impl EventArray {
     }
 
     /// Clears events which have already completed.
-    pub fn clear_completed(&mut self) -> OclCoreResult<()> {
+    pub fn clear_completed(&mut self) -> OclResult<()> {
         let mut new_len = 0;
 
         for idx in 0..self.len {
@@ -456,7 +457,7 @@ impl EventArray {
     }
 
     /// Blocks the host thread until all events in this list are complete.
-    pub fn wait_for(&self) -> OclCoreResult<()> {
+    pub fn wait_for(&self) -> OclResult<()> {
         for ev in &self.array[..self.len] {
             ev.wait_for()?;
         }
@@ -465,9 +466,9 @@ impl EventArray {
 
     /// Enqueue a marker event representing the completion of each and every
     /// event in this list.
-    pub fn enqueue_marker(&self, queue: &Queue) -> OclCoreResult<Event> {
+    pub fn enqueue_marker(&self, queue: &Queue) -> OclResult<Event> {
         if self.array.is_empty() { return Err("EventArray::enqueue_marker: List empty.".into()); }
-        queue.enqueue_marker(Some(self))
+        queue.enqueue_marker(Some(self)).map_err(OclError::from)
     }
 
     /// The number of events in this list.
@@ -591,7 +592,7 @@ impl fmt::Debug for EventArray {
 
 impl Future for EventArray {
     type Item = ();
-    type Error = OclCoreError;
+    type Error = OclError;
 
     /// Polls each event from this list.
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
@@ -746,7 +747,7 @@ impl EventList {
     }
 
     /// Clears events which have completed.
-    pub fn clear_completed(&mut self) -> OclCoreResult<()> {
+    pub fn clear_completed(&mut self) -> OclResult<()> {
         match self.inner {
             Inner::Array(ref mut a) => a.clear_completed(),
             Inner::Vec(ref mut v) => {
@@ -765,7 +766,7 @@ impl EventList {
     }
 
     /// Blocks the host thread until all events in this list are complete.
-    pub fn wait_for(&self) -> OclCoreResult<()> {
+    pub fn wait_for(&self) -> OclResult<()> {
         match self.inner {
             Inner::Array(ref a) => a.wait_for(),
             Inner::Vec(ref v) => {
@@ -789,12 +790,12 @@ impl EventList {
     /// issue immediately if you run into problems on your platform so that we
     /// may make note of it here in the documentation.
     ///
-    pub fn enqueue_marker(&self, queue: &Queue) -> OclCoreResult<Event> {
+    pub fn enqueue_marker(&self, queue: &Queue) -> OclResult<Event> {
         match self.inner {
-            Inner::Array(ref a) => a.enqueue_marker(queue),
+            Inner::Array(ref a) => a.enqueue_marker(queue).map_err(OclError::from),
             Inner::Vec(ref v) => {
                 if v.is_empty() { return Err("EventList::enqueue_marker: List empty.".into()); }
-                queue.enqueue_marker(Some(self))
+                queue.enqueue_marker(Some(self)).map_err(OclError::from)
             },
         }
     }
@@ -1143,7 +1144,7 @@ impl IntoIterator for EventList {
 
 impl Future for EventList {
     type Item = ();
-    type Error = OclCoreError;
+    type Error = OclError;
 
     /// Polls each event from this list.
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
@@ -1216,14 +1217,15 @@ impl RawEventArray {
 
     /// Enqueue a marker event representing the completion of each and every
     /// event in this list.
-    pub fn to_marker(&self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+    pub fn to_marker(&self, queue: &Queue) -> OclResult<Option<Event>> {
         if self.list.is_empty() { return Ok(None); }
         queue.enqueue_marker(Some(self)).map(|marker_event| Some(marker_event))
+            .map_err(OclError::from)
     }
 
     /// Enqueue a marker event representing the completion of each and every
     /// event in this list.
-    pub fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+    pub fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
         self.to_marker(queue)
     }
 
@@ -1333,29 +1335,29 @@ unsafe impl<'a> ClWaitListPtr for &'a RawEventArray {
 
 /// Conversion to a 'marker' event.
 pub trait IntoMarker {
-    fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>>;
+    fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>>;
 }
 
 // impl<'e> IntoMarker for &'e [Event] {
-//     fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+//     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
 //         RawEventArray::from(self).into_marker (queue)
 //     }
 // }
 
 impl<'s, 'e> IntoMarker for &'s [&'e Event] where 'e: 's {
-    fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+    fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
         RawEventArray::from(self).into_marker(queue)
     }
 }
 
 impl<'s, 'e> IntoMarker for &'s [Option<&'e Event>] where 'e: 's {
-    fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+    fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
         RawEventArray::from(self).into_marker(queue)
     }
 }
 
 impl<'s, 'o, 'e> IntoMarker for &'s [&'o Option<&'e Event>] where 'e: 's + 'o, 'o: 's {
-    fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+    fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
         RawEventArray::from(self).into_marker(queue)
     }
 }
@@ -1363,25 +1365,25 @@ impl<'s, 'o, 'e> IntoMarker for &'s [&'o Option<&'e Event>] where 'e: 's + 'o, '
 macro_rules! impl_marker_arrays {
     ($( $len:expr ),*) => ($(
         // impl<'e> IntoMarker for [Event; $len] {
-        //     fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+        //     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
         //         RawEventArray::from(self).into_marker (queue)
         //     }
         // }
 
         impl<'s, 'e> IntoMarker for [&'e Event; $len] where 'e: 's {
-            fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+            fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
                 RawEventArray::from(self).into_marker(queue)
             }
         }
 
         impl<'s, 'e> IntoMarker for [Option<&'e Event>; $len] where 'e: 's {
-            fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+            fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
                 RawEventArray::from(self).into_marker(queue)
             }
         }
 
         impl<'s, 'o, 'e> IntoMarker for [&'o Option<&'e Event>; $len] where 'e: 's + 'o, 'o: 's {
-            fn into_marker(self, queue: &Queue) -> OclCoreResult<Option<Event>> {
+            fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
                 RawEventArray::from(self).into_marker(queue)
             }
         }

@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
 use futures::sync::oneshot::{self, Receiver};
-use core::{Result as OclCoreResult, ClContextPtr, ClNullEventPtr};
+use core::{ClContextPtr, ClNullEventPtr};
 use error::{Error as OclError, Result as OclResult};
 use ::{Event, EventList};
 use async::qutex::{QrwLock, QrwRequest, RequestKind};
@@ -330,7 +330,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// status set to complete, causing those commands to execute. This can be
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
-    pub fn create_lock_event<C: ClContextPtr>(&mut self, context: C) -> OclCoreResult<&Event> {
+    pub fn create_lock_event<C: ClContextPtr>(&mut self, context: C) -> OclResult<&Event> {
         assert!(self.lock_event.is_none(), "Lock event has already been created.");
         self.lock_event = Some(Event::user(context)?);
         Ok(self.lock_event.as_mut().unwrap())
@@ -396,7 +396,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// status set to complete, causing those commands to execute. This can be
     /// used to inject host side code in amongst OpenCL commands without
     /// thread blocking or extra delays of any kind.
-    pub fn create_release_event<C: ClContextPtr>(&mut self, context: C) -> OclCoreResult<&Event> {
+    pub fn create_release_event<C: ClContextPtr>(&mut self, context: C) -> OclResult<&Event> {
         assert!(self.release_event.is_none(), "Release event has already been created.");
         self.release_event = Some(Event::user(context)?);
         Ok(self.release_event.as_ref().unwrap())

@@ -1,8 +1,7 @@
 //! A convenient wrapper for `Program` and `Queue`.
 
-// use std::convert::Into;
 use std::ops::Deref;
-use core::error::{Result as OclCoreResult};
+use error::{Error as OclError, Result as OclResult};
 use core::{OclPrm, CommandQueueProperties};
 use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
     MemLen, SpatialDims, WorkDims, DeviceSpecifier};
@@ -72,7 +71,7 @@ impl ProQue {
     }
 
     /// Creates a kernel with pre-assigned dimensions.
-    pub fn create_kernel(&self, name: &str) -> OclCoreResult<Kernel> {
+    pub fn create_kernel(&self, name: &str) -> OclResult<Kernel> {
         let kernel = Kernel::new(name.to_string(), &self.program)?
             .queue(self.queue.clone());
 
@@ -98,8 +97,8 @@ impl ProQue {
     /// If not, set them with `::set_dims`, or just create a buffer using
     /// `Buffer::builder()` instead.
     ///
-    pub fn create_buffer<T: OclPrm>(&self) -> OclCoreResult<Buffer<T>> {
-        let dims = try!(self.dims_result());
+    pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
+        let dims = self.dims_result()?;
         // Buffer::<T>::new(self.queue.clone(), None, dims, None)
         // Buffer::<T>::new(self.queue.clone(), None, dims, None, None)
         Buffer::<T>::builder()
@@ -119,8 +118,8 @@ impl ProQue {
     /// with this `ProQue`.
     ///
     /// [UNSTABLE]: Evaluate usefulness.
-    pub fn max_wg_size(&self) -> OclCoreResult<usize> {
-        self.queue.device().max_wg_size()
+    pub fn max_wg_size(&self) -> OclResult<usize> {
+        self.queue.device().max_wg_size().map_err(OclError::from)
     }
 
     /// Returns a reference to the queue associated with this ProQue.
@@ -150,7 +149,7 @@ impl ProQue {
     ///
     /// [UNSTABLE]: Evaluate which 'dims' method to keep. Leaning towards the
     /// above, panicking version at the moment.
-    pub fn dims_result(&self) -> OclCoreResult<&SpatialDims> {
+    pub fn dims_result(&self) -> OclResult<&SpatialDims> {
         match self.dims {
             Some(ref dims) => Ok(dims),
             None => Err(DIMS_ERR_MSG.into()),
@@ -336,7 +335,7 @@ impl ProQueBuilder {
     /// A `ProgramBuilder` or some source code must have been specified with
     /// `::prog_bldr` or `::src` before building.
     ///
-    pub fn build(&self) -> OclCoreResult<ProQue> {
+    pub fn build(&self) -> OclResult<ProQue> {
         let program_builder = match self.program_builder {
             // Some(program_builder) => ProQueBuilder::_build(self.context, self.device_idx, program_builder),
             Some(ref program_builder) => program_builder,
@@ -373,7 +372,7 @@ impl ProQueBuilder {
         // Resolve the device and ensure only one was specified.
         let device = match self.device_spec {
             Some(ref ds) => {
-                let device_list = try!(ds.to_device_list(Some(platform)));
+                let device_list = ds.to_device_list(Some(platform))?;
 
                 if device_list.len() == 1 {
                     device_list[0]
@@ -397,24 +396,24 @@ impl ProQueBuilder {
                 ctx.clone()
             }
             None => {
-                try!(Context::builder()
+                Context::builder()
                     .platform(platform)
                     .devices(device)
-                    .build())
+                    .build()?
             },
         };
 
         if DEBUG_PRINT { println!("ProQue::build(): context.devices(): {:?}", context.devices()); }
 
-        let queue = try!(Queue::new(&context, device, self.queue_properties));
+        let queue = Queue::new(&context, device, self.queue_properties)?;
 
         // println!("PROQUEBUILDER: About to load SRC_STRINGS.");
-        let src_strings = try!(program_builder.get_src_strings().map_err(|e| e.to_string()));
+        let src_strings = program_builder.get_src_strings().map_err(|e| e.to_string())?;
         // println!("PROQUEBUILDER: About to load CMPLR_OPTS.");
-        let cmplr_opts = try!(program_builder.get_compiler_options().map_err(|e| e.to_string()));
+        let cmplr_opts = program_builder.get_compiler_options().map_err(|e| e.to_string())?;
         // println!("PROQUEBUILDER: All done.");
 
-        let program = try!(Program::new(
+        let program = Program::new(
             &context,
             src_strings,
             Some(&[device]),
@@ -422,7 +421,7 @@ impl ProQueBuilder {
             cmplr_opts,
 
 
-        ));
+        )?;
 
         Ok(ProQue::new(context, queue, program, self.dims))
     }

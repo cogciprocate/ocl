@@ -2,8 +2,8 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use core::error::{Result as OclCoreResult};
 use core::{self, Sampler as SamplerCore, AddressingMode, FilterMode, SamplerInfo, SamplerInfoResult};
+use error::{Error as OclError, Result as OclResult};
 use standard::Context;
 
 /// An image sampler used to process images.
@@ -32,10 +32,9 @@ impl Sampler {
     /// for more information.
     ///
     pub fn new(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
-            filter_mode: FilterMode) -> OclCoreResult<Sampler>
-    {
-        let sampler_core = try!(core::create_sampler(context, normalize_coords,
-            addressing_mode, filter_mode));
+            filter_mode: FilterMode) -> OclResult<Sampler> {
+        let sampler_core = core::create_sampler(context, normalize_coords,
+            addressing_mode, filter_mode).map_err(OclError::from)?;
 
         Ok(Sampler(sampler_core))
     }
@@ -48,10 +47,9 @@ impl Sampler {
     /// - `addressing_mode`: `AddressingMode::None`
     /// - `filter_mode`: `FilterMode::Nearest`
     ///
-    pub fn with_defaults(context: &Context) -> OclCoreResult<Sampler>
-    {
-        let sampler_core = try!(core::create_sampler(context, false,
-            AddressingMode::None, FilterMode::Nearest));
+    pub fn with_defaults(context: &Context) -> OclResult<Sampler> {
+        let sampler_core = core::create_sampler(context, false,
+            AddressingMode::None, FilterMode::Nearest).map_err(OclError::from)?;
 
         Ok(Sampler(sampler_core))
     }

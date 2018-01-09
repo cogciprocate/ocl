@@ -3,7 +3,7 @@ use std::convert::From;
 use std::fmt::Debug;
 use std::ops::Index;
 use num::{Num, ToPrimitive};
-use core::error::{Result as OclCoreResult};
+use error::{Result as OclResult};
 use standard::{MemLen, WorkDims};
 use core::util;
 
@@ -46,7 +46,7 @@ impl SpatialDims {
     /// invalid to OpenCL functions. Use `::Unspecified` to represent `NULL`
     /// instead.
     ///
-    pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> OclCoreResult<SpatialDims> {
+    pub fn new(d0: Option<usize>, d1: Option<usize>, d2: Option<usize>) -> OclResult<SpatialDims> {
         let std_err_msg = "Dimensions must be defined from left to right. If you define the 2nd \
             dimension, you must also define the 1st, etc.";
 
@@ -117,7 +117,7 @@ impl SpatialDims {
     }
 
     /// Takes the length and rounds it up to the nearest `incr` or an error.
-    pub fn try_to_padded_len(&self, incr: usize) -> OclCoreResult<usize> {
+    pub fn try_to_padded_len(&self, incr: usize) -> OclResult<usize> {
         Ok(util::padded_len(self.to_len(), incr))
     }
 

@@ -93,7 +93,8 @@ mod types {
     use std::cell::Ref;
     use standard::{Event, EventList, RawEventArray, Queue};
     use core::ffi::cl_event;
-    use core::{Result as OclCoreResult, Event as EventCore, ClNullEventPtr, ClWaitListPtr};
+    use core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
+    use error::Result as OclResult;
 
     /// An enum which can represent several different ways of representing a
     /// event wait list.
@@ -121,7 +122,7 @@ mod types {
 
     impl<'a> ClWaitListPtrEnum<'a> {
         /// Converts this `ClWaitListPtrEnum` into a single marker event.
-        pub fn into_marker(self, queue: &Queue) -> OclCoreResult<Event> {
+        pub fn into_marker(self, queue: &Queue) -> OclResult<Event> {
             queue.enqueue_marker(Some(self))
         }
 

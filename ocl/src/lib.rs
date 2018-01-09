@@ -44,7 +44,7 @@
 //! [`Result`]: /ocl/ocl/type.Result.html
 //! [examples]: https://github.com/cogciprocate/ocl/tree/master/examples
 
-#![doc(html_root_url = "https://docs.rs/ocl/0.13")]
+#![doc(html_root_url = "https://docs.rs/ocl/0.16")]
 
 // #![warn(missing_docs)]
 
@@ -53,7 +53,6 @@ extern crate num;
 #[cfg(test)]
 extern crate rand;
 extern crate futures;
-// extern crate crossbeam;
 #[macro_use]
 extern crate failure;
 pub extern crate ocl_core as core;
@@ -69,16 +68,13 @@ pub use self::standard::{Platform, Device, Context, Program, Queue, Kernel, Buff
     EventList, EventArray, Sampler, SpatialDims, ProQue, BufferCmdError};
 pub use self::async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard,
     FutureReadGuard, FutureWriteGuard};
-pub use core::error::{Error, Result};
-// pub use error::{Error, Result};
+pub use error::{Error, Result};
 #[doc(no_inline)]
 pub use core::ffi;
 #[doc(no_inline)]
 pub use core::util;
 #[doc(no_inline)]
 pub use core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
-
-// pub use core::failure;
 
 
 pub mod prm {

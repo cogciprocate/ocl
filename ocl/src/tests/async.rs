@@ -4,13 +4,13 @@
 //!
 //! Does not panic on errors (use `device_check.rs` example for platform bugs).
 
-#![allow(unused_imports, unused_variables, unused_mut)]
+// #![allow(unused_imports, unused_variables, unused_mut)]
 
 use std::thread;
 use futures::{Future};
-use core::{ErrorKind as OclCoreErrorKind, Status};
+use core::Status;
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
-use ::traits::{IntoRawEventArray, IntoMarker};
+use ::traits::IntoRawEventArray;
 use ::error::{Error as OclError, Result as OclResult};
 use ::flags::{MemFlags, CommandQueueProperties};
 use ::prm::Int4;
@@ -358,12 +358,6 @@ fn create_queue(context: &Context, device: Device, flags: Option<CommandQueuePro
         -> OclResult<Queue>
 {
     Queue::new(context, device, flags.clone()).or_else(|err| {
-        // match *err.kind() {
-        //     OclCoreErrorKind::Status { status: Status::CL_INVALID_VALUE, .. } => {
-        //         Err("Device does not support out of order queues.".into())
-        //     },
-        //     _ => Err(err.into()),
-        // }
         match err.api_status() {
             Some(Status::CL_INVALID_VALUE) => Err("Device does not support out of order queues.".into()),
             _ => Err(err.into()),

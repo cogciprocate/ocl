@@ -1,24 +1,22 @@
 //! Interfaces with a buffer.
 
 use std;
-use std::fmt;
-use std::error::Error as StdError;
 // use std::sync::Arc;
 // use std::sync::atomic::{AtomicBool, Ordering};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Range};
-use core::{self, Error as OclCoreError, Result as OclCoreResult, OclPrm, Mem as
-    MemCore, MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
-    ClNullEventPtr};
+use core::{self, Error as OclCoreError, OclPrm, Mem as MemCore, MemFlags, MemInfo,
+    MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll, ClNullEventPtr};
 use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard,
     FutureWriteGuard};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
+use error::{Error as OclError, Result as OclResult};
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
 use ffi::cl_GLuint;
 
 
-fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclCoreResult<()> {
+fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
     if offset >= mem_len {
         Err(format!("ocl::Buffer::enq(): Offset out of range. \
             (mem_len: {}, data_len: {}, offset: {}", mem_len, data_len, offset).into())
@@ -31,35 +29,42 @@ fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclCoreResult<()
 
 
 /// A buffer command error.
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 pub enum BufferCmdError {
+    #[fail(display = "A rectangular map is not a valid operation. \
+        Please use the default shape, linear.")]
     RectUnavailable,
+    #[fail(display = "No queue specified.")]
     NoQueue,
+    #[fail(display = "Buffer already mapped.")]
     AlreadyMapped,
+    #[fail(display = "Unable to map this buffer. Must create with either the \
+        MEM_USE_HOST_PTR or MEM_ALLOC_HOST_PTR flag.")]
     MapUnavailable,
-    Ocl(OclCoreError)
+    #[fail(display = "ocl-core error: {}", _0)]
+    Ocl(#[cause] OclCoreError)
 }
 
-impl fmt::Display for BufferCmdError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
+// impl fmt::Display for BufferCmdError {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         write!(f, "{:?}", self)
+//     }
+// }
 
-impl StdError for BufferCmdError {
-    fn description(&self) -> &str {
-        match *self {
-            BufferCmdError::AlreadyMapped => "buffer already mapped",
-            BufferCmdError::MapUnavailable => "unable to map this buffer - \
-                must create with either the MEM_USE_HOST_PTR or MEM_ALLOC_HOST_PTR flag",
-            BufferCmdError::NoQueue => "no queue specified",
-            BufferCmdError::RectUnavailable => "a rectangular map is not a valid operation - \
-                please use the default shape, linear",
-            // BufferCmdError::Ocl(ref err) => err.description(),
-            BufferCmdError::Ocl(ref _err) => "FIXME: TEMPORARY",
-        }
-    }
-}
+// impl StdError for BufferCmdError {
+//     fn description(&self) -> &str {
+//         match *self {
+//             BufferCmdError::AlreadyMapped => "buffer already mapped",
+//             BufferCmdError::MapUnavailable => "unable to map this buffer - \
+//                 must create with either the MEM_USE_HOST_PTR or MEM_ALLOC_HOST_PTR flag",
+//             BufferCmdError::NoQueue => "no queue specified",
+//             BufferCmdError::RectUnavailable => "a rectangular map is not a valid operation - \
+//                 please use the default shape, linear",
+//             // BufferCmdError::Ocl(ref err) => err.description(),
+//             BufferCmdError::Ocl(ref _err) => "FIXME: TEMPORARY",
+//         }
+//     }
+// }
 
 impl From<OclCoreError> for BufferCmdError {
     fn from(err: OclCoreError) -> BufferCmdError {
@@ -67,12 +72,12 @@ impl From<OclCoreError> for BufferCmdError {
     }
 }
 
-impl From<BufferCmdError> for OclCoreError {
-    fn from(_err: BufferCmdError) -> OclCoreError {
-        // OclCoreError { kind: OclCoreErrorKind::Other(Box::new(err)), cause: None }
-        "FIXME: impl From<BufferCmdError> for OclCoreError".into()
-    }
-}
+// impl From<BufferCmdError> for OclCoreError {
+//     fn from(_err: BufferCmdError) -> OclCoreError {
+//         // OclCoreError { kind: OclCoreErrorKind::Other(Box::new(err)), cause: None }
+//         "FIXME: impl From<BufferCmdError> for OclCoreError".into()
+//     }
+// }
 
 // type BufferCmdResult<T> = Result<T, BufferCmdError>;
 
@@ -533,7 +538,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     }
 
     /// Enqueues this command.
-    pub fn enq(self) -> OclCoreResult<()> {
+    pub fn enq(self) -> OclResult<()> {
         let queue = match self.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -544,12 +549,12 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                 match self.shape {
                     BufferCmdDataShape::Lin { offset } => {
                         let len = len.unwrap_or(self.mem_len);
-                        try!(check_len(self.mem_len, len, offset));
+                        check_len(self.mem_len, len, offset)?;
                         let dst_offset = dst_offset.unwrap_or(0);
 
                         core::enqueue_copy_buffer::<T, _, _, _>(queue,
                             &self.buffer.obj_core, dst_buffer, offset, dst_offset, len,
-                            self.ewait, self.enew)
+                            self.ewait, self.enew).map_err(OclError::from)
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes, dst_row_pitch_bytes,
@@ -564,7 +569,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                         core::enqueue_copy_buffer_rect::<T, _, _, _>(queue, &self.buffer.obj_core,
                             dst_buffer, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
-                            self.ewait, self.enew)
+                            self.ewait, self.enew).map_err(OclError::from)
                     },
                 }
             },
@@ -578,10 +583,11 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                             None => self.mem_len,
                         };
 
-                        try!(check_len(self.mem_len, len, offset));
+                        check_len(self.mem_len, len, offset)?;
 
                         core::enqueue_fill_buffer(queue, &self.buffer.obj_core, pattern,
                             offset, len, self.ewait, self.enew, Some(&queue.device_version()))
+                            .map_err(OclError::from)
                     },
                     BufferCmdDataShape::Rect { .. } => Err(
                         "ocl::BufferCmd::enq(): Rectangular fill is not a valid operation. \
@@ -592,14 +598,14 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             BufferCmdKind::GLAcquire => {
                 // core::enqueue_acquire_gl_buffer(queue, &self.buffer.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(&self.buffer.obj_core, 1) };
-                core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew)
+                core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew).map_err(OclError::from)
             },
 
             #[cfg(not(feature="opencl_vendor_mesa"))]
             BufferCmdKind::GLRelease => {
                 // core::enqueue_release_gl_buffer(queue, &self.buffer.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(&self.buffer.obj_core, 1) };
-                core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
+                core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew).map_err(OclError::from)
             },
 
             BufferCmdKind::Unspecified => Err("ocl::BufferCmd::enq(): \
@@ -829,10 +835,10 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// running the command (which will also block for its duration).
     //
     // NOTE: Could use deferred initialization for the guard slice instead of closure.
-    pub fn enq(mut self) -> OclCoreResult<()> {
+    pub fn enq(mut self) -> OclResult<()> {
         let read_dst = self.dst.take();
         let range = self.range.clone();
-        if range.end > read_dst.len() { return Err(OclCoreError::from(
+        if range.end > read_dst.len() { return Err(OclError::from(
             "Unable to enqueue buffer read command: Invalid src_offset and/or len.")) }
 
         let mut enqueue_with_data = |dst: &mut [T]| {
@@ -845,11 +851,11 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 BufferCmdKind::Read => {
                     match self.cmd.shape {
                         BufferCmdDataShape::Lin { offset } => {
-                            try!(check_len(self.cmd.mem_len, dst.len(), offset));
+                            check_len(self.cmd.mem_len, dst.len(), offset)?;
                             unsafe {
                                 core::enqueue_read_buffer(queue, &self.cmd.buffer.obj_core,
                                     self.cmd.block, offset, dst, self.cmd.ewait.take(),
-                                    self.cmd.enew.take())
+                                    self.cmd.enew.take()).map_err(OclError::from)
                             }
                         },
                         BufferCmdDataShape::Rect { src_origin, dst_origin, region, src_row_pitch_bytes,
@@ -861,7 +867,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                                     self.cmd.block, src_origin, dst_origin, region,
                                     src_row_pitch_bytes, src_slc_pitch_bytes, dst_row_pitch_bytes,
                                     dst_slc_pitch_bytes, dst, self.cmd.ewait.take(),
-                                    self.cmd.enew.take())
+                                    self.cmd.enew.take()).map_err(OclError::from)
                             }
                         }
                     }
@@ -876,12 +882,12 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             },
             ReadDst::RwVec(rw_vec) => {
                 let mut guard = rw_vec.write().wait()
-                    .map_err(|_| OclCoreError::from("Unable to obtain lock."))?;
+                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&mut guard.as_mut_slice()[range])
             },
             ReadDst::Writer(writer) => {
                 let mut guard = writer.wait()
-                    .map_err(|_| OclCoreError::from("Unable to obtain lock."))?;
+                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&mut guard.as_mut_slice()[range])
             }
             ReadDst::None => panic!("Invalid read destination."),
@@ -895,7 +901,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// A data destination container appropriate for an asynchronous operation
     /// (such as `RwVec`) must have been passed to `::read`.
     ///
-    pub fn enq_async(mut self) -> OclCoreResult<FutureWriteGuard<Vec<T>>> {
+    pub fn enq_async(mut self) -> OclResult<FutureWriteGuard<Vec<T>>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("BufferCmd::enq: No queue set.".into()),
@@ -911,7 +917,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                 };
                 let writer_len = unsafe { (*writer.as_ptr()).len() };
                 if self.range.end > writer_len {
-                    return Err(OclCoreError::from("Unable to enqueue buffer read command: \
+                    return Err(OclError::from("Unable to enqueue buffer read command: \
                         Invalid src_offset and/or len."))
                 }
 
@@ -932,7 +938,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
 
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.cmd.mem_len, dst.len(), offset));
+                        check_len(self.cmd.mem_len, dst.len(), offset)?;
 
                         unsafe { core::enqueue_read_buffer(queue, &self.cmd.buffer.obj_core, false,
                             offset, dst, writer.lock_event(), Some(&mut read_event))?; }
@@ -1178,10 +1184,10 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     /// running the command (which will also block).
     //
     // NOTE: Could use deferred initialization for the guard slice instead of closure.
-    pub fn enq(mut self) -> OclCoreResult<()> {
+    pub fn enq(mut self) -> OclResult<()> {
         let write_src = self.src.take();
         let range = self.range.clone();
-        if range.end > write_src.len() { return Err(OclCoreError::from(
+        if range.end > write_src.len() { return Err(OclError::from(
             "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
 
         let mut enqueue_with_data = |src: &[T]| {
@@ -1194,11 +1200,12 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                 BufferCmdKind::Write => {
                     match self.cmd.shape {
                         BufferCmdDataShape::Lin { offset } => {
-                            try!(check_len(self.cmd.mem_len, src.len(), offset));
+                            check_len(self.cmd.mem_len, src.len(), offset)?;
 
                             unsafe {
                                 core::enqueue_write_buffer(queue, &self.cmd.buffer.obj_core, self.cmd.block,
                                     offset, src, self.cmd.ewait.take(), self.cmd.enew.take())
+                                    .map_err(OclError::from)
                             }
                         },
                         BufferCmdDataShape::Rect { src_origin, dst_origin, region,
@@ -1210,6 +1217,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                                     self.cmd.block, src_origin, dst_origin, region, src_row_pitch_bytes,
                                     src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
                                     src, self.cmd.ewait.take(), self.cmd.enew.take())
+                                    .map_err(OclError::from)
                             }
                         }
                     }
@@ -1224,12 +1232,12 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             },
             WriteSrc::RwVec(rw_vec) => {
                 let guard = rw_vec.read().wait()
-                    .map_err(|_| OclCoreError::from("Unable to obtain lock."))?;
+                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&guard.as_slice()[range])
             },
             WriteSrc::Reader(reader) => {
                 let guard = reader.wait()
-                    .map_err(|_| OclCoreError::from("Unable to obtain lock."))?;
+                    .map_err(|_| OclError::from("Unable to obtain lock."))?;
                 enqueue_with_data(&guard.as_slice()[range])
             },
             WriteSrc::None => panic!("Invalid read destination."),
@@ -1244,7 +1252,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// The returned future must be resolved.
     ///
-    pub fn enq_async(mut self) -> OclCoreResult<FutureReadGuard<Vec<T>>> {
+    pub fn enq_async(mut self) -> OclResult<FutureReadGuard<Vec<T>>> {
         match self.cmd.kind {
             BufferCmdKind::Write => {
                 let mut reader = match self.src {
@@ -1254,7 +1262,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                         asynchronous enqueue. The read destination must be a 'RwVec'.".into()),
                 };
                 let reader_len = unsafe { (*reader.as_ptr()).len() };
-                if self.range.end > reader_len { return Err(OclCoreError::from(
+                if self.range.end > reader_len { return Err(OclError::from(
                     "Unable to enqueue buffer write command: Invalid src_offset and/or len.")) }
 
                 if let Some(wl) = self.cmd.ewait {
@@ -1278,7 +1286,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
                 match self.cmd.shape {
                     BufferCmdDataShape::Lin { offset } => {
-                        try!(check_len(self.cmd.mem_len, src.len(), offset));
+                        check_len(self.cmd.mem_len, src.len(), offset)?;
                         unsafe {
                             core::enqueue_write_buffer(queue, &self.cmd.buffer.obj_core, false,
                                 offset, src, reader.lock_event(), Some(&mut write_event))?;
@@ -1320,7 +1328,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     ///
     /// The returned future must be resolved.
     ///
-    pub fn enq_async_then_write(self) -> OclCoreResult<FutureWriteGuard<Vec<T>>> {
+    pub fn enq_async_then_write(self) -> OclResult<FutureWriteGuard<Vec<T>>> {
         // NOTE: The precise point in time at which `::upgrade_after_command`
         // is called does not matter since a read request will have already
         // been enqueued in the RwVec's queue. The upgrade can be requested at
@@ -1477,7 +1485,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
     /// Returns operation details.
     #[inline]
-    fn enq_details(&mut self) -> OclCoreResult<(usize, usize, &Queue, MapFlags,
+    fn enq_details(&mut self) -> OclResult<(usize, usize, &Queue, MapFlags,
             Option<ClWaitListPtrEnum<'c>>, Option<ClNullEventPtrEnum<'c>>/*, Arc<AtomicBool>*/)> {
         // if let Some(ref is_mapped) = self.cmd.buffer.is_mapped {
         //     if is_mapped.fetch_or(true, Ordering::SeqCst) {
@@ -1522,7 +1530,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// sub-region access or whole-buffer aliasing, no two mappings will allow
     /// writes to the same memory region at the same time. Use atomics or some
     /// other synchronization mechanism to ensure this.
-    pub unsafe fn enq(mut self) -> OclCoreResult<MemMap<T>> {
+    pub unsafe fn enq(mut self) -> OclResult<MemMap<T>> {
         let (offset, len, queue, flags, ewait, enew, /*is_mapped*/) = self.enq_details()?;
 
         // unsafe {
@@ -1548,7 +1556,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// sub-region access or whole-buffer aliasing, no two mappings will allow
     /// writes to the same memory region at the same time. Use atomics or some
     /// other synchronization mechanism to ensure this.
-    pub unsafe fn enq_async(mut self) -> OclCoreResult<FutureMemMap<T>> {
+    pub unsafe fn enq_async(mut self) -> OclResult<FutureMemMap<T>> {
         let (offset, len, queue, flags, ewait, enew, /*is_mapped*/) = self.enq_details()?;
 
         // let future = unsafe {
@@ -1616,7 +1624,7 @@ impl<T: OclPrm> Buffer<T> {
     //   the builder.
     //
     pub fn new<'e, 'o, D, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, dims: D,
-            host_data: Option<&[T]>) -> OclCoreResult<Buffer<T>>
+            host_data: Option<&[T]>) -> OclResult<Buffer<T>>
             where D: Into<SpatialDims>, Q: Into<QueCtx<'o>>
     {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
@@ -1675,7 +1683,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_buffer<'o, Q>(que_ctx: Q, flags_opt: Option<MemFlags>,
-            gl_object: cl_GLuint) -> OclCoreResult<Buffer<T>>
+            gl_object: cl_GLuint) -> OclResult<Buffer<T>>
             where Q: Into<QueCtx<'o>>
     {
         let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
@@ -1875,10 +1883,10 @@ impl<T: OclPrm> Buffer<T> {
     /// Returns the memory flags used during the creation of this buffer.
     ///
     #[inline]
-    pub fn flags(&self) -> OclCoreResult<MemFlags> {
+    pub fn flags(&self) -> OclResult<MemFlags> {
         match self.mem_info(MemInfo::Flags) {
             MemInfoResult::Flags(flags) => Ok(flags),
-            MemInfoResult::Error(err) => Err(*err),
+            MemInfoResult::Error(err) => Err(OclError::from(*err)),
             _ => unreachable!(),
         }
     }
@@ -1930,7 +1938,7 @@ impl<T: OclPrm> Buffer<T> {
     /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
     ///
     pub fn create_sub_buffer<Do, Ds>(&self, flags_opt: Option<MemFlags>, origin: Do,
-        dims: Ds) -> OclCoreResult<Buffer<T>>
+        dims: Ds) -> OclResult<Buffer<T>>
         where Do: Into<SpatialDims>, Ds: Into<SpatialDims>
     {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
@@ -2214,7 +2222,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// Dimensions and either a context or default queue must be specified
     /// before calling `::build`.
-    pub fn build(self) -> OclCoreResult<Buffer<T>> {
+    pub fn build(self) -> OclResult<Buffer<T>> {
         if self.host_data.is_some() && self.fill_val.is_some() {
             panic!("ocl::BufferBuilder::build: Cannot create a buffer with both
                 'host_data' and 'fill_val' specified. Use one or the other.");

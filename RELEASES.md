@@ -1,3 +1,20 @@
+Version 0.17.0 (UNRELEASED)
+===========================
+
+
+Breaking Changes
+----------------
+* Error handling has been completely revamed and now uses the
+  [failure](https://github.com/withoutboats/failure) crate. Breakages are
+  unlikely and will only occur if your crate depended on certain, now removed,
+  features. If you experience any breakages which are not obvious how to fix,
+  please file an issue so that more instruction can be added here.
+  * The top level `ocl` crate now has it's own `Error` type, distinct from
+    `ocl-core::Error`.
+  * `ocl::async::Error` and `ocl::async::Result` have been removed.
+
+
+
 Version 0.16.0 (2017-12-02)
 ===========================
 

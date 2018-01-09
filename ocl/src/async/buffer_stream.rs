@@ -2,11 +2,11 @@
 
 use std::ops::Deref;
 use futures::{Future, Poll};
-use core::{self, Result as OclCoreResult, OclPrm, MemMap as MemMapCore,
+use core::{self, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
 use standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
 use async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
-use error::{Error as OclError};
+use error::{Error as OclError, Result as OclResult};
 
 
 #[must_use = "futures do nothing unless polled"]
@@ -103,7 +103,7 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
     }
 
     /// Enqueues this command.
-    pub fn enq(mut self) -> OclCoreResult<FutureFlood<T>> {
+    pub fn enq(mut self) -> OclResult<FutureFlood<T>> {
         let inner = unsafe { &*self.stream.lock.as_ptr() };
 
         let buffer = inner.buffer.core();
@@ -200,7 +200,7 @@ impl<T: OclPrm> BufferStream<T> {
     ///
     /// The current thread will be blocked while the buffer is initialized
     /// upon calling this function.
-    pub fn new(queue: Queue, len: usize) -> OclCoreResult<BufferStream<T>> {
+    pub fn new(queue: Queue, len: usize) -> OclResult<BufferStream<T>> {
         let buffer = Buffer::<T>::builder()
             .queue(queue.clone())
             .flags(MemFlags::new().alloc_host_ptr().host_read_only())
@@ -224,7 +224,7 @@ impl<T: OclPrm> BufferStream<T> {
     /// function.
     ///
     pub unsafe fn from_buffer(mut buffer: Buffer<T>, queue: Option<Queue>, default_offset: usize,
-            default_len: usize) -> OclCoreResult<BufferStream<T>> {
+            default_len: usize) -> OclResult<BufferStream<T>> {
         let buf_flags = buffer.flags()?;
         assert!(buf_flags.contains(MemFlags::new().alloc_host_ptr()) ||
             buf_flags.contains(MemFlags::new().use_host_ptr()),

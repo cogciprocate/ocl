@@ -2,9 +2,9 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use core::error::{Result as OclCoreResult};
 use core::{self, CommandQueue as CommandQueueCore, CommandQueueInfo, CommandQueueInfoResult,
     OpenclVersion, CommandQueueProperties, ClWaitListPtr, ClContextPtr};
+use error::{Error as OclError, Result as OclResult};
 use standard::{Context, Device, Event};
 
 /// A command queue which manages all actions taken on kernels, buffers, and
@@ -25,9 +25,9 @@ pub struct Queue {
 impl Queue {
     /// Returns a new Queue on the device specified by `device`.
     pub fn new(context: &Context, device: Device, properties: Option<CommandQueueProperties>)
-            -> OclCoreResult<Queue> {
-        let obj_core = try!(core::create_command_queue(context, &device, properties));
-        let device_version = try!(device.version());
+            -> OclResult<Queue> {
+        let obj_core = core::create_command_queue(context, &device, properties)?;
+        let device_version = device.version()?;
 
         Ok(Queue {
             obj_core: obj_core,
@@ -36,23 +36,24 @@ impl Queue {
     }
 
     /// Issues all previously queued OpenCL commands to the device.
-    pub fn flush(&self) -> OclCoreResult<()> {
-        core::flush(&self.obj_core)
+    pub fn flush(&self) -> OclResult<()> {
+        core::flush(&self.obj_core).map_err(OclError::from)
     }
 
     /// Blocks until all commands in this queue have completed before returning.
-    pub fn finish(&self) -> OclCoreResult<()> {
-        core::finish(&self.obj_core)
+    pub fn finish(&self) -> OclResult<()> {
+        core::finish(&self.obj_core).map_err(OclError::from)
     }
 
     /// Enqueues a marker command which waits for either a list of events to
     /// complete, or all previously enqueued commands to complete.
-    pub fn enqueue_marker<Ewl>(&self, ewait: Option<Ewl>) -> OclCoreResult<Event>
+    pub fn enqueue_marker<Ewl>(&self, ewait: Option<Ewl>) -> OclResult<Event>
             where Ewl: ClWaitListPtr
     {
         let mut marker_event = Event::empty();
         core::enqueue_marker_with_wait_list(&self.obj_core, ewait, Some(&mut marker_event),
-            Some(&self.device_version)).map(|_| marker_event)
+                Some(&self.device_version)).map(|_| marker_event)
+            .map_err(OclError::from)
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in

@@ -8,11 +8,12 @@ use std::path::PathBuf;
 use std::collections::HashSet;
 use std::convert::Into;
 
-use core::error::{Result as OclCoreResult, Error as OclCoreError};
+
 use core::{self, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
 #[cfg(feature = "opencl_version_2_1")]
 use core::ClVersions;
+use error::{Result as OclResult, Error as OclError};
 use standard::{Context, Device, DeviceSpecifier};
 
 
@@ -40,10 +41,10 @@ impl Program {
     /// Prefer `::builder` to create a new `Program`.
     ///
     pub fn new(context_obj_core: &ContextCore, src_strings: Vec<CString>,
-            device_ids: Option<&[Device]>, cmplr_opts: CString) -> OclCoreResult<Program>
+            device_ids: Option<&[Device]>, cmplr_opts: CString) -> OclResult<Program>
     {
-        let obj_core = try!(core::create_build_program(context_obj_core, &src_strings, device_ids,
-            &cmplr_opts));
+        let obj_core = core::create_build_program(context_obj_core, &src_strings, device_ids,
+            &cmplr_opts)?;
 
         Ok(Program(obj_core))
     }
@@ -52,7 +53,7 @@ impl Program {
     /// list for programs with intermediate language byte source.
     #[cfg(feature = "opencl_version_2_1")]
     pub fn with_il(il: Vec<u8>, device_ids: Option<&[Device]>, cmplr_opts: CString,
-            context_obj_core: &ContextCore) -> OclCoreResult<Program>
+            context_obj_core: &ContextCore) -> OclResult<Program>
     {
         let device_versions = context_obj_core.device_versions()?;
 
@@ -209,7 +210,7 @@ impl ProgramBuilder {
     ///
     /// * TODO: Check for duplicate devices in the final device list.
     #[cfg(not(feature = "opencl_version_2_1"))]
-    pub fn build(self, context: &Context) -> OclCoreResult<Program> {
+    pub fn build(self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
             Some(ref ds) => ds.to_device_list(context.platform()?)?,
             None => context.devices(),
@@ -222,10 +223,10 @@ impl ProgramBuilder {
             None => {
                 Program::new(
                     context,
-                    try!(self.get_src_strings().map_err(|e| e.to_string())),
+                    self.get_src_strings().map_err(|e| e.to_string())?,
                     Some(&device_list[..]),
-                    try!(self.get_compiler_options().map_err(|e| e.to_string())),
-                )
+                    self.get_compiler_options().map_err(|e| e.to_string())?,
+                ).map_err(OclError::from)
             },
         }
     }
@@ -238,9 +239,9 @@ impl ProgramBuilder {
     ///
     /// * TODO: Check for duplicate devices in the final device list.
     #[cfg(feature = "opencl_version_2_1")]
-    pub fn build(mut self, context: &Context) -> OclCoreResult<Program> {
+    pub fn build(mut self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {
-            Some(ref ds) => try!(ds.to_device_list(context.platform()?)),
+            Some(ref ds) => ds.to_device_list(context.platform()?)?,
             None => context.devices().to_owned(),
         };
 
@@ -263,9 +264,9 @@ impl ProgramBuilder {
             None => {
                 Program::new(
                     context,
-                    try!(self.get_src_strings().map_err(|e| e.to_string())),
+                    self.get_src_strings().map_err(|e| e.to_string())?,
                     Some(&device_list[..]),
-                    try!(self.get_compiler_options().map_err(|e| e.to_string())),
+                    self.get_compiler_options().map_err(|e| e.to_string())?,
                 )
             },
         }
@@ -363,7 +364,7 @@ impl ProgramBuilder {
 
     /// Returns a concatenated string of command line options to be passed to
     /// the compiler when building this program.
-    pub fn get_compiler_options(&self) -> OclCoreResult<CString> {
+    pub fn get_compiler_options(&self) -> OclResult<CString> {
         let mut opts: Vec<String> = Vec::with_capacity(64);
 
         for option in &self.options {
@@ -384,7 +385,7 @@ impl ProgramBuilder {
             }
         }
 
-        CString::new(opts.join(" ").into_bytes()).map_err(OclCoreError::from)
+        CString::new(opts.join(" ").into_bytes()).map_err(OclError::from)
     }
 
     /// Returns the final program source code as a list of strings.
@@ -397,11 +398,11 @@ impl ProgramBuilder {
     /// 3. Contents of strings specified via `::src` or a
     ///   `BuildOpt::IncludeRawEof` via `::bo`
     ///
-    pub fn get_src_strings(&self) -> OclCoreResult<Vec<CString>> {
+    pub fn get_src_strings(&self) -> OclResult<Vec<CString>> {
         let mut src_strings: Vec<CString> = Vec::with_capacity(64);
         let mut src_file_history: HashSet<PathBuf> = HashSet::with_capacity(64);
 
-        src_strings.extend_from_slice(&try!(self.get_includes()));
+        src_strings.extend_from_slice(&self.get_includes()?);
 
         for srcpath in &self.src_files {
             let mut src_bytes: Vec<u8> = Vec::with_capacity(100000);
@@ -409,14 +410,14 @@ impl ProgramBuilder {
             if src_file_history.contains(srcpath) { continue; }
             src_file_history.insert(srcpath.clone());
 
-            let mut src_file_handle = try!(File::open(srcpath));
+            let mut src_file_handle = File::open(srcpath)?;
 
-            try!(src_file_handle.read_to_end(&mut src_bytes));
+            src_file_handle.read_to_end(&mut src_bytes)?;
             src_bytes.shrink_to_fit();
-            src_strings.push(try!(CString::new(src_bytes)));
+            src_strings.push(CString::new(src_bytes)?);
         }
 
-        src_strings.extend_from_slice(&try!(self.get_includes_eof()));
+        src_strings.extend_from_slice(&self.get_includes_eof()?);
         src_strings.shrink_to_fit();
         Ok(src_strings)
     }
@@ -426,18 +427,18 @@ impl ProgramBuilder {
     ///
     /// Generally used for #define directives, constants, etc. Normally called from
     /// `::get_src_strings()`.
-    fn get_includes(&self) -> OclCoreResult<Vec<CString>> {
+    fn get_includes(&self) -> OclResult<Vec<CString>> {
         let mut strings = Vec::with_capacity(64);
-        strings.push(try!(CString::new("\n".as_bytes())));
+        strings.push(CString::new("\n".as_bytes())?);
 
         for option in &self.options {
             match *option {
                 BuildOpt::IncludeDefine { ref ident, ref val } => {
-                    strings.push(try!(CString::new(format!("#define {}  {}\n", ident, val)
-                        .into_bytes())));
+                    strings.push(CString::new(format!("#define {}  {}\n", ident, val)
+                        .into_bytes())?);
                 },
                 BuildOpt::IncludeRaw(ref text) => {
-                    strings.push(try!(CString::new(text.clone().into_bytes())));
+                    strings.push(CString::new(text.clone().into_bytes())?);
                 },
                 _ => (),
             };
@@ -450,13 +451,13 @@ impl ProgramBuilder {
 
     /// Parses `self.options` for options intended for inclusion at the end of
     /// the final program source and returns them as a list of strings.
-    fn get_includes_eof(&self) -> OclCoreResult<Vec<CString>> {
+    fn get_includes_eof(&self) -> OclResult<Vec<CString>> {
         let mut strings = Vec::with_capacity(64);
-        strings.push(try!(CString::new("\n".as_bytes())));
+        strings.push(CString::new("\n".as_bytes())?);
 
         for option in &self.options {
             if let BuildOpt::IncludeRawEof(ref text) = *option {
-                strings.push(try!(CString::new(text.clone().into_bytes())));
+                strings.push(CString::new(text.clone().into_bytes())?);
             }
         }
 

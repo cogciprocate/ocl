@@ -348,7 +348,7 @@ impl Device {
     ///
     pub fn list_select<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
                 idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
-        Self::resolve_idxs(idxs, &try!(Self::list(platform, device_types)))
+        Self::resolve_idxs(idxs, &Self::list(platform, device_types)?)
     }
 
     /// Returns a list of devices filtered by type then selected using a
@@ -363,7 +363,7 @@ impl Device {
     ///
     pub fn list_select_wrap<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
                 idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
-        Ok(Self::resolve_idxs_wrap(idxs, &try!(Self::list(platform, device_types))))
+        Ok(Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types)?))
     }
 
     /// Returns a list of `Device`s from a list of `DeviceIdCore`s

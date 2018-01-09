@@ -3,14 +3,13 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::any::Any;
-// use std::rc::{Rc};
-// use std::cell::{RefCell};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     KernelArg, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
 use core::error::{Result as OclCoreResult, ErrorKind as OclCoreErrorKind};
+use error::{Error as OclError, Result as OclResult};
 use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum};
 pub use self::arg_type::{BaseType, Cardinality, ArgType};
@@ -110,7 +109,7 @@ impl<'k> KernelCmd<'k> {
     /// All kernel code must be considered untrusted. Therefore the act of
     /// calling this function contains implied unsafety even though the API
     /// itself is safe.
-    pub unsafe fn enq(self) -> OclCoreResult<()> {
+    pub unsafe fn enq(self) -> OclResult<()> {
         let queue = match self.queue {
             Some(q) => q,
             None => return Err("KernelCmd::enq: No queue specified.".into()),
@@ -132,6 +131,7 @@ impl<'k> KernelCmd<'k> {
 
         core::enqueue_kernel(queue, self.kernel, dim_count, self.gwo.to_work_offset(),
             &gws, self.lws.to_work_size(), self.wait_events, self.new_event)
+            .map_err(OclError::from)
     }
 }
 
@@ -203,13 +203,13 @@ pub struct Kernel {
 
 impl Kernel {
     /// Returns a new kernel.
-    pub fn new<S: Into<String>>(name: S, program: &Program) -> OclCoreResult<Kernel> {
+    pub fn new<S: Into<String>>(name: S, program: &Program) -> OclResult<Kernel> {
         let name = name.into();
-        let obj_core = try!(core::create_kernel(program, &name));
+        let obj_core = core::create_kernel(program, &name)?;
 
         let num_args = match core::get_kernel_info(&obj_core, KernelInfo::NumArgs) {
             KernelInfoResult::NumArgs(num) => num,
-            KernelInfoResult::Error(e) => return Err(*e),
+            KernelInfoResult::Error(e) => return Err(OclError::from(*e)),
             _=> unreachable!(),
         };
 
@@ -224,7 +224,7 @@ impl Kernel {
                 Err(e) => {
                     // match e.cause() {
                     //     Some(ref ek) => {
-                    //         if let OclCoreErrorKind::VersionLow { .. } = *ek.kind() {
+                    //         if let OclErrorKind::VersionLow { .. } = *ek.kind() {
                     //             bypass_arg_check = true;
                     //             break;
                     //         }
@@ -235,7 +235,7 @@ impl Kernel {
                         bypass_arg_check = true;
                         break;
                     }
-                    return Err(e);
+                    return Err(OclError::from(e));
                 },
             };
             arg_types.push(arg_type);
@@ -419,10 +419,10 @@ impl Kernel {
     /// ## Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_scl_named<'a, T>(&'a mut self, name: &'static str, scalar: T)
-            -> OclCoreResult<&'a mut Kernel>
+            -> OclResult<&'a mut Kernel>
             where T: OclPrm + 'static
     {
-        let arg_idx = try!(self.resolve_named_arg_idx(name));
+        let arg_idx = self.resolve_named_arg_idx(name)?;
         self._set_arg::<T>(arg_idx, KernelArg::Scalar(scalar))
             .and(Ok(self))
     }
@@ -432,10 +432,10 @@ impl Kernel {
     /// ## Panics [FIXME]
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_vec_named<'a, T>(&'a mut self, name: &'static str, vector: T)
-            -> OclCoreResult<&'a mut Kernel>
+            -> OclResult<&'a mut Kernel>
             where T: OclPrm + 'static
     {
-        let arg_idx = try!(self.resolve_named_arg_idx(name));
+        let arg_idx = self.resolve_named_arg_idx(name)?;
         self._set_arg::<T>(arg_idx, KernelArg::Vector(vector))
             .and(Ok(self))
     }
@@ -446,11 +446,11 @@ impl Kernel {
     // * [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_buf_named<'a, T, M>(&'a mut self, name: &'static str,
             buffer_opt: Option<M>)
-            -> OclCoreResult<&'a mut Kernel>
+            -> OclResult<&'a mut Kernel>
             where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
     {
         //  * TODO: ADD A CHECK FOR A VALID NAME (KEY)
-        let arg_idx = try!(self.resolve_named_arg_idx(name));
+        let arg_idx = self.resolve_named_arg_idx(name)?;
         match buffer_opt {
             Some(buffer) => {
                 self._set_arg::<T>(arg_idx, KernelArg::Mem(buffer.as_mem()))
@@ -467,11 +467,11 @@ impl Kernel {
     // * [FIXME] TODO: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_img_named<'a, T, M>(&'a mut self, name: &'static str,
             image_opt: Option<M>)
-            -> OclCoreResult<&'a mut Kernel>
+            -> OclResult<&'a mut Kernel>
             where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
     {
         // * TODO: ADD A CHECK FOR A VALID NAME (KEY)
-        let arg_idx = try!(self.resolve_named_arg_idx(name));
+        let arg_idx = self.resolve_named_arg_idx(name)?;
         match image_opt {
             Some(img) => {
                 self._set_arg::<T>(arg_idx, KernelArg::Mem(img.as_mem()))
@@ -488,7 +488,7 @@ impl Kernel {
     // [PLACEHOLDER] Set a named sampler argument
     #[allow(unused_variables)]
     pub fn set_arg_smp_named<'a, T: OclPrm>(&'a mut self, name: &'static str,
-                sampler_opt: Option<&Sampler>) -> OclCoreResult<&'a mut Kernel>
+                sampler_opt: Option<&Sampler>) -> OclResult<&'a mut Kernel>
     {
         unimplemented!();
     }
@@ -511,7 +511,7 @@ impl Kernel {
     /// calling this function contains implied unsafety even though the API
     /// itself is safe.
     ///
-    pub unsafe fn enq(&self) -> OclCoreResult<()> {
+    pub unsafe fn enq(&self) -> OclResult<()> {
         self.cmd().enq()
     }
 
@@ -617,7 +617,7 @@ impl Kernel {
     /// This function does nothing and always returns `Ok` if the OpenCL
     /// version of any of the devices associated with this kernel is below
     /// 1.2.
-    pub fn verify_arg_type<T: OclPrm + Any>(&self, arg_index: u32) -> OclCoreResult<()> {
+    pub fn verify_arg_type<T: OclPrm + Any>(&self, arg_index: u32) -> OclResult<()> {
         if self.bypass_arg_check { return Ok(()); }
 
         let arg_type = self.arg_types.get(arg_index as usize)
@@ -643,13 +643,13 @@ impl Kernel {
     /// passing matches the type defined in your kernel.
     ///
     pub unsafe fn set_arg_unchecked<T: OclPrm>(&mut self, arg_idx: u32,
-            arg: KernelArg<T>) -> OclCoreResult<()>
+            arg: KernelArg<T>) -> OclResult<()>
     {
-        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
+        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg).map_err(OclError::from)
     }
 
     /// Sets an argument by index.
-    fn _set_arg<T: OclPrm + 'static>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclCoreResult<()> {
+    fn _set_arg<T: OclPrm + 'static>(&mut self, arg_idx: u32, arg: KernelArg<T>) -> OclResult<()> {
         self.verify_arg_type::<T>(arg_idx)?;
 
         // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
@@ -668,7 +668,7 @@ impl Kernel {
             arg => arg,
         };
 
-        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg)
+        core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg).map_err(OclError::from)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -727,7 +727,7 @@ impl Kernel {
     }
 
     /// Resolves the index of a named argument with a friendly error message.
-    fn resolve_named_arg_idx(&self, name: &'static str) -> OclCoreResult<u32> {
+    fn resolve_named_arg_idx(&self, name: &'static str) -> OclResult<u32> {
         match self.named_args {
             Some(ref map) => {
                 match map.get(name) {
@@ -859,8 +859,8 @@ impl Clone for Kernel {
 
 impl std::fmt::Display for Kernel {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        try!(self.fmt_info(f));
-        try!(write!(f, " "));
+        self.fmt_info(f)?;
+        write!(f, " ")?;
         self.fmt_wg_info(f, self.obj_core.devices().unwrap())
     }
 }
@@ -906,12 +906,10 @@ pub fn arg_type_name(core: &KernelCore, arg_index: u32) -> OclCoreResult<String>
 pub mod arg_type {
     #![allow(unused_imports)]
     use std::any::{Any, TypeId};
-    use ::{OclPrm, Result as OclCoreResult};
     use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
-
-    use core::{Error as OclCoreError, Status};
-    use core::Kernel as KernelCore;
+    use core::{Error as OclCoreError, Result as OclCoreResult, Status, OclPrm, Kernel as KernelCore};
+    use error::{Error as OclError, Result as OclResult};
     use standard::Sampler;
     use super::{arg_info, arg_type_name};
 

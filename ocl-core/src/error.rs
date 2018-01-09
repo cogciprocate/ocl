@@ -62,13 +62,6 @@ pub struct Error {
 }
 
 impl Error {
-    /// Returns a new `Err(ocl_core::ErrorKind::String(...))` variant with the
-    /// given description.
-    #[deprecated(since="0.8.0", note = "Create a dedicated error type instead.")]
-    pub fn err_string<T, S: Into<String>>(desc: S) -> self::Result<T> {
-        Err(Error { inner: Context::new(ErrorKind::String(desc.into())) })
-    }
-
     /// Returns the error status code for `Status` variants.
     pub fn api_status(&self) -> Option<Status> {
         match *self.kind() {
@@ -129,14 +122,14 @@ impl From<EmptyInfoResultError> for Error {
     }
 }
 
-// TODO: REMOVE EVENTUALLY
+// TODO: Remove eventually
 impl<'a> From<&'a str> for Error {
     fn from(desc: &'a str) -> Self {
         Error { inner: Context::new(ErrorKind::String(String::from(desc))) }
     }
 }
 
-// TODO: REMOVE EVENTUALLY
+// TODO: Remove eventually
 impl From<String> for Error {
     fn from(desc: String) -> Self {
         Error { inner: Context::new(ErrorKind::String(desc)) }

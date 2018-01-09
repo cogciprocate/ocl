@@ -7,6 +7,7 @@ use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue
     ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult,
     CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr, ClVersions};
 use core::error::{Result as OclCoreResult, Error as OclCoreError};
+use error::{Result as OclResult};
 use standard::{Platform, Device, DeviceSpecifier};
 
 
@@ -58,7 +59,7 @@ impl Context {
     ///
     pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>,
                 pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>)
-            -> OclCoreResult<Context>
+            -> OclResult<Context>
     {
         assert!(pfn_notify.is_none() && user_data.is_none(),
             "Context creation callbacks not yet implemented - file issue if you need this.");
@@ -73,9 +74,9 @@ impl Context {
             None => DeviceSpecifier::All,
         };
 
-        let device_list = try!(device_spec.to_device_list(platform));
+        let device_list = device_spec.to_device_list(platform)?;
 
-        let obj_core = try!(core::create_context(properties.as_ref(), &device_list, pfn_notify, user_data));
+        let obj_core = core::create_context(properties.as_ref(), &device_list, pfn_notify, user_data)?;
 
         Ok(Context(obj_core))
     }
@@ -86,7 +87,7 @@ impl Context {
     /// valid device index.
     ///
     pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
-    // pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
+    // pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> OclResult<Vec<Device>> {
         Device::resolve_idxs_wrap(idxs, &self.devices())
         // self.devices().map(|ds| Device::resolve_idxs_wrap(idxs, &ds))
     }
@@ -323,7 +324,7 @@ impl ContextBuilder {
     // * TODO:
     //   - Handle context creation callbacks.
     //
-    pub fn build(&self) -> OclCoreResult<Context> {
+    pub fn build(&self) -> OclResult<Context> {
         let mut props = self.properties.clone();
 
         if props.get_platform().is_none() {
