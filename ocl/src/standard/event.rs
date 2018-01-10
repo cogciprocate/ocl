@@ -379,15 +379,6 @@ impl EventArray {
         }
     }
 
-    /// Pushes an `Option<Event>` to the list if it is `Some(...)`.
-    pub fn push_some<E: Into<Event>>(&mut self, event: Option<E>) -> Result<(), Event> {
-        if let Some(e) = event {
-            self.push(e.into())
-        } else {
-            Ok(())
-        }
-    }
-
     /// Removes the last event from the list and returns it.
     pub fn pop(&mut self) -> Option<Event> {
         if self.len > 0 {
@@ -715,12 +706,6 @@ impl EventList {
             self.convert();
             self.push(ev);
         }
-    }
-
-    /// Pushes an `Option<Event>` to the list if it is `Some(...)`.
-    #[inline]
-    pub fn push_some<E: Into<Event>>(&mut self, event: Option<E>) {
-        if let Some(e) = event { self.push(e.into()) }
     }
 
     /// Removes the last event from the list and returns it.

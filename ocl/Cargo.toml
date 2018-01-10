@@ -1,5 +1,6 @@
 [package]
 name = "ocl"
+# [Reminder]: Bump `html_root_url`.
 version = "0.16.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."

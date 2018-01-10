@@ -1741,8 +1741,9 @@ impl<T: OclPrm> Buffer<T> {
     /// [mem_flags]: struct.MemFlags.html
     /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
     ///
-    pub fn create_sub_buffer(&self, flags_opt: Option<MemFlags>, offset: usize,
-            len: usize) -> OclResult<Buffer<T>> {
+    pub fn create_sub_buffer<Do, Dl>(&self, flags_opt: Option<MemFlags>, offset: Do,
+            len: Dl) -> OclResult<Buffer<T>>
+            where Do: Into<SpatialDims>, Dl: Into<SpatialDims> {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
 
         // Check flags here to preempt a somewhat vague OpenCL runtime error message:
@@ -1753,8 +1754,8 @@ impl<T: OclPrm> Buffer<T> {
             not be specified when creating a sub-buffer. They will be inherited from \
             the containing buffer.");
 
-        // let offset = offset.into();
-        // let dims = dims.into();
+        let offset = offset.into().to_len();
+        let len = len.into().to_len();
 
         let buffer_len = self.len();
         // let offsets = origin.to_len();

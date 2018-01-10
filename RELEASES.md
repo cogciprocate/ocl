@@ -18,6 +18,7 @@ Breaking Changes
   * `Buffer::dims` has been renamed to `::len`.
   * `BufferBuilder::dims` has been renamed to `::len`.
 * Many types have had their `::core` methods renamed to `::as_core`.
+* `EventList` and `EventArray` have had their `::push_some` methods removed.
 
 
 

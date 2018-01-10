@@ -48,7 +48,7 @@ fn info() -> OclResult<()> {
             .devices(&devices)
             .build()?;
 
-        print_platform_info(&platform);
+        print_platform_info(&platform)?;
 
         for device in devices.iter() {
             print_device_info(device)?;
