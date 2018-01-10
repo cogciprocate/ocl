@@ -120,7 +120,6 @@ impl Event {
     pub fn queue_core(&self) -> OclCoreResult<CommandQueueCore> {
         match self.info(EventInfo::CommandQueue)? {
             EventInfoResult::CommandQueue(queue_core) => Ok(queue_core),
-            EventInfoResult::Error(err) => Err(*err),
             _ => unreachable!(),
         }
     }

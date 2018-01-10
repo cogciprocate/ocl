@@ -126,7 +126,6 @@ impl ClVersions for cl_context {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = match functions::get_context_info(self, ContextInfo::Devices) {
             Ok(ContextInfoResult::Devices(ds)) => Ok(ds),
-            Ok(ContextInfoResult::Error(e)) => return Err(OclCoreError::from(*e)),
             Err(err) => Err(OclCoreError::from(err)),
             _ => unreachable!(),
         };
@@ -142,7 +141,6 @@ impl ClVersions for cl_context {
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let devices = match functions::get_context_info(self, ContextInfo::Devices) {
             Ok(ContextInfoResult::Devices(ds)) => Ok(ds),
-            Ok(ContextInfoResult::Error(e)) => return Err(OclCoreError::from(*e)),
             Err(err) => Err(OclCoreError::from(err)),
             _ => unreachable!(),
         };
@@ -444,7 +442,7 @@ impl ClVersions for DeviceId {
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let platform = match functions::get_device_info(self, DeviceInfo::Platform) {
             Ok(DeviceInfoResult::Platform(p)) => p,
-            Ok(DeviceInfoResult::Error(e)) => return Err(*e),
+            // Ok(DeviceInfoResult::Error(e)) => return Err(*e),
             Err(err) => return Err(err),
             _ => unreachable!(),
         };
@@ -485,7 +483,6 @@ impl Context {
     pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         match functions::get_context_info(self, ContextInfo::Devices) {
             Ok(ContextInfoResult::Devices(ds)) => Ok(ds),
-            Ok(ContextInfoResult::Error(e)) => return Err(OclCoreError::from(*e)),
             Err(err) => Err(OclCoreError::from(err)),
             _ => unreachable!(),
         }
@@ -596,7 +593,6 @@ impl CommandQueue {
     pub fn device(&self) -> OclCoreResult<DeviceId> {
         match functions::get_command_queue_info(self, CommandQueueInfo::Device) {
             Ok(CommandQueueInfoResult::Device(d)) => Ok(d),
-            Ok(CommandQueueInfoResult::Error(e)) => Err(OclCoreError::from(*e)),
             Err(err) => Err(OclCoreError::from(err)),
             _ => unreachable!(),
         }
@@ -805,7 +801,6 @@ impl Program {
     pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         match functions::get_program_info(self, ProgramInfo::Devices) {
             Ok(ProgramInfoResult::Devices(d)) => Ok(d),
-            Ok(ProgramInfoResult::Error(e)) => Err(OclCoreError::from(*e)),
             Err(err) => Err(OclCoreError::from(err)),
             _ => unreachable!(),
         }
@@ -890,7 +885,6 @@ impl Kernel {
     pub fn program(&self) -> OclCoreResult<Program> {
         match functions::get_kernel_info(self, KernelInfo::Program) {
             Ok(KernelInfoResult::Program(d)) => Ok(d),
-            Ok(KernelInfoResult::Error(e)) => Err(OclCoreError::from(*e)),
             Err(err) => Err(OclCoreError::from(err)),
             _ => unreachable!(),
         }
@@ -1049,7 +1043,6 @@ impl Event {
     pub fn context(&self) -> OclCoreResult<Context> {
         match functions::get_event_info(self, EventInfo::Context) {
             Ok(EventInfoResult::Context(c)) => Ok(c),
-            Ok(EventInfoResult::Error(e)) => Err(OclCoreError::from(*e)),
             Err(err) => Err(OclCoreError::from(err)),
             _ => unreachable!(),
         }

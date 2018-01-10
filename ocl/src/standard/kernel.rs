@@ -184,7 +184,6 @@ impl Kernel {
 
         let num_args = match core::get_kernel_info(&obj_core, KernelInfo::NumArgs) {
             Ok(KernelInfoResult::NumArgs(num)) => num,
-            Ok(KernelInfoResult::Error(e)) => return Err(OclError::from(*e)),
             Err(err) => return Err(OclError::from(err)),
             _=> unreachable!(),
         };
@@ -547,7 +546,6 @@ impl Kernel {
     pub fn num_args(&self) -> OclCoreResult<u32> {
         match core::get_kernel_info(&self.obj_core, KernelInfo::NumArgs) {
             Ok(KernelInfoResult::NumArgs(num)) => Ok(num),
-            Ok(KernelInfoResult::Error(err)) => Err(*err),
             Err(err) => Err(err),
             _=> unreachable!(),
         }
@@ -834,7 +832,6 @@ pub fn arg_info(core: &KernelCore, arg_index: u32, info_kind: KernelArgInfo)
 pub fn arg_type_name(core: &KernelCore, arg_index: u32) -> OclCoreResult<String> {
     match arg_info(core, arg_index, KernelArgInfo::TypeName) {
         Ok(KernelArgInfoResult::TypeName(type_name)) => Ok(type_name),
-        Ok(KernelArgInfoResult::Error(e)) => Err(*e),
         Err(err) => Err(err.into()),
         _ => unreachable!(),
     }

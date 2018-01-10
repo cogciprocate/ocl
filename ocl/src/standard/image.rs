@@ -588,7 +588,6 @@ impl<T: OclPrm> Image<T> {
 
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
-            ImageInfoResult::Error(err) => return Err(*err),
             _ => return Err("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant.".into()),
         };
@@ -635,7 +634,6 @@ impl<T: OclPrm> Image<T> {
         // FIXME can I do this from a GLTexture ?
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
-            ImageInfoResult::Error(err) => return Err(*err),
             _ => return Err("ocl::Image::element_len(): Unexpected \
                 'ImageInfoResult' variant.".into()),
         };
@@ -672,7 +670,6 @@ impl<T: OclPrm> Image<T> {
         // FIXME can I do this from a renderbuffer ?
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
-            ImageInfoResult::Error(err) => return Err(*err),
             _ => return Err("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant.".into()),
         };

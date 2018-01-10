@@ -1691,7 +1691,6 @@ impl<T: OclPrm> Buffer<T> {
     pub fn flags(&self) -> OclResult<MemFlags> {
         match self.mem_info(MemInfo::Flags)? {
             MemInfoResult::Flags(flags) => Ok(flags),
-            MemInfoResult::Error(err) => Err(OclError::from(*err)),
             _ => unreachable!(),
         }
     }

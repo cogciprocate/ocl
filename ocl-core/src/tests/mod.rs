@@ -41,7 +41,6 @@ pub fn get_available_contexts() -> Vec<(PlatformId, DeviceId, Context)> {
         for device in ::get_device_ids(&platform, None, None).unwrap() {
             match ::get_device_info(device, DeviceInfo::Available).unwrap() {
                 DeviceInfoResult::Available(r) => if !r { continue; },
-                DeviceInfoResult::Error(err) => panic!("{}", err),
                 _ => unreachable!(),
             }
 
