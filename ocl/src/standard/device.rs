@@ -254,9 +254,6 @@ pub struct Device(DeviceIdCore);
 
 impl Device {
     /// Returns the first available device on a platform.
-    ///
-    /// Panics upon OpenCL error.
-    ///
     pub fn first<P: Borrow<Platform>>(platform: P) -> OclResult<Device> {
         let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
         if device_ids.len() == 0 { return Err(DeviceError::NoDevices.into()) }
@@ -264,9 +261,6 @@ impl Device {
     }
 
     /// Returns a single device specified by a wrapped index.
-    ///
-    /// Panics upon OpenCL error.
-    ///
     pub fn by_idx_wrap<P: Borrow<Platform>>(platform: P, device_idx_wrap: usize)
             -> OclResult<Device> {
         let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
