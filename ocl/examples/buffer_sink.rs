@@ -5,7 +5,7 @@ extern crate futures;
 
 use std::thread::{self, JoinHandle, Builder as ThreadBuilder};
 use futures::Future;
-use ocl::{util, ProQue, Buffer, MemFlags, Event, EventList};
+use ocl::{util, Result as OclResult, ProQue, Buffer, MemFlags, Event, EventList};
 use ocl::async::{BufferSink, WriteGuard};
 
 // Our arbitrary data set size (about a million) and coefficent:
@@ -27,7 +27,7 @@ static KERNEL_SRC: &'static str = r#"
 "#;
 
 
-fn main() {
+fn buffer_sink() -> ocl::Result<()> {
     let ocl_pq = ProQue::builder()
         .src(KERNEL_SRC)
         .dims(WORK_SIZE)
@@ -37,12 +37,12 @@ fn main() {
         .queue(ocl_pq.queue().clone())
         .flags(MemFlags::new().read_write().alloc_host_ptr())
         .len(WORK_SIZE)
-        .build().unwrap();
+        .build()?;
 
     let mut vec_result = vec![0i32; WORK_SIZE];
-    let result_buffer: Buffer<i32> = ocl_pq.create_buffer().unwrap();
+    let result_buffer: Buffer<i32> = ocl_pq.create_buffer()?;
 
-    let kern = ocl_pq.create_kernel("multiply_by_scalar").unwrap()
+    let kern = ocl_pq.create_kernel("multiply_by_scalar")?
         .arg_scl(COEFF)
         .arg_buf(&source_buffer)
         .arg_buf(&result_buffer);
@@ -50,7 +50,7 @@ fn main() {
 
     let buffer_sink = unsafe {
         BufferSink::from_buffer(source_buffer.clone(), Some(ocl_pq.queue().clone()), 0,
-            WORK_SIZE).unwrap()
+            WORK_SIZE)?
     };
     // let source_data = util::scrambled_vec((0, 20), ocl_pq.dims().to_len());
     let source_datas: Vec<_> = (0..THREAD_COUNT).map(|_| {
@@ -65,7 +65,7 @@ fn main() {
             write_guard.copy_from_slice(&[0i32; WORK_SIZE]);
             let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
             buffer_sink.flush().enq().unwrap().wait().unwrap();
-        }).unwrap());
+        })?);
 
         let source_data = source_datas[i].clone();
 
@@ -75,11 +75,11 @@ fn main() {
             write_guard.copy_from_slice(&source_data);
             let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
             buffer_sink.flush().enq().unwrap().wait().unwrap();
-        }).unwrap());
+        })?);
 
-        unsafe { kern.enq().unwrap(); }
+        unsafe { kern.enq()?; }
 
-        result_buffer.read(&mut vec_result).enq().unwrap();
+        result_buffer.read(&mut vec_result).enq()?;
 
         // // Check results:
         // for (&src, &res) in source_data.iter().zip(vec_result.iter()) {
@@ -90,7 +90,12 @@ fn main() {
     for thread in threads {
         thread.join().unwrap();
     }
+    Ok(())
 }
 
-
-
+pub fn main() {
+    match buffer_sink() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
+}

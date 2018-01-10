@@ -593,7 +593,7 @@ fn fmt_duration(duration: chrono::Duration) -> String {
 
 /// Creates a large number of both simple and complex asynchronous tasks and
 /// verifies that they all execute correctly.
-pub fn run() -> OclResult<()> {
+pub fn async_menagerie() -> OclResult<()> {
     // Buffer/work size range:
     let buffer_size_range = RandRange::new(SUB_BUF_MIN_LEN, SUB_BUF_MAX_LEN);
     let mut rng = rand::weak_rng();
@@ -607,14 +607,14 @@ pub fn run() -> OclResult<()> {
 
     let device = Device::specifier()
         .wrapping_indices(vec![device_idx])
-        .to_device_list(Some(platform)).unwrap()[0];
+        .to_device_list(Some(platform))?[0];
 
     printlnc!(teal: "Device: {} {}", device.vendor()?, device.name()?);
 
     let context = Context::builder()
         .platform(platform)
         .devices(device)
-        .build().unwrap();
+        .build()?;
 
     // Queues (events coordinated by command graph):
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
@@ -627,9 +627,8 @@ pub fn run() -> OclResult<()> {
 
     // A pool of available device side memory (one big buffer with an attached allocator).
     let mut buf_pool: SubBufferPool<Float4> = SubBufferPool::new(INITIAL_BUFFER_LEN,
-        // Queue::new(&context, device, queue_flags).unwrap()
         Queue::new(&context, device, queue_flags)
-            .or_else(|_| Queue::new(&context, device, None)).unwrap());
+            .or_else(|_| Queue::new(&context, device, None))?);
     let mut tasks = Vec::with_capacity(256);
 
     // Our thread pool for offloading reading, writing, and other host-side processing.
@@ -681,7 +680,7 @@ pub fn run() -> OclResult<()> {
     stream::futures_unordered(tasks).for_each(|(task_id, _)| {
         printlnc!(orange: "Task [{}]: Complete.", task_id);
         Ok(())
-    }).wait().unwrap();
+    }).wait()?;
 
     rx.close();
 
@@ -702,7 +701,7 @@ pub fn run() -> OclResult<()> {
 
 
 pub fn main() {
-    match run() {
+    match async_menagerie() {
         Ok(_) => (),
         Err(err) => println!("{}", err),
     }

@@ -380,7 +380,7 @@ impl ProQueBuilder {
                         device_list.len()).into());
                 }
             },
-            None => Device::first(platform),
+            None => Device::first(platform)?,
         };
 
         if DEBUG_PRINT { println!("ProQue::build(): device: {:?}", device); }

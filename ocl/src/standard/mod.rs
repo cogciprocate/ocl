@@ -16,7 +16,7 @@ mod event;
 mod spatial_dims;
 
 pub use self::platform::Platform;
-pub use self::device::{Device, DeviceSpecifier};
+pub use self::device::{DeviceError, Device, DeviceSpecifier};
 pub use self::context::{Context, ContextBuilder};
 pub use self::program::{Program, ProgramBuilder, BuildOpt};
 pub use self::queue::Queue;

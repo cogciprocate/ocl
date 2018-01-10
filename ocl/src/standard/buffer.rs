@@ -177,7 +177,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// Returns a new buffer command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `mem_len`
     /// (the length of the device side buffer).
-    pub fn new(buffer: &'c Buffer<T>, queue: Option<&'c Queue>, /*obj_core: &'c MemCore,*/ mem_len: usize)
+    fn new(buffer: &'c Buffer<T>, queue: Option<&'c Queue>, /*obj_core: &'c MemCore,*/ mem_len: usize)
             -> BufferCmd<'c, T> {
         BufferCmd {
             buffer,

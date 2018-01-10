@@ -2,11 +2,13 @@
 //!
 
 use std;
+// use std::sync::mpsc::{SendError as StdMpscSendError, RecvError as StdMpscRecvError};
 use failure::{Context, Fail, Backtrace};
 use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
 use core::error::{Error as OclCoreError};
 use core::Status;
+use standard::DeviceError;
 use ::BufferCmdError;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -17,14 +19,20 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Implements the usual error traits.
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "ocl-core error: {}", _0)]
+    #[fail(display = "{}", _0)]
     OclCore(OclCoreError),
-    #[fail(display = "mpsc send error: {}", _0)]
-    MpscSendError(String),
+    #[fail(display = "{}", _0)]
+    FuturesMpscSend(String),
+    // #[fail(display = "{}", _0)]
+    // StdMpscSend(String),
+    // #[fail(display = "{}", _0)]
+    // StdMpscRecv(StdMpscRecvError),
     #[fail(display = "{}", _0)]
     OneshotCanceled(#[cause] OneshotCanceled),
-    #[fail(display = "BufferCmd error: {}", _0)]
-    BufferCmdError(BufferCmdError),
+    #[fail(display = "{}", _0)]
+    BufferCmd(BufferCmdError),
+    #[fail(display = "{}", _0)]
+    Device(DeviceError),
 }
 
 
@@ -86,9 +94,25 @@ impl<T> From<SendError<T>> for Error {
     fn from(err: SendError<T>) -> Error {
         let debug = format!("{:?}", err);
         let display = format!("{}", err);
-        Error { inner: Context::new(ErrorKind::MpscSendError(format!("{}: '{}'", debug, display))) }
+        Error { inner: Context::new(ErrorKind::FuturesMpscSend(
+            format!("{}: '{}'", debug, display))) }
     }
 }
+
+// impl<T> From<StdMpscSendError<T>> for Error {
+//     fn from(err: StdMpscSendError<T>) -> Error {
+//         let debug = format!("{:?}", err);
+//         let display = format!("{}", err);
+//         Error { inner: Context::new(ErrorKind::StdMpscSend(
+//             format!("{}: '{}'", debug, display))) }
+//     }
+// }
+
+// impl From<StdMpscRecvError> for Error {
+//     fn from(err: StdMpscRecvError) -> Error {
+//         Error { inner: Context::new(ErrorKind::StdMpscRecv(err)) }
+//     }
+// }
 
 impl From<OneshotCanceled> for Error {
     fn from(err: OneshotCanceled) -> Error {
@@ -124,7 +148,13 @@ impl From<std::io::Error> for Error {
 
 impl From<BufferCmdError> for Error {
     fn from(err: BufferCmdError) -> Error {
-        Error { inner: Context::new(ErrorKind::BufferCmdError(err)) }
+        Error { inner: Context::new(ErrorKind::BufferCmd(err)) }
+    }
+}
+
+impl From<DeviceError> for Error {
+    fn from(err: DeviceError) -> Error {
+        Error { inner: Context::new(ErrorKind::Device(err)) }
     }
 }
 

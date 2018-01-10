@@ -3,12 +3,24 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
-use core::error::{Error as OclCoreError, Result as OclCoreResult};
-use standard::Platform;
 use ffi::cl_device_id;
-use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
-use core::util;
+use core::{self, util, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
+use core::error::{Error as OclCoreError, Result as OclCoreResult};
+use error::{Error as OclError, Result as OclResult};
+use standard::Platform;
 
+
+/// A device related error.
+#[derive(Debug, Fail)]
+pub enum DeviceError {
+    #[fail(display = "No devices found on the specified platform.")]
+    NoDevices,
+    #[fail(display = "Empty device list provided.")]
+    ResolveIdxsEmptyDeviceList,
+    #[fail(display = "An index in the resolve list is out of range (index: {}, max: {})",
+        idx, max)]
+    ResolveIdxsInvalidIndex { idx: usize, max: usize },
+}
 
 // Perhaps add something like this to the `DeviceSpecifier`.
 //
@@ -138,12 +150,12 @@ impl DeviceSpecifier {
     /// `Platform`. If no `platform` has been specified, this behaviour is
     /// undefined and could end up using any platform at all.
     ///
-    pub fn to_device_list<P: Borrow<Platform>>(&self, platform: Option<P>) -> OclCoreResult<Vec<Device>> {
+    pub fn to_device_list<P: Borrow<Platform>>(&self, platform: Option<P>) -> OclResult<Vec<Device>> {
         let platform = platform.map(|p| p.borrow().clone()).unwrap_or(Platform::first(false)?);
 
         match *self {
             DeviceSpecifier::All => {
-                Device::list_all(&platform)
+                Device::list_all(&platform).map_err(OclError::from)
             },
             DeviceSpecifier::First => {
                 Device::list_select(&platform, None, &[0])
@@ -158,10 +170,10 @@ impl DeviceSpecifier {
                 Device::list_select(&platform, None, idx_list)
             },
             DeviceSpecifier::WrappingIndices(ref idx_list) => {
-                Device::list_select_wrap(&platform, None, idx_list)
+                Device::list_select_wrap(&platform, None, idx_list).map_err(OclError::from)
             },
             DeviceSpecifier::TypeFlags(flags) => {
-                Device::list(&platform, Some(flags))
+                Device::list(&platform, Some(flags)).map_err(OclError::from)
             },
         }
     }
@@ -245,21 +257,22 @@ impl Device {
     ///
     /// Panics upon OpenCL error.
     ///
-    pub fn first<P: Borrow<Platform>>(platform: P) -> Device {
-        let device_ids = core::get_device_ids(platform.borrow(), None, None)
-            .expect("ocl::Device::first: Error retrieving device list");
-        Device(device_ids[0])
+    pub fn first<P: Borrow<Platform>>(platform: P) -> OclResult<Device> {
+        let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
+        if device_ids.len() == 0 { return Err(DeviceError::NoDevices.into()) }
+        Ok(Device(device_ids[0]))
     }
 
     /// Returns a single device specified by a wrapped index.
     ///
     /// Panics upon OpenCL error.
     ///
-    pub fn by_idx_wrap<P: Borrow<Platform>>(platform: P, device_idx_wrap: usize) -> Device {
-        let device_ids = core::get_device_ids(platform.borrow(), None, None)
-            .expect("ocl::Device::by_idx_wrap: Error retrieving device list");
+    pub fn by_idx_wrap<P: Borrow<Platform>>(platform: P, device_idx_wrap: usize)
+            -> OclResult<Device> {
+        let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
+        if device_ids.len() == 0 { return Err(DeviceError::NoDevices.into()) }
         let wrapped_idx = device_idx_wrap % device_ids.len();
-        Device(device_ids[wrapped_idx])
+        Ok(Device(device_ids[wrapped_idx]))
     }
 
     /// Returns a `DeviceSpecifier` useful for precisely specifying a set
@@ -278,13 +291,16 @@ impl Device {
     /// All indices in `idxs` must be valid. Use `resolve_idxs_wrap` for index
     /// lists which may contain out of bounds indices.
     ///
-    pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclCoreResult<Vec<Device>> {
+    pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclResult<Vec<Device>> {
+        if devices.len() == 0 { return Err(DeviceError::ResolveIdxsEmptyDeviceList.into()) }
         let mut result = Vec::with_capacity(idxs.len());
         for &idx in idxs.iter() {
             match devices.get(idx) {
                 Some(&device) => result.push(device),
-                None => return Err(format!("Error resolving device index: '{}'. Index out of \
-                    range. Devices avaliable: '{}'.", idx, devices.len()).into()),
+                // None => return Err(format!("Error resolving device index: '{}'. Index out of \
+                //     range. Devices avaliable: '{}'.", idx, devices.len()).into()),
+                None => return Err(DeviceError::ResolveIdxsInvalidIndex { idx, max: devices.len() }.into()),
+
             }
         }
         Ok(result)
@@ -347,7 +363,7 @@ impl Device {
     /// error information.
     ///
     pub fn list_select<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
-                idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
+            idxs: &[usize]) -> OclResult<Vec<Device>> {
         Self::resolve_idxs(idxs, &Self::list(platform, device_types)?)
     }
 
@@ -362,7 +378,7 @@ impl Device {
     /// See [`::list`](struct.Device.html#method.list)
     ///
     pub fn list_select_wrap<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
-                idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
+            idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
         Ok(Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types)?))
     }
 

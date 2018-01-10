@@ -85,18 +85,19 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 }
 
 
-fn main() {
+fn event_callbacks() -> ocl::Result<()> {
     // Set up data set size and work dimensions:
     let dataset_len = 1 << 17;
 
     // Get a path for our program source:
-    let src_file = Search::ParentsThenKids(3, 3).for_folder("examples").unwrap().join("cl/kernel_file.cl");
+    let src_file = Search::ParentsThenKids(3, 3).for_folder("examples").unwrap()
+        .join("cl/kernel_file.cl");
 
     // Create a context, program, & queue:
     let ocl_pq = ProQue::builder()
         .dims(dataset_len)
         .prog_bldr(Program::builder().src_file(src_file))
-        .build().unwrap();
+        .build()?;
 
     // Create source and result buffers (our data containers):
     // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
@@ -106,19 +107,19 @@ fn main() {
         .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
         .len(dataset_len)
         .host_data(&seed_vec)
-        .build().unwrap();
+        .build()?;
 
     let mut result_vec = vec![0; dataset_len];
     let mut result_buffer = Buffer::<u32>::builder()
         .queue(ocl_pq.queue().clone())
         .len(dataset_len)
-        .build().unwrap();
+        .build()?;
 
     // Our arbitrary addend:
     let addend = 11u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel("add_scalar").unwrap()
+    let mut kernel = ocl_pq.create_kernel("add_scalar")?
         .gws(dataset_len)
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)
@@ -149,19 +150,19 @@ fn main() {
         // Yes, this is far from optimal...
         // Should just copy the values in the first place but whatever.
         if itr != 0 {
-            kernel.set_arg_buf_named("src", Some(&result_buffer)).unwrap();
+            kernel.set_arg_buf_named("src", Some(&result_buffer))?;
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }
         unsafe {
-            kernel.cmd().enew(&mut kernel_event).enq().unwrap();
+            kernel.cmd().enew(&mut kernel_event).enq()?;
         }
 
         let mut read_event = EventList::new();
 
         if PRINT_DEBUG { println!("Enqueuing read buffer [itr:{}]...", itr); }
         unsafe { result_buffer.cmd().read(&mut result_vec)
-            .enew(&mut read_event).block(true).enq().unwrap(); }
+            .enew(&mut read_event).block(true).enq()?; }
 
         // Clone event list just for fun (test drop a bit):
         let read_event = read_event.clone();
@@ -172,12 +173,19 @@ fn main() {
             if PRINT_DEBUG { println!("Setting callback (verify_result, buncha_stuff[{}]) [i:{}]...",
                 last_idx, itr); }
             read_event.last().unwrap().set_callback(_test_events_verify_result,
-                &mut buncha_stuffs[last_idx] as *mut _ as *mut c_void).unwrap();
+                &mut buncha_stuffs[last_idx] as *mut _ as *mut c_void)?;
         }
     }
 
     // Wait for all queued tasks to finish so that verify_result() will be
     // called before returning:
-    ocl_pq.queue().finish().unwrap();
+    ocl_pq.queue().finish()?;
+    Ok(())
 }
 
+pub fn main() {
+    match event_callbacks() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
+}

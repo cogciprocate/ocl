@@ -463,7 +463,7 @@ pub fn verify_add(dst_buf_stream: &BufferStream<Int4>,
 pub fn buffer_sink_stream_cycles() {
     let platform = Platform::default();
     println!("Platform: {}", platform.name().unwrap());
-    let device = Device::first(platform);
+    let device = Device::first(platform).unwrap();
     println!("Device: {} {}", device.vendor().unwrap(), device.name().unwrap());
 
     let context = Context::builder()

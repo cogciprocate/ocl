@@ -22,7 +22,7 @@ static KERNEL_SRC: &'static str = r#"
 "#;
 
 
-fn main() {
+fn basics() -> ocl::Result<()> {
     // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
     let ocl_pq = ProQue::builder()
         .src(KERNEL_SRC)
@@ -37,17 +37,17 @@ fn main() {
         .flags(MemFlags::new().read_write().copy_host_ptr())
         .len(WORK_SIZE)
         .host_data(&vec_source)
-        .build().unwrap();
+        .build()?;
 
     // Create an empty vec and buffer (the quick way) for results. Note that
     // there is no need to initialize the buffer as we did above because we
     // will be writing to the entire buffer first thing, overwriting any junk
     // data that may be there.
     let mut vec_result = vec![0.0f32; WORK_SIZE];
-    let result_buffer: Buffer<f32> = ocl_pq.create_buffer().unwrap();
+    let result_buffer: Buffer<f32> = ocl_pq.create_buffer()?;
 
     // Create a kernel with arguments corresponding to those in the kernel:
-    let kern = ocl_pq.create_kernel("multiply_by_scalar").unwrap()
+    let kern = ocl_pq.create_kernel("multiply_by_scalar")?
         .arg_scl(COEFF)
         .arg_buf(&source_buffer)
         .arg_buf(&result_buffer);
@@ -55,10 +55,10 @@ fn main() {
     println!("Kernel global work size: {:?}", kern.get_gws());
 
     // Enqueue kernel:
-    unsafe { kern.enq().unwrap(); }
+    unsafe { kern.enq()?; }
 
     // Read results from the device into result_buffer's local vector:
-    result_buffer.read(&mut vec_result).enq().unwrap();
+    result_buffer.read(&mut vec_result).enq()?;
 
     // Check results and print the first 20:
     for idx in 0..WORK_SIZE {
@@ -67,5 +67,14 @@ fn main() {
             vec_source[idx], COEFF, vec_result[idx], idx = idx);
         }
         assert_eq!(vec_source[idx] * COEFF, vec_result[idx]);
+    }
+
+    Ok(())
+}
+
+pub fn main() {
+    match basics() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
     }
 }

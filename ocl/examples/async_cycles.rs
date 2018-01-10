@@ -103,8 +103,7 @@ pub fn timestamp() -> String {
 /// completion of each `CpuFuture` sent until none remain.
 pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
         -> JoinHandle<()>
-        where T: Send + 'static, E: Send + Debug + 'static
-{
+        where T: Send + 'static, E: Send + Debug + 'static {
     thread::spawn(move || {
         let mut task_i = 0usize;
 
@@ -134,8 +133,7 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
         verify_init_event: Option<&Event>,
         kernel_event: Option<&Event>,
         fill_event: &mut Option<Event>,
-        task_iter: i32)
-{
+        task_iter: i32) -> OclResult<()> {
     // These just print status messages...
     extern "C" fn _print_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(peach_bold: "* Fill starting \t\t(iter: {}, t: {}s) ...",
@@ -151,10 +149,10 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
     let wait_list = [&kernel_event, &verify_init_event].into_raw_array();
 
     // Create a marker so we can print the status message:
-    let fill_wait_marker = wait_list.to_marker(&common_queue).unwrap();
+    let fill_wait_marker = wait_list.to_marker(&common_queue)?;
 
     if let Some(ref marker) = fill_wait_marker {
-        unsafe { marker.set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
+        unsafe { marker.set_callback(_print_starting, task_iter as *mut c_void)?; }
     } else {
         _print_starting(0 as cl_event, 0, task_iter as *mut c_void);
     }
@@ -165,10 +163,11 @@ pub fn fill_junk(src_buf: &Buffer<Int4>, common_queue: &Queue,
         .queue(common_queue)
         .ewait(&wait_list)
         .enew(fill_event.as_mut())
-        .enq().unwrap();
+        .enq()?;
 
     unsafe { fill_event.as_ref().unwrap()
-        .set_callback(_print_complete, task_iter as *mut c_void).unwrap(); }
+        .set_callback(_print_complete, task_iter as *mut c_void)?; }
+    Ok(())
 }
 
 
@@ -188,8 +187,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         write_val: i32, task_iter: i32)
         // -> AndThen<FutureMemMap<Int4>, OclResult<i32>,
         //     impl FnOnce(MemMap<Int4>) -> OclResult<i32>>
-        -> Box<Future<Item=i32, Error=OclError> + Send>
-{
+        -> OclResult<Box<Future<Item=i32, Error=OclError> + Send>> {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(teal_bold: "* Write init complete \t\t(iter: {}, t: {}s)",
             task_iter as usize, timestamp());
@@ -201,7 +199,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         src_buf.cmd().map()
             .queue(common_queue)
             .write_invalidate()
-            .enq_async().unwrap()
+            .enq_async()?
 
             // Set up the wait list to use when unmapping. As this is an
             // invalidating write, only the unmap command actually guarantee
@@ -221,9 +219,9 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
     };
 
     unsafe { write_init_event.as_ref().unwrap().set_callback(_write_complete,
-        task_iter as *mut c_void).unwrap(); }
+        task_iter as *mut c_void)?; }
 
-    Box::new(future_write_data.and_then(move |mut data| {
+    Ok(Box::new(future_write_data.and_then(move |mut data| {
         printlnc!(teal_bold: "* Write init starting \t\t(iter: {}, t: {}s) ...",
             task_iter, timestamp());
 
@@ -232,7 +230,7 @@ pub fn write_init(src_buf: &Buffer<Int4>, common_queue: &Queue,
         }
 
         Ok(task_iter)
-    }))
+    })))
 }
 
 
@@ -250,8 +248,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         correct_val: i32, task_iter: i32)
         // -> AndThen<PendingRwGuard<Int4>, OclResult<i32>,
         //     impl FnOnce(RwGuard<Int4>) -> OclResult<i32>>
-        -> Box<Future<Item=i32, Error=OclError> + Send>
-{
+        -> OclResult<Box<Future<Item=i32, Error=OclError> + Send>> {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(blue_bold: "* Verify init starting \t\t(iter: {}, t: {}s) ...",
             task_iter as usize, timestamp());
@@ -265,19 +262,19 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
     let mut future_read_data = src_buf.cmd().read(dst_vec)
         .queue(common_queue)
         .ewait(&wait_list)
-        .enq_async().unwrap();
+        .enq_async()?;
 
     // Attach a status message printing callback to what approximates the
     // verify_init start-time event:
     unsafe { future_read_data.lock_event().unwrap()
-        .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
+        .set_callback(_verify_starting, task_iter as *mut c_void)?; }
 
     // Create a release event which is triggered when the read guard is dropped.
     *verify_init_event = Some(future_read_data.create_release_event(verify_init_queue)
-        .unwrap().clone());
+        ?.clone());
 
     // The future which will actually verify the initial value:
-    Box::new(future_read_data.and_then(move |data| {
+    Ok(Box::new(future_read_data.and_then(move |data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -292,7 +289,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
             task_iter, timestamp());
 
         Ok(val_count)
-    }))
+    })))
 }
 
 
@@ -308,7 +305,7 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
         write_init_event: Option<&Event>,
         kernel_event: &mut Option<Event>,
         task_iter: i32)
-{
+        -> OclResult<()> {
     // These just print status messages...
     extern "C" fn _print_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(magenta_bold: "* Kernel starting \t\t(iter: {}, t: {}s) ...",
@@ -324,12 +321,12 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
     let wait_list = [&verify_add_event, &write_init_event].into_raw_array();
 
     // Create a marker so we can print the status message:
-    let kernel_wait_marker = wait_list.to_marker(&common_queue).unwrap();
+    let kernel_wait_marker = wait_list.to_marker(&common_queue)?;
 
     // Attach a status message printing callback to what approximates the
     // kernel wait (start-time) event:
     unsafe { kernel_wait_marker.as_ref().unwrap()
-        .set_callback(_print_starting, task_iter as *mut c_void).unwrap(); }
+        .set_callback(_print_starting, task_iter as *mut c_void)?; }
 
     // Create an empty event ready to hold the new kernel event, overwriting any old one.
     *kernel_event = Some(Event::empty());
@@ -343,12 +340,13 @@ pub fn kernel_add(kern: &Kernel, common_queue: &Queue,
             .queue(common_queue)
             .ewait(&wait_list)
             .enew(kernel_event.as_mut())
-            .enq().unwrap();
+            .enq()?;
     }
 
     // Attach a status message printing callback to the kernel completion event:
     unsafe { kernel_event.as_ref().unwrap().set_callback(_print_complete,
-        task_iter as *mut c_void).unwrap(); }
+        task_iter as *mut c_void)?; }
+    Ok(())
 }
 
 
@@ -369,15 +367,14 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         correct_val: i32, task_iter: i32)
         // -> AndThen<FutureMemMap<Int4>, OclResult<i32>,
         //     impl FnOnce(MemMap<Int4>) -> OclResult<i32>>
-        -> Box<Future<Item=i32, Error=OclError> + Send>
-{
+        -> OclResult<Box<Future<Item=i32, Error=OclError> + Send>> {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}, t: {}s) ...",
             task_iter as usize, timestamp());
     }
 
     unsafe { wait_event.as_ref().unwrap()
-        .set_callback(_verify_starting, task_iter as *mut c_void).unwrap(); }
+        .set_callback(_verify_starting, task_iter as *mut c_void)?; }
 
     *verify_add_event = Some(Event::empty());
 
@@ -386,7 +383,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
             .queue(common_queue)
             .read()
             .ewait(wait_event)
-            .enq_async().unwrap()
+            .enq_async()?
 
             // Set the read unmap completion event:
             .enew_unmap(verify_add_event.as_mut().unwrap())
@@ -396,7 +393,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
             .with_unmap_queue(verify_add_unmap_queue)
     };
 
-    Box::new(future_read_data.and_then(move |data| {
+    Ok(Box::new(future_read_data.and_then(move |data| {
         let mut val_count = 0;
         let cval = Int4::splat(correct_val);
 
@@ -412,7 +409,7 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
             task_iter, timestamp());
 
         Ok(val_count)
-    }))
+    })))
 }
 
 
@@ -426,29 +423,29 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 ///   3. adds a value,
 ///   4. and verifies the sum.
 ///
-pub fn run() -> OclResult<()> {
+pub fn async_cycles() -> OclResult<()> {
     let platform = Platform::default();
     printlnc!(dark_grey_bold: "Platform: {}", platform.name()?);
-    let device = Device::first(platform);
+    let device = Device::first(platform)?;
     printlnc!(dark_grey_bold: "Device: {} {}", device.vendor()?, device.name()?);
 
     let context = Context::builder()
         .platform(platform)
         .devices(device)
-        .build().unwrap();
+        .build()?;
 
     // For unmap commands, the buffers will each use a dedicated queue to
     // avoid any chance of a deadlock. All other commands will use an
     // unordered common queue.
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
     let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+        Queue::new(&context, device, None))?;
     let write_init_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+        Queue::new(&context, device, None))?;
     let verify_init_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+        Queue::new(&context, device, None))?;
     let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+        Queue::new(&context, device, None))?;
 
     // Allocating host memory allows the OpenCL runtime to use special pinned
     // memory which considerably improves the transfer performance of map
@@ -463,21 +460,21 @@ pub fn run() -> OclResult<()> {
         .context(&context)
         .flags(src_buf_flags)
         .len(WORK_SIZE)
-        .build().unwrap();
+        .build()?;
 
     let dst_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(dst_buf_flags)
         .len(WORK_SIZE)
-        .build().unwrap();
+        .build()?;
 
     // Create program and kernel:
     let program = Program::builder()
         .devices(device)
         .src(KERN_SRC)
-        .build(&context).unwrap();
+        .build(&context)?;
 
-    let kern = Kernel::new("add_slowly", &program).unwrap()
+    let kern = Kernel::new("add_slowly", &program)?
         .gws(WORK_SIZE)
         .arg_buf(&src_buf)
         .arg_scl(SCALAR_ADDEND)
@@ -518,7 +515,7 @@ pub fn run() -> OclResult<()> {
             verify_init_event.as_ref(),
             kernel_event.as_ref(),
             &mut fill_event,
-            task_iter);
+            task_iter)?;
 
         // 1. Map-Write-Init
         // ============
@@ -527,7 +524,7 @@ pub fn run() -> OclResult<()> {
             fill_event.as_ref(),
             verify_init_event.as_ref(),
             &mut write_init_event,
-            ival, task_iter);
+            ival, task_iter)?;
 
         // 2. Read-Verify-Init
         // ============
@@ -535,7 +532,7 @@ pub fn run() -> OclResult<()> {
             &verify_init_queue,
             write_init_event.as_ref(),
             &mut verify_init_event,
-            ival, task_iter);
+            ival, task_iter)?;
 
         // 3. Kernel-Add
         // =============
@@ -543,7 +540,7 @@ pub fn run() -> OclResult<()> {
             verify_add_event.as_ref(),
             write_init_event.as_ref(),
             &mut kernel_event,
-            task_iter);
+            task_iter)?;
 
         // 4. Map-Verify-Add
         // =================
@@ -551,7 +548,7 @@ pub fn run() -> OclResult<()> {
             verify_add_unmap_queue.clone(),
             kernel_event.as_ref(),
             &mut verify_add_event,
-            tval, task_iter);
+            tval, task_iter)?;
 
         printlnc!(orange: "All commands for iteration {} enqueued    (t: {}s)",
             task_iter, timestamp());
@@ -576,7 +573,7 @@ pub fn run() -> OclResult<()> {
 }
 
 pub fn main() {
-    match run() {
+    match async_cycles() {
         Ok(_) => (),
         Err(err) => println!("{}", err),
     }

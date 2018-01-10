@@ -28,7 +28,7 @@ static SRC: &'static str = r#"
     }
 "#;
 
-fn run() -> OclResult<()> {
+fn info() -> OclResult<()> {
     let dims = 2048;
     let platforms = Platform::list();
 
@@ -38,7 +38,7 @@ fn run() -> OclResult<()> {
     for p_idx in 0..platforms.len() {
         let platform = &platforms[p_idx];
 
-        let devices = Device::list_all(platform).unwrap();
+        let devices = Device::list_all(platform)?;
 
         if devices.is_empty() { continue; }
 
@@ -46,7 +46,7 @@ fn run() -> OclResult<()> {
         let context = Context::builder()
             .platform(platform.clone())
             .devices(&devices)
-            .build().unwrap();
+            .build()?;
 
         print_platform_info(&platform);
 
@@ -58,33 +58,33 @@ fn run() -> OclResult<()> {
         for d_idx in 0..devices.len() {
             let device = devices[d_idx];
 
-            let queue = Queue::new(&context, device, Some(ocl::core::QUEUE_PROFILING_ENABLE)).unwrap();
+            let queue = Queue::new(&context, device, Some(ocl::core::QUEUE_PROFILING_ENABLE))?;
             let buffer = Buffer::<f32>::builder()
                 .queue(queue.clone())
                 .len(dims)
-                .build().unwrap();
+                .build()?;
             let image = Image::<u8>::builder()
                 .dims(dims)
                 .queue(queue.clone())
-                .build().unwrap();
-            let sampler = Sampler::with_defaults(&context).unwrap();
+                .build()?;
+            let sampler = Sampler::with_defaults(&context)?;
             let program = Program::builder()
                 .src(SRC)
                 .devices(device)
-                .build(&context).unwrap();
-            let kernel = Kernel::new("multiply", &program).unwrap()
+                .build(&context)?;
+            let kernel = Kernel::new("multiply", &program)?
                 .queue(queue.clone())
                 .gws(dims)
                 .arg_buf(&buffer)
                 .arg_scl(10.0f32);
 
             let mut event_list = EventList::new();
-            unsafe { kernel.cmd().enew(&mut event_list).enq().unwrap(); }
-            event_list.wait_for().unwrap();
+            unsafe { kernel.cmd().enew(&mut event_list).enq()?; }
+            event_list.wait_for()?;
 
             let mut event = Event::empty();
-            buffer.cmd().write(&vec![0.0; dims]).enew(&mut event).enq().unwrap();
-            event.wait_for().unwrap();
+            buffer.cmd().write(&vec![0.0; dims]).enew(&mut event).enq()?;
+            event.wait_for()?;
 
             // Print all but device (just once per platform):
             if d_idx == 0 {
@@ -104,11 +104,12 @@ fn run() -> OclResult<()> {
 }
 
 
-fn print_platform_info(platform: &Platform) {
+fn print_platform_info(platform: &Platform) -> OclResult<()> {
     printc!(blue: "{}", platform);
-    let devices = Device::list_all(platform).unwrap();
+    let devices = Device::list_all(platform)?;
     printc!(blue: " {{ Total Device Count: {} }}", devices.len());
     print!("\n");
+    Ok(())
 }
 
 
@@ -117,7 +118,8 @@ fn print_device_info(device: &Device) -> OclResult<()> {
         printlnc!(teal: "{}", device);
     } else {
         if !PRINT_DETAILED { print!("{t}", t = TAB); }
-        printlnc!(teal: "Device (terse) {{ Name: {}, Vendor: {} }}", device.name()?, device.vendor()?);
+        printlnc!(teal: "Device (terse) {{ Name: {}, Vendor: {} }}", device.name()?,
+            device.vendor()?);
     }
     Ok(())
 }
@@ -180,7 +182,7 @@ fn print_event_info(event: &Event) {
 
 
 pub fn main() {
-    match run() {
+    match info() {
         Ok(_) => (),
         Err(err) => println!("{}", err),
     }

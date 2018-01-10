@@ -4,7 +4,7 @@
 
 extern crate ocl;
 
-use ocl::core::{self, Result as OclCoreResult, PlatformInfo, DeviceInfo, ContextInfo,
+use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo,
     CommandQueueInfo, MemInfo, ImageInfo, SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo,
     KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event,
@@ -21,13 +21,13 @@ static SRC: &'static str = r#"
 "#;
 
 pub fn main() {
-    match run() {
+    match info_core() {
         Ok(_) => (),
         Err(err) => println!("{}", err),
     }
 }
 
-fn run() -> OclCoreResult<()> {
+fn info_core() -> ocl::Result<()> {
     let platforms = Platform::list();
     for (plat_idx, &platform) in platforms.iter().enumerate() {
         print_platform(plat_idx, platform)?;
@@ -35,46 +35,46 @@ fn run() -> OclCoreResult<()> {
     Ok(())
 }
 
-fn print_platform(plat_idx: usize, platform: Platform) -> OclCoreResult<()> {
-    for (device_idx, &device) in Device::list_all(&platform).unwrap().iter().enumerate() {
+fn print_platform(plat_idx: usize, platform: Platform) -> ocl::Result<()> {
+    for (device_idx, &device) in Device::list_all(&platform)?.iter().enumerate() {
         print_platform_device(plat_idx, platform, device_idx, device)?;
     }
     Ok(())
 }
 
 fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize, device: Device)
-        -> OclCoreResult<()> {
-    let device_version = device.version().unwrap();
+        -> ocl::Result<()> {
+    let device_version = device.version()?;
     let work_dims = SpatialDims::from(WORK_SIZE);
 
-    let context = Context::builder().platform(platform).devices(device).build().unwrap();
+    let context = Context::builder().platform(platform).devices(device).build()?;
     let program = Program::builder()
         .devices(device)
         .src(SRC)
-        .build(&context).unwrap();
-    let queue = Queue::new(&context, device, Some(core::QUEUE_PROFILING_ENABLE)).unwrap();
+        .build(&context)?;
+    let queue = Queue::new(&context, device, Some(core::QUEUE_PROFILING_ENABLE))?;
     let buffer = Buffer::<f32>::builder()
         .queue(queue.clone())
         .len(work_dims)
-        .build().unwrap();
+        .build()?;
     let image = Image::<u8>::builder()
         .dims(work_dims)
         .queue(queue.clone())
-        .build().unwrap();
-    let sampler = Sampler::with_defaults(&context).unwrap();
-        let kernel = Kernel::new("multiply", &program).unwrap()
+        .build()?;
+    let sampler = Sampler::with_defaults(&context)?;
+        let kernel = Kernel::new("multiply", &program)?
         .queue(queue.clone())
         .gws(work_dims)
         .arg_scl(10.0f32)
         .arg_buf(&buffer);
 
     let mut event_list = EventList::new();
-    unsafe { kernel.cmd().enew(&mut event_list).enq().unwrap(); }
-    event_list.wait_for().unwrap();
+    unsafe { kernel.cmd().enew(&mut event_list).enq()?; }
+    event_list.wait_for()?;
 
     let mut event = Event::empty();
-    buffer.cmd().write(&vec![0.0; work_dims.to_len()]).enew(&mut event).enq().unwrap();
-    event.wait_for().unwrap();
+    buffer.cmd().write(&vec![0.0; work_dims.to_len()]).enew(&mut event).enq()?;
+    event.wait_for()?;
 
     println!("############### OpenCL Platform-Device Full Info ################");
     print!("\n");

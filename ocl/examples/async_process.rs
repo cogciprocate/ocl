@@ -38,27 +38,27 @@ fn fmt_duration(duration: chrono::Duration) -> String {
 }
 
 
-pub fn run() -> OclResult<()> {
+pub fn async_process() -> OclResult<()> {
     let start_time = chrono::Local::now();
 
     let platform = Platform::default();
     printlnc!(blue: "Platform: {}", platform.name()?);
 
-    let device = Device::first(platform);
+    let device = Device::first(platform)?;
     printlnc!(teal: "Device: {} {}", device.vendor()?, device.name()?);
 
     let context = Context::builder()
         .platform(platform)
         .devices(device)
-        .build().unwrap();
+        .build()?;
 
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
     let write_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+        Queue::new(&context, device, None))?;
     let read_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+        Queue::new(&context, device, None))?;
     let kern_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-        Queue::new(&context, device, None)).unwrap();
+        Queue::new(&context, device, None))?;
 
     let thread_pool = CpuPool::new_num_cpus();
     let task_count = 12;
@@ -78,21 +78,21 @@ pub fn run() -> OclResult<()> {
             .queue(write_queue.clone())
             .flags(write_buf_flags)
             .len(work_size)
-            .build().unwrap();
+            .build()?;
 
         let read_buf: Buffer<Float4> = Buffer::builder()
             .queue(read_queue.clone())
             .flags(read_buf_flags)
             .len(work_size)
-            .build().unwrap();
+            .build()?;
 
         // Create program and kernel:
         let program = Program::builder()
             .devices(device)
             .src(KERN_SRC)
-            .build(&context).unwrap();
+            .build(&context)?;
 
-        let kern = Kernel::new("add", &program).unwrap()
+        let kern = Kernel::new("add", &program)?
             .queue(kern_queue.clone())
             .gws(work_size)
             .arg_buf(&write_buf)
@@ -102,7 +102,7 @@ pub fn run() -> OclResult<()> {
         // (0) INIT: Fill buffer with -999's just to ensure the upcoming
         // write misses nothing:
         let mut fill_event = Event::empty();
-        write_buf.cmd().fill(Float4::new(-999., -999., -999., -999.), None).enew(&mut fill_event).enq().unwrap();
+        write_buf.cmd().fill(Float4::new(-999., -999., -999., -999.), None).enew(&mut fill_event).enq()?;
 
         // (1) WRITE: Map the buffer and write 50's to the entire buffer, then
         // unmap to 'flush' data to the device:
@@ -110,13 +110,13 @@ pub fn run() -> OclResult<()> {
             write_buf.cmd().map()
                 .flags(MapFlags::new().write_invalidate_region())
                 // .ewait(&fill_event)
-                .enq_async().unwrap()
+                .enq_async()?
         };
 
         // Since this is an invalidating write we'll use the wait list for the
         // unmap rather than the map command:
         future_write_data.set_unmap_wait_events(&fill_event);
-        let write_unmap_event = future_write_data.create_unmap_event().unwrap().clone();
+        let write_unmap_event = future_write_data.create_unmap_event()?.clone();
 
         let write = future_write_data.and_then(move |mut data| {
             for _ in 0..redundancy_count {
@@ -138,7 +138,7 @@ pub fn run() -> OclResult<()> {
             kern.cmd()
                 .enew(&mut kern_event)
                 .ewait(&write_unmap_event)
-                .enq().unwrap();
+                .enq()?;
         }
 
         // (3) READ: Read results and verify that the write and kernel have
@@ -147,7 +147,7 @@ pub fn run() -> OclResult<()> {
             read_buf.cmd().map()
                 .flags(MapFlags::new().read())
                 .ewait(&kern_event)
-                .enq_async().unwrap()
+                .enq_async()?
         };
 
         let read = future_read_data.and_then(move |data| {
@@ -184,7 +184,7 @@ pub fn run() -> OclResult<()> {
         correct_val_count.set(correct_val_count.get() + val_count);
         println!("Task: {} has completed.", task_id);
         Ok(())
-    }).wait().unwrap();
+    }).wait()?;
 
     let run_duration = chrono::Local::now() - start_time - create_duration;
     let total_duration = chrono::Local::now() - start_time;
@@ -198,7 +198,7 @@ pub fn run() -> OclResult<()> {
 
 
 pub fn main() {
-    match run() {
+    match async_process() {
         Ok(_) => (),
         Err(err) => println!("{}", err),
     }

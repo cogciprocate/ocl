@@ -1062,7 +1062,7 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 
 
 
-pub fn run() -> OclResult<()> {
+pub fn device_check() -> OclResult<()> {
     let mut rng = rand::weak_rng();
 
     for (p_idx, platform) in Platform::list().into_iter().enumerate() {
@@ -1120,7 +1120,7 @@ pub fn run() -> OclResult<()> {
 
 
 pub fn main() {
-    match run() {
+    match device_check() {
         Ok(_) => (),
         Err(err) => println!("{}", err),
     }

@@ -143,6 +143,11 @@ unsafe impl ClPlatformIdPtr for Platform {
 impl Default for Platform {
     /// Returns the first (0th) platform available, or the platform specified
     /// by the `OCL_DEFAULT_PLATFORM_IDX` environment variable if it is set.
+    ///
+    /// ### Panics
+    ///
+    /// Panics upon any OpenCL API error.
+    ///
     fn default() -> Platform {
         let dflt_plat_core = core::default_platform().expect("Platform::default()");
         Platform::new(dflt_plat_core)

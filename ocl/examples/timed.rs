@@ -29,7 +29,7 @@ const PRINT_SOME_RESULTS: bool = true;
 const RESULTS_TO_PRINT: usize = 5;
 
 
-fn main() {
+fn timed() -> ocl::Result<()> {
     // Define a kernel:
     let src = r#"
         __kernel void add(
@@ -43,7 +43,7 @@ fn main() {
     "#;
 
     // Create an all-in-one context, program, and command queue:
-    let ocl_pq = ProQue::builder().src(src).dims(WORK_SIZE).build().unwrap();
+    let ocl_pq = ProQue::builder().src(src).dims(WORK_SIZE).build()?;
 
     // Create init and result buffers and vectors:
     let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
@@ -53,16 +53,16 @@ fn main() {
         .flags(core::MemFlags::new().read_write().copy_host_ptr())
         .len(WORK_SIZE)
         .host_data(&vec_init)
-        .build().unwrap();
+        .build()?;
 
     let mut vec_result = vec![0.0f32; WORK_SIZE];
     let buffer_result = Buffer::<f32>::builder()
         .queue(ocl_pq.queue().clone())
         .len(WORK_SIZE)
-        .build().unwrap();
+        .build()?;
 
     // Create a kernel with arguments matching those in the kernel:
-    let mut kern = ocl_pq.create_kernel("add").unwrap()
+    let mut kern = ocl_pq.create_kernel("add")?
         .gws(ocl_pq.dims().clone())
         .arg_buf_named("source", Some(&buffer_init))
         .arg_scl(SCALAR)
@@ -81,19 +81,19 @@ fn main() {
 
     // Enqueue kernel the first time:
     unsafe {
-        kern.enq().unwrap();
+        kern.enq()?;
     }
 
     // Set kernel source buffer to the same as result:
-    kern.set_arg_buf_named("source", Some(&buffer_result)).unwrap();
+    kern.set_arg_buf_named("source", Some(&buffer_result))?;
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {
-        unsafe { kern.enq().unwrap(); }
+        unsafe { kern.enq()?; }
     }
 
     // Wait for all kernels to run:
-    ocl_pq.queue().finish().unwrap();
+    ocl_pq.queue().finish()?;
 
     // Print elapsed time for kernels:
     print_elapsed("total elapsed", kern_start);
@@ -110,14 +110,14 @@ fn main() {
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
-        buffer_result.cmd().read(&mut vec_result).enq().unwrap()
+        buffer_result.cmd().read(&mut vec_result).enq()?
     }
 
     print_elapsed("queue unfinished", buffer_start);
-    ocl_pq.queue().finish().unwrap();
+    ocl_pq.queue().finish()?;
     print_elapsed("queue finished", buffer_start);
 
-    verify_results(&vec_init, &vec_result, KERNEL_RUN_ITERS);
+    verify_results(&vec_init, &vec_result, KERNEL_RUN_ITERS)?;
 
     // ##################################################
     // ########### KERNEL & BUFFER BLOCKING #############
@@ -129,15 +129,15 @@ fn main() {
     let kern_buf_start = time::get_time();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
-        unsafe { kern.enq().unwrap(); }
-        buffer_result.cmd().read(&mut vec_result).enq().unwrap();
+        unsafe { kern.enq()?; }
+        buffer_result.cmd().read(&mut vec_result).enq()?;
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish().unwrap();
+    ocl_pq.queue().finish()?;
     print_elapsed("queue finished", kern_buf_start);
 
-    verify_results(&vec_init, &vec_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
+    verify_results(&vec_init, &vec_result, KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS)?;
 
     // ##################################################
     // ######### KERNEL & BUFFER NON-BLOCKING ###########
@@ -153,23 +153,23 @@ fn main() {
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         unsafe {
-            kern.cmd().ewait(&buf_events).enew(&mut kern_events).enq().unwrap();
+            kern.cmd().ewait(&buf_events).enew(&mut kern_events).enq()?;
         }
         buffer_result.cmd().read(&mut vec_result).ewait(&kern_events)
-            .enew(&mut buf_events).enq().unwrap();
+            .enew(&mut buf_events).enq()?;
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish().unwrap();
+    ocl_pq.queue().finish()?;
     print_elapsed("queue finished", kern_buf_start);
 
-    kern_events.wait_for().unwrap();
-    kern_events.clear_completed().unwrap();
-    buf_events.wait_for().unwrap();
-    buf_events.clear_completed().unwrap();
+    kern_events.wait_for()?;
+    kern_events.clear_completed()?;
+    buf_events.wait_for()?;
+    buf_events.clear_completed()?;
 
     verify_results(&vec_init, &vec_result,
-        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
+        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS)?;
 
     // ##################################################
     // ############# CAUTION IS OVERRATED ###############
@@ -181,21 +181,21 @@ fn main() {
     let kern_buf_start = time::get_time();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
-        unsafe { kern.cmd().enew(&mut kern_events).enq().unwrap(); }
+        unsafe { kern.cmd().enew(&mut kern_events).enq()?; }
 
         unsafe { buffer_result.cmd().read(&mut vec_result).enew(&mut buf_events)
-            .block(true).enq().unwrap(); }
+            .block(true).enq()?; }
     }
 
     print_elapsed("queue unfinished", kern_buf_start);
-    ocl_pq.queue().finish().unwrap();
+    ocl_pq.queue().finish()?;
     print_elapsed("queue finished", kern_buf_start);
 
-    kern_events.wait_for().unwrap();
-    buf_events.wait_for().unwrap();
+    kern_events.wait_for()?;
+    buf_events.wait_for()?;
 
     verify_results(&vec_init, &vec_result,
-        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS);
+        KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_AND_BUFFER_ITERS + KERNEL_RUN_ITERS)
 }
 
 
@@ -221,7 +221,7 @@ fn print_elapsed(title: &str, start: time::Timespec) {
 
 
 
-fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) {
+fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) -> ocl::Result<()> {
     print!("\nVerifying result values... ");
     if PRINT_SOME_RESULTS { print!("(printing {})\n", RESULTS_TO_PRINT); }
 
@@ -242,4 +242,13 @@ fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) {
 
     if PRINT_SOME_RESULTS { print!("\n"); }
     println!("All result values are correct.");
+    Ok(())
+}
+
+
+pub fn main() {
+    match timed() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
 }

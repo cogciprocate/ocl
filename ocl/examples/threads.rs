@@ -11,21 +11,13 @@
 //! * TODO: Have threads swap stuff around for fun.
 //! * TODO: Print the reference counts of each element at various points.
 
-#![allow(unused_imports, unused_variables, dead_code, unused_mut)]
-
 extern crate rand;
 extern crate ocl;
 #[macro_use] extern crate colorify;
 
 use std::thread::{self, JoinHandle};
-use std::sync::mpsc;
 use std::time::Duration;
-use rand::Rng;
 use ocl::{Result as OclResult, Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
-use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo,
-    ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo,
-    ProfilingInfo};
-
 
 static SRC: &'static str = r#"
     __kernel void add(__global float* buffer, float addend) {
@@ -33,10 +25,9 @@ static SRC: &'static str = r#"
     }
 "#;
 
-fn run() -> OclResult<()> {
-    let mut rng = rand::weak_rng();
+fn threads() -> OclResult<()> {
     let work_size = 1 << 10;
-    let mut threads = Vec::new();
+    let mut threads: Vec<JoinHandle<OclResult<String>>> = Vec::new();
 
     let platforms = Platform::list();
 
@@ -47,7 +38,7 @@ fn run() -> OclResult<()> {
         let platform = &platforms[p_idx];
         printlnc!(green: "\nPlatform[{}]: {} ({})", p_idx, platform.name()?, platform.vendor()?);
 
-        let devices = Device::list_all(platform).unwrap();
+        let devices = Device::list_all(platform)?;
 
         printc!(blue: "DEVICES: {:?}", devices);
 
@@ -57,14 +48,14 @@ fn run() -> OclResult<()> {
             printlnc!(royal_blue: "\nDevice[{}]: {} ({})", device_idx, device.name()?, device.vendor()?);
 
             // Make a context to share around:
-            let context = Context::builder().platform(*platform).build().unwrap();
+            let context = Context::builder().platform(*platform).build()?;
             let program = Program::builder().src(SRC).devices(device)
                 .build(&context).expect("Program Build");
 
             // Make a few different queues for the hell of it:
-            let queueball = vec![Queue::new(&context, device, None).unwrap(),
-                Queue::new(&context, device, None).unwrap(),
-                Queue::new(&context, device, None).unwrap()];
+            let queueball = vec![Queue::new(&context, device, None)?,
+                Queue::new(&context, device, None)?,
+                Queue::new(&context, device, None)?];
 
             printlnc!(orange: "Spawning threads... ");
 
@@ -77,7 +68,6 @@ fn run() -> OclResult<()> {
                 // each contain reference counted pointers at their core.
                 // You could pass them around on channels but it would be
                 // inconvenient and more costly.
-                let context_th = context.clone();
                 let program_th = program.clone();
                 let work_size_th = work_size;
                 let queueball_th = queueball.clone();
@@ -91,7 +81,6 @@ fn run() -> OclResult<()> {
 
                 let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
                     // Move these into thread:
-                    let context_th = context_th;
                     let program_th = program_th;
                     let work_size_th = work_size_th;
                     let queueball_th = queueball_th;
@@ -100,10 +89,10 @@ fn run() -> OclResult<()> {
                     let mut buffer = Buffer::<f32>::builder()
                         .queue(queueball_th[0].clone())
                         .len(work_size_th)
-                        .build().unwrap();
+                        .build()?;
                     let mut vec = vec![0.0f32; buffer.len()];
 
-                    let mut kernel = Kernel::new("add", &program_th).unwrap()
+                    let mut kernel = Kernel::new("add", &program_th)?
                         .queue(queueball_th[0].clone())
                         .gws(work_size_th)
                         .arg_buf(&buffer)
@@ -114,26 +103,26 @@ fn run() -> OclResult<()> {
 
                     // Change queues around just for fun:
                     unsafe {
-                        kernel.cmd().enew(&mut event_list).enq().unwrap();
-                        kernel.set_default_queue(queueball_th[1].clone()).enq().unwrap();
-                        kernel.cmd().queue(&queueball_th[2]).enq().unwrap();
+                        kernel.cmd().enew(&mut event_list).enq()?;
+                        kernel.set_default_queue(queueball_th[1].clone()).enq()?;
+                        kernel.cmd().queue(&queueball_th[2]).enq()?;
                     }
 
                     // Sleep just so the results don't print too quickly.
                     thread::sleep(Duration::from_millis(100));
 
                     // Basically redundant in this situation.
-                    event_list.wait_for().unwrap();
+                    event_list.wait_for()?;
 
                     // Again, just playing with queues...
-                    buffer.set_default_queue(queueball_th[2].clone()).read(&mut vec).enq().unwrap();
-                    buffer.read(&mut vec).queue(&queueball_th[1]).enq().unwrap();
-                    buffer.read(&mut vec).queue(&queueball_th[0]).enq().unwrap();
-                    buffer.read(&mut vec).enq().unwrap();
+                    buffer.set_default_queue(queueball_th[2].clone()).read(&mut vec).enq()?;
+                    buffer.read(&mut vec).queue(&queueball_th[1]).enq()?;
+                    buffer.read(&mut vec).queue(&queueball_th[0]).enq()?;
+                    buffer.read(&mut vec).enq()?;
 
                     // Print results (won't appear until later):
                     let check_idx = work_size / 2;
-                    format!("{{{}}}={}, ", &thread_name, vec[check_idx])
+                    Ok(format!("{{{}}}={}, ", &thread_name, vec[check_idx]))
                 }).expect("Error creating thread");
 
                 threads.push(th);
@@ -147,7 +136,7 @@ fn run() -> OclResult<()> {
 
     for th in threads.into_iter() {
         match th.join() {
-            Ok(r) => print!("{}", r),
+            Ok(r) => print!("{}", r?),
             Err(e) => println!("Error joining thread: '{:?}'", e),
         }
     }
@@ -158,7 +147,7 @@ fn run() -> OclResult<()> {
 
 
 pub fn main() {
-    match run() {
+    match threads() {
         Ok(_) => (),
         Err(err) => println!("{}", err),
     }

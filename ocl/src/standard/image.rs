@@ -91,7 +91,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// Returns a new image command builder associated with with the
     /// memory object `obj_core` along with a default `queue` and `to_len`
     /// (the length of the device side image).
-    pub fn new(queue: Option<&'c Queue>, obj_core: &'c MemCore, dims: [usize; 3])
+    fn new(queue: Option<&'c Queue>, obj_core: &'c MemCore, dims: [usize; 3])
             -> ImageCmd<'c, T> {
         ImageCmd {
             queue: queue,
