@@ -72,6 +72,13 @@ impl<T> RwVec<T> {
     }
 
     /// Returns the length of the internal `Vec`.
+    ///
+    /// ### Concurrency Considerations
+    ///
+    /// The returned length is to be considered immediately stale (out of
+    /// date) due to the fact that other threads may be modifying it. To
+    /// obtain an accurate state of the internal `Vec`, the containing `RwVec`
+    /// must first be locked with `::read` or `::write`.
     pub fn len(&self) -> usize {
         unsafe { (*self.lock.as_ptr()).len() }
     }
