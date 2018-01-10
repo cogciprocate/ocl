@@ -532,23 +532,11 @@ impl From<DeviceIdCore> for Device {
     }
 }
 
-// impl Into<String> for Device {
-//     fn into(self) -> String {
-//         format!("{}", self)
-//     }
-// }
-
 impl From<Device> for String {
     fn from(d: Device) -> String {
         format!("{}", d)
     }
 }
-
-// impl Into<DeviceIdCore> for Device {
-//     fn into(self) -> DeviceIdCore {
-//         self.0
-//     }
-// }
 
 impl From<Device> for DeviceIdCore {
     fn from(d: Device) -> DeviceIdCore {

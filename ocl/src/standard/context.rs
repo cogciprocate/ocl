@@ -59,8 +59,7 @@ impl Context {
     ///
     pub fn new(properties: Option<ContextProperties>, device_spec: Option<DeviceSpecifier>,
                 pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>)
-            -> OclResult<Context>
-    {
+            -> OclResult<Context> {
         assert!(pfn_notify.is_none() && user_data.is_none(),
             "Context creation callbacks not yet implemented - file issue if you need this.");
 
@@ -87,9 +86,7 @@ impl Context {
     /// valid device index.
     ///
     pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> Vec<Device> {
-    // pub fn resolve_wrapping_device_idxs(&self, idxs: &[usize]) -> OclResult<Vec<Device>> {
         Device::resolve_idxs_wrap(idxs, &self.devices())
-        // self.devices().map(|ds| Device::resolve_idxs_wrap(idxs, &ds))
     }
 
     /// Returns a device by its ordinal count within this context.
@@ -130,15 +127,8 @@ impl Context {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
-    pub fn core_as_ref(&self) -> &ContextCore {
-        &self.0
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
     #[inline]
-    pub fn core(&self) -> &ContextCore {
+    pub fn as_core(&self) -> &ContextCore {
         &self.0
     }
 
@@ -146,9 +136,7 @@ impl Context {
     ///
     /// Panics upon any OpenCL error.
     pub fn devices(&self) -> Vec<Device> {
-    // pub fn devices(&self) -> OclCoreResult<Vec<Device>> {
         Device::list_from_core(self.0.devices().unwrap())
-        // self.0.devices().map(|dl| Device::list_from_core(dl))
     }
 
     /// Returns the list of device versions associated with this context.
@@ -309,8 +297,7 @@ impl ContextBuilder {
     /// [device_specifier]: enum.DeviceSpecifier.html
     ///
     pub fn devices<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
-            -> &mut ContextBuilder
-    {
+            -> &mut ContextBuilder {
         assert!(self.device_spec.is_none(), "ocl::ContextBuilder::devices: Devices already specified");
         self.device_spec = Some(device_spec.into());
         self

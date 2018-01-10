@@ -87,7 +87,7 @@ impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
     pub fn enq(mut self) -> OclResult<FutureFlush<T>> {
         let inner = unsafe { &*self.sink.lock.as_ptr() };
 
-        let buffer = inner.buffer.core();
+        let buffer = inner.buffer.as_core();
 
         let queue = match self.queue {
             Some(q) => q,
@@ -236,7 +236,8 @@ impl<T: OclPrm> BufferSink<T> {
         let map_flags = MapFlags::new().write_invalidate_region();
 
         let memory = core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
-            buffer.core(), true, map_flags, default_offset, default_len, None::<&EventList>, None::<&mut Event>)?;
+            buffer.as_core(), true, map_flags, default_offset, default_len, None::<&EventList>,
+                None::<&mut Event>)?;
 
         let inner = Inner {
             buffer,

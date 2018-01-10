@@ -2722,31 +2722,6 @@ pub fn enqueue_copy_buffer_rect<T, M, En, Ewl>(
     eval_errcode(errcode, (), "clEnqueueCopyBufferRect", None::<String>)
 }
 
-/// Enqueue acquire OpenCL memory object that has been created from an `OpenGL` object.
-#[deprecated(since="0.6.0", note="Use `::enqueue_acquire_gl_objects` instead.")]
-#[cfg(not(feature="opencl_vendor_mesa"))]
-pub fn enqueue_acquire_gl_buffer<En, Ewl>(
-            command_queue: &CommandQueue,
-            buffer: &Mem,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where En: ClNullEventPtr, Ewl: ClWaitListPtr
-{
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
-
-    let errcode = unsafe { clEnqueueAcquireGLObjects(
-        command_queue.as_ptr(),
-        1,
-        &buffer.as_ptr(),
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr
-    ) };
-    eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", None::<String>)
-}
-
 /// Acquire OpenCL memory objects (buffers and images) that have been created
 /// from OpenGL objects.
 ///
@@ -2774,31 +2749,6 @@ pub fn enqueue_acquire_gl_objects<En, Ewl>(
         new_event_ptr
     ) };
     eval_errcode(errcode, (), "clEnqueueAcquireGLObjects", None::<String>)
-}
-
-/// Enqueue release a single OpenCL memory object that has been created from an `OpenGL` object.
-#[deprecated(since="0.6.0", note="Use `::enqueue_release_gl_objects` instead.")]
-#[cfg(not(feature="opencl_vendor_mesa"))]
-pub fn enqueue_release_gl_buffer<En, Ewl>(
-            command_queue: &CommandQueue,
-            buffer: &Mem,
-            wait_list: Option<Ewl>,
-            new_event: Option<En>,
-        ) -> OclCoreResult<()>
-        where En: ClNullEventPtr, Ewl: ClWaitListPtr
-{
-    let (wait_list_len, wait_list_ptr, new_event_ptr) =
-        resolve_event_ptrs(wait_list, new_event);
-
-    let errcode = unsafe { clEnqueueReleaseGLObjects(
-        command_queue.as_ptr(),
-        1,
-        &buffer.as_ptr(),
-        wait_list_len,
-        wait_list_ptr,
-        new_event_ptr
-    ) };
-    eval_errcode(errcode, (), "clEnqueueReleaseGLObjects", None::<String>)
 }
 
 /// Release OpenCL memory objects (buffers and images) that have been created

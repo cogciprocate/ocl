@@ -7,10 +7,8 @@
 
 use std;
 use std::mem;
-// use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
-// use std::convert::Into;
 use core::error::{Result as OclCoreResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
     ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
@@ -94,8 +92,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// memory object `obj_core` along with a default `queue` and `to_len`
     /// (the length of the device side image).
     pub fn new(queue: Option<&'c Queue>, obj_core: &'c MemCore, dims: [usize; 3])
-            -> ImageCmd<'c, T>
-    {
+            -> ImageCmd<'c, T> {
         ImageCmd {
             queue: queue,
             obj_core: obj_core,
@@ -126,36 +123,11 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     ///
     /// [read_image]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueReadImage.html
     pub fn read<'d>(mut self, dst_data: &'d mut [T]) -> ImageCmd<'c, T>
-            where 'd: 'c
-    {
+            where 'd: 'c {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::read(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Read { data: dst_data };
         self.block = true;
-        self
-    }
-
-    /// Specifies that this command will be a non-blocking, asynchronous read
-    /// operation. [DEPRICATED]
-    ///
-    /// Sets the block mode to false automatically but it may still be freely
-    /// toggled back. If set back to `true` this method call becomes equivalent
-    /// to calling `::read`.
-    ///
-    /// ## Safety
-    ///
-    /// Caller must ensure that the container referred to by `dst_data` lives
-    /// until the call completes.
-    ///
-    /// ## Panics
-    ///
-    /// The command operation kind must not have already been specified
-    ///
-    #[deprecated(since="0.13.0", note="Use '::read' with '::block(false)' for unsafe asynchronous reads.")]
-    pub unsafe fn read_async(mut self, dst_data: &'c mut [T]) -> ImageCmd<'c, T> {
-        assert!(self.kind.is_unspec(), "ocl::ImageCmd::read(): Operation kind \
-            already set for this command.");
-        self.kind = ImageCmdKind::Read { data: dst_data };
         self
     }
 
@@ -171,8 +143,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     ///
     /// [read_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueReadBuffer.html
     pub fn write<'d>(mut self, src_data: &'d [T]) -> ImageCmd<'c, T>
-            where 'd: 'c
-    {
+            where 'd: 'c {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::write(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Write { data: src_data };
@@ -220,12 +191,11 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// The command operation kind must not have already been specified
     ///
     pub fn copy<'d>(mut self, dst_image: &'d Image<T>, dst_origin: [usize; 3]) -> ImageCmd<'c, T>
-            where 'd: 'c,
-    {
+            where 'd: 'c {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::copy(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::Copy {
-            dst_image: dst_image.core(),
+            dst_image: dst_image.as_core(),
             dst_origin: dst_origin,
         };
         self
@@ -240,8 +210,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// The command operation kind must not have already been specified
     ///
     pub fn copy_to_buffer<'d>(mut self, buffer: &'d MemCore, dst_origin: usize) -> ImageCmd<'c, T>
-            where 'd: 'c,
-    {
+            where 'd: 'c {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::copy_to_buffer(): Operation kind \
             already set for this command.");
         self.kind = ImageCmdKind::CopyToBuffer { buffer: buffer, dst_origin: dst_origin };
@@ -335,8 +304,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// The 'shape' may not have already been set to rectangular by the
     /// `::rect` function.
     pub fn origin<D>(mut self, origin: D) -> ImageCmd<'c, T>
-            where D: Into<SpatialDims>
-    {
+            where D: Into<SpatialDims> {
         self.origin = origin.into().to_offset().unwrap();
         self
     }
@@ -353,8 +321,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     /// [FIXME]: Probably delay checking this until enq().
     ///
     pub fn region<D>(mut self, region: D) -> ImageCmd<'c, T>
-        where D: Into<SpatialDims>
-    {
+        where D: Into<SpatialDims> {
         self.region = region.into().to_lens().unwrap();
         self
     }
@@ -378,39 +345,18 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
 
     /// Specifies a list of events to wait on before the command will run.
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> ImageCmd<'c, T>
-            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
-    {
+            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>> {
         self.ewait = Some(ewait.into());
-        self
-    }
-
-    /// Specifies a list of events to wait on before the command will run or
-    /// resets it to `None`.
-    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
-    pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> ImageCmd<'c, T>
-            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
-    {
-        self.ewait = ewait.map(|el| el.into());
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
     pub fn enew<'e, En>(mut self, enew: En) -> ImageCmd<'c, T>
-            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
-    {
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>> {
         self.enew = Some(enew.into());
         self
     }
-
-    // /// Specifies a destination for a new, optionally created event
-    // /// associated with this command or resets it to `None`.
-    // pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> ImageCmd<'c, T>
-    //         where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
-    // {
-    //     self.enew = enew.map(|e| e.into());
-    //     self
-    // }
 
     /// Enqueues this command.
     ///
@@ -521,38 +467,16 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
 
     /// Specifies a list of events to wait on before the command will run.
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> ImageMapCmd<'c, T>
-            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
-    {
+            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>> {
         self.cmd.ewait = Some(ewait.into());
-        self
-    }
-
-    /// Specifies a list of events to wait on before the command will run or
-    /// resets it to `None`.
-    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
-    pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> ImageMapCmd<'c, T>
-            where 'e: 'c, Ewl: Into<ClWaitListPtrEnum<'e>>
-    {
-        self.cmd.ewait = ewait.map(|el| el.into());
         self
     }
 
     /// Specifies the destination for a new, optionally created event
     /// associated with this command.
     pub fn enew<'e, En>(mut self, enew: En) -> ImageMapCmd<'c, T>
-            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
-    {
+            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>> {
         self.cmd.enew = Some(enew.into());
-        self
-    }
-
-    /// Specifies a destination for a new, optionally created event
-    /// associated with this command or resets it to `None`.
-    #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
-    pub fn enew_opt<'e, En>(mut self, enew: Option<En>) -> ImageMapCmd<'c, T>
-            where 'e: 'c, En: Into<ClNullEventPtrEnum<'e>>
-    {
-        self.cmd.enew = enew.map(|e| e.into());
         self
     }
 
@@ -630,8 +554,8 @@ pub struct Image<T: OclPrm> {
 
 impl<T: OclPrm> Image<T> {
     /// Returns a list of supported image formats.
-    pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType,
-                ) -> OclCoreResult<Vec<ImageFormatParseResult>> {
+    pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType)
+            -> OclCoreResult<Vec<ImageFormatParseResult>> {
         core::get_supported_image_formats(context, flags, mem_obj_type)
     }
 
@@ -648,8 +572,7 @@ impl<T: OclPrm> Image<T> {
     //         image_desc: ImageDescriptor, host_data: Option<&[E]>) -> OclCoreResult<Image<E>>
     pub fn new<'o, Q>(que_ctx: Q, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, host_data: Option<&[T]>) -> OclCoreResult<Image<T>>
-            where Q: Into<QueCtx<'o>>
-    {
+            where Q: Into<QueCtx<'o>> {
         let que_ctx = que_ctx.into();
         let context = que_ctx.context_cloned();
         let device_versions = context.device_versions()?;
@@ -785,8 +708,7 @@ impl<T: OclPrm> Image<T> {
     /// See the [command builder documentation](struct.ImageCmd#method.read)
     /// for more details.
     pub fn read<'c, 'd>(&'c self, data: &'d mut [T]) -> ImageCmd<'c, T>
-        where 'd: 'c
-    {
+        where 'd: 'c {
         self.cmd().read(data)
     }
 
@@ -797,8 +719,7 @@ impl<T: OclPrm> Image<T> {
     /// See the [command builder documentation](struct.ImageCmd#method.write)
     /// for more details.
     pub fn write<'c, 'd>(&'c self, data: &'d [T]) -> ImageCmd<'c, T>
-        where 'd: 'c
-    {
+        where 'd: 'c {
         self.cmd().write(data)
     }
 
@@ -898,16 +819,8 @@ impl<T: OclPrm> Image<T> {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
     #[inline]
-    pub fn core_as_ref(&self) -> &MemCore {
-        &self.obj_core
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
-    #[inline]
-    pub fn core(&self) -> &MemCore {
+    pub fn as_core(&self) -> &MemCore {
         &self.obj_core
     }
 
@@ -972,12 +885,6 @@ impl<T: OclPrm> AsMem<T> for Image<T> {
     }
 }
 
-// impl<'a, T: OclPrm> AsMem<T> for &'a mut Image<T> {
-//     fn as_mem(&self) -> &MemCore {
-//         &self.obj_core
-//     }
-// }
-
 unsafe impl<'a, T> MemCmdRw for Image<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdRw for &'a Image<T> where T: OclPrm {}
 unsafe impl<'a, T> MemCmdRw for &'a mut Image<T> where T: OclPrm {}
@@ -996,7 +903,6 @@ pub struct ImageBuilder<'a, T> where T: 'a {
     image_format: ImageFormat,
     image_desc: ImageDescriptor,
     _pixel: PhantomData<T>,
-    // host_data: Option<&'a [S]>,
 }
 
 
@@ -1049,8 +955,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// May not be used in combination with `::queue` (use one or the other).
     pub fn context<'o>(mut self, context: &'o Context) -> ImageBuilder<'a, T>
-            where 'o: 'a
-    {
+            where 'o: 'a {
         assert!(self.queue_option.is_none());
         self.queue_option = Some(QueCtx::Context(context));
         self
@@ -1119,8 +1024,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
     /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     pub fn host_data<'d>(mut self, host_data: &'d [T]) -> ImageBuilder<'a, T>
-            where 'd: 'a
-    {
+            where 'd: 'a {
         self.host_data = Some(host_data);
         self
     }
@@ -1180,11 +1084,8 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     ///   `SpatialDims::Three(width, height, depth)`.
     ///
     pub fn dims<D>(mut self, dims: D) -> ImageBuilder<'a, T>
-            where D: Into<SpatialDims>
-    {
+            where D: Into<SpatialDims> {
         let dims = dims.into().to_lens().unwrap();
-        // let size = dims.to_lens().expect(&format!("ocl::ImageBuilder::dims(): Invalid image \
-        //        dimensions: {:?}", dims));
         self.image_desc.image_width = dims[0];
         self.image_desc.image_height = dims[1];
         self.image_desc.image_depth = dims[2];
@@ -1303,14 +1204,6 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     pub unsafe fn image_desc(mut self, image_desc: ImageDescriptor) -> ImageBuilder<'a, T> {
         self.image_desc = image_desc;
         self
-    }
-
-    /// Builds with the host side image data specified by `host_data`
-    /// and returns a new `Image`.
-    #[deprecated(since="0.13.0", note="Use '::host_data' and '::build' instead.")]
-    pub fn build_with_data(self, queue: Queue, host_data: &[T]) -> OclCoreResult<Image<T>> {
-        Image::new(queue, self.flags, self.image_format.clone(), self.image_desc.clone(),
-            Some(host_data))
     }
 
     /// Builds with no host side image data memory specified and returns a

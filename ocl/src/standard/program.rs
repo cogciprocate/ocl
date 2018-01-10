@@ -41,8 +41,7 @@ impl Program {
     /// Prefer `::builder` to create a new `Program`.
     ///
     pub fn new(context_obj_core: &ContextCore, src_strings: Vec<CString>,
-            device_ids: Option<&[Device]>, cmplr_opts: CString) -> OclResult<Program>
-    {
+            device_ids: Option<&[Device]>, cmplr_opts: CString) -> OclResult<Program> {
         let obj_core = core::create_build_program(context_obj_core, &src_strings, device_ids,
             &cmplr_opts)?;
 
@@ -53,37 +52,21 @@ impl Program {
     /// list for programs with intermediate language byte source.
     #[cfg(feature = "opencl_version_2_1")]
     pub fn with_il(il: Vec<u8>, device_ids: Option<&[Device]>, cmplr_opts: CString,
-            context_obj_core: &ContextCore) -> OclResult<Program>
-    {
+            context_obj_core: &ContextCore) -> OclResult<Program> {
         let device_versions = context_obj_core.device_versions()?;
 
         let obj_core = core::create_program_with_il(context_obj_core, &il, Some(&device_versions))?;
 
         core::build_program(&obj_core, device_ids, &cmplr_opts, None, None)?;
 
-        // let devices = context_obj_core.devices()?.into_iter().map(|d| d.into()).collect();
-
         Ok(Program(obj_core))
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
-    pub fn core_as_ref(&self) -> &ProgramCore {
-        &self.0
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
     #[inline]
-    pub fn core(&self) -> &ProgramCore {
+    pub fn as_core(&self) -> &ProgramCore {
         &self.0
-    }
-
-    /// Returns the list of devices associated with this program.
-    #[deprecated(since="0.13.0", note="Use `::info` with `ProgramInfo::Devices` instead.")]
-    pub fn devices(&self) -> Vec<Device> {
-        unimplemented!();
     }
 
     /// Returns info about this program.

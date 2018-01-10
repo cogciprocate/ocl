@@ -39,8 +39,7 @@ impl<'k> KernelCmd<'k> {
     /// queue is set, this method **must** be called before enqueuing the
     /// kernel.
     pub fn queue<'q, Q>(mut self, queue: &'q Q) -> KernelCmd<'k>
-            where 'q: 'k, Q: 'k + AsRef<CommandQueueCore>
-    {
+            where 'q: 'k, Q: 'k + AsRef<CommandQueueCore> {
         self.queue = Some(queue.as_ref());
         self
     }
@@ -63,22 +62,10 @@ impl<'k> KernelCmd<'k> {
         self
     }
 
-
     /// Specifies a list of events to wait on before the command will run.
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> KernelCmd<'k>
-            where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>>
-    {
+            where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>> {
         self.wait_events = Some(ewait.into());
-        self
-    }
-
-    /// Specifies a list of events to wait on before the command will run or
-    /// resets it to `None`.
-    #[deprecated(since="0.16.0", note="Use `::ewait` instead.")]
-    pub fn ewait_opt<'e, Ewl>(mut self, ewait: Option<Ewl>) -> KernelCmd<'k>
-            where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>>
-    {
-        self.wait_events = ewait.map(|el| el.into());
         self
     }
 
@@ -86,19 +73,8 @@ impl<'k> KernelCmd<'k> {
     /// created event associated with this command.
     // pub fn enew(mut self, new_event_dest: &'k mut ClNullEventPtr) -> KernelCmd<'k> {
     pub fn enew<'e, En>(mut self, new_event_dest: En) -> KernelCmd<'k>
-            where 'e: 'k, En: Into<ClNullEventPtrEnum<'e>>
-    {
+            where 'e: 'k, En: Into<ClNullEventPtrEnum<'e>> {
         self.new_event = Some(new_event_dest.into());
-        self
-    }
-
-    /// Specifies a destination list for a new, optionally created event
-    /// associated with this command.
-    #[deprecated(since="0.16.0", note="Use `::enew` instead.")]
-    pub fn enew_opt<'e, En>(mut self, new_event_list: Option<En>) -> KernelCmd<'k>
-            where 'e: 'k, En: Into<ClNullEventPtrEnum<'e>>
-    {
-        self.new_event = new_event_list.map(|e| e.into());
         self
     }
 
@@ -187,7 +163,6 @@ impl<'k> KernelCmd<'k> {
 pub struct Kernel {
     obj_core: KernelCore,
     named_args: Option<HashMap<&'static str, u32>>,
-    // mem_args: Rc<RefCell<Vec<Option<MemCore>>>>,
     mem_args: Arc<Mutex<Vec<Option<MemCore>>>>,
     new_arg_count: u32,
     queue: Option<Queue>,
@@ -223,15 +198,6 @@ impl Kernel {
             let arg_type = match ArgType::from_kern_and_idx(&obj_core, arg_idx) {
                 Ok(at) => at,
                 Err(e) => {
-                    // match e.cause() {
-                    //     Some(ref ek) => {
-                    //         if let OclErrorKind::VersionLow { .. } = *ek.kind() {
-                    //             bypass_arg_check = true;
-                    //             break;
-                    //         }
-                    //     },
-                    //     None => return Err("Kernel::new: error cause mismatch.".into()),
-                    // }
                     if let OclCoreErrorKind::VersionLow { .. } = *e.kind() {
                         bypass_arg_check = true;
                         break;
@@ -248,7 +214,6 @@ impl Kernel {
             obj_core: obj_core,
             named_args: None,
             new_arg_count: 0,
-            // mem_args: Rc::new(RefCell::new(mem_args)),
             mem_args: Arc::new(Mutex::new(mem_args)),
             queue: None,
             gwo: SpatialDims::Unspecified,
@@ -551,15 +516,8 @@ impl Kernel {
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
-    #[deprecated(since="0.13.0", note="Use `::core` instead.")]
-    pub fn core_as_ref(&self) -> &KernelCore {
-        &self.obj_core
-    }
-
-    /// Returns a reference to the core pointer wrapper, usable by functions in
-    /// the `core` module.
     #[inline]
-    pub fn core(&self) -> &KernelCore {
+    pub fn as_core(&self) -> &KernelCore {
         &self.obj_core
     }
 
@@ -648,7 +606,6 @@ impl Kernel {
         // platform.
         let arg = match arg {
             KernelArg::Mem(mem) => {
-                // self.mem_args.borrow_mut()[arg_idx as usize] = Some(mem.clone());
                 self.mem_args.lock().unwrap()[arg_idx as usize] = Some(mem.clone());
                 KernelArg::Mem(&mem)
             },
@@ -906,12 +863,6 @@ pub mod arg_type {
         Float, Float2, Float3, Float4, Float8, Float16,
         Double, Double2, Double3, Double4, Double8, Double16};
 
-    // /// Returns a new argument type specifier.
-    // pub fn arg_type(core: &KernelCore, arg_index: u32) -> OclCoreResult<ArgType> {
-    //     let type_name = arg_type_name(core, arg_index)?;
-    //     ArgType::from_str(type_name.as_str())
-    // }
-
     /// The base type of an OpenCL primitive.
     #[derive(Clone, Debug, Copy, PartialEq, Eq)]
     pub enum BaseType {
@@ -1011,8 +962,6 @@ pub mod arg_type {
             } else if type_name.contains("image") {
                 BaseType::Image
             } else {
-                // return Err(format!("Unable to determine type of: {}. Please file an issue at \
-                //     'https://github.com/cogciprocate/ocl/issues'.", type_name).into());
                 BaseType::Unknown
             };
 

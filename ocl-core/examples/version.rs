@@ -7,7 +7,6 @@
 extern crate ocl_core as core;
 
 use std::ffi::CString;
-// use core::{ContextProperties, KernelArg};
 
 fn main() {
     use core::ClVersions;
@@ -28,13 +27,10 @@ fn main() {
     let program = core::create_program_with_source(&context, &[src_cstring]).unwrap();
     core::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
         None, None).unwrap();
-    // let queue = core::create_command_queue(&context, &device_id).unwrap();
-    // let dims = [1 << 20, 1, 1];
 
     let dv0 = core::get_device_info(&device_id, core::DeviceInfo::Version).unwrap();
     println!("Pre-Parse: 'DeviceInfo::Version': {}", dv0);
 
-    // let dv1 = core::get_device_version(&device_id).unwrap();
     let dv1 = device_id.device_versions().unwrap();
     println!("Parsed: 'core::get_device_version()': {}", dv1.first().unwrap());
 }

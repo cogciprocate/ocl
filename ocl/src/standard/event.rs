@@ -129,7 +129,7 @@ impl Event {
     /// the `core` module.
     ///
     #[inline]
-    pub fn core(&self) -> &EventCore {
+    pub fn as_core(&self) -> &EventCore {
         &self.0
     }
 
@@ -659,7 +659,6 @@ impl EventList {
     pub fn new() -> EventList {
         EventList {
             inner: Inner::Array(EventArray::new()),
-            // inner: Inner::Vec(Vec::new()),
         }
     }
 
@@ -1338,12 +1337,6 @@ pub trait IntoMarker {
     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>>;
 }
 
-// impl<'e> IntoMarker for &'e [Event] {
-//     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-//         RawEventArray::from(self).into_marker (queue)
-//     }
-// }
-
 impl<'s, 'e> IntoMarker for &'s [&'e Event] where 'e: 's {
     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
         RawEventArray::from(self).into_marker(queue)
@@ -1364,12 +1357,6 @@ impl<'s, 'o, 'e> IntoMarker for &'s [&'o Option<&'e Event>] where 'e: 's + 'o, '
 
 macro_rules! impl_marker_arrays {
     ($( $len:expr ),*) => ($(
-        // impl<'e> IntoMarker for [Event; $len] {
-        //     fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
-        //         RawEventArray::from(self).into_marker (queue)
-        //     }
-        // }
-
         impl<'s, 'e> IntoMarker for [&'e Event; $len] where 'e: 's {
             fn into_marker(self, queue: &Queue) -> OclResult<Option<Event>> {
                 RawEventArray::from(self).into_marker(queue)
@@ -1399,12 +1386,6 @@ pub trait IntoRawEventArray {
     fn into_raw_array(self) -> RawEventArray;
 }
 
-// impl<'e> IntoRawEventArray  for &'e [Event] {
-//     fn into_raw_array(self) -> RawEventArray {
-//         RawEventArray::from(self)
-//     }
-// }
-
 impl<'s, 'e> IntoRawEventArray  for &'s [&'e Event] where 'e: 's {
     fn into_raw_array(self) -> RawEventArray {
         RawEventArray::from(self)
@@ -1425,12 +1406,6 @@ impl<'s, 'o, 'e> IntoRawEventArray  for &'s [&'o Option<&'e Event>] where 'e: 's
 
 macro_rules! impl_raw_list_arrays {
     ($( $len:expr ),*) => ($(
-        // impl<'e> IntoRawEventArray  for [Event; $len] {
-        //     fn into_raw_array(self) -> RawEventArray {
-        //         RawEventArray::from(self)
-        //     }
-        // }
-
         impl<'s, 'e> IntoRawEventArray  for [&'e Event; $len] where 'e: 's {
             fn into_raw_array(self) -> RawEventArray {
                 RawEventArray::from(self)

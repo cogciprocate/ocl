@@ -106,7 +106,7 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
     pub fn enq(mut self) -> OclResult<FutureFlood<T>> {
         let inner = unsafe { &*self.stream.lock.as_ptr() };
 
-        let buffer = inner.buffer.core();
+        let buffer = inner.buffer.as_core();
 
         let queue = match self.queue {
             Some(q) => q,
@@ -248,7 +248,8 @@ impl<T: OclPrm> BufferStream<T> {
         let mut unmap_event = Event::empty();
 
         let memory = core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
-            buffer.core(), false, map_flags, default_offset, default_len, None::<&EventList>, Some(&mut map_event))?;
+            buffer.as_core(), false, map_flags, default_offset, default_len, None::<&EventList>,
+                Some(&mut map_event))?;
 
         core::enqueue_unmap_mem_object::<T, _, _, _>(buffer.default_queue().unwrap(),
             &buffer, &memory, Some(&map_event), Some(&mut unmap_event)).unwrap();

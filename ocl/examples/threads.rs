@@ -39,7 +39,6 @@ fn run() -> OclResult<()> {
     let mut threads = Vec::new();
 
     let platforms = Platform::list();
-    // let platforms = &platforms_all[(platforms_all.len() - 1)..platforms_all.len()];
 
     println!("Looping through avaliable platforms ({}):", platforms.len());
 
@@ -54,9 +53,6 @@ fn run() -> OclResult<()> {
 
         // Loop through each device:
         for device_idx in 0..devices.len() {
-            // Choose a device at random:
-            // let dev_idx = rng.gen_range(0, devices.len());
-
             let device = devices[device_idx];
             printlnc!(royal_blue: "\nDevice[{}]: {} ({})", device_idx, device.name()?, device.vendor()?);
 
@@ -64,11 +60,6 @@ fn run() -> OclResult<()> {
             let context = Context::builder().platform(*platform).build().unwrap();
             let program = Program::builder().src(SRC).devices(device)
                 .build(&context).expect("Program Build");
-
-            // Make a few different queues for the hell of it:
-            // let queueball = vec![Queue::new_by_device_index(&context, None),
-            //  Queue::new_by_device_index(&context, None),
-            //  Queue::new_by_device_index(&context, None)];
 
             // Make a few different queues for the hell of it:
             let queueball = vec![Queue::new(&context, device, None).unwrap(),
@@ -155,7 +146,6 @@ fn run() -> OclResult<()> {
     printlnc!(orange: "\nResults: ");
 
     for th in threads.into_iter() {
-        // if let Err(e) = th.join() { println!("Error joining thread: '{:?}'", e); }
         match th.join() {
             Ok(r) => print!("{}", r),
             Err(e) => println!("Error joining thread: '{:?}'", e),

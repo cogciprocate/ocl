@@ -494,7 +494,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             let new_mm = unsafe {
                 let mm_core = core::enqueue_map_buffer::<Float4, _, _, _>(
                     &write_queue,
-                    source_buf.core(),
+                    source_buf.as_core(),
                     !cfg.async_write,
                     MapFlags::new().write_invalidate_region(),
                     // MapFlags::write(),
@@ -504,7 +504,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
                     Some(&mut map_event),
                 )?;
 
-                MemMap::new(mm_core, source_buf.len(), None, None, source_buf.core().clone(),
+                MemMap::new(mm_core, source_buf.len(), None, None, source_buf.as_core().clone(),
                     write_queue.clone(), /*source_buf.is_mapped()
                         .expect("Buffer unable to be mapped").clone()*/)
             };
@@ -616,7 +616,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         unsafe {
             let mm_core = core::enqueue_map_buffer::<Float4, _, _, _>(
                 &read_queue,
-                target_buf.core(),
+                target_buf.as_core(),
                 false,
                 MapFlags::new().read(),
                 0,
@@ -626,7 +626,7 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
             )?;
 
             target_map = Some(MemMap::new(mm_core, source_buf.len(), None, None,
-                source_buf.core().clone(), read_queue.clone(), /*target_buf.is_mapped()
+                source_buf.as_core().clone(), read_queue.clone(), /*target_buf.is_mapped()
                     .expect("Buffer unable to be mapped").clone()*/));
         }
     } else {

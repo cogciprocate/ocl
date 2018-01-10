@@ -59,9 +59,6 @@ fn main() {
     let mut threads = Vec::<JoinHandle<()>>::with_capacity(THREAD_COUNT * 2);
 
     for i in 0..THREAD_COUNT {
-        // buffer_sink.clone().write().wait().unwrap()
-        //     .copy_from_slice(&[0i32; WORK_SIZE]);
-        // buffer_sink.flush(None, None::<&mut Event>).unwrap().wait().unwrap();
         let writer_0 = buffer_sink.clone().write();
         threads.push(ThreadBuilder::new().name(format!("thread_{}", i)).spawn(move || {
             let mut write_guard = writer_0.wait().unwrap();
@@ -72,9 +69,6 @@ fn main() {
 
         let source_data = source_datas[i].clone();
 
-        // buffer_sink.clone().write().wait().unwrap()
-        //     .copy_from_slice(&source_data);
-        // buffer_sink.flush(None, None::<&mut Event>).unwrap().wait().unwrap();
         let writer_1 = buffer_sink.clone().write();
         threads.push(ThreadBuilder::new().name(format!("thread_{}", i)).spawn(move || {
             let mut write_guard = writer_1.wait().unwrap();

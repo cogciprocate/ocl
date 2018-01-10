@@ -7,7 +7,6 @@
 //!
 
 extern crate ocl_core as core;
-// #[macro_use] extern crate colorify;
 
 use std::ffi::CString;
 use core::error::Result as OclCoreResult;
@@ -39,7 +38,7 @@ fn main() {
 fn print_platform(platform: PlatformId) -> OclCoreResult<()> {
     let devices = core::get_device_ids(&platform, None, None).unwrap();
     for device in devices {
-        print_platform_device(platform.clone(), device);
+        print_platform_device(platform.clone(), device)?;
     }
     Ok(())
 }

@@ -4,10 +4,8 @@
 //! s/man/xhtml/clGetPlatformInfo.html](https://www.khronos.org/registry/cl/sd
 //! k/1.2/docs/man/xhtml/clGetPlatformInfo.html)
 
-// use std::fmt::{std::fmt::Display, std::fmt::Formatter, Result as std::fmt::Result};
 use std;
 use std::ops::{Deref, DerefMut};
-// use std::convert::Into;
 use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 use core::error::{Result as OclCoreResult};
@@ -62,18 +60,8 @@ impl Platform {
         platforms.into_iter().map(Platform::new).collect()
     }
 
-    // /// Returns a string containing a formatted list of every platform property.
-    // pub fn to_string(&self) -> String {
-    //     // self.clone().into()
-    //     format!("{}", self)
-    // }
-
     /// Returns info about the platform.
     pub fn info(&self, info_kind: PlatformInfo) -> OclCoreResult<PlatformInfoResult> {
-        // match core::get_platform_info(Some(self.0.clone()), info_kind) {
-        //     Ok(pi) => pi,
-        //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
-        // }
         core::get_platform_info(&self.0, info_kind)
     }
 
@@ -91,10 +79,6 @@ impl Platform {
     ///   each version of OpenCL.
     ///
     pub fn profile(&self) -> OclCoreResult<String> {
-        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Profile) {
-        //     Ok(pi) => pi.into(),
-        //     Err(err) => err.into(),
-        // }
         core::get_platform_info(&self.0, PlatformInfo::Profile).map(|r| r.into())
     }
 
@@ -110,28 +94,16 @@ impl Platform {
     ///
     /// * TODO: Convert this to new version system returning an `OpenclVersion`.
     pub fn version(&self) -> OclCoreResult<String> {
-        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version) {
-        //     Ok(pi) => pi.into(),
-        //     Err(err) => err.into(),
-        // }
         core::get_platform_info(&self.0, PlatformInfo::Version).map(|r| r.into())
     }
 
     /// Returns the platform name as a string.
     pub fn name(&self) -> OclCoreResult<String> {
-        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Name) {
-        //     Ok(pi) => pi.into(),
-        //     Err(err) => err.into(),
-        // }
         core::get_platform_info(&self.0, PlatformInfo::Name).map(|r| r.into())
     }
 
     /// Returns the platform vendor as a string.
     pub fn vendor(&self) -> OclCoreResult<String> {
-        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Vendor) {
-        //     Ok(pi) => pi.into(),
-        //     Err(err) => err.into(),
-        // }
         core::get_platform_info(&self.0, PlatformInfo::Vendor).map(|r| r.into())
     }
 
@@ -142,10 +114,6 @@ impl Platform {
     /// Extensions defined here must be supported by all devices associated
     /// with this platform.
     pub fn extensions(&self) -> OclCoreResult<String> {
-        // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Extensions) {
-        //     Ok(pi) => pi.into(),
-        //     Err(err) => err.into(),
-        // }
         core::get_platform_info(&self.0, PlatformInfo::Extensions).map(|r| r.into())
     }
 

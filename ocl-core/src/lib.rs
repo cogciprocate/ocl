@@ -167,10 +167,6 @@ pub use self::functions::{
     create_from_gl_texture_2d, create_from_gl_texture_3d, enqueue_fill_buffer,
     enqueue_acquire_gl_objects, enqueue_release_gl_objects};
 
-#[allow(deprecated)]
-#[cfg(not(feature="opencl_vendor_mesa"))]
-pub use self::functions::{enqueue_acquire_gl_buffer, enqueue_release_gl_buffer};
-
 pub use traits::{OclPrm, OclNum, OclScl};
 
 #[cfg(feature = "ocl-core-vector")]

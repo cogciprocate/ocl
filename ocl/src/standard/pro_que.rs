@@ -414,7 +414,6 @@ impl ProQueBuilder {
             &context,
             src_strings,
             Some(&[device]),
-            // None,
             cmplr_opts,
 
 
