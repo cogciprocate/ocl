@@ -87,36 +87,36 @@ extern fn _test_events_verify_result(event: cl_event, status: cl_int, user_data:
 
 fn main() {
     // Set up data set size and work dimensions:
-    let dims = [1 << 17];
+    let dataset_len = 1 << 17;
 
     // Get a path for our program source:
     let src_file = Search::ParentsThenKids(3, 3).for_folder("examples").unwrap().join("cl/kernel_file.cl");
 
     // Create a context, program, & queue:
     let ocl_pq = ProQue::builder()
-        .dims(dims)
+        .dims(dataset_len)
         .prog_bldr(Program::builder().src_file(src_file))
         .build().unwrap();
 
     // Create source and result buffers (our data containers):
     // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
-    let seed_vec = util::scrambled_vec((0u32, 500u32), ocl_pq.dims().to_len());
+    let seed_vec = util::scrambled_vec((0u32, 500u32), dataset_len);
     // let seed_buffer = Buffer::new(ocl_pq.queue().clone(), Some(core::MEM_READ_WRITE |
     //     core::MEM_COPY_HOST_PTR), ocl_pq.dims().clone(), Some(&seed_vec), None).unwrap();
     let seed_buffer = Buffer::builder()
         .queue(ocl_pq.queue().clone())
         .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-        .dims(ocl_pq.dims().clone())
+        .len(dataset_len)
         .host_data(&seed_vec)
         .build().unwrap();
 
     // let mut result_buffer = Buffer::with_vec(&dims, &ocl_pq.queue());
-    let mut result_vec = vec![0; dims[0]];
+    let mut result_vec = vec![0; dataset_len];
     // let mut result_buffer = Buffer::<u32>::new(ocl_pq.queue().clone(), None,
     //     ocl_pq.dims(), None, None).unwrap();
     let mut result_buffer = Buffer::<u32>::builder()
         .queue(ocl_pq.queue().clone())
-        .dims(ocl_pq.dims().clone())
+        .len(dataset_len)
         .build().unwrap();
 
     // Our arbitrary addend:
@@ -124,7 +124,7 @@ fn main() {
 
     // Create kernel with the source initially set to our seed values.
     let mut kernel = ocl_pq.create_kernel("add_scalar").unwrap()
-        .gws(&dims)
+        .gws(dataset_len)
         .arg_buf_named("src", Some(&seed_buffer))
         .arg_scl(addend)
         .arg_buf(&mut result_buffer);
@@ -145,7 +145,7 @@ fn main() {
         buncha_stuffs.push(TestEventsStuff {
             seed_vec: seed_vec.as_slice() as *const [u32],
             result_vec: result_vec.as_slice() as *const [u32],
-            data_set_size: dims[0],
+            data_set_size: dataset_len,
             addend: addend,
             itr: itr,
         });

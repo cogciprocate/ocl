@@ -125,7 +125,7 @@ fn main_exploded() {
     let buffer = Buffer::<f32>::builder()
         .queue(queue.clone())
         .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
-        .dims(dims)
+        .len(dims)
         .host_data(&vec)
         .build().unwrap();
 

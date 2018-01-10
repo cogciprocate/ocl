@@ -21,7 +21,7 @@ use std::thread::{self, JoinHandle};
 use std::sync::mpsc;
 use std::time::Duration;
 use rand::Rng;
-use ocl::{Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
+use ocl::{Result as OclResult, Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo,
     ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo,
     ProfilingInfo};
@@ -33,10 +33,9 @@ static SRC: &'static str = r#"
     }
 "#;
 
-fn main() {
+fn run() -> OclResult<()> {
     let mut rng = rand::weak_rng();
-    let data_set_size = 1 << 10;
-    let dims = [data_set_size];
+    let work_size = 1 << 10;
     let mut threads = Vec::new();
 
     let platforms = Platform::list();
@@ -47,7 +46,7 @@ fn main() {
     // Loop through each avaliable platform:
     for p_idx in 0..platforms.len() {
         let platform = &platforms[p_idx];
-        printlnc!(green: "\nPlatform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
+        printlnc!(green: "\nPlatform[{}]: {} ({})", p_idx, platform.name()?, platform.vendor()?);
 
         let devices = Device::list_all(platform).unwrap();
 
@@ -59,7 +58,7 @@ fn main() {
             // let dev_idx = rng.gen_range(0, devices.len());
 
             let device = devices[device_idx];
-            printlnc!(royal_blue: "\nDevice[{}]: {} ({})", device_idx, device.name(), device.vendor());
+            printlnc!(royal_blue: "\nDevice[{}]: {} ({})", device_idx, device.name()?, device.vendor()?);
 
             // Make a context to share around:
             let context = Context::builder().platform(*platform).build().unwrap();
@@ -89,7 +88,7 @@ fn main() {
                 // inconvenient and more costly.
                 let context_th = context.clone();
                 let program_th = program.clone();
-                let dims_th = dims.clone();
+                let work_size_th = work_size;
                 let queueball_th = queueball.clone();
 
                 // [FIXME] Create some channels to swap around buffers, queues, and kernels.
@@ -103,19 +102,19 @@ fn main() {
                     // Move these into thread:
                     let context_th = context_th;
                     let program_th = program_th;
-                    let dims_th = dims_th;
+                    let work_size_th = work_size_th;
                     let queueball_th = queueball_th;
 
-                    // let mut buffer = Buffer::<f32>::with_vec(&dims_th, &queueball_th[0]);
+                    // let mut buffer = Buffer::<f32>::with_vec(&work_size_th, &queueball_th[0]);
                     let mut buffer = Buffer::<f32>::builder()
                         .queue(queueball_th[0].clone())
-                        .dims(&dims_th)
+                        .len(work_size_th)
                         .build().unwrap();
                     let mut vec = vec![0.0f32; buffer.len()];
 
                     let mut kernel = Kernel::new("add", &program_th).unwrap()
                         .queue(queueball_th[0].clone())
-                        .gws(&dims_th)
+                        .gws(work_size_th)
                         .arg_buf(&buffer)
                         .arg_scl(1000.0f32);
 
@@ -142,7 +141,7 @@ fn main() {
                     buffer.read(&mut vec).enq().unwrap();
 
                     // Print results (won't appear until later):
-                    let check_idx = data_set_size / 2;
+                    let check_idx = work_size / 2;
                     format!("{{{}}}={}, ", &thread_name, vec[check_idx])
                 }).expect("Error creating thread");
 
@@ -164,4 +163,13 @@ fn main() {
     }
 
     print!("\n");
+    Ok(())
+}
+
+
+pub fn main() {
+    match run() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
 }

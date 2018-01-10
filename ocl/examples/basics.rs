@@ -6,7 +6,7 @@ use ocl::{util, ProQue, Buffer, MemFlags};
 const RESULTS_TO_PRINT: usize = 20;
 
 // Our arbitrary data set size (about a million) and coefficent:
-const DATA_SET_SIZE: usize = 1 << 20;
+const WORK_SIZE: usize = 1 << 20;
 const COEFF: f32 = 5432.1;
 
 // Our kernel source code:
@@ -26,7 +26,7 @@ fn main() {
     // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
     let ocl_pq = ProQue::builder()
         .src(KERNEL_SRC)
-        .dims(DATA_SET_SIZE)
+        .dims(WORK_SIZE)
         .build().expect("Build ProQue");
 
     // Create a temporary init vector and the source buffer. Initialize them
@@ -35,7 +35,7 @@ fn main() {
     let source_buffer = Buffer::builder()
         .queue(ocl_pq.queue().clone())
         .flags(MemFlags::new().read_write().copy_host_ptr())
-        .dims(ocl_pq.dims().clone())
+        .len(WORK_SIZE)
         .host_data(&vec_source)
         .build().unwrap();
 
@@ -43,7 +43,7 @@ fn main() {
     // there is no need to initialize the buffer as we did above because we
     // will be writing to the entire buffer first thing, overwriting any junk
     // data that may be there.
-    let mut vec_result = vec![0.0f32; DATA_SET_SIZE];
+    let mut vec_result = vec![0.0f32; WORK_SIZE];
     let result_buffer: Buffer<f32> = ocl_pq.create_buffer().unwrap();
 
     // Create a kernel with arguments corresponding to those in the kernel:
@@ -61,7 +61,7 @@ fn main() {
     result_buffer.read(&mut vec_result).enq().unwrap();
 
     // Check results and print the first 20:
-    for idx in 0..DATA_SET_SIZE {
+    for idx in 0..WORK_SIZE {
         if idx < RESULTS_TO_PRINT {
             println!("source[{idx}]: {:.03}, \t coeff: {}, \tresult[{idx}]: {}",
             vec_source[idx], COEFF, vec_result[idx], idx = idx);

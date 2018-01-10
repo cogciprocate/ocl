@@ -31,7 +31,7 @@ impl<T: OclPrm> SubBufferPool<T> {
         let buffer = Buffer::<T>::builder()
             .queue(default_queue)
             .flags(flags)
-            .dims(len)
+            .len(len as usize)
             .build().unwrap();
 
         SubBufferPool {
@@ -59,11 +59,11 @@ impl<T: OclPrm> SubBufferPool<T> {
     }
 
     fn create_sub_buffer(&mut self, region_idx: usize, flags: Option<MemFlags>,
-            origin: u32, len: u32) -> usize
-    {
+            origin: u32, len: u32) -> usize {
         let buffer_id = self.next_uid();
         let region = PoolRegion { buffer_id: buffer_id, origin: origin, len: len };
-        let sbuf = self.buffer.create_sub_buffer(flags, region.origin, region.len).unwrap();
+        let sbuf = self.buffer.create_sub_buffer(flags, region.origin as usize,
+            region.len as usize).unwrap();
         if let Some(idx) = self.sub_buffers.insert(region.buffer_id, sbuf) {
             panic!("Duplicate indexes: {}", idx); }
         self.insert_region(region, region_idx);

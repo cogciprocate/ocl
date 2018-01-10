@@ -69,7 +69,7 @@ impl Platform {
     // }
 
     /// Returns info about the platform.
-    pub fn info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
+    pub fn info(&self, info_kind: PlatformInfo) -> OclCoreResult<PlatformInfoResult> {
         // match core::get_platform_info(Some(self.0.clone()), info_kind) {
         //     Ok(pi) => pi,
         //     Err(err) => PlatformInfoResult::Error(Box::new(err)),
@@ -90,12 +90,12 @@ impl Platform {
     ///   embedded profile. The embedded profile is defined to be a subset for
     ///   each version of OpenCL.
     ///
-    pub fn profile(&self) -> String {
+    pub fn profile(&self) -> OclCoreResult<String> {
         // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Profile) {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(&self.0, PlatformInfo::Profile).into()
+        core::get_platform_info(&self.0, PlatformInfo::Profile).map(|r| r.into())
     }
 
     /// Returns the platform driver version as a string.
@@ -109,30 +109,30 @@ impl Platform {
     /// * The major_version.minor_version value returned will be '1.2'.
     ///
     /// * TODO: Convert this to new version system returning an `OpenclVersion`.
-    pub fn version(&self) -> String {
+    pub fn version(&self) -> OclCoreResult<String> {
         // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Version) {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(&self.0, PlatformInfo::Version).into()
+        core::get_platform_info(&self.0, PlatformInfo::Version).map(|r| r.into())
     }
 
     /// Returns the platform name as a string.
-    pub fn name(&self) -> String {
+    pub fn name(&self) -> OclCoreResult<String> {
         // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Name) {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(&self.0, PlatformInfo::Name).into()
+        core::get_platform_info(&self.0, PlatformInfo::Name).map(|r| r.into())
     }
 
     /// Returns the platform vendor as a string.
-    pub fn vendor(&self) -> String {
+    pub fn vendor(&self) -> OclCoreResult<String> {
         // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Vendor) {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(&self.0, PlatformInfo::Vendor).into()
+        core::get_platform_info(&self.0, PlatformInfo::Vendor).map(|r| r.into())
     }
 
     /// Returns the list of platform extensions as a string.
@@ -141,12 +141,12 @@ impl Platform {
     /// themselves do not contain any spaces) supported by the platform.
     /// Extensions defined here must be supported by all devices associated
     /// with this platform.
-    pub fn extensions(&self) -> String {
+    pub fn extensions(&self) -> OclCoreResult<String> {
         // match core::get_platform_info(Some(self.0.clone()), PlatformInfo::Extensions) {
         //     Ok(pi) => pi.into(),
         //     Err(err) => err.into(),
         // }
-        core::get_platform_info(&self.0, PlatformInfo::Extensions).into()
+        core::get_platform_info(&self.0, PlatformInfo::Extensions).map(|r| r.into())
     }
 
     /// Returns a reference to the underlying `PlatformIdCore`.

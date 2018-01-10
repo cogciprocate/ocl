@@ -6,6 +6,7 @@ use failure::{Context, Fail, Backtrace};
 use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
 use core::error::{Error as OclCoreError};
+use core::Status;
 use ::BufferCmdError;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -33,10 +34,12 @@ pub struct Error {
 }
 
 impl Error {
-    /// Returns a new `Error::String` with the given description.
-    #[deprecated]
-    pub fn string<S: Into<String>>(desc: S) -> Error {
-        Error { inner: Context::new(ErrorKind::OclCore(OclCoreError::from(desc.into()))) }
+    /// Returns the error status code for `OclCore` variants.
+    pub fn api_status(&self) -> Option<Status> {
+        match *self.kind() {
+            ErrorKind::OclCore(ref err) => err.api_status(),
+            _ => None,
+        }
     }
 
     /// Returns the error variant and contents.

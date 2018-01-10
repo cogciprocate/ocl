@@ -8,8 +8,8 @@ use std::ops::{Deref, DerefMut, Range};
 use core::{self, Error as OclCoreError, Result as OclCoreResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
     ClNullEventPtr};
-use ::{Context, Queue, SpatialDims, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard,
-    FutureWriteGuard};
+use ::{Context, Queue, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard, FutureWriteGuard,
+    SpatialDims};
 use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 use error::{Error as OclError, Result as OclResult};
 
@@ -1625,13 +1625,12 @@ impl<T: OclPrm> Buffer<T> {
     // * TODO: Consider removing `fill_val` and leaving filling completely to
     //   the builder.
     //
-    pub fn new<'e, 'o, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, len: usize,
+    pub fn new<'e, 'o, Q, D>(que_ctx: Q, flags_opt: Option<MemFlags>, len: D,
             host_data: Option<&[T]>) -> OclResult<Buffer<T>>
-            where Q: Into<QueCtx<'o>>
-    {
+            where Q: Into<QueCtx<'o>>, D: Into<SpatialDims> {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
         // let dims: SpatialDims = dims.into();
-        // let len = dims.to_len();
+        let len = len.into().to_len();
         let que_ctx = que_ctx.into();
 
         let ctx_owned;
@@ -1798,15 +1797,16 @@ impl<T: OclPrm> Buffer<T> {
     /// Returns the offset of the sub-buffer within its buffer if this is a
     /// sub-buffer.
     #[inline]
-    pub fn offset(&self) -> OclCoreResult<Option<usize>> {
-        if self.is_sub_buffer() {
-            match self.mem_info(MemInfo::Offset)? {
-                MemInfoResult::Offset(off) => Ok(Some(off)),
-                _ => unreachable!(),
-            }
-        } else {
-            Ok(None)
-        }
+    pub fn offset(&self) -> Option<usize> {
+        // if self.is_sub_buffer() {
+        //     match self.mem_info(MemInfo::Offset)? {
+        //         MemInfoResult::Offset(off) => Ok(Some(off)),
+        //         _ => unreachable!(),
+        //     }
+        // } else {
+        //     Ok(None)
+        // }
+        self.offset
     }
 
     /// Returns the length of the buffer.
@@ -1949,9 +1949,8 @@ impl<T: OclPrm> Buffer<T> {
     /// [mem_flags]: struct.MemFlags.html
     /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
     ///
-    pub fn create_sub_buffer<Do, Ds>(&self, flags_opt: Option<MemFlags>, offset: usize,
-            len: usize) -> OclResult<Buffer<T>>
-            where Do: Into<SpatialDims>, Ds: Into<SpatialDims> {
+    pub fn create_sub_buffer(&self, flags_opt: Option<MemFlags>, offset: usize,
+            len: usize) -> OclResult<Buffer<T>> {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
 
         // Check flags here to preempt a somewhat vague OpenCL runtime error message:
@@ -2188,8 +2187,9 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// bytes, sizes, lengths, and dimensions in this library are always
     /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
     /// otherwise noted.
-    pub fn len<'b>(mut self, len: usize) -> BufferBuilder<'a, T> {
-        self.len = len;
+    pub fn len<'b, D>(mut self, len: D) -> BufferBuilder<'a, T>
+            where D: Into<SpatialDims> {
+        self.len = len.into().to_len();
         self
     }
 

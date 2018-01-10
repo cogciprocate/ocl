@@ -1,7 +1,7 @@
 //! Timed kernel and buffer tests / benchmarks / examples.
 //!
 //! Manipulate the consts below to fiddle with parameters. To create longer
-//! running tests, increase `DATASET_SIZE`, and the `*_ITERS` consts. The
+//! running tests, increase `WORK_SIZE`, and the `*_ITERS` consts. The
 //! other consts can be anything at all.
 //!
 //! Due to buggy and/or intentionally crippled drivers, this example may not
@@ -16,7 +16,7 @@ extern crate time;
 
 use ocl::{util, core, ProQue, Buffer, EventList};
 
-const DATASET_SIZE: usize = 1 << 12;
+const WORK_SIZE: usize = 1 << 12;
 
 const KERNEL_RUN_ITERS: i32 = 800;
 const BUFFER_READ_ITERS: i32 = 20;
@@ -43,7 +43,7 @@ fn main() {
     "#;
 
     // Create an all-in-one context, program, and command queue:
-    let ocl_pq = ProQue::builder().src(src).dims(DATASET_SIZE).build().unwrap();
+    let ocl_pq = ProQue::builder().src(src).dims(WORK_SIZE).build().unwrap();
 
     // Create init and result buffers and vectors:
     let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
@@ -51,14 +51,14 @@ fn main() {
     let buffer_init = Buffer::builder()
         .queue(ocl_pq.queue().clone())
         .flags(core::MemFlags::new().read_write().copy_host_ptr())
-        .dims(ocl_pq.dims().clone())
+        .len(WORK_SIZE)
         .host_data(&vec_init)
         .build().unwrap();
 
-    let mut vec_result = vec![0.0f32; DATASET_SIZE];
+    let mut vec_result = vec![0.0f32; WORK_SIZE];
     let buffer_result = Buffer::<f32>::builder()
         .queue(ocl_pq.queue().clone())
-        .dims(ocl_pq.dims())
+        .len(WORK_SIZE)
         .build().unwrap();
 
     // Create a kernel with arguments matching those in the kernel:
@@ -228,13 +228,13 @@ fn verify_results(vec_init: &Vec<f32>, vec_result: &Vec<f32>, iters: i32) {
     // let margin_of_error = iters as f32 / 100000.0;
     let margin_of_error = 0.1 as f32;
 
-    for idx in 0..DATASET_SIZE {
+    for idx in 0..WORK_SIZE {
         let correct = vec_init[idx] + (iters as f32 * SCALAR);
         assert!((correct - vec_result[idx]).abs() < margin_of_error,
             "    INVALID RESULT[{}]: init: {}, correct: {}, margin: {}, result: {}",
             idx, vec_init[idx], correct, margin_of_error, vec_result[idx]);
 
-        if PRINT_SOME_RESULTS && (idx % (DATASET_SIZE / RESULTS_TO_PRINT)) == 0  {
+        if PRINT_SOME_RESULTS && (idx % (WORK_SIZE / RESULTS_TO_PRINT)) == 0  {
             println!("    [{}]: init: {}, correct: {}, result: {}", idx, vec_init[idx],
                 correct, vec_result[idx]);
         }

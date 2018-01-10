@@ -126,7 +126,7 @@ impl<'k> KernelCmd<'k> {
 
         if PRINT_DEBUG {
             println!("Enqueuing kernel: '{}'...",
-                core::get_kernel_info(self.kernel, KernelInfo::FunctionName));
+                core::get_kernel_info(self.kernel, KernelInfo::FunctionName)?);
         }
 
         core::enqueue_kernel(queue, self.kernel, dim_count, self.gwo.to_work_offset(),
@@ -208,8 +208,9 @@ impl Kernel {
         let obj_core = core::create_kernel(program, &name)?;
 
         let num_args = match core::get_kernel_info(&obj_core, KernelInfo::NumArgs) {
-            KernelInfoResult::NumArgs(num) => num,
-            KernelInfoResult::Error(e) => return Err(OclError::from(*e)),
+            Ok(KernelInfoResult::NumArgs(num)) => num,
+            Ok(KernelInfoResult::Error(e)) => return Err(OclError::from(*e)),
+            Err(err) => return Err(OclError::from(err)),
             _=> unreachable!(),
         };
 
@@ -302,8 +303,7 @@ impl Kernel {
     /// order.
     // pub fn arg_buf<T: OclPrm>(mut self, buffer: &Buffer<T>) -> Kernel {
     pub fn arg_buf<T, M>(mut self, buffer: M) -> Kernel
-            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
-    {
+            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll {
         self.new_arg_buf::<T, _>(Some(buffer));
         self
     }
@@ -312,8 +312,7 @@ impl Kernel {
     /// by 'image' (builder-style). Argument is added to the bottom of the argument
     /// order.
     pub fn arg_img<T, M>(mut self, image: M) -> Kernel
-        where T: OclPrm, M: AsMem<T> + MemCmdAll
-    {
+            where T: OclPrm, M: AsMem<T> + MemCmdAll {
         self.new_arg_img::<T, _>(Some(image));
         self
     }
@@ -329,8 +328,7 @@ impl Kernel {
     /// Adds a new argument specifying the value: `scalar` (builder-style). Argument
     /// is added to the bottom of the argument order.
     pub fn arg_scl<T: OclPrm>(mut self, scalar: T) -> Kernel
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         self.new_arg_scl(Some(scalar));
         self
     }
@@ -338,8 +336,7 @@ impl Kernel {
     /// Adds a new argument specifying the value: `vector` (builder-style). Argument
     /// is added to the bottom of the argument order.
     pub fn arg_vec<T: OclPrm>(mut self, vector: T) -> Kernel
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         self.new_arg_vec(Some(vector));
         self
     }
@@ -350,8 +347,7 @@ impl Kernel {
     /// Local variables are used to share data between work items in the same
     /// workgroup.
     pub fn arg_loc<T: OclPrm>(mut self, length: usize) -> Kernel
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         self.new_arg_loc::<T>(length);
         self
     }
@@ -361,8 +357,7 @@ impl Kernel {
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
     pub fn arg_scl_named<T: OclPrm>(mut self, name: &'static str, scalar_opt: Option<T>) -> Kernel
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         let arg_idx = self.new_arg_scl(scalar_opt);
         self.insert_named_arg(name, arg_idx);
         self
@@ -373,8 +368,7 @@ impl Kernel {
     ///
     /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
     pub fn arg_vec_named<T: OclPrm>(mut self, name: &'static str, vector_opt: Option<T>) -> Kernel
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         let arg_idx = self.new_arg_vec(vector_opt);
         self.insert_named_arg(name, arg_idx);
         self
@@ -385,8 +379,7 @@ impl Kernel {
     ///
     /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
     pub fn arg_buf_named<T, M>(mut self, name: &'static str, buffer_opt: Option<M>) -> Kernel
-            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
-    {
+            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll {
         let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
         self.insert_named_arg(name, arg_idx);
         self
@@ -397,8 +390,7 @@ impl Kernel {
     ///
     /// Named arguments can be easily modified later using `::set_arg_img_named()`.
     pub fn arg_img_named<T, M>(mut self, name: &'static str, image_opt: Option<M>) -> Kernel
-            where T: OclPrm, M: AsMem<T> + MemCmdAll
-    {
+            where T: OclPrm, M: AsMem<T> + MemCmdAll {
         let arg_idx = self.new_arg_img::<T, _>(image_opt);
         self.insert_named_arg(name, arg_idx);
         self
@@ -420,8 +412,7 @@ impl Kernel {
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_scl_named<'a, T>(&'a mut self, name: &'static str, scalar: T)
             -> OclResult<&'a mut Kernel>
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         let arg_idx = self.resolve_named_arg_idx(name)?;
         self._set_arg::<T>(arg_idx, KernelArg::Scalar(scalar))
             .and(Ok(self))
@@ -433,8 +424,7 @@ impl Kernel {
     // [FIXME]: CHECK THAT NAME EXISTS AND GIVE A BETTER ERROR MESSAGE
     pub fn set_arg_vec_named<'a, T>(&'a mut self, name: &'static str, vector: T)
             -> OclResult<&'a mut Kernel>
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         let arg_idx = self.resolve_named_arg_idx(name)?;
         self._set_arg::<T>(arg_idx, KernelArg::Vector(vector))
             .and(Ok(self))
@@ -447,8 +437,7 @@ impl Kernel {
     pub fn set_arg_buf_named<'a, T, M>(&'a mut self, name: &'static str,
             buffer_opt: Option<M>)
             -> OclResult<&'a mut Kernel>
-            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
-    {
+            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll {
         //  * TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = self.resolve_named_arg_idx(name)?;
         match buffer_opt {
@@ -468,8 +457,7 @@ impl Kernel {
     pub fn set_arg_img_named<'a, T, M>(&'a mut self, name: &'static str,
             image_opt: Option<M>)
             -> OclResult<&'a mut Kernel>
-            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
-    {
+            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll {
         // * TODO: ADD A CHECK FOR A VALID NAME (KEY)
         let arg_idx = self.resolve_named_arg_idx(name)?;
         match image_opt {
@@ -488,8 +476,7 @@ impl Kernel {
     // [PLACEHOLDER] Set a named sampler argument
     #[allow(unused_variables)]
     pub fn set_arg_smp_named<'a, T: OclPrm>(&'a mut self, name: &'static str,
-                sampler_opt: Option<&Sampler>) -> OclResult<&'a mut Kernel>
-    {
+            sampler_opt: Option<&Sampler>) -> OclResult<&'a mut Kernel> {
         unimplemented!();
     }
 
@@ -577,32 +564,33 @@ impl Kernel {
     }
 
     /// Returns information about this kernel.
-    pub fn info(&self, info_kind: KernelInfo) -> KernelInfoResult {
+    pub fn info(&self, info_kind: KernelInfo) -> OclCoreResult<KernelInfoResult> {
         core::get_kernel_info(&self.obj_core, info_kind)
     }
 
     /// Returns argument information for this kernel.
-    pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo) -> KernelArgInfoResult {
+    pub fn arg_info(&self, arg_index: u32, info_kind: KernelArgInfo)
+            -> OclCoreResult<KernelArgInfoResult> {
         arg_info(self, arg_index, info_kind)
     }
 
     /// Returns work group information for this kernel.
     pub fn wg_info(&self, device: Device, info_kind: KernelWorkGroupInfo)
-            -> KernelWorkGroupInfoResult
-    {
+            -> OclCoreResult<KernelWorkGroupInfoResult> {
         core::get_kernel_work_group_info(&self.obj_core, device, info_kind)
     }
 
     /// Returns the name of this kernel.
-    pub fn name(&self) -> String {
-        core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName).into()
+    pub fn name(&self) -> OclCoreResult<String> {
+        core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName).map(|r| r.into())
     }
 
     /// Returns the number of arguments this kernel has.
-    pub fn num_args(&self) -> u32 {
+    pub fn num_args(&self) -> OclCoreResult<u32> {
         match core::get_kernel_info(&self.obj_core, KernelInfo::NumArgs) {
-            KernelInfoResult::NumArgs(num) => num,
-            KernelInfoResult::Error(e) => panic!("{}", e),
+            Ok(KernelInfoResult::NumArgs(num)) => Ok(num),
+            Ok(KernelInfoResult::Error(err)) => Err(*err),
+            Err(err) => Err(err),
             _=> unreachable!(),
         }
     }
@@ -622,7 +610,7 @@ impl Kernel {
 
         let arg_type = self.arg_types.get(arg_index as usize)
             .ok_or(format!("Kernel arg index out of range. (kernel: {}, index: {})",
-                self.name(), arg_index))?;
+                self.name()?, arg_index))?;
 
         if arg_type.is_match::<T>() {
             Ok(())
@@ -643,8 +631,7 @@ impl Kernel {
     /// passing matches the type defined in your kernel.
     ///
     pub unsafe fn set_arg_unchecked<T: OclPrm>(&mut self, arg_idx: u32,
-            arg: KernelArg<T>) -> OclResult<()>
-    {
+            arg: KernelArg<T>) -> OclResult<()> {
         core::set_kernel_arg::<T>(&self.obj_core, arg_idx, arg).map_err(OclError::from)
     }
 
@@ -692,11 +679,11 @@ impl Kernel {
     // }
 
     fn fmt_wg_info<D>(&self, f: &mut std::fmt::Formatter, devices: Vec<D>) -> std::fmt::Result
-            where D: Into<Device>
-    {
+            where D: Into<Device> {
         for device in devices {
             let device = device.into();
-            if !device.vendor().contains("NVIDIA") {
+            if !device.vendor().unwrap()
+                    .contains("NVIDIA") {
                 f.debug_struct("WorkGroup")
                     .field("WorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::WorkGroupSize))
                     .field("CompileWorkGroupSize", &self.wg_info(device, KernelWorkGroupInfo::CompileWorkGroupSize))
@@ -742,8 +729,7 @@ impl Kernel {
 
     /// Non-builder-style version of `::arg_buf()`.
     fn new_arg_buf<T, M>(&mut self, buffer_opt: Option<M>) -> u32
-            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll
-    {
+            where T: OclPrm + 'static, M: AsMem<T> + MemCmdAll {
         match buffer_opt {
             Some(buffer) => {
                 self.new_arg::<T>(KernelArg::Mem(buffer.as_mem()))
@@ -756,8 +742,7 @@ impl Kernel {
 
     /// Non-builder-style version of `::arg_img()`.
     fn new_arg_img<T, M>(&mut self, image_opt: Option<M>) -> u32
-        where T: OclPrm, M: AsMem<T> + MemCmdAll
-    {
+            where T: OclPrm, M: AsMem<T> + MemCmdAll {
         match image_opt {
             Some(image) => {
                 // Type is ignored:
@@ -784,8 +769,7 @@ impl Kernel {
 
     /// Non-builder-style version of `::arg_scl()`.
     fn new_arg_scl<T>(&mut self, scalar_opt: Option<T>) -> u32
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         let scalar = match scalar_opt {
             Some(s) => s,
             None => Default::default(),
@@ -796,8 +780,7 @@ impl Kernel {
 
     /// Non-builder-style version of `::arg_vec()`.
     fn new_arg_vec<T>(&mut self, vector_opt: Option<T>) -> u32
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
 
         let vector = match vector_opt {
             Some(s) => s,
@@ -809,15 +792,13 @@ impl Kernel {
 
     /// Non-builder-style version of `::arg_loc()`.
     fn new_arg_loc<T>(&mut self, length: usize) -> u32
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         self.new_arg::<T>(KernelArg::Local(&length))
     }
 
     /// Adds a new argument to the kernel and returns the index.
     fn new_arg<T>(&mut self, arg: KernelArg<T>) -> u32
-            where T: OclPrm + 'static
-    {
+            where T: OclPrm + 'static {
         self.assert_unlocked();
         let arg_idx = self.new_arg_count;
 
@@ -825,7 +806,7 @@ impl Kernel {
             Ok(_) => (),
             Err(err) => {
                 panic!("Kernel::new_arg(kernel name: '{}' arg index: '{}'): {}",
-                    self.name(), arg_idx, err);
+                    self.name().unwrap(), arg_idx, err);
             }
         }
 
@@ -882,11 +863,10 @@ impl DerefMut for Kernel {
 
 /// Returns argument information for a kernel.
 pub fn arg_info(core: &KernelCore, arg_index: u32, info_kind: KernelArgInfo)
-        -> KernelArgInfoResult
-{
+        -> OclCoreResult<KernelArgInfoResult> {
     let device_versions = match core.device_versions() {
         Ok(vers) => vers,
-        Err(e) => return e.into(),
+        Err(e) => return Err(e.into()),
     };
 
     core::get_kernel_arg_info(core, arg_index, info_kind,
@@ -896,8 +876,9 @@ pub fn arg_info(core: &KernelCore, arg_index: u32, info_kind: KernelArgInfo)
 /// Returns the type name for a kernel argument at the specified index.
 pub fn arg_type_name(core: &KernelCore, arg_index: u32) -> OclCoreResult<String> {
     match arg_info(core, arg_index, KernelArgInfo::TypeName) {
-        KernelArgInfoResult::TypeName(type_name) => Ok(type_name),
-        KernelArgInfoResult::Error(e) => Err(*e),
+        Ok(KernelArgInfoResult::TypeName(type_name)) => Ok(type_name),
+        Ok(KernelArgInfoResult::Error(e)) => Err(*e),
+        Err(err) => Err(err.into()),
         _ => unreachable!(),
     }
 }

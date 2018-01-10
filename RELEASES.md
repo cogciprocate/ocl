@@ -12,6 +12,12 @@ Breaking Changes
   * The top level `ocl` crate now has it's own `Error` type, distinct from
     `ocl-core::Error`.
   * `ocl::async::Error` and `ocl::async::Result` have been removed.
+* `Buffer`  now uses a linear `usize` rather than a multi-dimensional
+  `SpatialDims` to store its size.
+  * `Buffer::new` has had its `dims` argument replaced with `len`.
+  * `Buffer::dims` has been replaced with `::len`.
+  * `BufferBuilder::dims` has been replaced with `::len`.
+*
 
 
 

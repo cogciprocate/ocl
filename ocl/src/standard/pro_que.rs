@@ -98,13 +98,10 @@ impl ProQue {
     /// `Buffer::builder()` instead.
     ///
     pub fn create_buffer<T: OclPrm>(&self) -> OclResult<Buffer<T>> {
-        let dims = self.dims_result()?;
-        // Buffer::<T>::new(self.queue.clone(), None, dims, None)
-        // Buffer::<T>::new(self.queue.clone(), None, dims, None, None)
+        let len = self.dims_result()?.to_len();
         Buffer::<T>::builder()
             .queue(self.queue.clone())
-            .dims(dims)
-            // .fill_val(Default::default(), None::<&mut ::Event>)
+            .len(len)
             .fill_val(Default::default())
             .build()
     }

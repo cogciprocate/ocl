@@ -101,31 +101,30 @@ impl Context {
     }
 
     /// Returns info about the platform associated with the context.
-    pub fn platform_info(&self, info_kind: PlatformInfo) -> PlatformInfoResult {
+    pub fn platform_info(&self, info_kind: PlatformInfo) -> OclCoreResult<PlatformInfoResult> {
         match self.platform() {
             Ok(plat_opt) => match plat_opt {
                 Some(ref p) => core::get_platform_info(p, info_kind),
-                None => PlatformInfoResult::from(OclCoreError::from("Context::platform_info: \
-                This context has no associated platform.")),
+                None => Err(OclCoreError::from("Context::platform_info: \
+                    This context has no associated platform.")),
             },
-            Err(e) => PlatformInfoResult::from(e),
+            Err(err) => Err(OclCoreError::from(err)),
         }
     }
 
     /// Returns info about the device indexed by `index` associated with this
     /// context.
-    pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> DeviceInfoResult {
+    pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> OclCoreResult<DeviceInfoResult> {
         match self.devices().get(index) {
             Some(d) => core::get_device_info(d, info_kind),
             None => {
-                return DeviceInfoResult::Error(Box::new(
-                    OclCoreError::from("Context::device_info: Invalid device index")));
+                return Err(OclCoreError::from("Context::device_info: Invalid device index"));
             },
         }
     }
 
     /// Returns info about the context.
-    pub fn info(&self, info_kind: ContextInfo) -> ContextInfoResult {
+    pub fn info(&self, info_kind: ContextInfo) -> OclCoreResult<ContextInfoResult> {
         core::get_context_info(&self.0, info_kind)
     }
 

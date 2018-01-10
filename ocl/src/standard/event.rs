@@ -107,18 +107,18 @@ impl Event {
     }
 
     /// Returns info about the event.
-    pub fn info(&self, info_kind: EventInfo) -> EventInfoResult {
+    pub fn info(&self, info_kind: EventInfo) -> OclCoreResult<EventInfoResult> {
         core::get_event_info(&self.0, info_kind)
     }
 
     /// Returns info about the event.
-    pub fn profiling_info(&self, info_kind: ProfilingInfo) -> ProfilingInfoResult {
+    pub fn profiling_info(&self, info_kind: ProfilingInfo) -> OclCoreResult<ProfilingInfoResult> {
         core::get_event_profiling_info(&self.0, info_kind)
     }
 
     /// Returns this event's associated command queue.
     pub fn queue_core(&self) -> OclCoreResult<CommandQueueCore> {
-        match self.info(EventInfo::CommandQueue) {
+        match self.info(EventInfo::CommandQueue)? {
             EventInfoResult::CommandQueue(queue_core) => Ok(queue_core),
             EventInfoResult::Error(err) => Err(*err),
             _ => unreachable!(),

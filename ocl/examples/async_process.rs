@@ -14,7 +14,7 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use futures::{stream, Stream, Future};
 use futures_cpupool::CpuPool;
-use ocl::{Platform, Device, Context, Queue, Program, Buffer, Kernel, Event};
+use ocl::{Result as OclResult, Platform, Device, Context, Queue, Program, Buffer, Kernel, Event};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Float4;
 
@@ -38,14 +38,14 @@ fn fmt_duration(duration: chrono::Duration) -> String {
 }
 
 
-pub fn main() {
+pub fn run() -> OclResult<()> {
     let start_time = chrono::Local::now();
 
     let platform = Platform::default();
-    printlnc!(blue: "Platform: {}", platform.name());
+    printlnc!(blue: "Platform: {}", platform.name()?);
 
     let device = Device::first(platform);
-    printlnc!(teal: "Device: {} {}", device.vendor(), device.name());
+    printlnc!(teal: "Device: {} {}", device.vendor()?, device.name()?);
 
     let context = Context::builder()
         .platform(platform)
@@ -77,13 +77,13 @@ pub fn main() {
         let write_buf: Buffer<Float4> = Buffer::builder()
             .queue(write_queue.clone())
             .flags(write_buf_flags)
-            .dims(work_size)
+            .len(work_size)
             .build().unwrap();
 
         let read_buf: Buffer<Float4> = Buffer::builder()
             .queue(read_queue.clone())
             .flags(read_buf_flags)
-            .dims(work_size)
+            .len(work_size)
             .build().unwrap();
 
         // Create program and kernel:
@@ -193,11 +193,13 @@ pub fn main() {
         Durations => | Create/Enqueue: {} | Run: {} | Total: {} |",
         correct_val_count.get() / redundancy_count, fmt_duration(create_duration),
         fmt_duration(run_duration), fmt_duration(total_duration));
+    Ok(())
 }
 
 
-
-
-
-
-
+pub fn main() {
+    match run() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
+}

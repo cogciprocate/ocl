@@ -36,7 +36,7 @@ use futures::{Future};
 use futures_cpupool::{CpuPool, CpuFuture};
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ocl::traits::{IntoRawEventArray};
-use ocl::error::{Error as OclError};
+use ocl::error::{Error as OclError, Result as OclResult};
 use ocl::flags::{MemFlags, CommandQueueProperties};
 use ocl::prm::Int4;
 use ocl::ffi::{cl_event, c_void};
@@ -426,11 +426,11 @@ pub fn verify_add(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 ///   3. adds a value,
 ///   4. and verifies the sum.
 ///
-pub fn main() {
+pub fn run() -> OclResult<()> {
     let platform = Platform::default();
-    printlnc!(dark_grey_bold: "Platform: {}", platform.name());
+    printlnc!(dark_grey_bold: "Platform: {}", platform.name()?);
     let device = Device::first(platform);
-    printlnc!(dark_grey_bold: "Device: {} {}", device.vendor(), device.name());
+    printlnc!(dark_grey_bold: "Device: {} {}", device.vendor()?, device.name()?);
 
     let context = Context::builder()
         .platform(platform)
@@ -462,13 +462,13 @@ pub fn main() {
     let src_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(src_buf_flags)
-        .dims(WORK_SIZE)
+        .len(WORK_SIZE)
         .build().unwrap();
 
     let dst_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(dst_buf_flags)
-        .dims(WORK_SIZE)
+        .len(WORK_SIZE)
         .build().unwrap();
 
     // Create program and kernel:
@@ -571,4 +571,13 @@ pub fn main() {
 
     printlnc!(yellow_bold: "All result values are correct! \n\
         Duration => | Total: {} seconds |", timestamp());
+
+    Ok(())
+}
+
+pub fn main() {
+    match run() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
 }

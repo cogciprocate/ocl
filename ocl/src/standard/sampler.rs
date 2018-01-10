@@ -2,7 +2,8 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use core::{self, Sampler as SamplerCore, AddressingMode, FilterMode, SamplerInfo, SamplerInfoResult};
+use core::{self, Result as OclCoreResult, Sampler as SamplerCore, AddressingMode, FilterMode,
+    SamplerInfo, SamplerInfoResult};
 use error::{Error as OclError, Result as OclResult};
 use standard::Context;
 
@@ -55,7 +56,7 @@ impl Sampler {
     }
 
     /// Returns various kinds of information about the sampler.
-    pub fn info(&self, info_kind: SamplerInfo) -> SamplerInfoResult {
+    pub fn info(&self, info_kind: SamplerInfo) -> OclCoreResult<SamplerInfoResult> {
         // match core::get_sampler_info(&self.0, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => SamplerInfoResult::Error(Box::new(err)),

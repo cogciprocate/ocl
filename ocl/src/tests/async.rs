@@ -389,7 +389,7 @@ pub fn rw_vec() {
 
     for platform in Platform::list() {
         for device in Device::list_all(platform).unwrap() {
-            println!("Device: {} {}", device.vendor(), device.name());
+            println!("Device: {} {}", device.vendor().unwrap(), device.name().unwrap());
 
             let context = Context::builder()
                 .platform(platform)
@@ -425,13 +425,13 @@ pub fn rw_vec() {
             let src_buf: Buffer<Int4> = Buffer::builder()
                 .context(&context)
                 .flags(src_buf_flags)
-                .dims(WORK_SIZE)
+                .len(WORK_SIZE)
                 .build().unwrap();
 
             let dst_buf: Buffer<Int4> = Buffer::builder()
                 .context(&context)
                 .flags(dst_buf_flags)
-                .dims(WORK_SIZE)
+                .len(WORK_SIZE)
                 .build().unwrap();
 
             // Create program and kernel:

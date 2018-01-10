@@ -8,8 +8,9 @@ use std::thread::{self, JoinHandle};
 use std::sync::mpsc;
 use std::time::Duration;
 use rand::{self, Rng};
-use standard::{Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
 use core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
+use standard::{Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
+use error::Result as OclResult;
 
 static SRC: &'static str = r#"
     __kernel void add(__global float* buffer, float addend) {
@@ -48,7 +49,7 @@ fn concurrent() {
 }
 
 // UNUSED
-fn main_from_example() {
+fn main_from_example() -> OclResult<()> {
     let mut rng = rand::weak_rng();
     let data_set_size = 1 << 10;
     let dims = [data_set_size];
@@ -61,7 +62,7 @@ fn main_from_example() {
     // Loop through each avaliable platform:
     for p_idx in 0..platforms.len() {
         let platform = &platforms[p_idx];
-        println!("Platform[{}]: {} ({})", p_idx, platform.name(), platform.vendor());
+        println!("Platform[{}]: {} ({})", p_idx, platform.name()?, platform.vendor()?);
 
         let devices = Device::list_all(platform).unwrap();
 
@@ -71,7 +72,7 @@ fn main_from_example() {
             // let dev_idx = rng.gen_range(0, devices.len());
 
             let device = devices[device_idx];
-            println!("Device[{}]: {} ({})", device_idx, device.name(), device.vendor());
+            println!("Device[{}]: {} ({})", device_idx, device.name()?, device.vendor()?);
 
             // Make a context to share around:
             let context = Context::builder().build().unwrap();
@@ -117,7 +118,7 @@ fn main_from_example() {
                     //     &dims_th, None, None).unwrap();
                     let mut buffer = Buffer::<f32>::builder()
                         .queue(queueball_th[0].clone())
-                        .dims(&dims_th)
+                        .len(dims_th)
                         .build().unwrap();
                     let mut vec = vec![0.0f32; buffer.len()];
 
@@ -168,4 +169,5 @@ fn main_from_example() {
     }
 
     print!("\n");
+    Ok(())
 }

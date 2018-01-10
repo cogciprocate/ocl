@@ -9,7 +9,7 @@ use ocl::{util, ProQue, Buffer, MemFlags, Event, EventList};
 use ocl::async::{BufferSink, WriteGuard};
 
 // Our arbitrary data set size (about a million) and coefficent:
-const DATA_SET_SIZE: usize = 1 << 20;
+const WORK_SIZE: usize = 1 << 20;
 const COEFF: i32 = 321;
 
 const THREAD_COUNT: usize = 32;
@@ -30,27 +30,27 @@ static KERNEL_SRC: &'static str = r#"
 fn main() {
     let ocl_pq = ProQue::builder()
         .src(KERNEL_SRC)
-        .dims(DATA_SET_SIZE)
+        .dims(WORK_SIZE)
         .build().expect("Build ProQue");
 
     let source_buffer = Buffer::<i32>::builder()
         .queue(ocl_pq.queue().clone())
         .flags(MemFlags::new().read_write().alloc_host_ptr())
-        .dims(ocl_pq.dims().clone())
+        .len(WORK_SIZE)
         .build().unwrap();
 
-    let mut vec_result = vec![0i32; DATA_SET_SIZE];
+    let mut vec_result = vec![0i32; WORK_SIZE];
     let result_buffer: Buffer<i32> = ocl_pq.create_buffer().unwrap();
 
     let kern = ocl_pq.create_kernel("multiply_by_scalar").unwrap()
         .arg_scl(COEFF)
         .arg_buf(&source_buffer)
         .arg_buf(&result_buffer);
-    assert_eq!(kern.get_gws().to_len(), DATA_SET_SIZE);
+    assert_eq!(kern.get_gws().to_len(), WORK_SIZE);
 
     let buffer_sink = unsafe {
         BufferSink::from_buffer(source_buffer.clone(), Some(ocl_pq.queue().clone()), 0,
-            DATA_SET_SIZE).unwrap()
+            WORK_SIZE).unwrap()
     };
     // let source_data = util::scrambled_vec((0, 20), ocl_pq.dims().to_len());
     let source_datas: Vec<_> = (0..THREAD_COUNT).map(|_| {
@@ -60,12 +60,12 @@ fn main() {
 
     for i in 0..THREAD_COUNT {
         // buffer_sink.clone().write().wait().unwrap()
-        //     .copy_from_slice(&[0i32; DATA_SET_SIZE]);
+        //     .copy_from_slice(&[0i32; WORK_SIZE]);
         // buffer_sink.flush(None, None::<&mut Event>).unwrap().wait().unwrap();
         let writer_0 = buffer_sink.clone().write();
         threads.push(ThreadBuilder::new().name(format!("thread_{}", i)).spawn(move || {
             let mut write_guard = writer_0.wait().unwrap();
-            write_guard.copy_from_slice(&[0i32; DATA_SET_SIZE]);
+            write_guard.copy_from_slice(&[0i32; WORK_SIZE]);
             let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
             buffer_sink.flush().enq().unwrap().wait().unwrap();
         }).unwrap());

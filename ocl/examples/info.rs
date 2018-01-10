@@ -12,7 +12,8 @@
 extern crate ocl;
 #[macro_use] extern crate colorify;
 
-use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program, Kernel, Event, EventList};
+use ocl::{Result as OclResult, Platform, Device, Context, Queue, Buffer, Image, Sampler, Program,
+    Kernel, Event, EventList};
 use ocl::core::{ProgramInfo, OclPrm};
 
 const PRINT_DETAILED: bool = true;
@@ -27,8 +28,8 @@ static SRC: &'static str = r#"
     }
 "#;
 
-fn main() {
-    let dims = [2048];
+fn run() -> OclResult<()> {
+    let dims = 2048;
     let platforms = Platform::list();
 
     println!("Looping through avaliable platforms ({}):", platforms.len());
@@ -50,7 +51,7 @@ fn main() {
         print_platform_info(&platform);
 
         for device in devices.iter() {
-            print_device_info(device);
+            print_device_info(device)?;
         }
 
         // Loop through each device
@@ -60,7 +61,7 @@ fn main() {
             let queue = Queue::new(&context, device, Some(ocl::core::QUEUE_PROFILING_ENABLE)).unwrap();
             let buffer = Buffer::<f32>::builder()
                 .queue(queue.clone())
-                .dims(&dims)
+                .len(dims)
                 .build().unwrap();
             let image = Image::<u8>::builder()
                 .dims(dims)
@@ -73,7 +74,7 @@ fn main() {
                 .build(&context).unwrap();
             let kernel = Kernel::new("multiply", &program).unwrap()
                 .queue(queue.clone())
-                .gws(&dims)
+                .gws(dims)
                 .arg_buf(&buffer)
                 .arg_scl(10.0f32);
 
@@ -82,7 +83,7 @@ fn main() {
             event_list.wait_for().unwrap();
 
             let mut event = Event::empty();
-            buffer.cmd().write(&vec![0.0; dims[0]]).enew(&mut event).enq().unwrap();
+            buffer.cmd().write(&vec![0.0; dims]).enew(&mut event).enq().unwrap();
             event.wait_for().unwrap();
 
             // Print all but device (just once per platform):
@@ -92,13 +93,14 @@ fn main() {
                 print_buffer_info(&buffer);
                 print_image_info(&image);
                 print_sampler_info(&sampler);
-                print_program_info(&program);
+                print_program_info(&program)?;
                 print_kernel_info(&kernel);
                 print_event_list_info(&event_list);
                 print_event_info(&event);
             }
         }
     }
+    Ok(())
 }
 
 
@@ -110,13 +112,14 @@ fn print_platform_info(platform: &Platform) {
 }
 
 
-fn print_device_info(device: &Device) {
+fn print_device_info(device: &Device) -> OclResult<()> {
     if PRINT_DETAILED_DEVICE {
         printlnc!(teal: "{}", device);
     } else {
         if !PRINT_DETAILED { print!("{t}", t = TAB); }
-        printlnc!(teal: "Device (terse) {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());
+        printlnc!(teal: "Device (terse) {{ Name: {}, Vendor: {} }}", device.name()?, device.vendor()?);
     }
+    Ok(())
 }
 
 
@@ -145,18 +148,19 @@ fn print_sampler_info(sampler: &Sampler) {
 }
 
 
-fn print_program_info(program: &Program) {
+fn print_program_info(program: &Program) -> OclResult<()> {
     if PRINT_DETAILED_PROGRAM {
         printlnc!(magenta: "{}", program);
     } else {
         if !PRINT_DETAILED { print!("{t}{t}", t = TAB); }
         printlnc!(magenta: "Program (terse) {{ KernelNames: '{}', NumDevices: {}, ReferenceCount: {}, Context: {} }}",
-            program.info(ProgramInfo::KernelNames),
-            program.info(ProgramInfo::NumDevices),
-            program.info(ProgramInfo::ReferenceCount),
-            program.info(ProgramInfo::Context),
+            program.info(ProgramInfo::KernelNames)?,
+            program.info(ProgramInfo::NumDevices)?,
+            program.info(ProgramInfo::ReferenceCount)?,
+            program.info(ProgramInfo::Context)?,
         );
     }
+    Ok(())
 }
 
 
@@ -172,4 +176,12 @@ fn print_event_list_info(event_list: &EventList) {
 
 fn print_event_info(event: &Event) {
     printlnc!(yellow: "{}", event);
+}
+
+
+pub fn main() {
+    match run() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
 }

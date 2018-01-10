@@ -36,7 +36,7 @@ fn test_context_props() {
         println!("{}", context);
 
         for device in devices.iter() {
-            println!("Device {{ Name: {}, Vendor: {} }}", device.name(), device.vendor());
+            println!("Device {{ Name: {}, Vendor: {} }}", device.name().unwrap(), device.vendor().unwrap());
         }
 
         // print!("\n\n");

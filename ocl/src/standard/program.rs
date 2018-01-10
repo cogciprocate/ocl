@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::convert::Into;
 
 
-use core::{self, Program as ProgramCore, Context as ContextCore,
+use core::{self, Result as OclCoreResult, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
 #[cfg(feature = "opencl_version_2_1")]
 use core::ClVersions;
@@ -87,14 +87,15 @@ impl Program {
     }
 
     /// Returns info about this program.
-    pub fn info(&self, info_kind: ProgramInfo) -> ProgramInfoResult {
+    pub fn info(&self, info_kind: ProgramInfo) -> OclCoreResult<ProgramInfoResult> {
         core::get_program_info(&self.0, info_kind)
     }
 
     /// Returns info about this program's build.
     ///
     /// * TODO: Check that device is valid.
-    pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo) -> ProgramBuildInfoResult {
+    pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo)
+            -> OclCoreResult<ProgramBuildInfoResult> {
         core::get_program_build_info(&self.0, &device, info_kind)
     }
 

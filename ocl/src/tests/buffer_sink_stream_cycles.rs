@@ -462,9 +462,9 @@ pub fn verify_add(dst_buf_stream: &BufferStream<Int4>,
 #[test]
 pub fn buffer_sink_stream_cycles() {
     let platform = Platform::default();
-    println!("Platform: {}", platform.name());
+    println!("Platform: {}", platform.name().unwrap());
     let device = Device::first(platform);
-    println!("Device: {} {}", device.vendor(), device.name());
+    println!("Device: {} {}", device.vendor().unwrap(), device.name().unwrap());
 
     let context = Context::builder()
         .platform(platform)
@@ -496,7 +496,7 @@ pub fn buffer_sink_stream_cycles() {
     let src_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(src_buf_flags)
-        .dims(WORK_SIZE)
+        .len(WORK_SIZE)
         .build().unwrap();
 
     let src_buf_sink = unsafe { BufferSink::from_buffer(src_buf.clone(),
@@ -506,7 +506,7 @@ pub fn buffer_sink_stream_cycles() {
     let dst_buf: Buffer<Int4> = Buffer::builder()
         .context(&context)
         .flags(dst_buf_flags)
-        .dims(WORK_SIZE)
+        .len(WORK_SIZE)
         .build().unwrap();
 
     let dst_buf_stream = unsafe { BufferStream::from_buffer(dst_buf.clone(),

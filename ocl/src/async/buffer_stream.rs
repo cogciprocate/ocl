@@ -204,7 +204,7 @@ impl<T: OclPrm> BufferStream<T> {
         let buffer = Buffer::<T>::builder()
             .queue(queue.clone())
             .flags(MemFlags::new().alloc_host_ptr().host_read_only())
-            .dims(len)
+            .len(len)
             .fill_val(T::default())
             .build()?;
 

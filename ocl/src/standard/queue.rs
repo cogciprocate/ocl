@@ -2,8 +2,8 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use core::{self, CommandQueue as CommandQueueCore, CommandQueueInfo, CommandQueueInfoResult,
-    OpenclVersion, CommandQueueProperties, ClWaitListPtr, ClContextPtr};
+use core::{self, Result as OclCoreResult, CommandQueue as CommandQueueCore, CommandQueueInfo,
+    CommandQueueInfoResult, OpenclVersion, CommandQueueProperties, ClWaitListPtr, ClContextPtr};
 use error::{Error as OclError, Result as OclResult};
 use standard::{Context, Device, Event};
 
@@ -86,7 +86,7 @@ impl Queue {
     }
 
     /// Returns info about this queue.
-    pub fn info(&self, info_kind: CommandQueueInfo) -> CommandQueueInfoResult {
+    pub fn info(&self, info_kind: CommandQueueInfo) -> OclCoreResult<CommandQueueInfoResult> {
         core::get_command_queue_info(&self.obj_core, info_kind)
     }
 

@@ -663,7 +663,7 @@ impl<T: OclPrm> Image<T> {
             Some(&device_versions),
         )? };
 
-        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
+        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
             _ => return Err("ocl::Image::element_len(): \
@@ -710,7 +710,7 @@ impl<T: OclPrm> Image<T> {
         )? };
 
         // FIXME can I do this from a GLTexture ?
-        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
+        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
             _ => return Err("ocl::Image::element_len(): Unexpected \
@@ -747,7 +747,7 @@ impl<T: OclPrm> Image<T> {
         )? };
 
         // FIXME can I do this from a renderbuffer ?
-        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize) {
+        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             ImageInfoResult::Error(err) => return Err(*err),
             _ => return Err("ocl::Image::element_len(): \
@@ -879,7 +879,7 @@ impl<T: OclPrm> Image<T> {
     }
 
     /// Get information about this image.
-    pub fn info(&self, info_kind: ImageInfo) -> ImageInfoResult {
+    pub fn info(&self, info_kind: ImageInfo) -> OclCoreResult<ImageInfoResult> {
         // match core::get_image_info(&self.obj_core, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => ImageInfoResult::Error(Box::new(err)),
@@ -888,7 +888,7 @@ impl<T: OclPrm> Image<T> {
     }
 
     /// Returns info about this image's memory.
-    pub fn mem_info(&self, info_kind: MemInfo) -> MemInfoResult {
+    pub fn mem_info(&self, info_kind: MemInfo) -> OclCoreResult<MemInfoResult> {
         // match core::get_mem_object_info(&self.obj_core, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => MemInfoResult::Error(Box::new(err)),

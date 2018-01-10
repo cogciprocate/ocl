@@ -311,8 +311,7 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
 
 
 fn create_queue(device: Device, context: &Context, flags: Option<CommandQueueProperties>)
-        -> OclResult<Queue>
-{
+        -> OclResult<Queue> {
     Queue::new(&context, device, flags.clone()).or_else(|err| {
         // match *err.kind() {
         //     OclCoreErrorKind::Status { status: Status::CL_INVALID_VALUE, .. } => {
@@ -419,13 +418,13 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
     let source_buf = Buffer::<Float4>::builder()
         .queue(write_queue.clone())
         .flags(write_buf_flags)
-        .dims(work_size)
+        .len(work_size)
         .build()?;
 
     let target_buf = Buffer::<Float4>::builder()
         .queue(read_queue.clone())
         .flags(read_buf_flags)
-        .dims(work_size)
+        .len(work_size)
         .build()?;
 
     // Generate kernel source:
@@ -925,13 +924,13 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
     let src_buf = Buffer::<Int4>::builder()
         .queue(write_queue.clone())
         .flags(write_buf_flags)
-        .dims(work_size)
+        .len(work_size)
         .build()?;
 
     let tar_buf = Buffer::<Int4>::builder()
         .queue(read_queue.clone())
         .flags(read_buf_flags)
-        .dims(work_size)
+        .len(work_size)
         .build()?;
 
     // Generate kernel source:
@@ -1063,7 +1062,7 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 
 
 
-pub fn main() {
+pub fn run() -> OclResult<()> {
     let mut rng = rand::weak_rng();
 
     for (p_idx, platform) in Platform::list().into_iter().enumerate() {
@@ -1071,8 +1070,8 @@ pub fn main() {
         let devices = Device::list_all(&platform).unwrap();
 
         for (d_idx, device) in devices.into_iter().enumerate() {
-            printlnc!(blue: "Platform [{}]: {}", p_idx, platform.name());
-            printlnc!(teal: "Device [{}]: {} {}", d_idx, device.vendor(), device.name());
+            printlnc!(blue: "Platform [{}]: {}", p_idx, platform.name()?);
+            printlnc!(teal: "Device [{}]: {} {}", d_idx, device.vendor()?, device.name()?);
 
             if device.is_available().unwrap() {
 
@@ -1116,4 +1115,13 @@ pub fn main() {
     }
 
     printlnc!(light_grey: "All checks complete.");
+    Ok(())
+}
+
+
+pub fn main() {
+    match run() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
 }

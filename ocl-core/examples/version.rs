@@ -31,7 +31,7 @@ fn main() {
     // let queue = core::create_command_queue(&context, &device_id).unwrap();
     // let dims = [1 << 20, 1, 1];
 
-    let dv0 = core::get_device_info(&device_id, core::DeviceInfo::Version);
+    let dv0 = core::get_device_info(&device_id, core::DeviceInfo::Version).unwrap();
     println!("Pre-Parse: 'DeviceInfo::Version': {}", dv0);
 
     // let dv1 = core::get_device_version(&device_id).unwrap();

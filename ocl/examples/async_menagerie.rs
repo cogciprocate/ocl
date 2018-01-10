@@ -20,7 +20,7 @@ use rand::distributions::{IndependentSample, Range as RandRange};
 use futures::{stream, Future, Sink, Stream, Join};
 use futures::sync::mpsc::{self, Sender};
 use futures_cpupool::{CpuPool, CpuFuture};
-use ocl::{Platform, Device, Context, Queue, Program, Kernel, OclPrm,
+use ocl::{Result as OclResult, Platform, Device, Context, Queue, Program, Kernel, OclPrm,
     Event, EventList, FutureMemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Float4;
@@ -593,14 +593,14 @@ fn fmt_duration(duration: chrono::Duration) -> String {
 
 /// Creates a large number of both simple and complex asynchronous tasks and
 /// verifies that they all execute correctly.
-pub fn main() {
+pub fn run() -> OclResult<()> {
     // Buffer/work size range:
     let buffer_size_range = RandRange::new(SUB_BUF_MIN_LEN, SUB_BUF_MAX_LEN);
     let mut rng = rand::weak_rng();
 
     // Set up context using defaults:
     let platform = Platform::default();
-    printlnc!(blue: "Platform: {}", platform.name());
+    printlnc!(blue: "Platform: {}", platform.name()?);
 
     // let device = Device::first(platform);
     let device_idx = RandRange::new(0, 15).ind_sample(&mut rng);
@@ -609,7 +609,7 @@ pub fn main() {
         .wrapping_indices(vec![device_idx])
         .to_device_list(Some(platform)).unwrap()[0];
 
-    printlnc!(teal: "Device: {} {}", device.vendor(), device.name());
+    printlnc!(teal: "Device: {} {}", device.vendor()?, device.name()?);
 
     let context = Context::builder()
         .platform(platform)
@@ -696,4 +696,14 @@ pub fn main() {
         Durations => | Create/Enqueue: {} | Run: {} | Total: {}",
         correct_val_count, task_count, fmt_duration(create_enqueue_duration),
         fmt_duration(run_duration), fmt_duration(total_duration));
+
+    Ok(())
+}
+
+
+pub fn main() {
+    match run() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
+    }
 }

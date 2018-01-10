@@ -3,7 +3,7 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
-use core::error::{Result as OclCoreResult};
+use core::error::{Error as OclCoreError, Result as OclCoreResult};
 use standard::Platform;
 use ffi::cl_device_id;
 use core::{self, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
@@ -378,20 +378,21 @@ impl Device {
     }
 
     /// Returns the device name.
-    pub fn name(&self) -> String {
-        core::get_device_info(&self.0, DeviceInfo::Name).into()
+    pub fn name(&self) -> OclCoreResult<String> {
+        core::get_device_info(&self.0, DeviceInfo::Name).map(|r| r.into())
     }
 
     /// Returns the device vendor as a string.
-    pub fn vendor(&self) -> String {
-        core::get_device_info(&self.0, DeviceInfo::Vendor).into()
+    pub fn vendor(&self) -> OclCoreResult<String> {
+        core::get_device_info(&self.0, DeviceInfo::Vendor).map(|r| r.into())
     }
 
     /// Returns the maximum workgroup size or an error.
     pub fn max_wg_size(&self) -> OclCoreResult<usize> {
         match self.info(DeviceInfo::MaxWorkGroupSize) {
-            DeviceInfoResult::MaxWorkGroupSize(r) => Ok(r),
-            DeviceInfoResult::Error(err) => Err(*err),
+            Ok(DeviceInfoResult::MaxWorkGroupSize(r)) => Ok(r),
+            Ok(DeviceInfoResult::Error(err)) => Err(*err),
+            Err(err) => Err(OclCoreError::from(err)),
             _ => panic!("Device::max_wg_size: Unexpected 'DeviceInfoResult' variant."),
         }
     }
@@ -399,8 +400,9 @@ impl Device {
     /// Returns the memory base address alignment offset or an error.
     pub fn mem_base_addr_align(&self) -> OclCoreResult<u32> {
         match self.info(DeviceInfo::MemBaseAddrAlign) {
-            DeviceInfoResult::MemBaseAddrAlign(r) => Ok(r),
-            DeviceInfoResult::Error(err) => Err(*err),
+            Ok(DeviceInfoResult::MemBaseAddrAlign(r)) => Ok(r),
+            Ok(DeviceInfoResult::Error(err)) => Err(*err),
+            Err(err) => Err(OclCoreError::from(err)),
             _ => panic!("Device::mem_base_addr_align: Unexpected 'DeviceInfoResult' variant."),
         }
     }
@@ -408,14 +410,15 @@ impl Device {
     /// Returns whether or not the device is available for use.
     pub fn is_available(&self) -> OclCoreResult<bool> {
         match self.info(DeviceInfo::Available) {
-            DeviceInfoResult::Available(r) => Ok(r),
-            DeviceInfoResult::Error(err) => Err(*err),
+            Ok(DeviceInfoResult::Available(r)) => Ok(r),
+            Ok(DeviceInfoResult::Error(err)) => Err(*err),
+            Err(err) => Err(OclCoreError::from(err)),
             _ => panic!("Device::is_available: Unexpected 'DeviceInfoResult' variant."),
         }
     }
 
     /// Returns info about the device.
-    pub fn info(&self, info_kind: DeviceInfo) -> DeviceInfoResult {
+    pub fn info(&self, info_kind: DeviceInfo) -> OclCoreResult<DeviceInfoResult> {
         core::get_device_info(&self.0, info_kind)
     }
 

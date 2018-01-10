@@ -48,7 +48,7 @@ fn buffer_ops_rect() {
     let buf = Buffer::builder()
         .queue(proque.queue().clone())
         .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-        .dims(proque.dims().clone())
+        .len(proque.dims().clone())
         .host_data(&vec)
         .build().unwrap();
 
@@ -247,7 +247,7 @@ fn buffer_ops_rect() {
     let buf_src = Buffer::builder()
         .queue(proque.queue().clone())
         .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-        .dims(proque.dims().clone())
+        .len(proque.dims().clone())
         .host_data(&vec_src)
         .build().unwrap();
 
@@ -261,7 +261,7 @@ fn buffer_ops_rect() {
     let buf_dst = Buffer::builder()
         .queue(proque.queue().clone())
         .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-        .dims(proque.dims().clone())
+        .len(proque.dims().clone())
         .host_data(&vec_dst)
         .build().unwrap();
 

@@ -1,13 +1,13 @@
 #[macro_use] extern crate colorify;
 extern crate ocl;
-use ocl::{Platform, Device, Context, Image};
+use ocl::{Result as OclResult, Platform, Device, Context, Image};
 use ocl::enums::MemObjectType;
 
-fn main() {
+fn run() -> OclResult<()> {
     for (p_idx, platform) in Platform::list().into_iter().enumerate() {
         for (d_idx, device) in Device::list_all(&platform).unwrap().into_iter().enumerate() {
-            printlnc!(blue: "Platform [{}]: {}", p_idx, platform.name());
-            printlnc!(teal: "Device [{}]: {} {}", d_idx, device.vendor(), device.name());
+            printlnc!(blue: "Platform [{}]: {}", p_idx, platform.name()?);
+            printlnc!(teal: "Device [{}]: {} {}", d_idx, device.vendor()?, device.name()?);
 
             let context = Context::builder().platform(platform).devices(device).build().unwrap();
 
@@ -16,5 +16,13 @@ fn main() {
 
             println!("Image Formats: {:#?}.", sup_img_formats);
         }
+    }
+    Ok(())
+}
+
+pub fn main() {
+    match run() {
+        Ok(_) => (),
+        Err(err) => println!("{}", err),
     }
 }
