@@ -5,7 +5,6 @@ extern crate ocl_interop;
 extern crate glfw;
 extern crate sdl2;
 
-use ocl_interop::get_context;
 use ocl::ProQue;
 use gl::types::*;
 
@@ -136,7 +135,7 @@ impl TestContent for CLGenVBO {
         }
 
         // Create an OpenCL context with the GL interop enabled
-        let context = get_context().expect("Cannot find GL's device in CL");
+        let context = ocl_interop::get_context().expect("Cannot find GL's device in CL");
 
         // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
         let ocl_pq = ProQue::builder()
@@ -156,7 +155,7 @@ impl TestContent for CLGenVBO {
 
         // get GL Objects
         let mut acquire_globj_event: ocl::Event = ocl::Event::empty();
-        ocl::builders::BufferCmd::<f32>::new(&cl_buff, Some(ocl_pq.queue()), BUFFER_LENGTH)
+        cl_buff.cmd()
             .gl_acquire()
             .enew(&mut acquire_globj_event)
             .enq()
@@ -198,7 +197,7 @@ impl TestContent for CLGenVBO {
         }
 
         // Release GL OBJs
-        ocl::builders::BufferCmd::<f32>::new(&cl_buff, Some(ocl_pq.queue()), BUFFER_LENGTH)
+        cl_buff.cmd()
             .gl_release()
             // .ewait(&kernel_run_event)
             .ewait(&read_buffer_event)

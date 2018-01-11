@@ -32,38 +32,71 @@ pub mod colors {
 
     pub static TAB: &'static str = "    ";
 
-    pub static C_DEFAULT: &'static str = "\x1b[0m";
-    pub static C_UNDER: &'static str = "\x1b[1m";
+    // pub static C_DEFAULT: &'static str = "\x1b[0m";
+    // pub static C_UNDER: &'static str = "\x1b[1m";
+
+    // // 30–37
+    // pub static C_RED: &'static str = "\x1b[31m";
+    // pub static C_BRED: &'static str = "\x1b[1;31m";
+    // pub static C_GRN: &'static str = "\x1b[32m";
+    // pub static C_BGRN: &'static str = "\x1b[1;32m";
+    // pub static C_ORA: &'static str = "\x1b[33m";
+    // pub static C_DBL: &'static str = "\x1b[34m";
+    // pub static C_PUR: &'static str = "\x1b[35m";
+    // pub static C_CYA: &'static str = "\x1b[36m";
+    // pub static C_LGR: &'static str = "\x1b[37m";
+    // // [ADDME] 38: Extended Colors
+    // // pub static C_EXT38: &'static str = "\x1b[38m";
+    // pub static C_DFLT: &'static str = "\x1b[39m";
+
+    // // 90-97
+    // pub static C_DGR: &'static str = "\x1b[90m";
+    // pub static C_LRD: &'static str = "\x1b[91m";
+    // pub static C_YEL: &'static str = "\x1b[93m";
+    // pub static C_BLU: &'static str = "\x1b[94m";
+    // pub static C_LBL: &'static str = "\x1b[94m";
+    // pub static C_MAG: &'static str = "\x1b[95m";
+    // // [ADDME] 38: Extended Colors
+    // // pub static C_EXT38: &'static str = "\x1b[38m";
+
+    // pub static BGC_DEFAULT: &'static str = "\x1b[49m";
+    // pub static BGC_GRN: &'static str = "\x1b[42m";
+    // pub static BGC_PUR: &'static str = "\x1b[45m";
+    // pub static BGC_LGR: &'static str = "\x1b[47m";
+    // pub static BGC_DGR: &'static str = "\x1b[100m";
+
+    pub static C_DEFAULT: &'static str = "";
+    pub static C_UNDER: &'static str = "";
 
     // 30–37
-    pub static C_RED: &'static str = "\x1b[31m";
-    pub static C_BRED: &'static str = "\x1b[1;31m";
-    pub static C_GRN: &'static str = "\x1b[32m";
-    pub static C_BGRN: &'static str = "\x1b[1;32m";
-    pub static C_ORA: &'static str = "\x1b[33m";
-    pub static C_DBL: &'static str = "\x1b[34m";
-    pub static C_PUR: &'static str = "\x1b[35m";
-    pub static C_CYA: &'static str = "\x1b[36m";
-    pub static C_LGR: &'static str = "\x1b[37m";
+    pub static C_RED: &'static str = "";
+    pub static C_BRED: &'static str = "";
+    pub static C_GRN: &'static str = "";
+    pub static C_BGRN: &'static str = "";
+    pub static C_ORA: &'static str = "";
+    pub static C_DBL: &'static str = "";
+    pub static C_PUR: &'static str = "";
+    pub static C_CYA: &'static str = "";
+    pub static C_LGR: &'static str = "";
     // [ADDME] 38: Extended Colors
     // pub static C_EXT38: &'static str = "\x1b[38m";
-    pub static C_DFLT: &'static str = "\x1b[39m";
+    pub static C_DFLT: &'static str = "";
 
     // 90-97
-    pub static C_DGR: &'static str = "\x1b[90m";
-    pub static C_LRD: &'static str = "\x1b[91m";
-    pub static C_YEL: &'static str = "\x1b[93m";
-    pub static C_BLU: &'static str = "\x1b[94m";
-    pub static C_LBL: &'static str = "\x1b[94m";
-    pub static C_MAG: &'static str = "\x1b[95m";
+    pub static C_DGR: &'static str = "";
+    pub static C_LRD: &'static str = "";
+    pub static C_YEL: &'static str = "";
+    pub static C_BLU: &'static str = "";
+    pub static C_LBL: &'static str = "";
+    pub static C_MAG: &'static str = "";
     // [ADDME] 38: Extended Colors
     // pub static C_EXT38: &'static str = "\x1b[38m";
 
-    pub static BGC_DEFAULT: &'static str = "\x1b[49m";
-    pub static BGC_GRN: &'static str = "\x1b[42m";
-    pub static BGC_PUR: &'static str = "\x1b[45m";
-    pub static BGC_LGR: &'static str = "\x1b[47m";
-    pub static BGC_DGR: &'static str = "\x1b[100m";
+    pub static BGC_DEFAULT: &'static str = "";
+    pub static BGC_GRN: &'static str = "";
+    pub static BGC_PUR: &'static str = "";
+    pub static BGC_LGR: &'static str = "";
+    pub static BGC_DGR: &'static str = "";
 }
 
 //=============================================================================

@@ -1,17 +1,31 @@
-# OpenCL+OpenGL Interop for Rust
-Creates a Context with GL interoperability enabled.
-DirectX Interop is theoretically possible, but currently not implemented.
-MacOS & OpenGL ES support is untested, but should work.
+# OpenCL + OpenGL Interoperability for Rust
+Creates a Context with OpenGL interoperability enabled. DirectX interop is
+theoretically possible, but not currently implemented. MacOS & OpenGL ES
+support is untested, but should work.
 
 ## Usage
-Add the following to your Cargo dependancies
+
+Your preferred OpenGL library should be set up and working.
+
+Add the following to your `Cargo.toml`:
+
 ```toml
-ocl-interop="0.1.3"
+ocl-interop = "0.1"
 ```
-Then, when you need the context
+
+Add the following to your crate root (lib.rs or main.rs):
+
+```
+extern crate ocl_interop;
+```
+
+Then, when you need the context:
+
 ```rust
-// Make sure the gl context is active
-//Create an OpenCL context with the GL interop enabled
-let context=get_context().expect("Cannot create OpenCL Context");
+// Create an OpenGL context, make sure it is active, then create an OpenCL
+// context with the interop enabled:
+let context = ocl_interop::get_context()?;
+
 // use it!
+
 ```
