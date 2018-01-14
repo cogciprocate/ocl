@@ -238,6 +238,11 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 
     /// Specifies that this command will be a map operation.
     ///
+    /// Enqueuing a map command will map a region of a buffer into the host
+    /// address space and return a [`MemMap`] or [`FutureMemMap`], allowing
+    /// access to this mapped region. Accessing memory via a [`MemMap`] is
+    /// exactly like using a [slice].
+    ///
     /// If `.block(..)` has been set it will be ignored. Non-blocking map
     /// commands are enqueued using `::enq_async`.
     ///
@@ -250,6 +255,9 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// See [SDK][map_buffer] docs for more details.
     ///
     /// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
+    /// [`MemMap`]: struct.MemMap.html
+    /// [`FutureMemMap`]: async/struct.FutureMemMap.html
+    /// [slice]: https://doc.rust-lang.org/std/primitive.slice.html
     pub fn map(mut self) -> BufferMapCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::write(): Operation kind \
             already set for this command.");
@@ -1202,9 +1210,17 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
 
 /// A command builder used to enqueue a map command.
 ///
+/// Enqueuing a map command will map a region of a buffer into the host
+/// address space and return a [`MemMap`] or [`FutureMemMap`], allowing access
+/// to this mapped region. Accessing memory via a [`MemMap`] is exactly like
+/// using a [slice].
+///
 /// See [SDK][map_buffer] docs for more details.
 ///
 /// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
+/// [`MemMap`]: struct.MemMap.html
+/// [`FutureMemMap`]: async/struct.FutureMemMap.html
+/// [slice]: https://doc.rust-lang.org/std/primitive.slice.html
 #[must_use = "commands do nothing unless enqueued"]
 pub struct BufferMapCmd<'c, T> where T: 'c + OclPrm {
     cmd: BufferCmd<'c, T>,
@@ -1560,11 +1576,23 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Returns a command builder used to map data for reading or writing.
     ///
+    /// Enqueuing a map command will map a region of a buffer into the host
+    /// address space and return a [`MemMap`] or [`FutureMemMap`], allowing
+    /// access to this mapped region. Accessing memory via a [`MemMap`] is
+    /// exactly like using a [slice].
+    ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](builders/struct.BufferCmd#method.map)
-    /// for more details.
+    /// ### More Information
     ///
+    /// See the [command builder
+    /// documentation](builders/struct.BufferCmd#method.map) or
+    /// [official SDK][map_buffer] for more details.
+    ///
+    /// [map_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
+    /// [`MemMap`]: struct.MemMap.html
+    /// [`FutureMemMap`]: async/struct.FutureMemMap.html
+    /// [slice]: https://doc.rust-lang.org/std/primitive.slice.html
     #[inline]
     pub fn map<'c>(&'c self) -> BufferMapCmd<'c, T> {
         self.cmd().map()
