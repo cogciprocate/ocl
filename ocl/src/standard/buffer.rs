@@ -388,8 +388,8 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     /// If possible, prefer instead to use [`::map`] with [`::enq_async`] for
     /// optimal performance and data integrity.
     ///
-    /// [`::map`]: struct.BufferMapCmd.html
-    /// [`::enq_async`]: struct.BufferMapCmd.html#method.enq_async
+    /// [`::map`]: builders/struct.BufferMapCmd.html
+    /// [`::enq_async`]: builders/struct.BufferMapCmd.html#method.enq_async
     //
     // [FIXME]: Check/fix links.
     //
@@ -623,8 +623,8 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
     /// If possible, prefer instead to use [`::map`] with [`::enq_async`] for
     /// optimal performance and data integrity.
     ///
-    /// [`::map`]: struct.BufferMapCmd.html
-    /// [`::enq_async`]: struct.BufferMapCmd.html
+    /// [`::map`]: builders/struct.BufferMapCmd.html
+    /// [`::enq_async`]: builders/struct.BufferMapCmd.html
     //
     // [FIXME]: Check/fix links.
     //
@@ -947,8 +947,8 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
     /// If possible, prefer instead to use [`::map`] with [`::enq_async`] for
     /// optimal performance and data integrity.
     ///
-    /// [`::map`]: struct.BufferMapCmd.html
-    /// [`::enq_async`]: struct.BufferMapCmd.html
+    /// [`::map`]: builders/struct.BufferMapCmd.html
+    /// [`::enq_async`]: builders/struct.BufferMapCmd.html
     //
     // [FIXME]: Check/fix links.
     //
@@ -1437,7 +1437,7 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferBuilder`] and [SDK] documentation for argument
     /// details.
     ///
-    /// [`BufferBuilder`]: struct.BufferBuilder.html
+    /// [`BufferBuilder`]: builders/struct.BufferBuilder.html
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     ///
     pub fn new<'e, 'o, Q, D>(que_ctx: Q, flags_opt: Option<MemFlags>, len: D,
@@ -1486,7 +1486,7 @@ impl<T: OclPrm> Buffer<T> {
     /// Don't forget to `.cmd().gl_acquire().enq()` before using it and
     /// `.cmd().gl_release().enq()` after.
     ///
-    /// See the [`BufferCmd` docs](struct.BufferCmd.html)
+    /// See the [`BufferCmd` docs](builders/struct.BufferCmd.html)
     /// for more info.
     ///
     #[cfg(not(feature="opencl_vendor_mesa"))]
@@ -1521,7 +1521,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](struct.BufferCmd)
+    /// See the [command builder documentation](builders/struct.BufferCmd)
     /// for more details.
     ///
     ///
@@ -1534,7 +1534,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](struct.BufferCmd#method.read)
+    /// See the [command builder documentation](builders/struct.BufferCmd#method.read)
     /// for more details.
     ///
     #[inline]
@@ -1548,7 +1548,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](struct.BufferCmd#method.write)
+    /// See the [command builder documentation](builders/struct.BufferCmd#method.write)
     /// for more details.
     ///
     #[inline]
@@ -1562,7 +1562,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](struct.BufferCmd#method.map)
+    /// See the [command builder documentation](builders/struct.BufferCmd#method.map)
     /// for more details.
     ///
     #[inline]
@@ -1574,7 +1574,7 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Call `.enq()` to enqueue the command.
     ///
-    /// See the [command builder documentation](struct.BufferCmd#method.copy)
+    /// See the [command builder documentation](builders/struct.BufferCmd#method.copy)
     /// for more details.
     ///
     #[inline]
@@ -1646,14 +1646,35 @@ impl<T: OclPrm> Buffer<T> {
         core::get_mem_object_info(&self.obj_core, info_kind)
     }
 
-    /// Changes the default queue used by this Buffer for reads and writes, etc.
+    /// Changes the default queue used by this buffer for all subsequent
+    /// command enqueue operations (reads, writes, etc.).
     ///
-    /// Returns a mutable reference for optional chaining i.e.:
+    /// The default queue is the queue which will be used when enqueuing
+    /// commands if no queue is specified.
     ///
-    /// ### Example
+    /// Without a default queue:
     ///
-    /// `buffer.set_default_queue(queue).read(....);`
+    /// ```
+    /// buffer.read(data).queue(&queue).enq()?;
+    /// ```
     ///
+    /// With a default queue:
+    ///
+    /// ```
+    /// buffer.set_default_queue(queue.clone());
+    /// buffer.read(data).enq()?;
+    /// ```
+    ///
+    /// The default queue can also be set when creating a buffer by using the
+    /// [`BufferBuilder::queue`] method.
+    ///
+    /// This method returns a mutable reference for optional chaining i.e.:
+    ///
+    /// ```
+    /// buffer.set_default_queue(queue).read(....);
+    /// ```
+    ///
+    /// [`BufferBuilder::queue`]: builders/struct.BufferBuilder.html#method.queue
     //
     // TODO: Allow `Option<Queue>` (to unset queue)?
     //
@@ -1668,6 +1689,8 @@ impl<T: OclPrm> Buffer<T> {
 
     /// Returns a reference to the default queue.
     ///
+    /// The default queue is the queue which will be used when enqueuing
+    /// commands if no queue is specified.
     #[inline]
     pub fn default_queue(&self) -> Option<&Queue> {
         self.queue.as_ref()
@@ -1699,7 +1722,7 @@ impl<T: OclPrm> Buffer<T> {
     //     self.is_mapped.as_ref()
     // }
 
-    /// Creates a new sub-buffer.
+    /// Creates a new sub-buffer from a region of this buffer.
     ///
     /// ### Flags (adapted from [SDK])
     ///
@@ -1734,8 +1757,8 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateSubBuffer.html
     /// [`ocl::flags`]: flags/index.html
-    /// [mem_flags]: struct.MemFlags.html
-    /// [`MemFlags::new().read_write()`] struct.MemFlags.html#method.read_write
+    /// [mem_flags]: flags/struct.MemFlags.html
+    /// [`MemFlags::new().read_write()`] flags/struct.MemFlags.html#method.read_write
     ///
     pub fn create_sub_buffer<Do, Dl>(&self, flags_opt: Option<MemFlags>, offset: Do,
             len: Dl) -> OclResult<Buffer<T>>
@@ -1874,7 +1897,9 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
 
     /// Sets the context with which to associate the buffer.
     ///
-    /// May not be used in combination with `::queue` (use one or the other).
+    /// May not be used in conjunction with [`::queue`] (use one or the other).
+    ///
+    /// [`::queue`]: builders/struct.BufferBuilder.html#method.queue
     pub fn context<'o>(mut self, context: &'o Context) -> BufferBuilder<'a, T>
             where 'o: 'a {
         assert!(self.queue_option.is_none(), "A context or queue has already been set.");
@@ -1882,10 +1907,29 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
         self
     }
 
-    /// Sets the default queue.
+    /// Specifies the default queue used to be used by the buffer for all
+    /// command enqueue operations (reads, writes, etc.).
+    ///
+    /// The default queue is the queue which will be used when enqueuing
+    /// commands if no queue is specified.
+    ///
+    /// Without a default queue:
+    ///
+    /// ```
+    /// buffer.read(data).queue(&queue).enq()?;
+    /// ```
+    ///
+    /// With a default queue:
+    ///
+    /// ```
+    /// buffer.read(data).enq()?;
+    /// ```
     ///
     /// If this is set, the context associated with the `default_queue` will
-    /// be used when creating the buffer (use one or the other).
+    /// be used when creating the buffer. Attempting to specify the context
+    /// separately (by calling [`::context`]) will cause a panic.
+    ///
+    /// [`::context`]: builders/struct.BufferBuilder.html#method.context
     pub fn queue<'b>(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
         assert!(self.queue_option.is_none(), "A context or queue has already been set.");
         self.queue_option = Some(QueCtx::Queue(default_queue));
@@ -1979,7 +2023,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// [UNSTABLE]: May be changed or removed.
     ///
-    /// [`::fill_event`]: struct.BufferBuilder.html#method.fill_event
+    /// [`::fill_event`]: builders/struct.BufferBuilder.html#method.fill_event
     pub fn fill_val(mut self, fill_val: T) -> BufferBuilder<'a, T> {
         self.fill_val = Some((fill_val, None));
         self
