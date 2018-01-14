@@ -79,7 +79,7 @@ impl<T> RwVec<T> {
     /// date) due to the fact that other threads may be modifying it. To
     /// obtain an accurate state of the internal `Vec`, the containing `RwVec`
     /// must first be locked with `::read` or `::write`.
-    pub fn len(&self) -> usize {
+    pub fn len_stale(&self) -> usize {
         unsafe { (*self.lock.as_ptr()).len() }
     }
 

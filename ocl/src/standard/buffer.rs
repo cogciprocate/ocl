@@ -545,7 +545,7 @@ impl<'d, T> ReadDst<'d, T> {
 
     pub fn len(&self) -> usize {
         match *self {
-            ReadDst::RwVec(ref rw_vec) => rw_vec.len(),
+            ReadDst::RwVec(ref rw_vec) => rw_vec.len_stale(),
             ReadDst::Writer(ref writer) => unsafe { (*writer.as_ptr()).len() },
             ReadDst::Slice(ref slice) => slice.len(),
             ReadDst::None => 0,
@@ -869,7 +869,7 @@ impl<'d, T> WriteSrc<'d, T> {
 
     pub fn len(&self) -> usize {
         match *self {
-            WriteSrc::RwVec(ref rw_vec) => rw_vec.len(),
+            WriteSrc::RwVec(ref rw_vec) => rw_vec.len_stale(),
             WriteSrc::Reader(ref writer) => unsafe { (*writer.as_ptr()).len() },
             WriteSrc::Slice(slice) => slice.len(),
             WriteSrc::None => 0,

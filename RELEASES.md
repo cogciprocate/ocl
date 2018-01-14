@@ -29,6 +29,8 @@ Breaking Changes
   default_features = false
   features = ["opencl_version_1_1", "opencl_version_1_2", "rand", "ocl-core-vector"]
   ```
+* `RwVec::len` has been renamed to `::len_stale` to clarify that the value
+  returned is potentially out of date.
 
 
 
