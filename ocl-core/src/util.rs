@@ -8,9 +8,15 @@ use std::mem;
 use std::ptr;
 use std::iter;
 use std::string::FromUtf8Error;
-use num::{Integer, FromPrimitive};
+use num_traits::PrimInt;
+#[cfg(feature = "rand")]
 use rand;
+#[cfg(feature = "rand")]
 use rand::distributions::{IndependentSample, Range as RandRange};
+#[cfg(feature = "rand")]
+use rand::distributions::range::SampleRange;
+#[cfg(feature = "rand")]
+use num_traits::FromPrimitive;
 // use error::{Result as OclCoreResult, Error as OclCoreError};
 
 use ::{OclPrm, OclScl};
@@ -29,74 +35,43 @@ pub mod colors {
     //! ASCII Color Palette
     //!
     //! Used for printing functions.
+    //
+    // TODO: Remove or feature gate printing related code.
 
     pub static TAB: &'static str = "    ";
 
-    // pub static C_DEFAULT: &'static str = "\x1b[0m";
-    // pub static C_UNDER: &'static str = "\x1b[1m";
-
-    // // 30–37
-    // pub static C_RED: &'static str = "\x1b[31m";
-    // pub static C_BRED: &'static str = "\x1b[1;31m";
-    // pub static C_GRN: &'static str = "\x1b[32m";
-    // pub static C_BGRN: &'static str = "\x1b[1;32m";
-    // pub static C_ORA: &'static str = "\x1b[33m";
-    // pub static C_DBL: &'static str = "\x1b[34m";
-    // pub static C_PUR: &'static str = "\x1b[35m";
-    // pub static C_CYA: &'static str = "\x1b[36m";
-    // pub static C_LGR: &'static str = "\x1b[37m";
-    // // [ADDME] 38: Extended Colors
-    // // pub static C_EXT38: &'static str = "\x1b[38m";
-    // pub static C_DFLT: &'static str = "\x1b[39m";
-
-    // // 90-97
-    // pub static C_DGR: &'static str = "\x1b[90m";
-    // pub static C_LRD: &'static str = "\x1b[91m";
-    // pub static C_YEL: &'static str = "\x1b[93m";
-    // pub static C_BLU: &'static str = "\x1b[94m";
-    // pub static C_LBL: &'static str = "\x1b[94m";
-    // pub static C_MAG: &'static str = "\x1b[95m";
-    // // [ADDME] 38: Extended Colors
-    // // pub static C_EXT38: &'static str = "\x1b[38m";
-
-    // pub static BGC_DEFAULT: &'static str = "\x1b[49m";
-    // pub static BGC_GRN: &'static str = "\x1b[42m";
-    // pub static BGC_PUR: &'static str = "\x1b[45m";
-    // pub static BGC_LGR: &'static str = "\x1b[47m";
-    // pub static BGC_DGR: &'static str = "\x1b[100m";
-
-    pub static C_DEFAULT: &'static str = "";
-    pub static C_UNDER: &'static str = "";
+    pub static C_DEFAULT: &'static str = "\x1b[0m";
+    pub static C_UNDER: &'static str = "\x1b[1m";
 
     // 30–37
-    pub static C_RED: &'static str = "";
-    pub static C_BRED: &'static str = "";
-    pub static C_GRN: &'static str = "";
-    pub static C_BGRN: &'static str = "";
-    pub static C_ORA: &'static str = "";
-    pub static C_DBL: &'static str = "";
-    pub static C_PUR: &'static str = "";
-    pub static C_CYA: &'static str = "";
-    pub static C_LGR: &'static str = "";
+    pub static C_RED: &'static str = "\x1b[31m";
+    pub static C_BRED: &'static str = "\x1b[1;31m";
+    pub static C_GRN: &'static str = "\x1b[32m";
+    pub static C_BGRN: &'static str = "\x1b[1;32m";
+    pub static C_ORA: &'static str = "\x1b[33m";
+    pub static C_DBL: &'static str = "\x1b[34m";
+    pub static C_PUR: &'static str = "\x1b[35m";
+    pub static C_CYA: &'static str = "\x1b[36m";
+    pub static C_LGR: &'static str = "\x1b[37m";
     // [ADDME] 38: Extended Colors
     // pub static C_EXT38: &'static str = "\x1b[38m";
-    pub static C_DFLT: &'static str = "";
+    pub static C_DFLT: &'static str = "\x1b[39m";
 
     // 90-97
-    pub static C_DGR: &'static str = "";
-    pub static C_LRD: &'static str = "";
-    pub static C_YEL: &'static str = "";
-    pub static C_BLU: &'static str = "";
-    pub static C_LBL: &'static str = "";
-    pub static C_MAG: &'static str = "";
+    pub static C_DGR: &'static str = "\x1b[90m";
+    pub static C_LRD: &'static str = "\x1b[91m";
+    pub static C_YEL: &'static str = "\x1b[93m";
+    pub static C_BLU: &'static str = "\x1b[94m";
+    pub static C_LBL: &'static str = "\x1b[94m";
+    pub static C_MAG: &'static str = "\x1b[95m";
     // [ADDME] 38: Extended Colors
     // pub static C_EXT38: &'static str = "\x1b[38m";
 
-    pub static BGC_DEFAULT: &'static str = "";
-    pub static BGC_GRN: &'static str = "";
-    pub static BGC_PUR: &'static str = "";
-    pub static BGC_LGR: &'static str = "";
-    pub static BGC_DGR: &'static str = "";
+    pub static BGC_DEFAULT: &'static str = "\x1b[49m";
+    pub static BGC_GRN: &'static str = "\x1b[42m";
+    pub static BGC_PUR: &'static str = "\x1b[45m";
+    pub static BGC_LGR: &'static str = "\x1b[47m";
+    pub static BGC_DGR: &'static str = "\x1b[100m";
 }
 
 //=============================================================================
@@ -341,7 +316,7 @@ pub fn vec_remove_rebuild<T: Clone + Copy>(orig_vec: &mut Vec<T>, remove_list: &
 }
 
 /// Wraps (`%`) each value in the list `vals` if it equals or exceeds `val_n`.
-pub fn wrap_vals<T: OclPrm + Integer>(vals: &[T], val_n: T) -> Vec<T> {
+pub fn wrap_vals<T: OclPrm + PrimInt>(vals: &[T], val_n: T) -> Vec<T> {
     vals.iter().map(|&v| v % val_n).collect()
 }
 
@@ -350,7 +325,7 @@ pub fn wrap_vals<T: OclPrm + Integer>(vals: &[T], val_n: T) -> Vec<T> {
 /// Returns a vector with length `size` containing random values in the (half-open)
 /// range `[vals.0, vals.1)`.
 #[cfg(feature = "rand")]
-pub fn scrambled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
+pub fn scrambled_vec<T: OclScl + SampleRange>(vals: (T, T), size: usize) -> Vec<T> {
     assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
     assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
     let mut rng = rand::weak_rng();
@@ -385,6 +360,7 @@ pub fn shuffled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
 
 /// Shuffles the values in a vector using a single pass of Fisher-Yates with a
 /// weak (not cryptographically secure) random number generator.
+#[cfg(feature = "rand")]
 pub fn shuffle<T: OclScl>(vec: &mut [T]) {
     let len = vec.len();
     let mut rng = rand::weak_rng();
@@ -434,6 +410,9 @@ pub fn print_bytes_as_hex(bytes: &[u8]) {
 #[allow(unused_assignments, unused_variables)]
 /// [UNSTABLE]: MAY BE REMOVED AT ANY TIME
 /// Prints a vector to stdout. Used for debugging.
+//
+// TODO: Remove or feature gate printing related code.
+//
 pub fn print_slice<T: OclScl>(
             vec: &[T],
             every: usize,

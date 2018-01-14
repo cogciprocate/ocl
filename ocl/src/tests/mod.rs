@@ -7,6 +7,8 @@
 //!
 //!
 
+extern crate rand;
+
 pub mod build_error;
 pub mod buffer_copy;
 pub mod buffer_ops_rect;
@@ -18,10 +20,9 @@ pub mod kernel_arg_ptr;
 pub mod vector_types;
 pub mod context_props;
 pub mod async;
-// pub mod buffer_sink;
 pub mod buffer_sink_stream_cycles;
 
-use rand::{self, Rng};
+use self::rand::Rng;
 use core::error::{Result as OclCoreResult};
 use core::OclScl;
 

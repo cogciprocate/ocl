@@ -43,9 +43,8 @@ use std::ptr;
 use std::slice;
 use std::cell::Ref;
 use std::fmt::Debug;
-use libc::c_void;
 use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
-    cl_kernel, cl_event, cl_sampler};
+    cl_kernel, cl_event, cl_sampler, c_void};
 use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,

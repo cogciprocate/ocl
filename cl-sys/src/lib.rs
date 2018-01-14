@@ -19,7 +19,8 @@ mod cl_d3d10_h;
 mod cl_d3d11_h;
 mod cl_h;
 
-pub use libc::{c_void, size_t};
+pub use libc::{c_void, size_t, c_char, c_double, c_float, c_int, c_longlong, c_short, c_uchar,
+    c_uint, c_ulonglong, c_ushort};
 
 pub use self::platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
 

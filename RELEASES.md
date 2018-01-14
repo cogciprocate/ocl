@@ -19,6 +19,16 @@ Breaking Changes
   * `BufferBuilder::dims` has been renamed to `::len`.
 * Many types have had their `::core` methods renamed to `::as_core`.
 * `EventList` and `EventArray` have had their `::push_some` methods removed.
+* To reduce compilation times and bloat, the `rand` and `ocl-core-vector`
+  features are no longer enabled by default. If you use the vector types,
+  modify your `Cargo.toml` and replace your entry for `ocl` with something
+  like the following:
+  ```
+  [dependencies.ocl]
+  version = "0.17"
+  default_features = false
+  features = ["opencl_version_1_1", "opencl_version_1_2", "rand", "ocl-core-vector"]
+  ```
 
 
 

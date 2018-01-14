@@ -106,9 +106,9 @@
 extern crate bitflags;
 #[macro_use]
 extern crate enum_primitive;
-extern crate libc;
+#[cfg(feature = "rand")]
 extern crate rand;
-extern crate num;
+extern crate num_traits;
 #[cfg(feature = "ocl-core-vector")]
 extern crate ocl_core_vector as vector;
 #[macro_use]
@@ -203,11 +203,11 @@ pub const DEVICES_MAX: u32 = 64;
 //================================= TYPEDEFS ==================================
 //=============================================================================
 
-pub type EventCallbackFn = extern "C" fn (ffi::cl_event, i32, *mut libc::c_void);
-pub type CreateContextCallbackFn = extern "C" fn (*const libc::c_char, *const libc::c_void,
-    libc::size_t, *mut libc::c_void);
-pub type BuildProgramCallbackFn = extern "C" fn (*mut libc::c_void, *mut libc::c_void);
-pub type UserDataPtr = *mut libc::c_void;
+pub type EventCallbackFn = extern "C" fn (ffi::cl_event, i32, *mut ffi::c_void);
+pub type CreateContextCallbackFn = extern "C" fn (*const ffi::c_char, *const ffi::c_void,
+    ffi::size_t, *mut ffi::c_void);
+pub type BuildProgramCallbackFn = extern "C" fn (*mut ffi::c_void, *mut ffi::c_void);
+pub type UserDataPtr = *mut ffi::c_void;
 
 //=============================================================================
 //================================== TRAITS ===================================
@@ -217,8 +217,7 @@ mod traits {
     use std::fmt::{Display, Debug};
     use std::ops::*;
     use std::iter::{Sum, Product};
-    use num::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
-    use rand::distributions::range::SampleRange;
+    use num_traits::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
 
     // Implements an unsafe trait for a list of types.
     macro_rules! impl_unsafe {
@@ -259,8 +258,7 @@ mod traits {
     ///
     /// To describe the contents of buffers, etc., prefer using the more general
     /// `OclPrm` trait unless numeric operations are required.
-    pub unsafe trait OclScl: OclPrm + OclNum + NumCast + FromPrimitive + ToPrimitive +
-        SampleRange {}
+    pub unsafe trait OclScl: OclPrm + OclNum + NumCast + FromPrimitive + ToPrimitive {}
 
     impl_unsafe!(OclScl: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
 

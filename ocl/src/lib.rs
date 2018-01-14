@@ -13,7 +13,7 @@
 //!
 //! ## Foundations
 //!
-//! For lower level interfaces and to use `OpenCL` features that have not yet
+//! For lower level interfaces and to use OpenCL features that have not yet
 //! been implemented on the `standard` (high-level) interface types, see the
 //! [`ocl-core`] and [`cl-sys`] crates.
 //!
@@ -48,10 +48,7 @@
 
 // #![warn(missing_docs)]
 
-extern crate libc;
-extern crate num;
-#[cfg(test)]
-extern crate rand;
+extern crate num_traits;
 extern crate futures;
 #[macro_use]
 extern crate failure;

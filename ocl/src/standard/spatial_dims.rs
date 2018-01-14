@@ -2,7 +2,7 @@
 use std::convert::From;
 use std::fmt::Debug;
 use std::ops::Index;
-use num::{Num, ToPrimitive};
+use num_traits::{Num, ToPrimitive};
 use error::{Result as OclResult};
 use standard::{MemLen, WorkDims};
 use core::util;

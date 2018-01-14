@@ -12,18 +12,13 @@
 
 #![allow(dead_code)]
 
+extern crate rand;
+
 pub mod build_error;
 pub mod buffer_copy;
-// pub mod buffer_ops_rect;
-// pub mod image_ops;
 pub mod buffer_fill;
-// pub mod clear_completed;
-// pub mod concurrent;
-// pub mod kernel_arg_ptr;
 pub mod vector_types;
-// pub mod context_props;
-
-use rand::{self, Rng};
+use self::rand::Rng;
 use error::{Result as OclCoreResult};
 use ::{OclScl, PlatformId, DeviceId, Context};
 

@@ -7,8 +7,9 @@
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc;
 use std::time::Duration;
-use rand::{self, Rng};
-use core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
+use tests::rand::{self, Rng};
+use core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo,
+    ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
 use standard::{Platform, Device, Context, Queue, Buffer, Program, Kernel, EventList};
 use error::Result as OclResult;
 

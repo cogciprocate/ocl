@@ -45,8 +45,8 @@ pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 #[cfg(not(feature = "async_block"))]
 mod cb {
-    use libc::c_void;
-    use num::FromPrimitive;
+    use core::ffi::c_void;
+    use num_traits::FromPrimitive;
     use futures::task::Task;
     use ffi::cl_event;
     use core::{CommandExecutionStatus, Status};
@@ -356,7 +356,7 @@ mod types {
 
 mod traits {
     use std::fmt::Debug;
-    use num::{Num, ToPrimitive};
+    use num_traits::{Num, ToPrimitive};
     use ::SpatialDims;
     use super::spatial_dims::to_usize;
 

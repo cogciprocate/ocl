@@ -21,8 +21,8 @@ use std::time::Duration;
 use std::env;
 use std::fmt;
 use failure::Fail;
-use libc::{size_t, c_void};
-use num::FromPrimitive;
+use ffi::{size_t, c_void};
+use num_traits::FromPrimitive;
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
 use ffi::{cl_GLuint, cl_GLint, cl_GLenum, cl_gl_context_info,};

@@ -6,14 +6,12 @@
 //! example will likely fail on that platform.
 //!
 
-extern crate libc;
 extern crate ocl;
 extern crate find_folder;
 
-use libc::c_void;
 use find_folder::Search;
 use ocl::{util, core, ProQue, Program, Buffer, EventList};
-use ocl::ffi::{cl_event, cl_int};
+use ocl::ffi::{cl_event, cl_int, c_void};
 
 // How many iterations we wish to run:
 const ITERATIONS: usize = 8;

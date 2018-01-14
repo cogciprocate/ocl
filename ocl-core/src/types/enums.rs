@@ -11,10 +11,9 @@
 
 use std::fmt;
 use failure::Fail;
-use libc::{size_t, c_void};
-use num::FromPrimitive;
+use num_traits::FromPrimitive;
 use util;
-use ffi::{cl_image_format, cl_context_properties};
+use ffi::{cl_image_format, cl_context_properties, size_t, c_void};
 
 use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo,
     GlContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
