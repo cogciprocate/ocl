@@ -1136,8 +1136,8 @@ pub unsafe fn create_buffer<C, T>(
 /// The caller must ensure that correct and appropriate `flags` are being
 /// used.
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_buffer<C>(
             context: C,
@@ -1168,8 +1168,8 @@ pub unsafe fn create_from_gl_buffer<C>(
 /// The caller must ensure that correct and appropriate `flags` are being
 /// used.
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_renderbuffer<C>(
             context: C,
@@ -1202,8 +1202,8 @@ pub unsafe fn create_from_gl_renderbuffer<C>(
 /// The caller must ensure that correct and appropriate `flags` are being
 /// used.
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 // [TODO]: If version is < 1.2, automatically use older versions.
 //
 #[cfg(not(feature="opencl_vendor_mesa"))]
@@ -1257,7 +1257,7 @@ pub unsafe fn create_from_gl_texture<C>(
 
 /// Return a texture2D pointer from a `OpenGL` texture2D object.
 ///
-/// [UNTESTED] [DEPRICATED]
+// [UNTESTED] [DEPRICATED]
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture_2d<C>(
             context: C,
@@ -1287,7 +1287,7 @@ pub unsafe fn create_from_gl_texture_2d<C>(
 
 /// Return a texture3D pointer from a `OpenGL` texture3D object.
 ///
-/// [UNTESTED] [DEPRICATED]
+// [UNTESTED] [DEPRICATED]
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub unsafe fn create_from_gl_texture_3d<C>(
             context: C,
@@ -1648,7 +1648,7 @@ pub fn create_program_with_source<C>(
 ///
 /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateProgramWithBinary.html
 ///
-/// [UNTESTED]
+// [UNTESTED]
 ///
 pub fn create_program_with_binary<C, D>(
             context: C,
@@ -2858,8 +2858,8 @@ pub unsafe fn enqueue_write_image<T, M, En, Ewl>(
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 pub fn enqueue_fill_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             image: M,
@@ -2929,8 +2929,8 @@ pub fn enqueue_copy_image<En, Ewl>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyImageToBuffer.html)
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             src_image: M,
@@ -2966,8 +2966,8 @@ pub fn enqueue_copy_image_to_buffer<T, M, En, Ewl>(
 ///
 /// [SDK Docs](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clEnqueueCopyBufferToImage.html)
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 pub fn enqueue_copy_buffer_to_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             src_buffer: M,
@@ -3088,8 +3088,8 @@ pub unsafe fn enqueue_map_buffer<T, M, En, Ewl>(
 ///
 ///
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 pub unsafe fn enqueue_map_image<T, M, En, Ewl>(
             command_queue: &CommandQueue,
             image: M,
@@ -3173,8 +3173,8 @@ pub fn enqueue_unmap_mem_object<T, M, En, Ewl>(
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 pub fn enqueue_migrate_mem_objects<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             command_queue: &CommandQueue,
             mem_objects: &[Mem],
@@ -3317,8 +3317,8 @@ pub unsafe fn enqueue_kernel<En: ClNullEventPtr, Ewl: ClWaitListPtr> (
 ///
 /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clEnqueueTask.html
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 pub unsafe fn enqueue_task<En: ClNullEventPtr, Ewl: ClWaitListPtr>(
             command_queue: &CommandQueue,
             kernel: &Kernel,
@@ -3462,8 +3462,8 @@ pub fn enqueue_barrier_with_wait_list<En, Ewl>(
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
 ///
-/// [UNTESTED]
-///
+// [UNTESTED]
+//
 pub unsafe fn get_extension_function_address_for_platform(
             platform: &PlatformId,
             func_name: &str,
