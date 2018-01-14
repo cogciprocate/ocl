@@ -52,7 +52,7 @@ impl<'c, T: 'c> ImageCmdKind<'c, T> {
 ///
 /// ## Examples
 ///
-/// ```text
+/// ```rust,ignore
 ///
 /// // Copies one image to another:
 /// src_image.cmd().copy(&dst_image, [0, 0, 0]).enq().unwrap();
@@ -910,13 +910,13 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// * Flags:
     ///
-    /// ```text
+    /// ```rust,ignore
     /// ocl::MEM_READ_WRITE
     /// ```
     ///
     /// * Image Format:
     ///
-    /// ```text
+    /// ```rust,ignore
     /// ocl::ImageFormat {
     ///    channel_order: ocl::ImageChannelOrder::Rgba,
     ///    channel_data_type: ocl::ImageChannelDataType::SnormInt8,
@@ -925,7 +925,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// * Descriptor (stores everything else - width, height, pitch, etc.):
     ///
-    /// ```text
+    /// ```rust,ignore
     /// ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None)
     /// ```
     ///
@@ -973,7 +973,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     /// Setting this overwrites any previously set flags. To combine them,
     /// use the bitwise or operator (`|`), for example:
     ///
-    /// ```text
+    /// ```rust,ignore
     /// ocl::Image::builder().flags(ocl::MEM_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)...
     /// ```
     ///
@@ -1154,7 +1154,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// If unspecified, defaults to:
     ///
-    /// ```text
+    /// ```rust,ignore
     /// ImageFormat {
     ///    channel_order: ImageChannelOrder::Rgba,
     ///    channel_data_type: ImageChannelDataType::SnormInt8,
@@ -1169,7 +1169,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// If unspecified (not recommended), defaults to:
     ///
-    /// ```text
+    /// ```rust,ignore
     /// ImageDescriptor {
     ///     image_type: MemObjectType::Image1d,
     ///     image_width: 0,
@@ -1187,7 +1187,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     /// If you are unsure, just set the first four by using
     /// `ImageDescriptor::new`. Ex.:
     ///
-    /// ```text
+    /// ```rust,ignore
     /// ocl::Image::builder()
     ///    .image_desc(ocl::ImageDescriptor::new(
     ///       ocl::MemObjectType::Image2d, 1280, 800, 1))

@@ -144,7 +144,7 @@ pub enum BufferCmdDataShape {
 ///
 /// ## Examples
 ///
-/// ```text
+/// ```rust,ignore
 /// // Copies one buffer to another:
 /// src_buffer.copy(&dst_buffer, 0, dst_buffer.len()).enq().unwrap();
 ///
@@ -1654,13 +1654,13 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// Without a default queue:
     ///
-    /// ```
+    /// ```rust,ignore
     /// buffer.read(data).queue(&queue).enq()?;
     /// ```
     ///
     /// With a default queue:
     ///
-    /// ```
+    /// ```rust,ignore
     /// buffer.set_default_queue(queue.clone());
     /// buffer.read(data).enq()?;
     /// ```
@@ -1670,8 +1670,8 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// This method returns a mutable reference for optional chaining i.e.:
     ///
-    /// ```
-    /// buffer.set_default_queue(queue).read(....);
+    /// ```rust,ignore
+    /// buffer.set_default_queue(queue).read(....)...;
     /// ```
     ///
     /// [`BufferBuilder::queue`]: builders/struct.BufferBuilder.html#method.queue
@@ -1915,13 +1915,13 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     ///
     /// Without a default queue:
     ///
-    /// ```
+    /// ```rust,ignore
     /// buffer.read(data).queue(&queue).enq()?;
     /// ```
     ///
     /// With a default queue:
     ///
-    /// ```
+    /// ```rust,ignore
     /// buffer.read(data).enq()?;
     /// ```
     ///
