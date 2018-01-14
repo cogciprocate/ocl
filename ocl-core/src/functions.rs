@@ -1923,17 +1923,17 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + fmt::Debug>(obj: &Program, devi
 //============================================================================
 
 /// Returns a new kernel.
-pub fn create_kernel(program: &Program, name: &str) -> OclCoreResult<Kernel> {
+pub fn create_kernel<S: AsRef<str>>(program: &Program, name: S) -> OclCoreResult<Kernel> {
     let mut err: cl_int = 0;
 
     unsafe {
         let kernel_ptr = ffi::clCreateKernel(
             program.as_ptr(),
-            try!(CString::new(name.as_bytes())).as_ptr(),
+            try!(CString::new(name.as_ref().as_bytes())).as_ptr(),
             &mut err,
         );
 
-        eval_errcode(err, kernel_ptr, "clCreateKernel", Some(name))
+        eval_errcode(err, kernel_ptr, "clCreateKernel", Some(name.as_ref()))
             .map(|ptr| Kernel::from_raw_create_ptr(ptr))
     }
 }

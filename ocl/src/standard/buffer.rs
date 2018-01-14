@@ -1429,21 +1429,17 @@ impl<T: OclPrm> Buffer<T> {
         BufferBuilder::new()
     }
 
-    /// Creates a new buffer. **[NOTE]: Use `::builder` instead now.**
-    ///
-    /// See the [`BufferBuilder`] and [SDK] documentation for argument
-    /// details.
+    /// Creates a new buffer.
     ///
     /// [UNSTABLE]: Arguments may still be in a state of flux. It is
     /// recommended to use `::builder` instead.
     ///
+    /// See the [`BufferBuilder`] and [SDK] documentation for argument
+    /// details.
+    ///
     /// [`BufferBuilder`]: struct.BufferBuilder.html
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     ///
-    //
-    // * TODO: Consider removing `fill_val` and leaving filling completely to
-    //   the builder.
-    //
     pub fn new<'e, 'o, Q, D>(que_ctx: Q, flags_opt: Option<MemFlags>, len: D,
             host_data: Option<&[T]>) -> OclResult<Buffer<T>>
             where Q: Into<QueCtx<'o>>, D: Into<SpatialDims> {

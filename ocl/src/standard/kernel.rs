@@ -178,9 +178,9 @@ pub struct Kernel {
 
 impl Kernel {
     /// Returns a new kernel.
-    pub fn new<S: Into<String>>(name: S, program: &Program) -> OclResult<Kernel> {
-        let name = name.into();
-        let obj_core = core::create_kernel(program, &name)?;
+    pub fn new<S: AsRef<str>>(name: S, program: &Program) -> OclResult<Kernel> {
+        // let name = name.into();
+        let obj_core = core::create_kernel(program, name)?;
 
         let num_args = match core::get_kernel_info(&obj_core, KernelInfo::NumArgs) {
             Ok(KernelInfoResult::NumArgs(num)) => num,
