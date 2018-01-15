@@ -1,6 +1,7 @@
 extern crate ocl;
+extern crate ocl_extras;
 
-use ocl::{util, ProQue, Buffer, MemFlags};
+use ocl::{ProQue, Buffer, MemFlags};
 
 // Number of results to print out:
 const RESULTS_TO_PRINT: usize = 20;
@@ -31,7 +32,7 @@ fn basics() -> ocl::Result<()> {
 
     // Create a temporary init vector and the source buffer. Initialize them
     // with random floats between 0.0 and 20.0:
-    let vec_source = util::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
+    let vec_source = ocl_extras::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
     let source_buffer = Buffer::builder()
         .queue(ocl_pq.queue().clone())
         .flags(MemFlags::new().read_write().copy_host_ptr())

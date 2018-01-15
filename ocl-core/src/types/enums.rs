@@ -1368,7 +1368,7 @@ impl fmt::Display for ProgramInfoResult {
             ProgramInfoResult::Devices(ref s) => write!(f, "{:?}", s),
             ProgramInfoResult::Source(ref s) => write!(f, "{}", s),
             ProgramInfoResult::BinarySizes(ref s) => write!(f, "{:?}", s),
-            ProgramInfoResult::Binaries(_) => write!(f, "[Unprintable]"),
+            ProgramInfoResult::Binaries(_) => write!(f, "{{unprintable}}"),
             ProgramInfoResult::NumKernels(ref s) => write!(f, "{}", s),
             ProgramInfoResult::KernelNames(ref s) => write!(f, "{}", s),
         }

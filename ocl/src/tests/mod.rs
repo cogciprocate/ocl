@@ -30,6 +30,7 @@ const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 16;
 const PRINT: bool = false;
 
+
 fn gen_region_origin(dims: &[usize; 3]) -> ([usize; 3], [usize; 3]) {
     let mut rng = rand::weak_rng();
 
@@ -125,5 +126,4 @@ fn verify_vec_rect<T: OclScl>(origin: [usize; 3], region: [usize; 3], in_region_
 
     result
 }
-
 

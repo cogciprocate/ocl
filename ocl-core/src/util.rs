@@ -9,16 +9,6 @@ use std::ptr;
 use std::iter;
 use std::string::FromUtf8Error;
 use num_traits::PrimInt;
-#[cfg(feature = "rand")]
-use rand;
-#[cfg(feature = "rand")]
-use rand::distributions::{IndependentSample, Range as RandRange};
-#[cfg(feature = "rand")]
-use rand::distributions::range::SampleRange;
-#[cfg(feature = "rand")]
-use num_traits::FromPrimitive;
-// use error::{Result as OclCoreResult, Error as OclCoreError};
-
 use ::{OclPrm, OclScl};
 
 //=============================================================================
@@ -321,61 +311,6 @@ pub fn wrap_vals<T: OclPrm + PrimInt>(vals: &[T], val_n: T) -> Vec<T> {
 }
 
 
-
-/// Returns a vector with length `size` containing random values in the (half-open)
-/// range `[vals.0, vals.1)`.
-#[cfg(feature = "rand")]
-pub fn scrambled_vec<T: OclScl + SampleRange>(vals: (T, T), size: usize) -> Vec<T> {
-    assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
-    assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
-    let mut rng = rand::weak_rng();
-    let range = RandRange::new(vals.0, vals.1);
-
-    (0..size).map(|_| range.ind_sample(&mut rng)).take(size as usize).collect()
-}
-
-/// Returns a vector with length `size` which is first filled with each integer value
-/// in the (inclusive) range `[vals.0, vals.1]`. If `size` is greater than the
-/// number of integers in the aforementioned range, the integers will repeat. After
-/// being filled with `size` values, the vector is shuffled and the order of its
-/// values is randomized.
-#[cfg(feature = "rand")]
-pub fn shuffled_vec<T: OclScl>(vals: (T, T), size: usize) -> Vec<T> {
-    let mut vec: Vec<T> = Vec::with_capacity(size);
-    assert!(size > 0, "\nbuffer::shuffled_vec(): Vector size must be greater than zero.");
-    assert!(vals.0 < vals.1, "\nbuffer::shuffled_vec(): Minimum value must be less than maximum.");
-    let min = vals.0.to_i64().expect("\nbuffer::shuffled_vec(), min");
-    let max = vals.1.to_i64().expect("\nbuffer::shuffled_vec(), max") + 1;
-    let mut range = (min..max).cycle();
-
-    for _ in 0..size {
-        vec.push(FromPrimitive::from_i64(range.next().expect("\nbuffer::shuffled_vec(), range"))
-            .expect("\nbuffer::shuffled_vec(), from_usize"));
-    }
-
-    shuffle(&mut vec);
-    vec
-}
-
-
-/// Shuffles the values in a vector using a single pass of Fisher-Yates with a
-/// weak (not cryptographically secure) random number generator.
-#[cfg(feature = "rand")]
-pub fn shuffle<T: OclScl>(vec: &mut [T]) {
-    let len = vec.len();
-    let mut rng = rand::weak_rng();
-    let mut ridx: usize;
-    let mut tmp: T;
-
-    for i in 0..len {
-        ridx = RandRange::new(i, len).ind_sample(&mut rng);
-        tmp = vec[i];
-        vec[i] = vec[ridx];
-        vec[ridx] = tmp;
-    }
-}
-
-
 // /// Converts a length in `T` to a size in bytes.
 // #[inline]
 // pub fn len_to_size<T>(len: usize) -> usize {
@@ -397,7 +332,7 @@ pub fn shuffle<T: OclScl>(vec: &mut [T]) {
 //=========================== PRINTING FUNCTIONS ==============================
 //=============================================================================
 
-/// Does what is says it's gonna.
+/// Prints bytes as hex.
 pub fn print_bytes_as_hex(bytes: &[u8]) {
     print!("0x");
 
@@ -427,7 +362,6 @@ pub fn print_slice<T: OclScl>(
             print!( ";({}-{})", vr.0, vr.1);
             vr
         },
-
         None => (Default::default(), Default::default()),
     };
 
@@ -436,7 +370,6 @@ pub fn print_slice<T: OclScl>(
             print!( ";[{}..{}]", ir.start, ir.end);
             (ir.start, ir.end)
         },
-
         None => (0usize, 0usize),
     };
 

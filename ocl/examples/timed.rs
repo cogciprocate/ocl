@@ -8,13 +8,14 @@
 //! work on NVIDIA hardware. Until NVIDIA's implementation is corrected this
 //! example may fail on that platform.
 
-extern crate ocl;
 extern crate time;
+extern crate ocl;
+extern crate ocl_extras;
 // * TODO: Bring this back once `Instant` stabilizes: use
 //   std::time::Instant;
 
 
-use ocl::{util, core, ProQue, Buffer, EventList};
+use ocl::{core, ProQue, Buffer, EventList};
 
 const WORK_SIZE: usize = 1 << 12;
 
@@ -46,7 +47,7 @@ fn timed() -> ocl::Result<()> {
     let ocl_pq = ProQue::builder().src(src).dims(WORK_SIZE).build()?;
 
     // Create init and result buffers and vectors:
-    let vec_init = util::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
+    let vec_init = ocl_extras::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
 
     let buffer_init = Buffer::builder()
         .queue(ocl_pq.queue().clone())

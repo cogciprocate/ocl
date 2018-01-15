@@ -19,7 +19,7 @@ opencl_version_2_0 = ["cl-sys/opencl_version_2_0"]
 opencl_version_2_1 = ["cl-sys/opencl_version_2_1"]
 opencl_vendor_mesa = ["cl-sys/opencl_vendor_mesa"]
 
-default = ["opencl_version_1_1", "opencl_version_1_2"]
+default = ["opencl_version_1_1", "opencl_version_1_2", "ocl-core-vector"]
 
 [dependencies]
 cl-sys = { version = "~0.4.0", path = "../cl-sys" }
@@ -27,9 +27,6 @@ num-traits = "0.1"
 enum_primitive = "0.1"
 bitflags = "1"
 failure = "0.1"
-
-# Used for generating buffers full of random data:
-rand = { version = "0.4", optional = true }
 
 # Implements all of the vector types and traits.
 ocl-core-vector = { version = "0.1", path = "ocl-core-vector", optional = true }

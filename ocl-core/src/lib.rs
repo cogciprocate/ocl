@@ -106,8 +106,6 @@
 extern crate bitflags;
 #[macro_use]
 extern crate enum_primitive;
-#[cfg(feature = "rand")]
-extern crate rand;
 extern crate num_traits;
 #[cfg(feature = "ocl-core-vector")]
 extern crate ocl_core_vector as vector;

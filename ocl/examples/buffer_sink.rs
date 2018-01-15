@@ -1,11 +1,11 @@
-#![allow(unused_imports)]
 
-extern crate ocl;
 extern crate futures;
+extern crate ocl;
+extern crate ocl_extras;
 
-use std::thread::{self, JoinHandle, Builder as ThreadBuilder};
+use std::thread::{JoinHandle, Builder as ThreadBuilder};
 use futures::Future;
-use ocl::{util, Result as OclResult, ProQue, Buffer, MemFlags, Event, EventList};
+use ocl::{ProQue, Buffer, MemFlags};
 use ocl::async::{BufferSink, WriteGuard};
 
 // Our arbitrary data set size (about a million) and coefficent:
@@ -52,9 +52,9 @@ fn buffer_sink() -> ocl::Result<()> {
         BufferSink::from_buffer(source_buffer.clone(), Some(ocl_pq.queue().clone()), 0,
             WORK_SIZE)?
     };
-    // let source_data = util::scrambled_vec((0, 20), ocl_pq.dims().to_len());
+    // let source_data = ocl_extras::scrambled_vec((0, 20), ocl_pq.dims().to_len());
     let source_datas: Vec<_> = (0..THREAD_COUNT).map(|_| {
-        util::scrambled_vec((0, 20), ocl_pq.dims().to_len())
+        ocl_extras::scrambled_vec((0, 20), ocl_pq.dims().to_len())
     }).collect();
     let mut threads = Vec::<JoinHandle<()>>::with_capacity(THREAD_COUNT * 2);
 

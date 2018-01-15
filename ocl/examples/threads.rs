@@ -50,7 +50,7 @@ fn threads() -> OclResult<()> {
             // Make a context to share around:
             let context = Context::builder().platform(*platform).build()?;
             let program = Program::builder().src(SRC).devices(device)
-                .build(&context).expect("Program Build");
+                .build(&context)?;
 
             // Make a few different queues for the hell of it:
             let queueball = vec![Queue::new(&context, device, None)?,
@@ -62,12 +62,13 @@ fn threads() -> OclResult<()> {
             for i in 0..5 {
                 let thread_name = format!("{}:[D{}.I{}]", threads.len(), device_idx, i);
 
-                // Clone all the shared stuff for use by just this thread.
-                // You could wrap all of these in an Arc<Mutex<_>> and share
-                // them that way but it would be totally redundant as they
-                // each contain reference counted pointers at their core.
-                // You could pass them around on channels but it would be
-                // inconvenient and more costly.
+                // Clone all the shared stuff for use by just this thread. You
+                // could wrap all of these in an Arc<Mutex<_>> and share them
+                // that way but it would be totally redundant as they each
+                // contain reference counted pointers internally. You could
+                // pass them around on channels but it would be inconvenient
+                // and more costly.
+                let context_th = context.clone();
                 let program_th = program.clone();
                 let work_size_th = work_size;
                 let queueball_th = queueball.clone();
@@ -81,6 +82,7 @@ fn threads() -> OclResult<()> {
 
                 let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
                     // Move these into thread:
+                    let context_th = context_th;
                     let program_th = program_th;
                     let work_size_th = work_size_th;
                     let queueball_th = queueball_th;

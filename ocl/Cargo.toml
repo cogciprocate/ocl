@@ -67,4 +67,4 @@ ocl-extras = { version = "0.1", path = "ocl-extras" }
 version = "~0.7.0"
 path = "../ocl-core"
 default_features = false
-features = ["opencl_version_1_1", "opencl_version_1_2", "rand", "ocl-core-vector"]
+features = ["opencl_version_1_1", "opencl_version_1_2", "ocl-core-vector"]

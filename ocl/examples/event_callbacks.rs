@@ -7,10 +7,11 @@
 //!
 
 extern crate ocl;
+extern crate ocl_extras;
 extern crate find_folder;
 
 use find_folder::Search;
-use ocl::{util, core, ProQue, Program, Buffer, EventList};
+use ocl::{core, ProQue, Program, Buffer, EventList};
 use ocl::ffi::{cl_event, cl_int, c_void};
 
 // How many iterations we wish to run:
@@ -99,7 +100,7 @@ fn event_callbacks() -> ocl::Result<()> {
 
     // Create source and result buffers (our data containers):
     // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
-    let seed_vec = util::scrambled_vec((0u32, 500u32), dataset_len);
+    let seed_vec = ocl_extras::scrambled_vec((0u32, 500u32), dataset_len);
     let seed_buffer = Buffer::builder()
         .queue(ocl_pq.queue().clone())
         .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)

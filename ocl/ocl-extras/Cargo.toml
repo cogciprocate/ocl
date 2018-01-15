@@ -19,4 +19,6 @@ path = ".."
 # features = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
-chrono = "0.2"
+# chrono = "0.2"
+num-traits = "0.1"
+rand = "0.4"

@@ -40,7 +40,7 @@ pub use self::cl_gl_h::{CL_GL_OBJECT_BUFFER, CL_GL_OBJECT_TEXTURE2D, CL_GL_OBJEC
     CL_CURRENT_DEVICE_FOR_GL_CONTEXT_KHR, CL_DEVICES_FOR_GL_CONTEXT_KHR, CL_GL_CONTEXT_KHR,
     CL_EGL_DISPLAY_KHR, CL_GLX_DISPLAY_KHR, CL_WGL_HDC_KHR, CL_CGL_SHAREGROUP_KHR};
 
-#[cfg(not(feature="opencl_vendor_mesa"))]
+#[cfg(not(feature = "opencl_vendor_mesa"))]
 pub use self::cl_gl_h::{clGetGLContextInfoKHR_fn, clCreateFromGLBuffer, clCreateFromGLTexture,
     clGetGLObjectInfo, clGetGLTextureInfo, clCreateFromGLRenderbuffer,
     clEnqueueAcquireGLObjects, clEnqueueReleaseGLObjects, clCreateFromGLTexture2D,
