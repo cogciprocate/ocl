@@ -1,6 +1,8 @@
 Version 0.17.0 (UNRELEASED)
 ===========================
 
+* The [ocl-interop] crate has been added to the project. This crate provides
+  OpenCL <-> OpenGL interoperability. See the [README][ocl-interop] for more.
 
 Breaking Changes
 ----------------
@@ -21,10 +23,12 @@ Breaking Changes
 * `EventList` and `EventArray` have had their `::push_some` methods removed.
 * `RwVec::len` has been renamed to `::len_stale` to clarify that the value
   returned is potentially out of date.
-* [ocl-core] The `::scrambled_vec`, `::shuffled_vec`, and `shuffle` functions
+* (ocl-core) The `::scrambled_vec`, `::shuffled_vec`, and `shuffle` functions
   have been moved to the `ocl-extras` crate. `rand` has been removed as a
   dependency.
 
+
+[ocl-interop]: https://github.com/cogciprocate/ocl/tree/master/ocl-interop
 
 
 Version 0.16.0 (2017-12-02)
@@ -422,11 +426,12 @@ Breaking Changes
 Version 0.11.0 (2016-08-29)
 ===========================
 
-The `core` and `ffi` modules have been moved out into new crates, [ocl-core]
-and [cl-sys] respectively. They continue to be exported with the same names.
-This document will continue to contain information pertaining to all three
-libraries ([ocl], [ocl-core], and [cl-sys]). Issues will likewise be centrally
-handled from the [ocl] repo page.
+The `core` and `ffi` modules have been moved out into new crates,
+[ocl-core][0.11.0.ocl-core] and [cl-sys][0.11.0.cl-sys] respectively. They
+continue to be exported with the same names. This document will continue to
+contain information pertaining to all three libraries ([ocl],
+[ocl-core][0.11.0.ocl-core], and [cl-sys][0.11.0.cl-sys]). Issues will
+likewise be centrally handled from the [ocl] repo page.
 
 The version control system has been implemented. Functions added since OpenCL
 1.1 now take an additional argument to ensure that the device or platform
@@ -437,9 +442,9 @@ Breaking Changes
 ----------------
 * `Context::platform` now returns a `Option<&Platform>` instead of
   `Option<Platform>` to make it consistent with other methods of its kind.
-* [ocl-core] `DeviceSpecifier::to_device_list` now accepts a
+* (ocl-core) `DeviceSpecifier::to_device_list` now accepts a
   `Option<&Platform>`.
-* [ocl-core] Certain functions now require an additional argument for version
+* (ocl-core) Certain functions now require an additional argument for version
   control purposes (see the [ocl-core crate documentation]).
 * [cl-sys] Types/functions/constants from the `cl_h` module are now
   re-exported from the root crate. `cl_h` is now private.
@@ -449,8 +454,8 @@ Breaking Changes
 
 [ocl-core crate documentation]: http://docs.cogciprocate.com/ocl_core/ocl_core
 [ocl]: https://github.com/cogciprocate/ocl
-[ocl-core]: https://github.com/cogciprocate/ocl-core
-[cl-sys]: https://github.com/cogciprocate/cl-sys
+[0.11.0.ocl-core]: https://github.com/cogciprocate/ocl-core
+[0.11.0.cl-sys]: https://github.com/cogciprocate/cl-sys
 [issue]: https://github.com/cogciprocate/ocl/issues
 
 
