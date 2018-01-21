@@ -15,7 +15,7 @@ mod pro_que;
 mod event;
 mod spatial_dims;
 
-pub use self::platform::{Extensions, Platform};
+pub use self::platform::{PlatformError, Extensions, Platform};
 pub use self::device::{DeviceError, Device, DeviceSpecifier};
 pub use self::context::{Context, ContextBuilder};
 pub use self::program::{Program, ProgramBuilder, BuildOpt};

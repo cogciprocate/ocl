@@ -314,7 +314,7 @@ impl ContextBuilder {
         let mut props = self.properties.clone();
 
         if props.get_platform().is_none() {
-            props.set_platform(Platform::first(false)?);
+            props.set_platform(Platform::default());
         }
 
         Context::new(Some(props), self.device_spec.clone(), None, None)

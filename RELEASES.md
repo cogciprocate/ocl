@@ -14,6 +14,11 @@ Breaking Changes
   * The top level `ocl` crate now has it's own `Error` type, distinct from
     `ocl-core::Error`.
   * `ocl::async::Error` has been removed.
+* `Platform::first` has had its `ignore_env_var` argument removed. If you
+  previously called `Platform::first(false)` in order to respect the
+  `OCL_DEFAULT_PLATFORM_IDX` environment variable, you will now want to use
+  `Platform::default` instead. If you previously called
+  `Platform::first(true)` you will now simply use `Platform::first`.
 * `Buffer`  now uses a linear `usize` rather than a multi-dimensional
   `SpatialDims` to store its size.
   * `Buffer::new` has had its `dims` argument renamed to `len`.

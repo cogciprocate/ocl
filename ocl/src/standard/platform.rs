@@ -10,6 +10,14 @@ use std::str::SplitWhitespace;
 use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 use core::error::{Result as OclCoreResult};
+use error::{Result as OclResult};
+
+
+#[derive(Debug, Fail)]
+pub enum PlatformError {
+    #[fail(display = "No platforms found.")]
+    NoPlatforms,
+}
 
 
 /// Extensions of a platform.
@@ -47,21 +55,16 @@ impl Platform {
 
     /// Returns the first available platform.
     ///
-    /// If `ignore_env_var` is set to `true`, the `OCL_DEFAULT_PLATFORM_IDX`
-    /// environment variable will be ignored and the platform with index 0
-    /// returned from `core::get_platform_ids()` will be returned.
-    ///
     /// This method differs from `Platform::default()` in two ways. First, it
-    /// optionally ignores the `OCL_DEFAULT_PLATFORM_IDX` environment variable
+    /// ignores the `OCL_DEFAULT_PLATFORM_IDX` environment variable
     /// (`Platform::default` always respects it). Second, this function will
-    /// not panic if no platforms are available and will return an error
-    /// instead.
-    pub fn first(ignore_env_var: bool) -> OclCoreResult<Platform> {
-        if ignore_env_var {
-            Ok(Platform::new(core::get_platform_ids()?[0]))
-        } else {
-            Ok(Platform::new(core::default_platform()?))
-        }
+    /// not panic if no platforms are available but will instead return an
+    /// error.
+    pub fn first() -> OclResult<Platform> {
+        core::get_platform_ids()?
+            .first()
+            .map(|&p| Platform::new(p))
+            .ok_or(PlatformError::NoPlatforms.into())
     }
 
     /// Creates a new `Platform` from a `PlatformIdCore`.

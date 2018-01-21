@@ -8,7 +8,7 @@ use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
 use core::error::{Error as OclCoreError};
 use core::Status;
-use standard::DeviceError;
+use standard::{DeviceError, PlatformError};
 use ::BufferCmdError;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -33,6 +33,8 @@ pub enum ErrorKind {
     BufferCmd(BufferCmdError),
     #[fail(display = "{}", _0)]
     Device(DeviceError),
+    #[fail(display = "{}", _0)]
+    Platform(PlatformError)
 }
 
 
@@ -155,6 +157,12 @@ impl From<BufferCmdError> for Error {
 impl From<DeviceError> for Error {
     fn from(err: DeviceError) -> Error {
         Error { inner: Context::new(ErrorKind::Device(err)) }
+    }
+}
+
+impl From<PlatformError> for Error {
+    fn from(err: PlatformError) -> Error {
+        Error { inner: Context::new(ErrorKind::Platform(err)) }
     }
 }
 

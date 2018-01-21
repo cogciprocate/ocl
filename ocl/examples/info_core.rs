@@ -10,7 +10,6 @@ use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo,
     EventInfo, ProfilingInfo};
 use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program,
     Kernel, Event, EventList, SpatialDims};
-use ocl::util;
 
 const WORK_SIZE: [usize; 3] = [1024, 64, 16];
 const INFO_FORMAT_MULTILINE: bool = true;

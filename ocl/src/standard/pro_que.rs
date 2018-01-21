@@ -354,14 +354,14 @@ impl ProQueBuilder {
                     let plat = context.platform()?;
 
                     if DEBUG_PRINT { println!("ProQue::build(): plat: {:?}, default: {:?}",
-                        plat, Platform::first(false)?); }
+                        plat, Platform::default()); }
 
                     match plat {
                         Some(platform) => platform.clone(),
-                        None => Platform::first(false)?,
+                        None => Platform::default(),
                     }
                 },
-                None => Platform::first(false)?,
+                None => Platform::default(),
             },
         };
 
