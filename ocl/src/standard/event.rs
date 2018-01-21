@@ -352,6 +352,10 @@ fn poll_events(events: &[Event]) -> Poll<(), OclError> {
 //
 // * [FIXME] TODO: impl Index.
 // #[derive(Debug)]
+//
+// * [NOTE]: Consider replacing with
+//   `https://github.com/servo/rust-smallvec` instead.
+//
 pub struct EventArray {
     array: NoDrop<[Event; 8]>,
     len: usize,
@@ -638,6 +642,10 @@ enum Inner {
 /// implemented.
 ///
 // * [FIXME] TODO: impl Index.
+//
+// * [NOTE]: Consider implementing using
+//   `https://github.com/servo/rust-smallvec` instead.
+//
 #[derive(Debug, Clone)]
 pub struct EventList {
     inner: Inner,
