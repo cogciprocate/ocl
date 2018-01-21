@@ -235,7 +235,7 @@ mod traits {
     ///
     /// Can also be implemented for custom types as long as layout and
     /// alignment are conserved between Rust and OpenCL (repr "C").
-    pub unsafe trait OclPrm: Debug + Clone + Copy + Default + PartialEq + 'static {}
+    pub unsafe trait OclPrm: Debug + Clone + Copy + Default + PartialEq + Send + Sync + 'static {}
 
     impl_unsafe!(OclPrm: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
 
@@ -248,7 +248,7 @@ mod traits {
         Zero<Output=Self> + One<Output=Self> + Add<Self, Output=Self> + Sub<Self, Output=Self> +
         Mul<Self, Output=Self> + Div<Self, Output=Self> + Rem<Self, Output=Self> + PartialEq<Self>
         + AddAssign<Self> + SubAssign<Self> + MulAssign<Self> + DivAssign<Self> + RemAssign<Self> +
-        Sum<Self> + Product<Self> + 'static {}
+        Sum<Self> + Product<Self> + Send + Sync + 'static {}
 
     impl_unsafe!(OclNum: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
 
