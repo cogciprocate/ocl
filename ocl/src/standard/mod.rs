@@ -3,6 +3,7 @@
 //! * TODO: This module needs a rename.
 
 mod platform;
+mod extensions;
 mod device;
 mod context;
 mod program;
@@ -16,6 +17,7 @@ mod event;
 mod spatial_dims;
 
 pub use self::platform::Platform;
+pub use self::extensions::Extensions;
 pub use self::device::{DeviceError, Device, DeviceSpecifier};
 pub use self::context::{Context, ContextBuilder};
 pub use self::program::{Program, ProgramBuilder, BuildOpt};

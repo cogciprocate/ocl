@@ -61,7 +61,7 @@ mod standard;
 pub mod error;
 pub mod async;
 
-pub use self::standard::{Platform, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
+pub use self::standard::{Platform, Extensions, Device, Context, Program, Queue, Kernel, Buffer, Image, Event,
     EventList, EventArray, Sampler, SpatialDims, ProQue, BufferCmdError};
 pub use self::async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard,
     FutureReadGuard, FutureWriteGuard};
