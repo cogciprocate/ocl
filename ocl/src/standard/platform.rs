@@ -6,10 +6,29 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
+use std::str::SplitWhitespace;
 use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 use core::error::{Result as OclCoreResult};
-use standard::extensions::Extensions;
+
+
+/// Extensions of a platform.
+#[derive(Debug, Clone)]
+pub struct Extensions {
+    pub(crate) inner: String,
+}
+
+impl Extensions {
+    /// Iterate over platform extensions, split at whitespace.
+    pub fn iter(&self) -> SplitWhitespace {
+        self.inner.split_whitespace()
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.inner
+    }
+}
+
 
 /// A platform identifier.
 ///
@@ -110,7 +129,8 @@ impl Platform {
 
     /// Returns the list of platform extensions.
     ///
-    /// Extensions defined here must be supported by all devices associated with this platform.
+    /// Extensions defined here must be supported by all devices associated
+    /// with this platform.
     pub fn extensions(&self) -> OclCoreResult<Extensions> {
         let extensions = core::get_platform_info(&self.0, PlatformInfo::Extensions);
         extensions.map(|e| Extensions { inner: e.into() })

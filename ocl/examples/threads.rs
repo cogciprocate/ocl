@@ -82,7 +82,7 @@ fn threads() -> OclResult<()> {
 
                 let th = thread::Builder::new().name(thread_name.clone()).spawn(move || {
                     // Move these into thread:
-                    let context_th = context_th;
+                    let _context_th = context_th;
                     let program_th = program_th;
                     let work_size_th = work_size_th;
                     let queueball_th = queueball_th;
