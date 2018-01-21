@@ -9,6 +9,7 @@ use std::ops::{Deref, DerefMut};
 use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 use core::error::{Result as OclCoreResult};
+use standard::extensions::Extensions;
 
 /// A platform identifier.
 ///
@@ -107,14 +108,12 @@ impl Platform {
         core::get_platform_info(&self.0, PlatformInfo::Vendor).map(|r| r.into())
     }
 
-    /// Returns the list of platform extensions as a string.
+    /// Returns the list of platform extensions.
     ///
-    /// Returns a space-separated list of extension names (the extension names
-    /// themselves do not contain any spaces) supported by the platform.
-    /// Extensions defined here must be supported by all devices associated
-    /// with this platform.
-    pub fn extensions(&self) -> OclCoreResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Extensions).map(|r| r.into())
+    /// Extensions defined here must be supported by all devices associated with this platform.
+    pub fn extensions(&self) -> OclCoreResult<Extensions> {
+        let extensions = core::get_platform_info(&self.0, PlatformInfo::Extensions);
+        extensions.map(|e| Extensions { inner: e.into() })
     }
 
     /// Returns a reference to the underlying `PlatformIdCore`.
