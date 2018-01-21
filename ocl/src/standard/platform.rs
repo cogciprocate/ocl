@@ -15,7 +15,7 @@ use core::error::{Result as OclCoreResult};
 /// Extensions of a platform.
 #[derive(Debug, Clone)]
 pub struct Extensions {
-    pub(crate) inner: String,
+    inner: String,
 }
 
 impl Extensions {
