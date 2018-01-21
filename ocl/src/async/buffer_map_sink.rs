@@ -310,7 +310,34 @@ impl<'c, T> SinkMapCmd<'c, T> where T: OclPrm {
         self
     }
 
-    /// Specifies a list of events to wait on before the command will run.
+    /// Specifies an event or list of events to wait on before the command
+    /// will run.
+    ///
+    /// When events generated using the `::enew` method of **other**,
+    /// previously enqueued commands are passed here (either individually or
+    /// as part of an [`EventList`]), this command will not execute until
+    /// those commands have completed.
+    ///
+    /// Using events can compliment the use of queues to order commands by
+    /// creating temporal dependencies between them (where commands in one
+    /// queue must wait for the completion of commands in another). Events can
+    /// also supplant queues altogether when, for example, using out-of-order
+    /// queues.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // Create an event list:
+    /// let mut event_list = EventList::new();
+    /// // Enqueue a kernel on `queue_1`, creating an event representing the kernel
+    /// // command in our list:
+    /// kernel.cmd().queue(&queue_1).enew(&mut event_list).enq()?;
+    /// // Read from a buffer using `queue_2`, ensuring the read does not begin until
+    /// // after the kernel command has completed:
+    /// buffer.read(rwvec.clone()).queue(&queue_2).ewait(&event_list).enq_async()?;
+    /// ```
+    ///
+    /// [`EventList`]: struct.EventList.html
     pub fn ewait<Ewl>(mut self, ewait: Ewl) -> SinkMapCmd<'c, T>
             where Ewl: Into<ClWaitListPtrEnum<'c>> {
         self.ewait = Some(ewait.into());

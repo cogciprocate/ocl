@@ -62,16 +62,71 @@ impl<'k> KernelCmd<'k> {
         self
     }
 
-    /// Specifies a list of events to wait on before the command will run.
+    /// Specifies an event or list of events to wait on before the command
+    /// will run.
+    ///
+    /// When events generated using the `::enew` method of **other**,
+    /// previously enqueued commands are passed here (either individually or
+    /// as part of an [`EventList`]), this command will not execute until
+    /// those commands have completed.
+    ///
+    /// Using events can compliment the use of queues to order commands by
+    /// creating temporal dependencies between them (where commands in one
+    /// queue must wait for the completion of commands in another). Events can
+    /// also supplant queues altogether when, for example, using out-of-order
+    /// queues.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // Create an event list:
+    /// let mut event_list = EventList::new();
+    /// // Enqueue a kernel on `queue_1`, creating an event representing the kernel
+    /// // command in our list:
+    /// kernel.cmd().queue(&queue_1).enew(&mut event_list).enq()?;
+    /// // Read from a buffer using `queue_2`, ensuring the read does not begin until
+    /// // after the kernel command has completed:
+    /// buffer.read(rwvec.clone()).queue(&queue_2).ewait(&event_list).enq_async()?;
+    /// ```
+    ///
+    /// [`EventList`]: struct.EventList.html
     pub fn ewait<'e, Ewl>(mut self, ewait: Ewl) -> KernelCmd<'k>
             where 'e: 'k, Ewl: Into<ClWaitListPtrEnum<'e>> {
         self.wait_events = Some(ewait.into());
         self
     }
 
-    /// Specifies the destination list or empty event for a new, optionally
-    /// created event associated with this command.
-    // pub fn enew(mut self, new_event_dest: &'k mut ClNullEventPtr) -> KernelCmd<'k> {
+    /// Specifies the destination to store a new, optionally created event
+    /// associated with this command.
+    ///
+    /// The destination can be a mutable reference to an empty event (created
+    /// using [`Event::empty`]) or a mutable reference to an event list.
+    ///
+    /// After this command is enqueued, the event in the destination can be
+    /// passed to the `::ewait` method of another command. Doing so will cause
+    /// the other command to wait until this command has completed before
+    /// executing.
+    ///
+    /// Using events can compliment the use of queues to order commands by
+    /// creating temporal dependencies between them (where commands in one
+    /// queue must wait for the completion of commands in another). Events can
+    /// also supplant queues altogether when, for example, using out-of-order
+    /// queues.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// // Create an event list:
+    /// let mut event = Event::empty();
+    /// // Enqueue a kernel on `queue_1`, creating an event representing the kernel
+    /// // command in our list:
+    /// kernel.cmd().queue(&queue_1).enew(&mut event).enq()?;
+    /// // Read from a buffer using `queue_2`, ensuring the read does not begin until
+    /// // after the kernel command has completed:
+    /// buffer.read(rwvec.clone()).queue(&queue_2).ewait(&event).enq_async()?;
+    /// ```
+    ///
+    /// [`Event::empty`]: struct.Event.html#method.empty
     pub fn enew<'e, En>(mut self, new_event_dest: En) -> KernelCmd<'k>
             where 'e: 'k, En: Into<ClNullEventPtrEnum<'e>> {
         self.new_event = Some(new_event_dest.into());
