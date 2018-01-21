@@ -43,7 +43,7 @@ From [`examples/trivial.rs`]:
 extern crate ocl;
 use ocl::ProQue;
 
-fn main() {
+fn trivial() -> ocl::Result<()> {
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {
             buffer[get_global_id(0)] += scalar;
@@ -53,20 +53,21 @@ fn main() {
     let pro_que = ProQue::builder()
         .src(src)
         .dims(1 << 20)
-        .build().unwrap();
+        .build()?;
 
-    let buffer = pro_que.create_buffer::<f32>().unwrap();
+    let buffer = pro_que.create_buffer::<f32>()?;
 
-    let kernel = pro_que.create_kernel("add").unwrap()
+    let kernel = pro_que.create_kernel("add")?
         .arg_buf(&buffer)
         .arg_scl(10.0f32);
 
-    unsafe { kernel.enq().unwrap(); }
+    unsafe { kernel.enq()?; }
 
     let mut vec = vec![0.0f32; buffer.len()];
-    buffer.read(&mut vec).enq().unwrap();
+    buffer.read(&mut vec).enq()?;
 
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
+    Ok(())
 }
 ```
 
