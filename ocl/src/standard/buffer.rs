@@ -2319,7 +2319,8 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
         match self.queue_option {
             Some(qc) => {
                 let len = match self.len {
-                    0 => panic!("ocl::BufferBuilder::build: The length must be set with '.len(...)'."),
+                    0 => panic!("ocl::BufferBuilder::build: The length must be set with \
+                        '.len(...)' and cannot be zero."),
                     l @ _ => l,
                 };
 

@@ -507,17 +507,28 @@ impl EventArray {
     }
 }
 
-impl<'a, E> From<E> for EventArray where E: Into<Event> {
-    fn from(event: E) -> EventArray {
-        let mut array = empty_event_array();
-        array[0] = event.into();
 
-        EventArray {
-            array: array,
-            len: 1,
+// Due to a fix to coherence rules
+// (https://github.com/rust-lang/rust/pull/46192) we must manually implement
+// this for each event type.
+macro_rules! from_event_into_event_array(
+    ($e:ty) => (
+        impl<'a> From<$e> for EventArray {
+            fn from(event: $e) -> EventArray {
+                let mut array = empty_event_array();
+                array[0] = event.into();
+
+                EventArray {
+                    array: array,
+                    len: 1,
+                }
+            }
         }
-    }
-}
+    )
+);
+from_event_into_event_array!(EventCore);
+from_event_into_event_array!(Event);
+
 
 impl<'a, E> From<&'a E> for EventArray where E: Into<Event> + Clone {
     #[inline]
@@ -850,12 +861,21 @@ impl EventList {
     }
 }
 
-impl<'a, E> From<E> for EventList where E: Into<Event> {
-    #[inline]
-    fn from(event: E) -> EventList {
-        EventList { inner: Inner::Array(EventArray::from(event)) }
-    }
-}
+// Due to a fix to coherence rules
+// (https://github.com/rust-lang/rust/pull/46192) we must manually implement
+// this for each event type.
+macro_rules! from_event_into_event_list(
+    ($e:ty) => (
+        impl<'a> From<$e> for EventList {
+            #[inline]
+            fn from(event: $e) -> EventList {
+                EventList { inner: Inner::Array(EventArray::from(event)) }
+            }
+        }
+    )
+);
+from_event_into_event_list!(EventCore);
+from_event_into_event_list!(Event);
 
 impl<'a, E> From<&'a E> for EventList where E: Into<Event> + Clone {
     #[inline]
@@ -871,13 +891,22 @@ impl<'a> From<Vec<Event>> for EventList {
     }
 }
 
-impl<'a, E> From<&'a Option<E>> for EventList where E: Into<Event> + Clone {
-    fn from(event: &Option<E>) -> EventList {
-        let mut el = EventList::new();
-        if let Some(ref e) = *event { el.push(e.clone().into()) }
-        el
-    }
-}
+// Due to a fix to coherence rules
+// (https://github.com/rust-lang/rust/pull/46192) we must manually implement
+// this for each event type.
+macro_rules! from_event_option_ref_into_event_list(
+    ($e:ty) => (
+        impl<'a> From<&'a Option<$e>> for EventList {
+            fn from(event: &Option<$e>) -> EventList {
+                let mut el = EventList::new();
+                if let Some(ref e) = *event { el.push::<Event>(e.clone().into()) }
+                el
+            }
+        }
+    )
+);
+from_event_option_ref_into_event_list!(EventCore);
+from_event_option_ref_into_event_list!(Event);
 
 impl<'a, 'b, E> From<Option<&'b E>> for EventList where 'b: 'a, E: Into<Event> + Clone {
     fn from(event: Option<&E>) -> EventList {
@@ -905,21 +934,28 @@ impl<'a, E> From<&'a [E]> for EventList where E: Into<Event> + Clone {
     }
 }
 
-impl<'a, E> From<&'a [Option<E>]> for EventList where E: Into<Event> + Clone {
-    fn from(events: &[Option<E>]) -> EventList {
-        let mut el = EventList::with_capacity(events.len());
-
-        for event in events {
-            if let Some(ref e) = *event { el.push(e.clone().into()) }
+// Due to a fix to coherence rules
+// (https://github.com/rust-lang/rust/pull/46192) we must manually implement
+// this for each event type.
+macro_rules! from_event_option_into_event_list(
+    ($e:ty) => (
+        impl<'a> From<&'a [Option<$e>]> for EventList {
+            fn from(events: &[Option<$e>]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for event in events {
+                    if let Some(ref e) = *event { el.push::<Event>(e.clone().into()) }
+                }
+                el
+            }
         }
-        el
-    }
-}
+    )
+);
+from_event_option_into_event_list!(EventCore);
+from_event_option_into_event_list!(Event);
 
 impl<'a, 'b, E> From<&'a [Option<&'b E>]> for EventList where 'b: 'a, E: Into<Event> + Clone {
     fn from(events: &[Option<&E>]) -> EventList {
         let mut el = EventList::with_capacity(events.len());
-
         for event in events {
             if let Some(e) = *event { el.push(e.clone().into()) }
         }
@@ -927,16 +963,24 @@ impl<'a, 'b, E> From<&'a [Option<&'b E>]> for EventList where 'b: 'a, E: Into<Ev
     }
 }
 
-impl<'a, 'b, E> From<&'a [&'b Option<E>]> for EventList where 'b: 'a, E: Into<Event> + Clone {
-    fn from(events: &[&Option<E>]) -> EventList {
-        let mut el = EventList::with_capacity(events.len());
-
-        for event in events {
-            if let Some(ref e) = **event { el.push(e.clone().into()) }
+// Due to a fix to coherence rules
+// (https://github.com/rust-lang/rust/pull/46192) we must manually implement
+// this for each event type.
+macro_rules! from_event_option_slice_into_event_list(
+    ($e:ty) => (
+        impl<'a, 'b> From<&'a [&'b Option<$e>]> for EventList where 'b: 'a {
+            fn from(events: &[&Option<$e>]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for event in events {
+                    if let Some(ref e) = **event { el.push::<Event>(e.clone().into()) }
+                }
+                el
+            }
         }
-        el
-    }
-}
+    )
+);
+from_event_option_slice_into_event_list!(EventCore);
+from_event_option_slice_into_event_list!(Event);
 
 impl<'a, 'b, 'c, E> From<&'a [&'b Option<&'c E>]> for EventList
         where 'c: 'b, 'b: 'a, E: Into<Event> + Clone
@@ -950,6 +994,44 @@ impl<'a, 'b, 'c, E> From<&'a [&'b Option<&'c E>]> for EventList
         el
     }
 }
+
+// Due to a fix to coherence rules
+// (https://github.com/rust-lang/rust/pull/46192) we must manually implement
+// this for each event type.
+macro_rules! from_event_option_array_into_event_list(
+    ($e:ty, $len:expr) => (
+        impl<'e> From<[Option<$e>; $len]> for EventList {
+            fn from(events: [Option<$e>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
+                    if let Some(event) = event_opt { el.push::<Event>(event.into()); }
+                }
+                mem::forget(events);
+                el
+            }
+        }
+    )
+);
+
+// Due to a fix to coherence rules
+// (https://github.com/rust-lang/rust/pull/46192) we must manually implement
+// this for each event type.
+macro_rules! from_event_option_ref_array_into_event_list(
+    ($e:ty, $len:expr) => (
+        impl<'e, 'f> From<[&'f Option<$e>; $len]> for EventList where 'e: 'f {
+            fn from(events: [&'f Option<$e>; $len]) -> EventList {
+                let mut el = EventList::with_capacity(events.len());
+                for idx in 0..events.len() {
+                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
+                    if let Some(ref event) = *event_opt { el.push::<Event>(event.clone().into()); }
+                }
+                mem::forget(events);
+                el
+            }
+        }
+    )
+);
 
 macro_rules! impl_event_list_from_arrays {
     ($( $len:expr ),*) => ($(
@@ -968,17 +1050,8 @@ macro_rules! impl_event_list_from_arrays {
             }
         }
 
-        impl<'e, E> From<[Option<E>; $len]> for EventList where E: Into<Event> {
-            fn from(events: [Option<E>; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(event) = event_opt { el.push(event.into()); }
-                }
-                mem::forget(events);
-                el
-            }
-        }
+        from_event_option_array_into_event_list!(EventCore, $len);
+        from_event_option_array_into_event_list!(Event, $len);
 
         impl<'e, E> From<[Option<&'e E>; $len]> for EventList where E: Into<Event> + Clone {
             fn from(events: [Option<&E>; $len]) -> EventList {
@@ -992,17 +1065,8 @@ macro_rules! impl_event_list_from_arrays {
             }
         }
 
-        impl<'e, 'f, E> From<[&'f Option<E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
-            fn from(events: [&'f Option<E>; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(ref event) = *event_opt { el.push(event.clone().into()); }
-                }
-                mem::forget(events);
-                el
-            }
-        }
+        from_event_option_ref_array_into_event_list!(EventCore, $len);
+        from_event_option_ref_array_into_event_list!(Event, $len);
 
         impl<'e, 'f, E> From<[&'f Option<&'e E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
             fn from(events: [&'f Option<&'e E>; $len]) -> EventList {
