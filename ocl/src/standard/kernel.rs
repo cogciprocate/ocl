@@ -214,6 +214,33 @@ impl<'k> KernelCmd<'k> {
 // * TODO: Add information about panics and errors.
 // * TODO: Finish arg info formatting.
 //
+// * TODO: Consider switching to option 1 above since sending kernels between
+//   threads is not entirely safe anyway.
+//
+// From: https://www.khronos.org/registry/OpenCL/sdk/1.1/docs/man/xhtml/clSetKernelArg.html:
+//
+// An OpenCL API call is considered to be thread-safe if the internal state as
+// managed by OpenCL remains consistent when called simultaneously by multiple
+// host threads. OpenCL API calls that are thread-safe allow an application to
+// call these functions in multiple host threads without having to implement
+// mutual exclusion across these host threads i.e. they are also
+// re-entrant-safe.
+//
+// All OpenCL API calls are thread-safe except clSetKernelArg, which is safe
+// to call from any host thread, and is safe to call re-entrantly so long as
+// concurrent calls operate on different cl_kernel objects. However, the
+// behavior of the cl_kernel object is undefined if clSetKernelArg is called
+// from multiple host threads on the same cl_kernel object at the same time.
+//
+// There is an inherent race condition in the design of OpenCL that occurs
+// between setting a kernel argument and using the kernel with
+// clEnqueueNDRangeKernel or clEnqueueTask. Another host thread might change
+// the kernel arguments between when a host thread sets the kernel arguments
+// and then enqueues the kernel, causing the wrong kernel arguments to be
+// enqueued. Rather than attempt to share cl_kernel objects among multiple
+// host threads, applications are strongly encouraged to make additional
+// cl_kernel objects for kernel functions for each host thread.
+//
 #[derive(Debug)]
 pub struct Kernel {
     obj_core: KernelCore,
@@ -827,6 +854,7 @@ impl Kernel {
 }
 
 impl Clone for Kernel {
+    // TODO: Create a new, identical, kernel core instead of cloning it.
     fn clone(&self) -> Kernel {
         assert!(self.new_arg_count == self.num_args, "Cannot clone kernel until all arguments \
             are specified. Use named arguments with 'None' values to specify arguments you \
