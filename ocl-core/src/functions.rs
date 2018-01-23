@@ -1842,12 +1842,12 @@ pub fn link_program(device_version: Option<&OpenclVersion>) -> OclCoreResult<()>
 //         ffi::clUnloadPlatformCompiler(platform.as_ptr())) }
 // }
 
-/// Get program info.
-pub fn get_program_info(obj: &Program, request: ProgramInfo) -> OclCoreResult<ProgramInfoResult> {
+
+fn get_program_info_raw(program: &Program, request: ProgramInfo) -> OclCoreResult<Vec<u8>> {
     let mut result_size: size_t = 0;
 
     let errcode = unsafe { ffi::clGetProgramInfo(
-        obj.as_ptr() as cl_program,
+        program.as_ptr() as cl_program,
         request as cl_program_info,
         0 as size_t,
         0 as *mut c_void,
@@ -1856,23 +1856,60 @@ pub fn get_program_info(obj: &Program, request: ProgramInfo) -> OclCoreResult<Pr
 
     eval_errcode(errcode, (), "clGetProgramInfo", None::<String>)?;
 
-    // If result size is zero, return an empty info result directly:
+    // If result size is zero, return an empty result directly:
     if result_size == 0 {
-        return ProgramInfoResult::from_bytes(request, vec![]);
+        return Ok(vec![]);
     }
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
 
     let errcode = unsafe { ffi::clGetProgramInfo(
-        obj.as_ptr() as cl_program,
+        program.as_ptr() as cl_program,
         request as cl_program_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };
 
-    let result = eval_errcode(errcode, result, "clGetProgramInfo", None::<String>)?;
-    ProgramInfoResult::from_bytes(request, result)
+    eval_errcode(errcode, result, "clGetProgramInfo", None::<String>)
+}
+
+/// Returns a `Vec` containing one `Vec<u8>` for each device associated with
+/// `program`.
+fn get_program_info_binaries(program: &Program) -> OclCoreResult<Vec<Vec<u8>>> {
+    let binary_sizes_raw = get_program_info_raw(program, ProgramInfo::BinarySizes)?;
+    let binary_sizes = unsafe { ::util::bytes_into_vec::<usize>(binary_sizes_raw)? };
+
+    let binaries = binary_sizes.into_iter().map(|size| {
+        vec![0u8; size]
+    }).collect::<Vec<Vec<u8>>>();
+
+    let mut binary_ptrs = binaries.iter().map(|vec| {
+        vec.as_ptr()
+    }).collect::<Vec<_>>();
+
+    let errcode = unsafe { ffi::clGetProgramInfo(
+        program.as_ptr() as cl_program,
+        ProgramInfo::Binaries as cl_program_info,
+        mem::size_of::<usize>(),
+        binary_ptrs.as_mut_ptr() as *mut _ as *mut c_void,
+        0 as *mut size_t,
+    ) };
+
+    eval_errcode(errcode, binaries, "clGetProgramInfo", None::<String>)
+}
+
+/// Get program info.
+pub fn get_program_info(program: &Program, request: ProgramInfo) -> OclCoreResult<ProgramInfoResult> {
+    match request {
+        ProgramInfo::Binaries => {
+            get_program_info_binaries(program).map(|b| ProgramInfoResult::Binaries(b))
+        },
+        _ => {
+            let result = get_program_info_raw(program, request)?;
+            ProgramInfoResult::from_bytes(request, result)
+        },
+    }
 }
 
 /// Get program build info.

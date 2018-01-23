@@ -426,7 +426,7 @@ fn print_platform_device(plat_idx: usize, platform: PlatformId, device_idx: usiz
         to_string!(core::get_program_info(&program, ProgramInfo::Devices)),
         to_string!(core::get_program_info(&program, ProgramInfo::Source)),
         to_string!(core::get_program_info(&program, ProgramInfo::BinarySizes)),
-        "{{unprintable}}",
+        to_string!(core::get_program_info(&program, ProgramInfo::Binaries)),
         to_string!(core::get_program_info(&program, ProgramInfo::NumKernels)),
         to_string!(core::get_program_info(&program, ProgramInfo::KernelNames)),
         b = begin, d = delim, e = end,
