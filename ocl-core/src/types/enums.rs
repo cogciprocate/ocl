@@ -10,7 +10,6 @@
 #![allow(dead_code)]
 
 use std::fmt;
-// use std::ptr;
 use failure::Fail;
 use num_traits::FromPrimitive;
 use util;
@@ -1292,13 +1291,13 @@ pub enum ProgramInfoResult {
     ReferenceCount(u32),
     Context(Context),
     NumDevices(u32),
-    /// Returns a `Vec` containing the `DeviceId` associated with each device.
+    /// Contains a `Vec` containing the `DeviceId` associated with each device.
     Devices(Vec<DeviceId>),
     Source(String),
-    /// Returns a `Vec` containing the size of the binary associated with each
+    /// Contains a `Vec` containing the size of the binary associated with each
     /// device.
     BinarySizes(Vec<usize>),
-    /// Returns a `Vec` containing the bytes of the binary associated with
+    /// Contains a `Vec` containing the bytes of the binary associated with
     /// each device.
     Binaries(Vec<Vec<u8>>),
     NumKernels(usize),
@@ -1340,8 +1339,8 @@ impl ProgramInfoResult {
                     unsafe { util::bytes_into_vec::<usize>(result)? }
             ) },
             ProgramInfo::Binaries => {
-                // [FIXME]: UNIMPLEMENTED
-                ProgramInfoResult::Binaries(Vec::with_capacity(0))
+                // The `Binaries` variant is handled by `functions::get_program_info_binaries`.
+                unreachable!();
             },
             ProgramInfo::NumKernels => {
                 let r = unsafe { util::bytes_into::<usize>(result)? };

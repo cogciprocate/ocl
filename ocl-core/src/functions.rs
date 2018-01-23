@@ -1918,8 +1918,6 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + fmt::Debug>(obj: &Program, devi
 {
     let mut result_size: size_t = 0;
 
-    // println!("ocl::core::get_program_build_info(): device_obj: {:?}", device_obj);
-
     let errcode = unsafe { ffi::clGetProgramBuildInfo(
         obj.as_ptr() as cl_program,
         device_obj.as_ptr() as cl_device_id,
@@ -1929,10 +1927,6 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + fmt::Debug>(obj: &Program, devi
         &mut result_size as *mut size_t,
     ) };
 
-    // try!(eval_errcode(errcode, result, "clGetProgramBuildInfo", None::<String>));
-    // if let Err(err) = eval_errcode(errcode, (), "clGetProgramBuildInfo", None::<String>) {
-    //     return ProgramBuildInfoResult::Error(Box::new(err));
-    // }
     eval_errcode(errcode, (), "clGetProgramBuildInfo", None::<String>)?;
 
     // If result size is zero, return an empty info result directly:
