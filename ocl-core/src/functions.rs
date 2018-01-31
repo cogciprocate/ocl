@@ -1669,10 +1669,7 @@ pub fn create_program_with_binary<C, D>(
     let mut binary_status: Vec<i32> = iter::repeat(0).take(devices.len()).collect();
     let mut errcode: cl_int = 0;
 
-    let mut ptrs = Vec::new();
-    for b in binaries {
-        ptrs.push(b.as_ptr() as *const u8);
-    }
+    let ptrs = binaries.iter().map(|bin| bin.as_ptr()).collect::<Vec<_>>();
 
     let program = unsafe { ffi::clCreateProgramWithBinary(
         context.as_ptr(),
