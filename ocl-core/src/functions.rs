@@ -1669,12 +1669,14 @@ pub fn create_program_with_binary<C, D>(
     let mut binary_status: Vec<i32> = iter::repeat(0).take(devices.len()).collect();
     let mut errcode: cl_int = 0;
 
+    let ptrs = binaries.iter().map(|bin| bin.as_ptr()).collect::<Vec<_>>();
+
     let program = unsafe { ffi::clCreateProgramWithBinary(
         context.as_ptr(),
         devices.len() as u32,
         devices.as_ptr() as *const _ as *const cl_device_id,
         lengths.as_ptr(),
-        binaries.as_ptr() as *const *const u8,
+        ptrs.as_ptr() as *const *const u8,
         binary_status.as_mut_ptr(),
         &mut errcode,
     ) };
@@ -1891,7 +1893,7 @@ fn get_program_info_binaries(program: &Program) -> OclCoreResult<Vec<Vec<u8>>> {
     let errcode = unsafe { ffi::clGetProgramInfo(
         program.as_ptr() as cl_program,
         ProgramInfo::Binaries as cl_program_info,
-        mem::size_of::<usize>(),
+        mem::size_of::<*mut c_void>() * binary_ptrs.len(),
         binary_ptrs.as_mut_ptr() as *mut _ as *mut c_void,
         0 as *mut size_t,
     ) };

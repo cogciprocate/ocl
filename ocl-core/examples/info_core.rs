@@ -10,7 +10,7 @@ use core::{PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, Ima
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
     EventInfo, ProfilingInfo, ContextProperties, PlatformId, DeviceId, ImageFormat,
     ImageDescriptor, MemObjectType, AddressingMode, FilterMode, Event, ContextInfoResult,
-    KernelArg};
+    KernelArg, Status};
 
 const DIMS: [usize; 3] = [1024, 64, 16];
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -26,7 +26,12 @@ macro_rules! to_string {
     ( $ expr : expr ) => {
         match $expr {
             Ok(info) => info.to_string(),
-            Err(err) => err.to_string(),
+            Err(err) => {
+                match err.api_status() {
+                    Some(Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE) => "Not available".into(),
+                    _ => err.to_string(),
+                }
+            },
         }
     };
 }
@@ -426,7 +431,8 @@ fn print_platform_device(plat_idx: usize, platform: PlatformId, device_idx: usiz
         to_string!(core::get_program_info(&program, ProgramInfo::Devices)),
         to_string!(core::get_program_info(&program, ProgramInfo::Source)),
         to_string!(core::get_program_info(&program, ProgramInfo::BinarySizes)),
-        to_string!(core::get_program_info(&program, ProgramInfo::Binaries)),
+        to_string!(core::get_program_info(&program, ProgramInfo::Binaries)
+            .map(|_| "{Omitted}")),
         to_string!(core::get_program_info(&program, ProgramInfo::NumKernels)),
         to_string!(core::get_program_info(&program, ProgramInfo::KernelNames)),
         b = begin, d = delim, e = end,

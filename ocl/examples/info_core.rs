@@ -7,7 +7,7 @@ extern crate ocl;
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo,
     CommandQueueInfo, MemInfo, ImageInfo, SamplerInfo, ProgramInfo,
     ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
-    EventInfo, ProfilingInfo};
+    EventInfo, ProfilingInfo, Status};
 use ocl::{Platform, Device, Context, Queue, Buffer, Image, Sampler, Program,
     Kernel, Event, EventList, SpatialDims};
 
@@ -25,10 +25,16 @@ macro_rules! to_string {
     ( $ expr : expr ) => {
         match $expr {
             Ok(info) => info.to_string(),
-            Err(err) => err.to_string(),
+            Err(err) => {
+                match err.api_status() {
+                    Some(Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE) => "Not available".into(),
+                    _ => err.to_string(),
+                }
+            },
         }
     };
 }
+
 
 fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         device: Device) -> ocl::Result<()> {
@@ -416,8 +422,8 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         to_string!(core::get_program_info(&program, ProgramInfo::NumDevices)),
         to_string!(core::get_program_info(&program, ProgramInfo::Devices)),
         to_string!(core::get_program_info(&program, ProgramInfo::Source)),
-        to_string!(core::get_program_info(&program, ProgramInfo::BinarySizes)),
-        "{{unprintable}}",
+        to_string!(core::get_program_info(&program, ProgramInfo::BinarySizes)
+            .map(|_| "{Omitted}")),
         to_string!(core::get_program_info(&program, ProgramInfo::NumKernels)),
         to_string!(core::get_program_info(&program, ProgramInfo::KernelNames)),
         b = begin, d = delim, e = end,
