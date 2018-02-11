@@ -102,7 +102,7 @@ fn trivial_exploded() -> ocl::Result<()> {
     // (1) Define which platform and device(s) to use. Create a context,
     // queue, and program then define some dims (compare to step 1 above).
     let platform = Platform::default();
-    let device = Device::first(platform)?;
+    let device = Device::first(platform);
     let context = Context::builder()
         .platform(platform)
         .devices(device.clone())
@@ -123,7 +123,7 @@ fn trivial_exploded() -> ocl::Result<()> {
     let buffer = Buffer::<f32>::builder()
         .queue(queue.clone())
         .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
-        .len(dims)
+        .dims(dims)
         .host_data(&vec)
         .build()?;
 
