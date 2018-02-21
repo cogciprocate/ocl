@@ -12,18 +12,20 @@ Breaking Changes
   features. If you experience any breakages which are not obvious how to fix,
   please file an issue so that more instruction can be added here.
   * The top level `ocl` crate now has it's own `Error` type, distinct from
-    `ocl-core::Error`.
+    `ocl_core::Error`.
   * `ocl::async::Error` has been removed.
 * `Platform::first` has had its `ignore_env_var` argument removed. If you
-  previously called `Platform::first(false)` in order to respect the
-  `OCL_DEFAULT_PLATFORM_IDX` environment variable, you will now want to use
+  previously called `Platform::first(false)` (to respect the
+  `OCL_DEFAULT_PLATFORM_IDX` environment variable) you will now want to use
   `Platform::default` instead. If you previously called
-  `Platform::first(true)` you will now simply use `Platform::first`.
+  `platform.first(true)` you will now simply use `platform.first()`.
+
 * `Buffer`  now uses a linear `usize` rather than a multi-dimensional
   `SpatialDims` to store its size.
   * `Buffer::new` has had its `dims` argument renamed to `len`.
   * `Buffer::dims` has been renamed to `::len`.
   * `BufferBuilder::dims` has been renamed to `::len`.
+
 * Many types have had their `::core` methods renamed to `::as_core`.
 * `EventList` and `EventArray` have had their `::push_some` methods removed.
 * `RwVec::len` has been renamed to `::len_stale` to clarify that the value
