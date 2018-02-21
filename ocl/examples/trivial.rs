@@ -31,10 +31,10 @@ fn trivial() -> ocl::Result<()> {
 
 /// Expanded version with explanations.
 ///
-/// All four functions in this example are identical in all but appearance.
+/// All four functions in this example are functionally identical.
 ///
-/// Continue along to the next few functions after this to see a little bit
-/// more about what's going on under the hood.
+/// Continue along to `::trivial_exploded` and `::trivial_cored` to see what's
+/// going on under the hood.
 ///
 #[allow(dead_code)]
 fn trivial_explained() -> ocl::Result<()> {
@@ -72,26 +72,23 @@ fn trivial_explained() -> ocl::Result<()> {
 }
 
 
-/// Exploded version! Boom.
+/// Exploded version. Boom!
 ///
-/// What you saw above uses `ProQue` and other abstractions to greatly reduce
-/// the amount of boilerplate and configuration necessary to do basic stuff.
-/// Many tasks will require some more configuration and will necessitate
-/// either doing away with `ProQue` all together or building it piece by
-/// piece.
+/// The functions above use `ProQue` and other abstractions to greatly reduce
+/// the amount of boilerplate and configuration necessary to do basic work.
+/// Many tasks, however, will require more configuration and will necessitate
+/// doing away with `ProQue` altogether. Enqueuing kernels and reading/writing
+/// from buffers and images usually requires a more explicit interface.
 ///
-/// Queuing commands for kernels or to read/write from buffers and images also
-/// generally requires some more control.
-///
-/// The following function performs the exact same steps that the above did,
-/// with many of the convenience abstractions peeled away.
+/// The following function performs the exact same steps that the above
+/// functions did, with many of the convenience abstractions peeled away.
 ///
 /// See the function below this to take things a step deeper...
 ///
 #[allow(dead_code)]
 fn trivial_exploded() -> ocl::Result<()> {
     use ocl::{flags, Platform, Device, Context, Queue, Program,
-        Buffer, Kernel, /*Event, EventList*/};
+        Buffer, Kernel};
 
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {
