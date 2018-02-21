@@ -1,4 +1,4 @@
-Version 0.17.0 (UNRELEASED)
+Version 0.17.0 (2018-02-20)
 ===========================
 
 * The [ocl-interop] crate has been added to the project. This crate provides

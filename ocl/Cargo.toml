@@ -1,8 +1,11 @@
 [package]
 name = "ocl"
-# [Reminder]: Bump `html_root_url` in `src/lib.rs`.
-# [Reminder]: Bump version in `README.md`.
-version = "0.16.0"
+
+# [REMINDER]: Bump `html_root_url` in `src/lib.rs`.
+# [REMINDER]: Bump version in `README.md`.
+# [REMINDER]: Set version and date in `RELEASES.md`.
+version = "0.17.0"
+
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."
 documentation = "https://docs.rs/ocl"
