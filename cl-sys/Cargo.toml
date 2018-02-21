@@ -1,6 +1,6 @@
 [package]
 name = "cl-sys"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL FFI bindings."
 documentation = "https://docs.rs/cl-sys/"
