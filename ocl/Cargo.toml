@@ -52,7 +52,7 @@ failure = "0.1"
 num-traits = "0.1"
 futures = "0.1"
 qutex = "0.2"
-ocl-core = { version = "~0.7.0", path = "../ocl-core" }
+ocl-core = { version = "~0.8.0", path = "../ocl-core" }
 
 [dev-dependencies]
 find_folder = "0.3"

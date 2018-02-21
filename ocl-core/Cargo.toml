@@ -1,6 +1,6 @@
 [package]
 name = "ocl-core"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "A low-level OpenCL API."
 documentation = "https://docs.rs/ocl-core/"
