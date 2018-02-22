@@ -212,7 +212,7 @@ impl<'k> KernelCmd<'k> {
 //
 // * TODO: Add more details, examples, etc.
 // * TODO: Add information about panics and errors.
-// * TODO: Finish arg info formatting.
+// * TODO: Finish argument info formatting.
 //
 // * TODO: Consider switching to option 1 above since sending kernels between
 //   threads is not entirely safe anyway.
@@ -961,7 +961,7 @@ pub mod arg_type {
         Unknown,
     }
 
-    /// The cartinality of an OpenCL primitive.
+    /// The cardinality of an OpenCL primitive.
     ///
     /// (ex. `float4`: 4)
     #[derive(Clone, Debug, Copy, PartialEq, Eq)]
