@@ -33,12 +33,14 @@ fn basics() -> ocl::Result<()> {
     // Create a temporary init vector and the source buffer. Initialize them
     // with random floats between 0.0 and 20.0:
     let vec_source = ocl_extras::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
-    let source_buffer = Buffer::builder()
-        .queue(ocl_pq.queue().clone())
-        .flags(MemFlags::new().read_write().copy_host_ptr())
-        .len(WORK_SIZE)
-        .host_data(&vec_source)
-        .build()?;
+    let source_buffer = unsafe {
+        Buffer::builder()
+            .queue(ocl_pq.queue().clone())
+            .flags(MemFlags::new().read_write().copy_host_ptr())
+            .len(WORK_SIZE)
+            .host_data(&vec_source)
+            .build()?
+    };
 
     // Create an empty vec and buffer (the quick way) for results. Note that
     // there is no need to initialize the buffer as we did above because we
@@ -48,12 +50,13 @@ fn basics() -> ocl::Result<()> {
     let result_buffer: Buffer<f32> = ocl_pq.create_buffer()?;
 
     // Create a kernel with arguments corresponding to those in the kernel:
-    let kern = ocl_pq.create_kernel("multiply_by_scalar")?
-        .arg_scl(COEFF)
-        .arg_buf(&source_buffer)
-        .arg_buf(&result_buffer);
+    let kern = ocl_pq.kernel_builder("multiply_by_scalar")
+        .arg(&COEFF)
+        .arg(&source_buffer)
+        .arg(&result_buffer)
+        .build()?;
 
-    println!("Kernel global work size: {:?}", kern.get_gws());
+    println!("Kernel global work size: {:?}", kern.default_global_work_size());
 
     // Enqueue kernel:
     unsafe { kern.enq()?; }

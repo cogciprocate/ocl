@@ -22,10 +22,11 @@ fn kernel_arg_ptr_out_of_scope() {
         .dims([1024])
         .build().unwrap();
 
-    let mut kernel = pro_que.create_kernel("add").unwrap()
+    let mut kernel = pro_que.kernel_builder("add")
         // Being redundant with type ascription for testing purposes:
-        .arg_buf_named::<f32, Buffer<f32>>("buf", None::<Buffer<f32>>)
-        .arg_scl(10.0f32);
+        .arg_buf_named::<f32, Buffer<f32>>("buf", None::<&Buffer<f32>>)
+        .arg_scl(&10.0f32)
+        .build().unwrap();
 
     set_arg(&mut kernel, &pro_que);
     let throwaway_vec = vec![99usize; 1 << 24];

@@ -101,15 +101,17 @@ fn event_callbacks() -> ocl::Result<()> {
     // Create source and result buffers (our data containers):
     // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
     let seed_vec = ocl_extras::scrambled_vec((0u32, 500u32), dataset_len);
-    let seed_buffer = Buffer::builder()
-        .queue(ocl_pq.queue().clone())
-        .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-        .len(dataset_len)
-        .host_data(&seed_vec)
-        .build()?;
+    let seed_buffer = unsafe {
+        Buffer::builder()
+            .queue(ocl_pq.queue().clone())
+            .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
+            .len(dataset_len)
+            .host_data(&seed_vec)
+            .build()?
+    };
 
     let mut result_vec = vec![0; dataset_len];
-    let mut result_buffer = Buffer::<u32>::builder()
+    let result_buffer = Buffer::<u32>::builder()
         .queue(ocl_pq.queue().clone())
         .len(dataset_len)
         .build()?;
@@ -118,11 +120,12 @@ fn event_callbacks() -> ocl::Result<()> {
     let addend = 11u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.create_kernel("add_scalar")?
-        .gws(dataset_len)
+    let mut kernel = ocl_pq.kernel_builder("add_scalar")
+        .global_work_size(dataset_len)
         .arg_buf_named("src", Some(&seed_buffer))
-        .arg_scl(addend)
-        .arg_buf(&mut result_buffer);
+        .arg(&addend)
+        .arg(&result_buffer)
+        .build()?;
 
     // Create event list:
     let mut kernel_event = EventList::new();
@@ -149,7 +152,8 @@ fn event_callbacks() -> ocl::Result<()> {
         // Yes, this is far from optimal...
         // Should just copy the values in the first place but whatever.
         if itr != 0 {
-            kernel.set_arg_buf_named("src", Some(&result_buffer))?;
+            // kernel.set_arg_buf_named("src", Some(&result_buffer))?;
+            kernel.set_arg("src", &result_buffer)?;
         }
 
         if PRINT_DEBUG { println!("Enqueuing kernel [itr:{}]...", itr); }

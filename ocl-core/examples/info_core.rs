@@ -10,7 +10,7 @@ use core::{PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, Ima
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
     EventInfo, ProfilingInfo, ContextProperties, PlatformId, DeviceId, ImageFormat,
     ImageDescriptor, MemObjectType, AddressingMode, FilterMode, Event, ContextInfoResult,
-    KernelArg, Status};
+    ArgVal, Status};
 
 const DIMS: [usize; 3] = [1024, 64, 16];
 const INFO_FORMAT_MULTILINE: bool = true;
@@ -57,8 +57,8 @@ fn print_platform_device(plat_idx: usize, platform: PlatformId, device_idx: usiz
 
     let sampler = core::create_sampler(&context, false, AddressingMode::None, FilterMode::Nearest)?;
     let kernel = core::create_kernel(&program, "multiply")?;
-    core::set_kernel_arg(&kernel, 0, KernelArg::Scalar(10.0f32))?;
-    core::set_kernel_arg::<usize>(&kernel, 1, KernelArg::Mem(&buffer))?;
+    core::set_kernel_arg(&kernel, 0, ArgVal::scalar(&10.0f32))?;
+    core::set_kernel_arg(&kernel, 1, ArgVal::mem(&buffer))?;
 
     unsafe {
         core::enqueue_kernel(&queue, &kernel, DIMS.len() as u32, None, &DIMS, None,

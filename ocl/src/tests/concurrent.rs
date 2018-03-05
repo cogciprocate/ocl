@@ -123,11 +123,14 @@ fn main_from_example() -> OclResult<()> {
                         .build().unwrap();
                     let mut vec = vec![0.0f32; buffer.len()];
 
-                    let mut kernel = Kernel::new("add", &program_th).unwrap()
+                    let mut kernel = Kernel::builder()
+                        .program(&program_th)
+                        .name("add")
                         .queue(queueball_th[0].clone())
-                        .gws(&dims_th)
+                        .global_work_size(&dims_th)
                         .arg_buf(&buffer)
-                        .arg_scl(1000.0f32);
+                        .arg_scl(&1000.0f32)
+                        .build().unwrap();
 
                     // Event list isn't really necessary here but hey.
                     let mut event_list = EventList::new();

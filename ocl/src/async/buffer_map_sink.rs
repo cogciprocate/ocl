@@ -99,7 +99,7 @@ impl<T> DerefMut for SinkMapGuard<T> where T: OclPrm {
     }
 }
 
-impl<T: OclPrm> AsMem<T> for SinkMapGuard<T> {
+impl<T: OclPrm> AsMem for SinkMapGuard<T> {
     fn as_mem(&self) -> &MemCore {
         self.mem_map.as_mem()
     }

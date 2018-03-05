@@ -15,9 +15,10 @@ fn clear_completed() {
 
     let buffer = pro_que.create_buffer::<f32>().unwrap();
 
-    let kernel = pro_que.create_kernel("add").unwrap()
+    let kernel = pro_que.kernel_builder("add")
         .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+        .arg_scl(&10.0f32)
+        .build().unwrap();
 
     let mut event_list = EventList::new();
 

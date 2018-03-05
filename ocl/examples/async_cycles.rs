@@ -474,11 +474,14 @@ pub fn async_cycles() -> OclResult<()> {
         .src(KERN_SRC)
         .build(&context)?;
 
-    let kern = Kernel::new("add_slowly", &program)?
-        .gws(WORK_SIZE)
+    let kern = Kernel::builder()
+        .name("add_slowly")
+        .program(&program)
+        .global_work_size(WORK_SIZE)
         .arg_buf(&src_buf)
-        .arg_scl(SCALAR_ADDEND)
-        .arg_buf(&dst_buf);
+        .arg_scl(&SCALAR_ADDEND)
+        .arg_buf(&dst_buf)
+        .build()?;
 
     // A lockable vector for non-map reads.
     let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); WORK_SIZE]);

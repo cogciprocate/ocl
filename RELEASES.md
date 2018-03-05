@@ -1,3 +1,86 @@
+
+Version 0.18.0 (UNRELEASED)
+===========================
+
+[`Kernel`] has received a much-needed makeover. Creating a kernel is not
+exactly like creating other types of objects due to the fact that arguments
+are specified in advance and that they contain typed data. Because of this,
+the original design became a quirky mixture of builder-style and normal
+methods intended to be as versatile as possible.
+
+To further complicate matters, the issue of if and when `Kernel` could be
+cloned and/or sent between threads was an unsolved problem, potentially
+allowing unsafety (race conditions) to occur when setting arguments from
+multiple threads.
+
+The original design has been thrown out and a new streamlined design has been
+adopted. Many rough spots have been smoothed out and potential invalid uses
+have been eliminated.
+
+* `KernelBuilder` has been added. All kernels must now be created using a builder.
+* `KernelBuilder::arg` and `Kernel::set_arg` have been added. They can be used
+  to set `Buffer`, `Image`, scalar, or vector values.
+  * For now, arguments can be specified using any of the old methods, though
+    it is possible that `::arg_buf`, `::arg_img`, `::arg_scl`, and `::arg_vec`
+    (plus all of the the `set_*` variations) may be deprecated in favor of
+    `::arg` (and `::set_arg`) at some point in the future.
+  * `::set_arg` can be used to set arguments by numeric index *or* by name.
+* `ProQue::buffer_builder` has been added and can be used to obtain a
+  `BufferBuilder` with pre-configured length and default queue.
+* `ProQue::kernel_builder` has also been added (see below).
+
+Breaking Changes
+----------------
+* [`Kernel`][kernel-0.18.0] has been completely redesigned:
+  * `Kernel::new` has been removed. Create a kernel with `Kernel::builder` or
+    `KernelBuilder::new`. All setup parameters such as the kernel name,
+    program, work sizes, and arguments are now configured using the builder.
+  * Scalar or vector primitive argument values must now be specified as
+    references. Example: `.arg_scl(100f32)` --> `::arg_scl(&100f32)` or
+      `::arg(&100f32)`.
+  * `Kernel` no longer implements `Clone`. Instead, the `KernelBuilder` can be
+    cloned or re-used (and sent between threads) to create multiple identical
+    or near-identical kernels. Wrap `Kernel` with an `Arc` or `Rc` for more
+    elaborate uses. (Use a `Mutex` or `RefCell` if mutability is required for
+    changing defaults and/or buffer or image argument values).
+  * `::gwo`, `::gws`, and `::lws` have been deprecated and should be replaced
+    by `::global_work_offset`, `::global_work_size`, and `::local_work_size`
+    respectively.
+  * `set_arg_***_named` methods no longer return a self reference.
+* `KernelCmd::gwo`, `::gws`, and `::lws` have been deprecated and should be
+  replaced by `::global_work_offset`, `::global_work_size`, and
+  `::local_work_size` respectively.
+* `ProQue::create_kernel` has been removed and replaced with
+  `ProQue::kernel_builder` which can be used to return a new `KernelBuilder`
+  with pre-configured name, program, default queue, and global work size.
+* `BufferBuilder::host_data` is now marked unsafe. Using
+  `flags::MEM_USE_HOST_PTR` when creating a buffer can create undefined
+  behavior.
+
+[FIXME]:
+* (core) `set_kernel_arg` (type sig.).
+* (core) `KernelArg` -> `ArgVal`.
+
+
+TODO:
+* Talk about new error types.
+* Finish update instructions.
+* Sort out the `BufferBuilder::host_data`/`::flags` situation. Possibly create
+  separate methods, `use_host_ptr` and `copy_host_slice`.
+
+
+### Update Instructions
+
+[FIXME]:
+* `create_kernel\(([^\)]+)\)` -> `kernel_builder(\1)`
+* Talk about kernel cloning/sending and Arc-Mutex/Rc-RefCell
+
+
+
+
+[kernel-0.18.0]: https://docs.rs/ocl/0.18.0/ocl/struct.Kernel.html
+
+
 Version 0.17.0 (2018-02-20)
 ===========================
 
@@ -20,7 +103,7 @@ Breaking Changes
   `Platform::default` instead. If you previously called
   `platform.first(true)` you will now simply use `platform.first()`.
 
-* `Buffer`  now uses a linear `usize` rather than a multi-dimensional
+* `Buffer` now uses a linear `usize` rather than a multi-dimensional
   `SpatialDims` to store its size.
   * `Buffer::new` has had its `dims` argument renamed to `len`.
   * `Buffer::dims` has been renamed to `::len`.

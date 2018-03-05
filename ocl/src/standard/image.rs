@@ -860,7 +860,7 @@ impl<T: OclPrm> Image<T> {
     // #[inline]
     // pub fn copy<'c, M>(&'c self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
     //         -> BufferCmd<'c, T>
-    //         where M: AsMem<T>
+    //         where M: AsMem
     // {
     //     self.cmd().copy(dst_buffer, dst_offset, len)
     // }

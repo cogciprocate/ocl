@@ -301,12 +301,15 @@ fn create_simple_task(task_id: usize, device: Device, context: &Context,
         .src(gen_kern_src("kern", "float4", true, true))
         .build(context).unwrap();
 
-    let kern = Kernel::new("kern", &program).unwrap()
+    let kern = Kernel::builder()
+        .program(&program)
+        .name("kern")
         .queue(queues[2].clone())
-        .gws(work_size)
+        .global_work_size(work_size)
         .arg_buf(buf_pool.get(write_buf_id).unwrap())
-        .arg_vec(Float4::new(100., 100., 100., 100.))
-        .arg_buf(buf_pool.get(read_buf_id).unwrap());
+        .arg_vec(&Float4::new(100., 100., 100., 100.))
+        .arg_buf(buf_pool.get(read_buf_id).unwrap())
+        .build().unwrap();
 
     // (0) Initial write to device:
     assert!(task.add_write_command(write_buf_id).unwrap() == 0);
@@ -450,28 +453,37 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
         .src(gen_kern_src("kernel_c", "float4", true, kern_c_sign))
         .build(context).unwrap();
 
-    let kernel_a = Kernel::new("kernel_a", &program).unwrap()
+    let kernel_a = Kernel::builder()
+        .program(&program)
+        .name("kernel_a")
         .queue(queues[7].clone())
-        .gws(work_size)
+        .global_work_size(work_size)
         .arg_buf(buf_pool.get(buffer_ids[0]).unwrap())
-        .arg_vec(Float4::new(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
-        .arg_buf(buf_pool.get(buffer_ids[1]).unwrap());
+        .arg_vec(&Float4::new(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
+        .arg_buf(buf_pool.get(buffer_ids[1]).unwrap())
+        .build().unwrap();
 
-    let kernel_b = Kernel::new("kernel_b", &program).unwrap()
+    let kernel_b = Kernel::builder()
+        .program(&program)
+        .name("kernel_b")
         .queue(queues[7].clone())
-        .gws(work_size)
+        .global_work_size(work_size)
         .arg_buf(buf_pool.get(buffer_ids[2]).unwrap())
         .arg_buf(buf_pool.get(buffer_ids[3]).unwrap())
         .arg_buf(buf_pool.get(buffer_ids[4]).unwrap())
-        .arg_vec(Float4::new(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
-        .arg_buf(buf_pool.get(buffer_ids[5]).unwrap());
-
-    let kernel_c = Kernel::new("kernel_c", &program).unwrap()
-        .queue(queues[7].clone())
-        .gws(work_size)
+        .arg_vec(&Float4::new(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
         .arg_buf(buf_pool.get(buffer_ids[5]).unwrap())
-        .arg_vec(Float4::new(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
-        .arg_buf(buf_pool.get(buffer_ids[6]).unwrap());
+        .build().unwrap();
+
+    let kernel_c = Kernel::builder()
+        .program(&program)
+        .name("kernel_c")
+        .queue(queues[7].clone())
+        .global_work_size(work_size)
+        .arg_buf(buf_pool.get(buffer_ids[5]).unwrap())
+        .arg_vec(&Float4::new(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
+        .arg_buf(buf_pool.get(buffer_ids[6]).unwrap())
+        .build().unwrap();
 
     // (0) Initially write 500s:
     assert!(task.add_write_command(buffer_ids[0]).unwrap() == 0);

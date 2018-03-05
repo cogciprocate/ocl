@@ -72,17 +72,18 @@ fn image_ops() {
         .queue(proque.queue().clone())
         .build().unwrap();
 
-    let kernel_add = proque.create_kernel("add").unwrap()
-        // .gws(DIMS)
+    let kernel_add = proque.kernel_builder("add")
         .arg_smp(&sampler)
-        .arg_vec(ADDEND)
+        .arg_vec(&ADDEND)
         .arg_img(&img_src)
-        .arg_img(&img_dst);
+        .arg_img(&img_dst)
+        .build().unwrap();
 
-    let mut kernel_fill_src = proque.create_kernel("fill").unwrap()
+    let mut kernel_fill_src = proque.kernel_builder("fill")
         .arg_smp(&sampler)
-        .arg_vec_named::<Int4>("pixel", None)
-        .arg_img(&img_src);
+        .arg_vec_named::<Int4>("pixel", &Int4::splat(0))
+        .arg_img(&img_src)
+        .build().unwrap();
 
     //========================================================================
     //========================================================================
@@ -92,7 +93,7 @@ fn image_ops() {
     // Make sure that pro_que's dims are correct:
     let dims = proque.dims().to_lens().unwrap();
     assert_eq!(DIMS, dims);
-    assert_eq!(DIMS, kernel_add.get_gws().to_lens().unwrap());
+    assert_eq!(DIMS, kernel_add.default_global_work_size().to_lens().unwrap());
 
     // Verify image and vector lengths:
     let len = proque.dims().to_len();
@@ -163,7 +164,8 @@ fn image_ops() {
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
         let cur_pixel = Int4::new(cur_val, cur_val, cur_val, cur_val);
         unsafe {
-            kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+            kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap();
+            kernel_fill_src.enq().expect("[FIXME]: HANDLE ME!");
         }
 
         core::enqueue_copy_image::<_, _>(proque.queue(), &img_src, &img_dst,
@@ -207,7 +209,8 @@ fn image_ops() {
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
         let cur_pixel = Int4::new(cur_val, cur_val, cur_val, cur_val);
         unsafe {
-            kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+            kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap();
+            kernel_fill_src.enq().expect("[FIXME]: HANDLE ME!");
         }
 
         img_src.cmd().copy(&img_dst, origin).enq().unwrap();

@@ -133,7 +133,8 @@ pub mod builders {
 
     pub use standard::{ContextBuilder, BuildOpt, ProgramBuilder, ImageBuilder, ProQueBuilder,
         DeviceSpecifier, BufferCmdKind, BufferCmdDataShape, BufferCmd, BufferReadCmd,
-        BufferWriteCmd, BufferMapCmd, ImageCmdKind, ImageCmd, KernelCmd, BufferBuilder};
+        BufferWriteCmd, BufferMapCmd, ImageCmdKind, ImageCmd, KernelCmd, BufferBuilder,
+        KernelBuilder};
     pub use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
     pub use core::{ImageFormat, ImageDescriptor, ContextProperties};
     // #[cfg(not(release))] pub use standard::BufferTest;
@@ -189,7 +190,7 @@ pub mod enums {
         CommandExecutionStatus, BufferCreateType, ProfilingInfo};
 
     // Custom enums.
-    pub use core::{KernelArg, ContextPropertyValue, PlatformInfoResult, DeviceInfoResult,
+    pub use core::{ArgVal, ContextPropertyValue, PlatformInfoResult, DeviceInfoResult,
         ContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult,
         SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult,
         KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};

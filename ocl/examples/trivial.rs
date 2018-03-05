@@ -15,9 +15,10 @@ fn trivial() -> ocl::Result<()> {
 
     let buffer = pro_que.create_buffer::<f32>()?;
 
-    let kernel = pro_que.create_kernel("add")?
-        .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+    let kernel = pro_que.kernel_builder("add")
+        .arg(&buffer)
+        .arg(&10.0f32)
+        .build()?;
 
     unsafe { kernel.enq()?; }
 
@@ -55,9 +56,10 @@ fn trivial_explained() -> ocl::Result<()> {
     let buffer = pro_que.create_buffer::<f32>()?;
 
     // (3) Create a kernel with arguments matching those in the source above:
-    let kernel = pro_que.create_kernel("add")?
-        .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+    let kernel = pro_que.kernel_builder("add")
+        .arg(&buffer)
+        .arg(&10.0f32)
+        .build()?;
 
     // (4) Run the kernel:
     unsafe { kernel.enq()?; }
@@ -116,32 +118,35 @@ fn trivial_exploded() -> ocl::Result<()> {
     // it up into a single struct makes passing it around simpler.
 
     // (2) Create a `Buffer`:
-    let mut vec = vec![0.0f32; dims];
     let buffer = Buffer::<f32>::builder()
         .queue(queue.clone())
-        .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
+        .flags(flags::MEM_READ_WRITE)
         .len(dims)
-        .host_data(&vec)
+        .fill_val(0f32)
         .build()?;
 
     // (3) Create a kernel with arguments matching those in the source above:
-    let kernel = Kernel::new("add", &program)?
+    let kernel = Kernel::builder()
+        .program(&program)
+        .name("add")
         .queue(queue.clone())
-        .gws(dims)
-        .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+        .global_work_size(dims)
+        .arg(&buffer)
+        .arg(&10.0f32)
+        .build()?;
 
     // (4) Run the kernel (default parameters shown for demonstration purposes):
     unsafe {
         kernel.cmd()
             .queue(&queue)
-            .gwo(kernel.get_gwo())
-            .gws(dims)
-            .lws(kernel.get_lws())
+            .global_work_offset(kernel.default_global_work_offset())
+            .global_work_size(dims)
+            .local_work_size(kernel.default_local_work_size())
             .enq()?;
     }
 
     // (5) Read results from the device into a vector (`::block` not shown):
+    let mut vec = vec![0.0f32; dims];
     buffer.cmd()
         .queue(&queue)
         .offset(0)
@@ -167,7 +172,7 @@ fn trivial_exploded() -> ocl::Result<()> {
 fn trivial_cored() -> ocl::core::Result<()> {
     use std::ffi::CString;
     use ocl::{core, flags};
-    use ocl::enums::KernelArg;
+    use ocl::enums::ArgVal;
     use ocl::builders::ContextProperties;
 
     let src = r#"
@@ -198,18 +203,16 @@ fn trivial_cored() -> ocl::core::Result<()> {
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = core::create_kernel(&program, "add")?;
-    core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&buffer))?;
-    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(10.0f32))?;
+    core::set_kernel_arg(&kernel, 0, ArgVal::mem(&buffer))?;
+    core::set_kernel_arg(&kernel, 1, ArgVal::scalar(&10.0f32))?;
 
     // (4) Run the kernel:
-    unsafe {
-        core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
-            None, None::<core::Event>, None::<&mut core::Event>)?;
-    }
+    unsafe { core::enqueue_kernel(&queue, &kernel, 1, None, &dims,
+        None, None::<core::Event>, None::<&mut core::Event>)?; }
 
     // (5) Read results from the device into a vector:
     unsafe { core::enqueue_read_buffer(&queue, &buffer, true, 0, &mut vec,
-        None::<core::Event>, None::<&mut core::Event>)? };
+        None::<core::Event>, None::<&mut core::Event>)?; }
 
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);

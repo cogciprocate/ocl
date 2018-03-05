@@ -57,9 +57,10 @@ fn trivial() -> ocl::Result<()> {
 
     let buffer = pro_que.create_buffer::<f32>()?;
 
-    let kernel = pro_que.create_kernel("add")?
-        .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+    let kernel = pro_que.kernel_builder("add")
+        .arg(&buffer)
+        .arg(&10.0f32)
+        .build()?;
 
     unsafe { kernel.enq()?; }
 

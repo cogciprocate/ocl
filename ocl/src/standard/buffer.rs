@@ -1677,10 +1677,14 @@ impl<T: OclPrm> Buffer<T> {
     /// See the [`BufferBuilder`] and [SDK] documentation for argument
     /// details.
     ///
+    /// ### Safety
+    ///
+    /// Incorrectly using flags and/or host_data is unsafe.
+    ///
     /// [`BufferBuilder`]: builders/struct.BufferBuilder.html
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     ///
-    pub fn new<'e, 'o, Q, D>(que_ctx: Q, flags_opt: Option<MemFlags>, len: D,
+    pub unsafe fn new<'e, 'o, Q, D>(que_ctx: Q, flags_opt: Option<MemFlags>, len: D,
             host_data: Option<&[T]>) -> OclResult<Buffer<T>>
             where Q: Into<QueCtx<'o>>, D: Into<SpatialDims> {
         let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
@@ -1832,8 +1836,7 @@ impl<T: OclPrm> Buffer<T> {
     #[inline]
     pub fn copy<'c, M>(&'c self, dst_buffer: &'c M, dst_offset: Option<usize>, len: Option<usize>)
             -> BufferCmd<'c, T>
-            where M: AsMem<T>
-    {
+            where M: AsMem<T> {
         self.cmd().copy(dst_buffer, dst_offset, len)
     }
 
@@ -2123,8 +2126,9 @@ unsafe impl<'a, T> MemCmdAll for &'a mut Buffer<T> where T: OclPrm {}
 
 /// A buffer builder.
 ///
-/// * TODO: Add examples and details. For now see project examples folder.
-///
+// * TODO: Add examples and details. For now see project examples folder.
+// * TODO: Consider converting this to a re-usable builder.
+//
 #[must_use = "builders do nothing unless '::build' is called"]
 #[derive(Debug)]
 pub struct BufferBuilder<'a, T> where T: 'a {
@@ -2237,9 +2241,21 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
     ///
     ///
+    /// ### Safety
+    ///
+    /// If `flags::MEM_USE_HOST_PTR`/`MemFlags::new().use_host_ptr()` is set,
+    /// the caller must ensure that `host_data` lives until the buffer is
+    /// destroyed. The caller must also ensure that only one buffer uses
+    /// `host_data` and that it is not tampered with inappropriately.
+    ///
+    /// Using this method with
+    /// `flags::MEM_COPY_HOST_PTR`/`MemFlags::new().copy_host_ptr()` set is
+    /// safe.
+    ///
+    ///
     /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
     /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub fn host_data<'d>(mut self, host_data: &'d [T]) -> BufferBuilder<'a, T>
+    pub unsafe fn host_data<'d>(mut self, host_data: &'d [T]) -> BufferBuilder<'a, T>
             where 'd: 'a {
         self.host_data = Some(host_data);
         self

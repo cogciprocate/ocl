@@ -92,12 +92,15 @@ pub fn async_process() -> OclResult<()> {
             .src(KERN_SRC)
             .build(&context)?;
 
-        let kern = Kernel::new("add", &program)?
+        let kern = Kernel::builder()
+            .name("add")
+            .program(&program)
             .queue(kern_queue.clone())
-            .gws(work_size)
-            .arg_buf(&write_buf)
-            .arg_vec(Float4::new(100., 100., 100., 100.))
-            .arg_buf(&read_buf);
+            .global_work_size(work_size)
+            .arg(&write_buf)
+            .arg(&Float4::new(100., 100., 100., 100.))
+            .arg(&read_buf)
+            .build()?;
 
         // (0) INIT: Fill buffer with -999's just to ensure the upcoming
         // write misses nothing:

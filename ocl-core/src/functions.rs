@@ -43,7 +43,7 @@ use error::{Error as OclCoreError, Result as OclCoreResult};
 
 use ::{OclPrm, PlatformId, DeviceId, Context, ContextProperties, ContextInfo,
     ContextInfoResult, MemFlags, CommandQueue, Mem, MemObjectType, Program,
-    Kernel, ClNullEventPtr, Sampler, KernelArg, DeviceType, ImageFormat, ImageDescriptor,
+    Kernel, ClNullEventPtr, Sampler, ArgVal, DeviceType, ImageFormat, ImageDescriptor,
     CommandExecutionStatus, AddressingMode, FilterMode, PlatformInfo, PlatformInfoResult,
     DeviceInfo, DeviceInfoResult, CommandQueueInfo, CommandQueueInfoResult, MemInfo, MemInfoResult,
     ImageInfo, ImageInfoResult, SamplerInfo, SamplerInfoResult, ProgramInfo, ProgramInfoResult,
@@ -1991,59 +1991,18 @@ pub unsafe fn release_kernel(kernel: &Kernel) -> OclCoreResult<()> {
 }
 
 
-/// Sets the argument value for a specific argument of a kernel.
+/// Sets the argument value for the kernel argument at `index`.
 ///
 /// [SDK Documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html)
-///
-/// [FIXME: Remove] `kernel_name` is for error reporting and is optional but highly recommended.
-///
-/// TODO: Remove `name` parameter and lookup name with `get_kernel_info` instead.
-pub fn set_kernel_arg<T: OclPrm>(kernel: &Kernel, arg_index: u32, arg: KernelArg<T>,
-        ) -> OclCoreResult<()>
-{
-    // [DEBUG] LEAVE THIS HERE:
-        // println!("SET_KERNEL_ARG: KERNELARG: {:?}", arg);
-    // [/DEBUG]
-
-    let (arg_size, arg_value): (size_t, *const c_void) = match arg {
-        KernelArg::Mem(mem_core_ref) => (
-            mem::size_of::<cl_mem>() as size_t,
-            mem_core_ref as *const _ as *const c_void
-        ),
-        KernelArg::Sampler(smplr_core_ref) => (
-            mem::size_of::<cl_sampler>() as size_t,
-            smplr_core_ref as *const _ as *const c_void
-        ),
-        KernelArg::Scalar(ref scalar) => (
-            mem::size_of::<T>() as size_t,
-            scalar as *const T as *const c_void
-        ),
-        KernelArg::Vector(ref scalar) => (
-            mem::size_of::<T>() as size_t,
-            scalar as *const T as *const c_void
-        ),
-        KernelArg::Local(length) => (
-            (mem::size_of::<T>() * length) as size_t,
-            ptr::null()
-        ),
-        KernelArg::UnsafePointer { size, value } => (size, value),
-        _ => (mem::size_of::<*const c_void>() as size_t, ptr::null()),
-    };
-
-    // [DEBUG] LEAVE THIS HERE:
-        // println!("SET_KERNEL_ARG: KERNEL: {:?}", kernel);
-        // println!("SET_KERNEL_ARG: index: {:?}", arg_index);
-        // println!("SET_KERNEL_ARG: size: {:?}", arg_size);
-        // println!("SET_KERNEL_ARG: value: {:?}", arg_value);
-        // println!("SET_KERNEL_ARG: name: {:?}", name);
-        // print!("\n");
-    // [/DEBUG]
+pub fn set_kernel_arg(kernel: &Kernel, index: u32, arg_val: ArgVal)
+        -> OclCoreResult<()> {
+    let (size, value) = arg_val.as_raw();
 
     let err = unsafe { ffi::clSetKernelArg(
             kernel.as_ptr(),
-            arg_index,
-            arg_size,
-            arg_value,
+            index,
+            size,
+            value,
     ) };
 
     if err != Status::CL_SUCCESS as i32 {

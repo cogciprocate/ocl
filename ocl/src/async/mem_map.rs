@@ -260,7 +260,7 @@ impl<T: OclPrm> AsMem<T> for MemMap<T> {
     }
 }
 
-// impl<'a, T: OclPrm> AsMem<T> for &'a mut MemMap<T> {
+// impl<'a, T: OclPrm> AsMem for &'a mut MemMap<T> {
 //     fn as_mem(&self) -> &MemCore {
 //         self.core.as_mem()
 //     }

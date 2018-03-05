@@ -23,7 +23,7 @@ default = ["opencl_version_1_1", "opencl_version_1_2", "ocl-core-vector"]
 
 [dependencies]
 cl-sys = { version = "~0.4.1", path = "../cl-sys" }
-num-traits = "0.1"
+num-traits = "0.2"
 enum_primitive = "0.1"
 bitflags = "1"
 failure = "0.1"

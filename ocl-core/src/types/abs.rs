@@ -64,8 +64,7 @@ use functions::{self, ApiFunction, VersionKind};
 
 /// `AsRef` with a type being carried along for convenience.
 pub trait AsMem<T>
-        where T: OclPrm
-{
+        where T: OclPrm {
     fn as_mem(&self) -> &Mem;
 }
 
@@ -80,6 +79,23 @@ impl<'a, T, M> AsMem<T> for &'a mut M where T: OclPrm, M: AsMem<T> {
         (**self).as_mem()
     }
 }
+
+// /// Types which can be represented by a `Mem` reference.
+// pub trait AsMem {
+//     fn as_mem(&self) -> &Mem;
+// }
+
+// impl<'a, M> AsMem for &'a M where M: AsMem {
+//     fn as_mem(&self) -> &Mem {
+//         (**self).as_mem()
+//     }
+// }
+
+// impl<'a, M> AsMem for &'a mut M where M: AsMem {
+//     fn as_mem(&self) -> &Mem {
+//         (**self).as_mem()
+//     }
+// }
 
 /// Types which can be passed as the primary (`ptr`) argument value to
 /// `::enqueue_read_buffer`, `::enqueue_write_buffer`,
@@ -692,7 +708,7 @@ impl Drop for Mem {
     }
 }
 
-impl<T> AsMem<T> for Mem where T: OclPrm {
+impl<T: OclPrm> AsMem<T> for Mem {
     #[inline(always)]
     fn as_mem(&self) -> &Mem {
         self
@@ -703,9 +719,13 @@ impl<T> AsMem<T> for Mem where T: OclPrm {
 unsafe impl<'a> MemCmdRw for Mem {}
 unsafe impl<'a> MemCmdRw for &'a Mem {}
 unsafe impl<'a> MemCmdRw for &'a mut Mem {}
+unsafe impl<'a> MemCmdRw for &'a &'a Mem {}
+unsafe impl<'a> MemCmdRw for &'a &'a mut Mem {}
 unsafe impl<'a> MemCmdAll for Mem {}
 unsafe impl<'a> MemCmdAll for &'a Mem {}
 unsafe impl<'a> MemCmdAll for &'a mut Mem {}
+unsafe impl<'a> MemCmdAll for &'a &'a Mem {}
+unsafe impl<'a> MemCmdAll for &'a &'a mut Mem {}
 unsafe impl Sync for Mem {}
 unsafe impl Send for Mem {}
 

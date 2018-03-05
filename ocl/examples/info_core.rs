@@ -55,11 +55,14 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         .queue(queue.clone())
         .build()?;
     let sampler = Sampler::with_defaults(&context)?;
-        let kernel = Kernel::new("multiply", &program)?
+        let kernel = Kernel::builder()
+        .name("multiply")
+        .program(&program)
         .queue(queue.clone())
-        .gws(work_dims)
-        .arg_scl(10.0f32)
-        .arg_buf(&buffer);
+        .global_work_size(work_dims)
+        .arg_scl(&10.0f32)
+        .arg_buf(&buffer)
+        .build()?;
 
     let mut event_list = EventList::new();
     unsafe { kernel.cmd().enew(&mut event_list).enq()?; }

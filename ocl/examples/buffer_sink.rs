@@ -42,11 +42,12 @@ fn buffer_sink() -> ocl::Result<()> {
     let mut vec_result = vec![0i32; WORK_SIZE];
     let result_buffer: Buffer<i32> = ocl_pq.create_buffer()?;
 
-    let kern = ocl_pq.create_kernel("multiply_by_scalar")?
-        .arg_scl(COEFF)
+    let kern = ocl_pq.kernel_builder("multiply_by_scalar")
+        .arg_scl(&COEFF)
         .arg_buf(&source_buffer)
-        .arg_buf(&result_buffer);
-    assert_eq!(kern.get_gws().to_len(), WORK_SIZE);
+        .arg_buf(&result_buffer)
+        .build()?;
+    assert_eq!(kern.default_global_work_size().to_len(), WORK_SIZE);
 
     let buffer_sink = unsafe {
         BufferSink::from_buffer(source_buffer.clone(), Some(ocl_pq.queue().clone()), 0,

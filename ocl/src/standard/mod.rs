@@ -20,10 +20,10 @@ pub use self::device::{DeviceError, Device, DeviceSpecifier};
 pub use self::context::{Context, ContextBuilder};
 pub use self::program::{Program, ProgramBuilder, BuildOpt};
 pub use self::queue::Queue;
-pub use self::kernel::{Kernel, KernelCmd};
+pub use self::kernel::{KernelError, KernelCmd, Kernel, KernelBuilder};
 pub use self::buffer::{BufferCmdKind, BufferCmdDataShape, BufferCmd, Buffer, QueCtx,
     BufferBuilder, BufferReadCmd, BufferWriteCmd, BufferMapCmd, BufferCmdError};
-pub use self::image::{Image, ImageCmd, ImageCmdKind, ImageBuilder};
+pub use self::image::{ImageCmdKind, ImageCmd, Image, ImageBuilder};
 pub use self::sampler::Sampler;
 pub use self::pro_que::{ProQue, ProQueBuilder};
 pub use self::event::{Event, EventArray, EventList, IntoMarker, RawEventArray, IntoRawEventArray};

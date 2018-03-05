@@ -5,7 +5,7 @@
 extern crate ocl_core as core;
 
 use std::ffi::CString;
-use core::{KernelArg, ContextProperties, Event};
+use core::{ArgVal, ContextProperties, Event};
 
 #[allow(dead_code, unused_variables, unused_mut)]
 fn main() {
@@ -37,8 +37,8 @@ fn main() {
 
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = core::create_kernel(&program, "add").unwrap();
-    core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&buffer)).unwrap();
-    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(10.0f32)).unwrap();
+    core::set_kernel_arg(&kernel, 0, ArgVal::mem(&buffer)).unwrap();
+    core::set_kernel_arg(&kernel, 1, ArgVal::scalar(&10.0f32)).unwrap();
 
     unsafe {
         // (4) Run the kernel:

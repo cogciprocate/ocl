@@ -39,8 +39,8 @@ fn buffer_copy_core() {
 
     // Kernel:
     let kernel = ::create_kernel(&program, "add").unwrap();
-    ::set_kernel_arg(&kernel, 0, ::KernelArg::Mem::<f32>(&src_buffer)).unwrap();
-    ::set_kernel_arg(&kernel, 1, ::KernelArg::Scalar(ADDEND)).unwrap();
+    ::set_kernel_arg(&kernel, 0, ::ArgVal::mem(&src_buffer)).unwrap();
+    ::set_kernel_arg(&kernel, 1, ::ArgVal::scalar(&ADDEND)).unwrap();
 
     // Run the kernel:
     unsafe {

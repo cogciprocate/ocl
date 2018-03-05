@@ -4,7 +4,7 @@ use std::ops::Deref;
 use error::{Error as OclError, Result as OclResult};
 use core::{OclPrm, CommandQueueProperties};
 use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
-    MemLen, SpatialDims, WorkDims, DeviceSpecifier};
+    MemLen, SpatialDims, WorkDims, DeviceSpecifier, KernelBuilder, BufferBuilder};
 
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use
     'ProQueBuilder::dims' during creation or 'ProQue::set_dims' after creation to specify.";
@@ -60,8 +60,7 @@ impl ProQue {
     /// cause errors later on.
     ///
     pub fn new<D: Into<SpatialDims>>(context: Context, queue: Queue, program: Program,
-            dims: Option<D>) -> ProQue
-    {
+            dims: Option<D>) -> ProQue {
         ProQue {
             context: context,
             queue: queue,
@@ -70,15 +69,45 @@ impl ProQue {
         }
     }
 
-    /// Creates a kernel with pre-assigned dimensions.
-    pub fn create_kernel(&self, name: &str) -> OclResult<Kernel> {
-        let kernel = Kernel::new(name.to_string(), &self.program)?
-            .queue(self.queue.clone());
+    // /// Creates a kernel with pre-assigned dimensions.
+    // pub fn create_kernel(&self, name: &str) -> OclResult<Kernel> {
+    //     let kernel = Kernel::new(name.to_string(), &self.program)?
+    //         .queue(self.queue.clone());
+    //     match self.dims {
+    //         Some(d) => Ok(kernel.gws(d)),
+    //         None => Ok(kernel),
+    //     }
+    // }
 
-        match self.dims {
-            Some(d) => Ok(kernel.gws(d)),
-            None => Ok(kernel),
+    /// Returns a new `KernelBuilder` with the name, program, default queue,
+    /// and global work size pre-configured.
+    ///
+    /// Use `::arg` to specify arguments and `::build` to build the kernel.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,ignore
+    /// let kernel = pro_que.kernel_builder("add")
+    ///    .arg(&buffer)
+    ///    .arg(&10.0f32)
+    ///    .build()?;
+    /// ```
+    ///
+    /// See [`KernelBuilder`] documentation for more
+    ///
+    /// [`KernelBuilder`]: struct.KernelBuilder.html
+    pub fn kernel_builder<S>(&self, name: S) -> KernelBuilder
+            where S: Into<String> {
+        let mut kb = Kernel::builder();
+        kb.name(name);
+        kb.program(&self.program);
+        kb.queue(self.queue.clone());
+
+        if let Some(d) = self.dims {
+            kb.global_work_size(d);
         }
+
+        kb
     }
 
     /// Returns a new buffer.
@@ -104,6 +133,29 @@ impl ProQue {
             .len(len)
             .fill_val(Default::default())
             .build()
+    }
+
+    /// Returns a new `BufferBuilder` with the default queue and length
+    /// pre-configured.
+    ///
+    /// Use `.fill_val(Default::default())` to fill buffer with zeros.
+    ///
+    /// Use `.build()` to create the buffer.
+    ///
+    /// ### Panics
+    ///
+    /// This `ProQue` must have been pre-configured with default dimensions.
+    /// If not, set them with `::set_dims`, or just create a buffer using
+    /// `Buffer::builder()` instead.
+    ///
+    pub fn buffer_builder<T: OclPrm>(&self) -> BufferBuilder<T> {
+        let len = self.dims_result()
+            .expect("`ProQue` dimensions not specified. Please specify dimensions \
+                using `::set_dims` before calling this method.")
+            .to_len();
+        Buffer::<T>::builder()
+            .queue(self.queue.clone())
+            .len(len)
     }
 
     /// Sets the default dimensions used when creating buffers and kernels.

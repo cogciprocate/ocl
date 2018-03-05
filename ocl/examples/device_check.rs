@@ -436,12 +436,15 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         .src(kern_src)
         .build(context)?;
 
-    let kern = Kernel::new(cfg.kern.name, &program)?
+    let kern = Kernel::builder()
+        .program(&program)
+        .name(cfg.kern.name)
         .queue(kernel_queue)
-        .gws(work_size)
+        .global_work_size(work_size)
         .arg_buf(&source_buf)
-        .arg_scl(cfg.val.addend)
-        .arg_buf(&target_buf);
+        .arg_scl(&cfg.val.addend)
+        .arg_buf(&target_buf)
+        .build()?;
 
 
     let source_vec = if cfg.alloc_source_vec {
@@ -941,12 +944,15 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
         .src(kern_src)
         .build(context)?;
 
-    let kern = Kernel::new(cfg.kern.name, &program)?
+    let kern = Kernel::builder()
+        .program(&program)
+        .name(cfg.kern.name)
         .queue(common_queue.clone())
-        .gws(work_size)
+        .global_work_size(work_size)
         .arg_buf(&src_buf)
-        .arg_scl(cfg.val.addend)
-        .arg_buf(&tar_buf);
+        .arg_scl(&cfg.val.addend)
+        .arg_buf(&tar_buf)
+        .build()?;
 
 
     // A lockable vector for reads and writes:

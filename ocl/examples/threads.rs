@@ -94,11 +94,14 @@ fn threads() -> OclResult<()> {
                         .build()?;
                     let mut vec = vec![0.0f32; buffer.len()];
 
-                    let mut kernel = Kernel::new("add", &program_th)?
+                    let mut kernel = Kernel::builder()
+                        .program(&program_th)
+                        .name("add")
                         .queue(queueball_th[0].clone())
-                        .gws(work_size_th)
+                        .global_work_size(work_size_th)
                         .arg_buf(&buffer)
-                        .arg_scl(1000.0f32);
+                        .arg_scl(&1000.0f32)
+                        .build()?;
 
                     // Event list isn't really necessary here but hey.
                     let mut event_list = EventList::new();

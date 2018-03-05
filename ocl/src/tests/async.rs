@@ -440,11 +440,14 @@ pub fn rw_vec() {
                 .src(KERN_SRC)
                 .build(&context).unwrap();
 
-            let kern = Kernel::new("add_slowly", &program).unwrap()
-                .gws(WORK_SIZE)
+            let kern = Kernel::builder()
+                .program(&program)
+                .name("add_slowly")
+                .global_work_size(WORK_SIZE)
                 .arg_buf(&src_buf)
-                .arg_scl(SCALAR_ADDEND)
-                .arg_buf(&dst_buf);
+                .arg_scl(&SCALAR_ADDEND)
+                .arg_buf(&dst_buf)
+                .build().unwrap();
 
             // A lockable vector for reads and writes:
             let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); WORK_SIZE]);

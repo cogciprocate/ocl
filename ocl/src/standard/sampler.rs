@@ -8,6 +8,7 @@ use error::{Error as OclError, Result as OclResult};
 use standard::Context;
 
 /// An image sampler used to process images.
+#[derive(Clone, Debug)]
 #[repr(C)]
 pub struct Sampler(SamplerCore);
 

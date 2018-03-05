@@ -72,11 +72,14 @@ fn info() -> OclResult<()> {
                 .src(SRC)
                 .devices(device)
                 .build(&context)?;
-            let kernel = Kernel::new("multiply", &program)?
+            let kernel = Kernel::builder()
+                .name("multiply")
+                .program(&program)
                 .queue(queue.clone())
-                .gws(dims)
+                .global_work_size(dims)
                 .arg_buf(&buffer)
-                .arg_scl(10.0f32);
+                .arg_scl(&10.0f32)
+                .build()?;
 
             let mut event_list = EventList::new();
             unsafe { kernel.cmd().enew(&mut event_list).enq()?; }

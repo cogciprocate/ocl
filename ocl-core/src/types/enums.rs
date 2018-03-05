@@ -13,11 +13,11 @@ use std::fmt;
 use failure::Fail;
 use num_traits::FromPrimitive;
 use util;
-use ffi::{cl_image_format, cl_context_properties, size_t, c_void};
+use ffi::{cl_image_format, cl_context_properties, c_void};
 
-use ::{OclPrm, CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo,
+use ::{CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo,
     GlContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
-    Mem, MemInfo, MemObjectType, MemFlags, Sampler, SamplerInfo, AddressingMode, FilterMode,
+    Mem, MemInfo, MemObjectType, MemFlags, SamplerInfo, AddressingMode, FilterMode,
     ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo,
     KernelArgInfo, KernelWorkGroupInfo, KernelArgAddressQualifier, KernelArgAccessQualifier,
     KernelArgTypeQualifier, ImageInfo, ImageFormat, EventInfo, ProfilingInfo, DeviceType,
@@ -70,49 +70,90 @@ impl fmt::Debug for EmptyInfoResultError {
 
 
 
-/// [UNSAFE] Kernel argument option type.
-///
-/// The type argument `T` is ignored for `Mem`, `Sampler`, and `UnsafePointer`
-/// (just put `usize` or anything).
-///
-/// ## Safety
-///
-/// If there was some way for this enum to be marked unsafe it would be.
-///
-/// The `Mem`, `Sampler`, `Scalar`, and `Local` variants are tested and will
-/// work perfectly well.
-///
-/// * `Vector`: The `Vector` variant is poorly tested and probably a bit
-///   platform dependent. Use at your own risk.
-/// * `UnsafePointer`: Really know what you're doing when using the
-///   `UnsafePointer` variant. Setting its properties, `size` and `value`,
-///   incorrectly can cause bugs, crashes, and data integrity issues that are
-///   very hard to track down. This is due to the fact that the pointer value
-///   is intended to be a pointer to a memory structure in YOUR programs
-///   memory, NOT a copy of an OpenCL object pointer (such as a `cl_h::cl_mem`
-///   for example, which is itself a `*mut libc::c_void`). This is made more
-///   complicated by the fact that the pointer can also be a pointer to a
-///   scalar (ex: `*const u32`, etc.). See the [SDK docs] for more details.
-///
-/// [SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
-#[derive(Debug)]
-pub enum KernelArg<'a, T: 'a + OclPrm> {
-    /// Type `T` is ignored.
-    Mem(&'a Mem),
-    /// Type `T` is ignored.
-    MemNull,
-    /// Type `T` is ignored.
-    Sampler(&'a Sampler),
-    /// Type `T` is ignored.
-    SamplerNull,
-    Scalar(T),
-    Vector(T),
-    /// Length in multiples of T (not bytes).
-    Local(&'a usize),
-    /// `size`: size in bytes. Type `T` is ignored.
-    UnsafePointer { size: size_t, value: *const c_void },
-}
+// /// [UNSAFE] Kernel argument option type.
+// ///
+// /// The type argument `T` is ignored for `Mem`, `Sampler`, and `UnsafePointer`
+// /// (just put `usize` or anything).
+// ///
+// /// ## Safety
+// ///
+// /// * `UnsafePointer`: Really know what you're doing when using the
+// ///   `UnsafePointer` variant. Setting its properties, `size` and `value`,
+// ///   incorrectly can cause bugs, crashes, and data integrity issues that are
+// ///   very hard to track down. This is due to the fact that the pointer value
+// ///   is intended to be a pointer to a memory structure in host memory (e.g. a
+// ///   `*const cl_h::cl_mem`), NOT a an OpenCL abstract object pointer directly
+// ///   (e.g. not a `cl_h::cl_mem`). This is made more complicated by the fact
+// ///   that the pointer can also be a pointer to a scalar (ex: `*const u32`,
+// ///   etc.). See the [SDK docs] for more details.
+// ///
+// /// [SDK docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html
+// #[derive(Debug)]
+// pub enum KernelArgOld<'a, T> where T: Debug + Send + Sync + 'static {
+//     /// A bufer or image. Type `T` is ignored.
+//     Mem(&'a Mem),
+//     /// A null buffer or image. Type `T` is ignored.
+//     MemNull,
+//     /// A sampler. Type `T` is ignored.
+//     Sampler(&'a Sampler),
+//     /// A null sampler. Type `T` is ignored.
+//     SamplerNull,
+//     // /// A scalar value.
+//     // Scalar(T),
+//     // /// A vector value.
+//     // Vector(T),
+//     /// A scalar value.
+//     Scalar(&'a T),
+//     /// A vector value.
+//     Vector(&'a T),
+//     // /// A reference to a scalar or vector value.
+//     // Primitive(&'a T),
+//     /// Length in multiples of T (not bytes).
+//     Local(&'a usize),
+//     /// `size`: size in bytes. Type `T` is ignored.
+//     UnsafePointer { size: size_t, value: *const c_void },
+// }
 
+// impl<'a, T> KernelArgOld<'a, T> where T: Debug + Send + Sync + 'static {
+//     pub fn as_raw(&self) -> (size_t, *const c_void) {
+//         match *self {
+//             KernelArgOld::Mem(mem_core_ref) => (
+//                 mem::size_of::<cl_mem>() as size_t,
+//                 mem_core_ref as *const _ as *const c_void,
+//             ),
+//             KernelArgOld::Sampler(smplr_core_ref) => (
+//                 mem::size_of::<cl_sampler>() as size_t,
+//                 smplr_core_ref as *const _ as *const c_void,
+//             ),
+//             // KernelArgOld::Scalar(ref scalar) => (
+//             //     mem::size_of::<T>() as size_t,
+//             //     scalar as *const T as *const c_void
+//             // ),
+//             // KernelArgOld::Vector(ref vector) => (
+//             //     mem::size_of::<T>() as size_t,
+//             //     vector as *const T as *const c_void
+//             // ),
+//             KernelArgOld::Scalar(scalar) => (
+//                 mem::size_of::<T>() as size_t,
+//                 scalar as *const T as *const c_void,
+//             ),
+//             KernelArgOld::Vector(vector) => (
+//                 mem::size_of::<T>() as size_t,
+//                 vector as *const T as *const c_void,
+//             ),
+//             // KernelArgOld::Primitive(prim) => (
+//             //     mem::size_of::<T>() as size_t,
+//             //     prim as *const T as *const c_void
+//             // ),
+//             KernelArgOld::Local(length) => (
+//                 (mem::size_of::<T>() * length) as size_t,
+//                 ptr::null(),
+//             ),
+//             KernelArgOld::UnsafePointer { size, value } => (size, value),
+//             _ => (mem::size_of::<*const c_void>() as size_t, ptr::null()),
+//         }
+//     }
+// }
 
 
 /// Platform info result.

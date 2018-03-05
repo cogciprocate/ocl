@@ -45,16 +45,19 @@ fn buffer_ops_rect() {
     // let buf = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
     //     core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec), None).unwrap();
 
-    let buf = Buffer::builder()
-        .queue(proque.queue().clone())
-        .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-        .len(proque.dims().clone())
-        .host_data(&vec)
-        .build().unwrap();
+    let buf = unsafe {
+        Buffer::builder()
+            .queue(proque.queue().clone())
+            .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
+            .len(proque.dims().clone())
+            .host_data(&vec)
+            .build().unwrap()
+    };
 
-    let kernel_add = proque.create_kernel("add").unwrap()
+    let kernel_add = proque.kernel_builder("add")
         .arg_buf(&buf)
-        .arg_scl(ADDEND);
+        .arg_scl(&ADDEND)
+        .build().unwrap();
 
 
     //========================================================================
@@ -161,9 +164,10 @@ fn buffer_ops_rect() {
     //========================================================================
     // Prepare a kernel which will write a single value to the entire buffer
     // and which can be updated on each run (to act as a 'reset').
-    let mut kernel_eq = proque.create_kernel("eq").unwrap()
+    let mut kernel_eq = proque.kernel_builder("eq")
         .arg_buf_named("buf", Some(&buf))
-        .arg_scl_named("val", Some(0.0f32));
+        .arg_scl_named("val", &0.0f32)
+        .build().unwrap();
 
     // Vector origin doesn't matter for this:
     let vec_origin = [0, 0, 0];
@@ -187,7 +191,8 @@ fn buffer_ops_rect() {
         let cur_val = ADDEND * ttl_runs as f32;
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
         unsafe {
-            kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+            kernel_eq.set_arg_scl_named("val", cur_val).unwrap();
+            kernel_eq.enq().expect("[FIXME]: HANDLE ME!");
         }
 
         // Write `next_val` to all of `vec`. This will be our 'in-region' value:
@@ -215,7 +220,8 @@ fn buffer_ops_rect() {
         let cur_val = ADDEND * ttl_runs as f32;
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
         unsafe {
-            kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+            kernel_eq.set_arg_scl_named("val", cur_val).unwrap();
+            kernel_eq.enq().expect("[FIXME]: HANDLE ME!");
         }
 
         // Write `next_val` to all of `vec`. This will be our 'in-region' value:
@@ -244,12 +250,14 @@ fn buffer_ops_rect() {
     //     proque.dims().to_len().unwrap(), Some(&vec_src), proque.queue()) };
     // let buf_src = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
     //     core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src), None).unwrap();
-    let buf_src = Buffer::builder()
-        .queue(proque.queue().clone())
-        .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-        .len(proque.dims().clone())
-        .host_data(&vec_src)
-        .build().unwrap();
+    let buf_src = unsafe {
+        Buffer::builder()
+            .queue(proque.queue().clone())
+            .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
+            .len(proque.dims().clone())
+            .host_data(&vec_src)
+            .build().unwrap()
+    };
 
     // Destination Buffer:
     let mut vec_dst = vec![0.0f32; proque.dims().to_len()];
@@ -258,12 +266,14 @@ fn buffer_ops_rect() {
     //     proque.dims().to_len().unwrap(), Some(&vec_dst), proque.queue()) };
     // let buf_dst = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
     //     core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_dst), None).unwrap();
-    let buf_dst = Buffer::builder()
-        .queue(proque.queue().clone())
-        .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-        .len(proque.dims().clone())
-        .host_data(&vec_dst)
-        .build().unwrap();
+    let buf_dst = unsafe {
+        Buffer::builder()
+            .queue(proque.queue().clone())
+            .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
+            .len(proque.dims().clone())
+            .host_data(&vec_dst)
+            .build().unwrap()
+    };
 
     // Source origin doesn't matter for this:
     let src_origin = [0, 0, 0];
@@ -293,7 +303,8 @@ fn buffer_ops_rect() {
 
         // Reset destination buffer to current val:
         unsafe {
-            kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+            kernel_eq.set_arg_scl_named("val", cur_val).unwrap();
+            kernel_eq.enq().expect("[FIXME]: HANDLE ME!");
         }
 
         // Set all of `vec_src` to equal the 'next' value. This will be our
@@ -329,7 +340,8 @@ fn buffer_ops_rect() {
 
         // Reset destination buffer to current val:
         unsafe {
-            kernel_eq.set_arg_scl_named("val", cur_val).unwrap().enq().expect("[FIXME]: HANDLE ME!");
+            kernel_eq.set_arg_scl_named("val", cur_val).unwrap();
+            kernel_eq.enq().expect("[FIXME]: HANDLE ME!");
         }
 
         // Set all of `vec_src` to equal the 'next' value. This will be our

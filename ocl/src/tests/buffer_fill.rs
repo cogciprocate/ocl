@@ -27,9 +27,10 @@ fn fill() {
         assert_eq!(ele, 5.0f32);
     }
 
-    let kernel = pro_que.create_kernel("add").unwrap()
+    let kernel = pro_que.kernel_builder("add")
         .arg_buf(&buffer)
-        .arg_scl(10.0f32);
+        .arg_scl(&10.0f32)
+        .build().unwrap();
 
     unsafe { kernel.enq().expect("[FIXME]: HANDLE ME!"); }
 
@@ -73,9 +74,10 @@ fn fill_with_float4() {
         assert_eq!(ele, start_val);
     }
 
-    let kernel = pro_que.create_kernel("add_float4").unwrap()
+    let kernel = pro_que.kernel_builder("add_float4")
         .arg_buf(&buffer)
-        .arg_scl(addend);
+        .arg_scl(&addend)
+        .build().unwrap();
 
     unsafe { kernel.enq().unwrap(); }
 

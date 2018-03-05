@@ -21,8 +21,8 @@ fn kernel<V>(context: &Context, src: &str, buffer: &Mem, addend: V) -> Kernel
 
     // Create kernel:
     let kernel = ::create_kernel(&program, "add").unwrap();
-    ::set_kernel_arg(&kernel, 0, ::KernelArg::Mem::<V>(&buffer)).unwrap();
-    ::set_kernel_arg(&kernel, 1, ::KernelArg::Vector(addend)).unwrap();
+    ::set_kernel_arg(&kernel, 0, ::ArgVal::mem(&buffer)).unwrap();
+    ::set_kernel_arg(&kernel, 1, ::ArgVal::vector(&addend)).unwrap();
 
     kernel
 }

@@ -2,17 +2,119 @@
 
 use std;
 use std::mem;
+use std::ptr;
 use std::marker::PhantomData;
 use std::collections::HashMap;
 use num_traits::FromPrimitive;
 use error::{Error as OclCoreError, Result as OclCoreResult};
-use ffi::{self, cl_mem, cl_buffer_region, cl_context_properties, cl_platform_id, c_void};
+use ffi::{self,cl_mem, cl_sampler, cl_buffer_region, cl_context_properties, cl_platform_id,
+    c_void, size_t};
 use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
-    PlatformId, OclPrm};
+    PlatformId, OclPrm, Sampler};
 
 
 // Until everything can be implemented:
 pub type TemporaryPlaceholderType = ();
+
+
+
+/// A reference to a kernel argument value.
+#[derive(Debug, Clone)]
+pub struct ArgVal<'a> {
+    size: size_t,
+    value: *const c_void,
+    _p: PhantomData<&'a c_void>,
+}
+
+impl<'a> ArgVal<'a> {
+    /// Returns a new `ArgVal` referring to a `Mem` object.
+    pub fn mem(mem: &'a Mem) -> ArgVal<'a> {
+        ArgVal {
+            size: mem::size_of::<cl_mem>() as size_t,
+            value: mem as *const _ as *const c_void,
+            _p: PhantomData,
+        }
+    }
+
+    /// Returns a new `ArgVal` referring to a `Sampler` object.
+    pub fn sampler(sampler: &'a Sampler) -> ArgVal<'a> {
+        ArgVal {
+            size: mem::size_of::<cl_sampler>() as size_t,
+            value: sampler as *const _ as *const c_void,
+            _p: PhantomData,
+        }
+    }
+
+    /// Returns a new `ArgVal` corresponding to a null `Mem` or `Sampler` object.
+    pub fn null() -> ArgVal<'a> {
+        ArgVal {
+            size: mem::size_of::<*const c_void>() as size_t,
+            value: ptr::null(),
+            _p: PhantomData,
+        }
+    }
+
+    /// Returns a new `ArgVal` referring to a scalar or vector primitive.
+    //
+    // `::scalar` and `::vector` exist in case, at a future time, scalar and
+    // vector types need to be differentiated, at which point this method
+    // would be deprecated.
+    pub fn primitive<T>(prm: &'a T) -> ArgVal<'a>
+            where T: OclPrm {
+        ArgVal {
+            size: mem::size_of::<T>() as size_t,
+            value: prm as *const T as *const c_void,
+            _p: PhantomData,
+        }
+    }
+
+    /// Returns a new `ArgVal` referring to a scalar primitive.
+    pub fn scalar<T>(scalar: &'a T) -> ArgVal<'a>
+            where T: OclPrm {
+        ArgVal::primitive(scalar)
+    }
+
+    /// Returns a new `ArgVal` referring to a vector primitive.
+    pub fn vector<T>(vector: &'a T) -> ArgVal<'a>
+            where T: OclPrm {
+        ArgVal::primitive(vector)
+    }
+
+    /// Returns a new `ArgVal` corresponding to a `__local` argument.
+    ///
+    /// To specify a `__local` argument size in bytes, use `::raw` instead
+    /// (with `value`: `std::ptr::null()`).
+    pub fn local<T>(length: &usize) -> ArgVal<'a>
+            where T: OclPrm {
+        ArgVal {
+            size: (mem::size_of::<T>() * length) as size_t,
+            value: ptr::null(),
+            _p: PhantomData,
+        }
+    }
+
+    /// Returns a new `ArgVal` containing the size in bytes and a raw pointer
+    /// to the argument value.
+    ///
+    /// ### Safety
+    ///
+    /// Caller must ensure that the value pointed to by `value` lives until
+    /// the call to `::set_kernel_arg` returns and that `size` accurately
+    /// reflects the total number of bytes that should be read.
+    pub unsafe fn raw(size: size_t, value: *const c_void) -> ArgVal<'a> {
+        ArgVal {
+            size,
+            value,
+            _p: PhantomData,
+        }
+    }
+
+    /// Returns the size (in bytes) and raw pointer to the contained kernel argument value.
+    pub fn as_raw(&self) -> (size_t, *const c_void) {
+        (self.size, self.value)
+    }
+}
+
 
 
 /// Parsed OpenCL version in the layout `({major}, {minor})`.

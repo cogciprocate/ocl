@@ -49,12 +49,14 @@ fn timed() -> ocl::Result<()> {
     // Create init and result buffers and vectors:
     let vec_init = ocl_extras::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
 
-    let buffer_init = Buffer::builder()
-        .queue(ocl_pq.queue().clone())
-        .flags(core::MemFlags::new().read_write().copy_host_ptr())
-        .len(WORK_SIZE)
-        .host_data(&vec_init)
-        .build()?;
+    let buffer_init = unsafe {
+        Buffer::builder()
+            .queue(ocl_pq.queue().clone())
+            .flags(core::MemFlags::new().read_write().copy_host_ptr())
+            .len(WORK_SIZE)
+            .host_data(&vec_init)
+            .build()?
+    };
 
     let mut vec_result = vec![0.0f32; WORK_SIZE];
     let buffer_result = Buffer::<f32>::builder()
@@ -63,11 +65,12 @@ fn timed() -> ocl::Result<()> {
         .build()?;
 
     // Create a kernel with arguments matching those in the kernel:
-    let mut kern = ocl_pq.create_kernel("add")?
-        .gws(ocl_pq.dims().clone())
+    let mut kern = ocl_pq.kernel_builder("add")
+        .global_work_size(ocl_pq.dims().clone())
         .arg_buf_named("source", Some(&buffer_init))
-        .arg_scl(SCALAR)
-        .arg_buf(&buffer_result);
+        .arg_scl(&SCALAR)
+        .arg_buf(&buffer_result)
+        .build()?;
 
 
     // ##################################################
@@ -86,7 +89,8 @@ fn timed() -> ocl::Result<()> {
     }
 
     // Set kernel source buffer to the same as result:
-    kern.set_arg_buf_named("source", Some(&buffer_result))?;
+    // kern.set_arg_buf_named("source", Some(&buffer_result))?;
+    kern.set_arg("source", &buffer_result)?;
 
     // Enqueue kernel for additional iterations:
     for _ in 0..(KERNEL_RUN_ITERS - 1) {

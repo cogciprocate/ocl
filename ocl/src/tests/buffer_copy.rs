@@ -6,9 +6,8 @@ const DATASET_SIZE: usize = 1 << 20;
 #[test]
 fn buffer_copy_core() {
     use std::ffi::CString;
-    use core::{self, ContextProperties};
+    use core::{self, ContextProperties, ArgVal};
     use flags;
-    use enums::KernelArg;
 
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -42,8 +41,8 @@ fn buffer_copy_core() {
 
     // Kernel:
     let kernel = core::create_kernel(&program, "add").unwrap();
-    core::set_kernel_arg(&kernel, 0, KernelArg::Mem::<f32>(&src_buffer)).unwrap();
-    core::set_kernel_arg(&kernel, 1, KernelArg::Scalar(ADDEND)).unwrap();
+    core::set_kernel_arg(&kernel, 0, ArgVal::mem(&src_buffer)).unwrap();
+    core::set_kernel_arg(&kernel, 1, ArgVal::scalar(&ADDEND)).unwrap();
 
     // Run the kernel:
     unsafe {
@@ -98,9 +97,10 @@ fn buffer_copy_standard() {
     dst_buffer.cmd().fill(0.0f32, None).enq().unwrap();
     let mut dst_vec = vec![0.0f32; dst_buffer.len()];
 
-    let kernel = pro_que.create_kernel("add").unwrap()
+    let kernel = pro_que.kernel_builder("add")
         .arg_buf(&src_buffer)
-        .arg_scl(ADDEND);
+        .arg_scl(&ADDEND)
+        .build().unwrap();
 
     unsafe { kernel.enq().unwrap(); }
 

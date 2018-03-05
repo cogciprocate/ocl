@@ -118,12 +118,15 @@ fn main() {
     // Not sure why you'd bother creating a sampler on the host but here's how:
     let sampler = Sampler::new(&context, true, AddressingMode::None, FilterMode::Nearest).unwrap();
 
-    let kernel = Kernel::new("increase_blue", &program).unwrap()
+    let kernel = Kernel::builder()
+        .program(&program)
+        .name("increase_blue")
         .queue(queue.clone())
-        .gws(&dims)
+        .global_work_size(&dims)
         .arg_smp(&sampler)
-        .arg_img(&src_image)
-        .arg_img(&dst_image);
+        .arg(&src_image)
+        .arg(&dst_image)
+        .build().unwrap();
 
     println!("Printing image info:");
     printlnc!(dark_grey: "Source {}", src_image);
