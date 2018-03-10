@@ -1700,7 +1700,7 @@ impl<T: OclPrm> Buffer<T> {
             QueCtx::Context(c) => c,
         };
 
-        let obj_core = unsafe { core::create_buffer(ctx_ref, flags, len, host_data)? };
+        let obj_core = core::create_buffer(ctx_ref, flags, len, host_data)?;
 
         debug_assert!({
             let l_r = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
@@ -2345,7 +2345,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
                     QueCtx::Context(_) => None,
                 };
 
-                let buf = Buffer::new(qc, self.flags, len, self.host_data)?;
+                let buf = unsafe { Buffer::new(qc, self.flags, len, self.host_data)? };
 
                 // Fill buffer if `fill_val` and a queue have been specified,
                 // blocking if the `fill_event` is `None`.

@@ -56,6 +56,7 @@ Breaking Changes
 * `BufferBuilder::host_data` is now marked unsafe. Using
   `flags::MEM_USE_HOST_PTR` when creating a buffer can create undefined
   behavior.
+* `Buffer::new` is now unsafe.
 
 [FIXME]:
 * (core) `set_kernel_arg` (type sig.).

@@ -79,7 +79,7 @@ fn image_ops() {
         .arg_img(&img_dst)
         .build().unwrap();
 
-    let mut kernel_fill_src = proque.kernel_builder("fill")
+    let kernel_fill_src = proque.kernel_builder("fill")
         .arg_smp(&sampler)
         .arg_vec_named::<Int4>("pixel", &Int4::splat(0))
         .arg_img(&img_src)

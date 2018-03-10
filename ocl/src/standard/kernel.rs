@@ -6,6 +6,7 @@ use std::any::Any;
 use std::any::TypeId;
 use std::collections::{HashMap, BTreeMap};
 use std::marker::PhantomData;
+use std::cell::RefCell;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     ArgVal, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
@@ -60,8 +61,6 @@ pub struct KernelCmd<'k> {
 }
 
 /// A kernel enqueue command.
-///
-/// [UNSTABLE]: Methods still being tuned.
 impl<'k> KernelCmd<'k> {
     /// Specifies a queue to use for this call only.
     ///
@@ -211,35 +210,6 @@ impl<'k> KernelCmd<'k> {
 }
 
 
-/// A map of argument names -> indexes.
-#[derive(Clone, Debug)]
-pub struct NamedArgs(Option<HashMap<&'static str, u32>>);
-
-impl NamedArgs {
-    /// Inserts a named argument into the map.
-    fn insert(&mut self, name: &'static str, arg_idx: u32) {
-        if self.0.is_none() {
-            self.0 = Some(HashMap::with_capacity(8));
-        }
-        self.0.as_mut().unwrap().insert(name, arg_idx);
-    }
-
-    /// Resolves the index of a named argument with a friendly error message.
-    fn resolve_idx(&self, name: &'static str) -> OclResult<u32> {
-        match self.0 {
-            Some(ref map) => {
-                match map.get(name) {
-                    Some(&ai) => Ok(ai),
-                    None => Err(KernelError::NamedArgsInvalidArgName(name.into()).into()),
-                }
-            },
-            None => Err(KernelError::NamedArgsNone.into()),
-        }
-    }
-}
-
-
-
 /// Converts an argument index specifier to `u32`.
 #[derive(Clone, Copy, Debug)]
 pub enum ArgIdxSpecifier {
@@ -354,6 +324,55 @@ impl<'b, T> From<&'b T> for ArgValConverter<'b, T> where T: OclPrm {
 }
 
 
+/// A map of argument names -> indexes.
+#[derive(Clone, Debug)]
+struct NamedArgs(Option<HashMap<&'static str, u32>>);
+
+impl NamedArgs {
+    /// Inserts a named argument into the map.
+    fn insert(&mut self, name: &'static str, arg_idx: u32) {
+        if self.0.is_none() {
+            self.0 = Some(HashMap::with_capacity(8));
+        }
+        self.0.as_mut().unwrap().insert(name, arg_idx);
+    }
+
+    /// Resolves the index of a named argument with a friendly error message.
+    fn resolve_idx(&self, name: &'static str) -> OclResult<u32> {
+        match self.0 {
+            Some(ref map) => {
+                match map.get(name) {
+                    Some(&ai) => Ok(ai),
+                    None => Err(KernelError::NamedArgsInvalidArgName(name.into()).into()),
+                }
+            },
+            None => Err(KernelError::NamedArgsNone.into()),
+        }
+    }
+}
+
+
+/// Storage for `Mem` arguments.
+#[derive(Clone, Debug)]
+struct MemArgs(Option<RefCell<BTreeMap<u32, MemCore>>>);
+
+impl MemArgs {
+    /// Inserts a `Mem` argument for storage if possible.
+    fn insert(&self, idx: u32, mem: MemCore) {
+        if let Some(ref map) = self.0 {
+            map.borrow_mut().insert(idx, mem);
+        }
+    }
+
+    /// Removes a `Mem` argument.
+    fn remove(&self, idx: &u32) {
+        if let Some(ref map) = self.0 {
+            map.borrow_mut().remove(idx);
+        }
+    }
+}
+
+
 /// A kernel which represents a 'procedure'.
 ///
 /// Corresponds to code which must have already been compiled into a program.
@@ -382,13 +401,12 @@ impl<'b, T> From<&'b T> for ArgValConverter<'b, T> where T: OclPrm {
 pub struct Kernel {
     obj_core: KernelCore,
     named_args: NamedArgs,
-    mem_args: BTreeMap<u32, MemCore>,
+    mem_args: MemArgs,
     queue: Option<Queue>,
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
-    arg_types: Vec<ArgType>,
-    bypass_arg_check: bool,
+    arg_types: Option<Vec<ArgType>>,
 }
 
 impl Kernel {
@@ -399,22 +417,28 @@ impl Kernel {
 
     /// Verifies that a type matches the kernel arg info:
     ///
-    /// This function does nothing and always returns `Ok` if the OpenCL
-    /// version of any of the devices associated with this kernel is below
-    /// 1.2.
+    /// This function does nothing and always returns `Ok` if argument type
+    /// checking is disabled by the user or for any other reason.
+    ///
+    /// Argument type checking will automatically be disabled if any of the
+    /// devices in use do not support OpenCL version 1.2 or higher or if
+    /// argument information is not available on the associated platform.
     fn verify_arg_type<T: OclPrm + Any>(&self, arg_idx: u32) -> OclResult<()> {
-        if self.bypass_arg_check { return Ok(()); }
+        // if self.bypass_arg_check { return Ok(()); }
+        if let Some(ref arg_types) = self.arg_types {
+            let arg_type = arg_types.get(arg_idx as usize)
+                .ok_or(KernelError::ArgIdxOor(self.name()?, arg_idx))?;
 
-        let arg_type = self.arg_types.get(arg_idx as usize)
-            .ok_or(KernelError::ArgIdxOor(self.name()?, arg_idx))?;
-
-        if arg_type.is_match::<T>() {
-            Ok(())
+            if arg_type.is_match::<T>() {
+                Ok(())
+            } else {
+                let ty_name = arg_type_name(&self.obj_core, arg_idx)?;
+                let arg_name = arg_name(&self.obj_core, arg_idx)?;
+                Err(KernelError::ArgTypeMismatch { idx: arg_idx, arg_name,
+                    ty_name, ty: arg_type.clone() }.into())
+            }
         } else {
-            let ty_name = arg_type_name(&self.obj_core, arg_idx)?;
-            let arg_name = arg_name(&self.obj_core, arg_idx)?;
-            Err(KernelError::ArgTypeMismatch { idx: arg_idx, arg_name,
-                ty_name, ty: arg_type.clone() }.into())
+            Ok(())
         }
     }
 
@@ -740,12 +764,13 @@ pub struct KernelBuilder<'b> {
     program: Option<&'b Program>,
     name: Option<String>,
     named_args: NamedArgs,
-    mem_args: BTreeMap<u32, MemCore>,
+    mem_args: MemArgs,
     args: Vec<(ArgVal<'b>, Option<TypeId>)>,
     queue: Option<Queue>,
     gwo: SpatialDims,
     gws: SpatialDims,
     lws: SpatialDims,
+    disable_arg_check: bool,
 }
 
 impl<'b> KernelBuilder<'b> {
@@ -756,11 +781,12 @@ impl<'b> KernelBuilder<'b> {
             name: None,
             named_args: NamedArgs(None),
             args: Vec::with_capacity(16),
-            mem_args: BTreeMap::new(),
+            mem_args: MemArgs(Some(RefCell::new(BTreeMap::new()))),
             queue: None,
             gwo: SpatialDims::Unspecified,
             gws: SpatialDims::Unspecified,
             lws: SpatialDims::Unspecified,
+            disable_arg_check: false,
         }
     }
 
@@ -1073,6 +1099,36 @@ impl<'b> KernelBuilder<'b> {
         self
     }
 
+    /// Specifies whether or not to store a copy of memory objects (`Buffer`
+    /// and `Image`).
+    ///
+    /// Defaults to `true`.
+    ///
+    /// ### Safety
+    ///
+    /// Disabling memory object argument retention can lead to a misleading
+    /// error message or a difficult to debug segfault (depending on the
+    /// platform) *if* a memory object is dropped before a kernel referring to
+    /// it is enqueued. Only disable this if you are certain all of the memory
+    /// objects set as kernel arguments will outlive the `Kernel` itself.
+    pub unsafe fn disable_mem_arg_retention<'s>(&'s mut self) -> &'s mut KernelBuilder<'b> {
+        self.mem_args = MemArgs(None);
+        self
+    }
+
+    /// Disables argument type checking when setting arguments.
+    ///
+    /// Because the performance cost of argument type checking is negligible,
+    /// it is not recommended to disable this.
+    ///
+    /// Argument type checking will automatically be disabled if any of the
+    /// devices in use do not support OpenCL version 1.2 or higher or if
+    /// argument information is not available on the associated platform.
+    pub unsafe fn disable_arg_type_check<'s>(&'s mut self) -> &'s mut KernelBuilder<'b> {
+        self.disable_arg_check = true;
+        self
+    }
+
     /// Builds and returns a new `Kernel`
     pub fn build(&self) -> OclResult<Kernel> {
         let program = self.program.ok_or(KernelError::BuilderNoProgram)?;
@@ -1091,16 +1147,20 @@ impl<'b> KernelBuilder<'b> {
         }
 
         let mut arg_types = Vec::with_capacity(num_args as usize);
-        let mut bypass_arg_check = false;
+        let mut all_arg_types_unknown = true;
+        let mut disable_arg_check = false;
 
         // Cache argument types for later use, bypassing if the OpenCL version
         // is too low (v1.1).
         for arg_idx in 0..num_args {
             let arg_type = match ArgType::from_kern_and_idx(&obj_core, arg_idx) {
-                Ok(at) => at,
+                Ok(at) => {
+                    if !at.is_unknown() { all_arg_types_unknown = false; }
+                    at
+                },
                 Err(e) => {
                     if let OclCoreErrorKind::VersionLow { .. } = *e.kind() {
-                        bypass_arg_check = true;
+                        disable_arg_check = true;
                         break;
                     }
                     return Err(OclError::from(e));
@@ -1111,7 +1171,7 @@ impl<'b> KernelBuilder<'b> {
 
         // Check argument types then set arguments.
         for (arg_idx, &(ref arg, ref type_id_opt)) in self.args.iter().enumerate() {
-            if !bypass_arg_check {
+            if !disable_arg_check {
                 if let Some(type_id) = *type_id_opt {
                     if !arg_types[arg_idx].matches(type_id) {
                         let ty_name = arg_type_name(&obj_core, arg_idx as u32)?;
@@ -1124,6 +1184,12 @@ impl<'b> KernelBuilder<'b> {
             core::set_kernel_arg(&obj_core, arg_idx as u32, arg.clone())?;
         }
 
+        let arg_types = if all_arg_types_unknown || disable_arg_check {
+            None
+        } else {
+            Some(arg_types)
+        };
+
         Ok(Kernel {
             obj_core: obj_core,
             named_args: self.named_args.clone(),
@@ -1132,8 +1198,8 @@ impl<'b> KernelBuilder<'b> {
             gwo: self.gwo,
             gws: self.gws,
             lws: self.lws,
-            arg_types: arg_types,
-            bypass_arg_check,
+            arg_types,
+            // bypass_arg_check,
         })
     }
 }
@@ -1320,8 +1386,9 @@ pub mod arg_type {
                     match *err.kind() {
                         OclCoreErrorKind::Api(ref api_err) => {
                             if api_err.status() == Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
-                                return Ok(ArgType { base_type: BaseType::Unknown,
-                                    cardinality: Cardinality::One, is_ptr: false })
+                                // return Ok(ArgType { base_type: BaseType::Unknown,
+                                //     cardinality: Cardinality::One, is_ptr: false })
+                                return ArgType::unknown();
                             }
                         }
                         OclCoreErrorKind::EmptyInfoResult(EmptyInfoResultError::KernelArg) => {
@@ -1533,6 +1600,13 @@ pub mod arg_type {
         #[allow(dead_code)]
         pub fn is_ptr(&self) -> bool {
             self.is_ptr
+        }
+
+        pub fn is_unknown(&self) -> bool {
+            match self.base_type {
+                BaseType::Unknown => true,
+                _ => false,
+            }
         }
     }
 
