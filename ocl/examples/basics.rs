@@ -49,12 +49,21 @@ fn basics() -> ocl::Result<()> {
     let mut vec_result = vec![0.0f32; WORK_SIZE];
     let result_buffer: Buffer<f32> = ocl_pq.create_buffer()?;
 
-    // Create a kernel with arguments corresponding to those in the kernel:
+    // Create a kernel with arguments corresponding to those in the kernel.
+    // Just for fun, one argument will be 'named':
     let kern = ocl_pq.kernel_builder("multiply_by_scalar")
         .arg(&COEFF)
-        .arg(&source_buffer)
-        .arg(&result_buffer)
+        .arg(None::<&Buffer<f32>>)
+        .arg_named("result", None::<&Buffer<f32>>)
         .build()?;
+
+    // Set our named argument. The Option<_> wrapper is, well... optional:
+    kern.set_arg("result", &result_buffer)?;
+    // We can also set arguments (named or not) by index. Just for
+    // demonstration, we'll set one using an option:
+    kern.set_arg(0, &COEFF)?;
+    kern.set_arg(1, Some(&source_buffer))?;
+    kern.set_arg(2, &result_buffer)?;
 
     println!("Kernel global work size: {:?}", kern.default_global_work_size());
 

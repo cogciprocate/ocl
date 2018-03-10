@@ -18,31 +18,40 @@ adopted. Many rough spots have been smoothed out and potential invalid uses
 have been eliminated.
 
 * `KernelBuilder` has been added. All kernels must now be created using a builder.
-* `KernelBuilder::arg` and `Kernel::set_arg` have been added. They can be used
-  to set `Buffer`, `Image`, scalar, or vector values.
-  * For now, arguments can be specified using any of the old methods, though
-    it is possible that `::arg_buf`, `::arg_img`, `::arg_scl`, and `::arg_vec`
-    (plus all of the the `set_*` variations) may be deprecated in favor of
-    `::arg` (and `::set_arg`) at some point in the future.
-  * `::set_arg` can be used to set arguments by numeric index *or* by name.
+* `Kernel::set_arg` has been been added in order to simplify setting
+  arguments. `Kernel::set_arg`, `KernelBuilder::arg`,
+  `KernelBuilder::arg_named` can be used to set `Buffer`, `Image`, scalar, or
+  vector values and will automatically detect which type is being used (except
+  when `None` values are passed).
+  * `Kernel::set_arg` will accept either a name (`&'static str`) or numeric
+    index. If passing a name, the argument must have been declared using
+    `KernelBuilder::arg_named`.
+  * NOTE: For now, arguments can continue be declared using any of the old
+    methods, though it is possible that `::arg_buf`, `::arg_img`, `::arg_scl`,
+    and `::arg_vec` (plus all of the the `set_*` variations) may be deprecated
+    in favor of `::arg` (and `::set_arg`) at some point in the future.
 * `ProQue::buffer_builder` has been added and can be used to obtain a
   `BufferBuilder` with pre-configured length and default queue.
 * `ProQue::kernel_builder` has also been added (see below).
+* The new `KernelError` type has been added.
 
 Breaking Changes
 ----------------
 * [`Kernel`][kernel-0.18.0] has been completely redesigned:
   * `Kernel::new` has been removed. Create a kernel with `Kernel::builder` or
-    `KernelBuilder::new`. All setup parameters such as the kernel name,
-    program, work sizes, and arguments are now configured using the builder.
+    `KernelBuilder::new`.
+  * All setup parameters such as the kernel name, program, work sizes, and
+    arguments are now configured using the builder. All of the methods
+    associated with configuration have been removed from `Kernel`.
   * Scalar or vector primitive argument values must now be specified as
-    references. Example: `.arg_scl(100f32)` --> `::arg_scl(&100f32)` or
-      `::arg(&100f32)`.
+    references (e.g. `.arg_scl(100f32)` --> `::arg_scl(&100f32)` or
+      `::arg(&100f32)`).
+  * `::arg_scl_named` and `arg_vec_named` no longer accept `None` values. Use
+    zero instead (e.g. `.arg_scl_named::<i32>("rnd", None)` -->
+    `arg_scl_named::<i32>("rnd", &0)` or `arg_named("rnd", &0i32)`).
   * `Kernel` no longer implements `Clone`. Instead, the `KernelBuilder` can be
     cloned or re-used (and sent between threads) to create multiple identical
-    or near-identical kernels. Wrap `Kernel` with an `Arc` or `Rc` for more
-    elaborate uses. (Use a `Mutex` or `RefCell` if mutability is required for
-    changing defaults and/or buffer or image argument values).
+    or near-identical kernels.
   * `::gwo`, `::gws`, and `::lws` have been deprecated and should be replaced
     by `::global_work_offset`, `::global_work_size`, and `::local_work_size`
     respectively.
@@ -57,27 +66,50 @@ Breaking Changes
   `flags::MEM_USE_HOST_PTR` when creating a buffer can create undefined
   behavior.
 * `Buffer::new` is now unsafe.
-
-[FIXME]:
-* (core) `set_kernel_arg` (type sig.).
-* (core) `KernelArg` -> `ArgVal`.
-
-
-TODO:
-* Talk about new error types.
-* Finish update instructions.
-* Sort out the `BufferBuilder::host_data`/`::flags` situation. Possibly create
-  separate methods, `use_host_ptr` and `copy_host_slice`.
-
+* (core) `KernelArg` has been removed and replaced with `ArgVal`. Conversion
+  is relatively straightforward, enum variants map to 'constructor' methods.
+  Where before you may have created a `KernelArg` using
+  `KernelArg::Mem(&mem)`, you will now create an `ArgVal` with
+  `ArgVal::mem(&mem)`. Scalar and vector types must now be specified as
+  references: `KernelArg::Scalar(10.0f32)` --> `ArgVal::scalar(&10.0f32)`.
+* (core) `set_kernel_arg` has had its argument type changed to the new
+  `ArgVal` type. As `ArgVal` has no associated type, `set_kernel_arg` no
+  longer has a type parameter.
+  * Example:
+    ```
+    let kernel = core::create_kernel(&program, "multiply")?;
+    core::set_kernel_arg(&kernel, 0, ArgVal::scalar(&10.0f32))?;
+    core::set_kernel_arg(&kernel, 1, ArgVal::mem(&buffer))?;
+    ```
 
 ### Update Instructions
 
-[FIXME]:
-* `create_kernel\(([^\)]+)\)` -> `kernel_builder(\1)`
-* Talk about kernel cloning/sending and Arc-Mutex/Rc-RefCell
+* Replace uses of `ProQue::create_kernel` with `::kernel_builder` (example
+  regex: `ProQue::create_kernel\(([^\)]+)\)` --> `ProQue::kernel_builder(\1)`).
+* Replace uses of `Kernel::new` with `Kernel::builder`, `::name`, and
+  `::program` (example regex: `Kernel::new\(([^,]+, [^\)]+)\)` -->
+  `Kernel::builder().name(\1).program(\2)`)
+* Add `.build()` at the end of the list of kernel arguments
+* Move error handling (`?`) to the end.
+* Add references (`&`) to all scalar or vector arguments (e.g.
+  `.arg_scl(10.0f32)` --> `.arg_scl(&10.0f32)` or `.arg(&10.0f32)`).
 
+Other things to check:
 
+* If `None` was being passed to `::arg_scl_named` or `::arg_vec_named`,
+  replace with a zero (e.g. `.arg_scl_named::<i32>("rnd", None)` -->
+  `arg_named("rnd", &0i32)`).
+* If you were previously cloning the kernel, you will now instead need to use
+  the `KernelBuilder` to create multiple copies. Please note that before,
+  clones of Kernels would share argument values. This will no longer be the
+  case, each copy of a kernel will have independent argument values.
+  * If you were relying on shared argument values or if for some other reason
+    the new design does not work for you, you can wrap `Kernel` with an
+    `Rc<RefCell<_>>` or `Arc<Mutex<_>>`.
 
+TODO:
+* Sort out the `BufferBuilder::host_data`/`::flags` situation. Possibly create
+  separate methods, `use_host_ptr` and `copy_host_slice`.
 
 [kernel-0.18.0]: https://docs.rs/ocl/0.18.0/ocl/struct.Kernel.html
 

@@ -120,7 +120,7 @@ fn event_callbacks() -> ocl::Result<()> {
     let addend = 11u32;
 
     // Create kernel with the source initially set to our seed values.
-    let mut kernel = ocl_pq.kernel_builder("add_scalar")
+    let kernel = ocl_pq.kernel_builder("add_scalar")
         .global_work_size(dataset_len)
         .arg_buf_named("src", Some(&seed_buffer))
         .arg(&addend)

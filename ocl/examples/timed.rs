@@ -65,7 +65,7 @@ fn timed() -> ocl::Result<()> {
         .build()?;
 
     // Create a kernel with arguments matching those in the kernel:
-    let mut kern = ocl_pq.kernel_builder("add")
+    let kern = ocl_pq.kernel_builder("add")
         .global_work_size(ocl_pq.dims().clone())
         .arg_buf_named("source", Some(&buffer_init))
         .arg_scl(&SCALAR)

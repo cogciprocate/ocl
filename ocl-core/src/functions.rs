@@ -1993,6 +1993,14 @@ pub unsafe fn release_kernel(kernel: &Kernel) -> OclCoreResult<()> {
 
 /// Sets the argument value for the kernel argument at `index`.
 ///
+/// ### Example:
+///
+/// ```rust, ignore
+/// let kernel = core::create_kernel(&program, "multiply")?;
+/// core::set_kernel_arg(&kernel, 0, ArgVal::scalar(&10.0f32))?;
+/// core::set_kernel_arg(&kernel, 1, ArgVal::mem(&buffer))?;
+/// ```
+///
 /// [SDK Documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html)
 pub fn set_kernel_arg(kernel: &Kernel, index: u32, arg_val: ArgVal)
         -> OclCoreResult<()> {

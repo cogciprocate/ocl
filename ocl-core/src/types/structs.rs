@@ -19,6 +19,15 @@ pub type TemporaryPlaceholderType = ();
 
 
 /// A reference to a kernel argument value.
+///
+/// ### Example:
+///
+/// ```rust, ignore
+/// let kernel = core::create_kernel(&program, "multiply")?;
+/// core::set_kernel_arg(&kernel, 0, ArgVal::scalar(&10.0f32))?;
+/// core::set_kernel_arg(&kernel, 1, ArgVal::mem(&buffer))?;
+/// ```
+///
 #[derive(Debug, Clone)]
 pub struct ArgVal<'a> {
     size: size_t,
@@ -36,6 +45,15 @@ impl<'a> ArgVal<'a> {
         }
     }
 
+    /// Returns a new `ArgVal` corresponding to a null `Mem` object.
+    pub fn mem_null() -> ArgVal<'a> {
+        ArgVal {
+            size: mem::size_of::<cl_mem>() as size_t,
+            value: ptr::null(),
+            _p: PhantomData,
+        }
+    }
+
     /// Returns a new `ArgVal` referring to a `Sampler` object.
     pub fn sampler(sampler: &'a Sampler) -> ArgVal<'a> {
         ArgVal {
@@ -45,10 +63,10 @@ impl<'a> ArgVal<'a> {
         }
     }
 
-    /// Returns a new `ArgVal` corresponding to a null `Mem` or `Sampler` object.
-    pub fn null() -> ArgVal<'a> {
+    /// Returns a new `ArgVal` referring to a null `Sampler` object.
+    pub fn sampler_null() -> ArgVal<'a> {
         ArgVal {
-            size: mem::size_of::<*const c_void>() as size_t,
+            size: mem::size_of::<cl_sampler>() as size_t,
             value: ptr::null(),
             _p: PhantomData,
         }
@@ -109,9 +127,17 @@ impl<'a> ArgVal<'a> {
         }
     }
 
-    /// Returns the size (in bytes) and raw pointer to the contained kernel argument value.
+    /// Returns the size (in bytes) and raw pointer to the contained kernel
+    /// argument value.
     pub fn as_raw(&self) -> (size_t, *const c_void) {
         (self.size, self.value)
+    }
+
+
+    /// Returns `true` if this `ArgVal` represents a null `Mem` or `Sampler`
+    /// object.
+    pub fn is_null(&self) -> bool {
+        self.value.is_null()
     }
 }
 

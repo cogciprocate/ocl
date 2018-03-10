@@ -253,21 +253,31 @@ impl From<&'static str> for ArgIdxSpecifier {
 }
 
 
-
-
 /// Wraps argument values of different types.
 pub struct ArgValConverter<'b, T> where T: OclPrm {
-    val: ArgVal<'b>,
+    val: Option<ArgVal<'b>>,
     type_id: Option<TypeId>,
     mem: Option<MemCore>,
     _ty: PhantomData<T>,
+}
+
+impl<'b, T> From<Option<&'b Buffer<T>>> for ArgValConverter<'b, T> where T: OclPrm {
+    /// Converts from an Option<`Buffer`>.
+    fn from(buf: Option<&'b Buffer<T>>) -> ArgValConverter<'b, T> {
+        ArgValConverter {
+            val: buf.map(|b| ArgVal::mem(b)),
+            type_id: Some(TypeId::of::<T>()),
+            mem: buf.map(|b| b.as_mem().clone()),
+            _ty: PhantomData,
+        }
+    }
 }
 
 impl<'b, T> From<&'b Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
     /// Converts from a `Buffer`.
     fn from(buf: &'b Buffer<T>) -> ArgValConverter<'b, T> {
         ArgValConverter {
-            val: ArgVal::mem(buf),
+            val: Some(ArgVal::mem(buf)),
             type_id: Some(TypeId::of::<T>()),
             mem: Some(buf.as_mem().clone()),
             _ty: PhantomData,
@@ -281,9 +291,21 @@ impl<'b, T> From<&'b mut Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
-impl<'b, T> From<&'b &'b Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
-    fn from(buf: &'b &'b Buffer<T>) -> ArgValConverter<'b, T> {
-        ArgValConverter::from(&**buf)
+// impl<'b, T> From<&'b &'b Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
+//     fn from(buf: &'b &'b Buffer<T>) -> ArgValConverter<'b, T> {
+//         ArgValConverter::from(&**buf)
+//     }
+// }
+
+impl<'b, T> From<Option<&'b Image<T>>> for ArgValConverter<'b, T> where T: OclPrm {
+    /// Converts from an Option<`Image`>.
+    fn from(img: Option<&'b Image<T>>) -> ArgValConverter<'b, T> {
+        ArgValConverter {
+            val: img.map(|i| ArgVal::mem(i)),
+            type_id: None,
+            mem: img.map(|i| i.as_mem().clone()),
+            _ty: PhantomData,
+        }
     }
 }
 
@@ -291,7 +313,7 @@ impl<'b, T> From<&'b Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
     /// Converts from an `Image`.
     fn from(img: &'b Image<T>) -> ArgValConverter<'b, T> {
         ArgValConverter {
-            val: ArgVal::mem(img),
+            val: Some(ArgVal::mem(img)),
             type_id: None,
             mem: Some(img.as_mem().clone()),
             _ty: PhantomData,
@@ -305,17 +327,17 @@ impl<'b, T> From<&'b mut Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
-impl<'b, T> From<&'b &'b Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
-    fn from(img: &'b &'b Image<T>) -> ArgValConverter<'b, T> {
-        ArgValConverter::from(&**img)
-    }
-}
+// impl<'b, T> From<&'b &'b Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
+//     fn from(img: &'b &'b Image<T>) -> ArgValConverter<'b, T> {
+//         ArgValConverter::from(&**img)
+//     }
+// }
 
 impl<'b, T> From<&'b T> for ArgValConverter<'b, T> where T: OclPrm {
     /// Converts from a scalar or vector value.
     fn from(prm: &'b T) -> ArgValConverter<'b, T> {
         ArgValConverter {
-            val: ArgVal::scalar(prm),
+            val: Some(ArgVal::scalar(prm)),
             type_id: Some(TypeId::of::<T>()),
             mem: None,
             _ty: PhantomData,
@@ -390,13 +412,14 @@ impl MemArgs {
 ///     - Global Work Offset
 ///     - Global Work Size
 ///     - Local Work Size
-//
-// [NOTE]: `Clone`, `Send`, and segfaults
-//
-// A `Kernel` may not be cloned but may be sent between threads. This ensures
-// that no two threads create a race condition by attempting to set an
-// argument and enqueue a kernel at the same time.
-//
+///
+/// ### `Clone` and `Send`
+///
+/// A `Kernel` may not be cloned but may be sent between threads. This ensures
+/// that no two threads create a race condition by attempting to set an
+/// argument and enqueue a kernel at the same time. Use the `KernelBuilder` to
+/// create multiple identical kernels (`KernelBuilder` is clonable and
+/// re-usable).
 #[derive(Debug)]
 pub struct Kernel {
     obj_core: KernelCore,
@@ -424,7 +447,6 @@ impl Kernel {
     /// devices in use do not support OpenCL version 1.2 or higher or if
     /// argument information is not available on the associated platform.
     fn verify_arg_type<T: OclPrm + Any>(&self, arg_idx: u32) -> OclResult<()> {
-        // if self.bypass_arg_check { return Ok(()); }
         if let Some(ref arg_types) = self.arg_types {
             let arg_type = arg_types.get(arg_idx as usize)
                 .ok_or(KernelError::ArgIdxOor(self.name()?, arg_idx))?;
@@ -467,7 +489,26 @@ impl Kernel {
 
     /// Sets a `Buffer`, `Image`, scalar, or vector argument by index or by
     /// name.
-    pub fn set_arg<'a, T, Ai, Av>(&mut self, idx: Ai, arg: Av) -> OclResult<()>
+    ///
+    /// ### Example
+    /// ```rust,ignore
+    /// // Create a kernel with arguments corresponding to those in the kernel.
+    /// // Just for fun, one argument will be 'named':
+    /// let kern = ocl_pq.kernel_builder("multiply_by_scalar")
+    ///     .arg(&0)
+    ///     .arg(None::<&Buffer<f32>>)
+    ///     .arg_named("result", None::<&Buffer<f32>>)
+    ///     .build()?;
+    ///
+    /// // Set our named argument. The Option<_> wrapper is, well... optional:
+    /// kern.set_arg("result", &result_buffer)?;
+    /// // We can also set arguments (named or not) by index. Just for
+    /// // demonstration, we'll set one using an option:
+    /// kern.set_arg(0, &COEFF)?;
+    /// kern.set_arg(1, Some(&source_buffer))?;
+    /// kern.set_arg(2, &result_buffer)?;
+    /// ```
+    pub fn set_arg<'a, T, Ai, Av>(&self, idx: Ai, arg: Av) -> OclResult<()>
             where T: OclPrm, Ai: Into<ArgIdxSpecifier>, Av: Into<ArgValConverter<'a, T>> {
         let arg_idx = idx.into().to_idx(&self.named_args)?;
         self.verify_arg_type::<T>(arg_idx)?;
@@ -483,11 +524,16 @@ impl Kernel {
             None => self.mem_args.remove(&arg_idx),
         };
 
-        self._set_arg::<T>(arg_idx, arg.val)
+        let val = match arg.val {
+            Some(val) => val,
+            None => ArgVal::mem_null(),
+        };
+
+        self._set_arg::<T>(arg_idx, val)
     }
 
     /// Modifies the kernel argument named: `name`.
-    pub fn set_arg_buf_named<'a, T, M>(&'a mut self, name: &'static str,
+    pub fn set_arg_buf_named<'a, T, M>(&'a self, name: &'static str,
             buffer_opt: Option<M>) -> OclResult<()>
             where T: OclPrm, M: AsMem<T> + MemCmdAll {
         let arg_idx = self.named_args.resolve_idx(name)?;
@@ -498,13 +544,13 @@ impl Kernel {
             },
             None => {
                 self.mem_args.remove(&arg_idx);
-                self._set_arg::<T>(arg_idx, ArgVal::null())
+                self._set_arg::<T>(arg_idx, ArgVal::mem_null())
             },
         }
     }
 
     /// Modifies the kernel argument named: `name`.
-    pub fn set_arg_img_named<'a, T, M>(&'a mut self, name: &'static str,
+    pub fn set_arg_img_named<'a, T, M>(&'a self, name: &'static str,
             image_opt: Option<M>) -> OclResult<()>
             where T: OclPrm, M: AsMem<T> + MemCmdAll {
         let arg_idx = self.named_args.resolve_idx(name)?;
@@ -515,7 +561,7 @@ impl Kernel {
             },
             None => {
                 self.mem_args.remove(&arg_idx);
-                self._set_arg::<T>(arg_idx, ArgVal::null())
+                self._set_arg::<T>(arg_idx, ArgVal::mem_null())
             },
         }
     }
@@ -526,7 +572,7 @@ impl Kernel {
         let arg_idx = self.named_args.resolve_idx(name)?;
         match sampler_opt {
             Some(sampler) => self._set_arg::<u64>(arg_idx, ArgVal::sampler(sampler)),
-            None => self._set_arg::<u64>(arg_idx, ArgVal::null()),
+            None => self._set_arg::<u64>(arg_idx, ArgVal::sampler_null()),
         }
     }
 
@@ -756,8 +802,55 @@ impl Clone for Kernel {
 
 /// A kernel builder.
 ///
-/// TODO: Add examples.
-/// TODO: Add examples of reusing.
+///
+/// ### Examples
+///
+/// ```rust,ignore
+/// // Create a kernel:
+/// let kernel = Kernel::builder()
+///     .program(&program)
+///     .name("process")
+///     .queue(queue.clone())
+///     .global_work_size(&gws_patch_count)
+///     .arg(&(patch_size as i32))
+///     .arg(&source_buffer)
+///     .arg(&destination_buffer)
+///     .build()?;
+/// ```
+///
+/// Re-use and clone:
+///
+/// ```rust,ignore
+/// // Create a builder for re-use:
+/// let builder = Kernel::builder()
+///     .program(&program)
+///     .name("process")
+///     .queue(queue.clone())
+///     .global_work_size([512, 64, 64])
+///     .arg(&(patch_size as i32))
+///     .arg(&source_buffer)
+///     .arg_named("dest", &destination_buffer);
+///
+/// // Create multiple kernels using the same builder:
+/// let kernel_0 = builder.build()?;
+/// let kernel_1 = builder.build()?;
+///
+/// // Clone the builder:
+/// let mut builder_clone = builder.clone();
+///
+/// // Modify a default parameter:
+/// builder_clone.global_work_size([1024, 128, 128]);
+///
+/// // Create another kernel using the cloned builder:
+/// let kernel_2 = builder_clone.build()?;
+///
+/// // Modify one of the arguments using the created kernel directly
+/// // (arguments cannot be modified using the builder):
+/// kernel_2.set_arg("dest", &alternate_destination_buffer)?;
+///
+/// // Arguments can also be referred to by index:
+/// kernel_2.set_arg(1, &alternate_source_buffer)?;
+/// ```
 ///
 #[derive(Debug)]
 pub struct KernelBuilder<'b> {
@@ -765,7 +858,7 @@ pub struct KernelBuilder<'b> {
     name: Option<String>,
     named_args: NamedArgs,
     mem_args: MemArgs,
-    args: Vec<(ArgVal<'b>, Option<TypeId>)>,
+    args: Vec<(Option<ArgVal<'b>>, Option<TypeId>)>,
     queue: Option<Queue>,
     gwo: SpatialDims,
     gws: SpatialDims,
@@ -873,7 +966,7 @@ impl<'b> KernelBuilder<'b> {
     }
 
     /// Adds a new argument to the kernel and returns the index.
-    fn new_arg(&mut self, arg_val: ArgVal<'b>, type_id: Option<TypeId>, mem: Option<MemCore>) -> u32 {
+    fn new_arg(&mut self, arg_val: Option<ArgVal<'b>>, type_id: Option<TypeId>, mem: Option<MemCore>) -> u32 {
         let arg_idx = self.args.len() as u32;
 
         // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
@@ -895,11 +988,11 @@ impl<'b> KernelBuilder<'b> {
             where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         match buffer_opt {
             Some(buffer) => {
-                self.new_arg(ArgVal::mem(buffer.as_mem()), Some(TypeId::of::<T>()),
+                self.new_arg(Some(ArgVal::mem(buffer.as_mem())), Some(TypeId::of::<T>()),
                     Some(buffer.as_mem().clone()))
             },
             None => {
-                self.new_arg(ArgVal::null(), Some(TypeId::of::<T>()), None)
+                self.new_arg(Some(ArgVal::mem_null()), Some(TypeId::of::<T>()), None)
             },
         }
     }
@@ -910,11 +1003,11 @@ impl<'b> KernelBuilder<'b> {
         match image_opt {
             Some(image) => {
                 // Type is ignored:
-                self.new_arg(ArgVal::mem(image.as_mem()), None,
+                self.new_arg(Some(ArgVal::mem(image.as_mem())), None,
                     Some(image.as_mem().clone()))
             },
             None => {
-                self.new_arg(ArgVal::null(), None, None)
+                self.new_arg(Some(ArgVal::mem_null()), None, None)
             },
         }
     }
@@ -924,10 +1017,10 @@ impl<'b> KernelBuilder<'b> {
         match sampler_opt {
             Some(sampler) => {
                 // Type is ignored:
-                self.new_arg(ArgVal::sampler(sampler), None, None)
+                self.new_arg(Some(ArgVal::sampler(sampler)), None, None)
             },
             None => {
-                self.new_arg(ArgVal::null(), None, None)
+                self.new_arg(Some(ArgVal::sampler_null()), None, None)
             },
         }
     }
@@ -935,25 +1028,35 @@ impl<'b> KernelBuilder<'b> {
     /// Non-builder-style version of `::arg_scl()`.
     fn new_arg_scl<T>(&mut self, scalar: &'b T) -> u32
             where T: OclPrm {
-        self.new_arg(ArgVal::scalar(scalar), Some(TypeId::of::<T>()), None)
+        self.new_arg(Some(ArgVal::scalar(scalar)), Some(TypeId::of::<T>()), None)
     }
 
     /// Non-builder-style version of `::arg_vec()`.
     fn new_arg_vec<T>(&mut self, vector: &'b T) -> u32
             where T: OclPrm {
-        self.new_arg(ArgVal::vector(vector), Some(TypeId::of::<T>()), None, )
+        self.new_arg(Some(ArgVal::vector(vector)), Some(TypeId::of::<T>()), None, )
     }
 
     /// Non-builder-style version of `::arg_loc()`.
     fn new_arg_loc<T>(&mut self, length: usize) -> u32
             where T: OclPrm {
-        self.new_arg(ArgVal::local::<T>(&length), None, None)
+        self.new_arg(Some(ArgVal::local::<T>(&length)), None, None)
     }
 
     /// Adds a new `Buffer`, `Image`, scalar, or vector argument to the
     /// kernel.
     ///
     /// The argument is added to the bottom of the argument order.
+    ///
+    /// ### Example
+    ///
+    /// ```
+    /// let kern = ocl_pq.kernel_builder("multiply_by_scalar")
+    ///     .arg(&100.0f32)
+    ///     .arg(&source_buffer)
+    ///     .arg(&result_buffer)
+    ///     .build()?;
+    /// ```
     pub fn arg<'s, T, A>(&'s mut self, arg: A) -> &'s mut KernelBuilder<'b>
             where T: OclPrm, A: Into<ArgValConverter<'b, T>> {
         let arg = arg.into();
@@ -1025,12 +1128,37 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// The argument is added to the bottom of the argument order.
     ///
-    /// To set a `Buffer` or `Image` argument to `None` (null), use
-    /// `::arg_buf_named` or `::arg_img_named`.
+    /// To set a `Buffer` or `Image` argument to `None` (null), you must use a
+    /// type annotation (e.g. `None::<&Buffer<f32>>`). Scalar and vector
+    /// arguments may not be null; use zero (e.g. `&0`) instead.
     ///
     /// Named arguments can be modified later using `::set_arg()`.
+    ///
+    /// ### Example
+    ///
+    /// ```rust,ignore
+    /// // Create a kernel with arguments corresponding to those in the kernel.
+    /// // One argument will be 'named':
+    /// let kern = ocl_pq.kernel_builder("multiply_by_scalar")
+    ///     .arg(&COEFF)
+    ///     .arg(&source_buffer)
+    ///     .arg_named("result", None::<&Buffer<f32>>)
+    ///     .build()?;
+    ///
+    /// // Set our named argument. The Option<_> wrapper is, well... optional:
+    /// kern.set_arg("result", &result_buffer)?;
+    /// // We can also set arguments (named or not) by index:
+    /// kern.set_arg(2, &result_buffer)?;
+    /// ```
     pub fn arg_named<'s, T, A>(&'s mut self, name: &'static str, arg: A) -> &'s mut KernelBuilder<'b>
             where T: OclPrm, A: Into<ArgValConverter<'b, T>> {
+        // let arg_idx = if let Some(arg) = arg {
+        //     let arg = arg.into();
+        //     self.new_arg(Some(arg.val), arg.type_id, arg.mem)
+        // } else {
+        //     self.new_arg(None, Some(TypeId::of::<T>()), None)
+        // };
+
         let arg = arg.into();
         let arg_idx = self.new_arg(arg.val, arg.type_id, arg.mem);
         self.named_args.insert(name, arg_idx);
@@ -1040,6 +1168,8 @@ impl<'b> KernelBuilder<'b> {
     /// Adds a new *named* argument  specifying the value: `scalar`.
     ///
     /// The argument is added to the bottom of the argument order.
+    ///
+    /// Scalar arguments may not be null, use zero (e.g. `&0`) instead.
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
     pub fn arg_scl_named<'s, T>(&'s mut self, name: &'static str, scalar: &'b T) -> &'s mut KernelBuilder<'b>
@@ -1052,6 +1182,8 @@ impl<'b> KernelBuilder<'b> {
     /// Adds a new *named* argument specifying the value: `vector`.
     ///
     /// The argument is added to the bottom of the argument order.
+    ///
+    /// Vector arguments may not be null, use zero (e.g. `&0`) instead.
     ///
     /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
     pub fn arg_vec_named<'s, T>(&'s mut self, name: &'static str, vector: &'b T) -> &'s mut KernelBuilder<'b>
@@ -1102,8 +1234,6 @@ impl<'b> KernelBuilder<'b> {
     /// Specifies whether or not to store a copy of memory objects (`Buffer`
     /// and `Image`).
     ///
-    /// Defaults to `true`.
-    ///
     /// ### Safety
     ///
     /// Disabling memory object argument retention can lead to a misleading
@@ -1119,7 +1249,7 @@ impl<'b> KernelBuilder<'b> {
     /// Disables argument type checking when setting arguments.
     ///
     /// Because the performance cost of argument type checking is negligible,
-    /// it is not recommended to disable this.
+    /// disabling is not recommended.
     ///
     /// Argument type checking will automatically be disabled if any of the
     /// devices in use do not support OpenCL version 1.2 or higher or if
@@ -1181,7 +1311,11 @@ impl<'b> KernelBuilder<'b> {
                     }
                 }
             }
-            core::set_kernel_arg(&obj_core, arg_idx as u32, arg.clone())?;
+            let val = match *arg {
+                Some(ref val) => val.clone(),
+                None => ArgVal::mem_null(),
+            };
+            core::set_kernel_arg(&obj_core, arg_idx as u32, val)?;
         }
 
         let arg_types = if all_arg_types_unknown || disable_arg_check {
