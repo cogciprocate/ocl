@@ -253,11 +253,13 @@ pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D])
 
 
 /// An API function identifier.
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) enum ApiFunction {
     None,
     RetainDevice,
     ReleaseDevice,
+    CreateProgramWithIl,
     CreateImage,
     CreateFromGLTexture,
     GetKernelArgInfo,
@@ -1715,8 +1717,9 @@ pub fn create_program_with_il<C>(
         ) -> OclCoreResult<Program>
         where C: ClContextPtr + ClVersions
 {
-    verify_device_versions(device_versions, [2, 1], &context)
-        .chain_err(|| "::create_program_with_il")?;
+    // verify_device_versions(device_versions, [2, 1], )
+    //     .chain_err(|| "::create_program_with_il")?;
+    verify_device_versions(device_versions, [2, 1], &context, ApiFunction::CreateProgramWithIl)?;
 
     let mut errcode: cl_int = 0;
 
@@ -2003,7 +2006,8 @@ pub unsafe fn release_kernel(kernel: &Kernel) -> OclCoreResult<()> {
 ///
 /// [SDK Documentation](https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clSetKernelArg.html)
 pub fn set_kernel_arg(kernel: &Kernel, index: u32, arg_val: ArgVal)
-        -> OclCoreResult<()> {
+        -> OclCoreResult<()>
+{
     let (size, value) = arg_val.as_raw();
 
     let err = unsafe { ffi::clSetKernelArg(

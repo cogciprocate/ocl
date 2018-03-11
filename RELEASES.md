@@ -5,7 +5,7 @@ Version 0.18.0 (UNRELEASED)
 [`Kernel`] has received a much-needed makeover. Creating a kernel is not
 exactly like creating other types of objects due to the fact that arguments
 are specified in advance and that they contain typed data. Because of this,
-the original design became a quirky mixture of builder-style and normal
+the old design became a quirky mixture of builder-style and normal (`&self`)
 methods intended to be as versatile as possible.
 
 To further complicate matters, the issue of if and when `Kernel` could be
@@ -18,11 +18,11 @@ adopted. Many rough spots have been smoothed out and potential invalid uses
 have been eliminated.
 
 * `KernelBuilder` has been added. All kernels must now be created using a builder.
-* `Kernel::set_arg` has been been added in order to simplify setting
-  arguments. `Kernel::set_arg`, `KernelBuilder::arg`,
-  `KernelBuilder::arg_named` can be used to set `Buffer`, `Image`, scalar, or
-  vector values and will automatically detect which type is being used (except
-  when `None` values are passed).
+* `Kernel::set_arg` has been been added in order to streamline setting
+  arguments. `Kernel::set_arg`, `KernelBuilder::arg`, and
+  `KernelBuilder::arg_named` will automatically detect whether a `Buffer`,
+  `Image`, scalar, or vector value is being passed. (Type annotation is
+  required when `None` is passed).
   * `Kernel::set_arg` will accept either a name (`&'static str`) or numeric
     index. If passing a name, the argument must have been declared using
     `KernelBuilder::arg_named`.
@@ -33,6 +33,7 @@ have been eliminated.
 * `ProQue::buffer_builder` has been added and can be used to obtain a
   `BufferBuilder` with pre-configured length and default queue.
 * `ProQue::kernel_builder` has also been added (see below).
+* `ProgramBuilder::binaries` and `Program::with_binary` have been added.
 * The new `KernelError` type has been added.
 
 Breaking Changes
@@ -59,6 +60,7 @@ Breaking Changes
 * `KernelCmd::gwo`, `::gws`, and `::lws` have been deprecated and should be
   replaced by `::global_work_offset`, `::global_work_size`, and
   `::local_work_size` respectively.
+* `ProQue::builder` now has a lifetime.
 * `ProQue::create_kernel` has been removed and replaced with
   `ProQue::kernel_builder` which can be used to return a new `KernelBuilder`
   with pre-configured name, program, default queue, and global work size.
@@ -66,6 +68,13 @@ Breaking Changes
   `flags::MEM_USE_HOST_PTR` when creating a buffer can create undefined
   behavior.
 * `Buffer::new` is now unsafe.
+* `ProgramBuilder` is now non-consuming and has a lifetime.
+* `ProgramBuilder::il` now accepts a slice instead of a `Vec`.
+* `Program::new` has been renamed to `Program::with_source`. Source strings
+  and compiler options are now passed as slices.
+* `Program::with_il` now accepts intermediate language byte source and
+  compiler options as slices.
+
 * (core) `KernelArg` has been removed and replaced with `ArgVal`. Conversion
   is relatively straightforward, enum variants map to 'constructor' methods.
   Where before you may have created a `KernelArg` using
@@ -82,7 +91,8 @@ Breaking Changes
     core::set_kernel_arg(&kernel, 1, ArgVal::mem(&buffer))?;
     ```
 
-### Update Instructions
+
+### Quick Update Instructions
 
 * Replace uses of `ProQue::create_kernel` with `::kernel_builder` (example
   regex: `ProQue::create_kernel\(([^\)]+)\)` --> `ProQue::kernel_builder(\1)`).
@@ -101,15 +111,11 @@ Other things to check:
   `arg_named("rnd", &0i32)`).
 * If you were previously cloning the kernel, you will now instead need to use
   the `KernelBuilder` to create multiple copies. Please note that before,
-  clones of Kernels would share argument values. This will no longer be the
+  clones of kernels would share argument values. This will no longer be the
   case, each copy of a kernel will have independent argument values.
   * If you were relying on shared argument values or if for some other reason
     the new design does not work for you, you can wrap `Kernel` with an
     `Rc<RefCell<_>>` or `Arc<Mutex<_>>`.
-
-TODO:
-* Sort out the `BufferBuilder::host_data`/`::flags` situation. Possibly create
-  separate methods, `use_host_ptr` and `copy_host_slice`.
 
 [kernel-0.18.0]: https://docs.rs/ocl/0.18.0/ocl/struct.Kernel.html
 

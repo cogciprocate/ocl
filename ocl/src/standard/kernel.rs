@@ -1050,7 +1050,7 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// ### Example
     ///
-    /// ```
+    /// ```rust,ignore
     /// let kern = ocl_pq.kernel_builder("multiply_by_scalar")
     ///     .arg(&100.0f32)
     ///     .arg(&source_buffer)

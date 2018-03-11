@@ -31,7 +31,7 @@ pub struct Program(ProgramCore);
 
 impl Program {
     /// Returns a new `ProgramBuilder`.
-    pub fn builder() -> ProgramBuilder {
+    pub fn builder<'b>() -> ProgramBuilder<'b> {
         ProgramBuilder::new()
     }
 
@@ -40,26 +40,35 @@ impl Program {
     ///
     /// Prefer `::builder` to create a new `Program`.
     ///
-    pub fn new(context_obj_core: &ContextCore, src_strings: Vec<CString>,
-            device_ids: Option<&[Device]>, cmplr_opts: CString) -> OclResult<Program> {
-        let obj_core = core::create_build_program(context_obj_core, &src_strings, device_ids,
-            &cmplr_opts)?;
+    pub fn with_source(context: &ContextCore, src_strings: &[CString],
+            devices: Option<&[Device]>, cmplr_opts: &CString) -> OclResult<Program> {
+        let program = core::create_program_with_source(context, src_strings)?;
+        core::build_program(&program, devices, cmplr_opts, None, None)?;
+        Ok(Program(program))
+    }
 
-        Ok(Program(obj_core))
+    /// Returns a new program built from pre-created build components and device
+    /// list.
+    ///
+    /// Prefer `::builder` to create a new `Program`.
+    ///
+    pub fn with_binary(context: &ContextCore, devices: &[Device],
+            binaries: &[&[u8]], cmplr_opts: &CString) -> OclResult<Program> {
+        let program = core::create_program_with_binary(context, devices, binaries)?;
+        core::build_program(&program, Some(devices), cmplr_opts, None, None)?;
+        Ok(Program(program))
     }
 
     /// Returns a new program built from pre-created build components and device
     /// list for programs with intermediate language byte source.
     #[cfg(feature = "opencl_version_2_1")]
-    pub fn with_il(il: Vec<u8>, device_ids: Option<&[Device]>, cmplr_opts: CString,
-            context_obj_core: &ContextCore) -> OclResult<Program> {
-        let device_versions = context_obj_core.device_versions()?;
+    pub fn with_il(il: &[u8], devices: Option<&[Device]>, cmplr_opts: &CString,
+            context: &ContextCore) -> OclResult<Program> {
+        let device_versions = context.device_versions()?;
+        let program = core::create_program_with_il(context, il, Some(&device_versions))?;
+        core::build_program(&program, devices, cmplr_opts, None, None)?;
 
-        let obj_core = core::create_program_with_il(context_obj_core, &il, Some(&device_versions))?;
-
-        core::build_program(&obj_core, device_ids, &cmplr_opts, None, None)?;
-
-        Ok(Program(obj_core))
+        Ok(Program(program))
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
@@ -97,6 +106,11 @@ impl Program {
     }
 }
 
+impl From<ProgramCore> for Program {
+    fn from(core: ProgramCore) -> Program {
+        Program(core)
+    }
+}
 
 impl std::fmt::Display for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -158,6 +172,17 @@ impl BuildOpt {
 }
 
 
+/// Options for program creation.
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+enum CreateWith<'b> {
+    None,
+    Source(Vec<PathBuf>),
+    Binaries(&'b[&'b [u8]]),
+    Il(&'b [u8]),
+}
+
+
 /// A builder for `Program`.
 ///
 // * [SOMEDAY TODO]: Keep track of line number range for each string and print
@@ -165,94 +190,19 @@ impl BuildOpt {
 //
 #[must_use = "builders do nothing unless '::build' is called"]
 #[derive(Clone, Debug)]
-pub struct ProgramBuilder {
+pub struct ProgramBuilder<'b> {
     options: Vec<BuildOpt>,
-    src_files: Vec<PathBuf>,
-    il: Option<Vec<u8>>,
+    with: CreateWith<'b>,
     device_spec: Option<DeviceSpecifier>,
 }
 
-impl ProgramBuilder {
+impl<'b> ProgramBuilder<'b> {
     /// Returns a new, empty, build configuration object.
-    pub fn new() -> ProgramBuilder {
+    pub fn new() -> ProgramBuilder<'b> {
         ProgramBuilder {
             options: Vec::with_capacity(64),
-            src_files: Vec::with_capacity(16),
-            il: None,
+            with: CreateWith::None,
             device_spec: None,
-        }
-    }
-
-    /// Returns a newly built Program.
-    ///
-    ///
-    ///
-    ///
-    /// * TODO: If the context is associated with more than one device,
-    /// check that at least one of those devices has been specified. An empty
-    /// device list will cause an `OpenCL` error in that case.
-    ///
-    /// * TODO: Check for duplicate devices in the final device list.
-    #[cfg(not(feature = "opencl_version_2_1"))]
-    pub fn build(self, context: &Context) -> OclResult<Program> {
-        let device_list = match self.device_spec {
-            Some(ref ds) => ds.to_device_list(context.platform()?)?,
-            None => context.devices(),
-        };
-
-        match self.il {
-            Some(_) => {
-                return Err("ocl::ProgramBuilder::build: Unreachable section (IL).".into());
-            },
-            None => {
-                Program::new(
-                    context,
-                    self.get_src_strings().map_err(|e| e.to_string())?,
-                    Some(&device_list[..]),
-                    self.get_compiler_options().map_err(|e| e.to_string())?,
-                ).map_err(OclError::from)
-            },
-        }
-    }
-
-    /// Returns a newly built Program.
-    ///
-    /// * TODO: If the context is associated with more than one device,
-    /// check that at least one of those devices has been specified. An empty
-    /// device list will cause an `OpenCL` error in that case.
-    ///
-    /// * TODO: Check for duplicate devices in the final device list.
-    #[cfg(feature = "opencl_version_2_1")]
-    pub fn build(mut self, context: &Context) -> OclResult<Program> {
-        let device_list = match self.device_spec {
-            Some(ref ds) => ds.to_device_list(context.platform()?)?,
-            None => context.devices().to_owned(),
-        };
-
-        match self.il.take() {
-            Some(il) => {
-                if cfg!(feature = "opencl_version_2_1") {
-                    if self.src_files.len() > 0 { return Err("ProgramBuilder::build: \
-                        No source files may be set when building with IR.".into()); }
-
-                    Program::with_il(
-                        il,
-                        Some(&device_list[..]),
-                        self.get_compiler_options().map_err(|e| e.to_string())?,
-                        context
-                    )
-                } else {
-                    return Err("ocl::ProgramBuilder::build: Unreachable section.".into());
-                }
-            },
-            None => {
-                Program::new(
-                    context,
-                    self.get_src_strings().map_err(|e| e.to_string())?,
-                    Some(&device_list[..]),
-                    self.get_compiler_options().map_err(|e| e.to_string())?,
-                )
-            },
         }
     }
 
@@ -263,7 +213,7 @@ impl ProgramBuilder {
     ///
     /// `...cmplr_def("MAX_ITERS", 500)...`
     ///
-    pub fn cmplr_def<S: Into<String>>(mut self, name: S, val: i32) -> ProgramBuilder {
+    pub fn cmplr_def<'a, S: Into<String>>(&'a mut self, name: S, val: i32) -> &'a mut ProgramBuilder<'b> {
         self.options.push(BuildOpt::cmplr_def(name, val));
         self
     }
@@ -275,31 +225,82 @@ impl ProgramBuilder {
     ///
     /// `...cmplr_opt("-g")...`
     ///
-    pub fn cmplr_opt<S: Into<String>>(mut self, co: S) -> ProgramBuilder {
+    pub fn cmplr_opt<'a, S: Into<String>>(&'a mut self, co: S) -> &'a mut ProgramBuilder<'b> {
         self.options.push(BuildOpt::CmplrOther(co.into()));
         self
     }
 
     /// Pushes pre-created build option to the list of options.
-    pub fn bo(mut self, bo: BuildOpt) -> ProgramBuilder {
+    ///
+    /// If either `::il` or `::binaries` are used and raw source is added, it
+    /// will be ignored.
+    pub fn bo<'a>(&'a mut self, bo: BuildOpt) -> &'a mut ProgramBuilder<'b> {
         self.options.push(bo);
         self
     }
 
     /// Adds the contents of a file to the program.
-    pub fn src_file<P: Into<PathBuf>>(mut self, file_path: P) -> ProgramBuilder {
+    //
+    // TODO: Deprecate
+    pub fn src_file<'a, P: Into<PathBuf>>(&'a mut self, file_path: P) -> &'a mut ProgramBuilder<'b> {
+        self.source_file(file_path)
+    }
+
+    /// Opens a file and adds its contents to the program source.
+    pub fn source_file<'a, P: Into<PathBuf>>(&'a mut self, file_path: P) -> &'a mut ProgramBuilder<'b> {
         let file_path = file_path.into();
         assert!(file_path.is_file(), "ProgramBuilder::src_file(): Source file error: \
             '{}' does not exist.", file_path.display());
-        self.src_files.push(file_path);
+        match self.with {
+            CreateWith::None => {
+                let mut paths = Vec::with_capacity(8);
+                paths.push(file_path);
+                self.with = CreateWith::Source(paths);
+            }
+            CreateWith::Source(ref mut paths) => paths.push(file_path),
+            _ => panic!("Source may not be used with binaries or il."),
+        }
         self
     }
 
     /// Adds raw text to the program source.
-    pub fn src<S: Into<String>>(mut self, src: S) -> ProgramBuilder {
-        self.options.push(BuildOpt::IncludeRawEof(src.into()));
+    //
+    // TODO: Deprecate
+    pub fn src<'a, S: Into<String>>(&'a mut self, src: S) -> &'a mut ProgramBuilder<'b> {
+        self.source(src)
+    }
+
+    /// Adds raw text to the program source.
+    //
+    // [TODO]: Possibly accept Into<CString>
+    pub fn source<'a, S: Into<String>>(&'a mut self, src: S) -> &'a mut ProgramBuilder<'b> {
+        match self.with {
+            CreateWith::None => {
+                self.with = CreateWith::Source(Vec::with_capacity(8));
+                self.options.push(BuildOpt::IncludeRawEof(src.into()));
+            }
+            CreateWith::Source(_) => {
+                self.options.push(BuildOpt::IncludeRawEof(src.into()));
+            }
+            _ => panic!("Source may not be used with binaries or il."),
+        }
+
         self
     }
+
+    /// Adds a binary to be loaded.
+    ///
+    /// There must be one binary for each device listed in `::devices`.
+    pub fn binaries<'a>(&'a mut self, bins: &'b[&'b [u8]]) -> &'a mut ProgramBuilder<'b> {
+        match self.with {
+            CreateWith::None => self.with = CreateWith::Binaries(bins),
+            CreateWith::Binaries(_) => panic!("Binaries have already been specified."),
+            _ => panic!("Binaries may not be used with source or il."),
+        }
+        self
+    }
+
+    /// Adds
 
     /// Adds SPIR-V or an implementation-defined intermediate language to this program.
     ///
@@ -312,8 +313,12 @@ impl ProgramBuilder {
     /// in the same way that text source is.
     ///
     #[cfg(feature = "opencl_version_2_1")]
-    pub fn il(mut self, il: Vec<u8>) -> ProgramBuilder {
-        self.il = Some(il);
+    pub fn il<'a>(&'a mut self, il: &'b [u8]) -> &'a mut ProgramBuilder<'b> {
+        match self.with {
+            CreateWith::None => self.with = CreateWith::Il(il),
+            CreateWith::Il(_) => panic!("Il has already been specified."),
+            _ => panic!("Il may not be used with source or binaries."),
+        }
         self
     }
 
@@ -333,9 +338,8 @@ impl ProgramBuilder {
     /// [device_specifier_from]: enum.DeviceSpecifier.html#method.from
     /// [device_specifier]: enum.DeviceSpecifier.html
     ///
-    pub fn devices<D: Into<DeviceSpecifier>>(mut self, device_spec: D)
-            -> ProgramBuilder
-    {
+    pub fn devices<'a, D: Into<DeviceSpecifier>>(&'a mut self, device_spec: D)
+            -> &'a mut ProgramBuilder<'b> {
         assert!(self.device_spec.is_none(), "ocl::ProgramBuilder::devices(): Devices already specified");
         self.device_spec = Some(device_spec.into());
         self
@@ -370,40 +374,6 @@ impl ProgramBuilder {
         }
 
         CString::new(opts.join(" ").into_bytes()).map_err(OclError::from)
-    }
-
-    /// Returns the final program source code as a list of strings.
-    ///
-    /// ### Order of Inclusion
-    ///
-    /// 1. Macro definitions and code strings specified by a
-    ///    `BuildOpt::IncludeDefine` or `BuildOpt::IncludeRaw` via `::bo`
-    /// 2. Contents of files specified via `::src_file`
-    /// 3. Contents of strings specified via `::src` or a
-    ///   `BuildOpt::IncludeRawEof` via `::bo`
-    ///
-    pub fn get_src_strings(&self) -> OclResult<Vec<CString>> {
-        let mut src_strings: Vec<CString> = Vec::with_capacity(64);
-        let mut src_file_history: HashSet<PathBuf> = HashSet::with_capacity(64);
-
-        src_strings.extend_from_slice(&self.get_includes()?);
-
-        for srcpath in &self.src_files {
-            let mut src_bytes: Vec<u8> = Vec::with_capacity(100000);
-
-            if src_file_history.contains(srcpath) { continue; }
-            src_file_history.insert(srcpath.clone());
-
-            let mut src_file_handle = File::open(srcpath)?;
-
-            src_file_handle.read_to_end(&mut src_bytes)?;
-            src_bytes.shrink_to_fit();
-            src_strings.push(CString::new(src_bytes)?);
-        }
-
-        src_strings.extend_from_slice(&self.get_includes_eof()?);
-        src_strings.shrink_to_fit();
-        Ok(src_strings)
     }
 
     /// Parses `self.options` for options intended for inclusion at the beginning of
@@ -447,6 +417,128 @@ impl ProgramBuilder {
 
         strings.shrink_to_fit();
         Ok(strings)
+    }
+
+    /// Returns the final program source code as a list of strings.
+    ///
+    /// ### Order of Inclusion
+    ///
+    /// 1. Macro definitions and code strings specified by a
+    ///    `BuildOpt::IncludeDefine` or `BuildOpt::IncludeRaw` via `::bo`
+    /// 2. Contents of files specified via `::src_file`
+    /// 3. Contents of strings specified via `::src` or a
+    ///   `BuildOpt::IncludeRawEof` via `::bo`
+    ///
+    pub fn get_src_strings(&self) -> OclResult<Vec<CString>> {
+        let mut src_strings: Vec<CString> = Vec::with_capacity(64);
+        let mut src_file_history: HashSet<PathBuf> = HashSet::with_capacity(64);
+
+        src_strings.extend_from_slice(&self.get_includes()?);
+
+        let src_paths = match self.with {
+            CreateWith::Source(ref paths) => paths,
+            _ => panic!("Cannot build program. No source specified."),
+        };
+
+        for src_path in src_paths {
+            let mut src_bytes: Vec<u8> = Vec::with_capacity(100000);
+
+            if src_file_history.contains(src_path) { continue; }
+            src_file_history.insert(src_path.clone());
+
+            let mut src_file_handle = File::open(src_path)?;
+
+            src_file_handle.read_to_end(&mut src_bytes)?;
+            src_bytes.shrink_to_fit();
+            src_strings.push(CString::new(src_bytes)?);
+        }
+
+        src_strings.extend_from_slice(&self.get_includes_eof()?);
+        src_strings.shrink_to_fit();
+        Ok(src_strings)
+    }
+
+    /// Returns a newly built Program.
+    //
+    // * TODO: If the context is associated with more than one device,
+    // check that at least one of those devices has been specified. An empty
+    // device list will cause an `OpenCL` error in that case.
+    //
+    // * TODO: Check for duplicate devices in the final device list.
+    #[cfg(not(feature = "opencl_version_2_1"))]
+    pub fn build(&self, context: &Context) -> OclResult<Program> {
+        let device_list = match self.device_spec {
+            Some(ref ds) => ds.to_device_list(context.platform()?)?,
+            None => context.devices(),
+        };
+
+        match self.with {
+            CreateWith::Il(_) => {
+                return Err("ocl::ProgramBuilder::build: Unreachable section (IL).".into());
+            },
+            CreateWith::Source(_) => {
+                Program::with_source(
+                    context,
+                    &self.get_src_strings()?,
+                    Some(&device_list[..]),
+                    &self.get_compiler_options()?,
+                ).map_err(OclError::from)
+            },
+            CreateWith::Binaries(bins) => {
+                Program::with_binary(
+                    context,
+                    &device_list[..],
+                    bins,
+                    &self.get_compiler_options()?,
+                )
+            },
+            CreateWith::None => return Err("Unable to build program: no source, binary, \
+                or IL has been specified".into()),
+        }
+    }
+
+    /// Returns a newly built Program.
+    //
+    // * TODO: If the context is associated with more than one device,
+    // check that at least one of those devices has been specified. An empty
+    // device list will cause an `OpenCL` error in that case.
+    //
+    // * TODO: Check for duplicate devices in the final device list.
+    #[cfg(feature = "opencl_version_2_1")]
+    pub fn build(&self, context: &Context) -> OclResult<Program> {
+        let device_list = match self.device_spec {
+            Some(ref ds) => ds.to_device_list(context.platform()?)?,
+            None => context.devices().to_owned(),
+        };
+
+        match self.with {
+            CreateWith::Il(il) => {
+                Program::with_il(
+                    il,
+                    Some(&device_list[..]),
+                    &self.get_compiler_options()?,
+                    context
+                )
+            },
+            CreateWith::Source(_) => {
+                Program::with_source(
+                    context,
+                    &self.get_src_strings()?,
+                    Some(&device_list[..]),
+                    &self.get_compiler_options()?,
+                )
+            },
+            CreateWith::Binaries(bins) => {
+                Program::with_binary(
+                    context,
+                    &device_list[..],
+                    bins,
+                    &self.get_compiler_options()?,
+                )
+            },
+            CreateWith::None => return Err("Unable to build program: no source, binary, \
+                or IL has been specified".into()),
+        }
     }
 }
 

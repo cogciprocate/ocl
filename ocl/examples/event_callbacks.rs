@@ -93,9 +93,11 @@ fn event_callbacks() -> ocl::Result<()> {
         .join("cl/kernel_file.cl");
 
     // Create a context, program, & queue:
+    let mut pb = Program::builder();
+    pb.src_file(src_file);
     let ocl_pq = ProQue::builder()
         .dims(dataset_len)
-        .prog_bldr(Program::builder().src_file(src_file))
+        .prog_bldr(pb)
         .build()?;
 
     // Create source and result buffers (our data containers):

@@ -1407,6 +1407,9 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// [SDK]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
     //
     // * TODO: Add links to methods listed above.
+    // * TODO: Sort out the `BufferBuilder::host_data`/`::flags` situation.
+    //   Possibly create separate methods, `use_host_ptr` and
+    //   `copy_host_slice`.
     pub fn flags(mut self, flags: MapFlags) -> BufferMapCmd<'c, T> {
         self.flags = Some(flags);
         self

@@ -49,7 +49,7 @@ impl ProQue {
     /// This is the recommended way to create a new `ProQue`.
     ///
     /// Calling `ProQueBuilder::build()` will return a new `ProQue`.
-    pub fn builder() -> ProQueBuilder {
+    pub fn builder<'b>() -> ProQueBuilder<'b> {
         ProQueBuilder::new()
     }
 
@@ -244,16 +244,16 @@ impl Deref for ProQue {
 
 /// A builder for `ProQue`.
 #[must_use = "builders do nothing unless '::build' is called"]
-pub struct ProQueBuilder {
+pub struct ProQueBuilder<'b> {
     platform: Option<Platform>,
     context: Option<Context>,
     device_spec: Option<DeviceSpecifier>,
-    program_builder: Option<ProgramBuilder>,
+    program_builder: Option<ProgramBuilder<'b>>,
     dims: Option<SpatialDims>,
     queue_properties: Option<CommandQueueProperties>,
 }
 
-impl ProQueBuilder {
+impl<'b> ProQueBuilder<'b> {
     /// Returns a new `ProQueBuilder` with an empty / default configuration.
     ///
     /// The minimum amount of configuration possible before calling `::build` is to
@@ -265,7 +265,7 @@ impl ProQueBuilder {
     /// pass them as arguments to the `::context` and `::prog_bldr` methods
     /// respectively.
     ///
-    pub fn new() -> ProQueBuilder {
+    pub fn new() -> ProQueBuilder<'b> {
         ProQueBuilder {
             platform: None,
             context: None,
@@ -282,7 +282,7 @@ impl ProQueBuilder {
     ///
     /// If context is set, this will panic upon building. Only one or the other
     /// can be configured.
-    pub fn platform(&mut self, platform: Platform) -> &mut ProQueBuilder {
+    pub fn platform(&mut self, platform: Platform) -> &mut ProQueBuilder<'b> {
         self.platform = Some(platform);
         self
     }
@@ -293,7 +293,7 @@ impl ProQueBuilder {
     ///
     /// If platform is set, this will panic upon building. Only one or the other
     /// can be configured.
-    pub fn context(&mut self, context: Context) -> &mut ProQueBuilder {
+    pub fn context(&mut self, context: Context) -> &mut ProQueBuilder<'b> {
         self.context = Some(context);
         self
     }
@@ -304,7 +304,7 @@ impl ProQueBuilder {
     /// Must specify only a single device.
     ///
     pub fn device<D: Into<DeviceSpecifier>>(&mut self, device_spec: D)
-            -> &mut ProQueBuilder
+            -> &mut ProQueBuilder<'b>
     {
         assert!(self.device_spec.is_none(), "ocl::ProQue::devices: Devices already specified");
         self.device_spec = Some(device_spec.into());
@@ -319,13 +319,15 @@ impl ProQueBuilder {
     /// If you need a more complex build configuration or to add multiple
     /// source files. Pass an *unbuilt* `ProgramBuilder` to the
     /// `::program_builder` method (described below).
-    pub fn src<S: Into<String>>(&mut self, src: S) -> &mut ProQueBuilder {
+    pub fn src<S: Into<String>>(&mut self, src: S) -> &mut ProQueBuilder<'b> {
         if self.program_builder.is_some() {
             panic!("ocl::ProQueBuilder::src: Cannot set src if a 'ProgramBuilder' is already \
                 defined. Please use the '::program_builder' method for more complex build \
                 configurations.");
         } else {
-            self.program_builder = Some(Program::builder().src(src))
+            let mut pb = Program::builder();
+            pb.src(src);
+            self.program_builder = Some(pb);
         }
         self
     }
@@ -340,7 +342,7 @@ impl ProQueBuilder {
     /// `::device_idxs` method). `ProQueBuilder` will only build programs for
     /// the device specified by `::device_idx` or the default device if none has
     /// been specified.
-    pub fn prog_bldr(&mut self, program_builder: ProgramBuilder) -> &mut ProQueBuilder {
+    pub fn prog_bldr(&mut self, program_builder: ProgramBuilder<'b>) -> &mut ProQueBuilder<'b> {
         assert!(self.program_builder.is_none(), "ProQueBuilder::prog_bldr(): Cannot set the \
             'ProgramBuilder' using this method after one has already been set or after '::src' has \
             been called.");
@@ -362,7 +364,7 @@ impl ProQueBuilder {
     /// Dimensions can alternatively be set after building by using the
     /// `ProQue::set_dims` method.
     ///
-    pub fn dims<D: Into<SpatialDims>>(&mut self, dims: D) -> &mut ProQueBuilder {
+    pub fn dims<D: Into<SpatialDims>>(&mut self, dims: D) -> &mut ProQueBuilder<'b> {
         self.dims = Some(dims.into());
         self
     }
@@ -371,7 +373,7 @@ impl ProQueBuilder {
     ///
     /// Optional.
     ///
-    pub fn queue_properties(&mut self, props: CommandQueueProperties) -> &mut ProQueBuilder {
+    pub fn queue_properties(&mut self, props: CommandQueueProperties) -> &mut ProQueBuilder<'b> {
         self.queue_properties = Some(props);
         self
     }
@@ -386,7 +388,6 @@ impl ProQueBuilder {
     ///
     pub fn build(&self) -> OclResult<ProQue> {
         let program_builder = match self.program_builder {
-            // Some(program_builder) => ProQueBuilder::_build(self.context, self.device_idx, program_builder),
             Some(ref program_builder) => program_builder,
             None => return Err("ProQueBuilder::build(): No program builder or kernel source defined. \
                 OpenCL programs must have some source code to be compiled. Use '::src' to directly \
@@ -462,13 +463,11 @@ impl ProQueBuilder {
         let cmplr_opts = program_builder.get_compiler_options().map_err(|e| e.to_string())?;
         // println!("PROQUEBUILDER: All done.");
 
-        let program = Program::new(
+        let program = Program::with_source(
             &context,
-            src_strings,
+            &src_strings,
             Some(&[device]),
-            cmplr_opts,
-
-
+            &cmplr_opts,
         )?;
 
         Ok(ProQue::new(context, queue, program, self.dims))
