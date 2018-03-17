@@ -43,9 +43,9 @@ fn buffer_sink() -> ocl::Result<()> {
     let result_buffer: Buffer<i32> = ocl_pq.create_buffer()?;
 
     let kern = ocl_pq.kernel_builder("multiply_by_scalar")
-        .arg_scl(&COEFF)
-        .arg_buf(&source_buffer)
-        .arg_buf(&result_buffer)
+        .arg(COEFF)
+        .arg(&source_buffer)
+        .arg(&result_buffer)
         .build()?;
     assert_eq!(kern.default_global_work_size().to_len(), WORK_SIZE);
 

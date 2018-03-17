@@ -119,7 +119,7 @@ impl<'a> ArgVal<'a> {
     /// Caller must ensure that the value pointed to by `value` lives until
     /// the call to `::set_kernel_arg` returns and that `size` accurately
     /// reflects the total number of bytes that should be read.
-    pub unsafe fn raw(size: size_t, value: *const c_void) -> ArgVal<'a> {
+    pub unsafe fn from_raw(size: size_t, value: *const c_void) -> ArgVal<'a> {
         ArgVal {
             size,
             value,

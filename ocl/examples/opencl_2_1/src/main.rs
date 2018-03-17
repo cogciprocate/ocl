@@ -67,8 +67,8 @@ fn main() {
 
     // let kernel = Kernel::new("add", &program, queue.clone()).unwrap()
     //     .gws(&dims)
-    //     .arg_buf(&buffer)
-    //     .arg_scl(10.0f32);
+    //     .arg(&buffer)
+    //     .arg(10.0f32);
 
     // kernel.cmd()
     //     .queue(&queue)

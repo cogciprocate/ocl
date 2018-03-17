@@ -98,8 +98,8 @@ fn buffer_copy_standard() {
     let mut dst_vec = vec![0.0f32; dst_buffer.len()];
 
     let kernel = pro_que.kernel_builder("add")
-        .arg_buf(&src_buffer)
-        .arg_scl(&ADDEND)
+        .arg(&src_buffer)
+        .arg(ADDEND)
         .build().unwrap();
 
     unsafe { kernel.enq().unwrap(); }

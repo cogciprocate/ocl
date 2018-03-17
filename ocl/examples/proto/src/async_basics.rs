@@ -96,9 +96,9 @@ pub fn main() {
         let kern = Kernel::new("add", &program).unwrap()
             .queue(kern_queue.clone())
             .gws(work_size)
-            .arg_buf(&write_buf)
-            .arg_vec(Float4::new(100., 100., 100., 100.))
-            .arg_buf(&read_buf);
+            .arg(&write_buf)
+            .arg(Float4::new(100., 100., 100., 100.))
+            .arg(&read_buf);
 
         // (0) INIT: Fill buffer with -999's just to ensure the upcoming
         // write misses nothing:

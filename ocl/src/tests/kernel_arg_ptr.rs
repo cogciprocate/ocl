@@ -23,9 +23,8 @@ fn kernel_arg_ptr_out_of_scope() {
         .build().unwrap();
 
     let mut kernel = pro_que.kernel_builder("add")
-        // Being redundant with type ascription for testing purposes:
-        .arg_buf_named::<f32, Buffer<f32>>("buf", None::<&Buffer<f32>>)
-        .arg_scl(&10.0f32)
+        .arg_named("buf", None::<&Buffer<f32>>)
+        .arg(10.0f32)
         .build().unwrap();
 
     set_arg(&mut kernel, &pro_que);
@@ -44,5 +43,5 @@ fn set_arg(kernel: &mut Kernel, pro_que: &ProQue) {
     let buffer = pro_que.create_buffer::<f32>().unwrap();
     assert!(throwaway_vec[1 << 15] == 99);
 
-    kernel.set_arg_buf_named("buf", Some(&buffer)).unwrap();
+    kernel.set_arg("buf", Some(&buffer)).unwrap();
 }

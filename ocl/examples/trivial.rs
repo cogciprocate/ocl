@@ -17,7 +17,7 @@ fn trivial() -> ocl::Result<()> {
 
     let kernel = pro_que.kernel_builder("add")
         .arg(&buffer)
-        .arg(&10.0f32)
+        .arg(10.0f32)
         .build()?;
 
     unsafe { kernel.enq()?; }
@@ -58,7 +58,7 @@ fn trivial_explained() -> ocl::Result<()> {
     // (3) Create a kernel with arguments matching those in the source above:
     let kernel = pro_que.kernel_builder("add")
         .arg(&buffer)
-        .arg(&10.0f32)
+        .arg(10.0f32)
         .build()?;
 
     // (4) Run the kernel:
@@ -132,7 +132,7 @@ fn trivial_exploded() -> ocl::Result<()> {
         .queue(queue.clone())
         .global_work_size(dims)
         .arg(&buffer)
-        .arg(&10.0f32)
+        .arg(10.0f32)
         .build()?;
 
     // (4) Run the kernel (default parameters shown for demonstration purposes):

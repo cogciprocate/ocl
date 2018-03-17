@@ -99,8 +99,8 @@ fn threads() -> OclResult<()> {
                         .name("add")
                         .queue(queueball_th[0].clone())
                         .global_work_size(work_size_th)
-                        .arg_buf(&buffer)
-                        .arg_scl(&1000.0f32)
+                        .arg(&buffer)
+                        .arg(1000.0f32)
                         .build()?;
 
                     // Event list isn't really necessary here but hey.

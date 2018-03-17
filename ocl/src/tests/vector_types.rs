@@ -40,9 +40,9 @@ fn test_vector_types() {
     let out_buffer = pro_que.create_buffer::<Int4>().unwrap();
 
     let kernel = pro_que.kernel_builder("add_int4")
-        .arg_buf(&in_buffer)
-        .arg_vec(&addend)
-        .arg_buf(&out_buffer)
+        .arg(&in_buffer)
+        .arg(&addend)
+        .arg(&out_buffer)
         .build().unwrap();
 
     unsafe { kernel.enq().unwrap(); }

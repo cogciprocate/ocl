@@ -52,7 +52,7 @@ fn basics() -> ocl::Result<()> {
     // Create a kernel with arguments corresponding to those in the kernel.
     // Just for fun, one argument will be 'named':
     let kern = ocl_pq.kernel_builder("multiply_by_scalar")
-        .arg(&COEFF)
+        .arg(COEFF)
         .arg(None::<&Buffer<f32>>)
         .arg_named("result", None::<&Buffer<f32>>)
         .build()?;

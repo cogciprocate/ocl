@@ -124,8 +124,8 @@ fn event_callbacks() -> ocl::Result<()> {
     // Create kernel with the source initially set to our seed values.
     let kernel = ocl_pq.kernel_builder("add_scalar")
         .global_work_size(dataset_len)
-        .arg_buf_named("src", Some(&seed_buffer))
-        .arg(&addend)
+        .arg_named("src", Some(&seed_buffer))
+        .arg(addend)
         .arg(&result_buffer)
         .build()?;
 
@@ -154,7 +154,7 @@ fn event_callbacks() -> ocl::Result<()> {
         // Yes, this is far from optimal...
         // Should just copy the values in the first place but whatever.
         if itr != 0 {
-            // kernel.set_arg_buf_named("src", Some(&result_buffer))?;
+            // kernel.set_arg("src", Some(&result_buffer))?;
             kernel.set_arg("src", &result_buffer)?;
         }
 

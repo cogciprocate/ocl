@@ -67,9 +67,9 @@ fn timed() -> ocl::Result<()> {
     // Create a kernel with arguments matching those in the kernel:
     let kern = ocl_pq.kernel_builder("add")
         .global_work_size(ocl_pq.dims().clone())
-        .arg_buf_named("source", Some(&buffer_init))
-        .arg_scl(&SCALAR)
-        .arg_buf(&buffer_result)
+        .arg_named("source", Some(&buffer_init))
+        .arg(SCALAR)
+        .arg(&buffer_result)
         .build()?;
 
 
@@ -89,7 +89,7 @@ fn timed() -> ocl::Result<()> {
     }
 
     // Set kernel source buffer to the same as result:
-    // kern.set_arg_buf_named("source", Some(&buffer_result))?;
+    // kern.set_arg("source", Some(&buffer_result))?;
     kern.set_arg("source", &buffer_result)?;
 
     // Enqueue kernel for additional iterations:

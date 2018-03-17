@@ -55,8 +55,8 @@ fn buffer_ops_rect() {
     };
 
     let kernel_add = proque.kernel_builder("add")
-        .arg_buf(&buf)
-        .arg_scl(&ADDEND)
+        .arg(&buf)
+        .arg(ADDEND)
         .build().unwrap();
 
 
@@ -165,8 +165,8 @@ fn buffer_ops_rect() {
     // Prepare a kernel which will write a single value to the entire buffer
     // and which can be updated on each run (to act as a 'reset').
     let kernel_eq = proque.kernel_builder("eq")
-        .arg_buf_named("buf", Some(&buf))
-        .arg_scl_named("val", &0.0f32)
+        .arg_named("buf", Some(&buf))
+        .arg_named("val", 0.0f32)
         .build().unwrap();
 
     // Vector origin doesn't matter for this:
@@ -191,7 +191,7 @@ fn buffer_ops_rect() {
         let cur_val = ADDEND * ttl_runs as f32;
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
         unsafe {
-            kernel_eq.set_arg_scl_named("val", cur_val).unwrap();
+            kernel_eq.set_arg("val", cur_val).unwrap();
             kernel_eq.enq().expect("[FIXME]: HANDLE ME!");
         }
 
@@ -220,7 +220,7 @@ fn buffer_ops_rect() {
         let cur_val = ADDEND * ttl_runs as f32;
         let nxt_val = ADDEND * (ttl_runs + 1) as f32;
         unsafe {
-            kernel_eq.set_arg_scl_named("val", cur_val).unwrap();
+            kernel_eq.set_arg("val", cur_val).unwrap();
             kernel_eq.enq().expect("[FIXME]: HANDLE ME!");
         }
 
@@ -282,7 +282,7 @@ fn buffer_ops_rect() {
     let slc_pitch_bytes = dims[0] * dims[1] * mem::size_of::<f32>();
 
     // Set our 'eq' kernel's buffer to our dst buffer for reset purposes:
-    kernel_eq.set_arg_buf_named("buf", Some(&buf_dst)).unwrap();
+    kernel_eq.set_arg("buf", Some(&buf_dst)).unwrap();
 
     // Reset kernel runs count:
     ttl_runs = 0;
@@ -303,7 +303,7 @@ fn buffer_ops_rect() {
 
         // Reset destination buffer to current val:
         unsafe {
-            kernel_eq.set_arg_scl_named("val", cur_val).unwrap();
+            kernel_eq.set_arg("val", cur_val).unwrap();
             kernel_eq.enq().expect("[FIXME]: HANDLE ME!");
         }
 
@@ -340,7 +340,7 @@ fn buffer_ops_rect() {
 
         // Reset destination buffer to current val:
         unsafe {
-            kernel_eq.set_arg_scl_named("val", cur_val).unwrap();
+            kernel_eq.set_arg("val", cur_val).unwrap();
             kernel_eq.enq().expect("[FIXME]: HANDLE ME!");
         }
 

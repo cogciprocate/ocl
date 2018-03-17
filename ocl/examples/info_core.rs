@@ -60,8 +60,8 @@ fn print_platform_device(plat_idx: usize, platform: Platform, device_idx: usize,
         .program(&program)
         .queue(queue.clone())
         .global_work_size(work_dims)
-        .arg_scl(&10.0f32)
-        .arg_buf(&buffer)
+        .arg(10.0f32)
+        .arg(&buffer)
         .build()?;
 
     let mut event_list = EventList::new();

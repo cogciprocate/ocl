@@ -441,9 +441,9 @@ pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Swit
         .name(cfg.kern.name)
         .queue(kernel_queue)
         .global_work_size(work_size)
-        .arg_buf(&source_buf)
-        .arg_scl(&cfg.val.addend)
-        .arg_buf(&target_buf)
+        .arg(&source_buf)
+        .arg(cfg.val.addend)
+        .arg(&target_buf)
         .build()?;
 
 
@@ -949,9 +949,9 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
         .name(cfg.kern.name)
         .queue(common_queue.clone())
         .global_work_size(work_size)
-        .arg_buf(&src_buf)
-        .arg_scl(&cfg.val.addend)
-        .arg_buf(&tar_buf)
+        .arg(&src_buf)
+        .arg(&cfg.val.addend)
+        .arg(&tar_buf)
         .build()?;
 
 

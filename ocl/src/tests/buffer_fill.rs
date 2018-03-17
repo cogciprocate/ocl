@@ -28,8 +28,8 @@ fn fill() {
     }
 
     let kernel = pro_que.kernel_builder("add")
-        .arg_buf(&buffer)
-        .arg_scl(&10.0f32)
+        .arg(&buffer)
+        .arg(&10.0f32)
         .build().unwrap();
 
     unsafe { kernel.enq().expect("[FIXME]: HANDLE ME!"); }
@@ -75,8 +75,8 @@ fn fill_with_float4() {
     }
 
     let kernel = pro_que.kernel_builder("add_float4")
-        .arg_buf(&buffer)
-        .arg_scl(&addend)
+        .arg(&buffer)
+        .arg(addend)
         .build().unwrap();
 
     unsafe { kernel.enq().unwrap(); }

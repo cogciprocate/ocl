@@ -523,9 +523,9 @@ pub fn buffer_sink_stream_cycles() {
         .program(&program)
         .name("add_slowly")
         .global_work_size(WORK_SIZE)
-        .arg_buf(&src_buf)
-        .arg_scl(&SCALAR_ADDEND)
-        .arg_buf(&dst_buf)
+        .arg(&src_buf)
+        .arg(SCALAR_ADDEND)
+        .arg(&dst_buf)
         .build().unwrap();
 
     // A lockable vector for non-map reads.

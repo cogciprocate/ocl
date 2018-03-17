@@ -123,7 +123,7 @@ fn main() {
         .name("increase_blue")
         .queue(queue.clone())
         .global_work_size(&dims)
-        .arg_smp(&sampler)
+        .arg_sampler(&sampler)
         .arg(&src_image)
         .arg(&dst_image)
         .build().unwrap();

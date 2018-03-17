@@ -478,9 +478,9 @@ pub fn async_cycles() -> OclResult<()> {
         .name("add_slowly")
         .program(&program)
         .global_work_size(WORK_SIZE)
-        .arg_buf(&src_buf)
-        .arg_scl(&SCALAR_ADDEND)
-        .arg_buf(&dst_buf)
+        .arg(&src_buf)
+        .arg(SCALAR_ADDEND)
+        .arg(&dst_buf)
         .build()?;
 
     // A lockable vector for non-map reads.

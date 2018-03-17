@@ -128,8 +128,8 @@ fn main_from_example() -> OclResult<()> {
                         .name("add")
                         .queue(queueball_th[0].clone())
                         .global_work_size(&dims_th)
-                        .arg_buf(&buffer)
-                        .arg_scl(&1000.0f32)
+                        .arg(&buffer)
+                        .arg(&1000.0f32)
                         .build().unwrap();
 
                     // Event list isn't really necessary here but hey.

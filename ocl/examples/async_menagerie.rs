@@ -306,9 +306,9 @@ fn create_simple_task(task_id: usize, device: Device, context: &Context,
         .name("kern")
         .queue(queues[2].clone())
         .global_work_size(work_size)
-        .arg_buf(buf_pool.get(write_buf_id).unwrap())
-        .arg_vec(&Float4::new(100., 100., 100., 100.))
-        .arg_buf(buf_pool.get(read_buf_id).unwrap())
+        .arg(buf_pool.get(write_buf_id).unwrap())
+        .arg(Float4::new(100., 100., 100., 100.))
+        .arg(buf_pool.get(read_buf_id).unwrap())
         .build().unwrap();
 
     // (0) Initial write to device:
@@ -458,9 +458,9 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
         .name("kernel_a")
         .queue(queues[7].clone())
         .global_work_size(work_size)
-        .arg_buf(buf_pool.get(buffer_ids[0]).unwrap())
-        .arg_vec(&Float4::new(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
-        .arg_buf(buf_pool.get(buffer_ids[1]).unwrap())
+        .arg(buf_pool.get(buffer_ids[0]).unwrap())
+        .arg(&Float4::new(kern_a_val, kern_a_val, kern_a_val, kern_a_val))
+        .arg(buf_pool.get(buffer_ids[1]).unwrap())
         .build().unwrap();
 
     let kernel_b = Kernel::builder()
@@ -468,11 +468,11 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
         .name("kernel_b")
         .queue(queues[7].clone())
         .global_work_size(work_size)
-        .arg_buf(buf_pool.get(buffer_ids[2]).unwrap())
-        .arg_buf(buf_pool.get(buffer_ids[3]).unwrap())
-        .arg_buf(buf_pool.get(buffer_ids[4]).unwrap())
-        .arg_vec(&Float4::new(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
-        .arg_buf(buf_pool.get(buffer_ids[5]).unwrap())
+        .arg(buf_pool.get(buffer_ids[2]).unwrap())
+        .arg(buf_pool.get(buffer_ids[3]).unwrap())
+        .arg(buf_pool.get(buffer_ids[4]).unwrap())
+        .arg(&Float4::new(kern_b_val, kern_b_val, kern_b_val, kern_b_val))
+        .arg(buf_pool.get(buffer_ids[5]).unwrap())
         .build().unwrap();
 
     let kernel_c = Kernel::builder()
@@ -480,9 +480,9 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
         .name("kernel_c")
         .queue(queues[7].clone())
         .global_work_size(work_size)
-        .arg_buf(buf_pool.get(buffer_ids[5]).unwrap())
-        .arg_vec(&Float4::new(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
-        .arg_buf(buf_pool.get(buffer_ids[6]).unwrap())
+        .arg(buf_pool.get(buffer_ids[5]).unwrap())
+        .arg(&Float4::new(kern_c_val, kern_c_val, kern_c_val, kern_c_val))
+        .arg(buf_pool.get(buffer_ids[6]).unwrap())
         .build().unwrap();
 
     // (0) Initially write 500s:

@@ -19,17 +19,13 @@ have been eliminated.
 
 * `KernelBuilder` has been added. All kernels must now be created using a builder.
 * `Kernel::set_arg` has been been added in order to streamline setting
-  arguments. `Kernel::set_arg`, `KernelBuilder::arg`, and
-  `KernelBuilder::arg_named` will automatically detect whether a `Buffer`,
-  `Image`, scalar, or vector value is being passed. (Type annotation is
-  required when `None` is passed).
+  arguments. `KernelBuilder::arg`, `KernelBuilder::arg_named`, and
+  `Kernel::set_arg` will all automatically detect whether a `Buffer`, `Image`,
+  scalar, or vector value is being passed. (Type annotation is required when
+  `None` is passed).
   * `Kernel::set_arg` will accept either a name (`&'static str`) or numeric
     index. If passing a name, the argument must have been declared using
     `KernelBuilder::arg_named`.
-  * NOTE: For now, arguments can continue be declared using any of the old
-    methods, though it is possible that `::arg_buf`, `::arg_img`, `::arg_scl`,
-    and `::arg_vec` (plus all of the the `set_*` variations) may be deprecated
-    in favor of `::arg` (and `::set_arg`) at some point in the future.
 * `ProQue::buffer_builder` has been added and can be used to obtain a
   `BufferBuilder` with pre-configured length and default queue.
 * `ProQue::kernel_builder` has also been added (see below).
@@ -44,19 +40,20 @@ Breaking Changes
   * All setup parameters such as the kernel name, program, work sizes, and
     arguments are now configured using the builder. All of the methods
     associated with construction have been removed from `Kernel`.
-  * Scalar or vector primitive argument values must now be specified as
-    references (e.g. `.arg_scl(100f32)` --> `::arg_scl(&100f32)` or
-      `::arg(&100f32)`).
-  * `::arg_scl_named` and `arg_vec_named` no longer accept `None` values. Use
-    zero instead (e.g. `.arg_scl_named::<i32>("rnd", None)` -->
-    `arg_scl_named::<i32>("rnd", &0)` or `arg_named("rnd", &0i32)`).
+  * Most `arg_...` and `arg_..._named` methods have been deprecated in favor
+    of `::arg` or `arg_named`.
+  * Where before, `::arg_scl_named` and `arg_vec_named` accepted `None`
+    values, now scalar and vector values set using `::arg_named` are not
+    optional. Use zero instead (e.g. `.arg_scl_named::<i32>("rnd", None)` -->
+    `arg_named("rnd", 0i32)`).
   * `Kernel` no longer implements `Clone`. Instead, the `KernelBuilder` can be
     cloned or re-used (and sent between threads) to create multiple identical
     or near-identical kernels.
   * `::gwo`, `::gws`, and `::lws` have been deprecated and should be replaced
     by `::global_work_offset`, `::global_work_size`, and `::local_work_size`
     respectively.
-  * `set_arg_***_named` methods no longer return a self reference.
+  * Most `set_arg_***_named` methods have been deprecated in favor of
+    `::set_arg`.
 * `KernelCmd::gwo`, `::gws`, and `::lws` have been deprecated and should be
   replaced by `::global_work_offset`, `::global_work_size`, and
   `::local_work_size` respectively.
@@ -98,11 +95,10 @@ Breaking Changes
   regex: `ProQue::create_kernel\(([^\)]+)\)` --> `ProQue::kernel_builder(\1)`).
 2) Replace uses of `Kernel::new` with `Kernel::builder`, `::name`, and
   `::program` (example regex: `Kernel::new\(([^,]+, [^\)]+)\)` -->
-  `Kernel::builder().name(\1).program(\2)`)
-3) Add `.build()` at the end of the list of kernel arguments
-4) Move error handling (`?`) to the end.
-5) Add references (`&`) to all scalar or vector arguments (e.g.
-  `.arg_scl(10.0f32)` --> `.arg_scl(&10.0f32)` or `.arg(&10.0f32)`).
+  `Kernel::builder().name(\1).program(\2)`).
+3) Add `.build()` to the end of the list of kernel builder parameters.
+4) Move error handling (`?`) to the end, after `.build()`.
+5) Rename various deprecated `::arg...` methods.
 
 Other things to check:
 

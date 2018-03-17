@@ -98,7 +98,7 @@ pub fn async_process() -> OclResult<()> {
             .queue(kern_queue.clone())
             .global_work_size(work_size)
             .arg(&write_buf)
-            .arg(&Float4::new(100., 100., 100., 100.))
+            .arg(Float4::new(100., 100., 100., 100.))
             .arg(&read_buf)
             .build()?;
 

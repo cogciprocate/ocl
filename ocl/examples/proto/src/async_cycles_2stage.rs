@@ -134,9 +134,9 @@ pub fn main() {
 
     let kern = Kernel::new("add", &program).unwrap()
         .gws(WORK_SIZE)
-        .arg_buf(&write_buf)
-        .arg_vec(Int4::new(100, 100, 100, 100))
-        .arg_buf(&read_buf);
+        .arg(&write_buf)
+        .arg(Int4::new(100, 100, 100, 100))
+        .arg(&read_buf);
 
     // Thread pool for offloaded tasks.
     let thread_pool = CpuPool::new_num_cpus();

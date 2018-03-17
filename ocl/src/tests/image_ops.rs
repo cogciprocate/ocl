@@ -73,16 +73,16 @@ fn image_ops() {
         .build().unwrap();
 
     let kernel_add = proque.kernel_builder("add")
-        .arg_smp(&sampler)
-        .arg_vec(&ADDEND)
-        .arg_img(&img_src)
-        .arg_img(&img_dst)
+        .arg_sampler(&sampler)
+        .arg(ADDEND)
+        .arg(&img_src)
+        .arg(&img_dst)
         .build().unwrap();
 
     let kernel_fill_src = proque.kernel_builder("fill")
-        .arg_smp(&sampler)
-        .arg_vec_named::<Int4>("pixel", &Int4::splat(0))
-        .arg_img(&img_src)
+        .arg_sampler(&sampler)
+        .arg_named::<Int4, _>("pixel", &Int4::splat(0))
+        .arg(&img_src)
         .build().unwrap();
 
     //========================================================================
@@ -164,7 +164,7 @@ fn image_ops() {
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
         let cur_pixel = Int4::new(cur_val, cur_val, cur_val, cur_val);
         unsafe {
-            kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap();
+            kernel_fill_src.set_arg("pixel", cur_pixel).unwrap();
             kernel_fill_src.enq().expect("[FIXME]: HANDLE ME!");
         }
 
@@ -209,7 +209,7 @@ fn image_ops() {
         let (cur_val, old_val) = (ADDEND[0] * ttl_runs, ADDEND[0] * (ttl_runs - 1));
         let cur_pixel = Int4::new(cur_val, cur_val, cur_val, cur_val);
         unsafe {
-            kernel_fill_src.set_arg_vec_named("pixel", cur_pixel).unwrap();
+            kernel_fill_src.set_arg("pixel", cur_pixel).unwrap();
             kernel_fill_src.enq().expect("[FIXME]: HANDLE ME!");
         }
 

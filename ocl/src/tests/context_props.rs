@@ -57,8 +57,8 @@ fn test_context_props() {
         //         .build(&context).unwrap();
         //     let kernel = Kernel::new("multiply", &program, &queue).unwrap()
         //         .gws(&dims)
-        //         .arg_buf(&buffer)
-        //         .arg_scl(10.0f32);
+        //         .arg(&buffer)
+        //         .arg(10.0f32);
 
         //     let mut event_list = EventList::new();
         //     kernel.cmd().enew(&mut event_list).enq().unwrap();

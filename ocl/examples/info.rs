@@ -77,8 +77,8 @@ fn info() -> OclResult<()> {
                 .program(&program)
                 .queue(queue.clone())
                 .global_work_size(dims)
-                .arg_buf(&buffer)
-                .arg_scl(&10.0f32)
+                .arg(&buffer)
+                .arg(10.0f32)
                 .build()?;
 
             let mut event_list = EventList::new();

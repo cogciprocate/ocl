@@ -160,7 +160,7 @@ fn main() {
         .name("rgb2gray_patches")
         .queue(queue.clone())
         .global_work_size(&gws_patch_count)
-        .arg(&(patch_size as i32))
+        .arg(patch_size as i32)
         .arg(&cl_source)
         .arg(&cl_dest_patches)
         .build().unwrap();
