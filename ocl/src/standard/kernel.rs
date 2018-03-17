@@ -346,17 +346,6 @@ impl<'b, T> From<&'b T> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
-// impl<'b, P, T> From<T> for ArgValConverter<'b, T> where P: OclPrm, T: Borrow<P> {
-//     /// Converts from a scalar or vector value.
-//     fn from(prm: T) -> ArgValConverter<'b, T> {
-//         ArgValConverter {
-//             val: Some(ArgVal::scalar(prm.borrow())),
-//             type_id: Some(TypeId::of::<T>()),
-//             mem: None,
-//             _ty: PhantomData,
-//         }
-//     }
-// }
 
 
 /// A map of argument names -> indexes.
@@ -547,6 +536,7 @@ impl Kernel {
     }
 
     /// Modifies the kernel argument named: `name`.
+    #[deprecated(since = "0.18.0", note = "Use `::set_arg_buffer_named` instead.")]
     pub fn set_arg_buf_named<'a, T, M>(&'a self, name: &'static str,
             buffer_opt: Option<M>) -> OclResult<()>
             where T: OclPrm, M: AsMem<T> + MemCmdAll {
@@ -564,6 +554,7 @@ impl Kernel {
     }
 
     /// Modifies the kernel argument named: `name`.
+    #[deprecated(since = "0.18.0", note = "Use `::set_arg_image_named` instead.")]
     pub fn set_arg_img_named<'a, T, M>(&'a self, name: &'static str,
             image_opt: Option<M>) -> OclResult<()>
             where T: OclPrm, M: AsMem<T> + MemCmdAll {
@@ -581,6 +572,7 @@ impl Kernel {
     }
 
     /// Sets the value of a named sampler argument.
+    #[deprecated(since = "0.18.0", note = "Use `::set_arg_sampler_named` instead.")]
     pub fn set_arg_smp_named<'a>(&'a self, name: &'static str,
             sampler_opt: Option<&Sampler>) -> OclResult<()> {
         let arg_idx = self.named_args.resolve_idx(name)?;
@@ -591,6 +583,7 @@ impl Kernel {
     }
 
     /// Modifies the kernel argument named: `name`.
+    #[deprecated(since = "0.18.0", note = "Use `::set_arg_scalar_named` instead.")]
     pub fn set_arg_scl_named<'a, T, B>(&'a self, name: &'static str, scalar: B)
             -> OclResult<()>
             where T: OclPrm, B: Borrow<T> {
@@ -599,7 +592,68 @@ impl Kernel {
     }
 
     /// Modifies the kernel argument named: `name`.
+    #[deprecated(since = "0.18.0", note = "Use `::set_arg_vector_named` instead.")]
     pub fn set_arg_vec_named<'a, T, B>(&'a self, name: &'static str, vector: B)
+            -> OclResult<()>
+            where T: OclPrm, B: Borrow<T> {
+        let arg_idx = self.named_args.resolve_idx(name)?;
+        self._set_arg::<T>(arg_idx, ArgVal::vector(vector.borrow()))
+    }
+
+    /// Modifies the kernel argument named: `name`.
+    pub fn set_arg_buffer_named<'a, T, M>(&'a self, name: &'static str,
+            buffer_opt: Option<M>) -> OclResult<()>
+            where T: OclPrm, M: AsMem<T> + MemCmdAll {
+        let arg_idx = self.named_args.resolve_idx(name)?;
+        match buffer_opt {
+            Some(buffer) => {
+                self.mem_args.insert(arg_idx, buffer.as_mem().clone());
+                self._set_arg::<T>(arg_idx, ArgVal::mem(buffer.as_mem()))
+            },
+            None => {
+                self.mem_args.remove(&arg_idx);
+                self._set_arg::<T>(arg_idx, ArgVal::mem_null())
+            },
+        }
+    }
+
+    /// Modifies the kernel argument named: `name`.
+    pub fn set_arg_image_named<'a, T, M>(&'a self, name: &'static str,
+            image_opt: Option<M>) -> OclResult<()>
+            where T: OclPrm, M: AsMem<T> + MemCmdAll {
+        let arg_idx = self.named_args.resolve_idx(name)?;
+        match image_opt {
+            Some(img) => {
+                self.mem_args.insert(arg_idx, img.as_mem().clone());
+                self._set_arg::<T>(arg_idx, ArgVal::mem(img.as_mem()))
+            },
+            None => {
+                self.mem_args.remove(&arg_idx);
+                self._set_arg::<T>(arg_idx, ArgVal::mem_null())
+            },
+        }
+    }
+
+    /// Sets the value of a named sampler argument.
+    pub fn set_arg_sampler_named<'a>(&'a self, name: &'static str,
+            sampler_opt: Option<&Sampler>) -> OclResult<()> {
+        let arg_idx = self.named_args.resolve_idx(name)?;
+        match sampler_opt {
+            Some(sampler) => self._set_arg::<u64>(arg_idx, ArgVal::sampler(sampler)),
+            None => self._set_arg::<u64>(arg_idx, ArgVal::sampler_null()),
+        }
+    }
+
+    /// Modifies the kernel argument named: `name`.
+    pub fn set_arg_scalar_named<'a, T, B>(&'a self, name: &'static str, scalar: B)
+            -> OclResult<()>
+            where T: OclPrm, B: Borrow<T> {
+        let arg_idx = self.named_args.resolve_idx(name)?;
+        self._set_arg::<T>(arg_idx, ArgVal::scalar(scalar.borrow()))
+    }
+
+    /// Modifies the kernel argument named: `name`.
+    pub fn set_arg_vector_named<'a, T, B>(&'a self, name: &'static str, vector: B)
             -> OclResult<()>
             where T: OclPrm, B: Borrow<T> {
         let arg_idx = self.named_args.resolve_idx(name)?;
@@ -1082,6 +1136,7 @@ impl<'b> KernelBuilder<'b> {
     /// by 'buffer'.
     ///
     /// The argument is added to the bottom of the argument order.
+    #[deprecated(since = "0.18", note = "Use ::arg_buffer instead.")]
     pub fn arg_buf<'s, T, M>(&'s mut self, buffer: &'b M) -> &'s mut KernelBuilder<'b>
             where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         self.new_arg_buf::<T, _>(Some(buffer));
@@ -1092,6 +1147,7 @@ impl<'b> KernelBuilder<'b> {
     /// by 'image'.
     ///
     /// The argument is added to the bottom of the argument order.
+    #[deprecated(since = "0.18", note = "Use ::arg_image instead.")]
     pub fn arg_img<'s, T, M>(&'s mut self, image: &'b M) -> &'s mut KernelBuilder<'b>
             where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         self.new_arg_img::<T, _>(Some(image));
@@ -1101,6 +1157,7 @@ impl<'b> KernelBuilder<'b> {
     /// Adds a new argument to the kernel specifying the sampler object represented
     /// by 'sampler'. Argument is added to the bottom of the argument
     /// order.
+    #[deprecated(since = "0.18", note = "Use ::arg_sampler instead.")]
     pub fn arg_smp<'s>(&'s mut self, sampler: &'b Sampler) -> &'s mut KernelBuilder<'b> {
         self.new_arg_smp(Some(sampler));
         self
@@ -1109,6 +1166,7 @@ impl<'b> KernelBuilder<'b> {
     /// Adds a new argument specifying the value: `scalar`.
     ///
     /// The argument is added to the bottom of the argument order.
+    #[deprecated(since = "0.18", note = "Use ::arg_scalar instead.")]
     pub fn arg_scl<'s, T>(&'s mut self, scalar: &'b T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         self.new_arg_scl(scalar);
@@ -1118,6 +1176,7 @@ impl<'b> KernelBuilder<'b> {
     /// Adds a new argument specifying the value: `vector`.
     ///
     /// The argument is added to the bottom of the argument order.
+    #[deprecated(since = "0.18", note = "Use ::arg_vector instead.")]
     pub fn arg_vec<'s, T>(&'s mut self, vector: &'b T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         self.new_arg_vec(vector);
@@ -1131,7 +1190,67 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Local variables are used to share data between work items in the same
     /// workgroup.
+    #[deprecated(since = "0.18", note = "Use ::arg_local instead.")]
     pub fn arg_loc<'s, T>(&'s mut self, length: usize) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm {
+        self.new_arg_loc::<T>(length);
+        self
+    }
+
+    /// Adds a new argument to the kernel specifying the buffer object represented
+    /// by 'buffer'.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    pub fn arg_buffer<'s, T, M>(&'s mut self, buffer: &'b M) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+        self.new_arg_buf::<T, _>(Some(buffer));
+        self
+    }
+
+    /// Adds a new argument to the kernel specifying the image object represented
+    /// by 'image'.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    pub fn arg_image<'s, T, M>(&'s mut self, image: &'b M) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+        self.new_arg_img::<T, _>(Some(image));
+        self
+    }
+
+    /// Adds a new argument to the kernel specifying the sampler object represented
+    /// by 'sampler'. Argument is added to the bottom of the argument
+    /// order.
+    pub fn arg_sampler<'s>(&'s mut self, sampler: &'b Sampler) -> &'s mut KernelBuilder<'b> {
+        self.new_arg_smp(Some(sampler));
+        self
+    }
+
+    /// Adds a new argument specifying the value: `scalar`.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    pub fn arg_scalar<'s, T>(&'s mut self, scalar: &'b T) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm {
+        self.new_arg_scl(scalar);
+        self
+    }
+
+    /// Adds a new argument specifying the value: `vector`.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    pub fn arg_vector<'s, T>(&'s mut self, vector: &'b T) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm {
+        self.new_arg_vec(vector);
+        self
+    }
+
+    /// Adds a new argument specifying the allocation of a local variable of size
+    /// `length * sizeof(T)` bytes (builder_style).
+    ///
+    /// The argument is added to the bottom of the argument order.
+    ///
+    /// Local variables are used to share data between work items in the same
+    /// workgroup.
+    pub fn arg_local<'s, T>(&'s mut self, length: usize) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         self.new_arg_loc::<T>(length);
         self
@@ -1185,6 +1304,7 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
+    #[deprecated(since = "0.18", note = "Use ::arg_buffer_named instead.")]
     pub fn arg_buf_named<'s, T, M>(&'s mut self, name: &'static str, buffer_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
             where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
@@ -1198,6 +1318,7 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_img_named()`.
+    #[deprecated(since = "0.18", note = "Use ::arg_image_named instead.")]
     pub fn arg_img_named<'s, T, M>(&'s mut self, name: &'static str, image_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
             where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         let arg_idx = self.new_arg_img::<T, _>(image_opt);
@@ -1211,6 +1332,7 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
+    #[deprecated(since = "0.18", note = "Use ::arg_sampler_named instead.")]
     pub fn arg_smp_named<'s>(&'s mut self, name: &'static str, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b> {
         let arg_idx = self.new_arg_smp(sampler_opt);
         self.named_args.insert(name, arg_idx);
@@ -1224,6 +1346,7 @@ impl<'b> KernelBuilder<'b> {
     /// Scalar arguments may not be null, use zero (e.g. `&0`) instead.
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
+    #[deprecated(since = "0.18", note = "Use ::arg_scalar_named instead.")]
     pub fn arg_scl_named<'s, T>(&'s mut self, name: &'static str, scalar: &'b T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         let arg_idx = self.new_arg_scl(scalar);
@@ -1238,7 +1361,74 @@ impl<'b> KernelBuilder<'b> {
     /// Vector arguments may not be null, use zero (e.g. `&0`) instead.
     ///
     /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
+    #[deprecated(since = "0.18", note = "Use ::arg_vector_named instead.")]
     pub fn arg_vec_named<'s, T>(&'s mut self, name: &'static str, vector: &'b T) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm {
+        let arg_idx = self.new_arg_vec(vector);
+        self.named_args.insert(name, arg_idx);
+        self
+    }
+
+    /// Adds a new *named* argument specifying the buffer object represented by
+    /// 'buffer'.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
+    pub fn arg_buffer_named<'s, T, M>(&'s mut self, name: &'static str, buffer_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+        let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
+        self.named_args.insert(name, arg_idx);
+        self
+    }
+
+    /// Adds a new *named* argument specifying the image object represented by
+    /// 'image'.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_img_named()`.
+    pub fn arg_image_named<'s, T, M>(&'s mut self, name: &'static str, image_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+        let arg_idx = self.new_arg_img::<T, _>(image_opt);
+        self.named_args.insert(name, arg_idx);
+        self
+    }
+
+    /// Adds a new *named* argument specifying the sampler object represented by
+    /// 'sampler'.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
+    pub fn arg_sampler_named<'s>(&'s mut self, name: &'static str, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b> {
+        let arg_idx = self.new_arg_smp(sampler_opt);
+        self.named_args.insert(name, arg_idx);
+        self
+    }
+
+    /// Adds a new *named* argument  specifying the value: `scalar`.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    ///
+    /// Scalar arguments may not be null, use zero (e.g. `&0`) instead.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
+    pub fn arg_scalar_named<'s, T>(&'s mut self, name: &'static str, scalar: &'b T) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm {
+        let arg_idx = self.new_arg_scl(scalar);
+        self.named_args.insert(name, arg_idx);
+        self
+    }
+
+    /// Adds a new *named* argument specifying the value: `vector`.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    ///
+    /// Vector arguments may not be null, use zero (e.g. `&0`) instead.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
+    pub fn arg_vector_named<'s, T>(&'s mut self, name: &'static str, vector: &'b T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         let arg_idx = self.new_arg_vec(vector);
         self.named_args.insert(name, arg_idx);
