@@ -18,11 +18,11 @@ adopted. Many rough spots have been smoothed out and potential invalid uses
 have been eliminated.
 
 * `KernelBuilder` has been added. All kernels must now be created using a builder.
-* `Kernel::set_arg` has been been added in order to streamline setting
-  arguments. `KernelBuilder::arg`, `KernelBuilder::arg_named`, and
-  `Kernel::set_arg` will all automatically detect whether a `Buffer`, `Image`,
-  scalar, or vector value is being passed. (Type annotation is required when
-  `None` is passed).
+* `KernelBuilder::arg`, `KernelBuilder::arg_named`, and `Kernel::set_arg` have
+  been been added in order to streamline setting arguments. Each of the new
+  methods will all automatically detect whether a `Buffer`, `Image`, scalar,
+  or vector value is being passed. (Type annotation is required when `None` is
+  passed).
   * `Kernel::set_arg` will accept either a name (`&'static str`) or numeric
     index. If passing a name, the argument must have been declared using
     `KernelBuilder::arg_named`.

@@ -42,10 +42,16 @@ pub enum KernelError {
     BuilderNoProgram,
     #[fail(display = "No kernel name specified.")]
     BuilderNoKernelName,
-    #[fail(display = "Cannot build kernel until all arguments are specified. Use named \
-        arguments with 'None' or zero values to declare arguments you plan to assign a \
-        value to later.")]
-    BuilderMissingArgs,
+    // #[fail(display = "Cannot build kernel until all arguments are specified. Use named \
+    //     arguments with 'None' or zero values to declare arguments you plan to assign a \
+    //     value to later.")]
+    // BuilderArgCountLow,
+    // #[fail(display = "Too many kernel arguments have been specified.")]
+    // BuilderArgCountHigh,
+    #[fail(display = "The wrong number of kernel arguments have been specified \
+        (required: {}, specified: {}). Use named arguments with 'None' or zero values to \
+        declare arguments you plan to assign a value to at a later time.", required, specified)]
+    BuilderWrongArgCount { required: u32, specified: u32 },
 }
 
 
@@ -1379,7 +1385,10 @@ impl<'b> KernelBuilder<'b> {
         };
 
         if self.args.len() as u32 != num_args {
-            return Err(KernelError::BuilderMissingArgs.into())
+            return Err(KernelError::BuilderWrongArgCount {
+                required: num_args,
+                specified: self.args.len() as u32,
+             }.into())
         }
 
         let mut arg_types = Vec::with_capacity(num_args as usize);
