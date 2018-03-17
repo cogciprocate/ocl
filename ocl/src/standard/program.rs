@@ -463,8 +463,8 @@ impl<'b> ProgramBuilder<'b> {
     // * TODO: If the context is associated with more than one device,
     // check that at least one of those devices has been specified. An empty
     // device list will cause an `OpenCL` error in that case.
-    //
     // * TODO: Check for duplicate devices in the final device list.
+    // * TODO: Consider moving context to its own method.
     #[cfg(not(feature = "opencl_version_2_1"))]
     pub fn build(&self, context: &Context) -> OclResult<Program> {
         let device_list = match self.device_spec {

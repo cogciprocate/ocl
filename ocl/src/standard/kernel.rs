@@ -7,6 +7,7 @@ use std::any::TypeId;
 use std::collections::{HashMap, BTreeMap};
 use std::marker::PhantomData;
 use std::cell::RefCell;
+use std::borrow::Borrow;
 use core::{self, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     ArgVal, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
@@ -345,6 +346,18 @@ impl<'b, T> From<&'b T> for ArgValConverter<'b, T> where T: OclPrm {
     }
 }
 
+// impl<'b, P, T> From<T> for ArgValConverter<'b, T> where P: OclPrm, T: Borrow<P> {
+//     /// Converts from a scalar or vector value.
+//     fn from(prm: T) -> ArgValConverter<'b, T> {
+//         ArgValConverter {
+//             val: Some(ArgVal::scalar(prm.borrow())),
+//             type_id: Some(TypeId::of::<T>()),
+//             mem: None,
+//             _ty: PhantomData,
+//         }
+//     }
+// }
+
 
 /// A map of argument names -> indexes.
 #[derive(Clone, Debug)]
@@ -508,11 +521,12 @@ impl Kernel {
     /// kern.set_arg(1, Some(&source_buffer))?;
     /// kern.set_arg(2, &result_buffer)?;
     /// ```
-    pub fn set_arg<'a, T, Ai, Av>(&self, idx: Ai, arg: Av) -> OclResult<()>
-            where T: OclPrm, Ai: Into<ArgIdxSpecifier>, Av: Into<ArgValConverter<'a, T>> {
+    pub fn set_arg<'a, T, Ai, Av, /*R*/>(&self, idx: Ai, arg: Av) -> OclResult<()>
+            where T: OclPrm, Ai: Into<ArgIdxSpecifier>, Av: Into<ArgValConverter<'a, T>>,
+            /*R: 'a + Borrow<Av>*/ {
         let arg_idx = idx.into().to_idx(&self.named_args)?;
         self.verify_arg_type::<T>(arg_idx)?;
-        let arg = arg.into();
+        let arg: ArgValConverter<T> = arg.into();
 
         // If the `KernelArg` is a `Mem` variant, clone the `MemCore` it
         // refers to, store it in `self.mem_args`. This prevents a buffer
@@ -577,19 +591,19 @@ impl Kernel {
     }
 
     /// Modifies the kernel argument named: `name`.
-    pub fn set_arg_scl_named<'a, T>(&'a self, name: &'static str, scalar: T)
+    pub fn set_arg_scl_named<'a, T, B>(&'a self, name: &'static str, scalar: B)
             -> OclResult<()>
-            where T: OclPrm {
+            where T: OclPrm, B: Borrow<T> {
         let arg_idx = self.named_args.resolve_idx(name)?;
-        self._set_arg::<T>(arg_idx, ArgVal::scalar(&scalar))
+        self._set_arg::<T>(arg_idx, ArgVal::scalar(scalar.borrow()))
     }
 
     /// Modifies the kernel argument named: `name`.
-    pub fn set_arg_vec_named<'a, T>(&'a self, name: &'static str, vector: T)
+    pub fn set_arg_vec_named<'a, T, B>(&'a self, name: &'static str, vector: B)
             -> OclResult<()>
-            where T: OclPrm {
+            where T: OclPrm, B: Borrow<T> {
         let arg_idx = self.named_args.resolve_idx(name)?;
-        self._set_arg::<T>(arg_idx, ArgVal::vector(&vector))
+        self._set_arg::<T>(arg_idx, ArgVal::vector(vector.borrow()))
     }
 
     /// Returns a command builder which is used to chain parameters of an
@@ -1165,34 +1179,6 @@ impl<'b> KernelBuilder<'b> {
         self
     }
 
-    /// Adds a new *named* argument  specifying the value: `scalar`.
-    ///
-    /// The argument is added to the bottom of the argument order.
-    ///
-    /// Scalar arguments may not be null, use zero (e.g. `&0`) instead.
-    ///
-    /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-    pub fn arg_scl_named<'s, T>(&'s mut self, name: &'static str, scalar: &'b T) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm {
-        let arg_idx = self.new_arg_scl(scalar);
-        self.named_args.insert(name, arg_idx);
-        self
-    }
-
-    /// Adds a new *named* argument specifying the value: `vector`.
-    ///
-    /// The argument is added to the bottom of the argument order.
-    ///
-    /// Vector arguments may not be null, use zero (e.g. `&0`) instead.
-    ///
-    /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
-    pub fn arg_vec_named<'s, T>(&'s mut self, name: &'static str, vector: &'b T) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm {
-        let arg_idx = self.new_arg_vec(vector);
-        self.named_args.insert(name, arg_idx);
-        self
-    }
-
     /// Adds a new *named* argument specifying the buffer object represented by
     /// 'buffer'.
     ///
@@ -1227,6 +1213,34 @@ impl<'b> KernelBuilder<'b> {
     /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
     pub fn arg_smp_named<'s>(&'s mut self, name: &'static str, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b> {
         let arg_idx = self.new_arg_smp(sampler_opt);
+        self.named_args.insert(name, arg_idx);
+        self
+    }
+
+    /// Adds a new *named* argument  specifying the value: `scalar`.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    ///
+    /// Scalar arguments may not be null, use zero (e.g. `&0`) instead.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
+    pub fn arg_scl_named<'s, T>(&'s mut self, name: &'static str, scalar: &'b T) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm {
+        let arg_idx = self.new_arg_scl(scalar);
+        self.named_args.insert(name, arg_idx);
+        self
+    }
+
+    /// Adds a new *named* argument specifying the value: `vector`.
+    ///
+    /// The argument is added to the bottom of the argument order.
+    ///
+    /// Vector arguments may not be null, use zero (e.g. `&0`) instead.
+    ///
+    /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
+    pub fn arg_vec_named<'s, T>(&'s mut self, name: &'static str, vector: &'b T) -> &'s mut KernelBuilder<'b>
+            where T: OclPrm {
+        let arg_idx = self.new_arg_vec(vector);
         self.named_args.insert(name, arg_idx);
         self
     }

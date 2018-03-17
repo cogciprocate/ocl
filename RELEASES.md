@@ -5,8 +5,8 @@ Version 0.18.0 (UNRELEASED)
 [`Kernel`] has received a much-needed makeover. Creating a kernel is not
 exactly like creating other types of objects due to the fact that arguments
 are specified in advance and that they contain typed data. Because of this,
-the old design became a quirky mixture of builder-style and normal (`&self`)
-methods intended to be as versatile as possible.
+the old design became a quirky mixture of builder-style and normal methods
+intended to be as versatile as possible.
 
 To further complicate matters, the issue of if and when `Kernel` could be
 cloned and/or sent between threads was an unsolved problem, potentially
@@ -43,7 +43,7 @@ Breaking Changes
     `KernelBuilder::new`.
   * All setup parameters such as the kernel name, program, work sizes, and
     arguments are now configured using the builder. All of the methods
-    associated with configuration have been removed from `Kernel`.
+    associated with construction have been removed from `Kernel`.
   * Scalar or vector primitive argument values must now be specified as
     references (e.g. `.arg_scl(100f32)` --> `::arg_scl(&100f32)` or
       `::arg(&100f32)`).
@@ -94,14 +94,14 @@ Breaking Changes
 
 ### Quick Update Instructions
 
-* Replace uses of `ProQue::create_kernel` with `::kernel_builder` (example
+1) Replace uses of `ProQue::create_kernel` with `::kernel_builder` (example
   regex: `ProQue::create_kernel\(([^\)]+)\)` --> `ProQue::kernel_builder(\1)`).
-* Replace uses of `Kernel::new` with `Kernel::builder`, `::name`, and
+2) Replace uses of `Kernel::new` with `Kernel::builder`, `::name`, and
   `::program` (example regex: `Kernel::new\(([^,]+, [^\)]+)\)` -->
   `Kernel::builder().name(\1).program(\2)`)
-* Add `.build()` at the end of the list of kernel arguments
-* Move error handling (`?`) to the end.
-* Add references (`&`) to all scalar or vector arguments (e.g.
+3) Add `.build()` at the end of the list of kernel arguments
+4) Move error handling (`?`) to the end.
+5) Add references (`&`) to all scalar or vector arguments (e.g.
   `.arg_scl(10.0f32)` --> `.arg_scl(&10.0f32)` or `.arg(&10.0f32)`).
 
 Other things to check:
