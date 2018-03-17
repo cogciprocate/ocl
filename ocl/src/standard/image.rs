@@ -15,7 +15,7 @@ use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatPar
     ImageChannelOrder, ImageChannelDataType, AsMem, MemCmdRw, MemCmdAll,
     MapFlags};
 use standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum,
-    QueCtx};
+    QueCtx, HostSlice};
 use ::MemMap;
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
@@ -680,23 +680,21 @@ impl<T: OclPrm> Image<T> {
     /// Returns a new `Image`.
     ///
     /// Prefer `::builder` to create a new image.
-    // pub fn new(queue: Queue, flags: MemFlags, image_format: ImageFormat,
-    //         image_desc: ImageDescriptor, host_data: Option<&[E]>) -> OclCoreResult<Image<E>>
-    pub fn new<'o, Q>(que_ctx: Q, flags: MemFlags, image_format: ImageFormat,
+    pub unsafe fn new<'o, Q>(que_ctx: Q, flags: MemFlags, image_format: ImageFormat,
             image_desc: ImageDescriptor, host_data: Option<&[T]>) -> OclCoreResult<Image<T>>
             where Q: Into<QueCtx<'o>> {
         let que_ctx = que_ctx.into();
         let context = que_ctx.context_cloned();
         let device_versions = context.device_versions()?;
 
-        let obj_core = unsafe { core::create_image(
+        let obj_core = core::create_image(
             &context,
             flags,
             &image_format,
             &image_desc,
             host_data,
             Some(&device_versions),
-        )? };
+        )?;
 
         let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
@@ -1008,7 +1006,7 @@ unsafe impl<'a, T> MemCmdAll for &'a mut Image<T> where T: OclPrm {}
 pub struct ImageBuilder<'a, T> where T: 'a {
     queue_option: Option<QueCtx<'a>>,
     flags: MemFlags,
-    host_data: Option<&'a [T]>,
+    host_slice: HostSlice<'a, T>,
     image_format: ImageFormat,
     image_desc: ImageDescriptor,
     _pixel: PhantomData<T>,
@@ -1052,11 +1050,10 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
         ImageBuilder {
             queue_option: None,
             flags: core::MEM_READ_WRITE,
-            host_data: None,
+            host_slice: HostSlice::None,
             image_format: ImageFormat::new_rgba(),
             image_desc: ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None),
             _pixel: PhantomData,
-            // host_data: None,
         }
     }
 
@@ -1080,61 +1077,80 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
         self
     }
 
-    /// Sets the flags for the memory to be created.
+    /// Sets the flags used when creating the image.
     ///
-    /// Setting this overwrites any previously set flags. To combine them,
-    /// use the bitwise or operator (`|`), for example:
+    /// Defaults to `flags::MEM_READ_WRITE` aka.
+    /// `MemFlags::new().read_write()` if this is not set. See the [SDK Docs]
+    /// for more information about flags. Note that the names of all flags in
+    /// this library have the `CL_` prefix removed for brevity.
     ///
-    /// ```rust,ignore
-    /// ocl::Image::builder().flags(ocl::MEM_WRITE_ONLY | ocl::MEM_COPY_HOST_PTR)...
-    /// ```
+    /// ### Panics
     ///
-    /// Defaults to `core::MEM_READ_WRITE` if not set.
-
-    pub fn flags(mut self, flags: MemFlags) -> ImageBuilder<'a, T> {
+    /// Due to its unsafety, setting the
+    /// `MEM_USE_HOST_PTR`/`MemFlags::new()::use_host_ptr()` flag will cause a
+    /// panic. Use the `::use_host_slice` method instead.
+    ///
+    /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
+    pub fn flags<'b>(mut self, flags: MemFlags) -> ImageBuilder<'a, T> {
+        assert!(!flags.contains(MemFlags::new().use_host_ptr()),
+            "The `ImageBuilder::flags` method may not be used to set the \
+            `MEM_USE_HOST_PTR` flag. Use the `::use_host_ptr` method instead.");
         self.flags = flags;
         self
     }
 
-    /// A slice use to designate a region of memory for use in combination of
-    /// one of the two following flags:
+    /// Specifies a region of host memory to use as storage for the image.
     ///
-    /// * `flags::MEM_USE_HOST_PTR` aka. `MemFlags::new().use_host_ptr()`:
-    ///   * This flag is valid only if `host_data` is not `None`. If
-    ///     specified, it indicates that the application wants the OpenCL
-    ///     implementation to use memory referenced by `host_data` as the
-    ///     storage bits for the memory object (buffer/image).
-    ///   * OpenCL implementations are allowed to cache the buffer contents
-    ///     pointed to by `host_data` in device memory. This cached copy can
-    ///     be used when kernels are executed on a device.
-    ///   * The result of OpenCL commands that operate on multiple buffer
-    ///     objects created with the same `host_data` or overlapping host
-    ///     regions is considered to be undefined.
-    ///   * Refer to the [description of the alignment][align_rules] rules for
-    ///     `host_data` for memory objects (buffer and images) created using
-    ///     `MEM_USE_HOST_PTR`.
-    ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
+    /// OpenCL implementations are allowed to cache the image contents
+    /// pointed to by `host_slice` in device memory. This cached copy can be
+    /// used when kernels are executed on a device.
     ///
-    /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
-    ///   * This flag is valid only if `host_data` is not NULL. If specified, it
-    ///     indicates that the application wants the OpenCL implementation to
-    ///     allocate memory for the memory object and copy the data from
-    ///     memory referenced by `host_data`.
-    ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
-    ///     exclusive.
-    ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to
-    ///     initialize the contents of the cl_mem object allocated using
-    ///     host-accessible (e.g. PCIe) memory.
+    /// The result of OpenCL commands that operate on multiple image objects
+    /// created with the same `host_slice` or overlapping host regions is
+    /// considered to be undefined
     ///
-    /// Note: Descriptions adapted from:
-    /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
+    /// Refer to the [description of the alignment][align_rules] rules for
+    /// `host_slice` for memory objects (buffer and images) created using
+    /// this method.
     ///
+    /// Automatically sets the `flags::MEM_USE_HOST_PTR` aka.
+    /// `MemFlags::new().use_host_ptr()` flag.
+    ///
+    /// ### Panics
+    ///
+    /// `::copy_host_slice` or `::use_host_slice` must not have already been
+    /// called.
+    ///
+    /// ### Safety
+    ///
+    /// The caller must ensure that `host_slice` lives until the image is
+    /// destroyed. The caller must also ensure that only one image uses
+    /// `host_slice` and that it is not tampered with inappropriately.
     ///
     /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
-    /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub fn host_data<'d>(mut self, host_data: &'d [T]) -> ImageBuilder<'a, T>
+    pub unsafe fn use_host_slice<'d>(mut self, host_slice: &'d [T]) -> ImageBuilder<'a, T>
             where 'd: 'a {
-        self.host_data = Some(host_data);
+        assert!(self.host_slice.is_none(), "ImageBuilder::use_host_slice: \
+            A host slice has already been specified.");
+        self.host_slice = HostSlice::Use(host_slice);
+        self
+    }
+
+    /// Specifies a region of memory to copy into the image upon creation.
+    ///
+    /// Automatically sets the `flags::MEM_COPY_HOST_PTR` aka.
+    /// `MemFlags::new().copy_host_ptr()` flag.
+    ///
+    /// ### Panics
+    ///
+    /// `::copy_host_slice` or `::use_host_slice` must not have already been
+    /// called.
+    ///
+    pub fn copy_host_slice<'d>(mut self, host_slice: &'d [T]) -> ImageBuilder<'a, T>
+            where 'd: 'a {
+        assert!(self.host_slice.is_none(), "ImageBuilder::copy_host_slice: \
+            A host slice has already been specified.");
+        self.host_slice = HostSlice::Copy(host_slice);
         self
     }
 
@@ -1317,11 +1333,23 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
 
     /// Builds with no host side image data memory specified and returns a
     /// new `Image`.
-    pub fn build(self) -> OclCoreResult<Image<T>> {
+    pub fn build(mut self) -> OclCoreResult<Image<T>> {
+        let host_slice = match self.host_slice {
+            HostSlice::Use(hs) => {
+                self.flags.insert(MemFlags::new().use_host_ptr());
+                Some(hs)
+            }
+            HostSlice::Copy(hs) => {
+                self.flags.insert(MemFlags::new().copy_host_ptr());
+                Some(hs)
+            },
+            HostSlice::None => None,
+        };
+
         match self.queue_option {
             Some(qo) => {
-                Image::new(qo, self.flags, self.image_format.clone(),
-                    self.image_desc.clone(), self.host_data)
+                unsafe { Image::new(qo, self.flags, self.image_format.clone(),
+                    self.image_desc.clone(), host_slice) }
             },
             None => panic!("ocl::ImageBuilder::build: A context or default queue must be set \
                 with '.context(...)' or '.queue(...)'."),

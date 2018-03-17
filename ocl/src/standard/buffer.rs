@@ -8,7 +8,7 @@ use core::{self, Error as OclCoreError, Result as OclCoreResult, OclPrm, Mem as 
     ClNullEventPtr};
 use ::{Context, Queue, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard, FutureWriteGuard,
     SpatialDims};
-use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
+use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, HostSlice};
 use error::{Error as OclError, Result as OclResult};
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
@@ -1407,7 +1407,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// [SDK]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clEnqueueMapBuffer.html
     //
     // * TODO: Add links to methods listed above.
-    // * TODO: Sort out the `BufferBuilder::host_data`/`::flags` situation.
+    // * TODO: Sort out the `BufferBuilder::host_slice`/`::flags` situation.
     //   Possibly create separate methods, `use_host_ptr` and
     //   `copy_host_slice`.
     pub fn flags(mut self, flags: MapFlags) -> BufferMapCmd<'c, T> {
@@ -1682,15 +1682,15 @@ impl<T: OclPrm> Buffer<T> {
     ///
     /// ### Safety
     ///
-    /// Incorrectly using flags and/or host_data is unsafe.
+    /// Incorrectly using flags and/or host_slice is unsafe.
     ///
     /// [`BufferBuilder`]: builders/struct.BufferBuilder.html
     /// [SDK]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     ///
-    pub unsafe fn new<'e, 'o, Q, D>(que_ctx: Q, flags_opt: Option<MemFlags>, len: D,
-            host_data: Option<&[T]>) -> OclResult<Buffer<T>>
+    pub unsafe fn new<'e, 'o, Q, D>(que_ctx: Q, flags: MemFlags, len: D,
+            host_slice: Option<&[T]>) -> OclResult<Buffer<T>>
             where Q: Into<QueCtx<'o>>, D: Into<SpatialDims> {
-        let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
+        // let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
         let len = len.into().to_len();
         let que_ctx = que_ctx.into();
 
@@ -1703,7 +1703,7 @@ impl<T: OclPrm> Buffer<T> {
             QueCtx::Context(c) => c,
         };
 
-        let obj_core = core::create_buffer(ctx_ref, flags, len, host_data)?;
+        let obj_core = core::create_buffer(ctx_ref, flags, len, host_slice)?;
 
         debug_assert!({
             let l_r = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
@@ -2134,10 +2134,10 @@ unsafe impl<'a, T> MemCmdAll for &'a mut Buffer<T> where T: OclPrm {}
 //
 #[must_use = "builders do nothing unless '::build' is called"]
 #[derive(Debug)]
-pub struct BufferBuilder<'a, T> where T: 'a {
+pub struct BufferBuilder<'a, T> where T: OclPrm {
     queue_option: Option<QueCtx<'a>>,
     flags: Option<MemFlags>,
-    host_data: Option<&'a [T]>,
+    host_slice: HostSlice<'a, T>,
     len: usize,
     fill_val: Option<(T, Option<ClNullEventPtrEnum<'a>>)>
 }
@@ -2148,7 +2148,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
         BufferBuilder {
             queue_option: None,
             flags: None,
-            host_data: None,
+            host_slice: HostSlice::None,
             len: 0,
             fill_val: None,
         }
@@ -2197,70 +2197,78 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
 
     /// Sets the flags used when creating the buffer.
     ///
-    /// Defaults to `flags::MEM_READ_WRITE` aka. `MemFlags::new().read_write()`
-    /// if this is not set. See the [SDK Docs] for more information about
-    /// flags. Note that the `host_ptr` mentioned in the [SDK Docs] is
-    /// equivalent to the slice optionally passed as the `host_data` argument.
-    /// Also note that the names of all flags in this library have the `CL_`
-    /// prefix removed for brevity.
+    /// Defaults to `flags::MEM_READ_WRITE` aka.
+    /// `MemFlags::new().read_write()` if this is not set. See the [SDK Docs]
+    /// for more information about flags. Note that the names of all flags in
+    /// this library have the `CL_` prefix removed for brevity.
+    ///
+    /// ### Panics
+    ///
+    /// Due to its unsafety, setting the
+    /// `MEM_USE_HOST_PTR`/`MemFlags::new()::use_host_ptr()` flag will cause a
+    /// panic. Use the `::use_host_slice` method instead.
     ///
     /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
     pub fn flags<'b>(mut self, flags: MemFlags) -> BufferBuilder<'a, T> {
+        assert!(!flags.contains(MemFlags::new().use_host_ptr()),
+            "The `BufferBuilder::flags` method may not be used to set the \
+            `MEM_USE_HOST_PTR` flag. Use the `::use_host_ptr` method instead.");
         self.flags = Some(flags);
         self
     }
 
-    /// A slice use to designate a region of memory for use in combination of
-    /// one of the two following flags:
+    /// Specifies a region of host memory to use as storage for the buffer.
     ///
-    /// * `flags::MEM_USE_HOST_PTR` aka. `MemFlags::new().use_host_ptr()`:
-    ///   * This flag is valid only if `host_data` is not `None`. If
-    ///     specified, it indicates that the application wants the OpenCL
-    ///     implementation to use memory referenced by `host_data` as the
-    ///     storage bits for the memory object (buffer/image).
-    ///   * OpenCL implementations are allowed to cache the buffer contents
-    ///     pointed to by `host_data` in device memory. This cached copy can
-    ///     be used when kernels are executed on a device.
-    ///   * The result of OpenCL commands that operate on multiple buffer
-    ///     objects created with the same `host_data` or overlapping host
-    ///     regions is considered to be undefined.
-    ///   * Refer to the [description of the alignment][align_rules] rules for
-    ///     `host_data` for memory objects (buffer and images) created using
-    ///     `MEM_USE_HOST_PTR`.
-    ///   * `MEM_ALLOC_HOST_PTR` and `MEM_USE_HOST_PTR` are mutually exclusive.
+    /// OpenCL implementations are allowed to cache the buffer contents
+    /// pointed to by `host_slice` in device memory. This cached copy can be
+    /// used when kernels are executed on a device.
     ///
-    /// * `flags::MEM_COPY_HOST_PTR` aka. `MemFlags::new().copy_host_ptr()`
-    ///   * This flag is valid only if `host_data` is not `None`. If
-    ///     specified, it indicates that the application wants the OpenCL
-    ///     implementation to allocate memory for the memory object and copy
-    ///     the data from memory referenced by `host_data`.
-    ///   * CL_MEM_COPY_HOST_PTR and CL_MEM_USE_HOST_PTR are mutually
-    ///     exclusive.
-    ///   * CL_MEM_COPY_HOST_PTR can be used with CL_MEM_ALLOC_HOST_PTR to
-    ///     initialize the contents of the cl_mem object allocated using
-    ///     host-accessible (e.g. PCIe) memory.
+    /// The result of OpenCL commands that operate on multiple buffer objects
+    /// created with the same `host_slice` or overlapping host regions is
+    /// considered to be undefined
     ///
-    /// Note: Descriptions adapted from:
-    /// [https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html][create_buffer].
+    /// Refer to the [description of the alignment][align_rules] rules for
+    /// `host_slice` for memory objects (buffer and images) created using
+    /// this method.
     ///
+    /// Automatically sets the `flags::MEM_USE_HOST_PTR` aka.
+    /// `MemFlags::new().use_host_ptr()` flag.
+    ///
+    /// ### Panics
+    ///
+    /// `::copy_host_slice` or `::use_host_slice` must not have already been
+    /// called.
     ///
     /// ### Safety
     ///
-    /// If `flags::MEM_USE_HOST_PTR`/`MemFlags::new().use_host_ptr()` is set,
-    /// the caller must ensure that `host_data` lives until the buffer is
+    /// The caller must ensure that `host_slice` lives until the buffer is
     /// destroyed. The caller must also ensure that only one buffer uses
-    /// `host_data` and that it is not tampered with inappropriately.
-    ///
-    /// Using this method with
-    /// `flags::MEM_COPY_HOST_PTR`/`MemFlags::new().copy_host_ptr()` set is
-    /// safe.
-    ///
+    /// `host_slice` and that it is not tampered with inappropriately.
     ///
     /// [align_rules]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html
-    /// [create_buffer]: https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub unsafe fn host_data<'d>(mut self, host_data: &'d [T]) -> BufferBuilder<'a, T>
+    pub unsafe fn use_host_slice<'d>(mut self, host_slice: &'d [T]) -> BufferBuilder<'a, T>
             where 'd: 'a {
-        self.host_data = Some(host_data);
+        assert!(self.host_slice.is_none(), "BufferBuilder::use_host_slice: \
+            A host slice has already been specified.");
+        self.host_slice = HostSlice::Use(host_slice);
+        self
+    }
+
+    /// Specifies a region of memory to copy into the buffer upon creation.
+    ///
+    /// Automatically sets the `flags::MEM_COPY_HOST_PTR` aka.
+    /// `MemFlags::new().copy_host_ptr()` flag.
+    ///
+    /// ### Panics
+    ///
+    /// `::copy_host_slice` or `::use_host_slice` must not have already been
+    /// called.
+    ///
+    pub fn copy_host_slice<'d>(mut self, host_slice: &'d [T]) -> BufferBuilder<'a, T>
+            where 'd: 'a {
+        assert!(self.host_slice.is_none(), "BufferBuilder::copy_host_slice: \
+            A host slice has already been specified.");
+        self.host_slice = HostSlice::Copy(host_slice);
         self
     }
 
@@ -2330,61 +2338,78 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// Dimensions and either a context or default queue must be specified
     /// before calling `::build`.
     pub fn build(self) -> OclResult<Buffer<T>> {
-        if self.host_data.is_some() && self.fill_val.is_some() {
-            panic!("ocl::BufferBuilder::build: Cannot create a buffer with both
-                'host_data' and 'fill_val' specified. Use one or the other.");
+        let mut flags = match self.flags {
+            Some(f) => f,
+            None => MemFlags::new().read_write(),
         };
 
-        match self.queue_option {
-            Some(qc) => {
-                let len = match self.len {
-                    0 => panic!("ocl::BufferBuilder::build: The length must be set with \
-                        '.len(...)' and cannot be zero."),
-                    l @ _ => l,
-                };
-
-                let device_ver = match qc {
-                    QueCtx::Queue(ref queue) => Some(queue.device_version()),
-                    QueCtx::Context(_) => None,
-                };
-
-                let buf = unsafe { Buffer::new(qc, self.flags, len, self.host_data)? };
-
-                // Fill buffer if `fill_val` and a queue have been specified,
-                // blocking if the `fill_event` is `None`.
-                if let Some((val, fill_event)) = self.fill_val {
-                    match device_ver {
-                        Some(dv) => {
-                            if dv >= [1, 2].into() {
-                                match fill_event {
-                                    Some(enew) => buf.cmd().fill(val, None).enew(enew).enq()?,
-                                    None => {
-                                        let mut new_event = Event::empty();
-                                        buf.cmd().fill(val, None).enew(&mut new_event).enq()?;
-                                        new_event.wait_for()?;
-                                    }
-                                }
-                            } else {
-                                let fill_vec = vec![val; buf.len()];
-                                match fill_event {
-                                    Some(enew) => buf.cmd().write(&fill_vec).enew(enew).enq()?,
-                                    None => {
-                                        let mut new_event = Event::empty();
-                                        buf.cmd().write(&fill_vec).enew(&mut new_event).enq()?;
-                                        new_event.wait_for()?;
-                                    }
-                                }
-                            }
-                        },
-                        None => panic!("ocl::BufferBuilder::build: A queue must be specified \
-                            for this builder with `::queue` when using `::fill_val`."),
-                    }
+        let host_slice = match self.host_slice {
+            HostSlice::Use(hs) => {
+                flags.insert(MemFlags::new().use_host_ptr());
+                Some(hs)
+            }
+            HostSlice::Copy(hs) => {
+                if self.fill_val.is_some() {
+                    panic!("ocl::BufferBuilder::build: Cannot create a buffer with both
+                        'copy_host_slice' and 'fill_val' specified. Use one or the other.");
                 }
 
-                Ok(buf)
+                flags.insert(MemFlags::new().copy_host_ptr());
+                Some(hs)
             },
+            HostSlice::None => None,
+        };
+
+        let qc = match self.queue_option {
+            Some(qc) => qc,
             None => panic!("ocl::BufferBuilder::build: A context or default queue must be set \
                 with '.context(...)' or '.queue(...)'."),
+        };
+
+        let len = match self.len {
+            0 => panic!("ocl::BufferBuilder::build: The length must be set with \
+                '.len(...)' and cannot be zero."),
+            l @ _ => l,
+        };
+
+        let device_ver = match qc {
+            QueCtx::Queue(ref queue) => Some(queue.device_version()),
+            QueCtx::Context(_) => None,
+        };
+
+        let buf = unsafe { Buffer::new(qc, flags, len, host_slice)? };
+
+        // Fill buffer if `fill_val` and a queue have been specified,
+        // blocking if the `fill_event` is `None`.
+        if let Some((val, fill_event)) = self.fill_val {
+            match device_ver {
+                Some(dv) => {
+                    if dv >= [1, 2].into() {
+                        match fill_event {
+                            Some(enew) => buf.cmd().fill(val, None).enew(enew).enq()?,
+                            None => {
+                                let mut new_event = Event::empty();
+                                buf.cmd().fill(val, None).enew(&mut new_event).enq()?;
+                                new_event.wait_for()?;
+                            }
+                        }
+                    } else {
+                        let fill_vec = vec![val; buf.len()];
+                        match fill_event {
+                            Some(enew) => buf.cmd().write(&fill_vec).enew(enew).enq()?,
+                            None => {
+                                let mut new_event = Event::empty();
+                                buf.cmd().write(&fill_vec).enew(&mut new_event).enq()?;
+                                new_event.wait_for()?;
+                            }
+                        }
+                    }
+                },
+                None => panic!("ocl::BufferBuilder::build: A queue must be specified \
+                    for this builder with `::queue` when using `::fill_val`."),
+            }
         }
+
+        Ok(buf)
     }
 }

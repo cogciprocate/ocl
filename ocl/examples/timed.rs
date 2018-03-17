@@ -52,9 +52,9 @@ fn timed() -> ocl::Result<()> {
     let buffer_init = unsafe {
         Buffer::builder()
             .queue(ocl_pq.queue().clone())
-            .flags(core::MemFlags::new().read_write().copy_host_ptr())
+            .flags(core::MemFlags::new().read_write())
             .len(WORK_SIZE)
-            .host_data(&vec_init)
+            .copy_host_slice(&vec_init)
             .build()?
     };
 

@@ -86,7 +86,7 @@ fn main() {
         .dims(&dims)
         .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
         .queue(queue.clone())
-        .host_data(&img)
+        .copy_host_slice(&img)
         .build().unwrap();
 
 
@@ -103,7 +103,7 @@ fn main() {
         .dims(&dims)
         .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
         .queue(queue.clone())
-        .host_data(&result_unrolled)
+        .copy_host_slice(&result_unrolled)
         .build().unwrap();
 
     let kernel = Kernel::builder()
@@ -146,7 +146,7 @@ fn main() {
         .dims(&dims)
         .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
         .queue(queue.clone())
-        .host_data(&result_patches)
+        .copy_host_slice(&result_patches)
         .build().unwrap();
 
 

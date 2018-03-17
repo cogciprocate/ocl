@@ -42,12 +42,6 @@ pub enum KernelError {
     BuilderNoProgram,
     #[fail(display = "No kernel name specified.")]
     BuilderNoKernelName,
-    // #[fail(display = "Cannot build kernel until all arguments are specified. Use named \
-    //     arguments with 'None' or zero values to declare arguments you plan to assign a \
-    //     value to later.")]
-    // BuilderArgCountLow,
-    // #[fail(display = "Too many kernel arguments have been specified.")]
-    // BuilderArgCountHigh,
     #[fail(display = "The wrong number of kernel arguments have been specified \
         (required: {}, specified: {}). Use named arguments with 'None' or zero values to \
         declare arguments you plan to assign a value to at a later time.", required, specified)]
@@ -1632,8 +1626,6 @@ pub mod arg_type {
                     match *err.kind() {
                         OclCoreErrorKind::Api(ref api_err) => {
                             if api_err.status() == Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
-                                // return Ok(ArgType { base_type: BaseType::Unknown,
-                                //     cardinality: Cardinality::One, is_ptr: false })
                                 return ArgType::unknown();
                             }
                         }
@@ -1661,11 +1653,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Char16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_char>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_char>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1679,11 +1666,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Uchar16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_uchar>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_uchar>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1697,11 +1679,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Short16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_short>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_short>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1715,11 +1692,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Ushort16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_ushort>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_ushort>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1733,11 +1705,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Int16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_int>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_int>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1751,11 +1718,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Uint16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_uint>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_uint>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1769,11 +1731,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Long16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_long>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_long>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1787,11 +1744,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Ulong16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_ulong>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_ulong>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1805,11 +1757,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Float16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_float>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_float>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },
@@ -1823,11 +1770,6 @@ pub mod arg_type {
                         Cardinality::Sixteen => TypeId::of::<Double16>() == type_id,
                     };
 
-                    // if self.is_ptr {
-                    //     TypeId::of::<cl_double>() == type_id || card_match
-                    // } else {
-                    //     card_match
-                    // }
                     (self.is_ptr && (TypeId::of::<cl_double>() == type_id || card_match)) ||
                         (!self.is_ptr && card_match)
                 },

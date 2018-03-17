@@ -33,14 +33,12 @@ fn basics() -> ocl::Result<()> {
     // Create a temporary init vector and the source buffer. Initialize them
     // with random floats between 0.0 and 20.0:
     let vec_source = ocl_extras::scrambled_vec((0.0, 20.0), ocl_pq.dims().to_len());
-    let source_buffer = unsafe {
-        Buffer::builder()
-            .queue(ocl_pq.queue().clone())
-            .flags(MemFlags::new().read_write().copy_host_ptr())
-            .len(WORK_SIZE)
-            .host_data(&vec_source)
-            .build()?
-    };
+    let source_buffer = Buffer::builder()
+        .queue(ocl_pq.queue().clone())
+        .flags(MemFlags::new().read_write())
+        .len(WORK_SIZE)
+        .copy_host_slice(&vec_source)
+        .build()?;
 
     // Create an empty vec and buffer (the quick way) for results. Note that
     // there is no need to initialize the buffer as we did above because we

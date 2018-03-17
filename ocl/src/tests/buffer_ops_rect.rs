@@ -45,14 +45,12 @@ fn buffer_ops_rect() {
     // let buf = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
     //     core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec), None).unwrap();
 
-    let buf = unsafe {
-        Buffer::builder()
-            .queue(proque.queue().clone())
-            .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-            .len(proque.dims().clone())
-            .host_data(&vec)
-            .build().unwrap()
-    };
+    let buf = Buffer::builder()
+        .queue(proque.queue().clone())
+        .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
+        .len(proque.dims().clone())
+        .copy_host_slice(&vec)
+        .build().unwrap();
 
     let kernel_add = proque.kernel_builder("add")
         .arg(&buf)
@@ -250,14 +248,12 @@ fn buffer_ops_rect() {
     //     proque.dims().to_len().unwrap(), Some(&vec_src), proque.queue()) };
     // let buf_src = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
     //     core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_src), None).unwrap();
-    let buf_src = unsafe {
-        Buffer::builder()
-            .queue(proque.queue().clone())
-            .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-            .len(proque.dims().clone())
-            .host_data(&vec_src)
-            .build().unwrap()
-    };
+    let buf_src = Buffer::builder()
+        .queue(proque.queue().clone())
+        .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
+        .len(proque.dims().clone())
+        .copy_host_slice(&vec_src)
+        .build().unwrap();
 
     // Destination Buffer:
     let mut vec_dst = vec![0.0f32; proque.dims().to_len()];
@@ -266,14 +262,12 @@ fn buffer_ops_rect() {
     //     proque.dims().to_len().unwrap(), Some(&vec_dst), proque.queue()) };
     // let buf_dst = Buffer::new(proque.queue().clone(), Some(core::MEM_READ_WRITE |
     //     core::MEM_COPY_HOST_PTR), proque.dims().clone(), Some(&vec_dst), None).unwrap();
-    let buf_dst = unsafe {
-        Buffer::builder()
-            .queue(proque.queue().clone())
-            .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-            .len(proque.dims().clone())
-            .host_data(&vec_dst)
-            .build().unwrap()
-    };
+    let buf_dst = Buffer::builder()
+        .queue(proque.queue().clone())
+        .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
+        .len(proque.dims().clone())
+        .copy_host_slice(&vec_dst)
+        .build().unwrap();
 
     // Source origin doesn't matter for this:
     let src_origin = [0, 0, 0];

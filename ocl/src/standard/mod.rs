@@ -33,6 +33,25 @@ pub use self::cb::{_unpark_task, box_raw_void};
 pub use self::traits::{MemLen, WorkDims};
 pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
+
+// use core::OclPrm;
+
+#[derive(Debug)]
+enum HostSlice<'a, T> where T: 'a {
+    None,
+    Use(&'a [T]),
+    Copy(&'a [T]),
+}
+
+impl<'a, T> HostSlice<'a, T> where T: 'a {
+    fn is_none(&self) -> bool {
+        match *self {
+            HostSlice::None => true,
+            _ => false,
+        }
+    }
+}
+
 //=============================================================================
 //================================ CONSTANTS ==================================
 //=============================================================================

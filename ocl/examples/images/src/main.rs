@@ -101,7 +101,7 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_READ_ONLY | ocl::flags::MEM_HOST_WRITE_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .host_data(&img)
+        .copy_host_slice(&img)
         .queue(queue.clone())
         .build().unwrap();
 
@@ -111,7 +111,7 @@ fn main() {
         .image_type(MemObjectType::Image2d)
         .dims(&dims)
         .flags(ocl::flags::MEM_WRITE_ONLY | ocl::flags::MEM_HOST_READ_ONLY | ocl::flags::MEM_COPY_HOST_PTR)
-        .host_data(&img)
+        .copy_host_slice(&img)
         .queue(queue.clone())
         .build().unwrap();
 

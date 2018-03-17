@@ -61,10 +61,9 @@ Breaking Changes
 * `ProQue::create_kernel` has been removed and replaced with
   `ProQue::kernel_builder` which can be used to return a new `KernelBuilder`
   with pre-configured name, program, default queue, and global work size.
-* `BufferBuilder::host_data` is now marked unsafe. Using
-  `flags::MEM_USE_HOST_PTR` when creating a buffer can create undefined
-  behavior.
-* `Buffer::new` is now unsafe.
+* `Buffer::new` and `Image::new` are now unsafe.
+* `BufferBuilder::host_data` and `ImageBuilder::host_data` have been removed.
+  Use `::copy_host_slice` or `::use_host_slice` instead.
 * `ProgramBuilder` is now non-consuming and has a lifetime.
 * `ProgramBuilder::il` now accepts a slice instead of a `Vec`.
 * `Program::new` has been renamed to `Program::with_source`. Source strings

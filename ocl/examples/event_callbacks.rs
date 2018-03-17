@@ -103,14 +103,12 @@ fn event_callbacks() -> ocl::Result<()> {
     // Create source and result buffers (our data containers):
     // let seed_buffer = Buffer::with_vec_scrambled((0u32, 500u32), &dims, &ocl_pq.queue());
     let seed_vec = ocl_extras::scrambled_vec((0u32, 500u32), dataset_len);
-    let seed_buffer = unsafe {
-        Buffer::builder()
-            .queue(ocl_pq.queue().clone())
-            .flags(core::MEM_READ_WRITE | core::MEM_COPY_HOST_PTR)
-            .len(dataset_len)
-            .host_data(&seed_vec)
-            .build()?
-    };
+    let seed_buffer = Buffer::builder()
+        .queue(ocl_pq.queue().clone())
+        .flags(core::MEM_READ_WRITE)
+        .len(dataset_len)
+        .copy_host_slice(&seed_vec)
+        .build()?;
 
     let mut result_vec = vec![0; dataset_len];
     let result_buffer = Buffer::<u32>::builder()
