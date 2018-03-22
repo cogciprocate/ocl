@@ -49,14 +49,12 @@ fn timed() -> ocl::Result<()> {
     // Create init and result buffers and vectors:
     let vec_init = ocl_extras::scrambled_vec(INIT_VAL_RANGE, ocl_pq.dims().to_len());
 
-    let buffer_init = unsafe {
-        Buffer::builder()
+    let buffer_init = Buffer::builder()
             .queue(ocl_pq.queue().clone())
             .flags(core::MemFlags::new().read_write())
             .len(WORK_SIZE)
             .copy_host_slice(&vec_init)
-            .build()?
-    };
+            .build()?;
 
     let mut vec_result = vec![0.0f32; WORK_SIZE];
     let buffer_result = Buffer::<f32>::builder()

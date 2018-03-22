@@ -107,6 +107,7 @@ extern crate bitflags;
 #[macro_use]
 extern crate enum_primitive;
 extern crate num_traits;
+extern crate num_complex;
 #[cfg(feature = "ocl-core-vector")]
 extern crate ocl_core_vector as vector;
 #[macro_use]
@@ -217,6 +218,7 @@ mod traits {
     use std::ops::*;
     use std::iter::{Sum, Product};
     use num_traits::{NumCast, FromPrimitive, ToPrimitive, Zero, One};
+    use num_complex::{Complex32, Complex64};
 
     // Implements an unsafe trait for a list of types.
     macro_rules! impl_unsafe {
@@ -238,7 +240,8 @@ mod traits {
     /// alignment are conserved between Rust and OpenCL (repr "C").
     pub unsafe trait OclPrm: Debug + Clone + Copy + Default + PartialEq + Send + Sync + 'static {}
 
-    impl_unsafe!(OclPrm: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64);
+    impl_unsafe!(OclPrm: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64,
+        Complex32, Complex64);
 
     /// A set of traits common to numeric built-in OpenCL scalar and vector
     /// primitives.

@@ -17,7 +17,7 @@ use std::ops::*;
 use std::iter::{Sum, Product};
 use std::hash::{Hash, Hasher};
 use std::cmp::{Eq, Ord, Ordering};
-use num::{Zero, One};
+use num_traits::{Zero, One};
 // use ::{OclPrm, OclVec};
 
 // pub trait Splat {

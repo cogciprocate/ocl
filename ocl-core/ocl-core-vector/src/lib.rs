@@ -23,7 +23,7 @@
 //!
 //! [NOTE]: This module may be renamed.
 
-extern crate num;
+extern crate num_traits;
 
 mod vectors;
 
