@@ -59,7 +59,7 @@ fn image_ops() {
         .image_type(MemObjectType::Image3d)
         .dims(proque.dims())
         .flags(flags::MEM_READ_WRITE | flags::MEM_COPY_HOST_PTR)
-        .host_data(&vec)
+        .copy_host_slice(&vec)
         .queue(proque.queue().clone())
         .build().unwrap();
     let img_dst = Image::<i32>::builder()
@@ -68,7 +68,7 @@ fn image_ops() {
         .image_type(MemObjectType::Image3d)
         .dims(proque.dims())
         .flags(flags::MEM_WRITE_ONLY | flags::MEM_COPY_HOST_PTR)
-        .host_data(&vec)
+        .copy_host_slice(&vec)
         .queue(proque.queue().clone())
         .build().unwrap();
 
