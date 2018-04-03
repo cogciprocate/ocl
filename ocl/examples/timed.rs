@@ -51,7 +51,7 @@ fn timed() -> ocl::Result<()> {
 
     let buffer_init = Buffer::builder()
             .queue(ocl_pq.queue().clone())
-            .flags(core::MemFlags::new().read_write())
+            .flags(core::MemFlags::new())
             .len(WORK_SIZE)
             .copy_host_slice(&vec_init)
             .build()?;

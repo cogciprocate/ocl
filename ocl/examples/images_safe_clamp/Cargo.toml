@@ -1,6 +1,6 @@
 [package]
 name = "ocl-example-rgb2gray"
-version = "0.0.2"
+version = "0.2.0"
 authors = ["Bernhard Schuster <bernhard@ahoi.io>", "Nick Sanders <cogciprocate@gmail.com>"]
 
 [features]

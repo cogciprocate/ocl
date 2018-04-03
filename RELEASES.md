@@ -1,11 +1,11 @@
 
-Version 0.18.0 (UNRELEASED)
+Version 0.18.0 (2018-04-02)
 ===========================
 
 [`Kernel`] has received a much-needed makeover. Creating a kernel is not
-exactly like creating other types of objects due to the fact that arguments
-are specified in advance and that they contain typed data. Because of this,
-the old design became a quirky mixture of builder-style and normal methods
+exactly like creating other types of objects due to the fact that kernel
+arguments are normally specified after actual kernel creation. Because of
+this, the old design became a quirky mix of builder-style and normal methods
 intended to be as versatile as possible.
 
 To further complicate matters, the issue of if and when `Kernel` could be
@@ -71,13 +71,13 @@ Breaking Changes
 * `Program::with_il` now accepts intermediate language byte source and
   compiler options as slices.
 
-* (core) `KernelArg` has been removed and replaced with `ArgVal`. Conversion
-  is relatively straightforward, enum variants map to 'constructor' methods.
-  Where before you may have created a `KernelArg` using
+* (ocl-core) `KernelArg` has been removed and replaced with `ArgVal`.
+  Conversion is relatively straightforward, enum variants map to 'constructor'
+  methods. Where before you may have created a `KernelArg` using
   `KernelArg::Mem(&mem)`, you will now create an `ArgVal` with
   `ArgVal::mem(&mem)`. Scalar and vector types must now be specified as
   references: `KernelArg::Scalar(10.0f32)` --> `ArgVal::scalar(&10.0f32)`.
-* (core) `set_kernel_arg` has had its argument type changed to the new
+* (ocl-core) `set_kernel_arg` has had its argument type changed to the new
   `ArgVal` type. As `ArgVal` has no associated type, `set_kernel_arg` no
   longer has a type parameter.
   * Example:

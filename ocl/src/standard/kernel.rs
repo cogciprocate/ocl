@@ -429,6 +429,9 @@ impl NamedArgs {
 
 
 /// Storage for `Mem` arguments.
+//
+// NOTE: `RefCell` is used to prevent `::set_arg*` methods from requiring a
+// mutable reference (to `self`).
 #[derive(Clone, Debug)]
 struct MemArgs(Option<RefCell<BTreeMap<u32, MemCore>>>);
 

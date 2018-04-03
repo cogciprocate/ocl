@@ -27,14 +27,13 @@ or some other diagnostic command will run. Add the following to your project's
 
 ```toml
 [dependencies]
-ocl = "0.17"
+ocl = "0.18"
 ```
 
 And add the following to your crate root (lib.rs or main.rs):
 ```rust
 extern crate ocl;
 ```
-
 
 ## Example
 
@@ -78,10 +77,13 @@ power and performance of the C API in a simple package.
 
 ## Recent Changes
 
-As of v0.16.0, enqueuing a kernel is now `unsafe`. See the [change
-log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md) for more
-information.
-
+* 0.18.0: Creating a
+  [`Kernel`](https://docs.rs/ocl/0.18.0/ocl/struct.Kernel.html) now requires
+  the use of the new
+  [`KernelBuilder`](https://docs.rs/ocl/0.18.0/ocl/struct.KernelBuilder.html).
+  See the [change
+  log](https://github.com/cogciprocate/ocl/blob/master/RELEASES.md) for more
+  information.
 
 ##### Introduction to OpenCL
 

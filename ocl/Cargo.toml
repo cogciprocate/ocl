@@ -4,7 +4,7 @@ name = "ocl"
 # [REMINDER]: Bump `html_root_url` in `src/lib.rs`.
 # [REMINDER]: Bump version in `README.md`.
 # [REMINDER]: Set version and date in `RELEASES.md`.
-version = "0.17.0"
+version = "0.18.0"
 
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."
@@ -55,7 +55,7 @@ failure = "0.1"
 num-traits = "0.2"
 futures = "0.1"
 qutex = "0.2"
-ocl-core = { version = "~0.8.0", path = "../ocl-core" }
+ocl-core = { version = "~0.9.0", path = "../ocl-core" }
 
 [dev-dependencies]
 find_folder = "0.3"
