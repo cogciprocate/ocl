@@ -4,7 +4,7 @@ extern crate ocl;
 extern crate ocl_extras;
 
 use std::thread::{JoinHandle, Builder as ThreadBuilder};
-use futures::Future;
+use futures::{executor, FutureExt};
 use ocl::{ProQue, Buffer, MemFlags};
 use ocl::async::{BufferSink, WriteGuard};
 
@@ -65,7 +65,7 @@ fn buffer_sink() -> ocl::Result<()> {
             let mut write_guard = writer_0.wait().unwrap();
             write_guard.copy_from_slice(&[0i32; WORK_SIZE]);
             let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
-            buffer_sink.flush().enq().unwrap().wait().unwrap();
+            executor::block_on(buffer_sink.flush().enq().unwrap()).unwrap();
         })?);
 
         let source_data = source_datas[i].clone();
@@ -75,7 +75,7 @@ fn buffer_sink() -> ocl::Result<()> {
             let mut write_guard = writer_1.wait().unwrap();
             write_guard.copy_from_slice(&source_data);
             let buffer_sink: BufferSink<_> = WriteGuard::release(write_guard).into();
-            buffer_sink.flush().enq().unwrap().wait().unwrap();
+            executor::block_on(buffer_sink.flush().enq().unwrap()).unwrap();
         })?);
 
         unsafe { kern.enq()?; }

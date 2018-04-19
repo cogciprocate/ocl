@@ -32,14 +32,18 @@ use std::fmt::Debug;
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc::{self, Receiver};
 use chrono::{Duration, DateTime, Local};
-use futures::{Future};
-use futures_cpupool::{CpuPool, CpuFuture};
+use futures::{executor, Future, FutureExt, Never};
+// use futures::{Future, FutureExt};
+// use futures_cpupool::{CpuPool, CpuFuture};
+use futures::executor::ThreadPool;
 use ocl::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ocl::traits::{IntoRawEventArray};
 use ocl::error::{Error as OclError, Result as OclResult};
 use ocl::flags::{MemFlags, CommandQueueProperties};
 use ocl::prm::Int4;
 use ocl::ffi::{cl_event, c_void};
+
+type CpuFuture = Box<Future<Item = (), Error = Never> + 'static + Send>;
 
 // Size of buffers and kernel work size:
 const WORK_SIZE: usize = 1 << 22;
@@ -101,7 +105,7 @@ pub fn timestamp() -> String {
 
 /// Returns a thread hooked up to the provided receiver which simply waits for
 /// completion of each `CpuFuture` sent until none remain.
-pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
+pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture>>)
         -> JoinHandle<()>
         where T: Send + 'static, E: Send + Debug + 'static {
     thread::spawn(move || {
@@ -110,7 +114,8 @@ pub fn completion_thread<T, E>(rx: Receiver<Option<CpuFuture<T, E>>>)
         loop {
             match rx.recv().unwrap() {
                 Some(task) => {
-                    task.wait().unwrap();
+                    // task.wait().unwrap();
+                    executor::block_on(task).unwrap();
                     println!("Task {} complete (t: {}s)", task_i, timestamp());
 
                     task_i += 1;
@@ -487,14 +492,15 @@ pub fn async_cycles() -> OclResult<()> {
     let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); WORK_SIZE]);
 
     // Thread pool for offloaded tasks.
-    let thread_pool = CpuPool::new_num_cpus();
+    // let thread_pool = CpuPool::new_num_cpus();
+    let thread_pool = ThreadPool::new();
 
     // A channel with room to keep a pre-specified number of tasks in-flight.
-    let (tx, rx) = mpsc::sync_channel::<Option<CpuFuture<_, _>>>(MAX_CONCURRENT_TASK_COUNT - 2);
+    let (tx, rx) = mpsc::sync_channel::<Option<CpuFuture>>(MAX_CONCURRENT_TASK_COUNT - 2);
 
-    // Create a thread to handle the stream of work. If this were graphics,
-    // this thread could represent the processing being done after a 'finish'
-    // call and before a frame being drawn to the screen.
+    // // Create a thread to handle the stream of work. If this were graphics,
+    // // this thread could represent the processing being done after a 'finish'
+    // // call and before a frame being drawn to the screen.
     let completion_thread = completion_thread(rx);
 
     // Our events for synchronization.
@@ -567,7 +573,7 @@ pub fn async_cycles() -> OclResult<()> {
     }
 
     tx.send(None).unwrap();
-    completion_thread.join().unwrap();
+    // completion_thread.join().unwrap();
 
     printlnc!(yellow_bold: "All result values are correct! \n\
         Duration => | Total: {} seconds |", timestamp());

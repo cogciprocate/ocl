@@ -231,7 +231,7 @@ impl<T> Future for FutureSinkMapGuard<T> where T: OclPrm + 'static {
                     self.map_event.set_unpark_callback()?;
                     self.callback_is_set = true;
                 }
-                Ok(Async::NotReady)
+                Ok(Async::Pending)
             },
             Err(err) => Err(err.into()),
         }

@@ -2,6 +2,7 @@
 
 use std::ops::Deref;
 use futures::{Future, Poll};
+use futures::task::Context;
 use core::{self, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
 use standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
@@ -31,8 +32,8 @@ impl<T: OclPrm> Future for FutureFlood<T> {
     type Error = OclError;
 
     #[inline]
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        self.future_guard.poll().map(|res| res.map(|_write_guard| ()))
+    fn poll(&mut self, cx: &mut Context) -> Poll<Self::Item, Self::Error> {
+        self.future_guard.poll(cx).map(|res| res.map(|_write_guard| ()))
     }
 }
 

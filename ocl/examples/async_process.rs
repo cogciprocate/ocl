@@ -12,8 +12,9 @@ extern crate ocl;
 
 use std::cell::Cell;
 use std::collections::VecDeque;
-use futures::{stream, Stream, Future};
-use futures_cpupool::CpuPool;
+use futures::{stream, /*Future,*/ FutureExt, StreamExt};
+// use futures_cpupool::CpuPool;
+use futures::executor::{self, ThreadPool, Executor};
 use ocl::{Result as OclResult, Platform, Device, Context, Queue, Program, Buffer, Kernel, Event};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Float4;
@@ -60,7 +61,7 @@ pub fn async_process() -> OclResult<()> {
     let kern_queue = Queue::new(&context, device, queue_flags).or_else(|_|
         Queue::new(&context, device, None))?;
 
-    let thread_pool = CpuPool::new_num_cpus();
+    let thread_pool = ThreadPool::new()?;
     let task_count = 12;
     let redundancy_count = 2000;
     let mut offloads = VecDeque::with_capacity(task_count);
@@ -129,10 +130,11 @@ pub fn async_process() -> OclResult<()> {
             }
 
             println!("Mapped write complete (task: {}). ", task_id);
-            Ok(task_id)
-        });
+            Ok(())
+        })
+        .map_err(|e| panic!("{}", e));
 
-        let spawned_write = thread_pool.spawn(write);
+        let spawned_write = thread_pool.spawn(Box::new(write));
 
         // (2) KERNEL: Run kernel: Add 100 to everything (total should now be 150):
         let mut kern_event = Event::empty();
@@ -169,9 +171,11 @@ pub fn async_process() -> OclResult<()> {
                 println!("Mapped read and verify complete (task: {}). ", task_id);
 
                 Ok(val_count)
-            });
+            })
+            .map(|_| ())
+            .map_err(|e| panic!("{}", e));
 
-        let spawned_read = thread_pool.spawn(read);
+        let spawned_read = thread_pool.spawn(Box::new(read));
         // Presumably this could be either `join` or `and_then`:
         let offload = spawned_write.join(spawned_read);
 
@@ -183,11 +187,11 @@ pub fn async_process() -> OclResult<()> {
     let correct_val_count = Cell::new(0usize);
 
     // Finish things up (basically a thread join):
-    stream::futures_unordered(offloads).for_each(|(task_id, val_count)| {
+    executor::block_on(stream::futures_unordered(offloads).for_each(|(task_id, val_count)| {
         correct_val_count.set(correct_val_count.get() + val_count);
         println!("Task: {} has completed.", task_id);
         Ok(())
-    }).wait()?;
+    }))?;
 
     let run_duration = chrono::Local::now() - start_time - create_duration;
     let total_duration = chrono::Local::now() - start_time;

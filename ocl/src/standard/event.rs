@@ -22,7 +22,7 @@ use std::ops::{Deref, DerefMut};
 use std::cell::Ref;
 use futures::{Future, Poll, Async};
 #[cfg(not(feature = "async_block"))]
-use futures::task;
+use futures::task::Context;
 use ffi::cl_event;
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef,
@@ -75,9 +75,10 @@ impl Event {
     /// That is, this method can be dangerous to call outside of an
     /// implementation of poll.
     #[cfg(not(feature = "async_block"))]
-    pub fn set_unpark_callback(&self) -> OclCoreResult<()> {
-        let task_ptr = box_raw_void(task::current());
-        unsafe { self.set_callback(_unpark_task, task_ptr) }
+    pub fn set_unpark_callback(&self, cx: &mut Context) -> OclCoreResult<()> {
+        // let task_ptr = box_raw_void(task::current());
+        let waker_ptr = box_raw_void(cx.waker().clone());
+        unsafe { self.set_callback(_unpark_task, waker_ptr) }
     }
 
     /// Registers a user event to have its status set to complete
@@ -261,7 +262,7 @@ impl Future for Event {
     //   - TODO: Look into possible effects of unparking a task multiple times.
     //
     #[cfg(not(feature = "async_block"))]
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(&mut self, cx: &mut Context) -> Poll<Self::Item, Self::Error> {
         debug_assert!(self.0.is_valid());
 
         match self.is_complete() {
@@ -269,8 +270,8 @@ impl Future for Event {
                 Ok(Async::Ready(()))
             }
             Ok(false) => {
-                self.set_unpark_callback()?;
-                Ok(Async::NotReady)
+                self.set_unpark_callback(cx)?;
+                Ok(Async::Pending)
             },
             Err(err) => Err(OclError::from(err)),
         }
@@ -309,7 +310,7 @@ fn take(event: &mut Event) -> Event {
 
 
 /// Polls events for `EventArray` and `EventList`
-fn poll_events(events: &[Event]) -> Poll<(), OclError> {
+fn poll_events(events: &[Event], cx: &mut Context) -> Poll<(), OclError> {
     if PRINT_DEBUG { println!("####### EventList/Array::poll: Polling Event list (thread: '{}')",
         ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
@@ -321,10 +322,10 @@ fn poll_events(events: &[Event]) -> Poll<(), OclError> {
         } else {
             if !event.is_complete()? {
                 #[cfg(not(feature = "async_block"))]
-                event.set_unpark_callback()?;
+                event.set_unpark_callback(cx)?;
                 if PRINT_DEBUG { println!("####### EventList/Array::poll: callback set for event: {:?} \
                     (thread: '{}')", event, ::std::thread::current().name().unwrap_or("<unnamed>")); }
-                return Ok(Async::NotReady);
+                return Ok(Async::Pending);
             } else {
                 if PRINT_DEBUG { println!("####### EventList/Array::poll: event complete: {:?} \
                     (thread: '{}')", event, ::std::thread::current().name().unwrap_or("<unnamed>")); }
@@ -600,8 +601,8 @@ impl Future for EventArray {
     type Error = OclError;
 
     /// Polls each event from this list.
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        poll_events(self.as_slice())
+    fn poll(&mut self, cx: &mut Context) -> Poll<Self::Item, Self::Error> {
+        poll_events(self.as_slice(), cx)
     }
 }
 
@@ -1202,8 +1203,8 @@ impl Future for EventList {
     type Error = OclError;
 
     /// Polls each event from this list.
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        poll_events(self.as_slice())
+    fn poll(&mut self, cx: &mut Context) -> Poll<Self::Item, Self::Error> {
+        poll_events(self.as_slice(), cx)
     }
 }
 

@@ -66,7 +66,7 @@ impl<'a, T> HostSlice<'a, T> where T: 'a {
 mod cb {
     use core::ffi::c_void;
     use num_traits::FromPrimitive;
-    use futures::task::Task;
+    use futures::task::Waker;
     use ffi::cl_event;
     use core::{CommandExecutionStatus, Status};
 
@@ -81,9 +81,9 @@ mod cb {
         // println!("'_unpark_task' has been called.");
         if event_status == CommandExecutionStatus::Complete as i32 && !user_data.is_null() {
             unsafe {
-                let task_ptr = user_data as *mut _ as *mut Task;
-                let task = Box::from_raw(task_ptr);
-                (*task).notify();
+                let waker_ptr = user_data as *mut _ as *mut Waker;
+                let waker = Box::from_raw(waker_ptr);
+                (*waker).wake();
             }
         } else {
             let status = if event_status < 0 {

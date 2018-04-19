@@ -8,8 +8,9 @@
 
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
-use futures::{Future, Poll, Async};
-use futures::sync::oneshot::{self, Receiver};
+use futures::{executor, Future, Poll, Async};
+use futures::channel::oneshot::{self, Receiver};
+use futures::task::Context;
 use core::{ClContextPtr, ClNullEventPtr};
 use error::{Error as OclError, Result as OclResult};
 use ::{Event, EventList};
@@ -440,7 +441,8 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// Blocks the current thread until the OpenCL command is complete and an
     /// appropriate lock can be obtained on the underlying data.
     pub fn wait(self) -> OclResult<G> {
-        <Self as Future>::wait(self)
+        // <Self as Future>::wait(self)
+        executor::block_on(self)
     }
 
     /// Returns a mutable pointer to the data contained within the internal
@@ -479,7 +481,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
     /// Polls the wait events until all requisite commands have completed then
     /// polls the lock queue.
-    fn poll_wait_events(&mut self) -> OclResult<Async<G>> {
+    fn poll_wait_events(&mut self, cx: &mut Context) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::WaitEvents);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_wait_events: Called");
 
@@ -489,20 +491,20 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
             //     Polling wait_events (thread: {})...", self.order_lock.as_ref().unwrap().id(),
             //     ::std::thread::current().name().unwrap_or("<unnamed>")); }
 
-            if let Async::NotReady = wait_events.poll()? {
-                return Ok(Async::NotReady);
+            if let Async::Pending = wait_events.poll(cx)? {
+                return Ok(Async::Pending);
             }
 
         }
 
         self.stage = Stage::LockQueue;
-        self.poll_lock()
+        self.poll_lock(cx)
     }
 
     /// Polls the lock until we have obtained a lock then polls the command
     /// event.
     #[cfg(not(feature = "async_block"))]
-    fn poll_lock(&mut self) -> OclResult<Async<G>> {
+    fn poll_lock(&mut self, cx: &mut Context) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::LockQueue);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_lock: Called");
 
@@ -511,7 +513,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
         // Check for completion of the lock rx:
         if let Some(ref mut lock_rx) = self.lock_rx {
-            match lock_rx.poll() {
+            match lock_rx.poll(cx) {
                 // If the poll returns `Async::Ready`, we have been popped from
                 // the front of the lock queue and we now have exclusive access.
                 // Otherwise, return the `NotReady`. The rx (oneshot channel) will
@@ -527,7 +529,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
                             }
                             self.stage = Stage::Command;
                         },
-                        Async::NotReady => return Ok(Async::NotReady),
+                        Async::Pending => return Ok(Async::Pending),
                     }
                 },
                 // Err(e) => return Err(e.into()),
@@ -537,7 +539,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
             unreachable!();
         }
 
-        self.poll_command()
+        self.poll_command(cx)
     }
 
 
@@ -566,16 +568,16 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
     /// Polls the command event until it is complete then returns an `OrderGuard`
     /// which can be safely accessed immediately.
-    fn poll_command(&mut self) -> OclResult<Async<G>> {
+    fn poll_command(&mut self, cx: &mut Context) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::Command);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Called");
 
         if let Some(ref mut command_event) = self.command_event {
             print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Event exists");
 
-            if let Async::NotReady = command_event.poll()? {
+            if let Async::Pending = command_event.poll(cx)? {
                 print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Event not ready");
-                return Ok(Async::NotReady);
+                return Ok(Async::Pending);
             }
             print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_command: Event is ready");
         }
@@ -586,7 +588,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
 
         if self.upgrade_after_command {
             self.stage = Stage::Upgrade;
-            self.poll_upgrade()
+            self.poll_upgrade(cx)
         } else {
             Ok(Async::Ready(self.into_guard()))
         }
@@ -597,7 +599,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
     /// Only used if `::upgrade_after_command` has been called.
     ///
     #[cfg(not(feature = "async_block"))]
-    fn poll_upgrade(&mut self) -> OclResult<Async<G>> {
+    fn poll_upgrade(&mut self, cx: &mut Context) -> OclResult<Async<G>> {
         debug_assert!(self.stage == Stage::Upgrade);
         debug_assert!(self.upgrade_after_command);
         print_debug(self.order_lock.as_ref().unwrap().id(), "FutureGuard::poll_upgrade: Called");
@@ -611,7 +613,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
                 },
                 Err(rx) => {
                     self.upgrade_rx = Some(rx);
-                    match self.upgrade_rx.as_mut().unwrap().poll() {
+                    match self.upgrade_rx.as_mut().unwrap().poll(cx) {
                         Ok(res) => {
                             // print_debug(self.order_lock.as_ref().unwrap().id(),
                             //     "FutureGuard::poll_upgrade: Channel completed. Upgrading.");
@@ -622,10 +624,10 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
                                         "FutureGuard::poll_upgrade: Channel completed. Upgrading.");
                                     Ok(Async::Ready(self.into_guard()))
                                 },
-                                Async::NotReady => {
+                                Async::Pending => {
                                     print_debug(self.order_lock.as_ref().unwrap().id(),
                                         "FutureGuard::poll_upgrade: Upgrade rx not ready.");
-                                    Ok(Async::NotReady)
+                                    Ok(Async::Pending)
                                 },
                             }
                         },
@@ -636,7 +638,7 @@ impl<V, G> FutureGuard<V, G> where G: OrderGuard<V> {
             }
         } else {
             // Check for completion of the upgrade rx:
-            match self.upgrade_rx.as_mut().unwrap().poll() {
+            match self.upgrade_rx.as_mut().unwrap().poll(cx) {
                 Ok(status) => {
                     print_debug(self.order_lock.as_ref().unwrap().id(),
                         &format!("FutureGuard::poll_upgrade: Status: {:?}", status));
@@ -680,13 +682,13 @@ impl<V, G> Future for FutureGuard<V, G> where G: OrderGuard<V> {
     type Error = OclError;
 
     #[inline]
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(&mut self, cx: &mut Context) -> Poll<Self::Item, Self::Error> {
         if self.order_lock.is_some() {
             match self.stage {
-                Stage::WaitEvents => self.poll_wait_events(),
-                Stage::LockQueue => self.poll_lock(),
-                Stage::Command => self.poll_command(),
-                Stage::Upgrade => self.poll_upgrade(),
+                Stage::WaitEvents => self.poll_wait_events(cx),
+                Stage::LockQueue => self.poll_lock(cx),
+                Stage::Command => self.poll_command(cx),
+                Stage::Upgrade => self.poll_upgrade(cx),
             }
         } else {
             Err("FutureGuard::poll: Task already completed.".into())
@@ -717,18 +719,32 @@ impl<V, G> Drop for FutureGuard<V, G> where G: OrderGuard<V> {
         if let Some(ref mut lock_rx) = self.lock_rx {
             lock_rx.close();
 
-            match lock_rx.poll() {
+            // match lock_rx.poll() {
+            //     Ok(status) => {
+            //         match status {
+            //             Async::Ready(_) => {
+            //                 if let Some(ref lock_event) = self.lock_event {
+            //                     lock_event.set_complete().ok();
+            //                 }
+            //                 // Drop and release lock.
+            //                 let _guard = G::new(self.order_lock.take().unwrap(),
+            //                     self.release_event.take());
+            //             },
+            //             Async::Pending => (),
+            //         }
+            //     },
+            //     Err(_) => (),
+            // }
+
+            match lock_rx.try_recv() {
                 Ok(status) => {
-                    match status {
-                        Async::Ready(_) => {
-                            if let Some(ref lock_event) = self.lock_event {
-                                lock_event.set_complete().ok();
-                            }
-                            // Drop and release lock.
-                            let _guard = G::new(self.order_lock.take().unwrap(),
-                                self.release_event.take());
-                        },
-                        Async::NotReady => (),
+                    if status.is_some() {
+                        if let Some(ref lock_event) = self.lock_event {
+                            lock_event.set_complete().ok();
+                        }
+                        // Drop and release lock.
+                        let _guard = G::new(self.order_lock.take().unwrap(),
+                            self.release_event.take());
                     }
                 },
                 Err(_) => (),

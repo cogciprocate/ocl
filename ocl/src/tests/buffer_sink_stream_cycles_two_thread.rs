@@ -19,6 +19,8 @@
 //! design of the aforementioned `CommandGraph` but here we're managing the
 //! events manually for demonstration.
 //!
+//
+// NOTE: Get rid of this test at some point (once futures API settles down)
 
 // #![feature(conservative_impl_trait, unboxed_closures)]
 #![allow(unused_imports)]
@@ -31,14 +33,12 @@ extern crate futures_cpupool;
 
 use std::fmt::Debug;
 use std::thread;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-// use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self, Receiver};
 use self::chrono::{Duration, DateTime, Local};
-use self::futures::{future, Future, FutureExt, Never, Async, SinkExt, StreamExt};
-use self::futures::channel::mpsc::{self, Sender, Receiver};
+use self::futures::{future, Future, FutureExt, Never, Async};
+// use self::futures::channel::mpsc::{self, Sender, Receiver};
 // use self::futures_cpupool::{Builder as CpuPoolBuilder, CpuFuture};
-use self::futures::executor::{self, LocalPool, ThreadPool, Executor, SpawnWithHandle};
+use self::futures::executor::{self, ThreadPool, Executor, SpawnWithHandle};
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::{IntoRawEventArray};
 use ::async::{BufferSink, BufferStream};
@@ -57,8 +57,7 @@ const INIT_VAL: i32 = 50;
 const SCALAR_ADDEND: i32 = 100;
 
 // Number of times to run the loop:
-// const TASK_ITERS: i32 = 10;
-const TASK_ITERS: i32 = 20;
+const TASK_ITERS: i32 = 10;
 
 const PRINT: bool = true;
 
@@ -111,30 +110,80 @@ pub fn timestamp() -> String {
     fmt_duration(chrono::Local::now() - unsafe { START_TIME.unwrap() })
 }
 
+/// Returns a thread hooked up to the provided receiver which simply waits for
+/// completion of each `CpuFuture` sent until none remain.
+pub fn completion_thread<T, E>(rx: Receiver<Option<executor::JoinHandle<T, E>>>)
+        -> thread::JoinHandle<()>
+        where T: Send + 'static, E: Send + Debug + 'static {
+    thread::spawn(move || {
+        let mut task_i = 0usize;
+
+        loop {
+            match rx.recv().unwrap() {
+                Some(task) => {
+                    // task.wait().unwrap();
+                    executor::block_on(task).unwrap();
+                    if PRINT { println!("Task {} complete (t: {}s)", task_i, timestamp()); }
+                    task_i += 1;
+                    continue;
+                },
+                None => break,
+            }
+        }
+
+        if PRINT { println!("All {} futures complete.", task_i); }
+    })
+}
+
 // /// Returns a thread hooked up to the provided receiver which simply waits for
 // /// completion of each `CpuFuture` sent until none remain.
-// pub fn completion_thread<T, E>(rx: Receiver<Option<executor::JoinHandle<T, E>>>)
-//         -> thread::JoinHandle<()>
-//         where T: Send + 'static, E: Send + Debug + 'static {
-//     thread::spawn(move || {
-//         let mut task_i = 0usize;
+// pub fn completion_thread() -> (Sender<Option<CpuFuture>>, JoinHandle<usize>) {
+//     let (tx, rx) = mpsc::channel::<Option<CpuFuture>>(MAX_CONCURRENT_TASK_COUNT - 2);
 
-//         loop {
-//             match rx.recv().unwrap() {
-//                 Some(task) => {
-//                     // task.wait().unwrap();
-//                     executor::block_on(task).unwrap();
-//                     if PRINT { println!("Task {} complete (t: {}s)", task_i, timestamp()); }
-//                     task_i += 1;
-//                     continue;
-//                 },
-//                 None => break,
+//     // let th = thread::spawn(move || {
+//     //     let mut task_i = 0usize;
+
+//     //     loop {
+//     //         match rx.recv().unwrap() {
+//     //             Some(task) => {
+//     //                 thread_pool.spawn(task).unwrap();
+//     //                 if PRINT { println!("Task {} complete (t: {}s)", task_i, timestamp()); }
+//     //                 task_i += 1;
+//     //                 continue;
+//     //             },
+//     //             None => break,
+//     //         }
+//     //     }
+
+//     //     if PRINT { println!("All {} tasks complete.", task_i); }
+//     //     task_i
+//     // });
+
+//     let th = thread::spawn(move || {
+//         let mut thread_pool = ThreadPool::builder().name_prefix("pool_th_").create().unwrap();
+//         thread_pool.run(move || {
+//             let mut task_i = 0usize;
+
+//             loop {
+//                 match rx.recv().unwrap() {
+//                     Some(task) => {
+//                         thread_pool.spawn(task).unwrap();
+//                         if PRINT { println!("Task {} complete (t: {}s)", task_i, timestamp()); }
+//                         task_i += 1;
+//                         continue;
+//                     },
+//                     None => break,
+//                 }
 //             }
-//         }
 
-//         if PRINT { println!("All {} futures complete.", task_i); }
-//     })
-// }
+//             if PRINT { println!("All {} tasks complete.", task_i); }
+//             task_i
+//         });
+//     );
+
+// //     (tx, th)
+// // }
+
 
 /// 0. Fill-Junk
 /// ============
@@ -484,7 +533,7 @@ pub fn verify_add(dst_buf_stream: &BufferStream<Int4>,
 ///   4. and verifies the sum.
 ///
 #[test]
-pub fn buffer_sink_stream_cycles() {
+pub fn buffer_sink_stream_cycles_two_thread() {
     let platform = Platform::default();
     println!("Platform: {}", platform.name().unwrap());
     let device = Device::first(platform).unwrap();
@@ -501,6 +550,12 @@ pub fn buffer_sink_stream_cycles() {
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
     let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
         Queue::new(&context, device, None)).unwrap();
+    // let write_init_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    // let verify_init_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
+    // let verify_add_unmap_queue = Queue::new(&context, device, queue_flags).or_else(|_|
+    //     Queue::new(&context, device, None)).unwrap();
 
     // Allocating host memory allows the OpenCL runtime to use special pinned
     // memory which considerably improves the transfer performance of map
@@ -518,6 +573,7 @@ pub fn buffer_sink_stream_cycles() {
         .build().unwrap();
 
     let src_buf_sink = unsafe { BufferSink::from_buffer(src_buf.clone(),
+        // Some(write_init_unmap_queue.clone()), 0, src_buf.len()).unwrap() };
         Some(common_queue.clone()), 0, src_buf.len()).unwrap() };
 
     let dst_buf: Buffer<Int4> = Buffer::builder()
@@ -527,6 +583,7 @@ pub fn buffer_sink_stream_cycles() {
         .build().unwrap();
 
     let dst_buf_stream = unsafe { BufferStream::from_buffer(dst_buf.clone(),
+        // Some(verify_add_unmap_queue.clone()), 0, dst_buf.len()).unwrap() };
         Some(common_queue.clone()), 0, dst_buf.len()).unwrap() };
 
     // Create program and kernel:
@@ -547,36 +604,26 @@ pub fn buffer_sink_stream_cycles() {
     // A lockable vector for non-map reads.
     let rw_vec: RwVec<Int4> = RwVec::from(vec![Default::default(); WORK_SIZE]);
 
-    // // A channel with room to keep a pre-specified number of tasks in-flight.
-    // let (tx, rx) = mpsc::channel::<Option<CpuFuture>>(MAX_CONCURRENT_TASK_COUNT - 2);
+    // // Thread pool for offloaded tasks.
+    // // let thread_pool = CpuPool::new_num_cpus();
+    // // let thread_pool = CpuPoolBuilder::new().name_prefix("pool_th_").create();
+    // let mut thread_pool = ThreadPool::builder().name_prefix("pool_th_").create().unwrap();
 
     // A channel with room to keep a pre-specified number of tasks in-flight.
-    let (tx, rx) = mpsc::channel::<Option<_>>(MAX_CONCURRENT_TASK_COUNT - 2);
+    let (tx, rx) = mpsc::sync_channel::<Option<executor::JoinHandle<i32, OclError>>>(MAX_CONCURRENT_TASK_COUNT - 2);
+    // // A channel with room to keep a pre-specified number of tasks in-flight.
+    // let (tx, rx) = mpsc::sync_channel::<Option<executor::JoinHandle<(), Never>>>(MAX_CONCURRENT_TASK_COUNT - 2);
+    // // A channel with room to keep a pre-specified number of tasks in-flight.
+    // let (tx, rx) = mpsc::channel::<Option<CpuFuture>>(MAX_CONCURRENT_TASK_COUNT - 2);
 
     // Create a thread to handle the stream of work. If this were graphics,
     // this thread could represent the processing being done after a 'finish'
     // call and before a frame being drawn to the screen.
-    let completion_thread = thread::spawn(move || {
-        let mut task_i = 0usize;
-
-        let mut handles = Vec::with_capacity(TASK_ITERS as usize);
-
-        for item in executor::block_on_stream(rx) {
-            if let Ok(Some(i)) = item {
-                let handle = executor::block_on(i).unwrap();
-                handles.push(handle);
-                if PRINT { println!("###### Iteration {} spawned.", task_i); }
-                task_i += 1;
-            }
-        }
-
-        for handle in handles {
-            let result = executor::block_on(handle).unwrap();
-            if PRINT { println!("###### Iteration {} complete.", result); }
-        }
-
-        task_i
-    });
+    let completion_thread = completion_thread(rx);
+    // // Create a thread to handle the stream of work. If this were graphics,
+    // // this thread could represent the processing being done after a 'finish'
+    // // call and before a frame being drawn to the screen.
+    // let (tx, completion_thread) = completion_thread();
 
     // Our events for synchronization.
     let mut fill_event = None;
@@ -588,82 +635,75 @@ pub fn buffer_sink_stream_cycles() {
     unsafe { START_TIME = Some(Local::now()); }
     if PRINT { println!("Starting cycles (t: {}s) ...", timestamp()); }
 
+    // executor::block_on(future::poll_fn::<_, OclError, _>(move |_| {
+        // Our main loop. Could run indefinitely if we had a stream of input.
+        for task_iter in 0..TASK_ITERS {
+            let ival = INIT_VAL + task_iter;
+            let tval = ival + SCALAR_ADDEND;
 
-    // Our main loop. Could run indefinitely if we had a stream of input.
-    for task_iter in 0..TASK_ITERS {
-        let ival = INIT_VAL + task_iter;
-        let tval = ival + SCALAR_ADDEND;
+            // 0. Fill-Junk
+            // ============
+            fill_junk(&src_buf, &common_queue,
+                verify_init_event.as_ref(),
+                kernel_event.as_ref(),
+                &mut fill_event,
+                task_iter);
 
-        // 0. Fill-Junk
-        // ============
-        fill_junk(&src_buf, &common_queue,
-            verify_init_event.as_ref(),
-            kernel_event.as_ref(),
-            &mut fill_event,
-            task_iter);
+            // 1. Map-Write-Init
+            // ============
+            let write_init = write_init(&src_buf_sink,
+                fill_event.as_ref(),
+                verify_init_event.as_ref(),
+                &mut write_init_event,
+                ival, task_iter);
 
-        // 1. Map-Write-Init
-        // ============
-        let write_init = write_init(&src_buf_sink,
-            fill_event.as_ref(),
-            verify_init_event.as_ref(),
-            &mut write_init_event,
-            ival, task_iter);
+            // 2. Read-Verify-Init
+            // ============
+            let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
+                // &verify_init_queue,
+                write_init_event.as_ref(),
+                &mut verify_init_event,
+                ival, task_iter);
 
-        // 2. Read-Verify-Init
-        // ============
-        let verify_init = verify_init(&src_buf, &rw_vec, &common_queue,
-            // &verify_init_queue,
-            write_init_event.as_ref(),
-            &mut verify_init_event,
-            ival, task_iter);
+            // 3. Kernel-Add
+            // =============
+            kernel_add(&kern, &common_queue,
+                verify_add_event.as_ref(),
+                write_init_event.as_ref(),
+                &mut kernel_event,
+                task_iter);
 
-        // 3. Kernel-Add
-        // =============
-        kernel_add(&kern, &common_queue,
-            verify_add_event.as_ref(),
-            write_init_event.as_ref(),
-            &mut kernel_event,
-            task_iter);
+            // 4. Map-Verify-Add
+            // =================
+            let verify_add = verify_add(&dst_buf_stream,
+                // verify_add_unmap_queue.clone(),
+                kernel_event.as_ref(),
+                &mut verify_add_event,
+                tval, task_iter);
 
-        // 4. Map-Verify-Add
-        // =================
-        let verify_add = verify_add(&dst_buf_stream,
-            // verify_add_unmap_queue.clone(),
-            kernel_event.as_ref(),
-            &mut verify_add_event,
-            tval, task_iter);
+            if PRINT {
+                println!("All commands for iteration {} enqueued    (t: {}s)",
+                    task_iter, timestamp());
+            }
 
-        if PRINT {
-            println!("All commands for iteration {} enqueued    (t: {}s)",
-                task_iter, timestamp());
+            let join = write_init.join3(verify_init, verify_add)
+                .map(|(task_iter, _, _)| task_iter);
+                // .map(|(_, _, _)| ());
+            // let join_spawned = thread_pool.spawn(Box::new(join));
+            let join_spawned = executor::block_on(executor::spawn_with_handle(Box::new(join))).unwrap();
+
+            // This places our already spawned and running task into the queue for
+            // later collection by our completion thread. This call will block if
+            // the queue is full, preventing us from unnecessarily queuing up
+            // cycles too far in advance.
+            tx.send(Some(join_spawned)).unwrap();
         }
 
-        let join = write_init.join3(verify_init, verify_add)
-            // .map(|(task_iter, _, _)| task_iter);
-            .map(|(task_iter, _, _)| task_iter)
-            .map_err(|e| panic!("{}", e));
+        tx.send(None).unwrap();
+        // Ok(Async::Ready(()))
+    // })).unwrap();
 
-        // let spawned = executor::spawn_with_handle(join).flatten();
-        let spawned = executor::spawn_with_handle(join);
-        // let spawned = join.map(|_| Ok(()));
-
-        // // This places our already spawned and running task into the queue for
-        // // later collection by our completion thread. This call will block if
-        // // the queue is full, preventing us from unnecessarily queuing up
-        // // cycles too far in advance.
-        // executor::block_on(tx.clone().send(Some(Box::new(join)))).unwrap();
-
-        // This places our already spawned and running task into the queue for
-        // later collection by our completion thread. This call will block if
-        // the queue is full, preventing us from unnecessarily queuing up
-        // cycles too far in advance.
-        executor::block_on(tx.clone().send(Some(spawned))).unwrap();
-    }
-
-    executor::block_on(tx.send(None)).unwrap();
-
-    let task_count = completion_thread.join().unwrap();
-    println!("All {} result values are correct! \n\
-        Duration => | Total: {} seconds |", task_count, timestamp());
+    completion_thread.join().unwrap();
+    println!("All result values are correct! \n\
+        Duration => | Total: {} seconds |", timestamp());
 }

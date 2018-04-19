@@ -4,8 +4,8 @@
 use std;
 // use std::sync::mpsc::{SendError as StdMpscSendError, RecvError as StdMpscRecvError};
 use failure::{Context, Fail, Backtrace};
-use futures::sync::oneshot::Canceled as OneshotCanceled;
-use futures::sync::mpsc::SendError;
+use futures::channel::oneshot::Canceled as OneshotCanceled;
+use futures::channel::mpsc::SendError;
 use core::error::{Error as OclCoreError};
 use core::Status;
 use standard::{DeviceError, PlatformError, KernelError};
@@ -94,8 +94,8 @@ impl From<OclCoreError> for Error {
     }
 }
 
-impl<T> From<SendError<T>> for Error {
-    fn from(err: SendError<T>) -> Error {
+impl From<SendError> for Error {
+    fn from(err: SendError) -> Error {
         let debug = format!("{:?}", err);
         let display = format!("{}", err);
         Error { inner: Context::new(ErrorKind::FuturesMpscSend(

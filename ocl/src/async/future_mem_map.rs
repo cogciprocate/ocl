@@ -1,6 +1,7 @@
 // use std::sync::Arc;
 // use std::sync::atomic::AtomicBool;
-use futures::{Future, Poll, Async};
+use futures::{executor, Future, Poll, Async};
+use futures::task::Context;
 use core::{OclPrm, MemMap as MemMapCore, Mem, ClNullEventPtr};
 use async::MemMap;
 use error::{Error as OclError, Result as OclResult};
@@ -119,7 +120,8 @@ impl<T: OclPrm> FutureMemMap<T> {
     /// Blocks the current thread until the OpenCL command is complete and an
     /// appropriate lock can be obtained on the underlying data.
     pub fn wait(self) -> OclResult<MemMap<T>> {
-        <Self as Future>::wait(self)
+        // <Self as Future>::wait(self)
+        executor::block_on(self)
     }
 
     /// Resolves this `FutureMemMap` into a `MemMap`.
@@ -141,7 +143,7 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
     type Item = MemMap<T>;
     type Error = OclError;
 
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+    fn poll(&mut self, cx: &mut Context) -> Poll<Self::Item, Self::Error> {
         // println!("Polling FutureMemMap...");
         match self.map_event.is_complete() {
             Ok(true) => {
@@ -149,11 +151,11 @@ impl<T> Future for FutureMemMap<T> where T: OclPrm + 'static {
             }
             Ok(false) => {
                 if !self.callback_is_set {
-                    self.map_event.set_unpark_callback()?;
+                    self.map_event.set_unpark_callback(cx)?;
                     self.callback_is_set = true;
                 }
 
-                Ok(Async::NotReady)
+                Ok(Async::Pending)
             },
             Err(err) => Err(err.into()),
         }

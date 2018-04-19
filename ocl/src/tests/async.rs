@@ -7,7 +7,7 @@
 // #![allow(unused_imports, unused_variables, unused_mut)]
 
 use std::thread;
-use futures::{Future};
+use futures::{executor, Future, FutureExt};
 use core::Status;
 use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
 use ::traits::IntoRawEventArray;
@@ -521,7 +521,8 @@ pub fn rw_vec() {
                         .spawn(move ||
                 {
                     if PRINT { println!("Waiting on task iter [{}]...", task_iter); }
-                    match task.wait() {
+                    // match task.wait() {
+                    match executor::block_on(task) {
                         Ok(res) => {
                             if PRINT { println!("Task iter [{}] complete with result: {:?}", task_iter, res); }
                             true
