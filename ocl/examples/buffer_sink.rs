@@ -4,7 +4,7 @@ extern crate ocl;
 extern crate ocl_extras;
 
 use std::thread::{JoinHandle, Builder as ThreadBuilder};
-use futures::{executor, FutureExt};
+use futures::executor;
 use ocl::{ProQue, Buffer, MemFlags};
 use ocl::async::{BufferSink, WriteGuard};
 

@@ -22,7 +22,7 @@ extern crate ocl;
 #[macro_use] extern crate colorify;
 
 use std::fmt::{Debug};
-use futures::{Future};
+use futures::{executor, Future, FutureExt};
 use rand::{XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
 use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
@@ -313,12 +313,6 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
 fn create_queue(device: Device, context: &Context, flags: Option<CommandQueueProperties>)
         -> OclResult<Queue> {
     Queue::new(&context, device, flags.clone()).or_else(|err| {
-        // match *err.kind() {
-        //     OclCoreErrorKind::Status { status: Status::CL_INVALID_VALUE, .. } => {
-        //         Err("Device does not support out of order queues.".into())
-        //     },
-        //     _ => Err(err.into()),
-        // }
         match err.api_status() {
             Some(Status::CL_INVALID_VALUE) => Err("Device does not support out of order queues.".into()),
             _ => Err(err.into()),
@@ -731,7 +725,7 @@ pub fn vec_write_async(
         fill_event: Option<&Event>,
         write_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> impl Future<Item = i32, Error = OclError> + Send
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
@@ -766,7 +760,7 @@ pub fn vec_write_async(
 
     let future_drop_guard = future_write_buffer.and_then(move |_| Ok(()));
 
-    Box::new(future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter))
+    future_write_vec.join(future_drop_guard).map(move |(_, _)| task_iter)
 }
 
 pub fn kernel_add(
@@ -807,7 +801,8 @@ pub fn kernel_add(
 pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         verify_add_unmap_queue: Queue, wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>, correct_val: i32,
-        task_iter: i32) -> Box<Future<Item=i32, Error=OclError> + Send>
+        task_iter: i32)
+        -> impl Future<Item = i32, Error = OclError> + Send
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}) ...",
@@ -827,7 +822,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 
     *verify_add_event = Some(future_read_data.create_unmap_event().unwrap().clone());
 
-    Box::new(future_read_data.and_then(move |mut data| {
+    future_read_data.and_then(move |mut data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -845,13 +840,13 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         data.unmap().queue(&verify_add_unmap_queue).enq()?;
 
         Ok(val_count)
-    }))
+    })
 }
 
 pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
         verify_add_release_queue: &Queue, kernel_event: Option<&Event>,
         verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> impl Future<Item = i32, Error = OclError> + Send
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }
@@ -871,7 +866,7 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
     *verify_add_event = Some(future_read_data.create_release_event(verify_add_release_queue)
         .unwrap().clone());
 
-    Box::new(future_read_data.and_then(move |data| {
+    future_read_data.and_then(move |data| {
         let mut val_count = 0;
 
         for (idx, val) in data.iter().enumerate() {
@@ -886,7 +881,7 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
         if PRINT { println!("* Verify add complete  \t(iter: {})", task_iter); }
 
         Ok(val_count)
-    }))
+    })
 }
 
 pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Int4>)
@@ -896,15 +891,6 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 
     let work_size_range = RandRange::new(cfg.misc.work_size_range.0, cfg.misc.work_size_range.1);
     let work_size = work_size_range.ind_sample(rng);
-
-    // // Create queues:
-    // let queue_flags = Some(CommandQueueProperties::new().out_of_order());
-    // let common_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-    //     Queue::new(&context, device, None)).unwrap();
-    // let write_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-    //     Queue::new(&context, device, None)).unwrap();
-    // let read_queue = Queue::new(&context, device, queue_flags).or_else(|_|
-    //     Queue::new(&context, device, None)).unwrap();
 
     // Create queues:
     let queue_flags = Some(CommandQueueProperties::new().out_of_order());
@@ -919,9 +905,7 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
     };
 
     // Create buffers:
-    // let write_buf_flags = Some(MemFlags::read_only() | MemFlags::host_write_only() | ahp_flag);
     let write_buf_flags = ahp_flag.read_only().host_write_only();
-    // let read_buf_flags = Some(MemFlags::write_only() | MemFlags::host_read_only() | ahp_flag);
     let read_buf_flags = ahp_flag.write_only().host_read_only();
 
     let src_buf = Buffer::<Int4>::builder()
@@ -1027,7 +1011,7 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
                 .spawn(move ||
         {
             if PRINT { println!("Waiting on task iter [{}]...", task_iter); }
-            match task.wait() {
+            match executor::block_on(task) {
                 Ok(res) => {
                     if PRINT { println!("Task iter [{}] complete with result: {:?}", task_iter, res); }
                     Ok(res)
@@ -1072,7 +1056,6 @@ pub fn device_check() -> OclResult<()> {
     let mut rng = rand::weak_rng();
 
     for (p_idx, platform) in Platform::list().into_iter().enumerate() {
-    // for &platform in &[Platform::default()] {
         let devices = Device::list_all(&platform).unwrap();
 
         for (d_idx, device) in devices.into_iter().enumerate() {

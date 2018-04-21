@@ -25,6 +25,7 @@ pub type FutureWriteGuard<V> = FutureGuard<V, WriteGuard<V>>;
 
 
 /// Prints a debugging message.
+#[inline]
 fn print_debug(id: usize, msg: &str) {
     if PRINT_DEBUG {
         println!("###### [{}] {} (thread: {})", id, msg,

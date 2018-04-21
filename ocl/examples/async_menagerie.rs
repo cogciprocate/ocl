@@ -17,19 +17,14 @@ extern crate ocl_extras as extras;
 
 use rand::{Rng, XorShiftRng};
 use rand::distributions::{IndependentSample, Range as RandRange};
-use futures::{stream, Future, FutureExt, SinkExt, StreamExt, Never};
+use futures::{stream, executor, FutureExt, SinkExt};
 use futures::channel::mpsc::{self, Sender};
-// use futures::future::Join;
-// use futures_cpupool::{CpuPool, CpuFuture};
-use futures::executor::{ThreadPool, Executor};
 use ocl::{Result as OclResult, Platform, Device, Context, Queue, Program, Kernel, OclPrm,
     Event, EventList, FutureMemMap};
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Float4;
 use ocl::error::{Error as OclError};
 use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
-
-type CpuFuture = Box<Future<Item = (), Error = Never> + 'static + Send>;
 
 const INITIAL_BUFFER_LEN: u32 = 1 << 24; // 512MiB of Float4
 const SUB_BUF_MIN_LEN: u32 = 1 << 15; // 1MiB of Float4
@@ -274,8 +269,7 @@ fn gen_kern_src(kernel_name: &str, type_str: &str, simple: bool, add: bool) -> S
 /// (2) Read data
 ///
 fn create_simple_task(task_id: usize, device: Device, context: &Context,
-        buf_pool: &mut SubBufferPool<Float4>, work_size: u32, queues: &[Queue]) -> Result<Task, ()>
-{
+        buf_pool: &mut SubBufferPool<Float4>, work_size: u32, queues: &[Queue]) -> Result<Task, ()> {
     let write_buf_flags = Some(MemFlags::new().read_only() | MemFlags::new().host_write_only());
     let read_buf_flags = Some(MemFlags::new().write_only() | MemFlags::new().host_read_only());
 
@@ -332,10 +326,8 @@ fn create_simple_task(task_id: usize, device: Device, context: &Context,
 }
 
 /// Enqueues a unique simple task as defined above.
-fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_pool: &mut ThreadPool,
-        // tx: Sender<usize>) -> Join<Future<usize, OclError>, Future<Sender<usize>, OclError>>
-        tx: Sender<usize>) -> impl Future
-{
+fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<Float4>,
+        tx: Sender<usize>) -> executor::JoinHandle<(usize, Sender<usize>), OclError> {
     // Do some extra work:
     let task_id = task.task_id;
 
@@ -347,12 +339,8 @@ fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_poo
 
         printlnc!(green: "Task [{}] (simple): Buffer initialized.", task_id);
 
-        Ok(())
-    })
-    .map_err(|e| panic!("{}", e));
-
-    // let write_spawned = thread_pool.spawn(write).wait().unwrap();
-    let write_spawned = thread_pool.spawn(Box::new(write));
+        Ok(task_id)
+    });
 
     // (1) Run kernel (adds 100 to everything):
     task.kernel(1);
@@ -375,14 +363,10 @@ fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_poo
 
             Ok(tx.send(val_count))
         })
-        .and_then(|send| send.map_err(|e| OclError::from(e)))
-        .map(|_| ())
-        .map_err(|e| panic!("{}", e));
+        .and_then(|send| send.map_err(|e| OclError::from(e)));
 
-    let verify_spawned = thread_pool.spawn(Box::new(verify));
-
-    write_spawned.join(verify_spawned)
-    // write_spawned.join(verify_spawned).wait().unwrap();
+    let joined = write.join(verify);
+    executor::block_on(executor::spawn_with_handle(joined)).unwrap()
 }
 
 
@@ -408,8 +392,7 @@ fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_poo
 ///
 fn create_complex_task(task_id: usize, device: Device, context: &Context,
         buf_pool: &mut SubBufferPool<Float4>, work_size: u32, queues: &[Queue],
-        rng: &mut XorShiftRng) -> Result<Task, ()>
-{
+        rng: &mut XorShiftRng) -> Result<Task, ()> {
     // The container for this task:
     let mut task = Task::new(task_id, TaskKind::Complex, work_size);
 
@@ -540,10 +523,8 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
 }
 
 /// Enqueues a unique complex task as defined above.
-fn enqueue_complex_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_pool: &ThreadPool,
-        // tx: Sender<usize>) -> Join<CpuFuture<usize, OclError>, CpuFuture<Sender<usize>, OclError>>
-        tx: Sender<usize>) -> impl Future
-{
+fn enqueue_complex_task(task: &Task, buf_pool: &SubBufferPool<Float4>,
+        tx: Sender<usize>) -> executor::JoinHandle<(usize, Sender<usize>), OclError> {
     let task_id = task.task_id;
 
     // (0) Initially write 500s:
@@ -597,10 +578,8 @@ fn enqueue_complex_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_po
         })
         .and_then(|send| send.map_err(|e| OclError::from(e)));
 
-    let write_spawned = thread_pool.spawn(write);
-    let verify_spawned = thread_pool.spawn(verify);
-
-    write_spawned.join(verify_spawned)
+    let joined = write.join(verify);
+    executor::block_on(executor::spawn_with_handle(joined)).unwrap()
 }
 
 
@@ -652,8 +631,6 @@ pub fn async_menagerie() -> OclResult<()> {
             .or_else(|_| Queue::new(&context, device, None))?);
     let mut tasks = Vec::with_capacity(256);
 
-    // Our thread pool for offloading reading, writing, and other host-side processing.
-    let thread_pool = ThreadPool::new();
     let mut correct_val_count = 0usize;
 
     // Channels are used to communicate result counts (this isn't really
@@ -672,7 +649,6 @@ pub fn async_menagerie() -> OclResult<()> {
         let task_id = tasks.len();
 
         let task_res = if rng.gen() {
-        // let task_res = if false {
             create_simple_task(task_id, device, &context, &mut buf_pool, work_size,
                 &queues_simple)
         } else {
@@ -689,8 +665,8 @@ pub fn async_menagerie() -> OclResult<()> {
         };
 
         match task.kind {
-            TaskKind::Simple => tasks.push(enqueue_simple_task(&task, &buf_pool, &thread_pool, tx.clone())),
-            TaskKind::Complex => tasks.push(enqueue_complex_task(&task, &buf_pool, &thread_pool, tx.clone())),
+            TaskKind::Simple => tasks.push(Box::new(enqueue_simple_task(&task, &buf_pool, tx.clone()))),
+            TaskKind::Complex => tasks.push(Box::new(enqueue_complex_task(&task, &buf_pool, tx.clone()))),
         }
     }
 
@@ -698,14 +674,20 @@ pub fn async_menagerie() -> OclResult<()> {
     let task_count = tasks.len();
     printlnc!(white_bold: "Waiting on {} tasks to complete...", task_count);
 
-    stream::futures_unordered(tasks).for_each(|(task_id, _)| {
+    // Finish things up (akin to a thread join):
+    for result in executor::block_on_stream(stream::futures_unordered(tasks)) {
+        let (task_id, _sender) = result?;
         printlnc!(orange: "Task [{}]: Complete.", task_id);
-        Ok(())
-    }).wait()?;
+    }
 
+    // Ensure that no more `val_count` results can be sent.
     rx.close();
 
-    for count in rx.wait() {
+    // Again, we're collecting values using the channel solely for
+    // demonstration purposes. It would be simpler to have the each future
+    // contained in `tasks` return the `val_count` directly so it could be
+    // summed in the loop above.
+    for count in executor::block_on_stream(rx) {
         correct_val_count += count.unwrap();
     }
 

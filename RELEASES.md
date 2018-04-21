@@ -1,3 +1,9 @@
+Version 0.XX.0 (UNRELEASED)
+===========================
+
+REMINDER: Consider elaborating `ThreadPool` (futures) documentation to explain how
+to spawn tasks onto the pool idiomatically.
+
 
 Version 0.18.0 (2018-04-02)
 ===========================
