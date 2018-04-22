@@ -10,7 +10,6 @@ extern crate chrono;
 extern crate ocl;
 #[macro_use] extern crate colorify;
 
-use std::cell::Cell;
 use std::collections::VecDeque;
 use futures::{stream, FutureExt};
 use futures::executor::{self};
