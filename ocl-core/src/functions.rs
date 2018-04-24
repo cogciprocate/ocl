@@ -3549,6 +3549,8 @@ pub fn default_device_type() -> OclCoreResult<DeviceType> {
             "ALL" => Ok(DeviceType::ALL),
             _ => Err(ApiWrapperError::DefaultDeviceTypeInvalidType(s.to_owned()).into()),
         },
+        // `DeviceType::ALL` is used to avoid the potentially confusing
+        // platform-dependent behavior of `DeviceType::DEFAULT`.
         Err(_) => Ok(DeviceType::ALL),
     }
 }
