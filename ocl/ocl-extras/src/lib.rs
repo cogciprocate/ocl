@@ -1,12 +1,16 @@
 extern crate ocl;
 extern crate rand;
 extern crate num_traits;
+extern crate futures;
+#[macro_use] extern crate failure;
 
 pub mod sub_buffer_pool;
 pub mod command_graph;
+pub mod work_pool;
 
 pub use self::sub_buffer_pool::SubBufferPool;
 pub use self::command_graph::{CommandGraph, Command, CommandDetails, KernelArgBuffer, RwCmdIdxs};
+pub use self::work_pool::WorkPool;
 
 // use rand;
 use rand::distributions::{IndependentSample, Range as RandRange};

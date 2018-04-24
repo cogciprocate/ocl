@@ -9,6 +9,7 @@ use futures::sync::mpsc::SendError;
 use core::error::{Error as OclCoreError};
 use core::Status;
 use standard::{DeviceError, PlatformError, KernelError};
+
 use ::BufferCmdError;
 
 pub type Result<T> = std::result::Result<T, Error>;
