@@ -194,6 +194,14 @@ impl WorkPool {
         self.core_tx.get_or_insert(executor::block_on(tx.send(Box::new(future)))?);
         Ok(())
     }
+
+    /// Polls a future which may contain non-trivial CPU work to completion.
+    pub fn complete_work<F>(&mut self, work: F) -> Result<(), WorkPoolError>
+            where F: Future<Item = (), Error = Never> + Send + 'static {
+        // let future = self.cpu_pool.spawn(work);
+        // self.complete(future)
+        self.complete(work)
+    }
 }
 
 impl Drop for WorkPool {
