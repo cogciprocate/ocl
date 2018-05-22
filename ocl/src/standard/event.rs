@@ -27,7 +27,6 @@ use ffi::cl_event;
 use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef,
     CommandQueue as CommandQueueCore, ClContextPtr};
-use core::error::{Result as OclCoreResult};
 use error::{Error as OclError, Result as OclResult};
 use standard::{Queue, ClWaitListPtrEnum};
 #[cfg(not(feature = "async_block"))]
@@ -52,8 +51,8 @@ impl Event {
 
     /// Creates a new, empty event which must be filled by a newly initiated
     /// command, associating the event with it.
-    pub fn user<C: ClContextPtr>(context: C) -> OclCoreResult<Event> {
-        EventCore::user(context).map(Event)
+    pub fn user<C: ClContextPtr>(context: C) -> OclResult<Event> {
+        EventCore::user(context).map(Event).map_err(OclError::from)
     }
 
     /// Returns true if this event is 'empty' and has not yet been associated
@@ -75,9 +74,9 @@ impl Event {
     /// That is, this method can be dangerous to call outside of an
     /// implementation of poll.
     #[cfg(not(feature = "async_block"))]
-    pub fn set_unpark_callback(&self) -> OclCoreResult<()> {
+    pub fn set_unpark_callback(&self) -> OclResult<()> {
         let task_ptr = box_raw_void(task::current());
-        unsafe { self.set_callback(_unpark_task, task_ptr) }
+        unsafe { self.set_callback(_unpark_task, task_ptr).map_err(OclError::from) }
     }
 
     /// Registers a user event to have its status set to complete
@@ -101,23 +100,23 @@ impl Event {
     /// `CommandExecutionStatus::Submitted` (the default upon creation).
     ///
     #[cfg(not(feature = "async_block"))]
-    pub unsafe fn register_event_relay(&self, user_event: Event) -> OclCoreResult<()> {
+    pub unsafe fn register_event_relay(&self, user_event: Event) -> OclResult<()> {
         let unmap_event_ptr = user_event.into_raw();
-        self.set_callback(core::_complete_user_event, unmap_event_ptr)
+        self.set_callback(core::_complete_user_event, unmap_event_ptr).map_err(OclError::from)
     }
 
     /// Returns info about the event.
-    pub fn info(&self, info_kind: EventInfo) -> OclCoreResult<EventInfoResult> {
-        core::get_event_info(&self.0, info_kind)
+    pub fn info(&self, info_kind: EventInfo) -> OclResult<EventInfoResult> {
+        core::get_event_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns info about the event.
-    pub fn profiling_info(&self, info_kind: ProfilingInfo) -> OclCoreResult<ProfilingInfoResult> {
-        core::get_event_profiling_info(&self.0, info_kind)
+    pub fn profiling_info(&self, info_kind: ProfilingInfo) -> OclResult<ProfilingInfoResult> {
+        core::get_event_profiling_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns this event's associated command queue.
-    pub fn queue_core(&self) -> OclCoreResult<CommandQueueCore> {
+    pub fn queue_core(&self) -> OclResult<CommandQueueCore> {
         match self.info(EventInfo::CommandQueue)? {
             EventInfoResult::CommandQueue(queue_core) => Ok(queue_core),
             _ => unreachable!(),

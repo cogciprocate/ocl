@@ -5,7 +5,6 @@ use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
 use ffi::cl_device_id;
 use core::{self, util, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
-use core::error::{Error as OclCoreError, Result as OclCoreResult};
 use error::{Error as OclError, Result as OclResult};
 use standard::Platform;
 
@@ -328,7 +327,7 @@ impl Device {
     /// [`.status()`]: enum.Error.html#method.status
     /// [`ocl::core::Status`]: enum.Status.html
     ///
-    pub fn list<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>) -> OclCoreResult<Vec<Device>> {
+    pub fn list<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
         let list_core = core::get_device_ids(platform.borrow(), device_types, None)
             .unwrap_or(vec![]);
         Ok(list_core.into_iter().map(Device).collect())
@@ -341,7 +340,7 @@ impl Device {
     /// See [`::list`](struct.Device.html#method.list) for other
     /// error information.
     ///
-    pub fn list_all<P: Borrow<Platform>>(platform: P) -> OclCoreResult<Vec<Device>> {
+    pub fn list_all<P: Borrow<Platform>>(platform: P) -> OclResult<Vec<Device>> {
         Self::list(platform, None)
     }
 
@@ -372,7 +371,7 @@ impl Device {
     /// See [`::list`](struct.Device.html#method.list)
     ///
     pub fn list_select_wrap<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>,
-            idxs: &[usize]) -> OclCoreResult<Vec<Device>> {
+            idxs: &[usize]) -> OclResult<Vec<Device>> {
         Ok(Self::resolve_idxs_wrap(idxs, &Self::list(platform, device_types)?))
     }
 
@@ -388,45 +387,47 @@ impl Device {
     }
 
     /// Returns the device name.
-    pub fn name(&self) -> OclCoreResult<String> {
-        core::get_device_info(&self.0, DeviceInfo::Name).map(|r| r.to_string())
+    pub fn name(&self) -> OclResult<String> {
+        core::get_device_info(&self.0, DeviceInfo::Name)
+            .map(|r| r.to_string()).map_err(OclError::from)
     }
 
     /// Returns the device vendor as a string.
-    pub fn vendor(&self) -> OclCoreResult<String> {
-        core::get_device_info(&self.0, DeviceInfo::Vendor).map(|r| r.to_string())
+    pub fn vendor(&self) -> OclResult<String> {
+        core::get_device_info(&self.0, DeviceInfo::Vendor)
+            .map(|r| r.to_string()).map_err(OclError::from)
     }
 
     /// Returns the maximum workgroup size or an error.
-    pub fn max_wg_size(&self) -> OclCoreResult<usize> {
+    pub fn max_wg_size(&self) -> OclResult<usize> {
         match self.info(DeviceInfo::MaxWorkGroupSize) {
             Ok(DeviceInfoResult::MaxWorkGroupSize(r)) => Ok(r),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(OclError::from(err)),
             _ => panic!("Device::max_wg_size: Unexpected 'DeviceInfoResult' variant."),
         }
     }
 
     /// Returns the memory base address alignment offset or an error.
-    pub fn mem_base_addr_align(&self) -> OclCoreResult<u32> {
+    pub fn mem_base_addr_align(&self) -> OclResult<u32> {
         match self.info(DeviceInfo::MemBaseAddrAlign) {
             Ok(DeviceInfoResult::MemBaseAddrAlign(r)) => Ok(r),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(OclError::from(err)),
             _ => panic!("Device::mem_base_addr_align: Unexpected 'DeviceInfoResult' variant."),
         }
     }
 
     /// Returns whether or not the device is available for use.
-    pub fn is_available(&self) -> OclCoreResult<bool> {
+    pub fn is_available(&self) -> OclResult<bool> {
         match self.info(DeviceInfo::Available) {
             Ok(DeviceInfoResult::Available(r)) => Ok(r),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(OclError::from(err)),
             _ => panic!("Device::is_available: Unexpected 'DeviceInfoResult' variant."),
         }
     }
 
     /// Returns info about the device.
-    pub fn info(&self, info_kind: DeviceInfo) -> OclCoreResult<DeviceInfoResult> {
-        core::get_device_info(&self.0, info_kind)
+    pub fn info(&self, info_kind: DeviceInfo) -> OclResult<DeviceInfoResult> {
+        core::get_device_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns a string containing a formatted list of device properties.

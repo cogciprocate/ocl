@@ -12,8 +12,8 @@ use core::ffi::c_void;
 use core::{self, util, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     ArgVal, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
-use core::error::{Result as OclCoreResult, ErrorKind as OclCoreErrorKind};
-use error::{Error as OclError, Result as OclResult};
+use core::error::{ErrorKind as OclCoreErrorKind};
+use error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
 use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum, Buffer, Image};
 pub use self::arg_type::{BaseType, Cardinality, ArgType};
@@ -775,32 +775,33 @@ impl Kernel {
     }
 
     /// Returns information about this kernel.
-    pub fn info(&self, info_kind: KernelInfo) -> OclCoreResult<KernelInfoResult> {
-        core::get_kernel_info(&self.obj_core, info_kind)
+    pub fn info(&self, info_kind: KernelInfo) -> OclResult<KernelInfoResult> {
+        core::get_kernel_info(&self.obj_core, info_kind).map_err(OclError::from)
     }
 
     /// Returns work group information for this kernel.
     pub fn wg_info(&self, device: Device, info_kind: KernelWorkGroupInfo)
-            -> OclCoreResult<KernelWorkGroupInfoResult> {
-        core::get_kernel_work_group_info(&self.obj_core, device, info_kind)
+            -> OclResult<KernelWorkGroupInfoResult> {
+        core::get_kernel_work_group_info(&self.obj_core, device, info_kind).map_err(OclError::from)
     }
 
     /// Returns argument information for this kernel.
     pub fn arg_info(&self, arg_idx: u32, info_kind: KernelArgInfo)
-            -> OclCoreResult<KernelArgInfoResult> {
+            -> OclResult<KernelArgInfoResult> {
         arg_info(&*self.as_core(), arg_idx, info_kind)
     }
 
     /// Returns the name of this kernel.
-    pub fn name(&self) -> OclCoreResult<String> {
-        core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName).map(|r| r.into())
+    pub fn name(&self) -> OclResult<String> {
+        core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName)
+            .map(|r| r.into()).map_err(OclError::from)
     }
 
     /// Returns the number of arguments this kernel has.
-    pub fn num_args(&self) -> OclCoreResult<u32> {
+    pub fn num_args(&self) -> OclResult<u32> {
         match core::get_kernel_info(&self.obj_core, KernelInfo::NumArgs) {
             Ok(KernelInfoResult::NumArgs(num)) => Ok(num),
-            Err(err) => Err(err),
+            Err(err) => Err(err.into()),
             _=> unreachable!(),
         }
     }
@@ -1400,12 +1401,14 @@ impl<'b> KernelBuilder<'b> {
                     if !at.is_unknown() { all_arg_types_unknown = false; }
                     at
                 },
-                Err(e) => {
-                    if let OclCoreErrorKind::VersionLow { .. } = *e.kind() {
-                        disable_arg_check = true;
-                        break;
+                Err(err) => {
+                    if let OclErrorKind::OclCore(ref core_err) = *err.kind() {
+                        if let OclCoreErrorKind::VersionLow { .. } = *core_err.kind() {
+                            disable_arg_check = true;
+                            break;
+                        }
                     }
-                    return Err(OclError::from(e));
+                    return Err(OclError::from(err));
                 },
             };
             arg_types.push(arg_type);
@@ -1450,18 +1453,18 @@ impl<'b> KernelBuilder<'b> {
 
 /// Returns argument information for a kernel.
 pub fn arg_info(core: &KernelCore, arg_idx: u32, info_kind: KernelArgInfo)
-        -> OclCoreResult<KernelArgInfoResult> {
+        -> OclResult<KernelArgInfoResult> {
     let device_versions = match core.device_versions() {
         Ok(vers) => vers,
         Err(e) => return Err(e.into()),
     };
 
     core::get_kernel_arg_info(core, arg_idx, info_kind,
-        Some(&device_versions))
+        Some(&device_versions)).map_err(OclError::from)
 }
 
 /// Returns the type name for a kernel argument at the specified index.
-pub fn arg_type_name(core: &KernelCore, arg_idx: u32) -> OclCoreResult<String> {
+pub fn arg_type_name(core: &KernelCore, arg_idx: u32) -> OclResult<String> {
     match arg_info(core, arg_idx, KernelArgInfo::TypeName) {
         Ok(KernelArgInfoResult::TypeName(type_name)) => Ok(type_name),
         Err(err) => Err(err.into()),
@@ -1470,7 +1473,7 @@ pub fn arg_type_name(core: &KernelCore, arg_idx: u32) -> OclCoreResult<String> {
 }
 
 /// Returns the type name for a kernel argument at the specified index.
-pub fn arg_name(core: &KernelCore, arg_idx: u32) -> OclCoreResult<String> {
+pub fn arg_name(core: &KernelCore, arg_idx: u32) -> OclResult<String> {
     match arg_info(core, arg_idx, KernelArgInfo::Name) {
         Ok(KernelArgInfoResult::Name(name)) => Ok(name),
         Err(err) => Err(err.into()),
@@ -1485,7 +1488,7 @@ pub mod arg_type {
     use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
     use core::{Error as OclCoreError, Result as OclCoreResult, Status, OclPrm, Kernel as KernelCore};
-    use error::{Error as OclError, Result as OclResult};
+    use error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
     use standard::Sampler;
     use super::{arg_info, arg_type_name};
 
@@ -1544,7 +1547,7 @@ pub mod arg_type {
     impl ArgType {
         /// Returns an `ArgType` that will always return `true` when calling
         /// `::is_match`.
-        pub fn unknown() -> OclCoreResult<ArgType> {
+        pub fn unknown() -> OclResult<ArgType> {
             Ok(ArgType {
                 base_type: BaseType::Unknown,
                 cardinality: Cardinality::One,
@@ -1558,7 +1561,7 @@ pub mod arg_type {
         /// * TODO: Optimize or outsource this if possible. Is `::contains`
         /// the fastest way to parse these in this situation? Should
         /// `::starts_with` be used for base type names instead?
-        pub fn from_str(type_name: &str) -> OclCoreResult<ArgType> {
+        pub fn from_str(type_name: &str) -> OclResult<ArgType> {
             let is_ptr = type_name.contains("*");
 
             let card = if type_name.contains("16") {
@@ -1618,7 +1621,7 @@ pub mod arg_type {
         /// irregular errors are checked for here. The result of a call to
         /// `ArgType::unknown()` (which matches any argument type) is returned
         /// if any are found.
-        pub fn from_kern_and_idx(core: &KernelCore, arg_idx: u32) -> OclCoreResult<ArgType> {
+        pub fn from_kern_and_idx(core: &KernelCore, arg_idx: u32) -> OclResult<ArgType> {
             use core::EmptyInfoResultError;
             use core::ErrorKind as OclCoreErrorKind;
 
@@ -1626,16 +1629,18 @@ pub mod arg_type {
                 Ok(type_name) => ArgType::from_str(type_name.as_str()),
                 Err(err) => {
                     // Escape hatches for known, platform-specific errors.
-                    match *err.kind() {
-                        OclCoreErrorKind::Api(ref api_err) => {
-                            if api_err.status() == Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
-                                return ArgType::unknown();
+                    if let OclErrorKind::OclCore(ref core_err) = *err.kind() {
+                        match *core_err.kind() {
+                            OclCoreErrorKind::Api(ref api_err) => {
+                                if api_err.status() == Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
+                                    return ArgType::unknown().map_err(OclError::from);
+                                }
                             }
+                            OclCoreErrorKind::EmptyInfoResult(EmptyInfoResultError::KernelArg) => {
+                                return ArgType::unknown();
+                            },
+                            _ => (),
                         }
-                        OclCoreErrorKind::EmptyInfoResult(EmptyInfoResultError::KernelArg) => {
-                            return ArgType::unknown();
-                        },
-                        _ => (),
                     }
 
                     Err(err)

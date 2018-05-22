@@ -6,8 +6,8 @@ use ffi::cl_context;
 use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
     ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult,
     CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr, ClVersions};
-use core::error::{Result as OclCoreResult, Error as OclCoreError};
-use error::{Result as OclResult};
+use core::error::{Result as OclCoreResult};
+use error::{Error as OclError, Result as OclResult};
 use standard::{Platform, Device, DeviceSpecifier};
 
 
@@ -98,31 +98,31 @@ impl Context {
     }
 
     /// Returns info about the platform associated with the context.
-    pub fn platform_info(&self, info_kind: PlatformInfo) -> OclCoreResult<PlatformInfoResult> {
+    pub fn platform_info(&self, info_kind: PlatformInfo) -> OclResult<PlatformInfoResult> {
         match self.platform() {
             Ok(plat_opt) => match plat_opt {
-                Some(ref p) => core::get_platform_info(p, info_kind),
-                None => Err(OclCoreError::from("Context::platform_info: \
+                Some(ref p) => core::get_platform_info(p, info_kind).map_err(OclError::from),
+                None => Err(OclError::from("Context::platform_info: \
                     This context has no associated platform.")),
             },
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(OclError::from(err)),
         }
     }
 
     /// Returns info about the device indexed by `index` associated with this
     /// context.
-    pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> OclCoreResult<DeviceInfoResult> {
+    pub fn device_info(&self, index: usize, info_kind: DeviceInfo) -> OclResult<DeviceInfoResult> {
         match self.devices().get(index) {
-            Some(d) => core::get_device_info(d, info_kind),
+            Some(d) => core::get_device_info(d, info_kind).map_err(OclError::from),
             None => {
-                return Err(OclCoreError::from("Context::device_info: Invalid device index"));
+                return Err(OclError::from("Context::device_info: Invalid device index"));
             },
         }
     }
 
     /// Returns info about the context.
-    pub fn info(&self, info_kind: ContextInfo) -> OclCoreResult<ContextInfoResult> {
-        core::get_context_info(&self.0, info_kind)
+    pub fn info(&self, info_kind: ContextInfo) -> OclResult<ContextInfoResult> {
+        core::get_context_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
@@ -140,13 +140,14 @@ impl Context {
     }
 
     /// Returns the list of device versions associated with this context.
-    pub fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        Device::list_from_core(self.0.devices()?).into_iter().map(|d| d.version()).collect()
+    pub fn device_versions(&self) -> OclResult<Vec<OpenclVersion>> {
+        Device::list_from_core(self.0.devices().map_err(OclError::from)?).into_iter()
+            .map(|d| d.version().map_err(OclError::from)).collect()
     }
 
     /// Returns the platform this context is associated with.
-    pub fn platform(&self) -> OclCoreResult<Option<Platform>> {
-        self.0.platform().map(|opt| opt.map(Platform::from))
+    pub fn platform(&self) -> OclResult<Option<Platform>> {
+        self.0.platform().map(|opt| opt.map(Platform::from)).map_err(OclError::from)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

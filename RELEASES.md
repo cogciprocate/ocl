@@ -1,3 +1,8 @@
+Version 0.19.0 (UNRELEASED)
+===========================
+
+* Clean up returned error types.
+
 
 Version 0.18.0 (2018-04-02)
 ===========================

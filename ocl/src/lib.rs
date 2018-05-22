@@ -66,6 +66,7 @@ pub use self::standard::{Platform, Extensions, Device, Context, Program, Queue, 
 pub use self::async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard,
     FutureReadGuard, FutureWriteGuard};
 pub use error::{Error, Result};
+pub use {core::Error as OclCoreError};
 #[doc(no_inline)]
 pub use core::ffi;
 #[doc(no_inline)]

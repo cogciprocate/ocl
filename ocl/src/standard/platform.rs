@@ -9,8 +9,7 @@ use std::ops::{Deref, DerefMut};
 use std::str::SplitWhitespace;
 use ffi::cl_platform_id;
 use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
-use core::error::{Result as OclCoreResult};
-use error::{Result as OclResult};
+use error::{Error as OclError, Result as OclResult};
 
 
 #[derive(Debug, Fail)]
@@ -84,8 +83,8 @@ impl Platform {
     }
 
     /// Returns info about the platform.
-    pub fn info(&self, info_kind: PlatformInfo) -> OclCoreResult<PlatformInfoResult> {
-        core::get_platform_info(&self.0, info_kind)
+    pub fn info(&self, info_kind: PlatformInfo) -> OclResult<PlatformInfoResult> {
+        core::get_platform_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns the platform profile as a string.
@@ -101,8 +100,9 @@ impl Platform {
     ///   embedded profile. The embedded profile is defined to be a subset for
     ///   each version of OpenCL.
     ///
-    pub fn profile(&self) -> OclCoreResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Profile).map(|r| r.into())
+    pub fn profile(&self) -> OclResult<String> {
+        core::get_platform_info(&self.0, PlatformInfo::Profile)
+            .map(|r| r.into()).map_err(OclError::from)
     }
 
     /// Returns the platform driver version as a string.
@@ -116,27 +116,30 @@ impl Platform {
     /// * The major_version.minor_version value returned will be '1.2'.
     ///
     /// * TODO: Convert this to new version system returning an `OpenclVersion`.
-    pub fn version(&self) -> OclCoreResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Version).map(|r| r.into())
+    pub fn version(&self) -> OclResult<String> {
+        core::get_platform_info(&self.0, PlatformInfo::Version)
+            .map(|r| r.into()).map_err(OclError::from)
     }
 
     /// Returns the platform name as a string.
-    pub fn name(&self) -> OclCoreResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Name).map(|r| r.into())
+    pub fn name(&self) -> OclResult<String> {
+        core::get_platform_info(&self.0, PlatformInfo::Name)
+            .map(|r| r.into()).map_err(OclError::from)
     }
 
     /// Returns the platform vendor as a string.
-    pub fn vendor(&self) -> OclCoreResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Vendor).map(|r| r.into())
+    pub fn vendor(&self) -> OclResult<String> {
+        core::get_platform_info(&self.0, PlatformInfo::Vendor)
+            .map(|r| r.into()).map_err(OclError::from)
     }
 
     /// Returns the list of platform extensions.
     ///
     /// Extensions defined here must be supported by all devices associated
     /// with this platform.
-    pub fn extensions(&self) -> OclCoreResult<Extensions> {
+    pub fn extensions(&self) -> OclResult<Extensions> {
         let extensions = core::get_platform_info(&self.0, PlatformInfo::Extensions);
-        extensions.map(|e| Extensions { inner: e.into() })
+        extensions.map(|e| Extensions { inner: e.into() }).map_err(OclError::from)
     }
 
     /// Returns a reference to the underlying `PlatformIdCore`.

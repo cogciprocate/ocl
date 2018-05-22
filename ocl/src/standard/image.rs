@@ -9,7 +9,7 @@ use std;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
-use core::error::{Result as OclCoreResult};
+use error::{Error as OclError, Result as OclResult};
 use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
     ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
     ImageChannelOrder, ImageChannelDataType, AsMem, MemCmdRw, MemCmdAll,
@@ -418,7 +418,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     ///
     /// * TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH
     ///   UNSET.
-    pub fn enq(self) -> OclCoreResult<()> {
+    pub fn enq(self) -> OclResult<()> {
         let queue = match self.queue {
             Some(q) => q,
             None => return Err("ImageCmd::enq: No queue set.".into()),
@@ -459,7 +459,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
             ImageCmdKind::Unspecified => Err("ocl::ImageCmd::enq(): No operation \
                 specified. Use '.read(...)', 'write(...)', etc. before calling '.enq()'.".into()),
             _ => unimplemented!(),
-        }
+        }.map_err(OclError::from)
     }
 }
 
@@ -596,7 +596,7 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
     ///
     /// * TODO: FOR COPY, FILL, AND COPYTOBUFFER -- ENSURE PITCHES ARE BOTH UNSET.
     #[allow(unused_variables, unreachable_code)]
-    pub fn enq(self) -> OclCoreResult<MemMap<T>> {
+    pub fn enq(self) -> OclResult<MemMap<T>> {
         let queue = match self.cmd.queue {
             Some(q) => q,
             None => return Err("ImageCmd::enq: No queue set.".into()),
@@ -667,8 +667,8 @@ pub struct Image<T: OclPrm> {
 impl<T: OclPrm> Image<T> {
     /// Returns a list of supported image formats.
     pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType)
-            -> OclCoreResult<Vec<ImageFormatParseResult>> {
-        core::get_supported_image_formats(context, flags, mem_obj_type)
+            -> OclResult<Vec<ImageFormatParseResult>> {
+        core::get_supported_image_formats(context, flags, mem_obj_type).map_err(OclError::from)
     }
 
     /// Returns an `ImageBuilder`. This is the recommended method to create
@@ -681,7 +681,7 @@ impl<T: OclPrm> Image<T> {
     ///
     /// Prefer `::builder` to create a new image.
     pub unsafe fn new<'o, Q>(que_ctx: Q, flags: MemFlags, image_format: ImageFormat,
-            image_desc: ImageDescriptor, host_data: Option<&[T]>) -> OclCoreResult<Image<T>>
+            image_desc: ImageDescriptor, host_data: Option<&[T]>) -> OclResult<Image<T>>
             where Q: Into<QueCtx<'o>> {
         let que_ctx = que_ctx.into();
         let context = que_ctx.context_cloned();
@@ -720,7 +720,7 @@ impl<T: OclPrm> Image<T> {
     #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_texture<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
             texture_target: GlTextureTarget, miplevel: cl_GLint, texture: cl_GLuint)
-            -> OclCoreResult<Image<T>>
+            -> OclResult<Image<T>>
             where Q: Into<QueCtx<'o>>
     {
         let que_ctx = que_ctx.into();
@@ -765,7 +765,7 @@ impl<T: OclPrm> Image<T> {
     // [WORK IN PROGRESS]
     #[cfg(not(feature="opencl_vendor_mesa"))]
     pub fn from_gl_renderbuffer<'o, Q>(que_ctx: Q, flags: MemFlags, image_desc: ImageDescriptor,
-            renderbuffer: cl_GLuint) -> OclCoreResult<Image<T>>
+            renderbuffer: cl_GLuint) -> OclResult<Image<T>>
             where Q: Into<QueCtx<'o>>
     {
         let que_ctx = que_ctx.into();
@@ -907,21 +907,21 @@ impl<T: OclPrm> Image<T> {
     }
 
     /// Get information about this image.
-    pub fn info(&self, info_kind: ImageInfo) -> OclCoreResult<ImageInfoResult> {
+    pub fn info(&self, info_kind: ImageInfo) -> OclResult<ImageInfoResult> {
         // match core::get_image_info(&self.obj_core, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => ImageInfoResult::Error(Box::new(err)),
         // }
-        core::get_image_info(&self.obj_core, info_kind)
+        core::get_image_info(&self.obj_core, info_kind).map_err(OclError::from)
     }
 
     /// Returns info about this image's memory.
-    pub fn mem_info(&self, info_kind: MemInfo) -> OclCoreResult<MemInfoResult> {
+    pub fn mem_info(&self, info_kind: MemInfo) -> OclResult<MemInfoResult> {
         // match core::get_mem_object_info(&self.obj_core, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => MemInfoResult::Error(Box::new(err)),
         // }
-        core::get_mem_object_info(&self.obj_core, info_kind)
+        core::get_mem_object_info(&self.obj_core, info_kind).map_err(OclError::from)
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
@@ -1333,7 +1333,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
 
     /// Builds with no host side image data memory specified and returns a
     /// new `Image`.
-    pub fn build(mut self) -> OclCoreResult<Image<T>> {
+    pub fn build(mut self) -> OclResult<Image<T>> {
         let host_slice = match self.host_slice {
             HostSlice::Use(hs) => {
                 self.flags.insert(MemFlags::new().use_host_ptr());
