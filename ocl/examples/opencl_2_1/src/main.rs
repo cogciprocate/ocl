@@ -29,6 +29,7 @@ fn main() -> Result<(), ocl::Error> {
         }
     "#;
 
+    println!("Choosing platorm...");
 
     #[cfg(feature = "opencl_version_2_1")]
     let platform = Platform::list().into_iter().find(|plat| plat.name().unwrap() == PLATFORM_NAME)
@@ -37,13 +38,18 @@ fn main() -> Result<(), ocl::Error> {
     #[cfg(not(feature = "opencl_version_2_1"))]
     let platform = Platform::default();
 
+    println!("Choosing device...");
 
     let device = Device::first(platform)?;
+
+    println!("Creating context...");
+
     let context = Context::builder()
         .platform(platform)
         .devices(device.clone())
         .build().unwrap();
 
+    println!("Building program...");
 
     #[cfg(feature = "opencl_version_2_1")]
     let program = Program::builder()

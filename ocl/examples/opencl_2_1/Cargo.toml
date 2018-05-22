@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 
 [features]
-opencl_version_2_1 = []
+opencl_version_2_1 = ["ocl/opencl_version_2_1"]
 default = ["opencl_version_2_1"]
 
 [dependencies]
@@ -12,7 +12,7 @@ colorify = "*"
 
 # cl-sys = { git = "https://github.com/cogciprocate/cl-sys", features = ["opencl_version_2_1"] }
 # ocl-core = { path = "../../../ocl-core", features = ["opencl_version_2_1"] }
-ocl = { path = "../../", features = ["opencl_version_2_1"]  }
+ocl = { path = "../../" }
 
 # cl-sys = { git = "https://github.com/cogciprocate/cl-sys" }
 # ocl-core = { git = "https://github.com/cogciprocate/ocl-core" }
