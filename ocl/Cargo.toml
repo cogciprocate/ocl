@@ -46,6 +46,9 @@ future_guard_drop_panic = []
 # Leaving this disabled is recommended.
 async_block = []
 
+# Enables colored printed output for examples when compiled on windows.
+examples_windows_color = ["colorify/enable_windows"]
+
 # Default features:
 default = ["opencl_version_1_1", "opencl_version_1_2"]
 
@@ -59,7 +62,7 @@ ocl-core = { version = "~0.9.0", path = "../ocl-core" }
 
 [dev-dependencies]
 find_folder = "0.3"
-colorify = "0.2"
+colorify = "~0.2.3"
 time = "0.1"
 rand = "0.4"
 chrono = "0.2"
