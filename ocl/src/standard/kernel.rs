@@ -863,12 +863,12 @@ impl Deref for Kernel {
     }
 }
 
-impl Clone for Kernel {
-    /// Creates a new, identical kernel.
-    fn clone(&self) -> Kernel {
-        unimplemented!();
-    }
-}
+// impl Clone for Kernel {
+//     /// Creates a new, identical kernel.
+//     fn clone(&self) -> Kernel {
+//         unimplemented!();
+//     }
+// }
 
 
 /// A kernel builder.
