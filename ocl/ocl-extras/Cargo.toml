@@ -24,7 +24,7 @@ num-traits = "0.2"
 rand = "0.4"
 failure = "0.1"
 
-[dependencies.futures]
+[dependencies.futures-preview]
 version = "~0.2.1"
 git = "https://github.com/rust-lang-nursery/futures-rs"
 # branch = "master"
