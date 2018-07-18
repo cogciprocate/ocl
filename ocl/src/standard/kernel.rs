@@ -1421,7 +1421,9 @@ impl<'b> KernelBuilder<'b> {
             }
 
             let val = arg.to_arg_val();
-            core::set_kernel_arg(&obj_core, arg_idx as u32, val)?;
+            if !val.is_null() {
+                core::set_kernel_arg(&obj_core, arg_idx as u32, val)?;
+            }
         }
 
         let arg_types = if all_arg_types_unknown || disable_arg_check {
