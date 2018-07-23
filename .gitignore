@@ -29,3 +29,6 @@ Cargo.lock
 /src/junk
 /bak
 
+# IntelliJ
+.idea/
+*.iml

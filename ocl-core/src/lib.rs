@@ -158,7 +158,7 @@ pub use self::functions::{get_platform_ids, get_platform_info, get_device_ids, g
     enqueue_barrier_with_wait_list, get_extension_function_address_for_platform, wait_for_event,
     event_status, default_platform_idx, program_build_err, verify_context, default_platform,
     default_device_type, device_versions, event_is_complete, _dummy_event_callback,
-    _complete_user_event, get_context_platform};
+    _complete_user_event, get_context_platform, get_device_info_raw};
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
 pub use self::functions::{

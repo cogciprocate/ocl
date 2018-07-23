@@ -425,6 +425,12 @@ impl Device {
         }
     }
 
+    /// Returns raw info about the device, as a vector of bytes. Intended for use with non-standard
+    /// OpenCL extensions.
+    pub fn info_raw(&self, info_kind: u32) -> OclResult<Vec<u8>> {
+        core::get_device_info_raw(&self.0, info_kind).map_err(OclError::from)
+    }
+
     /// Returns info about the device.
     pub fn info(&self, info_kind: DeviceInfo) -> OclResult<DeviceInfoResult> {
         core::get_device_info(&self.0, info_kind).map_err(OclError::from)
