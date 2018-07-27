@@ -30,7 +30,7 @@ fn main() {
             // E.g. "c:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\lib\Win32\"
             ("CUDA_PATH", "x64", "Win32"),
             // E.g. "C:\Program Files (x86)\AMD APP SDK\3.0\lib\x86\"
-            ("AMDAPPSDKROOT", "x86_64", "x86"),
+            ("AMDAPPSDKROOT", "x86_64", "x86"),            
         ];
 
         for info in known_sdk.iter() {
@@ -41,5 +41,7 @@ fn main() {
                 println!("cargo:rustc-link-search=native={}", path.display());
             }
         }
+
+        println!("cargo:rustc-link-search=native=C:\\Program Files (x86)\\OCL_SDK_Light\\lib\\x86_64");        
     }
 }
