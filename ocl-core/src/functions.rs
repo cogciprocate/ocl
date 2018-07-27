@@ -584,10 +584,8 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
     Ok(device_ids)
 }
 
-/// Returns information about a device.
-pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
-        -> OclCoreResult<DeviceInfoResult>
-{
+/// Returns raw information about a device, as a vector of bytes. 
+pub fn get_device_info_raw<D: ClDeviceIdPtr>(device: D, request: u32) -> OclCoreResult<Vec<u8>> {
     let mut result_size: size_t = 0;
 
     let errcode = unsafe { ffi::clGetDeviceInfo(
@@ -611,14 +609,11 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
         }
     }
 
-    // if let Err(err) = eval_errcode(errcode, (), "clGetDeviceInfo", None::<String>) {
-    //     return err.into();
-    // }
     eval_errcode(errcode, (), "clGetDeviceInfo", None::<String>)?;
 
-    // If result size is zero, return an empty info result directly:
+    // If result size is zero, return an empty vector directly:
     if result_size == 0 {
-        return DeviceInfoResult::from_bytes(request, vec![]);
+        return Ok(vec![]);
     }
 
     let mut result: Vec<u8> = iter::repeat(0u8).take(result_size).collect();
@@ -631,7 +626,14 @@ pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
         0 as *mut size_t,
     ) };
 
-    let result = eval_errcode(errcode, result, "clGetDeviceInfo", None::<String>)?;
+    eval_errcode(errcode, result, "clGetDeviceInfo", None::<String>)
+}
+
+/// Returns information about a device.
+pub fn get_device_info<D: ClDeviceIdPtr>(device: D, request: DeviceInfo)
+        -> OclCoreResult<DeviceInfoResult>
+{
+    let result = get_device_info_raw(device, request as cl_device_info)?;
 
     match request {
         DeviceInfo::MaxWorkItemSizes => {

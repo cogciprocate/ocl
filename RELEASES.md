@@ -2,6 +2,9 @@ Version 0.19.0 (UNRELEASED)
 ===========================
 
 * Clean up returned error types.
+* Implement raw info functions for devices (`ocl::Device::info_raw` and
+  `ocl-core::get_device_info_raw`). These can be used to query device
+  information provided by non-standard OpenCL extensions.
 
 
 Version 0.18.0 (2018-04-02)
