@@ -57,9 +57,9 @@ num-traits = "0.2"
 # qutex = "0.2"
 ocl-core = { version = "~0.9.0", path = "../ocl-core" }
 
-[dependencies.futures]
-version = "~0.2.1"
-git = "https://github.com/rust-lang-nursery/futures-rs"
+[dependencies.futures-preview]
+version = "~0.2.2"
+# git = "https://github.com/rust-lang-nursery/futures-rs"
 # path = "../../futures-rs/futures"
 
 [dependencies.qutex]

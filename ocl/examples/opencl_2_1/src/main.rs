@@ -8,7 +8,7 @@ use ocl::{flags, Platform, Device, Context, Queue, Program, Buffer, Kernel};
 static PLATFORM_NAME: &'static str = "Experimental OpenCL 2.1 CPU Only Platform";
 
 
-fn main() {
+fn main() -> Result<(), ocl::Error> {
     #[cfg(feature = "opencl_version_2_1")]
     let il_src: Vec<u8> = vec![
     // Magic number.           Version number: 1.0.
@@ -29,26 +29,32 @@ fn main() {
         }
     "#;
 
+    println!("Choosing platorm...");
 
     #[cfg(feature = "opencl_version_2_1")]
-    let platform = Platform::list().into_iter().find(|plat| plat.name() == PLATFORM_NAME)
+    let platform = Platform::list().into_iter().find(|plat| plat.name().unwrap() == PLATFORM_NAME)
         .unwrap_or(Platform::default());
 
     #[cfg(not(feature = "opencl_version_2_1"))]
     let platform = Platform::default();
 
+    println!("Choosing device...");
 
-    let device = Device::first(platform);
+    let device = Device::first(platform)?;
+
+    println!("Creating context...");
+
     let context = Context::builder()
         .platform(platform)
         .devices(device.clone())
         .build().unwrap();
 
+    println!("Building program...");
 
     #[cfg(feature = "opencl_version_2_1")]
     let program = Program::builder()
         .devices(device)
-        .il(il_src)
+        .il(&il_src)
         .build(&context).unwrap();
 
     #[cfg(not(feature = "opencl_version_2_1"))]
@@ -89,6 +95,7 @@ fn main() {
     //     .enq().unwrap();
 
     // println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
+    Ok(())
 }
 
 
