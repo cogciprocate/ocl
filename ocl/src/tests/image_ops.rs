@@ -4,9 +4,9 @@
 //!
 //! Runs both the core function and the 'standard' method call for each.
 
-use core;
+use core::{self, DeviceInfo, DeviceInfoResult};
 use flags;
-use standard::{ProQue, Image, Sampler};
+use standard::{ProQue, Image, Sampler, Platform, Device};
 use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
 use prm::{Int4};
 use tests;
@@ -21,11 +21,13 @@ fn image_ops() {
     let ADDEND: Int4 = Int4::new(1, 1, 1, 1);
 
     let src = r#"
+        #pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
+
         __kernel void add(
                     sampler_t sampler_host,
                     __private int4 addend,
-                    read_only image3d_t img_src,
-                    write_only image3d_t img_dst)
+                    __read_only image3d_t img_src,
+                    __write_only image3d_t img_dst)
         {
             int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
             int4 pixel = read_imagei(img_src, sampler_host, coord);
@@ -36,14 +38,31 @@ fn image_ops() {
         __kernel void fill(
                     sampler_t sampler_host,
                     __private int4 pixel,
-                    write_only image3d_t img)
+                    __write_only image3d_t img)
         {
             int4 coord = (int4)(get_global_id(0), get_global_id(1), get_global_id(2), 0);
             write_imagei(img, coord, pixel);
         }
     "#;
 
+    let platform = Platform::default();
+    let device = Device::first(platform).unwrap();
+
+    // Ensure `cl_khr_3d_image_writes` is available.
+    match device.info(DeviceInfo::Extensions).unwrap() {
+        DeviceInfoResult::Extensions(exts) => {
+            println!("exts: \n {:?}", exts);
+            if !exts.contains("cl_khr_3d_image_writes") {
+                println!("Skipping 'tests::image_ops': The 'cl_khr_3d_image_writes' is not available.");
+                return;
+            }
+        },
+        _ => unreachable!(),
+    }
+
     let proque = ProQue::builder()
+        .platform(platform)
+        .device(device)
         .src(src)
         .dims(DIMS)
         .build().unwrap();
