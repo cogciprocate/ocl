@@ -4,7 +4,7 @@ name = "ocl"
 # [REMINDER]: Bump `html_root_url` in `src/lib.rs`.
 # [REMINDER]: Bump version in `README.md`.
 # [REMINDER]: Set version and date in `RELEASES.md`.
-version = "0.18.0"
+version = "0.19.0"
 
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL bindings and interfaces for Rust."

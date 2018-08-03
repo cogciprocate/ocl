@@ -27,7 +27,7 @@ or some other diagnostic command will run. Add the following to your project's
 
 ```toml
 [dependencies]
-ocl = "0.18"
+ocl = "0.19"
 ```
 
 And add the following to your crate root (lib.rs or main.rs):
