@@ -1,0 +1,207 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `abs` mod in crate `ocl_core`."><meta name="keywords" content="rust, rustlang, rust-lang, abs"><title>ocl_core::types::abs - Rust</title><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../dark.css"><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script src="../../../storage.js"></script></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><p class='location'>Module abs</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#traits">Traits</a></li></ul></div><p class='location'><a href='../../index.html'>ocl_core</a>::<wbr><a href='../index.html'>types</a></p><script>window.sidebarCurrent = {name: 'abs', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../../settings.html"><img src="../../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='in-band'>Module <a href='../../index.html'>ocl_core</a>::<wbr><a href='../index.html'>types</a>::<wbr><a class="mod" href=''>abs</a></span><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../../src/ocl_core/types/abs.rs.html#1-1234' title='goto source code'>[src]</a></span></h1><div class='docblock'><p>Abstract data type wrappers.</p>
+<h3 id="reference" class="section-header"><a href="#reference">Reference</a></h3>
+<p>The following table describes abstract data types supported by OpenCL
+(from <a href="https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/abstractDataTypes.html">SDK</a>):</p>
+<ul>
+<li>cl_platform_id: The ID for a platform.</li>
+<li>cl_device_id: The ID for a device.</li>
+<li>cl_context: A context.</li>
+<li>cl_command_queue: A command queue.</li>
+<li>cl_mem: A memory object.</li>
+<li>cl_program: A program.</li>
+<li>cl_kernel: A kernel.</li>
+<li>cl_event: An event.</li>
+<li>cl_sampler: A sampler.</li>
+</ul>
+<p>The following new derived wrappers are also included in this module:</p>
+<ul>
+<li>cl_events: A list of events.</li>
+</ul>
+<h3 id="who-cares-why-bother" class="section-header"><a href="#who-cares-why-bother">Who cares. Why bother?</a></h3>
+<p>These types ensure as best they can that stored pointers to any of the
+above objects will be valid until that pointer is dropped by the Rust
+runtime (which obviously is not a 100% guarantee).</p>
+<p>What this means is that you can share, clone, store, and throw away these
+types, and any types that contain them, among multiple threads, for as
+long as you'd like, with an insignificant amount of overhead, without
+having to worry about the dangers of dereferencing those types later on.
+As good as the OpenCL library generally is about this, it fails in many
+cases to provide complete protection against segfaults due to
+dereferencing old pointers particularly on certain <em>ahem</em> platforms.</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.CommandQueue.html"
+                                  title='struct ocl_core::types::abs::CommandQueue'>CommandQueue</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_command_queue</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Context.html"
+                                  title='struct ocl_core::types::abs::Context'>Context</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_context</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.DeviceId.html"
+                                  title='struct ocl_core::types::abs::DeviceId'>DeviceId</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_device_id</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Event.html"
+                                  title='struct ocl_core::types::abs::Event'>Event</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_event</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.EventRefWrapper.html"
+                                  title='struct ocl_core::types::abs::EventRefWrapper'>EventRefWrapper</a></td>
+                           <td class='docblock-short'>
+                                <p>Wrapper used by <code>EventList</code> to send event pointers to core functions
+cheaply.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Kernel.html"
+                                  title='struct ocl_core::types::abs::Kernel'>Kernel</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_kernel</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Mem.html"
+                                  title='struct ocl_core::types::abs::Mem'>Mem</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_mem</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.MemMap.html"
+                                  title='struct ocl_core::types::abs::MemMap'>MemMap</a></td>
+                           <td class='docblock-short'>
+                                <p>A pointer to a region of mapped (pinned) memory.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.PlatformId.html"
+                                  title='struct ocl_core::types::abs::PlatformId'>PlatformId</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_platform_id</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Program.html"
+                                  title='struct ocl_core::types::abs::Program'>Program</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_program</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Sampler.html"
+                                  title='struct ocl_core::types::abs::Sampler'>Sampler</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_sampler</p>
+
+                           </td>
+                       </tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.AsMem.html"
+                                  title='trait ocl_core::types::abs::AsMem'>AsMem</a></td>
+                           <td class='docblock-short'>
+                                <p><code>AsRef</code> with a type being carried along for convenience.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.ClContextPtr.html"
+                                  title='trait ocl_core::types::abs::ClContextPtr'>ClContextPtr</a></td>
+                           <td class='docblock-short'>
+                                <p>Types with a copy of a context pointer.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.ClDeviceIdPtr.html"
+                                  title='trait ocl_core::types::abs::ClDeviceIdPtr'>ClDeviceIdPtr</a></td>
+                           <td class='docblock-short'>
+                                <p>Types with a reference to a raw device_id pointer.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.ClEventPtrRef.html"
+                                  title='trait ocl_core::types::abs::ClEventPtrRef'>ClEventPtrRef</a></td>
+                           <td class='docblock-short'>
+                                <p>Types with a reference to a raw event pointer.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.ClNullEventPtr.html"
+                                  title='trait ocl_core::types::abs::ClNullEventPtr'>ClNullEventPtr</a></td>
+                           <td class='docblock-short'>
+                                <p>Types with a mutable pointer to a new, null raw event pointer.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.ClPlatformIdPtr.html"
+                                  title='trait ocl_core::types::abs::ClPlatformIdPtr'>ClPlatformIdPtr</a></td>
+                           <td class='docblock-short'>
+                                <p>Types with a reference to a raw platform_id pointer.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.ClVersions.html"
+                                  title='trait ocl_core::types::abs::ClVersions'>ClVersions</a></td>
+                           <td class='docblock-short'>
+                                <p>Types with a fixed set of associated devices and an associated platform.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.ClWaitListPtr.html"
+                                  title='trait ocl_core::types::abs::ClWaitListPtr'>ClWaitListPtr</a></td>
+                           <td class='docblock-short'>
+                                <p>Types with a reference to a raw event array and an associated element
+count.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.MemCmdAll.html"
+                                  title='trait ocl_core::types::abs::MemCmdAll'>MemCmdAll</a></td>
+                           <td class='docblock-short'>
+                                <p>Types which can be passed to any and all <code>::enqueue_...</code> functions as the
+primary (<code>ptr</code>) argument and can also be passed as kernel <code>cl_mem</code> arguments.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.MemCmdRw.html"
+                                  title='trait ocl_core::types::abs::MemCmdRw'>MemCmdRw</a></td>
+                           <td class='docblock-short'>
+                                <p>Types which can be passed as the primary (<code>ptr</code>) argument value to
+<code>::enqueue_read_buffer</code>, <code>::enqueue_write_buffer</code>,
+<code>::enqueue_read_buffer_rect</code>, <code>::enqueue_write_buffer_rect</code>,
+<code>::enqueue_read_image</code>, or <code>::enqueue_write_image</code>.</p>
+
+                           </td>
+                       </tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../../";window.currentCrate = "ocl_core";</script><script src="../../../aliases.js"></script><script src="../../../main.js"></script><script defer src="../../../search-index.js"></script></body></html>

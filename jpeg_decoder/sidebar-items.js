@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Error","Errors that can occur while decoding a JPEG image."],["PixelFormat","An enumeration over combinations of color spaces and bit depths a pixel can have."],["UnsupportedFeature","An enumeration over JPEG features (currently) unsupported by this library."]],"struct":[["Decoder","JPEG decoder"],["ImageInfo","Represents metadata of an image."]]});

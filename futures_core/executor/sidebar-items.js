@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["SpawnError","Provides the reason that an executor was unable to spawn."]],"trait":[["Executor","A task executor."]]});

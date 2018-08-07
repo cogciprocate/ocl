@@ -1,0 +1,2141 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `ocl_core` crate."><meta name="keywords" content="rust, rustlang, rust-lang, ocl_core"><title>ocl_core - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../dark.css"><link rel="stylesheet" type="text/css" href="../light.css" id="themeStyle"><script src="../storage.js"></script></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><p class='location'>Crate ocl_core</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#reexports">Re-exports</a></li><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#constants">Constants</a></li><li><a href="#traits">Traits</a></li><li><a href="#functions">Functions</a></li><li><a href="#types">Type Definitions</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'ocl_core', ty: 'mod', relpath: '../'};</script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='in-band'>Crate <a class="mod" href=''>ocl_core</a></span><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../src/ocl_core/lib.rs.html#3-1334' title='goto source code'>[src]</a></span></h1><div class='docblock'><p>Thin wrappers for the <code>OpenCL</code> FFI functions and types.</p>
+<p>Allows access to <code>OpenCL</code> FFI functions with a minimal layer of zero-cost
+abstraction, providing, safety, performance, and convenience. The <a href="https://github.com/cogciprocate/ocl"><code>ocl</code></a>
+crate contains higher level and easier to use interfaces to the
+functionality contained within.</p>
+<h2 id="even-lower-level-cl-sys" class="section-header"><a href="#even-lower-level-cl-sys">Even Lower Level: <a href="https://github.com/cogciprocate/cl-sys"><code>cl-sys</code></a></a></h2>
+<p>If there's still something missing or for some reason you need direct FFI
+access, use the functions in the <a href="https://github.com/cogciprocate/cl-sys"><code>cl-sys</code></a> module. The pointers used by
+<a href="https://github.com/cogciprocate/cl-sys"><code>cl-sys</code></a> functions can be wrapped in <a href="https://github.com/cogciprocate/ocl-core"><code>ocl-core</code></a> wrappers
+(<code>ocl_core::PlatformId</code>, <code>ocl_core::Context</code>, etc.) and passed to
+<a href="https://github.com/cogciprocate/ocl-core"><code>ocl-core</code></a> module functions. Likewise the other way around (using, for
+example: [<code>EventRaw::as_ptr</code>]).</p>
+<h2 id="performance" class="section-header"><a href="#performance">Performance</a></h2>
+<p>Performance between all three interface layers, <a href="https://github.com/cogciprocate/cl-sys"><code>cl-sys</code></a>, <a href="https://github.com/cogciprocate/ocl-core"><code>ocl-core</code></a>,
+and the 'standard' (<a href="https://github.com/cogciprocate/ocl"><code>ocl</code></a>) types, is identical or virtually identical
+(if not, please file an issue).</p>
+<h2 id="safety" class="section-header"><a href="#safety">Safety</a></h2>
+<p>Running any kernel at all is inherently unsafe. The guarantee we aim to
+make in this library is that if there is a segfault or invalid memory
+access, the fault lies within the kernel. No effort is or will be made to
+verify or sanitize kernels. Consider all kernels within user-supplied
+programs just as if you would an <code>unsafe fn</code>.</p>
+<h2 id="length-vs-size" class="section-header"><a href="#length-vs-size">Length vs Size</a></h2>
+<p>No, not that...</p>
+<p>Quantifiers passed to functions in the <code>OpenCL</code> API are generally
+expressed in bytes. Units passed to functions in <em>this</em> library are
+expected to be <code>bytes / sizeof(T)</code> (corresponding with units returned by
+the ubiquitous <code>.len()</code> method). The suffix '_size' or '_bytes' is
+generally used when a parameter deviates from this convention.</p>
+<h2 id="version-control" class="section-header"><a href="#version-control">Version Control</a></h2>
+<p>The version control system is in place to ensure that you don't call
+functions that your hardware/driver does not support.</p>
+<p>Functions in this crate with the <code>[Version Controlled: OpenCL {...}+]</code> tag
+in the description require an additional parameter, <code>device_version</code> or
+<code>device_versions</code>: a parsed result (or slice of results) of
+<code>DeviceInfo::Version</code>. This is a runtime check to ensure that the device
+supports the function being called. Calling a function which a particular
+device does not support will likely cause a segmentation fault and
+possibly data corruption.</p>
+<p>Saving the <code>OpenclVersion</code> returned from <code>device_version()</code> for your
+device(s) at the start of your program and passing it each time you call
+a version controlled function is the fastest and safest method (see the
+<code>ocl</code> library for an example). The cost of this check is little more than
+a single <code>if</code> statement.</p>
+<p>Passing <code>None</code> for <code>device_version</code> will cause an automated version check
+which has a small cost (calling info function, parsing the version number
+etc.) but is a safe option if you are not sure what to do.</p>
+<p>Passing the result of a call to <code>OpenclVersion::max()</code> or passing a fake
+version will bypass any safety checks and has all of the risks described
+above. Only do this if you're absolutely sure you know what you're doing
+and are not concerned about segfaults and data integrity.</p>
+<h2 id="more-documentation" class="section-header"><a href="#more-documentation">More Documentation</a></h2>
+<p>As most of the functions here are minimally documented, please refer to
+the official <code>OpenCL</code> documentation linked below. Although there isn't a
+precise 1:1 parameter mapping between the <code>core</code> and original functions,
+it's close enough (modulo the size/len difference discussed above) to help
+sort out any questions you may have until a more thorough documentation
+pass can be made. View the source code in <a href="/ocl-core/src/ocl-core/src/types/functions.rs.html"><code>src/types/functions.rs</code></a> for
+more mapping details.</p>
+<p><a href="https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/">'OpenCL' 1.2 SDK Reference: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/</a></p>
+</div><h2 id='reexports' class='section-header'><a href="#reexports">Re-exports</a></h2>
+<table><tr><td><code>pub extern crate <a class="mod" href="../cl_sys/index.html" title="mod cl_sys">cl_sys</a> as ffi;</code></td></tr><tr><td><code>pub use self::error::<a class="struct" href="../ocl_core/error/struct.Error.html" title="struct ocl_core::error::Error">Error</a>;</code></td></tr><tr><td><code>pub use self::error::<a class="type" href="../ocl_core/error/type.Result.html" title="type ocl_core::error::Result">Result</a>;</code></td></tr><tr><td><code>pub use self::error::<a class="enum" href="../ocl_core/error/enum.ErrorKind.html" title="enum ocl_core::error::ErrorKind">ErrorKind</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.ClWaitListPtr.html" title="trait ocl_core::types::abs::ClWaitListPtr">ClWaitListPtr</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.ClNullEventPtr.html" title="trait ocl_core::types::abs::ClNullEventPtr">ClNullEventPtr</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.ClEventPtrRef.html" title="trait ocl_core::types::abs::ClEventPtrRef">ClEventPtrRef</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.ClPlatformIdPtr.html" title="trait ocl_core::types::abs::ClPlatformIdPtr">ClPlatformIdPtr</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.ClDeviceIdPtr.html" title="trait ocl_core::types::abs::ClDeviceIdPtr">ClDeviceIdPtr</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.ClContextPtr.html" title="trait ocl_core::types::abs::ClContextPtr">ClContextPtr</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.EventRefWrapper.html" title="struct ocl_core::types::abs::EventRefWrapper">EventRefWrapper</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.PlatformId.html" title="struct ocl_core::types::abs::PlatformId">PlatformId</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.DeviceId.html" title="struct ocl_core::types::abs::DeviceId">DeviceId</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.Context.html" title="struct ocl_core::types::abs::Context">Context</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.CommandQueue.html" title="struct ocl_core::types::abs::CommandQueue">CommandQueue</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.Mem.html" title="struct ocl_core::types::abs::Mem">Mem</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.Program.html" title="struct ocl_core::types::abs::Program">Program</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.Kernel.html" title="struct ocl_core::types::abs::Kernel">Kernel</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.Event.html" title="struct ocl_core::types::abs::Event">Event</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.Sampler.html" title="struct ocl_core::types::abs::Sampler">Sampler</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.ClVersions.html" title="trait ocl_core::types::abs::ClVersions">ClVersions</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.AsMem.html" title="trait ocl_core::types::abs::AsMem">AsMem</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.MemCmdRw.html" title="trait ocl_core::types::abs::MemCmdRw">MemCmdRw</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="trait" href="../ocl_core/types/abs/trait.MemCmdAll.html" title="trait ocl_core::types::abs::MemCmdAll">MemCmdAll</a>;</code></td></tr><tr><td><code>pub use self::types::abs::<a class="struct" href="../ocl_core/types/abs/struct.MemMap.html" title="struct ocl_core::types::abs::MemMap">MemMap</a>;</code></td></tr><tr><td><code>pub use self::types::<a class="mod" href="../ocl_core/types/structs/index.html" title="mod ocl_core::types::structs">structs</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="struct" href="../ocl_core/types/structs/struct.OpenclVersion.html" title="struct ocl_core::types::structs::OpenclVersion">OpenclVersion</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="struct" href="../ocl_core/types/structs/struct.ContextProperties.html" title="struct ocl_core::types::structs::ContextProperties">ContextProperties</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="enum" href="../ocl_core/types/structs/enum.ImageFormatParseError.html" title="enum ocl_core::types::structs::ImageFormatParseError">ImageFormatParseError</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="type" href="../ocl_core/types/structs/type.ImageFormatParseResult.html" title="type ocl_core::types::structs::ImageFormatParseResult">ImageFormatParseResult</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="struct" href="../ocl_core/types/structs/struct.ImageFormat.html" title="struct ocl_core::types::structs::ImageFormat">ImageFormat</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="struct" href="../ocl_core/types/structs/struct.ImageDescriptor.html" title="struct ocl_core::types::structs::ImageDescriptor">ImageDescriptor</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="struct" href="../ocl_core/types/structs/struct.BufferRegion.html" title="struct ocl_core::types::structs::BufferRegion">BufferRegion</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="enum" href="../ocl_core/types/structs/enum.ContextPropertyValue.html" title="enum ocl_core::types::structs::ContextPropertyValue">ContextPropertyValue</a>;</code></td></tr><tr><td><code>pub use self::types::structs::<a class="struct" href="../ocl_core/types/structs/struct.ArgVal.html" title="struct ocl_core::types::structs::ArgVal">ArgVal</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.EmptyInfoResultError.html" title="enum ocl_core::types::enums::EmptyInfoResultError">EmptyInfoResultError</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.PlatformInfoResult.html" title="enum ocl_core::types::enums::PlatformInfoResult">PlatformInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.DeviceInfoResult.html" title="enum ocl_core::types::enums::DeviceInfoResult">DeviceInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.ContextInfoResult.html" title="enum ocl_core::types::enums::ContextInfoResult">ContextInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.GlContextInfoResult.html" title="enum ocl_core::types::enums::GlContextInfoResult">GlContextInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.CommandQueueInfoResult.html" title="enum ocl_core::types::enums::CommandQueueInfoResult">CommandQueueInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.MemInfoResult.html" title="enum ocl_core::types::enums::MemInfoResult">MemInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.ImageInfoResult.html" title="enum ocl_core::types::enums::ImageInfoResult">ImageInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.SamplerInfoResult.html" title="enum ocl_core::types::enums::SamplerInfoResult">SamplerInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.ProgramInfoResult.html" title="enum ocl_core::types::enums::ProgramInfoResult">ProgramInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.ProgramBuildInfoResult.html" title="enum ocl_core::types::enums::ProgramBuildInfoResult">ProgramBuildInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.KernelInfoResult.html" title="enum ocl_core::types::enums::KernelInfoResult">KernelInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.KernelArgInfoResult.html" title="enum ocl_core::types::enums::KernelArgInfoResult">KernelArgInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.KernelWorkGroupInfoResult.html" title="enum ocl_core::types::enums::KernelWorkGroupInfoResult">KernelWorkGroupInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.EventInfoResult.html" title="enum ocl_core::types::enums::EventInfoResult">EventInfoResult</a>;</code></td></tr><tr><td><code>pub use self::types::enums::<a class="enum" href="../ocl_core/types/enums/enum.ProfilingInfoResult.html" title="enum ocl_core::types::enums::ProfilingInfoResult">ProfilingInfoResult</a>;</code></td></tr></table><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="error/index.html"
+                                  title='mod ocl_core::error'>error</a></td>
+                           <td class='docblock-short'>
+                                <p>Standard error type for ocl.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="types/index.html"
+                                  title='mod ocl_core::types'>types</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="util/index.html"
+                                  title='mod ocl_core::util'>util</a></td>
+                           <td class='docblock-short'>
+                                <p>Utility and debugging functions.</p>
+
+                           </td>
+                       </tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Char.html"
+                                  title='struct ocl_core::Char'>Char</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Char2.html"
+                                  title='struct ocl_core::Char2'>Char2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Char3.html"
+                                  title='struct ocl_core::Char3'>Char3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Char4.html"
+                                  title='struct ocl_core::Char4'>Char4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Char8.html"
+                                  title='struct ocl_core::Char8'>Char8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Char16.html"
+                                  title='struct ocl_core::Char16'>Char16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.CommandQueueProperties.html"
+                                  title='struct ocl_core::CommandQueueProperties'>CommandQueueProperties</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_command_queue_properties - bitfield</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.DeviceAffinityDomain.html"
+                                  title='struct ocl_core::DeviceAffinityDomain'>DeviceAffinityDomain</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_device_affinity_domain</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.DeviceExecCapabilities.html"
+                                  title='struct ocl_core::DeviceExecCapabilities'>DeviceExecCapabilities</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_device_exec_capabilities - bitfield</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.DeviceFpConfig.html"
+                                  title='struct ocl_core::DeviceFpConfig'>DeviceFpConfig</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_device_fp_config - bitfield</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.DeviceType.html"
+                                  title='struct ocl_core::DeviceType'>DeviceType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_device_type - bitfield</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Double.html"
+                                  title='struct ocl_core::Double'>Double</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Double2.html"
+                                  title='struct ocl_core::Double2'>Double2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Double3.html"
+                                  title='struct ocl_core::Double3'>Double3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Double4.html"
+                                  title='struct ocl_core::Double4'>Double4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Double8.html"
+                                  title='struct ocl_core::Double8'>Double8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Double16.html"
+                                  title='struct ocl_core::Double16'>Double16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Float.html"
+                                  title='struct ocl_core::Float'>Float</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Float2.html"
+                                  title='struct ocl_core::Float2'>Float2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Float3.html"
+                                  title='struct ocl_core::Float3'>Float3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Float4.html"
+                                  title='struct ocl_core::Float4'>Float4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Float8.html"
+                                  title='struct ocl_core::Float8'>Float8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Float16.html"
+                                  title='struct ocl_core::Float16'>Float16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Int.html"
+                                  title='struct ocl_core::Int'>Int</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Int2.html"
+                                  title='struct ocl_core::Int2'>Int2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Int3.html"
+                                  title='struct ocl_core::Int3'>Int3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Int4.html"
+                                  title='struct ocl_core::Int4'>Int4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Int8.html"
+                                  title='struct ocl_core::Int8'>Int8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Int16.html"
+                                  title='struct ocl_core::Int16'>Int16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.KernelArgTypeQualifier.html"
+                                  title='struct ocl_core::KernelArgTypeQualifier'>KernelArgTypeQualifier</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_kernel_arg_type_qualifer</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Long.html"
+                                  title='struct ocl_core::Long'>Long</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Long2.html"
+                                  title='struct ocl_core::Long2'>Long2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Long3.html"
+                                  title='struct ocl_core::Long3'>Long3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Long4.html"
+                                  title='struct ocl_core::Long4'>Long4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Long8.html"
+                                  title='struct ocl_core::Long8'>Long8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Long16.html"
+                                  title='struct ocl_core::Long16'>Long16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.MapFlags.html"
+                                  title='struct ocl_core::MapFlags'>MapFlags</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_map_flags - bitfield</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.MemFlags.html"
+                                  title='struct ocl_core::MemFlags'>MemFlags</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_mem_flags - bitfield</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.MemMigrationFlags.html"
+                                  title='struct ocl_core::MemMigrationFlags'>MemMigrationFlags</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_mem_migration_flags - bitfield</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ProgramBinaryType.html"
+                                  title='struct ocl_core::ProgramBinaryType'>ProgramBinaryType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_program_binary_type</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Short.html"
+                                  title='struct ocl_core::Short'>Short</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Short2.html"
+                                  title='struct ocl_core::Short2'>Short2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Short3.html"
+                                  title='struct ocl_core::Short3'>Short3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Short4.html"
+                                  title='struct ocl_core::Short4'>Short4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Short8.html"
+                                  title='struct ocl_core::Short8'>Short8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Short16.html"
+                                  title='struct ocl_core::Short16'>Short16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uchar.html"
+                                  title='struct ocl_core::Uchar'>Uchar</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uchar2.html"
+                                  title='struct ocl_core::Uchar2'>Uchar2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uchar3.html"
+                                  title='struct ocl_core::Uchar3'>Uchar3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uchar4.html"
+                                  title='struct ocl_core::Uchar4'>Uchar4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uchar8.html"
+                                  title='struct ocl_core::Uchar8'>Uchar8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uchar16.html"
+                                  title='struct ocl_core::Uchar16'>Uchar16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uint.html"
+                                  title='struct ocl_core::Uint'>Uint</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uint2.html"
+                                  title='struct ocl_core::Uint2'>Uint2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uint3.html"
+                                  title='struct ocl_core::Uint3'>Uint3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uint4.html"
+                                  title='struct ocl_core::Uint4'>Uint4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uint8.html"
+                                  title='struct ocl_core::Uint8'>Uint8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Uint16.html"
+                                  title='struct ocl_core::Uint16'>Uint16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ulong.html"
+                                  title='struct ocl_core::Ulong'>Ulong</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ulong2.html"
+                                  title='struct ocl_core::Ulong2'>Ulong2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ulong3.html"
+                                  title='struct ocl_core::Ulong3'>Ulong3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ulong4.html"
+                                  title='struct ocl_core::Ulong4'>Ulong4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ulong8.html"
+                                  title='struct ocl_core::Ulong8'>Ulong8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ulong16.html"
+                                  title='struct ocl_core::Ulong16'>Ulong16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ushort.html"
+                                  title='struct ocl_core::Ushort'>Ushort</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ushort2.html"
+                                  title='struct ocl_core::Ushort2'>Ushort2</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ushort3.html"
+                                  title='struct ocl_core::Ushort3'>Ushort3</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ushort4.html"
+                                  title='struct ocl_core::Ushort4'>Ushort4</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ushort8.html"
+                                  title='struct ocl_core::Ushort8'>Ushort8</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Ushort16.html"
+                                  title='struct ocl_core::Ushort16'>Ushort16</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.AddressingMode.html"
+                                  title='enum ocl_core::AddressingMode'>AddressingMode</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_addressing_mode</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.BufferCreateType.html"
+                                  title='enum ocl_core::BufferCreateType'>BufferCreateType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_buffer_create_type</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Cbool.html"
+                                  title='enum ocl_core::Cbool'>Cbool</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_bool</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ChannelType.html"
+                                  title='enum ocl_core::ChannelType'>ChannelType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_channel_type</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ClGlObjectType.html"
+                                  title='enum ocl_core::ClGlObjectType'>ClGlObjectType</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.CommandExecutionStatus.html"
+                                  title='enum ocl_core::CommandExecutionStatus'>CommandExecutionStatus</a></td>
+                           <td class='docblock-short'>
+                                <p>command execution status</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.CommandQueueInfo.html"
+                                  title='enum ocl_core::CommandQueueInfo'>CommandQueueInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_command_queue_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.CommandType.html"
+                                  title='enum ocl_core::CommandType'>CommandType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_command_type</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ContextInfo.html"
+                                  title='enum ocl_core::ContextInfo'>ContextInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_context_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ContextInfoOrPropertiesPointerType.html"
+                                  title='enum ocl_core::ContextInfoOrPropertiesPointerType'>ContextInfoOrPropertiesPointerType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_context_info + cl_context_properties</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ContextProperty.html"
+                                  title='enum ocl_core::ContextProperty'>ContextProperty</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_context_info + cl_context_properties</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.DeviceInfo.html"
+                                  title='enum ocl_core::DeviceInfo'>DeviceInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_device_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.DeviceLocalMemType.html"
+                                  title='enum ocl_core::DeviceLocalMemType'>DeviceLocalMemType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_device_local_mem_type</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.DeviceMemCacheType.html"
+                                  title='enum ocl_core::DeviceMemCacheType'>DeviceMemCacheType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_mem_cache_type</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.DevicePartitionProperty.html"
+                                  title='enum ocl_core::DevicePartitionProperty'>DevicePartitionProperty</a></td>
+                           <td class='docblock-short'>
+                                <p>[INCOMPLETE] cl_device_partition_property</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.EventInfo.html"
+                                  title='enum ocl_core::EventInfo'>EventInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_event_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.FilterMode.html"
+                                  title='enum ocl_core::FilterMode'>FilterMode</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_filter_mode</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.GlContextInfo.html"
+                                  title='enum ocl_core::GlContextInfo'>GlContextInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_gl_context_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.GlTextureTarget.html"
+                                  title='enum ocl_core::GlTextureTarget'>GlTextureTarget</a></td>
+                           <td class='docblock-short'>
+                                <p>specify the texture target type</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ImageChannelDataType.html"
+                                  title='enum ocl_core::ImageChannelDataType'>ImageChannelDataType</a></td>
+                           <td class='docblock-short'>
+                                <p>Describes the size of the channel data type. The number of bits per element determined by the image_channel_data_type and image_channel_order must be a power of two. The list of supported values is described in the table below. (from SDK)</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ImageChannelOrder.html"
+                                  title='enum ocl_core::ImageChannelOrder'>ImageChannelOrder</a></td>
+                           <td class='docblock-short'>
+                                <p>Specifies the number of channels and the channel layout i.e. the memory layout in which channels are stored in the image. Valid values are described in the table below. (from SDK)</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ImageInfo.html"
+                                  title='enum ocl_core::ImageInfo'>ImageInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_image_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.KernelArgAccessQualifier.html"
+                                  title='enum ocl_core::KernelArgAccessQualifier'>KernelArgAccessQualifier</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_kernel_arg_access_qualifier</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.KernelArgAddressQualifier.html"
+                                  title='enum ocl_core::KernelArgAddressQualifier'>KernelArgAddressQualifier</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_kernel_arg_address_qualifier</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.KernelArgInfo.html"
+                                  title='enum ocl_core::KernelArgInfo'>KernelArgInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_kernel_arg_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.KernelInfo.html"
+                                  title='enum ocl_core::KernelInfo'>KernelInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_kernel_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.KernelWorkGroupInfo.html"
+                                  title='enum ocl_core::KernelWorkGroupInfo'>KernelWorkGroupInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_kernel_work_group_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.MemInfo.html"
+                                  title='enum ocl_core::MemInfo'>MemInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_mem_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.MemObjectType.html"
+                                  title='enum ocl_core::MemObjectType'>MemObjectType</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_mem_object_type</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.PlatformInfo.html"
+                                  title='enum ocl_core::PlatformInfo'>PlatformInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_platform_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Polling.html"
+                                  title='enum ocl_core::Polling'>Polling</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_bool: Polling</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ProfilingInfo.html"
+                                  title='enum ocl_core::ProfilingInfo'>ProfilingInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_profiling_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ProgramBuildInfo.html"
+                                  title='enum ocl_core::ProgramBuildInfo'>ProgramBuildInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_program_build_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ProgramBuildStatus.html"
+                                  title='enum ocl_core::ProgramBuildStatus'>ProgramBuildStatus</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_build_status</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ProgramInfo.html"
+                                  title='enum ocl_core::ProgramInfo'>ProgramInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_program_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.SamplerInfo.html"
+                                  title='enum ocl_core::SamplerInfo'>SamplerInfo</a></td>
+                           <td class='docblock-short'>
+                                <p>cl_sampler_info</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Status.html"
+                                  title='enum ocl_core::Status'>Status</a></td>
+                           <td class='docblock-short'>
+                                <p>The status of an OpenCL API call. Used for returning success/error codes.</p>
+
+                           </td>
+                       </tr></table><h2 id='constants' class='section-header'><a href="#constants">Constants</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC.html"
+                                  title='constant ocl_core::CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC'>CL_CGL_SHAREGROUP_KHR_OS_SPECIFIC</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICES_MAX.html"
+                                  title='constant ocl_core::DEVICES_MAX'>DEVICES_MAX</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_AFFINITY_DOMAIN_L1_CACHE.html"
+                                  title='constant ocl_core::DEVICE_AFFINITY_DOMAIN_L1_CACHE'>DEVICE_AFFINITY_DOMAIN_L1_CACHE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_AFFINITY_DOMAIN_L2_CACHE.html"
+                                  title='constant ocl_core::DEVICE_AFFINITY_DOMAIN_L2_CACHE'>DEVICE_AFFINITY_DOMAIN_L2_CACHE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_AFFINITY_DOMAIN_L3_CACHE.html"
+                                  title='constant ocl_core::DEVICE_AFFINITY_DOMAIN_L3_CACHE'>DEVICE_AFFINITY_DOMAIN_L3_CACHE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_AFFINITY_DOMAIN_L4_CACHE.html"
+                                  title='constant ocl_core::DEVICE_AFFINITY_DOMAIN_L4_CACHE'>DEVICE_AFFINITY_DOMAIN_L4_CACHE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE.html"
+                                  title='constant ocl_core::DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE'>DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_AFFINITY_DOMAIN_NUMA.html"
+                                  title='constant ocl_core::DEVICE_AFFINITY_DOMAIN_NUMA'>DEVICE_AFFINITY_DOMAIN_NUMA</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_TYPE_ACCELERATOR.html"
+                                  title='constant ocl_core::DEVICE_TYPE_ACCELERATOR'>DEVICE_TYPE_ACCELERATOR</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_TYPE_ALL.html"
+                                  title='constant ocl_core::DEVICE_TYPE_ALL'>DEVICE_TYPE_ALL</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_TYPE_CPU.html"
+                                  title='constant ocl_core::DEVICE_TYPE_CPU'>DEVICE_TYPE_CPU</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_TYPE_CUSTOM.html"
+                                  title='constant ocl_core::DEVICE_TYPE_CUSTOM'>DEVICE_TYPE_CUSTOM</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_TYPE_DEFAULT.html"
+                                  title='constant ocl_core::DEVICE_TYPE_DEFAULT'>DEVICE_TYPE_DEFAULT</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.DEVICE_TYPE_GPU.html"
+                                  title='constant ocl_core::DEVICE_TYPE_GPU'>DEVICE_TYPE_GPU</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.EXEC_KERNEL.html"
+                                  title='constant ocl_core::EXEC_KERNEL'>EXEC_KERNEL</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.EXEC_NATIVE_KERNEL.html"
+                                  title='constant ocl_core::EXEC_NATIVE_KERNEL'>EXEC_NATIVE_KERNEL</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.FP_CORRECTLY_ROUNDED_DIVIDE_SQRT.html"
+                                  title='constant ocl_core::FP_CORRECTLY_ROUNDED_DIVIDE_SQRT'>FP_CORRECTLY_ROUNDED_DIVIDE_SQRT</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.FP_DENORM.html"
+                                  title='constant ocl_core::FP_DENORM'>FP_DENORM</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.FP_FMA.html"
+                                  title='constant ocl_core::FP_FMA'>FP_FMA</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.FP_INF_NAN.html"
+                                  title='constant ocl_core::FP_INF_NAN'>FP_INF_NAN</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.FP_ROUND_TO_INF.html"
+                                  title='constant ocl_core::FP_ROUND_TO_INF'>FP_ROUND_TO_INF</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.FP_ROUND_TO_NEAREST.html"
+                                  title='constant ocl_core::FP_ROUND_TO_NEAREST'>FP_ROUND_TO_NEAREST</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.FP_ROUND_TO_ZERO.html"
+                                  title='constant ocl_core::FP_ROUND_TO_ZERO'>FP_ROUND_TO_ZERO</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.FP_SOFT_FLOAT.html"
+                                  title='constant ocl_core::FP_SOFT_FLOAT'>FP_SOFT_FLOAT</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.KERNEL_ARG_TYPE_CONST.html"
+                                  title='constant ocl_core::KERNEL_ARG_TYPE_CONST'>KERNEL_ARG_TYPE_CONST</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.KERNEL_ARG_TYPE_NONE.html"
+                                  title='constant ocl_core::KERNEL_ARG_TYPE_NONE'>KERNEL_ARG_TYPE_NONE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.KERNEL_ARG_TYPE_RESTRICT.html"
+                                  title='constant ocl_core::KERNEL_ARG_TYPE_RESTRICT'>KERNEL_ARG_TYPE_RESTRICT</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.KERNEL_ARG_TYPE_VOLATILE.html"
+                                  title='constant ocl_core::KERNEL_ARG_TYPE_VOLATILE'>KERNEL_ARG_TYPE_VOLATILE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MAP_READ.html"
+                                  title='constant ocl_core::MAP_READ'>MAP_READ</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MAP_WRITE.html"
+                                  title='constant ocl_core::MAP_WRITE'>MAP_WRITE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MAP_WRITE_INVALIDATE_REGION.html"
+                                  title='constant ocl_core::MAP_WRITE_INVALIDATE_REGION'>MAP_WRITE_INVALIDATE_REGION</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_ALLOC_HOST_PTR.html"
+                                  title='constant ocl_core::MEM_ALLOC_HOST_PTR'>MEM_ALLOC_HOST_PTR</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_COPY_HOST_PTR.html"
+                                  title='constant ocl_core::MEM_COPY_HOST_PTR'>MEM_COPY_HOST_PTR</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_HOST_NO_ACCESS.html"
+                                  title='constant ocl_core::MEM_HOST_NO_ACCESS'>MEM_HOST_NO_ACCESS</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_HOST_READ_ONLY.html"
+                                  title='constant ocl_core::MEM_HOST_READ_ONLY'>MEM_HOST_READ_ONLY</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_HOST_WRITE_ONLY.html"
+                                  title='constant ocl_core::MEM_HOST_WRITE_ONLY'>MEM_HOST_WRITE_ONLY</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_READ_ONLY.html"
+                                  title='constant ocl_core::MEM_READ_ONLY'>MEM_READ_ONLY</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_READ_WRITE.html"
+                                  title='constant ocl_core::MEM_READ_WRITE'>MEM_READ_WRITE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_USE_HOST_PTR.html"
+                                  title='constant ocl_core::MEM_USE_HOST_PTR'>MEM_USE_HOST_PTR</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MEM_WRITE_ONLY.html"
+                                  title='constant ocl_core::MEM_WRITE_ONLY'>MEM_WRITE_ONLY</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED.html"
+                                  title='constant ocl_core::MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED'>MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.MIGRATE_MEM_OBJECT_HOST.html"
+                                  title='constant ocl_core::MIGRATE_MEM_OBJECT_HOST'>MIGRATE_MEM_OBJECT_HOST</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.PROGRAM_BINARY_TYPE_COMPILED_OBJECT.html"
+                                  title='constant ocl_core::PROGRAM_BINARY_TYPE_COMPILED_OBJECT'>PROGRAM_BINARY_TYPE_COMPILED_OBJECT</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.PROGRAM_BINARY_TYPE_EXECUTABLE.html"
+                                  title='constant ocl_core::PROGRAM_BINARY_TYPE_EXECUTABLE'>PROGRAM_BINARY_TYPE_EXECUTABLE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.PROGRAM_BINARY_TYPE_LIBRARY.html"
+                                  title='constant ocl_core::PROGRAM_BINARY_TYPE_LIBRARY'>PROGRAM_BINARY_TYPE_LIBRARY</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.PROGRAM_BINARY_TYPE_NONE.html"
+                                  title='constant ocl_core::PROGRAM_BINARY_TYPE_NONE'>PROGRAM_BINARY_TYPE_NONE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.QUEUE_ON_DEVICE.html"
+                                  title='constant ocl_core::QUEUE_ON_DEVICE'>QUEUE_ON_DEVICE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.QUEUE_ON_DEVICE_DEFAULT.html"
+                                  title='constant ocl_core::QUEUE_ON_DEVICE_DEFAULT'>QUEUE_ON_DEVICE_DEFAULT</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE.html"
+                                  title='constant ocl_core::QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE'>QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="constant" href="constant.QUEUE_PROFILING_ENABLE.html"
+                                  title='constant ocl_core::QUEUE_PROFILING_ENABLE'>QUEUE_PROFILING_ENABLE</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.OclNum.html"
+                                  title='trait ocl_core::OclNum'>OclNum</a></td>
+                           <td class='docblock-short'>
+                                <p>A set of traits common to numeric built-in OpenCL scalar and vector
+primitives.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.OclPrm.html"
+                                  title='trait ocl_core::OclPrm'>OclPrm</a></td>
+                           <td class='docblock-short'>
+                                <p>A primitive type usable within <code>OpenCL</code> kernels.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.OclScl.html"
+                                  title='trait ocl_core::OclScl'>OclScl</a></td>
+                           <td class='docblock-short'>
+                                <p>A scalar type usable within OpenCL kernels.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.OclVec.html"
+                                  title='trait ocl_core::OclVec'>OclVec</a></td>
+                           <td class='docblock-short'>
+                                <p>A vector type usable within <code>OpenCL</code> kernels.</p>
+
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn._complete_user_event.html"
+                                  title='fn ocl_core::_complete_user_event'>_complete_user_event</a></td>
+                           <td class='docblock-short'>
+                                <p>If <code>event_status</code> is <code>CommandExecutionStatus::Complete</code>, the <code>cl_event</code>
+pointed to by <code>user_data</code> will be set to the same.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn._dummy_event_callback.html"
+                                  title='fn ocl_core::_dummy_event_callback'>_dummy_event_callback</a></td>
+                           <td class='docblock-short'>
+                                <p>Don't be a dummy. Buckle your <code>_dummy_callback</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.build_program.html"
+                                  title='fn ocl_core::build_program'>build_program</a></td>
+                           <td class='docblock-short'>
+                                <p>Builds a program.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.compile_program.html"
+                                  title='fn ocl_core::compile_program'>compile_program</a></td>
+                           <td class='docblock-short'>
+                                <p>[UNIMPLEMENTED: Please implement me]</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_buffer.html"
+                                  title='fn ocl_core::create_buffer'>create_buffer</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a new buffer pointer with size (bytes): <code>len</code> * sizeof(T).</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_build_program.html"
+                                  title='fn ocl_core::create_build_program'>create_build_program</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates, builds, and returns a new program pointer from <code>src_strings</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_command_queue.html"
+                                  title='fn ocl_core::create_command_queue'>create_command_queue</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a new command queue pointer.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_context.html"
+                                  title='fn ocl_core::create_context'>create_context</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates a new context pointer valid for all devices in <code>device_ids</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_context_from_type.html"
+                                  title='fn ocl_core::create_context_from_type'>create_context_from_type</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates a new context pointer for all devices of a specific type.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_from_gl_buffer.html"
+                                  title='fn ocl_core::create_from_gl_buffer'>create_from_gl_buffer</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Return a buffer pointer from a <code>OpenGL</code> buffer object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_from_gl_renderbuffer.html"
+                                  title='fn ocl_core::create_from_gl_renderbuffer'>create_from_gl_renderbuffer</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Return a renderbuffer pointer from a <code>OpenGL</code> renderbuffer object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_from_gl_texture.html"
+                                  title='fn ocl_core::create_from_gl_texture'>create_from_gl_texture</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Return a texture2D pointer from a <code>OpenGL</code> texture2D object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_from_gl_texture_2d.html"
+                                  title='fn ocl_core::create_from_gl_texture_2d'>create_from_gl_texture_2d</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Return a texture2D pointer from a <code>OpenGL</code> texture2D object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_from_gl_texture_3d.html"
+                                  title='fn ocl_core::create_from_gl_texture_3d'>create_from_gl_texture_3d</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Return a texture3D pointer from a <code>OpenGL</code> texture3D object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_image.html"
+                                  title='fn ocl_core::create_image'>create_image</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a new image (mem) pointer.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_kernel.html"
+                                  title='fn ocl_core::create_kernel'>create_kernel</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a new kernel.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_kernels_in_program.html"
+                                  title='fn ocl_core::create_kernels_in_program'>create_kernels_in_program</a></td>
+                           <td class='docblock-short'>
+                                <p>[UNIMPLEMENTED: Please implement me]</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_program_with_binary.html"
+                                  title='fn ocl_core::create_program_with_binary'>create_program_with_binary</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates a program object for a context, and loads the binary bits
+specified by binary into the program object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_program_with_built_in_kernels.html"
+                                  title='fn ocl_core::create_program_with_built_in_kernels'>create_program_with_built_in_kernels</a></td>
+                           <td class='docblock-short'>
+                                <p>[UNIMPLEMENTED: Please implement me]</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_program_with_il.html"
+                                  title='fn ocl_core::create_program_with_il'>create_program_with_il</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a new <code>Program</code> loaded with the provided IL bytes.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_program_with_source.html"
+                                  title='fn ocl_core::create_program_with_source'>create_program_with_source</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates a new program.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_sampler.html"
+                                  title='fn ocl_core::create_sampler'>create_sampler</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates and returns a new sampler object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_sub_buffer.html"
+                                  title='fn ocl_core::create_sub_buffer'>create_sub_buffer</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates a new buffer object (referred to as a sub-buffer object) from an
+existing buffer object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_sub_devices.html"
+                                  title='fn ocl_core::create_sub_devices'>create_sub_devices</a></td>
+                           <td class='docblock-short'>
+                                <p>[UNIMPLEMENTED: Please implement me]</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.create_user_event.html"
+                                  title='fn ocl_core::create_user_event'>create_user_event</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates an event not already associated with any command.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.default_device_type.html"
+                                  title='fn ocl_core::default_device_type'>default_device_type</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns the default device type bitflags as specified by environment
+variable or else <code>DEVICE_TYPE_ALL</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.default_platform.html"
+                                  title='fn ocl_core::default_platform'>default_platform</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns the default or first platform.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.default_platform_idx.html"
+                                  title='fn ocl_core::default_platform_idx'>default_platform_idx</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns the default platform if set by an environment variable or config
+file.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.device_versions.html"
+                                  title='fn ocl_core::device_versions'>device_versions</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a list of versions for devices.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_acquire_gl_objects.html"
+                                  title='fn ocl_core::enqueue_acquire_gl_objects'>enqueue_acquire_gl_objects</a></td>
+                           <td class='docblock-short'>
+                                <p>Acquire OpenCL memory objects (buffers and images) that have been created
+from OpenGL objects.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_barrier_with_wait_list.html"
+                                  title='fn ocl_core::enqueue_barrier_with_wait_list'>enqueue_barrier_with_wait_list</a></td>
+                           <td class='docblock-short'>
+                                <p>A synchronization point that enqueues a barrier operation.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_copy_buffer.html"
+                                  title='fn ocl_core::enqueue_copy_buffer'>enqueue_copy_buffer</a></td>
+                           <td class='docblock-short'>
+                                <p>Copies the contents of one buffer to another.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_copy_buffer_rect.html"
+                                  title='fn ocl_core::enqueue_copy_buffer_rect'>enqueue_copy_buffer_rect</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to copy a rectangular region from a buffer object to
+another buffer object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_copy_buffer_to_image.html"
+                                  title='fn ocl_core::enqueue_copy_buffer_to_image'>enqueue_copy_buffer_to_image</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to copy a buffer object to an image object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_copy_image.html"
+                                  title='fn ocl_core::enqueue_copy_image'>enqueue_copy_image</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to copy image objects.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_copy_image_to_buffer.html"
+                                  title='fn ocl_core::enqueue_copy_image_to_buffer'>enqueue_copy_image_to_buffer</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to copy an image object to a buffer object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_fill_buffer.html"
+                                  title='fn ocl_core::enqueue_fill_buffer'>enqueue_fill_buffer</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to fill a buffer object with a pattern of a given pattern size.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_fill_image.html"
+                                  title='fn ocl_core::enqueue_fill_image'>enqueue_fill_image</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to fill an image object with a specified color.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_kernel.html"
+                                  title='fn ocl_core::enqueue_kernel'>enqueue_kernel</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to execute a kernel on a device.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_map_buffer.html"
+                                  title='fn ocl_core::enqueue_map_buffer'>enqueue_map_buffer</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to map a region of the buffer object given
+by <code>buffer</code> into the host address space and returns a pointer to this
+mapped region.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_map_image.html"
+                                  title='fn ocl_core::enqueue_map_image'>enqueue_map_image</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to map a region of the image object given by <code>image</code> into
+the host address space and returns a pointer to this mapped region.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_marker_with_wait_list.html"
+                                  title='fn ocl_core::enqueue_marker_with_wait_list'>enqueue_marker_with_wait_list</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a marker command which waits for either a list of events to
+complete, or all previously enqueued commands to complete.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_migrate_mem_objects.html"
+                                  title='fn ocl_core::enqueue_migrate_mem_objects'>enqueue_migrate_mem_objects</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to indicate which device a set of memory objects should
+be associated with.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_native_kernel.html"
+                                  title='fn ocl_core::enqueue_native_kernel'>enqueue_native_kernel</a></td>
+                           <td class='docblock-short'>
+                                <p>[UNIMPLEMENTED: Please implement me]</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_read_buffer.html"
+                                  title='fn ocl_core::enqueue_read_buffer'>enqueue_read_buffer</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a read from device memory referred to by <code>buffer</code> to device memory,
+<code>data</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_read_buffer_rect.html"
+                                  title='fn ocl_core::enqueue_read_buffer_rect'>enqueue_read_buffer_rect</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to read from a rectangular region from a buffer object to host memory.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_read_image.html"
+                                  title='fn ocl_core::enqueue_read_image'>enqueue_read_image</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Reads an image from device to host memory.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_release_gl_objects.html"
+                                  title='fn ocl_core::enqueue_release_gl_objects'>enqueue_release_gl_objects</a></td>
+                           <td class='docblock-short'>
+                                <p>Release OpenCL memory objects (buffers and images) that have been created
+from OpenGL objects.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_task.html"
+                                  title='fn ocl_core::enqueue_task'>enqueue_task</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to execute a kernel on a device.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_unmap_mem_object.html"
+                                  title='fn ocl_core::enqueue_unmap_mem_object'>enqueue_unmap_mem_object</a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to unmap a previously mapped region of a memory object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_write_buffer.html"
+                                  title='fn ocl_core::enqueue_write_buffer'>enqueue_write_buffer</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a write from host memory, <code>data</code>, to device memory referred to by
+<code>buffer</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_write_buffer_rect.html"
+                                  title='fn ocl_core::enqueue_write_buffer_rect'>enqueue_write_buffer_rect</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to write from a rectangular region from host memory to a buffer object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.enqueue_write_image.html"
+                                  title='fn ocl_core::enqueue_write_image'>enqueue_write_image</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Enqueues a command to write to an image or image array object from host memory.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.event_is_complete.html"
+                                  title='fn ocl_core::event_is_complete'>event_is_complete</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns true if an event is complete, false if not complete.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.event_status.html"
+                                  title='fn ocl_core::event_status'>event_status</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns the status of <code>event</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.finish.html"
+                                  title='fn ocl_core::finish'>finish</a></td>
+                           <td class='docblock-short'>
+                                <p>Waits for a queue to finish.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.flush.html"
+                                  title='fn ocl_core::flush'>flush</a></td>
+                           <td class='docblock-short'>
+                                <p>Flushes a command queue.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_command_queue_info.html"
+                                  title='fn ocl_core::get_command_queue_info'>get_command_queue_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns information about a command queue</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_context_info.html"
+                                  title='fn ocl_core::get_context_info'>get_context_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns various kinds of context information.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_context_platform.html"
+                                  title='fn ocl_core::get_context_platform'>get_context_platform</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns the platform for a context.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_device_ids.html"
+                                  title='fn ocl_core::get_device_ids'>get_device_ids</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a list of available devices for a particular platform.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_device_info.html"
+                                  title='fn ocl_core::get_device_info'>get_device_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns information about a device.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_device_info_raw.html"
+                                  title='fn ocl_core::get_device_info_raw'>get_device_info_raw</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns raw information about a device, as a vector of bytes. </p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_event_info.html"
+                                  title='fn ocl_core::get_event_info'>get_event_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get event info.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_event_profiling_info.html"
+                                  title='fn ocl_core::get_event_profiling_info'>get_event_profiling_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get event profiling info (for debugging / benchmarking).</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_extension_function_address_for_platform.html"
+                                  title='fn ocl_core::get_extension_function_address_for_platform'>get_extension_function_address_for_platform</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Returns the address of the extension function named by
+<code>func_name</code> for a given platform.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_gl_context_info_khr.html"
+                                  title='fn ocl_core::get_gl_context_info_khr'>get_gl_context_info_khr</a></td>
+                           <td class='docblock-short'>
+                                <p>[INOPERATIVE: Needs troubleshooting] Returns OpenGL context information.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_image_info.html"
+                                  title='fn ocl_core::get_image_info'>get_image_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get image info.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_kernel_arg_info.html"
+                                  title='fn ocl_core::get_kernel_arg_info'>get_kernel_arg_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get kernel arg info.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_kernel_info.html"
+                                  title='fn ocl_core::get_kernel_info'>get_kernel_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get kernel info.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_kernel_work_group_info.html"
+                                  title='fn ocl_core::get_kernel_work_group_info'>get_kernel_work_group_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get kernel work group info.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_mem_object_info.html"
+                                  title='fn ocl_core::get_mem_object_info'>get_mem_object_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get mem object info.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_platform_ids.html"
+                                  title='fn ocl_core::get_platform_ids'>get_platform_ids</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a list of available platforms as 'core' objects.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_platform_info.html"
+                                  title='fn ocl_core::get_platform_info'>get_platform_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns platform information of the requested type.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_program_build_info.html"
+                                  title='fn ocl_core::get_program_build_info'>get_program_build_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get program build info.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_program_info.html"
+                                  title='fn ocl_core::get_program_info'>get_program_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Get program info.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_sampler_info.html"
+                                  title='fn ocl_core::get_sampler_info'>get_sampler_info</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns information about the sampler object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.get_supported_image_formats.html"
+                                  title='fn ocl_core::get_supported_image_formats'>get_supported_image_formats</a></td>
+                           <td class='docblock-short'>
+                                <p>Returns a list of supported image formats.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.link_program.html"
+                                  title='fn ocl_core::link_program'>link_program</a></td>
+                           <td class='docblock-short'>
+                                <p>[UNIMPLEMENTED: Please implement me]</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.program_build_err.html"
+                                  title='fn ocl_core::program_build_err'>program_build_err</a></td>
+                           <td class='docblock-short'>
+                                <p>If the program pointed to by <code>cl_program</code> for any of the devices listed in
+<code>device_ids</code> has a build log of any length, it will be returned as an
+errcode result.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.release_command_queue.html"
+                                  title='fn ocl_core::release_command_queue'>release_command_queue</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Decrements the reference count of a command queue.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.release_context.html"
+                                  title='fn ocl_core::release_context'>release_context</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Decrements reference count of a context.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.release_device.html"
+                                  title='fn ocl_core::release_device'>release_device</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Decrements the reference count of a device.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.release_event.html"
+                                  title='fn ocl_core::release_event'>release_event</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Decrements an event's reference counter.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.release_kernel.html"
+                                  title='fn ocl_core::release_kernel'>release_kernel</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Decrements a kernel reference counter.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.release_mem_object.html"
+                                  title='fn ocl_core::release_mem_object'>release_mem_object</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Decrements the reference counter of a mem object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.release_program.html"
+                                  title='fn ocl_core::release_program'>release_program</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Decrements a program reference counter.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.release_sampler.html"
+                                  title='fn ocl_core::release_sampler'>release_sampler</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Decrements a sampler reference counter.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.retain_command_queue.html"
+                                  title='fn ocl_core::retain_command_queue'>retain_command_queue</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Increments the reference count of a command queue.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.retain_context.html"
+                                  title='fn ocl_core::retain_context'>retain_context</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Increments the reference count of a context.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.retain_device.html"
+                                  title='fn ocl_core::retain_device'>retain_device</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Increments the reference count of a device.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.retain_event.html"
+                                  title='fn ocl_core::retain_event'>retain_event</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Increments an event's reference counter.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.retain_kernel.html"
+                                  title='fn ocl_core::retain_kernel'>retain_kernel</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Increments a kernel reference counter.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.retain_mem_object.html"
+                                  title='fn ocl_core::retain_mem_object'>retain_mem_object</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Increments the reference counter of a mem object.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.retain_program.html"
+                                  title='fn ocl_core::retain_program'>retain_program</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Increments a program reference counter.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.retain_sampler.html"
+                                  title='fn ocl_core::retain_sampler'>retain_sampler</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Increments a sampler reference counter.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.set_event_callback.html"
+                                  title='fn ocl_core::set_event_callback'>set_event_callback</a><a title='unsafe function' href='#'><sup>⚠</sup></a></td>
+                           <td class='docblock-short'>
+                                <p>Sets a callback function which is called as soon as the <code>callback_trigger</code>
+status is reached.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.set_kernel_arg.html"
+                                  title='fn ocl_core::set_kernel_arg'>set_kernel_arg</a></td>
+                           <td class='docblock-short'>
+                                <p>Sets the argument value for the kernel argument at <code>index</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.set_mem_object_destructor_callback.html"
+                                  title='fn ocl_core::set_mem_object_destructor_callback'>set_mem_object_destructor_callback</a></td>
+                           <td class='docblock-short'>
+                                <p>[UNIMPLEMENTED: Please implement me]</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.set_user_event_status.html"
+                                  title='fn ocl_core::set_user_event_status'>set_user_event_status</a></td>
+                           <td class='docblock-short'>
+                                <p>Updates a user events status.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.verify_context.html"
+                                  title='fn ocl_core::verify_context'>verify_context</a></td>
+                           <td class='docblock-short'>
+                                <p>Verifies that the <code>context</code> is in fact a context object pointer.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.wait_for_event.html"
+                                  title='fn ocl_core::wait_for_event'>wait_for_event</a></td>
+                           <td class='docblock-short'>
+                                <p>Blocks until an event is complete.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.wait_for_events.html"
+                                  title='fn ocl_core::wait_for_events'>wait_for_events</a></td>
+                           <td class='docblock-short'>
+                                <p>Blocks until the first <code>num_events</code> events in <code>event_list</code> are complete.</p>
+
+                           </td>
+                       </tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="type" href="type.BuildProgramCallbackFn.html"
+                                  title='type ocl_core::BuildProgramCallbackFn'>BuildProgramCallbackFn</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="type" href="type.CreateContextCallbackFn.html"
+                                  title='type ocl_core::CreateContextCallbackFn'>CreateContextCallbackFn</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="type" href="type.EventCallbackFn.html"
+                                  title='type ocl_core::EventCallbackFn'>EventCallbackFn</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="type" href="type.UserDataPtr.html"
+                                  title='type ocl_core::UserDataPtr'>UserDataPtr</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../";window.currentCrate = "ocl_core";</script><script src="../aliases.js"></script><script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>

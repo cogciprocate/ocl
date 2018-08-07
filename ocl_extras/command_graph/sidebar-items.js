@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["CommandDetails","Details of a queuable command."]],"struct":[["Command",""],["CommandGraph","A directional sequence dependency graph representing the temporal requirements of each asynchronous read, write, copy, and kernel (commands) for a particular task."],["KernelArgBuffer",""],["RwCmdIdxs",""]]});

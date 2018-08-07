@@ -1,0 +1,1 @@
+initSidebarItems({"static":[["BGC_DEFAULT",""],["BGC_DGR",""],["BGC_GRN",""],["BGC_LGR",""],["BGC_PUR",""],["C_BGRN",""],["C_BLU",""],["C_BRED",""],["C_CYA",""],["C_DBL",""],["C_DEFAULT",""],["C_DFLT",""],["C_DGR",""],["C_GRN",""],["C_LBL",""],["C_LGR",""],["C_LRD",""],["C_MAG",""],["C_ORA",""],["C_PUR",""],["C_RED",""],["C_UNDER",""],["C_YEL",""],["TAB",""]]});

@@ -1,0 +1,175 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `ImageBuilder` struct in crate `ocl`."><meta name="keywords" content="rust, rustlang, rust-lang, ImageBuilder"><title>ocl::builders::ImageBuilder - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc struct"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><p class='location'>Struct ImageBuilder</p><div class="sidebar-elems"><div class="block items"><a class="sidebar-title" href="#methods">Methods</a><div class="sidebar-links"><a href="#method.new">new</a><a href="#method.context">context</a><a href="#method.queue">queue</a><a href="#method.flags">flags</a><a href="#method.use_host_slice">use_host_slice</a><a href="#method.copy_host_slice">copy_host_slice</a><a href="#method.channel_order">channel_order</a><a href="#method.channel_data_type">channel_data_type</a><a href="#method.image_type">image_type</a><a href="#method.dims">dims</a><a href="#method.array_size">array_size</a><a href="#method.row_pitch_bytes">row_pitch_bytes</a><a href="#method.slc_pitch_bytes">slc_pitch_bytes</a><a href="#method.buffer_sync">buffer_sync</a><a href="#method.image_format">image_format</a><a href="#method.image_desc">image_desc</a><a href="#method.build">build</a></div><a class="sidebar-title" href="#synthetic-implementations">Auto Trait Implementations</a><div class="sidebar-links"><a href="#impl-Send">Send</a><a href="#impl-Sync">Sync</a></div></div><p class='location'><a href='../index.html'>ocl</a>::<wbr><a href='index.html'>builders</a></p><script>window.sidebarCurrent = {name: 'ImageBuilder', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='in-band'>Struct <a href='../index.html'>ocl</a>::<wbr><a href='index.html'>builders</a>::<wbr><a class="struct" href=''>ImageBuilder</a></span><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/ocl/standard/image.rs.html#1006-1013' title='goto source code'>[src]</a></span></h1><div class="docblock type-decl"><pre class='rust struct'><div class="docblock attributes">#[must_use = "builders do nothing unless \'::build\' is called"]
+</div>pub struct ImageBuilder&lt;'a, T&gt; <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;T: 'a,&nbsp;</span> { /* fields omitted */ }</pre></div><div class='docblock'><p>A builder for <code>Image</code>.</p>
+</div>
+                    <h2 id='methods' class='small-section-header'>
+                      Methods<a href='#methods' class='anchor'></a>
+                    </h2>
+                <h3 id='impl' class='impl'><span class='in-band'><table class='table-display'><tbody><tr><td><code>impl&lt;'a, T&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt; <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;T: 'a + <a class="trait" href="../../ocl/traits/trait.OclPrm.html" title="trait ocl::traits::OclPrm">OclPrm</a>,&nbsp;</span></code><a href='#impl' class='anchor'></a></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1016-1359' title='goto source code'>[src]</a></span></td></tr></tbody></table></h3><div class='impl-items'><h4 id='method.new' class="method"><span id='new.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.new' class='fnname'>new</a>() -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1049-1058' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Returns a new <code>ImageBuilder</code> with very basic defaults.</p>
+<h2 id="defaults" class="section-header"><a href="#defaults">Defaults</a></h2>
+<ul>
+<li>Flags:</li>
+</ul>
+
+<div class='information'><div class='tooltip ignore'>ⓘ<span class='tooltiptext'>This example is not tested</span></div></div><pre class="rust rust-example-rendered ignore">
+<span class="ident">ocl</span>::<span class="ident">MEM_READ_WRITE</span></pre>
+<ul>
+<li>Image Format:</li>
+</ul>
+
+<div class='information'><div class='tooltip ignore'>ⓘ<span class='tooltiptext'>This example is not tested</span></div></div><pre class="rust rust-example-rendered ignore">
+<span class="ident">ocl</span>::<span class="ident">ImageFormat</span> {
+   <span class="ident">channel_order</span>: <span class="ident">ocl</span>::<span class="ident">ImageChannelOrder</span>::<span class="ident">Rgba</span>,
+   <span class="ident">channel_data_type</span>: <span class="ident">ocl</span>::<span class="ident">ImageChannelDataType</span>::<span class="ident">SnormInt8</span>,
+}</pre>
+<ul>
+<li>Descriptor (stores everything else - width, height, pitch, etc.):</li>
+</ul>
+
+<div class='information'><div class='tooltip ignore'>ⓘ<span class='tooltiptext'>This example is not tested</span></div></div><pre class="rust rust-example-rendered ignore">
+<span class="ident">ImageDescriptor</span>::<span class="ident">new</span>(<span class="ident">MemObjectType</span>::<span class="ident">Image1d</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="prelude-val">None</span>)</pre>
+<h2 id="reference" class="section-header"><a href="#reference">Reference</a></h2>
+<p>See the [official SDK documentation] for more information.</p>
+<p>Some descriptions here are adapted from various SDK docs.</p>
+</div><h4 id='method.context' class="method"><span id='context.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.context' class='fnname'>context</a>&lt;'o&gt;(self, context: &amp;'o <a class="struct" href="../../ocl/struct.Context.html" title="struct ocl::Context">Context</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt; <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;'o: 'a,&nbsp;</span></code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1063-1068' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Sets the context with which to associate the buffer.</p>
+<p>May not be used in combination with <code>::queue</code> (use one or the other).</p>
+</div><h4 id='method.queue' class="method"><span id='queue.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.queue' class='fnname'>queue</a>&lt;'b&gt;(self, default_queue: <a class="struct" href="../../ocl/struct.Queue.html" title="struct ocl::Queue">Queue</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1074-1078' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Sets the default queue.</p>
+<p>If this is set, the context associated with the <code>default_queue</code> will
+be used when creating the buffer (use one or the other).</p>
+</div><h4 id='method.flags' class="method"><span id='flags.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.flags' class='fnname'>flags</a>&lt;'b&gt;(self, flags: <a class="struct" href="../../ocl/flags/struct.MemFlags.html" title="struct ocl::flags::MemFlags">MemFlags</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1094-1100' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Sets the flags used when creating the image.</p>
+<p>Defaults to <code>flags::MEM_READ_WRITE</code> aka.
+<code>MemFlags::new().read_write()</code> if this is not set. See the <a href="https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html">SDK Docs</a>
+for more information about flags. Note that the names of all flags in
+this library have the <code>CL_</code> prefix removed for brevity.</p>
+<h3 id="panics" class="section-header"><a href="#panics">Panics</a></h3>
+<p>Due to its unsafety, setting the
+<code>MEM_USE_HOST_PTR</code>/<code>MemFlags::new()::use_host_ptr()</code> flag will cause a
+panic. Use the <code>::use_host_slice</code> method instead.</p>
+</div><h4 id='method.use_host_slice' class="method"><span id='use_host_slice.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub unsafe fn <a href='#method.use_host_slice' class='fnname'>use_host_slice</a>&lt;'d&gt;(<br>&nbsp;&nbsp;&nbsp;&nbsp;self, <br>&nbsp;&nbsp;&nbsp;&nbsp;host_slice: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">&amp;'d [T]</a><br>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt; <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;'d: 'a,&nbsp;</span></code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1131-1137' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Specifies a region of host memory to use as storage for the image.</p>
+<p>OpenCL implementations are allowed to cache the image contents
+pointed to by <code>host_slice</code> in device memory. This cached copy can be
+used when kernels are executed on a device.</p>
+<p>The result of OpenCL commands that operate on multiple image objects
+created with the same <code>host_slice</code> or overlapping host regions is
+considered to be undefined</p>
+<p>Refer to the <a href="https://www.khronos.org/registry/OpenCL/sdk/1.2/docs/man/xhtml/dataTypes.html">description of the alignment</a> rules for
+<code>host_slice</code> for memory objects (buffer and images) created using
+this method.</p>
+<p>Automatically sets the <code>flags::MEM_USE_HOST_PTR</code> aka.
+<code>MemFlags::new().use_host_ptr()</code> flag.</p>
+<h3 id="panics-1" class="section-header"><a href="#panics-1">Panics</a></h3>
+<p><code>::copy_host_slice</code> or <code>::use_host_slice</code> must not have already been
+called.</p>
+<h3 id="safety" class="section-header"><a href="#safety">Safety</a></h3>
+<p>The caller must ensure that <code>host_slice</code> lives until the image is
+destroyed. The caller must also ensure that only one image uses
+<code>host_slice</code> and that it is not tampered with inappropriately.</p>
+</div><h4 id='method.copy_host_slice' class="method"><span id='copy_host_slice.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.copy_host_slice' class='fnname'>copy_host_slice</a>&lt;'d&gt;(self, host_slice: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">&amp;'d [T]</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt; <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;'d: 'a,&nbsp;</span></code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1149-1155' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Specifies a region of memory to copy into the image upon creation.</p>
+<p>Automatically sets the <code>flags::MEM_COPY_HOST_PTR</code> aka.
+<code>MemFlags::new().copy_host_ptr()</code> flag.</p>
+<h3 id="panics-2" class="section-header"><a href="#panics-2">Panics</a></h3>
+<p><code>::copy_host_slice</code> or <code>::use_host_slice</code> must not have already been
+called.</p>
+</div><h4 id='method.channel_order' class="method"><span id='channel_order.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.channel_order' class='fnname'>channel_order</a>(self, order: <a class="enum" href="../../ocl/enums/enum.ImageChannelOrder.html" title="enum ocl::enums::ImageChannelOrder">ImageChannelOrder</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1157-1160' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><h4 id='method.channel_data_type' class="method"><span id='channel_data_type.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.channel_data_type' class='fnname'>channel_data_type</a>(<br>&nbsp;&nbsp;&nbsp;&nbsp;self, <br>&nbsp;&nbsp;&nbsp;&nbsp;data_type: <a class="enum" href="../../ocl/enums/enum.ImageChannelDataType.html" title="enum ocl::enums::ImageChannelDataType">ImageChannelDataType</a><br>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1162-1165' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><h4 id='method.image_type' class="method"><span id='image_type.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.image_type' class='fnname'>image_type</a>(self, image_type: <a class="enum" href="../../ocl/enums/enum.MemObjectType.html" title="enum ocl::enums::MemObjectType">MemObjectType</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1172-1175' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Sets the type of image (technically the type of memory buffer).</p>
+<p>Describes the image type and must be either <code>Image1d</code>, <code>Image1dBuffer</code>,
+<code>Image1dArray</code>, <code>Image2d</code>, <code>Image2dArray</code>, or <code>Image3d</code>.</p>
+</div><h4 id='method.dims' class="method"><span id='dims.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.dims' class='fnname'>dims</a>&lt;D&gt;(self, dims: D) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt; <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;D: <a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="enum" href="../../ocl/enum.SpatialDims.html" title="enum ocl::SpatialDims">SpatialDims</a>&gt;,&nbsp;</span></code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1211-1218' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>The width, height, and depth of an image or image array:</p>
+<p>Some notes adapted from SDK docs:</p>
+<h2 id="width" class="section-header"><a href="#width">Width</a></h2>
+<p>The width of the image in pixels. For a 2D image and image array, the
+image width must be ≤ <code>DeviceInfo::Image2dMaxWidth</code>. For a 3D image, the
+image width must be ≤ <code>DeviceInfo::Image3dMaxWidth</code>. For a 1D image buffer,
+the image width must be ≤ <code>DeviceInfo::ImageMaxBufferSize</code>. For a 1D image
+and 1D image array, the image width must be ≤ <code>DeviceInfo::Image2dMaxWidth</code>.</p>
+<h2 id="height" class="section-header"><a href="#height">Height</a></h2>
+<p>The height of the image in pixels. This is only used if the
+image is a 2D, 3D or 2D image array. For a 2D image or image array, the
+image height must be ≤ <code>DeviceInfo::Image2dMaxHeight</code>. For a 3D image, the
+image height must be ≤ <code>DeviceInfo::Image3dMaxHeight</code>.</p>
+<h2 id="depth" class="section-header"><a href="#depth">Depth</a></h2>
+<p>image_depth The depth of the image in pixels. This is only used if the
+image is a 3D image and must be a value ≥ 1 and ≤
+<code>DeviceInfo::Image3dMaxDepth</code>.</p>
+<h2 id="examples" class="section-header"><a href="#examples">Examples</a></h2>
+<ul>
+<li>To set the dimensions of a 2d image use:
+<code>SpatialDims::Two(width, height)</code>.</li>
+<li>To set the dimensions of a 2d image array use:
+<code>SpatialDims::Three(width, height, array_length)</code>.</li>
+<li>To set the dimensions of a 3d image use:
+<code>SpatialDims::Three(width, height, depth)</code>.</li>
+</ul>
+</div><h4 id='method.array_size' class="method"><span id='array_size.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.array_size' class='fnname'>array_size</a>(self, array_size: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1229-1232' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Image array size.</p>
+<p>The number of images in the image array. This is only used if the image is
+a 1D or 2D image array. The values for image_array_size, if specified,
+must be a value ≥ 1 and ≤ <code>DeviceInfo::ImageMaxArraySize</code>.</p>
+<p>Note that reading and writing 2D image arrays from a kernel with
+image_array_size = 1 may be lower performance than 2D images.</p>
+</div><h4 id='method.row_pitch_bytes' class="method"><span id='row_pitch_bytes.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.row_pitch_bytes' class='fnname'>row_pitch_bytes</a>(self, row_pitch: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1243-1246' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Image row pitch.</p>
+<p>The scan-line pitch in bytes. This must be 0 if host data is <code>None</code> and
+can be either 0 or ≥ image_width * size of element in bytes if host data
+is not <code>None</code>. If host data is not <code>None</code> and image_row_pitch = 0,
+image_row_pitch is calculated as image_width * size of element in bytes.
+If image_row_pitch is not 0, it must be a multiple of the image element
+size in bytes.</p>
+</div><h4 id='method.slc_pitch_bytes' class="method"><span id='slc_pitch_bytes.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.slc_pitch_bytes' class='fnname'>slc_pitch_bytes</a>(self, slc_pitch: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.usize.html">usize</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1260-1263' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Image slice pitch.</p>
+<p>The size in bytes of each 2D slice in the 3D image or the size in bytes of
+each image in a 1D or 2D image array. This must be 0 if host data is
+<code>None</code>. If host data is not <code>None</code>, image_slice_pitch can be either 0 or ≥
+image_row_pitch * image_height for a 2D image array or 3D image and can be
+either 0 or ≥ image_row_pitch for a 1D image array. If host data is not
+<code>None</code> and image_slice_pitch = 0, image_slice_pitch is calculated as
+image_row_pitch * image_height for a 2D image array or 3D image and
+image_row_pitch for a 1D image array. If image_slice_pitch is not 0, it
+must be a multiple of the image_row_pitch.</p>
+</div><h4 id='method.buffer_sync' class="method"><span id='buffer_sync.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.buffer_sync' class='fnname'>buffer_sync</a>(self, buffer: <a class="struct" href="../../ocl_core/types/abs/struct.Mem.html" title="struct ocl_core::types::abs::Mem">MemCore</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1276-1279' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Buffer synchronization.</p>
+<p>Refers to a valid buffer memory object if image_type is
+<code>MemObjectType::Image1dBuffer</code>. Otherwise it must be <code>None</code> (default).
+For a 1D image buffer object, the image pixels are taken from the buffer
+object's data store. When the contents of a buffer object's data store are
+modified, those changes are reflected in the contents of the 1D image
+buffer object and vice-versa at corresponding sychronization points. The
+image_width * size of element in bytes must be ≤ size of buffer object
+data store.</p>
+</div><h4 id='method.image_format' class="method"><span id='image_format.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.image_format' class='fnname'>image_format</a>(self, image_format: <a class="struct" href="../../ocl/builders/struct.ImageFormat.html" title="struct ocl::builders::ImageFormat">ImageFormat</a>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1291-1294' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Specifies the image pixel format.</p>
+<p>If unspecified, defaults to:</p>
+
+<div class='information'><div class='tooltip ignore'>ⓘ<span class='tooltiptext'>This example is not tested</span></div></div><pre class="rust rust-example-rendered ignore">
+<span class="ident">ImageFormat</span> {
+   <span class="ident">channel_order</span>: <span class="ident">ImageChannelOrder</span>::<span class="ident">Rgba</span>,
+   <span class="ident">channel_data_type</span>: <span class="ident">ImageChannelDataType</span>::<span class="ident">SnormInt8</span>,
+}</pre>
+</div><h4 id='method.image_desc' class="method"><span id='image_desc.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub unsafe fn <a href='#method.image_desc' class='fnname'>image_desc</a>(<br>&nbsp;&nbsp;&nbsp;&nbsp;self, <br>&nbsp;&nbsp;&nbsp;&nbsp;image_desc: <a class="struct" href="../../ocl/builders/struct.ImageDescriptor.html" title="struct ocl::builders::ImageDescriptor">ImageDescriptor</a><br>) -&gt; <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1329-1332' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Specifies the image descriptor containing a number of important settings.</p>
+<p>If unspecified (not recommended), defaults to:</p>
+
+<div class='information'><div class='tooltip ignore'>ⓘ<span class='tooltiptext'>This example is not tested</span></div></div><pre class="rust rust-example-rendered ignore">
+<span class="ident">ImageDescriptor</span> {
+    <span class="ident">image_type</span>: <span class="ident">MemObjectType</span>::<span class="ident">Image1d</span>,
+    <span class="ident">image_width</span>: <span class="number">0</span>,
+    <span class="ident">image_height</span>: <span class="number">0</span>,
+    <span class="ident">image_depth</span>: <span class="number">0</span>,
+    <span class="ident">image_array_size</span>: <span class="number">0</span>,
+    <span class="ident">image_row_pitch</span>: <span class="number">0</span>,
+    <span class="ident">image_slice_pitch</span>: <span class="number">0</span>,
+    <span class="ident">num_mip_levels</span>: <span class="number">0</span>,
+    <span class="ident">num_samples</span>: <span class="number">0</span>,
+    <span class="ident">buffer</span>: <span class="prelude-val">None</span>,
+}</pre>
+<p>If you are unsure, just set the first four by using
+<code>ImageDescriptor::new</code>. Ex.:</p>
+
+<div class='information'><div class='tooltip ignore'>ⓘ<span class='tooltiptext'>This example is not tested</span></div></div><pre class="rust rust-example-rendered ignore">
+<span class="ident">ocl</span>::<span class="ident">Image</span>::<span class="ident">builder</span>()
+   .<span class="ident">image_desc</span>(<span class="ident">ocl</span>::<span class="ident">ImageDescriptor</span>::<span class="ident">new</span>(
+      <span class="ident">ocl</span>::<span class="ident">MemObjectType</span>::<span class="ident">Image2d</span>, <span class="number">1280</span>, <span class="number">800</span>, <span class="number">1</span>))
+   ...
+   ...
+   .<span class="ident">build</span>()</pre>
+<p>Setting this overwrites any previously set type, dimensions, array size, pitch, etc.</p>
+</div><h4 id='method.build' class="method"><span id='build.v' class='invisible'><table class='table-display'><tbody><tr><td><code>pub fn <a href='#method.build' class='fnname'>build</a>(self) -&gt; <a class="type" href="../../ocl/error/type.Result.html" title="type ocl::error::Result">OclResult</a>&lt;<a class="struct" href="../../ocl/struct.Image.html" title="struct ocl::Image">Image</a>&lt;T&gt;&gt;</code></span></td><td><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/ocl/standard/image.rs.html#1336-1358' title='goto source code'>[src]</a></td></tr></tbody></table></span></h4><div class='docblock'><p>Builds with no host side image data memory specified and returns a
+new <code>Image</code>.</p>
+</div></div>
+                <h2 id='synthetic-implementations' class='small-section-header'>
+                  Auto Trait Implementations<a href='#synthetic-implementations' class='anchor'></a>
+                </h2>
+                <div id='synthetic-implementations-list'>
+            <h3 id='impl-Send' class='impl'><span class='in-band'><table class='table-display'><tbody><tr><td><code>impl&lt;'a, T&gt; <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> for <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt; <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;T: <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>,&nbsp;</span></code><a href='#impl-Send' class='anchor'></a></span></td><td><span class='out-of-band'></span></td></tr></tbody></table></h3><div class='impl-items'></div><h3 id='impl-Sync' class='impl'><span class='in-band'><table class='table-display'><tbody><tr><td><code>impl&lt;'a, T&gt; <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> for <a class="struct" href="../../ocl/builders/struct.ImageBuilder.html" title="struct ocl::builders::ImageBuilder">ImageBuilder</a>&lt;'a, T&gt; <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;T: <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>,&nbsp;</span></code><a href='#impl-Sync' class='anchor'></a></span></td><td><span class='out-of-band'></span></td></tr></tbody></table></h3><div class='impl-items'></div></div></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "ocl";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

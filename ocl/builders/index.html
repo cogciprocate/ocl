@@ -1,0 +1,181 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `builders` mod in crate `ocl`."><meta name="keywords" content="rust, rustlang, rust-lang, builders"><title>ocl::builders - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><p class='location'>Module builders</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li></ul></div><p class='location'><a href='../index.html'>ocl</a></p><script>window.sidebarCurrent = {name: 'builders', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>ocl</a>::<wbr><a class="mod" href=''>builders</a></span><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/ocl/lib.rs.html#132-142' title='goto source code'>[src]</a></span></h1><div class='docblock'><p>Builders and associated settings-related types.</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.BufferBuilder.html"
+                                  title='struct ocl::builders::BufferBuilder'>BufferBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>A buffer builder.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.BufferCmd.html"
+                                  title='struct ocl::builders::BufferCmd'>BufferCmd</a></td>
+                           <td class='docblock-short'>
+                                <p>A buffer command builder used to enqueue reads, writes, fills, and copies.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.BufferMapCmd.html"
+                                  title='struct ocl::builders::BufferMapCmd'>BufferMapCmd</a></td>
+                           <td class='docblock-short'>
+                                <p>A command builder used to enqueue a map command.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.BufferReadCmd.html"
+                                  title='struct ocl::builders::BufferReadCmd'>BufferReadCmd</a></td>
+                           <td class='docblock-short'>
+                                <p>A buffer command builder used to enqueue reads.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.BufferWriteCmd.html"
+                                  title='struct ocl::builders::BufferWriteCmd'>BufferWriteCmd</a></td>
+                           <td class='docblock-short'>
+                                <p>A buffer command builder used to enqueue writes.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ContextBuilder.html"
+                                  title='struct ocl::builders::ContextBuilder'>ContextBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>A builder for <code>Context</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ContextProperties.html"
+                                  title='struct ocl::builders::ContextProperties'>ContextProperties</a></td>
+                           <td class='docblock-short'>
+                                <p>Context properties list.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ImageBuilder.html"
+                                  title='struct ocl::builders::ImageBuilder'>ImageBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>A builder for <code>Image</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ImageCmd.html"
+                                  title='struct ocl::builders::ImageCmd'>ImageCmd</a></td>
+                           <td class='docblock-short'>
+                                <p>An image command builder for enqueuing reads, writes, fills, and copies.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ImageDescriptor.html"
+                                  title='struct ocl::builders::ImageDescriptor'>ImageDescriptor</a></td>
+                           <td class='docblock-short'>
+                                <p>An image descriptor use in the creation of <code>Image</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ImageFormat.html"
+                                  title='struct ocl::builders::ImageFormat'>ImageFormat</a></td>
+                           <td class='docblock-short'>
+                                <p>Image format properties used by <code>Image</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.KernelBuilder.html"
+                                  title='struct ocl::builders::KernelBuilder'>KernelBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>A kernel builder.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.KernelCmd.html"
+                                  title='struct ocl::builders::KernelCmd'>KernelCmd</a></td>
+                           <td class='docblock-short'>
+                                <p>A kernel command builder used to enqueue a kernel with a mix of default
+and optionally specified arguments.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ProQueBuilder.html"
+                                  title='struct ocl::builders::ProQueBuilder'>ProQueBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>A builder for <code>ProQue</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ProgramBuilder.html"
+                                  title='struct ocl::builders::ProgramBuilder'>ProgramBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>A builder for <code>Program</code>.</p>
+
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.BufferCmdDataShape.html"
+                                  title='enum ocl::builders::BufferCmdDataShape'>BufferCmdDataShape</a></td>
+                           <td class='docblock-short'>
+                                <p>The 'shape' of the data to be processed, whether one or multi-dimensional.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.BufferCmdKind.html"
+                                  title='enum ocl::builders::BufferCmdKind'>BufferCmdKind</a></td>
+                           <td class='docblock-short'>
+                                <p>The type of operation to be performed by a command.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.BuildOpt.html"
+                                  title='enum ocl::builders::BuildOpt'>BuildOpt</a></td>
+                           <td class='docblock-short'>
+                                <p>A build option used by ProgramBuilder.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ClNullEventPtrEnum.html"
+                                  title='enum ocl::builders::ClNullEventPtrEnum'>ClNullEventPtrEnum</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ClWaitListPtrEnum.html"
+                                  title='enum ocl::builders::ClWaitListPtrEnum'>ClWaitListPtrEnum</a></td>
+                           <td class='docblock-short'>
+                                <p>An enum which can represent several different ways of representing a
+event wait list.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.DeviceSpecifier.html"
+                                  title='enum ocl::builders::DeviceSpecifier'>DeviceSpecifier</a></td>
+                           <td class='docblock-short'>
+                                <p>Specifies [what boils down to] a list of devices.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ImageCmdKind.html"
+                                  title='enum ocl::builders::ImageCmdKind'>ImageCmdKind</a></td>
+                           <td class='docblock-short'>
+                                <p>The type of operation to be performed by a command.</p>
+
+                           </td>
+                       </tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "ocl";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

@@ -1,0 +1,1 @@
+initSidebarItems({"macro":[["colorify","Adds color to a formatting literal."],["help","Returns a help string which lists all of the colors."],["printc","`print!` with all the glorious colors of the the ANSI rainbow."],["printlnc","`println!` with color."]]});

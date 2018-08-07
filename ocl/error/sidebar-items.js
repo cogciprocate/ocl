@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ErrorKind","An enum containing either a `String` or one of several other error types."]],"struct":[["Error","An Error."]],"type":[["Result",""]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["WorkPoolError","An error associated with `WorkPool`."]],"struct":[["WorkPool","A general purpose work completion pool."]]});

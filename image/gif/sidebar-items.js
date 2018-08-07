@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["DisposalMethod","Disposal method"]],"struct":[["Decoder","GIF decoder"],["Encoder","GIF encoder."],["Frame","A GIF frame"]]});
