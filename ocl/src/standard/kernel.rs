@@ -1,6 +1,7 @@
 //! An OpenCL kernel.
 
 use std;
+use std::borrow::Cow;
 use std::ops::Deref;
 use std::any::Any;
 use std::any::TypeId;
@@ -213,19 +214,19 @@ impl<'k> KernelCmd<'k> {
 
 
 /// Converts an argument index specifier to `u32`.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum ArgIdxSpecifier {
     Uint(u32),
-    Str(&'static str),
+    Str(Cow<'static, str>),
 }
 
 impl ArgIdxSpecifier {
     // Resolves this specifier into an integer index using the specified
     // argument map if necessary.
     fn to_idx(&self, named_args: &NamedArgs) -> OclResult<u32> {
-        match *self {
-            ArgIdxSpecifier::Uint(idx) => Ok(idx),
-            ArgIdxSpecifier::Str(s) => named_args.resolve_idx(s),
+        match self {
+            &ArgIdxSpecifier::Uint(idx) => Ok(idx),
+            &ArgIdxSpecifier::Str(ref s) => named_args.resolve_idx(&s),
         }
     }
 }
@@ -250,7 +251,13 @@ impl From<usize> for ArgIdxSpecifier {
 
 impl From<&'static str> for ArgIdxSpecifier {
     fn from(s: &'static str) -> ArgIdxSpecifier {
-        ArgIdxSpecifier::Str(s)
+        ArgIdxSpecifier::Str(s.into())
+    }
+}
+
+impl From<String> for ArgIdxSpecifier {
+    fn from(s: String) -> ArgIdxSpecifier {
+        ArgIdxSpecifier::Str(s.into())
     }
 }
 
@@ -414,7 +421,7 @@ impl NamedArgs {
     }
 
     /// Resolves the index of a named argument with a friendly error message.
-    fn resolve_idx(&self, name: &'static str) -> OclResult<u32> {
+    fn resolve_idx(&self, name: &str) -> OclResult<u32> {
         match self.0 {
             Some(ref map) => {
                 match map.get(name) {
