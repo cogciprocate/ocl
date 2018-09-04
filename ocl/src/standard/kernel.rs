@@ -1364,6 +1364,16 @@ impl<'b> KernelBuilder<'b> {
 
     /// Builds and returns a new `Kernel`
     pub fn build(&self) -> OclResult<Kernel> {
+        self.build_common(true)
+    }
+
+    /// Builds and returns a new `Kernel` when not all of the arguments are set
+    pub fn build_unfinished(&self) -> OclResult<Kernel> {
+        self.build_common(false)
+    }
+
+    /// Builds and returns a new `Kernel`
+    fn build_common(&self, check_length: bool) -> OclResult<Kernel> {
         let program = self.program.ok_or(KernelError::BuilderNoProgram)?;
         let name = self.name.as_ref().ok_or(KernelError::BuilderNoKernelName)?;
 
@@ -1375,7 +1385,7 @@ impl<'b> KernelBuilder<'b> {
             _=> unreachable!(),
         };
 
-        if self.args.len() as u32 != num_args {
+        if check_length && self.args.len() as u32 != num_args {
             return Err(KernelError::BuilderWrongArgCount {
                 required: num_args,
                 specified: self.args.len() as u32,
