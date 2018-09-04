@@ -409,11 +409,11 @@ impl<'b, T> From<T> for ArgValConverter<'b, T> where T: OclPrm {
 
 /// A map of argument names -> indexes.
 #[derive(Clone, Debug)]
-struct NamedArgs(Option<HashMap<&'static str, u32>>);
+struct NamedArgs(Option<HashMap<Cow<'static, str>, u32>>);
 
 impl NamedArgs {
     /// Inserts a named argument into the map.
-    fn insert(&mut self, name: &'static str, arg_idx: u32) {
+    fn insert(&mut self, name: Cow<'static, str>, arg_idx: u32) {
         if self.0.is_none() {
             self.0 = Some(HashMap::with_capacity(8));
         }
@@ -1250,11 +1250,11 @@ impl<'b> KernelBuilder<'b> {
     /// // We can also set arguments (named or not) by index:
     /// kern.set_arg(2, &result_buffer)?;
     /// ```
-    pub fn arg_named<'s, T, A>(&'s mut self, name: &'static str, arg: A) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm, A: Into<ArgValConverter<'b, T>> {
+    pub fn arg_named<'s, T, S, A>(&'s mut self, name: S, arg: A) -> &'s mut KernelBuilder<'b>
+            where S: Into<Cow<'static, str>>, T: OclPrm, A: Into<ArgValConverter<'b, T>> {
         let arg = arg.into();
         let arg_idx = self.new_arg(arg.val, arg.type_id, arg.mem);
-        self.named_args.insert(name, arg_idx);
+        self.named_args.insert(name.into(), arg_idx);
         self
     }
 
@@ -1265,10 +1265,10 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
     #[deprecated(since = "0.18", note = "Use ::arg_named instead.")]
-    pub fn arg_buf_named<'s, T, M>(&'s mut self, name: &'static str, buffer_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+    pub fn arg_buf_named<'s, T, S, M>(&'s mut self, name: S, buffer_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
+            where S: Into<Cow<'static, str>>, T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
-        self.named_args.insert(name, arg_idx);
+        self.named_args.insert(name.into(), arg_idx);
         self
     }
 
@@ -1279,10 +1279,10 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Named arguments can be easily modified later using `::set_arg_img_named()`.
     #[deprecated(since = "0.18", note = "Use ::arg_named instead.")]
-    pub fn arg_img_named<'s, T, M>(&'s mut self, name: &'static str, image_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
-            where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
+    pub fn arg_img_named<'s, T, S, M>(&'s mut self, name: S, image_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
+            where S: Into<Cow<'static, str>>, T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         let arg_idx = self.new_arg_img::<T, _>(image_opt);
-        self.named_args.insert(name, arg_idx);
+        self.named_args.insert(name.into(), arg_idx);
         self
     }
 
@@ -1293,9 +1293,10 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
     #[deprecated(since = "0.18", note = "Use ::arg_sampler_named instead.")]
-    pub fn arg_smp_named<'s>(&'s mut self, name: &'static str, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b> {
+    pub fn arg_smp_named<'s, S>(&'s mut self, name: S, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b>
+    where S: Into<Cow<'static, str>> {
         let arg_idx = self.new_arg_smp(sampler_opt);
-        self.named_args.insert(name, arg_idx);
+        self.named_args.insert(name.into(), arg_idx);
         self
     }
 
@@ -1310,7 +1311,7 @@ impl<'b> KernelBuilder<'b> {
     pub fn arg_scl_named<'s, T>(&'s mut self, name: &'static str, scalar: T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         let arg_idx = self.new_arg_scl(scalar);
-        self.named_args.insert(name, arg_idx);
+        self.named_args.insert(name.into(), arg_idx);
         self
     }
 
@@ -1325,7 +1326,7 @@ impl<'b> KernelBuilder<'b> {
     pub fn arg_vec_named<'s, T>(&'s mut self, name: &'static str, vector: T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         let arg_idx = self.new_arg_vec(vector);
-        self.named_args.insert(name, arg_idx);
+        self.named_args.insert(name.into(), arg_idx);
         self
     }
 
@@ -1337,7 +1338,7 @@ impl<'b> KernelBuilder<'b> {
     /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
     pub fn arg_sampler_named<'s>(&'s mut self, name: &'static str, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b> {
         let arg_idx = self.new_arg_smp(sampler_opt);
-        self.named_args.insert(name, arg_idx);
+        self.named_args.insert(name.into(), arg_idx);
         self
     }
 

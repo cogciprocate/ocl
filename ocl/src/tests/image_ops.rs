@@ -100,7 +100,7 @@ fn image_ops() {
 
     let kernel_fill_src = proque.kernel_builder("fill")
         .arg_sampler(&sampler)
-        .arg_named::<Int4, _>("pixel", &Int4::splat(0))
+        .arg_named::<Int4, _, _>("pixel", &Int4::splat(0))
         .arg(&img_src)
         .build().unwrap();
 
