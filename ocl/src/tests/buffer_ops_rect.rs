@@ -164,7 +164,7 @@ fn buffer_ops_rect() {
     // and which can be updated on each run (to act as a 'reset').
     let kernel_eq = proque.kernel_builder("eq")
         .arg_named("buf", Some(&buf))
-        .arg_named("val", 0.0f32)
+        .arg_named("val".to_owned(), 0.0f32)
         .build().unwrap();
 
     // Vector origin doesn't matter for this:
