@@ -259,25 +259,33 @@ impl From<&'static str> for ArgIdxSpecifier {
 #[derive(Debug, Clone)]
 enum ArgValKeeper<'b> {
     Shared(ArgVal<'b>),
-    Owned(Vec<u8>),
+    OwnedPrm(Vec<u8>),
+    OwnedMem(MemCore),
 }
 
 impl<'b> ArgValKeeper<'b> {
-    pub fn owned<T>(prm: T) -> ArgValKeeper<'b> where T: OclPrm {
-        unsafe { ArgValKeeper::Owned(util::into_bytes(prm)) }
+    fn owned_prm<T>(prm: T) -> ArgValKeeper<'b> where T: OclPrm {
+        unsafe { ArgValKeeper::OwnedPrm(util::into_bytes(prm)) }
     }
 
-    pub fn mem_null() -> ArgValKeeper<'b> {
+    fn owned_mem<T>(buf: MemCore) -> ArgValKeeper<'b> where T: OclPrm {
+        ArgValKeeper::OwnedMem(buf)
+    }
+
+    fn mem_null() -> ArgValKeeper<'b> {
         ArgValKeeper::Shared(ArgVal::mem_null())
     }
 
     /// Returns the size (in bytes) and raw pointer to the contained kernel
     /// argument value.
-    pub fn to_arg_val(&'b self) -> ArgVal<'b> {
+    fn to_arg_val(&'b self) -> ArgVal<'b> {
         match *self {
             ArgValKeeper::Shared(ref av) => av.clone(),
-            ArgValKeeper::Owned(ref bytes) => {
+            ArgValKeeper::OwnedPrm(ref bytes) => {
                 unsafe { ArgVal::from_raw(bytes.len(), bytes.as_ptr() as *const c_void) }
+            }
+            ArgValKeeper::OwnedMem(ref mem) => {
+                ArgVal::mem(mem)
             }
         }
     }
@@ -333,6 +341,18 @@ impl<'b, T> From<&'b mut Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
 //     }
 // }
 
+impl<'b, T> From<Buffer<T>> for ArgValConverter<'b, T> where T: OclPrm {
+    /// Converts from an owned `Buffer`.
+    fn from(buf: Buffer<T>) -> ArgValConverter<'b, T> {
+        ArgValConverter {
+            val: ArgValKeeper::owned_mem::<T>(buf.as_mem().clone()),
+            type_id: Some(TypeId::of::<T>()),
+            mem: Some(buf.as_mem().clone()),
+            _ty: PhantomData,
+        }
+    }
+}
+
 impl<'b, T> From<Option<&'b Image<T>>> for ArgValConverter<'b, T> where T: OclPrm {
     /// Converts from an Option<`Image`>.
     fn from(img: Option<&'b Image<T>>) -> ArgValConverter<'b, T> {
@@ -374,6 +394,18 @@ impl<'b, T> From<&'b mut Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
 //     }
 // }
 
+impl<'b, T> From<Image<T>> for ArgValConverter<'b, T> where T: OclPrm {
+    /// Converts from an owned `Image`.
+    fn from(img: Image<T>) -> ArgValConverter<'b, T> {
+        ArgValConverter {
+            val: ArgValKeeper::owned_mem::<T>(img.as_mem().clone()),
+            type_id: Some(TypeId::of::<T>()),
+            mem: Some(img.as_mem().clone()),
+            _ty: PhantomData,
+        }
+    }
+}
+
 impl<'b, T> From<&'b T> for ArgValConverter<'b, T> where T: OclPrm {
     /// Converts from a scalar or vector value.
     fn from(prm: &'b T) -> ArgValConverter<'b, T> {
@@ -390,7 +422,7 @@ impl<'b, T> From<T> for ArgValConverter<'b, T> where T: OclPrm {
     /// Converts from a scalar or vector value.
     fn from(prm: T) -> ArgValConverter<'b, T> {
         ArgValConverter {
-            val: ArgValKeeper::owned(prm),
+            val: ArgValKeeper::owned_prm(prm),
             type_id: Some(TypeId::of::<T>()),
             mem: None,
             _ty: PhantomData,
@@ -1094,13 +1126,13 @@ impl<'b> KernelBuilder<'b> {
     /// Non-builder-style version of `::arg_scl()`.
     fn new_arg_scl<T>(&mut self, scalar: T) -> u32
             where T: OclPrm {
-        self.new_arg(ArgValKeeper::owned(scalar), Some(TypeId::of::<T>()), None)
+        self.new_arg(ArgValKeeper::owned_prm(scalar), Some(TypeId::of::<T>()), None)
     }
 
     /// Non-builder-style version of `::arg_vec()`.
     fn new_arg_vec<T>(&mut self, vector: T) -> u32
             where T: OclPrm {
-        self.new_arg(ArgValKeeper::owned(vector), Some(TypeId::of::<T>()), None)
+        self.new_arg(ArgValKeeper::owned_prm(vector), Some(TypeId::of::<T>()), None)
     }
 
     /// Non-builder-style version of `::arg_loc()`.

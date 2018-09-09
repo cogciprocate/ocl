@@ -1,3 +1,13 @@
+Version 0.XX.X (UNRELEASED)
+===========================
+
+* Allow owned buffers and images to be passed to `KernelBuilder` (and
+  `Kernel`) argument-setting methods such as `::arg`. Doing so removes any
+  lifetime constraints on `KernelBuilder` allowing it to be cloned and moved
+  without regard to the lifetime of a buffer or image. Passing buffer or image
+  references will continue to use lifetimes and is negligibly more efficient.
+
+
 Version 0.19.0 (2018-09-02)
 ===========================
 

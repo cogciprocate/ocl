@@ -16,7 +16,7 @@ pub mod image_ops;
 pub mod buffer_fill;
 pub mod clear_completed;
 pub mod concurrent;
-pub mod kernel_arg_ptr;
+pub mod kernel_arg;
 pub mod vector_types;
 pub mod context_props;
 pub mod async;
