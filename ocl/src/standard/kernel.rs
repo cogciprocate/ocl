@@ -1849,3 +1849,29 @@ pub mod arg_type {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use ::ProQue;
+
+    #[test]
+    fn set_local_arg() -> ::Result<()> {
+        let src = r#"
+            __kernel void local_args(__local double* localVec) {
+
+            }
+        "#;
+
+        let pro_que = ProQue::builder()
+            .src(src)
+            .build()?;
+
+        let kernel_diff = pro_que.kernel_builder("local_args")
+            .global_work_size(1)
+            .arg_local::<f64>(64)
+            .build()?;
+
+        unsafe { kernel_diff.enq()?; }
+        Ok(())
+    }
+}
