@@ -584,7 +584,7 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
     Ok(device_ids)
 }
 
-/// Returns raw information about a device, as a vector of bytes. 
+/// Returns raw information about a device, as a vector of bytes.
 pub fn get_device_info_raw<D: ClDeviceIdPtr>(device: D, request: u32) -> OclCoreResult<Vec<u8>> {
     let mut result_size: size_t = 0;
 
