@@ -1,4 +1,4 @@
-Version 0.XX.X (UNRELEASED)
+Version 0.19.1 (2018-09-28)
 ===========================
 
 * Allow owned buffers and images to be passed to `KernelBuilder` (and
@@ -6,6 +6,14 @@ Version 0.XX.X (UNRELEASED)
   lifetime constraints on `KernelBuilder` allowing it to be cloned and moved
   without regard to the lifetime of a buffer or image. Passing buffer or image
   references will continue to use lifetimes and is negligibly more efficient.
+
+Bug Fixes
+---------
+
+* Revert change made in [#114](https://github.com/cogciprocate/ocl/pull/114)
+  which broke the ability to declare local kernel arguments via the
+  `KernelBuilder`.
+  * Add a test for local kernel arguments.
 
 
 Version 0.19.0 (2018-09-02)
