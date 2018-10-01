@@ -148,10 +148,11 @@ impl TestContent for CLGenVBO {
 
         // Create a kernel with arguments corresponding to those in the kernel:
         let kern = ocl_pq
-            .create_kernel("fill_vbo")
-            .unwrap()
-            .arg_buf(&cl_buff)
-            .gws(BUFFER_LENGTH);
+            .kernel_builder("fill_vbo")
+            .global_work_size(BUFFER_LENGTH)
+            .arg(&cl_buff)
+            .build()
+            .unwrap();
 
         // get GL Objects
         let mut acquire_globj_event: ocl::Event = ocl::Event::empty();
