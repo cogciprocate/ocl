@@ -7,6 +7,7 @@ extern crate futures;
 pub mod sub_buffer_pool;
 pub mod command_graph;
 pub mod work_pool;
+pub mod full_device_info;
 
 pub use self::sub_buffer_pool::SubBufferPool;
 pub use self::command_graph::{CommandGraph, Command, CommandDetails, KernelArgBuffer, RwCmdIdxs};
