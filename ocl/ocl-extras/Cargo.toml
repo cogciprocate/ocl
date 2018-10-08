@@ -1,6 +1,6 @@
 [package]
 name = "ocl-extras"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/cogciprocate/ocl"
@@ -14,7 +14,7 @@ for others to use within their own projects.
 [dependencies.ocl]
 path = ".."
 # git = "https://github.com/cogciprocate/ocl"
-# version = "0.15"
+version = "0.19"
 # default-features = false
 # features = ["opencl_version_1_1", "opencl_version_1_2"]
 
