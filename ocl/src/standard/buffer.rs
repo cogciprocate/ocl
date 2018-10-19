@@ -1706,11 +1706,11 @@ impl<T: OclPrm> Buffer<T> {
         let obj_core = core::create_buffer(ctx_ref, flags, len, host_slice)?;
 
         debug_assert!({
-            let l_r = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
-                MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<T>(),
+            let size_info = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
+                MemInfoResult::Size(len_bytes) => len_bytes,
                 _ => unreachable!(),
             };
-            l_r == len
+            size_info >= (::std::mem::size_of::<T>() * len)
         });
 
         let buf = Buffer {
