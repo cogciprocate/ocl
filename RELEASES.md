@@ -1,3 +1,8 @@
+Version 0.19.2 (UNRELEASED)
+===========================
+
+* Change `CL_BUILD_...` const types to signed integers.
+
 Version 0.19.1 (2018-09-28)
 ===========================
 

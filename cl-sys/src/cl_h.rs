@@ -541,10 +541,10 @@ pub const CL_PROGRAM_BINARY_TYPE_LIBRARY:               cl_bitfield = 0x2;
 pub const CL_PROGRAM_BINARY_TYPE_EXECUTABLE:            cl_bitfield = 0x4;
 
 // cl_build_status:
-pub const CL_BUILD_SUCCESS:                             cl_uint = 0;
-pub const CL_BUILD_NONE:                                cl_uint = !0 - 1;
-pub const CL_BUILD_ERROR:                               cl_uint = !0 - 2;
-pub const CL_BUILD_IN_PROGRESS:                         cl_uint = !0 - 3;
+pub const CL_BUILD_SUCCESS:                             cl_int = 0;
+pub const CL_BUILD_NONE:                                cl_int = -1;
+pub const CL_BUILD_ERROR:                               cl_int = -2;
+pub const CL_BUILD_IN_PROGRESS:                         cl_int = -3;
 
 // cl_kernel_info:
 pub const CL_KERNEL_FUNCTION_NAME:                      cl_uint = 0x1190;
