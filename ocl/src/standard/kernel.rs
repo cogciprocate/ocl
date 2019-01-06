@@ -1424,7 +1424,7 @@ impl<'b> KernelBuilder<'b> {
 
         let mut arg_types = Vec::with_capacity(num_args as usize);
         let mut all_arg_types_unknown = true;
-        let mut disable_arg_check = false;
+        let mut disable_arg_check = self.disable_arg_check;
 
         // Cache argument types for later use, bypassing if the OpenCL version
         // is too low (v1.1).
