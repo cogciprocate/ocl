@@ -37,5 +37,5 @@ fn compile_program() {
     ::compile_program(&program, some_dev, &options, &[&header],  &[CString::new("world.cl").unwrap()],
          None, None).unwrap();
     ::compile_program(&program2, some_dev, &options, &[], &[], None, None).unwrap();
-    ::link_program(&context, some_dev, &options, &[&program2, &program2], None, None).unwrap();
+    ::link_program(&context, some_dev, &options, &[&program, &program2], None, None).unwrap();
 }
