@@ -1804,38 +1804,118 @@ pub fn build_program<D: ClDeviceIdPtr>(
     }
 }
 
-/// [UNIMPLEMENTED: Please implement me]
+/// Compiles a program’s source for all the devices or a specific device(s) in
+/// the OpenCL context associated with program.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub fn compile_program(device_version: Option<&OpenclVersion>) -> OclCoreResult<()> {
-    // clCompileProgram(program: cl_program,
-    //                 num_devices: cl_uint,
-    //                 device_list: *const cl_device_id,
-    //                 options: *const c_char,
-    //                 num_input_headers: cl_uint,
-    //                 input_headers: *const cl_program,
-    //                 header_include_names: *const *const c_char,
-    //                 pfn_notify: extern fn (program: cl_program, user_data: *mut c_void),
-    //                 user_data: *mut c_void) -> cl_int;
-    let _ = device_version;
-    unimplemented!();
+#[cfg(feature = "opencl_version_1_2")]
+pub fn compile_program<D: ClDeviceIdPtr>(
+            program: &Program,
+            devices: Option<&[D]>,
+            options: &CString,
+            input_headers: &[&Program],
+            header_include_names: &[CString],
+            pfn_notify: Option<BuildProgramCallbackFn>,
+            user_data: Option<Box<UserDataPh>>,
+        ) -> OclCoreResult<()>
+{
+    assert!(pfn_notify.is_none() && user_data.is_none(),
+        "ocl::core::compile_program(): Callback functions not yet implemented.");
+
+    assert!(input_headers.len() == header_include_names.len(),
+        "ocl::core::compile_program(): Length of input_headers and header_include_names should be equal.");
+
+    let (devices_len, devices_ptr) = match devices {
+        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
+        None => (0, ptr::null() as *const cl_device_id),
+    };
+
+    let input_hdrs_ptrs: Vec<_> = input_headers.iter().map(|cs| cs.as_ptr()).collect();
+    let hdrs_names_ptrs: Vec<*const _> = header_include_names.iter().map(|cs| cs.as_ptr()).collect();
+
+    // Will crash if ptrs is not NULL, but len is 0
+    let (input_ptr, names_ptr) = if input_headers.len()==0 {
+        (ptr::null(), ptr::null())
+    } else {
+        (input_hdrs_ptrs.as_ptr(), hdrs_names_ptrs.as_ptr())
+    };
+
+    let user_data = match user_data {
+        Some(ud) => ud.unwrapped(),
+        None => ptr::null_mut(),
+    };
+
+    let errcode = unsafe { ffi::clCompileProgram(
+        program.as_ptr() as cl_program,
+        devices_len,
+        devices_ptr,
+        options.as_ptr(),
+        input_hdrs_ptrs.len() as cl_uint,
+        input_ptr as *const cl_program,
+        names_ptr as *const *const _,
+        pfn_notify,
+        user_data,
+    ) };
+
+    if errcode == Status::CL_COMPILE_PROGRAM_FAILURE as i32 {
+        if let Some(ds) = devices {
+            program_build_err(program, ds).map_err(|err| err.into())
+        } else {
+            let ds = program.devices()?;
+            program_build_err(program, &ds).map_err(|err| err.into())
+        }
+    } else {
+        eval_errcode(errcode, (), "clCompileProgram", None::<String>)
+    }
 }
 
-/// [UNIMPLEMENTED: Please implement me]
+/// Links a set of compiled program objects and libraries for all the devices
+/// or a specific device(s) in the OpenCL context and creates an executable.
 ///
 /// [Version Controlled: OpenCL 1.2+] See module docs for more info.
-pub fn link_program(device_version: Option<&OpenclVersion>) -> OclCoreResult<()> {
-    // clLinkProgram(context: cl_context,
-    //               num_devices: cl_uint,
-    //               device_list: *const cl_device_id,
-    //               options: *const c_char,
-    //               num_input_programs: cl_uint,
-    //               input_programs: *const cl_program,
-    //               pfn_notify: extern fn (program: cl_program, user_data: *mut c_void),
-    //               user_data: *mut c_void,
-    //               errcode_ret: *mut cl_int) -> cl_program;
-    let _ = device_version;
-    unimplemented!();
+#[cfg(feature = "opencl_version_1_2")]
+pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
+            context: C,
+            devices: Option<&[D]>,
+            options: &CString,
+            input_programs: &[&Program],
+            pfn_notify: Option<BuildProgramCallbackFn>,
+            user_data: Option<Box<UserDataPh>>,
+        ) -> OclCoreResult<Program>
+{
+    try!(verify_context(context));
+
+    assert!(pfn_notify.is_none() && user_data.is_none(),
+        "ocl::core::link_program(): Callback functions not yet implemented.");
+
+    let (devices_len, devices_ptr) = match devices {
+        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
+        None => (0, ptr::null() as *const cl_device_id),
+    };
+
+    let input_programs_ptrs: Vec<_> = input_programs.iter().map(|cs| cs.as_ptr()).collect();
+
+    let user_data = match user_data {
+        Some(ud) => ud.unwrapped(),
+        None => ptr::null_mut(),
+    };
+
+    let mut errcode: cl_int = 0;
+
+    let program_ptr = unsafe { ffi::clLinkProgram(
+        context.as_ptr(),
+        devices_len,
+        devices_ptr,
+        options.as_ptr(),
+        input_programs_ptrs.len() as cl_uint,
+        input_programs_ptrs.as_ptr() as *const cl_program,
+        pfn_notify,
+        user_data,
+        &mut errcode,
+    ) };
+
+    eval_errcode(errcode, program_ptr, "clLinkProgram", None::<String>)
+        .map(|ptr| unsafe { Program::from_raw_create_ptr(ptr) })
 }
 
 // [DISABLED DUE TO PLATFORM INCOMPATABILITY]

@@ -18,6 +18,7 @@ pub mod build_error;
 pub mod buffer_copy;
 pub mod buffer_fill;
 pub mod vector_types;
+pub mod compile_program;
 use self::rand::Rng;
 use error::{Result as OclCoreResult};
 use ::{OclScl, PlatformId, DeviceId, Context};
