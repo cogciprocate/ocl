@@ -269,6 +269,8 @@ pub(crate) enum ApiFunction {
     EnqueueMarkerWithWaitList,
     EnqueueBarrierWithWaitList,
     GetExtensionFunctionAddressForPlatform,
+    CompileProgram,
+    LinkProgram,
 }
 
 
@@ -1719,8 +1721,6 @@ pub fn create_program_with_il<C>(
         ) -> OclCoreResult<Program>
         where C: ClContextPtr + ClVersions
 {
-    // verify_device_versions(device_versions, [2, 1], )
-    //     .chain_err(|| "::create_program_with_il")?;
     verify_device_versions(device_versions, [2, 1], &context, ApiFunction::CreateProgramWithIl)?;
 
     let mut errcode: cl_int = 0;
@@ -1817,8 +1817,11 @@ pub fn compile_program<D: ClDeviceIdPtr>(
             header_include_names: &[CString],
             pfn_notify: Option<BuildProgramCallbackFn>,
             user_data: Option<Box<UserDataPh>>,
+            device_versions: Option<&[OpenclVersion]>,
         ) -> OclCoreResult<()>
 {
+    verify_device_versions(device_versions, [1, 2], program, ApiFunction::CompileProgram)?;
+
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::compile_program(): Callback functions not yet implemented.");
 
@@ -1881,9 +1884,11 @@ pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
             input_programs: &[&Program],
             pfn_notify: Option<BuildProgramCallbackFn>,
             user_data: Option<Box<UserDataPh>>,
+            device_versions: Option<&[OpenclVersion]>,
         ) -> OclCoreResult<Program>
 {
     try!(verify_context(context));
+    verify_device_versions(device_versions, [1, 2], &context.as_ptr(), ApiFunction::LinkProgram)?;
 
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::link_program(): Callback functions not yet implemented.");
