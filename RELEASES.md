@@ -1,7 +1,18 @@
-Version 0.19.2 (UNRELEASED)
+Version 0.19.2 (2019-01-10)
 ===========================
 
-* Change `CL_BUILD_...` const types to signed integers.
+* (ocl-core) Implement the `compile_program` and `link_program` functions.
+
+Bug Fixes
+---------
+
+* Fix a buffer length assertion used during buffer creation.
+* Correctly disable kernel argument checking when
+  `KernelBuilder::disable_arg_type_check` is called.
+* (ocl-extras) Add the `FullDeviceInfo` trait, allowing a more convenient
+  method of accessing less frequently used device information types which
+  don't have methods on Device already.
+* (cl-sys) Change `CL_BUILD_...` const types to signed integers.
 
 Version 0.19.1 (2018-09-28)
 ===========================
