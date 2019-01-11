@@ -428,6 +428,21 @@ fn verify_device_versions<V: ClVersions>(provided_versions: Option<&[OpenclVersi
     }
 }
 
+// Unwraps optional device id list. Vector should be returned, so it won't
+// outlive ptr.
+fn get_option_devices<D: ClDeviceIdPtr>(devices: Option<&[D]>) 
+    -> (Option<Vec<cl_device_id>>, u32, *const cl_device_id) {
+    match devices {
+        Some(device_ids) => {
+            let dvs: Vec<_> = device_ids.iter().map(|d| d.as_ptr()).collect();
+            let len = dvs.len() as u32;
+            let ptr = dvs.as_ptr() as *const cl_device_id;
+            (Some(dvs), len, ptr)
+        },
+        None => (None, 0, ptr::null() as *const cl_device_id),
+    }
+}
+
 //============================================================================
 //============================================================================
 //======================= OPENCL FUNCTION WRAPPERS ===========================
@@ -747,6 +762,8 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         Some(_) => ptr::null_mut(),
         None => ptr::null_mut(),
     };
+
+    let device_ids: Vec<_> = device_ids.iter().map(|d| d.as_ptr()).collect();
 
     let mut errcode: cl_int = 0;
 
@@ -1773,10 +1790,7 @@ pub fn build_program<D: ClDeviceIdPtr>(
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::build_program(): Callback functions not yet implemented.");
 
-    let (devices_len, devices_ptr) = match devices {
-        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
-        None => (0, ptr::null() as *const cl_device_id),
-    };
+    let (_dev_vec, devices_len, devices_ptr) = get_option_devices(devices);
 
     let user_data = match user_data {
         Some(ud) => ud.unwrapped(),
@@ -1828,10 +1842,7 @@ pub fn compile_program<D: ClDeviceIdPtr>(
     assert!(input_headers.len() == header_include_names.len(),
         "ocl::core::compile_program(): Length of input_headers and header_include_names should be equal.");
 
-    let (devices_len, devices_ptr) = match devices {
-        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
-        None => (0, ptr::null() as *const cl_device_id),
-    };
+    let (_dev_vec, devices_len, devices_ptr) = get_option_devices(devices);
 
     let input_hdrs_ptrs: Vec<_> = input_headers.iter().map(|cs| cs.as_ptr()).collect();
     let hdrs_names_ptrs: Vec<*const _> = header_include_names.iter().map(|cs| cs.as_ptr()).collect();
@@ -1845,7 +1856,7 @@ pub fn compile_program<D: ClDeviceIdPtr>(
 
     let user_data = match user_data {
         Some(ud) => ud.unwrapped(),
-        None => ptr::null_mut(),
+        None => ptr::null_mut(), 
     };
 
     let errcode = unsafe { ffi::clCompileProgram(
@@ -1893,10 +1904,7 @@ pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::link_program(): Callback functions not yet implemented.");
 
-    let (devices_len, devices_ptr) = match devices {
-        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
-        None => (0, ptr::null() as *const cl_device_id),
-    };
+    let (_dev_vec, devices_len, devices_ptr) = get_option_devices(devices);
 
     let input_programs_ptrs: Vec<_> = input_programs.iter().map(|cs| cs.as_ptr()).collect();
 
