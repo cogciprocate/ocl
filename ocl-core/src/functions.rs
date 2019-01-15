@@ -337,6 +337,45 @@ pub enum ApiWrapperError {
 //============================================================================
 //============================================================================
 
+/// A device pointer list.
+///
+/// Used to create a safe (and platform-homogeneous) list of device pointers
+/// to be passed to a runtime.
+struct DevicePtrList(Vec<cl_device_id>);
+
+impl DevicePtrList {
+    /// Create a new device pointer list.
+    fn new<D: ClDeviceIdPtr>(devices: Option<&[D]>) -> DevicePtrList {
+        let list = match devices {
+            Some(device_ids) => {
+                device_ids.iter().map(|d| d.as_ptr()).collect::<Vec<_>>()
+            },
+            None => Vec::new(),
+        };
+
+        DevicePtrList(list)
+    }
+
+    /// Returns a pointer to the list of device pointers.
+    fn as_ptr(&self) -> *const cl_device_id {
+        match self.0.len() {
+            0 => ptr::null(),
+            _ => self.0.as_ptr(),
+        }
+    }
+
+    /// Returns the number of devices in the pointer list.
+    fn num(&self) -> u32 {
+        self.0.len() as u32
+    }
+}
+
+impl<D> From<Option<&[D]>> for DevicePtrList where D: ClDeviceIdPtr {
+    fn from(devices: Option<&[D]>) -> DevicePtrList {
+        DevicePtrList::new(devices)
+    }
+}
+
 
 /// Maps options of slices to pointers and a length.
 fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<Ewl>,
@@ -747,6 +786,8 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
         Some(_) => ptr::null_mut(),
         None => ptr::null_mut(),
     };
+
+    let device_ids: Vec<_> = device_ids.iter().map(|d| d.as_ptr()).collect();
 
     let mut errcode: cl_int = 0;
 
@@ -1773,10 +1814,7 @@ pub fn build_program<D: ClDeviceIdPtr>(
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::build_program(): Callback functions not yet implemented.");
 
-    let (devices_len, devices_ptr) = match devices {
-        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
-        None => (0, ptr::null() as *const cl_device_id),
-    };
+    let device_ptrs = DevicePtrList::from(devices);
 
     let user_data = match user_data {
         Some(ud) => ud.unwrapped(),
@@ -1785,8 +1823,8 @@ pub fn build_program<D: ClDeviceIdPtr>(
 
     let errcode = unsafe { ffi::clBuildProgram(
         program.as_ptr() as cl_program,
-        devices_len,
-        devices_ptr,
+        device_ptrs.num(),
+        device_ptrs.as_ptr(),
         options.as_ptr(),
         pfn_notify,
         user_data,
@@ -1828,10 +1866,7 @@ pub fn compile_program<D: ClDeviceIdPtr>(
     assert!(input_headers.len() == header_include_names.len(),
         "ocl::core::compile_program(): Length of input_headers and header_include_names should be equal.");
 
-    let (devices_len, devices_ptr) = match devices {
-        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
-        None => (0, ptr::null() as *const cl_device_id),
-    };
+    let device_ptrs = DevicePtrList::new(devices);
 
     let input_hdrs_ptrs: Vec<_> = input_headers.iter().map(|cs| cs.as_ptr()).collect();
     let hdrs_names_ptrs: Vec<*const _> = header_include_names.iter().map(|cs| cs.as_ptr()).collect();
@@ -1850,8 +1885,8 @@ pub fn compile_program<D: ClDeviceIdPtr>(
 
     let errcode = unsafe { ffi::clCompileProgram(
         program.as_ptr() as cl_program,
-        devices_len,
-        devices_ptr,
+        device_ptrs.num(),
+        device_ptrs.as_ptr(),
         options.as_ptr(),
         input_hdrs_ptrs.len() as cl_uint,
         input_ptr as *const cl_program,
@@ -1893,10 +1928,7 @@ pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
     assert!(pfn_notify.is_none() && user_data.is_none(),
         "ocl::core::link_program(): Callback functions not yet implemented.");
 
-    let (devices_len, devices_ptr) = match devices {
-        Some(dvs) => (dvs.len() as u32, dvs.as_ptr() as *const cl_device_id),
-        None => (0, ptr::null() as *const cl_device_id),
-    };
+    let device_ptrs = DevicePtrList::new(devices);
 
     let input_programs_ptrs: Vec<_> = input_programs.iter().map(|cs| cs.as_ptr()).collect();
 
@@ -1909,8 +1941,8 @@ pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
 
     let program_ptr = unsafe { ffi::clLinkProgram(
         context.as_ptr(),
-        devices_len,
-        devices_ptr,
+        device_ptrs.num(),
+        device_ptrs.as_ptr(),
         options.as_ptr(),
         input_programs_ptrs.len() as cl_uint,
         input_programs_ptrs.as_ptr() as *const cl_program,
