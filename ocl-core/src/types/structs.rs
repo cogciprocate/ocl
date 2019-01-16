@@ -161,6 +161,10 @@ impl OpenclVersion {
         OpenclVersion { ver: [u16::max_value(), u16::max_value()] }
     }
 
+    pub fn to_raw(&self) -> (u16, u16) {
+        (self.ver[0], self.ver[1])
+    }
+
     /// Parse the string `ver` and return a dual-integer result as
     /// `OpenclVersion`.
     ///
