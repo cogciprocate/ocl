@@ -122,3 +122,25 @@ fn kernel_arg_named_none() -> ::Result<()> {
 
     Ok(())
 }
+
+/// Ensure that incorrectly sized floats cause an error (instead of silently
+/// passing gibberish).
+#[test]
+fn kernel_arg_float_size() {
+    use core::Status;
+
+    let src = r#"__kernel void f(float a, float b, __global float *c) {*c = a + b;}"#;
+    let pq = ProQue::builder().src(src).dims(1).build().unwrap();
+    let c: Buffer<f32> = pq.buffer_builder().build().unwrap();
+    let k_res = unsafe { pq.kernel_builder("f").arg(3.14f64).arg(2.71f64).arg(c.clone())
+        .disable_arg_type_check()
+        .build()
+    };
+    let _k = match k_res {
+        Ok(_) => panic!("Invalid float size incorrectly allowed by OpenCL runtime."),
+        Err(err) => match err.api_status() {
+            Some(status) => assert_eq!(status, Status::CL_INVALID_ARG_SIZE),
+            None => panic!("{}", err),
+        }
+    };
+}
