@@ -32,6 +32,7 @@ pub type TemporaryPlaceholderType = ();
 pub struct ArgVal<'a> {
     size: size_t,
     value: *const c_void,
+    is_mem: bool,
     _p: PhantomData<&'a c_void>,
 }
 
@@ -41,6 +42,7 @@ impl<'a> ArgVal<'a> {
         ArgVal {
             size: mem::size_of::<cl_mem>() as size_t,
             value: mem as *const _ as *const c_void,
+            is_mem: true,
             _p: PhantomData,
         }
     }
@@ -50,6 +52,7 @@ impl<'a> ArgVal<'a> {
         ArgVal {
             size: mem::size_of::<cl_mem>() as size_t,
             value: ptr::null(),
+            is_mem: true,
             _p: PhantomData,
         }
     }
@@ -59,6 +62,7 @@ impl<'a> ArgVal<'a> {
         ArgVal {
             size: mem::size_of::<cl_sampler>() as size_t,
             value: sampler as *const _ as *const c_void,
+            is_mem: false,
             _p: PhantomData,
         }
     }
@@ -68,6 +72,7 @@ impl<'a> ArgVal<'a> {
         ArgVal {
             size: mem::size_of::<cl_sampler>() as size_t,
             value: ptr::null(),
+            is_mem: false,
             _p: PhantomData,
         }
     }
@@ -82,6 +87,7 @@ impl<'a> ArgVal<'a> {
         ArgVal {
             size: mem::size_of::<T>() as size_t,
             value: prm as *const T as *const c_void,
+            is_mem: false,
             _p: PhantomData,
         }
     }
@@ -107,6 +113,7 @@ impl<'a> ArgVal<'a> {
         ArgVal {
             size: (mem::size_of::<T>() * length) as size_t,
             value: ptr::null(),
+            is_mem: false,
             _p: PhantomData,
         }
     }
@@ -119,10 +126,11 @@ impl<'a> ArgVal<'a> {
     /// Caller must ensure that the value pointed to by `value` lives until
     /// the call to `::set_kernel_arg` returns and that `size` accurately
     /// reflects the total number of bytes that should be read.
-    pub unsafe fn from_raw(size: size_t, value: *const c_void) -> ArgVal<'a> {
+    pub unsafe fn from_raw(size: size_t, value: *const c_void, is_mem: bool) -> ArgVal<'a> {
         ArgVal {
             size,
             value,
+            is_mem,
             _p: PhantomData,
         }
     }
@@ -136,8 +144,8 @@ impl<'a> ArgVal<'a> {
 
     /// Returns `true` if this `ArgVal` represents a null `Mem` or `Sampler`
     /// object.
-    pub fn is_null(&self) -> bool {
-        self.value.is_null()
+    pub fn is_mem_null(&self) -> bool {
+        self.is_mem && self.value.is_null()
     }
 }
 

@@ -118,7 +118,7 @@ fn kernel_arg_named_none() -> ::Result<()> {
     let _kernel = pro_que.kernel_builder("nones")
         .arg_named("src", None::<&Image<i32>>)
         .arg_named("dst", None::<&Image<i32>>)
-        .build()?;
+        .build().unwrap();
 
     Ok(())
 }

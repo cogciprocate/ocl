@@ -289,7 +289,7 @@ impl<'b> ArgValKeeper<'b> {
         match *self {
             ArgValKeeper::Shared(ref av) => av.clone(),
             ArgValKeeper::OwnedPrm(ref bytes) => {
-                unsafe { ArgVal::from_raw(bytes.len(), bytes.as_ptr() as *const c_void) }
+                unsafe { ArgVal::from_raw(bytes.len(), bytes.as_ptr() as *const c_void, false) }
             }
             ArgValKeeper::OwnedMem(ref mem) => {
                 ArgVal::mem(mem)
@@ -1461,7 +1461,11 @@ impl<'b> KernelBuilder<'b> {
             }
 
             let val = arg.to_arg_val();
-            core::set_kernel_arg(&obj_core, arg_idx as u32, val)?;
+
+            // Some platforms do not like having a `null` argument set for mem objects.
+            if !val.is_mem_null() {
+                core::set_kernel_arg(&obj_core, arg_idx as u32, val)?;
+            }
         }
 
         let arg_types = if all_arg_types_unknown || disable_arg_check {
