@@ -2,7 +2,7 @@
 name = "ocl-interop"
 
 # [REMINDER]: Bump version in `README.md`.
-version = "0.1.4"
+version = "0.1.5"
 
 authors = ["Nopey Nope<golgothasTerror101@gmail.com>", "Nick Sanders <cogciprocate@gmail.com>"]
 build = "build.rs"
@@ -14,7 +14,7 @@ categories = ["concurrency", "hardware-support", "api-bindings", "external-ffi-b
 license = "MIT/Apache-2.0"
 
 [dependencies]
-ocl = { path = "../ocl" }
+ocl = { path = "../ocl", version = "0.19" }
 
 # For tests
 [dev-dependencies]
