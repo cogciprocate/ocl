@@ -2,7 +2,7 @@ use std::thread;
 use std::time::Duration;
 use standard::{ProQue, Kernel, Buffer};
 
-static SRC: &'static str = r#"
+static SRC_0: &'static str = r#"
     __kernel void add(__global float* buffer, float addend) {
         buffer[get_global_id(0)] += addend;
     }
@@ -29,7 +29,7 @@ fn set_arg(kernel: &mut Kernel, pro_que: &ProQue) {
 #[test]
 fn kernel_arg_ptr_out_of_scope() {
     let pro_que = ProQue::builder()
-        .src(SRC)
+        .src(SRC_0)
         .dims([1024])
         .build().unwrap();
 
@@ -57,7 +57,7 @@ fn kernel_arg_ptr_out_of_scope() {
 fn kernel_arg_owned_mem() {
     let ds_len = 1024;
     let pro_que = ProQue::builder()
-        .src(SRC)
+        .src(SRC_0)
         .dims(ds_len)
         .build().unwrap();
 
@@ -91,4 +91,34 @@ fn kernel_arg_owned_mem() {
             assert_eq!(*e, 1000.);
         }
     }
+}
+
+
+static SRC_1: &'static str = r#"
+    #pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
+
+    __kernel void nones(
+        __read_only image3d_t img_src,
+        __write_only image3d_t img_dst)
+    {
+        // Maybe do something.
+    }
+"#;
+
+/// Ensure that `None` named kernel arguments work.
+#[test]
+fn kernel_arg_named_none() -> ::Result<()> {
+    use Image;
+
+    let pro_que = ProQue::builder()
+        .src(SRC_1)
+        .dims([1024, 1024])
+        .build().unwrap();
+
+    let _kernel = pro_que.kernel_builder("nones")
+        .arg_named("src", None::<&Image<i32>>)
+        .arg_named("dst", None::<&Image<i32>>)
+        .build()?;
+
+    Ok(())
 }
