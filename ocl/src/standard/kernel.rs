@@ -1462,6 +1462,8 @@ impl<'b> KernelBuilder<'b> {
 
             let val = arg.to_arg_val();
 
+            dbg!(&val);
+
             if !val.is_null() {
                 core::set_kernel_arg(&obj_core, arg_idx as u32, val)?;
             }
