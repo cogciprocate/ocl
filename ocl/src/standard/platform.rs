@@ -40,7 +40,7 @@ impl Extensions {
 /// A platform identifier.
 ///
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash)]
 pub struct Platform(PlatformIdCore);
 
 impl Platform {
