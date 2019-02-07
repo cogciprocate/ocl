@@ -242,6 +242,7 @@ impl<'b> ProgramBuilder<'b> {
     /// Adds the contents of a file to the program.
     //
     // TODO: Deprecate
+    // #[deprecated(since = "0.19.2", note = "Use `::source_file` instead.")]
     pub fn src_file<'a, P: Into<PathBuf>>(&'a mut self, file_path: P) -> &'a mut ProgramBuilder<'b> {
         self.source_file(file_path)
     }
@@ -266,6 +267,7 @@ impl<'b> ProgramBuilder<'b> {
     /// Adds raw text to the program source.
     //
     // TODO: Deprecate
+    // #[deprecated(since = "0.19.2", note = "Use `::source` instead.")]
     pub fn src<'a, S: Into<String>>(&'a mut self, src: S) -> &'a mut ProgramBuilder<'b> {
         self.source(src)
     }
