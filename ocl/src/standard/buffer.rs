@@ -1565,7 +1565,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
     /// Returns operation details.
     #[inline]
-    fn enq_details(&mut self) -> OclResult<(usize, usize, &Queue, MapFlags,
+    fn enq_details(&mut self) -> OclResult<(usize, usize, Queue, MapFlags,
             Option<ClWaitListPtrEnum<'c>>, Option<ClNullEventPtrEnum<'c>>)> {
         if let BufferCmdKind::Map = self.cmd.kind {
             if let BufferCmdDataShape::Lin { offset } = self.cmd.shape {
@@ -1577,7 +1577,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
                 check_len(self.cmd.mem_len, len, offset)?;
 
                 let queue = match self.cmd.queue {
-                    Some(q) => q,
+                    Some(q) => q.clone(),
                     None => return Err(BufferCmdError::NoQueue.into()),
                 };
 
@@ -1605,13 +1605,13 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     pub unsafe fn enq(mut self) -> OclResult<MemMap<T>> {
         let (offset, len, queue, flags, ewait, enew, /*is_mapped*/) = self.enq_details()?;
 
-        let mm_core = core::enqueue_map_buffer::<T, _, _, _>(queue,
+        let mm_core = core::enqueue_map_buffer::<T, _, _, _>(&queue,
             &self.cmd.buffer.obj_core, true, flags, offset, len, ewait, enew)?;
 
         let unmap_event = None;
 
         Ok(MemMap::new(mm_core, len, None, unmap_event, self.cmd.buffer.obj_core.clone(),
-            queue.clone()))
+            queue))
     }
 
     /// Enqueues a map command and returns a future representing the
@@ -1631,7 +1631,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
         let mut map_event = Event::empty();
 
-        let mm_core = core::enqueue_map_buffer::<T, _, _, _>(queue,
+        let mm_core = core::enqueue_map_buffer::<T, _, _, _>(&queue,
             &self.cmd.buffer.obj_core, false, flags, offset, len, ewait,
             Some(&mut map_event))?;
 
@@ -1643,7 +1643,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
         }
 
         Ok(FutureMemMap::new(mm_core, len, map_event,
-            self.cmd.buffer.obj_core.clone(), queue.clone(), /*is_mapped*/))
+            self.cmd.buffer.obj_core.clone(), queue, /*is_mapped*/))
 
     }
 }
