@@ -135,8 +135,8 @@ mod types {
         EventSlice(&'a [Event]),
         EventPtrSlice(&'a [cl_event]),
         RefEventList(Ref<'a, EventList>),
-        RefTraitObj(Ref<'a, ClWaitListPtr>),
-        BoxTraitObj(Box<ClWaitListPtr>),
+        RefTraitObj(Ref<'a, dyn ClWaitListPtr>),
+        BoxTraitObj(Box<dyn ClWaitListPtr>),
     }
 
     impl<'a> ClWaitListPtrEnum<'a> {
@@ -292,14 +292,14 @@ mod types {
         }
     }
 
-    impl<'a> From<Ref<'a, ClWaitListPtr>> for ClWaitListPtrEnum<'a> {
-        fn from(e: Ref<'a, ClWaitListPtr>) -> ClWaitListPtrEnum<'a> {
+    impl<'a> From<Ref<'a, dyn ClWaitListPtr>> for ClWaitListPtrEnum<'a> {
+        fn from(e: Ref<'a, dyn ClWaitListPtr>) -> ClWaitListPtrEnum<'a> {
             ClWaitListPtrEnum::RefTraitObj(e)
         }
     }
 
-    impl<'a> From<Box<ClWaitListPtr>> for ClWaitListPtrEnum<'a> {
-        fn from(e: Box<ClWaitListPtr>) -> ClWaitListPtrEnum<'a> {
+    impl<'a> From<Box<dyn ClWaitListPtr>> for ClWaitListPtrEnum<'a> {
+        fn from(e: Box<dyn ClWaitListPtr>) -> ClWaitListPtrEnum<'a> {
             ClWaitListPtrEnum::BoxTraitObj(e)
         }
     }

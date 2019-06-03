@@ -2287,7 +2287,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
 //============================================================================
 
 /// Blocks until the first `num_events` events in `event_list` are complete.
-pub fn wait_for_events(num_events: u32, event_list: &ClWaitListPtr) -> OclCoreResult<()> {
+pub fn wait_for_events(num_events: u32, event_list: &dyn ClWaitListPtr) -> OclCoreResult<()> {
     assert!(event_list.count() >= num_events);
 
     let errcode = unsafe {

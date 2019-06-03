@@ -1109,8 +1109,8 @@ impl<'a> From<RawEventArray> for EventList {
     }
 }
 
-impl<'a> From<Box<ClWaitListPtr>> for EventList {
-    fn from(trait_obj: Box<ClWaitListPtr>) -> EventList {
+impl<'a> From<Box<dyn ClWaitListPtr>> for EventList {
+    fn from(trait_obj: Box<dyn ClWaitListPtr>) -> EventList {
         let raw_slice = unsafe {
             ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize)
         };
@@ -1119,8 +1119,8 @@ impl<'a> From<Box<ClWaitListPtr>> for EventList {
     }
 }
 
-impl<'a> From<&'a Box<ClWaitListPtr>> for EventList {
-    fn from(trait_obj: &Box<ClWaitListPtr>) -> EventList {
+impl<'a> From<&'a Box<dyn ClWaitListPtr>> for EventList {
+    fn from(trait_obj: &Box<dyn ClWaitListPtr>) -> EventList {
         let raw_slice = unsafe {
             ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize)
         };
@@ -1129,8 +1129,8 @@ impl<'a> From<&'a Box<ClWaitListPtr>> for EventList {
     }
 }
 
-impl<'a> From<Ref<'a, ClWaitListPtr>> for EventList {
-    fn from(trait_obj: Ref<'a, ClWaitListPtr>) -> EventList {
+impl<'a> From<Ref<'a, dyn ClWaitListPtr>> for EventList {
+    fn from(trait_obj: Ref<'a, dyn ClWaitListPtr>) -> EventList {
         let raw_slice = unsafe {
             ::std::slice::from_raw_parts(trait_obj.as_ptr_ptr(), trait_obj.count() as usize)
         };
