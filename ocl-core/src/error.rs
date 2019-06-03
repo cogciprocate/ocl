@@ -77,7 +77,7 @@ impl Error {
 
     /// Returns the immediate cause of this error (e.g. the next error in the
     /// chain).
-    pub fn cause(&self) -> Option<&Fail> {
+    pub fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 }
@@ -95,7 +95,7 @@ impl fmt::Display for Error {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
