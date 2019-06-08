@@ -335,7 +335,7 @@ unsafe impl<'e> ClEventPtrRef<'e> for EventRefWrapper {
 
 /// cl_platform_id
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Hash, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct PlatformId(cl_platform_id);
 
 impl PlatformId {
@@ -375,12 +375,6 @@ unsafe impl ClPlatformIdPtr for PlatformId {
 unsafe impl Sync for PlatformId {}
 unsafe impl Send for PlatformId {}
 
-impl PartialEq<PlatformId> for PlatformId {
-    fn eq(&self, other: &PlatformId) -> bool {
-        self.0 == other.0
-    }
-}
-
 impl ClVersions for PlatformId {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = try!(functions::get_device_ids(self, Some(DeviceType::ALL), None));
@@ -394,10 +388,9 @@ impl ClVersions for PlatformId {
 }
 
 
-
 /// cl_device_id
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Hash, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct DeviceId(cl_device_id);
 
 impl DeviceId {
@@ -442,12 +435,6 @@ unsafe impl<'a> ClDeviceIdPtr for &'a DeviceId {
 
 unsafe impl Sync for DeviceId {}
 unsafe impl Send for DeviceId {}
-
-impl PartialEq<DeviceId> for DeviceId {
-    fn eq(&self, other: &DeviceId) -> bool {
-        self.0 == other.0
-    }
-}
 
 impl ClVersions for DeviceId {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
