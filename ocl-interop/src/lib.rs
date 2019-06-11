@@ -39,7 +39,7 @@ pub fn get_properties_list() -> ocl::builders::ContextProperties {
     unsafe {
         let gl_context = cgl::CGLGetCurrentContext();
         let share_group = cgl::CGLGetShareGroup(gl_context);
-        properties.cgl_sharegroup(share_group);
+        properties = properties.cgl_sharegroup(share_group);
     }
 
     #[cfg(target_os = "android")]

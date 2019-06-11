@@ -29,5 +29,5 @@ glfw = "0.20"
 [target.'cfg(target_os = "macos")'.dependencies]
 cgl = "^0.2"
 
-[target.'cfg(not(target_os="macos"))'.build-dependencies]
+[build-dependencies]
 gl_generator = "^0.5"
