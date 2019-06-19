@@ -1,0 +1,22 @@
+language: rust
+os:
+  - linux
+
+dist: xenial
+
+rust:
+  - stable
+
+sudo: false
+
+addons:
+  apt:
+    sources:
+      - sourceline: 'ppa:intel-opencl/intel-opencl'
+    packages:
+      - intel-opencl
+      - ocl-icd-opencl-dev
+
+script:
+  - cargo build --verbose
+  - cargo doc
