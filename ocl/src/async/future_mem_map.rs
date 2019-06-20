@@ -31,8 +31,8 @@ impl<T: OclPrm> FutureMemMap<T> {
             /*buffer_is_mapped: Arc<AtomicBool>*/) -> FutureMemMap<T> {
         FutureMemMap {
             core: Some(core),
-            len: len,
-            map_event: map_event,
+            len,
+            map_event,
             unmap_wait_events: None,
             unmap_event: None,
             buffer: Some(buffer),

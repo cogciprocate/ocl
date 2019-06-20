@@ -49,7 +49,7 @@ use crate::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, Dev
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
     EventInfo, EventInfoResult, DeviceType};
-use crate::error::{Result as OclCoreResult, Error as OclCoreError};
+use crate::error::{Result as OclCoreResult};
 use crate::functions::{self, ApiFunction, VersionKind};
 
 //=============================================================================
@@ -141,7 +141,7 @@ impl ClVersions for cl_context {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
         let devices = match functions::get_context_info(self, ContextInfo::Devices) {
             Ok(ContextInfoResult::Devices(ds)) => Ok(ds),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(err),
             _ => unreachable!(),
         };
 
@@ -156,7 +156,7 @@ impl ClVersions for cl_context {
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
         let devices = match functions::get_context_info(self, ContextInfo::Devices) {
             Ok(ContextInfoResult::Devices(ds)) => Ok(ds),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(err),
             _ => unreachable!(),
         };
 
@@ -348,7 +348,7 @@ impl PlatformId {
     /// Returns an invalid `PlatformId` used for initializing data structures
     /// meant to be filled with valid ones.
     pub unsafe fn null() -> PlatformId {
-        PlatformId(0 as *mut c_void)
+        PlatformId(ptr::null_mut())
     }
 
     /// Returns a pointer.
@@ -403,7 +403,7 @@ impl DeviceId {
     /// Returns an invalid `DeviceId` used for initializing data structures
     /// meant to be filled with valid ones.
     pub unsafe fn null() -> DeviceId {
-        DeviceId(0 as *mut c_void)
+        DeviceId(ptr::null_mut())
     }
 
     /// Returns a pointer.
@@ -485,7 +485,7 @@ impl Context {
     pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         match functions::get_context_info(self, ContextInfo::Devices) {
             Ok(ContextInfoResult::Devices(ds)) => Ok(ds),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(err),
             _ => unreachable!(),
         }
     }
@@ -595,7 +595,7 @@ impl CommandQueue {
     pub fn device(&self) -> OclCoreResult<DeviceId> {
         match functions::get_command_queue_info(self, CommandQueueInfo::Device) {
             Ok(CommandQueueInfoResult::Device(d)) => Ok(d),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(err),
             _ => unreachable!(),
         }
     }
@@ -807,7 +807,7 @@ impl Program {
     pub fn devices(&self) -> OclCoreResult<Vec<DeviceId>> {
         match functions::get_program_info(self, ProgramInfo::Devices) {
             Ok(ProgramInfoResult::Devices(d)) => Ok(d),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(err),
             _ => unreachable!(),
         }
     }
@@ -891,7 +891,7 @@ impl Kernel {
     pub fn program(&self) -> OclCoreResult<Program> {
         match functions::get_kernel_info(self, KernelInfo::Program) {
             Ok(KernelInfoResult::Program(d)) => Ok(d),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(err),
             _ => unreachable!(),
         }
     }
@@ -1049,7 +1049,7 @@ impl Event {
     pub fn context(&self) -> OclCoreResult<Context> {
         match functions::get_event_info(self, EventInfo::Context) {
             Ok(EventInfoResult::Context(c)) => Ok(c),
-            Err(err) => Err(OclCoreError::from(err)),
+            Err(err) => Err(err),
             _ => unreachable!(),
         }
     }
@@ -1124,7 +1124,7 @@ impl Event {
 
     /// Returns a pointer pointer expected when used as a wait list.
     unsafe fn _as_ptr_ptr(&self) -> *const cl_event {
-        if self.0.is_null() { 0 as *const cl_event } else { &self.0 as *const cl_event }
+        if self.0.is_null() { ptr::null() } else { &self.0 as *const cl_event }
     }
 
     /// Returns a count expected when used as a wait list.

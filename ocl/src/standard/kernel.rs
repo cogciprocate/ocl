@@ -225,8 +225,8 @@ impl ArgIdxSpecifier {
     // argument map if necessary.
     fn to_idx(&self, named_args: &NamedArgs) -> OclResult<u32> {
         match self {
-            &ArgIdxSpecifier::Uint(idx) => Ok(idx),
-            &ArgIdxSpecifier::Str(ref s) => named_args.resolve_idx(&s),
+            ArgIdxSpecifier::Uint(idx) => Ok(*idx),
+            ArgIdxSpecifier::Str(ref s) => named_args.resolve_idx(&s),
         }
     }
 }
@@ -787,7 +787,7 @@ impl Kernel {
     }
 
     /// Returns the default queue for this kernel if one has been set.
-    pub fn default_queue<'a>(&'a self) -> Option<&'a Queue> {
+    pub fn default_queue(&self) -> Option<&Queue> {
         self.queue.as_ref()
     }
 
@@ -809,7 +809,7 @@ impl Kernel {
     /// Returns a reference to the core pointer wrapper, usable by functions in
     /// the `core` module.
     #[inline]
-    pub fn as_core<'a>(&'a self) -> &'a KernelCore {
+    pub fn as_core(&self) -> &KernelCore {
         self
     }
 
@@ -897,7 +897,7 @@ impl std::fmt::Display for Kernel {
 impl Deref for Kernel {
     type Target = KernelCore;
 
-    fn deref<'a>(&'a self) -> &'a KernelCore {
+    fn deref(&self) -> &KernelCore {
         &self.obj_core
     }
 }
@@ -1173,7 +1173,7 @@ impl<'b> KernelBuilder<'b> {
     /// by 'buffer'.
     ///
     /// The argument is added to the bottom of the argument order.
-    #[deprecated(since = "0.18", note = "Use ::arg instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg instead.")]
     pub fn arg_buf<'s, T, M>(&'s mut self, buffer: &'b M) -> &'s mut KernelBuilder<'b>
             where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         self.new_arg_buf::<T, _>(Some(buffer));
@@ -1184,7 +1184,7 @@ impl<'b> KernelBuilder<'b> {
     /// by 'image'.
     ///
     /// The argument is added to the bottom of the argument order.
-    #[deprecated(since = "0.18", note = "Use ::arg instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg instead.")]
     pub fn arg_img<'s, T, M>(&'s mut self, image: &'b M) -> &'s mut KernelBuilder<'b>
             where T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         self.new_arg_img::<T, _>(Some(image));
@@ -1194,7 +1194,7 @@ impl<'b> KernelBuilder<'b> {
     /// Adds a new argument to the kernel specifying the sampler object represented
     /// by 'sampler'. Argument is added to the bottom of the argument
     /// order.
-    #[deprecated(since = "0.18", note = "Use ::arg_sampler instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg_sampler instead.")]
     pub fn arg_smp<'s>(&'s mut self, sampler: &'b Sampler) -> &'s mut KernelBuilder<'b> {
         self.new_arg_smp(Some(sampler));
         self
@@ -1203,7 +1203,7 @@ impl<'b> KernelBuilder<'b> {
     /// Adds a new argument specifying the value: `scalar`.
     ///
     /// The argument is added to the bottom of the argument order.
-    #[deprecated(since = "0.18", note = "Use ::arg instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg instead.")]
     pub fn arg_scl<'s, T>(&'s mut self, scalar: T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         self.new_arg_scl(scalar);
@@ -1213,7 +1213,7 @@ impl<'b> KernelBuilder<'b> {
     /// Adds a new argument specifying the value: `vector`.
     ///
     /// The argument is added to the bottom of the argument order.
-    #[deprecated(since = "0.18", note = "Use ::arg instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg instead.")]
     pub fn arg_vec<'s, T>(&'s mut self, vector: T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         self.new_arg_vec(vector);
@@ -1227,7 +1227,7 @@ impl<'b> KernelBuilder<'b> {
     ///
     /// Local variables are used to share data between work items in the same
     /// workgroup.
-    #[deprecated(since = "0.18", note = "Use ::arg_local instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg_local instead.")]
     pub fn arg_loc<'s, T>(&'s mut self, length: usize) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         self.new_arg_loc::<T>(length);
@@ -1296,7 +1296,7 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_buf_named()`.
-    #[deprecated(since = "0.18", note = "Use ::arg_named instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg_named instead.")]
     pub fn arg_buf_named<'s, T, S, M>(&'s mut self, name: S, buffer_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
             where S: Into<Cow<'static, str>>, T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         let arg_idx = self.new_arg_buf::<T, _>(buffer_opt);
@@ -1310,7 +1310,7 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_img_named()`.
-    #[deprecated(since = "0.18", note = "Use ::arg_named instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg_named instead.")]
     pub fn arg_img_named<'s, T, S, M>(&'s mut self, name: S, image_opt: Option<&'b M>) -> &'s mut KernelBuilder<'b>
             where S: Into<Cow<'static, str>>, T: OclPrm, M: 'b + AsMem<T> + MemCmdAll {
         let arg_idx = self.new_arg_img::<T, _>(image_opt);
@@ -1324,7 +1324,7 @@ impl<'b> KernelBuilder<'b> {
     /// The argument is added to the bottom of the argument order.
     ///
     /// Named arguments can be easily modified later using `::set_arg_smp_named()`.
-    #[deprecated(since = "0.18", note = "Use ::arg_sampler_named instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg_sampler_named instead.")]
     pub fn arg_smp_named<'s, S>(&'s mut self, name: S, sampler_opt: Option<&'b Sampler>) -> &'s mut KernelBuilder<'b>
     where S: Into<Cow<'static, str>> {
         let arg_idx = self.new_arg_smp(sampler_opt);
@@ -1339,7 +1339,7 @@ impl<'b> KernelBuilder<'b> {
     /// Scalar arguments may not be null, use zero (e.g. `&0`) instead.
     ///
     /// Named arguments can be easily modified later using `::set_arg_scl_named()`.
-    #[deprecated(since = "0.18", note = "Use ::arg_named instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg_named instead.")]
     pub fn arg_scl_named<'s, T>(&'s mut self, name: &'static str, scalar: T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         let arg_idx = self.new_arg_scl(scalar);
@@ -1354,7 +1354,7 @@ impl<'b> KernelBuilder<'b> {
     /// Vector arguments may not be null, use zero (e.g. `&0`) instead.
     ///
     /// Named arguments can be easily modified later using `::set_arg_vec_named()`.
-    #[deprecated(since = "0.18", note = "Use ::arg_named instead.")]
+    #[deprecated(since = "0.18.0", note = "Use ::arg_named instead.")]
     pub fn arg_vec_named<'s, T>(&'s mut self, name: &'static str, vector: T) -> &'s mut KernelBuilder<'b>
             where T: OclPrm {
         let arg_idx = self.new_arg_vec(vector);
@@ -1441,7 +1441,7 @@ impl<'b> KernelBuilder<'b> {
                             break;
                         }
                     }
-                    return Err(OclError::from(err));
+                    return Err(err);
                 },
             };
             arg_types.push(arg_type);
@@ -1475,7 +1475,7 @@ impl<'b> KernelBuilder<'b> {
         };
 
         Ok(Kernel {
-            obj_core: obj_core,
+            obj_core,
             named_args: self.named_args.clone(),
             mem_args: self.mem_args.clone(),
             queue: self.queue.clone(),
@@ -1504,7 +1504,7 @@ pub fn arg_info(core: &KernelCore, arg_idx: u32, info_kind: KernelArgInfo)
 pub fn arg_type_name(core: &KernelCore, arg_idx: u32) -> OclResult<String> {
     match arg_info(core, arg_idx, KernelArgInfo::TypeName) {
         Ok(KernelArgInfoResult::TypeName(type_name)) => Ok(type_name),
-        Err(err) => Err(err.into()),
+        Err(err) => Err(err),
         _ => unreachable!(),
     }
 }
@@ -1513,7 +1513,7 @@ pub fn arg_type_name(core: &KernelCore, arg_idx: u32) -> OclResult<String> {
 pub fn arg_name(core: &KernelCore, arg_idx: u32) -> OclResult<String> {
     match arg_info(core, arg_idx, KernelArgInfo::Name) {
         Ok(KernelArgInfoResult::Name(name)) => Ok(name),
-        Err(err) => Err(err.into()),
+        Err(err) => Err(err),
         _ => unreachable!(),
     }
 }
@@ -1599,17 +1599,17 @@ pub mod arg_type {
         /// the fastest way to parse these in this situation? Should
         /// `::starts_with` be used for base type names instead?
         pub fn from_str(type_name: &str) -> OclResult<ArgType> {
-            let is_ptr = type_name.contains("*");
+            let is_ptr = type_name.contains('*');
 
             let card = if type_name.contains("16") {
                 Cardinality::Sixteen
-            } else if type_name.contains("8") {
+            } else if type_name.contains('8') {
                 Cardinality::Eight
-            } else if type_name.contains("4") {
+            } else if type_name.contains('4') {
                 Cardinality::Four
-            } else if type_name.contains("3") {
+            } else if type_name.contains('3') {
                 Cardinality::Three
-            } else if type_name.contains("2") {
+            } else if type_name.contains('2') {
                 Cardinality::Two
             } else {
                 Cardinality::One
@@ -1646,7 +1646,7 @@ pub mod arg_type {
             Ok(ArgType {
                 base_type: base,
                 cardinality: card,
-                is_ptr: is_ptr,
+                is_ptr,
             })
         }
 

@@ -30,8 +30,8 @@ impl Queue {
         let device_version = device.version()?;
 
         Ok(Queue {
-            obj_core: obj_core,
-            device_version: device_version,
+            obj_core,
+            device_version,
         })
     }
 

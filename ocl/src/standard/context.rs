@@ -105,7 +105,7 @@ impl Context {
                 None => Err(OclError::from("Context::platform_info: \
                     This context has no associated platform.")),
             },
-            Err(err) => Err(OclError::from(err)),
+            Err(err) => Err(err),
         }
     }
 
@@ -115,7 +115,7 @@ impl Context {
         match self.devices().get(index) {
             Some(d) => core::get_device_info(d, info_kind).map_err(OclError::from),
             None => {
-                return Err(OclError::from("Context::device_info: Invalid device index"));
+                Err(OclError::from("Context::device_info: Invalid device index"))
             },
         }
     }
@@ -231,7 +231,7 @@ impl ContextBuilder {
         let properties = ContextProperties::new();
 
         ContextBuilder {
-            properties: properties,
+            properties,
             device_spec: None,
         }
     }

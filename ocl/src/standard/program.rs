@@ -166,7 +166,7 @@ impl BuildOpt {
     pub fn include_def<S: Into<String>>(ident: S, val: String) -> BuildOpt {
         BuildOpt::IncludeDefine {
             ident: ident.into(),
-            val: val,
+            val,
         }
     }
 }
@@ -443,7 +443,7 @@ impl<'b> ProgramBuilder<'b> {
         };
 
         for src_path in src_paths {
-            let mut src_bytes: Vec<u8> = Vec::with_capacity(100000);
+            let mut src_bytes: Vec<u8> = Vec::with_capacity(100_000);
 
             if src_file_history.contains(src_path) { continue; }
             src_file_history.insert(src_path.clone());
@@ -538,7 +538,7 @@ impl<'b> ProgramBuilder<'b> {
                     &self.get_compiler_options()?,
                 )
             },
-            CreateWith::None => return Err("Unable to build program: no source, binary, \
+            CreateWith::None => Err("Unable to build program: no source, binary, \
                 or IL has been specified".into()),
         }
     }

@@ -212,7 +212,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         self.kind = BufferCmdKind::Read;
         let dst = dst_data.into();
         let len = dst.len();
-        BufferReadCmd { cmd: self, dst: dst, range: 0..len }
+        BufferReadCmd { cmd: self, dst, range: 0..len }
     }
 
     /// Specifies that this command will be a write operation.
@@ -233,7 +233,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
         self.kind = BufferCmdKind::Write;
         let src = src_data.into();
         let len = src.len();
-        BufferWriteCmd { cmd: self, src: src, range: 0..len }
+        BufferWriteCmd { cmd: self, src, range: 0..len }
     }
 
     /// Specifies that this command will be a map operation.
@@ -293,8 +293,8 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             already set for this command.");
         self.kind = BufferCmdKind::Copy {
             dst_buffer: dst_buffer.as_mem(),
-            dst_offset: dst_offset,
-            len: len,
+            dst_offset,
+            len,
         };
         self
     }
@@ -312,7 +312,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             where 'd: 'c {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::copy_to_image(): Operation kind \
             already set for this command.");
-        self.kind = BufferCmdKind::CopyToImage { image: image, dst_origin: dst_origin, region: region };
+        self.kind = BufferCmdKind::CopyToImage { image, dst_origin, region };
         self
     }
 
@@ -366,7 +366,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
     pub fn fill(mut self, pattern: T, len: Option<usize>) -> BufferCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::BufferCmd::fill(): Operation kind \
             already set for this command.");
-        self.kind = BufferCmdKind::Fill { pattern: pattern, len: len };
+        self.kind = BufferCmdKind::Fill { pattern, len };
         self
     }
 
@@ -419,7 +419,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             panic!("ocl::BufferCmd::offset(): This command builder has already been set to \
                 rectangular mode with '::rect`. You cannot call both '::offset' and '::rect'.");
         }
-        self.shape = BufferCmdDataShape::Lin { offset: offset };
+        self.shape = BufferCmdDataShape::Lin { offset };
         self
     }
 
@@ -437,10 +437,9 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             assert!(offset == 0, "ocl::BufferCmd::rect(): This command builder has already been \
                 set to linear mode with '::offset`. You cannot call both '::offset' and '::rect'.");
         }
-        self.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
-            region: region, src_row_pitch_bytes: src_row_pitch_bytes,
-            src_slc_pitch_bytes: src_slc_pitch_bytes, dst_row_pitch_bytes: dst_row_pitch_bytes,
-            dst_slc_pitch_bytes: dst_slc_pitch_bytes };
+        self.shape = BufferCmdDataShape::Rect { src_origin, dst_origin, region,
+            src_row_pitch_bytes, src_slc_pitch_bytes,
+            dst_row_pitch_bytes, dst_slc_pitch_bytes };
         self
     }
 
@@ -756,10 +755,9 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
             panic!("Buffer read: Cannot call '::rect' after calling '::src_offset' or '::len'.");
         }
 
-        self.cmd.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
-            region: region, src_row_pitch_bytes: src_row_pitch_bytes,
-            src_slc_pitch_bytes: src_slc_pitch_bytes, dst_row_pitch_bytes: dst_row_pitch_bytes,
-            dst_slc_pitch_bytes: dst_slc_pitch_bytes };
+        self.cmd.shape = BufferCmdDataShape::Rect { src_origin, dst_origin, region,
+            src_row_pitch_bytes, src_slc_pitch_bytes,
+            dst_row_pitch_bytes, dst_slc_pitch_bytes };
 
         self
     }
@@ -1136,10 +1134,9 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
             panic!("Buffer write: Cannot call '::rect' after calling '::src_offset' or '::len'.");
         }
 
-        self.cmd.shape = BufferCmdDataShape::Rect { src_origin: src_origin, dst_origin: dst_origin,
-            region: region, src_row_pitch_bytes: src_row_pitch_bytes,
-            src_slc_pitch_bytes: src_slc_pitch_bytes, dst_row_pitch_bytes: dst_row_pitch_bytes,
-            dst_slc_pitch_bytes: dst_slc_pitch_bytes };
+        self.cmd.shape = BufferCmdDataShape::Rect { src_origin, dst_origin, region,
+            src_row_pitch_bytes, src_slc_pitch_bytes,
+            dst_row_pitch_bytes, dst_slc_pitch_bytes };
 
         self
     }
@@ -2053,7 +2050,7 @@ impl<T: OclPrm> Buffer<T> {
             &BufferRegion::new(offset, len))?;
 
         Ok(Buffer {
-            obj_core: obj_core,
+            obj_core,
             queue: self.default_queue().cloned(),
             len,
             // Share mapped status with super-buffer:
@@ -2189,7 +2186,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// separately (by calling [`::context`]) will cause a panic.
     ///
     /// [`::context`]: builders/struct.BufferBuilder.html#method.context
-    pub fn queue<'b>(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
+    pub fn queue(mut self, default_queue: Queue) -> BufferBuilder<'a, T> {
         assert!(self.queue_option.is_none(), "A context or queue has already been set.");
         self.queue_option = Some(QueCtx::Queue(default_queue));
         self
@@ -2209,7 +2206,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// panic. Use the `::use_host_slice` method instead.
     ///
     /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub fn flags<'b>(mut self, flags: MemFlags) -> BufferBuilder<'a, T> {
+    pub fn flags(mut self, flags: MemFlags) -> BufferBuilder<'a, T> {
         assert!(!flags.contains(MemFlags::new().use_host_ptr()),
             "The `BufferBuilder::flags` method may not be used to set the \
             `MEM_USE_HOST_PTR` flag. Use the `::use_host_ptr` method instead.");
@@ -2278,7 +2275,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     /// bytes, sizes, lengths, and dimensions in this library are always
     /// specified in `bytes / sizeof(T)` (like everything else in Rust) unless
     /// otherwise noted.
-    pub fn len<'b, D>(mut self, len: D) -> BufferBuilder<'a, T>
+    pub fn len<D>(mut self, len: D) -> BufferBuilder<'a, T>
             where D: Into<SpatialDims> {
         self.len = len.into().to_len();
         self
@@ -2369,7 +2366,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
         let len = match self.len {
             0 => panic!("ocl::BufferBuilder::build: The length must be set with \
                 '.len(...)' and cannot be zero."),
-            l @ _ => l,
+            l => l,
         };
 
         let device_ver = match qc {

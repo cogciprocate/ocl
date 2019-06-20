@@ -17,7 +17,7 @@ pub struct FutureFlood<T: OclPrm> {
 
 impl<T: OclPrm> FutureFlood<T> {
     fn new(future_guard: FutureGuard<Inner<T>, WriteGuard<Inner<T>>>) -> FutureFlood<T> {
-        FutureFlood { future_guard: future_guard }
+        FutureFlood { future_guard }
     }
 
     /// Returns a mutable reference to the contained `FutureGuard`.
@@ -58,7 +58,7 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
         let len = stream.default_len();
         FloodCmd {
             queue: None,
-            stream: stream,
+            stream,
             offset,
             len,
             ewait: None,
