@@ -348,12 +348,12 @@ bitflags! {
     /// * `CL_DEVICE_TYPE_ALL`: A union of all flags.
     ///
     pub struct DeviceType: u64 {
-        const DEFAULT = 1 << 0;
+        const DEFAULT = 1;
         const CPU = 1 << 1;
         const GPU = 1 << 2;
         const ACCELERATOR = 1 << 3;
         const CUSTOM = 1 << 4;
-        const ALL = 0xFFFFFFFF;
+        const ALL = 0xFFFF_FFFF;
     }
 }
 
@@ -382,7 +382,7 @@ pub const DEVICE_TYPE_ALL: DeviceType = DeviceType::ALL;
 bitflags! {
     /// cl_device_fp_config - bitfield
     pub struct DeviceFpConfig: u64 {
-        const DENORM = 1 << 0;
+        const DENORM = 1;
         const INF_NAN = 1 << 1;
         const ROUND_TO_NEAREST = 1 << 2;
         const ROUND_TO_ZERO = 1 << 3;
@@ -406,7 +406,7 @@ pub const FP_CORRECTLY_ROUNDED_DIVIDE_SQRT: DeviceFpConfig = DeviceFpConfig::COR
 bitflags! {
     /// cl_device_exec_capabilities - bitfield
     pub struct DeviceExecCapabilities: u64 {
-        const KERNEL = 1 << 0;
+        const KERNEL = 1;
         const NATIVE_KERNEL = 1 << 1;
     }
 }
@@ -418,7 +418,7 @@ pub const EXEC_NATIVE_KERNEL: DeviceExecCapabilities = DeviceExecCapabilities::N
 bitflags! {
     /// cl_command_queue_properties - bitfield
     pub struct CommandQueueProperties: u64 {
-        const OUT_OF_ORDER_EXEC_MODE_ENABLE = 1 << 0;
+        const OUT_OF_ORDER_EXEC_MODE_ENABLE = 1;
         const PROFILING_ENABLE = 1 << 1;
         const ON_DEVICE = 1 << 2;
         const ON_DEVICE_DEFAULT = 1 << 3;
@@ -449,7 +449,7 @@ pub const QUEUE_ON_DEVICE_DEFAULT: CommandQueueProperties =
 bitflags! {
     /// cl_device_affinity_domain
     pub struct DeviceAffinityDomain: u64 {
-        const NUMA = 1 << 0;
+        const NUMA = 1;
         const L4_CACHE = 1 << 1;
         const L3_CACHE = 1 << 2;
         const L2_CACHE = 1 << 3;
@@ -469,7 +469,7 @@ pub const DEVICE_AFFINITY_DOMAIN_NEXT_PARTITIONABLE: DeviceAffinityDomain = Devi
 bitflags! {
     /// cl_mem_flags - bitfield
     pub struct MemFlags: u64 {
-        const READ_WRITE = 1 << 0;
+        const READ_WRITE = 1;
         const WRITE_ONLY = 1 << 1;
         const READ_ONLY = 1 << 2;
         const USE_HOST_PTR = 1 << 3;
@@ -514,7 +514,7 @@ pub const MEM_HOST_NO_ACCESS: MemFlags = MemFlags::HOST_NO_ACCESS;
 bitflags! {
     /// cl_mem_migration_flags - bitfield
     pub struct MemMigrationFlags: u64 {
-        const OBJECT_HOST = 1 << 0;
+        const OBJECT_HOST = 1;
         const OBJECT_CONTENT_UNDEFINED = 1 << 1;
     }
 }
@@ -526,7 +526,7 @@ pub const MIGRATE_MEM_OBJECT_CONTENT_UNDEFINED: MemMigrationFlags = MemMigration
 bitflags! {
     /// cl_map_flags - bitfield
     pub struct MapFlags: u64 {
-        const READ = 1 << 0;
+        const READ = 1;
         const WRITE = 1 << 1;
         const WRITE_INVALIDATE_REGION = 1 << 2;
     }
@@ -569,7 +569,7 @@ bitflags! {
     /// cl_kernel_arg_type_qualifer
     pub struct KernelArgTypeQualifier: u64 {
         const NONE = 0;
-        const CONST = 1 << 0;
+        const CONST = 1;
         const RESTRICT = 1 << 1;
         const VOLATILE = 1 << 2;
     }

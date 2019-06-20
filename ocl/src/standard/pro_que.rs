@@ -62,9 +62,9 @@ impl ProQue {
     pub fn new<D: Into<SpatialDims>>(context: Context, queue: Queue, program: Program,
             dims: Option<D>) -> ProQue {
         ProQue {
-            context: context,
-            queue: queue,
-            program: program,
+            context,
+            queue,
+            program,
             dims: dims.map(|d| d.into()),
         }
     }
@@ -400,7 +400,7 @@ impl<'b> ProQueBuilder<'b> {
             Some(ref plt) => {
                 assert!(self.context.is_none(), "ocl::ProQueBuilder::build: \
                     platform and context cannot both be set.");
-                plt.clone()
+                *plt
             },
             None => match self.context {
                 Some(ref context) => {
@@ -409,10 +409,7 @@ impl<'b> ProQueBuilder<'b> {
                     if DEBUG_PRINT { println!("ProQue::build(): plat: {:?}, default: {:?}",
                         plat, Platform::default()); }
 
-                    match plat {
-                        Some(platform) => platform.clone(),
-                        None => Platform::default(),
-                    }
+                    plat.unwrap_or_default()
                 },
                 None => Platform::default(),
             },

@@ -150,7 +150,7 @@ impl DeviceSpecifier {
     /// undefined and could end up using any platform at all.
     ///
     pub fn to_device_list<P: Borrow<Platform>>(&self, platform: Option<P>) -> OclResult<Vec<Device>> {
-        let platform = platform.map(|p| p.borrow().clone()).unwrap_or(Platform::default());
+        let platform = platform.map(|p| *p.borrow()).unwrap_or_default();
 
         match *self {
             DeviceSpecifier::All => {
@@ -160,7 +160,7 @@ impl DeviceSpecifier {
                 Device::list_select(&platform, None, &[0])
             },
             DeviceSpecifier::Single(ref device) => {
-                Ok(vec![device.clone()])
+                Ok(vec![*device])
             },
             DeviceSpecifier::List(ref devices) => {
                 Ok(devices.clone())
@@ -222,7 +222,7 @@ impl From<Device> for DeviceSpecifier {
 
 impl<'a> From<&'a Device> for DeviceSpecifier {
     fn from(device: &'a Device) -> DeviceSpecifier {
-        DeviceSpecifier::Single(device.clone())
+        DeviceSpecifier::Single(*device)
     }
 }
 
@@ -255,7 +255,7 @@ impl Device {
     /// Returns the first available device on a platform.
     pub fn first<P: Borrow<Platform>>(platform: P) -> OclResult<Device> {
         let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
-        if device_ids.len() == 0 { return Err(DeviceError::NoDevices.into()) }
+        if device_ids.is_empty() { return Err(DeviceError::NoDevices.into()) }
         Ok(Device(device_ids[0]))
     }
 
@@ -263,7 +263,7 @@ impl Device {
     pub fn by_idx_wrap<P: Borrow<Platform>>(platform: P, device_idx_wrap: usize)
             -> OclResult<Device> {
         let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
-        if device_ids.len() == 0 { return Err(DeviceError::NoDevices.into()) }
+        if device_ids.is_empty() { return Err(DeviceError::NoDevices.into()) }
         let wrapped_idx = device_idx_wrap % device_ids.len();
         Ok(Device(device_ids[wrapped_idx]))
     }
@@ -285,7 +285,7 @@ impl Device {
     /// lists which may contain out of bounds indices.
     ///
     pub fn resolve_idxs(idxs: &[usize], devices: &[Device]) -> OclResult<Vec<Device>> {
-        if devices.len() == 0 { return Err(DeviceError::ResolveIdxsEmptyDeviceList.into()) }
+        if devices.is_empty() { return Err(DeviceError::ResolveIdxsEmptyDeviceList.into()) }
         let mut result = Vec::with_capacity(idxs.len());
         for &idx in idxs.iter() {
             match devices.get(idx) {
@@ -402,7 +402,7 @@ impl Device {
     pub fn max_wg_size(&self) -> OclResult<usize> {
         match self.info(DeviceInfo::MaxWorkGroupSize) {
             Ok(DeviceInfoResult::MaxWorkGroupSize(r)) => Ok(r),
-            Err(err) => Err(OclError::from(err)),
+            Err(err) => Err(err),
             _ => panic!("Device::max_wg_size: Unexpected 'DeviceInfoResult' variant."),
         }
     }
@@ -411,7 +411,7 @@ impl Device {
     pub fn mem_base_addr_align(&self) -> OclResult<u32> {
         match self.info(DeviceInfo::MemBaseAddrAlign) {
             Ok(DeviceInfoResult::MemBaseAddrAlign(r)) => Ok(r),
-            Err(err) => Err(OclError::from(err)),
+            Err(err) => Err(err),
             _ => panic!("Device::mem_base_addr_align: Unexpected 'DeviceInfoResult' variant."),
         }
     }
@@ -420,7 +420,7 @@ impl Device {
     pub fn is_available(&self) -> OclResult<bool> {
         match self.info(DeviceInfo::Available) {
             Ok(DeviceInfoResult::Available(r)) => Ok(r),
-            Err(err) => Err(OclError::from(err)),
+            Err(err) => Err(err),
             _ => panic!("Device::is_available: Unexpected 'DeviceInfoResult' variant."),
         }
     }

@@ -191,7 +191,7 @@ impl Index<usize> for SpatialDims {
 
 impl<'a> From<&'a SpatialDims> for SpatialDims {
     fn from(sd: &'a SpatialDims) -> SpatialDims {
-        sd.clone()
+        *sd
     }
 }
 

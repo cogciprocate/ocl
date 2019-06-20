@@ -17,7 +17,7 @@ pub struct FutureFlush<T: OclPrm> {
 
 impl<T: OclPrm> FutureFlush<T> {
     fn new(future_guard: FutureGuard<Inner<T>, ReadGuard<Inner<T>>>) -> FutureFlush<T> {
-        FutureFlush { future_guard: future_guard }
+        FutureFlush { future_guard }
     }
 
     /// Returns a mutable reference to the contained `FutureGuard`.
@@ -53,7 +53,7 @@ impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
     fn new(sink: BufferSink<T>) -> FlushCmd<'c, T> {
         FlushCmd {
             queue: None,
-            sink: sink,
+            sink,
             ewait: None,
             enew: None,
         }

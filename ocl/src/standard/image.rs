@@ -94,8 +94,8 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     fn new(queue: Option<&'c Queue>, obj_core: &'c MemCore, dims: [usize; 3])
             -> ImageCmd<'c, T> {
         ImageCmd {
-            queue: queue,
-            obj_core: obj_core,
+            queue,
+            obj_core,
             block: true,
             origin: [0, 0, 0],
             region: dims,
@@ -196,7 +196,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
             already set for this command.");
         self.kind = ImageCmdKind::Copy {
             dst_image: dst_image.as_core(),
-            dst_origin: dst_origin,
+            dst_origin,
         };
         self
     }
@@ -213,7 +213,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
             where 'd: 'c {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::copy_to_buffer(): Operation kind \
             already set for this command.");
-        self.kind = ImageCmdKind::CopyToBuffer { buffer: buffer, dst_origin: dst_origin };
+        self.kind = ImageCmdKind::CopyToBuffer { buffer, dst_origin };
         self
     }
 
@@ -258,7 +258,7 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
     pub fn fill(mut self, color: T) -> ImageCmd<'c, T> {
         assert!(self.kind.is_unspec(), "ocl::ImageCmd::fill(): Operation kind \
             already set for this command.");
-        self.kind = ImageCmdKind::Fill { color: color };
+        self.kind = ImageCmdKind::Fill { color };
         self
     }
 
@@ -705,10 +705,10 @@ impl<T: OclPrm> Image<T> {
         let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth].into();
 
         let new_img = Image {
-            obj_core: obj_core,
+            obj_core,
             queue: que_ctx.into(),
-            dims: dims,
-            pixel_element_len: pixel_element_len,
+            dims,
+            pixel_element_len,
             _pixel: PhantomData,
         };
 
@@ -751,10 +751,10 @@ impl<T: OclPrm> Image<T> {
         let dims = [image_desc.image_width, image_desc.image_height, image_desc.image_depth].into();
 
         let new_img = Image {
-            obj_core: obj_core,
+            obj_core,
             queue: que_ctx.into(),
-            dims: dims,
-            pixel_element_len: pixel_element_len,
+            dims,
+            pixel_element_len,
             _pixel: PhantomData,
         };
 
@@ -787,10 +787,10 @@ impl<T: OclPrm> Image<T> {
         let dims = [image_desc.image_width, image_desc.image_height].into();
 
         let new_img = Image {
-            obj_core: obj_core,
+            obj_core,
             queue: que_ctx.into(),
-            dims: dims,
-            pixel_element_len: pixel_element_len,
+            dims,
+            pixel_element_len,
             _pixel: PhantomData,
         };
 
@@ -1091,7 +1091,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     /// panic. Use the `::use_host_slice` method instead.
     ///
     /// [SDK Docs]: https://www.khronos.org/registry/cl/sdk/1.2/docs/man/xhtml/clCreateBuffer.html
-    pub fn flags<'b>(mut self, flags: MemFlags) -> ImageBuilder<'a, T> {
+    pub fn flags(mut self, flags: MemFlags) -> ImageBuilder<'a, T> {
         assert!(!flags.contains(MemFlags::new().use_host_ptr()),
             "The `ImageBuilder::flags` method may not be used to set the \
             `MEM_USE_HOST_PTR` flag. Use the `::use_host_ptr` method instead.");

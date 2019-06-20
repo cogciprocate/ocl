@@ -412,7 +412,7 @@ impl EventArray {
 
         // Shift everything after `idx` to the left:
         unsafe {
-            let ptr = self.array.as_mut_ptr().offset(idx as isize);
+            let ptr = self.array.as_mut_ptr().add(idx);
             ptr::copy(ptr.offset(1), ptr, self.len - idx - 1);
         }
         self.len -= 1;
@@ -496,7 +496,7 @@ impl EventArray {
         if self.len > 0 {
             &self.array[0] as *const _ as *const cl_event
         } else {
-            0 as *const cl_event
+            ptr::null()
         }
     }
 
@@ -545,7 +545,7 @@ impl<'a, E> From<&'a [E]> for EventArray where E: Into<Event> + Clone {
         }
 
         EventArray {
-            array: array,
+            array,
             len: events.len(),
         }
     }
@@ -845,7 +845,7 @@ impl EventList {
             Inner::Vec(ref v) => {
                 match v.first() {
                     Some(ev) => ev as *const _ as *const cl_event,
-                    None => 0 as *const cl_event,
+                    None => ptr::null(),
                 }
             },
         }
@@ -1147,7 +1147,7 @@ impl<'a> From<ClWaitListPtrEnum<'a>> for EventList {
             ClWaitListPtrEnum::Null => EventList::with_capacity(0),
             ClWaitListPtrEnum::RawEventArray(e) => e.as_slice().into(),
             ClWaitListPtrEnum::EventCoreOwned(e) => EventList::from(vec![e.into()]),
-            ClWaitListPtrEnum::EventOwned(e) => EventList::from(vec![e.into()]),
+            ClWaitListPtrEnum::EventOwned(e) => EventList::from(vec![e]),
             ClWaitListPtrEnum::EventCore(e) => EventList::from(vec![e.clone().into()]),
             ClWaitListPtrEnum::Event(e) => EventList::from(vec![e.clone().into()]),
             ClWaitListPtrEnum::EventList(e) => e.clone(),
@@ -1265,7 +1265,7 @@ impl RawEventArray {
         if self.len > 0 {
             &self.list as *const _ as *const cl_event
         } else {
-            0 as *const cl_event
+            ptr::null()
         }
     }
 
@@ -1273,7 +1273,7 @@ impl RawEventArray {
     /// event in this list.
     pub fn to_marker(&self, queue: &Queue) -> OclResult<Option<Event>> {
         if self.list.is_empty() { return Ok(None); }
-        queue.enqueue_marker(Some(self)).map(|marker_event| Some(marker_event))
+        queue.enqueue_marker(Some(self)).map(Some)
             .map_err(OclError::from)
     }
 

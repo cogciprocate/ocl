@@ -60,9 +60,9 @@ use crate::{GlContextInfo, GlContextInfoResult};
 
 // [TODO]: Do proper auto-detection of available OpenGL context type.
 #[cfg(target_os="macos")]
-const CL_GL_SHARING_EXT: &'static str = "cl_APPLE_gl_sharing";
+const CL_GL_SHARING_EXT: &str = "cl_APPLE_gl_sharing";
 #[cfg(not(target_os="macos"))]
-const CL_GL_SHARING_EXT: &'static str = "cl_khr_gl_sharing";
+const CL_GL_SHARING_EXT: &str = "cl_khr_gl_sharing";
 
 const KERNEL_DEBUG_SLEEP_DURATION_MS: u64 = 150;
 const PLATFORM_IDS_ATTEMPT_TIMEOUT_MS: u64 = 2000;
@@ -150,9 +150,9 @@ impl ApiError {
         let fn_info = fn_info.map(|s| s.into());
 
         ApiError {
-            status: status,
-            fn_name: fn_name,
-            fn_info: fn_info,
+            status,
+            fn_name,
+            fn_info,
         }
     }
 
@@ -232,7 +232,7 @@ pub enum ProgramBuildError {
 ///
 pub fn program_build_err<D: ClDeviceIdPtr>(program: &Program, device_ids: &[D])
         -> Result<(), ProgramBuildError> {
-    if device_ids.len() == 0 {
+    if device_ids.is_empty() {
         return Err(ProgramBuildError::DeviceListEmpty);
     }
 
@@ -406,7 +406,7 @@ fn resolve_event_ptrs<En: ClNullEventPtr, Ewl: ClWaitListPtr>(wait_list: Option<
 fn resolve_work_dims(work_dims: Option<&[usize; 3]>) -> *const size_t {
     match work_dims {
         Some(w) => w as *const [usize; 3] as *const size_t,
-        None => 0 as *const size_t,
+        None => ptr::null(),
     }
 }
 
@@ -436,7 +436,7 @@ fn verify_platform_version<V: ClVersions>(provided_version: Option<&OpenclVersio
         -> OclCoreResult<()> {
     match provided_version {
         Some(pv) => {
-            let vers = [pv.clone()];
+            let vers = [*pv];
             verify_versions(&vers, required_version, function, VersionKind::Platform)
         },
         None => fallback_version_source.verify_platform_version(required_version),
@@ -450,7 +450,7 @@ fn verify_device_version<V: ClVersions>(provided_version: Option<&OpenclVersion>
         -> OclCoreResult<()> {
     match provided_version {
         Some(pv) => {
-            let ver = [pv.clone()];
+            let ver = [*pv];
             verify_versions(&ver, required_version, function, VersionKind::Device)
         },
         None => fallback_version_source.verify_device_versions(required_version),
@@ -633,7 +633,7 @@ pub fn get_device_info_raw<D: ClDeviceIdPtr>(device: D, request: u32) -> OclCore
         device.as_ptr() as cl_device_id,
         request as cl_device_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -664,7 +664,7 @@ pub fn get_device_info_raw<D: ClDeviceIdPtr>(device: D, request: u32) -> OclCore
         request as cl_device_info,
         result_size as size_t,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     eval_errcode(errcode, result, "clGetDeviceInfo", None::<String>)
@@ -741,7 +741,7 @@ pub fn create_context<D: ClDeviceIdPtr>(properties: Option<&ContextProperties>, 
             pfn_notify: Option<CreateContextCallbackFn>, user_data: Option<UserDataPtr>
         ) -> OclCoreResult<Context>
 {
-    if device_ids.len() == 0 {
+    if device_ids.is_empty() {
         return Err(ApiWrapperError::CreateContextNoDevicesSpecified.into())
     }
 
@@ -883,7 +883,7 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
         context.as_ptr() as cl_context,
         request as cl_context_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut usize,
     ) };
 
@@ -916,7 +916,7 @@ fn get_context_info_unparsed<C>(context: C, request: ContextInfo)
         request as cl_context_info,
         result_size as size_t,
         result.as_mut_ptr() as *mut c_void,
-        0 as *mut usize,
+        ptr::null_mut(),
     ) };
 
     eval_errcode(errcode, result, "clGetContextInfo", None::<String>)
@@ -1015,7 +1015,7 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
         props_bytes.as_ptr(),
         request as cl_gl_context_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut usize,
     ) };
 
@@ -1041,7 +1041,7 @@ pub fn get_gl_context_info_khr(properties: &ContextProperties, request: GlContex
         request as cl_gl_context_info,
         result_size as size_t,
         result.as_mut_ptr() as *mut c_void,
-        0 as *mut usize,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetGlContextInfoKhr", None::<String>)?;
@@ -1104,7 +1104,7 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
         queue.as_ptr() as cl_command_queue,
         request as cl_command_queue_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -1122,7 +1122,7 @@ pub fn get_command_queue_info(queue: &CommandQueue, request: CommandQueueInfo,
         request as cl_command_queue_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetCommandQueueInfo", None::<String>)?;
@@ -1490,7 +1490,7 @@ pub fn get_supported_image_formats<C>(
            ImageFormat::new_raw()
         } ).collect();
 
-    debug_assert!(image_formats.len() == num_image_formats as usize && image_formats.len() > 0);
+    debug_assert!(image_formats.len() == num_image_formats as usize && !image_formats.is_empty());
 
     let errcode = unsafe { ffi::clGetSupportedImageFormats(
         context.as_ptr(),
@@ -1498,7 +1498,7 @@ pub fn get_supported_image_formats<C>(
         image_type as cl_mem_object_type,
         num_image_formats,
         image_formats.as_mut_ptr() as *mut _ as *mut cl_image_format,
-        0 as *mut cl_uint,
+        ptr::null_mut(),
     ) };
 
     r#try!(eval_errcode(errcode, (), "clGetSupportedImageFormats", None::<String>));
@@ -1514,7 +1514,7 @@ pub fn get_mem_object_info(obj: &Mem, request: MemInfo) -> OclCoreResult<MemInfo
         obj.as_ptr() as cl_mem,
         request as cl_mem_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -1532,7 +1532,7 @@ pub fn get_mem_object_info(obj: &Mem, request: MemInfo) -> OclCoreResult<MemInfo
         request as cl_mem_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
     let result = eval_errcode(errcode, result, "clGetMemObjectInfo", None::<String>)?;
     MemInfoResult::from_bytes(request, result)
@@ -1547,7 +1547,7 @@ pub fn get_image_info(obj: &Mem, request: ImageInfo) -> OclCoreResult<ImageInfoR
         obj.as_ptr() as cl_mem,
         request as cl_image_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -1565,7 +1565,7 @@ pub fn get_image_info(obj: &Mem, request: ImageInfo) -> OclCoreResult<ImageInfoR
         request as cl_image_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetImageInfo", None::<String>)?;
@@ -1626,7 +1626,7 @@ pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
         obj.as_ptr() as cl_sampler,
         request as cl_sampler_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -1648,7 +1648,7 @@ pub fn get_sampler_info(obj: &Sampler, request: SamplerInfo,
         request as cl_sampler_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetSamplerInfo", None::<String>)?;
@@ -1704,7 +1704,7 @@ pub fn create_program_with_binary<C, D>(
         ) -> OclCoreResult<Program>
         where C: ClContextPtr, D: ClDeviceIdPtr
 {
-    if devices.len() == 0 {
+    if devices.is_empty() {
         return Err(ApiWrapperError::CreateProgramWithBinaryDevicesLenZero.into())
     }
 
@@ -1872,7 +1872,7 @@ pub fn compile_program<D: ClDeviceIdPtr>(
     let hdrs_names_ptrs: Vec<*const _> = header_include_names.iter().map(|cs| cs.as_ptr()).collect();
 
     // Will crash if ptrs is not NULL, but len is 0
-    let (input_ptr, names_ptr) = if input_headers.len()==0 {
+    let (input_ptr, names_ptr) = if input_headers.is_empty() {
         (ptr::null(), ptr::null())
     } else {
         (input_hdrs_ptrs.as_ptr(), hdrs_names_ptrs.as_ptr())
@@ -1974,7 +1974,7 @@ fn get_program_info_raw(program: &Program, request: ProgramInfo) -> OclCoreResul
         program.as_ptr() as cl_program,
         request as cl_program_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -1992,7 +1992,7 @@ fn get_program_info_raw(program: &Program, request: ProgramInfo) -> OclCoreResul
         request as cl_program_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     eval_errcode(errcode, result, "clGetProgramInfo", None::<String>)
@@ -2017,7 +2017,7 @@ fn get_program_info_binaries(program: &Program) -> OclCoreResult<Vec<Vec<u8>>> {
         ProgramInfo::Binaries as cl_program_info,
         mem::size_of::<*mut c_void>() * binary_ptrs.len(),
         binary_ptrs.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     eval_errcode(errcode, binaries, "clGetProgramInfo", None::<String>)
@@ -2027,7 +2027,7 @@ fn get_program_info_binaries(program: &Program) -> OclCoreResult<Vec<Vec<u8>>> {
 pub fn get_program_info(program: &Program, request: ProgramInfo) -> OclCoreResult<ProgramInfoResult> {
     match request {
         ProgramInfo::Binaries => {
-            get_program_info_binaries(program).map(|b| ProgramInfoResult::Binaries(b))
+            get_program_info_binaries(program).map(ProgramInfoResult::Binaries)
         },
         _ => {
             let result = get_program_info_raw(program, request)?;
@@ -2047,7 +2047,7 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + fmt::Debug>(obj: &Program, devi
         device_obj.as_ptr() as cl_device_id,
         request as cl_program_build_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -2066,7 +2066,7 @@ pub fn get_program_build_info<D: ClDeviceIdPtr + fmt::Debug>(obj: &Program, devi
         request as cl_program_build_info,
         result_size as size_t,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetProgramBuildInfo", None::<String>)?;
@@ -2152,7 +2152,7 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo) -> OclCoreResult<Kerne
         obj.as_ptr() as cl_kernel,
         request as cl_kernel_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -2170,7 +2170,7 @@ pub fn get_kernel_info(obj: &Kernel, request: KernelInfo) -> OclCoreResult<Kerne
         request as cl_kernel_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetKernelInfo", None::<String>)?;
@@ -2199,7 +2199,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         arg_index as cl_uint,
         request as cl_kernel_arg_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -2222,7 +2222,7 @@ pub fn get_kernel_arg_info(obj: &Kernel, arg_index: u32, request: KernelArgInfo,
         request as cl_kernel_arg_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetKernelArgInfo", None::<String>)?;
@@ -2240,7 +2240,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
         device_obj.as_ptr() as cl_device_id,
         request as cl_kernel_work_group_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -2255,11 +2255,11 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
 
             // APPLE (bleh):
             if status == Status::CL_INVALID_DEVICE {
-                return Ok(KernelWorkGroupInfoResult::Unavailable(status.clone()));
+                return Ok(KernelWorkGroupInfoResult::Unavailable(status));
             }
         }
 
-        return Err(OclCoreError::from(err));
+        return Err(err);
     }
 
     // If result size is zero, return an empty info result directly:
@@ -2275,7 +2275,7 @@ pub fn get_kernel_work_group_info<D: ClDeviceIdPtr>(obj: &Kernel, device_obj: D,
         request as cl_kernel_work_group_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetKernelWorkGroupInfo", None::<String>)?;
@@ -2305,7 +2305,7 @@ pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo
         *event.as_ptr_ref(),
         request as cl_event_info,
         0 as size_t,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -2323,7 +2323,7 @@ pub fn get_event_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request: EventInfo
         request as cl_event_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetEventInfo", None::<String>)?;
@@ -2418,7 +2418,7 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
         event,
         request as cl_profiling_info,
         max_result_size_bytes,
-        0 as *mut c_void,
+        ptr::null_mut(),
         &mut result_size as *mut size_t,
     ) };
 
@@ -2427,10 +2427,8 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
 
     // Don't generate a full error report for `CL_INVALID_VALUE` it just means
     // that event profiling info is not available on this platform.
-    if errcode < 0 {
-        if Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
-            return Err(OclCoreError::from("<unavailable (CL_INVALID_VALUE)>"));
-        }
+    if errcode < 0 && Status::from_i32(errcode).unwrap() == Status::CL_INVALID_VALUE {
+        return Err(OclCoreError::from("<unavailable (CL_INVALID_VALUE)>"));
     }
 
     eval_errcode(errcode, (), "clGetEventProfilingInfo", None::<String>)?;
@@ -2447,7 +2445,7 @@ pub fn get_event_profiling_info<'e, E: ClEventPtrRef<'e>>(event: &'e E, request:
         request as cl_profiling_info,
         result_size,
         result.as_mut_ptr() as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     let result = eval_errcode(errcode, result, "clGetEventProfilingInfo", None::<String>)?;
@@ -3604,7 +3602,7 @@ pub unsafe fn get_extension_function_address_for_platform(
         func_name_c.as_ptr(),
     );
 
-    if ext_fn == 0 as *mut c_void {
+    if ext_fn.is_null() {
         Err(ApiWrapperError::GetExtensionFunctionAddressForPlatformInvalidFunction.into())
     } else {
         Ok(ext_fn)
@@ -3808,7 +3806,7 @@ pub fn get_command_queue_context_ptr(queue: &CommandQueue) -> OclCoreResult<cl_c
         CommandQueueInfo::Context as cl_command_queue_info,
         result_size,
         &mut result as *mut _ as *mut c_void,
-        0 as *mut size_t,
+        ptr::null_mut(),
     ) };
 
     eval_errcode(errcode, result, "clGetCommandQueueInfo",

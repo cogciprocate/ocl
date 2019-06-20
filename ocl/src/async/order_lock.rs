@@ -90,8 +90,8 @@ impl<V> ReadGuard<V> {
     fn new(order_lock: OrderLock<V>, release_event: Option<Event>) -> ReadGuard<V> {
         print_debug(order_lock.id(), "ReadGuard::new: read lock acquired");
         ReadGuard {
-            order_lock: order_lock,
-            release_event: release_event,
+            order_lock,
+            release_event,
         }
     }
 
@@ -171,8 +171,8 @@ impl<V> WriteGuard<V> {
     fn new(order_lock: OrderLock<V>, release_event: Option<Event>) -> WriteGuard<V> {
         print_debug(order_lock.id(), "WriteGuard::new: Write lock acquired");
         WriteGuard {
-            order_lock: order_lock,
-            release_event: release_event,
+            order_lock,
+            release_event,
         }
     }
 

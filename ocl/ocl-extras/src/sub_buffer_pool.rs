@@ -35,10 +35,10 @@ impl<T: OclPrm> SubBufferPool<T> {
             .build().unwrap();
 
         SubBufferPool {
-            buffer: buffer,
+            buffer,
             regions: LinkedList::new(),
             sub_buffers: HashMap::new(),
-            align: align,
+            align,
             _next_uid: 0,
         }
     }
@@ -61,7 +61,7 @@ impl<T: OclPrm> SubBufferPool<T> {
     fn create_sub_buffer(&mut self, region_idx: usize, flags: Option<MemFlags>,
             origin: u32, len: u32) -> usize {
         let buffer_id = self.next_uid();
-        let region = PoolRegion { buffer_id: buffer_id, origin: origin, len: len };
+        let region = PoolRegion { buffer_id, origin, len };
         let sbuf = self.buffer.create_sub_buffer(flags, region.origin as usize,
             region.len as usize).unwrap();
         if let Some(idx) = self.sub_buffers.insert(region.buffer_id, sbuf) {

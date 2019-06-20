@@ -96,10 +96,10 @@ pub enum UtilError {
 pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
     debug_assert!(bytes.len() == 4);
 
-    bytes[0] as u32 |
-    ((bytes[1] as u32) << 8) |
-    ((bytes[2] as u32) << 16) |
-    ((bytes[3] as u32) << 24)
+    u32::from(bytes[0]) |
+    (u32::from(bytes[1]) << 8) |
+    (u32::from(bytes[2]) << 16) |
+    (u32::from(bytes[3]) << 24)
 }
 
 /// Copies a slice of bytes to a new value of arbitrary type.

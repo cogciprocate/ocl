@@ -224,7 +224,7 @@ impl OpenclVersion {
 
 impl From<[u16; 2]> for OpenclVersion {
     fn from(ver: [u16; 2]) -> OpenclVersion {
-        OpenclVersion { ver: ver }
+        OpenclVersion { ver }
     }
 }
 
@@ -465,7 +465,7 @@ impl ContextProperties {
         match self.props.get(&ContextProperty::Platform) {
             Some(prop_val) => {
                 if let ContextPropertyValue::Platform(ref plat) = *prop_val {
-                    Some(plat.clone())
+                    Some(*plat)
                 } else {
                     panic!("Internal error returning platform.");
                 }
@@ -497,31 +497,31 @@ impl ContextProperties {
             // the value (variable type/size) to an isize:
             match *val {
                 ContextPropertyValue::Platform(ref platform_id_core) => {
-                    props_raw.push(key.clone() as isize);
+                    props_raw.push(*key as isize);
                     props_raw.push(platform_id_core.as_ptr() as isize);
                 },
                 ContextPropertyValue::InteropUserSync(sync) => {
-                    props_raw.push(key.clone() as isize);
+                    props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
                 },
                 ContextPropertyValue::GlContextKhr(sync) => {
-                    props_raw.push(key.clone() as isize);
+                    props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
                 },
                 ContextPropertyValue::GlxDisplayKhr(sync) => {
-                    props_raw.push(key.clone() as isize);
+                    props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
                 },
                 ContextPropertyValue::WglHdcKhr(sync) => {
-                    props_raw.push(key.clone() as isize);
+                    props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
                 },
                 ContextPropertyValue::CglSharegroupKhr(sync) => {
-                    props_raw.push(key.clone() as isize);
+                    props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
                 },
                 ContextPropertyValue::EglDisplayKhr(sync) => {
-                    props_raw.push(key.clone() as isize);
+                    props_raw.push(*key as isize);
                     props_raw.push(sync as isize);
                 },
                 _ => panic!("'{:?}' is not yet a supported variant.", key),
@@ -588,7 +588,7 @@ impl ContextProperties {
             let key_raw = *raw_context_properties.get_unchecked(idz);
             let val_raw = *raw_context_properties.get_unchecked(idz + 1);
 
-            let key = ContextProperty::from_isize(key_raw).ok_or(OclCoreError::from(
+            let key = ContextProperty::from_isize(key_raw).ok_or_else(|| OclCoreError::from(
                 format!("ContextProperties::from_raw: Unable to convert '{}' using \
                     'ContextProperty::from_isize'.", key_raw)))?;
 
@@ -709,8 +709,8 @@ pub struct BufferRegion<T> {
 impl<T: OclPrm> BufferRegion<T> {
     pub fn new(origin: usize, len: usize) -> BufferRegion<T> {
         BufferRegion {
-            origin: origin,
-            len: len,
+            origin,
+            len,
             _data: PhantomData,
         }
     }
@@ -836,7 +836,7 @@ impl ImageFormat {
     pub fn list_from_raw(list_raw: Vec<ffi::cl_image_format>)
             -> Vec<ImageFormatParseResult>
     {
-        list_raw.into_iter().map(|fmt_raw| ImageFormat::from_raw(fmt_raw)).collect()
+        list_raw.into_iter().map(ImageFormat::from_raw).collect()
     }
 
     pub fn to_raw(&self) -> ffi::cl_image_format {
@@ -982,7 +982,7 @@ impl ImageDescriptor {
                 array_size: usize, row_pitch: usize, slc_pitch: usize, buffer: Option<Mem>,
                 ) -> ImageDescriptor {
         ImageDescriptor {
-            image_type: image_type,
+            image_type,
             image_width: width,
             image_height: height,
             image_depth: depth,
@@ -991,7 +991,7 @@ impl ImageDescriptor {
             image_slice_pitch: slc_pitch,
             num_mip_levels: 0,
             num_samples: 0,
-            buffer: buffer,
+            buffer,
         }
     }
 

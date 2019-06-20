@@ -24,7 +24,7 @@ impl<'c, T> MemUnmapCmd<'c, T> where T: OclPrm {
     {
         MemUnmapCmd {
             queue: None,
-            mem_map: mem_map,
+            mem_map,
             ewait: None,
             enew: None,
         }
@@ -142,12 +142,12 @@ impl<T> MemMap<T>  where T: OclPrm {
             unmap_event: Option<Event>, buffer: MemCore, queue: Queue,
             /*buffer_is_mapped: Arc<AtomicBool>*/) -> MemMap<T> {
         MemMap {
-            core: core,
-            len: len,
-            buffer: buffer,
-            queue: queue,
-            unmap_wait_events: unmap_wait_events,
-            unmap_event: unmap_event,
+            core,
+            len,
+            buffer,
+            queue,
+            unmap_wait_events,
+            unmap_event,
             is_unmapped: false,
             // buffer_is_mapped,
         }

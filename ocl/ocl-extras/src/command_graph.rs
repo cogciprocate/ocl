@@ -41,7 +41,7 @@ pub struct KernelArgBuffer {
 
 impl KernelArgBuffer {
     pub fn new(arg_idx: usize, buffer_id: usize) -> KernelArgBuffer {
-        KernelArgBuffer { arg_idx: arg_idx, buffer_id: buffer_id }
+        KernelArgBuffer { arg_idx, buffer_id }
     }
 }
 
@@ -91,7 +91,7 @@ pub struct Command {
 impl Command {
     pub fn new(details: CommandDetails) -> Command {
         Command {
-            details: details,
+            details,
             event: RefCell::new(None),
             requisite_events: RefCell::new(EventList::new()),
         }
