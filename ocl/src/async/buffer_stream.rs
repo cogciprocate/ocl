@@ -368,7 +368,7 @@ impl<T: OclPrm> BufferStream<T> {
     /// Do not use unless you are 100% certain that there will be no other
     /// reads or writes for the entire access duration (only possible if
     /// manually manipulating the lock status).
-    pub unsafe fn as_mut_slice(&self) -> &mut [T] {
+    pub unsafe fn as_mut_slice(&mut self) -> &mut [T] {
         let ptr = (*self.lock.as_mut_ptr()).memory.as_mut_ptr();
         let len = (*self.lock.as_ptr()).default_len;
         ::std::slice::from_raw_parts_mut(ptr, len)
