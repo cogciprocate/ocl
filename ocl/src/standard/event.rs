@@ -1021,11 +1021,11 @@ macro_rules! from_event_option_ref_array_into_event_list(
         impl<'e, 'f> From<[&'f Option<$e>; $len]> for EventList where 'e: 'f {
             fn from(events: [&'f Option<$e>; $len]) -> EventList {
                 let mut el = EventList::with_capacity(events.len());
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(ref event) = *event_opt { el.push::<Event>(event.clone().into()); }
+                for event_opt in &events {
+                    if let Some(event) = *event_opt {
+                        el.push(event.clone());
+                    }
                 }
-                mem::forget(events);
                 el
             }
         }
@@ -1055,11 +1055,11 @@ macro_rules! impl_event_list_from_arrays {
         impl<'e, E> From<[Option<&'e E>; $len]> for EventList where E: Into<Event> + Clone {
             fn from(events: [Option<&E>; $len]) -> EventList {
                 let mut el = EventList::with_capacity(events.len());
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(event) = event_opt { el.push(event.clone().into()); }
+                for event_opt in &events {
+                    if let Some(event) = event_opt.cloned() {
+                        el.push(event);
+                    }
                 }
-                mem::forget(events);
                 el
             }
         }
@@ -1070,11 +1070,11 @@ macro_rules! impl_event_list_from_arrays {
         impl<'e, 'f, E> From<[&'f Option<&'e E>; $len]> for EventList where 'e: 'f, E: Into<Event> + Clone {
             fn from(events: [&'f Option<&'e E>; $len]) -> EventList {
                 let mut el = EventList::with_capacity(events.len());
-                for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(event) = *event_opt { el.push(event.clone().into()); }
+                for event_opt in &events {
+                    if let Some(event) = event_opt.cloned() {
+                        el.push(event);
+                    }
                 }
-                mem::forget(events);
                 el
             }
         }
