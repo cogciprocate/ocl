@@ -118,7 +118,7 @@ pub fn write_init(
         verify_init_event: Option<&Event>,
         write_init_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
@@ -191,7 +191,7 @@ pub fn verify_init(
         write_init_event: Option<&Event>,
         verify_init_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify init starting \t(iter: {}) ...", task_iter as usize); }
@@ -310,7 +310,7 @@ pub fn verify_add(
         wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>,
         correct_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }

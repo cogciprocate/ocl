@@ -411,7 +411,7 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
     let buffer_id_res: Vec<_> = (0..buffer_count).map(|i| {
         let flags = match i {
             0 => Some(MemFlags::new().read_only().host_write_only()),
-            1...5 => Some(MemFlags::new().read_write().host_no_access()),
+            1..=5 => Some(MemFlags::new().read_write().host_no_access()),
             6 => Some(MemFlags::new().write_only().host_read_only()),
             _ => panic!("Only 7 buffers are configured."),
         };
