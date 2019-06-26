@@ -1,3 +1,17 @@
+Version 0.19.3 (2019-06-19)
+===========================
+
+* Add `OpenClVersion::to_raw` method which returns the version as a tuple.
+* Derive `Hash` for `Platform` and `Device`.
+
+
+Bug Fixes
+---------
+
+* No longer assign null kernel values when creating kernel which caused
+  `CL_INVALID_ARG_VALUE` errors on some platforms (#126).
+
+
 Version 0.19.2 (2019-01-10)
 ===========================
 
