@@ -731,7 +731,7 @@ pub fn vec_write_async(
         fill_event: Option<&Event>,
         write_event: &mut Option<Event>,
         write_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Write init complete  \t(iter: {})", task_iter as usize); }
@@ -807,7 +807,7 @@ pub fn kernel_add(
 pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
         verify_add_unmap_queue: Queue, wait_event: Option<&Event>,
         verify_add_event: &mut Option<Event>, correct_val: i32,
-        task_iter: i32) -> Box<Future<Item=i32, Error=OclError> + Send>
+        task_iter: i32) -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         printlnc!(lime_bold: "* Verify add starting \t\t(iter: {}) ...",
@@ -851,7 +851,7 @@ pub fn map_read_async(dst_buf: &Buffer<Int4>, common_queue: &Queue,
 pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue: &Queue,
         verify_add_release_queue: &Queue, kernel_event: Option<&Event>,
         verify_add_event: &mut Option<Event>, correct_val: i32, task_iter: i32)
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT { println!("* Verify add starting  \t(iter: {}) ...", task_iter as usize); }

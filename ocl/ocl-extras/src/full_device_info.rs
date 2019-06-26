@@ -9,17 +9,17 @@ use ocl::core::{DeviceId, PlatformId, OpenclVersion, DeviceInfo, DeviceInfoResul
 /// `DeviceInfoResult` which must then be manually converted. This saves a significant amount of
 /// boilerplate when querying multiple different types of device information or using ones which
 /// don't already have a method on `Device`.
-/// 
+///
 /// # Examples
 /// Instead of using `device.info` like this...
-/// ```
+/// ```ignore
 /// let compute_units = match device.info(DeviceInfo::MaxComputeUnits)? {
 ///     DeviceInfoResult::MaxComputeUnits(c) => c,
 ///     _ => panic!("...")
 /// };
 /// ```
 /// ...you can use the trait and then call the method for whichever device information you need:
-/// ```
+/// ```ignore
 /// use ocl-extras::full_device_info::FullDeviceInfo;
 /// let compute_units = device.max_compute_units()?;
 /// ```

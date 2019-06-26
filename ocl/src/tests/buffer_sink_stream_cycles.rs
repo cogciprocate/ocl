@@ -194,7 +194,7 @@ pub fn write_init(src_buf_sink: &BufferSink<Int4>,
         write_val: i32, task_iter: i32)
         // -> AndThen<FutureMemMap<Int4>, OclResult<i32>,
         //     impl FnOnce(MemMap<Int4>) -> OclResult<i32>>
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _write_write_complete(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT {
@@ -267,7 +267,7 @@ pub fn verify_init(src_buf: &Buffer<Int4>, dst_vec: &RwVec<Int4>, common_queue: 
         correct_val: i32, task_iter: i32)
         // -> AndThen<PendingRwGuard<Int4>, OclResult<i32>,
         //     impl FnOnce(RwGuard<Int4>) -> OclResult<i32>>
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT {
@@ -400,7 +400,7 @@ pub fn verify_add(dst_buf_stream: &BufferStream<Int4>,
         correct_val: i32, task_iter: i32)
         // -> AndThen<FutureMemMap<Int4>, OclResult<i32>,
         //     impl FnOnce(MemMap<Int4>) -> OclResult<i32>>
-        -> Box<Future<Item=i32, Error=OclError> + Send>
+        -> Box<dyn Future<Item=i32, Error=OclError> + Send>
 {
     extern "C" fn _verify_starting(_: cl_event, _: i32, task_iter : *mut c_void) {
         if PRINT {
