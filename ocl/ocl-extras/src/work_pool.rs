@@ -63,7 +63,7 @@ impl Wake for ThreadNotify {
 
 /// A work pool task.
 struct Task {
-    fut: Box<Future<Item = (), Error = Never>>,
+    fut: Box<dyn Future<Item = (), Error = Never>>,
     map: LocalMap,
 }
 
@@ -143,7 +143,7 @@ impl WorkPoolCore {
         })
     }
 
-    fn spawn(&mut self, f: Box<Future<Item = (), Error = Never> + Send>) -> Result<(), SpawnError> {
+    fn spawn(&mut self, f: Box<dyn Future<Item = (), Error = Never> + Send>) -> Result<(), SpawnError> {
         let task = Task {
             fut: f,
             map: LocalMap::new(),
@@ -162,7 +162,7 @@ impl WorkPoolCore {
 /// Runs in and manages its own threads. Dropping the `WorkPool` will block
 /// the dropping thread until all submitted and spawned work is complete.
 pub struct WorkPool {
-    core_tx: Option<Sender<Box<Future<Item = (), Error = Never> + Send>>>,
+    core_tx: Option<Sender<Box<dyn Future<Item = (), Error = Never> + Send>>>,
     core_thread: Option<JoinHandle<()>>,
 }
 

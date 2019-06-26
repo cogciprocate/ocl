@@ -20,8 +20,8 @@ static KERNEL_SRC: &'static str = r#"
         uint const idx = get_global_id(0);
         res[idx] = src[idx] * coeff;
     }
-"#;
 
+"#;
 
 fn basics() -> ocl::Result<()> {
     // Create a big ball of OpenCL-ness (see ProQue and ProQueBuilder docs for info):
