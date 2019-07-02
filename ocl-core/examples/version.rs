@@ -9,7 +9,7 @@ extern crate ocl_core as core;
 use std::ffi::CString;
 
 fn main() {
-    use core::ClVersions;
+    use crate::core::ClVersions;
 
     let src = r#"
         __kernel void add(__global float* buffer, float scalar) {

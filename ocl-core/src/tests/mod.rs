@@ -20,8 +20,8 @@ pub mod buffer_fill;
 pub mod vector_types;
 pub mod compile_program;
 use self::rand::Rng;
-use error::{Result as OclCoreResult};
-use ::{OclScl, PlatformId, DeviceId, Context};
+use crate::error::{Result as OclCoreResult};
+use crate::{OclScl, PlatformId, DeviceId, Context};
 
 const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 16;
@@ -30,18 +30,18 @@ const PRINT: bool = false;
 
 /// Returns one context for each device on each platform available.
 pub fn get_available_contexts() -> Vec<(PlatformId, DeviceId, Context)> {
-    use ::{DeviceInfo, DeviceInfoResult};
+    use crate::{DeviceInfo, DeviceInfoResult};
     let mut contexts = Vec::with_capacity(16);
 
-    for platform in ::get_platform_ids().unwrap() {
-        for device in ::get_device_ids(&platform, None, None).unwrap() {
-            match ::get_device_info(device, DeviceInfo::Available).unwrap() {
+    for platform in crate::get_platform_ids().unwrap() {
+        for device in crate::get_device_ids(&platform, None, None).unwrap() {
+            match crate::get_device_info(device, DeviceInfo::Available).unwrap() {
                 DeviceInfoResult::Available(r) => if !r { continue; },
                 _ => unreachable!(),
             }
 
-            let context_properties = ::ContextProperties::new().platform(platform);
-            let context = ::create_context(Some(&context_properties),
+            let context_properties = crate::ContextProperties::new().platform(platform);
+            let context = crate::create_context(Some(&context_properties),
                 &[device], None, None).unwrap();
 
             contexts.push((platform, device, context));

@@ -4,8 +4,8 @@
 #![cfg(feature = "ocl-core-vector")]
 
 use std::ffi::CString;
-use ::{OclVec, Kernel, Context, CommandQueue, Mem};
-use tests::{get_available_contexts};
+use crate::{OclVec, Kernel, Context, CommandQueue, Mem};
+use crate::tests::{get_available_contexts};
 
 const DATASET_SIZE: usize = 1 << 14;
 const DIMS: [usize; 3] = [DATASET_SIZE, 1, 1usize];
@@ -15,14 +15,14 @@ fn kernel<V>(context: &Context, src: &str, buffer: &Mem, addend: V) -> Kernel
 {
     // Create program:
     let src_cstring = CString::new(src).unwrap();
-    let program = ::create_program_with_source(context, &[src_cstring]).unwrap();
-    ::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
+    let program = crate::create_program_with_source(context, &[src_cstring]).unwrap();
+    crate::build_program(&program, None::<&[()]>, &CString::new("").unwrap(),
         None, None).unwrap();
 
     // Create kernel:
-    let kernel = ::create_kernel(&program, "add").unwrap();
-    ::set_kernel_arg(&kernel, 0, ::ArgVal::mem(&buffer)).unwrap();
-    ::set_kernel_arg(&kernel, 1, ::ArgVal::vector(&addend)).unwrap();
+    let kernel = crate::create_kernel(&program, "add").unwrap();
+    crate::set_kernel_arg(&kernel, 0, crate::ArgVal::mem(&buffer)).unwrap();
+    crate::set_kernel_arg(&kernel, 1, crate::ArgVal::vector(&addend)).unwrap();
 
     kernel
 }
@@ -33,21 +33,21 @@ fn create_enqueue_verify<V>(context: &Context, queue: &CommandQueue,
 {
     // Create vec and buffer:
     let mut vec = vec![start_val; DATASET_SIZE];
-    let buf = unsafe { ::create_buffer(context, ::MEM_READ_WRITE |
-        ::MEM_COPY_HOST_PTR, DATASET_SIZE, Some(&vec)).unwrap() };
+    let buf = unsafe { crate::create_buffer(context, crate::MEM_READ_WRITE |
+        crate::MEM_COPY_HOST_PTR, DATASET_SIZE, Some(&vec)).unwrap() };
 
     // Create program and kernel:
     let kernel = kernel(context, src, &buf, addend);
 
     // Enqueue kernel:
     unsafe {
-        ::enqueue_kernel(&queue, &kernel, 1, None, &DIMS,
-            None, None::<::Event>, None::<&mut ::Event>).unwrap();
+        crate::enqueue_kernel(&queue, &kernel, 1, None, &DIMS,
+            None, None::<crate::Event>, None::<&mut crate::Event>).unwrap();
     }
 
     // Read from buffer:
-    unsafe { ::enqueue_read_buffer(&queue, &buf, true, 0, &mut vec,
-        None::<::Event>, None::<&mut ::Event>).unwrap() };
+    unsafe { crate::enqueue_read_buffer(&queue, &buf, true, 0, &mut vec,
+        None::<crate::Event>, None::<&mut crate::Event>).unwrap() };
 
     let mut iter_v = V::zero();
 
@@ -60,7 +60,7 @@ fn create_enqueue_verify<V>(context: &Context, queue: &CommandQueue,
 }
 
 fn add_double3(context: &Context, queue: &CommandQueue) {
-    use Double3;
+    use crate::Double3;
 
     let src = r#"
         __kernel void add(__global double3* buffer, double3 addend) {
@@ -76,7 +76,7 @@ fn add_double3(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_double16(context: &Context, queue: &CommandQueue) {
-    use Double16;
+    use crate::Double16;
 
     let src = r#"
         __kernel void add(__global double16* buffer, double16 addend) {
@@ -94,7 +94,7 @@ fn add_double16(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_float(context: &Context, queue: &CommandQueue) {
-    use Float;
+    use crate::Float;
 
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -110,7 +110,7 @@ fn add_float(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_float2(context: &Context, queue: &CommandQueue) {
-    use Float2;
+    use crate::Float2;
 
     let src = r#"
         __kernel void add(__global float2* buffer, float2 addend) {
@@ -126,7 +126,7 @@ fn add_float2(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_float3(context: &Context, queue: &CommandQueue) {
-    use Float3;
+    use crate::Float3;
 
     let src = r#"
         __kernel void add(__global float3* buffer, float3 addend) {
@@ -143,7 +143,7 @@ fn add_float3(context: &Context, queue: &CommandQueue) {
 
 
 fn add_float4(context: &Context, queue: &CommandQueue) {
-    use Float4;
+    use crate::Float4;
 
     let src = r#"
         __kernel void add(__global float4* buffer, float4 addend) {
@@ -159,7 +159,7 @@ fn add_float4(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_float16(context: &Context, queue: &CommandQueue) {
-    use Float16;
+    use crate::Float16;
 
     let src = r#"
         __kernel void add(__global float16* buffer, float16 addend) {
@@ -177,7 +177,7 @@ fn add_float16(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_int(context: &Context, queue: &CommandQueue) {
-    use Int;
+    use crate::Int;
 
     let src = r#"
         __kernel void add(__global int* buffer, int addend) {
@@ -193,7 +193,7 @@ fn add_int(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_int2(context: &Context, queue: &CommandQueue) {
-    use Int2;
+    use crate::Int2;
 
     let src = r#"
         __kernel void add(__global int2* buffer, int2 addend) {
@@ -209,7 +209,7 @@ fn add_int2(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_int3(context: &Context, queue: &CommandQueue) {
-    use Int3;
+    use crate::Int3;
 
     let src = r#"
         __kernel void add(__global int3* buffer, int3 addend) {
@@ -225,7 +225,7 @@ fn add_int3(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_int4(context: &Context, queue: &CommandQueue) {
-    use Int4;
+    use crate::Int4;
 
     let src = r#"
         __kernel void add(__global int4* buffer, int4 addend) {
@@ -241,7 +241,7 @@ fn add_int4(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_int16(context: &Context, queue: &CommandQueue) {
-    use Int16;
+    use crate::Int16;
 
     let src = r#"
         __kernel void add(__global int16* buffer, int16 addend) {
@@ -257,7 +257,7 @@ fn add_int16(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_char(context: &Context, queue: &CommandQueue) {
-    use Char;
+    use crate::Char;
 
     let src = r#"
         __kernel void add(__global char* buffer, char addend) {
@@ -273,7 +273,7 @@ fn add_char(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_char3(context: &Context, queue: &CommandQueue) {
-    use Char3;
+    use crate::Char3;
 
     let src = r#"
         __kernel void add(__global char3* buffer, char3 addend) {
@@ -289,7 +289,7 @@ fn add_char3(context: &Context, queue: &CommandQueue) {
 }
 
 fn add_char16(context: &Context, queue: &CommandQueue) {
-    use Char16;
+    use crate::Char16;
 
     let src = r#"
         __kernel void add(__global char16* buffer, char16 addend) {
@@ -307,7 +307,7 @@ fn add_char16(context: &Context, queue: &CommandQueue) {
 #[test]
 fn test_vector_types() {
     for (_, device, ref context) in get_available_contexts() {
-        let queue = ::create_command_queue(context, &device, None).unwrap();
+        let queue = crate::create_command_queue(context, &device, None).unwrap();
 
         // These may be problematic on platforms which don't support 64 bit
         // floating point. [TODO]: Add a check.

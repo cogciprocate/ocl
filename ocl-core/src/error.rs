@@ -3,9 +3,9 @@
 
 use std::fmt;
 use failure::{Context, Fail, Backtrace};
-use util::UtilError;
-use functions::{ApiError, VersionLowError, ProgramBuildError, ApiWrapperError};
-use ::{Status, EmptyInfoResultError};
+use crate::util::UtilError;
+use crate::functions::{ApiError, VersionLowError, ProgramBuildError, ApiWrapperError};
+use crate::{Status, EmptyInfoResultError};
 
 
 /// Ocl error result type.

@@ -5,7 +5,7 @@
 extern crate ocl_core as core;
 
 use std::ffi::CString;
-use core::{ArgVal, ContextProperties, Event};
+use crate::core::{ArgVal, ContextProperties, Event};
 
 #[allow(dead_code, unused_variables, unused_mut)]
 fn main() {

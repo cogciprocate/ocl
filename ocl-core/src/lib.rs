@@ -167,7 +167,7 @@ pub use self::functions::{
     create_from_gl_texture_2d, create_from_gl_texture_3d, enqueue_fill_buffer,
     enqueue_acquire_gl_objects, enqueue_release_gl_objects};
 
-pub use traits::{OclPrm, OclNum, OclScl};
+pub use crate::traits::{OclPrm, OclNum, OclScl};
 
 #[cfg(feature = "ocl-core-vector")]
 pub use self::vector::{
@@ -185,7 +185,7 @@ pub use self::vector::{
 };
 
 #[cfg(feature = "ocl-core-vector")]
-pub use traits::OclVec;
+pub use crate::traits::OclVec;
 
 #[cfg(feature = "opencl_version_2_1")]
 pub use self::functions::{create_program_with_il};
@@ -266,7 +266,7 @@ mod traits {
 
     #[cfg(feature = "ocl-core-vector")]
     mod ocl_vec {
-        use traits::{OclPrm, OclNum};
+        use crate::traits::{OclPrm, OclNum};
 
         /// A vector type usable within `OpenCL` kernels.
         ///
@@ -274,7 +274,7 @@ mod traits {
         /// `OclPrm` trait unless numeric operations are required.
         pub unsafe trait OclVec: OclPrm + OclNum {}
 
-        use vector::{
+        use crate::vector::{
             Char, Char2, Char3, Char4, Char8, Char16,
             Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
             Short, Short2, Short3, Short4, Short8, Short16,
