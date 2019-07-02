@@ -34,13 +34,13 @@ use std::sync::mpsc::{self, Receiver};
 use self::chrono::{Duration, DateTime, Local};
 use self::futures::{Future};
 use self::futures_cpupool::{Builder as CpuPoolBuilder, CpuFuture};
-use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
-use ::traits::{IntoRawEventArray};
-use ::async::{BufferSink, BufferStream};
-use ::error::{Error as OclError};
-use ::flags::{MemFlags, CommandQueueProperties};
-use ::prm::Int4;
-use ::ffi::{cl_event, c_void};
+use crate::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
+use crate::traits::{IntoRawEventArray};
+use crate::r#async::{BufferSink, BufferStream};
+use crate::error::{Error as OclError};
+use crate::flags::{MemFlags, CommandQueueProperties};
+use crate::prm::Int4;
+use crate::ffi::{cl_event, c_void};
 
 // Size of buffers and kernel work size:
 const WORK_SIZE: usize = 1 << 18;

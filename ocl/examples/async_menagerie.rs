@@ -25,7 +25,7 @@ use ocl::{Result as OclResult, Platform, Device, Context, Queue, Program, Kernel
 use ocl::flags::{MemFlags, MapFlags, CommandQueueProperties};
 use ocl::prm::Float4;
 use ocl::error::{Error as OclError};
-use extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
+use crate::extras::{SubBufferPool, CommandGraph, Command, CommandDetails, KernelArgBuffer};
 
 const INITIAL_BUFFER_LEN: u32 = 1 << 24; // 512MiB of Float4
 const SUB_BUF_MIN_LEN: u32 = 1 << 15; // 1MiB of Float4

@@ -2,11 +2,11 @@
 
 use std::ops::Deref;
 use futures::{Future, Poll};
-use core::{self, OclPrm, MemMap as MemMapCore,
+use crate::core::{self, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
-use standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
-use async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
-use error::{Error as OclError, Result as OclResult};
+use crate::standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
+use crate::r#async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
+use crate::error::{Error as OclError, Result as OclResult};
 
 
 #[must_use = "futures do nothing unless polled"]

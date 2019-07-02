@@ -4,12 +4,12 @@
 //!
 //! Runs both the core function and the 'standard' method call for each.
 
-use core::{self, DeviceInfo, DeviceInfoResult};
-use flags;
-use standard::{ProQue, Image, Sampler, Platform, Device};
-use enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
-use prm::{Int4};
-use tests;
+use crate::core::{self, DeviceInfo, DeviceInfoResult};
+use crate::flags;
+use crate::standard::{ProQue, Image, Sampler, Platform, Device};
+use crate::enums::{AddressingMode, FilterMode, ImageChannelOrder, ImageChannelDataType, MemObjectType};
+use crate::prm::{Int4};
+use crate::tests;
 
 // const ADDEND: [i32; 4] = [1; 4];
 const DIMS: [usize; 3] = [64, 128, 4];

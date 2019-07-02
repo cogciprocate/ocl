@@ -1,7 +1,7 @@
 //! Test adding multiple context properties.
 
-use standard::{Platform, Device, Context};
-use core::{ContextPropertyValue};
+use crate::standard::{Platform, Device, Context};
+use crate::core::{ContextPropertyValue};
 
 // static SRC: &'static str = r#"
 //     __kernel void multiply(__global float* buffer, float coeff) {

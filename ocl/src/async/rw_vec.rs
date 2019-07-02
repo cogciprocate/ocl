@@ -8,8 +8,8 @@
 
 
 use std::ops::{Deref, DerefMut};
-use async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
-use async::qutex::QrwLock;
+use crate::r#async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
+use crate::r#async::qutex::QrwLock;
 
 
 // pub type FutureRwVecGuard<T, G> = FutureGuard<Vec<T>, G>;

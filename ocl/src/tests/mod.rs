@@ -19,12 +19,12 @@ pub mod concurrent;
 pub mod kernel_arg;
 pub mod vector_types;
 pub mod context_props;
-pub mod async;
+pub mod r#async;
 pub mod buffer_sink_stream_cycles;
 
 use self::rand::Rng;
-use core::OclScl;
-use error::{Result as OclResult};
+use crate::core::OclScl;
+use crate::error::{Result as OclResult};
 
 const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 16;

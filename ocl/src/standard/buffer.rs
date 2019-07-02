@@ -3,16 +3,16 @@
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Range};
-use core::{self, Error as OclCoreError, Result as OclCoreResult, OclPrm, Mem as MemCore,
+use crate::core::{self, Error as OclCoreError, Result as OclCoreResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
     ClNullEventPtr};
-use ::{Context, Queue, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard, FutureWriteGuard,
+use crate::{Context, Queue, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard, FutureWriteGuard,
     SpatialDims};
-use standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, HostSlice};
-use error::{Error as OclError, Result as OclResult};
+use crate::standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, HostSlice};
+use crate::error::{Error as OclError, Result as OclResult};
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
-use ffi::cl_GLuint;
+use crate::ffi::cl_GLuint;
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -1423,7 +1423,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// cases when used with buffers created with the `MEM_ALLOC_HOST_PTR` or
     /// `MEM_USE_HOST_PTR` flags.
     pub fn read(mut self) -> BufferMapCmd<'c, T> {
-        self.flags = Some(::flags::MAP_READ);
+        self.flags = Some(crate::flags::MAP_READ);
         self
     }
 
@@ -1439,7 +1439,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// buffers created with the `MEM_ALLOC_HOST_PTR` or `MEM_USE_HOST_PTR`
     /// flags for best performance.
     pub fn write(mut self) -> BufferMapCmd<'c, T> {
-        self.flags = Some(::flags::MAP_WRITE);
+        self.flags = Some(crate::flags::MAP_WRITE);
         self
     }
 
@@ -1457,7 +1457,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     /// you will be overwriting the entire contents of the mapped region
     /// otherwise you will send stale or junk data to the device.
     pub fn write_invalidate(mut self) -> BufferMapCmd<'c, T> {
-        self.flags = Some(::flags::MAP_WRITE_INVALIDATE_REGION);
+        self.flags = Some(crate::flags::MAP_WRITE_INVALIDATE_REGION);
         self
     }
 
@@ -2021,12 +2021,12 @@ impl<T: OclPrm> Buffer<T> {
     pub fn create_sub_buffer<Do, Dl>(&self, flags_opt: Option<MemFlags>, offset: Do,
             len: Dl) -> OclResult<Buffer<T>>
             where Do: Into<SpatialDims>, Dl: Into<SpatialDims> {
-        let flags = flags_opt.unwrap_or(::flags::MEM_READ_WRITE);
+        let flags = flags_opt.unwrap_or(crate::flags::MEM_READ_WRITE);
 
         // Check flags here to preempt a somewhat vague OpenCL runtime error message:
-        assert!(!flags.contains(::flags::MEM_USE_HOST_PTR) &&
-            !flags.contains(::flags::MEM_ALLOC_HOST_PTR) &&
-            !flags.contains(::flags::MEM_COPY_HOST_PTR),
+        assert!(!flags.contains(crate::flags::MEM_USE_HOST_PTR) &&
+            !flags.contains(crate::flags::MEM_ALLOC_HOST_PTR) &&
+            !flags.contains(crate::flags::MEM_COPY_HOST_PTR),
             "'MEM_USE_HOST_PTR', 'MEM_ALLOC_HOST_PTR', or 'MEM_COPY_HOST_PTR' flags may \
             not be specified when creating a sub-buffer. They will be inherited from \
             the containing buffer.");

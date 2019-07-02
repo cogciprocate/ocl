@@ -1,9 +1,9 @@
 // use std::sync::Arc;
 // use std::sync::atomic::AtomicBool;
 use std::ops::{Deref, DerefMut};
-use core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem as MemCore, AsMem};
-use standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, EventList, Queue};
-use error::{Result as OclResult};
+use crate::core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem as MemCore, AsMem};
+use crate::standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, EventList, Queue};
+use crate::error::{Result as OclResult};
 
 
 /// An unmap command builder.

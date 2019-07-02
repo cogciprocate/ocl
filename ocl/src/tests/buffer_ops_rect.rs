@@ -3,10 +3,10 @@
 //! Runs both the core function and the 'standard' method call for each.
 
 use std::mem;
-use core;
+use crate::core;
 // use flags;
-use standard::{ProQue, Buffer};
-use tests;
+use crate::standard::{ProQue, Buffer};
+use crate::tests;
 
 const ADDEND: f32 = 10.0;
 const DIMS: [usize; 3] = [16, 16, 16];

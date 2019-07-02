@@ -8,13 +8,13 @@
 
 use std::thread;
 use futures::{Future};
-use core::Status;
-use ::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
-use ::traits::IntoRawEventArray;
-use ::error::{Error as OclError, Result as OclResult};
-use ::flags::{MemFlags, CommandQueueProperties};
-use ::prm::Int4;
-use ::ffi::{cl_event, c_void};
+use crate::core::Status;
+use crate::{Platform, Device, Context, Queue, Program, Kernel, Event, Buffer, RwVec};
+use crate::traits::IntoRawEventArray;
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::flags::{MemFlags, CommandQueueProperties};
+use crate::prm::Int4;
+use crate::ffi::{cl_event, c_void};
 
 // Size of buffers and kernel work size:
 //

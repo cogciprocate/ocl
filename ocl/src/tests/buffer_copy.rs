@@ -6,8 +6,8 @@ const DATASET_SIZE: usize = 1 << 20;
 #[test]
 fn buffer_copy_core() {
     use std::ffi::CString;
-    use core::{self, ContextProperties, ArgVal};
-    use flags;
+    use crate::core::{self, ContextProperties, ArgVal};
+    use crate::flags;
 
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
@@ -76,7 +76,7 @@ fn buffer_copy_core() {
 
 #[test]
 fn buffer_copy_standard() {
-    use standard::ProQue;
+    use crate::standard::ProQue;
     let src = r#"
         __kernel void add(__global float* buffer, float addend) {
             buffer[get_global_id(0)] += addend;

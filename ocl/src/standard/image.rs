@@ -9,19 +9,19 @@ use std;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
-use error::{Error as OclError, Result as OclResult};
-use core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
     ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
     ImageChannelOrder, ImageChannelDataType, AsMem, MemCmdRw, MemCmdAll,
     MapFlags};
-use standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum,
+use crate::standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitListPtrEnum,
     QueCtx, HostSlice};
-use ::MemMap;
+use crate::MemMap;
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
-use ffi::{cl_GLuint, cl_GLint};
+use crate::ffi::{cl_GLuint, cl_GLint};
 #[cfg(not(feature="opencl_vendor_mesa"))]
-use core::{GlTextureTarget};
+use crate::core::{GlTextureTarget};
 
 
 /// The type of operation to be performed by a command.

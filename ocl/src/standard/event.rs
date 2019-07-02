@@ -23,14 +23,14 @@ use std::cell::Ref;
 use futures::{Future, Poll, Async};
 #[cfg(not(feature = "async_block"))]
 use futures::task;
-use ffi::cl_event;
-use core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
+use crate::ffi::cl_event;
+use crate::core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef,
     CommandQueue as CommandQueueCore, ClContextPtr};
-use error::{Error as OclError, Result as OclResult};
-use standard::{Queue, ClWaitListPtrEnum};
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::standard::{Queue, ClWaitListPtrEnum};
 #[cfg(not(feature = "async_block"))]
-use standard::{_unpark_task, box_raw_void};
+use crate::standard::{_unpark_task, box_raw_void};
 use self::nodrop::NoDrop;
 
 const PRINT_DEBUG: bool = false;

@@ -2,8 +2,8 @@
 //!   operations.
 //!
 
-use standard::ProQue;
-use prm::Int4;
+use crate::standard::ProQue;
+use crate::prm::Int4;
 
 const DATASET_SIZE: usize = 1 << 20;
 

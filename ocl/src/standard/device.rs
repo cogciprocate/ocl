@@ -3,10 +3,10 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
-use ffi::cl_device_id;
-use core::{self, util, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
-use error::{Error as OclError, Result as OclResult};
-use standard::Platform;
+use crate::ffi::cl_device_id;
+use crate::core::{self, util, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::standard::Platform;
 
 
 /// A device related error.

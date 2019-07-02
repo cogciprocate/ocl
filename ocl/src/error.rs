@@ -6,11 +6,11 @@ use std;
 use failure::{Context, Fail, Backtrace};
 use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
-use core::error::{Error as OclCoreError};
-use core::Status;
-use standard::{DeviceError, PlatformError, KernelError};
+use crate::core::error::{Error as OclCoreError};
+use crate::core::Status;
+use crate::standard::{DeviceError, PlatformError, KernelError};
 
-use ::BufferCmdError;
+use crate::BufferCmdError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
