@@ -12,7 +12,7 @@ license = "MIT/Apache-2.0"
 exclude = ["target/*", "bak/*"]
 build = "build.rs"
 categories = ["api-bindings", "external-ffi-bindings", "asynchronous", "science"]
-# edition = "2018"
+edition = "2018"
 
 [features]
 # Specifies the OpenCL version supported by the library being used. Generally,
