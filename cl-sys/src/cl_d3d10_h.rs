@@ -2,7 +2,7 @@
 
 #![allow(non_camel_case_types)]
 
-use cl_h::cl_uint;
+use crate::cl_h::cl_uint;
 
 pub const CL_CONTEXT_D3D10_DEVICE_KHR: cl_uint = 0x4014;
 // typedef cl_uint cl_d3d10_device_source_khr;

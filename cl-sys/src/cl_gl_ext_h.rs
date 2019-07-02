@@ -1,6 +1,6 @@
 //! CGL (Apple) stuff.
 
-pub use cl_h::cl_context_properties;
+pub use crate::cl_h::cl_context_properties;
 
 // Introduced in Mac OS X 10.6
 pub const CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE: cl_context_properties = 0x10000000;

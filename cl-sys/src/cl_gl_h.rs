@@ -3,12 +3,12 @@
 #![allow(non_camel_case_types, dead_code, unused_variables, improper_ctypes, non_upper_case_globals)]
 
 use libc::{c_void, size_t};
-use cl_h::{cl_context_properties, cl_int, cl_uint};
+use crate::cl_h::{cl_context_properties, cl_int, cl_uint};
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
-use platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
+use crate::platform_h::{cl_GLuint, cl_GLint, cl_GLenum};
 #[cfg(not(feature="opencl_vendor_mesa"))]
-use cl_h::{cl_context, cl_mem_flags, cl_mem, cl_command_queue, cl_event};
+use crate::cl_h::{cl_context, cl_mem_flags, cl_mem, cl_command_queue, cl_event};
 
 pub type cl_gl_object_type      = cl_uint;
 pub type cl_gl_texture_info     = cl_uint;
