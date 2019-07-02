@@ -1,4 +1,4 @@
-use standard::{ProQue, EventList};
+use crate::standard::{ProQue, EventList};
 
 #[test]
 fn clear_completed() {

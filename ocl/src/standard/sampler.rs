@@ -2,10 +2,10 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use core::{self, Result as OclCoreResult, Sampler as SamplerCore, AddressingMode, FilterMode,
+use crate::core::{self, Result as OclCoreResult, Sampler as SamplerCore, AddressingMode, FilterMode,
     SamplerInfo, SamplerInfoResult};
-use error::{Error as OclError, Result as OclResult};
-use standard::Context;
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::standard::Context;
 
 /// An image sampler used to process images.
 #[derive(Clone, Debug)]

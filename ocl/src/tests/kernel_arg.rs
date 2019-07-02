@@ -1,6 +1,6 @@
 use std::thread;
 use std::time::Duration;
-use standard::{ProQue, Kernel, Buffer};
+use crate::standard::{ProQue, Kernel, Buffer};
 
 static SRC_0: &'static str = r#"
     __kernel void add(__global float* buffer, float addend) {
@@ -107,8 +107,8 @@ static SRC_1: &'static str = r#"
 
 /// Ensure that `None` named kernel arguments work.
 #[test]
-fn kernel_arg_named_none() -> ::Result<()> {
-    use Image;
+fn kernel_arg_named_none() -> crate::Result<()> {
+    use crate::Image;
 
     let pro_que = ProQue::builder()
         .src(SRC_1)
@@ -127,7 +127,7 @@ fn kernel_arg_named_none() -> ::Result<()> {
 /// passing gibberish).
 #[test]
 fn kernel_arg_float_size() {
-    use core::Status;
+    use crate::core::Status;
 
     let src = r#"__kernel void f(float a, float b, __global float *c) {*c = a + b;}"#;
     let pq = ProQue::builder().src(src).dims(1).build().unwrap();

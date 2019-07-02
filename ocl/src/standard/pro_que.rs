@@ -1,9 +1,9 @@
 //! A convenient wrapper for `Program` and `Queue`.
 
 use std::ops::Deref;
-use error::{Error as OclError, Result as OclResult};
-use core::{OclPrm, CommandQueueProperties};
-use standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::core::{OclPrm, CommandQueueProperties};
+use crate::standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
     MemLen, SpatialDims, WorkDims, DeviceSpecifier, KernelBuilder, BufferBuilder};
 
 static DIMS_ERR_MSG: &'static str = "This 'ProQue' has not had any dimensions specified. Use

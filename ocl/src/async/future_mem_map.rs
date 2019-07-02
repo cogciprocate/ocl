@@ -1,10 +1,10 @@
 // use std::sync::Arc;
 // use std::sync::atomic::AtomicBool;
 use futures::{Future, Poll, Async};
-use core::{OclPrm, MemMap as MemMapCore, Mem, ClNullEventPtr};
-use async::MemMap;
-use error::{Error as OclError, Result as OclResult};
-use ::{Event, Queue, EventList};
+use crate::core::{OclPrm, MemMap as MemMapCore, Mem, ClNullEventPtr};
+use crate::r#async::MemMap;
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::{Event, Queue, EventList};
 
 
 /// A future which resolves to a `MemMap` as soon as its creating command

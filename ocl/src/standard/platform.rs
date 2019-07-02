@@ -7,9 +7,9 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::str::SplitWhitespace;
-use ffi::cl_platform_id;
-use core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
-use error::{Error as OclError, Result as OclResult};
+use crate::ffi::cl_platform_id;
+use crate::core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
+use crate::error::{Error as OclError, Result as OclResult};
 
 
 #[derive(Debug, Fail)]

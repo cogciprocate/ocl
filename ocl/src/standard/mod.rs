@@ -64,11 +64,11 @@ impl<'a, T> HostSlice<'a, T> where T: 'a {
 
 #[cfg(not(feature = "async_block"))]
 mod cb {
-    use core::ffi::c_void;
+    use crate::core::ffi::c_void;
     use num_traits::FromPrimitive;
     use futures::task::Task;
-    use ffi::cl_event;
-    use core::{CommandExecutionStatus, Status};
+    use crate::ffi::cl_event;
+    use crate::core::{CommandExecutionStatus, Status};
 
     pub fn box_raw_void<T>(item: T) -> *mut c_void {
         let item_box = Box::new(item);
@@ -110,10 +110,10 @@ mod cb {
 mod types {
     use std::ptr;
     use std::cell::Ref;
-    use standard::{Event, EventList, RawEventArray, Queue};
-    use core::ffi::cl_event;
-    use core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
-    use error::Result as OclResult;
+    use crate::standard::{Event, EventList, RawEventArray, Queue};
+    use crate::core::ffi::cl_event;
+    use crate::core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
+    use crate::error::Result as OclResult;
 
     /// An enum which can represent several different ways of representing a
     /// event wait list.
@@ -376,7 +376,7 @@ mod types {
 mod traits {
     use std::fmt::Debug;
     use num_traits::{Num, ToPrimitive};
-    use ::SpatialDims;
+    use crate::SpatialDims;
     use super::spatial_dims::to_usize;
 
     /// Types which have properties describing the amount of work to be done

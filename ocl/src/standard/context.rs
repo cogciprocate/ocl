@@ -2,13 +2,13 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use ffi::cl_context;
-use core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
+use crate::ffi::cl_context;
+use crate::core::{self, Context as ContextCore, ContextProperties, ContextPropertyValue, ContextInfo,
     ContextInfoResult, DeviceInfo, DeviceInfoResult, PlatformInfo, PlatformInfoResult,
     CreateContextCallbackFn, UserDataPtr, OpenclVersion, ClContextPtr, ClVersions};
-use core::error::{Result as OclCoreResult};
-use error::{Error as OclError, Result as OclResult};
-use standard::{Platform, Device, DeviceSpecifier};
+use crate::core::error::{Result as OclCoreResult};
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::standard::{Platform, Device, DeviceSpecifier};
 
 
 
@@ -269,7 +269,7 @@ impl ContextBuilder {
     ///
     /// Overwrites any previously specified OpenGL context.
     ///
-    pub fn gl_context(&mut self, gl_handle: *mut ::ffi::c_void) -> &mut ContextBuilder {
+    pub fn gl_context(&mut self, gl_handle: *mut crate::ffi::c_void) -> &mut ContextBuilder {
         self.properties.set_gl_context(gl_handle);
         self
     }
@@ -278,7 +278,7 @@ impl ContextBuilder {
     ///
     /// Overwrites any previously specified GLX context.
     ///
-    pub fn glx_display(&mut self, glx_display: *mut ::ffi::c_void) -> &mut ContextBuilder {
+    pub fn glx_display(&mut self, glx_display: *mut crate::ffi::c_void) -> &mut ContextBuilder {
         self.properties.set_glx_display(glx_display);
         self
     }

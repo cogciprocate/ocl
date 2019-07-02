@@ -2,10 +2,10 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use core::{self, Result as OclCoreResult, CommandQueue as CommandQueueCore, CommandQueueInfo,
+use crate::core::{self, Result as OclCoreResult, CommandQueue as CommandQueueCore, CommandQueueInfo,
     CommandQueueInfoResult, OpenclVersion, CommandQueueProperties, ClWaitListPtr, ClContextPtr};
-use error::{Error as OclError, Result as OclResult};
-use standard::{Context, Device, Event};
+use crate::error::{Error as OclError, Result as OclResult};
+use crate::standard::{Context, Device, Event};
 
 /// A command queue which manages all actions taken on kernels, buffers, and
 /// images.
@@ -126,7 +126,7 @@ impl DerefMut for Queue {
 }
 
 unsafe impl<'a> ClContextPtr for &'a Queue {
-    fn as_ptr(&self) -> ::ffi::cl_context {
+    fn as_ptr(&self) -> crate::ffi::cl_context {
         self.context_ptr().expect("<&Queue as ClContextPtr>::as_ptr: \
             Unable to obtain a context pointer.")
     }

@@ -16,7 +16,7 @@ keywords = ["opencl", "gpu", "gpgpu", "async"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "*.png", "bak/*"]
 categories = ["asynchronous", "concurrency", "science", "api-bindings"]
-# edition = "2018"
+edition = "2018"
 
 [badges]
 travis-ci = { repository = "cogciprocate/ocl" }

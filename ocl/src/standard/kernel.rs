@@ -9,13 +9,13 @@ use std::collections::{HashMap, BTreeMap};
 use std::marker::PhantomData;
 use std::cell::RefCell;
 use std::borrow::Borrow;
-use core::ffi::c_void;
-use core::{self, util, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
+use crate::core::ffi::c_void;
+use crate::core::{self, util, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     ArgVal, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
-use core::error::{ErrorKind as OclCoreErrorKind};
-use error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
-use standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
+use crate::core::error::{ErrorKind as OclCoreErrorKind};
+use crate::error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
+use crate::standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum, Buffer, Image};
 pub use self::arg_type::{BaseType, Cardinality, ArgType};
 
@@ -1522,14 +1522,14 @@ pub fn arg_name(core: &KernelCore, arg_idx: u32) -> OclResult<String> {
 pub mod arg_type {
     #![allow(unused_imports)]
     use std::any::{Any, TypeId};
-    use ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
+    use crate::ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
-    use core::{Error as OclCoreError, Result as OclCoreResult, Status, OclPrm, Kernel as KernelCore};
-    use error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
-    use standard::Sampler;
+    use crate::core::{Error as OclCoreError, Result as OclCoreResult, Status, OclPrm, Kernel as KernelCore};
+    use crate::error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
+    use crate::standard::Sampler;
     use super::{arg_info, arg_type_name};
 
-    pub use core::{
+    pub use crate::core::{
         Char, Char2, Char3, Char4, Char8, Char16,
         Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
         Short, Short2, Short3, Short4, Short8, Short16,
@@ -1659,8 +1659,8 @@ pub mod arg_type {
         /// `ArgType::unknown()` (which matches any argument type) is returned
         /// if any are found.
         pub fn from_kern_and_idx(core: &KernelCore, arg_idx: u32) -> OclResult<ArgType> {
-            use core::EmptyInfoResultError;
-            use core::ErrorKind as OclCoreErrorKind;
+            use crate::core::EmptyInfoResultError;
+            use crate::core::ErrorKind as OclCoreErrorKind;
 
             match arg_type_name(core, arg_idx) {
                 Ok(type_name) => ArgType::from_str(type_name.as_str()),
@@ -1856,10 +1856,10 @@ pub mod arg_type {
 
 #[cfg(test)]
 mod tests {
-    use ::ProQue;
+    use crate::ProQue;
 
     #[test]
-    fn set_local_arg() -> ::Result<()> {
+    fn set_local_arg() -> crate::Result<()> {
         let src = r#"
             __kernel void local_args(__local double* localVec) {
 

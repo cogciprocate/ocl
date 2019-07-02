@@ -3,9 +3,9 @@ use std::convert::From;
 use std::fmt::Debug;
 use std::ops::Index;
 use num_traits::{Num, ToPrimitive};
-use error::{Result as OclResult};
-use standard::{MemLen, WorkDims};
-use core::util;
+use crate::error::{Result as OclResult};
+use crate::standard::{MemLen, WorkDims};
+use crate::core::util;
 
 
 #[derive(Debug, Fail)]

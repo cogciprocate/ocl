@@ -9,12 +9,12 @@ use std::collections::HashSet;
 use std::convert::Into;
 
 
-use core::{self, Result as OclCoreResult, Program as ProgramCore, Context as ContextCore,
+use crate::core::{self, Result as OclCoreResult, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
 #[cfg(feature = "opencl_version_2_1")]
 use core::ClVersions;
-use error::{Result as OclResult, Error as OclError};
-use standard::{Context, Device, DeviceSpecifier};
+use crate::error::{Result as OclResult, Error as OclError};
+use crate::standard::{Context, Device, DeviceSpecifier};
 
 
 /// A program from which kernels can be created from.

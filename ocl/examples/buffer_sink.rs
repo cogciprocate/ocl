@@ -6,7 +6,7 @@ extern crate ocl_extras;
 use std::thread::{JoinHandle, Builder as ThreadBuilder};
 use futures::Future;
 use ocl::{ProQue, Buffer, MemFlags};
-use ocl::async::{BufferSink, WriteGuard};
+use ocl::r#async::{BufferSink, WriteGuard};
 
 // Our arbitrary data set size (about a million) and coefficent:
 const WORK_SIZE: usize = 1 << 20;
