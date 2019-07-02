@@ -1,6 +1,6 @@
 //! OpenGL core header.
 
-use cl_h::cl_int;
+use crate::cl_h::cl_int;
 
 pub const GL_TEXTURE_1D:                    cl_int = 0x0DE0;
 pub const GL_TEXTURE_1D_ARRAY:              cl_int = 0x8C18;

@@ -1,6 +1,6 @@
 //! OpenCL / DirectX 9 sharing.
 
-use cl_h::cl_uint;
+use crate::cl_h::cl_uint;
 
 pub const CL_CONTEXT_ADAPTER_D3D9_KHR: cl_uint = 0x2025;
 pub const CL_CONTEXT_ADAPTER_D3D9EX_KHR: cl_uint = 0x2026;
@@ -54,7 +54,7 @@ pub const CL_CONTEXT_ADAPTER_DXVA_KHR: cl_uint = 0x2027;
 
 // typedef cl_uint             cl_dx9_media_adapter_type_khr;
 // typedef cl_uint             cl_dx9_media_adapter_set_khr;
-    
+
 // #if defined(_WIN32)
 // #include <d3d9.h>
 // typedef struct _cl_dx9_surface_info_khr
@@ -115,7 +115,7 @@ pub const CL_CONTEXT_ADAPTER_DXVA_KHR: cl_uint = 0x2027;
 //     cl_mem_flags                  flags,
 //     cl_dx9_media_adapter_type_khr adapter_type,
 //     void *                        surface_info,
-//     cl_uint                       plane,                                                                          
+//     cl_uint                       plane,
 //     cl_int *                      errcode_ret) CL_API_SUFFIX__VERSION_1_2;
 
 // typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueAcquireDX9MediaSurfacesKHR_fn)(
@@ -138,4 +138,4 @@ pub const CL_CONTEXT_ADAPTER_DXVA_KHR: cl_uint = 0x2027;
 // }
 // #endif
 
-// #endif  /* __OPENCL_CL_DX9_MEDIA_SHARING_H 
+// #endif  /* __OPENCL_CL_DX9_MEDIA_SHARING_H

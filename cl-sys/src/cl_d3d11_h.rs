@@ -1,6 +1,6 @@
 //! OpenCL / DirectX 11 sharing.
 
-pub use cl_h::cl_uint;
+pub use crate::cl_h::cl_uint;
 
 pub const CL_CONTEXT_D3D11_DEVICE_KHR: cl_uint = 0x401D;
 

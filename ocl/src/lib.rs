@@ -179,7 +179,7 @@ pub mod flags {
 pub mod enums {
     //! Enumerators for settings and information requests.
 
-    pub use standard::{DeviceSpecifier, BufferCmdKind, BufferCmdDataShape};
+    pub use standard::{DeviceSpecifier, BufferCmdKind, BufferCmdDataShape, WriteSrc};
 
     // API enums.
     pub use core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo,
