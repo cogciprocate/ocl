@@ -6,10 +6,10 @@ use std::ptr;
 use std::marker::PhantomData;
 use std::collections::HashMap;
 use num_traits::FromPrimitive;
-use error::{Error as OclCoreError, Result as OclCoreResult};
-use ffi::{self,cl_mem, cl_sampler, cl_buffer_region, cl_context_properties, cl_platform_id,
+use crate::error::{Error as OclCoreError, Result as OclCoreResult};
+use crate::ffi::{self,cl_mem, cl_sampler, cl_buffer_region, cl_context_properties, cl_platform_id,
     c_void, size_t};
-use ::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
+use crate::{Mem, MemObjectType, ImageChannelOrder, ImageChannelDataType, ContextProperty,
     PlatformId, OclPrm, Sampler};
 
 

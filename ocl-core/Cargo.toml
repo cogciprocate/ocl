@@ -11,7 +11,7 @@ keywords = ["opencl", "gpu", "gpgpu"]
 license = "MIT/Apache-2.0"
 exclude = ["target/*", "bak/*"]
 categories = ["asynchronous", "concurrency", "science", "api-bindings"]
-# edition = "2018"
+edition = "2018"
 
 [features]
 opencl_version_1_1 = ["cl-sys/opencl_version_1_1"]

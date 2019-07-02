@@ -9,7 +9,7 @@ use std::ptr;
 use std::iter;
 use std::string::FromUtf8Error;
 use num_traits::PrimInt;
-use ::{OclPrm, OclScl};
+use crate::{OclPrm, OclScl};
 
 //=============================================================================
 //================================= MACROS ====================================

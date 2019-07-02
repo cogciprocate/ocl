@@ -5,8 +5,8 @@
 extern crate ocl_core as core;
 
 use std::ffi::CString;
-use core::error::Result as OclCoreResult;
-use core::{PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo,
+use crate::core::error::Result as OclCoreResult;
+use crate::core::{PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ImageInfo,
     SamplerInfo, ProgramInfo, ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo,
     EventInfo, ProfilingInfo, ContextProperties, PlatformId, DeviceId, ImageFormat,
     ImageDescriptor, MemObjectType, AddressingMode, FilterMode, Event, ContextInfoResult,

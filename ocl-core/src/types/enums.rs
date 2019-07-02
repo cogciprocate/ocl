@@ -12,10 +12,10 @@
 use std::fmt;
 use failure::Fail;
 use num_traits::FromPrimitive;
-use util;
-use ffi::{cl_image_format, cl_context_properties, c_void};
+use crate::util;
+use crate::ffi::{cl_image_format, cl_context_properties, c_void};
 
-use ::{CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo,
+use crate::{CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, ContextInfo,
     GlContextInfo, Context, CommandQueue, CommandQueueInfo, CommandType, CommandExecutionStatus,
     Mem, MemInfo, MemObjectType, MemFlags, SamplerInfo, AddressingMode, FilterMode,
     ProgramInfo, ProgramBuildInfo, Program, ProgramBuildStatus, ProgramBinaryType, KernelInfo,
@@ -25,7 +25,7 @@ use ::{CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceInfo, C
     DevicePartitionProperty, DeviceAffinityDomain, OpenclVersion, ContextProperties,
     ImageFormatParseResult, Status};
 
-use error::{Result as OclCoreResult, Error as OclCoreError};
+use crate::error::{Result as OclCoreResult, Error as OclCoreError};
 
 
 #[derive(Fail)]

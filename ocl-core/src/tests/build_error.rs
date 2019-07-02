@@ -13,13 +13,13 @@ fn bad_kernel_variable_names() {
         }
     "#;
 
-    let platform_id = ::default_platform().unwrap();
-    let device_ids = ::get_device_ids(&platform_id, None, None).unwrap();
+    let platform_id = crate::default_platform().unwrap();
+    let device_ids = crate::get_device_ids(&platform_id, None, None).unwrap();
     let device = device_ids[0];
-    let context_properties = ::ContextProperties::new().platform(platform_id);
-    let context = ::create_context(Some(&context_properties),
+    let context_properties = crate::ContextProperties::new().platform(platform_id);
+    let context = crate::create_context(Some(&context_properties),
         &[device], None, None).unwrap();
 
-    ::create_build_program(&context, &[CString::new(kernel).unwrap()],
+    crate::create_build_program(&context, &[CString::new(kernel).unwrap()],
         None::<&[()]>, &CString::new("").unwrap()).unwrap();
 }

@@ -43,14 +43,14 @@ use std::ptr;
 use std::slice;
 use std::cell::Ref;
 use std::fmt::Debug;
-use ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
+use crate::ffi::{cl_platform_id, cl_device_id,  cl_context, cl_command_queue, cl_mem, cl_program,
     cl_kernel, cl_event, cl_sampler, c_void};
-use ::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
+use crate::{CommandExecutionStatus, OpenclVersion, PlatformInfo, DeviceInfo, DeviceInfoResult,
     ContextInfo, ContextInfoResult, CommandQueueInfo, CommandQueueInfoResult, ProgramInfo,
     ProgramInfoResult, KernelInfo, KernelInfoResult, Status, EventCallbackFn, OclPrm,
     EventInfo, EventInfoResult, DeviceType};
-use error::{Result as OclCoreResult, Error as OclCoreError};
-use functions::{self, ApiFunction, VersionKind};
+use crate::error::{Result as OclCoreResult, Error as OclCoreError};
+use crate::functions::{self, ApiFunction, VersionKind};
 
 //=============================================================================
 //================================ CONSTANTS ==================================
@@ -126,12 +126,12 @@ pub trait ClVersions {
     fn platform_version(&self) -> OclCoreResult<OpenclVersion>;
 
     fn verify_device_versions(&self, required_version: [u16; 2]) -> OclCoreResult<()> {
-        functions::verify_versions(&try!(self.device_versions()), required_version,
+        functions::verify_versions(&r#try!(self.device_versions()), required_version,
             ApiFunction::None, VersionKind::Device)
     }
 
     fn verify_platform_version(&self, required_version: [u16; 2]) -> OclCoreResult<()> {
-        let ver = [try!(self.platform_version())];
+        let ver = [r#try!(self.platform_version())];
         functions::verify_versions(&ver, required_version, ApiFunction::None,
             VersionKind::Platform)
     }
@@ -377,7 +377,7 @@ unsafe impl Send for PlatformId {}
 
 impl ClVersions for PlatformId {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let devices = try!(functions::get_device_ids(self, Some(DeviceType::ALL), None));
+        let devices = r#try!(functions::get_device_ids(self, Some(DeviceType::ALL), None));
         functions::device_versions(&devices)
     }
 
@@ -543,12 +543,12 @@ unsafe impl<'a> ClContextPtr for &'a Context {
 
 impl ClVersions for Context {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let devices = try!(self.devices());
+        let devices = r#try!(self.devices());
         functions::device_versions(&devices)
     }
 
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
-        let devices = try!(self.devices());
+        let devices = r#try!(self.devices());
         devices[0].platform_version()
     }
 }
@@ -642,12 +642,12 @@ unsafe impl Send for CommandQueue {}
 
 impl ClVersions for CommandQueue{
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let device = try!(self.device());
+        let device = r#try!(self.device());
         device.version().map(|dv| vec![dv])
     }
 
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
-        try!(self.device()).platform_version()
+        r#try!(self.device()).platform_version()
     }
 }
 
@@ -831,12 +831,12 @@ unsafe impl Send for Program {}
 
 impl ClVersions for Program {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let devices = try!(self.devices());
+        let devices = r#try!(self.devices());
         functions::device_versions(&devices)
     }
 
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
-        let devices = try!(self.devices());
+        let devices = r#try!(self.devices());
         devices[0].platform_version()
     }
 }
@@ -916,12 +916,12 @@ impl Drop for Kernel {
 
 impl ClVersions for Kernel {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let devices = try!(try!(self.program()).devices());
+        let devices = r#try!(r#try!(self.program()).devices());
         functions::device_versions(&devices)
     }
 
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
-        let devices = try!(try!(self.program()).devices());
+        let devices = r#try!(r#try!(self.program()).devices());
         devices[0].platform_version()
     }
 }
@@ -992,7 +992,7 @@ impl Event {
     /// Causes the command queue to wait until this event is complete before returning.
     #[inline]
     pub fn wait_for(&self) -> OclCoreResult <()> {
-        ::wait_for_event(self)
+        crate::wait_for_event(self)
     }
 
     /// Returns whether or not this event is associated with a command or is a
@@ -1036,7 +1036,7 @@ impl Event {
             ) -> OclCoreResult<()>
     {
         if self.is_valid() {
-            ::set_event_callback(self, CommandExecutionStatus::Complete,
+            crate::set_event_callback(self, CommandExecutionStatus::Complete,
                 Some(callback_receiver), user_data_ptr as *mut _ as *mut c_void)
         } else {
             Err("ocl_core::Event::set_callback: This event is null. Cannot set callback until \

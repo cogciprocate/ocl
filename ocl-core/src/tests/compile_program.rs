@@ -20,8 +20,8 @@ fn compile_program() {
             printf("hi\n");
         }
     "#;
-    let platform_id = ::default_platform().unwrap();
-    let device_ids = ::get_device_ids(&platform_id, None, None).unwrap();
+    let platform_id = crate::default_platform().unwrap();
+    let device_ids = crate::get_device_ids(&platform_id, None, None).unwrap();
 
     for device in device_ids {
         if device.version().unwrap() < [1, 2].into() {
@@ -29,18 +29,18 @@ fn compile_program() {
             continue;
         }
 
-        let context_properties = ::ContextProperties::new().platform(platform_id);
-        let context = ::create_context(Some(&context_properties),
+        let context_properties = crate::ContextProperties::new().platform(platform_id);
+        let context = crate::create_context(Some(&context_properties),
             &[device], None, None).unwrap();
 
-        let program = ::create_program_with_source(&context, &[CString::new(kernel).unwrap()]).unwrap();
-        let program2 = ::create_program_with_source(&context, &[CString::new(kernel2).unwrap()]).unwrap();
-        let header = ::create_program_with_source(&context, &[CString::new(header).unwrap()]).unwrap();
+        let program = crate::create_program_with_source(&context, &[CString::new(kernel).unwrap()]).unwrap();
+        let program2 = crate::create_program_with_source(&context, &[CString::new(kernel2).unwrap()]).unwrap();
+        let header = crate::create_program_with_source(&context, &[CString::new(header).unwrap()]).unwrap();
         let options = CString::new("").unwrap();
 
-        ::compile_program(&program, Some(&[device]), &options, &[&header],  &[CString::new("world.cl").unwrap()],
+        crate::compile_program(&program, Some(&[device]), &options, &[&header],  &[CString::new("world.cl").unwrap()],
              None, None, None).unwrap();
-        ::compile_program(&program2, Some(&[device]), &options, &[], &[], None, None, None).unwrap();
-        ::link_program(&context, Some(&[device]), &options, &[&program, &program2], None, None, None).unwrap();
+        crate::compile_program(&program2, Some(&[device]), &options, &[], &[], None, None, None).unwrap();
+        crate::link_program(&context, Some(&[device]), &options, &[&program, &program2], None, None, None).unwrap();
     }
 }
