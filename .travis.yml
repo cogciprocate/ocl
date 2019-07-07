@@ -17,6 +17,17 @@ addons:
       - intel-opencl
       - ocl-icd-opencl-dev
 
-script:
-  - cargo build --verbose
-  - cargo doc
+matrix:
+  include:
+    - os: linux
+      script:
+        - cargo build --verbose
+        - cargo doc
+
+    - os: linux
+      rust: stable
+      name: clippy
+      install:
+        - rustup component add clippy
+      script:
+        - cargo clippy --verbose
