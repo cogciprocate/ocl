@@ -1687,139 +1687,51 @@ pub mod arg_type {
 
         /// Returns true if `type_id` matches the base type of this `ArgType`.
         pub fn matches(&self, type_id: TypeId) -> bool {
+            macro_rules! matches {
+                (
+                    $primary:ty,
+                    $struct:ty, $struct2:ty,
+                    $struct3:ty, $struct4:ty,
+                    $struct8:ty, $struct16:ty
+                ) => {{
+                    let card_match = match self.cardinality {
+                        Cardinality::One => TypeId::of::<$primary>() == type_id || TypeId::of::<$struct>() == type_id,
+                        Cardinality::Two => TypeId::of::<$struct2>() == type_id,
+                        Cardinality::Three => TypeId::of::<$struct3>() == type_id,
+                        Cardinality::Four => TypeId::of::<$struct4>() == type_id,
+                        Cardinality::Eight => TypeId::of::<$struct8>() == type_id,
+                        Cardinality::Sixteen => TypeId::of::<$struct16>() == type_id,
+                    };
+
+                    if self.is_ptr {
+                        card_match ||
+                            TypeId::of::<$primary>() == type_id ||
+                            TypeId::of::<$struct>() == type_id
+                    } else {
+                        card_match
+                    }
+                }
+            }}
+
             match self.base_type {
-                BaseType::Char => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_char>() == type_id,
-                        Cardinality::Two => TypeId::of::<Char2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Char3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Char4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Char8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Char16>() == type_id,
-                    };
+                BaseType::Char => matches!(cl_char, Char, Char2, Char3, Char4, Char8, Char16),
+                BaseType::Uchar => matches!(cl_uchar, Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16),
 
-                    (self.is_ptr && (TypeId::of::<cl_char>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Uchar => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_uchar>() == type_id,
-                        Cardinality::Two => TypeId::of::<Uchar2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Uchar3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Uchar4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Uchar8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Uchar16>() == type_id,
-                    };
+                BaseType::Short => matches!(cl_short, Short, Short2, Short3, Short4, Short8, Short16),
+                BaseType::Ushort => matches!(cl_ushort, Ushort, Ushort2, Ushort3, Ushort4, Ushort8, Ushort16),
 
-                    (self.is_ptr && (TypeId::of::<cl_uchar>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Short => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_short>() == type_id,
-                        Cardinality::Two => TypeId::of::<Short2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Short3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Short4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Short8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Short16>() == type_id,
-                    };
+                BaseType::Int => matches!(cl_int, Int, Int2, Int3, Int4, Int8, Int16),
+                BaseType::Uint => matches!(cl_uint, Uint, Uint2, Uint3, Uint4, Uint8, Uint16),
 
-                    (self.is_ptr && (TypeId::of::<cl_short>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Ushort => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_ushort>() == type_id,
-                        Cardinality::Two => TypeId::of::<Ushort2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Ushort3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Ushort4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Ushort8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Ushort16>() == type_id,
-                    };
+                BaseType::Long => matches!(cl_long, Long, Long2, Long3, Long4, Long8, Long16),
+                BaseType::Ulong => matches!(cl_ulong, Ulong, Ulong2, Ulong3, Ulong4, Ulong8, Ulong16),
 
-                    (self.is_ptr && (TypeId::of::<cl_ushort>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Int => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_int>() == type_id,
-                        Cardinality::Two => TypeId::of::<Int2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Int3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Int4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Int8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Int16>() == type_id,
-                    };
+                BaseType::Float => matches!(cl_float, Float, Float2, Float3, Float4, Float8, Float16),
+                BaseType::Double => matches!(cl_double, Double, Double2, Double3, Double4, Double8, Double16),
 
-                    (self.is_ptr && (TypeId::of::<cl_int>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Uint => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_uint>() == type_id,
-                        Cardinality::Two => TypeId::of::<Uint2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Uint3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Uint4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Uint8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Uint16>() == type_id,
-                    };
-
-                    (self.is_ptr && (TypeId::of::<cl_uint>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Long => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_long>() == type_id,
-                        Cardinality::Two => TypeId::of::<Long2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Long3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Long4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Long8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Long16>() == type_id,
-                    };
-
-                    (self.is_ptr && (TypeId::of::<cl_long>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Ulong => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_ulong>() == type_id,
-                        Cardinality::Two => TypeId::of::<Ulong2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Ulong3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Ulong4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Ulong8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Ulong16>() == type_id,
-                    };
-
-                    (self.is_ptr && (TypeId::of::<cl_ulong>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Float => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_float>() == type_id,
-                        Cardinality::Two => TypeId::of::<Float2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Float3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Float4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Float8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Float16>() == type_id,
-                    };
-
-                    (self.is_ptr && (TypeId::of::<cl_float>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
-                BaseType::Double => {
-                    let card_match = match self.cardinality {
-                        Cardinality::One => TypeId::of::<cl_double>() == type_id,
-                        Cardinality::Two => TypeId::of::<Double2>() == type_id,
-                        Cardinality::Three => TypeId::of::<Double3>() == type_id,
-                        Cardinality::Four => TypeId::of::<Double4>() == type_id,
-                        Cardinality::Eight => TypeId::of::<Double8>() == type_id,
-                        Cardinality::Sixteen => TypeId::of::<Double16>() == type_id,
-                    };
-
-                    (self.is_ptr && (TypeId::of::<cl_double>() == type_id || card_match)) ||
-                        (!self.is_ptr && card_match)
-                },
                 BaseType::Sampler => TypeId::of::<u64>() == type_id,
                 BaseType::Image => TypeId::of::<u64>() == type_id,
+
                 // Everything matches if type was undetermined (escape hatch):
                 BaseType::Unknown => true,
             }
