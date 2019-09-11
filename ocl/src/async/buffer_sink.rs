@@ -2,7 +2,7 @@
 
 use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll};
-use crate::core::{self, OclPrm, MemMap as MemMapCore,
+use crate::ocl_core::{self, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
 use crate::standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
 use crate::r#async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
@@ -161,10 +161,10 @@ impl<'c, T> FlushCmd<'c, T> where T: OclPrm {
         let mut map_event = Event::empty();
 
         unsafe {
-            core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &inner.memory,
+            ocl_core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &inner.memory,
                 future_read.lock_event(), Some(&mut unmap_event))?;
 
-            let memory = core::enqueue_map_buffer::<T, _, _, _>(queue, buffer, false,
+            let memory = ocl_core::enqueue_map_buffer::<T, _, _, _>(queue, buffer, false,
                 MapFlags::new().write_invalidate_region(), inner.default_offset, inner.default_len,
                 Some(&unmap_event), Some(&mut map_event))?;
             debug_assert!(memory.as_ptr() == inner.memory.as_ptr());
@@ -229,7 +229,7 @@ impl<T: OclPrm> Drop for Inner<T> {
     /// completes.
     fn drop(&mut self) {
         let mut new_event = Event::empty();
-        core::enqueue_unmap_mem_object::<T, _, _, _>(self.buffer.default_queue().unwrap(),
+        ocl_core::enqueue_unmap_mem_object::<T, _, _, _>(self.buffer.default_queue().unwrap(),
             &self.buffer, &self.memory, None::<&EventList>, Some(&mut new_event)).unwrap();
         new_event.wait_for().unwrap();
     }
@@ -291,7 +291,7 @@ impl<T: OclPrm> BufferSink<T> {
 
         let map_flags = MapFlags::new().write_invalidate_region();
 
-        let memory = core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
+        let memory = ocl_core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
             buffer.as_core(), true, map_flags, default_offset, default_len, None::<&EventList>,
                 None::<&mut Event>)?;
 

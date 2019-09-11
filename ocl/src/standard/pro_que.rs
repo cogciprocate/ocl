@@ -2,7 +2,7 @@
 
 use std::ops::Deref;
 use crate::error::{Error as OclError, Result as OclResult};
-use crate::core::{OclPrm, CommandQueueProperties};
+use crate::ocl_core::{OclPrm, CommandQueueProperties};
 use crate::standard::{Platform, Device, Context, ProgramBuilder, Program, Queue, Kernel, Buffer,
     MemLen, SpatialDims, WorkDims, DeviceSpecifier, KernelBuilder, BufferBuilder};
 

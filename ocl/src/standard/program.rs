@@ -9,10 +9,10 @@ use std::collections::HashSet;
 use std::convert::Into;
 
 
-use crate::core::{self, Result as OclCoreResult, Program as ProgramCore, Context as ContextCore,
+use crate::ocl_core::{self, Result as OclCoreResult, Program as ProgramCore, Context as ContextCore,
     ProgramInfo, ProgramInfoResult, ProgramBuildInfo, ProgramBuildInfoResult};
 #[cfg(feature = "opencl_version_2_1")]
-use core::ClVersions;
+use ocl_core::ClVersions;
 use crate::error::{Result as OclResult, Error as OclError};
 use crate::standard::{Context, Device, DeviceSpecifier};
 
@@ -42,8 +42,8 @@ impl Program {
     ///
     pub fn with_source(context: &ContextCore, src_strings: &[CString],
             devices: Option<&[Device]>, cmplr_opts: &CString) -> OclResult<Program> {
-        let program = core::create_program_with_source(context, src_strings)?;
-        core::build_program(&program, devices, cmplr_opts, None, None)?;
+        let program = ocl_core::create_program_with_source(context, src_strings)?;
+        ocl_core::build_program(&program, devices, cmplr_opts, None, None)?;
         Ok(Program(program))
     }
 
@@ -54,8 +54,8 @@ impl Program {
     ///
     pub fn with_binary(context: &ContextCore, devices: &[Device],
             binaries: &[&[u8]], cmplr_opts: &CString) -> OclResult<Program> {
-        let program = core::create_program_with_binary(context, devices, binaries)?;
-        core::build_program(&program, Some(devices), cmplr_opts, None, None)?;
+        let program = ocl_core::create_program_with_binary(context, devices, binaries)?;
+        ocl_core::build_program(&program, Some(devices), cmplr_opts, None, None)?;
         Ok(Program(program))
     }
 
@@ -65,8 +65,8 @@ impl Program {
     pub fn with_il(il: &[u8], devices: Option<&[Device]>, cmplr_opts: &CString,
             context: &ContextCore) -> OclResult<Program> {
         let device_versions = context.device_versions()?;
-        let program = core::create_program_with_il(context, il, Some(&device_versions))?;
-        core::build_program(&program, devices, cmplr_opts, None, None)?;
+        let program = ocl_core::create_program_with_il(context, il, Some(&device_versions))?;
+        ocl_core::build_program(&program, devices, cmplr_opts, None, None)?;
 
         Ok(Program(program))
     }
@@ -80,7 +80,7 @@ impl Program {
 
     /// Returns info about this program.
     pub fn info(&self, info_kind: ProgramInfo) -> OclCoreResult<ProgramInfoResult> {
-        core::get_program_info(&self.0, info_kind)
+        ocl_core::get_program_info(&self.0, info_kind)
     }
 
     /// Returns info about this program's build.
@@ -88,7 +88,7 @@ impl Program {
     /// * TODO: Check that device is valid.
     pub fn build_info(&self, device: Device, info_kind: ProgramBuildInfo)
             -> OclCoreResult<ProgramBuildInfoResult> {
-        core::get_program_build_info(&self.0, &device, info_kind)
+        ocl_core::get_program_build_info(&self.0, &device, info_kind)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

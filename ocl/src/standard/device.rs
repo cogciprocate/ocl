@@ -3,8 +3,8 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::borrow::Borrow;
-use crate::ffi::cl_device_id;
-use crate::core::{self, util, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
+use crate::ocl_core::ffi::cl_device_id;
+use crate::ocl_core::{self, util, DeviceId as DeviceIdCore, DeviceType, DeviceInfo, DeviceInfoResult, ClDeviceIdPtr};
 use crate::error::{Error as OclError, Result as OclResult};
 use crate::standard::Platform;
 
@@ -254,7 +254,7 @@ pub struct Device(DeviceIdCore);
 impl Device {
     /// Returns the first available device on a platform.
     pub fn first<P: Borrow<Platform>>(platform: P) -> OclResult<Device> {
-        let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
+        let device_ids = ocl_core::get_device_ids(platform.borrow(), None, None)?;
         if device_ids.is_empty() { return Err(DeviceError::NoDevices.into()) }
         Ok(Device(device_ids[0]))
     }
@@ -262,7 +262,7 @@ impl Device {
     /// Returns a single device specified by a wrapped index.
     pub fn by_idx_wrap<P: Borrow<Platform>>(platform: P, device_idx_wrap: usize)
             -> OclResult<Device> {
-        let device_ids = core::get_device_ids(platform.borrow(), None, None)?;
+        let device_ids = ocl_core::get_device_ids(platform.borrow(), None, None)?;
         if device_ids.is_empty() { return Err(DeviceError::NoDevices.into()) }
         let wrapped_idx = device_idx_wrap % device_ids.len();
         Ok(Device(device_ids[wrapped_idx]))
@@ -319,16 +319,16 @@ impl Device {
     ///
     /// ### Errors
     ///
-    /// Returns an `Err(ocl::core::Error::Status {...})` enum variant upon any
+    /// Returns an `Err(ocl::ocl_core::Error::Status {...})` enum variant upon any
     /// OpenCL error. Calling [`.status()`] on the returned error will return
-    /// an `Option(``[ocl::core::Status]``)` which can be unwrapped then
+    /// an `Option(``[ocl::ocl_core::Status]``)` which can be unwrapped then
     /// matched to determine the precise reason for failure.
     ///
     /// [`.status()`]: enum.Error.html#method.status
-    /// [`ocl::core::Status`]: enum.Status.html
+    /// [`ocl::ocl_core::Status`]: enum.Status.html
     ///
     pub fn list<P: Borrow<Platform>>(platform: P, device_types: Option<DeviceType>) -> OclResult<Vec<Device>> {
-        let list_core = core::get_device_ids(platform.borrow(), device_types, None)
+        let list_core = ocl_core::get_device_ids(platform.borrow(), device_types, None)
             .unwrap_or(vec![]);
         Ok(list_core.into_iter().map(Device).collect())
     }
@@ -388,13 +388,13 @@ impl Device {
 
     /// Returns the device name.
     pub fn name(&self) -> OclResult<String> {
-        core::get_device_info(&self.0, DeviceInfo::Name)
+        ocl_core::get_device_info(&self.0, DeviceInfo::Name)
             .map(|r| r.to_string()).map_err(OclError::from)
     }
 
     /// Returns the device vendor as a string.
     pub fn vendor(&self) -> OclResult<String> {
-        core::get_device_info(&self.0, DeviceInfo::Vendor)
+        ocl_core::get_device_info(&self.0, DeviceInfo::Vendor)
             .map(|r| r.to_string()).map_err(OclError::from)
     }
 
@@ -428,12 +428,12 @@ impl Device {
     /// Returns raw info about the device, as a vector of bytes. Intended for use with non-standard
     /// OpenCL extensions.
     pub fn info_raw(&self, info_kind: u32) -> OclResult<Vec<u8>> {
-        core::get_device_info_raw(&self.0, info_kind).map_err(OclError::from)
+        ocl_core::get_device_info_raw(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns info about the device.
     pub fn info(&self, info_kind: DeviceInfo) -> OclResult<DeviceInfoResult> {
-        core::get_device_info(&self.0, info_kind).map_err(OclError::from)
+        ocl_core::get_device_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns a string containing a formatted list of device properties.

@@ -10,7 +10,7 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
 use crate::error::{Error as OclError, Result as OclResult};
-use crate::core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
+use crate::ocl_core::{self, OclPrm, Mem as MemCore, MemFlags, MemObjectType, ImageFormatParseResult,
     ImageFormat, ImageDescriptor, ImageInfo, ImageInfoResult, MemInfo, MemInfoResult,
     ImageChannelOrder, ImageChannelDataType, AsMem, MemCmdRw, MemCmdAll,
     MapFlags};
@@ -19,9 +19,9 @@ use crate::standard::{Context, Queue, SpatialDims, ClNullEventPtrEnum, ClWaitLis
 use crate::MemMap;
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
-use crate::ffi::{cl_GLuint, cl_GLint};
+use crate::ocl_core::ffi::{cl_GLuint, cl_GLint};
 #[cfg(not(feature="opencl_vendor_mesa"))]
-use crate::core::{GlTextureTarget};
+use crate::ocl_core::{GlTextureTarget};
 
 
 /// The type of operation to be performed by a command.
@@ -426,34 +426,34 @@ impl<'c, T: 'c + OclPrm> ImageCmd<'c, T> {
 
         match self.kind {
             ImageCmdKind::Read { data } => {
-                unsafe { core::enqueue_read_image(queue, self.obj_core, self.block,
+                unsafe { ocl_core::enqueue_read_image(queue, self.obj_core, self.block,
                     self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
                     self.enew) }
             },
             ImageCmdKind::Write { data } => {
                 unsafe {
-                    core::enqueue_write_image(queue, self.obj_core, self.block,
+                    ocl_core::enqueue_write_image(queue, self.obj_core, self.block,
                         self.origin, self.region, self.row_pitch_bytes, self.slc_pitch_bytes, data, self.ewait,
                         self.enew)
                 }
             },
             ImageCmdKind::Copy { dst_image, dst_origin } => {
-                core::enqueue_copy_image(queue, self.obj_core, dst_image, self.origin,
+                ocl_core::enqueue_copy_image(queue, self.obj_core, dst_image, self.origin,
                     dst_origin, self.region, self.ewait, self.enew)
             },
 
             #[cfg(not(feature="opencl_vendor_mesa"))]
             ImageCmdKind::GLAcquire => {
-                // core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
+                // ocl_core::enqueue_acquire_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
-                core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew)
+                ocl_core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
 
             #[cfg(not(feature="opencl_vendor_mesa"))]
             ImageCmdKind::GLRelease => {
-                // core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
+                // ocl_core::enqueue_release_gl_buffer(queue, self.obj_core, self.ewait, self.enew)
                 let buf_slc = unsafe { std::slice::from_raw_parts(self.obj_core, 1) };
-                core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
+                ocl_core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew)
             },
 
             ImageCmdKind::Unspecified => Err("ocl::ImageCmd::enq(): No operation \
@@ -612,7 +612,7 @@ impl<'c, T> ImageMapCmd<'c, T> where T: OclPrm {
                 let mut slc_pitch_bytes = 0usize;
 
                 unsafe {
-                    let mm_core = core::enqueue_map_image::<T, _, _, _>(
+                    let mm_core = ocl_core::enqueue_map_image::<T, _, _, _>(
                         queue,
                         self.cmd.obj_core,
                         self.cmd.block,
@@ -668,7 +668,7 @@ impl<T: OclPrm> Image<T> {
     /// Returns a list of supported image formats.
     pub fn supported_formats(context: &Context, flags: MemFlags, mem_obj_type: MemObjectType)
             -> OclResult<Vec<ImageFormatParseResult>> {
-        core::get_supported_image_formats(context, flags, mem_obj_type).map_err(OclError::from)
+        ocl_core::get_supported_image_formats(context, flags, mem_obj_type).map_err(OclError::from)
     }
 
     /// Returns an `ImageBuilder`. This is the recommended method to create
@@ -687,7 +687,7 @@ impl<T: OclPrm> Image<T> {
         let context = que_ctx.context_cloned();
         let device_versions = context.device_versions()?;
 
-        let obj_core = core::create_image(
+        let obj_core = ocl_core::create_image(
             &context,
             flags,
             &image_format,
@@ -696,7 +696,7 @@ impl<T: OclPrm> Image<T> {
             Some(&device_versions),
         )?;
 
-        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
+        let pixel_element_len = match ocl_core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             _ => return Err("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant.".into()),
@@ -732,7 +732,7 @@ impl<T: OclPrm> Image<T> {
                 Implementations may return CL_INVALID_OPERATION for miplevel values > 0".into());
         }
 
-        let obj_core = unsafe { core::create_from_gl_texture(
+        let obj_core = unsafe { ocl_core::create_from_gl_texture(
             &context,
             texture_target as u32,
             miplevel,
@@ -742,7 +742,7 @@ impl<T: OclPrm> Image<T> {
         )? };
 
         // FIXME can I do this from a GLTexture ?
-        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
+        let pixel_element_len = match ocl_core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             _ => return Err("ocl::Image::element_len(): Unexpected \
                 'ImageInfoResult' variant.".into()),
@@ -771,14 +771,14 @@ impl<T: OclPrm> Image<T> {
         let que_ctx = que_ctx.into();
         let context = que_ctx.context_cloned();
 
-        let obj_core = unsafe { core::create_from_gl_renderbuffer(
+        let obj_core = unsafe { ocl_core::create_from_gl_renderbuffer(
             &context,
             renderbuffer,
             flags,
         )? };
 
         // FIXME can I do this from a renderbuffer ?
-        let pixel_element_len = match core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
+        let pixel_element_len = match ocl_core::get_image_info(&obj_core, ImageInfo::ElementSize)? {
             ImageInfoResult::ElementSize(s) => s / mem::size_of::<T>(),
             _ => return Err("ocl::Image::element_len(): \
                 Unexpected 'ImageInfoResult' variant.".into()),
@@ -912,7 +912,7 @@ impl<T: OclPrm> Image<T> {
         //     Ok(res) => res,
         //     Err(err) => ImageInfoResult::Error(Box::new(err)),
         // }
-        core::get_image_info(&self.obj_core, info_kind).map_err(OclError::from)
+        ocl_core::get_image_info(&self.obj_core, info_kind).map_err(OclError::from)
     }
 
     /// Returns info about this image's memory.
@@ -921,7 +921,7 @@ impl<T: OclPrm> Image<T> {
         //     Ok(res) => res,
         //     Err(err) => MemInfoResult::Error(Box::new(err)),
         // }
-        core::get_mem_object_info(&self.obj_core, info_kind).map_err(OclError::from)
+        ocl_core::get_mem_object_info(&self.obj_core, info_kind).map_err(OclError::from)
     }
 
     /// Returns a reference to the core pointer wrapper, usable by functions in
@@ -1049,7 +1049,7 @@ impl<'a, T> ImageBuilder<'a, T> where T: 'a + OclPrm {
     pub fn new() -> ImageBuilder<'a, T> {
         ImageBuilder {
             queue_option: None,
-            flags: core::MEM_READ_WRITE,
+            flags: ocl_core::MEM_READ_WRITE,
             host_slice: HostSlice::None,
             image_format: ImageFormat::new_rgba(),
             image_desc: ImageDescriptor::new(MemObjectType::Image1d, 0, 0, 0, 0, 0, 0, None),

@@ -52,7 +52,7 @@ extern crate num_traits;
 extern crate futures;
 #[macro_use]
 extern crate failure;
-pub extern crate ocl_core as core;
+pub extern crate ocl_core;
 
 
 #[cfg(test)]
@@ -66,13 +66,13 @@ pub use self::standard::{Platform, Extensions, Device, Context, Program, Queue, 
 pub use self::r#async::{MemMap, FutureMemMap, RwVec, ReadGuard, WriteGuard,
     FutureReadGuard, FutureWriteGuard};
 pub use crate::error::{Error, Result};
-pub use crate::{core::Error as OclCoreError};
+pub use crate::{ocl_core::Error as OclCoreError};
 #[doc(no_inline)]
-pub use crate::core::ffi;
+pub use crate::ocl_core::ffi;
 #[doc(no_inline)]
-pub use crate::core::util;
+pub use crate::ocl_core::util;
 #[doc(no_inline)]
-pub use crate::core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
+pub use crate::ocl_core::{OclPrm, OclScl, OclVec, DeviceType, CommandQueueProperties, MemFlags, MapFlags};
 
 
 pub mod prm {
@@ -103,13 +103,13 @@ pub mod prm {
     //!
     //! [NOTE]: This module may be renamed.
 
-    pub use crate::ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
+    pub use crate::ocl_core::ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
 
     pub use crate::ffi::{ cl_GLuint, cl_GLint, cl_GLenum };
 
     // Wrapping types. Use these to mimic in-kernel behaviour:
-    pub use crate::core::{
+    pub use crate::ocl_core::{
         Char, Char2, Char3, Char4, Char8, Char16,
         Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
         Short, Short2, Short3, Short4, Short8, Short16,
@@ -126,7 +126,7 @@ pub mod traits {
     //! Commonly used traits.
 
     pub use crate::standard::{WorkDims, MemLen, IntoMarker, IntoRawEventArray};
-    pub use crate::core::{OclPrm, OclScl, OclVec};
+    pub use crate::ocl_core::{OclPrm, OclScl, OclVec};
 }
 
 pub mod builders {
@@ -137,14 +137,14 @@ pub mod builders {
         BufferWriteCmd, BufferMapCmd, ImageCmdKind, ImageCmd, KernelCmd, BufferBuilder,
         KernelBuilder};
     pub use crate::standard::{ClNullEventPtrEnum, ClWaitListPtrEnum};
-    pub use crate::core::{ImageFormat, ImageDescriptor, ContextProperties};
+    pub use crate::ocl_core::{ImageFormat, ImageDescriptor, ContextProperties};
     // #[cfg(not(release))] pub use standard::BufferTest;
 }
 
 pub mod flags {
     //! Bitflags for various parameter types.
 
-    pub use crate::core::{
+    pub use crate::ocl_core::{
         // cl_device_type - bitfield
         DeviceType, DEVICE_TYPE_DEFAULT, DEVICE_TYPE_CPU, DEVICE_TYPE_GPU, DEVICE_TYPE_ACCELERATOR,
             DEVICE_TYPE_CUSTOM, DEVICE_TYPE_ALL,
@@ -182,7 +182,7 @@ pub mod enums {
     pub use crate::standard::{DeviceSpecifier, BufferCmdKind, BufferCmdDataShape, WriteSrc};
 
     // API enums.
-    pub use crate::core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo,
+    pub use crate::ocl_core::{ImageChannelOrder, ImageChannelDataType, Cbool, Polling, PlatformInfo,
         DeviceInfo, DeviceMemCacheType, DeviceLocalMemType, ContextInfo, ContextProperty,
         ContextInfoOrPropertiesPointerType, DevicePartitionProperty, CommandQueueInfo, ChannelType,
         MemObjectType, MemInfo, ImageInfo, AddressingMode, FilterMode, SamplerInfo, ProgramInfo,
@@ -191,11 +191,11 @@ pub mod enums {
         CommandExecutionStatus, BufferCreateType, ProfilingInfo};
 
     // Custom enums.
-    pub use crate::core::{ArgVal, ContextPropertyValue, PlatformInfoResult, DeviceInfoResult,
+    pub use crate::ocl_core::{ArgVal, ContextPropertyValue, PlatformInfoResult, DeviceInfoResult,
         ContextInfoResult, CommandQueueInfoResult, MemInfoResult, ImageInfoResult,
         SamplerInfoResult, ProgramInfoResult, ProgramBuildInfoResult, KernelInfoResult,
         KernelArgInfoResult, KernelWorkGroupInfoResult, EventInfoResult, ProfilingInfoResult};
 
     // Error status.
-    pub use crate::core::Status;
+    pub use crate::ocl_core::Status;
 }

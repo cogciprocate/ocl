@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use futures::{Future, Poll, Async};
 use futures::sync::oneshot::{self, Receiver};
-use crate::core::{ClContextPtr, ClNullEventPtr};
+use crate::ocl_core::{ClContextPtr, ClNullEventPtr};
 use crate::error::{Error as OclError, Result as OclResult};
 use crate::{Event, EventList};
 use crate::r#async::qutex::{QrwLock, QrwRequest, RequestKind};

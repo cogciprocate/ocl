@@ -2,7 +2,7 @@ use ocl::{Device, DeviceType, CommandQueueProperties};
 use ocl::enums::{DeviceMemCacheType, DevicePartitionProperty, DeviceLocalMemType};
 use ocl::flags::{DeviceAffinityDomain, DeviceExecCapabilities, DeviceFpConfig};
 use ocl::error::{Result as OclResult};
-use ocl::core::{DeviceId, PlatformId, OpenclVersion, DeviceInfo, DeviceInfoResult};
+use ocl::ocl_core::{DeviceId, PlatformId, OpenclVersion, DeviceInfo, DeviceInfoResult};
 
 /// Provides a more convenient and safe interface to access less commonly used device information.
 /// The methods return the appropriate type for the given device info, rather than a
