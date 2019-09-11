@@ -3,7 +3,7 @@
 use std;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Range};
-use crate::core::{self, Error as OclCoreError, Result as OclCoreResult, OclPrm, Mem as MemCore,
+use crate::ocl_core::{self, Error as OclCoreError, Result as OclCoreResult, OclPrm, Mem as MemCore,
     MemFlags, MemInfo, MemInfoResult, BufferRegion, MapFlags, AsMem, MemCmdRw, MemCmdAll,
     ClNullEventPtr};
 use crate::{Context, Queue, FutureMemMap, MemMap, Event, RwVec, FutureReadGuard, FutureWriteGuard,
@@ -12,7 +12,7 @@ use crate::standard::{ClNullEventPtrEnum, ClWaitListPtrEnum, HostSlice};
 use crate::error::{Error as OclError, Result as OclResult};
 
 #[cfg(not(feature="opencl_vendor_mesa"))]
-use crate::ffi::cl_GLuint;
+use crate::ocl_core::ffi::cl_GLuint;
 
 
 fn check_len(mem_len: usize, data_len: usize, offset: usize) -> OclResult<()> {
@@ -529,7 +529,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                         check_len(self.mem_len, len, offset)?;
                         let dst_offset = dst_offset.unwrap_or(0);
 
-                        core::enqueue_copy_buffer::<T, _, _, _>(queue,
+                        ocl_core::enqueue_copy_buffer::<T, _, _, _>(queue,
                             &self.buffer.obj_core, dst_buffer, offset, dst_offset, len,
                             self.ewait, self.enew).map_err(OclError::from)
                     },
@@ -543,7 +543,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
                             'cmd().copy(&{{buf_name}}, None, None)..'.".into());
                         }
 
-                        core::enqueue_copy_buffer_rect::<T, _, _, _>(queue, &self.buffer.obj_core,
+                        ocl_core::enqueue_copy_buffer_rect::<T, _, _, _>(queue, &self.buffer.obj_core,
                             dst_buffer, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
                             self.ewait, self.enew).map_err(OclError::from)
@@ -562,7 +562,7 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
 
                         check_len(self.mem_len, len, offset)?;
 
-                        core::enqueue_fill_buffer(queue, &self.buffer.obj_core, pattern,
+                        ocl_core::enqueue_fill_buffer(queue, &self.buffer.obj_core, pattern,
                             offset, len, self.ewait, self.enew, Some(&queue.device_version()))
                             .map_err(OclError::from)
                     },
@@ -574,13 +574,13 @@ impl<'c, T> BufferCmd<'c, T> where T: 'c + OclPrm {
             #[cfg(not(feature="opencl_vendor_mesa"))]
             BufferCmdKind::GLAcquire => {
                 let buf_slc = unsafe { std::slice::from_raw_parts(&self.buffer.obj_core, 1) };
-                core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew).map_err(OclError::from)
+                ocl_core::enqueue_acquire_gl_objects(queue, buf_slc, self.ewait, self.enew).map_err(OclError::from)
             },
 
             #[cfg(not(feature="opencl_vendor_mesa"))]
             BufferCmdKind::GLRelease => {
                 let buf_slc = unsafe { std::slice::from_raw_parts(&self.buffer.obj_core, 1) };
-                core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew).map_err(OclError::from)
+                ocl_core::enqueue_release_gl_objects(queue, buf_slc, self.ewait, self.enew).map_err(OclError::from)
             },
 
             BufferCmdKind::Unspecified => Err("ocl::BufferCmd::enq(): \
@@ -858,7 +858,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         BufferCmdDataShape::Lin { offset } => {
                             check_len(self.cmd.mem_len, dst.len(), offset)?;
                             unsafe {
-                                core::enqueue_read_buffer(queue, &self.cmd.buffer.obj_core,
+                                ocl_core::enqueue_read_buffer(queue, &self.cmd.buffer.obj_core,
                                     self.cmd.block, offset, dst, self.cmd.ewait.take(),
                                     self.cmd.enew.take()).map_err(OclError::from)
                             }
@@ -868,7 +868,7 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                         {
                             // TODO: Verify dims given (like `::check_len`).
                             unsafe {
-                                core::enqueue_read_buffer_rect(queue, &self.cmd.buffer.obj_core,
+                                ocl_core::enqueue_read_buffer_rect(queue, &self.cmd.buffer.obj_core,
                                     self.cmd.block, src_origin, dst_origin, region,
                                     src_row_pitch_bytes, src_slc_pitch_bytes, dst_row_pitch_bytes,
                                     dst_slc_pitch_bytes, dst, self.cmd.ewait.take(),
@@ -945,14 +945,14 @@ impl<'c, 'd, T> BufferReadCmd<'c, 'd, T> where T: OclPrm {
                     BufferCmdDataShape::Lin { offset } => {
                         check_len(self.cmd.mem_len, dst.len(), offset)?;
 
-                        unsafe { core::enqueue_read_buffer(queue, &self.cmd.buffer.obj_core, false,
+                        unsafe { ocl_core::enqueue_read_buffer(queue, &self.cmd.buffer.obj_core, false,
                             offset, dst, writer.lock_event(), Some(&mut read_event))?; }
                     },
                     BufferCmdDataShape::Rect { src_origin, dst_origin, region,
                         src_row_pitch_bytes, src_slc_pitch_bytes,
                             dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
                     {
-                        unsafe { core::enqueue_read_buffer_rect(queue, &self.cmd.buffer.obj_core,
+                        unsafe { ocl_core::enqueue_read_buffer_rect(queue, &self.cmd.buffer.obj_core,
                             false, src_origin, dst_origin, region, src_row_pitch_bytes,
                             src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
                             dst, writer.lock_event(), Some(&mut read_event))?; }
@@ -1238,7 +1238,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                             check_len(self.cmd.mem_len, src.len(), offset)?;
 
                             unsafe {
-                                core::enqueue_write_buffer(queue, &self.cmd.buffer.obj_core, self.cmd.block,
+                                ocl_core::enqueue_write_buffer(queue, &self.cmd.buffer.obj_core, self.cmd.block,
                                     offset, src, self.cmd.ewait.take(), self.cmd.enew.take())
                                     .map_err(OclError::from)
                             }
@@ -1248,7 +1248,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                             dst_slc_pitch_bytes } =>
                         {
                             unsafe {
-                                core::enqueue_write_buffer_rect(queue, &self.cmd.buffer.obj_core,
+                                ocl_core::enqueue_write_buffer_rect(queue, &self.cmd.buffer.obj_core,
                                     self.cmd.block, src_origin, dst_origin, region, src_row_pitch_bytes,
                                     src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
                                     src, self.cmd.ewait.take(), self.cmd.enew.take())
@@ -1321,7 +1321,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                     BufferCmdDataShape::Lin { offset } => {
                         check_len(self.cmd.mem_len, src.len(), offset)?;
                         unsafe {
-                            core::enqueue_write_buffer(queue, &self.cmd.buffer.obj_core, false,
+                            ocl_core::enqueue_write_buffer(queue, &self.cmd.buffer.obj_core, false,
                                 offset, src, reader.lock_event(), Some(&mut write_event))?;
                         }
                     },
@@ -1330,7 +1330,7 @@ impl<'c, 'd, T> BufferWriteCmd<'c, 'd, T> where T: OclPrm {
                                 dst_row_pitch_bytes, dst_slc_pitch_bytes } =>
                     {
                         unsafe {
-                            core::enqueue_write_buffer_rect(queue, &self.cmd.buffer.obj_core,
+                            ocl_core::enqueue_write_buffer_rect(queue, &self.cmd.buffer.obj_core,
                                 false, src_origin, dst_origin, region, src_row_pitch_bytes,
                                 src_slc_pitch_bytes, dst_row_pitch_bytes, dst_slc_pitch_bytes,
                                 src, reader.lock_event(), Some(&mut write_event))?;
@@ -1602,7 +1602,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
     pub unsafe fn enq(mut self) -> OclResult<MemMap<T>> {
         let (offset, len, queue, flags, ewait, enew, /*is_mapped*/) = self.enq_details()?;
 
-        let mm_core = core::enqueue_map_buffer::<T, _, _, _>(&queue,
+        let mm_core = ocl_core::enqueue_map_buffer::<T, _, _, _>(&queue,
             &self.cmd.buffer.obj_core, true, flags, offset, len, ewait, enew)?;
 
         let unmap_event = None;
@@ -1628,7 +1628,7 @@ impl<'c, T> BufferMapCmd<'c, T> where T: OclPrm {
 
         let mut map_event = Event::empty();
 
-        let mm_core = core::enqueue_map_buffer::<T, _, _, _>(&queue,
+        let mm_core = ocl_core::enqueue_map_buffer::<T, _, _, _>(&queue,
             &self.cmd.buffer.obj_core, false, flags, offset, len, ewait,
             Some(&mut map_event))?;
 
@@ -1700,10 +1700,10 @@ impl<T: OclPrm> Buffer<T> {
             QueCtx::Context(c) => c,
         };
 
-        let obj_core = core::create_buffer(ctx_ref, flags, len, host_slice)?;
+        let obj_core = ocl_core::create_buffer(ctx_ref, flags, len, host_slice)?;
 
         debug_assert!({
-            let size_info = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
+            let size_info = match ocl_core::get_mem_object_info(&obj_core, MemInfo::Size)? {
                 MemInfoResult::Size(len_bytes) => len_bytes,
                 _ => unreachable!(),
             };
@@ -1737,15 +1737,15 @@ impl<T: OclPrm> Buffer<T> {
     pub fn from_gl_buffer<'o, Q>(que_ctx: Q, flags_opt: Option<MemFlags>, gl_object: cl_GLuint)
             -> OclResult<Buffer<T>>
             where Q: Into<QueCtx<'o>> {
-        let flags = flags_opt.unwrap_or(core::MEM_READ_WRITE);
+        let flags = flags_opt.unwrap_or(ocl_core::MEM_READ_WRITE);
         let que_ctx = que_ctx.into();
 
         let obj_core = match que_ctx {
-            QueCtx::Queue(ref q) => unsafe { core::create_from_gl_buffer(&q.context(), gl_object, flags)? },
-            QueCtx::Context(c) => unsafe { core::create_from_gl_buffer(c, gl_object, flags)? },
+            QueCtx::Queue(ref q) => unsafe { ocl_core::create_from_gl_buffer(&q.context(), gl_object, flags)? },
+            QueCtx::Context(c) => unsafe { ocl_core::create_from_gl_buffer(c, gl_object, flags)? },
         };
 
-        let len = match core::get_mem_object_info(&obj_core, MemInfo::Size)? {
+        let len = match ocl_core::get_mem_object_info(&obj_core, MemInfo::Size)? {
             MemInfoResult::Size(len_bytes) => len_bytes / ::std::mem::size_of::<T>(),
             _ => unreachable!(),
         };
@@ -1898,7 +1898,7 @@ impl<T: OclPrm> Buffer<T> {
     /// Returns info about the underlying memory object.
     #[inline]
     pub fn mem_info(&self, info_kind: MemInfo) -> OclCoreResult<MemInfoResult> {
-        core::get_mem_object_info(&self.obj_core, info_kind)
+        ocl_core::get_mem_object_info(&self.obj_core, info_kind)
     }
 
     /// Changes the default queue used by this buffer for all subsequent
@@ -2046,7 +2046,7 @@ impl<T: OclPrm> Buffer<T> {
                 offset, len, buffer_len).into());
         }
 
-        let obj_core = core::create_sub_buffer::<T>(self, flags,
+        let obj_core = ocl_core::create_sub_buffer::<T>(self, flags,
             &BufferRegion::new(offset, len))?;
 
         Ok(Buffer {

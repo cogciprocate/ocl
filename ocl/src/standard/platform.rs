@@ -7,8 +7,8 @@
 use std;
 use std::ops::{Deref, DerefMut};
 use std::str::SplitWhitespace;
-use crate::ffi::cl_platform_id;
-use crate::core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
+use crate::ocl_core::ffi::cl_platform_id;
+use crate::ocl_core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfoResult, ClPlatformIdPtr};
 use crate::error::{Error as OclError, Result as OclResult};
 
 
@@ -46,7 +46,7 @@ pub struct Platform(PlatformIdCore);
 impl Platform {
     /// Returns a list of all platforms avaliable on the host machine.
     pub fn list() -> Vec<Platform> {
-        let list_core = core::get_platform_ids()
+        let list_core = ocl_core::get_platform_ids()
             .expect("Platform::list: Error retrieving platform list");
 
         list_core.into_iter().map(Platform::new).collect()
@@ -60,7 +60,7 @@ impl Platform {
     /// not panic if no platforms are available but will instead return an
     /// error.
     pub fn first() -> OclResult<Platform> {
-        core::get_platform_ids()?
+        ocl_core::get_platform_ids()?
             .first()
             .map(|&p| Platform::new(p))
             .ok_or(PlatformError::NoPlatforms.into())
@@ -84,7 +84,7 @@ impl Platform {
 
     /// Returns info about the platform.
     pub fn info(&self, info_kind: PlatformInfo) -> OclResult<PlatformInfoResult> {
-        core::get_platform_info(&self.0, info_kind).map_err(OclError::from)
+        ocl_core::get_platform_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns the platform profile as a string.
@@ -101,7 +101,7 @@ impl Platform {
     ///   each version of OpenCL.
     ///
     pub fn profile(&self) -> OclResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Profile)
+        ocl_core::get_platform_info(&self.0, PlatformInfo::Profile)
             .map(|r| r.into()).map_err(OclError::from)
     }
 
@@ -117,19 +117,19 @@ impl Platform {
     ///
     /// * TODO: Convert this to new version system returning an `OpenclVersion`.
     pub fn version(&self) -> OclResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Version)
+        ocl_core::get_platform_info(&self.0, PlatformInfo::Version)
             .map(|r| r.into()).map_err(OclError::from)
     }
 
     /// Returns the platform name as a string.
     pub fn name(&self) -> OclResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Name)
+        ocl_core::get_platform_info(&self.0, PlatformInfo::Name)
             .map(|r| r.into()).map_err(OclError::from)
     }
 
     /// Returns the platform vendor as a string.
     pub fn vendor(&self) -> OclResult<String> {
-        core::get_platform_info(&self.0, PlatformInfo::Vendor)
+        ocl_core::get_platform_info(&self.0, PlatformInfo::Vendor)
             .map(|r| r.into()).map_err(OclError::from)
     }
 
@@ -138,7 +138,7 @@ impl Platform {
     /// Extensions defined here must be supported by all devices associated
     /// with this platform.
     pub fn extensions(&self) -> OclResult<Extensions> {
-        let extensions = core::get_platform_info(&self.0, PlatformInfo::Extensions);
+        let extensions = ocl_core::get_platform_info(&self.0, PlatformInfo::Extensions);
         extensions.map(|e| Extensions { inner: e.into() }).map_err(OclError::from)
     }
 
@@ -174,7 +174,7 @@ impl Default for Platform {
     /// Panics upon any OpenCL API error.
     ///
     fn default() -> Platform {
-        let dflt_plat_core = core::default_platform().expect("Platform::default()");
+        let dflt_plat_core = ocl_core::default_platform().expect("Platform::default()");
         Platform::new(dflt_plat_core)
     }
 }

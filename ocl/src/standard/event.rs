@@ -23,8 +23,8 @@ use std::cell::Ref;
 use futures::{Future, Poll, Async};
 #[cfg(not(feature = "async_block"))]
 use futures::task;
-use crate::ffi::cl_event;
-use crate::core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
+use crate::ocl_core::ffi::cl_event;
+use crate::ocl_core::{self, Event as EventCore, EventInfo, EventInfoResult, ProfilingInfo,
     ProfilingInfoResult, ClNullEventPtr, ClWaitListPtr, ClEventPtrRef,
     CommandQueue as CommandQueueCore, ClContextPtr};
 use crate::error::{Error as OclError, Result as OclResult};
@@ -102,17 +102,17 @@ impl Event {
     #[cfg(not(feature = "async_block"))]
     pub unsafe fn register_event_relay(&self, user_event: Event) -> OclResult<()> {
         let unmap_event_ptr = user_event.into_raw();
-        self.set_callback(core::_complete_user_event, unmap_event_ptr).map_err(OclError::from)
+        self.set_callback(ocl_core::_complete_user_event, unmap_event_ptr).map_err(OclError::from)
     }
 
     /// Returns info about the event.
     pub fn info(&self, info_kind: EventInfo) -> OclResult<EventInfoResult> {
-        core::get_event_info(&self.0, info_kind).map_err(OclError::from)
+        ocl_core::get_event_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns info about the event.
     pub fn profiling_info(&self, info_kind: ProfilingInfo) -> OclResult<ProfilingInfoResult> {
-        core::get_event_profiling_info(&self.0, info_kind).map_err(OclError::from)
+        ocl_core::get_event_profiling_info(&self.0, info_kind).map_err(OclError::from)
     }
 
     /// Returns this event's associated command queue.

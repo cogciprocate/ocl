@@ -2,7 +2,7 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use crate::core::{self, Result as OclCoreResult, CommandQueue as CommandQueueCore, CommandQueueInfo,
+use crate::ocl_core::{self, Result as OclCoreResult, CommandQueue as CommandQueueCore, CommandQueueInfo,
     CommandQueueInfoResult, OpenclVersion, CommandQueueProperties, ClWaitListPtr, ClContextPtr};
 use crate::error::{Error as OclError, Result as OclResult};
 use crate::standard::{Context, Device, Event};
@@ -26,7 +26,7 @@ impl Queue {
     /// Returns a new Queue on the device specified by `device`.
     pub fn new(context: &Context, device: Device, properties: Option<CommandQueueProperties>)
             -> OclResult<Queue> {
-        let obj_core = core::create_command_queue(context, &device, properties)?;
+        let obj_core = ocl_core::create_command_queue(context, &device, properties)?;
         let device_version = device.version()?;
 
         Ok(Queue {
@@ -37,12 +37,12 @@ impl Queue {
 
     /// Issues all previously queued OpenCL commands to the device.
     pub fn flush(&self) -> OclResult<()> {
-        core::flush(&self.obj_core).map_err(OclError::from)
+        ocl_core::flush(&self.obj_core).map_err(OclError::from)
     }
 
     /// Blocks until all commands in this queue have completed before returning.
     pub fn finish(&self) -> OclResult<()> {
-        core::finish(&self.obj_core).map_err(OclError::from)
+        ocl_core::finish(&self.obj_core).map_err(OclError::from)
     }
 
     /// Enqueues a marker command which waits for either a list of events to
@@ -51,7 +51,7 @@ impl Queue {
             where Ewl: ClWaitListPtr
     {
         let mut marker_event = Event::empty();
-        core::enqueue_marker_with_wait_list(&self.obj_core, ewait, Some(&mut marker_event),
+        ocl_core::enqueue_marker_with_wait_list(&self.obj_core, ewait, Some(&mut marker_event),
                 Some(&self.device_version)).map(|_| marker_event)
             .map_err(OclError::from)
     }
@@ -80,7 +80,7 @@ impl Queue {
 
     /// Returns info about this queue.
     pub fn info(&self, info_kind: CommandQueueInfo) -> OclCoreResult<CommandQueueInfoResult> {
-        core::get_command_queue_info(&self.obj_core, info_kind)
+        ocl_core::get_command_queue_info(&self.obj_core, info_kind)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

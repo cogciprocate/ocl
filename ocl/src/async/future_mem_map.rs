@@ -1,7 +1,7 @@
 // use std::sync::Arc;
 // use std::sync::atomic::AtomicBool;
 use futures::{Future, Poll, Async};
-use crate::core::{OclPrm, MemMap as MemMapCore, Mem, ClNullEventPtr};
+use crate::ocl_core::{OclPrm, MemMap as MemMapCore, Mem, ClNullEventPtr};
 use crate::r#async::MemMap;
 use crate::error::{Error as OclError, Result as OclResult};
 use crate::{Event, Queue, EventList};

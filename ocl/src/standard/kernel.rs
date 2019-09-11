@@ -9,11 +9,11 @@ use std::collections::{HashMap, BTreeMap};
 use std::marker::PhantomData;
 use std::cell::RefCell;
 use std::borrow::Borrow;
-use crate::core::ffi::c_void;
-use crate::core::{self, util, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
+use crate::ocl_core::ffi::c_void;
+use crate::ocl_core::{self, util, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     ArgVal, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
-use crate::core::error::{ErrorKind as OclCoreErrorKind};
+use crate::ocl_core::error::{ErrorKind as OclCoreErrorKind};
 use crate::error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
 use crate::standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum, Buffer, Image};
@@ -206,7 +206,7 @@ impl<'k> KernelCmd<'k> {
             None => return Err(KernelError::CmdNoGws.into()),
         };
 
-        core::enqueue_kernel(queue, &self.kernel, dim_count, self.gwo.to_work_offset(),
+        ocl_core::enqueue_kernel(queue, &self.kernel, dim_count, self.gwo.to_work_offset(),
             &gws, self.lws.to_work_size(), self.wait_events, self.new_event)
             .map_err(OclError::from)
     }
@@ -574,13 +574,13 @@ impl Kernel {
     /// This also bypasses the check to determine if the type of the value you
     /// pass here matches the type defined in your kernel.
     pub unsafe fn set_arg_unchecked(&self, arg_idx: u32, arg_val: ArgVal) -> OclResult<()> {
-        core::set_kernel_arg(&self.obj_core, arg_idx, arg_val).map_err(OclError::from)
+        ocl_core::set_kernel_arg(&self.obj_core, arg_idx, arg_val).map_err(OclError::from)
     }
 
     /// Sets an argument by index.
     fn _set_arg<T: OclPrm>(&self, arg_idx: u32, arg_val: ArgVal) -> OclResult<()> {
         self.verify_arg_type::<T>(arg_idx)?;
-        core::set_kernel_arg(&self.obj_core, arg_idx, arg_val).map_err(OclError::from)
+        ocl_core::set_kernel_arg(&self.obj_core, arg_idx, arg_val).map_err(OclError::from)
     }
 
     /// Sets a `Buffer`, `Image`, scalar, or vector argument by index or by
@@ -815,13 +815,13 @@ impl Kernel {
 
     /// Returns information about this kernel.
     pub fn info(&self, info_kind: KernelInfo) -> OclResult<KernelInfoResult> {
-        core::get_kernel_info(&self.obj_core, info_kind).map_err(OclError::from)
+        ocl_core::get_kernel_info(&self.obj_core, info_kind).map_err(OclError::from)
     }
 
     /// Returns work group information for this kernel.
     pub fn wg_info(&self, device: Device, info_kind: KernelWorkGroupInfo)
             -> OclResult<KernelWorkGroupInfoResult> {
-        core::get_kernel_work_group_info(&self.obj_core, device, info_kind).map_err(OclError::from)
+        ocl_core::get_kernel_work_group_info(&self.obj_core, device, info_kind).map_err(OclError::from)
     }
 
     /// Returns argument information for this kernel.
@@ -832,13 +832,13 @@ impl Kernel {
 
     /// Returns the name of this kernel.
     pub fn name(&self) -> OclResult<String> {
-        core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName)
+        ocl_core::get_kernel_info(&self.obj_core, KernelInfo::FunctionName)
             .map(|r| r.into()).map_err(OclError::from)
     }
 
     /// Returns the number of arguments this kernel has.
     pub fn num_args(&self) -> OclResult<u32> {
-        match core::get_kernel_info(&self.obj_core, KernelInfo::NumArgs) {
+        match ocl_core::get_kernel_info(&self.obj_core, KernelInfo::NumArgs) {
             Ok(KernelInfoResult::NumArgs(num)) => Ok(num),
             Err(err) => Err(err.into()),
             _=> unreachable!(),
@@ -1407,9 +1407,9 @@ impl<'b> KernelBuilder<'b> {
         let program = self.program.ok_or(KernelError::BuilderNoProgram)?;
         let name = self.name.as_ref().ok_or(KernelError::BuilderNoKernelName)?;
 
-        let obj_core = core::create_kernel(program, name)?;
+        let obj_core = ocl_core::create_kernel(program, name)?;
 
-        let num_args = match core::get_kernel_info(&obj_core, KernelInfo::NumArgs) {
+        let num_args = match ocl_core::get_kernel_info(&obj_core, KernelInfo::NumArgs) {
             Ok(KernelInfoResult::NumArgs(num)) => num,
             Err(err) => return Err(OclError::from(err)),
             _=> unreachable!(),
@@ -1464,7 +1464,7 @@ impl<'b> KernelBuilder<'b> {
 
             // Some platforms do not like having a `null` argument set for mem objects.
             if !val.is_mem_null() {
-                core::set_kernel_arg(&obj_core, arg_idx as u32, val)?;
+                ocl_core::set_kernel_arg(&obj_core, arg_idx as u32, val)?;
             }
         }
 
@@ -1496,7 +1496,7 @@ pub fn arg_info(core: &KernelCore, arg_idx: u32, info_kind: KernelArgInfo)
         Err(e) => return Err(e.into()),
     };
 
-    core::get_kernel_arg_info(core, arg_idx, info_kind,
+    ocl_core::get_kernel_arg_info(core, arg_idx, info_kind,
         Some(&device_versions)).map_err(OclError::from)
 }
 
@@ -1522,14 +1522,14 @@ pub fn arg_name(core: &KernelCore, arg_idx: u32) -> OclResult<String> {
 pub mod arg_type {
     #![allow(unused_imports)]
     use std::any::{Any, TypeId};
-    use crate::ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
+    use crate::ocl_core::ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
-    use crate::core::{Error as OclCoreError, Result as OclCoreResult, Status, OclPrm, Kernel as KernelCore};
+    use crate::ocl_core::{Error as OclCoreError, Result as OclCoreResult, Status, OclPrm, Kernel as KernelCore};
     use crate::error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
     use crate::standard::Sampler;
     use super::{arg_info, arg_type_name};
 
-    pub use crate::core::{
+    pub use crate::ocl_core::{
         Char, Char2, Char3, Char4, Char8, Char16,
         Uchar, Uchar2, Uchar3, Uchar4, Uchar8, Uchar16,
         Short, Short2, Short3, Short4, Short8, Short16,
@@ -1652,15 +1652,15 @@ pub mod arg_type {
 
         /// Returns a new argument type specifier.
         ///
-        /// This function calls `core::get_kernel_arg_info`. Some platforms
+        /// This function calls `ocl_core::get_kernel_arg_info`. Some platforms
         /// (Apple, NVIDIA) either do not implement
-        /// `core::get_kernel_arg_info` or error in irregular ways. Known
+        /// `ocl_core::get_kernel_arg_info` or error in irregular ways. Known
         /// irregular errors are checked for here. The result of a call to
         /// `ArgType::unknown()` (which matches any argument type) is returned
         /// if any are found.
         pub fn from_kern_and_idx(core: &KernelCore, arg_idx: u32) -> OclResult<ArgType> {
-            use crate::core::EmptyInfoResultError;
-            use crate::core::ErrorKind as OclCoreErrorKind;
+            use crate::ocl_core::EmptyInfoResultError;
+            use crate::ocl_core::ErrorKind as OclCoreErrorKind;
 
             match arg_type_name(core, arg_idx) {
                 Ok(type_name) => ArgType::from_str(type_name.as_str()),

@@ -1,7 +1,7 @@
 // use std::sync::Arc;
 // use std::sync::atomic::AtomicBool;
 use std::ops::{Deref, DerefMut};
-use crate::core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem as MemCore, AsMem};
+use crate::ocl_core::{self, OclPrm, ClWaitListPtr, ClNullEventPtr, MemMap as MemMapCore, Mem as MemCore, AsMem};
 use crate::standard::{ClWaitListPtrEnum, ClNullEventPtrEnum, Event, EventList, Queue};
 use crate::error::{Result as OclResult};
 
@@ -179,7 +179,7 @@ impl<T> MemMap<T>  where T: OclPrm {
                 None
             };
 
-            core::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
+            ocl_core::enqueue_unmap_mem_object(queue.unwrap_or(&self.queue), &self.buffer,
                 &self.core, ewait_opt.and(self.unmap_wait_events.as_ref()), origin_event_opt.as_mut())?;
 
             self.is_unmapped = true;

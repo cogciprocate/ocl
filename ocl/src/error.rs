@@ -6,8 +6,8 @@ use std;
 use failure::{Context, Fail, Backtrace};
 use futures::sync::oneshot::Canceled as OneshotCanceled;
 use futures::sync::mpsc::SendError;
-use crate::core::error::{Error as OclCoreError};
-use crate::core::Status;
+use crate::ocl_core::error::{Error as OclCoreError};
+use crate::ocl_core::Status;
 use crate::standard::{DeviceError, PlatformError, KernelError};
 
 use crate::BufferCmdError;

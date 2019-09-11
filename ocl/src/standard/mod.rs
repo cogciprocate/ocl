@@ -34,7 +34,7 @@ pub use self::traits::{MemLen, WorkDims};
 pub use self::types::{ClNullEventPtrEnum, ClWaitListPtrEnum};
 
 
-// use core::OclPrm;
+// use ocl_core::OclPrm;
 
 #[derive(Debug)]
 enum HostSlice<'a, T> where T: 'a {
@@ -64,11 +64,11 @@ impl<'a, T> HostSlice<'a, T> where T: 'a {
 
 #[cfg(not(feature = "async_block"))]
 mod cb {
-    use crate::core::ffi::c_void;
+    use crate::ocl_core::ffi::c_void;
     use num_traits::FromPrimitive;
     use futures::task::Task;
-    use crate::ffi::cl_event;
-    use crate::core::{CommandExecutionStatus, Status};
+    use crate::ocl_core::ffi::cl_event;
+    use crate::ocl_core::{CommandExecutionStatus, Status};
 
     pub fn box_raw_void<T>(item: T) -> *mut c_void {
         let item_box = Box::new(item);
@@ -111,8 +111,8 @@ mod types {
     use std::ptr;
     use std::cell::Ref;
     use crate::standard::{Event, EventList, RawEventArray, Queue};
-    use crate::core::ffi::cl_event;
-    use crate::core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
+    use crate::ocl_core::ffi::cl_event;
+    use crate::ocl_core::{Event as EventCore, ClNullEventPtr, ClWaitListPtr};
     use crate::error::Result as OclResult;
 
     /// An enum which can represent several different ways of representing a

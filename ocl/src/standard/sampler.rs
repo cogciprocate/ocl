@@ -2,7 +2,7 @@
 
 use std;
 use std::ops::{Deref, DerefMut};
-use crate::core::{self, Result as OclCoreResult, Sampler as SamplerCore, AddressingMode, FilterMode,
+use crate::ocl_core::{self, Result as OclCoreResult, Sampler as SamplerCore, AddressingMode, FilterMode,
     SamplerInfo, SamplerInfoResult};
 use crate::error::{Error as OclError, Result as OclResult};
 use crate::standard::Context;
@@ -35,7 +35,7 @@ impl Sampler {
     ///
     pub fn new(context: &Context, normalize_coords: bool, addressing_mode: AddressingMode,
             filter_mode: FilterMode) -> OclResult<Sampler> {
-        let sampler_core = core::create_sampler(context, normalize_coords,
+        let sampler_core = ocl_core::create_sampler(context, normalize_coords,
             addressing_mode, filter_mode).map_err(OclError::from)?;
 
         Ok(Sampler(sampler_core))
@@ -50,7 +50,7 @@ impl Sampler {
     /// - `filter_mode`: `FilterMode::Nearest`
     ///
     pub fn with_defaults(context: &Context) -> OclResult<Sampler> {
-        let sampler_core = core::create_sampler(context, false,
+        let sampler_core = ocl_core::create_sampler(context, false,
             AddressingMode::None, FilterMode::Nearest).map_err(OclError::from)?;
 
         Ok(Sampler(sampler_core))
@@ -58,11 +58,11 @@ impl Sampler {
 
     /// Returns various kinds of information about the sampler.
     pub fn info(&self, info_kind: SamplerInfo) -> OclCoreResult<SamplerInfoResult> {
-        // match core::get_sampler_info(&self.0, info_kind) {
+        // match ocl_core::get_sampler_info(&self.0, info_kind) {
         //     Ok(res) => res,
         //     Err(err) => SamplerInfoResult::Error(Box::new(err)),
         // }
-        core::get_sampler_info(&self.0, info_kind)
+        ocl_core::get_sampler_info(&self.0, info_kind)
     }
 
     fn fmt_info(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

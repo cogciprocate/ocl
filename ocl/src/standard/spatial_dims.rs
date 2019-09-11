@@ -5,7 +5,7 @@ use std::ops::Index;
 use num_traits::{Num, ToPrimitive};
 use crate::error::{Result as OclResult};
 use crate::standard::{MemLen, WorkDims};
-use crate::core::util;
+use crate::ocl_core::util;
 
 
 #[derive(Debug, Fail)]

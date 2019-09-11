@@ -2,7 +2,7 @@
 
 use std::ops::Deref;
 use futures::{Future, Poll};
-use crate::core::{self, OclPrm, MemMap as MemMapCore,
+use crate::ocl_core::{self, OclPrm, MemMap as MemMapCore,
     MemFlags, MapFlags, ClNullEventPtr};
 use crate::standard::{Event, EventList, Queue, Buffer, ClWaitListPtrEnum, ClNullEventPtrEnum};
 use crate::r#async::{OrderLock, FutureGuard, ReadGuard, WriteGuard};
@@ -181,13 +181,13 @@ impl<'c, T> FloodCmd<'c, T> where T: OclPrm {
         let mut unmap_event = Event::empty();
 
         unsafe {
-            let memory = core::enqueue_map_buffer::<T, _, _, _>(queue, buffer, false,
+            let memory = ocl_core::enqueue_map_buffer::<T, _, _, _>(queue, buffer, false,
                 MapFlags::new().read(), self.offset, self.len,
                 future_write.lock_event(), Some(&mut map_event))?;
 
             debug_assert!(memory.as_ptr() == inner.memory.as_ptr());
 
-            core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &memory,
+            ocl_core::enqueue_unmap_mem_object::<T, _, _, _>(queue, buffer, &memory,
                 Some(&map_event), Some(&mut unmap_event))?;
 
             // Copy the tail/conclusion event.
@@ -303,11 +303,11 @@ impl<T: OclPrm> BufferStream<T> {
         let mut map_event = Event::empty();
         let mut unmap_event = Event::empty();
 
-        let memory = core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
+        let memory = ocl_core::enqueue_map_buffer::<T, _, _, _>(buffer.default_queue().unwrap(),
             buffer.as_core(), false, map_flags, default_offset, default_len, None::<&EventList>,
                 Some(&mut map_event))?;
 
-        core::enqueue_unmap_mem_object::<T, _, _, _>(buffer.default_queue().unwrap(),
+        ocl_core::enqueue_unmap_mem_object::<T, _, _, _>(buffer.default_queue().unwrap(),
             &buffer, &memory, Some(&map_event), Some(&mut unmap_event)).unwrap();
 
         unmap_event.wait_for().unwrap();
