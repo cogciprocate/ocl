@@ -106,13 +106,12 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
 ///
 /// ### Safety
 ///
-/// You may want to wear a helmet.
-///
+/// The T type should be valid under every binary representation.
 pub unsafe fn bytes_to<T>(bytes: &[u8]) -> Result<T, UtilError> {
     if mem::size_of::<T>() == bytes.len() {
-        let mut new_val: T = mem::uninitialized();
-        ptr::copy(bytes.as_ptr(), &mut new_val as *mut _ as *mut u8, bytes.len());
-        Ok(new_val)
+        let mut new_val: mem::MaybeUninit<T> = mem::MaybeUninit::uninit();
+        ptr::copy(bytes.as_ptr(), new_val.as_mut_ptr() as *mut u8, bytes.len());
+        Ok(new_val.assume_init())
     } else {
         Err(UtilError::BytesTo { src: bytes.len(), dst: mem::size_of::<T>() })
     }
@@ -122,18 +121,10 @@ pub unsafe fn bytes_to<T>(bytes: &[u8]) -> Result<T, UtilError> {
 ///
 /// ### Safety
 ///
-/// Roughly equivalent to a weekend in Tijuana.
-///
-// [NOTE]: Not sure this is the best or simplest way to do this but whatever.
-// Would be nice to not even have to copy anything and just basically
-// transmute the vector into the result type. [TODO]: Fiddle with this
-// at some point.
-//
+/// The T type should be valid under every binary representation.
 pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> Result<T, UtilError> {
     if mem::size_of::<T>() == vec.len() {
-        let mut new_val: T = mem::uninitialized();
-        ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec.len());
-        Ok(new_val)
+        Ok(std::ptr::read(vec.as_ptr() as *const T))
     } else {
         Err(UtilError::BytesInto { src: vec.len(), dst: mem::size_of::<T>() })
     }
