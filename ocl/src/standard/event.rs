@@ -288,13 +288,17 @@ impl Future for Event {
 
 /// Returns an empty, initialized (zeroed) event array.
 fn empty_event_array() -> NoDrop<[Event; 8]> {
-    let mut array: [Event; 8];
-    unsafe {
-        array = mem::uninitialized();
+    let array = {
+        let mut array: [mem::MaybeUninit<Event>; 8] = unsafe {
+            mem::MaybeUninit::uninit().assume_init()
+        };
+
         for elem in &mut array[..] {
-            ptr::write(elem, Event::empty());
+            *elem = mem::MaybeUninit::new(Event::empty());
         }
-    }
+
+        unsafe {mem::transmute::<_, [Event; 8]>(array)}
+    };
     NoDrop::new(array)
 }
 
