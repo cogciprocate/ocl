@@ -2323,7 +2323,7 @@ impl<'a, T> BufferBuilder<'a, T> where T: 'a + OclPrm {
     pub fn fill_event<'b, 'e, En>(mut self, enew: En) -> BufferBuilder<'a, T>
             where 'e: 'a, En: Into<ClNullEventPtrEnum<'e>> {
         match self.fill_val {
-            Some(ref fv) => assert!(fv.1.is_some(), "Buffer::fill_event: Fill event already set."),
+            Some(ref fv) => assert!(fv.1.is_none(), "Buffer::fill_event: Fill event already set."),
             None => panic!("Buffer::fill_event: Fill value must be set first"),
         }
         self.fill_val = self.fill_val.take().map(|fv| (fv.0, Some(enew.into())));
