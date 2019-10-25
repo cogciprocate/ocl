@@ -87,3 +87,60 @@ fn fill_with_float4() {
         assert_eq!(ele, final_val);
     }
 }
+
+#[test]
+fn fill_with_event() {
+    use crate::standard::Buffer;
+    use crate::standard::Event;
+    use crate::standard::Queue;
+
+    let src = r#"
+        __kernel void add(__global float* buffer, float addend) {
+            buffer[get_global_id(0)] += addend;
+        }
+    "#;
+
+    let pro_que = ProQue::builder()
+        .src(src)
+        .dims(DATASET_SIZE)
+        .build().unwrap();
+
+    let one_queue = pro_que.queue();
+    let other_queue = Queue::new(
+        pro_que.context(),
+        pro_que.device(),
+        None,
+    ).unwrap();
+
+    let mut fill_event = Event::empty();
+
+    let buffer = Buffer::builder()
+        .queue(other_queue)
+        .len(DATASET_SIZE)
+        .fill_val(5.0f32)
+        .fill_event(&mut fill_event)
+        .build().unwrap();
+
+    let mut read_event = Event::empty();
+    let mut vec = vec![0.0f32; buffer.len()];
+    buffer.read(&mut vec).queue(one_queue).ewait(&fill_event).enew(&mut read_event).enq().unwrap();
+
+    for &ele in vec.iter() {
+        assert_eq!(ele, 5.0f32);
+    }
+
+    let kernel = pro_que.kernel_builder("add")
+        .arg(&buffer)
+        .arg(&10.0f32)
+        .build().unwrap();
+
+    let mut kernel_event = Event::empty();
+    unsafe { kernel.cmd().ewait(&read_event).enew(&mut kernel_event).enq().unwrap(); }
+
+    let mut vec = vec![0.0f32; buffer.len()];
+    buffer.read(&mut vec).ewait(&kernel_event).enq().unwrap();
+
+    for &ele in vec.iter() {
+        assert_eq!(ele, 15.0f32);
+    }
+}

@@ -3,6 +3,10 @@ Version 0. ()
 
 * Update to Rust 2018 Edition.
 
+Bug Fixes
+---------
+
+* Fix a buffer fill event assertion to allow for the usage of those events when using the BufferBuilder.
 
 Version 0.19.3 (2019-06-19)
 ===========================
