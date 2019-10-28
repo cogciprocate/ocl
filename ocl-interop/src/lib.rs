@@ -52,7 +52,7 @@ pub fn get_properties_list() -> ocl::builders::ContextProperties {
 }
 
 pub fn get_context() -> std::option::Option<ocl::Context> {
-    ocl::Platform::list()
+    ocl::Platform::list().unwrap()
         .iter()
         .map(|plat| {
             //println!("Plat: {}",plat);
