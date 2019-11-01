@@ -1,4 +1,4 @@
-extern crate ocl;
+extern crate fil_ocl as ocl;
 extern crate rand;
 extern crate num_traits;
 extern crate futures;

@@ -4,7 +4,7 @@
 // running tests, increase `DATASET_SIZE`, and the `*_ITERS` consts.
 // The other consts can be anything at all
 
-// extern crate ocl;
+// extern crate fil_ocl as ocl;
 use std::time::Instant;
 
 use util;

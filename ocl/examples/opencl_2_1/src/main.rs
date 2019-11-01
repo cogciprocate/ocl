@@ -1,6 +1,6 @@
 #![allow(unused_imports, unused_variables)]
 
-extern crate ocl;
+extern crate fil_ocl as ocl;
 
 use ocl::{flags, Platform, Device, Context, Queue, Program, Buffer, Kernel};
 

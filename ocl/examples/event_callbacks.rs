@@ -6,7 +6,7 @@
 //! example will likely fail on that platform.
 //!
 
-extern crate ocl;
+extern crate fil_ocl as ocl;
 extern crate ocl_extras;
 extern crate find_folder;
 

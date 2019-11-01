@@ -4,7 +4,7 @@
 //!
 //! [TODO (easy)]: Print all the devices on all the platforms.
 
-extern crate ocl_core as core;
+extern crate fil_ocl_core as core;
 
 use std::ffi::CString;
 

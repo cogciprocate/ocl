@@ -17,7 +17,7 @@
 
 extern crate futures;
 extern crate rand;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate colorify;
 

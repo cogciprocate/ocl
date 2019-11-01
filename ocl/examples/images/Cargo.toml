@@ -4,12 +4,12 @@ version = "0.2.0"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 
 [features]
-opencl_vendor_mesa = ["ocl/opencl_vendor_mesa"]
+opencl_vendor_mesa = ["fil-ocl/opencl_vendor_mesa"]
 
 [dependencies]
 colorify = "*"
 image = "*"
-ocl = { path = "../../" }
+fil-ocl = { path = "../../" }
 # ocl = { git = "https://github.com/cogciprocate/ocl" }
 # ocl-core = "0.3"
 # ocl-core = { git = "https://github.com/cogciprocate/ocl-core" }

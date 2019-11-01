@@ -2,7 +2,7 @@
 //!
 //! Set `INFO_FORMAT_MULTILINE` to `false` for compact printing.
 
-extern crate ocl_core as core;
+extern crate fil_ocl_core as core;
 
 use std::ffi::CString;
 use crate::core::error::Result as OclCoreResult;

@@ -11,7 +11,7 @@ Types used in examples and tests within the ocl library but that may be useful
 for others to use within their own projects.
 """
 
-[dependencies.ocl]
+[dependencies.fil-ocl]
 path = ".."
 # git = "https://github.com/cogciprocate/ocl"
 version = "0.19"
@@ -30,6 +30,3 @@ version = "0.2.2"
 # branch = "master"
 # path = "../futures-rs/futures"
 # version = "0.3.0-alpha.1"
-
-
-

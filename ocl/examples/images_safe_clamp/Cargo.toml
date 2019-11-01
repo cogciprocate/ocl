@@ -4,10 +4,10 @@ version = "0.2.0"
 authors = ["Bernhard Schuster <bernhard@ahoi.io>", "Nick Sanders <cogciprocate@gmail.com>"]
 
 [features]
-opencl_vendor_mesa = ["ocl/opencl_vendor_mesa"]
+opencl_vendor_mesa = ["fil-ocl/opencl_vendor_mesa"]
 
 [dependencies]
-ocl = { path = "../../" }
+fil-ocl = { path = "../../" }
 image = "*"
 time = "*"
 find_folder = "*"
