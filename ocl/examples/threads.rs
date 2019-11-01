@@ -12,7 +12,7 @@
 //! * TODO: Print the reference counts of each element at various points.
 
 extern crate rand;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 #[macro_use] extern crate colorify;
 
 use std::thread::{self, JoinHandle};

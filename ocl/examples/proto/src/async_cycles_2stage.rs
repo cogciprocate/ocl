@@ -35,7 +35,7 @@
 extern crate chrono;
 extern crate futures;
 extern crate futures_cpupool;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 #[macro_use] extern crate colorify;
 
 use std::thread;

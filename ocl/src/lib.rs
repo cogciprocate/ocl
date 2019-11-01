@@ -52,7 +52,7 @@ extern crate num_traits;
 extern crate futures;
 #[macro_use]
 extern crate failure;
-pub extern crate ocl_core as core;
+pub extern crate fil_ocl_core as core;
 
 
 #[cfg(test)]

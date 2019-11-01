@@ -7,7 +7,7 @@
 extern crate futures;
 extern crate futures_cpupool;
 extern crate chrono;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 #[macro_use] extern crate colorify;
 
 use std::cell::Cell;
@@ -187,10 +187,3 @@ pub fn main() {
         correct_val_count.get() / redundancy_count, fmt_duration(create_duration),
         fmt_duration(run_duration), fmt_duration(total_duration));
 }
-
-
-
-
-
-
-

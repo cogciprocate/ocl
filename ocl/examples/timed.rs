@@ -9,7 +9,7 @@
 //! example may fail on that platform.
 
 extern crate time;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 extern crate ocl_extras;
 // * TODO: Bring this back once `Instant` stabilizes: use
 //   std::time::Instant;

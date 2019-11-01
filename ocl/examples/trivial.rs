@@ -1,4 +1,4 @@
-extern crate ocl;
+extern crate fil_ocl as ocl;
 use ocl::ProQue;
 
 fn trivial() -> ocl::Result<()> {

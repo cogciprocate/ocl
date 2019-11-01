@@ -6,7 +6,7 @@
 //!
 
 extern crate image;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 #[macro_use] extern crate colorify;
 
 use std::path::Path;

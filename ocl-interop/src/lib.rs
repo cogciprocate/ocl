@@ -1,6 +1,6 @@
 #[cfg(target_os = "macos")]
 extern crate cgl;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 
 #[cfg(target_os = "linux")]
 #[allow(improper_ctypes)]

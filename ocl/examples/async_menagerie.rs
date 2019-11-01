@@ -11,7 +11,7 @@ extern crate futures;
 extern crate futures_cpupool;
 extern crate rand;
 extern crate chrono;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 extern crate ocl_extras as extras;
 #[macro_use] extern crate colorify;
 

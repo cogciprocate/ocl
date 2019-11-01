@@ -1,4 +1,4 @@
-extern crate ocl;
+extern crate fil_ocl as ocl;
 extern crate ocl_extras;
 
 use ocl::{ProQue, Buffer, MemFlags};

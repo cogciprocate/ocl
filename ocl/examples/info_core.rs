@@ -2,7 +2,7 @@
 //!
 //! Set `INFO_FORMAT_MULTILINE` to `false` for compact printing.
 
-extern crate ocl;
+extern crate fil_ocl as ocl;
 
 use ocl::core::{self, PlatformInfo, DeviceInfo, ContextInfo,
     CommandQueueInfo, MemInfo, ImageInfo, SamplerInfo, ProgramInfo,

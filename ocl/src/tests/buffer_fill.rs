@@ -1,4 +1,4 @@
-// extern crate ocl;
+// extern crate fil_ocl as ocl;
 use crate::standard::ProQue;
 
 const DATASET_SIZE: usize = 1 << 20;

@@ -1,5 +1,5 @@
 #[macro_use] extern crate colorify;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 use ocl::{Result as OclResult, Platform, Device, Context, Image};
 use ocl::enums::MemObjectType;
 

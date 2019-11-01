@@ -1,6 +1,6 @@
 extern crate gl;
 extern crate glutin;
-extern crate ocl;
+extern crate fil_ocl as ocl;
 extern crate ocl_interop;
 extern crate glfw;
 extern crate sdl2;

@@ -2,7 +2,7 @@
 //!
 //! Copied from ocl.
 
-extern crate ocl_core as core;
+extern crate fil_ocl_core as core;
 
 use std::ffi::CString;
 use crate::core::{ArgVal, ContextProperties, Event};
@@ -53,4 +53,3 @@ fn main() {
     // Print an element:
     println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
 }
-
