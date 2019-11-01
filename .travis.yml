@@ -12,7 +12,7 @@ sudo: false
 addons:
   apt:
     sources:
-      - sourceline: 'ppa:intel-opencl/intel-opencl'
+      - sourceline: 'ppa:ocl-dev/intel-opencl'
     packages:
       - intel-opencl
       - ocl-icd-opencl-dev
