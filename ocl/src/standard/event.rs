@@ -290,7 +290,7 @@ impl Future for Event {
 fn empty_event_array() -> NoDrop<[Event; 8]> {
     let mut array: [Event; 8];
     unsafe {
-        array = mem::uninitialized();
+        array = mem::MaybeUninit::uninit().assume_init();
         for elem in &mut array[..] {
             ptr::write(elem, Event::empty());
         }
