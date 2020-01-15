@@ -511,7 +511,7 @@ pub fn get_platform_ids() -> OclCoreResult<Vec<PlatformId>> {
         }
     }
 
-    r#try!(eval_errcode(errcode, (), "clGetPlatformIDs", None::<String>));
+    eval_errcode(errcode, (), "clGetPlatformIDs", None::<String>)?;
 
     // If no platforms are found, return an empty vec directly:
     if num_platforms == 0 {
@@ -592,7 +592,7 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
             devices_max: Option<u32>,
         ) -> OclCoreResult<Vec<DeviceId>>
 {
-    let device_types = device_types.unwrap_or(r#try!(default_device_type()));
+    let device_types = device_types.unwrap_or(default_device_type()?);
     let mut devices_available: cl_uint = 0;
 
     let devices_max = match devices_max {
@@ -616,7 +616,7 @@ pub fn get_device_ids<P: ClPlatformIdPtr>(
         device_ids.as_mut_ptr() as *mut cl_device_id,
         &mut devices_available,
     ) };
-    r#try!(eval_errcode(errcode, (), "clGetDeviceIDs", None::<String>));
+    eval_errcode(errcode, (), "clGetDeviceIDs", None::<String>)?;
 
     // Trim vec len:
     unsafe { device_ids.set_len(devices_available as usize); }
@@ -1062,7 +1062,7 @@ pub fn create_command_queue<C, D>(
         where C: ClContextPtr, D: ClDeviceIdPtr
 {
     // Verify that the context is valid:
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     let cmd_queue_props = match properties {
         Some(p) => p.bits,
@@ -1149,7 +1149,7 @@ pub unsafe fn create_buffer<C, T>(
         where C: ClContextPtr, T: OclPrm
 {
     // Verify that the context is valid:
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     let mut errcode: cl_int = 0;
 
@@ -1194,7 +1194,7 @@ pub unsafe fn create_from_gl_buffer<C>(
         where C: ClContextPtr
 {
     // Verify that the context is valid
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     let mut errcode: cl_int = 0;
 
@@ -1226,7 +1226,7 @@ pub unsafe fn create_from_gl_renderbuffer<C>(
         where C: ClContextPtr
 {
     // Verify that the context is valid
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     let mut errcode: cl_int = 0;
 
@@ -1265,7 +1265,7 @@ pub unsafe fn create_from_gl_texture<C>(
         where C: ClContextPtr
 {
     // Verify that the context is valid
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     // Verify device versions:
     verify_device_versions(device_versions, [1, 2], &context.as_ptr(),
@@ -1316,7 +1316,7 @@ pub unsafe fn create_from_gl_texture_2d<C>(
         where C: ClContextPtr
 {
     // Verify that the context is valid
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     let mut errcode: cl_int = 0;
 
@@ -1346,7 +1346,7 @@ pub unsafe fn create_from_gl_texture_3d<C>(
         where C: ClContextPtr
 {
     // Verify that the context is valid
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     let mut errcode: cl_int = 0;
 
@@ -1413,7 +1413,7 @@ pub unsafe fn create_image<C, T>(
         where C: ClContextPtr, T: OclPrm
 {
     // Verify that the context is valid:
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     // Verify device versions:
     verify_device_versions(device_versions, [1, 2], &context.as_ptr(), ApiFunction::CreateImage)?;
@@ -1479,7 +1479,7 @@ pub fn get_supported_image_formats<C>(
         ptr::null_mut() as *mut cl_image_format,
         &mut num_image_formats as *mut cl_uint,
     ) };
-    r#try!(eval_errcode(errcode, (), "clGetSupportedImageFormats", None::<String>));
+    eval_errcode(errcode, (), "clGetSupportedImageFormats", None::<String>)?;
 
     // If no formats found, return an empty list directly:
     if num_image_formats == 0 {
@@ -1501,7 +1501,7 @@ pub fn get_supported_image_formats<C>(
         ptr::null_mut(),
     ) };
 
-    r#try!(eval_errcode(errcode, (), "clGetSupportedImageFormats", None::<String>));
+    eval_errcode(errcode, (), "clGetSupportedImageFormats", None::<String>)?;
     Ok(ImageFormat::list_from_raw(image_formats))
 }
 
@@ -1667,7 +1667,7 @@ pub fn create_program_with_source<C>(
         where C: ClContextPtr
 {
     // Verify that the context is valid:
-    r#try!(verify_context(context));
+    verify_context(context)?;
 
     // Lengths (not including \0 terminator) of each string:
     let ks_lens: Vec<usize> = src_strings.iter().map(|cs| cs.as_bytes().len()).collect();
@@ -1728,10 +1728,10 @@ pub fn create_program_with_binary<C, D>(
         &mut errcode,
     ) };
 
-    r#try!(eval_errcode(errcode, (), "clCreateProgramWithBinary", None::<String>));
+    eval_errcode(errcode, (), "clCreateProgramWithBinary", None::<String>)?;
 
     for (i, item) in binary_status.iter().enumerate() {
-        r#try!(eval_errcode(*item, (), "clCreateProgramWithBinary", Some(format!("Device [{}]", i))));
+        eval_errcode(*item, (), "clCreateProgramWithBinary", Some(format!("Device [{}]", i)))?;
     }
 
     unsafe { Ok(Program::from_raw_create_ptr(program)) }
@@ -1922,7 +1922,7 @@ pub fn link_program<D: ClDeviceIdPtr, C: ClContextPtr>(
             device_versions: Option<&[OpenclVersion]>,
         ) -> OclCoreResult<Program>
 {
-    r#try!(verify_context(context));
+    verify_context(context)?;
     verify_device_versions(device_versions, [1, 2], &context.as_ptr(), ApiFunction::LinkProgram)?;
 
     assert!(pfn_notify.is_none() && user_data.is_none(),
@@ -2084,7 +2084,7 @@ pub fn create_kernel<S: AsRef<str>>(program: &Program, name: S) -> OclCoreResult
     unsafe {
         let kernel_ptr = ffi::clCreateKernel(
             program.as_ptr(),
-            r#try!(CString::new(name.as_ref().as_bytes())).as_ptr(),
+            CString::new(name.as_ref().as_bytes())?.as_ptr(),
             &mut err,
         );
 
@@ -3595,7 +3595,7 @@ pub unsafe fn get_extension_function_address_for_platform(
     verify_platform_version(platform_version, [1, 2], platform,
         ApiFunction::GetExtensionFunctionAddressForPlatform)?;
 
-    let func_name_c = r#try!(CString::new(func_name));
+    let func_name_c = CString::new(func_name)?;
 
     let ext_fn = ffi::clGetExtensionFunctionAddressForPlatform(
         platform.as_ptr(),
@@ -3621,7 +3621,7 @@ pub fn device_versions(device_ids: &[DeviceId]) -> OclCoreResult<Vec<OpenclVersi
     let mut d_versions = Vec::with_capacity(device_ids.len());
 
     for device_id in device_ids {
-        d_versions.push(r#try!(device_id.version()));
+        d_versions.push(device_id.version()?);
     }
 
     Ok(d_versions)
@@ -3638,7 +3638,7 @@ pub fn default_platform_idx() -> usize {
 
 /// Returns the default or first platform.
 pub fn default_platform() -> OclCoreResult<PlatformId> {
-    let platform_list = r#try!(get_platform_ids());
+    let platform_list = get_platform_ids()?;
 
     if platform_list.is_empty() {
         Err(ApiWrapperError::DefaultPlatformNoPlatforms.into())
@@ -3690,8 +3690,8 @@ pub fn create_build_program<C, D>(
         ) -> OclCoreResult<Program>
         where C: ClContextPtr, D: ClDeviceIdPtr + fmt::Debug
 {
-    let program = r#try!(create_program_with_source(context, src_strings));
-    r#try!(build_program(&program, device_ids, cmplr_opts, None, None));
+    let program = create_program_with_source(context, src_strings)?;
+    build_program(&program, device_ids, cmplr_opts, None, None)?;
     Ok(program)
 }
 
@@ -3718,7 +3718,7 @@ pub fn event_status<'e, E: ClEventPtrRef<'e>>(event: &'e E) -> OclCoreResult<Com
             ptr::null_mut(),
         )
     };
-    r#try!(eval_errcode(errcode, (), "clGetEventInfo", None::<String>));
+    eval_errcode(errcode, (), "clGetEventInfo", None::<String>)?;
 
     CommandExecutionStatus::from_i32(status_int).ok_or_else(|| OclCoreError::from("Error converting \
         'clGetEventInfo' status output."))

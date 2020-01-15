@@ -25,14 +25,14 @@ pub fn get_properties_list() -> ocl::builders::ContextProperties {
 
     #[cfg(target_os = "linux")]
     unsafe {
-        properties.set_gl_context(glx::GetCurrentContext() as (*mut _));
-        properties.set_glx_display(glx::GetCurrentDisplay() as (*mut _));
+        properties.set_gl_context(glx::GetCurrentContext() as *mut _);
+        properties.set_glx_display(glx::GetCurrentDisplay() as *mut _);
     }
 
     #[cfg(target_os = "windows")]
     unsafe {
-        properties.set_gl_context(wgl::GetCurrentContext() as (*mut _));
-        properties.set_wgl_hdc(wgl::GetCurrentDC() as (*mut _));
+        properties.set_gl_context(wgl::GetCurrentContext() as *mut _);
+        properties.set_wgl_hdc(wgl::GetCurrentDC() as *mut _);
     }
 
     #[cfg(target_os = "macos")]
@@ -44,8 +44,8 @@ pub fn get_properties_list() -> ocl::builders::ContextProperties {
 
     #[cfg(target_os = "android")]
     unsafe {
-        properties.set_gl_display(egl::GetCurrentContext() as (*mut _));
-        properties.set_egl_display(egl::GetCurrentDisplay() as (*mut _));
+        properties.set_gl_display(egl::GetCurrentContext() as *mut _);
+        properties.set_egl_display(egl::GetCurrentDisplay() as *mut _);
     }
 
     return properties;
