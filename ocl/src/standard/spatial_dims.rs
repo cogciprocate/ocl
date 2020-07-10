@@ -2,7 +2,7 @@
 use std::convert::From;
 use std::fmt::Debug;
 use std::ops::Index;
-use num_traits::{Num, ToPrimitive};
+use num_traits::{Num, ToPrimitive, FromPrimitive};
 use crate::error::{Result as OclResult};
 use crate::standard::{MemLen, WorkDims};
 use crate::core::util;
@@ -195,33 +195,38 @@ impl<'a> From<&'a SpatialDims> for SpatialDims {
     }
 }
 
-// [FIXME]: Quit being lazy and implement FromPrimitive.
 impl From<usize> for SpatialDims {
     fn from(val: usize) -> SpatialDims {
         SpatialDims::One(val)
     }
 }
 
-// [FIXME]: Quit being lazy and implement FromPrimitive.
 impl From<isize> for SpatialDims {
     fn from(val: isize) -> SpatialDims {
-        assert!(val > 0, "Invalid 'SpatialDims' value: {}. \
-            Dimensions must be greater than zero.", val);
-        (val as usize).into()
+        to_usize(val).into()
     }
 }
 
-// [FIXME]: Quit being lazy and implement FromPrimitive.
 impl From<u32> for SpatialDims {
     fn from(val: u32) -> SpatialDims {
         (val as usize).into()
     }
 }
 
-// [FIXME]: Quit being lazy and implement FromPrimitive.
 impl From<i32> for SpatialDims {
     fn from(val: i32) -> SpatialDims {
-        (val as isize).into()
+        to_usize(val).into()
+    }
+}
+
+impl FromPrimitive for SpatialDims {
+    fn from_i64(n: i64) -> Option<Self> {
+        n.to_usize()
+            .map(|n| n.into())
+    }
+    fn from_u64(n: u64) -> Option<Self> {
+        n.to_usize()
+            .map(|n| n.into())
     }
 }
 
