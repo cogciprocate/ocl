@@ -15,7 +15,7 @@ addons:
       - sourceline: 'ppa:intel-opencl/intel-opencl'
     packages:
       - intel-opencl
-      - ocl-icd-opencl-dev
+      - intel-opencl-icd-dev
 
 matrix:
   include:
