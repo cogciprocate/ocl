@@ -16,7 +16,11 @@
 extern crate nodrop;
 
 
-use std::{mem, ptr, fmt};
+use std::{
+    mem::{self, ManuallyDrop},
+    ptr,
+    fmt
+};
 use std::borrow::Borrow;
 use std::ops::{Deref, DerefMut};
 use std::cell::Ref;
@@ -1001,13 +1005,28 @@ macro_rules! from_event_option_array_into_event_list(
     ($e:ty, $len:expr) => (
         impl<'e> From<[Option<$e>; $len]> for EventList {
             fn from(events: [Option<$e>; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
+                let mut el = ManuallyDrop::new(
+                    EventList::with_capacity(events.len())
+                );
+
                 for idx in 0..events.len() {
-                    let event_opt = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    if let Some(event) = event_opt { el.push::<Event>(event.into()); }
+                    let event_opt = unsafe {
+                        ptr::read(events.get_unchecked(idx))
+                    };
+
+                    if let Some(event) = event_opt {
+                        // Use `ManuallyDrop` to guard against
+                        // potential panic within `into()`.
+                        let event = ManuallyDrop::into_inner(
+                            ManuallyDrop::new(event)
+                            .into()
+                        );
+                        el.push(event);
+                    }
                 }
                 mem::forget(events);
-                el
+                
+                ManuallyDrop::into_inner(el)
             }
         }
     )
@@ -1036,16 +1055,28 @@ macro_rules! impl_event_list_from_arrays {
     ($( $len:expr ),*) => ($(
         impl<'e, E> From<[E; $len]> for EventList where E: Into<Event> {
             fn from(events: [E; $len]) -> EventList {
-                let mut el = EventList::with_capacity(events.len());
+                let mut el = ManuallyDrop::new(
+                    EventList::with_capacity(events.len())
+                );
+
                 for idx in 0..events.len() {
-                    let event = unsafe { ptr::read(events.get_unchecked(idx)) };
-                    el.push(event.into());
+                    // User `ManuallyDrop` to guard against potential panic within `into()`.
+                    let event = ManuallyDrop::into_inner(
+                        ManuallyDrop::new(
+                            unsafe {
+                                ptr::read(events.get_unchecked(idx))
+                            }
+                        )
+                        .into()
+                    );
+                    el.push(event);
                 }
                 // Ownership has been unsafely transfered to the new event
                 // list without modifying the event reference count. Not
                 // forgetting the source array would cause a double drop.
                 mem::forget(events);
-                el
+
+                ManuallyDrop::into_inner(el)
             }
         }
 
