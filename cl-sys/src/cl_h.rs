@@ -87,12 +87,14 @@ pub type cl_profiling_info                  = cl_uint;
 pub type cl_sampler_properties              = cl_bitfield;
 pub type cl_kernel_exec_info                = cl_uint;
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct cl_image_format {
     pub image_channel_order:        cl_channel_order,
     pub image_channel_data_type:    cl_channel_type,
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct cl_image_desc {
     pub image_type:         cl_mem_object_type,
@@ -108,6 +110,7 @@ pub struct cl_image_desc {
     pub buffer:             cl_mem,
 }
 
+#[derive(Debug)]
 #[repr(C)]
 pub struct cl_buffer_region {
     pub origin:     size_t,
@@ -733,8 +736,8 @@ extern "system" {
     //############################### NEW 2.1 #################################
     #[cfg(feature = "opencl_version_2_1")]
     pub fn clGetDeviceAndHostTimer(device: cl_device_id,
-                                   device_timestamp: cl_ulong,
-                                   host_timestamp: cl_ulong) -> cl_int;
+                                   device_timestamp: *mut cl_ulong,
+                                   host_timestamp: *mut cl_ulong) -> cl_int;
 
     // extern CL_API_ENTRY cl_int CL_API_CALL
     // clGetHostTimer(cl_device_id /* device */,
@@ -742,7 +745,7 @@ extern "system" {
     //############################### NEW 2.1 #################################
     #[cfg(feature = "opencl_version_2_1")]
     pub fn clGetHostTimer(device: cl_device_id,
-                          host_timestamp: cl_ulong) -> cl_int;
+                          host_timestamp: *mut cl_ulong) -> cl_int;
 
     // Context APIs:
     pub fn clCreateContext(properties: *const cl_context_properties,
@@ -972,7 +975,7 @@ extern "system" {
     pub fn clCreateProgramWithBuiltInKernels(context: cl_context,
                                      num_devices: cl_uint,
                                      device_list: *const cl_device_id,
-                                     kernel_names: *mut char,
+                                     kernel_names: *const char,
                                      errcode_ret: *mut cl_int) -> cl_program;
 
     // extern CL_API_ENTRY cl_program CL_API_CALL
