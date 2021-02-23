@@ -38,4 +38,4 @@ colorify = "0.2"
 rand = "0.4"
 
 [build-dependencies]
-rustc_version = "0.1"
+rustc_version = "0.3"
