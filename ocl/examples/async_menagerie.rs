@@ -15,8 +15,7 @@ extern crate ocl;
 extern crate ocl_extras as extras;
 #[macro_use] extern crate colorify;
 
-use rand::{Rng, XorShiftRng};
-use rand::distributions::{IndependentSample, Range as RandRange};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 use futures::{stream, Future, Sink, Stream, Join};
 use futures::sync::mpsc::{self, Sender};
 use futures_cpupool::{CpuPool, CpuFuture};
@@ -400,7 +399,7 @@ fn enqueue_simple_task(task: &Task, buf_pool: &SubBufferPool<Float4>, thread_poo
 ///
 fn create_complex_task(task_id: usize, device: Device, context: &Context,
         buf_pool: &mut SubBufferPool<Float4>, work_size: u32, queues: &[Queue],
-        rng: &mut XorShiftRng) -> Result<Task, ()>
+        rng: &mut SmallRng) -> Result<Task, ()>
 {
     // The container for this task:
     let mut task = Task::new(task_id, TaskKind::Complex, work_size);
@@ -442,9 +441,9 @@ fn create_complex_task(task_id: usize, device: Device, context: &Context,
     let kern_a_sign = rng.gen();
     let kern_b_sign = rng.gen();
     let kern_c_sign = rng.gen();
-    let kern_a_val = RandRange::new(-1000., 1000.).ind_sample(rng);
-    let kern_b_val = RandRange::new(-500., 500.).ind_sample(rng);
-    let kern_c_val = RandRange::new(-2000., 2000.).ind_sample(rng);
+    let kern_a_val = rng.gen_range(-1000. .. 1000.);
+    let kern_b_val = rng.gen_range(-500. .. 500.);
+    let kern_c_val = rng.gen_range(-2000. .. 2000.);
 
     let program = Program::builder()
         .devices(device)
@@ -607,15 +606,15 @@ fn fmt_duration(duration: chrono::Duration) -> String {
 /// verifies that they all execute correctly.
 pub fn async_menagerie() -> OclResult<()> {
     // Buffer/work size range:
-    let buffer_size_range = RandRange::new(SUB_BUF_MIN_LEN, SUB_BUF_MAX_LEN);
-    let mut rng = rand::weak_rng();
+    let buffer_size_range = SUB_BUF_MIN_LEN..SUB_BUF_MAX_LEN;
+    let mut rng = SmallRng::from_entropy();
 
     // Set up context using defaults:
     let platform = Platform::default();
     printlnc!(blue: "Platform: {}", platform.name()?);
 
     // let device = Device::first(platform);
-    let device_idx = RandRange::new(0, 15).ind_sample(&mut rng);
+    let device_idx = rng.gen_range(0..15);
 
     let device = Device::specifier()
         .wrapping_indices(vec![device_idx])
@@ -657,7 +656,7 @@ pub fn async_menagerie() -> OclResult<()> {
     // Create some arbitrary tasks until our buffer pool is full:
     loop {
         // Random work size:
-        let work_size = buffer_size_range.ind_sample(&mut rng);
+        let work_size = rng.gen_range(buffer_size_range.clone());
 
         // Create task if there is room in the buffer pool:
         let task_id = tasks.len();

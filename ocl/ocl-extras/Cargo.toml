@@ -21,7 +21,7 @@ version = "0.19"
 [dependencies]
 # chrono = "0.2"
 num-traits = "0.2"
-rand = "0.4"
+rand = "0.8"
 failure = "0.1"
 
 [dependencies.futures-preview]

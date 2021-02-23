@@ -7,6 +7,8 @@
 use std::thread::{self, JoinHandle};
 use std::sync::mpsc;
 use std::time::Duration;
+use rand::{SeedableRng, rngs::SmallRng};
+
 use crate::tests::rand::{self, Rng};
 use crate::core::{self, PlatformInfo, DeviceInfo, ContextInfo, CommandQueueInfo, MemInfo, ProgramInfo,
     ProgramBuildInfo, KernelInfo, KernelArgInfo, KernelWorkGroupInfo, EventInfo, ProfilingInfo};
@@ -23,7 +25,7 @@ const THREAD_COUNT: u32 = 2;
 
 #[test]
 fn concurrent() {
-    let mut rng = rand::weak_rng();
+    let mut rng = SmallRng::from_entropy();
     let data_set_size = 1 << 10;
     let dims = [data_set_size];
     let mut threads = Vec::with_capacity(THREAD_COUNT as usize);
@@ -51,7 +53,7 @@ fn concurrent() {
 
 // UNUSED
 fn main_from_example() -> OclResult<()> {
-    let mut rng = rand::weak_rng();
+    let mut rng = SmallRng::from_entropy();
     let data_set_size = 1 << 10;
     let dims = [data_set_size];
     let mut threads = Vec::new();
