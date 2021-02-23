@@ -19,9 +19,9 @@ pub mod buffer_copy;
 pub mod buffer_fill;
 pub mod vector_types;
 pub mod compile_program;
-use self::rand::Rng;
 use crate::error::{Result as OclCoreResult};
 use crate::{OclScl, PlatformId, DeviceId, Context};
+use self::rand::{SeedableRng, Rng, rngs::SmallRng};
 
 const PRINT_ITERS_MAX: i32 = 3;
 const PRINT_SLICES_MAX: usize = 16;
@@ -52,18 +52,18 @@ pub fn get_available_contexts() -> Vec<(PlatformId, DeviceId, Context)> {
 }
 
 fn gen_region_origin(dims: &[usize; 3]) -> ([usize; 3], [usize; 3]) {
-    let mut rng = rand::weak_rng();
+    let mut rng = SmallRng::from_entropy();
 
     let region = [
-        rng.gen_range(1, dims[0] + 1),
-        rng.gen_range(1, dims[1] + 1),
-        rng.gen_range(1, dims[2] + 1),
+        rng.gen_range(1..dims[0] + 1),
+        rng.gen_range(1..dims[1] + 1),
+        rng.gen_range(1..dims[2] + 1),
     ];
 
     let origin = [
-        rng.gen_range(0, (dims[0] - region[0]) + 1),
-        rng.gen_range(0, (dims[1] - region[1]) + 1),
-        rng.gen_range(0, (dims[2] - region[2]) + 1),
+        rng.gen_range(0..(dims[0] - region[0]) + 1),
+        rng.gen_range(0..(dims[1] - region[1]) + 1),
+        rng.gen_range(0..(dims[2] - region[2]) + 1),
     ];
 
     (origin, region)

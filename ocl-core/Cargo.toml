@@ -35,7 +35,7 @@ ocl-core-vector = { version = "0.1", path = "ocl-core-vector", optional = true }
 
 [dev-dependencies]
 colorify = "0.2"
-rand = "0.4"
+rand = "0.8"
 
 [build-dependencies]
 rustc_version = "0.1"

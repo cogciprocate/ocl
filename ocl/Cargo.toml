@@ -68,8 +68,8 @@ ocl-core = { version = "~0.11.2", path = "../ocl-core" }
 find_folder = "0.3"
 colorify = "~0.2.3"
 time = "0.1"
-rand = "0.4"
-chrono = "0.2"
+rand = "0.8"
+chrono = "0.4"
 futures-cpupool = "0.1"
 lazy_static = "0.2"
 ocl-extras = { version = "0.1", path = "ocl-extras" }
