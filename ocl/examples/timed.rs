@@ -16,6 +16,7 @@ extern crate ocl_extras;
 
 
 use ocl::{core, ProQue, Buffer, EventList};
+use std::time::Instant;
 
 const WORK_SIZE: usize = 1 << 12;
 
@@ -215,11 +216,11 @@ fn timed() -> ocl::Result<()> {
 //
 // [/KEEP]
 
-fn print_elapsed(title: &str, start: time::Timespec) {
-    let time_elapsed = time::get_time() - start;
+fn print_elapsed(title: &str, start: Instant) {
+    let time_elapsed = start.elapsed();
     let elapsed_ms = time_elapsed.num_milliseconds();
     let separator = if title.len() > 0 { ": " } else { "" };
-    println!("    {}{}: {}.{:03}", title, separator, time_elapsed.num_seconds(), elapsed_ms);
+    println!("    {}{}{}.{:03}", title, separator, time_elapsed.as_secs(), time_elapsed.subsec_millis());
 }
 
 

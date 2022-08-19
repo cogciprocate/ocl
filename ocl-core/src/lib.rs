@@ -110,8 +110,6 @@ extern crate num_traits;
 extern crate num_complex;
 #[cfg(feature = "ocl-core-vector")]
 extern crate ocl_core_vector as vector;
-#[macro_use]
-extern crate failure;
 pub extern crate cl_sys as ffi;
 
 #[cfg(test)] mod tests;
@@ -120,7 +118,7 @@ pub mod types;
 pub mod error;
 pub mod util;
 
-pub use self::error::{Error, Result, ErrorKind};
+pub use self::error::{Error, Result};
 
 pub use self::types::abs::{ClWaitListPtr, ClNullEventPtr, ClEventPtrRef, ClPlatformIdPtr,
     ClDeviceIdPtr, ClContextPtr, EventRefWrapper, PlatformId, DeviceId, Context, CommandQueue, Mem,

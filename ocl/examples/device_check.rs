@@ -23,8 +23,7 @@ extern crate ocl;
 
 use std::fmt::{Debug};
 use futures::{Future};
-use rand::{XorShiftRng};
-use rand::distributions::{IndependentSample, Range as RandRange};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 use ocl::{core, Platform, Device, Context, Queue, Program, Buffer, Kernel, OclPrm,
     Event, EventList, MemMap, RwVec};
 use ocl::error::{Error as OclError, Result as OclResult};
@@ -393,11 +392,11 @@ fn print_result(operation: &str, result: OclResult<()>) {
     print!("\n");
 }
 
-pub fn check(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Float4>)
+pub fn check(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switches<Float4>)
         -> OclResult<()>
 {
-    let work_size_range = RandRange::new(cfg.misc.work_size_range.0, cfg.misc.work_size_range.1);
-    let work_size = work_size_range.ind_sample(rng);
+    let work_size_range = cfg.misc.work_size_range.0..cfg.misc.work_size_range.1;
+    let work_size = rng.gen_range(work_size_range);
 
     // Create queues:
     let (write_queue, kernel_queue, read_queue) =
@@ -889,13 +888,13 @@ pub fn vec_read_async(dst_buf: &Buffer<Int4>, rw_vec: &RwVec<Int4>, common_queue
     }))
 }
 
-pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg: Switches<Int4>)
+pub fn check_async(device: Device, context: &Context, rng: &mut SmallRng, cfg: Switches<Int4>)
         -> OclResult<()>
 {
     use std::thread;
 
-    let work_size_range = RandRange::new(cfg.misc.work_size_range.0, cfg.misc.work_size_range.1);
-    let work_size = work_size_range.ind_sample(rng);
+    let work_size_range = cfg.misc.work_size_range.0..cfg.misc.work_size_range.1;
+    let work_size = rng.gen_range(work_size_range);
 
     // // Create queues:
     // let queue_flags = Some(CommandQueueProperties::new().out_of_order());
@@ -1069,7 +1068,7 @@ pub fn check_async(device: Device, context: &Context, rng: &mut XorShiftRng, cfg
 
 
 pub fn device_check() -> OclResult<()> {
-    let mut rng = rand::weak_rng();
+    let mut rng = SmallRng::from_entropy();
 
     for (p_idx, platform) in Platform::list().into_iter().enumerate() {
     // for &platform in &[Platform::default()] {

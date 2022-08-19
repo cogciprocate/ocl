@@ -25,17 +25,17 @@ default = ["opencl_version_1_1", "opencl_version_1_2", "ocl-core-vector"]
 [dependencies]
 cl-sys = { version = "~0.4.2", path = "../cl-sys" }
 num-traits = "0.2"
-num-complex = "0.1"
+num-complex = "0.4"
 enum_primitive = "0.1"
 bitflags = "1"
-failure = "0.1"
+thiserror = "1.0"
 
 # Implements all of the vector types and traits.
 ocl-core-vector = { version = "0.1", path = "ocl-core-vector", optional = true }
 
 [dev-dependencies]
 colorify = "0.2"
-rand = "0.4"
+rand = "0.8"
 
 [build-dependencies]
-rustc_version = "0.1"
+rustc_version = "0.4"

@@ -10,7 +10,6 @@
 #![allow(dead_code)]
 
 use std::fmt;
-use failure::Fail;
 use num_traits::FromPrimitive;
 use crate::util;
 use crate::ffi::{cl_image_format, cl_context_properties, c_void};
@@ -28,37 +27,37 @@ use crate::{CommandQueueProperties, PlatformId, PlatformInfo, DeviceId, DeviceIn
 use crate::error::{Result as OclCoreResult, Error as OclCoreError};
 
 
-#[derive(Fail)]
+#[derive(thiserror::Error)]
 pub enum EmptyInfoResultError {
-    #[fail(display = "Platform info unavailable")]
+    #[error("Platform info unavailable")]
     Platform,
-    #[fail(display = "Device info unavailable")]
+    #[error("Device info unavailable")]
     Device,
-    #[fail(display = "Context info unavailable")]
+    #[error("Context info unavailable")]
     Context,
-    #[fail(display = "OpenGL info unavailable")]
+    #[error("OpenGL info unavailable")]
     GlContext,
-    #[fail(display = "Command queue info unavailable")]
+    #[error("Command queue info unavailable")]
     CommandQueue,
-    #[fail(display = "Mem object info unavailable")]
+    #[error("Mem object info unavailable")]
     Mem,
-    #[fail(display = "Image info unavailable")]
+    #[error("Image info unavailable")]
     Image,
-    #[fail(display = "Sampler info unavailable")]
+    #[error("Sampler info unavailable")]
     Sampler,
-    #[fail(display = "Program info unavailable")]
+    #[error("Program info unavailable")]
     Program,
-    #[fail(display = "Program build info unavailable")]
+    #[error("Program build info unavailable")]
     ProgramBuild,
-    #[fail(display = "Kernel info unavailable")]
+    #[error("Kernel info unavailable")]
     Kernel,
-    #[fail(display = "Kernel argument info unavailable")]
+    #[error("Kernel argument info unavailable")]
     KernelArg,
-    #[fail(display = "Kernel work-group info unavailable")]
+    #[error("Kernel work-group info unavailable")]
     KernelWorkGroup,
-    #[fail(display = "Event info unavailable")]
+    #[error("Event info unavailable")]
     Event,
-    #[fail(display = "Event profiling info unavailable")]
+    #[error("Event profiling info unavailable")]
     Profiling,
 }
 
@@ -171,7 +170,7 @@ impl PlatformInfoResult {
     pub fn from_bytes(request: PlatformInfo, result: Vec<u8>)
             -> OclCoreResult<PlatformInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(EmptyInfoResultError::Platform));
+            return Err(OclCoreError::EmptyInfoResult(EmptyInfoResultError::Platform));
         }
 
         let string = util::bytes_into_string(result)?;
@@ -315,7 +314,7 @@ impl DeviceInfoResult {
     pub fn from_bytes_max_work_item_sizes(request: DeviceInfo, result: Vec<u8>,
                 max_wi_dims: u32) -> OclCoreResult<DeviceInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(EmptyInfoResultError::Device));
+            return Err(OclCoreError::EmptyInfoResult(EmptyInfoResultError::Device));
         }
         match request {
             DeviceInfo::MaxWorkItemSizes => {
@@ -338,8 +337,8 @@ impl DeviceInfoResult {
                         v.extend_from_slice(&r);
                         Ok(DeviceInfoResult::MaxWorkItemSizes(v))
                     },
-                    _ => Err(OclCoreError::from("Error \
-                        determining number of dimensions for MaxWorkItemSizes.")),
+                    _ => Err(OclCoreError::String("Error \
+                        determining number of dimensions for MaxWorkItemSizes.".to_string())),
                 }
             },
             _ => panic!("DeviceInfoResult::from_bytes_max_work_item_sizes: Called with \
@@ -351,7 +350,7 @@ impl DeviceInfoResult {
     pub fn from_bytes(request: DeviceInfo, result: Vec<u8>)
             -> OclCoreResult<DeviceInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::Device));
         }
 
@@ -472,7 +471,7 @@ impl DeviceInfoResult {
                 let r = unsafe { util::bytes_into::<u32>(result)? };
                 match DeviceMemCacheType::from_u32(r) {
                     Some(e) => DeviceInfoResult::GlobalMemCacheType(e),
-                    None => return Err(OclCoreError::from(format!("Error converting '{:X}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{:X}' to \
                             DeviceMemCacheType.", r))),
                 }
             },
@@ -500,7 +499,7 @@ impl DeviceInfoResult {
                 let r = unsafe { util::bytes_into::<u32>(result)? };
                 match DeviceLocalMemType::from_u32(r) {
                     Some(e) => DeviceInfoResult::LocalMemType(e),
-                    None => return Err(OclCoreError::from(format!("Error converting '{:X}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{:X}' to \
                             DeviceLocalMemType.", r))),
                 }
             },
@@ -663,7 +662,7 @@ impl DeviceInfoResult {
                 // match DevicePartitionProperty::from_u32(r) {
                 //     Some(e) => DeviceInfoResult::PartitionProperties(e),
                 //     None => DeviceInfoResult::Error(Box::new(
-                //         OclCoreError::from(format!("Error converting '{:X}' to \
+                //         OclCoreError::String(format!("Error converting '{:X}' to \
                 //             DevicePartitionProperty.", r)))),
                 // }
                 DeviceInfoResult::PartitionProperties(Vec::with_capacity(0))
@@ -679,7 +678,7 @@ impl DeviceInfoResult {
                 // match DevicePartitionProperty::from_u32(r) {
                 //     Some(e) => DeviceInfoResult::PartitionType(e),
                 //     None => DeviceInfoResult::Error(Box::new(
-                //         OclCoreError::from(format!("Error converting '{:X}' to \
+                //         OclCoreError::String(format!("Error converting '{:X}' to \
                 //             DevicePartitionProperty.", r)))),
                 // }
                 DeviceInfoResult::PartitionType(Vec::with_capacity(0))
@@ -826,7 +825,7 @@ pub enum ContextInfoResult {
 impl ContextInfoResult {
     pub fn from_bytes(request: ContextInfo, result: Vec<u8>) -> OclCoreResult<ContextInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::Context));
         }
         let r = match request {
@@ -894,7 +893,7 @@ impl GlContextInfoResult {
     pub fn from_bytes(request: GlContextInfo, result: Vec<u8>)
             -> OclCoreResult<GlContextInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::GlContext));
         }
         let ir = match request {
@@ -952,7 +951,7 @@ impl CommandQueueInfoResult {
     pub fn from_bytes(request: CommandQueueInfo, result: Vec<u8>)
             -> OclCoreResult<CommandQueueInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::CommandQueue));
         }
 
@@ -1038,7 +1037,7 @@ pub enum MemInfoResult {
 impl MemInfoResult {
     pub fn from_bytes(request: MemInfo, result: Vec<u8>) -> OclCoreResult<MemInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::Mem));
         }
 
@@ -1047,7 +1046,7 @@ impl MemInfoResult {
                 let r = unsafe { util::bytes_into::<u32>(result)? };
                 match MemObjectType::from_u32(r) {
                     Some(am) => MemInfoResult::Type(am),
-                    None => return Err(OclCoreError::from(format!("Error converting '{}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{}' to \
                             MemObjectType.", r))),
                 }
             },
@@ -1161,7 +1160,7 @@ pub enum ImageInfoResult {
 impl ImageInfoResult {
     pub fn from_bytes(request: ImageInfo, result: Vec<u8>) -> OclCoreResult<ImageInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::Image));
         }
         let ir = match request {
@@ -1265,7 +1264,7 @@ pub enum SamplerInfoResult {
 impl SamplerInfoResult {
     pub fn from_bytes(request: SamplerInfo, result: Vec<u8>) -> OclCoreResult<SamplerInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::Sampler));
         }
         let ir = match request {
@@ -1285,7 +1284,7 @@ impl SamplerInfoResult {
                 let r = unsafe { util::bytes_into::<u32>(result)? };
                 match AddressingMode::from_u32(r) {
                     Some(am) => SamplerInfoResult::AddressingMode(am),
-                    None => return Err(OclCoreError::from(format!("Error converting '{}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{}' to \
                         AddressingMode.", r))),
                 }
             },
@@ -1293,7 +1292,7 @@ impl SamplerInfoResult {
                 let r = unsafe { util::bytes_into::<u32>(result)? };
                 match FilterMode::from_u32(r) {
                     Some(fm) => SamplerInfoResult::FilterMode(fm),
-                    None => return Err(OclCoreError::from(format!("Error converting '{}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{}' to \
                         FilterMode.", r))),
                 }
             },
@@ -1348,7 +1347,7 @@ pub enum ProgramInfoResult {
 impl ProgramInfoResult {
     pub fn from_bytes(request: ProgramInfo, result: Vec<u8>) -> OclCoreResult<ProgramInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::Program));
         }
 
@@ -1439,7 +1438,7 @@ pub enum ProgramBuildInfoResult {
 impl ProgramBuildInfoResult {
     pub fn from_bytes(request: ProgramBuildInfo, result: Vec<u8>) -> OclCoreResult<ProgramBuildInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::ProgramBuild));
         }
         let ir = match request {
@@ -1447,7 +1446,7 @@ impl ProgramBuildInfoResult {
                 let r = unsafe { util::bytes_into::<i32>(result)? };
                 match ProgramBuildStatus::from_i32(r) {
                     Some(b) => ProgramBuildInfoResult::BuildStatus(b),
-                    None => return Err(OclCoreError::from(format!("Error converting '{}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{}' to \
                         ProgramBuildStatus.", r))),
                 }
             },
@@ -1509,7 +1508,7 @@ pub enum KernelInfoResult {
 impl KernelInfoResult {
     pub fn from_bytes(request: KernelInfo, result: Vec<u8>) -> OclCoreResult<KernelInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::Kernel));
         }
         let ir = match request {
@@ -1584,7 +1583,7 @@ pub enum KernelArgInfoResult {
 impl KernelArgInfoResult {
     pub fn from_bytes(request: KernelArgInfo, result: Vec<u8>) -> OclCoreResult<KernelArgInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::KernelArg));
         }
         let ir = match request {
@@ -1592,7 +1591,7 @@ impl KernelArgInfoResult {
                 let r = unsafe { util::bytes_into::<u32>(result)? };
                 match KernelArgAddressQualifier::from_u32(r) {
                     Some(kaaq) => KernelArgInfoResult::AddressQualifier(kaaq),
-                    None => return Err(OclCoreError::from(format!("Error converting '{}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{}' to \
                             KernelArgAddressQualifier.", r))),
                 }
             },
@@ -1600,7 +1599,7 @@ impl KernelArgInfoResult {
                 let r = unsafe { util::bytes_into::<u32>(result)? };
                 match KernelArgAccessQualifier::from_u32(r) {
                     Some(kaaq) => KernelArgInfoResult::AccessQualifier(kaaq),
-                    None => return Err(OclCoreError::from(format!("Error converting '{}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{}' to \
                             KernelArgAccessQualifier.", r))),
                 }
             },
@@ -1650,10 +1649,8 @@ impl From<KernelArgInfoResult> for String {
 }
 
 
-impl Fail for KernelArgInfoResult {}
-
-
 /// A kernel work group info result.
+#[derive(thiserror::Error)]
 pub enum KernelWorkGroupInfoResult {
     WorkGroupSize(usize),
     CompileWorkGroupSize([usize; 3]),
@@ -1670,7 +1667,7 @@ impl KernelWorkGroupInfoResult {
     pub fn from_bytes(request: KernelWorkGroupInfo, result: Vec<u8>)
             -> OclCoreResult<KernelWorkGroupInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::KernelWorkGroup));
         }
         let ir = match request {
@@ -1769,7 +1766,7 @@ pub enum EventInfoResult {
 impl EventInfoResult {
     pub fn from_bytes(request: EventInfo, result: Vec<u8>) -> OclCoreResult<EventInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(
+            return Err(OclCoreError::EmptyInfoResult(
                 EmptyInfoResultError::Event));
         }
         let ir = match request {
@@ -1781,7 +1778,7 @@ impl EventInfoResult {
                 let code = unsafe { util::bytes_into::<u32>(result)? };
                 match CommandType::from_u32(code) {
                     Some(ces) => EventInfoResult::CommandType(ces),
-                    None => return Err(OclCoreError::from(format!(
+                    None => return Err(OclCoreError::String(format!(
                         "Error converting '{}' to CommandType.", code))),
                 }
             },
@@ -1792,7 +1789,7 @@ impl EventInfoResult {
                 let code = unsafe { util::bytes_into::<i32>(result)? };
                 match CommandExecutionStatus::from_i32(code) {
                     Some(ces) => EventInfoResult::CommandExecutionStatus(ces),
-                    None => return Err(OclCoreError::from(format!("Error converting '{}' to \
+                    None => return Err(OclCoreError::String(format!("Error converting '{}' to \
                             CommandExecutionStatus.", code))),
                 }
             },
@@ -1842,7 +1839,7 @@ impl ProfilingInfoResult {
     pub fn from_bytes(request: ProfilingInfo, result: Vec<u8>)
             -> OclCoreResult<ProfilingInfoResult> {
         if result.is_empty() {
-            return Err(OclCoreError::from(EmptyInfoResultError::Profiling));
+            return Err(OclCoreError::EmptyInfoResult(EmptyInfoResultError::Profiling));
         }
         let ir = match request {
             ProfilingInfo::Queued => ProfilingInfoResult::Queued(

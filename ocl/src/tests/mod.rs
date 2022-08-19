@@ -22,7 +22,7 @@ pub mod context_props;
 pub mod r#async;
 pub mod buffer_sink_stream_cycles;
 
-use self::rand::Rng;
+use rand::{Rng, rngs::SmallRng, SeedableRng};
 use crate::core::OclScl;
 use crate::error::{Result as OclResult};
 
@@ -32,18 +32,18 @@ const PRINT: bool = false;
 
 
 fn gen_region_origin(dims: &[usize; 3]) -> ([usize; 3], [usize; 3]) {
-    let mut rng = rand::weak_rng();
+    let mut rng = SmallRng::from_entropy();
 
     let region = [
-        rng.gen_range(1, dims[0] + 1),
-        rng.gen_range(1, dims[1] + 1),
-        rng.gen_range(1, dims[2] + 1),
+        rng.gen_range(1..dims[0] + 1),
+        rng.gen_range(1..dims[1] + 1),
+        rng.gen_range(1..dims[2] + 1),
     ];
 
     let origin = [
-        rng.gen_range(0, (dims[0] - region[0]) + 1),
-        rng.gen_range(0, (dims[1] - region[1]) + 1),
-        rng.gen_range(0, (dims[2] - region[2]) + 1),
+        rng.gen_range(0..(dims[0] - region[0]) + 1),
+        rng.gen_range(0..(dims[1] - region[1]) + 1),
+        rng.gen_range(0..(dims[2] - region[2]) + 1),
     ];
 
     (origin, region)

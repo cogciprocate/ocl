@@ -20,11 +20,11 @@ ocl = { path = "../ocl", version = "0.19" }
 [dev-dependencies]
 gl = "0.9"
 # Red test
-sdl2 = "0.31"
+sdl2 = "0.34"
 # Green test
 glutin = "0.12"
 # Blue test
-glfw = "0.20"
+glfw = "0.41"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cgl = "^0.2"

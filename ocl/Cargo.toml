@@ -58,18 +58,18 @@ default = ["opencl_version_1_1", "opencl_version_1_2"]
 
 [dependencies]
 nodrop = "0.1"
-failure = "0.1"
+thiserror = "1.0"
 num-traits = "0.2"
 futures = "0.1"
-qutex = "0.2"
+qutex = { git = "https://github.com/cogciprocate/qutex.git" }
 ocl-core = { version = "~0.11.2", path = "../ocl-core" }
 
 [dev-dependencies]
 find_folder = "0.3"
 colorify = "~0.2.3"
-time = "0.1"
-rand = "0.4"
-chrono = "0.2"
+time = "0.3"
+rand = "0.8"
+chrono = "0.4"
 futures-cpupool = "0.1"
-lazy_static = "0.2"
+lazy_static = "1.4"
 ocl-extras = { version = "0.1", path = "ocl-extras" }
