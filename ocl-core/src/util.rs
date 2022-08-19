@@ -69,22 +69,22 @@ pub mod colors {
 //=============================================================================
 
 /// An error caused by a utility function.
-#[derive(Debug, Fail)]
+#[derive(Debug, thiserror::Error)]
 pub enum UtilError {
-    #[fail(display = "The size of the source byte slice ({} bytes) does not match \
-        the size of the destination type ({} bytes).", src, dst)]
+    #[error("The size of the source byte slice ({src} bytes) does not match \
+        the size of the destination type ({dst} bytes).")]
     BytesTo { src: usize, dst: usize, },
-    #[fail(display = "The size of the source byte vector ({} bytes) does not match \
-        the size of the destination type ({} bytes).", src, dst)]
+    #[error("The size of the source byte vector ({src} bytes) does not match \
+        the size of the destination type ({dst} bytes).")]
     BytesInto { src: usize, dst: usize, },
-    #[fail(display = "The size of the source byte vector ({} bytes) is not evenly \
-        divisible by the size of the destination type ({} bytes).", src, dst)]
+    #[error("The size of the source byte vector ({src} bytes) is not evenly \
+        divisible by the size of the destination type ({dst} bytes).")]
     BytesIntoVec { src: usize, dst: usize, },
-    #[fail(display = "The size of the source byte slice ({} bytes) is not evenly \
-        divisible by the size of the destination type ({} bytes).", src, dst)]
+    #[error("The size of the source byte slice ({src} bytes) is not evenly \
+        divisible by the size of the destination type ({dst} bytes).")]
     BytesToVec { src: usize, dst: usize, },
-    #[fail(display = "Unable to convert bytes into string: {}", _0)]
-    BytesIntoString(#[cause] FromUtf8Error),
+    #[error("Unable to convert bytes into string: {0}")]
+    BytesIntoString(#[from] FromUtf8Error),
 }
 
 /// Copies a byte slice to a new `u32`.
@@ -110,7 +110,7 @@ pub fn bytes_to_u32(bytes: &[u8]) -> u32 {
 ///
 pub unsafe fn bytes_to<T>(bytes: &[u8]) -> Result<T, UtilError> {
     if mem::size_of::<T>() == bytes.len() {
-        let mut new_val: T = mem::uninitialized();
+        let mut new_val: T = mem::MaybeUninit::uninit().assume_init();
         ptr::copy(bytes.as_ptr(), &mut new_val as *mut _ as *mut u8, bytes.len());
         Ok(new_val)
     } else {
@@ -131,7 +131,7 @@ pub unsafe fn bytes_to<T>(bytes: &[u8]) -> Result<T, UtilError> {
 //
 pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> Result<T, UtilError> {
     if mem::size_of::<T>() == vec.len() {
-        let mut new_val: T = mem::uninitialized();
+        let mut new_val = mem::MaybeUninit::uninit().assume_init();
         ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec.len());
         Ok(new_val)
     } else {
@@ -242,12 +242,12 @@ pub fn padded_len(len: usize, incr: usize) -> usize {
 
 
 /// An error caused by `util::vec_remove_rebuild`.
-#[derive(Fail, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum VecRemoveRebuildError {
-    #[fail(display = "Remove list is longer than source vector.")]
+    #[error("Remove list is longer than source vector.")]
     TooLong,
-    #[fail(display = "'remove_list' contains at least one out of range index: [{}] \
-        ('orig_vec' length: {}).", idx, orig_len)]
+    #[error("'remove_list' contains at least one out of range index: [{idx}] \
+        ('orig_vec' length: {orig_len}).")]
     OutOfRange { idx: usize, orig_len: usize },
 }
 

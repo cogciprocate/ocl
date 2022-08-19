@@ -13,39 +13,39 @@ use crate::core::ffi::c_void;
 use crate::core::{self, util, OclPrm, Kernel as KernelCore, CommandQueue as CommandQueueCore, Mem as MemCore,
     ArgVal, KernelInfo, KernelInfoResult, KernelArgInfo, KernelArgInfoResult,
     KernelWorkGroupInfo, KernelWorkGroupInfoResult, AsMem, MemCmdAll, ClVersions};
-use crate::core::error::{ErrorKind as OclCoreErrorKind};
-use crate::error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
+use crate::core::error::{Error as OclCoreErrorKind};
+use crate::error::{Error as OclError, Result as OclResult};
 use crate::standard::{SpatialDims, Program, Queue, WorkDims, Sampler, Device, ClNullEventPtrEnum,
     ClWaitListPtrEnum, Buffer, Image};
 pub use self::arg_type::{BaseType, Cardinality, ArgType};
 
 
 /// An error related to a `Kernel`, `KernelBuilder`, or `KernelCmd`.
-#[derive(Debug, Fail)]
+#[derive(Debug, thiserror::Error)]
 pub enum KernelError {
-    #[fail(display = "No queue specified.")]
+    #[error("No queue specified.")]
     CmdNoQueue,
-    #[fail(display = "Global Work Size cannot be left unspecified. Set a default for \
+    #[error("Global Work Size cannot be left unspecified. Set a default for \
         the kernel or specify one when enqueuing command.")]
     CmdNoGws,
-    #[fail(display = "Unable to resolve argument named: '{}'. Ensure that an argument with \
-        that name has been declared before building kernel.", _0)]
+    #[error("Unable to resolve argument named: '{0}'. Ensure that an argument with \
+        that name has been declared before building kernel.")]
     NamedArgsInvalidArgName(String),
-    #[fail(display = "No named arguments have been declared. Declare named arguments \
+    #[error("No named arguments have been declared. Declare named arguments \
         when before building kernel.")]
     NamedArgsNone,
-    #[fail(display = "Kernel arg index out of range. (kernel: {}, index: {})", _0, _1)]
+    #[error("Kernel arg index out of range. (kernel: {0}, index: {1})")]
     ArgIdxOor(String, u32),
-    #[fail(display = "Kernel argument type mismatch. The argument named: '{}' at index: [{}] \
-        should be a '{}' ({:?}).", arg_name, idx, ty_name, ty)]
+    #[error("Kernel argument type mismatch. The argument named: '{arg_name}' at index: [{idx}] \
+        should be a '{ty_name}' ({ty:?}).")]
     ArgTypeMismatch { idx: u32, arg_name: String, ty_name: String, ty: ArgType },
-    #[fail(display = "No program specified.")]
+    #[error("No program specified.")]
     BuilderNoProgram,
-    #[fail(display = "No kernel name specified.")]
+    #[error("No kernel name specified.")]
     BuilderNoKernelName,
-    #[fail(display = "The wrong number of kernel arguments have been specified \
-        (required: {}, specified: {}). Use named arguments with 'None' or zero values to \
-        declare arguments you plan to assign a value to at a later time.", required, specified)]
+    #[error("The wrong number of kernel arguments have been specified \
+        (required: {required}, specified: {specified}). Use named arguments with 'None' or zero values to \
+        declare arguments you plan to assign a value to at a later time.")]
     BuilderWrongArgCount { required: u32, specified: u32 },
 }
 
@@ -1435,8 +1435,8 @@ impl<'b> KernelBuilder<'b> {
                     at
                 },
                 Err(err) => {
-                    if let OclErrorKind::OclCore(ref core_err) = *err.kind() {
-                        if let OclCoreErrorKind::VersionLow { .. } = *core_err.kind() {
+                    if let OclError::OclCore(ref core_err) = err {
+                        if let OclCoreErrorKind::VersionLow { .. } = core_err {
                             disable_arg_check = true;
                             break;
                         }
@@ -1525,7 +1525,7 @@ pub mod arg_type {
     use crate::ffi::{cl_char, cl_uchar, cl_short, cl_ushort, cl_int, cl_uint, cl_long, cl_ulong,
         cl_half, cl_float, cl_double, cl_bool, cl_bitfield};
     use crate::core::{Error as OclCoreError, Result as OclCoreResult, Status, OclPrm, Kernel as KernelCore};
-    use crate::error::{Error as OclError, Result as OclResult, ErrorKind as OclErrorKind};
+    use crate::error::{Error as OclError, Result as OclResult};
     use crate::standard::Sampler;
     use super::{arg_info, arg_type_name};
 
@@ -1660,14 +1660,14 @@ pub mod arg_type {
         /// if any are found.
         pub fn from_kern_and_idx(core: &KernelCore, arg_idx: u32) -> OclResult<ArgType> {
             use crate::core::EmptyInfoResultError;
-            use crate::core::ErrorKind as OclCoreErrorKind;
+            use crate::core::Error as OclCoreErrorKind;
 
             match arg_type_name(core, arg_idx) {
                 Ok(type_name) => ArgType::from_str(type_name.as_str()),
                 Err(err) => {
                     // Escape hatches for known, platform-specific errors.
-                    if let OclErrorKind::OclCore(ref core_err) = *err.kind() {
-                        match *core_err.kind() {
+                    if let OclError::OclCore(ref core_err) = err {
+                        match *core_err {
                             OclCoreErrorKind::Api(ref api_err) => {
                                 if api_err.status() == Status::CL_KERNEL_ARG_INFO_NOT_AVAILABLE {
                                     return ArgType::unknown().map_err(OclError::from);

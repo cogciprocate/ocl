@@ -588,7 +588,7 @@ impl ContextProperties {
             let key_raw = *raw_context_properties.get_unchecked(idz);
             let val_raw = *raw_context_properties.get_unchecked(idz + 1);
 
-            let key = ContextProperty::from_isize(key_raw).ok_or_else(|| OclCoreError::from(
+            let key = ContextProperty::from_isize(key_raw).ok_or_else(|| OclCoreError::String(
                 format!("ContextProperties::from_raw: Unable to convert '{}' using \
                     'ContextProperty::from_isize'.", key_raw)))?;
 

@@ -126,12 +126,12 @@ pub trait ClVersions {
     fn platform_version(&self) -> OclCoreResult<OpenclVersion>;
 
     fn verify_device_versions(&self, required_version: [u16; 2]) -> OclCoreResult<()> {
-        functions::verify_versions(&r#try!(self.device_versions()), required_version,
+        functions::verify_versions(&self.device_versions()?, required_version,
             ApiFunction::None, VersionKind::Device)
     }
 
     fn verify_platform_version(&self, required_version: [u16; 2]) -> OclCoreResult<()> {
-        let ver = [r#try!(self.platform_version())];
+        let ver = [self.platform_version()?];
         functions::verify_versions(&ver, required_version, ApiFunction::None,
             VersionKind::Platform)
     }
@@ -377,7 +377,7 @@ unsafe impl Send for PlatformId {}
 
 impl ClVersions for PlatformId {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let devices = r#try!(functions::get_device_ids(self, Some(DeviceType::ALL), None));
+        let devices = functions::get_device_ids(self, Some(DeviceType::ALL), None)?;
         functions::device_versions(&devices)
     }
 
@@ -543,12 +543,12 @@ unsafe impl<'a> ClContextPtr for &'a Context {
 
 impl ClVersions for Context {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let devices = r#try!(self.devices());
+        let devices = self.devices()?;
         functions::device_versions(&devices)
     }
 
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
-        let devices = r#try!(self.devices());
+        let devices = self.devices()?;
         devices[0].platform_version()
     }
 }
@@ -642,12 +642,12 @@ unsafe impl Send for CommandQueue {}
 
 impl ClVersions for CommandQueue{
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let device = r#try!(self.device());
+        let device = self.device()?;
         device.version().map(|dv| vec![dv])
     }
 
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
-        r#try!(self.device()).platform_version()
+        self.device()?.platform_version()
     }
 }
 
@@ -831,12 +831,12 @@ unsafe impl Send for Program {}
 
 impl ClVersions for Program {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let devices = r#try!(self.devices());
+        let devices = self.devices()?;
         functions::device_versions(&devices)
     }
 
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
-        let devices = r#try!(self.devices());
+        let devices = self.devices()?;
         devices[0].platform_version()
     }
 }
@@ -916,12 +916,12 @@ impl Drop for Kernel {
 
 impl ClVersions for Kernel {
     fn device_versions(&self) -> OclCoreResult<Vec<OpenclVersion>> {
-        let devices = r#try!(r#try!(self.program()).devices());
+        let devices = self.program()?.devices()?;
         functions::device_versions(&devices)
     }
 
     fn platform_version(&self) -> OclCoreResult<OpenclVersion> {
-        let devices = r#try!(r#try!(self.program()).devices());
+        let devices = self.program()?.devices()?;
         devices[0].platform_version()
     }
 }

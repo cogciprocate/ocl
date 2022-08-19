@@ -42,13 +42,14 @@ use std::path::Path;
 use ocl::{Context, Queue, Device, Program, Image, Kernel};
 use ocl::enums::{ImageChannelOrder, ImageChannelDataType, MemObjectType};
 use find_folder::Search;
+use std::time::Instant;
 
 
-fn print_elapsed(title: &str, start: time::Timespec) {
-    let time_elapsed = time::get_time() - start;
+fn print_elapsed(title: &str, start: Instant) {
+    let time_elapsed = start.elapsed();
     let elapsed_ms = time_elapsed.num_milliseconds();
     let separator = if title.len() > 0 { ": " } else { "" };
-    println!("    {}{}{}.{:03}", title, separator, time_elapsed.num_seconds(), elapsed_ms);
+    println!("    {}{}{}.{:03}", title, separator, time_elapsed.as_secs(), time_elapsed.subsec_millis());
 }
 
 
@@ -117,7 +118,7 @@ fn main() {
 
     printlnc!(royal_blue: "\nRunning kernel (unrolled)...");
     printlnc!(white_bold: "image dims: {:?}", &dims);
-    let start_time = time::get_time();
+    let start_time = Instant::now();
 
     unsafe { kernel.enq().unwrap(); }
     print_elapsed("kernel enqueued", start_time);
@@ -211,7 +212,7 @@ fn main() {
         gws_patch_count.0 * patch_size, gws_patch_count.1 * patch_size);
     printlnc!(white_bold: "edges dims: {:?}", edge_sizes);
 
-    let start_time = time::get_time();
+    let start_time = Instant::now();
 
     unsafe {
         kernel_bulk.enq().unwrap();

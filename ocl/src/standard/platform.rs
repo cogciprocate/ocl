@@ -12,9 +12,9 @@ use crate::core::{self, PlatformId as PlatformIdCore, PlatformInfo, PlatformInfo
 use crate::error::{Error as OclError, Result as OclResult};
 
 
-#[derive(Debug, Fail)]
+#[derive(Debug, thiserror::Error)]
 pub enum PlatformError {
-    #[fail(display = "No platforms found.")]
+    #[error("No platforms found.")]
     NoPlatforms,
 }
 

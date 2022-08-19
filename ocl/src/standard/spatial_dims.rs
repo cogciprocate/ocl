@@ -8,8 +8,8 @@ use crate::standard::{MemLen, WorkDims};
 use crate::core::util;
 
 
-#[derive(Debug, Fail)]
-#[fail(display = "Cannot convert to a valid set of dimensions. \
+#[derive(Debug, thiserror::Error)]
+#[error("Cannot convert to a valid set of dimensions. \
     Please specify some dimensions.")]
 pub struct UnspecifiedDimensionsError;
 

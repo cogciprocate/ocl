@@ -10,14 +10,13 @@ use crate::standard::Platform;
 
 
 /// A device related error.
-#[derive(Debug, Fail)]
+#[derive(Debug, thiserror::Error)]
 pub enum DeviceError {
-    #[fail(display = "No devices found on the specified platform.")]
+    #[error("No devices found on the specified platform.")]
     NoDevices,
-    #[fail(display = "Empty device list provided.")]
+    #[error("Empty device list provided.")]
     ResolveIdxsEmptyDeviceList,
-    #[fail(display = "An index in the resolve list is out of range (index: {}, max: {})",
-        idx, max)]
+    #[error("An index in the resolve list is out of range (index: {idx}, max: {max})")]
     ResolveIdxsInvalidIndex { idx: usize, max: usize },
 }
 
