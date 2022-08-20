@@ -131,7 +131,7 @@ pub unsafe fn bytes_to<T>(bytes: &[u8]) -> Result<T, UtilError> {
 //
 pub unsafe fn bytes_into<T>(vec: Vec<u8>) -> Result<T, UtilError> {
     if mem::size_of::<T>() == vec.len() {
-        let mut new_val = mem::MaybeUninit::uninit().assume_init();
+        let mut new_val: T = mem::MaybeUninit::uninit().assume_init();
         ptr::copy(vec.as_ptr(), &mut new_val as *mut _ as *mut u8, vec.len());
         Ok(new_val)
     } else {

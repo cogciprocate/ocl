@@ -267,7 +267,7 @@ fn sdl2_works() {
 
     let gl_context = canvas.window().gl_create_context().unwrap();
 
-    let thing: &mut TestContent = &mut CLGenVBO::new();
+    let thing: &mut dyn TestContent = &mut CLGenVBO::new();
     // let thing:&mut TestContent=&mut CLMultiplyByScalar::new();
 
     gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
@@ -318,7 +318,7 @@ fn glutin_works() {
     let context = glutin::ContextBuilder::new().with_vsync(true);
     let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
     // let thing:&mut TestContent=&mut CLGenVBO::new();
-    let thing: &mut TestContent = &mut CLGenVBO::new();
+    let thing: &mut dyn TestContent = &mut CLGenVBO::new();
 
     unsafe {
         // Activate the window's context
@@ -374,7 +374,7 @@ fn glfw_works() {
     glfw::Context::make_current(&mut window);
     window.set_key_polling(true);
 
-    let thing: &mut TestContent = &mut CLGenVBO::new();
+    let thing: &mut dyn TestContent = &mut CLGenVBO::new();
 
     unsafe {
         gl::ClearColor(0.0, 0.5, 1.0, 1.0);
