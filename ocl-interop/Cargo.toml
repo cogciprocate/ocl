@@ -22,7 +22,7 @@ gl = "0.14"
 # Red test
 sdl2 = "0.35"
 # Green test
-glutin = "0.14"
+glutin = "0.29"
 # Blue test
 glfw = "0.45"
 
