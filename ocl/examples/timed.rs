@@ -80,7 +80,7 @@ fn timed() -> ocl::Result<()> {
     println!("Enqueuing {} kernel runs... ", KERNEL_RUN_ITERS);
 
     // Start kernel timer
-    let kern_start = time::get_time();
+    let kern_start = Instant::now();
 
     // Enqueue kernel the first time:
     unsafe {
@@ -110,7 +110,7 @@ fn timed() -> ocl::Result<()> {
     println!("Enqueuing {} buffer reads... ", BUFFER_READ_ITERS);
 
     // Start kernel timer
-    let buffer_start = time::get_time();
+    let buffer_start = Instant::now();
 
     // Read results from the device into buffer's local vector:
     for _ in 0..BUFFER_READ_ITERS {
@@ -130,7 +130,7 @@ fn timed() -> ocl::Result<()> {
     print!("\n");
     println!("Enqueuing {} blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
 
-    let kern_buf_start = time::get_time();
+    let kern_buf_start = Instant::now();
 
     for _ in 0..(KERNEL_AND_BUFFER_ITERS) {
         unsafe { kern.enq()?; }
@@ -150,7 +150,7 @@ fn timed() -> ocl::Result<()> {
     print!("\n");
     println!("Enqueuing {} non-blocking kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
 
-    let kern_buf_start = time::get_time();
+    let kern_buf_start = Instant::now();
 
     let mut kern_events = EventList::new();
     let mut buf_events = EventList::new();
@@ -182,7 +182,7 @@ fn timed() -> ocl::Result<()> {
     print!("\n");
     println!("Enqueuing another {} kernel buffer sequences... ", KERNEL_AND_BUFFER_ITERS);
 
-    let kern_buf_start = time::get_time();
+    let kern_buf_start = Instant::now();
 
     for _ in 0..KERNEL_AND_BUFFER_ITERS {
         unsafe { kern.cmd().enew(&mut kern_events).enq()?; }
@@ -207,7 +207,7 @@ fn timed() -> ocl::Result<()> {
 // Convert back to this once `Instant` stabilizes:
 //
 // fn print_elapsed(title: &str, start: Instant) {
-//     let time_elapsed = time::get_time() - start;
+//     let time_elapsed = Instant::now(); - start;
 //     // let time_elapsed = time::get_time().duration_since(start);
 //     let elapsed_ms = time_elapsed.subsec_nanos() / 1000000;
 //     let separator = if title.len() > 0 { ": " } else { "" };
@@ -218,7 +218,6 @@ fn timed() -> ocl::Result<()> {
 
 fn print_elapsed(title: &str, start: Instant) {
     let time_elapsed = start.elapsed();
-    let elapsed_ms = time_elapsed.num_milliseconds();
     let separator = if title.len() > 0 { ": " } else { "" };
     println!("    {}{}{}.{:03}", title, separator, time_elapsed.as_secs(), time_elapsed.subsec_millis());
 }

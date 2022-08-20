@@ -47,15 +47,14 @@ use std::time::Instant;
 
 fn print_elapsed(title: &str, start: Instant) {
     let time_elapsed = start.elapsed();
-    let elapsed_ms = time_elapsed.num_milliseconds();
     let separator = if title.len() > 0 { ": " } else { "" };
     println!("    {}{}{}.{:03}", title, separator, time_elapsed.as_secs(), time_elapsed.subsec_millis());
 }
 
 
 fn read_source_image(loco : &str) -> image::ImageBuffer<image::Rgba<u8>, Vec<u8>> {
-    let dyn = image::open(&Path::new(loco)).unwrap();
-    let img = dyn.to_rgba();
+    let dyn_image = image::open(&Path::new(loco)).unwrap();
+    let img = dyn_image.to_rgba8();
     img
 }
 

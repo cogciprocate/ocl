@@ -18,16 +18,16 @@ ocl = { path = "../ocl", version = "0.19" }
 
 # For tests
 [dev-dependencies]
-gl = "0.9"
+gl = "0.14"
 # Red test
-sdl2 = "0.34"
+sdl2 = "0.35"
 # Green test
-glutin = "0.12"
+glutin = "0.14"
 # Blue test
-glfw = "0.41"
+glfw = "0.45"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cgl = "^0.2"
 
 [build-dependencies]
-gl_generator = "^0.5"
+gl_generator = "^0.14"
