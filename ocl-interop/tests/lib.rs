@@ -231,10 +231,10 @@ impl TestContent for CLGenVBO {
 fn all_works() {
     // Red
     sdl2_works();
-    // Green
-    glutin_works();
     // Blue
     glfw_works();
+    // Green
+    glutin_works(); // needs to be last because the event loop never returns
 }
 
 fn sdl2_works() {
@@ -310,52 +310,59 @@ fn sdl2_works() {
 }
 
 fn glutin_works() {
-    use glutin::GlContext;
-    let mut events_loop = glutin::EventsLoop::new();
-    let window = glutin::WindowBuilder::new()
+    use glutin::event::{Event, WindowEvent};
+    use glutin::event_loop::{ControlFlow, EventLoopBuilder};
+    use glutin::window::WindowBuilder;
+    use glutin::ContextBuilder;
+    use glutin::dpi::*;
+
+    #[cfg(target_os = "windows")]
+    use glutin::platform::windows::EventLoopBuilderExtWindows;
+    #[cfg(target_os = "unix")]
+    use glutin::platform::windows::EventLoopBuilderExtUnix;
+
+    let events_loop = EventLoopBuilder::new().with_any_thread(true).build();
+    let window = WindowBuilder::new()
         .with_title("Glutin Window")
-        .with_dimensions(WINDOW_WIDTH, WINDOW_HEIGHT);
-    let context = glutin::ContextBuilder::new().with_vsync(true);
-    let gl_window = glutin::GlWindow::new(window, context, &events_loop).unwrap();
-    // let thing:&mut TestContent=&mut CLGenVBO::new();
-    let thing: &mut dyn TestContent = &mut CLGenVBO::new();
+        .with_inner_size(PhysicalSize { width: WINDOW_WIDTH, height: WINDOW_HEIGHT });
+    let gl_window = ContextBuilder::new().with_vsync(true).build_windowed(window, &events_loop).unwrap();
 
-    unsafe {
-        // Activate the window's context
-        gl_window.make_current().unwrap();
+    let mut thing = CLGenVBO::new();
 
-        // Load GL Functions
-        gl::load_with(|symbol| gl_window.get_proc_address(symbol) as *const _);
-        gl::ClearColor(0.0, 1.0, 0.333, 1.0);
-    }
+    // Activate the window's context
+    let gl_window = unsafe { gl_window.make_current().unwrap() };
+
+    gl::load_with(|symbol| gl_window.context().get_proc_address(symbol) as *const _);
+    unsafe { gl::ClearColor(0.0, 1.0, 0.333, 1.0); }
+
     thing.init();
 
     let mut frame_count = 0;
-    let mut running = true;
-
-    while running && frame_count < MAX_FRAME_COUNT {
-        events_loop.poll_events(|event| match event {
-            glutin::Event::WindowEvent { event, .. } => match event {
-                glutin::WindowEvent::Closed => running = false,
-                glutin::WindowEvent::Resized(w, h) => gl_window.resize(w, h),
+    events_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Poll;
+        match event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::CloseRequested => { *control_flow = ControlFlow::Exit; },
+                WindowEvent::Resized(physical_size) => gl_window.resize(physical_size),
                 _ => (),
             },
+            Event::RedrawRequested(_) => {
+                thing.render();
+                gl_window.swap_buffers().unwrap();
+                frame_count += 1;
+                if frame_count >= MAX_FRAME_COUNT {
+                    *control_flow = ControlFlow::Exit;
+                }
+            },
+            Event::MainEventsCleared => {
+                gl_window.window().request_redraw();
+            },
+            Event::LoopDestroyed => {
+                thing.clean_up();
+            },
             _ => (),
-        });
-
-        // Activate the window's context
-        unsafe {
-            gl_window.make_current().unwrap();
         }
-        thing.render();
-
-        gl_window.swap_buffers().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(5));
-        frame_count += 1;
-    }
-
-    gl_window.hide();
-    thing.clean_up();
+    });
 }
 
 fn glfw_works() {
