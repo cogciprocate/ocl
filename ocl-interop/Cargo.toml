@@ -27,7 +27,7 @@ glutin = "0.29"
 glfw = "0.45"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cgl = "^0.2"
+cgl = "^0.3"
 
 [build-dependencies]
 gl_generator = "^0.14"
