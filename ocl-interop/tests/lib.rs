@@ -318,10 +318,15 @@ fn glutin_works() {
 
     #[cfg(target_os = "windows")]
     use glutin::platform::windows::EventLoopBuilderExtWindows;
-    #[cfg(target_os = "unix")]
-    use glutin::platform::windows::EventLoopBuilderExtUnix;
+    #[cfg(target_os = "linux")]
+    use glutin::platform::unix::EventLoopBuilderExtUnix;
 
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
     let events_loop = EventLoopBuilder::new().with_any_thread(true).build();
+
+    #[cfg(target_os = "macos")]
+    let events_loop = EventLoopBuilder::new().build();
+
     let window = WindowBuilder::new()
         .with_title("Glutin Window")
         .with_inner_size(PhysicalSize { width: WINDOW_WIDTH, height: WINDOW_HEIGHT });
