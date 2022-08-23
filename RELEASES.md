@@ -1,7 +1,9 @@
-Version 0. ()
+Version 0.19.4 (2022-08-23)
 ===========================
 
-* Update to Rust 2018 Edition.
+* Migrate from failure to thiserror
+* Update edition (needs further update now :).
+* Fix warnings and Github security alerts.
 
 
 Version 0.19.3 (2019-06-19)
