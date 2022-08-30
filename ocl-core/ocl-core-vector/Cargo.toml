@@ -1,6 +1,6 @@
 [package]
 name = "ocl-core-vector"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Nick Sanders <cogciprocate@gmail.com>"]
 description = "OpenCL-compatible vector primitive types."
 # documentation = "http://doc.cogciprocate.com/ocl_core/ocl_core/index.html"
