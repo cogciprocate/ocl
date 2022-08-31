@@ -235,7 +235,48 @@ mod traits {
     /// and their vector counterparts (ex.: cl_int4, cl_float3, cl_short16);
     ///
     /// Can also be implemented for custom types as long as layout and
-    /// alignment are conserved between Rust and OpenCL (repr "C").
+    /// alignment are conserved between Rust and OpenCL (repr "C"), and where
+    /// every possible bit configuration can be interpreted as a valid Rust type.
+    ///
+    /// See the [Nomicon] for more information on valid and invalid bit configurations for types.
+    ///
+    /// ## Examples of valid and invalid implementing types
+    ///
+    /// ### Valid
+    /// ```rust,ignore
+    /// #[repr(C)]
+    /// struct Valid{
+    ///     a: f32,
+    ///     b: u8,
+    /// }
+    /// ```
+    ///
+    /// Here, the layout is valid (`#[repr(C)]`), and any byte configuration are valid,
+    /// as any appropriately-sized byte slice can be interpreted as  u8, u16, u32, u64, f32 and f64.
+    ///
+    /// ### Invalid
+    /// ```rust,ignore
+    /// #[repr(C)]
+    /// struct Invalid{
+    ///     a: char,
+    ///     b: u16,
+    /// }
+    /// ```
+    ///
+    /// Here, while the layout is still valid, the presence of a `char` member makes it invalid,
+    /// as a char is only valid inside the ranges \[0x0, 0xD7FF\] and \[0xE000, 0x10FFFF\].
+    ///
+    /// ```rust,ignore
+    /// #[repr(C)]
+    /// struct Invalid{
+    ///     a: f32,
+    ///     b: bool,
+    /// }
+    /// ```
+    ///
+    /// Here the `bool` makes it invalid, as a bool is only valid on values 0 and 1.
+    ///
+    /// [Nomicon]: https://doc.rust-lang.org/nomicon/what-unsafe-does.html?highlight=primitive#what-unsafe-rust-can-do
     pub unsafe trait OclPrm: Debug + Clone + Copy + Default + PartialEq + Send + Sync + 'static {}
 
     impl_unsafe!(OclPrm: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64,
