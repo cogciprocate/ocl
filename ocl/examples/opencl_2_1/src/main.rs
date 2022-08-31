@@ -32,7 +32,7 @@ fn main() -> Result<(), ocl::Error> {
     println!("Choosing platorm...");
 
     #[cfg(feature = "opencl_version_2_1")]
-    let platform = Platform::list().into_iter().find(|plat| plat.name().unwrap() == PLATFORM_NAME)
+    let platform = Platform::list().unwrap().into_iter().find(|plat| plat.name().unwrap() == PLATFORM_NAME)
         .unwrap_or(Platform::default());
 
     #[cfg(not(feature = "opencl_version_2_1"))]
@@ -97,5 +97,3 @@ fn main() -> Result<(), ocl::Error> {
     // println!("The value at index [{}] is now '{}'!", 200007, vec[200007]);
     Ok(())
 }
-
-
