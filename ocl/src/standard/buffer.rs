@@ -2038,8 +2038,17 @@ impl<T: OclPrm> Buffer<T> {
                 offset, len, buffer_len).into());
         }
 
-        let obj_core = core::create_sub_buffer::<T>(self, flags,
-            &BufferRegion::new(offset, len))?;
+        let (offset,obj_core) = if let Some(parent_offset) =  self.offset(){
+            let offset = parent_offset+offset;
+            let reg = BufferRegion::new(offset, len);
+            (offset,match self.mem_info(MemInfo::AssociatedMemobject).unwrap() {
+                MemInfoResult::AssociatedMemobject(Some(parent)) => core::create_sub_buffer::<T>(&parent, flags,&reg)?,
+                _ => unreachable!(),
+            })
+        }else{
+            let reg = BufferRegion::new(offset, len);
+            (offset,core::create_sub_buffer::<T>(self, flags,&reg)?)
+        };
 
         Ok(Buffer {
             obj_core,
