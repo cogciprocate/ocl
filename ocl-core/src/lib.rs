@@ -236,6 +236,9 @@ mod traits {
     ///
     /// Can also be implemented for custom types as long as layout and
     /// alignment are conserved between Rust and OpenCL (repr "C").
+    /// 
+    /// On some platforms (repr "C") might not be enough. At least this appears 
+    /// to be the case when using the Apple's M1 driver.
     pub unsafe trait OclPrm: Debug + Clone + Copy + Default + PartialEq + Send + Sync + 'static {}
 
     impl_unsafe!(OclPrm: u8, i8, u16, i16, u32, i32, u64, i64, usize, isize, f32, f64,
